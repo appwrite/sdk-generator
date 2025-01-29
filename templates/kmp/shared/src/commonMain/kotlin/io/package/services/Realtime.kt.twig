@@ -1,5 +1,19 @@
 package {{ sdk.namespace | caseDot }}.services
 
+import {{ sdk.namespace | caseDot }}.Client
+import {{ sdk.namespace | caseDot }}.Service
+import {{ sdk.namespace | caseDot }}.exceptions.AppwriteException
+import {{ sdk.namespace | caseDot }}.extensions.forEachAsync
+import {{ sdk.namespace | caseDot }}.extensions.fromJson
+import {{ sdk.namespace | caseDot }}.extensions.getSerializer
+import {{ sdk.namespace | caseDot }}.extensions.json
+import {{ sdk.namespace | caseDot }}.extensions.jsonCast
+import {{ sdk.namespace | caseDot }}.extensions.toJson
+import {{ sdk.namespace | caseDot }}.models.RealtimeCallback
+import {{ sdk.namespace | caseDot }}.models.RealtimeCode
+import {{ sdk.namespace | caseDot }}.models.RealtimeResponse
+import {{ sdk.namespace | caseDot }}.models.RealtimeResponseEvent
+import {{ sdk.namespace | caseDot }}.models.RealtimeSubscription
 import io.ktor.client.plugins.websocket.DefaultClientWebSocketSession
 import io.ktor.client.plugins.websocket.webSocketSession
 import io.ktor.client.request.url

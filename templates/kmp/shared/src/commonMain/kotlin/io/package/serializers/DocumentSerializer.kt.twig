@@ -1,7 +1,7 @@
 package {{ sdk.namespace | caseDot }}.serializers
 
-import {{ sdk.namespace | caseDot }}.extensions.json
-import {{ sdk.namespace | caseDot }}.models.Document
+import io.appwrite.extensions.json
+import io.appwrite.models.Document
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
@@ -11,8 +11,8 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.encodeToJsonElement
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
@@ -24,7 +24,7 @@ class DocumentSerializer<T>(private val dataSerializer: KSerializer<T>) : KSeria
         element("\$databaseId", String.serializer().descriptor)
         element("\$createdAt", String.serializer().descriptor)
         element("\$updatedAt", String.serializer().descriptor)
-        element("\$permissions", ListSerializer(DynamicLookupSerializer).descriptor)
+        element("\$permissions", ListSerializer(String.serializer()).descriptor)
         element("data", dataSerializer.descriptor)
     }
 
@@ -37,9 +37,7 @@ class DocumentSerializer<T>(private val dataSerializer: KSerializer<T>) : KSeria
         val databaseId = jsonObject["\$databaseId"]?.jsonPrimitive?.content ?: ""
         val createdAt = jsonObject["\$createdAt"]?.jsonPrimitive?.content ?: ""
         val updatedAt = jsonObject["\$updatedAt"]?.jsonPrimitive?.content ?: ""
-        val permissions = jsonObject["\$permissions"]?.let {
-            json.decodeFromJsonElement<List<Any>>(it)
-        } ?: listOf()
+        val permissions = jsonObject["\$permissions"]?.jsonArray?.map { it.jsonPrimitive.content } ?: listOf()
 
         // Create data object from remaining fields
         val dataObject = buildJsonObject {

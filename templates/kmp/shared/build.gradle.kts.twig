@@ -103,7 +103,6 @@ kotlin {
         androidMain.dependencies {
             implementation(libs.androidx.core.ktx)
             implementation(libs.androidx.appcompat)
-            implementation(libs.androidx.browser.v170)
             implementation(libs.androidx.lifecycle.livedata.ktx)
             implementation(libs.androidx.lifecycle.viewmodel.ktx)
             implementation(libs.androidx.navigation.fragment.ktx)
@@ -126,6 +125,12 @@ kotlin {
 
         androidUnitTest.dependencies {
             implementation(libs.junit)
+            implementation(libs.androidx.test.core)
+            implementation(libs.androidx.junit)
+            implementation(libs.androidx.test.runner)
+            implementation(libs.robolectric)
+            implementation(libs.kotlinx.coroutines.test)
+            implementation(libs.ktor.client.mock)
         }
 
         androidInstrumentedTest.dependencies {
@@ -184,24 +189,21 @@ publishing {
     }
 }
 
-signing {
-    val signingKeyId = System.getenv("SIGNING_KEY_ID")
-    val signingPassword = System.getenv("SIGNING_PASSWORD")
-    val signingSecretKeyRingFile = System.getenv("SIGNING_SECRET_KEY_RING_FILE")
-    useInMemoryPgpKeys(signingKeyId, File(signingSecretKeyRingFile).readText(), signingPassword)
-    sign(publishing.publications)
-}
-
-
 android {
     namespace = "io.appwrite"
     compileSdk = 35
     defaultConfig {
         minSdk = 21
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
+    }
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+        }
     }
 }
 dependencies {

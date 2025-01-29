@@ -13,7 +13,7 @@ class CallbackActivity : Activity() {
         if (scheme != null) {
             // Found a scheme, try to callback to web auth component.
             // Will only succeed if the scheme matches one launched by this sdk.
-            WebAuthComponent.onCallback(scheme, url)
+            WebAuthComponent.onCallback(scheme, url.toString())
         }
         finish()
     }

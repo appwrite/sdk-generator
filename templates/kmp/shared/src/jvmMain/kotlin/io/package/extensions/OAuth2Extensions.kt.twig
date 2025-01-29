@@ -1,0 +1,25 @@
+package {{ sdk.namespace | caseDot }}.extensions
+
+import androidx.activity.ComponentActivity
+import {{ sdk.namespace | caseDot }}.WebAuthComponent
+
+{% for service in spec | webAuthServices %}
+import {{ sdk.namespace | caseDot }}.services.{{ service.className | caseUcfirst }}
+{% endfor %}
+
+{% for service in spec | webAuthServices %}
+{% for method in service.methods %}
+suspend fun {{ service.className | caseUcfirst }}.{{ method.methodName }}(
+    {%~ for parameter in method.parameters.all %}
+    {{ parameter.name | caseCamel }}: {{ parameter | typeName }}{%~ if not parameter.required or parameter.nullable %}? = null{%~ endif %},
+    {%~ endfor %}
+) {
+    {{ method.methodName }}(
+            WebAuthComponent(),
+    {%~ for parameter in method.parameters.all %}
+    {{ parameter.name | caseCamel }},
+    {%~ endfor %}
+    )
+}
+{% endfor %}
+{% endfor %}

@@ -17,7 +17,7 @@ import kotlin.collections.set
  * Used to authenticate with external OAuth2 providers. Launches browser windows and handles
  * suspension until the user completes the process or otherwise returns to the app.
  */
-actual class WebAuthComponent {
+actual class WebAuthComponent(private val activity: ComponentActivity) {
 
     companion object : DefaultLifecycleObserver {
         private var suspended = false
@@ -44,7 +44,7 @@ actual class WebAuthComponent {
          */
         suspend fun authenticate(
             activity: ComponentActivity,
-            url: Uri,
+            url: String,
             callbackUrlScheme: String,
             onComplete: ((Result<String>) -> Unit)?
         ) {
@@ -55,7 +55,7 @@ actual class WebAuthComponent {
 
             intent.intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
             intent.intent.putExtra("android.support.customtabs.extra.KEEP_ALIVE", keepAliveIntent)
-            intent.launchUrl(activity, url)
+            intent.launchUrl(activity, Uri.parse(url))
 
             activity.runOnUiThread {
                 activity.lifecycle.addObserver(this)
@@ -80,9 +80,9 @@ actual class WebAuthComponent {
          * @param scheme    The scheme to match to a callback's key
          * @param url       The url received through intent data from the [CallbackActivity]
          */
-        fun onCallback(scheme: String, url: Uri) {
+        fun onCallback(scheme: String, url: String) {
             callbacks.remove(scheme)?.invoke(
-                Result.success(url.toString())
+                Result.success(url)
             )
             suspended = false
         }
@@ -97,17 +97,21 @@ actual class WebAuthComponent {
         }
     }
 
+    @Throws(Throwable::class)
     actual suspend fun authenticate(
         url: String,
         callbackUrlScheme: String,
         onComplete: ((Result<String>) -> Unit)?
     ) {
+        authenticate(
+            activity,
+            url,
+            callbackUrlScheme,
+            onComplete,
+        )
     }
 
     actual fun onCallback(scheme: String, url: String) {
-        callbacks.remove(scheme)?.invoke(
-            Result.success(url)
-        )
-        suspended = false
+        WebAuthComponent.onCallback(scheme, url)
     }
 }

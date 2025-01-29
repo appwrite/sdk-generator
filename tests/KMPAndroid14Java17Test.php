@@ -12,12 +12,18 @@ class KMPAndroid14Java17Test extends Base
     protected string $language = 'kmp';
     protected string $class = 'Appwrite\SDK\Language\KMP';
     protected array $build = [
-        'mkdir -p tests/sdks/kmp/library/src/test/java',
-        'cp tests/languages/kmp/Tests.kt tests/sdks/kmp/library/src/test/java/Tests.kt',
+        'mkdir -p tests/sdks/kmp/shared/src/androidUnitTest/java',
+        'cp tests/languages/kmp/Tests.kt tests/sdks/kmp/shared/src/androidUnitTest/java/Tests.kt',
         'chmod +x tests/sdks/kmp/gradlew',
     ];
     protected string $command =
-        'docker run --rm --network="mockapi" -v $(pwd):/app -w /app/tests/sdks/kmp alvrme/alpine-android:android-34-jdk17 sh -c "./gradlew :library:testReleaseUnitTest --stacktrace -q && cat library/result.txt"';
+        'docker run --rm '.
+        '-v /home/camka/sdk-generator:/app '.
+        '-w /app/tests/sdks/kmp '.
+        '--network mockapi '.
+        '-e MOCK_HOST=http://mockapi/v1 '.
+        'alvrme/alpine-android:android-34-jdk17 '.
+        'sh -c "./gradlew :shared:testReleaseUnitTest --no-daemon --stacktrace"';
 
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,

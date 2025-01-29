@@ -2,16 +2,8 @@ package io.appwrite
 
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.google.gson.Gson
 import io.appwrite.exceptions.AppwriteException
-import io.appwrite.Permission
-import io.appwrite.Role
-import io.appwrite.ID
-import io.appwrite.Query
 import io.appwrite.enums.MockType
-import io.appwrite.extensions.fromJson
-import io.appwrite.extensions.toJson
-import io.appwrite.models.Error
 import io.appwrite.models.InputFile
 import io.appwrite.models.Mock
 import io.appwrite.services.Bar
@@ -24,7 +16,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
-import okhttp3.Response
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -37,7 +28,11 @@ import java.nio.file.Paths
 
 data class TestPayload(val response: String)
 
-@Config(manifest=Config.NONE)
+@Config(
+    manifest = Config.NONE,
+    sdk = [33],
+    application = TestApplication::class
+)
 @RunWith(AndroidJUnit4::class)
 class ServiceTest {
 

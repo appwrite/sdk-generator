@@ -2,6 +2,8 @@
 
 namespace Appwrite\SDK\Language;
 
+use Twig\TwigFilter;
+
 class KMP extends Kotlin
 {
     /**
@@ -12,12 +14,57 @@ class KMP extends Kotlin
         return 'KMP';
     }
 
-    protected function getReturnType(array $method, array $spec, string $namespace, bool $withGeneric = true, string $generic = 'T'): string
+    public function getFilters(): array
+    {
+        $filters = parent::getFilters();
+
+        $filters[] = new TwigFilter('webAuthServices', function (array $spec) {
+            return $this->findWebAuthServices($spec);
+        });
+        return $filters;
+    }
+
+    protected function getReturnType(array $method, array $spec, string $namespace, string $generic = 'T', bool $withGeneric = true): string
     {
         if ($method['type'] === 'webAuth') {
             return 'Bool';
         }
-        return parent::getReturnType($method, $spec, $namespace, $withGeneric, $generic);
+        return parent::getReturnType($method, $spec, $namespace, $generic, $withGeneric);
+    }
+
+    protected function findWebAuthServices(array $spec): array
+    {
+        $webAuthServices = [];
+        foreach ($spec['services'] as $service) {
+            $webAuthMethods = [];
+            $hasWebAuth = false;
+            foreach ($service['methods'] as $method) {
+                if ($method['type'] === 'webAuth') {
+                    $webAuthMethods[] = [
+                        'methodName' => $method['name'],
+                        'parameters' => $method['parameters']
+                    ];
+                    $hasWebAuth = true;
+                }
+            }
+            if ($hasWebAuth) {
+                $webAuthServices[] = [
+                    'methods' => $webAuthMethods,
+                    'className' => $service['name']
+                ];
+            }
+        }
+        return $webAuthServices;
+    }
+
+
+    protected function getPropertyType(array $property, array $spec, string $generic = 'T', bool $contextual = false): string
+    {
+        $type = parent::getPropertyType($property, $spec, $generic);
+        if ($contextual && ($type === 'List<Any>' || $type === 'List<Any>?')) {
+            $type = 'List<@Contextual Any>';
+        }
+        return $type;
     }
 
     public function getFiles(): array
@@ -65,8 +112,8 @@ class KMP extends Kotlin
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'build.gradle',
-                'template'      => '/kmp/build.gradle.twig',
+                'destination'   => 'build.gradle.kts',
+                'template'      => '/kmp/build.gradle.kts.twig',
             ],
             [
                 'scope'         => 'default',
@@ -88,12 +135,27 @@ class KMP extends Kotlin
                 'destination'   => 'LICENSE.md',
                 'template'      => '/kmp/LICENSE.md.twig',
             ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'gradlew',
+                'template'      => '/kmp/gradlew',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'gradlew.bat',
+                'template'      => '/kmp/gradlew.bat',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'gradle.properties',
+                'template'      => '/kmp/gradle.properties',
+            ],
 
             // Shared module
             [
                 'scope'         => 'default',
-                'destination'   => 'shared/build.gradle',
-                'template'      => '/kmp/shared/build.gradle.twig',
+                'destination'   => 'shared/build.gradle.kts',
+                'template'      => '/kmp/shared/build.gradle.kts.twig',
             ],
 
             // Common Main
@@ -194,11 +256,6 @@ class KMP extends Kotlin
                 'scope'         => 'default',
                 'destination'   => 'shared/src/commonMain/kotlin/{{ sdk.namespace | caseSlash }}/models/InputFile.kt',
                 'template'      => '/kmp/shared/src/commonMain/kotlin/io/package/models/InputFile.kt.twig',
-            ],
-            [
-                'scope'         => 'definition',
-                'destination'   => 'shared/src/commonMain/kotlin/{{ sdk.namespace | caseSlash }}/models//models/{{ definition.name | caseUcfirst }}.kt',
-                'template'      => '/kmp/shared/src/commonMain/kotlin/io/package/models/Model.kt.twig',
             ],
             [
                 'scope'         => 'default',
@@ -311,13 +368,8 @@ class KMP extends Kotlin
             // Extensions
             [
                 'scope'         => 'default',
-                'destination'   => 'shared/src/androidMain/kotlin/{{ sdk.namespace | caseSlash }}/extensions/createOAuth2Session.kt',
-                'template'      => '/kmp/shared/src/androidMain/kotlin/io/package/extensions/createOAuth2Session.kt.twig',
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => 'shared/src/androidMain/kotlin/{{ sdk.namespace | caseSlash }}/extensions/createOAuth2Token.kt',
-                'template'      => '/kmp/shared/src/androidMain/kotlin/io/package/extensions/createOAuth2Token.kt.twig',
+                'destination'   => 'shared/src/androidMain/kotlin/{{ sdk.namespace | caseSlash }}/extensions/OAuth2Extensions.kt',
+                'template'      => '/kmp/shared/src/androidMain/kotlin/io/package/extensions/OAuth2Extensions.kt.twig',
             ],
 
             // File Operations
@@ -381,13 +433,8 @@ class KMP extends Kotlin
             // Extensions
             [
                 'scope'         => 'default',
-                'destination'   => 'shared/src/iosMain/kotlin/{{ sdk.namespace | caseSlash }}/extensions/createOAuth2Session.kt',
-                'template'      => '/kmp/shared/src/iosMain/kotlin/io/package/extensions/createOAuth2Session.kt.twig',
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => 'shared/src/iosMain/kotlin/{{ sdk.namespace | caseSlash }}/extensions/createOAuth2Token.kt',
-                'template'      => '/kmp/shared/src/iosMain/kotlin/io/package/extensions/createOAuth2Token.kt.twig',
+                'destination'   => 'shared/src/iosMain/kotlin/{{ sdk.namespace | caseSlash }}/extensions/OAuth2Extensions.kt',
+                'template'      => '/kmp/shared/src/iosMain/kotlin/io/package/extensions/OAuth2Extensions.kt.twig',
             ],
 
             // File Operations
@@ -443,13 +490,8 @@ class KMP extends Kotlin
             // Extensions
             [
                 'scope'         => 'default',
-                'destination'   => 'shared/src/jvmMain/kotlin/{{ sdk.namespace | caseSlash }}/extensions/createOAuth2Session.kt',
-                'template'      => '/kmp/shared/src/jvmMain/kotlin/io/package/extensions/createOAuth2Session.kt.twig',
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => 'shared/src/jvmMain/kotlin/{{ sdk.namespace | caseSlash }}/extensions/createOAuth2Token.kt',
-                'template'      => '/kmp/shared/src/jvmMain/kotlin/io/package/extensions/createOAuth2Token.kt.twig',
+                'destination'   => 'shared/src/jvmMain/kotlin/{{ sdk.namespace | caseSlash }}/extensions/OAuth2Extensions.kt',
+                'template'      => '/kmp/shared/src/jvmMain/kotlin/io/package/extensions/OAuth2Extensions.kt.twig',
             ],
 
             // File Operations

@@ -3,6 +3,7 @@ package {{ sdk.namespace | caseDot }}.models
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import io.appwrite.extensions.jsonCast
+import kotlinx.serialization.Contextual
 
 /**
  * {{ definition.description }}
@@ -16,9 +17,12 @@ data {% endif %}class {{ definition | modelType(spec) | raw }}(
      * {{ property.description }}
      */
     @SerialName("{{ property.name | escapeKeyword | escapeDollarSign}}")
+    {%~ if property.type == 'object' %}
+    @Contextual
+    {%~ endif %}
     {% if property.required -%} val
     {%- else -%} var
-    {%- endif %} {{ property.name | escapeKeyword | removeDollarSign }}: {{ property | propertyType(spec) | raw }},
+    {%- endif %} {{ property.name | escapeKeyword | removeDollarSign }}: {{ property | propertyType(spec, 'T', true) | raw }},
 
     {%~ endfor %}
     {%~ endif %}
