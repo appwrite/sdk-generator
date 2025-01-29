@@ -84,7 +84,7 @@ class ClientMixin {
           res.body,
         );
       } else {
-        throw {{spec.title | caseUcfirst}}Exception(res.body);
+        throw {{spec.title | caseUcfirst}}Exception(res.body, res.statusCode, '', res.body);
       }
     }
     dynamic data;
