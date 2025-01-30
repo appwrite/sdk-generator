@@ -300,22 +300,27 @@ class Swagger2 extends Spec
                     $duplicatedMethod['x-appwrite']['method'] = $additionalMethod['name'];
 
                     // Update Response
-                    $responses = $duplicatedMethod['responses'];
+                    $responses = $additionalMethod['responses'];
                     $convertedResponse = [];
 
-                    foreach ($responses as $code => $desc) {
-                        if (!isset($desc['schema']) || !isset($desc['schema']['x-oneOf'])) {
-                            continue;
-                        }
-
-                        foreach ($desc['schema']['x-oneOf'] as $oneOf) {
-                            if (!isset($oneOf['$ref']) || !str_ends_with($oneOf['$ref'], $additionalMethod['response'])) {
+                    foreach ($responses as $desc) {
+                        $code = $desc['code'];
+                        if (isset($desc['model'])) {
+                            if (\is_array($desc['model'])) {
+                                $convertedResponse[$code] = [
+                                    'schema' => [
+                                        'x-oneOf' => \array_map(fn($model) => [
+                                            '$ref' => $model,
+                                        ], $desc['model']),
+                                    ],
+                                ];
                                 continue;
                             }
 
                             $convertedResponse[$code] = [
-                                'description' => $desc['description'],
-                                'schema' => $oneOf,
+                                'schema' => [
+                                    '$ref' => $desc['model'],
+                                ],
                             ];
                         }
                     }
