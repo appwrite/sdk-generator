@@ -299,6 +299,7 @@ const initFunction = async () => {
         $id: functionId,
         name: answers.name,
         runtime: answers.runtime.id,
+        specification: answers.specification,
         execute: ["any"],
         events: [],
         scopes: ["users.read"],

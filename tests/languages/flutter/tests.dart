@@ -7,6 +7,7 @@ import '../lib/models.dart';
 import '../lib/enums.dart';
 import '../lib/src/input_file.dart';
 import 'dart:io';
+import 'dart:convert';
 
 class FakePathProvider extends PathProviderPlatform {
   @override
@@ -20,8 +21,10 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   PathProviderPlatform.instance = FakePathProvider();
   Client client = Client()
+      .setProject('123456')
       .addHeader("Origin", "http://localhost")
       .setSelfSigned();
+
   Foo foo = Foo(client);
   Bar bar = Bar(client);
   General general = General(client);
@@ -32,13 +35,22 @@ void main() async {
       "wss://cloud.appwrite.io/v1");
 
   Realtime realtime = Realtime(client);
-   final rtsub = realtime.subscribe(["tests"]);
+  final rtsub = realtime.subscribe(["tests"]);
 
   await Future.delayed(Duration(seconds: 5));
   client.addHeader('Origin', 'http://localhost');
-  // Foo Tests
   print('\nTest Started');
 
+  // Ping pong tests
+  client.setProject('123456');
+  final ping = await client.ping();
+  final pingResponse = parse(ping)!;
+  print(pingResponse);
+
+  // reset project.
+  client.setProject('console');
+
+  // Foo Tests
   Mock response;
   response = await foo.get(x: 'string', y: 123, z: ['string in array']);
   print(response.result);
@@ -188,4 +200,12 @@ void main() async {
 
   response = await general.headers();
   print(response.result);
+}
+
+String? parse(String json) {
+  try {
+    return jsonDecode(json)['result'] as String?;
+  } catch (_) {
+    return null;
+  }
 }

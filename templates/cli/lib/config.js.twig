@@ -5,7 +5,7 @@ const process = require("process");
 const JSONbig = require("json-bigint")({ storeAsString: false });
 
 const KeysVars = new Set(["key", "value"]);
-const KeysFunction = new Set(["path", "$id", "execute", "name", "enabled", "logging", "runtime", "scopes", "events", "schedule", "timeout", "entrypoint", "commands", "vars"]);
+const KeysFunction = new Set(["path", "$id", "execute", "name", "enabled", "logging", "runtime", "specification", "scopes", "events", "schedule", "timeout", "entrypoint", "commands", "vars"]);
 const KeysDatabase = new Set(["$id", "name", "enabled"]);
 const KeysCollection = new Set(["$id", "$permissions", "databaseId", "name", "enabled", "documentSecurity", "attributes", "indexes"]);
 const KeysStorage = new Set(["$id", "$permissions", "fileSecurity", "name", "enabled", "maximumFileSize", "allowedFileExtensions", "compression", "encryption", "antivirus"]);

@@ -19,14 +19,14 @@ type Headers = {
  */
 type RealtimeResponse = {
     /**
-     * Type of the response: 'error', 'event', 'connected', 'pong', or 'response'.
+     * Type of the response: 'error', 'event', 'connected', 'response' or 'pong'.
      */
     type: 'error' | 'event' | 'connected' | 'response' | 'pong';
 
     /**
      * Data associated with the response based on the response type.
      */
-    data: RealtimeResponseAuthenticated | RealtimeResponseConnected | RealtimeResponseError | RealtimeResponseEvent<unknown>;
+    data: RealtimeResponseAuthenticated | RealtimeResponseConnected | RealtimeResponseError | RealtimeResponseEvent<unknown> | undefined;
 }
 
 /**
@@ -496,6 +496,8 @@ class Client {
                             })
                         }
                         break;
+                    case 'pong':
+                        break; // Handle pong response if needed
                     case 'error':
                         throw message.data;
                     default:

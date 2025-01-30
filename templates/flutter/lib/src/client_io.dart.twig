@@ -130,6 +130,14 @@ class ClientIO extends ClientBase with ClientMixin {
     return this;
   }
 
+  @override
+  Future<String> ping() async {
+    final String apiPath = '/ping';
+    final response = await call(HttpMethod.get, path: apiPath, responseType: ResponseType.plain);
+
+    return response.data;
+  }
+
   Future init() async {
     if(_initProgress) return;
     _initProgress = true;
@@ -254,7 +262,7 @@ class ClientIO extends ClientBase with ClientMixin {
     }
 
     var offset = 0;
-    if (idParamName.isNotEmpty && params[idParamName] != 'unique()') {
+    if (idParamName.isNotEmpty) {
       //make a request to check if a file already exists
       try {
         res = await call(

@@ -20,6 +20,7 @@ class Android14Java11Test extends Base
         'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/sdks/android alvrme/alpine-android:android-34-jdk11 sh -c "./gradlew :library:testReleaseUnitTest --stacktrace -q && cat library/result.txt"';
 
     protected array $expectedOutput = [
+        ...Base::PING_RESPONSE,
         ...Base::FOO_RESPONSES,
         ...Base::BAR_RESPONSES,
         ...Base::GENERAL_RESPONSES,

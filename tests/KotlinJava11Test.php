@@ -20,6 +20,7 @@ class KotlinJava11Test extends Base
         'docker run --network="mockapi" -v $(pwd):/app -w /app/tests/sdks/kotlin openjdk:11-jdk-slim sh -c "./gradlew test -q && cat result.txt"';
 
     protected array $expectedOutput = [
+        ...Base::PING_RESPONSE,
         ...Base::FOO_RESPONSES,
         ...Base::BAR_RESPONSES,
         ...Base::GENERAL_RESPONSES,

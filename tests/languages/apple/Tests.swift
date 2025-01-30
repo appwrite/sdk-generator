@@ -21,10 +21,18 @@ class Tests: XCTestCase {
 
     func test() async throws {
         let client = Client()
-            .setEndpointRealtime("ws://cloud.appwrite.io/v1")
-            .setProject("console")
+            .setProject("123456")
             .addHeader(key: "Origin", value: "http://localhost")
             .setSelfSigned()
+
+        // Ping pong test
+        let ping = try await client.ping()
+        let pingResult = parse(from: ping)!
+        print(pingResult)
+
+        // reset configs
+        client.setProject("console")
+            .setEndpointRealtime("ws://cloud.appwrite.io/v1")
 
         let foo = Foo(client)
         let bar = Bar(client)
@@ -38,7 +46,7 @@ class Tests: XCTestCase {
             realtimeResponse = message.payload!["response"] as! String
             expectation.fulfill()
         }
-        
+
         var mock: Mock
 
         // Foo Tests
@@ -197,5 +205,14 @@ class Tests: XCTestCase {
 
         mock = try await general.headers()
         print(mock.result)
+    }
+
+    func parse(from json: String) -> String? {
+        if let data = json.data(using: .utf8),
+           let jsonObject = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
+           let result = jsonObject["result"] as? String {
+            return result
+        }
+        return nil
     }
 }

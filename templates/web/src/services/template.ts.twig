@@ -70,14 +70,13 @@ export class {{ service.name | caseUcfirst }} {
             {%~ endfor %}
         }
 
-        {%~ if method.type == 'location' or method.type == 'webAuth' %}
-        {%~ if method.auth|length > 0 %}
         {%~ for node in method.auth %}
         {%~ for key,header in node|keys %}
         payload['{{header|caseLower}}'] = this.client.config.{{header|caseLower}};
         {%~ endfor %}
         {%~ endfor %}
-        {%~ endif %}
+
+        {%~ if method.type == 'location' or method.type == 'webAuth' %}
         for (const [key, value] of Object.entries(Service.flatten(payload))) {
             uri.searchParams.append(key, value);
         }
@@ -91,16 +90,6 @@ export class {{ service.name | caseUcfirst }} {
             return uri.toString();
         }
         {%~ elseif method.type == 'location' %}
-        {%~ for node in method.auth %}
-        {%~ for key, header in node|keys %}
-        payload['{{ header|caseLower }}'] = this.client.config.{{ header|caseLower }};
-        {%~ endfor %}
-        {%~ endfor %}
-
-        for (const [key, value] of Object.entries(Client.flatten(payload))) {
-            uri.searchParams.append(key, value);
-        }
-
         return uri.toString();
         {%~ elseif 'multipart/form-data' in method.consumes %}
         return await this.client.chunkedUpload(
