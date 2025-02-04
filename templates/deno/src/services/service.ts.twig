@@ -68,8 +68,6 @@ export class {{ service.name | caseUcfirst }} extends Service {
 {% set generics = _self.get_generics(spec.definitions[method.responseModel], spec, true, true) %}
 {% set generics_return = _self.get_generics_return(spec.definitions[method.responseModel], spec) %}
     /**
-     * {{ method.title }}
-     *
 {% if method.description %}
 {{ method.description|comment1 }}
      *

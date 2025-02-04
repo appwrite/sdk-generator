@@ -26,8 +26,6 @@ export class {{ service.name | caseUcfirst }} {
 
     {%~ for method in service.methods %}
     /**
-     * {{ method.title }}
-     *
     {%~ if method.description %}
      * {{ method.description }}
     {%~ endif %}
