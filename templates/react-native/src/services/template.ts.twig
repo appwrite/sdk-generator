@@ -31,8 +31,6 @@ export class {{ service.name | caseUcfirst }} extends Service {
 {% for method in service.methods %}
 
     /**
-     * {{ method.title }}
-     *
 {% if method.description %}
 {{ method.description|comment2 }}
 {% endif %}
