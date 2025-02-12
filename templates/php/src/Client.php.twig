@@ -206,7 +206,7 @@ class Client
             if(is_array($responseBody)) {
                 throw new {{spec.title | caseUcfirst}}Exception($responseBody['message'], $responseStatus, $responseBody['type'] ?? '', json_encode($responseBody));
             } else {
-                throw new {{spec.title | caseUcfirst}}Exception($responseBody, $responseStatus);
+                throw new {{spec.title | caseUcfirst}}Exception($responseBody, $responseStatus, '', $responseBody);
             }
         }
 
