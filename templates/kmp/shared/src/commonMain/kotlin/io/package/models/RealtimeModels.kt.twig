@@ -34,7 +34,7 @@ data class RealtimeResponseEvent<T>(
     @Serializable(with = StringCollectionSerializer::class)
     val channels: kotlin.collections.Collection<String>,
     val timestamp: String,
-    var payload: Document<T>
+    var payload: T
 )
 
 enum class RealtimeCode(val value: Int) {

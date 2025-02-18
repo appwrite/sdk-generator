@@ -76,7 +76,7 @@ class ServiceTest {
         var realtimeResponse = "Realtime failed!"
 
         realtime.subscribe(listOf("tests"), payloadType = TestPayload::class) {
-            realtimeResponse = it.payload.data.response
+            realtimeResponse = it.payload.response
         }
 
         runBlocking {

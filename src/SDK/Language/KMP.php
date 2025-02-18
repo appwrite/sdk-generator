@@ -189,11 +189,6 @@ class KMP extends Kotlin
                 'destination'   => 'gradle.properties',
                 'template'      => '/kmp/gradle.properties',
             ],
-            [
-                'scope'         => 'default',
-                'destination'   => 'local.properties',
-                'template'      => '/kmp/local.properties',
-            ],
 
             // Shared module
             [
@@ -296,11 +291,6 @@ class KMP extends Kotlin
             ],
 
             // Models
-            [
-                'scope'         => 'default',
-                'destination'   => 'shared/src/commonMain/kotlin/{{ sdk.namespace | caseSlash }}/models/Document.kt',
-                'template'      => '/kmp/shared/src/commonMain/kotlin/io/package/models/Document.kt.twig',
-            ],
             [
                 'scope'         => 'default',
                 'destination'   => 'shared/src/commonMain/kotlin/{{ sdk.namespace | caseSlash }}/models/InputFile.kt',
