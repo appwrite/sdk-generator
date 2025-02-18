@@ -423,7 +423,7 @@ open class Client {
         var offset = 0
         var result = [String:Any]()
 
-        if idParamName != nil && params[idParamName!] as! String != "unique()" {
+        if idParamName != nil {
             // Make a request to check if a file already exists
             do {
                 let map = try await call(

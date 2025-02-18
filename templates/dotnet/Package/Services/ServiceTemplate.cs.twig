@@ -20,10 +20,6 @@ namespace {{ spec.title | caseUcfirst }}.Services
         }
 
         {%~ for method in service.methods %}
-        {%~ if method.title %}
-        /// <summary>
-        /// {{ method.title }}
-        {%~ endif %}
         {%~ if method.description %}
         /// <para>
         {{~ method.description | dotnetComment }}

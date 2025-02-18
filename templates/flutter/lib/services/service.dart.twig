@@ -15,8 +15,6 @@ class {{ service.name | caseUcfirst }} extends Service {
     {{ service.name | caseUcfirst }}(super.client);
 {% for method in service.methods %}
 
-    /// {{ method.title }}
-    ///
 {%~ if method.description %}
 {{ method.description|dartComment }}
 {% endif %}

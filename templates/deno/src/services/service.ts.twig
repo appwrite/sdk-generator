@@ -68,8 +68,6 @@ export class {{ service.name | caseUcfirst }} extends Service {
 {% set generics = _self.get_generics(spec.definitions[method.responseModel], spec, true, true) %}
 {% set generics_return = _self.get_generics_return(spec.definitions[method.responseModel], spec) %}
     /**
-     * {{ method.title }}
-     *
 {% if method.description %}
 {{ method.description|comment1 }}
      *
@@ -108,7 +106,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
 {% if parameter.type == 'file' %}
 
         const size = {{ parameter.name | caseCamel | escapeKeyword }}.size;
-        
+
         const apiHeaders: { [header: string]: string } = {
 {% for parameter in method.parameters.header %}
             '{{ parameter.name }}': ${{ parameter.name | caseCamel | escapeKeyword }},
@@ -125,16 +123,14 @@ export class {{ service.name | caseUcfirst }} extends Service {
 
 {% for parameter in method.parameters.all %}
 {% if parameter.isUploadID %}
-        if({{ parameter.name | caseCamel | escapeKeyword }} != 'unique()') {
-            try {
-                response = await this.client.call(
-                    'get',
-                    apiPath + '/' + {{ parameter.name }},
-                    apiHeaders
-                );
-                chunksUploaded = response.chunksUploaded;
-            } catch(e) {
-            }
+        try {
+            response = await this.client.call(
+                'get',
+                apiPath + '/' + {{ parameter.name }},
+                apiHeaders
+            );
+            chunksUploaded = response.chunksUploaded;
+        } catch(e) {
         }
 {% endif %}
 {% endfor %}
@@ -160,7 +156,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
             }
 
             let uploadableChunkTrimmed: Uint8Array;
-            
+
             if(currentPosition + 1 >= Client.CHUNK_SIZE) {
                 uploadableChunkTrimmed = uploadableChunk;
             } else {

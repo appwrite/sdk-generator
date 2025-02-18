@@ -3,9 +3,18 @@ import JSONCodable
 
 /// {{ definition.description }}
 {% if definition.properties | length == 0 and not definition.additionalProperties %}
-public class {{ definition | modelType(spec) | raw }} {}
+open class {{ definition | modelType(spec) | raw }}: Codable {}
 {% else %}
-public class {{ definition | modelType(spec) | raw }} {
+open class {{ definition | modelType(spec) | raw }}: Codable {
+
+    enum CodingKeys: String, CodingKey {
+        {%~ for property in definition.properties %}
+        case {{ property.name | escapeSwiftKeyword | removeDollarSign }} = "{{ property.name }}"
+        {%~ endfor %}
+        {%~ if definition.additionalProperties %}
+        case data
+        {%~ endif %}
+    }
 
     {%~ for property in definition.properties %}
     /// {{ property.description }}
@@ -32,6 +41,28 @@ public class {{ definition | modelType(spec) | raw }} {
         {%~ endfor %}
         {%~ if definition.additionalProperties %}
         self.data = data
+        {%~ endif %}
+    }
+
+    public required init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        {%~ for property in definition.properties %}
+        self.{{ property.name | escapeSwiftKeyword | removeDollarSign }} = try container.decode{% if not property.required %}IfPresent{% endif %}({{ property | propertyType(spec) | raw }}.self, forKey: .{{ property.name | escapeSwiftKeyword | removeDollarSign }})
+        {%~ endfor %}
+        {%~ if definition.additionalProperties %}
+        self.data = try container.decode(T.self, forKey: .data)
+        {%~ endif %}
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+
+        {%~ for property in definition.properties %}
+        try container.encode{% if not property.required %}IfPresent{% endif %}({{ property.name | escapeSwiftKeyword | removeDollarSign }}, forKey: .{{ property.name | escapeSwiftKeyword | removeDollarSign }})
+        {%~ endfor %}
+        {%~ if definition.additionalProperties %}
+        try container.encode(data, forKey: .data)
         {%~ endif %}
     }
 

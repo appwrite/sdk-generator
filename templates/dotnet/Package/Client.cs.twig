@@ -374,7 +374,7 @@ namespace {{ spec.title | caseUcfirst }}
                 );
             }
 
-            if (!string.IsNullOrEmpty(idParamName) && (string)parameters[idParamName] != "unique()")
+            if (!string.IsNullOrEmpty(idParamName))
             {
                 try
                 {

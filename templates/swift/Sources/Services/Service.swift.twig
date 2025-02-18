@@ -10,8 +10,6 @@ open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
 
     {%~ for method in service.methods %}
     ///
-    /// {{ method.title }}
-    ///
     {%~ if method.description %}
     {{~ method.description | swiftComment }}
     ///
@@ -72,8 +70,6 @@ open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
     }
     {%~ if method.responseModel | hasGenericType(spec) %}
 
-    ///
-    /// {{ method.title }}
     ///
     {%~ if method.description %}
     {{~ method.description | swiftComment }}
