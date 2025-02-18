@@ -1,14 +1,18 @@
 package {{ sdk.namespace | caseDot }}.extensions
 
 import {{ sdk.namespace | caseDot }}.serializers.DynamicLookupSerializer
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.serializer
 import kotlin.reflect.KClass
@@ -18,13 +22,14 @@ var json = Json {
     isLenient = true
     allowSpecialFloatingPointValues = true
     allowStructuredMapKeys = true
-    prettyPrint = true
+    prettyPrint = false
     useArrayPolymorphism = false
     ignoreUnknownKeys = true
     coerceInputValues = true
     serializersModule = SerializersModule {
         contextual(Any::class, DynamicLookupSerializer)
     }
+    explicitNulls = false
 }
 
 @Suppress("UNCHECKED_CAST")

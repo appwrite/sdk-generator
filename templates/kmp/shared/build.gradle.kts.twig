@@ -10,10 +10,6 @@ plugins {
     id("signing")
 }
 
-
-group = "io.appwrite"
-version = "0.2.0"
-
 ext {
     set("PUBLISH_GROUP_ID", "{{ sdk.namespace | caseDot }}")
     set("PUBLISH_ARTIFACT_ID", "{{ sdk.gitRepoName | caseDash }}")
@@ -33,6 +29,7 @@ ext {
 version = project.ext["PUBLISH_VERSION"].toString()
 group = project.ext["PUBLISH_GROUP_ID"].toString()
 
+
 kotlin {
     jvm()
 
@@ -41,7 +38,7 @@ kotlin {
         compilations.all {
             compileTaskProvider.configure {
                 compilerOptions {
-                    jvmTarget.set(JvmTarget.JVM_1_8)
+                    jvmTarget.set(JvmTarget.JVM_17)
                 }
             }
         }
@@ -62,10 +59,7 @@ kotlin {
         binaries.all {
             // Configure native binary compilation
             freeCompilerArgs += listOf(
-                "-Xexport-kdoc",
                 "-Xallocator=mimalloc",
-                "-Xadd-light-debug=enable",
-                "-Xruntime-logs=warning"
             )
         }
     }
@@ -88,14 +82,14 @@ kotlin {
             implementation(libs.ktor.client.java)
         }
         commonMain.dependencies {
-            implementation(libs.kotlinx.serialization.json)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.datetime)
             implementation(libs.kotlin.reflect)
             implementation(libs.ktor.client.core)
-            api(libs.kotlinx.serialization.json)
             implementation(libs.ktor.client.content.negotiation)
             implementation(libs.ktor.client.websockets)
+            implementation(libs.okio)
+            api(libs.kotlinx.serialization.json)
             api(libs.ktor.serialization.kotlinx.json)
             api(libs.napier)
         }
@@ -110,6 +104,7 @@ kotlin {
             implementation(libs.kotlinx.coroutines.android)
             implementation(libs.firebase.messaging)
             implementation(libs.ktor.client.okhttp)
+            implementation(libs.ktor.client.logging)
             implementation(libs.gson)
             implementation(project.dependencies.platform("com.google.firebase:firebase-bom:33.6.0"))
         }
@@ -121,6 +116,7 @@ kotlin {
 
         commonTest.dependencies {
             implementation(libs.kotlin.test)
+            implementation(libs.kotlinx.coroutines.test)
         }
 
         androidUnitTest.dependencies {
@@ -129,7 +125,6 @@ kotlin {
             implementation(libs.androidx.junit)
             implementation(libs.androidx.test.runner)
             implementation(libs.robolectric)
-            implementation(libs.kotlinx.coroutines.test)
             implementation(libs.ktor.client.mock)
         }
 
@@ -142,7 +137,10 @@ kotlin {
 
 publishing {
     publications.withType<MavenPublication> {
-        artifactId = project.ext["PUBLISH_ARTIFACT_ID"].toString()
+        when (name) {
+            "jvm" -> artifactId = "sdk-for-kmp-jvm"
+            else -> artifactId = project.ext["PUBLISH_ARTIFACT_ID"].toString()
+        }
 
         pom {
             name.set(project.ext["PUBLISH_ARTIFACT_ID"].toString())
@@ -175,11 +173,11 @@ publishing {
         maven {
             name = "sonatype"
             url = uri(
-            if (version.toString().endsWith("SNAPSHOT")) {
-                "https://s01.oss.sonatype.org/content/repositories/snapshots/"
-            } else {
-                "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/"
-            }
+                if (version.toString().endsWith("SNAPSHOT")) {
+                    "https://s01.oss.sonatype.org/content/repositories/snapshots/"
+                } else {
+                    "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/"
+                }
             )
             credentials {
                 username = System.getenv("OSSRH_USERNAME")
@@ -197,15 +195,17 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
     testOptions {
         unitTests {
             isIncludeAndroidResources = true
+            all { it.useJUnit() }
         }
     }
 }
+
 dependencies {
     implementation(libs.androidx.activity.ktx)
     implementation(libs.androidx.browser)

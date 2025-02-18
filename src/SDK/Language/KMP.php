@@ -16,11 +16,22 @@ class KMP extends Kotlin
 
     public function getFilters(): array
     {
-        $filters = parent::getFilters();
+        $filters = array_filter(parent::getFilters(), function ($filter) {
+            return $filter->getName() !== 'propertyType';
+        });
+
+        $filters[] = new TwigFilter('propertyType', function (array $property, array $spec, string $generic = 'T', $contextual = false) {
+            return $this->getPropertyType($property, $spec, $generic, $contextual);
+        });
 
         $filters[] = new TwigFilter('webAuthServices', function (array $spec) {
             return $this->findWebAuthServices($spec);
         });
+
+        $filters[] = new TwigFilter('propertySerializerName', function (array $property) {
+            return $this->getPropertySerializerName($property);
+        });
+
         return $filters;
     }
 
@@ -66,6 +77,34 @@ class KMP extends Kotlin
         }
         return $type;
     }
+
+    protected function getPropertySerializerName(array $property): string
+    {
+        if (isset($property['enumName'])) {
+            return 'io.appwrite.enums.' . \ucfirst($property['enumName']) . 'Serializer';
+        }
+        if (!empty($property['enumValues'])) {
+            return 'io.appwrite.enums.' . \ucfirst($property['name']) . 'Serializer';
+        }
+        if (isset($property['items'])) {
+            $property['array'] = $property['items'];
+        }
+
+        $name = match ($property['type']) {
+            self::TYPE_INTEGER => 'Long.serializer()',
+            self::TYPE_NUMBER => 'Double.serializer()',
+            self::TYPE_STRING => 'String.serializer()',
+            self::TYPE_BOOLEAN => 'Boolean.serializer()',
+            self::TYPE_ARRAY => (!empty(($property['array'] ?? [])['type']) && !\is_array($property['array']['type']))
+                ? 'ListSerializer(' . $this->getPropertySerializerName($property['array']) . ')'
+                : 'ListSerializer(DynamicLookupSerializer)',
+            self::TYPE_OBJECT => 'DynamicLookupSerializer',
+            default => $property['type'] . 'Serializer',
+        };
+
+        return $name;
+    }
+
 
     public function getFiles(): array
     {
@@ -149,6 +188,11 @@ class KMP extends Kotlin
                 'scope'         => 'default',
                 'destination'   => 'gradle.properties',
                 'template'      => '/kmp/gradle.properties',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'local.properties',
+                'template'      => '/kmp/local.properties',
             ],
 
             // Shared module
@@ -238,6 +282,11 @@ class KMP extends Kotlin
                 'destination'   => 'shared/src/commonMain/kotlin/{{ sdk.namespace | caseSlash }}/extensions/TypeExtensions.kt',
                 'template'      => '/kmp/shared/src/commonMain/kotlin/io/package/extensions/TypeExtensions.kt.twig',
             ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'shared/src/commonMain/kotlin/{{ sdk.namespace | caseSlash }}/extensions/JsonObjectBuilderExtensions.kt',
+                'template'      => '/kmp/shared/src/commonMain/kotlin/io/package/extensions/JsonObjectBuilderExtensions.kt.twig',
+            ],
 
             // File Operations
             [
@@ -271,11 +320,6 @@ class KMP extends Kotlin
             // Serializers
             [
                 'scope'         => 'default',
-                'destination'   => 'shared/src/commonMain/kotlin/{{ sdk.namespace | caseSlash }}/serializers/DocumentSerializer.kt',
-                'template'      => '/kmp/shared/src/commonMain/kotlin/io/package/serializers/DocumentSerializer.kt.twig',
-            ],
-            [
-                'scope'         => 'default',
                 'destination'   => 'shared/src/commonMain/kotlin/{{ sdk.namespace | caseSlash }}/serializers/DynamicLookupSerializer.kt',
                 'template'      => '/kmp/shared/src/commonMain/kotlin/io/package/serializers/DynamicLookupSerializer.kt.twig',
             ],
@@ -284,7 +328,7 @@ class KMP extends Kotlin
                 'destination'   => 'shared/src/commonMain/kotlin/{{ sdk.namespace | caseSlash }}/serializers/StringCollectionSeriailizer.kt',
                 'template'      => '/kmp/shared/src/commonMain/kotlin/io/package/serializers/StringCollectionSeriailizer.kt.twig',
             ],
-
+            
             // Services
             [
                 'scope'         => 'default',
@@ -372,13 +416,6 @@ class KMP extends Kotlin
                 'template'      => '/kmp/shared/src/androidMain/kotlin/io/package/extensions/OAuth2Extensions.kt.twig',
             ],
 
-            // File Operations
-            [
-                'scope'         => 'default',
-                'destination'   => 'shared/src/androidMain/kotlin/{{ sdk.namespace | caseSlash }}/fileOperations/FileOperations.android.kt',
-                'template'      => '/kmp/shared/src/androidMain/kotlin/io/package/fileOperations/FileOperations.android.kt.twig',
-            ],
-
             // Models
             [
                 'scope'         => 'default',
@@ -437,13 +474,6 @@ class KMP extends Kotlin
                 'template'      => '/kmp/shared/src/iosMain/kotlin/io/package/extensions/OAuth2Extensions.kt.twig',
             ],
 
-            // File Operations
-            [
-                'scope'         => 'default',
-                'destination'   => 'shared/src/iosMain/kotlin/{{ sdk.namespace | caseSlash }}/fileOperations/FileOperations.ios.kt',
-                'template'      => '/kmp/shared/src/iosMain/kotlin/io/package/fileOperations/FileOperations.ios.kt.twig',
-            ],
-
             // Models
             [
                 'scope'         => 'default',
@@ -492,13 +522,6 @@ class KMP extends Kotlin
                 'scope'         => 'default',
                 'destination'   => 'shared/src/jvmMain/kotlin/{{ sdk.namespace | caseSlash }}/extensions/OAuth2Extensions.kt',
                 'template'      => '/kmp/shared/src/jvmMain/kotlin/io/package/extensions/OAuth2Extensions.kt.twig',
-            ],
-
-            // File Operations
-            [
-                'scope'         => 'default',
-                'destination'   => 'shared/src/jvmMain/kotlin/{{ sdk.namespace | caseSlash }}/fileOperations/FileOperations.jvm.kt',
-                'template'      => '/kmp/shared/src/jvmMain/kotlin/io/package/fileOperations/FileOperations.jvm.kt.twig',
             ],
 
             // Models

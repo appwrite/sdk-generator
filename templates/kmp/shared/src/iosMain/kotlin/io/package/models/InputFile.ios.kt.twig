@@ -1,7 +1,17 @@
 package {{ sdk.namespace | caseDot }}.models
 
-import platform.UniformTypeIdentifiers.UTType
+import platform.Foundation.NSURL
+import platform.Foundation.NSFileManager
 
-actual fun guessMimeType(filename: String): String {
-    return UTType.typeWithFilenameExtension(filename)?.preferredMIMEType ?: ""
+
+actual fun guessMimeType(input: String): String {
+    val url = NSURL.fileURLWithPath(input)
+    return UTTypeCopyPreferredTagWithClass(
+        UTTypeCreatePreferredIdentifierForTag(
+            kUTTagClassFilenameExtension,
+            url.pathExtension,
+            null
+        )?.takeRetainedValue(),
+        kUTTagClassMIMEType
+    )?.takeRetainedValue() as? String ?: "application/octet-stream"
 }

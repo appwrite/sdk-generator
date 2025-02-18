@@ -1,7 +1,6 @@
 package {{ sdk.namespace | caseDot }}
 
-import {{ sdk.namespace | caseDot }}.extensions.fromJson
-import {{ sdk.namespace | caseDot }}.extensions.toJson
+import {{ sdk.namespace | caseDot }}.extensions.json
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
 
@@ -19,7 +18,7 @@ class Query(
      *
      * @returns The JSON string representation of the query object.
      */
-    override fun toString() = this.toJson()
+    override fun toString() = json.encodeToString(serializer(), this)
 
     companion object {
 
@@ -31,7 +30,7 @@ class Query(
          * @returns The query string.
          */
         fun equal(attribute: String, value: Any) =
-            Query("equal", attribute, parseValue(value)).toJson()
+            Query("equal", attribute, parseValue(value)).toString()
 
         /**
          * Filter resources where attribute is not equal to value.
@@ -41,7 +40,7 @@ class Query(
          * @returns The query string.
          */
         fun notEqual(attribute: String, value: Any) =
-            Query("notEqual", attribute, parseValue(value)).toJson()
+            Query("notEqual", attribute, parseValue(value)).toString()
 
         /**
          * Filter resources where attribute is less than value.
@@ -51,7 +50,7 @@ class Query(
          * @returns The query string.
          */
         fun lessThan(attribute: String, value: Any) =
-            Query("lessThan", attribute, parseValue(value)).toJson()
+            Query("lessThan", attribute, parseValue(value)).toString()
 
         /**
          * Filter resources where attribute is less than or equal to value.
@@ -61,7 +60,7 @@ class Query(
          * @returns The query string.
          */
         fun lessThanEqual(attribute: String, value: Any) =
-            Query("lessThanEqual", attribute, parseValue(value)).toJson()
+            Query("lessThanEqual", attribute, parseValue(value)).toString()
 
         /**
          * Filter resources where attribute is greater than value.
@@ -71,7 +70,7 @@ class Query(
          * @returns The query string.
          */
         fun greaterThan(attribute: String, value: Any) =
-            Query("greaterThan", attribute, parseValue(value)).toJson()
+            Query("greaterThan", attribute, parseValue(value)).toString()
 
         /**
          * Filter resources where attribute is greater than or equal to value.
@@ -81,7 +80,7 @@ class Query(
          * @returns The query string.
          */
         fun greaterThanEqual(attribute: String, value: Any) =
-            Query("greaterThanEqual", attribute, parseValue(value)).toJson()
+            Query("greaterThanEqual", attribute, parseValue(value)).toString()
 
         /**
          * Filter resources where attribute matches the search value.
@@ -91,7 +90,7 @@ class Query(
          * @returns The query string.
          */
         fun search(attribute: String, value: String) =
-            Query("search", attribute, listOf(value)).toJson()
+            Query("search", attribute, listOf(value)).toString()
 
         /**
          * Filter resources where attribute is null.
@@ -99,7 +98,7 @@ class Query(
          * @param attribute The attribute to filter on.
          * @returns The query string.
          */
-        fun isNull(attribute: String) = Query("isNull", attribute).toJson()
+        fun isNull(attribute: String) = Query("isNull", attribute).toString()
 
         /**
          * Filter resources where attribute is not null.
@@ -107,7 +106,7 @@ class Query(
          * @param attribute The attribute to filter on.
          * @returns The query string.
          */
-        fun isNotNull(attribute: String) = Query("isNotNull", attribute).toJson()
+        fun isNotNull(attribute: String) = Query("isNotNull", attribute).toString()
 
         /**
          * Filter resources where attribute is between start and end (inclusive).
@@ -118,7 +117,7 @@ class Query(
          * @returns The query string.
          */
         fun between(attribute: String, start: Any, end: Any) =
-            Query("between", attribute, listOf(start, end)).toJson()
+            Query("between", attribute, listOf(start, end)).toString()
 
         /**
          * Filter resources where attribute starts with value.
@@ -128,7 +127,7 @@ class Query(
          * @returns The query string.
          */
         fun startsWith(attribute: String, value: String) =
-            Query("startsWith", attribute, listOf(value)).toJson()
+            Query("startsWith", attribute, listOf(value)).toString()
 
         /**
          * Filter resources where attribute ends with value.
@@ -138,7 +137,7 @@ class Query(
          * @returns The query string.
          */
         fun endsWith(attribute: String, value: String) =
-            Query("endsWith", attribute, listOf(value)).toJson()
+            Query("endsWith", attribute, listOf(value)).toString()
 
         /**
          * Specify which attributes should be returned by the API call.
@@ -146,7 +145,7 @@ class Query(
          * @param attributes The list of attributes to select.
          * @returns The query string.
          */
-        fun select(attributes: List<String>) = Query("select", null, attributes).toJson()
+        fun select(attributes: List<String>) = Query("select", null, attributes).toString()
 
         /**
          * Sort results by attribute ascending.
@@ -154,7 +153,7 @@ class Query(
          * @param attribute The attribute to sort by.
          * @returns The query string.
          */
-        fun orderAsc(attribute: String) = Query("orderAsc", attribute).toJson()
+        fun orderAsc(attribute: String) = Query("orderAsc", attribute).toString()
 
         /**
          * Sort results by attribute descending.
@@ -162,7 +161,7 @@ class Query(
          * @param attribute The attribute to sort by.
          * @returns The query string.
          */
-        fun orderDesc(attribute: String) = Query("orderDesc", attribute).toJson()
+        fun orderDesc(attribute: String) = Query("orderDesc", attribute).toString()
 
         /**
          * Return results before documentId.
@@ -171,7 +170,7 @@ class Query(
          * @returns The query string.
          */
         fun cursorBefore(documentId: String) =
-            Query("cursorBefore", null, listOf(documentId)).toJson()
+            Query("cursorBefore", null, listOf(documentId)).toString()
 
         /**
          * Return results after documentId.
@@ -180,7 +179,7 @@ class Query(
          * @returns The query string.
          */
         fun cursorAfter(documentId: String) =
-            Query("cursorAfter", null, listOf(documentId)).toJson()
+            Query("cursorAfter", null, listOf(documentId)).toString()
 
         /**
          * Return only limit results.
@@ -188,7 +187,7 @@ class Query(
          * @param limit The number of results to return.
          * @returns The query string.
          */
-        fun limit(limit: Int) = Query("limit", null, listOf(limit)).toJson()
+        fun limit(limit: Int) = Query("limit", null, listOf(limit)).toString()
 
         /**
          * Filter resources by skipping the first offset results.
@@ -196,7 +195,7 @@ class Query(
          * @param offset The number of results to skip.
          * @returns The query string.
          */
-        fun offset(offset: Int) = Query("offset", null, listOf(offset)).toJson()
+        fun offset(offset: Int) = Query("offset", null, listOf(offset)).toString()
 
         /**
          * Filter resources where attribute contains the specified value.
@@ -206,7 +205,7 @@ class Query(
          * @returns The query string.
          */
         fun contains(attribute: String, value: Any) =
-            Query("contains", attribute, parseValue(value)).toJson()
+            Query("contains", attribute, parseValue(value)).toString()
 
         /**
          * Combine multiple queries using logical OR operator.
@@ -215,7 +214,7 @@ class Query(
          * @returns The query string.
          */
         fun or(queries: List<String>) =
-            Query("or", null, queries.map { it.fromJson<Query>() }).toJson()
+            Query("or", null, queries.map { json.decodeFromString(serializer(), it) }).toString()
 
         /**
          * Combine multiple queries using logical AND operator.
@@ -224,7 +223,7 @@ class Query(
          * @returns The query string.
          */
         fun and(queries: List<String>) =
-            Query("and", null, queries.map { it.fromJson<Query>() }).toJson()
+            Query("and", null, queries.map { json.decodeFromString(serializer(), it) }).toString()
 
         /**
          * Parse the value to a list of values.

@@ -81,13 +81,13 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
             "{{ parameter.name }}" to {{ parameter.name | caseCamel }},
         {%~ endfor %}
         {%~ if method.type == 'location' or method.type == 'webAuth' %}
-            {%~ if method.auth | length > 0 %}
-                {%~ for node in method.auth %}
-                    {%~ for key,header in node | keys %}
+        {%~ if method.auth | length > 0 %}
+        {%~ for node in method.auth %}
+        {%~ for key,header in node | keys %}
             "{{ header | caseLower }}" to client.config["{{ header | caseLower }}"],
-                    {%~ endfor %}
-                {%~ endfor %}
-            {%~ endif %}
+        {%~ endfor %}
+        {%~ endfor %}
+        {%~ endif %}
         {%~ endif %}
         )
 
@@ -144,28 +144,33 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
         )
         {%~ else %}
         val apiHeaders = mutableMapOf(
-            {%~ for key, header in method.headers %}
+        {%~ for key, header in method.headers %}
             "{{ key }}" to "{{ header }}",
-            {%~ endfor %}
+        {%~ endfor %}
         )
 
-            {%~ if method.responseModel | hasGenericType(spec) %}
+        {%~ if method.responseModel | hasGenericType(spec) %}
         val actualSerializer = genericSerializer ?: getSerializer(T::class)
-            {%~ endif %}
+        {%~ endif %}
 
-            {%~ if 'multipart/form-data' in method.consumes %}
+        {%~ if 'multipart/form-data' in method.consumes %}
         val idParamName: String? = {%~ if method.parameters.all | filter(p => p.isUploadID) | length > 0 %}{%~ for parameter in method.parameters.all | filter(parameter => parameter.isUploadID) %}"{{ parameter.name }}"{%~ endfor %}{%~ else %}null{%~ endif %}
 
-                {%~ for parameter in method.parameters.all %}
-                    {%~ if parameter.type == 'file' %}
+        {%~ for parameter in method.parameters.all %}
+        {%~ if parameter.type == 'file' %}
         val paramName = "{{ parameter.name }}"
-                    {%~ endif %}
-                {%~ endfor %}
+        {%~ endif %}
+        {%~ endfor %}
 
         return client.chunkedUpload(
             apiPath,
             apiHeaders,
             apiParams,
+            {%~ for parameter in method.parameters.all %}
+            {%~ if parameter.type == 'file' %}
+            {{ parameter.name }},
+            {%~ endif %}
+            {%~ endfor %}
             responseType = {{ method | returnType(spec, sdk.namespace | caseDot) | raw }}::class,
                 {%~ if method.responseModel %}
             {{ method | returnType(spec, sdk.namespace | caseDot, 'T', false) | raw }}.serializer(),

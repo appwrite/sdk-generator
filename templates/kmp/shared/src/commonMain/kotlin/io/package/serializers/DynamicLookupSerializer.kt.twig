@@ -25,7 +25,6 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.long
 import kotlinx.serialization.json.longOrNull
 
-
 @Suppress("UNCHECKED_CAST")
 @OptIn(ExperimentalSerializationApi::class)
 object DynamicLookupSerializer : KSerializer<Any> {

@@ -5,7 +5,7 @@ import kotlinx.coroutines.Job
 import java.util.Properties
 
 actual class Client(
-    endpoint: String = "https://cloud.appwrite.io/v1",
+    endpoint: String = "{{spec.endpoint}}",
     endpointRealtime: String? = null,
     selfSigned: Boolean = false,
 ) : BaseClient<Client>(endpoint, endpointRealtime) {

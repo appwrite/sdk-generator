@@ -1,6 +1,5 @@
 package {{ sdk.namespace | caseDot }}.extensions
 
-import androidx.activity.ComponentActivity
 import {{ sdk.namespace | caseDot }}.WebAuthComponent
 
 {% for service in spec | webAuthServices %}
@@ -15,7 +14,7 @@ suspend fun {{ service.className | caseUcfirst }}.{{ method.methodName }}(
     {%~ endfor %}
 ) {
     {{ method.methodName }}(
-            WebAuthComponent(),
+    WebAuthComponent(),
     {%~ for parameter in method.parameters.all %}
     {{ parameter.name | caseCamel }},
     {%~ endfor %}

@@ -1,9 +1,9 @@
 package io.appwrite
 
 import androidx.test.core.app.ApplicationProvider
-import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.appwrite.exceptions.AppwriteException
 import io.appwrite.enums.MockType
+import io.appwrite.extensions.fromJson
 import io.appwrite.models.InputFile
 import io.appwrite.models.Mock
 import io.appwrite.services.Bar
@@ -16,24 +16,23 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
+import kotlinx.serialization.Serializable
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.annotation.Config
+import org.robolectric.RobolectricTestRunner
 import java.io.File
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Paths
 
+
+@Serializable
 data class TestPayload(val response: String)
 
-@Config(
-    manifest = Config.NONE,
-    sdk = [33],
-    application = TestApplication::class
-)
-@RunWith(AndroidJUnit4::class)
+
+@RunWith(RobolectricTestRunner::class)
 class ServiceTest {
 
     private val filename: String = "result.txt"
@@ -56,44 +55,104 @@ class ServiceTest {
     @Throws(IOException::class)
     fun test() {
         val client = Client(ApplicationProvider.getApplicationContext())
-            .setEndpointRealtime("wss://demo.appwrite.io/v1")
-            .setProject("console")
+            .setProject("123456")
             .addHeader("Origin", "http://localhost")
             .setSelfSigned(true)
+
+        runBlocking {
+            val ping = client.ping()
+            val pingResponse = parse(ping)
+            writeToFile(pingResponse)
+        }
+
+        // reset configs
+        client.setProject("console")
+            .setEndpointRealtime("wss://cloud.appwrite.io/v1")
+
         val foo = Foo(client)
         val bar = Bar(client)
         val general = General(client)
         val realtime = Realtime(client)
         var realtimeResponse = "Realtime failed!"
 
-        realtime.subscribe("tests", payloadType = TestPayload::class.java) {
-            realtimeResponse = it.payload.response
+        realtime.subscribe(listOf("tests"), payloadType = TestPayload::class) {
+            realtimeResponse = it.payload.data.response
         }
 
         runBlocking {
             var mock: Mock
             // Foo Tests
-            mock = foo.get("string", 123, listOf("string in array"))
+            try {
+                mock = foo.get("string", 123, listOf("string in array"))
+            } catch (e: Exception) {
+                writeToFile("Failed foo get: ${e.message}")
+                return@runBlocking
+            }
             writeToFile(mock.result)
-            mock = foo.post("string", 123, listOf("string in array"))
+            try {
+                mock = foo.post("string", 123, listOf("string in array"))
+            } catch (e: Exception) {
+                writeToFile("Failed foo post: ${e.message}")
+                return@runBlocking
+            }
             writeToFile(mock.result)
-            mock = foo.put("string", 123, listOf("string in array"))
+            try {
+                mock = foo.put("string", 123, listOf("string in array"))
+            } catch (e: Exception) {
+                writeToFile("Failed foo put: ${e.message}")
+                return@runBlocking
+            }
             writeToFile(mock.result)
-            mock = foo.patch("string", 123, listOf("string in array"))
+            try {
+                mock = foo.patch("string", 123, listOf("string in array"))
+            } catch (e: Exception) {
+                writeToFile("Failed foo patch: ${e.message}")
+                return@runBlocking
+            }
             writeToFile(mock.result)
-            mock = foo.delete("string", 123, listOf("string in array"))
+            try {
+                mock = foo.delete("string", 123, listOf("string in array"))
+            } catch (e: Exception) {
+                writeToFile("Failed foo delete: ${e.message}")
+                return@runBlocking
+            }
             writeToFile(mock.result)
 
             // Bar Tests
-            mock = bar.get("string", 123, listOf("string in array"))
+            try {
+                mock = bar.get("string", 123, listOf("string in array"))
+            } catch (e: Exception) {
+                writeToFile("Failed bar get: ${e.message}")
+                return@runBlocking
+            }
             writeToFile(mock.result)
-            mock = bar.post("string", 123, listOf("string in array"))
+            try {
+                mock = bar.post("string", 123, listOf("string in array"))
+            } catch (e: Exception) {
+                writeToFile("Failed bar post: ${e.message}")
+                return@runBlocking
+            }
             writeToFile(mock.result)
-            mock = bar.put("string", 123, listOf("string in array"))
+            try {
+                mock = bar.put("string", 123, listOf("string in array"))
+            } catch (e: Exception) {
+                writeToFile("Failed bar put: ${e.message}")
+                return@runBlocking
+            }
             writeToFile(mock.result)
-            mock = bar.patch("string", 123, listOf("string in array"))
+            try {
+                mock = bar.patch("string", 123, listOf("string in array"))
+            } catch (e: Exception) {
+                writeToFile("Failed bar patch: ${e.message}")
+                return@runBlocking
+            }
             writeToFile(mock.result)
-            mock = bar.delete("string", 123, listOf("string in array"))
+            try {
+                mock = bar.delete("string", 123, listOf("string in array"))
+            } catch (e: Exception) {
+                writeToFile("Failed bar delete: ${e.message}")
+                return@runBlocking
+            }
             writeToFile(mock.result)
 
             // General Tests
@@ -101,14 +160,24 @@ class ServiceTest {
             writeToFile((result as Map<String, Any>)["result"] as String)
 
             try {
-                mock = general.upload("string", 123, listOf("string in array"), InputFile.fromPath("../../../resources/file.png"))
+                mock = general.upload(
+                    "string",
+                    123,
+                    listOf("string in array"),
+                    InputFile.fromPath("../../../resources/file.png")
+                )
                 writeToFile(mock.result)
             } catch (ex: Exception) {
                 writeToFile(ex.toString())
             }
 
             try {
-                mock = general.upload("string", 123, listOf("string in array"), InputFile.fromPath("../../../resources/large_file.mp4"))
+                mock = general.upload(
+                    "string",
+                    123,
+                    listOf("string in array"),
+                    InputFile.fromPath("../../../resources/large_file.mp4")
+                )
                 writeToFile(mock.result)
             } catch (ex: Exception) {
                 writeToFile(ex.toString())
@@ -116,7 +185,12 @@ class ServiceTest {
 
             try {
                 var bytes = File("../../../resources/file.png").readBytes()
-                mock = general.upload("string", 123, listOf("string in array"), InputFile.fromBytes(bytes, "file.png", "image/png"))
+                mock = general.upload(
+                    "string",
+                    123,
+                    listOf("string in array"),
+                    InputFile.fromBytes(bytes, "file.png", "image/png")
+                )
                 writeToFile(mock.result)
             } catch (ex: Exception) {
                 writeToFile(ex.toString())
@@ -124,7 +198,12 @@ class ServiceTest {
 
             try {
                 var bytes = File("../../../resources/large_file.mp4").readBytes()
-                mock = general.upload("string", 123, listOf("string in array"), InputFile.fromBytes(bytes, "large_file.mp4", "video/mp4"))
+                mock = general.upload(
+                    "string",
+                    123,
+                    listOf("string in array"),
+                    InputFile.fromBytes(bytes, "large_file.mp4", "video/mp4")
+                )
                 writeToFile(mock.result)
             } catch (ex: Exception) {
                 writeToFile(ex.toString())
@@ -185,8 +264,22 @@ class ServiceTest {
             writeToFile(Query.offset(20))
             writeToFile(Query.contains("title", listOf("Spider")))
             writeToFile(Query.contains("labels", listOf("first")))
-            writeToFile(Query.or(listOf(Query.equal("released", listOf(true)), Query.lessThan("releasedYear", 1990))))
-            writeToFile(Query.and(listOf(Query.equal("released", listOf(false)), Query.greaterThan("releasedYear", 2015))))
+            writeToFile(
+                Query.or(
+                    listOf(
+                        Query.equal("released", listOf(true)),
+                        Query.lessThan("releasedYear", 1990)
+                    )
+                )
+            )
+            writeToFile(
+                Query.and(
+                    listOf(
+                        Query.equal("released", listOf(false)),
+                        Query.greaterThan("releasedYear", 2015)
+                    )
+                )
+            )
 
             // Permission & Roles helper tests
             writeToFile(Permission.read(Role.any()))
@@ -214,4 +307,11 @@ class ServiceTest {
         File("result.txt").appendText(text)
     }
 
+    private fun parse(json: String): String? {
+        return try {
+            json.fromJson<Map<String, Any>>()["result"] as? String
+        } catch (exception: Exception) {
+            null
+        }
+    }
 }

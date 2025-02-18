@@ -1,47 +1,54 @@
 package {{ sdk.namespace | caseDot }}
 
 import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.title | caseUcfirst }}Exception
+import {{ sdk.namespace | caseDot }}.extensions.addToJsonObject
+import {{ sdk.namespace | caseDot }}.extensions.getSerializer
 import {{ sdk.namespace | caseDot }}.extensions.json
-import {{ sdk.namespace | caseDot }}.fileOperations.readFileBytes
-import {{ sdk.namespace | caseDot }}.fileOperations.readFileChunk
-import {{ sdk.namespace | caseDot }}.fileOperations.readFileSize
 import {{ sdk.namespace | caseDot }}.models.InputFile
 import {{ sdk.namespace | caseDot }}.models.UploadProgress
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
-import io.ktor.client.request.forms.MultiPartFormDataContent
 import io.ktor.client.request.forms.formData
+import io.ktor.client.request.forms.submitFormWithBinaryData
 import io.ktor.client.request.header
 import io.ktor.client.request.parameter
 import io.ktor.client.request.request
 import io.ktor.client.request.setBody
+import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
+import io.ktor.http.Headers
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.http.contentType
 import io.ktor.http.isSuccess
+import io.ktor.http.quote
 import kotlinx.atomicfu.locks.SynchronizedObject
+import kotlinx.atomicfu.locks.synchronized
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.io.Buffer
+import kotlinx.io.buffered
+import kotlinx.io.files.Path
+import kotlinx.io.files.SystemFileSystem
+import kotlinx.io.readByteArray
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.KSerializer
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.int
-import kotlinx.serialization.json.put
 import kotlinx.serialization.serializer
 import kotlin.reflect.KClass
 
 @Suppress("UNCHECKED_CAST")
 abstract class BaseClient<This : BaseClient<This>>(
-    var endpoint: String,
-    var endpointRealtime: String?
+    var endpoint: String = "{{spec.endpoint}}",
+    var endpointRealtime: String? = null,
+    private var selfSigned: Boolean = false
 ) : CoroutineScope {
     companion object {
-        internal const val CHUNK_SIZE = 5 * 1024 * 1024 // 5MB
+        internal const val CHUNK_SIZE: Long = 5 * 1024 * 1024 // 5MB
     }
 
     private val mutex = SynchronizedObject()
@@ -96,9 +103,28 @@ abstract class BaseClient<This : BaseClient<This>>(
         return this as This
     }
 
-    private fun addHeader(key: String, value: String): This {
+    fun addHeader(key: String, value: String): This {
         headers[key] = value
         return this as This
+    }
+
+    /**
+     * Sends a "ping" request to {{ spec.title | caseUcfirst }} to verify connectivity.
+     *
+     * @return String
+     */
+    suspend fun ping(): String {
+        val apiPath = "/ping"
+        val apiParams = mutableMapOf<String, Any?>()
+        val apiHeaders = mutableMapOf("content-type" to "application/json")
+
+        return call(
+            "GET",
+            apiPath,
+            apiHeaders,
+            apiParams,
+            responseType = String::class
+        )
     }
 
     /**
@@ -124,109 +150,44 @@ abstract class BaseClient<This : BaseClient<This>>(
         serializer: KSerializer<T>? = null
     ): T {
         val filteredParams = params.filterValues { it != null }
-
         val combinedHeaders = headers + this.headers
 
         return httpClient.request(endpoint + path) {
             this.method = HttpMethod.parse(method)
-
-            // Add headers
             combinedHeaders.forEach { (key, value) ->
                 header(key, value)
             }
-
-            if (method == "GET") {
+            if (method.uppercase() == "GET") {
                 filteredParams.forEach { (key, value) ->
                     when (value) {
-                        is List<*> -> {
-                            value.forEach { item ->
-                                parameter("${key}[]", item.toString())
-                            }
+                        is List<*> -> value.forEach { item ->
+                            parameter("${key}[]", item.toString())
                         }
 
                         else -> parameter(key, value.toString())
                     }
                 }
             } else {
-                if (headers["content-type"] == "multipart/form-data") {
-                    setBody(MultiPartFormDataContent(
-                        formData {
-                            filteredParams.forEach { (key, value) ->
-                                when {
-                                    key == "file" -> {
-                                        // Handle file upload
-                                        val part = value as ByteArray
-                                        append(key, part)
-                                    }
-
-                                    value is List<*> -> {
-                                        value.forEach { item ->
-                                            append("${key}[]", item.toString())
-                                        }
-                                    }
-
-                                    else -> append(key, value.toString())
-                                }
-                            }
-                        }
-                    ))
-                } else {
-                    contentType(ContentType.Application.Json)
-                    val jsonObject = buildJsonObject {
-                        filteredParams.forEach { (key, value) ->
-                            when (value) {
-                                is String -> put(key, value)
-                                is Number -> put(key, value)
-                                is Boolean -> put(key, value)
-                                null -> put(key, JsonNull)
-                            }
-                        }
+                contentType(ContentType.Application.Json)
+                val jsonObject = buildJsonObject {
+                    filteredParams.forEach { (key, value) ->
+                        addToJsonObject(key, value)
                     }
-                    setBody(jsonObject)
                 }
+                setBody(jsonObject)
             }
         }.let { response ->
-            when {
-                !response.status.isSuccess() -> {
-                    val body = response.bodyAsText()
-                    println(body)
-                    if (response.contentType()?.match(ContentType.Application.Json) == true) {
-                        val map = Json.decodeFromString<Map<String, JsonElement>>(body)
-                        throw {{ spec.title | caseUcfirst }}Exception(
-                            (map["message"] as? JsonPrimitive)?.content ?: "",
-                            (map["code"] as? JsonPrimitive)?.int ?: 0,
-                            (map["type"] as? JsonPrimitive)?.content ?: "",
-                            body
-                        )
-                    } else {
-                        throw {{ spec.title | caseUcfirst }}Exception(body, response.status.value)
-                    }
-                }
-
-                responseType == Boolean::class -> true as T
-                responseType == ByteArray::class -> response.body<ByteArray>() as T
-                else -> {
-                    val body = response.bodyAsText()
-                    if (body.isEmpty()) {
-                        true as T
-                    } else {
-                        serializer?.let {
-                            json.decodeFromString(serializer, body)
-                        } ?: run {
-                            json.decodeFromString(responseType.serializer(), body)
-                        }
-                    }
-                }
-            }
+            handleResponse(response, responseType, serializer)
         }
     }
 
-    /**
+     /**
      * Handle large file uploads by splitting into chunks
      *
      * @param path The upload endpoint path
      * @param headers The request headers
      * @param params The upload parameters
+     * @param input The InputFile to upload
      * @param responseType The expected response type
      * @param serializer The response serializer
      * @param paramName The file parameter name
@@ -240,109 +201,204 @@ abstract class BaseClient<This : BaseClient<This>>(
         path: String,
         headers: MutableMap<String, String>,
         params: MutableMap<String, Any?>,
+        input: InputFile,
         responseType: KClass<T>,
         serializer: KSerializer<T>,
         paramName: String,
         idParamName: String? = null,
-        onProgress: ((UploadProgress) -> Unit)? = null,
+        onProgress: ((UploadProgress) -> Unit)? = null
     ): T {
-        val input = params[paramName] as InputFile
+        val filteredParams = params.filterValues { it != null }
+        val combinedHeaders = (headers + this.headers).toMutableMap()
+
         val size: Long = when (input.sourceType) {
-            "path", "file" -> readFileSize(input.path)
-            "bytes" -> (input.data).size.toLong()
+            "path", "file" -> {
+                SystemFileSystem.metadataOrNull(Path(input.path))?.size ?: 0L
+            }
+
+            "bytes" -> {
+                input.data.size.toLong()
+            }
+
+            else -> throw UnsupportedOperationException()
+        }
+        val data = when (input.sourceType) {
+            "file", "path" -> SystemFileSystem.source(Path(input.path)).buffered()
+            "bytes" -> input.data
             else -> throw UnsupportedOperationException()
         }
 
         if (size < CHUNK_SIZE) {
-            val data = when (input.sourceType) {
-                "file", "path" -> readFileBytes(input.path, 0, size)
-                "bytes" -> input.data
-                else -> throw UnsupportedOperationException()
-            }
-            params[paramName] = data
-            headers["content-type"] = "multipart/form-data"
-            headers["content-disposition"] =
-                "form-data; name=\"$paramName\"; filename=\"${input.filename}\""
+            return httpClient.submitFormWithBinaryData(
+                url = endpoint + path,
+                formData = formData {
+                    filteredParams.forEach { (key, value) ->
+                        when (value) {
+                            is List<*> -> value.forEach { item ->
+                                append("${key}[]", item.toString())
+                            }
 
-            return call(
-                method = "POST",
-                path = path,
-                headers = headers,
-                params = params,
-                responseType = responseType,
-                serializer = serializer
-            )
+                            else -> append(key, value.toString())
+                        }
+                    }
+                    append(
+                        paramName,
+                        Buffer().apply {
+                            write(data, size)
+                        },
+                        Headers.build {
+                            append(HttpHeaders.ContentType, input.mimeType)
+                            append(
+                                HttpHeaders.ContentDisposition,
+                                "filename=${input.filename.quote()}"
+                            )
+                        }
+                    )
+                }
+            ) {
+                combinedHeaders.forEach { (key, value) ->
+                    header(key, value)
+                }
+            }.let { response ->
+                handleResponse(response, responseType, serializer)
+            }
         }
 
-        val buffer = ByteArray(CHUNK_SIZE)
         var offset = 0L
-        var result: T? = null
+        var chunksUploaded = 0L
 
         if (idParamName?.isNotEmpty() == true && params[idParamName] != "unique()") {
-            result = call(
+            // Make a request to check if a file already exists
+            val current = call(
                 method = "GET",
                 path = "$path/${params[idParamName]}",
                 headers = headers,
                 params = emptyMap(),
-                responseType = responseType,
-                serializer = serializer
+                responseType = Map::class,
             )
-            val chunksUploaded = (result as? Map<*, *>)?.get("chunksUploaded") as? Number
-            offset = (chunksUploaded?.toLong() ?: 0) * CHUNK_SIZE
+            chunksUploaded = current["chunksUploaded"] as Long
+            offset = chunksUploaded * CHUNK_SIZE
         }
 
+        var result: Map<*, *> = mapOf<String, Any>()
         while (offset < size) {
-            val chunkSize = minOf(CHUNK_SIZE.toLong(), size - offset)
+            val bytesToRead = if (size - offset < CHUNK_SIZE) {
+                (size - offset).toInt()
+            } else {
+                CHUNK_SIZE.toInt()
+            }
+            val chunk = data.readByteArray(bytesToRead)
 
-            when (input.sourceType) {
-                "file", "path" -> {
-                    readFileChunk(input.path, offset, buffer, chunkSize.toInt())
-                }
+            httpClient.submitFormWithBinaryData(
+                url = endpoint + path,
+                formData = formData {
+                    filteredParams.forEach { (key, value) ->
+                        when (value) {
+                            is List<*> -> value.forEach { item ->
+                                append("${key}[]", item.toString())
+                            }
 
-                "bytes" -> {
-                    val end = (offset + chunkSize).toInt()
-                    (input.data).copyInto(
-                        buffer,
-                        destinationOffset = 0,
-                        startIndex = offset.toInt(),
-                        endIndex = end
+                            else -> append(key, value.toString())
+                        }
+                    }
+                    append(
+                        paramName,
+                        chunk,
+                        Headers.build {
+                            append(HttpHeaders.ContentType, input.mimeType)
+                            append(
+                                HttpHeaders.ContentDisposition,
+                                "filename=${input.filename.quote()}"
+                            )
+                        }
                     )
                 }
+            ) {
+                header(
+                    HttpHeaders.ContentRange,
+                    "bytes $offset-${((offset + CHUNK_SIZE) - 1).coerceAtMost(size - 1)}/$size"
+                )
+                combinedHeaders.forEach { (key, value) ->
+                    header(key, value)
+                }
+                if (chunksUploaded != 0L) {
+                    header("x-{{ spec.title | caseLower }}-id", result["\$id"].toString().removeSurrounding("\""))
+                }
+            }.let { response ->
+                result = handleResponse(response, Map::class, getSerializer(Map::class))
+                offset += bytesToRead
+                chunksUploaded++
+                onProgress?.invoke(
+                    UploadProgress(
+                        id = result["\$id"].toString(),
+                        progress = offset.coerceAtMost(size).toDouble() / size * 100,
+                        sizeUploaded = offset.coerceAtMost(size),
+                        chunksTotal = result["chunksTotal"].toString().toInt(),
+                        chunksUploaded = result["chunksUploaded"].toString().toInt(),
+                    )
+                )
+            }
+        }
+        return json.decodeFromString(
+            serializer,
+            json.encodeToString(getSerializer(Map::class), result)
+        )
+    }
 
-                else -> throw UnsupportedOperationException()
+    @OptIn(InternalSerializationApi::class)
+    private suspend fun <T : Any> handleResponse(
+        response: HttpResponse,
+        responseType: KClass<T>,
+        serializer: KSerializer<T>? = null
+    ): T {
+        return when {
+            !response.status.isSuccess() -> {
+                val body = response.bodyAsText()
+                println(body)
+                if (response.contentType()?.match(ContentType.Application.Json) == true) {
+                    val map = json.decodeFromString<Map<String, JsonElement>>(body)
+                    throw AppwriteException(
+                        (map["message"] as? JsonPrimitive)?.content ?: "",
+                        (map["code"] as? JsonPrimitive)?.int ?: 0,
+                        (map["type"] as? JsonPrimitive)?.content ?: "",
+                        body
+                    )
+                } else {
+                    throw AppwriteException(body, response.status.value)
+                }
             }
 
-            params[paramName] = buffer.copyOf(chunkSize.toInt())
-            headers["content-type"] = "multipart/form-data"
-            headers["content-disposition"] =
-                "form-data; name=\"$paramName\"; filename=\"${input.filename}\""
-            headers["content-range"] = "bytes $offset-${(offset + chunkSize - 1)}/$size"
+            responseType == Boolean::class -> true as T
+            responseType == ByteArray::class -> response.body<ByteArray>() as T
+            else -> {
+                val body = response.bodyAsText()
+                if (body.isEmpty()) {
+                    true as T
+                } else {
+                    when {
+                        body.isEmpty() -> when (responseType) {
+                            String::class -> "" as T
+                            Boolean::class -> true as T
+                            else -> throw AppwriteException(
+                                "Empty response body",
+                                response.status.value
+                            )
+                        }
 
-            result = call(
-                method = "POST",
-                path = path,
-                headers = headers,
-                params = params,
-                responseType = responseType,
-                serializer = serializer
-            )
-
-            offset += chunkSize
-
-            val resultMap = result as? Map<*, *>
-            headers["x-appwrite-id"] = resultMap?.get("\$id").toString()
-
-            onProgress?.invoke(
-                UploadProgress(
-                    id = resultMap?.get("\$id").toString(),
-                    progress = offset.coerceAtMost(size).toDouble() / size * 100,
-                    sizeUploaded = offset.coerceAtMost(size),
-                    chunksTotal = (resultMap?.get("chunksTotal") as? Number)?.toInt() ?: 0,
-                    chunksUploaded = (resultMap?.get("chunksUploaded") as? Number)?.toInt() ?: 0
-                )
-            )
+                        responseType == String::class -> body as T
+                        else -> try {
+                            serializer?.let { json.decodeFromString(it, body) }
+                                ?: json.decodeFromString(responseType.serializer(), body)
+                        } catch (e: Exception) {
+                            throw AppwriteException(
+                                "Failed to parse JSON response: ${e.message}",
+                                response.status.value,
+                                response = body
+                            )
+                        }
+                    }
+                }
+            }
         }
-
-        return result ?: throw {{ spec.title | caseUcfirst }}Exception("Upload failed")
     }
 }
