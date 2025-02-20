@@ -121,18 +121,21 @@ void main() async {
     await general.error400();
   } on AppwriteException catch (e) {
     print(e.message);
+    print(e.response);
   }
 
   try {
     await general.error500();
   } on AppwriteException catch (e) {
     print(e.message);
+    print(e.response);
   }
 
   try {
     await general.error502();
   } on AppwriteException catch (e) {
     print(e.message);
+    print(e.response);
   }
 
   rtsub.stream.listen((message) {

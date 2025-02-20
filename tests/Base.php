@@ -68,9 +68,16 @@ abstract class Base extends TestCase
         'POST:/v1/mock/tests/general/upload:passed',
     ];
 
+    /**
+     * 'Mock 400 error'                              -> message
+     * '{"message":"Mock 400 error","code":400}'     -> response
+     */
     protected const EXCEPTION_RESPONSES = [
         'Mock 400 error',
+        '{"message":"Mock 400 error","code":400}',
         'Mock 500 error',
+        '{"message":"Mock 500 error","code":500}',
+        'This is a text error',
         'This is a text error',
     ];
 

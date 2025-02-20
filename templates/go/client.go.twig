@@ -32,6 +32,7 @@ const (
 type {{ spec.title | caseUcfirst }}Error struct {
 	statusCode int
 	message    string
+	response   string
 }
 
 // ClientResponse - represents the client response
@@ -53,6 +54,10 @@ func (ce *{{ spec.title | caseUcfirst }}Error) GetMessage() string {
 
 func (ce *{{ spec.title | caseUcfirst }}Error) GetStatusCode() int {
 	return ce.statusCode
+}
+
+func (ce *{{ spec.title | caseUcfirst }}Error) GetResponse() string {
+	return ce.response
 }
 
 // Client is the client struct to access {{ spec.title | caseUcfirst }}  services
@@ -377,6 +382,7 @@ func (client *Client) Call(method string, path string, headers map[string]interf
 			return nil, &{{ spec.title | caseUcfirst }}Error{
 				statusCode: resp.StatusCode,
 				message:    message,
+				response:   string(responseData),
 			}
 		}
 		return &ClientResponse{
@@ -392,6 +398,7 @@ func (client *Client) Call(method string, path string, headers map[string]interf
 		return nil, &{{ spec.title | caseUcfirst }}Error{
 			statusCode: resp.StatusCode,
 			message:    string(responseData),
+			response:   string(responseData),
 		}
 	}
 	return &ClientResponse{
