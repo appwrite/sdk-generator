@@ -1,0 +1,46 @@
+/**
+ * Helper class for JSON parsing/stringifying with `BigInt` support.
+ */
+export default class JsonBigInt {
+
+    // Preprocesses JSON to wrap large numbers in quotes.
+    static #preprocessJson(jsonString: string): string {
+        return jsonString.replaceAll(
+            /([:\s\[,]*)(-?\d+)([\s,\]]*)/g,
+            (match, prefix, num, suffix) =>
+                !Number.isSafeInteger(+num) ? `${prefix}"${num}"${suffix}` : match
+        );
+    }
+
+    /**
+     * Parses JSON, converting large numbers to `BigInt`.
+     *
+     * @param {string} jsonString - The JSON string.
+     * @returns {any} - The parsed object.
+     */
+    static parse(jsonString: string): any {
+        const processedJsonString = this.#preprocessJson(jsonString);
+
+        return JSON.parse(processedJsonString, (key, value) => {
+            if (typeof value === 'string' && /^-?\d+$/.test(value)) {
+                return BigInt(value);
+            }
+            return value;
+        });
+    }
+
+    /**
+     * Stringifies an object, converting `BigInt` to strings.
+     *
+     * @param {object} obj - The object to stringify.
+     * @returns {string} - The JSON string.
+     */
+    static stringify(obj: object): string {
+        return JSON.stringify(obj, (_, value) => {
+            if (typeof value === 'bigint') {
+                return value.toString();
+            }
+            return value;
+        });
+    }
+}
