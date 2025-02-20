@@ -115,7 +115,7 @@ sdk-generator/blob/master/example.php:
 Run the following command (make sure you have an updated docker version on your machine):
 
 ```bash
-docker run --rm -v $(pwd):/app -w /app php:8.1-cli php example.php
+docker run --rm -v $(pwd):/app -w /app php:8.3-cli php example.php
 ```
 
 >Note: You can just add the new language next to the other languages in the `example.php` file. You don't need to rewrite the file completely.
@@ -252,7 +252,7 @@ Also in `.travis.yml` add new env `SDK=[Language]` so that travis will run a tes
 
 Finally, you can run tests using:
 ```sh
-docker run --rm -v $(pwd):$(pwd):rw -w $(pwd) -v /var/run/docker.sock:/var/run/docker.sock  php:8.1-cli-alpine sh -c "apk add docker-cli && vendor/bin/phpunit"
+docker run --rm -v $(pwd):$(pwd):rw -w $(pwd) -v /var/run/docker.sock:/var/run/docker.sock  php:8.3-cli-alpine sh -c "apk add docker-cli && vendor/bin/phpunit"
 ```
 
 ## SDK Generator Interface
