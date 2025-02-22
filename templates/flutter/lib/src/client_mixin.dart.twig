@@ -62,10 +62,9 @@ class ClientMixin {
       (request as http.Request).body = jsonEncode(params);
     }
 
-    request.headers.addAll(Map.fromIterable(headers.entries, 
-      key: (entry) => entry.key, 
-      value: (entry) => entry.key == 'User-Agent' ? Uri.encodeFull(entry.value) : entry.value
-    ));
+    headers['User-Agent'] = Uri.encodeFull(headers['User-Agent'] ?? '');
+
+    request.headers.addAll(headers);
     return request;
   }
 
