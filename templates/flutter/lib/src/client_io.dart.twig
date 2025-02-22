@@ -125,7 +125,7 @@ class ClientIO extends ClientBase with ClientMixin {
 
   @override
   ClientIO addHeader(String key, String value) {
-    _headers![key] = value;
+    _headers![key] = Uri.encodeFull(value);
 
     return this;
   }
