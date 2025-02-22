@@ -62,7 +62,7 @@ class ClientMixin {
       (request as http.Request).body = jsonEncode(params);
     }
 
-    request.headers.addAll(headers);
+    request.headers.addAll(headers.map((key, value) => MapEntry(key, URI.encodeFull(value))));
     return request;
   }
 

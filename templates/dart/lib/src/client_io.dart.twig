@@ -43,7 +43,7 @@ class ClientIO extends ClientBase with ClientMixin {
       'x-sdk-platform': '{{ sdk.platform }}',
       'x-sdk-language': '{{ language.name | caseLower }}',
       'x-sdk-version': '{{ sdk.version }}',
-      'user-agent' : '{{spec.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} (${Platform.operatingSystem}; ${Uri.encodeFull(Platform.operatingSystemVersion)})',
+      'user-agent' : '{{spec.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} (${Platform.operatingSystem}; ${Platform.operatingSystemVersion})',
 {% for key,header in spec.global.defaultHeaders %}
       '{{key}}' : '{{header}}',
 {% endfor %}
@@ -85,7 +85,7 @@ class ClientIO extends ClientBase with ClientMixin {
 
   @override
   ClientIO addHeader(String key, String value) {
-    _headers![key] = Uri.encodeFull(value);
+    _headers![key] = value;
     return this;
   }
 
