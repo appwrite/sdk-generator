@@ -17,7 +17,7 @@ class KMPAndroid14Java17Test extends Base
         'chmod +x tests/sdks/kmp/gradlew',
     ];
     protected string $command =
-        'docker run --rm --network="mockapi" -v $(pwd):/app -w /app/tests/sdks/kmp alvrme/alpine-android:android-34-jdk17 sh -c "./gradlew :shared:testDebugUnitTest --stacktrace -q && cat shared/result.txt"';
+        'docker run --rm --platform linux/amd64 --network="mockapi" -v $(pwd):/app -w /app/tests/sdks/kmp alvrme/alpine-android:android-34-jdk17 sh -c "./gradlew :shared:testDebugUnitTest --stacktrace -q && cat shared/result.txt"';
 
     protected array $expectedOutput = [
         ...Base::PING_RESPONSE,

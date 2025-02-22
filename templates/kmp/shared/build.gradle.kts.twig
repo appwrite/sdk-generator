@@ -64,17 +64,30 @@ kotlin {
         }
     }
 
-    listOf(
-        iosX64(),
-        iosArm64(),
-        iosSimulatorArm64()
-    ).forEach {
-        it.binaries.framework {
+    iosX64 {
+        // Create a framework binary with additional options
+        binaries.framework {
             baseName = "shared"
             isStatic = true
             binaryOption("bundleId", "io.appwrite.shared")
         }
-        it.withSourcesJar(publish = false)
+        withSourcesJar(publish = false)
+    }
+    iosArm64 {
+        binaries.framework {
+            baseName = "shared"
+            isStatic = true
+            binaryOption("bundleId", "io.appwrite.shared")
+        }
+        withSourcesJar(publish = false)
+    }
+    iosSimulatorArm64 {
+        binaries.framework {
+            baseName = "shared"
+            isStatic = true
+            binaryOption("bundleId", "io.appwrite.shared")
+        }
+        withSourcesJar(publish = false)
     }
 
     sourceSets {
@@ -137,9 +150,11 @@ kotlin {
 
 publishing {
     publications.withType<MavenPublication> {
-        when (name) {
-            "jvm" -> artifactId = "sdk-for-kmp-jvm"
-            else -> artifactId = project.ext["PUBLISH_ARTIFACT_ID"].toString()
+        artifactId = if (name != "kotlinMultiplatform") {
+            // Append the target name to the artifactId so each publication is unique.
+            "${project.ext["PUBLISH_ARTIFACT_ID"].toString()}-$name"
+        } else {
+            project.ext["PUBLISH_ARTIFACT_ID"].toString()
         }
 
         pom {

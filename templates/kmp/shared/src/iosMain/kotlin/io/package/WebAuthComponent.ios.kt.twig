@@ -24,7 +24,14 @@ actual class WebAuthComponent {
             return@suspendCancellableCoroutine
         }
 
-        UIApplication.sharedApplication.openURL(nsUrl)
+        // Use the updated open(_:options:completionHandler:) method
+        UIApplication.sharedApplication.openURL(nsUrl, options = emptyMap<Any?, Any>()) { success ->
+            if (!success) {
+                cleanUp()
+                continuation.resume(Unit)
+            }
+        }
+
         suspended = true
 
         continuation.invokeOnCancellation {

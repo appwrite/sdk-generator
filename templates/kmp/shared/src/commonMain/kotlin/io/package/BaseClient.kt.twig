@@ -267,9 +267,10 @@ abstract class BaseClient<This : BaseClient<This>>(
         var offset = 0L
         var chunksUploaded = 0L
 
-        if (idParamName?.isNotEmpty() == true && params[idParamName] != "unique()") {
+        if (idParamName?.isNotEmpty() == true) {
             // Make a request to check if a file already exists
-            val current = call(
+            try {
+                val current = call(
                 method = "GET",
                 path = "$path/${params[idParamName]}",
                 headers = headers,
@@ -278,6 +279,9 @@ abstract class BaseClient<This : BaseClient<This>>(
             )
             chunksUploaded = current["chunksUploaded"] as Long
             offset = chunksUploaded * CHUNK_SIZE
+            } catch (e: Exception) {
+                // Swallow exception
+            }
         }
 
         var result: Map<*, *> = mapOf<String, Any>()
@@ -354,7 +358,7 @@ abstract class BaseClient<This : BaseClient<This>>(
         return when {
             !response.status.isSuccess() -> {
                 val body = response.bodyAsText()
-                println(body)
+
                 if (response.contentType()?.match(ContentType.Application.Json) == true) {
                     val map = json.decodeFromString<Map<String, JsonElement>>(body)
                     throw AppwriteException(
