@@ -63,6 +63,7 @@ class ClientMixin {
     }
 
     headers['User-Agent'] = Uri.encodeFull(headers['User-Agent'] ?? '');
+    headers['X-Forwarded-User-Agent'] = Uri.encodeFull(headers['X-Forwarded-User-Agent'] ?? '');
 
     request.headers.addAll(headers);
     return request;
