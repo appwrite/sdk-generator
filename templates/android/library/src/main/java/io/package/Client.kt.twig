@@ -490,7 +490,7 @@ class Client @JvmOverloads constructor(
                             body
                         )
                     } else {
-                        {{ spec.title | caseUcfirst }}Exception(body, response.code)
+                        {{ spec.title | caseUcfirst }}Exception(body, response.code, "", body)
                     }
                     it.cancel(error)
                     return

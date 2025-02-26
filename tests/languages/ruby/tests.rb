@@ -90,18 +90,21 @@ begin
     general.error400()
 rescue Exception => error
     puts error.message
+    puts error.response
 end
 
 begin
     general.error500()
 rescue Exception => error
     puts error.message
+    puts error.response
 end
 
 begin
     general.error502()
 rescue Exception => error
     puts error.message
+    puts error.response
 end
 
 general.empty()

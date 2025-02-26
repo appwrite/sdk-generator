@@ -230,7 +230,9 @@ namespace {{ spec.title | caseUcfirst }}
             var code = (int)response.StatusCode;
 
             if (code >= 400) {
-                var message = await response.Content.ReadAsStringAsync();
+                var text = await response.Content.ReadAsStringAsync();
+                var message = "";
+                var type = "";
 
                 string contentType = string.Empty;
                 if (response.Content.Headers.TryGetValues("Content-Type", out var contentTypes))
@@ -239,10 +241,13 @@ namespace {{ spec.title | caseUcfirst }}
                 }
 
                 if (contentType.Contains("application/json")) {
-                    message = JObject.Parse(message)["message"]!.ToString();
+                    message = JObject.Parse(text)["message"]!.ToString();
+                    type = JObject.Parse(text)["type"]?.ToString() ?? string.Empty;
+                } else {
+                    message = text;
                 }
 
-                throw new {{spec.title | caseUcfirst}}Exception(message, code);
+                throw new {{spec.title | caseUcfirst}}Exception(message, code, type, text);
             }
 
             return response.Headers.Location.OriginalString;
@@ -286,13 +291,18 @@ namespace {{ spec.title | caseUcfirst }}
             var isJson = contentType.Contains("application/json");
 
             if (code >= 400) {
-                var message = await response.Content.ReadAsStringAsync();
+                var text = await response.Content.ReadAsStringAsync();
+                var message = "";
+                var type = "";
 
                 if (isJson) {
-                    message = JObject.Parse(message)["message"]!.ToString();
+                    message = JObject.Parse(text)["message"]!.ToString();
+                    type = JObject.Parse(text)["type"]?.ToString() ?? string.Empty;
+                } else {
+                    message = text;
                 }
 
-                throw new {{spec.title | caseUcfirst}}Exception(message, code);
+                throw new {{spec.title | caseUcfirst}}Exception(message, code, type, text);
             }
 
             if (isJson)

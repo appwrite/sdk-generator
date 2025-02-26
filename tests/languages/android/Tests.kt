@@ -152,18 +152,21 @@ class ServiceTest {
                 general.error400()
             } catch (e: AppwriteException) {
                 writeToFile(e.message)
+                writeToFile(e.response)
             }
 
             try {
                 general.error500()
             } catch (e: AppwriteException) {
                 writeToFile(e.message)
+                writeToFile(e.response)
             }
 
             try {
                 general.error502()
             } catch (e: AppwriteException) {
                 writeToFile(e.message)
+                writeToFile(e.response)
             }
 
             delay(5000)
