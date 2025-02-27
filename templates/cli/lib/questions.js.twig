@@ -2,6 +2,7 @@ const chalk = require("chalk");
 const Client = require("./client");
 const { localConfig, globalConfig } = require('./config');
 const { projectsList } = require('./commands/projects');
+const { organizationsList } = require('./commands/organizations');
 const { teamsList } = require('./commands/teams');
 const { functionsListRuntimes, functionsListSpecifications, functionsList } = require('./commands/functions');
 const { accountListMfaFactors } = require("./commands/account");
@@ -152,7 +153,10 @@ const questionsInitProject = [
         message: "Choose your organization",
         choices: async () => {
             let client = await sdkForConsole(true);
-            const { teams } = await paginate(teamsList, { parseOutput: false, sdk: client }, 100, 'teams');
+            const hostname = new URL(client.endpoint).hostname;
+            const { teams } = hostname.endsWith('appwrite.io')
+                ? await paginate(organizationsList, { parseOutput: false, sdk: client }, 100, 'teams') 
+                : await paginate(teamsList, { parseOutput: false, sdk: client }, 100, 'teams');
 
             let choices = teams.map((team, idx) => {
                 return {
