@@ -7,7 +7,7 @@ import java.awt.Desktop
 import java.net.URI
 
 actual class WebAuthComponent {
-    companion object {
+    actual companion object {
         private var suspended = false
         private val callbacks = mutableMapOf<String, (((Result<String>) -> Unit)?)>()
 
@@ -74,21 +74,14 @@ actual class WebAuthComponent {
             callbacks.clear()
             suspended = false
         }
-    }
 
-    @Throws(Throwable::class)
-    actual suspend fun authenticate(
-        url: String,
-        callbackUrlScheme: String,
-        onComplete: ((Result<String>) -> Unit)?
-    ) {
-        Companion.authenticate(url, callbackUrlScheme, onComplete)
-    }
-
-    actual fun onCallback(scheme: String, url: String) {
-        callbacks.remove(scheme)?.invoke(
-            Result.success(url)
-        )
-        suspended = false
+        actual fun onCallback(scheme: String, url: String) {
+            callbacks.remove(scheme)?.invoke(
+                Result.success(url)
+            )
+            suspended = false
+        }
+        
+        actual fun handleIncomingCookie(url: String) {}
     }
 }

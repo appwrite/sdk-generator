@@ -2,6 +2,7 @@
 agp = "8.7.3"
 appcompat = "1.7.0"
 coreKtx = "1.15.0"
+datastore = "1.1.2"
 espressoCore = "3.6.1"
 gson = "2.10.1"
 junit = "4.13.2"
@@ -15,8 +16,8 @@ kotlinxDatetime = "0.6.1"
 kotlinxSerializationJson = "1.7.3"
 napier = "2.7.1"
 lifecycleLivedataKtx = "2.8.7"
-navigationUiKtx = "2.8.5"
-firebaseCrashlyticsBuildtools = "3.0.2"
+navigationUiKtx = "2.8.7"
+firebaseCrashlyticsBuildtools = "3.0.3"
 okio = "3.10.2"
 robolectric = "4.14.1"
 androidx-test = "1.6.1"
@@ -25,6 +26,8 @@ test-runner = "1.6.2"
 
 
 [libraries]
+androidx-datastore = { module = "androidx.datastore:datastore", version.ref = "datastore" }
+androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
 okio = { module = "com.squareup.okio:okio", version.ref = "okio" }
 robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
 androidx-test-core = { module = "androidx.test:core-ktx", version.ref = "androidx-test" }

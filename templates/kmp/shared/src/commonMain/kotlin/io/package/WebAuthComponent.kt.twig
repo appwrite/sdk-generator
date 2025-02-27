@@ -1,41 +1,8 @@
 package {{ sdk.namespace | caseDot }}
 
-/**
- * Used to authenticate with external OAuth2 providers. Launches browser windows and handles
- * suspension until the user completes the process or otherwise returns to the app.
- */
 expect class WebAuthComponent {
-
-
-    /**
-    * Authenticate Session with OAuth2
-    *
-    * Launches a Chrome Custom Tab from the given context and directs to the given URL,
-    * suspending until the user returns to the app, at which point the given [onComplete] callback
-    * will run, passing the callback URL from the intent used to launch the [CallbackActivity],
-    * or an [IllegalStateException] in case the user cancels.
-    *
-    * @param url                   The URL to launch
-    * @param callbackUrlScheme     The callback URL scheme used to key the given callback
-    * @param onComplete            The callback to run when a result (success or failure) is received
-    */
-    @Throws(Throwable::class)
-    suspend fun authenticate(
-        url: String,
-        callbackUrlScheme: String,
-        onComplete: ((Result<String>) -> Unit)?
-    )
-
-    /**
-    * Trigger a web auth callback.
-    *
-    * Attempts to find a callback for the given [scheme] and if found, invokes it, passing the
-    * given [url]. Calling this method stops auth suspension, so any calls to [authenticate]
-    * will continue execution from their suspension points immediately after this method
-    * is called.
-    *
-    * @param scheme    The scheme to match to a callback's key
-    * @param url       The URL received through intent data from the [CallbackActivity]
-    */
-    fun onCallback(scheme: String, url: String)
+    companion object {
+        fun onCallback(scheme: String, url: String)
+        fun handleIncomingCookie(url: String)
+    }
 }

@@ -25,7 +25,7 @@ class KMP extends Kotlin
         });
 
         $filters[] = new TwigFilter('webAuthServices', function (array $spec) {
-            return $this->findWebAuthServices($spec);
+            return $this->getWebAuthServices($spec);
         });
 
         $filters[] = new TwigFilter('propertySerializerName', function (array $property) {
@@ -43,7 +43,7 @@ class KMP extends Kotlin
         return parent::getReturnType($method, $spec, $namespace, $generic, $withGeneric);
     }
 
-    protected function findWebAuthServices(array $spec): array
+    protected function getWebAuthServices(array $spec): array
     {
         $webAuthServices = [];
         foreach ($spec['services'] as $service) {
@@ -53,7 +53,9 @@ class KMP extends Kotlin
                 if ($method['type'] === 'webAuth') {
                     $webAuthMethods[] = [
                         'methodName' => $method['name'],
-                        'parameters' => $method['parameters']
+                        'parameters' => $method['parameters'],
+                        'path' => $method['path'],
+                        'auth' => $method['auth']
                     ];
                     $hasWebAuth = true;
                 }
@@ -239,6 +241,7 @@ class KMP extends Kotlin
                 'destination'   => 'shared/src/commonMain/kotlin/{{ sdk.namespace | caseSlash }}/WebAuthComponent.kt',
                 'template'      => '/kmp/shared/src/commonMain/kotlin/io/package/WebAuthComponent.kt.twig',
             ],
+            
 
             // Coroutines
             [
@@ -375,28 +378,18 @@ class KMP extends Kotlin
             // Cookies
             [
                 'scope'         => 'default',
-                'destination'   => 'shared/src/androidMain/kotlin/{{ sdk.namespace | caseSlash }}/cookies/AndroidCookieStorage.kt',
-                'template'      => '/kmp/shared/src/androidMain/kotlin/io/package/cookies/AndroidCookieStorage.kt.twig',
+                'destination'   => 'shared/src/androidMain/kotlin/{{ sdk.namespace | caseSlash }}/cookies/SerializableCookie.kt',
+                'template'      => '/kmp/shared/src/androidMain/kotlin/io/package/cookies/SerializableCookie.kt.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'shared/src/androidMain/kotlin/{{ sdk.namespace | caseSlash }}/cookies/Extensions.kt',
-                'template'      => '/kmp/shared/src/androidMain/kotlin/io/package/cookies/Extensions.kt.twig',
+                'destination'   => 'shared/src/androidMain/kotlin/{{ sdk.namespace | caseSlash }}/cookies/stores/DataStoreManager.kt',
+                'template'      => '/kmp/shared/src/androidMain/kotlin/io/package/cookies/stores/DataStoreManager.kt.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'shared/src/androidMain/kotlin/{{ sdk.namespace | caseSlash }}/cookies/InternalCookie.kt',
-                'template'      => '/kmp/shared/src/androidMain/kotlin/io/package/cookies/InternalCookie.kt.twig',
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => 'shared/src/androidMain/kotlin/{{ sdk.namespace | caseSlash }}/cookies/stores/InMemoryCookieStore.kt',
-                'template'      => '/kmp/shared/src/androidMain/kotlin/io/package/cookies/stores/InMemoryCookieStore.kt.twig',
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => 'shared/src/androidMain/kotlin/{{ sdk.namespace | caseSlash }}/cookies/stores/SharedPreferencesCookieStore.kt',
-                'template'      => '/kmp/shared/src/androidMain/kotlin/io/package/cookies/stores/SharedPreferencesCookieStore.kt.twig',
+                'destination'   => 'shared/src/androidMain/kotlin/{{ sdk.namespace | caseSlash }}/cookies/stores/DataStoreCookieStorage.kt',
+                'template'      => '/kmp/shared/src/androidMain/kotlin/io/package/cookies/stores/DataStoreCookieStorage.kt.twig',
             ],
 
             // Extensions

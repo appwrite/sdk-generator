@@ -2,8 +2,12 @@ package {{ sdk.namespace | caseDot }}
 
 import android.content.Context
 import android.content.pm.PackageManager
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import {{ sdk.namespace | caseDot }}.cookies.stores.DataStoreCookieStorage
+import {{ sdk.namespace | caseDot }}.cookies.stores.DataStoreManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import okio.Path.Companion.toPath
 
 actual class Client constructor(
     private val context: Context,
@@ -12,6 +16,12 @@ actual class Client constructor(
     selfSigned: Boolean = false,
 ) : BaseClient<Client>(endpoint, endpointRealtime) {
     actual override val coroutineContext = Job() + Dispatchers.Default
+
+    private val dataStoreManager = DataStoreManager(
+        PreferenceDataStoreFactory.createWithPath (
+            produceFile = { context.filesDir.resolve("appwriteCookies.preferences_pb").absolutePath.toPath() }
+        ))
+    val dataStoreCookieStorage = DataStoreCookieStorage(dataStoreManager)
 
     private val appVersion by lazy {
         try {
@@ -24,7 +34,8 @@ actual class Client constructor(
     }
 
     init {
-        httpClient = createHttpClient(context, selfSigned)
+
+        httpClient = createHttpClient(selfSigned, dataStoreCookieStorage)
         headers = mutableMapOf(
               "content-type" to "application/json",
               "origin" to "{{ spec.title | caseLower }}-android://${context.packageName}",
@@ -42,7 +53,7 @@ actual class Client constructor(
     }
 
     actual fun setSelfSigned(value: Boolean): Client {
-        httpClient = createHttpClient(context, value)
+        httpClient = createHttpClient(value, dataStoreCookieStorage)
         return this
     }
 }

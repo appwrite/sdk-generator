@@ -1,5 +1,6 @@
 package {{ sdk.namespace | caseDot }}
 
+import {{ sdk.namespace | caseDot }}.cookies.IosCookieStorage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import platform.Foundation.NSBundle
@@ -20,8 +21,10 @@ actual class Client(
         NSBundle.mainBundle.bundleIdentifier ?: ""
     }
 
+    val iosCookieStorage = IosCookieStorage()
+
     init {
-        httpClient = createHttpClient(selfSigned)
+        httpClient = createHttpClient(selfSigned, iosCookieStorage)
         headers = mutableMapOf(
             "content-type" to "application/json",
             "x-sdk-name" to "{{ sdk.name }}",
@@ -37,7 +40,7 @@ actual class Client(
     }
 
     actual fun setSelfSigned(value: Boolean): Client {
-        httpClient = createHttpClient(value)
+        httpClient = createHttpClient(value, iosCookieStorage)
         return this
     }
 }

@@ -15,10 +15,7 @@ import {{ sdk.namespace | caseDot }}.webInterface.UrlParser
 import kotlinx.serialization.KSerializer
 import kotlin.jvm.JvmOverloads
 import kotlin.reflect.KClass
-{%~ if service.features.webAuth %}
-import {{ sdk.namespace | caseDot }}.WebAuthComponent
-{%~ endif %}
-{%~ if (service.features.webAuth or service.features.location) %}
+{%~ if service.features.location %}
 import kotlinx.serialization.serializer
 import io.ktor.client.plugins.cookies.cookies
 import io.ktor.client.request.cookie
@@ -31,7 +28,7 @@ import io.ktor.http.Cookie
  **/
 class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
 {%~ for method in service.methods %}
-
+    {% if method.type != "webAuth" %}
     /**
      * {{ method.title }}
      *
@@ -44,9 +41,6 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
     {%~ for parameter in method.parameters.all %}
      * @param {{ parameter.name | caseCamel }} {{ parameter.description | raw }}
     {%~ endfor %}
-    {%~ if method.type != "webAuth" %}
-     * @return [{{ method | returnType(spec, sdk.namespace | caseDot) | raw }}]
-    {%~ endif %}
      */
     @Throws(Throwable::class)
     {%~ if method.parameters.all | reduce((carry, param) => carry or not param.required) %}
@@ -57,9 +51,6 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
     {%~ else %}
     suspend fun {{ method.name | caseCamel }}(
     {%~ endif %}
-        {%~ if method.type == "webAuth" %}
-        webAuth: WebAuthComponent,
-        {%~ endif %}
         {%~ for parameter in method.parameters.all %}
         {{ parameter.name | caseCamel }}: {{ parameter | typeName }}{%~ if not parameter.required or parameter.nullable %}? = null{%~ endif %},
         {%~ endfor %}
@@ -70,7 +61,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
         {%~ if 'multipart/form-data' in method.consumes %}
         onProgress: ((UploadProgress) -> Unit)? = null
         {%~ endif %}
-    ){%~ if method.type != "webAuth" %}: {{ method | returnType(spec, sdk.namespace | caseDot) | raw }}{%~ endif %} {
+    ): {{ method | returnType(spec, sdk.namespace | caseDot) | raw }} {
         val apiPath = "{{ method.path }}"
         {%~ for parameter in method.parameters.path %}
             .replace("{{ '{' ~ parameter.name | caseCamel ~ '}' }}", {{ parameter.name | caseCamel }}{%~ if parameter.enumValues is not empty %}.value{%~ endif %})
@@ -80,7 +71,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
         {%~ for parameter in method.parameters.query | merge(method.parameters.body) %}
             "{{ parameter.name }}" to {{ parameter.name | caseCamel }},
         {%~ endfor %}
-        {%~ if method.type == 'location' or method.type == 'webAuth' %}
+        {%~ if method.type == 'location'%}
         {%~ if method.auth | length > 0 %}
         {%~ for node in method.auth %}
         {%~ for key,header in node | keys %}
@@ -90,52 +81,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
         {%~ endif %}
         {%~ endif %}
         )
-
-        {%~ if method.type == 'webAuth' %}
-        val apiQuery = mutableListOf<String>()
-        apiParams.forEach {
-            when (it.value) {
-                null -> return@forEach
-                is List<*> -> apiQuery.add("${it.key}[]=${it.value.toString()}")
-                else -> apiQuery.add("${it.key}=${it.value.toString()}")
-            }
-        }
-
-        val urlParser = UrlParser()
-        val fullUrl = "${client.endpoint}${apiPath}?${apiQuery.joinToString("&")}"
-        val apiUrl = urlParser.parse(fullUrl)
-        val callbackUrlScheme = "appwrite-callback-${client.config["project"]}"
-
-        webAuth.authenticate(apiUrl.toString(), callbackUrlScheme) {
-            if (it.isFailure) {
-                throw it.exceptionOrNull()!!
-            }
-
-            val resultUrl = it.getOrNull()!!
-            val key = urlParser.getQueryParameter(resultUrl, "key")
-            val secret = urlParser.getQueryParameter(resultUrl, "secret")
-            if (key == null || secret == null) {
-                throw AppwriteException("Authentication cookie missing!")
-            }
-
-            kotlinx.coroutines.runBlocking {
-                val existingCookies = client.httpClient.cookies(client.endpoint)
-                if (existingCookies.any { cookie: Cookie -> cookie.name == key }) {
-                    return@runBlocking
-                }
-
-                client.httpClient.get(client.endpoint) {
-                    cookie(
-                        name = key,
-                        value = secret,
-                        domain = urlParser.getHost(client.endpoint),
-                        path = "/",
-                        httpOnly = true
-                    )
-                }
-            }
-        }
-        {%~ elseif method.type == 'location' %}
+        {%~ if method.type == 'location' %}
         return client.call(
             "{{ method.method | caseUpper }}",
             apiPath,
@@ -211,18 +157,12 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
         {%~ for parameter in method.parameters.all %}
      * @param {{ parameter.name | caseCamel }} {{ parameter.description | raw }}
         {%~ endfor %}
-        {%~ if method.type != "webAuth" %}
-     * @return [{{ method | returnType(spec, sdk.namespace | caseDot) | raw }}]
-        {%~ endif %}
      */
     @Throws(Throwable::class)
         {%~ if method.parameters.all | reduce((carry, param) => carry or not param.required) %}
     @JvmOverloads
         {%~ endif %}
     suspend fun {{ method.name | caseCamel }}(
-        {%~ if method.type == "webAuth" %}
-        webAuth: WebAuthComponent,
-        {%~ endif %}
         {%~ for parameter in method.parameters.all %}
         {{ parameter.name | caseCamel }}: {{ parameter | typeName }}{%~ if not parameter.required or parameter.nullable %}? = null{%~ endif %},
         {%~ endfor %}
@@ -230,9 +170,6 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
         onProgress: ((UploadProgress) -> Unit)? = null
         {%~ endif %}
     ): {{ method | returnType(spec, sdk.namespace | caseDot, 'Map<String, Any>') | raw }} = {{ method.name | caseCamel }}(
-        {%~ if method.type == "webAuth" %}
-            webAuth,
-        {%~ endif %}
         {%~ for parameter in method.parameters.all %}
         {{ parameter.name | caseCamel }},
         {%~ endfor %}
@@ -244,5 +181,6 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
         {%~ endif %}
     )
     {%~ endif %}
+    {% endif %}
 {%~ endfor %}
 }
