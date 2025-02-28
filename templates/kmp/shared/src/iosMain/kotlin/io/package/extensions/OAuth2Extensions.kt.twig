@@ -9,7 +9,7 @@ import kotlinx.coroutines.runBlocking
 
 {% for service in spec | webAuthServices %}
 {% for method in service.methods %}
-suspend fun {{ sdk.namespace | caseDot }}.services.{{ method.methodName }}(
+suspend fun {{ sdk.namespace | caseDot }}.services.{{ service.className | caseUcfirst }}.{{ method.methodName }}(
     {%~ for parameter in method.parameters.all %}
     {{ parameter.name | caseCamel }}: {{ parameter | typeName }}{%~ if not parameter.required or parameter.nullable %}? = null{%~ endif %},
     {%~ endfor %}
