@@ -93,7 +93,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
         const size = {{ parameter.name | caseCamel | escapeKeyword }}.size;
 
         if (size <= Service.CHUNK_SIZE) {
-            return await this.client.call('{{ method.method | caseLower }}', uri, {
+            return this.client.call('{{ method.method | caseLower }}', uri, {
 {% for parameter in method.parameters.header %}
                 '{{ parameter.name | caseCamel | escapeKeyword }}': this.client.${{ parameter.name | caseCamel | escapeKeyword }},
 {% endfor %}
