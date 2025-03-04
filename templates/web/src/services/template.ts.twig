@@ -90,7 +90,7 @@ export class {{ service.name | caseUcfirst }} {
         {%~ elseif method.type == 'location' %}
         return uri.toString();
         {%~ elseif 'multipart/form-data' in method.consumes %}
-        return await this.client.chunkedUpload(
+        return this.client.chunkedUpload(
             '{{ method.method | caseLower }}',
             uri,
             apiHeaders,
@@ -98,7 +98,7 @@ export class {{ service.name | caseUcfirst }} {
             onProgress
         );
         {%~ else %}
-        return await this.client.call(
+        return this.client.call(
             '{{ method.method | caseLower }}',
             uri,
             apiHeaders,
