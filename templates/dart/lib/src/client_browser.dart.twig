@@ -78,14 +78,6 @@ class ClientBrowser extends ClientBase with ClientMixin {
   }
 
   @override
-  Future<String> ping() async {
-    final String apiPath = '/ping';
-    final response = await call(HttpMethod.get, path: apiPath, responseType: ResponseType.plain);
-
-    return response.data;
-  }
-
-  @override
   Future<String?> webAuth(Uri url) async {
     final request = http.Request('GET', url);
     request.followRedirects = false;
