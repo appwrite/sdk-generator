@@ -450,12 +450,12 @@ const getObjectChanges = (remote, local, index, what) => {
     return changes;
 }
 
-const createAttribute = async (databaseId, collectionId, attribute) => {
+const createAttribute = (databaseId, collectionId, attribute) => {
     switch (attribute.type) {
         case 'string':
             switch (attribute.format) {
                 case 'email':
-                    return await databasesCreateEmailAttribute({
+                    return databasesCreateEmailAttribute({
                         databaseId,
                         collectionId,
                         key: attribute.key,
@@ -465,7 +465,7 @@ const createAttribute = async (databaseId, collectionId, attribute) => {
                         parseOutput: false
                     })
                 case 'url':
-                    return await databasesCreateUrlAttribute({
+                    return databasesCreateUrlAttribute({
                         databaseId,
                         collectionId,
                         key: attribute.key,
@@ -475,7 +475,7 @@ const createAttribute = async (databaseId, collectionId, attribute) => {
                         parseOutput: false
                     })
                 case 'ip':
-                    return await databasesCreateIpAttribute({
+                    return databasesCreateIpAttribute({
                         databaseId,
                         collectionId,
                         key: attribute.key,
@@ -485,7 +485,7 @@ const createAttribute = async (databaseId, collectionId, attribute) => {
                         parseOutput: false
                     })
                 case 'enum':
-                    return await databasesCreateEnumAttribute({
+                    return databasesCreateEnumAttribute({
                         databaseId,
                         collectionId,
                         key: attribute.key,
@@ -496,7 +496,7 @@ const createAttribute = async (databaseId, collectionId, attribute) => {
                         parseOutput: false
                     })
                 default:
-                    return await databasesCreateStringAttribute({
+                    return databasesCreateStringAttribute({
                         databaseId,
                         collectionId,
                         key: attribute.key,
@@ -509,7 +509,7 @@ const createAttribute = async (databaseId, collectionId, attribute) => {
 
             }
         case 'integer':
-            return await databasesCreateIntegerAttribute({
+            return databasesCreateIntegerAttribute({
                 databaseId,
                 collectionId,
                 key: attribute.key,
@@ -567,12 +567,12 @@ const createAttribute = async (databaseId, collectionId, attribute) => {
     }
 }
 
-const updateAttribute = async (databaseId, collectionId, attribute) => {
+const updateAttribute = (databaseId, collectionId, attribute) => {
     switch (attribute.type) {
         case 'string':
             switch (attribute.format) {
                 case 'email':
-                    return await databasesUpdateEmailAttribute({
+                    return databasesUpdateEmailAttribute({
                         databaseId,
                         collectionId,
                         key: attribute.key,
@@ -582,7 +582,7 @@ const updateAttribute = async (databaseId, collectionId, attribute) => {
                         parseOutput: false
                     })
                 case 'url':
-                    return await databasesUpdateUrlAttribute({
+                    return databasesUpdateUrlAttribute({
                         databaseId,
                         collectionId,
                         key: attribute.key,
@@ -592,7 +592,7 @@ const updateAttribute = async (databaseId, collectionId, attribute) => {
                         parseOutput: false
                     })
                 case 'ip':
-                    return await databasesUpdateIpAttribute({
+                    return databasesUpdateIpAttribute({
                         databaseId,
                         collectionId,
                         key: attribute.key,
@@ -602,7 +602,7 @@ const updateAttribute = async (databaseId, collectionId, attribute) => {
                         parseOutput: false
                     })
                 case 'enum':
-                    return await databasesUpdateEnumAttribute({
+                    return databasesUpdateEnumAttribute({
                         databaseId,
                         collectionId,
                         key: attribute.key,
@@ -613,7 +613,7 @@ const updateAttribute = async (databaseId, collectionId, attribute) => {
                         parseOutput: false
                     })
                 default:
-                    return await databasesUpdateStringAttribute({
+                    return databasesUpdateStringAttribute({
                         databaseId,
                         collectionId,
                         key: attribute.key,
@@ -626,7 +626,7 @@ const updateAttribute = async (databaseId, collectionId, attribute) => {
 
             }
         case 'integer':
-            return await databasesUpdateIntegerAttribute({
+            return databasesUpdateIntegerAttribute({
                 databaseId,
                 collectionId,
                 key: attribute.key,
