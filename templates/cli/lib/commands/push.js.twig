@@ -882,7 +882,7 @@ const createAttributes = async (attributes, collection) => {
     const result = await awaitPools.expectAttributes(
         collection['databaseId'],
         collection['$id'],
-        collection.attributes.map(attribute => attribute.key)
+        collection.attributes.filter(attribute => attribute.side !== 'child').map(attribute => attribute.key)
     );
 
     if (!result) {
