@@ -83,12 +83,12 @@ export class {{ service.name | caseUcfirst }} {
         {%~ if method.type == 'webAuth' %}
         if (typeof window !== 'undefined' && window?.location) {
             window.location.href = uri.toString();
-            return;
+            return Promise.resolve();
         } else {
-            return uri.toString();
+            return Promise.resolve(uri.toString());
         }
         {%~ elseif method.type == 'location' %}
-        return uri.toString();
+        return Promise.resolve(uri.toString());
         {%~ elseif 'multipart/form-data' in method.consumes %}
         return this.client.chunkedUpload(
             '{{ method.method | caseLower }}',
