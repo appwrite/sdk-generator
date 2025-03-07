@@ -85,7 +85,7 @@ export class {{ service.name | caseUcfirst }} {
             window.location.href = uri.toString();
             return Promise.resolve();
         } else {
-            return uri.toString();
+            return Promise.resolve(uri.toString());
         }
         {%~ elseif method.type == 'location' %}
         return uri.toString();
