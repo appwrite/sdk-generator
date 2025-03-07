@@ -85,10 +85,10 @@ export class {{ service.name | caseUcfirst }} {
             window.location.href = uri.toString();
             return Promise.resolve();
         } else {
-            return Promise.resolve(uri.toString());
+            return uri.toString();
         }
         {%~ elseif method.type == 'location' %}
-        return Promise.resolve(uri.toString());
+        return uri.toString();
         {%~ elseif 'multipart/form-data' in method.consumes %}
         return this.client.chunkedUpload(
             '{{ method.method | caseLower }}',
