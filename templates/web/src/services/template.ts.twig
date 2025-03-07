@@ -77,9 +77,9 @@ export class {{ service.name | caseUcfirst }} {
         {%~ if method.type == 'webAuth' %}
         if (typeof window !== 'undefined' && window?.location) {
             window.location.href = uri.toString();
-            return Promise.resolve();
+            return;
         } else {
-            return Promise.resolve(uri.toString());
+            return uri.toString();
         }
         {%~ elseif method.type == 'location' %}
         return uri.toString();
