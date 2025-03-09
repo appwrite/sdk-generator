@@ -1,5 +1,21 @@
 from ..service import Service
 from ..exception import AppwriteException
+{% set added = [] %}
+{% for method in service.methods %}
+{% for parameter in method.parameters.all %}
+{% if parameter.enumValues is not empty %}
+{% if parameter.enumName is not empty %}
+{% set name = parameter.enumName %}
+{% else %}
+{% set name = parameter.name %}
+{% endif %}
+{% if name not in added %}
+from ..enums.{{ name | caseSnake }} import {{ name | caseUcfirst }};
+{% set added = added|merge([name]) %}
+{% endif %}
+{% endif %}
+{% endfor %}
+{% endfor %}
 
 class {{ service.name | caseUcfirst }}(Service):
 
