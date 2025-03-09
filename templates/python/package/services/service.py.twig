@@ -7,7 +7,7 @@ class {{ service.name | caseUcfirst }}(Service):
         super({{ service.name | caseUcfirst }}, self).__init__(client)
 {% for method in service.methods %}
 
-    def {{ method.name | caseSnake }}(self{% if method.parameters.all|length > 0 %}, {% endif %}{% for parameter in method.parameters.all %}{{ parameter.name | escapeKeyword | caseSnake }}{% if not parameter.required %} = None{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, on_progress = None{% endif %}):
+    def {{ method.name | caseSnake }}(self{% if method.parameters.all|length > 0 %}, {% endif %}{% for parameter in method.parameters.all %}{{ parameter.name | escapeKeyword | caseSnake }}: {{ parameter | getPropertyType(method) | raw }}{% if not parameter.required %} = None{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, on_progress = None{% endif %}):
 
         api_path = '{{ method.path }}'
 {{ include('python/base/params.twig') }}
