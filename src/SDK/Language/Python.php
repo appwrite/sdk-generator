@@ -360,6 +360,9 @@ class Python extends Language
             new TwigFilter('caseEnumKey', function (string $value) {
                 return $this->toUpperSnakeCase($value);
             }),
+            new TwigFilter('getPropertyType', function ($value, $method = []) {
+                return $this->getTypeName($value, $method);
+            }),
         ];
     }
 }
