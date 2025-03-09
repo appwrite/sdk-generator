@@ -3,7 +3,11 @@ from ..exception import AppwriteException
 {% set added = [] %}
 {% for method in service.methods %}
 {% for parameter in method.parameters.all %}
-{% if parameter.enumValues is not empty %}
+{% if parameter.type == 'file' and parameter.type not in added %}
+from ..input_file import InputFile
+{% set added = added|merge(['InputFile']) %}
+{% endif %}
+{% if parameter.enumValues is not empty%}
 {% if parameter.enumName is not empty %}
 {% set name = parameter.enumName %}
 {% else %}
