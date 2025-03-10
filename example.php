@@ -220,6 +220,7 @@ try {
 
     $sdk
         ->setName('NAME')
+        ->setVersion('7.2.0')
         ->setDescription('Repo description goes here')
         ->setShortDescription('Repo short description goes here')
         ->setURL('https://example.com')
