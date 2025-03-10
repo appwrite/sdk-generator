@@ -243,9 +243,9 @@ class Python extends Language
                 return 'str';
             case self::TYPE_ARRAY:
                 if (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type'])) {
-                    return 'list[' . $this->getTypeName($parameter['array']) . ']';
+                    return 'List[' . $this->getTypeName($parameter['array']) . ']';
                 }
-                return 'list[str]';
+                return 'List[str]';
             case self::TYPE_OBJECT:
                 return 'dict';
             default:
