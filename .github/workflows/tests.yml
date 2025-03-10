@@ -40,6 +40,7 @@ jobs:
           Python310,
           Python311,
           Python312,
+          Python313,
           Ruby27,
           Ruby30,
           Ruby31,
