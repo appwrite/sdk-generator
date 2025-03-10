@@ -13,7 +13,7 @@ class Client:
         self._endpoint = '{{spec.endpoint}}'
         self._global_headers = {
             'content-type': '',
-            'user-agent' : '{{spec.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} (${os.uname().sysname}; ${os.uname().version}; ${os.uname().machine})',
+            'user-agent' : f'{{spec.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} ({os.uname().sysname}; {os.uname().version}; {os.uname().machine})',
             'x-sdk-name': '{{ sdk.name }}',
             'x-sdk-platform': '{{ sdk.platform }}',
             'x-sdk-language': '{{ language.name | caseLower }}',

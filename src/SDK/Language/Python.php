@@ -231,16 +231,26 @@ class Python extends Language
         if (!empty($parameter['enumValues'])) {
             return \ucfirst($parameter['name']);
         }
-        return match ($parameter['type'] ?? '') {
-            self::TYPE_FILE => 'InputFile',
-            self::TYPE_NUMBER,
-            self::TYPE_INTEGER => 'float',
-            self::TYPE_BOOLEAN => 'bool',
-            self::TYPE_STRING => 'str',
-            self::TYPE_ARRAY => 'list',
-            self::TYPE_OBJECT => 'dict',
-            default => $parameter['type'],
-        };
+        switch ($parameter['type'] ?? '') {
+            case self::TYPE_FILE:
+                return 'InputFile';
+            case self::TYPE_NUMBER:
+            case self::TYPE_INTEGER:
+                return 'float';
+            case self::TYPE_BOOLEAN:
+                return 'bool';
+            case self::TYPE_STRING:
+                return 'str';
+            case self::TYPE_ARRAY:
+                if (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type'])) {
+                    return 'list[' . $this->getTypeName($parameter['array']) . ']';
+                }
+                return 'list[str]';
+            case self::TYPE_OBJECT:
+                return 'dict';
+            default:
+                return $parameter['type'];
+        }
     }
 
     /**
