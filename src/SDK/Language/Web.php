@@ -269,7 +269,7 @@ class Web extends JS
     public function getReturn(array $method, array $spec): string
     {
         if ($method['type'] === 'webAuth') {
-            return 'Promise<void | string>';
+            return 'void | string';
         }
 
         if ($method['type'] === 'location') {
