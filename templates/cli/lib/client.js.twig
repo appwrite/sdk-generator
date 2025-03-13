@@ -158,7 +158,7 @@ class Client {
         globalConfig.setCurrentSession('');
         globalConfig.removeSession(current);
       }
-      throw new {{spec.title | caseUcfirst}}Exception(json.message, json.code, json.type, json);
+      throw new {{spec.title | caseUcfirst}}Exception(json.message, json.code, json.type, text);
     }
 
     if (responseType === "arraybuffer") {

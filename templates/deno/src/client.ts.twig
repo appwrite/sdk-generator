@@ -113,7 +113,7 @@ export class Client {
             } catch (error) {
                 throw new {{spec.title | caseUcfirst}}Exception(text, response.status, "", text);
             }
-            throw new {{spec.title | caseUcfirst}}Exception(json.message, json.code, json.type, json);
+            throw new {{spec.title | caseUcfirst}}Exception(json.message, json.code, json.type, text);
         }
 
         if (responseType === "arraybuffer") {

@@ -89,6 +89,9 @@ function showConsoleLink(serviceName, action, ...ids) {
         case "teams":
             url.pathname += getTeamsPath(action, ids);
             break;
+        case "organizations":
+            url.pathname += getOrganizationsPath(action, ids);
+            break;
         case "users":
             url.pathname += getUsersPath(action, ids);
             break;
@@ -236,6 +239,16 @@ function getTeamsPath(action, ids) {
 
     if (action !== 'list') {
         path += `/team-${ids[0]}`;
+    }
+
+    return path;
+}
+
+function getOrganizationsPath(action, ids) {
+    let path = `/organization-${ids[0]}`;
+
+    if (action === 'list') {
+        path = '/account/organizations';
     }
 
     return path;

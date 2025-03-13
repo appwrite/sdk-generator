@@ -41,12 +41,10 @@
 
 {% for parameter in method.parameters.all %}
 {% if parameter.isUploadID %}
-        if(${{ parameter.name | caseCamel | escapeKeyword }} != 'unique()') {
-            try {
-                $response = $this->client->call(Client::METHOD_GET, $apiPath . '/' . ${{ parameter.name }});
-                $counter = $response['chunksUploaded'] ?? 0;
-            } catch(\Exception $e) {
-            }
+        try {
+            $response = $this->client->call(Client::METHOD_GET, $apiPath . '/' . ${{ parameter.name }});
+            $counter = $response['chunksUploaded'] ?? 0;
+        } catch(\Exception $e) {
         }
 {% endif %}
 {% endfor %}
@@ -84,7 +82,7 @@
                     'progress' => min(((($counter * Client::CHUNK_SIZE) + Client::CHUNK_SIZE)), $size) / $size * 100,
                     'sizeUploaded' => min($counter * Client::CHUNK_SIZE),
                     'chunksTotal' => $response['chunksTotal'],
-                    'chunksUploaded' => $response['chunksUploaded'], 
+                    'chunksUploaded' => $response['chunksUploaded'],
                 ]);
             }
         }

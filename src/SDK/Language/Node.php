@@ -29,6 +29,19 @@ class Node extends Web
             case self::TYPE_NUMBER:
                 return 'number';
             case self::TYPE_ARRAY:
+                if (!empty($parameter['array']['x-anyOf'] ?? [])) {
+                    $unionTypes = [];
+                    foreach ($parameter['array']['x-anyOf'] as $refType) {
+                        if (isset($refType['$ref'])) {
+                            $refParts = explode('/', $refType['$ref']);
+                            $modelName = end($refParts);
+                            $unionTypes[] = 'Models.' . $this->toPascalCase($modelName);
+                        }
+                    }
+                    if (!empty($unionTypes)) {
+                        return '(' . implode(' | ', $unionTypes) . ')[]';
+                    }
+                }
                 if (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type'])) {
                     return $this->getTypeName($parameter['array']) . '[]';
                 }

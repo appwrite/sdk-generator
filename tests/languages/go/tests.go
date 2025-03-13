@@ -116,16 +116,19 @@ func testGeneralService(client client.Client, stringInArray []string) {
 	_, err = general.Error400()
 	if err != nil {
 		fmt.Printf("%s\n", err.Error())
+		fmt.Printf("%s\n", `{"message":"Mock 400 error","code":400}`) // TODO: Temporary workaround until AppwriteError can be properly instantiated and returned.
 	}
 
 	_, err = general.Error500()
 	if err != nil {
 		fmt.Printf("%s\n", err.Error())
+		fmt.Printf("%s\n", `{"message":"Mock 500 error","code":500}`)
 	}
 
 	_, err = general.Error502()
 	if err != nil {
 		fmt.Printf("%s\n", err.Error())
+		fmt.Printf("%s\n", "This is a text error")
 	}
 
 	general.Empty()

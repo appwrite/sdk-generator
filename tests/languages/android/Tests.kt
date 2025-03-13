@@ -61,10 +61,20 @@ class ServiceTest {
     @Throws(IOException::class)
     fun test() {
         val client = Client(ApplicationProvider.getApplicationContext())
-            .setEndpointRealtime("wss://demo.appwrite.io/v1")
-            .setProject("console")
+            .setProject("123456")
             .addHeader("Origin", "http://localhost")
             .setSelfSigned(true)
+
+        runBlocking {
+            val ping = client.ping()
+            val pingResponse = parse(ping)
+            writeToFile(pingResponse)
+        }
+
+        // reset configs
+        client.setProject("console")
+            .setEndpointRealtime("wss://cloud.appwrite.io/v1")
+
         val foo = Foo(client)
         val bar = Bar(client)
         val general = General(client)
@@ -142,18 +152,21 @@ class ServiceTest {
                 general.error400()
             } catch (e: AppwriteException) {
                 writeToFile(e.message)
+                writeToFile(e.response)
             }
 
             try {
                 general.error500()
             } catch (e: AppwriteException) {
                 writeToFile(e.message)
+                writeToFile(e.response)
             }
 
             try {
                 general.error502()
             } catch (e: AppwriteException) {
                 writeToFile(e.message)
+                writeToFile(e.response)
             }
 
             delay(5000)
@@ -219,4 +232,11 @@ class ServiceTest {
         File("result.txt").appendText(text)
     }
 
+    private fun parse(json: String): String? {
+        return try {
+            json.fromJson<Map<String, Any>>()["result"] as? String
+        } catch (exception: Exception) {
+            null
+        }
+    }
 }

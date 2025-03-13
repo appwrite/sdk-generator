@@ -20,14 +20,14 @@ type Headers = {
  */
 type RealtimeResponse = {
     /**
-     * Type of the response: 'error', 'event', 'connected', or 'response'.
+     * Type of the response: 'error', 'event', 'connected', 'response' or 'pong'.
      */
-    type: 'error' | 'event' | 'connected' | 'response';
+    type: 'error' | 'event' | 'connected' | 'response' | 'pong';
 
     /**
      * Data associated with the response based on the response type.
      */
-    data: RealtimeResponseAuthenticated | RealtimeResponseConnected | RealtimeResponseError | RealtimeResponseEvent<unknown>;
+    data: RealtimeResponseAuthenticated | RealtimeResponseConnected | RealtimeResponseError | RealtimeResponseEvent<unknown> | undefined;
 }
 
 /**
@@ -130,6 +130,8 @@ type RealtimeRequestAuthenticate = {
     session: string;
 }
 
+type TimeoutHandle = ReturnType<typeof setTimeout> | number;
+
 /**
  * Realtime interface representing the structure of a realtime communication object.
  */
@@ -140,9 +142,14 @@ type Realtime = {
     socket?: WebSocket;
 
     /**
-     * Timeout duration for communication operations.
+     * Timeout for reconnect operations.
      */
-    timeout?: number;
+    timeout?: TimeoutHandle;
+
+    /**
+     * Heartbeat interval for the realtime connection.
+    */
+    heartbeat?: TimeoutHandle;
 
     /**
      * URL for establishing the WebSocket connection.
@@ -196,6 +203,11 @@ type Realtime = {
      * Function to create a new WebSocket instance.
      */
     createSocket: () => void;
+
+    /**
+     * Function to create a new heartbeat interval.
+     */
+    createHeartbeat: () => void;
 
     /**
      * Function to clean up resources associated with specified channels.
@@ -360,6 +372,7 @@ class Client {
     private realtime: Realtime = {
         socket: undefined,
         timeout: undefined,
+        heartbeat: undefined,
         url: '',
         channels: new Set(),
         subscriptions: new Map(),
@@ -384,6 +397,17 @@ class Client {
                 default:
                     return 60_000;
             }
+        },
+        createHeartbeat: () => {
+            if (this.realtime.heartbeat) {
+                clearTimeout(this.realtime.heartbeat);
+            }
+
+            this.realtime.heartbeat = window?.setInterval(() => {
+                this.realtime.socket?.send(JSON.stringify({
+                    type: 'ping'
+                }));
+            }, 20_000);
         },
         createSocket: () => {
             if (this.realtime.channels.size < 1) {
@@ -418,6 +442,7 @@ class Client {
                 this.realtime.socket.addEventListener('message', this.realtime.onMessage);
                 this.realtime.socket.addEventListener('open', _event => {
                     this.realtime.reconnectAttempts = 0;
+                    this.realtime.createHeartbeat();
                 });
                 this.realtime.socket.addEventListener('close', event => {
                     if (
@@ -472,6 +497,8 @@ class Client {
                             })
                         }
                         break;
+                    case 'pong':
+                        break; // Handle pong response if needed
                     case 'error':
                         throw message.data;
                     default:
@@ -643,6 +670,7 @@ class Client {
         const { uri, options } = this.prepareRequest(method, url, headers, params);
 
         let data: any = null;
+        let text: string = '';
 
         const response = await fetch(uri, options);
         const responseData = await response.text();
@@ -654,16 +682,18 @@ class Client {
 
         if (response.headers.get('content-type')?.includes('application/json')) {
             data = JsonBigInt.parse(responseData)
+            text = JSON.stringify(data);
         } else if (responseType === 'arrayBuffer') {
             data = await response.arrayBuffer();
         } else {
+            text = await response.text();
             data = {
                 message: responseData
             };
         }
 
         if (400 <= response.status) {
-            throw new {{spec.title | caseUcfirst}}Exception(data?.message, response.status, data?.type, data);
+            throw new {{spec.title | caseUcfirst}}Exception(data?.message, response.status, data?.type, text);
         }
 
         const cookieFallback = response.headers.get('X-Fallback-Cookies');

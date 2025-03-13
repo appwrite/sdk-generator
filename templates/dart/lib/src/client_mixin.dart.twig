@@ -5,7 +5,7 @@ import 'dart:convert';
 import 'dart:developer';
 import 'enums.dart';
 
-class ClientMixin {
+mixin ClientMixin {
   http.BaseRequest prepareRequest(
     HttpMethod method, {
     required Uri uri,
@@ -62,6 +62,9 @@ class ClientMixin {
       (request as http.Request).body = jsonEncode(params);
     }
 
+    headers['User-Agent'] = Uri.encodeFull(headers['User-Agent'] ?? '');
+    headers['X-Forwarded-User-Agent'] = Uri.encodeFull(headers['X-Forwarded-User-Agent'] ?? '');
+
     request.headers.addAll(headers);
     return request;
   }
@@ -81,10 +84,10 @@ class ClientMixin {
           response['message'],
           response['code'],
           response['type'],
-          response,
+          res.body,
         );
       } else {
-        throw {{spec.title | caseUcfirst}}Exception(res.body);
+        throw {{spec.title | caseUcfirst}}Exception(res.body, res.statusCode, '', res.body);
       }
     }
     dynamic data;

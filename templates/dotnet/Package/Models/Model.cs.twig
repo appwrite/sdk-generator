@@ -40,31 +40,28 @@ namespace {{ spec.title | caseUcfirst }}.Models
 
         public static {{ definition.name | caseUcfirst | overrideIdentifier }} From(Dictionary<string, object> map) => new {{ definition.name | caseUcfirst | overrideIdentifier }}(
             {%~ for property in definition.properties %}
-            {{ property.name | caseCamel | escapeKeyword | removeDollarSign }}: 
-                {%- if property.sub_schema %} 
-                    {%~ if property.type == 'array' %}
-                        ((JArray)map["{{ property.name }}"])
-                            .ToObject<List<Dictionary<string, object>>>()
-                            .Select(it => {{ property.sub_schema | caseUcfirst | overrideIdentifier }}.From(map: it))
-                            .ToList()
-                    {%- else %}
-                        {{ property.sub_schema | caseUcfirst | overrideIdentifier }}.From(
-                            map: ((JObject)map["{{ property.name }}"])
-                                .ToObject<Dictionary<string, object>>()!
-                        )
+            {{ property.name | caseCamel | escapeKeyword | removeDollarSign }}:{{' '}}
+                {%- if property.sub_schema %}
+                    {%- if property.type == 'array' -%}
+                        ((JArray)map["{{ property.name }}"]).ToObject<List<Dictionary<string, object>>>().Select(it => {{ property.sub_schema | caseUcfirst | overrideIdentifier }}.From(map: it)).ToList()
+                    {%- else -%}
+                        {{ property.sub_schema | caseUcfirst | overrideIdentifier }}.From(map: ((JObject)map["{{ property.name }}"]).ToObject<Dictionary<string, object>>()!)
                     {%- endif %}
-                {%~ else %}
-                    {%~ if property.type == 'array' %}
+                {%- else %}
+                    {%- if property.type == 'array' -%}
                         ((JArray)map["{{ property.name }}"]).ToObject<{{ property | typeName }}>()
-                    {%~ else %}
-                        {%~ if property.type == "integer" or property.type == "number" %}
-                            {%~ if not property.required %}map["{{ property.name }}"] == null ? null : {% endif %} Convert.To{% if property.type == "integer" %}Int64{% else %}Double{% endif %}(map["{{ property.name }}"])
-                        {%~ else %}
-                            {%~ if property.type == "boolean" %}
+                    {%- else %}
+                        {%- if property.type == "integer" or property.type == "number" %}
+                            {%- if not property.required -%}map["{{ property.name }}"] == null ? null :{% endif %}Convert.To{% if property.type == "integer" %}Int64{% else %}Double{% endif %}(map["{{ property.name }}"])
+                        {%- else %}
+                            {%- if property.type == "boolean" -%}
                                 ({{ property | typeName }}{% if not property.required %}?{% endif %})map["{{ property.name }}"]
-                            {%~ else %}
-                                {%~ if not property.required %}map.TryGetValue("{{ property.name }}", out var {{ property.name | caseCamel | escapeKeyword | removeDollarSign }}) ? {{ property.name | caseCamel | escapeKeyword | removeDollarSign }}?.ToString() : null
-                                {%~ else %} map["{{ property.name }}"].ToString(){% endif %}
+                            {%- else %}
+                                {%- if not property.required -%}
+                                    map.TryGetValue("{{ property.name }}", out var {{ property.name | caseCamel | escapeKeyword | removeDollarSign }}) ? {{ property.name | caseCamel | escapeKeyword | removeDollarSign }}?.ToString() : null
+                                {%- else -%}
+                                    map["{{ property.name }}"].ToString()
+                                {%- endif %}
                             {%- endif %}
                         {%~ endif %}
                     {%~ endif %}

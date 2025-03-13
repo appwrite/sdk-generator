@@ -35,7 +35,7 @@
 
             // Realtime setup
             client.setProject('console');
-            client.setEndpointRealtime('ws://demo.appwrite.io/v1');
+            client.setEndpointRealtime('ws://cloud.appwrite.io/v1');
 
             client.subscribe('tests', event => {
                 responseRealtime = event.payload.response;
@@ -109,18 +109,21 @@
                 response = await general.error400();
             } catch (error) {
                 console.log(error.message);
+                console.log(error.response);
             }
 
             try {
                 response = await general.error500();
             } catch (error) {
                 console.log(error.message);
+                console.log(error.response);
             }
 
             try {
                 response = await general.error502();
             } catch (error) {
                 console.log(error.message);
+                console.log(error.response);
             }
 
             const delay = ms => new Promise(res => setTimeout(res, ms));
