@@ -1,6 +1,7 @@
 import { fetch, FormData, File } from 'node-fetch-native-with-agent';
 import { createAgent } from 'node-fetch-native-with-agent/agent';
 import { Models } from './models';
+import JsonBigInt from './helper/json';
 
 type Payload = {
     [key: string]: any;
@@ -170,7 +171,7 @@ class Client {
         } else {
             switch (headers['content-type']) {
                 case 'application/json':
-                    options.body = JSON.stringify(params);
+                    options.body = JsonBigInt.stringify(params);
                     break;
 
                 case 'multipart/form-data':

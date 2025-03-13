@@ -1,4 +1,5 @@
 import { Models } from './models';
+import JsonBigInt from './helper/json';
 
 /**
  * Payload type representing a key-value pair with string keys and any values.
@@ -467,7 +468,7 @@ class Client {
         },
         onMessage: (event) => {
             try {
-                const message: RealtimeResponse = JSON.parse(event.data);
+                const message: RealtimeResponse = JsonBigInt.parse(event.data);
                 this.realtime.lastMessage = message;
                 switch (message.type) {
                     case 'connected':
@@ -476,7 +477,7 @@ class Client {
                         const messageData = <RealtimeResponseConnected>message.data;
 
                         if (session && !messageData.user) {
-                            this.realtime.socket?.send(JSON.stringify(<RealtimeRequest>{
+                            this.realtime.socket?.send(JsonBigInt.stringify(<RealtimeRequest>{
                                 type: 'authentication',
                                 data: {
                                     session
@@ -591,7 +592,7 @@ class Client {
         } else {
             switch (headers['content-type']) {
                 case 'application/json':
-                    options.body = JSON.stringify(params);
+                    options.body = JsonBigInt.stringify(params);
                     break;
 
                 case 'multipart/form-data':
@@ -672,6 +673,7 @@ class Client {
         let text: string = '';
 
         const response = await fetch(uri, options);
+        const responseData = await response.text();
 
         const warnings = response.headers.get('x-{{ spec.title | lower }}-warning');
         if (warnings) {
@@ -679,14 +681,14 @@ class Client {
         }
 
         if (response.headers.get('content-type')?.includes('application/json')) {
-            data = await response.json();
+            data = JsonBigInt.parse(responseData)
             text = JSON.stringify(data);
         } else if (responseType === 'arrayBuffer') {
             data = await response.arrayBuffer();
         } else {
             text = await response.text();
             data = {
-                message: text
+                message: responseData
             };
         }
 
