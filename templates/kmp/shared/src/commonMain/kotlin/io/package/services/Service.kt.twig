@@ -67,9 +67,17 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
             .replace("{{ '{' ~ parameter.name | caseCamel ~ '}' }}", {{ parameter.name | caseCamel }}{%~ if parameter.enumValues is not empty %}.value{%~ endif %})
         {%~ endfor %}
 
+        {%~ if method.responseModel | hasGenericType(spec) %}
+        val actualSerializer = genericSerializer ?: getSerializer(T::class)
+        {%~ endif %}
+
         val apiParams = mutableMapOf<String, Any?>(
         {%~ for parameter in method.parameters.query | merge(method.parameters.body) %}
+        {%~ if parameter.name == "data" and method.responseModel | hasGenericType(spec) %}
+            "data" to json.encodeToString(actualSerializer, data as T),
+        {%~ else %}
             "{{ parameter.name }}" to {{ parameter.name | caseCamel }},
+        {%~ endif %}
         {%~ endfor %}
         {%~ if method.type == 'location'%}
         {%~ if method.auth | length > 0 %}
@@ -94,10 +102,6 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
             "{{ key }}" to "{{ header }}",
         {%~ endfor %}
         )
-
-        {%~ if method.responseModel | hasGenericType(spec) %}
-        val actualSerializer = genericSerializer ?: getSerializer(T::class)
-        {%~ endif %}
 
         {%~ if 'multipart/form-data' in method.consumes %}
         val idParamName: String? = {%~ if method.parameters.all | filter(p => p.isUploadID) | length > 0 %}{%~ for parameter in method.parameters.all | filter(parameter => parameter.isUploadID) %}"{{ parameter.name }}"{%~ endfor %}{%~ else %}null{%~ endif %}
