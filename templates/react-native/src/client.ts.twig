@@ -414,8 +414,9 @@ class Client {
 
         try {
             let data = null;
+            let text: string = '';
+
             const response = await fetch(url.toString(), options);
-            const text = await response.text()
 
             const warnings = response.headers.get('x-{{ spec.title | lower }}-warning');
             if (warnings) {
@@ -424,7 +425,9 @@ class Client {
 
             if (response.headers.get('content-type')?.includes('application/json')) {
                 data = await response.json();
+                text = JSON.stringify(data);
             } else {
+                text = await response.text();
                 data = {
                     message: text
                 };
