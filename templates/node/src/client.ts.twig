@@ -263,7 +263,6 @@ class Client {
         const { uri, options } = this.prepareRequest(method, url, headers, params);
 
         let data: any = null;
-        let text: string = '';
 
         const response = await fetch(uri, options);
 
@@ -274,18 +273,16 @@ class Client {
 
         if (response.headers.get('content-type')?.includes('application/json')) {
             data = await response.json();
-            text = JSON.stringify(data);
         } else if (responseType === 'arrayBuffer') {
             data = await response.arrayBuffer();
         } else {
-            text = await response.text();
             data = {
-                message: text
+                message: await response.text();
             };
         }
 
         if (400 <= response.status) {
-            throw new {{spec.title | caseUcfirst}}Exception(data?.message, response.status, data?.type, text);
+            throw new {{spec.title | caseUcfirst}}Exception(data?.message, response.status, data?.type, JSON.stringify(data));
         }
 
         return data;
