@@ -688,7 +688,13 @@ class Client {
         }
 
         if (400 <= response.status) {
-            throw new {{spec.title | caseUcfirst}}Exception(data?.message, response.status, data?.type, JSON.stringify(data));
+            let responseText = '';
+            if (response.headers.get('content-type')?.includes('application/json') || responseType === 'arrayBuffer') {
+                responseText = JSON.stringify(data);
+            } else {
+                responseText = data?.message;
+            }
+            throw new {{spec.title | caseUcfirst}}Exception(data?.message, response.status, data?.type, responseText);
         }
 
         const cookieFallback = response.headers.get('X-Fallback-Cookies');
