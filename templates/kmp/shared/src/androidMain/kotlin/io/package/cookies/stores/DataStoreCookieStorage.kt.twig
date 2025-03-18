@@ -35,13 +35,19 @@ class DataStoreCookieStorage(private val dataStoreManager: DataStoreManager) : C
         return cookie.expiration.let { System.currentTimeMillis() < it }
     }
 
-    private fun domainMatches(cookieDomain: String, requestHost: String): Boolean {
-        val cd = cookieDomain.lowercase()
-        val host = requestHost.lowercase()
-        return if (cd.startsWith(".")) {
-            host == cd.substring(1) || host.endsWith(cd)
+    private fun domainMatches(cookieDomain: String?, requestHost: String?): Boolean {
+        val cd = cookieDomain?.lowercase()
+        val host = requestHost?.lowercase()
+        return if (cd != null && host != null) {
+            if (cd.startsWith(".")) {
+                host == cd.substring(1) || host.endsWith(cd)
+            } else if (requestHost.startsWith(".")){
+                host == host.substring(1) || cd.endsWith(cd)
+            } else {
+                host == cd
+            }
         } else {
-            host == cd
+            false
         }
     }
 
@@ -74,7 +80,7 @@ class DataStoreCookieStorage(private val dataStoreManager: DataStoreManager) : C
         val cookies = loadCookies().toMutableList()
         cookies.removeAll { existing ->
             existing.name == newCookie.name &&
-                    existing.domain == newCookie.domain &&
+                    domainMatches(existing.domain, newCookie.domain) &&
                     existing.path == newCookie.path
         }
         cookies.add(newCookie)
