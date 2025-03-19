@@ -36,7 +36,8 @@ class {{ service.name | caseUcfirst }}(Service):
         Parameters
         ----------
         {% for parameter in method.parameters.all %}{{ parameter.name | escapeKeyword | caseSnake }} : {{ parameter | getPropertyType(method) | raw }}
-            {{ parameter.description | replace({"\n": "\n            "}) }}
+            {% autoescape false %}{{ parameter.description | replace({"\n": "\n            "}) }}{% endautoescape %}
+
         {% endfor %}{% if 'multipart/form-data' in method.consumes %}
         on_progress : callable, optional
             Optional callback for upload progress
