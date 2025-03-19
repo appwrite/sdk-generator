@@ -1,5 +1,5 @@
 from ..service import Service
-from typing import List
+from typing import List, Dict, Any
 from ..exception import AppwriteException
 {% set added = [] %}
 {% for method in service.methods %}
@@ -24,11 +24,11 @@ from ..enums.{{ name | caseSnake }} import {{ name | caseUcfirst }};
 
 class {{ service.name | caseUcfirst }}(Service):
 
-    def __init__(self, client):
+    def __init__(self, client) -> None:
         super({{ service.name | caseUcfirst }}, self).__init__(client)
 {% for method in service.methods %}
 
-    def {{ method.name | caseSnake }}(self{% if method.parameters.all|length > 0 %}, {% endif %}{% for parameter in method.parameters.all %}{{ parameter.name | escapeKeyword | caseSnake }}: {{ parameter | getPropertyType(method) | raw }}{% if not parameter.required %} = None{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, on_progress = None{% endif %}):
+    def {{ method.name | caseSnake }}(self{% if method.parameters.all|length > 0 %}, {% endif %}{% for parameter in method.parameters.all %}{{ parameter.name | escapeKeyword | caseSnake }}: {{ parameter | getPropertyType(method) | raw }}{% if not parameter.required %} = None{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, on_progress = None{% endif %}) -> Dict[str, Any]:
         """
         {{ method.description | replace({"\n": "\n        "}) }}
 {% if method.parameters.all|length > 0 or 'multipart/form-data' in method.consumes %}
