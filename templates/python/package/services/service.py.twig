@@ -30,11 +30,27 @@ class {{ service.name | caseUcfirst }}(Service):
 
     def {{ method.name | caseSnake }}(self{% if method.parameters.all|length > 0 %}, {% endif %}{% for parameter in method.parameters.all %}{{ parameter.name | escapeKeyword | caseSnake }}: {{ parameter | getPropertyType(method) | raw }}{% if not parameter.required %} = None{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, on_progress = None{% endif %}):
         """
-        {{ method.description }}
+        {{ method.description | replace({"\n": "\n        "}) }}
+{% if method.parameters.all|length > 0 or 'multipart/form-data' in method.consumes %}
 
-        {% for parameter in method.parameters.all %}@param {{ parameter.name | escapeKeyword | caseSnake }}: {{ parameter.description }}
-        {% endfor %}{% if 'multipart/form-data' in method.consumes %}@param on_progress: Optional callback for upload progress
-        {% endif %}@raises AppwriteException: If API request fails
+        Parameters
+        ----------
+        {% for parameter in method.parameters.all %}{{ parameter.name | escapeKeyword | caseSnake }} : {{ parameter | getPropertyType(method) | raw }}
+            {{ parameter.description | replace({"\n": "\n            "}) }}
+        {% endfor %}{% if 'multipart/form-data' in method.consumes %}
+        on_progress : callable, optional
+            Optional callback for upload progress
+        {% endif %}{% endif %}
+
+        Returns
+        -------
+        dict
+            API response as a dictionary
+
+        Raises
+        ------
+        AppwriteException
+            If API request fails
         """
 
         api_path = '{{ method.path }}'
