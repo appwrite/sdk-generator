@@ -622,7 +622,7 @@ class Client {
         const file = Object.values(originalPayload).find((value) => value instanceof File);
 
         if (!file) {
-            throw new Error('No file found in payload');
+            throw new Error('File not found in payload');
         }
 
         if (file.size <= Client.CHUNK_SIZE) {
