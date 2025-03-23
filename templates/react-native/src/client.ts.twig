@@ -130,7 +130,7 @@ class Client {
      */
     setEndpoint(endpoint: string): this {
         this.config.endpoint = endpoint;
-        this.config.endpointRealtime = this.config.endpointRealtime || this.config.endpoint.replace('https://', 'wss://').replace('http://', 'ws://');
+        this.config.endpointRealtime = endpoint.replace('https://', 'wss://').replace('http://', 'ws://');
 
         return this;
     }

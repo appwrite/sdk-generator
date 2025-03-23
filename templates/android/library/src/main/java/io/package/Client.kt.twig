@@ -179,7 +179,7 @@ class Client @JvmOverloads constructor(
     fun setEndpoint(endpoint: String): Client {
         this.endpoint = endpoint
 
-        if (this.endpointRealtime == null && endpoint.startsWith("http")) {
+        if (endpoint.startsWith("http")) {
             this.endpointRealtime = endpoint.replaceFirst("http", "ws")
         }
 
