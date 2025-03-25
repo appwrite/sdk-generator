@@ -31,6 +31,7 @@ class {{ service.name | caseUcfirst }}(Service):
     def {{ method.name | caseSnake }}(self{% if method.parameters.all|length > 0 %}, {% endif %}{% for parameter in method.parameters.all %}{{ parameter.name | escapeKeyword | caseSnake }}: {{ parameter | getPropertyType(method) | raw }}{% if not parameter.required %} = None{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, on_progress = None{% endif %}) -> {% if method.type == 'webAuth' %}str{% else %}Dict[str, Any]{% endif %}:
         """
         {% autoescape false %}{{ method.description | replace({"\n": "\n        "}) }}{% endautoescape %}
+
 {% if method.parameters.all|length > 0 or 'multipart/form-data' in method.consumes %}
 
         Parameters
