@@ -136,7 +136,7 @@ async function start() {
   }
 
   try {
-    await general.setEndpoint("htp://cloud.appwrite.io/v1");
+    await client.setEndpoint("htp://cloud.appwrite.io/v1");
   } catch (error) {
     console.log(error.message);
     console.log(error.response);

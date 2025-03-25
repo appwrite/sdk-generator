@@ -108,7 +108,7 @@ rescue Exception => error
 end
 
 begin
-    general.set_endpoint("htp://cloud.appwrite.io/v1")
+    client.set_endpoint("htp://cloud.appwrite.io/v1")
 rescue Exception => error
     puts error.message
     puts error.response

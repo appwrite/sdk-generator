@@ -140,7 +140,7 @@ void main() async {
   }
 
   try {
-    await general.setEndpoint("htp://cloud.appwrite.io/v1");
+    await client.setEndpoint("htp://cloud.appwrite.io/v1");
   } on AppwriteException catch (e) {
     print(e.message);
     print(e.response);

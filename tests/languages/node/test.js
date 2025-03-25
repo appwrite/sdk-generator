@@ -110,7 +110,7 @@ async function start() {
     }
 
     try {
-        response = await general.setEndpoint("htp://cloud.appwrite.io/v1");
+        response = await client.setEndpoint("htp://cloud.appwrite.io/v1");
     } catch(error) {
         console.log(error.message);
         console.log(error.response);
