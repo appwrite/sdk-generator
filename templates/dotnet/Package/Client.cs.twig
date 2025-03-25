@@ -109,7 +109,7 @@ namespace {{ spec.title | caseUcfirst }}
             if (!Uri.TryParse(endpoint, out Uri uriResult) || 
                 (uriResult.Scheme != Uri.UriSchemeHttp && uriResult.Scheme != Uri.UriSchemeHttps))
             {
-                throw new {{spec.title | caseUcfirst}}Exception("Invalid endpoint URL: " + endpoint);
+                throw new {{spec.title | caseUcfirst}}Exception("Invalid endpoint URL: " + endpoint, 0, "", "");
             }
 
             _endpoint = endpoint;
