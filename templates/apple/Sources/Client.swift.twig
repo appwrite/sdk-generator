@@ -159,10 +159,10 @@ open class Client {
     ///
     open func setEndpointRealtime(_ endPoint: String) -> Client {
         guard let url = URL(string: endPoint),
-            (url.scheme == "http" || url.scheme == "https"),
+            (url.scheme == "ws" || url.scheme == "wss"),
             !endPoint.isEmpty
         else {
-            throw {{spec.title | caseUcfirst}}Error("Invalid endpoint URL: \(endPoint)")
+            throw {{spec.title | caseUcfirst}}Error("Invalid realtime endpoint URL: \(endPoint)")
         }
 
         self.endPointRealtime = endPoint

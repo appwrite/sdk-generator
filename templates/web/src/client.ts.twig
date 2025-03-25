@@ -354,12 +354,12 @@ class Client {
      */
     setEndpointRealtime(endpointRealtime: string): this {
         try {
-            const url = new URL(endpoint);
-            if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+            const url = new URL(endpointRealtime);
+            if (url.protocol !== 'ws:' && url.protocol !== 'wss:') {
                 throw new Error();
             }
         } catch {
-            throw new {{spec.title | caseUcfirst}}Exception('Invalid endpoint URL: ' + endpoint);
+            throw new {{spec.title | caseUcfirst}}Exception('Invalid endpoint URL: ' + endpointRealtime);
         }
 
         this.config.endpointRealtime = endpointRealtime;

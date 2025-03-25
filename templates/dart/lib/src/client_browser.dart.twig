@@ -67,6 +67,11 @@ class ClientBrowser extends ClientBase with ClientMixin {
 
   @override
   ClientBrowser setEndpoint(String endPoint) {
+    Uri? uri = Uri.tryParse(endPoint);
+    if (uri == null || (uri.scheme != 'http' && uri.scheme != 'https')) {
+      throw {{spec.title | caseUcfirst}}Exception('Invalid endpoint URL: $endPoint');
+    }
+
     _endPoint = endPoint;
     return this;
   }

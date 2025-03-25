@@ -195,8 +195,8 @@ class Client @JvmOverloads constructor(
     * @return this
     */
     fun setEndpointRealtime(endpoint: String): Client {
-        require(runCatching { URL(endpoint).protocol in listOf("http", "https") }.getOrDefault(false)) {
-            throw {{spec.title | caseUcfirst}}Exception("Invalid endpoint URL: $endpoint")
+        require(runCatching { URL(endpoint).protocol in listOf("ws", "wss") }.getOrDefault(false)) {
+            throw {{spec.title | caseUcfirst}}Exception("Invalid realtime endpoint URL: $endpoint")
         }
 
         this.endpointRealtime = endpoint
