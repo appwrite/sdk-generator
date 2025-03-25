@@ -179,7 +179,7 @@ class Client @JvmOverloads constructor(
      */
      @Throws({{ spec.title | caseUcfirst }}Exception::class)
     fun setEndpoint(endpoint: String): Client {
-        if (runCatching { URL(endpoint).protocol !in listOf("http", "https") }.getOrDefault(true)) {
+        if (runCatching { URL(endpoint).protocol !in listOf("http", "https") }.getOrDefault(false)) {
             throw {{spec.title | caseUcfirst}}Exception("Invalid endpoint URL: $endpoint")
         }
 
@@ -198,7 +198,7 @@ class Client @JvmOverloads constructor(
     */
     @Throws({{ spec.title | caseUcfirst }}Exception::class)
     fun setEndpointRealtime(endpoint: String): Client {
-        if (runCatching { URL(endpoint).protocol !in listOf("ws", "wss") }.getOrDefault(true)) {
+        if (runCatching { URL(endpoint).protocol !in listOf("ws", "wss") }.getOrDefault(false)) {
             throw {{spec.title | caseUcfirst}}Exception("Invalid realtime endpoint URL: $endpoint")
         }
 
