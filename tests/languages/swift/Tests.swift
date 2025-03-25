@@ -137,6 +137,13 @@ class Tests: XCTestCase {
             print(error.response)
         }
 
+        do {
+            try await general.setEndpoint("htp://cloud.appwrite.io/v1")
+        } catch let error as AppwriteError {
+            print(error.message)
+            print(error.response)
+        }
+
         try! await general.empty()
 
         let url = try? await general.oauth2(

@@ -96,6 +96,12 @@ except AppwriteException as e:
     print(e.message)
     print(e.response)
 
+try:
+    response = general.setEndpoint("htp://cloud.appwrite.io/v1")
+except AppwriteException as e:
+    print(e.message)
+    print(e.response)
+
 general.empty()
 
 url = general.oauth2(
