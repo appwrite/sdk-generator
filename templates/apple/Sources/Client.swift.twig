@@ -139,7 +139,7 @@ open class Client {
             (url.scheme == "http" || url.scheme == "https"),
             !endPoint.isEmpty
         else {
-            fatalError("Invalid endpoint URL: \(endPoint)")
+            throw {{spec.title | caseUcfirst}}Error("Invalid endpoint URL: \(endPoint)")
         }
 
         self.endPoint = endPoint
@@ -162,7 +162,7 @@ open class Client {
             (url.scheme == "http" || url.scheme == "https"),
             !endPoint.isEmpty
         else {
-            fatalError("Invalid endpoint URL: \(endPoint)")
+            throw {{spec.title | caseUcfirst}}Error("Invalid endpoint URL: \(endPoint)")
         }
 
         self.endPointRealtime = endPoint
