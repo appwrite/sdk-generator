@@ -78,15 +78,26 @@ class ClientBrowser extends ClientBase with ClientMixin {
 
   @override
   ClientBrowser setEndpoint(String endPoint) {
+    Uri? uri = Uri.tryParse(endPoint);
+    if (uri == null || (uri.scheme != 'http' && uri.scheme != 'https')) {
+      throw ArgumentError('Invalid endpoint URL: $endPoint');
+    }
+
     _endPoint = endPoint;
     _endPointRealtime = endPoint
         .replaceFirst('https://', 'wss://')
         .replaceFirst('http://', 'ws://');
+
     return this;
   }
 
   @override
   ClientBrowser setEndPointRealtime(String endPoint) {
+    Uri? uri = Uri.tryParse(endPoint);
+    if (uri == null || (uri.scheme != 'ws' && uri.scheme != 'wss')) {
+      throw ArgumentError('Invalid realtime endpoint URL: $endPoint');
+    }
+
     _endPointRealtime = endPoint;
     return this;
   }
