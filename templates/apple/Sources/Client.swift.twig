@@ -136,12 +136,9 @@ open class Client {
     /// @throws Exception
     ///
     open func setEndpoint(_ endPoint: String) throws -> Client {
-        guard endPoint.hasPrefix("http://") || endPoint.hasPrefix("https://") else {
+        if !endPoint.hasPrefix("http://") && !endPoint.hasPrefix("https://") {
             throw {{spec.title | caseUcfirst}}Error(
-                message: "Invalid endpoint URL: \(endPoint)",
-                code: 0,
-                type: "",
-                response: ""
+                message: "Invalid endpoint URL: \(endPoint)"
             )
         }
 
@@ -162,12 +159,9 @@ open class Client {
     /// @throws Exception
     ///
     open func setEndpointRealtime(_ endPoint: String) throws -> Client {
-        guard endPoint.hasPrefix("ws://") || endPoint.hasPrefix("wss://") else {
+        if !endPoint.hasPrefix("ws://") && !endPoint.hasPrefix("wss://") {
             throw {{spec.title | caseUcfirst}}Error(
-                message: "Invalid realtime endpoint URL: \(endPoint)",
-                code: 0,
-                type: "",
-                response: ""
+                message: "Invalid realtime endpoint URL: \(endPoint)"
             )
         }
 

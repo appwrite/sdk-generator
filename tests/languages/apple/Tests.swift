@@ -31,12 +31,8 @@ class Tests: XCTestCase {
         print(pingResult)
 
         // reset configs
-        try {
-            client.setProject("console")
-                .setEndpointRealtime("ws://cloud.appwrite.io/v1")
-        } catch {
-            print(error.localizedDescription)
-        }
+        client.setProject("console")
+        try client.setEndpointRealtime("ws://cloud.appwrite.io/v1")
 
         let foo = Foo(client)
         let bar = Bar(client)

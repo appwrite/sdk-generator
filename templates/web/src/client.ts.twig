@@ -330,12 +330,7 @@ class Client {
      * @returns {this}
      */
     setEndpoint(endpoint: string): this {
-        try {
-            const url = new URL(endpoint);
-            if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-                throw new Error();
-            }
-        } catch {
+        if (!endpoint.startsWith('http://') && !endpoint.startsWith('https://')) {
             throw new {{spec.title | caseUcfirst}}Exception('Invalid endpoint URL: ' + endpoint);
         }
 
@@ -353,13 +348,8 @@ class Client {
      * @returns {this}
      */
     setEndpointRealtime(endpointRealtime: string): this {
-        try {
-            const url = new URL(endpointRealtime);
-            if (url.protocol !== 'ws:' && url.protocol !== 'wss:') {
-                throw new Error();
-            }
-        } catch {
-            throw new {{spec.title | caseUcfirst}}Exception('Invalid endpoint URL: ' + endpointRealtime);
+        if (!endpointRealtime.startsWith('ws://') && !endpointRealtime.startsWith('wss://')) {
+            throw new {{spec.title | caseUcfirst}}Exception('Invalid realtime endpoint URL: ' + endpointRealtime);
         }
 
         this.config.endpointRealtime = endpointRealtime;
