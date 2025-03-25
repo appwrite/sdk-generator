@@ -23,6 +23,7 @@ import java.io.RandomAccessFile
 import java.io.IOException
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
+import java.net.URL
 import javax.net.ssl.HostnameVerifier
 import javax.net.ssl.SSLContext
 import javax.net.ssl.SSLSocketFactory
@@ -152,7 +153,12 @@ class Client @JvmOverloads constructor(
     *
     * @return this
     */
+    @Throws({{ spec.title | caseUcfirst }}Exception::class)
     fun setEndpoint(endPoint: String): Client {
+        if (runCatching { URL(endpoint).protocol !in listOf("http", "https") }.getOrDefault(false)) {
+            throw {{spec.title | caseUcfirst}}Exception("Invalid endpoint URL: $endpoint")
+        }
+
         this.endPoint = endPoint
         return this
     }

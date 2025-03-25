@@ -92,8 +92,12 @@ class Client
      */
     public function setEndpoint(string $endpoint): Client
     {
-        $this->endpoint = $endpoint;
+        $scheme = parse_url($endpoint, PHP_URL_SCHEME);
+        if ($scheme !== 'http' && $scheme !== 'https') {
+            throw new {{spec.title | caseUcfirst}}Exception("Invalid endpoint URL: $endpoint");
+        }
 
+        $this->endpoint = $endpoint;
         return $this;
     }
 
