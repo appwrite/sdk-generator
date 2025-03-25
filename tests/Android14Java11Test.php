@@ -21,6 +21,7 @@ class Android14Java11Test extends Base
 
     protected array $expectedOutput = [
         ...Base::PING_RESPONSE,
+        ...Base::INVALID_ENDPOINT_RESPONSE,
         ...Base::FOO_RESPONSES,
         ...Base::BAR_RESPONSES,
         ...Base::GENERAL_RESPONSES,

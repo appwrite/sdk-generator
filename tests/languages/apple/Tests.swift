@@ -30,6 +30,13 @@ class Tests: XCTestCase {
         let pingResult = parse(from: ping)!
         print(pingResult)
 
+        // Invalid endpoint test
+        do {
+            try await client.setEndpoint("htp://localhost")
+        } catch {
+            print(error.localizedDescription)
+        }
+
         // reset configs
         client.setProject("console")
             .setEndpointRealtime("ws://cloud.appwrite.io/v1")

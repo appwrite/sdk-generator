@@ -20,6 +20,10 @@ abstract class Base extends TestCase
         'GET:/v1/ping:passed',
     ];
 
+    protected const INVALID_ENDPOINT_RESPONSE = [
+        'Invalid endpoint URL: htp://localhost',
+    ];
+
     protected const FOO_RESPONSES = [
         'GET:/v1/mock/tests/foo:passed',
         'POST:/v1/mock/tests/foo:passed',

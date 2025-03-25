@@ -177,11 +177,10 @@ class Client @JvmOverloads constructor(
      * @return this
      */
     fun setEndpoint(endpoint: String): Client {
-        this.endpoint = endpoint
+        require(runCatching { URL(endpoint).protocol in listOf("http", "https") }.getOrDefault(false)) { "Invalid endpoint URL: $endpoint" }
 
-        if (endpoint.startsWith("http")) {
-            this.endpointRealtime = endpoint.replaceFirst("http", "ws")
-        }
+        this.endpoint = endpoint
+        this.endpointRealtime = endpoint.replaceFirst("http", "ws")
 
         return this
     }

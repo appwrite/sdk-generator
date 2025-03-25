@@ -135,13 +135,17 @@ open class Client {
     /// @return Client
     ///
     open func setEndpoint(_ endPoint: String) -> Client {
-        self.endPoint = endPoint
-
-        if (endPoint.starts(with: "http")) {
-            self.endPointRealtime = endPoint
-                .replacingOccurrences(of: "http://", with: "ws://")
-                .replacingOccurrences(of: "https://", with: "wss://")
+        guard let url = URL(string: endPoint),
+            (url.scheme == "http" || url.scheme == "https"),
+            !endPoint.isEmpty
+        else {
+            fatalError("Invalid endpoint URL: \(endPoint)")
         }
+
+        self.endPoint = endPoint
+        self.endPointRealtime = endPoint
+            .replacingOccurrences(of: "http://", with: "ws://")
+            .replacingOccurrences(of: "https://", with: "wss://")
 
         return self
     }

@@ -71,6 +71,12 @@ class ServiceTest {
             writeToFile(pingResponse)
         }
 
+        try {
+            client.setEndpoint("htp://localhost")
+        } catch (e: Exception) {
+            writeToFile(e.toString())
+        }
+
         // reset configs
         client.setProject("console")
             .setEndpointRealtime("wss://cloud.appwrite.io/v1")
