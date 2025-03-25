@@ -138,7 +138,12 @@ open class Client {
         guard let url = URL(string: endPoint),
             (url.scheme == "http" || url.scheme == "https")
         else {
-            throw {{spec.title | caseUcfirst}}Error("Invalid endpoint URL: \(endPoint)")
+            throw {{spec.title | caseUcfirst}}Error(
+                message: "Invalid endpoint URL: \(endPoint)",
+                code: 0,
+                type: "",
+                response: ""
+            )
         }
 
         self.endPoint = endPoint
@@ -160,7 +165,12 @@ open class Client {
         guard let url = URL(string: endPoint),
             (url.scheme == "ws" || url.scheme == "wss")
         else {
-            throw {{spec.title | caseUcfirst}}Error("Invalid realtime endpoint URL: \(endPoint)")
+            throw {{spec.title | caseUcfirst}}Error(
+                message: "Invalid realtime endpoint URL: \(endPoint)",
+                code: 0,
+                type: "",
+                response: ""
+            )
         }
 
         self.endPointRealtime = endPoint
