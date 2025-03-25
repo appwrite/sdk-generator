@@ -138,10 +138,9 @@ class Tests: XCTestCase {
         }
 
         do {
-            try await client.setEndpoint("htp://cloud.appwrite.io/v1")
+            try client.setEndpoint("htp://cloud.appwrite.io/v1")
         } catch let error as AppwriteError {
             print(error.message)
-            print(error.response)
         }
 
         try! await general.empty()

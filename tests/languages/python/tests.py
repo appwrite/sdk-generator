@@ -97,10 +97,9 @@ except AppwriteException as e:
     print(e.response)
 
 try:
-    response = client.setEndpoint("htp://cloud.appwrite.io/v1")
+    client.setEndpoint("htp://cloud.appwrite.io/v1")
 except AppwriteException as e:
     print(e.message)
-    print(e.response)
 
 general.empty()
 

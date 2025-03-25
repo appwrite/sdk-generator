@@ -140,10 +140,9 @@ void main() async {
   }
 
   try {
-    await client.setEndpoint("htp://cloud.appwrite.io/v1");
+    client.setEndpoint("htp://cloud.appwrite.io/v1");
   } on AppwriteException catch (e) {
     print(e.message);
-    print(e.response);
   }
 
   rtsub.stream.listen((message) {

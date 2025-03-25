@@ -80,7 +80,6 @@ abstract class Base extends TestCase
         'This is a text error',
         'This is a text error',
         'Invalid endpoint URL: htp://cloud.appwrite.io/v1',
-        '{"message":"Invalid endpoint URL: htp://cloud.appwrite.io/v1","code":0}',
     ];
 
     protected const REALTIME_RESPONSES = [

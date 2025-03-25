@@ -83,10 +83,9 @@ async function start() {
     }
 
     try {
-        response = await general.setEndpoint("htp://cloud.appwrite.io/v1");
+        response = client.setEndpoint("htp://cloud.appwrite.io/v1");
     } catch(error) {
         console.log(error.message);
-        console.log(error.response);
     }
 
     console.log('WS:/v1/realtime:passed'); // Skip realtime test on Node.js
