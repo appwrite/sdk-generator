@@ -27,7 +27,6 @@ import java.io.RandomAccessFile
 import java.io.IOException
 import java.net.CookieManager
 import java.net.CookiePolicy
-import java.net.URL
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
 import javax.net.ssl.SSLContext
@@ -179,7 +178,7 @@ class Client @JvmOverloads constructor(
      */
      @Throws({{ spec.title | caseUcfirst }}Exception::class)
     fun setEndpoint(endpoint: String): Client {
-        if (runCatching { URL(endpoint).protocol !in listOf("http", "https") }.getOrDefault(false)) {
+        if (!(endpoint.startsWith("http://") || endpoint.startsWith("https://"))) {
             throw {{spec.title | caseUcfirst}}Exception("Invalid endpoint URL: $endpoint")
         }
 
@@ -198,7 +197,7 @@ class Client @JvmOverloads constructor(
     */
     @Throws({{ spec.title | caseUcfirst }}Exception::class)
     fun setEndpointRealtime(endpoint: String): Client {
-        if (runCatching { URL(endpoint).protocol !in listOf("ws", "wss") }.getOrDefault(false)) {
+        if (!(endpoint.startsWith("ws://") || endpoint.startsWith("wss://"))) {
             throw {{spec.title | caseUcfirst}}Exception("Invalid realtime endpoint URL: $endpoint")
         }
 

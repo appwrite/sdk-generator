@@ -110,8 +110,7 @@ class ClientIO extends ClientBase with ClientMixin {
 
   @override
   ClientIO setEndpoint(String endPoint) {
-    Uri? uri = Uri.tryParse(endPoint);
-    if (uri == null || (uri.scheme != 'http' && uri.scheme != 'https')) {
+    if (!endPoint.startsWith('http://') && !endPoint.startsWith('https://')) {
       throw {{spec.title | caseUcfirst}}Exception('Invalid endpoint URL: $endPoint');
     }
 
@@ -125,8 +124,7 @@ class ClientIO extends ClientBase with ClientMixin {
 
   @override
   ClientIO setEndPointRealtime(String endPoint) {
-    Uri? uri = Uri.tryParse(endPoint);
-    if (uri == null || (uri.scheme != 'ws' && uri.scheme != 'wss')) {
+    if (!endPoint.startsWith('ws://') && !endPoint.startsWith('wss://')) {
       throw {{spec.title | caseUcfirst}}Exception('Invalid realtime endpoint URL: $endPoint');
     }
 

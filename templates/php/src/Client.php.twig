@@ -92,8 +92,7 @@ class Client
      */
     public function setEndpoint(string $endpoint): Client
     {
-        $scheme = parse_url($endpoint, PHP_URL_SCHEME);
-        if ($scheme !== 'http' && $scheme !== 'https') {
+        if (!str_starts_with($endpoint, 'http://') && !str_starts_with($endpoint, 'https://')) {
             throw new {{spec.title | caseUcfirst}}Exception("Invalid endpoint URL: $endpoint");
         }
 
