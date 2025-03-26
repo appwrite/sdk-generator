@@ -134,9 +134,7 @@ open class Client {
     ///
     open func setEndpoint(_ endPoint: String) throws -> Client {
         if !endPoint.hasPrefix("http://") && !endPoint.hasPrefix("https://") {
-            throw {{spec.title | caseUcfirst}}Error(
-                message: "Invalid endpoint URL: \(endPoint)"
-            )
+            fatalError("Invalid endpoint URL: \(endPoint)")
         }
 
         self.endPoint = endPoint

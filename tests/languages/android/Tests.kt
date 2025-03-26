@@ -171,7 +171,7 @@ class ServiceTest {
 
             try {
                 client.setEndpoint("htp://cloud.appwrite.io/v1")
-            } catch (e: AppwriteException) {
+            } catch (e: IllegalArgumentException) {
                 writeToFile(e.message)
             }
 

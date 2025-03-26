@@ -176,10 +176,10 @@ class Client @JvmOverloads constructor(
      *
      * @return this
      */
-     @Throws({{ spec.title | caseUcfirst }}Exception::class)
+    @Throws(IllegalArgumentException::class)
     fun setEndpoint(endpoint: String): Client {
-        if (!(endpoint.startsWith("http://") || endpoint.startsWith("https://"))) {
-            throw {{spec.title | caseUcfirst}}Exception("Invalid endpoint URL: $endpoint")
+        require(endpoint.startsWith("http://") || endpoint.startsWith("https://")) {
+            "Invalid endpoint URL: $endpoint"
         }
 
         this.endpoint = endpoint
@@ -189,16 +189,16 @@ class Client @JvmOverloads constructor(
     }
 
     /**
-    * Set realtime endpoint
-    *
-    * @param endpoint
-    *
-    * @return this
-    */
-    @Throws({{ spec.title | caseUcfirst }}Exception::class)
+     * Set realtime endpoint
+     *
+     * @param endpoint
+     *
+     * @return this
+     */
+    @Throws(IllegalArgumentException::class)
     fun setEndpointRealtime(endpoint: String): Client {
-        if (!(endpoint.startsWith("ws://") || endpoint.startsWith("wss://"))) {
-            throw {{spec.title | caseUcfirst}}Exception("Invalid realtime endpoint URL: $endpoint")
+        require(endpoint.startsWith("ws://") || endpoint.startsWith("wss://")) {
+            "Invalid realtime endpoint URL: $endpoint"
         }
 
         this.endpointRealtime = endpoint

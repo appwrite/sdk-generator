@@ -149,8 +149,8 @@ class Tests: XCTestCase {
 
         do {
             try client.setEndpoint("htp://cloud.appwrite.io/v1")
-        } catch let error as AppwriteError {
-            print(error.message)
+        } catch {
+            print(error)
         }
 
         wait(for: [expectation], timeout: 10.0)
