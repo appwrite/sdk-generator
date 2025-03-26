@@ -133,9 +133,8 @@ open class Client {
     /// @param String endPoint
     ///
     /// @return Client
-    /// @throws Exception
     ///
-    open func setEndpoint(_ endPoint: String) throws -> Client {
+    open func setEndpoint(_ endPoint: String) -> Client {
         if !endPoint.hasPrefix("http://") && !endPoint.hasPrefix("https://") {
             fatalError("Invalid endpoint URL: \(endPoint)")
         }
@@ -154,9 +153,8 @@ open class Client {
     /// @param String endPoint
     ///
     /// @return Client
-    /// @throws Exception
     ///
-    open func setEndpointRealtime(_ endPoint: String) throws -> Client {
+    open func setEndpointRealtime(_ endPoint: String) -> Client {
         if !endPoint.hasPrefix("ws://") && !endPoint.hasPrefix("wss://") {
             fatalError("Invalid realtime endpoint URL: \(endPoint)")
         }

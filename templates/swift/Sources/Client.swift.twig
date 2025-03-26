@@ -130,9 +130,8 @@ open class Client {
     /// @param String endPoint
     ///
     /// @return Client
-    /// @throws Exception
     ///
-    open func setEndpoint(_ endPoint: String) throws -> Client {
+    open func setEndpoint(_ endPoint: String) -> Client {
         if !endPoint.hasPrefix("http://") && !endPoint.hasPrefix("https://") {
             fatalError("Invalid endpoint URL: \(endPoint)")
         }
