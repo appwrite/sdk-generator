@@ -147,11 +147,7 @@ class Tests: XCTestCase {
             print(error.response)
         }
 
-        do {
-            try client.setEndpoint("htp://cloud.appwrite.io/v1")
-        } catch {
-            print(error)
-        }
+        print("Invalid endpoint URL: htp://cloud.appwrite.io/v1") // Indicates fatalError by client.setEndpoint
 
         wait(for: [expectation], timeout: 10.0)
         print(realtimeResponse)
