@@ -32,7 +32,7 @@ class Tests: XCTestCase {
 
         // reset configs
         client.setProject("console")
-        try client.setEndpointRealtime("ws://cloud.appwrite.io/v1")
+        client.setEndpointRealtime("ws://cloud.appwrite.io/v1")
 
         let foo = Foo(client)
         let bar = Bar(client)

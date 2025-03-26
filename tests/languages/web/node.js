@@ -83,7 +83,7 @@ async function start() {
     }
 
     try {
-        response = client.setEndpoint("htp://cloud.appwrite.io/v1");
+        client.setEndpoint("htp://cloud.appwrite.io/v1");
     } catch(error) {
         console.log(error.message);
     }
