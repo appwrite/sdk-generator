@@ -106,8 +106,11 @@ namespace {{ spec.title | caseUcfirst }}
 
         public Client SetEndpoint(string endpoint)
         {
-            _endpoint = endpoint;
+            if (!endpoint.StartsWith("http://") && !endpoint.StartsWith("https://")) {
+                throw new {{spec.title | caseUcfirst}}Exception("Invalid endpoint URL: " + endpoint);
+            }
 
+            _endpoint = endpoint;
             return this;
         }
 

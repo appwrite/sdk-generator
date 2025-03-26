@@ -136,6 +136,12 @@ class ServiceTest {
                 writeToFile(e.response)
             }
 
+            try {
+                client.setEndpoint("htp://cloud.appwrite.io/v1")
+            } catch (e: IllegalArgumentException) {
+                writeToFile(e.message)
+            }
+
             general.empty()
 
             val url = general.oauth2(

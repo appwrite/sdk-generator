@@ -92,8 +92,11 @@ class Client
      */
     public function setEndpoint(string $endpoint): Client
     {
-        $this->endpoint = $endpoint;
+        if (!str_starts_with($endpoint, 'http://') && !str_starts_with($endpoint, 'https://')) {
+            throw new {{spec.title | caseUcfirst}}Exception("Invalid endpoint URL: $endpoint");
+        }
 
+        $this->endpoint = $endpoint;
         return $this;
     }
 

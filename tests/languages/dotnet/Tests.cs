@@ -114,6 +114,15 @@ namespace AppwriteTests
                 TestContext.WriteLine(e.Response);
             }
 
+            try
+            {
+                client.SetEndpoint("htp://cloud.appwrite.io/v1");
+            }
+            catch (AppwriteException e)
+            {
+                TestContext.WriteLine(e.Message);
+            }
+
             await general.Empty();
 
             var url = await general.Oauth2(

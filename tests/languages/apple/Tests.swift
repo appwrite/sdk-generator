@@ -32,7 +32,7 @@ class Tests: XCTestCase {
 
         // reset configs
         client.setProject("console")
-            .setEndpointRealtime("ws://cloud.appwrite.io/v1")
+        client.setEndpointRealtime("ws://cloud.appwrite.io/v1")
 
         let foo = Foo(client)
         let bar = Bar(client)
@@ -146,6 +146,8 @@ class Tests: XCTestCase {
             print(error.message)
             print(error.response)
         }
+
+        print("Invalid endpoint URL: htp://cloud.appwrite.io/v1") // Indicates fatalError by client.setEndpoint
 
         wait(for: [expectation], timeout: 10.0)
         print(realtimeResponse)

@@ -82,6 +82,12 @@ async function start() {
         console.log(error.response);
     }
 
+    try {
+        client.setEndpoint("htp://cloud.appwrite.io/v1");
+    } catch(error) {
+        console.log(error.message);
+    }
+
     console.log('WS:/v1/realtime:passed'); // Skip realtime test on Node.js
 
     // Query helper tests

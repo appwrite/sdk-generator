@@ -107,6 +107,12 @@ rescue Exception => error
     puts error.response
 end
 
+begin
+    client.set_endpoint("htp://cloud.appwrite.io/v1")
+rescue Exception => error
+    puts error.message
+end
+
 general.empty()
 
 url = general.oauth2(

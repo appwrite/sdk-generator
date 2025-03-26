@@ -1,13 +1,14 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 
-import '../lib/packageName.dart';
 import '../lib/client_io.dart';
-import '../lib/models.dart';
 import '../lib/enums.dart';
+import '../lib/models.dart';
+import '../lib/packageName.dart';
 import '../lib/src/input_file.dart';
-import 'dart:io';
-import 'dart:convert';
 
 class FakePathProvider extends PathProviderPlatform {
   @override
@@ -136,6 +137,12 @@ void main() async {
   } on AppwriteException catch (e) {
     print(e.message);
     print(e.response);
+  }
+
+  try {
+    client.setEndpoint("htp://cloud.appwrite.io/v1");
+  } on AppwriteException catch (e) {
+    print(e.message);
   }
 
   rtsub.stream.listen((message) {

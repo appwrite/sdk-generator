@@ -110,6 +110,12 @@ try {
     echo "{$e->getResponse()}\n";
 }
 
+try {
+    $client->setEndpoint("htp://cloud.appwrite.io/v1");
+} catch (AppwriteException $e) {
+    echo "{$e->getMessage()}\n";
+}
+
 $general->empty();
 
 $url = $general->oauth2(

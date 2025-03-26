@@ -21,6 +21,7 @@ import java.io.BufferedReader
 import java.io.File
 import java.io.RandomAccessFile
 import java.io.IOException
+import java.lang.IllegalArgumentException
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
 import javax.net.ssl.HostnameVerifier
@@ -152,7 +153,12 @@ class Client @JvmOverloads constructor(
     *
     * @return this
     */
+    @Throws(IllegalArgumentException::class)
     fun setEndpoint(endPoint: String): Client {
+        require(endPoint.startsWith("http://") || endPoint.startsWith("https://")) {
+            "Invalid endpoint URL: $endPoint"
+        }
+
         this.endPoint = endPoint
         return this
     }

@@ -126,6 +126,12 @@
                 console.log(error.response);
             }
 
+            try {
+                client.setEndpoint("htp://cloud.appwrite.io/v1");
+            } catch (error) {
+                console.log(error.message);
+            }
+
             const delay = ms => new Promise(res => setTimeout(res, ms));
             await delay(5000);
             console.log(responseRealtime)

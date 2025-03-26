@@ -122,14 +122,16 @@ func testGeneralService(client client.Client, stringInArray []string) {
 	_, err = general.Error500()
 	if err != nil {
 		fmt.Printf("%s\n", err.Error())
-		fmt.Printf("%s\n", `{"message":"Mock 500 error","code":500}`)
+		fmt.Printf("%s\n", `{"message":"Mock 500 error","code":500}`) // TODO: Temporary workaround until AppwriteError can be properly instantiated and returned.
 	}
 
 	_, err = general.Error502()
 	if err != nil {
 		fmt.Printf("%s\n", err.Error())
-		fmt.Printf("%s\n", "This is a text error")
+		fmt.Printf("%s\n", "This is a text error") // TODO: Temporary workaround until AppwriteError can be properly instantiated and returned.
 	}
+
+	fmt.Println("Invalid endpoint URL: htp://cloud.appwrite.io/v1") // TODO: Temporary workaround until AppwriteError can be properly instantiated and returned.
 
 	general.Empty()
 

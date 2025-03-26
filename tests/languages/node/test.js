@@ -109,6 +109,12 @@ async function start() {
         console.log(error.response);
     }
 
+    try {
+        client.setEndpoint("htp://cloud.appwrite.io/v1");
+    } catch(error) {
+        console.log(error.message);
+    }
+
     await general.empty();
 
     const url = await general.oauth2(

@@ -29,6 +29,9 @@ class Client:
         return self
 
     def set_endpoint(self, endpoint):
+        if not endpoint.startswith('http://') and not endpoint.startswith('https://'):
+            raise {{spec.title | caseUcfirst}}Exception('Invalid endpoint URL: ' + endpoint)
+
         self._endpoint = endpoint
         return self
 
