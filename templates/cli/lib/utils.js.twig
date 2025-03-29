@@ -9,9 +9,10 @@ function getAllFiles(folder) {
     const files = [];
     for (const pathDir of fs.readdirSync(folder)) {
         const pathAbsolute = path.join(folder, pathDir);
-        if (fs.statSync(pathAbsolute).isDirectory()) {
+        const stats = fs.lstatSync(pathAbsolute);
+        if (stats.isDirectory() && !stats.isSymbolicLink()) {
             files.push(...getAllFiles(pathAbsolute));
-        } else {
+        } else if (stats.isFile() && !stats.isSymbolicLink()) {
             files.push(pathAbsolute);
         }
     }
