@@ -1,0 +1,22 @@
+{
+    "name": "sdk-test",
+    "scripts": {
+      "test": "jest"
+    },
+    "jest": {
+      "preset": "jest-expo",
+      "transformIgnorePatterns": [
+        "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg)"
+      ]
+    },
+    "dependencies": {
+      "expo": "*",
+      "packageName": "file:..",
+      "react-native": "*",
+      "jest": "^29.3.1",
+      "jest-expo": "~50.0.4",
+      "undefined": "../"
+    },
+    "type": "module"
+  }
+  
