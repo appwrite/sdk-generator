@@ -361,14 +361,14 @@ abstract class BaseClient<This : BaseClient<This>>(
 
                 if (response.contentType()?.match(ContentType.Application.Json) == true) {
                     val map = json.decodeFromString<Map<String, JsonElement>>(body)
-                    throw AppwriteException(
+                    throw {{ spec.title | caseUcfirst }}Exception(
                         (map["message"] as? JsonPrimitive)?.content ?: "",
                         (map["code"] as? JsonPrimitive)?.int ?: 0,
                         (map["type"] as? JsonPrimitive)?.content ?: "",
                         body
                     )
                 } else {
-                    throw AppwriteException(body, response.status.value)
+                    throw {{ spec.title | caseUcfirst }}Exception(body, response.status.value)
                 }
             }
 
@@ -383,7 +383,7 @@ abstract class BaseClient<This : BaseClient<This>>(
                         body.isEmpty() -> when (responseType) {
                             String::class -> "" as T
                             Boolean::class -> true as T
-                            else -> throw AppwriteException(
+                            else -> throw {{ spec.title | caseUcfirst }}Exception(
                                 "Empty response body",
                                 response.status.value
                             )
@@ -394,7 +394,7 @@ abstract class BaseClient<This : BaseClient<This>>(
                             serializer?.let { json.decodeFromString(it, body) }
                                 ?: json.decodeFromString(responseType.serializer(), body)
                         } catch (e: Exception) {
-                            throw AppwriteException(
+                            throw {{ spec.title | caseUcfirst }}Exception(
                                 "Failed to parse JSON response: ${e.message}",
                                 response.status.value,
                                 response = body

@@ -2,7 +2,7 @@ package {{ sdk.namespace | caseDot }}.services
 
 import {{ sdk.namespace | caseDot }}.Client
 import {{ sdk.namespace | caseDot }}.Service
-import {{ sdk.namespace | caseDot }}.exceptions.AppwriteException
+import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.title | caseUcfirst }}Exception
 import {{ sdk.namespace | caseDot }}.extensions.forEachAsync
 import {{ sdk.namespace | caseDot }}.extensions.fromJson
 import {{ sdk.namespace | caseDot }}.extensions.getSerializer
@@ -53,32 +53,31 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
 
     private fun createSocket() {
         launch(Dispatchers.IO) {
-
-            if (activeChannels.isEmpty()) {
-                reconnect = false
-                closeSocket()
-                return@launch
-            }
-
-            val queryParams = buildString {
-                append("project=${client.config["project"]}")
-                activeChannels.forEach {
-                    append("&channels[]=$it")
-                }
-            }
-
-            if (webSocketSession != null) {
-                reconnect = false
-                closeSocket()
-            }
-
-            webSocketSession = client.httpClient.webSocketSession {
-                url("${client.endpointRealtime}/realtime?$queryParams")
-            }
-
-            reconnectAttempts = 0  // Reset attempts on successful connection
-
             try {
+
+                if (activeChannels.isEmpty()) {
+                    reconnect = false
+                    closeSocket()
+                    return@launch
+                }
+
+                val queryParams = buildString {
+                    append("project=${client.config["project"]}")
+                    activeChannels.forEach {
+                        append("&channels[]=$it")
+                    }
+                }
+
+                if (webSocketSession != null) {
+                    reconnect = false
+                    closeSocket()
+                }
+
+                webSocketSession = client.httpClient.webSocketSession {
+                    url("${client.endpointRealtime}/realtime?$queryParams")
+                }
+
+                reconnectAttempts = 0  // Reset attempts on successful connection
                 webSocketSession?.let { session ->
                     for (frame in session.incoming) {
                         when (frame) {
@@ -87,6 +86,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
                         }
                     }
                 }
+
             } catch (e: Exception) {
                 handleFailure(e)
             } finally {
@@ -149,7 +149,6 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         return RealtimeSubscription {
             activeSubscriptions.remove(counter)
             cleanUp(channels)
-            createSocket()
         }
     }
 
@@ -174,7 +173,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
     }
 
     private fun handleResponseError(message: RealtimeResponse) {
-        throw message.data.jsonCast<AppwriteException>()
+        throw message.data.jsonCast<{{ spec.title | caseUcfirst }}Exception>()
     }
 
     @Throws(Throwable::class)
