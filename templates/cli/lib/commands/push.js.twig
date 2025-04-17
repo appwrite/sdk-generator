@@ -1144,13 +1144,12 @@ const pushFunction = async ({ functionId, async, code, withVariables } = { retur
                     parseOutput: false
                 });
 
-                
+                let domain = '';
                 try {
-                    let variables = await consoleVariables({ parseOutput: false, sdk: await sdkForConsole() });
-                    domain = variables['_APP_DOMAIN_FUNCTIONS'];
-                    domain = ID.unique() + '.' + domain;
+                    const variables = await consoleVariables({ parseOutput: false, sdk: await sdkForConsole() });
+                    domain = ID.unique() + '.' + variables['_APP_DOMAIN_FUNCTIONS'];
                 } catch (error) {
-                    console.error('Error fetching console variables:', error);
+                    console.error('Error fetching console variables.');
                     throw error;
                 }
 
@@ -1162,7 +1161,7 @@ const pushFunction = async ({ functionId, async, code, withVariables } = { retur
                         }
                     );
                 } catch (error) {
-                    console.error('Error creating function rule:', error);
+                    console.error('Error creating function rule.');
                     throw error;
                 }
 
@@ -1265,7 +1264,8 @@ const pushFunction = async ({ functionId, async, code, withVariables } = { retur
                             queries: [
                                 JSON.stringify({ method: 'limit', values: [1] }),
                                 JSON.stringify({ method: 'equal', "attribute": "deploymentResourceType", "values": ["function"] }),
-                                JSON.stringify({ method: 'equal', "attribute": "deploymentResourceId", "values": [func['$id']] })
+                                JSON.stringify({ method: 'equal', "attribute": "deploymentResourceId", "values": [func['$id']] }),
+                                JSON.stringify({ method: 'equal', "attribute": "trigger", "values": ["manual"] }),
                             ],
                         });
 
