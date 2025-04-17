@@ -2,12 +2,15 @@ const chalk = require('chalk');
 const inquirer = require("inquirer");
 const JSONbig = require("json-bigint")({ storeAsString: false });
 const { Command } = require("commander");
+const ID = require("../id");
 const { localConfig, globalConfig, KeysAttributes, KeysFunction, whitelistKeys, KeysTopics, KeysStorage, KeysTeams, KeysCollection } = require("../config");
 const { Spinner, SPINNER_ARC, SPINNER_DOTS } = require('../spinner');
 const { paginate } = require('../paginate');
 const { questionsPushBuckets, questionsPushTeams, questionsPushFunctions, questionsGetEntrypoint, questionsPushCollections, questionPushChanges, questionPushChangesConfirmation, questionsPushMessagingTopics, questionsPushResources } = require("../questions");
 const { cliConfig, actionRunner, success, warn, log, hint, error, commandDescriptions, drawTable } = require("../parser");
-const { proxyListRules } = require('./proxy');
+const { proxyCreateFunctionRule, proxyListRules } = require('./proxy');
+const { consoleVariables } = require('./console');
+const { sdkForConsole } = require('../sdks')
 const { functionsGet, functionsCreate, functionsUpdate, functionsCreateDeployment, functionsGetDeployment, functionsListVariables, functionsDeleteVariable, functionsCreateVariable } = require('./functions');
 const {
     databasesGet,
@@ -1141,6 +1144,27 @@ const pushFunction = async ({ functionId, async, code, withVariables } = { retur
                     parseOutput: false
                 });
 
+                let domain = '';
+                try {
+                    const variables = await consoleVariables({ parseOutput: false, sdk: await sdkForConsole() });
+                    domain = ID.unique() + '.' + variables['_APP_DOMAIN_FUNCTIONS'];
+                } catch (error) {
+                    console.error('Error fetching console variables.');
+                    throw error;
+                }
+
+                try {
+                    const rule = await proxyCreateFunctionRule(
+                        {
+                            domain: domain,
+                            functionId: func.$id
+                        }
+                    );
+                } catch (error) {
+                    console.error('Error creating function rule.');
+                    throw error;
+                }
+
                 updaterRow.update({ status: 'Created' });
             } catch (e) {
                 errors.push(e)
@@ -1239,8 +1263,9 @@ const pushFunction = async ({ functionId, async, code, withVariables } = { retur
                             parseOutput: false,
                             queries: [
                                 JSON.stringify({ method: 'limit', values: [1] }),
-                                JSON.stringify({ method: 'equal', "attribute": "resourceType", "values": ["function"] }),
-                                JSON.stringify({ method: 'equal', "attribute": "resourceId", "values": [func['$id']] })
+                                JSON.stringify({ method: 'equal', "attribute": "deploymentResourceType", "values": ["function"] }),
+                                JSON.stringify({ method: 'equal', "attribute": "deploymentResourceId", "values": [func['$id']] }),
+                                JSON.stringify({ method: 'equal', "attribute": "trigger", "values": ["manual"] }),
                             ],
                         });
 

@@ -5,6 +5,7 @@ const process = require("process");
 const JSONbig = require("json-bigint")({ storeAsString: false });
 
 const KeysVars = new Set(["key", "value"]);
+const KeysSite = new Set(["path", "$id", "name", "enabled", "logging", "timeout", "framework", "buildRuntime", "adapter", "installCommand", "buildCommand", "outputDirectory", "fallbackFile", "specification"]);
 const KeysFunction = new Set(["path", "$id", "execute", "name", "enabled", "logging", "runtime", "specification", "scopes", "events", "schedule", "timeout", "entrypoint", "commands", "vars"]);
 const KeysDatabase = new Set(["$id", "name", "enabled"]);
 const KeysCollection = new Set(["$id", "$permissions", "databaseId", "name", "enabled", "documentSecurity", "attributes", "indexes"]);
@@ -147,6 +148,53 @@ class Local extends Config {
 
     getDirname() {
         return _path.dirname(this.path)
+    }
+
+    getSites() {
+        if (!this.has("sites")) {
+            return [];
+        }
+        return this.get("sites");
+    }
+
+    getSite($id) {
+        if (!this.has("sites")) {
+            return {};
+        }
+
+        let sites = this.get("sites");
+        for (let i = 0; i < sites.length; i++) {
+            if (sites[i]['$id'] == $id) {
+                return sites[i];
+            }
+        }
+
+        return {};
+    }
+
+    addSite(props) {
+        props = whitelistKeys(props, KeysSite, {
+            vars: KeysVars
+        });
+
+        if (!this.has("sites")) {
+            this.set("sites", []);
+        }
+
+        let sites = this.get("sites");
+        for (let i = 0; i < sites.length; i++) {
+            if (sites[i]['$id'] == props['$id']) {
+                sites[i] = {
+                    ...sites[i],
+                    ...props
+                };
+                this.set("sites", sites);
+                return;
+            }
+        }
+
+        sites.push(props);
+        this.set("sites", sites);
     }
 
     getFunctions() {
@@ -440,6 +488,7 @@ class Local extends Config {
                 storage: projectSettings.serviceStatusForStorage,
                 teams: projectSettings.serviceStatusForTeams,
                 users: projectSettings.serviceStatusForUsers,
+                sites: projectSettings.serviceStatusForSites,
                 functions: projectSettings.serviceStatusForFunctions,
                 graphql: projectSettings.serviceStatusForGraphql,
                 messaging: projectSettings.serviceStatusForMessaging,
@@ -636,6 +685,7 @@ module.exports = {
     localConfig: new Local(),
     globalConfig: new Global(),
     KeysAttributes,
+    KeysSite,
     KeysFunction,
     KeysTopics,
     KeysStorage,
