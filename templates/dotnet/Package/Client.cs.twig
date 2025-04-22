@@ -149,9 +149,8 @@ namespace {{ spec.title | caseUcfirst }}
                 new HttpMethod(method),
                 _endpoint + path + queryString);
 
-            if ("multipart/form-data".Equals(
-                headers["content-type"],
-                StringComparison.OrdinalIgnoreCase))
+            if (headers.TryGetValue("content-type", out var contentType) && 
+                "multipart/form-data".Equals(contentType, StringComparison.OrdinalIgnoreCase))
             {
                 var form = new MultipartFormDataContent();
 

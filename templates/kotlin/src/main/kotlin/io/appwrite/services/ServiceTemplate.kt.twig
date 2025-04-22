@@ -55,7 +55,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
             "{{ parameter.name }}" to {{ parameter.name | caseCamel }},
         {%~ endfor %}
         )
-        val apiHeaders = mutableMapOf(
+        val apiHeaders = mutableMapOf<String, String>(
         {%~ for key, header in method.headers %}
             "{{ key }}" to "{{ header }}",
         {%~ endfor %}
