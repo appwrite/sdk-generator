@@ -683,6 +683,16 @@ class Client {
 
         const response = await fetch(uri, options);
 
+        // type opaque: No-CORS, different-origin response (CORS-issue)
+        if (response.type === 'opaque') {
+            throw new {{spec.title | caseUcfirst}}Exception(
+                `Invalid Origin. Register your new client (${window.location.host}) as a new Web platform on your project console dashboard`,
+                403,
+                "forbidden",
+                ""
+            );
+        }
+
         const warnings = response.headers.get('x-{{ spec.title | lower }}-warning');
         if (warnings) {
             warnings.split(';').forEach((warning: string) => console.warn('Warning: ' + warning));
