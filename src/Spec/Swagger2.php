@@ -51,6 +51,16 @@ class Swagger2 extends Spec
     /**
      * @return string
      */
+    public function getEndpointDocs()
+    {
+        return $this->getAttribute('schemes.0', 'https') .
+        '://' . $this->getAttribute('x-host-docs', 'example.com') .
+        $this->getAttribute('basePath', '');
+    }
+
+    /**
+     * @return string
+     */
     public function getLicenseName()
     {
         return $this->getAttribute('info.license.name', '');
