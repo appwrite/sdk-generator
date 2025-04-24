@@ -67,6 +67,11 @@ abstract class Spec extends ArrayObject
     /**
      * @return string
      */
+    abstract public function getEndpointDocs();
+
+    /**
+     * @return string
+     */
     abstract public function getLicenseName();
 
     /**
