@@ -15,6 +15,7 @@ const { localConfig, globalConfig } = require("../config");
 const {
     questionsCreateFunction,
     questionsCreateFunctionSelectTemplate,
+    questionsCreateSite,
     questionsCreateBucket,
     questionsCreateMessagingTopic,
     questionsCreateCollection,
@@ -25,11 +26,13 @@ const {
 } = require("../questions");
 const { cliConfig, success, log, hint, error, actionRunner, commandDescriptions } = require("../parser");
 const { accountGet } = require("./account");
+const { sitesListTemplates } = require("./sites");
 const { sdkForConsole } = require("../sdks");
 
 const initResources = async () => {
     const actions = {
         function: initFunction,
+        site: initSite,
         collection: initCollection,
         bucket: initBucket,
         team: initTeam,
@@ -318,6 +321,153 @@ const initFunction = async () => {
     log("Next you can use 'appwrite run function' to develop a function locally. To deploy the function, use 'appwrite push function'");
 }
 
+const initSite = async () => {
+    process.chdir(localConfig.configDirectoryPath)
+
+    const answers = await inquirer.prompt(questionsCreateSite);
+    const siteFolder = path.join(process.cwd(), 'sites');
+
+    if (!fs.existsSync(siteFolder)) {
+        fs.mkdirSync(siteFolder, {
+            recursive: true
+        });
+    }
+
+    const siteId = answers.id === 'unique()' ? ID.unique() : answers.id;
+    const siteName = answers.name;
+    const siteDir = path.join(siteFolder, siteName);
+    const templatesDir = path.join(siteFolder, `${siteId}-templates`);
+
+    if (fs.existsSync(siteDir)) {
+        throw new Error(`( ${siteName} ) already exists in the current directory. Please choose another name.`);
+    }
+
+    let templateDetails;
+    try {
+        const response = await sitesListTemplates({
+            frameworks: [answers.framework.key],
+            useCases: ['starter'],
+            limit: 1,
+            parseOutput: false
+        });
+        if (response.total == 0) {
+            throw new Error(`No starter template found for framework ${answers.framework.key}`);
+        }
+        templateDetails = response.templates[0];
+    } catch (error) {
+        throw new Error(`Failed to fetch template for framework ${answers.framework.key}: ${error.message}`);
+    }
+
+    fs.mkdirSync(siteDir, "777");
+    fs.mkdirSync(templatesDir, "777");
+    const repo = `https://github.com/${templateDetails.providerOwner}/${templateDetails.providerRepositoryId}`;
+    let selected = { template: templateDetails.frameworks[0].providerRootDirectory };
+
+    let gitInitCommands = '';
+    let gitPullCommands = '';
+
+    const sparse = selected.template.startsWith('./') ? selected.template.substring(2) : selected.template;
+
+    log('Fetching site code ...');
+
+    if(selected.template === './') {
+        gitInitCommands = `git clone --single-branch --depth 1 ${repo} .`;
+    } else {
+        gitInitCommands = `git clone --single-branch --depth 1 --sparse ${repo} .`; // depth prevents fetching older commits reducing the amount fetched
+        gitPullCommands = `git sparse-checkout add ${sparse}`;
+    }
+
+    /* Force use CMD as powershell does not support && */
+    if (process.platform === 'win32') {
+        gitInitCommands = 'cmd /c "' + gitInitCommands + '"';
+        if(gitPullCommands)
+            gitPullCommands = 'cmd /c "' + gitPullCommands + '"';
+    }
+
+    /*  Execute the child process but do not print any std output */
+    try {
+        childProcess.execSync(gitInitCommands, { stdio: 'pipe', cwd: templatesDir });
+        if(gitPullCommands)
+            childProcess.execSync(gitPullCommands, { stdio: 'pipe', cwd: templatesDir });
+    } catch (error) {
+        /* Specialised errors with recommended actions to take */
+        if (error.message.includes('error: unknown option')) {
+            throw new Error(`${error.message} \n\nSuggestion: Try updating your git to the latest version, then trying to run this command again.`)
+        } else if (error.message.includes('is not recognized as an internal or external command,') || error.message.includes('command not found')) {
+            throw new Error(`${error.message} \n\nSuggestion: It appears that git is not installed, try installing git then trying to run this command again.`)
+        } else {
+            throw error;
+        }
+    }
+
+    fs.rmSync(path.join(templatesDir, ".git"), { recursive: true });
+
+    const copyRecursiveSync = (src, dest) => {
+        let exists = fs.existsSync(src);
+        let stats = exists && fs.statSync(src);
+        let isDirectory = exists && stats.isDirectory();
+        if (isDirectory) {
+            if (!fs.existsSync(dest)) {
+                fs.mkdirSync(dest);
+            }
+
+            fs.readdirSync(src).forEach(function (childItemName) {
+                copyRecursiveSync(path.join(src, childItemName), path.join(dest, childItemName));
+            });
+        } else {
+            fs.copyFileSync(src, dest);
+        }
+    };
+    copyRecursiveSync(selected.template === './' ? templatesDir : path.join(templatesDir, selected.template), siteDir);
+
+    fs.rmSync(templatesDir, { recursive: true, force: true });
+
+    const readmePath = path.join(process.cwd(), 'sites', siteName, 'README.md');
+    const readmeFile = fs.readFileSync(readmePath).toString();
+    const newReadmeFile = readmeFile.split('\n');
+    newReadmeFile[0] = `# ${answers.key}`;
+    newReadmeFile.splice(1, 2);
+    fs.writeFileSync(readmePath, newReadmeFile.join('\n'));
+    
+    let data = {
+        $id: siteId,
+        name: answers.name,
+        framework: answers.framework.key,
+        adapter: templateDetails.frameworks[0].adapter || '',
+        buildRuntime: templateDetails.frameworks[0].buildRuntime || '',
+        installCommand: templateDetails.frameworks[0].installCommand || '',
+        buildCommand: templateDetails.frameworks[0].buildCommand || '',
+        outputDirectory: templateDetails.frameworks[0].outputDirectory || '',
+        fallbackFile: templateDetails.frameworks[0].fallbackFile || '',
+        specification: answers.specification,
+        enabled: true,
+        timeout: 30,
+        logging: true,
+        ignore: answers.framework.ignore || null,
+        path: `sites/${siteName}`,
+    };
+
+    if (!data.buildRuntime) {
+        log(`Build runtime for this framework not found. You will be asked to configure build runtime when you first push the site.`);
+    }
+
+    if (!data.installCommand) {
+        log(`Installation command for this framework not found. You will be asked to configure the install command when you first push the site.`);
+    }
+
+    if (!data.buildCommand) {
+        log(`Build command for this framework not found. You will be asked to configure the build command when you first push the site.`);
+    }
+
+    if (!data.outputDirectory) {
+        log(`Output directory for this framework not found. You will be asked to configure the output directory when you first push the site.`);
+    }
+
+    localConfig.addSite(data);
+    success("Initializing site");
+    log("Next you can use 'appwrite push site' to deploy the changes.");
+};
+
 const init = new Command("init")
     .description(commandDescriptions['init'])
     .action(actionRunner(initResources));
@@ -335,6 +485,12 @@ init
     .alias("functions")
     .description("Init a new {{ spec.title|caseUcfirst }} function")
     .action(actionRunner(initFunction));
+
+init
+    .command("site")
+    .alias("sites")
+    .description("Init a new {{ spec.title|caseUcfirst }} site")
+    .action(actionRunner(initSite));
 
 init
     .command("bucket")

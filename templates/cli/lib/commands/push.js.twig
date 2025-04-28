@@ -3,15 +3,16 @@ const inquirer = require("inquirer");
 const JSONbig = require("json-bigint")({ storeAsString: false });
 const { Command } = require("commander");
 const ID = require("../id");
-const { localConfig, globalConfig, KeysAttributes, KeysFunction, whitelistKeys, KeysTopics, KeysStorage, KeysTeams, KeysCollection } = require("../config");
+const { localConfig, globalConfig, KeysAttributes, KeysFunction, KeysSite, whitelistKeys, KeysTopics, KeysStorage, KeysTeams, KeysCollection } = require("../config");
 const { Spinner, SPINNER_ARC, SPINNER_DOTS } = require('../spinner');
 const { paginate } = require('../paginate');
-const { questionsPushBuckets, questionsPushTeams, questionsPushFunctions, questionsGetEntrypoint, questionsPushCollections, questionPushChanges, questionPushChangesConfirmation, questionsPushMessagingTopics, questionsPushResources } = require("../questions");
+const { questionsPushBuckets, questionsPushTeams, questionsPushFunctions, questionsPushSites, questionsGetEntrypoint, questionsPushCollections, questionPushChanges, questionPushChangesConfirmation, questionsPushMessagingTopics, questionsPushResources } = require("../questions");
 const { cliConfig, actionRunner, success, warn, log, hint, error, commandDescriptions, drawTable } = require("../parser");
-const { proxyCreateFunctionRule, proxyListRules } = require('./proxy');
+const { proxyCreateFunctionRule, proxyCreateSiteRule, proxyListRules } = require('./proxy');
 const { consoleVariables } = require('./console');
 const { sdkForConsole } = require('../sdks')
 const { functionsGet, functionsCreate, functionsUpdate, functionsCreateDeployment, functionsGetDeployment, functionsListVariables, functionsDeleteVariable, functionsCreateVariable } = require('./functions');
+const { sitesGet, sitesCreate, sitesUpdate, sitesCreateDeployment, sitesGetDeployment, sitesListVariables, sitesCreateVariable } = require('./sites');
 const {
     databasesGet,
     databasesCreate,
@@ -899,6 +900,7 @@ const pushResources = async () => {
     const actions = {
         settings: pushSettings,
         functions: pushFunction,
+        sites: pushSite,
         collections: pushCollection,
         buckets: pushBucket,
         teams: pushTeam,
@@ -1006,6 +1008,325 @@ const pushSettings = async () => {
         success(`Successfully pushed ${chalk.bold('all')} project settings.`);
     } catch (e) {
         throw e;
+    }
+}
+
+const pushSite = async({ siteId, async, code, withVariables } = { returnOnZero: false }) => {
+    process.chdir(localConfig.configDirectoryPath)
+
+    const siteIds = [];
+
+    if(siteId) {
+        siteIds.push(siteId);
+    } else if (cliConfig.all) {
+        checkDeployConditions(localConfig);
+        const sites = localConfig.getSites();
+        siteIds.push(...sites.map((site) => {
+            return site.$id;
+        }));
+    }
+
+    if (siteIds.length <= 0) {
+        const answers = await inquirer.prompt(questionsPushSites[0]);
+        if (answers.sites) {
+            siteIds.push(...answers.sites);
+        }
+    }
+
+    if (siteIds.length === 0) {
+        log("No sites found.");
+        hint("Use 'appwrite pull sites' to synchronize existing one, or use 'appwrite init site' to create a new one.");
+        return;
+    }
+
+    let sites = siteIds.map((id) => {
+        const sites = localConfig.getSites();
+        const site = sites.find((s) => s.$id === id);
+
+        if (!site) {
+            throw new Error("Site '" + id + "' not found.")
+        }
+
+        return site;
+    });
+
+    log('Validating sites ...');
+    // Validation is done BEFORE pushing so the deployment process can be run in async with progress update
+    for (let site of sites) {
+
+        if (!site.buildCommand) {
+            log(`Site ${site.name} is missing build command.`);
+            const answers = await inquirer.prompt(questionsGetBuildCommand)
+            site.buildCommand = answers.buildCommand;
+            localConfig.addSite(site);
+        }
+    }
+
+    if (!(await approveChanges(sites, sitesGet, KeysSite, 'siteId', 'sites', ['vars']))) {
+        return;
+    }
+
+    log('Pushing sites ...');
+
+    Spinner.start(false);
+    let successfullyPushed = 0;
+    let successfullyDeployed = 0;
+    const failedDeployments = [];
+    const errors = [];
+
+    await Promise.all(sites.map(async (site) => {
+        let response = {};
+
+        const ignore = site.ignore ? 'appwrite.json' : '.gitignore';
+        let siteExists = false;
+        let deploymentCreated = false;
+
+        const updaterRow = new Spinner({ status: '', resource: site.name, id: site['$id'], end: `Ignoring using: ${ignore}` });
+
+        updaterRow.update({ status: 'Getting' }).startSpinner(SPINNER_DOTS);
+
+        try {
+            response = await sitesGet({
+                siteId: site['$id'],
+                parseOutput: false,
+            });
+            siteExists = true;
+            if (response.framework !== site.framework) {
+                updaterRow.fail({ errorMessage: `Framework mismatch! (local=${site.framework},remote=${response.framework}) Please delete remote site or update your appwrite.json` })
+                return;
+            }
+
+            updaterRow.update({ status: 'Updating' }).replaceSpinner(SPINNER_ARC);
+
+            response = await sitesUpdate({
+                siteId: site['$id'],
+                name: site.name,
+                framework: site.framework,
+                buildRuntime: site.buildRuntime,
+                specification: site.specification,
+                timeout: site.timeout,
+                enabled: site.enabled,
+                logging: site.logging,
+                adapter: site.adapter,
+                buildCommand: site.buildCommand,
+                installCommand: site.installCommand,
+                outputDirectory: site.outputDirectory,
+                fallbackFile: site.fallbackFile,
+                vars: JSON.stringify(response.vars),
+                parseOutput: false
+            });
+        } catch (e) {
+
+            if (Number(e.code) === 404) {
+                siteExists = false;
+            } else {
+                errors.push(e);
+                updaterRow.fail({ errorMessage: e.message ?? 'General error occurs please try again' });
+                return;
+            }
+        }
+
+        if (!siteExists) {
+            updaterRow.update({ status: 'Creating' }).replaceSpinner(SPINNER_DOTS);
+
+            try {
+                response = await sitesCreate({
+                    siteId: site.$id,
+                    name: site.name,
+                    framework: site.framework,
+                    specification: site.specification,
+                    buildRuntime: site.buildRuntime,
+                    buildCommand: site.buildCommand,
+                    installCommand: site.installCommand,
+                    outputDirectory: site.outputDirectory,
+                    fallbackFile: site.fallbackFile,
+                    adapter: site.adapter,
+                    timeout: site.timeout,
+                    enabled: site.enabled,
+                    logging: site.logging,
+                    vars: JSON.stringify(site.vars),
+                    parseOutput: false
+                });
+
+                let domain = '';
+                try {
+                    const variables = await consoleVariables({ parseOutput: false, sdk: await sdkForConsole() });
+                    domain = ID.unique() + '.' + variables['_APP_DOMAIN_SITES'];
+                } catch (error) {
+                    console.error('Error fetching console variables.');
+                    throw error;
+                }
+
+                try {
+                    const rule = await proxyCreateSiteRule(
+                        {
+                            domain: domain,
+                            siteId: site.$id
+                        }
+                    );
+                } catch (error) {
+                    console.error('Error creating site rule.');
+                    throw error;
+                }
+
+                updaterRow.update({ status: 'Created' });
+            } catch (e) {
+                errors.push(e)
+                updaterRow.fail({ errorMessage: e.message ?? 'General error occurs please try again' });
+                return;
+            }
+        }
+
+        if (withVariables) {
+            updaterRow.update({ status: 'Updating variables' }).replaceSpinner(SPINNER_ARC);
+
+            const { variables } = await paginate(sitesListVariables, {
+                siteId: site['$id'],
+                parseOutput: false
+            }, 100, 'variables');
+
+            await Promise.all(variables.map(async variable => {
+                await sitesDeleteVariable({
+                    siteId: site['$id'],
+                    variableId: variable['$id'],
+                    parseOutput: false
+                });
+            }));
+
+            let result = await awaitPools.wipeVariables(site['$id']);
+            if (!result) {
+                updaterRow.fail({ errorMessage: `Variable deletion timed out.` })
+                return;
+            }
+
+            // Deploy local variables
+            await Promise.all((site['vars'] ?? []).map(async variable => {
+                await sitesCreateVariable({
+                    siteId: site['$id'],
+                    key: variable['key'],
+                    value: variable['value'],
+                    parseOutput: false
+                });
+            }));
+        }
+
+        if (code === false) {
+            successfullyPushed++;
+            successfullyDeployed++;
+            updaterRow.update({ status: 'Pushed' });
+            updaterRow.stopSpinner();
+            return;
+        }
+
+        try {
+            updaterRow.update({ status: 'Pushing' }).replaceSpinner(SPINNER_ARC);
+            response = await sitesCreateDeployment({
+                siteId: site['$id'],
+                buildCommand: site.buildCommand,
+                installCommand: site.installCommand,
+                outputDirectory: site.outputDirectory,
+                fallbackFile: site.fallbackFile,
+                code: site.path,
+                activate: true,
+                parseOutput: false
+            })
+
+            updaterRow.update({ status: 'Pushed' });
+            deploymentCreated = true;
+            successfullyPushed++;
+        } catch (e) {
+            errors.push(e);
+
+            switch (e.code) {
+                case 'ENOENT':
+                    updaterRow.fail({ errorMessage: 'Not found in the current directory. Skipping...' })
+                    break;
+                default:
+                    updaterRow.fail({ errorMessage: e.message ?? 'An unknown error occurred. Please try again.' })
+            }
+        }
+
+        if (deploymentCreated && !async) {
+            try {
+                const deploymentId = response['$id'];
+                updaterRow.update({ status: 'Deploying', end: 'Checking deployment status...' })
+                let pollChecks = 0;
+
+                while (true) {
+                    response = await sitesGetDeployment({
+                    siteId: site['$id'],
+                    deploymentId: deploymentId,
+                    parseOutput: false
+                });
+
+                const status = response['status'];
+                    if (status === 'ready') {
+                        successfullyDeployed++;
+
+                        let url = '';
+                        const res = await proxyListRules({
+                            parseOutput: false,
+                            queries: [
+                                JSON.stringify({ method: 'limit', values: [1] }),
+                                JSON.stringify({ method: 'equal', "attribute": "deploymentResourceType", "values": ["site"] }),
+                                JSON.stringify({ method: 'equal', "attribute": "deploymentResourceId", "values": [site['$id']] }),
+                                JSON.stringify({ method: 'equal', "attribute": "trigger", "values": ["manual"] }),
+                            ],
+                        });
+
+                        if (Number(res.total) === 1) {
+                            url = res.rules[0].domain;
+                        }
+
+                        updaterRow.update({ status: 'Deployed', end: url });
+
+                        break;
+                    } else if (status === 'failed') {
+                        failedDeployments.push({ name: site['name'], $id: site['$id'], deployment: response['$id'] });
+                        updaterRow.fail({ errorMessage: `Failed to deploy` });
+
+                        break;
+                    } else {
+                        updaterRow.update({ status: 'Deploying', end: `Current status: ${status}` })
+                    }
+
+                    pollChecks++;
+                    await new Promise(resolve => setTimeout(resolve, POLL_DEBOUNCE * 1.5));
+                }
+            } catch (e) {
+                errors.push(e);
+                updaterRow.fail({ errorMessage: e.message ?? 'Unknown error occurred. Please try again' })
+            }
+        }
+
+        updaterRow.stopSpinner();
+    }));
+
+    Spinner.stop();
+
+    failedDeployments.forEach((failed) => {
+        const { name, deployment, $id } = failed;
+        const failUrl = `${globalConfig.getEndpoint().slice(0, -3)}/console/project-${localConfig.getProject().projectId}/sites/site-${$id}/deployments/deployment-${deployment}`;
+
+        error(`Deployment of ${name} has failed. Check at ${failUrl} for more details\n`);
+    });
+
+    if (!async) {
+        if (successfullyPushed === 0) {
+            error('No sites were pushed.');
+        } else if (successfullyDeployed !== successfullyPushed) {
+            warn(`Successfully pushed ${successfullyDeployed} of ${successfullyPushed} sites`)
+        } else {
+            success(`Successfully pushed ${successfullyPushed} sites.`);
+        }
+    } else {
+        success(`Successfully pushed ${successfullyPushed} sites.`);
+    }
+
+    if (cliConfig.verbose) {
+        errors.forEach(e => {
+            console.error(e);
+        })
     }
 }
 
@@ -1722,6 +2043,16 @@ push
     .option("--no-code", "Don't push the function's code")
     .option("--with-variables", `Push function variables.`)
     .action(actionRunner(pushFunction));
+
+push
+    .command("site")
+    .alias("sites")
+    .description("Push sites in the current directory.")
+    .option(`-f, --site-id <site-id>`, `ID of site to run`)
+    .option(`-A, --async`, `Don't wait for sites deployments status`)
+    .option("--no-code", "Don't push the site's code")
+    .option("--with-variables", `Push site variables.`)
+    .action(actionRunner(pushSite));
 
 push
     .command("collection")
