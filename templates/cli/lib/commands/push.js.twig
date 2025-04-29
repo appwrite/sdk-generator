@@ -12,7 +12,7 @@ const { proxyCreateFunctionRule, proxyCreateSiteRule, proxyListRules } = require
 const { consoleVariables } = require('./console');
 const { sdkForConsole } = require('../sdks')
 const { functionsGet, functionsCreate, functionsUpdate, functionsCreateDeployment, functionsGetDeployment, functionsListVariables, functionsDeleteVariable, functionsCreateVariable } = require('./functions');
-const { sitesGet, sitesCreate, sitesUpdate, sitesCreateDeployment, sitesGetDeployment, sitesListVariables, sitesCreateVariable } = require('./sites');
+const { sitesGet, sitesCreate, sitesUpdate, sitesCreateDeployment, sitesGetDeployment, sitesCreateVariable } = require('./sites');
 const {
     databasesGet,
     databasesCreate,
@@ -1011,7 +1011,7 @@ const pushSettings = async () => {
     }
 }
 
-const pushSite = async({ siteId, async, code, withVariables } = { returnOnZero: false }) => {
+const pushSite = async({ siteId, async, code } = { returnOnZero: false }) => {
     process.chdir(localConfig.configDirectoryPath)
 
     const siteIds = [];
@@ -1177,38 +1177,16 @@ const pushSite = async({ siteId, async, code, withVariables } = { returnOnZero: 
             }
         }
 
-        if (withVariables) {
-            updaterRow.update({ status: 'Updating variables' }).replaceSpinner(SPINNER_ARC);
+        updaterRow.update({ status: 'Creating variables' }).replaceSpinner(SPINNER_ARC);
 
-            const { variables } = await paginate(sitesListVariables, {
+        await Promise.all((site['vars'] ?? []).map(async variable => {
+            await sitesCreateVariable({
                 siteId: site['$id'],
+                key: variable['key'],
+                value: variable['value'],
                 parseOutput: false
-            }, 100, 'variables');
-
-            await Promise.all(variables.map(async variable => {
-                await sitesDeleteVariable({
-                    siteId: site['$id'],
-                    variableId: variable['$id'],
-                    parseOutput: false
-                });
-            }));
-
-            let result = await awaitPools.wipeVariables(site['$id']);
-            if (!result) {
-                updaterRow.fail({ errorMessage: `Variable deletion timed out.` })
-                return;
-            }
-
-            // Deploy local variables
-            await Promise.all((site['vars'] ?? []).map(async variable => {
-                await sitesCreateVariable({
-                    siteId: site['$id'],
-                    key: variable['key'],
-                    value: variable['value'],
-                    parseOutput: false
-                });
-            }));
-        }
+            });
+        }));
 
         if (code === false) {
             successfullyPushed++;
@@ -2051,7 +2029,6 @@ push
     .option(`-f, --site-id <site-id>`, `ID of site to run`)
     .option(`-A, --async`, `Don't wait for sites deployments status`)
     .option("--no-code", "Don't push the site's code")
-    .option("--with-variables", `Push site variables.`)
     .action(actionRunner(pushSite));
 
 push

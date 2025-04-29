@@ -428,6 +428,26 @@ const initSite = async () => {
     newReadmeFile[0] = `# ${answers.key}`;
     newReadmeFile.splice(1, 2);
     fs.writeFileSync(readmePath, newReadmeFile.join('\n'));
+
+    let vars = (templateDetails.variables ?? []).map(variable => {
+        let value = variable.value;
+        const replacements = {
+            '{apiEndpoint}': globalConfig.getEndpoint(),
+            '{projectId}': localConfig.getProject().projectId,
+            '{projectName}': localConfig.getProject().projectName,
+        };
+
+        for (const placeholder in replacements) {
+            if (value?.includes(placeholder)) {
+                value = value.replace(placeholder, replacements[placeholder]);
+            }
+        }
+
+        return {
+            key: variable.name,
+            value: value
+        };
+    });
     
     let data = {
         $id: siteId,
@@ -445,6 +465,7 @@ const initSite = async () => {
         logging: true,
         ignore: answers.framework.ignore || null,
         path: `sites/${siteName}`,
+        vars: vars
     };
 
     if (!data.buildRuntime) {
