@@ -363,32 +363,46 @@ const initSite = async () => {
     const repo = `https://github.com/${templateDetails.providerOwner}/${templateDetails.providerRepositoryId}`;
     let selected = { template: templateDetails.frameworks[0].providerRootDirectory };
 
-    let gitInitCommands = '';
-    let gitPullCommands = '';
+    let gitCloneCommands = '';
 
     const sparse = selected.template.startsWith('./') ? selected.template.substring(2) : selected.template;
 
     log('Fetching site code ...');
 
     if(selected.template === './') {
-        gitInitCommands = `git clone --single-branch --depth 1 ${repo} .`;
+        gitCloneCommands = `
+            mkdir -p .
+            cd .
+            git init
+            git remote add origin ${repo}
+            git config --global init.defaultBranch main
+            git fetch --depth=1 origin refs/tags/$(git ls-remote --tags origin "${templateDetails.providerVersion}" | tail -n 1 | awk -F '/' '{print $3}')
+            git checkout FETCH_HEAD
+        `.trim();
     } else {
-        gitInitCommands = `git clone --single-branch --depth 1 --sparse ${repo} .`; // depth prevents fetching older commits reducing the amount fetched
-        gitPullCommands = `git sparse-checkout add ${sparse}`;
+        gitCloneCommands = `
+            mkdir -p .
+            cd .
+            git init
+            git remote add origin ${repo}
+            git config --global init.defaultBranch main
+            git config core.sparseCheckout true
+            echo "${sparse}" >> .git/info/sparse-checkout
+            git config --add remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'
+            git config remote.origin.tagopt --no-tags
+            git fetch --depth=1 origin refs/tags/$(git ls-remote --tags origin "${templateDetails.providerVersion}" | tail -n 1 | awk -F '/' '{print $3}')
+            git checkout FETCH_HEAD
+        `.trim();
     }
 
     /* Force use CMD as powershell does not support && */
     if (process.platform === 'win32') {
-        gitInitCommands = 'cmd /c "' + gitInitCommands + '"';
-        if(gitPullCommands)
-            gitPullCommands = 'cmd /c "' + gitPullCommands + '"';
+        gitCloneCommands = 'cmd /c "' + gitCloneCommands + '"';
     }
 
     /*  Execute the child process but do not print any std output */
     try {
-        childProcess.execSync(gitInitCommands, { stdio: 'pipe', cwd: templatesDir });
-        if(gitPullCommands)
-            childProcess.execSync(gitPullCommands, { stdio: 'pipe', cwd: templatesDir });
+        childProcess.execSync(gitCloneCommands, { stdio: 'pipe', cwd: templatesDir });
     } catch (error) {
         /* Specialised errors with recommended actions to take */
         if (error.message.includes('error: unknown option')) {
