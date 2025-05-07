@@ -638,6 +638,10 @@ class Global extends Config {
         this.setTo(Global.PREFERENCE_PROJECT, project);
     }
 
+    setOrganization(organization) {
+        this.setTo(Global.PREFERENCE_ORGANIZATION, organization);
+    }
+
     getKey() {
         if (!this.hasFrom(Global.PREFERENCE_KEY)) {
             return "";

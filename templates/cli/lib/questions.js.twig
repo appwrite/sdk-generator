@@ -223,6 +223,75 @@ const questionsInitProjectAutopull = [
             `Would you like to pull all resources from project you just linked?`
     },
 ];
+const questionsInitOrganization = [
+    {
+        type: "list",
+        name: "start",
+        message: "How would you like to start?",
+        choices: [
+            {
+                name: "Create new organization",
+                value: "new"
+            },
+            {
+                name: "Link directory to an existing organization",
+                value: "existing"
+            }
+        ]    
+    },
+    {
+        type: "search-list",
+        name: "organization",
+        message: "Choose your organization",
+        choices: async () => {
+            let client = await sdkForConsole(true);
+            const { teams } = await paginate(teamsList, { parseOutput: false, sdk: client }, 100, 'teams');
+
+            let choices = teams.map((team, idx) => {
+                return {
+                    name: `${team.name} (${team['$id']})`,
+                    value: team['$id']
+                }
+            })
+
+            if (choices.length == 0) {
+                throw new Error(`No organizations found. Please create a new organization at ${globalConfig.getEndpoint().replace('/v1', '/console/onboarding')}`)
+            }
+
+            return choices;
+        },
+        when: (answer) => answer.start === 'existing'
+    },
+    {
+        type: "list",
+        name: "plan",
+        message: "What's the billing plan you want for your organization?",
+        choices: [
+            {
+                name: "Free plan",
+                value: "free"
+            },
+            {
+                name: "Pro plan",
+                value: "pro"
+            }
+        ]    
+    },
+    {
+        type: "input",
+        name: "name",
+        message: "What would you like to name your organization?",
+        default: "My Awesome Organization",
+        when: (answer) => answer.start !== 'existing'
+    },
+    {
+        type: "input",
+        name: "id",
+        message: "What ID would you like to have for your organization?",
+        default: "unique()",
+        when: (answer) => answer.start !== 'existing'
+    }
+];
 const questionsPullResources = [
     {
         type: "list",
@@ -845,6 +914,7 @@ const questionsRunFunctions = [
 module.exports = {
     questionsInitProject,
     questionsInitProjectAutopull,
+    questionsInitOrganization,
     questionsCreateFunction,
     questionsCreateFunctionSelectTemplate,
     questionsCreateBucket,
