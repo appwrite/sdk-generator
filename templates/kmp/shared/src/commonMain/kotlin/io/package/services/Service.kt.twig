@@ -73,8 +73,8 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
 
         val apiParams = mutableMapOf<String, Any?>(
         {%~ for parameter in method.parameters.query | merge(method.parameters.body) %}
-        {%~ if parameter.name == "data" and method.responseModel | hasGenericType(spec) %}
-            "data" to json.encodeToString(actualSerializer, data as T),
+        {%~ if (parameter.name == "data" or parameter.name == "prefs") and method.responseModel | hasGenericType(spec) %}
+            "{{ parameter.name }}" to json.encodeToString(actualSerializer, {{ parameter.name }} as T),
         {%~ else %}
             "{{ parameter.name }}" to {{ parameter.name | caseCamel }},
         {%~ endif %}
@@ -98,6 +98,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
         )
         {%~ else %}
         val apiHeaders = mutableMapOf(
+            "content-type" to "application/json",
         {%~ for key, header in method.headers %}
             "{{ key }}" to "{{ header }}",
         {%~ endfor %}
