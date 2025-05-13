@@ -122,7 +122,7 @@ const whoami = new Command("whoami")
                 sdk: client,
                 parseOutput: false
             });
-        } catch (error) {
+        } catch (_) {
             error("No user is signed in. To sign in, run 'appwrite login'");
             return;
         }
