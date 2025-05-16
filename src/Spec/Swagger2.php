@@ -308,6 +308,7 @@ class Swagger2 extends Spec
                 foreach ($method['x-appwrite']['methods'] as $additionalMethod) {
                     $duplicatedMethod = $method;
                     $duplicatedMethod['x-appwrite']['method'] = $additionalMethod['name'];
+                    $duplicatedMethod['x-appwrite']['auth'] = $additionalMethod['auth'] ?? [];
 
                     // Update Response
                     $responses = $additionalMethod['responses'];
