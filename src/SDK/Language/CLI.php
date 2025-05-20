@@ -188,11 +188,6 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/type-generation/collection.js',
-                'template'      => 'cli/lib/type-generation/collection.js.twig',
-            ],
-            [
-                'scope'         => 'default',
                 'destination'   => 'lib/type-generation/languages/language.js',
                 'template'      => 'cli/lib/type-generation/languages/language.js.twig',
             ],
@@ -208,11 +203,6 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/type-generation/languages/python.js',
-                'template'      => 'cli/lib/type-generation/languages/python.js.twig',
-            ],
-            [
-                'scope'         => 'default',
                 'destination'   => 'lib/type-generation/languages/kotlin.js',
                 'template'      => 'cli/lib/type-generation/languages/kotlin.js.twig',
             ],
@@ -225,6 +215,11 @@ class CLI extends Node
                 'scope'         => 'default',
                 'destination'   => 'lib/type-generation/languages/java.js',
                 'template'      => 'cli/lib/type-generation/languages/java.js.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/type-generation/languages/dart.js',
+                'template'      => 'cli/lib/type-generation/languages/dart.js.twig',
             ],
             [
                 'scope'         => 'default',

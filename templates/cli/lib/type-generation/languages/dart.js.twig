@@ -1,0 +1,72 @@
+/** @typedef {import('../attribute').Attribute} Attribute */
+const { AttributeType } = require('../attribute');
+const { LanguageMeta } = require("./language");
+
+class Dart extends LanguageMeta {
+  getType(attribute) {
+    let type = "";
+    switch (attribute.type) {
+      case AttributeType.STRING:
+      case AttributeType.EMAIL:
+      case AttributeType.DATETIME:
+      case AttributeType.ENUM:
+        type = "String";
+        break;
+      case AttributeType.INTEGER:
+        type = "int";
+        break;
+      case AttributeType.FLOAT:
+        type = "double";
+        break;
+      case AttributeType.BOOLEAN:
+        type = "bool";
+        break;
+      case AttributeType.RELATIONSHIP:
+        type = "Map<String, dynamic>";
+        break;
+      default:
+        throw new Error(`Unknown attribute type: ${attribute.type}`);
+    }
+    if (attribute.array) {
+      type = `List<${type}>`;
+    }
+    if (!attribute.required) {
+      type += "?";
+    }
+    return type;
+  }
+
+  getTemplate() {
+    return `import 'package:appwrite/models.dart';
+
+class <%- toPascalCase(collection.name) %> extends Document {
+  <% for (const attribute of collection.attributes) { -%>
+  final <%- getType(attribute) %> <%- toCamelCase(attribute.key) %>;
+  <% } -%>
+
+  <%- toPascalCase(collection.name) %>({
+    required String $id,
+    required String $collectionId,
+    required String $databaseId,
+    required DateTime $createdAt,
+    required DateTime $updatedAt,
+    <% for (const attribute of collection.attributes) { -%>
+    required this.<%- toCamelCase(attribute.key) %>,
+    <% } -%>
+  }) : super(
+    $id: $id,
+    $collectionId: $collectionId,
+    $databaseId: $databaseId,
+    $createdAt: $createdAt,
+    $updatedAt: $updatedAt,
+  );
+}
+`;
+  }
+
+  getFileName(collection) {
+    return LanguageMeta.toSnakeCase(collection.name) + ".dart";
+  }
+}
+
+module.exports = { Dart };
