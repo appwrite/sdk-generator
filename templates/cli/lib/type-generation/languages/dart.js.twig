@@ -37,29 +37,16 @@ class Dart extends LanguageMeta {
   }
 
   getTemplate() {
-    return `import 'package:appwrite/models.dart';
+    return `class <%= toPascalCase(collection.name) %> {
+<% for (const [index, attribute] of Object.entries(collection.attributes)) { -%>
+  <%= getType(attribute) %> <%= toCamelCase(attribute.key) %>;
+<% } -%>
 
-class <%- toPascalCase(collection.name) %> extends Document {
-  <% for (const attribute of collection.attributes) { -%>
-  final <%- getType(attribute) %> <%- toCamelCase(attribute.key) %>;
+  <%= toPascalCase(collection.name) %>({
+  <% for (const [index, attribute] of Object.entries(collection.attributes)) { -%>
+  <% if (attribute.required) { %>required <% } %>this.<%= toCamelCase(attribute.key) %>,
   <% } -%>
-
-  <%- toPascalCase(collection.name) %>({
-    required String $id,
-    required String $collectionId,
-    required String $databaseId,
-    required DateTime $createdAt,
-    required DateTime $updatedAt,
-    <% for (const attribute of collection.attributes) { -%>
-    required this.<%- toCamelCase(attribute.key) %>,
-    <% } -%>
-  }) : super(
-    $id: $id,
-    $collectionId: $collectionId,
-    $databaseId: $databaseId,
-    $createdAt: $createdAt,
-    $updatedAt: $updatedAt,
-  );
+});
 }
 `;
   }
