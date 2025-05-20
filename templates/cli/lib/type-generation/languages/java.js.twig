@@ -23,6 +23,7 @@ class Java extends LanguageMeta {
         break;
       case AttributeType.RELATIONSHIP:
         type = "Map<String, Any>";
+        break;
       default:
         throw new Error(`Unknown attribute type: ${attribute.type}`);
     }

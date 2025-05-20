@@ -13,6 +13,8 @@ class TypeScript extends LanguageMeta {
       case AttributeType.EMAIL:
       case AttributeType.DATETIME:
       case AttributeType.ENUM:
+      case AttributeType.IP:
+      case AttributeType.URL:
         type = "string";
         break;
       case AttributeType.INTEGER:
@@ -26,6 +28,7 @@ class TypeScript extends LanguageMeta {
         break;
       case AttributeType.RELATIONSHIP:
         type = "any";
+        break;
       default:
         throw new Error(`Unknown attribute type: ${attribute.type}`);
     }

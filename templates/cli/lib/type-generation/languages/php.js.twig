@@ -26,6 +26,7 @@ class PHP extends LanguageMeta {
         break;
       case AttributeType.RELATIONSHIP:
         type = "mixed";
+        break;
       default:
         throw new Error(`Unknown attribute type: ${attribute.type}`);
     }

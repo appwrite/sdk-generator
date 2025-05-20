@@ -7,7 +7,6 @@ const { localConfig } = require("../config");
 const { success, log, actionRunner } = require("../parser");
 const { PHP } = require("../type-generation/languages/php");
 const { TypeScript } = require("../type-generation/languages/typescript");
-const { Python } = require("../type-generation/languages/python");
 const { Kotlin } = require("../type-generation/languages/kotlin");
 const { Swift } = require("../type-generation/languages/swift");
 const { Java } = require("../type-generation/languages/java");
@@ -53,7 +52,7 @@ const typesLanguageOption = new Option(
   "-l, --language <language>",
   "The language of the types"
 )
-  .choices(["ts", "php", "kotlin", "swift", "java", "dart"])
+  .choices(["auto", "ts", "php", "kotlin", "swift", "java", "dart"])
   .default("auto");
 
 const typesCommand = actionRunner(async (rawOutputDirectory, {language}) => {
