@@ -320,7 +320,7 @@ class CLI extends Node
                 'scope'         => 'default',
                 'destination'   => 'lib/commands/organizations.js',
                 'template'      => 'cli/lib/commands/organizations.js.twig',
-            ], 
+            ],
             [
                 'scope'         => 'default',
                 'destination'   => 'lib/commands/types.js',

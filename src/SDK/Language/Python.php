@@ -231,7 +231,7 @@ class Python extends Language
                 'template' => 'python/package/enums/__init__.py.twig',
             ],
         ];
-}
+    }
 
     /**
      * @param array $parameter
