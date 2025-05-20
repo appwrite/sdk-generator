@@ -187,7 +187,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
      * @param {{ '{' }}{{ parameter | getPropertyType(method) | raw }}{{ '}' }} {{ parameter.name | caseCamel | escapeKeyword }}
 {% endfor %}
      * @throws {{ '{' }}{{ spec.title | caseUcfirst}}Exception}
-     * @returns ArrayBuffer
+     * @returns {{ '{' }}URL{{ '}' }}
 
     */
     {{ method.name | caseCamel }}URL({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | getPropertyType(method) | raw }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, onProgress = (progress: UploadProgress) => {}{% endif %}): Promise<ArrayBuffer> {
@@ -208,14 +208,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
 {% endfor %}
         const uri = new URL(this.client.config.endpoint + apiPath);
 
-        return this.client.call('{{ method.method | caseLower }}', uri, {
-{% for parameter in method.parameters.header %}
-            '{{ parameter.name | caseCamel | escapeKeyword }}': this.client.${{ parameter.name | caseCamel | escapeKeyword }},
-{% endfor %}
-{% for key, header in method.headers %}
-            '{{ key }}': '{{ header }}',
-{% endfor %}
-        }, payload);
+        return uri;
     }
 {% endif %}
 {% endfor %}
