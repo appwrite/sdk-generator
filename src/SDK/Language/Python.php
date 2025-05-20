@@ -206,21 +206,6 @@ class Python extends Language
                 'template' => 'python/.github/workflows/publish.yml.twig',
             ],
             [
-                'scope' => 'default',
-                'destination' => '.github/workflows/publish.yml',
-                'template' => 'python/.github/workflows/publish.yml.twig',
-            ],
-            [
-                'scope' => 'definition',
-                'destination' => '{{ spec.title | caseSnake}}/models/{{ definition.name | caseSnake }}.py',
-                'template' => 'python/package/models/model.py.twig',
-            ],
-            [
-                'scope' => 'definition',
-                'destination' => '{{ spec.title | caseSnake}}/models/{{ definition.name | caseSnake }}.py',
-                'template' => 'python/package/models/model.py.twig',
-            ],
-            [
                 'scope' => 'enum',
                 'destination' => '{{ spec.title | caseSnake}}/enums/{{ enum.name | caseSnake }}.py',
                 'template' => 'python/package/enums/enum.py.twig',
@@ -379,60 +364,6 @@ class Python extends Language
         return $output;
     }
 
-    protected function getPropertyType(array $property, array $spec, ?string $generic = 'T'): string
-    {
-        if (\array_key_exists('sub_schema', $property)) {
-            $type = $this->toPascalCase($property['sub_schema']);
-
-            if ($this->hasGenericType($property['sub_schema'], $spec)) {
-                $type .= '[' . $generic . ']';
-            }
-
-            if ($property['type'] === 'array') {
-                $type = 'List[' . $type . ']';
-            }
-        } else {
-            $type = $this->getTypeName($property);
-        }
-
-        if (!$property['required']) {
-            $type = 'Optional[' . $type . '] = None';
-        }
-
-        return $type;
-    }
-
-    protected function hasGenericType(?string $model, array $spec): string
-    {
-        if (empty($model) || $model === 'any') {
-            return false;
-        }
-
-        $model = $spec['definitions'][$model];
-
-        if ($model['additionalProperties']) {
-            return true;
-        }
-
-        foreach ($model['properties'] as $property) {
-            if (!\array_key_exists('sub_schema', $property) || !$property['sub_schema']) {
-                continue;
-            }
-
-            return $this->hasGenericType($property['sub_schema'], $spec);
-        }
-
-        return false;
-    }
-
-    protected function getModelType(array $definition, array $spec, ?string $generic = 'T'): string
-    {
-        if ($this->hasGenericType($definition['name'], $spec)) {
-            return $this->toPascalCase($definition['name']) . '(Generic[' . $generic . '])';
-        }
-        return $this->toPascalCase($definition['name']);
-    }
-
     public function getFilters(): array
     {
         return [
@@ -441,15 +372,6 @@ class Python extends Language
             }),
             new TwigFilter('getPropertyType', function ($value, $method = []) {
                 return $this->getTypeName($value, $method);
-            }),
-            new TwigFilter('hasGenericType', function (string $model, array $spec) {
-                return $this->hasGenericType($model, $spec);
-            }),
-            new TwigFilter('modelType', function (array $definition, array $spec, ?string $generic = 'T') {
-                return $this->getModelType($definition, $spec, $generic);
-            }),
-            new TwigFilter('propertyType', function (array $property, array $spec, ?string $generic = 'T') {
-                return $this->getPropertyType($property, $spec, $generic);
             }),
         ];
     }
