@@ -1,1 +1,32 @@
-	return srv.client.Call("{{ method.method | caseUpper }}", apiPath, apiHeaders, apiParams)
+	resp, err := srv.client.Call("{{ method.method | caseUpper }}", path, headers, params)
+	if err != nil {
+		return nil, err
+	}
+	if strings.HasPrefix(resp.Type, "application/json") {
+		bytes := []byte(resp.Result.(string))
+
+{%~ if method | returnType(spec, spec.title | caseLower) != 'interface{}' and method | returnType(spec, spec.title | caseLower) != '[]byte' and method | returnType(spec, spec.title | caseLower) != 'bool' %}
+		parsed := {{ method | returnType(spec, spec.title | caseLower) }}{}.New(bytes)
+
+		err = json.Unmarshal(bytes, parsed)
+		if err != nil {
+			return nil, err
+		}
+
+		return parsed, nil
+{%~ else %}
+		var parsed {{ method | returnType(spec, spec.title | caseLower) }}
+
+		err = json.Unmarshal(bytes, &parsed)
+		if err != nil {
+			return nil, err
+		}
+		return &parsed, nil
+{%~ endif %}
+	}
+	var parsed {{ method | returnType(spec, spec.title | caseLower) }}
+	parsed, ok := resp.Result.({{ method | returnType(spec, spec.title | caseLower) }})
+	if !ok {
+		return nil, errors.New("unexpected response type")
+	}
+	return &parsed, nil

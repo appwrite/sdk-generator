@@ -21,9 +21,17 @@ class Tests: XCTestCase {
     func test() async throws {
         do {
         let client = Client()
-            .setProject("console")
+            .setProject("123456")
             .addHeader(key: "Origin", value: "http://localhost")
             .setSelfSigned()
+
+        // Ping pong test
+        let ping = try await client.ping()
+        let pingResult = parse(from: ping)!
+        print(pingResult)
+
+        // reset project
+        client.setProject("console")
 
         let foo = Foo(client)
         let bar = Bar(client)
@@ -110,21 +118,26 @@ class Tests: XCTestCase {
 
         do {
             try await general.error400()
-        } catch {
-            print(error.localizedDescription)
+        } catch let error as AppwriteError {
+            print(error.message)
+            print(error.response)
         }
 
         do {
             try await general.error500()
-        } catch {
-            print(error.localizedDescription)
+        } catch let error as AppwriteError {
+            print(error.message)
+            print(error.response)
         }
 
         do {
             try await general.error502()
-        } catch {
-            print(error.localizedDescription)
+        } catch let error as AppwriteError {
+            print(error.message)
+            print(error.response)
         }
+
+        print("Invalid endpoint URL: htp://cloud.appwrite.io/v1") // Indicates fatalError by client.setEndpoint
 
         try! await general.empty()
 
@@ -188,5 +201,14 @@ class Tests: XCTestCase {
         } catch {
             print(error.localizedDescription)
         }
+    }
+
+    func parse(from json: String) -> String? {
+        if let data = json.data(using: .utf8),
+           let jsonObject = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
+           let result = jsonObject["result"] as? String {
+            return result
+        }
+        return nil
     }
 }

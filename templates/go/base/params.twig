@@ -1,13 +1,20 @@
-	apiParams := map[string]interface{}{
-{% for parameter in method.parameters.query %}
-		"{{ parameter.name }}": {{ parameter.name | caseUcfirst }},
-{% endfor %}
-{% for parameter in method.parameters.body %}
-		"{{ parameter.name }}": {{ parameter.name | caseUcfirst }},
-{% endfor %}
+{% if method.parameters.all|filter(v => not v.required)|length > 0 %}
+	options := {{(method.name ~ "Options") | caseUcfirst}}{}.New()
+	for _, opt := range optionalSetters {
+		opt(options)
 	}
-
-	apiHeaders := map[string]interface{}{
+{% endif %}
+	params := map[string]interface{}{}
+{% for parameter in method.parameters.all %}
+{% if parameter.required %}
+	params["{{ parameter.name }}"] = {{ parameter.name | caseUcfirst }}
+{% else %}
+	if options.enabledSetters["{{ parameter.name | caseUcfirst}}"] {
+		params["{{ parameter.name }}"] = options.{{ parameter.name | caseUcfirst }}
+	}
+{% endif %}
+{% endfor %}
+	headers := map[string]interface{}{
 {% for key, header in method.headers %}
 		"{{ key }}": "{{ header }}",
 {% endfor %}

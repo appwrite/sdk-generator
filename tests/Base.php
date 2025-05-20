@@ -16,6 +16,10 @@ error_reporting(E_ALL);
 
 abstract class Base extends TestCase
 {
+    protected const PING_RESPONSE = [
+        'GET:/v1/ping:passed',
+    ];
+
     protected const FOO_RESPONSES = [
         'GET:/v1/mock/tests/foo:passed',
         'POST:/v1/mock/tests/foo:passed',
@@ -64,10 +68,18 @@ abstract class Base extends TestCase
         'POST:/v1/mock/tests/general/upload:passed',
     ];
 
+    /**
+     * 'Mock 400 error'                              -> message
+     * '{"message":"Mock 400 error","code":400}'     -> response
+     */
     protected const EXCEPTION_RESPONSES = [
         'Mock 400 error',
+        '{"message":"Mock 400 error","code":400}',
         'Mock 500 error',
+        '{"message":"Mock 500 error","code":500}',
         'This is a text error',
+        'This is a text error',
+        'Invalid endpoint URL: htp://cloud.appwrite.io/v1',
     ];
 
     protected const REALTIME_RESPONSES = [
@@ -135,18 +147,11 @@ abstract class Base extends TestCase
 
         $this->expectedOutput[] = $headers;
 
-        // Figure out if mock-server is running
-        $isMockAPIRunning = \strlen(\exec('docker ps | grep mock-server')) > 0;
-
-        if (!$isMockAPIRunning) {
-            echo "Starting Mock API Server";
-
-            \exec('
-                cd ./mock-server && \
-                docker-compose build && \
-                docker compose up -d --force-recreate
-            ');
-        }
+        \exec('
+            cd ./mock-server && \
+            docker compose build && \
+            docker compose up -d --force-recreate
+        ');
     }
 
     public function tearDown(): void
@@ -225,6 +230,11 @@ abstract class Base extends TestCase
                     \json_decode($expected, true),
                     \json_decode($output[$index], true)
                 );
+            } elseif ($expected == 'unique()') {
+                $this->assertNotEmpty($output[$index]);
+                $this->assertIsString($output[$index]);
+                $this->assertEquals(20, strlen($output[$index]));
+                $this->assertNotEquals($output[$index], 'unique()');
             } else {
                 $this->assertEquals($expected, $output[$index]);
             }

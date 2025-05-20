@@ -7,6 +7,8 @@ import NIOFoundationCompat
 import NIOSSL
 
 public let WEBSOCKET_LOCKER_QUEUE = "SyncLocker"
+public let WEBSOCKET_THREAD_QUEUE = "ThreadLocker"
+public let WEBSOCKET_CHANNEL_QUEUE = "ChannelLocker"
 
 /// Creates and manages connections to a WebSocket server.
 ///
@@ -20,16 +22,35 @@ public class WebSocketClient {
     let query: String
     let headers: HTTPHeaders
     let frameKey: String
-    
+
     public private(set) var maxFrameSize: Int
-    
-    var channel: Channel? = nil
+
     var tlsEnabled: Bool = false
     var closeSent: Bool = false
 
-    let locker = DispatchQueue(label: WEBSOCKET_LOCKER_QUEUE, qos: .background)
+    private let locker = DispatchQueue(label: WEBSOCKET_LOCKER_QUEUE, qos: .background)
+    private let channelQueue = DispatchQueue(label: WEBSOCKET_CHANNEL_QUEUE)
+    private let threadGroupQueue = DispatchQueue(label: WEBSOCKET_THREAD_QUEUE)
 
-    var threadGroup: MultiThreadedEventLoopGroup? = nil
+    var channel: Channel? {
+        get {
+            return channelQueue.sync { _channel }
+        }
+        set {
+            channelQueue.sync { _channel = newValue }
+        }
+    }
+    private var _channel: Channel? = nil
+
+    var threadGroup: MultiThreadedEventLoopGroup? {
+        get {
+            return threadGroupQueue.sync { _threadGroup }
+        }
+        set {
+            threadGroupQueue.sync { _threadGroup = newValue }
+        }
+    }
+    private var _threadGroup: MultiThreadedEventLoopGroup?
 
     weak var delegate: WebSocketClientDelegate? = nil
 
@@ -216,43 +237,45 @@ public class WebSocketClient {
             self.threadGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
         }
     }
-    
-    deinit {
-        try! threadGroup!.syncShutdownGracefully()
-    }
 
     // MARK: - Open connection
-    
+
     /// Open a connection to the configured host and attempt to upgrade the connection to a WebSocket. If successful the `onOpen` callback will fire, otherwise a connection error will be thrown from here.
-    public func connect() throws {
+    public func connect() async throws {
         let socketOptions = ChannelOptions.socket(
             SocketOptionLevel(SOL_SOCKET),
             SO_REUSEPORT
         )
 
-        while(threadGroup == nil) {}
-        
+        while(threadGroup == nil) {
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
+
         let bootstrap = ClientBootstrap(group: threadGroup!)
             .channelOption(socketOptions, value: 1)
-            .channelInitializer(self.openChannel)
-        
-        _ = try bootstrap
-            .connect(host: self.host, port: self.port)
-            .wait()
+            .channelInitializer {
+                self.openChannel(channel: $0)
+            }
+
+        _ = try await bootstrap
+            .connect(host: self.host,port: self.port)
+            .get()
     }
 
     private func openChannel(channel: Channel) -> EventLoopFuture<Void> {
         let httpHandler = HTTPHandler(client: self, headers: headers)
-        
+
         let basicUpgrader = NIOWebSocketClientUpgrader(
             requestKey: self.frameKey,
-            upgradePipelineHandler: self.upgradePipelineHandler
+            upgradePipelineHandler: { channel, response in
+                self.upgradePipelineHandler(channel: channel, response: response)
+            }
         )
-        
+
         let config: NIOHTTPClientUpgradeConfiguration = (upgraders: [basicUpgrader], completionHandler: { context in
             context.channel.pipeline.removeHandler(httpHandler, promise: nil)
         })
-        
+
         return channel.pipeline.addHTTPClientHandlers(withClientUpgrade: config).flatMap { _ in
             return channel.pipeline.addHandler(httpHandler).flatMap { _ in
                 if self.tlsEnabled {
@@ -267,39 +290,43 @@ public class WebSocketClient {
         }
     }
 
-    @Sendable private func upgradePipelineHandler(channel: Channel, response: HTTPResponseHead) -> EventLoopFuture<Void> {
+    private func upgradePipelineHandler(channel: Channel, response: HTTPResponseHead) -> EventLoopFuture<Void> {
         let handler = MessageHandler(client: self)
-        
+
         if response.status == .switchingProtocols {
             self.channel = channel
         }
-        
+
         return channel.pipeline.addHandler(handler)
     }
 
     // MARK: - Close connection
-    
+
     /// Closes the connection
     ///
     /// - parameters:
     ///     - data: Close frame payload
-    public func close(data: Data = Data()) {
+    public func close(
+        data: Data = Data(),
+        promise: EventLoopPromise<Void>? = nil
+    ) {
         closeSent = true
-        
+
         var buffer = ByteBufferAllocator()
             .buffer(capacity: data.count)
-        
+
         buffer.writeBytes(data)
-        
+
         send(
             data: buffer,
             opcode: .connectionClose,
-            finalFrame: true
+            finalFrame: true,
+            promise: promise
         )
     }
-    
+
     // MARK: - Send data
-    
+
     /// Sends binary-formatted data  to the connected server in multiple frames.
     ///
     /// - parameters:
@@ -309,21 +336,23 @@ public class WebSocketClient {
     public func send(
         data: Data,
         opcode: WebSocketOpcode,
-        finalFrame: Bool = true
+        finalFrame: Bool = true,
+        promise: EventLoopPromise<Void>? = nil
     ) {
         var buffer = ByteBufferAllocator()
             .buffer(capacity: data.count)
-        
+
         buffer.writeBytes(data)
-        
+
         if opcode == .connectionClose {
             self.closeSent = true
         }
-        
+
         send(
             data: buffer,
             opcode: opcode,
-            finalFrame: finalFrame
+            finalFrame: finalFrame,
+            promise: promise
         )
     }
 
@@ -336,21 +365,23 @@ public class WebSocketClient {
     public func send(
         text: String,
         opcode: WebSocketOpcode = .text,
-        finalFrame: Bool = true
+        finalFrame: Bool = true,
+        promise: EventLoopPromise<Void>? = nil
     ) {
         var buffer = ByteBufferAllocator()
             .buffer(capacity: text.count)
-        
+
         buffer.writeString(text)
-        
+
         send(
             data: buffer,
             opcode: opcode,
-            finalFrame: finalFrame
+            finalFrame: finalFrame,
+            promise: promise
         )
     }
 
-    
+
     /// Sends the JSON representation of the given model to the connected server in multiple frames.
     ///
     /// - parameters:
@@ -360,7 +391,8 @@ public class WebSocketClient {
     public func send<T: Codable>(
         model: T,
         opcode: WebSocketOpcode = .text,
-        finalFrame: Bool = true
+        finalFrame: Bool = true,
+        promise: EventLoopPromise<Void>? = nil
     ) {
         let jsonEncoder = JSONEncoder()
         do {
@@ -368,13 +400,14 @@ public class WebSocketClient {
             let string = String(data: jsonData, encoding: .utf8)!
             var buffer = ByteBufferAllocator()
                 .buffer(capacity: string.count)
-            
+
             buffer.writeString(string)
-            
+
             send(
                 data: buffer,
                 opcode: opcode,
-                finalFrame: finalFrame
+                finalFrame: finalFrame,
+                promise: promise
             )
         } catch let error {
             print(error)
@@ -390,7 +423,8 @@ public class WebSocketClient {
     public func send(
         data: ByteBuffer,
         opcode: WebSocketOpcode,
-        finalFrame: Bool
+        finalFrame: Bool,
+        promise: EventLoopPromise<Void>? = nil
     ) {
         let frame = WebSocketFrame(
             fin: finalFrame,
@@ -398,13 +432,19 @@ public class WebSocketClient {
             maskKey: nil,
             data: data
         )
+
         guard let channel = channel else {
             return
         }
+
         if finalFrame {
-            channel.writeAndFlush(frame, promise: nil)
+            channel.writeAndFlush(frame, promise: promise)
         } else {
-            channel.write(frame, promise: nil)
+            channel.write(frame, promise: promise)
+        }
+
+        if opcode == .connectionClose {
+            channel.close(mode: .all, promise: promise)
         }
     }
 }

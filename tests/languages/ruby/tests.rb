@@ -90,16 +90,25 @@ begin
     general.error400()
 rescue Exception => error
     puts error.message
+    puts error.response
 end
 
 begin
     general.error500()
 rescue Exception => error
     puts error.message
+    puts error.response
 end
 
 begin
     general.error502()
+rescue Exception => error
+    puts error.message
+    puts error.response
+end
+
+begin
+    client.set_endpoint("htp://cloud.appwrite.io/v1")
 rescue Exception => error
     puts error.message
 end

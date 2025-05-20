@@ -52,32 +52,32 @@ import (
 	"os"
 	"time"
 
-	"github.com/{{sdk.gitUserName}}/sdk-for-go/{{ sdk.gitRepoName|url_encode }}"
+	"github.com/{{sdk.gitUserName}}/{{ sdk.gitRepoName|url_encode }}/appwrite"
+	"github.com/{{sdk.gitUserName}}/{{ sdk.gitRepoName|url_encode }}/id"
 )
 
 func main() {
-	client := {{ sdk.gitRepoName|url_encode }}.NewClient(10 * time.Second)
-	client.SetEndpoint(os.Getenv("YOUR_ENDPOINT"))
-	client.SetProject(os.Getenv("YOUR_PROJECT_ID"))
-	client.SetKey(os.Getenv("YOUR_KEY"))
+	client := appwrite.NewClient(
+		appwrite.WithEndpoint(os.Getenv("YOUR_ENDPOINT")),
+		appwrite.WithProject(os.Getenv("YOUR_PROJECT_ID")),
+		appwrite.WithKey(os.Getenv("YOUR_KEY")),
+	)
 
-	db := {{ sdk.gitRepoName|url_encode }}.NewDatabase(client)
+	databases := appwrite.NewDatabase(client)
+
 	data := map[string]string{
 		"hello": "world",
 	}
-	var EmptyArray = []interface{}{}
-	doc, err := db.CreateDocument(
+	doc, err := databases.CreateDocument(
+		os.Getenv("DATABASE_ID"),
 		os.Getenv("COLLECTION_ID"),
+		id.Unique(),
 		data,
-		EmptyArray,
-		EmptyArray,
-		"",
-		"",
-		"",
 	)
 	if err != nil {
 		log.Printf("Error creating document: %v", err)
 	}
+
 	log.Printf("Created document: %v", doc)
 }
 ```

@@ -16,7 +16,7 @@ module {{ spec.title | caseUcfirst }}
                 'x-sdk-platform'=> '{{ sdk.platform }}',
                 'x-sdk-language'=> '{{ language.name | caseLower }}',
                 'x-sdk-version'=> '{{ sdk.version }}'{% if spec.global.defaultHeaders | length > 0 %},{% endif %}
-                
+
 {% for key,header in spec.global.defaultHeaders %}
                 '{{key}}' => '{{header}}'{% if not loop.last %},{% endif %}
 {% endfor %}
@@ -48,8 +48,12 @@ module {{ spec.title | caseUcfirst }}
         #
         # @return [self]
         def set_endpoint(endpoint)
+            if not endpoint.start_with?('http://') and not endpoint.start_with?('https://')
+                raise {{spec.title | caseUcfirst}}::Exception.new('Invalid endpoint URL: ' + endpoint)
+            end
+
             @endpoint = endpoint
-            
+
             self
         end
 
@@ -132,7 +136,7 @@ module {{ spec.title | caseUcfirst }}
 
             offset = 0
             id_param_name = id_param_name.to_sym if id_param_name
-            if id_param_name&.empty? == false && params[id_param_name] != "unique()"
+            if id_param_name&.empty? == false
                 # Make a request to check if a file already exists
                 current = call(
                     method: "GET",
@@ -202,7 +206,7 @@ module {{ spec.title | caseUcfirst }}
             @http = Net::HTTP.new(uri.host, uri.port) unless defined? @http
             @http.use_ssl = !@self_signed
             payload = ''
-            
+
             headers = @headers.merge(headers)
 
             params.compact!
@@ -213,7 +217,7 @@ module {{ spec.title | caseUcfirst }}
                     when 'application/json'
                         payload = params.to_json
                     when 'multipart/form-data'
-                        payload = "--#{@boundary}\r\n" + encode_form_data(params)
+                        payload = encode_form_data(params) + "--#{@boundary}--\r\n"
                         headers[:'content-type'] = "multipart/form-data; boundary=#{@boundary}"
                     else
                         payload = encode(params)
@@ -226,11 +230,18 @@ module {{ spec.title | caseUcfirst }}
                 raise {{spec.title | caseUcfirst}}::Exception.new(error.message)
             end
 
+            warnings = response['x-{{ spec.title | lower }}-warning']
+            if warnings
+                warnings.split(';').each do |warning|
+                    warn "Warning: #{warning}"
+                end
+            end
+
             location = response['location']
             if response_type == "location"
                 return location
             end
-            
+
             # Handle Redirects
             if (response.class == Net::HTTPRedirection || response.class == Net::HTTPMovedPermanently)
                 uri = URI.parse(uri.scheme + "://" + uri.host + "" + location)
@@ -241,11 +252,11 @@ module {{ spec.title | caseUcfirst }}
                 begin
                     result = JSON.parse(response.body)
                 rescue JSON::ParserError => e
-                    raise {{spec.title | caseUcfirst}}::Exception.new(response.body, response.code, nil, response)
+                    raise {{spec.title | caseUcfirst}}::Exception.new(response.body, response.code, nil, response.body)
                 end
 
                 if response.code.to_i >= 400
-                    raise {{spec.title | caseUcfirst}}::Exception.new(result['message'], result['status'], result['type'], result)
+                    raise {{spec.title | caseUcfirst}}::Exception.new(result['message'], result['status'], result['type'], response.body)
                 end
 
                 unless response_type.respond_to?("from")
@@ -256,7 +267,7 @@ module {{ spec.title | caseUcfirst }}
             end
 
             if response.code.to_i >= 400
-                raise {{spec.title | caseUcfirst}}::Exception.new(response.body, response.code, response)
+                raise {{spec.title | caseUcfirst}}::Exception.new(response.body, response.code, response, response.body)
             end
 
             if response.respond_to?("body_permitted?")
@@ -265,7 +276,7 @@ module {{ spec.title | caseUcfirst }}
 
             return response
         end
-        
+
         def encode_form_data(value, key=nil)
             case value
             when Hash
@@ -277,16 +288,18 @@ module {{ spec.title | caseUcfirst }}
             else
                 post_body = []
                 if value.instance_of? InputFile
-                    post_body << "Content-Disposition: form-data; name=\"#{key}\"; filename=\"#{value.filename}\"\r\n"
-                    post_body << "Content-Type: #{value.mime_type}\r\n\r\n"
+                    post_body << "--#{@boundary}"
+                    post_body << "Content-Disposition: form-data; name=\"#{key}\"; filename=\"#{value.filename}\""
+                    post_body << "Content-Type: #{value.mime_type}"
+                    post_body << ""
                     post_body << value.data
-                    post_body << "\r\n--#{@boundary}--\r\n"
-                else          
-                    post_body << "Content-Disposition: form-data; name=\"#{key}\"\r\n\r\n"
-                    post_body << "#{value.to_s}" 
-                    post_body << "\r\n--#{@boundary}\r\n"
+                else
+                    post_body << "--#{@boundary}"
+                    post_body << "Content-Disposition: form-data; name=\"#{key}\""
+                    post_body << ""
+                    post_body << value.to_s
                 end
-                post_body.join
+                post_body.join("\r\n") + "\r\n"
             end
         end
 
@@ -295,13 +308,13 @@ module {{ spec.title | caseUcfirst }}
             when Hash  then value.map { |k,v| encode(v, append_key(key,k)) }.join('&')
             when Array then value.map { |v| encode(v, "#{key}[]") }.join('&')
             when nil   then ''
-            else            
-            "#{key}=#{CGI.escape(value.to_s)}" 
+            else
+            "#{key}=#{CGI.escape(value.to_s)}"
             end
         end
 
         def append_key(root_key, key)
             root_key.nil? ? key : "#{root_key}[#{key.to_s}]"
         end
-    end 
+    end
 end

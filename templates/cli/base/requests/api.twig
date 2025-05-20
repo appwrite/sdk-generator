@@ -9,13 +9,25 @@
 {% endfor %}
     }, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
 
-{% if method.type == 'location' %}
-    fs.writeFileSync(destination, response);
-
-{% endif %}
-    if (parseOutput) {
-        parse(response)
-        success()
+    {%~ if method.type == 'location' %}
+    if (overrideForCli) {
+        response = Buffer.from(response);
     }
-    
+
+    fs.writeFileSync(destination, response);
+    {%~ endif %}
+    if (parseOutput) {
+    {%~ if hasConsolePreview(method.name,service.name) %}
+        if(console) {
+            showConsoleLink('{{service.name}}', '{{ method.name }}'
+        {%- for parameter in method.parameters.path -%}{%- set param = (parameter.name | caseCamel | escapeKeyword)  -%}{%- if param  ends with 'Id' -%}, {{ param }} {%- endif -%}{%- endfor -%}
+            );
+         } else {
+            parse(response)
+        }
+    {%~ else %}
+        parse(response)
+    {%~ endif %}
+    }
+
     return response;

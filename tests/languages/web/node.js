@@ -5,9 +5,15 @@ async function start() {
 
     console.log('\nTest Started');
     const client = new Client();
+    client.setProject('123456');
     const foo = new Foo(client);
     const bar = new Bar(client);
     const general = new General(client);
+
+    // Ping
+    response = await client.ping();
+    console.log(response.result);
+
     // Foo
     response = await foo.get('string', 123, ['string in array']);
     console.log(response.result);
@@ -61,15 +67,24 @@ async function start() {
         response = await general.error400();
     } catch(error) {
         console.log(error.message);
+        console.log(error.response);
     }
     try {
         response = await general.error500();
     } catch(error) {
         console.log(error.message);
+        console.log(error.response);
     }
     try {
         response = await general.error502();
     } catch (error) {
+        console.log(error.message);
+        console.log(error.response);
+    }
+
+    try {
+        client.setEndpoint("htp://cloud.appwrite.io/v1");
+    } catch(error) {
         console.log(error.message);
     }
 

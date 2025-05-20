@@ -14,28 +14,28 @@ class Client
     const METHOD_CONNECT = 'CONNECT';
     const METHOD_TRACE = 'TRACE';
 
-    const CHUNK_SIZE = 5*1024*1024;
+    const CHUNK_SIZE = 5 * 1024 * 1024;
 
     /**
      * Is Self Signed Certificates Allowed?
      *
      * @var bool
      */
-    protected $selfSigned = false;
+    protected bool $selfSigned = false;
 
     /**
      * Service host name
      *
      * @var string
      */
-    protected $endpoint = '{{spec.endpoint}}';
+    protected string $endpoint = '{{spec.endpoint}}';
 
     /**
      * Global Headers
      *
      * @var array
      */
-    protected $headers = [
+    protected array $headers = [
         'content-type' => '',
         'user-agent' => '{{spec.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} ({{deviceInfo}})',
         'x-sdk-name'=> '{{ sdk.name }}',
@@ -45,7 +45,7 @@ class Client
     ];
 
     /**
-     * SDK constructor.
+     * Client constructor.
      */
     public function __construct()
     {
@@ -66,7 +66,7 @@ class Client
      *
      * @return Client
      */
-    public function set{{header.key | caseUcfirst}}($value)
+    public function set{{header.key | caseUcfirst}}(string $value): Client
     {
         $this->addHeader('{{header.name}}', $value);
 
@@ -79,7 +79,7 @@ class Client
      * @param bool $status
      * @return $this
      */
-    public function setSelfSigned($status = true)
+    public function setSelfSigned(bool $status = true): Client
     {
         $this->selfSigned = $status;
 
@@ -90,10 +90,13 @@ class Client
      * @param $endpoint
      * @return $this
      */
-    public function setEndpoint($endpoint)
+    public function setEndpoint(string $endpoint): Client
     {
-        $this->endpoint = $endpoint;
+        if (!str_starts_with($endpoint, 'http://') && !str_starts_with($endpoint, 'https://')) {
+            throw new {{spec.title | caseUcfirst}}Exception("Invalid endpoint URL: $endpoint");
+        }
 
+        $this->endpoint = $endpoint;
         return $this;
     }
 
@@ -101,7 +104,7 @@ class Client
      * @param $key
      * @param $value
      */
-    public function addHeader($key, $value)
+    public function addHeader(string $key, string $value): Client
     {
         $this->headers[strtolower($key)] = $value;
         
@@ -120,7 +123,13 @@ class Client
      * @return array|string
      * @throws {{spec.title | caseUcfirst}}Exception
      */
-    public function call($method, $path = '', $headers = array(), array $params = array(), ?string $responseType = null)
+    public function call(
+        string $method,
+        string $path = '',
+        array $headers = [],
+        array $params = [],
+        ?string $responseType = null
+    )
     {
         $headers = array_merge($this->headers, $headers);
         $ch = curl_init($this->endpoint . $path . (($method == self::METHOD_GET && !empty($params)) ? '?' . http_build_query($params) : ''));
@@ -176,6 +185,13 @@ class Client
         $responseBody   = curl_exec($ch);
         $contentType    = $responseHeaders['content-type'] ?? '';
         $responseStatus = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+        $warnings = $responseHeaders['x-{{spec.title | caseLower}}-warning'] ?? '';
+        if ($warnings) {
+            foreach(explode(';', $warnings) as $warning) {
+                echo 'Warning: ' . $warning . PHP_EOL;
+            }
+        }
         
         switch(substr($contentType, 0, strpos($contentType, ';'))) {
             case 'application/json':
@@ -184,16 +200,16 @@ class Client
         }
 
         if (curl_errno($ch)) {
-            throw new {{spec.title | caseUcfirst}}Exception(curl_error($ch), $responseStatus, $responseBody);
+            throw new {{spec.title | caseUcfirst}}Exception(curl_error($ch), $responseStatus, $responseBody['type'] ?? '', $responseBody);
         }
         
         curl_close($ch);
 
         if($responseStatus >= 400) {
             if(is_array($responseBody)) {
-                throw new {{spec.title | caseUcfirst}}Exception($responseBody['message'], $responseStatus, $responseBody['type'] ?? '', $responseBody);
+                throw new {{spec.title | caseUcfirst}}Exception($responseBody['message'], $responseStatus, $responseBody['type'] ?? '', json_encode($responseBody));
             } else {
-                throw new {{spec.title | caseUcfirst}}Exception($responseBody, $responseStatus);
+                throw new {{spec.title | caseUcfirst}}Exception($responseBody, $responseStatus, '', $responseBody);
             }
         }
 
@@ -211,7 +227,7 @@ class Client
      * @param string $prefix
      * @return array
      */
-    protected function flatten(array $data, $prefix = '') {
+    protected function flatten(array $data, string $prefix = ''): array {
         $output = [];
 
         foreach($data as $key => $value) {

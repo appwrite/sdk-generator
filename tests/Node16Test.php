@@ -12,12 +12,15 @@ class Node16Test extends Base
     protected string $language = 'node';
     protected string $class = 'Appwrite\SDK\Language\Node';
     protected array $build = [
+        'cp tests/languages/node/test.js tests/sdks/node/test.js',
         'docker run --rm -v $(pwd):/app -w /app/tests/sdks/node node:16-alpine npm install',
+        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/node node:16-alpine npm run build'
     ];
     protected string $command =
-        'docker run --network="mockapi" --rm -v $(pwd):/app -w /app node:16-alpine node tests/languages/node/test.js';
+        'docker run --network="mockapi" --rm -v $(pwd):/app -w /app node:16-alpine node tests/sdks/node/test.js';
 
     protected array $expectedOutput = [
+        ...Base::PING_RESPONSE,
         ...Base::FOO_RESPONSES,
         ...Base::BAR_RESPONSES,
         ...Base::GENERAL_RESPONSES,

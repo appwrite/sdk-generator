@@ -1,0 +1,1760 @@
+const chalk = require('chalk');
+const inquirer = require("inquirer");
+const JSONbig = require("json-bigint")({ storeAsString: false });
+const { Command } = require("commander");
+const ID = require("../id");
+const { localConfig, globalConfig, KeysAttributes, KeysFunction, whitelistKeys, KeysTopics, KeysStorage, KeysTeams, KeysCollection } = require("../config");
+const { Spinner, SPINNER_ARC, SPINNER_DOTS } = require('../spinner');
+const { paginate } = require('../paginate');
+const { questionsPushBuckets, questionsPushTeams, questionsPushFunctions, questionsGetEntrypoint, questionsPushCollections, questionPushChanges, questionPushChangesConfirmation, questionsPushMessagingTopics, questionsPushResources } = require("../questions");
+const { cliConfig, actionRunner, success, warn, log, hint, error, commandDescriptions, drawTable } = require("../parser");
+const { proxyCreateFunctionRule, proxyListRules } = require('./proxy');
+const { consoleVariables } = require('./console');
+const { sdkForConsole } = require('../sdks')
+const { functionsGet, functionsCreate, functionsUpdate, functionsCreateDeployment, functionsGetDeployment, functionsListVariables, functionsDeleteVariable, functionsCreateVariable } = require('./functions');
+const {
+    databasesGet,
+    databasesCreate,
+    databasesUpdate,
+    databasesCreateBooleanAttribute,
+    databasesGetCollection,
+    databasesCreateCollection,
+    databasesCreateStringAttribute,
+    databasesCreateIntegerAttribute,
+    databasesCreateFloatAttribute,
+    databasesCreateEmailAttribute,
+    databasesCreateDatetimeAttribute,
+    databasesCreateIndex,
+    databasesCreateUrlAttribute,
+    databasesCreateIpAttribute,
+    databasesCreateEnumAttribute,
+    databasesUpdateBooleanAttribute,
+    databasesUpdateStringAttribute,
+    databasesUpdateIntegerAttribute,
+    databasesUpdateFloatAttribute,
+    databasesUpdateEmailAttribute,
+    databasesUpdateDatetimeAttribute,
+    databasesUpdateUrlAttribute,
+    databasesUpdateIpAttribute,
+    databasesUpdateEnumAttribute,
+    databasesUpdateRelationshipAttribute,
+    databasesCreateRelationshipAttribute,
+    databasesDeleteAttribute,
+    databasesDeleteIndex,
+    databasesListAttributes,
+    databasesListIndexes,
+    databasesUpdateCollection
+} = require("./databases");
+const {
+    storageGetBucket, storageUpdateBucket, storageCreateBucket
+} = require("./storage");
+const {
+    messagingGetTopic, messagingUpdateTopic, messagingCreateTopic
+} = require("./messaging");
+const {
+    teamsGet,
+    teamsUpdateName,
+    teamsCreate
+} = require("./teams");
+const {
+    projectsGet,
+    projectsUpdate,
+    projectsUpdateServiceStatus,
+    projectsUpdateAuthStatus,
+    projectsUpdateAuthDuration,
+    projectsUpdateAuthLimit,
+    projectsUpdateAuthSessionsLimit,
+    projectsUpdateAuthPasswordDictionary,
+    projectsUpdateAuthPasswordHistory,
+    projectsUpdatePersonalDataCheck,
+    projectsUpdateSessionAlerts,
+    projectsUpdateMockNumbers,
+} = require("./projects");
+const { checkDeployConditions } = require('../utils');
+
+const STEP_SIZE = 100;      // Resources
+const POLL_DEBOUNCE = 2000; // Milliseconds
+const POLL_MAX_DEBOUNCE = 1800; // Times of POLL_DEBOUNCE (1 hour)
+const POLL_DEFAULT_VALUE = 30;
+
+let pollMaxDebounces = POLL_DEFAULT_VALUE;
+
+const changeableKeys = ['status', 'required', 'xdefault', 'elements', 'min', 'max', 'default', 'error'];
+
+const awaitPools = {
+    wipeAttributes: async (databaseId, collectionId, iteration = 1) => {
+        if (iteration > pollMaxDebounces) {
+            return false;
+        }
+
+        const { total } = await databasesListAttributes({
+            databaseId,
+            collectionId,
+            queries: [JSON.stringify({ method: 'limit', values: [1] })],
+            parseOutput: false
+        });
+
+        if (total === 0) {
+            return true;
+        }
+
+        if (pollMaxDebounces === POLL_DEFAULT_VALUE) {
+            let steps = Math.max(1, Math.ceil(total / STEP_SIZE));
+            if (steps > 1 && iteration === 1) {
+                pollMaxDebounces *= steps;
+
+                log('Found a large number of attributes, increasing timeout to ' + (pollMaxDebounces * POLL_DEBOUNCE / 1000 / 60) + ' minutes')
+            }
+        }
+
+        await new Promise(resolve => setTimeout(resolve, POLL_DEBOUNCE));
+
+        return await awaitPools.wipeAttributes(
+            databaseId,
+            collectionId,
+            iteration + 1
+        );
+    },
+    wipeIndexes: async (databaseId, collectionId, iteration = 1) => {
+        if (iteration > pollMaxDebounces) {
+            return false;
+        }
+
+        const { total } = await databasesListIndexes({
+            databaseId,
+            collectionId,
+            queries: [JSON.stringify({ method: 'limit', values: [1] })],
+            parseOutput: false
+        });
+
+        if (total === 0) {
+            return true;
+        }
+
+        if (pollMaxDebounces === POLL_DEFAULT_VALUE) {
+            let steps = Math.max(1, Math.ceil(total / STEP_SIZE));
+            if (steps > 1 && iteration === 1) {
+                pollMaxDebounces *= steps;
+
+                log('Found a large number of indexes, increasing timeout to ' + (pollMaxDebounces * POLL_DEBOUNCE / 1000 / 60) + ' minutes')
+            }
+        }
+
+        await new Promise(resolve => setTimeout(resolve, POLL_DEBOUNCE));
+
+        return await awaitPools.wipeIndexes(
+            databaseId,
+            collectionId,
+            iteration + 1
+        );
+    },
+    wipeVariables: async (functionId, iteration = 1) => {
+        if (iteration > pollMaxDebounces) {
+            return false;
+        }
+
+        const { total } = await functionsListVariables({
+            functionId,
+            queries: ['limit(1)'],
+            parseOutput: false
+        });
+
+        if (total === 0) {
+            return true;
+        }
+
+        if (pollMaxDebounces === POLL_DEFAULT_VALUE) {
+            let steps = Math.max(1, Math.ceil(total / STEP_SIZE));
+            if (steps > 1 && iteration === 1) {
+                pollMaxDebounces *= steps;
+
+                log('Found a large number of variables, increasing timeout to ' + (pollMaxDebounces * POLL_DEBOUNCE / 1000 / 60) + ' minutes')
+            }
+        }
+
+        await new Promise(resolve => setTimeout(resolve, POLL_DEBOUNCE));
+
+        return await awaitPools.wipeVariables(
+            functionId,
+            iteration + 1
+        );
+    },
+    deleteAttributes: async (databaseId, collectionId, attributeKeys, iteration = 1) => {
+        if (iteration > pollMaxDebounces) {
+            return false;
+        }
+
+        if (pollMaxDebounces === POLL_DEFAULT_VALUE) {
+            let steps = Math.max(1, Math.ceil(attributeKeys.length / STEP_SIZE));
+            if (steps > 1 && iteration === 1) {
+                pollMaxDebounces *= steps;
+
+                log('Found a large number of attributes to be deleted. Increasing timeout to ' + (pollMaxDebounces * POLL_DEBOUNCE / 1000 / 60) + ' minutes')
+            }
+        }
+
+        const { attributes } = await paginate(databasesListAttributes, {
+            databaseId,
+            collectionId,
+            parseOutput: false
+        }, 100, 'attributes');
+
+        const ready = attributeKeys.filter(attribute => attributes.includes(attribute.key));
+
+        if (ready.length === 0) {
+            return true;
+        }
+
+        await new Promise(resolve => setTimeout(resolve, POLL_DEBOUNCE));
+
+        return await awaitPools.expectAttributes(
+            databaseId,
+            collectionId,
+            attributeKeys,
+            iteration + 1
+        );
+    },
+    expectAttributes: async (databaseId, collectionId, attributeKeys, iteration = 1) => {
+        if (iteration > pollMaxDebounces) {
+            return false;
+        }
+
+        if (pollMaxDebounces === POLL_DEFAULT_VALUE) {
+            let steps = Math.max(1, Math.ceil(attributeKeys.length / STEP_SIZE));
+            if (steps > 1 && iteration === 1) {
+                pollMaxDebounces *= steps;
+
+                log('Creating a large number of attributes, increasing timeout to ' + (pollMaxDebounces * POLL_DEBOUNCE / 1000 / 60) + ' minutes')
+            }
+        }
+
+        const { attributes } = await paginate(databasesListAttributes, {
+            databaseId,
+            collectionId,
+            parseOutput: false
+        }, 100, 'attributes');
+
+        const ready = attributes
+            .filter(attribute => {
+                if (attributeKeys.includes(attribute.key)) {
+                    if (['stuck', 'failed'].includes(attribute.status)) {
+                        throw new Error(`Attribute '${attribute.key}' failed!`);
+                    }
+
+                    return attribute.status === 'available';
+                }
+
+                return false;
+            })
+            .map(attribute => attribute.key);
+
+        if (ready.length === attributeKeys.length) {
+            return true;
+        }
+
+        await new Promise(resolve => setTimeout(resolve, POLL_DEBOUNCE));
+
+        return await awaitPools.expectAttributes(
+            databaseId,
+            collectionId,
+            attributeKeys,
+            iteration + 1
+        );
+    },
+    deleteIndexes: async (databaseId, collectionId, indexesKeys, iteration = 1) => {
+        if (iteration > pollMaxDebounces) {
+            return false;
+        }
+
+        if (pollMaxDebounces === POLL_DEFAULT_VALUE) {
+            let steps = Math.max(1, Math.ceil(attributeKeys.length / STEP_SIZE));
+            if (steps > 1 && iteration === 1) {
+                pollMaxDebounces *= steps;
+
+                log('Found a large number of indexes to be deleted. Increasing timeout to ' + (pollMaxDebounces * POLL_DEBOUNCE / 1000 / 60) + ' minutes')
+            }
+        }
+
+        const { indexes } = await paginate(databasesListIndexes, {
+            databaseId,
+            collectionId,
+            parseOutput: false
+        }, 100, 'indexes');
+
+        const ready = indexesKeys.filter(index => indexes.includes(index.key));
+
+        if (ready.length === 0) {
+            return true;
+        }
+
+        await new Promise(resolve => setTimeout(resolve, POLL_DEBOUNCE));
+
+        return await awaitPools.expectIndexes(
+            databaseId,
+            collectionId,
+            indexesKeys,
+            iteration + 1
+        );
+    },
+    expectIndexes: async (databaseId, collectionId, indexKeys, iteration = 1) => {
+        if (iteration > pollMaxDebounces) {
+            return false;
+        }
+
+        if (pollMaxDebounces === POLL_DEFAULT_VALUE) {
+            let steps = Math.max(1, Math.ceil(indexKeys.length / STEP_SIZE));
+            if (steps > 1 && iteration === 1) {
+                pollMaxDebounces *= steps;
+
+                log('Creating a large number of indexes, increasing timeout to ' + (pollMaxDebounces * POLL_DEBOUNCE / 1000 / 60) + ' minutes')
+            }
+        }
+
+        const { indexes } = await paginate(databasesListIndexes, {
+            databaseId,
+            collectionId,
+            parseOutput: false
+        }, 100, 'indexes');
+
+        const ready = indexes
+            .filter((index) => {
+                if (indexKeys.includes(index.key)) {
+                    if (['stuck', 'failed'].includes(index.status)) {
+                        throw new Error(`Index '${index.key}' failed!`);
+                    }
+
+                    return index.status === 'available';
+                }
+
+                return false;
+            })
+            .map(index => index.key);
+
+        if (ready.length >= indexKeys.length) {
+            return true;
+        }
+
+        await new Promise(resolve => setTimeout(resolve, POLL_DEBOUNCE));
+
+        return await awaitPools.expectIndexes(
+            databaseId,
+            collectionId,
+            indexKeys,
+            iteration + 1
+        );
+    },
+}
+
+const getConfirmation = async () => {
+    if (cliConfig.force) {
+        return true;
+    }
+
+    async function fixConfirmation() {
+        const answers = await inquirer.prompt(questionPushChangesConfirmation);
+        if (answers.changes !== 'YES' && answers.changes !== 'NO') {
+            return await fixConfirmation();
+        }
+
+        return answers.changes;
+    }
+
+    let answers = await inquirer.prompt(questionPushChanges);
+
+    if (answers.changes !== 'YES' && answers.changes !== 'NO') {
+        answers.changes = await fixConfirmation();
+    }
+
+    if (answers.changes === 'YES') {
+        return true;
+    }
+
+    warn('Skipping push action. Changes were not applied.');
+    return false;
+
+};
+const isEmpty = (value) => (value === null || value === undefined || (typeof value === "string" && value.trim().length === 0) || (Array.isArray(value) && value.length === 0));
+
+const approveChanges = async (resource, resourceGetFunction, keys, resourceName, resourcePlural, skipKeys = [], secondId = '', secondResourceName = '') => {
+    log('Checking for changes ...');
+    const changes = [];
+
+    await Promise.all(resource.map(async (localResource) => {
+        try {
+            const options = {
+                [resourceName]: localResource['$id'],
+                parseOutput: false,
+            };
+
+            if (secondId !== '' && secondResourceName !== '') {
+                options[secondResourceName] = localResource[secondId]
+            }
+
+            const remoteResource = await resourceGetFunction(options);
+
+            for (let [key, value] of Object.entries(whitelistKeys(remoteResource, keys))) {
+                if (skipKeys.includes(key)) {
+                    continue;
+                }
+
+                if (isEmpty(value) && isEmpty(localResource[key])) {
+                    continue;
+                }
+
+                if (Array.isArray(value) && Array.isArray(localResource[key])) {
+                    if (JSON.stringify(value) !== JSON.stringify(localResource[key])) {
+                        changes.push({
+                            id: localResource['$id'],
+                            key,
+                            remote: chalk.red(value.join('\n')),
+                            local: chalk.green(localResource[key].join('\n'))
+                        })
+                    }
+                } else if (value !== localResource[key]) {
+                    changes.push({
+                        id: localResource['$id'],
+                        key,
+                        remote: chalk.red(value),
+                        local: chalk.green(localResource[key])
+                    })
+                }
+            }
+        } catch (e) {
+            if (Number(e.code) !== 404) {
+                throw e;
+            }
+        }
+    }));
+
+    if (changes.length === 0) {
+        return true;
+    }
+
+    drawTable(changes);
+    if ((await getConfirmation()) === true) {
+        return true;
+    }
+
+    success(`Successfully pushed 0 ${resourcePlural}.`);
+    return false;
+}
+
+const getObjectChanges = (remote, local, index, what) => {
+    const changes = [];
+
+    if (remote[index] && local[index]) {
+        for (let [service, status] of Object.entries(remote[index])) {
+            if (status !== local[index][service]) {
+                changes.push({ group: what, setting: service, remote: chalk.red(status), local: chalk.green(local[index][service]) })
+            }
+        }
+    }
+
+    return changes;
+}
+
+const createAttribute = (databaseId, collectionId, attribute) => {
+    switch (attribute.type) {
+        case 'string':
+            switch (attribute.format) {
+                case 'email':
+                    return databasesCreateEmailAttribute({
+                        databaseId,
+                        collectionId,
+                        key: attribute.key,
+                        required: attribute.required,
+                        xdefault: attribute.default,
+                        array: attribute.array,
+                        parseOutput: false
+                    })
+                case 'url':
+                    return databasesCreateUrlAttribute({
+                        databaseId,
+                        collectionId,
+                        key: attribute.key,
+                        required: attribute.required,
+                        xdefault: attribute.default,
+                        array: attribute.array,
+                        parseOutput: false
+                    })
+                case 'ip':
+                    return databasesCreateIpAttribute({
+                        databaseId,
+                        collectionId,
+                        key: attribute.key,
+                        required: attribute.required,
+                        xdefault: attribute.default,
+                        array: attribute.array,
+                        parseOutput: false
+                    })
+                case 'enum':
+                    return databasesCreateEnumAttribute({
+                        databaseId,
+                        collectionId,
+                        key: attribute.key,
+                        elements: attribute.elements,
+                        required: attribute.required,
+                        xdefault: attribute.default,
+                        array: attribute.array,
+                        parseOutput: false
+                    })
+                default:
+                    return databasesCreateStringAttribute({
+                        databaseId,
+                        collectionId,
+                        key: attribute.key,
+                        size: attribute.size,
+                        required: attribute.required,
+                        xdefault: attribute.default,
+                        array: attribute.array,
+                        parseOutput: false
+                    })
+
+            }
+        case 'integer':
+            return databasesCreateIntegerAttribute({
+                databaseId,
+                collectionId,
+                key: attribute.key,
+                required: attribute.required,
+                min: attribute.min,
+                max: attribute.max,
+                xdefault: attribute.default,
+                array: attribute.array,
+                parseOutput: false
+            })
+        case 'double':
+            return databasesCreateFloatAttribute({
+                databaseId,
+                collectionId,
+                key: attribute.key,
+                required: attribute.required,
+                min: attribute.min,
+                max: attribute.max,
+                xdefault: attribute.default,
+                array: attribute.array,
+                parseOutput: false
+            })
+        case 'boolean':
+            return databasesCreateBooleanAttribute({
+                databaseId,
+                collectionId,
+                key: attribute.key,
+                required: attribute.required,
+                xdefault: attribute.default,
+                array: attribute.array,
+                parseOutput: false
+            })
+        case 'datetime':
+            return databasesCreateDatetimeAttribute({
+                databaseId,
+                collectionId,
+                key: attribute.key,
+                required: attribute.required,
+                xdefault: attribute.default,
+                array: attribute.array,
+                parseOutput: false
+            })
+        case 'relationship':
+            return databasesCreateRelationshipAttribute({
+                databaseId,
+                collectionId,
+                relatedCollectionId: attribute.relatedCollection,
+                type: attribute.relationType,
+                twoWay: attribute.twoWay,
+                key: attribute.key,
+                twoWayKey: attribute.twoWayKey,
+                onDelete: attribute.onDelete,
+                parseOutput: false
+            })
+    }
+}
+
+const updateAttribute = (databaseId, collectionId, attribute) => {
+    switch (attribute.type) {
+        case 'string':
+            switch (attribute.format) {
+                case 'email':
+                    return databasesUpdateEmailAttribute({
+                        databaseId,
+                        collectionId,
+                        key: attribute.key,
+                        required: attribute.required,
+                        xdefault: attribute.default,
+                        array: attribute.array,
+                        parseOutput: false
+                    })
+                case 'url':
+                    return databasesUpdateUrlAttribute({
+                        databaseId,
+                        collectionId,
+                        key: attribute.key,
+                        required: attribute.required,
+                        xdefault: attribute.default,
+                        array: attribute.array,
+                        parseOutput: false
+                    })
+                case 'ip':
+                    return databasesUpdateIpAttribute({
+                        databaseId,
+                        collectionId,
+                        key: attribute.key,
+                        required: attribute.required,
+                        xdefault: attribute.default,
+                        array: attribute.array,
+                        parseOutput: false
+                    })
+                case 'enum':
+                    return databasesUpdateEnumAttribute({
+                        databaseId,
+                        collectionId,
+                        key: attribute.key,
+                        elements: attribute.elements,
+                        required: attribute.required,
+                        xdefault: attribute.default,
+                        array: attribute.array,
+                        parseOutput: false
+                    })
+                default:
+                    return databasesUpdateStringAttribute({
+                        databaseId,
+                        collectionId,
+                        key: attribute.key,
+                        size: attribute.size,
+                        required: attribute.required,
+                        xdefault: attribute.default,
+                        array: attribute.array,
+                        parseOutput: false
+                    })
+
+            }
+        case 'integer':
+            return databasesUpdateIntegerAttribute({
+                databaseId,
+                collectionId,
+                key: attribute.key,
+                required: attribute.required,
+                min: attribute.min,
+                max: attribute.max,
+                xdefault: attribute.default,
+                array: attribute.array,
+                parseOutput: false
+            })
+        case 'double':
+            return databasesUpdateFloatAttribute({
+                databaseId,
+                collectionId,
+                key: attribute.key,
+                required: attribute.required,
+                min: attribute.min,
+                max: attribute.max,
+                xdefault: attribute.default,
+                array: attribute.array,
+                parseOutput: false
+            })
+        case 'boolean':
+            return databasesUpdateBooleanAttribute({
+                databaseId,
+                collectionId,
+                key: attribute.key,
+                required: attribute.required,
+                xdefault: attribute.default,
+                array: attribute.array,
+                parseOutput: false
+            })
+        case 'datetime':
+            return databasesUpdateDatetimeAttribute({
+                databaseId,
+                collectionId,
+                key: attribute.key,
+                required: attribute.required,
+                xdefault: attribute.default,
+                array: attribute.array,
+                parseOutput: false
+            })
+        case 'relationship':
+            return databasesUpdateRelationshipAttribute({
+                databaseId,
+                collectionId,
+                relatedCollectionId: attribute.relatedCollection,
+                type: attribute.relationType,
+                twoWay: attribute.twoWay,
+                key: attribute.key,
+                twoWayKey: attribute.twoWayKey,
+                onDelete: attribute.onDelete,
+                parseOutput: false
+            })
+    }
+}
+const deleteAttribute = async (collection, attribute, isIndex = false) => {
+    log(`Deleting ${isIndex ? 'index' : 'attribute'} ${attribute.key} of ${collection.name} ( ${collection['$id']} )`);
+
+    if (isIndex) {
+        await databasesDeleteIndex({
+            databaseId: collection['databaseId'],
+            collectionId: collection['$id'],
+            key: attribute.key,
+            parseOutput: false
+        });
+        return;
+    }
+
+    await databasesDeleteAttribute({
+        databaseId: collection['databaseId'],
+        collectionId: collection['$id'],
+        key: attribute.key,
+        parseOutput: false
+    });
+}
+
+const compareAttribute = (remote, local, reason, key) => {
+    if (isEmpty(remote) && isEmpty(local)) {
+        return reason;
+    }
+
+    if (Array.isArray(remote) && Array.isArray(local)) {
+        if (JSON.stringify(remote) !== JSON.stringify(local)) {
+            const bol = reason === '' ? '' : '\n';
+            reason += `${bol}${key} changed from ${chalk.red(remote)} to ${chalk.green(local)}`;
+        }
+    } else if (remote !== local) {
+        const bol = reason === '' ? '' : '\n';
+        reason += `${bol}${key} changed from ${chalk.red(remote)} to ${chalk.green(local)}`;
+    }
+
+    return reason
+}
+
+
+/**
+ * Check if attribute non-changeable fields has been changed
+ * If so return the differences as an object.
+ * @param remote
+ * @param local
+ * @param collection
+ * @param recraeting when true will check only non-changeable keys
+ * @returns {undefined|{reason: string, action: *, attribute, key: string}}
+ */
+const checkAttributeChanges = (remote, local, collection, recraeting = true) => {
+    if (local === undefined) {
+        return undefined;
+    }
+
+    const keyName = `${chalk.yellow(local.key)} in ${collection.name} (${collection['$id']})`;
+    const action = chalk.cyan(recraeting ? 'recreating' : 'changing');
+    let reason = '';
+    let attribute = remote;
+
+    for (let key of Object.keys(remote)) {
+        if (!KeysAttributes.has(key)) {
+            continue;
+        }
+
+        if (changeableKeys.includes(key)) {
+            if (!recraeting) {
+                reason += compareAttribute(remote[key], local[key], reason, key)
+            }
+            continue;
+        }
+
+        if (!recraeting) {
+            continue;
+        }
+
+        reason += compareAttribute(remote[key], local[key], reason, key)
+    }
+
+    return reason === '' ? undefined : { key: keyName, attribute, reason, action };
+}
+
+/**
+ * Check if attributes contain the given attribute
+ * @param attribute
+ * @param attributes
+ * @returns {*}
+ */
+const attributesContains = (attribute, attributes) => attributes.find((attr) => attr.key === attribute.key);
+const generateChangesObject = (attribute, collection, isAdding) => {
+    return {
+        key: `${chalk.yellow(attribute.key)} in ${collection.name} (${collection['$id']})`,
+        attribute: attribute,
+        reason: isAdding ? 'Field isn\'t present on the remote server' : 'Field isn\'t present on the appwrite.json file',
+        action: isAdding ? chalk.green('adding') : chalk.red('deleting')
+    };
+
+};
+
+/**
+ * Filter deleted and recreated attributes,
+ * return list of attributes to create
+ * @returns {Promise<*|*[]>}
+ */
+const attributesToCreate = async (remoteAttributes, localAttributes, collection, isIndex = false) => {
+
+    const deleting = remoteAttributes.filter((attribute) => !attributesContains(attribute, localAttributes)).map((attr) => generateChangesObject(attr, collection, false));
+    const adding = localAttributes.filter((attribute) => !attributesContains(attribute, remoteAttributes)).map((attr) => generateChangesObject(attr, collection, true));
+    const conflicts = remoteAttributes.map((attribute) => checkAttributeChanges(attribute, attributesContains(attribute, localAttributes), collection)).filter(attribute => attribute !== undefined);
+    const changes = remoteAttributes.map((attribute) => checkAttributeChanges(attribute, attributesContains(attribute, localAttributes), collection, false))
+        .filter(attribute => attribute !== undefined)
+        .filter(attribute => conflicts.filter(attr => attribute.key === attr.key).length !== 1);
+
+    let changedAttributes = [];
+    const changing = [...deleting, ...adding, ...conflicts, ...changes]
+    if (changing.length === 0) {
+        return changedAttributes;
+    }
+
+    log(!cliConfig.force ? 'There are pending changes in your collection deployment' : 'List of applied changes');
+
+    drawTable(changing.map((change) => {
+        return { Key: change.key, Action: change.action, Reason: change.reason, };
+    }));
+
+    if (!cliConfig.force) {
+        if (deleting.length > 0 && !isIndex) {
+            log(`Attribute deletion will cause ${chalk.red('loss of data')}`);
+        }
+        if (conflicts.length > 0 && !isIndex) {
+            log(`Attribute recreation will cause ${chalk.red('loss of data')}`);
+        }
+
+        if ((await getConfirmation()) !== true) {
+            return changedAttributes;
+        }
+    }
+
+    if (conflicts.length > 0) {
+        changedAttributes = conflicts.map((change) => change.attribute);
+        await Promise.all(changedAttributes.map((changed) => deleteAttribute(collection, changed, isIndex)));
+        remoteAttributes = remoteAttributes.filter((attribute) => !attributesContains(attribute, changedAttributes))
+    }
+
+    if (changes.length > 0) {
+        changedAttributes = changes.map((change) => change.attribute);
+        await Promise.all(changedAttributes.map((changed) => updateAttribute(collection['databaseId'], collection['$id'], changed)));
+    }
+
+    const deletingAttributes = deleting.map((change) => change.attribute);
+    await Promise.all(deletingAttributes.map((attribute) => deleteAttribute(collection, attribute, isIndex)));
+    const attributeKeys = [...remoteAttributes.map(attribute => attribute.key), ...deletingAttributes.map(attribute => attribute.key)]
+
+    if (attributeKeys.length) {
+        const deleteAttributesPoolStatus = await awaitPools.deleteAttributes(collection['databaseId'], collection['$id'], attributeKeys);
+
+        if (!deleteAttributesPoolStatus) {
+            throw new Error("Attribute deletion timed out.");
+        }
+    }
+
+    return localAttributes.filter((attribute) => !attributesContains(attribute, remoteAttributes));
+}
+const createIndexes = async (indexes, collection) => {
+    log(`Creating indexes ...`)
+
+    for (let index of indexes) {
+        await databasesCreateIndex({
+            databaseId: collection['databaseId'],
+            collectionId: collection['$id'],
+            key: index.key,
+            type: index.type,
+            attributes: index.attributes,
+            orders: index.orders,
+            parseOutput: false
+        });
+    }
+
+    const result = await awaitPools.expectIndexes(
+        collection['databaseId'],
+        collection['$id'],
+        indexes.map(index => index.key)
+    );
+
+    if (!result) {
+        throw new Error("Index creation timed out.");
+    }
+
+    success(`Created ${indexes.length} indexes`);
+}
+const createAttributes = async (attributes, collection) => {
+    for (let attribute of attributes) {
+        if (attribute.side !== 'child') {
+            await createAttribute(collection['databaseId'], collection['$id'], attribute);
+        }
+    }
+
+    const result = await awaitPools.expectAttributes(
+        collection['databaseId'],
+        collection['$id'],
+        collection.attributes.filter(attribute => attribute.side !== 'child').map(attribute => attribute.key)
+    );
+
+    if (!result) {
+        throw new Error(`Attribute creation timed out.`);
+    }
+
+    success(`Created ${attributes.length} attributes`);
+}
+
+const pushResources = async () => {
+    const actions = {
+        settings: pushSettings,
+        functions: pushFunction,
+        collections: pushCollection,
+        buckets: pushBucket,
+        teams: pushTeam,
+        messages: pushMessagingTopic
+    }
+
+    if (cliConfig.all) {
+        for (let action of Object.values(actions)) {
+            await action({ returnOnZero: true });
+        }
+    } else {
+        const answers = await inquirer.prompt(questionsPushResources[0]);
+
+        const action = actions[answers.resource];
+        if (action !== undefined) {
+            await action({ returnOnZero: true });
+        }
+    }
+};
+
+const pushSettings = async () => {
+    checkDeployConditions(localConfig);
+
+    try {
+        let response = await projectsGet({
+            parseOutput: false,
+            projectId: localConfig.getProject().projectId
+        });
+
+        const remoteSettings = localConfig.createSettingsObject(response ?? {});
+        const localSettings = localConfig.getProject().projectSettings ?? {};
+
+        log('Checking for changes ...');
+        const changes = [];
+
+        changes.push(...(getObjectChanges(remoteSettings, localSettings, 'services', 'Service')));
+        changes.push(...(getObjectChanges(remoteSettings['auth'] ?? {}, localSettings['auth'] ?? {}, 'methods', 'Auth method')));
+        changes.push(...(getObjectChanges(remoteSettings['auth'] ?? {}, localSettings['auth'] ?? {}, 'security', 'Auth security')));
+
+        if (changes.length > 0) {
+            drawTable(changes);
+            if ((await getConfirmation()) !== true) {
+                success(`Successfully pushed 0 project settings.`);
+                return;
+            }
+        }
+    } catch (e) {
+    }
+
+    try {
+        log("Pushing project settings ...");
+
+        const projectId = localConfig.getProject().projectId;
+        const projectName = localConfig.getProject().projectName;
+        const settings = localConfig.getProject().projectSettings ?? {};
+
+        if (projectName) {
+            log("Applying project name ...");
+            await projectsUpdate({
+                projectId,
+                name: projectName,
+                parseOutput: false
+            });
+        }
+
+        if (settings.services) {
+            log("Applying service statuses ...");
+            for (let [service, status] of Object.entries(settings.services)) {
+                await projectsUpdateServiceStatus({
+                    projectId,
+                    service,
+                    status,
+                    parseOutput: false
+                });
+            }
+        }
+
+        if (settings.auth) {
+            if (settings.auth.security) {
+                log("Applying auth security settings ...");
+                await projectsUpdateAuthDuration({ projectId, duration: settings.auth.security.duration, parseOutput: false });
+                await projectsUpdateAuthLimit({ projectId, limit: settings.auth.security.limit, parseOutput: false });
+                await projectsUpdateAuthSessionsLimit({ projectId, limit: settings.auth.security.sessionsLimit, parseOutput: false });
+                await projectsUpdateAuthPasswordDictionary({ projectId, enabled: settings.auth.security.passwordDictionary, parseOutput: false });
+                await projectsUpdateAuthPasswordHistory({ projectId, limit: settings.auth.security.passwordHistory, parseOutput: false });
+                await projectsUpdatePersonalDataCheck({ projectId, enabled: settings.auth.security.personalDataCheck, parseOutput: false });
+                await projectsUpdateSessionAlerts({ projectId, alerts: settings.auth.security.sessionAlerts, parseOutput: false });
+                await projectsUpdateMockNumbers({ projectId, numbers: settings.auth.security.mockNumbers, parseOutput: false });
+            }
+
+            if (settings.auth.methods) {
+                log("Applying auth methods statuses ...");
+
+                for (let [method, status] of Object.entries(settings.auth.methods)) {
+                    await projectsUpdateAuthStatus({
+                        projectId,
+                        method,
+                        status,
+                        parseOutput: false
+                    });
+                }
+            }
+        }
+
+        success(`Successfully pushed ${chalk.bold('all')} project settings.`);
+    } catch (e) {
+        throw e;
+    }
+}
+
+const pushFunction = async ({ functionId, async, code, withVariables } = { returnOnZero: false }) => {
+    process.chdir(localConfig.configDirectoryPath)
+
+    const functionIds = [];
+
+    if (functionId) {
+        functionIds.push(functionId);
+    } else if (cliConfig.all) {
+        checkDeployConditions(localConfig);
+        const functions = localConfig.getFunctions();
+        functionIds.push(...functions.map((func) => {
+            return func.$id;
+        }));
+    }
+
+    if (functionIds.length <= 0) {
+        const answers = await inquirer.prompt(questionsPushFunctions[0]);
+        if (answers.functions) {
+            functionIds.push(...answers.functions);
+        }
+    }
+
+    if (functionIds.length === 0) {
+        log("No functions found.");
+        hint("Use 'appwrite pull functions' to synchronize existing one, or use 'appwrite init function' to create a new one.");
+        return;
+    }
+
+    let functions = functionIds.map((id) => {
+        const functions = localConfig.getFunctions();
+        const func = functions.find((f) => f.$id === id);
+
+        if (!func) {
+            throw new Error("Function '" + id + "' not found.")
+        }
+
+        return func;
+    });
+
+    log('Validating functions ...');
+    // Validation is done BEFORE pushing so the deployment process can be run in async with progress update
+    for (let func of functions) {
+
+        if (!func.entrypoint) {
+            log(`Function ${func.name} is missing an entrypoint.`);
+            const answers = await inquirer.prompt(questionsGetEntrypoint)
+            func.entrypoint = answers.entrypoint;
+            localConfig.addFunction(func);
+        }
+    }
+
+    if (!(await approveChanges(functions, functionsGet, KeysFunction, 'functionId', 'functions', ['vars']))) {
+        return;
+    }
+
+    log('Pushing functions ...');
+
+    Spinner.start(false);
+    let successfullyPushed = 0;
+    let successfullyDeployed = 0;
+    const failedDeployments = [];
+    const errors = [];
+
+    await Promise.all(functions.map(async (func) => {
+        let response = {};
+
+        const ignore = func.ignore ? 'appwrite.json' : '.gitignore';
+        let functionExists = false;
+        let deploymentCreated = false;
+
+        const updaterRow = new Spinner({ status: '', resource: func.name, id: func['$id'], end: `Ignoring using: ${ignore}` });
+
+        updaterRow.update({ status: 'Getting' }).startSpinner(SPINNER_DOTS);
+        try {
+            response = await functionsGet({
+                functionId: func['$id'],
+                parseOutput: false,
+            });
+            functionExists = true;
+            if (response.runtime !== func.runtime) {
+                updaterRow.fail({ errorMessage: `Runtime mismatch! (local=${func.runtime},remote=${response.runtime}) Please delete remote function or update your appwrite.json` })
+                return;
+            }
+
+            updaterRow.update({ status: 'Updating' }).replaceSpinner(SPINNER_ARC);
+
+            response = await functionsUpdate({
+                functionId: func['$id'],
+                name: func.name,
+                specification: func.specification,
+                execute: func.execute,
+                events: func.events,
+                schedule: func.schedule,
+                timeout: func.timeout,
+                enabled: func.enabled,
+                logging: func.logging,
+                entrypoint: func.entrypoint,
+                commands: func.commands,
+                scopes: func.scopes,
+                vars: JSON.stringify(response.vars),
+                parseOutput: false
+            });
+        } catch (e) {
+
+            if (Number(e.code) === 404) {
+                functionExists = false;
+            } else {
+                errors.push(e);
+                updaterRow.fail({ errorMessage: e.message ?? 'General error occurs please try again' });
+                return;
+            }
+        }
+
+        if (!functionExists) {
+            updaterRow.update({ status: 'Creating' }).replaceSpinner(SPINNER_DOTS);
+
+            try {
+                response = await functionsCreate({
+                    functionId: func.$id,
+                    name: func.name,
+                    runtime: func.runtime,
+                    specification: func.specification,
+                    execute: func.execute,
+                    events: func.events,
+                    schedule: func.schedule,
+                    timeout: func.timeout,
+                    enabled: func.enabled,
+                    logging: func.logging,
+                    entrypoint: func.entrypoint,
+                    commands: func.commands,
+                    scopes: func.scopes,
+                    vars: JSON.stringify(func.vars),
+                    parseOutput: false
+                });
+
+                let domain = '';
+                try {
+                    const variables = await consoleVariables({ parseOutput: false, sdk: await sdkForConsole() });
+                    domain = ID.unique() + '.' + variables['_APP_DOMAIN_FUNCTIONS'];
+                } catch (error) {
+                    console.error('Error fetching console variables.');
+                    throw error;
+                }
+
+                try {
+                    const rule = await proxyCreateFunctionRule(
+                        {
+                            domain: domain,
+                            functionId: func.$id
+                        }
+                    );
+                } catch (error) {
+                    console.error('Error creating function rule.');
+                    throw error;
+                }
+
+                updaterRow.update({ status: 'Created' });
+            } catch (e) {
+                errors.push(e)
+                updaterRow.fail({ errorMessage: e.message ?? 'General error occurs please try again' });
+                return;
+            }
+        }
+
+        if (withVariables) {
+            updaterRow.update({ status: 'Updating variables' }).replaceSpinner(SPINNER_ARC);
+
+            const { variables } = await paginate(functionsListVariables, {
+                functionId: func['$id'],
+                parseOutput: false
+            }, 100, 'variables');
+
+            await Promise.all(variables.map(async variable => {
+                await functionsDeleteVariable({
+                    functionId: func['$id'],
+                    variableId: variable['$id'],
+                    parseOutput: false
+                });
+            }));
+
+            let result = await awaitPools.wipeVariables(func['$id']);
+            if (!result) {
+                updaterRow.fail({ errorMessage: `Variable deletion timed out.` })
+                return;
+            }
+
+            // Deploy local variables
+            await Promise.all((func['vars'] ?? []).map(async variable => {
+                await functionsCreateVariable({
+                    functionId: func['$id'],
+                    key: variable['key'],
+                    value: variable['value'],
+                    parseOutput: false
+                });
+            }));
+        }
+
+        if (code === false) {
+            successfullyPushed++;
+            successfullyDeployed++;
+            updaterRow.update({ status: 'Pushed' });
+            updaterRow.stopSpinner();
+            return;
+        }
+
+        try {
+            updaterRow.update({ status: 'Pushing' }).replaceSpinner(SPINNER_ARC);
+            response = await functionsCreateDeployment({
+                functionId: func['$id'],
+                entrypoint: func.entrypoint,
+                commands: func.commands,
+                code: func.path,
+                activate: true,
+                parseOutput: false
+            })
+
+            updaterRow.update({ status: 'Pushed' });
+            deploymentCreated = true;
+            successfullyPushed++;
+        } catch (e) {
+            errors.push(e);
+
+            switch (e.code) {
+                case 'ENOENT':
+                    updaterRow.fail({ errorMessage: 'Not found in the current directory. Skipping...' })
+                    break;
+                default:
+                    updaterRow.fail({ errorMessage: e.message ?? 'An unknown error occurred. Please try again.' })
+            }
+        }
+
+        if (deploymentCreated && !async) {
+            try {
+                const deploymentId = response['$id'];
+                updaterRow.update({ status: 'Deploying', end: 'Checking deployment status...' })
+                let pollChecks = 0;
+
+                while (true) {
+                    response = await functionsGetDeployment({
+                        functionId: func['$id'],
+                        deploymentId: deploymentId,
+                        parseOutput: false
+                    });
+
+
+                    const status = response['status'];
+                    if (status === 'ready') {
+                        successfullyDeployed++;
+
+                        let url = '';
+                        const res = await proxyListRules({
+                            parseOutput: false,
+                            queries: [
+                                JSON.stringify({ method: 'limit', values: [1] }),
+                                JSON.stringify({ method: 'equal', "attribute": "deploymentResourceType", "values": ["function"] }),
+                                JSON.stringify({ method: 'equal', "attribute": "deploymentResourceId", "values": [func['$id']] }),
+                                JSON.stringify({ method: 'equal', "attribute": "trigger", "values": ["manual"] }),
+                            ],
+                        });
+
+                        if (Number(res.total) === 1) {
+                            url = res.rules[0].domain;
+                        }
+
+                        updaterRow.update({ status: 'Deployed', end: url });
+
+                        break;
+                    } else if (status === 'failed') {
+                        failedDeployments.push({ name: func['name'], $id: func['$id'], deployment: response['$id'] });
+                        updaterRow.fail({ errorMessage: `Failed to deploy` });
+
+                        break;
+                    } else {
+                        updaterRow.update({ status: 'Deploying', end: `Current status: ${status}` })
+                    }
+
+                    pollChecks++;
+                    await new Promise(resolve => setTimeout(resolve, POLL_DEBOUNCE * 1.5));
+                }
+            } catch (e) {
+                errors.push(e);
+                updaterRow.fail({ errorMessage: e.message ?? 'Unknown error occurred. Please try again' })
+            }
+        }
+
+        updaterRow.stopSpinner();
+    }));
+
+    Spinner.stop();
+
+    failedDeployments.forEach((failed) => {
+        const { name, deployment, $id } = failed;
+        const failUrl = `${globalConfig.getEndpoint().slice(0, -3)}/console/project-${localConfig.getProject().projectId}/functions/function-${$id}/deployment-${deployment}`;
+
+        error(`Deployment of ${name} has failed. Check at ${failUrl} for more details\n`);
+    });
+
+    if (!async) {
+        if (successfullyPushed === 0) {
+            error('No functions were pushed.');
+        } else if (successfullyDeployed !== successfullyPushed) {
+            warn(`Successfully pushed ${successfullyDeployed} of ${successfullyPushed} functions`)
+        } else {
+            success(`Successfully pushed ${successfullyPushed} functions.`);
+        }
+    } else {
+        success(`Successfully pushed ${successfullyPushed} functions.`);
+    }
+
+    if (cliConfig.verbose) {
+        errors.forEach(e => {
+            console.error(e);
+        })
+    }
+}
+
+const pushCollection = async ({ returnOnZero, attempts } = { returnOnZero: false }) => {
+    const collections = [];
+
+    if (attempts) {
+        pollMaxDebounces = attempts;
+    }
+
+    if (cliConfig.all) {
+        checkDeployConditions(localConfig);
+        collections.push(...localConfig.getCollections());
+    } else {
+        const answers = await inquirer.prompt(questionsPushCollections)
+        if (answers.collections) {
+            const configCollections = new Map();
+            localConfig.getCollections().forEach((c) => {
+                configCollections.set(`${c['databaseId']}|${c['$id']}`, c);
+            });
+            answers.collections.forEach((a) => {
+                const collection = configCollections.get(a);
+                collections.push(collection);
+            })
+        }
+    }
+
+    if (collections.length === 0) {
+        log("No collections found.");
+        hint("Use 'appwrite pull collections' to synchronize existing one, or use 'appwrite init collection' to create a new one.");
+        return;
+    }
+
+    const databases = Array.from(new Set(collections.map(collection => collection['databaseId'])));
+
+    // Parallel db actions
+    await Promise.all(databases.map(async (databaseId) => {
+        const localDatabase = localConfig.getDatabase(databaseId);
+
+        try {
+            const database = await databasesGet({
+                databaseId: databaseId,
+                parseOutput: false,
+            });
+
+            if (database.name !== (localDatabase.name ?? databaseId)) {
+                await databasesUpdate({
+                    databaseId: databaseId,
+                    name: localDatabase.name ?? databaseId,
+                    parseOutput: false
+                })
+
+                success(`Updated ${localDatabase.name} ( ${databaseId} ) name`);
+            }
+        } catch (err) {
+            log(`Database ${databaseId} not found. Creating it now ...`);
+
+            await databasesCreate({
+                databaseId: databaseId,
+                name: localDatabase.name ?? databaseId,
+                parseOutput: false,
+            });
+        }
+    }));
+
+
+    if (!(await approveChanges(collections, databasesGetCollection, KeysCollection, 'collectionId', 'collections', ['attributes', 'indexes'], 'databaseId', 'databaseId',))) {
+        return;
+    }
+    // Parallel collection actions
+    await Promise.all(collections.map(async (collection) => {
+        try {
+            const remoteCollection = await databasesGetCollection({
+                databaseId: collection['databaseId'],
+                collectionId: collection['$id'],
+                parseOutput: false,
+            });
+
+            if (remoteCollection.name !== collection.name) {
+                await databasesUpdateCollection({
+                    databaseId: collection['databaseId'],
+                    collectionId: collection['$id'],
+                    name: collection.name,
+                    name: collection.name,
+                    parseOutput: false
+                })
+
+                success(`Updated ${collection.name} ( ${collection['$id']} ) name`);
+            }
+            collection.remoteVersion = remoteCollection;
+
+            collection.isExisted = true;
+        } catch
+            (e) {
+            if (Number(e.code) === 404) {
+                log(`Collection ${collection.name} does not exist in the project. Creating ... `);
+                await databasesCreateCollection({
+                    databaseId: collection['databaseId'],
+                    collectionId: collection['$id'],
+                    name: collection.name,
+                    documentSecurity: collection.documentSecurity,
+                    permissions: collection['$permissions'],
+                    parseOutput: false
+                })
+            } else {
+                throw e;
+            }
+        }
+    }))
+    let numberOfCollections = 0;
+    // Serialize attribute actions
+    for (let collection of collections) {
+        let attributes = collection.attributes;
+        let indexes = collection.indexes;
+
+        if (collection.isExisted) {
+            attributes = await attributesToCreate(collection.remoteVersion.attributes, collection.attributes, collection);
+            indexes = await attributesToCreate(collection.remoteVersion.indexes, collection.indexes, collection, true);
+
+            if ((Array.isArray(attributes) && attributes.length <= 0) && (Array.isArray(indexes) && indexes.length <= 0)) {
+                continue;
+            }
+
+        }
+
+        log(`Pushing collection ${collection.name} ( ${collection['databaseId']} - ${collection['$id']} ) attributes`)
+
+        try {
+            await createAttributes(attributes, collection)
+        } catch (e) {
+            throw e;
+        }
+
+        try {
+            await createIndexes(indexes, collection);
+        } catch (e) {
+            throw e;
+        }
+        numberOfCollections++;
+        success(`Successfully pushed ${collection.name} ( ${collection['$id']} )`);
+    }
+
+    success(`Successfully pushed ${numberOfCollections} collections`);
+}
+
+const pushBucket = async ({ returnOnZero } = { returnOnZero: false }) => {
+    let response = {};
+
+    let bucketIds = [];
+    const configBuckets = localConfig.getBuckets();
+
+    if (cliConfig.all) {
+        checkDeployConditions(localConfig);
+        bucketIds.push(...configBuckets.map((b) => b.$id));
+    }
+
+    if (bucketIds.length === 0) {
+        const answers = await inquirer.prompt(questionsPushBuckets[0])
+        if (answers.buckets) {
+            bucketIds.push(...answers.buckets);
+        }
+    }
+
+    if (bucketIds.length === 0) {
+        log("No buckets found.");
+        hint("Use 'appwrite pull buckets' to synchronize existing one, or use 'appwrite init bucket' to create a new one.");
+        return;
+    }
+
+    let buckets = [];
+
+    for (const bucketId of bucketIds) {
+        const idBuckets = configBuckets.filter((b) => b.$id === bucketId);
+        buckets.push(...idBuckets);
+    }
+
+    if (!(await approveChanges(buckets, storageGetBucket, KeysStorage, 'bucketId', 'buckets'))) {
+        return;
+    }
+
+    log('Pushing buckets ...');
+
+    for (let bucket of buckets) {
+        log(`Pushing bucket ${chalk.bold(bucket['name'])} ...`);
+
+        try {
+            response = await storageGetBucket({
+                bucketId: bucket['$id'],
+                parseOutput: false,
+            })
+
+            await storageUpdateBucket({
+                bucketId: bucket['$id'],
+                name: bucket.name,
+                permissions: bucket['$permissions'],
+                fileSecurity: bucket.fileSecurity,
+                enabled: bucket.enabled,
+                maximumFileSize: bucket.maximumFileSize,
+                allowedFileExtensions: bucket.allowedFileExtensions,
+                encryption: bucket.encryption,
+                antivirus: bucket.antivirus,
+                compression: bucket.compression,
+                parseOutput: false
+            });
+        } catch (e) {
+            if (Number(e.code) === 404) {
+                log(`Bucket ${bucket.name} does not exist in the project. Creating ... `);
+
+                response = await storageCreateBucket({
+                    bucketId: bucket['$id'],
+                    name: bucket.name,
+                    permissions: bucket['$permissions'],
+                    fileSecurity: bucket.fileSecurity,
+                    enabled: bucket.enabled,
+                    maximumFileSize: bucket.maximumFileSize,
+                    allowedFileExtensions: bucket.allowedFileExtensions,
+                    compression: bucket.compression,
+                    encryption: bucket.encryption,
+                    antivirus: bucket.antivirus,
+                    parseOutput: false
+                })
+            } else {
+                throw e;
+            }
+        }
+    }
+
+    success(`Successfully pushed ${buckets.length} buckets.`);
+}
+
+const pushTeam = async ({ returnOnZero } = { returnOnZero: false }) => {
+    let response = {};
+
+    let teamIds = [];
+    const configTeams = localConfig.getTeams();
+
+    if (cliConfig.all) {
+        checkDeployConditions(localConfig);
+        teamIds.push(...configTeams.map((t) => t.$id));
+    }
+
+    if (teamIds.length === 0) {
+        const answers = await inquirer.prompt(questionsPushTeams[0])
+        if (answers.teams) {
+            teamIds.push(...answers.teams);
+        }
+    }
+
+    if (teamIds.length === 0) {
+        log("No teams found.");
+        hint("Use 'appwrite pull teams' to synchronize existing one, or use 'appwrite init team' to create a new one.");
+        return;
+    }
+
+    let teams = [];
+
+    for (const teamId of teamIds) {
+        const idTeams = configTeams.filter((t) => t.$id === teamId);
+        teams.push(...idTeams);
+    }
+
+    if (!(await approveChanges(teams, teamsGet, KeysTeams, 'teamId', 'teams'))) {
+        return;
+    }
+
+
+    log('Pushing teams ...');
+
+    for (let team of teams) {
+        log(`Pushing team ${chalk.bold(team['name'])} ...`);
+
+        try {
+            response = await teamsGet({
+                teamId: team['$id'],
+                parseOutput: false,
+            })
+
+            await teamsUpdateName({
+                teamId: team['$id'],
+                name: team.name,
+                parseOutput: false
+            });
+        } catch (e) {
+            if (Number(e.code) === 404) {
+                log(`Team ${team.name} does not exist in the project. Creating ... `);
+
+                response = await teamsCreate({
+                    teamId: team['$id'],
+                    name: team.name,
+                    parseOutput: false
+                })
+            } else {
+                throw e;
+            }
+        }
+    }
+
+    success(`Successfully pushed ${teams.length} teams.`);
+}
+
+const pushMessagingTopic = async ({ returnOnZero } = { returnOnZero: false }) => {
+    let response = {};
+
+    let topicsIds = [];
+    const configTopics = localConfig.getMessagingTopics();
+
+    if (cliConfig.all) {
+        checkDeployConditions(localConfig);
+        topicsIds.push(...configTopics.map((b) => b.$id));
+    }
+
+    if (topicsIds.length === 0) {
+        const answers = await inquirer.prompt(questionsPushMessagingTopics[0])
+        if (answers.topics) {
+            topicsIds.push(...answers.topics);
+        }
+    }
+
+    if (topicsIds.length === 0) {
+        log("No topics found.");
+        hint("Use 'appwrite pull topics' to synchronize existing one, or use 'appwrite init topic' to create a new one.");
+        return;
+    }
+
+    let topics = [];
+
+    for (const topicId of topicsIds) {
+        const idTopic = configTopics.filter((b) => b.$id === topicId);
+        topics.push(...idTopic);
+    }
+
+    if (!(await approveChanges(topics, messagingGetTopic, KeysTopics, 'topicId', 'topics'))) {
+        return;
+    }
+
+    log('Pushing topics ...');
+
+    for (let topic of topics) {
+        log(`Pushing topic ${chalk.bold(topic['name'])} ...`);
+
+        try {
+            response = await messagingGetTopic({
+                topicId: topic['$id'],
+                parseOutput: false
+            })
+            log(`Topic ${topic.name} ( ${topic['$id']} ) already exists.`);
+
+            await messagingUpdateTopic({
+                topicId: topic['$id'],
+                name: topic.name,
+                subscribe: topic.subscribe,
+                parseOutput: false
+            });
+        } catch (e) {
+            if (Number(e.code) === 404) {
+                log(`Topic ${topic.name} does not exist in the project. Creating ... `);
+
+                response = await messagingCreateTopic({
+                    topicId: topic['$id'],
+                    name: topic.name,
+                    subscribe: topic.subscribe,
+                    parseOutput: false
+                })
+
+                success(`Created ${topic.name} ( ${topic['$id']} )`);
+            } else {
+                throw e;
+            }
+        }
+    }
+
+    success(`Successfully pushed ${topics.length} topics.`);
+}
+
+const push = new Command("push")
+    .description(commandDescriptions['push'])
+    .action(actionRunner(pushResources));
+
+push
+    .command("all")
+    .description("Push all resource.")
+    .action(actionRunner(() => {
+        cliConfig.all = true;
+        return pushResources();
+    }));
+
+push
+    .command("settings")
+    .description("Push project name, services and auth settings")
+    .action(actionRunner(pushSettings));
+
+push
+    .command("function")
+    .alias("functions")
+    .description("Push functions in the current directory.")
+    .option(`-f, --function-id <function-id>`, `ID of function to run`)
+    .option(`-A, --async`, `Don't wait for functions deployments status`)
+    .option("--no-code", "Don't push the function's code")
+    .option("--with-variables", `Push function variables.`)
+    .action(actionRunner(pushFunction));
+
+push
+    .command("collection")
+    .alias("collections")
+    .description("Push collections in the current project.")
+    .option(`-a, --attempts <numberOfAttempts>`, `Max number of attempts before timing out. default: 30.`)
+    .action(actionRunner(pushCollection));
+
+push
+    .command("bucket")
+    .alias("buckets")
+    .description("Push buckets in the current project.")
+    .action(actionRunner(pushBucket));
+
+push
+    .command("team")
+    .alias("teams")
+    .description("Push teams in the current project.")
+    .action(actionRunner(pushTeam));
+
+push
+    .command("topic")
+    .alias("topics")
+    .description("Push messaging topics in the current project.")
+    .action(actionRunner(pushMessagingTopic));
+
+const deploy = new Command("deploy")
+    .description('Removed. Use appwrite push instead')
+    .action(actionRunner(async () => {
+        warn("appwrite deploy has been removed. Please use 'appwrite push' instead");
+    }));
+
+module.exports = {
+    push,
+    deploy
+}

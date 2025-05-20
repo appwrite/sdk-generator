@@ -1,7 +1,6 @@
 # {{ service.name | caseUcfirst }} Service
 
 {% for method in service.methods %}
-## {{ method.title }}
 
 ```http request
 {{ method.method | caseUpper }} {{ spec.endpoint }}{{ method.path }}

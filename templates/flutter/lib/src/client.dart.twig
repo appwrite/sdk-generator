@@ -1,6 +1,6 @@
 import 'enums.dart';
 import 'client_stub.dart'
-    if (dart.library.html) 'client_browser.dart'
+    if (dart.library.js_interop) 'client_browser.dart'
     if (dart.library.io) 'client_io.dart';
 import 'response.dart';
 import 'upload_progress.dart';
@@ -64,6 +64,9 @@ abstract class Client {
 {% endfor %}
   /// Add headers that should be sent with all API calls.
   Client addHeader(String key, String value);
+
+  /// Sends a "ping" request to Appwrite to verify connectivity.
+  Future<String> ping();
 
   /// Send the API request.
   Future<Response> call(HttpMethod method, {

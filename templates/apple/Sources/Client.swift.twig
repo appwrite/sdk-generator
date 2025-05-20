@@ -135,13 +135,14 @@ open class Client {
     /// @return Client
     ///
     open func setEndpoint(_ endPoint: String) -> Client {
-        self.endPoint = endPoint
-
-        if (self.endPointRealtime == nil && endPoint.starts(with: "http")) {
-            self.endPointRealtime = endPoint
-                .replacingOccurrences(of: "http://", with: "ws://")
-                .replacingOccurrences(of: "https://", with: "wss://")
+        if !endPoint.hasPrefix("http://") && !endPoint.hasPrefix("https://") {
+            fatalError("Invalid endpoint URL: \(endPoint)")
         }
+
+        self.endPoint = endPoint
+        self.endPointRealtime = endPoint
+            .replacingOccurrences(of: "http://", with: "ws://")
+            .replacingOccurrences(of: "https://", with: "wss://")
 
         return self
     }
@@ -154,8 +155,11 @@ open class Client {
     /// @return Client
     ///
     open func setEndpointRealtime(_ endPoint: String) -> Client {
-        self.endPointRealtime = endPoint
+        if !endPoint.hasPrefix("ws://") && !endPoint.hasPrefix("wss://") {
+            fatalError("Invalid realtime endpoint URL: \(endPoint)")
+        }
 
+        self.endPointRealtime = endPoint
         return self
     }
 
@@ -213,6 +217,26 @@ open class Client {
            withAllowedCharacters: .urlHostAllowed
        ) ?? ""
    }
+
+    ///
+    /// Sends a "ping" request to Appwrite to verify connectivity.
+    ///
+    /// @return String
+    /// @throws Exception
+    ///
+   open func ping() async throws -> String {
+       let apiPath: String = "/ping"
+
+       let apiHeaders: [String: String] = [
+           "content-type": "application/json"
+       ]
+
+       return try await call(
+           method: "GET",
+           path: apiPath,
+           headers: apiHeaders
+       )
+    }
 
     ///
     /// Make an API call
@@ -278,11 +302,18 @@ open class Client {
             timeout: .seconds(30)
         )
 
+        if let warning = response.headers["x-{{ spec.title | lower }}-warning"].first {
+            warning.split(separator: ";").forEach { warning in
+                print("Warning: \(warning)")
+            }
+        }
+
+        var data = try await response.body.collect(upTo: Int.max)
+
         switch response.status.code {
         case 0..<400:
             if response.headers["Set-Cookie"].count > 0 {
                 let domain = URL(string: request.url)!.host!
-                let existing = UserDefaults.standard.stringArray(forKey: domain)
                 let new = response.headers["Set-Cookie"]
 
                 UserDefaults.standard.set(new, forKey: domain)
@@ -290,10 +321,11 @@ open class Client {
             switch T.self {
             case is Bool.Type:
                 return true as! T
+            case is String.Type:
+                return (data.readString(length: data.readableBytes) ?? "") as! T
             case is ByteBuffer.Type:
-                return try await response.body.collect(upTo: Int.max) as! T
+                return data as! T
             default:
-                let data = try await response.body.collect(upTo: Int.max)
                 if data.readableBytes == 0 {
                     return true as! T
                 }
@@ -303,22 +335,25 @@ open class Client {
             }
         default:
             var message = ""
-            var data = try await response.body.collect(upTo: Int.max)
             var type = ""
+            var responseString = ""
 
             do {
                 let dict = try JSONSerialization.jsonObject(with: data) as? [String: Any]
 
                 message = dict?["message"] as? String ?? response.status.reasonPhrase
                 type = dict?["type"] as? String ?? ""
+                responseString = String(decoding: data.readableBytesView, as: UTF8.self)
             } catch {
                 message =  data.readString(length: data.readableBytes)!
+                responseString = message
             }
 
             throw {{ spec.title | caseUcfirst }}Error(
                 message: message,
                 code: Int(response.status.code),
-                type: type
+                type: type,
+                response: responseString
             )
         }
     }
@@ -359,7 +394,7 @@ open class Client {
         var offset = 0
         var result = [String:Any]()
 
-        if idParamName != nil && params[idParamName!] as! String != "unique()" {
+        if idParamName != nil {
             // Make a request to check if a file already exists
             do {
                 let map = try await call(
@@ -423,23 +458,23 @@ open class Client {
             if param is String
                 || param is Int
                 || param is Float
+                || param is Double
                 || param is Bool
                 || param is [String]
                 || param is [Int]
                 || param is [Float]
+                || param is [Double]
                 || param is [Bool]
                 || param is [String: Any]
                 || param is [Int: Any]
                 || param is [Float: Any]
+                || param is [Double: Any]
                 || param is [Bool: Any] {
                 encodedParams[key] = param
-            } else {
-                let value = try! (param as! Encodable).toJson()
-
-                let range = value.index(value.startIndex, offsetBy: 1)..<value.index(value.endIndex, offsetBy: -1)
-                let substring = value[range]
-
-                encodedParams[key] = substring
+            } else if let encodable = param as? Encodable {
+                encodedParams[key] = try encodable.toJson()
+            } else if let param = param {
+                encodedParams[key] = String(describing: param)
             }
         }
 
@@ -542,6 +577,8 @@ extension Client {
         return "tvos"
         #elseif os(macOS)
         return "macos"
+        #elseif os(visionOS)
+        return "visionos"
         #elseif os(Linux)
         return "linux"
         #elseif os(Windows)

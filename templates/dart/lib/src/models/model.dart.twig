@@ -1,16 +1,17 @@
 {% macro sub_schema(property) %}{% if property.sub_schema %}{% if property.type == 'array' %}List<{{property.sub_schema | caseUcfirst | overrideIdentifier}}>{% else %}{{property.sub_schema | caseUcfirst | overrideIdentifier }}{% endif %}{% else %}{% if property.type == 'object' and property.additionalProperties %}Map<String, dynamic>{% else %}{{property | typeName}}{% endif %}{% endif %}{% endmacro %}
-part of {{ language.params.packageName }}.models;
+part of '../../models.dart';
 
 /// {{ definition.description }}
 class {{ definition.name | caseUcfirst | overrideIdentifier }} implements Model {
 {% for property in definition.properties %}
     /// {{ property.description }}
     final {% if not property.required %}{{_self.sub_schema(property)}}? {{ property.name | escapeKeyword }}{% else %}{{_self.sub_schema(property)}} {{ property.name | escapeKeyword }}{% endif %};
-{% endfor %}
-{% if definition.additionalProperties %}
-    final Map<String, dynamic> data;
-{% endif %}
 
+{% endfor %}
+{%~ if definition.additionalProperties %}
+    final Map<String, dynamic> data;
+
+{% endif %}
     {{ definition.name | caseUcfirst | overrideIdentifier}}({% if definition.properties | length or definition.additionalProperties %}{{ '{' }}{% endif %}
 
 {% for property in definition.properties %}
@@ -32,15 +33,16 @@ class {{ definition.name | caseUcfirst | overrideIdentifier }} implements Model 
                     {{property.sub_schema | caseUcfirst | overrideIdentifier}}.fromMap(map['{{property.name | escapeDollarSign }}'])
                 {%- endif -%}
             {%- else -%}
-                map['{{property.name | escapeDollarSign }}']
-                {%- if property.type == "number" -%}
-                    {%- if not property.required %}?{% endif %}.toDouble()
-                {%- endif -%}
-                {%- if property.type == "string" -%}
-                    {%- if not property.required %}?{% endif %}.toString()
-                {%- endif -%}
-                {%- if property.type == "array" -%}
-                    {% if property.required %} ?? []{% endif %}
+                {%- if property.type == 'array' -%}
+                    List.from(map['{{property.name | escapeDollarSign }}'] ?? [])
+                {%- else -%}
+                    map['{{property.name | escapeDollarSign }}']
+                    {%- if property.type == "number" -%}
+                        {%- if not property.required %}?{% endif %}.toDouble()
+                    {%- endif -%}
+                    {%- if property.type == "string" -%}
+                        {%- if not property.required %}?{% endif %}.toString()
+                    {%- endif -%}
                 {%- endif -%}
             {%- endif -%},
 {% endfor %}

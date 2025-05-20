@@ -1,0 +1,38 @@
+package models
+
+import (
+    "encoding/json"
+    "errors"
+)
+
+{{ ((definition.description | caseUcfirst) ~ " Model") | godocComment }}
+type {{ definition.name | caseUcfirst }} struct {
+    {%~ for property in definition.properties %}
+    {{ property.description | godocComment(4) }}
+    {{ property.name | caseUcfirst  }} {{ property | propertyType(spec) }} `json:"{{ property.name | escapeKeyword }}"`
+    {%~ endfor %}
+
+    // Used by Decode() method
+    data []byte
+}
+
+func (model {{ definition.name | caseUcfirst }}) New(data []byte) *{{ definition.name | caseUcfirst }} {
+    model.data = data
+    return &model
+}
+
+{%~ if definition.additionalProperties %}
+// Use this method to get response in desired type
+{%~ endif %}
+func (model *{{ definition.name | caseUcfirst }}) Decode(value interface{}) error {
+    if len(model.data) <= 0 {
+        return errors.New("method Decode() cannot be used on nested struct")
+    }
+
+    err := json.Unmarshal(model.data, value)
+    if err != nil {
+        return err
+    }
+
+    return nil
+}

@@ -1,4 +1,5 @@
 from {{ spec.title | caseSnake }}.client import Client
+from {{ spec.title | caseSnake }}.services.{{ service.name | caseSnake }} import {{ service.name | caseUcfirst }}
 {% if method.parameters.all | filter((param) => param.type == 'file') | length > 0 %}
 from {{ spec.title | caseSnake }}.input_file import InputFile
 {% endif %}
@@ -21,10 +22,10 @@ from {{ spec.title | caseSnake }}.enums import {{parameter.enumName | caseUcfirs
 
 client = Client()
 {% if method.auth|length > 0 %}
-client.set_endpoint('https://cloud.appwrite.io/v1') # Your API Endpoint
+client.set_endpoint('{{ spec.endpointDocs | raw }}') # Your API Endpoint
 {% for node in method.auth %}
 {% for key,header in node|keys %}
-client.set_{{header | caseSnake}}('{{node[header]['x-appwrite']['demo']}}') # {{node[header].description}}
+client.set_{{header | caseSnake}}('{{node[header]['x-appwrite']['demo'] | raw }}') # {{node[header].description}}
 {% endfor %}
 {% endfor %}
 

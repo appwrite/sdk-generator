@@ -2,7 +2,7 @@ import UIKit
 import NIO
 import Appwrite
 
-let host = "https://demo.appwrite.io/v1"
+let host = "https://cloud.appwrite.io/v1"
 
 class ViewController: UIViewController {
 
@@ -72,8 +72,8 @@ class ViewController: UIViewController {
         do {
             let response = try await account.createOAuth2Session(
                 provider: "facebook",
-                success: "https://demo.appwrite.io/auth/oauth2/success",
-                failure: "https://demo.appwrite.io/auth/oauth2/failure"
+                success: "https://cloud.appwrite.io/auth/oauth2/success",
+                failure: "https://cloud.appwrite.io/auth/oauth2/failure"
             )
             self.response = String(describing: response)
         } catch {

@@ -1,7 +1,7 @@
 {% for parameter in method.parameters.all %}
 {% if parameter.type == 'file' %}
     const size = {{ parameter.name | caseCamel | escapeKeyword }}.size;
-    
+
     const apiHeaders = {
 {% for parameter in method.parameters.header %}
         '{{ parameter.name }}': ${{ parameter.name | caseCamel | escapeKeyword }},
@@ -45,7 +45,7 @@
         }
 
         let uploadableChunkTrimmed;
-        
+
         if(currentPosition + 1 >= client.CHUNK_SIZE) {
             uploadableChunkTrimmed = uploadableChunk;
         } else {
@@ -99,15 +99,14 @@
     }
 
 {% if method.packaging %}
-    fs.unlinkSync(filePath);
+    await fs.unlink(filePath,()=>{});
 {% endif %}
 {% if method.type == 'location' %}
     fs.writeFileSync(destination, response);
 {% endif %}
-            
+
     if (parseOutput) {
         parse(response)
-        success()
     }
 
     return response;

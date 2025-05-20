@@ -16,9 +16,10 @@ class FlutterStableTest extends Base
         'cp tests/languages/flutter/tests.dart tests/sdks/flutter/test/appwrite_test.dart',
     ];
     protected string $command =
-        'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/sdks/flutter --env PUB_CACHE=vendor cirrusci/flutter:stable sh -c "flutter pub get && flutter test test/appwrite_test.dart"';
+        'docker run --network="mockapi" --rm -v $(pwd):/app:rw -w /app/tests/sdks/flutter fischerscode/flutter-sudo:stable sh -c "sudo chown -R flutter:flutter . && flutter pub get && flutter test test/appwrite_test.dart"';
 
     protected array $expectedOutput = [
+        ...Base::PING_RESPONSE,
         ...Base::FOO_RESPONSES,
         ...Base::BAR_RESPONSES,
         ...Base::GENERAL_RESPONSES,

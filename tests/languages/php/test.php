@@ -93,16 +93,25 @@ try {
     $response = $general->error400();
 } catch (AppwriteException $e) {
     echo "{$e->getMessage()}\n";
+    echo "{$e->getResponse()}\n";
 }
 
 try {
     $response = $general->error500();
 } catch (AppwriteException $e) {
     echo "{$e->getMessage()}\n";
+    echo "{$e->getResponse()}\n";
 }
 
 try {
     $response = $general->error502();
+} catch (AppwriteException $e) {
+    echo "{$e->getMessage()}\n";
+    echo "{$e->getResponse()}\n";
+}
+
+try {
+    $client->setEndpoint("htp://cloud.appwrite.io/v1");
 } catch (AppwriteException $e) {
     echo "{$e->getMessage()}\n";
 }
@@ -139,8 +148,8 @@ echo Query::cursorAfter('my_movie_id') . "\n";
 echo Query::cursorBefore('my_movie_id') . "\n";
 echo Query::limit(50) . "\n";
 echo Query::offset(20) . "\n";
-echo Query::contains('title', 'Spider') . "\n";
-echo Query::contains('labels', 'first') . "\n";
+echo Query::contains('title', ['Spider']) . "\n";
+echo Query::contains('labels', ['first']) . "\n";
 echo Query::or([
     Query::equal('released', [true]),
     Query::lessThan('releasedYear', 1990)

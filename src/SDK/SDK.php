@@ -86,6 +86,13 @@ class SDK
         ]);
 
         /**
+         * Add language-specific functions
+         */
+        foreach ($this->language->getFunctions() as $function) {
+            $this->twig->addFunction($function);
+        }
+
+        /**
          * Add language specific filters
          */
         foreach ($this->language->getFilters() as $filter) {
@@ -537,6 +544,7 @@ class SDK
                 'namespace' => $this->spec->getNamespace(),
                 'version' => $this->spec->getVersion(),
                 'endpoint' => $this->spec->getEndpoint(),
+                'endpointDocs' => $this->spec->getEndpointDocs(),
                 'host' => parse_url($this->spec->getEndpoint(), PHP_URL_HOST),
                 'basePath' => $this->spec->getAttribute('basePath', ''),
                 'licenseName' => $this->spec->getLicenseName(),

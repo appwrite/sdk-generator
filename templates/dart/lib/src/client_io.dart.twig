@@ -79,6 +79,10 @@ class ClientIO extends ClientBase with ClientMixin {
 
   @override
   ClientIO setEndpoint(String endPoint) {
+    if (!endPoint.startsWith('http://') && !endPoint.startsWith('https://')) {
+      throw {{spec.title | caseUcfirst}}Exception('Invalid endpoint URL: $endPoint');
+    }
+
     _endPoint = endPoint;
     return this;
   }
@@ -134,7 +138,7 @@ class ClientIO extends ClientBase with ClientMixin {
     }
 
     var offset = 0;
-    if (idParamName.isNotEmpty && params[idParamName] != 'unique()') {
+    if (idParamName.isNotEmpty) {
       //make a request to check if a file already exists
       try {
         res = await call(

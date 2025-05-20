@@ -186,6 +186,11 @@ class Python extends Language
                 'template' => 'python/package/encoders/value_class_encoder.py.twig',
             ],
             [
+                'scope' => 'default',
+                'destination' => '{{ spec.title | caseSnake}}/encoders/__init__.py',
+                'template' => 'python/package/encoders/__init__.py.twig',
+            ],
+            [
                 'scope' => 'service',
                 'destination' => '{{ spec.title | caseSnake}}/services/{{service.name | caseSnake}}.py',
                 'template' => 'python/package/services/service.py.twig',
@@ -197,8 +202,18 @@ class Python extends Language
             ],
             [
                 'scope' => 'default',
-                'destination' => '.travis.yml',
-                'template' => 'python/.travis.yml.twig',
+                'destination' => '.github/workflows/publish.yml',
+                'template' => 'python/.github/workflows/publish.yml.twig',
+            ],
+            [
+                'scope' => 'default',
+                'destination' => '.github/workflows/publish.yml',
+                'template' => 'python/.github/workflows/publish.yml.twig',
+            ],
+            [
+                'scope' => 'definition',
+                'destination' => '{{ spec.title | caseSnake}}/models/{{ definition.name | caseSnake }}.py',
+                'template' => 'python/package/models/model.py.twig',
             ],
             [
                 'scope' => 'definition',
@@ -209,6 +224,11 @@ class Python extends Language
                 'scope' => 'enum',
                 'destination' => '{{ spec.title | caseSnake}}/enums/{{ enum.name | caseSnake }}.py',
                 'template' => 'python/package/enums/enum.py.twig',
+            ],
+            [
+                'scope' => 'default',
+                'destination' => '{{ spec.title | caseSnake}}/enums/__init__.py',
+                'template' => 'python/package/enums/__init__.py.twig',
             ],
         ];
 }
@@ -226,16 +246,26 @@ class Python extends Language
         if (!empty($parameter['enumValues'])) {
             return \ucfirst($parameter['name']);
         }
-        return match ($parameter['type'] ?? '') {
-            self::TYPE_FILE => 'InputFile',
-            self::TYPE_NUMBER,
-            self::TYPE_INTEGER => 'float',
-            self::TYPE_BOOLEAN => 'bool',
-            self::TYPE_STRING => 'str',
-            self::TYPE_ARRAY => 'list',
-            self::TYPE_OBJECT => 'dict',
-            default => $parameter['type'],
-        };
+        switch ($parameter['type'] ?? '') {
+            case self::TYPE_FILE:
+                return 'InputFile';
+            case self::TYPE_NUMBER:
+            case self::TYPE_INTEGER:
+                return 'float';
+            case self::TYPE_BOOLEAN:
+                return 'bool';
+            case self::TYPE_STRING:
+                return 'str';
+            case self::TYPE_ARRAY:
+                if (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type'])) {
+                    return 'List[' . $this->getTypeName($parameter['array']) . ']';
+                }
+                return 'List[str]';
+            case self::TYPE_OBJECT:
+                return 'dict';
+            default:
+                return $parameter['type'];
+        }
     }
 
     /**
@@ -408,6 +438,9 @@ class Python extends Language
         return [
             new TwigFilter('caseEnumKey', function (string $value) {
                 return $this->toUpperSnakeCase($value);
+            }),
+            new TwigFilter('getPropertyType', function ($value, $method = []) {
+                return $this->getTypeName($value, $method);
             }),
             new TwigFilter('hasGenericType', function (string $model, array $spec) {
                 return $this->hasGenericType($model, $spec);

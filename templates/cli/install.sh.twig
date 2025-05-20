@@ -139,8 +139,8 @@ cleanup() {
 installCompleted() {
     echo "[4/4] Wrapping up installation ... "
     cleanup
-    printf "🤘 May the force be with you. \n"
     echo "🚀 To get started with {{ spec.title | caseUcfirst }} CLI, please visit {{ sdk.url }}/docs/command-line"
+    echo "As first step, you can login to your {{ spec.title | caseUcfirst }} account using 'appwrite login'"
 }
 
 # Installation Starts here 

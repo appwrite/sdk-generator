@@ -133,6 +133,10 @@ class Dart extends Language
         if (!empty($parameter['enumValues'])) {
             return 'enums.' . \ucfirst($parameter['name']);
         }
+        if (isset($parameter['items'])) {
+            // Map definition nested type to parameter nested type
+            $parameter['array'] = $parameter['items'];
+        }
         switch ($parameter['type'] ?? '') {
             case self::TYPE_INTEGER:
                 return 'int';
@@ -475,8 +479,13 @@ class Dart extends Language
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '.travis.yml',
-                'template'      => 'dart/.travis.yml.twig',
+                'destination'   => '.github/workflows/publish.yml',
+                'template'      => 'dart/.github/workflows/publish.yml.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '.github/workflows/format.yml',
+                'template'      => 'dart/.github/workflows/format.yml.twig',
             ],
             [
                 'scope'         => 'default',

@@ -29,8 +29,6 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
 
 {% for method in service.methods %}
     /**
-     * {{ method.title }}
-     *
      * {{ method.description | raw | replace({"\n": "", "\r": ""}) }}
      *
     {%~ for parameter in method.parameters.all %}
@@ -84,7 +82,9 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
                     return@forEach
                 }
                 is List<*> -> {
-                    apiQuery.add("${it.key}[]=${it.value.toString()}")
+                    (it.value as List<*>).forEach { v ->
+                        apiQuery.add("${it.key}[]=${v.toString()}")
+                    }
                 }
                 else -> {
                    apiQuery.add("${it.key}=${it.value.toString()}")
@@ -127,7 +127,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
             responseType = {{ method | returnType(spec, sdk.namespace | caseDot) | raw }}::class.java
         )
         {%~ else %}
-        val apiHeaders = mutableMapOf(
+        val apiHeaders = mutableMapOf<String, String>(
         {%~ for key, header in method.headers %}
             "{{ key }}" to "{{ header }}",
         {%~ endfor %}
@@ -183,8 +183,6 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
 
     {%~ if method.responseModel | hasGenericType(spec) %}
     /**
-     * {{ method.title }}
-     *
      * {{ method.description | raw | replace({"\n": "", "\r": ""}) }}
      *
     {%~ for parameter in method.parameters.all %}

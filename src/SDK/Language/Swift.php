@@ -299,13 +299,17 @@ class Swift extends Language
      * @param array $parameter
      * @return string
      */
-    public function getTypeName(array $parameter, array $spec = []): string
+    public function getTypeName(array $parameter, array $spec = [], bool $isProperty = false): string
     {
         if (isset($parameter['enumName'])) {
             return ($spec['title'] ?? '') . 'Enums.' . \ucfirst($parameter['enumName']);
         }
         if (!empty($parameter['enumValues'])) {
             return ($spec['title'] ?? '') . 'Enums.' . \ucfirst($parameter['name']);
+        }
+        if (isset($parameter['items'])) {
+            // Map definition nested type to parameter nested type
+            $parameter['array'] = $parameter['items'];
         }
         return match ($parameter['type']) {
             self::TYPE_INTEGER => 'Int',
@@ -315,8 +319,8 @@ class Swift extends Language
             self::TYPE_BOOLEAN => 'Bool',
             self::TYPE_ARRAY => (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type']))
                 ? '[' . $this->getTypeName($parameter['array']) . ']'
-                : '[Any]',
-            self::TYPE_OBJECT => 'Any',
+                : '[AnyCodable]',
+            self::TYPE_OBJECT => $isProperty ? '[String: AnyCodable]' : 'Any',
             default => $parameter['type'],
         };
     }
@@ -523,11 +527,7 @@ class Swift extends Language
                 $type = '[' . $type . ']';
             }
         } else {
-            $type = $this->getTypeName($property);
-        }
-
-        if (!$property['required']) {
-            $type .= '?';
+            $type = $this->getTypeName($property, isProperty: true);
         }
 
         return $type;

@@ -1,0 +1,74 @@
+package appwrite
+
+import (
+	"time"
+
+	"github.com/{{sdk.gitUserName}}/sdk-for-go/client"
+{% for key,service in spec.services %}
+	"github.com/{{sdk.gitUserName}}/sdk-for-go/{{ service.name | caseLower}}"
+{% endfor %}
+)
+
+{% for key,service in spec.services %}
+func New{{ service.name | caseUcfirst }}(clt client.Client) *{{ service.name | caseLower}}.{{ service.name | caseUcfirst }} {
+	return {{ service.name | caseLower}}.New(clt)
+}
+{% endfor %}
+
+// NewClient initializes a new {{ spec.title | caseUcfirst }} client with a given timeout
+func NewClient(optionalSetters ...client.ClientOption) client.Client {
+	return client.New(optionalSetters...)
+}
+
+// Helper method to construct NewClient()
+func WithEndpoint(endpoint string) client.ClientOption {
+	return func(clt *client.Client) error {
+		clt.Endpoint = endpoint
+		return nil
+	}
+}
+
+// Helper method to construct NewClient()
+func WithTimeout(timeout time.Duration) client.ClientOption {
+	return func(clt *client.Client) error {
+		httpClient, err := client.GetDefaultClient(timeout)
+		if err != nil {
+			return err
+		}
+
+		clt.Timeout = timeout
+		clt.Client = httpClient
+
+		return nil
+	}
+}
+
+// Helper method to construct NewClient()
+func WithSelfSigned(status bool) client.ClientOption {
+	return func(clt *client.Client) error {
+		clt.SelfSigned = status
+		return nil
+	}
+}
+
+// Helper method to construct NewClient()
+func WithChunkSize(size int64) client.ClientOption {
+	return func(clt *client.Client) error {
+		clt.ChunkSize = size
+		return nil
+	}
+}
+
+{% for header in spec.global.headers %}
+// Helper method to construct NewClient()
+{% if header.description %}
+// 
+// {{header.description}}
+{% endif %}
+func With{{header.key | caseUcfirst}}(value string) client.ClientOption {
+	return func(clt *client.Client) error {
+		clt.Headers["{{header.name}}"] = value
+		return nil
+	}
+}
+{% endfor %}

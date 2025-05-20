@@ -82,14 +82,22 @@ try:
     response = general.error400()
 except AppwriteException as e:
     print(e.message)
+    print(e.response)
 
 try:
     response = general.error500()
 except AppwriteException as e:
     print(e.message)
+    print(e.response)
 
 try:
     response = general.error502()
+except AppwriteException as e:
+    print(e.message)
+    print(e.response)
+
+try:
+    client.set_endpoint("htp://cloud.appwrite.io/v1")
 except AppwriteException as e:
     print(e.message)
 

@@ -1,41 +1,104 @@
-{%- set requireStringsPkg = false -%}
+{%- set requireModelsPkg = false -%}
+{%- set requireFilesPkg = false -%}
 {%- for method in service.methods -%}
-	{%- if method.parameters.path|length > 0 -%}
-		{%- set requireStringsPkg = true -%}
+{%- if (method | returnType(spec, spec.title | caseLower)) starts with "models" -%}
+		{%- set requireModelsPkg = true -%}
+{%- endif -%}
+{% for parameter in method.parameters.all %}
+	{%- if (parameter | typeName) ends with "InputFile"  -%}
+		{%- set requireFilesPkg = true -%}
 	{%- endif -%}
+{% endfor %}
 {%- endfor -%}
-package {{ spec.title | caseLower }}
+package {{ service.name | caseLower }}
 
 import (
-{% if requireStringsPkg %}
-	"strings"
+	"encoding/json"
+	"errors"
+	"github.com/{{sdk.gitUserName}}/sdk-for-go/client"
+{% if requireModelsPkg %}
+	"github.com/{{sdk.gitUserName}}/sdk-for-go/models"
 {% endif %}
+{% if requireFilesPkg %}
+	"github.com/{{sdk.gitUserName}}/sdk-for-go/file"
+{% endif %}
+	"strings"
 )
 
 {{ ((service.name | caseUcfirst) ~ " service") | godocComment }}
 type {{ service.name | caseUcfirst }} struct {
-	client Client
+	client client.Client
 }
 
-func New{{ service.name | caseUcfirst }}(clt Client) *{{ service.name | caseUcfirst }} {
+func New(clt client.Client) *{{ service.name | caseUcfirst }} {
 	return &{{ service.name | caseUcfirst }}{
 		client: clt,
 	}
 }
+
 {% for method in service.methods %}
+{% if method.parameters.all|filter(v => not v.required)|length > 0 %}
+type {{ (method.name ~ "Options") | caseUcfirst }} struct {
+{% for parameter in method.parameters.all %}
+{% if not parameter.required %}
+	{{ parameter.name | caseUcfirst }} {{ (parameter | typeName) }}
+{% endif %}
+{% endfor %}
+	enabledSetters map[string]bool
+}
+func (options {{ (method.name ~ "Options") | caseUcfirst }}) New() *{{ (method.name ~ "Options") | caseUcfirst }} {
+	options.enabledSetters = map[string]bool{
+{% for parameter in method.parameters.all %}
+{% if not parameter.required %}
+		"{{ parameter.name | caseUcfirst }}": false,
+{% endif %}
+{% endfor %}
+	}
+	return &options
+}
+type {{ (method.name ~ "Option" ) | caseUcfirst }} func(*{{ (method.name ~ "Options") | caseUcfirst }})
+{% for parameter in method.parameters.all|filter(v => not v.required) %}
+func (srv *{{ service.name | caseUcfirst }}) With{{ method.name | caseUcfirst }}{{ parameter.name | caseUcfirst }}(v {{ (parameter | typeName) }}) {{ (method.name ~ "Option") | caseUcfirst }} {
+	return func(o *{{ (method.name ~ "Options") | caseUcfirst }}) {
+		o.{{ parameter.name | caseUcfirst }} = v
+		o.enabledSetters["{{ parameter.name | caseUcfirst }}"] = true
+	}
+}
+{% endfor %}
+{% endif %}
+{% set params="" %}
+{% if method.parameters.all|filter(v => v.required)|length > 0 %}
+{% for parameter in method.parameters.all|filter(v => v.required) %}
+	{% set params = params ~ (parameter.name | caseUcfirst) ~ " " ~ (parameter | typeName) %}
+{% if not loop.last %}
+	{% set params = params ~ ", " %}
+{% endif %}
+{% endfor %}
+{% if method.parameters.all|filter(v => not v.required)|length > 0 %}
+	{% set params = params ~ ", " %}
+{% endif %}
+{% endif %}
+{% if method.parameters.all|filter(v => not v.required)|length > 0 %}
+	{% set params = params ~ "optionalSetters ..." ~ ((method.name ~ "Option") | caseUcfirst) %}
+{% endif %}
 
-{% if method.description %}{{ ((method.name | caseUcfirst) ~ ' ' ~ method.description | caseLcfirst) | godocComment }}{% else %}// {{ method.name | caseUcfirst }}{% endif %}
-
-func (srv *{{ service.name | caseUcfirst }}) {{ method.name | caseUcfirst }}({% if method.parameters.all|length > 0 %}{% for parameter in method.parameters.all %}{{ parameter.name | caseUcfirst }} {{ parameter | typeName }}{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}) (*ClientResponse, error) {
+{% if method.description %}
+{{ ((method.name | caseUcfirst) ~ ' ' ~ method.description | caseLcfirst) | godocComment }}
+{% else %}
+// {{ method.name | caseUcfirst }}
+{% endif %}
+func (srv *{{ service.name | caseUcfirst }}) {{ method.name | caseUcfirst }}({{ params }})(*{{ method | returnType(spec, spec.title | caseLower) }}, error) {
 {% if method.parameters.path|length > 0 %}
 	r := strings.NewReplacer({% for parameter in method.parameters.path %}"{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}", {{ parameter.name | caseUcfirst }}{% if not loop.last %}, {% endif %}{% endfor %})
-	apiPath := r.Replace("{{ method.path }}")
-
+	path := r.Replace("{{ method.path }}")
 {% else %}
-	apiPath := "{{ method.path }}"
-	
+	path := "{{ method.path }}"
 {% endif %}
 {{include('go/base/params.twig')}}
-{{include('go/base/requests/api.twig')}}
+{% if 'multipart/form-data' in method.consumes %}
+{{ include('go/base/requests/file.twig') }}
+{% else %}
+{{ include('go/base/requests/api.twig') }}
+{% endif %}
 }
 {% endfor %}

@@ -14,10 +14,10 @@ include {{ spec.title | caseUcfirst }}::Enums
 {% endfor %}
 
 client = Client.new
-    .set_endpoint('https://cloud.appwrite.io/v1') # Your API Endpoint
+    .set_endpoint('{{ spec.endpointDocs | raw }}') # Your API Endpoint
     {%~ for node in method.auth %}
     {%~ for key,header in node|keys %}
-    .set_{{header|caseSnake}}('{{node[header]['x-appwrite']['demo']}}') # {{node[header].description}}
+    .set_{{header|caseSnake}}('{{node[header]['x-appwrite']['demo'] | raw }}') # {{node[header].description}}
     {%~ endfor %}
     {%~ endfor %}
 

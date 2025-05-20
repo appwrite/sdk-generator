@@ -65,11 +65,6 @@ class Go extends Language
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'example/main.go',
-                'template'      => 'go/main.go.twig',
-            ],
-            [
-                'scope'         => 'default',
                 'destination'   => 'README.md',
                 'template'      => 'go/README.md.twig',
             ],
@@ -85,18 +80,53 @@ class Go extends Language
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '{{ spec.title | caseLower}}/client.go',
+                'destination'   => 'appwrite/appwrite.go',
+                'template'      => 'go/appwrite.go.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'client/client.go',
                 'template'      => 'go/client.go.twig',
             ],
             [
+                'scope'         => 'default',
+                'destination'   => 'file/inputFile.go',
+                'template'      => 'go/inputFile.go.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'query/query.go',
+                'template'      => 'go/query.go.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'permission/permission.go',
+                'template'      => 'go/permission.go.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'role/role.go',
+                'template'      => 'go/role.go.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'id/id.go',
+                'template'      => 'go/id.go.twig',
+            ],
+            [
                 'scope'         => 'service',
-                'destination'   => '{{ spec.title | caseLower}}/{{service.name | caseDash}}.go',
+                'destination'   => '{{ service.name | caseLower}}/{{service.name | caseDash}}.go',
                 'template'      => 'go/services/service.go.twig',
             ],
             [
                 'scope'         => 'method',
                 'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
                 'template'      => 'go/docs/example.md.twig',
+            ],
+            [
+                'scope'         => 'definition',
+                'destination'   => 'models/{{ definition.name | caseLower }}.go',
+                'template'      => 'go/models/model.go.twig',
             ],
         ];
     }
@@ -108,13 +138,23 @@ class Go extends Language
      */
     public function getTypeName(array $parameter, array $spec = []): string
     {
+        if (str_contains($parameter['description'] ?? '', 'Collection attributes') || str_contains($parameter['description'] ?? '', 'List of attributes')) {
+            return '[]map[string]any';
+        }
+        if (isset($parameter['items'])) {
+            // Map definition nested type to parameter nested type
+            $parameter['array'] = $parameter['items'];
+        }
         return match ($parameter['type']) {
             self::TYPE_INTEGER => 'int',
             self::TYPE_NUMBER => 'float64',
-            self::TYPE_FILE, self::TYPE_STRING => 'string',
+            self::TYPE_FILE => 'file.InputFile',
+            self::TYPE_STRING => 'string',
             self::TYPE_BOOLEAN => 'bool',
             self::TYPE_OBJECT => 'interface{}',
-            self::TYPE_ARRAY => '[]interface{}',
+            self::TYPE_ARRAY => (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type']))
+            ? '[]' . $this->getTypeName($parameter['array'])
+            : '[]string',
             default => $parameter['type'],
         };
     }
@@ -139,8 +179,10 @@ class Go extends Language
             switch ($type) {
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
+                    $output .= "0";
+                    break;
                 case self::TYPE_BOOLEAN:
-                    $output .= 'null';
+                    $output .= 'false';
                     break;
                 case self::TYPE_STRING:
                     $output .= '""';
@@ -189,31 +231,41 @@ class Go extends Language
             switch ($type) {
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
+                    $output .= '0';
+                    break;
                 case self::TYPE_BOOLEAN:
-                    $output .= 'null';
+                    $output .= 'false';
                     break;
                 case self::TYPE_STRING:
                     $output .= '""';
                     break;
                 case self::TYPE_OBJECT:
-                    $output .= 'nil';
+                    $output .= 'map[string]interface{}{}';
                     break;
                 case self::TYPE_ARRAY:
-                    $output .= '[]';
+                    $output .= '[]interface{}{}';
                     break;
                 case self::TYPE_FILE:
-                    $output .= "file";
+                    $output .= 'file.NewInputFile("/path/to/file.png", "file.png")';
                     break;
             }
         } else {
             switch ($type) {
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
-                case self::TYPE_ARRAY:
                     $output .= $example;
                     break;
+                case self::TYPE_ARRAY:
+                    if (\str_starts_with($example, '[')) {
+                        $example = \substr($example, 1);
+                    }
+                    if (\str_ends_with($example, ']')) {
+                        $example = \substr($example, 0, -1);
+                    }
+                    $output .= 'interface{}{' . $example . '}';
+                    break;
                 case self::TYPE_OBJECT:
-                    $output .= 'nil';
+                    $output .= 'map[string]interface{}{}';
                     break;
                 case self::TYPE_BOOLEAN:
                     $output .= ($example) ? 'true' : 'false';
@@ -222,7 +274,7 @@ class Go extends Language
                     $output .= "\"{$example}\"";
                     break;
                 case self::TYPE_FILE:
-                    $output .= "file";
+                    $output .= 'file.NewInputFile("/path/to/file.png", "file.png")';
                     break;
             }
         }
@@ -233,16 +285,84 @@ class Go extends Language
     public function getFilters(): array
     {
         return [
-            new TwigFilter('godocComment', function ($value) {
+            new TwigFilter('godocComment', function ($value, $indent = 0) {
+                $value = trim($value);
                 $value = explode("\n", $value);
+                $indent = \str_repeat(' ', $indent);
                 foreach ($value as $key => $line) {
-                    $value[$key] = "// " . wordwrap($line, 75, "\n// ");
+                    $value[$key] = "// " . wordwrap(trim($line), 75, "\n" . $indent . "// ");
                 }
-                return implode("\n", $value);
+                return implode("\n" . $indent, $value);
             }, ['is_safe' => ['html']]),
+            new TwigFilter('propertyType', function (array $property, array $spec, string $generic = 'map[string]interface{}') {
+                return $this->getPropertyType($property, $spec, $generic);
+            }),
+            new TwigFilter('returnType', function (array $method, array $spec, string $namespace, string $generic = 'map[string]interface{}') {
+                return $this->getReturnType($method, $spec, $namespace, $generic);
+            }),
             new TwigFilter('caseEnumKey', function (string $value) {
                 return $this->toUpperSnakeCase($value);
             }),
         ];
+    }
+
+    protected function getPropertyType(array $property, array $spec, string $generic = 'map[string]interface{}'): string
+    {
+        if (\array_key_exists('sub_schema', $property)) {
+            $type = $this->toPascalCase($property['sub_schema']);
+
+            if ($property['type'] === 'array') {
+                $type = '[]' . $type;
+            }
+        } else {
+            $type = $this->getTypeName($property);
+        }
+
+        return $type;
+    }
+
+    protected function getReturnType(array $method, array $spec, string $namespace, string $generic = 'map[string]interface{}'): string
+    {
+        if ($method['type'] === 'webAuth') {
+            return 'bool';
+        }
+        if ($method['type'] === 'location') {
+            return '[]byte';
+        }
+
+        if (
+            !\array_key_exists('responseModel', $method)
+            || empty($method['responseModel'])
+            || $method['responseModel'] === 'any'
+        ) {
+            return 'interface{}';
+        }
+
+        $ret = ucfirst($method['responseModel']);
+
+        return 'models.' . $ret;
+    }
+
+    protected function hasGenericType(?string $model, array $spec): string
+    {
+        if (empty($model) || $model === 'any') {
+            return false;
+        }
+
+        $model = $spec['definitions'][$model];
+
+        if ($model['additionalProperties']) {
+            return true;
+        }
+
+        foreach ($model['properties'] as $property) {
+            if (!\array_key_exists('sub_schema', $property) || !$property['sub_schema']) {
+                continue;
+            }
+
+            return $this->hasGenericType($property['sub_schema'], $spec);
+        }
+
+        return false;
     }
 }

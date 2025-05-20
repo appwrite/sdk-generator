@@ -1,0 +1,57 @@
+{% import 'dotnet/base/utils.twig' as utils %}
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+{% if spec.definitions is not empty %}
+using {{ spec.title | caseUcfirst }}.Models;
+{% endif %}
+{% if spec.enums is not empty %}
+using {{ spec.title | caseUcfirst }}.Enums;
+{% endif %}
+
+namespace {{ spec.title | caseUcfirst }}.Services
+{
+    public class {{ service.name | caseUcfirst }} : Service
+    {
+        public {{ service.name | caseUcfirst }}(Client client) : base(client)
+        {
+        }
+
+        {%~ for method in service.methods %}
+        {%~ if method.description %}
+        /// <para>
+        {{~ method.description | dotnetComment }}
+        /// </para>
+        {%~ endif %}
+        /// </summary>
+        public Task{% if method.type == "webAuth" %}<String>{% else %}<{{ utils.resultType(spec.title, method) }}>{% endif %} {{ method.name | caseUcfirst }}({{ utils.method_parameters(method.parameters, method.consumes) }})
+        {
+            var apiPath = "{{ method.path }}"{% if method.parameters.path | length == 0 %};{% endif %}
+
+            {{~ include('dotnet/base/params.twig') }}
+
+            {%~ if method.responseModel %}
+            static {{ utils.resultType(spec.title, method) }} Convert(Dictionary<string, object> it) =>
+            {%~ if method.responseModel == 'any' %}
+                it;
+            {%~ else %}
+                {{ utils.resultType(spec.title, method) }}.From(map: it);
+            {%~ endif %}
+            {%~ endif %}
+
+            {%~ if method.type == 'location' %}
+            {{~ include('dotnet/base/requests/location.twig') }}
+            {%~ elseif method.type == 'webAuth' %}
+            {{~ include('dotnet/base/requests/oauth.twig') }}
+            {%~ elseif 'multipart/form-data' in method.consumes %}
+            {{~ include('dotnet/base/requests/file.twig') }}
+            {%~ else %}
+            {{~ include('dotnet/base/requests/api.twig')}}
+            {%~ endif %}
+        }
+
+    {%~ endfor %}
+    }
+}

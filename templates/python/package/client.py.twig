@@ -1,6 +1,7 @@
 import io
 import json
 import os
+import platform
 import requests
 from .input_file import InputFile
 from .exception import {{spec.title | caseUcfirst}}Exception
@@ -13,7 +14,7 @@ class Client:
         self._endpoint = '{{spec.endpoint}}'
         self._global_headers = {
             'content-type': '',
-            'user-agent' : '{{spec.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} (${os.uname().sysname}; ${os.uname().version}; ${os.uname().machine})',
+            'user-agent' : f'{{spec.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} ({platform.uname().system}; {platform.uname().version}; {platform.uname().machine})',
             'x-sdk-name': '{{ sdk.name }}',
             'x-sdk-platform': '{{ sdk.platform }}',
             'x-sdk-language': '{{ language.name | caseLower }}',
@@ -28,6 +29,9 @@ class Client:
         return self
 
     def set_endpoint(self, endpoint):
+        if not endpoint.startswith('http://') and not endpoint.startswith('https://'):
+            raise {{spec.title | caseUcfirst}}Exception('Invalid endpoint URL: ' + endpoint)
+
         self._endpoint = endpoint
         return self
 
@@ -57,7 +61,7 @@ class Client:
         data = {}
         files = {}
         stringify = False
-        
+
         headers = {**self._global_headers, **headers}
 
         if method != 'get':
@@ -91,6 +95,11 @@ class Client:
 
             response.raise_for_status()
 
+            warnings = response.headers.get('x-{{ spec.title | lower }}-warning')
+            if warnings:
+                for warning in warnings.split(';'):
+                    print(f'Warning: {warning}')
+
             content_type = response.headers['Content-Type']
 
             if response_type == 'location':
@@ -104,9 +113,9 @@ class Client:
             if response != None:
                 content_type = response.headers['Content-Type']
                 if content_type.startswith('application/json'):
-                    raise {{spec.title | caseUcfirst}}Exception(response.json()['message'], response.status_code, response.json().get('type'), response.json())
+                    raise {{spec.title | caseUcfirst}}Exception(response.json()['message'], response.status_code, response.json().get('type'), response.text)
                 else:
-                    raise {{spec.title | caseUcfirst}}Exception(response.text, response.status_code)
+                    raise {{spec.title | caseUcfirst}}Exception(response.text, response.status_code, None, response.text)
             else:
                 raise {{spec.title | caseUcfirst}}Exception(e)
 
@@ -143,12 +152,11 @@ class Client:
         offset = 0
         counter = 0
 
-        if upload_id != 'unique()':
-            try:
-                result = self.call('get', path + '/' + upload_id, headers)
-                counter = result['chunksUploaded']
-            except:
-                pass
+        try:
+            result = self.call('get', path + '/' + upload_id, headers)
+            counter = result['chunksUploaded']
+        except:
+            pass
 
         if counter > 0:
             offset = counter * self._chunk_size
@@ -161,7 +169,7 @@ class Client:
                 if offset + self._chunk_size < size:
                     end = offset + self._chunk_size
                 else:
-                    end = size - offset
+                    end = size
                 input_file.data = input[offset:end]
 
             params[param_name] = input_file
@@ -173,10 +181,10 @@ class Client:
                 headers,
                 params,
             )
-            
+
             offset = offset + self._chunk_size
-            
-            if "$id" in result: 
+
+            if "$id" in result:
                 headers["x-{{ spec.title | caseLower }}-id"] = result["$id"]
 
             if on_progress is not None:
@@ -202,7 +210,7 @@ class Client:
             finalKey = prefix + '[' + key +']' if prefix else key
             finalKey = prefix + '[' + str(i) +']' if isinstance(data, list) else finalKey
             i += 1
-            
+
             if isinstance(value, list) or isinstance(value, dict):
                 output = {**output, **self.flatten(value, finalKey, stringify)}
             else:
@@ -212,4 +220,3 @@ class Client:
                     output[finalKey] = value
 
         return output
-

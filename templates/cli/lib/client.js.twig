@@ -4,10 +4,11 @@ const { fetch, FormData, Agent } = require("undici");
 const JSONbig = require("json-bigint")({ storeAsString: false });
 const {{spec.title | caseUcfirst}}Exception = require("./exception.js");
 const { globalConfig } = require("./config.js");
+const chalk = require("chalk");
 
 class Client {
   CHUNK_SIZE = 5*1024*1024; // 5MB
-  
+
   constructor() {
     this.endpoint = '{{spec.endpoint}}';
     this.headers = {
@@ -78,8 +79,11 @@ class Client {
    * @return this
    */
   setEndpoint(endpoint) {
-    this.endpoint = endpoint;
+    if (!endpoint.startsWith('http://') && !endpoint.startsWith('https://')) {
+      throw new {{spec.title | caseUcfirst}}Exception('Invalid endpoint URL: ' + endpoint);
+    }
 
+    this.endpoint = endpoint;
     return this;
   }
 
@@ -117,7 +121,7 @@ class Client {
 
       body = formData;
     } else {
-      body = JSON.stringify(params);
+      body = JSONbig.stringify(params);
     }
 
     let response = undefined;
@@ -132,6 +136,11 @@ class Client {
             },
         }),
       });
+
+      const warnings = response.headers.get('x-{{ spec.title | lower }}-warning');
+      if (warnings) {
+          warnings.split(';').forEach((warning) => console.warn(warning));
+      }
     } catch (error) {
       throw new {{spec.title | caseUcfirst}}Exception(error.message);
     }
@@ -144,7 +153,15 @@ class Client {
       } catch (error) {
         throw new {{spec.title | caseUcfirst}}Exception(text, response.status, "", text);
       }
-      throw new {{spec.title | caseUcfirst}}Exception(json.message, json.code, json.type, json);
+
+      if (path !== '/account' && json.code === 401 && json.type === 'user_more_factors_required') {
+        console.log(`${chalk.cyan.bold("ℹ Info")} ${chalk.cyan("Unusable account found, removing...")}`);
+
+        const current = globalConfig.getCurrentSession();
+        globalConfig.setCurrentSession('');
+        globalConfig.removeSession(current);
+      }
+      throw new {{spec.title | caseUcfirst}}Exception(json.message, json.code, json.type, text);
     }
 
     if (responseType === "arraybuffer") {
@@ -154,13 +171,17 @@ class Client {
 
     let cookies = response.headers.getSetCookie();
     if (cookies && cookies.length > 0) {
-      globalConfig.setCookie(cookies[0]);
+      for (const cookie of cookies) {
+        if (cookie.startsWith('a_session_console=')) {
+          globalConfig.setCookie(cookie);
+        }
+      }
     }
 
     const text = await response.text();
     let json = undefined;
     try {
-      json = JSON.parse(text);
+      json = JSONbig.parse(text);
     } catch (error) {
       return text;
     }

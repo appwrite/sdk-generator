@@ -2,9 +2,10 @@ import 'package:http/http.dart' as http;
 import 'exception.dart';
 import 'response.dart';
 import 'dart:convert';
+import 'dart:developer';
 import 'enums.dart';
 
-class ClientMixin {
+mixin ClientMixin {
   http.BaseRequest prepareRequest(
     HttpMethod method, {
     required Uri uri,
@@ -61,12 +62,25 @@ class ClientMixin {
       (request as http.Request).body = jsonEncode(params);
     }
 
+    if (headers['User-Agent'] != null) {
+      headers['User-Agent'] = Uri.encodeFull(headers['User-Agent']!);
+    }
+    if (headers['X-Forwarded-User-Agent'] != null) {
+      headers['X-Forwarded-User-Agent'] = Uri.encodeFull(headers['X-Forwarded-User-Agent']!);
+    }
+
     request.headers.addAll(headers);
     return request;
   }
 
   Response prepareResponse(http.Response res, {ResponseType? responseType}) {
     responseType ??= ResponseType.json;
+
+    String? warnings = res.headers['x-{{ spec.title | lower }}-warning'];
+    if (warnings != null) {
+      warnings.split(';').forEach((warning) => log('Warning: $warning'));
+    }
+
     if (res.statusCode >= 400) {
       if ((res.headers['content-type'] ?? '').contains('application/json')) {
         final response = json.decode(res.body);
@@ -74,10 +88,10 @@ class ClientMixin {
           response['message'],
           response['code'],
           response['type'],
-          response,
+          res.body,
         );
       } else {
-        throw {{spec.title | caseUcfirst}}Exception(res.body);
+        throw {{spec.title | caseUcfirst}}Exception(res.body, res.statusCode, '', res.body);
       }
     }
     dynamic data;

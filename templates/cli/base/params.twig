@@ -11,30 +11,38 @@
     if (!fs.lstatSync(folderPath).isDirectory()) {
         throw new Error('The path is not a directory.');
     }
-    
+
     const ignorer = ignore();
 
-    const func = localConfig.getFunction(functionId);
+{% if service.name == 'sites' %}
+    const resourceId = siteId;
+    const resourceConfig = localConfig.getSite(resourceId);
+{% else %}
+    const resourceId = functionId;
+    const resourceConfig = localConfig.getFunction(resourceId);
+{% endif %}
 
-    if (func.ignore) {
-        ignorer.add(func.ignore);
-        log('Ignoring files using configuration from appwrite.json');
+    ignorer.add('.appwrite');
+
+    if (resourceConfig.ignore) {
+        ignorer.add(resourceConfig.ignore);
     } else if (fs.existsSync(pathLib.join({{ parameter.name | caseCamel | escapeKeyword }}, '.gitignore'))) {
         ignorer.add(fs.readFileSync(pathLib.join({{ parameter.name | caseCamel | escapeKeyword }}, '.gitignore')).toString());
-        log('Ignoring files in .gitignore');
     }
-    
+
     const files = getAllFiles({{ parameter.name | caseCamel | escapeKeyword }}).map((file) => pathLib.relative({{ parameter.name | caseCamel | escapeKeyword }}, file)).filter((file) => !ignorer.ignores(file));
+
+    const archiveFileName = `{{ service.name }}-${resourceId}-code.tar.gz`;
 
     await tar
         .create({
             gzip: true,
             sync: true,
             cwd: folderPath,
-            file: 'code.tar.gz'
+            file: archiveFileName
         }, files);
 
-    let archivePath = fs.realpathSync('code.tar.gz')
+    let archivePath = fs.realpathSync(archiveFileName)
     if (typeof archivePath !== 'undefined') {
         payload['{{ parameter.name }}'] = archivePath;
        {{ parameter.name | caseCamel | escapeKeyword }} = archivePath;
@@ -77,8 +85,10 @@
 {% endif %}
 {% endfor %}
 {% if method.type == 'location' %}
-    payload['project'] = localConfig.getProject().projectId
-    payload['key'] = globalConfig.getKey();
-    const queryParams = new URLSearchParams(payload);
-    apiPath = `${globalConfig.getEndpoint()}${apiPath}?${queryParams.toString()}`;
+    if (!overrideForCli) {
+        payload['project'] = localConfig.getProject().projectId
+        payload['key'] = globalConfig.getKey();
+        const queryParams = new URLSearchParams(payload);
+        apiPath = `${globalConfig.getEndpoint()}${apiPath}?${queryParams.toString()}`;
+    }
 {% endif %}

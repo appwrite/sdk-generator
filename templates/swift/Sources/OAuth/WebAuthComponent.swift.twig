@@ -2,23 +2,21 @@ import AsyncHTTPClient
 import Foundation
 import NIO
 
-#if canImport(SwiftUI)
-import SwiftUI
+#if canImport(AuthenticationServices)
+import AuthenticationServices
 #endif
 
 ///
 /// Used to authenticate with external OAuth2 providers. Launches browser windows and handles
 /// suspension until the user completes the process or otherwise returns to the app.
 ///
-@available(iOS 14.0, macOS 11.0, tvOS 14.0, watchOS 7.0, *)
+@available(iOS 14.0, macOS 11.0, tvOS 14.0, watchOS 7.0, visionOS 1.0, *)
 public class WebAuthComponent {
 
-#if canImport(SwiftUI)
-    @Environment(\.openURL)
-    private static var openURL
-#endif
-
     private static var callbacks = [String: (Result<String, {{ spec.title | caseUcfirst}}Error>) -> Void]()
+    #if canImport(AuthenticationServices)
+    private static var currentAuthSession: ASWebAuthenticationSession?
+    #endif
 
     ///
     /// Authenticate Session with OAuth2
@@ -41,9 +39,29 @@ public class WebAuthComponent {
     ) {
         callbacks[callbackScheme] = onComplete
 
-    #if canImport(SwiftUI)
-        openURL(url)
-    #endif
+        #if canImport(AuthenticationServices)
+        currentAuthSession = ASWebAuthenticationSession(
+                url: url,
+                callbackURLScheme: callbackScheme
+            ) { callbackURL, error in
+                if let error = error {
+                    cleanUp()
+                } else if let callbackURL = callbackURL {
+                    // handle cookies here itself!
+                    WebAuthComponent.handleIncomingCookie(from: callbackURL)
+                    cleanUp()
+                }
+            }
+
+        if let session = currentAuthSession {
+            /// Indicates that the session should be a private session.
+            session.prefersEphemeralWebBrowserSession = true
+            session.presentationContextProvider = PresentationContextProvider.shared
+            session.start()
+        } else {
+            print("Failed to create ASWebAuthenticationSession")
+        }
+        #endif
     }
 
     ///
@@ -53,17 +71,24 @@ public class WebAuthComponent {
     ///   - url: The URL containing the cookie
     ///
     public static func handleIncomingCookie(from url: URL) {
-        let components = URLComponents(string: url.absoluteString)!
 
-        let cookieParts = [String: String](uniqueKeysWithValues: components.queryItems!.map {
-            ($0.name, $0.value!)
+        guard let components = URLComponents(string: url.absoluteString),
+            let queryItems = components.queryItems else {
+            return
+        }
+        
+        let cookieParts = [String: String](uniqueKeysWithValues: queryItems.compactMap { item in
+            item.value.map { (item.name, $0) }
         })
 
-        var domain = cookieParts["domain"]!
+        guard var domain = cookieParts["domain"],
+              let key = cookieParts["key"],
+              let secret = cookieParts["secret"] else {
+            return
+        }
+    
         domain.remove(at: domain.startIndex)
 
-        let key: String = cookieParts["key"]!
-        let secret: String = cookieParts["secret"]!
         let path: String? = cookieParts["path"]
         let expires: String? = cookieParts["expires"]
         let maxAge: String? = cookieParts["maxAge"]
@@ -92,10 +117,7 @@ public class WebAuthComponent {
             cookie += "; secure"
         }
 
-        let existing = UserDefaults.standard.stringArray(forKey: domain)
-        let new = [cookie]
-
-        UserDefaults.standard.set(new, forKey: domain)
+        UserDefaults.standard.set([cookie], forKey: domain)
 
         WebAuthComponent.onCallback(
             scheme: components.scheme!,
@@ -126,5 +148,24 @@ public class WebAuthComponent {
         callbacks.forEach { (_, callback) in
             callback(.failure({{ spec.title | caseUcfirst}}Error(message: "User cancelled login.")))
         }
+
+        #if canImport(AuthenticationServices)
+        currentAuthSession = nil
+        #endif
     }
 }
+
+#if canImport(AuthenticationServices)
+/// Presentation context for the ASWebAuthenticationSession.
+class PresentationContextProvider: NSObject, ASWebAuthenticationPresentationContextProviding {
+    static let shared = PresentationContextProvider()
+
+    func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
+        if let mainWindow = OSApplication.shared.windows.first { $0.isKeyWindow } {
+            return mainWindow
+        }
+
+        return ASPresentationAnchor()
+    }
+}
+#endif

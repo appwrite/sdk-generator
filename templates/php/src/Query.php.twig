@@ -23,10 +23,10 @@ class Query implements \JsonSerializable
 
     public function __toString(): string
     {
-        return json_encode($this->jsonSerialize());
+        return json_encode($this);
     }
 
-    public function jsonSerialize()
+    public function jsonSerialize(): mixed
     {
         return array_filter([
             'method' => $this->method,
@@ -42,7 +42,7 @@ class Query implements \JsonSerializable
      * @param mixed $value
      * @return string
      */
-    public static function equal(string $attribute, $value): string
+    public static function equal(string $attribute, mixed $value): string
     {
         return (new Query('equal', $attribute, $value))->__toString();
     }
@@ -54,7 +54,7 @@ class Query implements \JsonSerializable
      * @param mixed $value
      * @return string
      */
-    public static function notEqual(string $attribute, $value): string
+    public static function notEqual(string $attribute, mixed $value): string
     {
         return (new Query('notEqual', $attribute, $value))->__toString();
     }
@@ -66,7 +66,7 @@ class Query implements \JsonSerializable
      * @param mixed $value
      * @return string
      */
-    public static function lessThan(string $attribute, $value): string
+    public static function lessThan(string $attribute, mixed $value): string
     {
         return (new Query('lessThan', $attribute, $value))->__toString();
     }
@@ -78,7 +78,7 @@ class Query implements \JsonSerializable
      * @param mixed $value
      * @return string
      */
-    public static function lessThanEqual(string $attribute, $value): string
+    public static function lessThanEqual(string $attribute, mixed $value): string
     {
         return (new Query('lessThanEqual', $attribute, $value))->__toString();
     }
@@ -90,7 +90,7 @@ class Query implements \JsonSerializable
      * @param mixed $value
      * @return string
      */
-    public static function greaterThan(string $attribute, $value): string
+    public static function greaterThan(string $attribute, mixed $value): string
     {
         return (new Query('greaterThan', $attribute, $value))->__toString();
     }
@@ -102,7 +102,7 @@ class Query implements \JsonSerializable
      * @param mixed $value
      * @return string
      */
-    public static function greaterThanEqual(string $attribute, $value): string
+    public static function greaterThanEqual(string $attribute, mixed $value): string
     {
         return (new Query('greaterThanEqual', $attribute, $value))->__toString();
     }
@@ -149,7 +149,7 @@ class Query implements \JsonSerializable
      * @param string|int|float $end
      * @return string
      */
-    public static function between(string $attribute, $start, $end): string
+    public static function between(string $attribute, mixed $start, mixed $end): string
     {
         return (new Query('between', $attribute, [$start, $end]))->__toString();
     }
@@ -259,10 +259,10 @@ class Query implements \JsonSerializable
      * Contains
      *
      * @param string $attribute
-     * @param string $value
+     * @param mixed $value
      * @return string
      */
-    public static function contains(string $attribute, string $value): string
+    public static function contains(string $attribute, $value): string
     {
         return (new Query('contains', $attribute, $value))->__toString();
     }

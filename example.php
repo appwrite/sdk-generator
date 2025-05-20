@@ -21,6 +21,7 @@ use Appwrite\SDK\Language\DotNet;
 use Appwrite\SDK\Language\Flutter;
 use Appwrite\SDK\Language\Android;
 use Appwrite\SDK\Language\Kotlin;
+use Appwrite\SDK\Language\ReactNative;
 
 try {
 
@@ -41,7 +42,7 @@ try {
      $platform = 'console';
     // $platform = 'server';
 
-    $spec = getSSLPage("https://raw.githubusercontent.com/appwrite/appwrite/feat-rc-sdks/app/config/specs/swagger2-latest-{$platform}.json");
+    $spec = getSSLPage("https://raw.githubusercontent.com/appwrite/appwrite/1.6.x/app/config/specs/swagger2-latest-{$platform}.json");
 
     if(empty($spec)) {
         throw new Exception('Failed to fetch spec from Appwrite server');
@@ -68,7 +69,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '1.5.0',
+            'X-Appwrite-Response-Format' => '1.6.0',
         ])
     ;
 
@@ -93,7 +94,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '1.5.0',
+            'X-Appwrite-Response-Format' => '1.6.0',
         ])
     ;
 
@@ -117,7 +118,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '1.5.0',
+            'X-Appwrite-Response-Format' => '1.6.0',
         ])
     ;
 
@@ -140,7 +141,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '1.5.0',
+            'X-Appwrite-Response-Format' => '1.6.0',
         ])
     ;
 
@@ -185,7 +186,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '0.15.0',
+            'X-Appwrite-Response-Format' => '1.7.0',
         ])
     ;
 
@@ -208,7 +209,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '1.5.0',
+            'X-Appwrite-Response-Format' => '1.6.0',
         ])
     ;
 
@@ -219,6 +220,7 @@ try {
 
     $sdk
         ->setName('NAME')
+        ->setVersion('7.2.0')
         ->setDescription('Repo description goes here')
         ->setShortDescription('Repo short description goes here')
         ->setURL('https://example.com')
@@ -231,7 +233,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '1.5.0',
+            'X-Appwrite-Response-Format' => '1.6.0',
         ])
     ;
 
@@ -259,7 +261,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '1.5.0',
+            'X-Appwrite-Response-Format' => '1.6.0',
         ])
     ;
 
@@ -286,11 +288,38 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '1.5.0',
+            'X-Appwrite-Response-Format' => '1.6.0',
         ])
     ;
 
     $sdk->generate(__DIR__ . '/examples/flutter');
+
+    // React Native
+    $reactNative = new ReactNative();
+    $reactNative->setNPMPackage('react-native-appwrite');
+    $sdk  = new SDK($reactNative, new Swagger2($spec));
+
+    $sdk
+        ->setName('NAME')
+        ->setDescription('Repo description goes here')
+        ->setShortDescription('Repo short description goes here')
+        ->setURL('https://example.com')
+        ->setLogo('https://appwrite.io/v1/images/console.png')
+        ->setLicenseContent('test test test')
+        ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
+        ->setChangelog('**CHANGELOG**')
+        ->setExamples('**EXAMPLES** <HTML>')
+        ->setVersion('0.0.1')
+        ->setGitUserName('repoowner')
+        ->setGitRepoName('reponame')
+        ->setTwitter('appwrite_io')
+        ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
+        ->setDefaultHeaders([
+            'X-Appwrite-Response-Format' => '1.6.0',
+        ])
+    ;
+
+    $sdk->generate(__DIR__ . '/examples/react-native');
 
     // GO
 
@@ -311,7 +340,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '1.5.0',
+            'X-Appwrite-Response-Format' => '1.6.0',
         ])
     ;
 
@@ -336,7 +365,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '1.5.0',
+            'X-Appwrite-Response-Format' => '1.6.0',
         ])
     ;
 
@@ -360,12 +389,12 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '1.5.0',
+            'X-Appwrite-Response-Format' => '1.6.0',
         ])
     ;
 
     $sdk->generate(__DIR__ . '/examples/apple');
-    
+
     // DotNet
     $sdk  = new SDK(new DotNet(), new Swagger2($spec));
 
@@ -384,7 +413,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '1.5.0',
+            'X-Appwrite-Response-Format' => '1.6.0',
         ])
     ;
 
@@ -414,7 +443,7 @@ try {
     // Android
 
     $sdk = new SDK(new Android(), new Swagger2($spec));
-    
+
     $sdk
         ->setName('Android')
         ->setNamespace('io appwrite')
@@ -438,7 +467,7 @@ try {
 
     // Kotlin
     $sdk = new SDK(new Kotlin(), new Swagger2($spec));
-    
+
     $sdk
         ->setName('Kotlin')
         ->setNamespace('io appwrite')

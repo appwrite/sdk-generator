@@ -81,8 +81,8 @@ class AccountsViewModel : ViewModel() {
                 account.createOAuth2Session(
                     activity,
                     OAuthProvider.FACEBOOK,
-                    "appwrite-callback-6070749e6acd4://demo.appwrite.io/auth/oauth2/success",
-                    "appwrite-callback-6070749e6acd4://demo.appwrite.io/auth/oauth2/failure"
+                    "appwrite-callback-6070749e6acd4://cloud.appwrite.io/auth/oauth2/success",
+                    "appwrite-callback-6070749e6acd4://cloud.appwrite.io/auth/oauth2/failure"
                 )
             } catch (e: Exception) {
                 _error.postValue(Event(e))

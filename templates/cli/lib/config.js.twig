@@ -4,6 +4,65 @@ const _path = require("path");
 const process = require("process");
 const JSONbig = require("json-bigint")({ storeAsString: false });
 
+const KeysVars = new Set(["key", "value"]);
+const KeysSite = new Set(["path", "$id", "name", "enabled", "logging", "timeout", "framework", "buildRuntime", "adapter", "installCommand", "buildCommand", "outputDirectory", "fallbackFile", "specification"]);
+const KeysFunction = new Set(["path", "$id", "execute", "name", "enabled", "logging", "runtime", "specification", "scopes", "events", "schedule", "timeout", "entrypoint", "commands", "vars"]);
+const KeysDatabase = new Set(["$id", "name", "enabled"]);
+const KeysCollection = new Set(["$id", "$permissions", "databaseId", "name", "enabled", "documentSecurity", "attributes", "indexes"]);
+const KeysStorage = new Set(["$id", "$permissions", "fileSecurity", "name", "enabled", "maximumFileSize", "allowedFileExtensions", "compression", "encryption", "antivirus"]);
+const KeysTopics = new Set(["$id", "name", "subscribe"]);
+const KeysTeams = new Set(["$id", "name"]);
+const KeysAttributes = new Set([
+    "key",
+    "type",
+    "required",
+    "array",
+    "size",
+    "default",
+    // integer and float
+    "min",
+    "max",
+    // email, enum, URL, IP, and datetime
+    "format",
+    // enum
+    "elements",
+    // relationship
+    "relatedCollection",
+    "relationType",
+    "twoWay",
+    "twoWayKey",
+    "onDelete",
+    "side",
+    // Indexes
+    "attributes",
+    "orders"
+]);
+const KeyIndexes = new Set(["key", "type", "status", "attributes", "orders"]);
+
+function whitelistKeys(value, keys, nestedKeys = {}) {
+    if (Array.isArray(value)) {
+        const newValue = [];
+
+        for (const item of value) {
+            newValue.push(whitelistKeys(item, keys, nestedKeys));
+        }
+
+        return newValue;
+    }
+
+    const newValue = {};
+    Object.keys(value).forEach((key) => {
+        if (keys.has(key)) {
+            if (nestedKeys[key]) {
+                newValue[key] = whitelistKeys(value[key], nestedKeys[key]);
+            } else {
+                newValue[key] = value[key];
+            }
+        }
+    });
+    return newValue;
+}
+
 class Config {
     constructor(path) {
         this.path = path;
@@ -65,10 +124,77 @@ class Config {
 
 class Local extends Config {
     static CONFIG_FILE_PATH = "{{ spec.title|caseLower }}.json";
+    configDirectoryPath = ""
 
     constructor(path = Local.CONFIG_FILE_PATH) {
-        let absolutePath = `${process.cwd()}/${path}`;
+        let currentPath = process.cwd();
+        let absolutePath = `${currentPath}/${path}`;
+
+        while (true) {
+            if (fs.existsSync(`${currentPath}/${path}`)) {
+                absolutePath = `${currentPath}/${path}`;
+                break
+            } else {
+                const parentDirectory = _path.dirname(currentPath);
+                if (parentDirectory === currentPath) { // we hit the top directory
+                    break;
+                }
+                currentPath = parentDirectory
+            }
+        }
         super(absolutePath);
+        this.configDirectoryPath =_path.dirname(absolutePath);
+    }
+
+    getDirname() {
+        return _path.dirname(this.path)
+    }
+
+    getSites() {
+        if (!this.has("sites")) {
+            return [];
+        }
+        return this.get("sites");
+    }
+
+    getSite($id) {
+        if (!this.has("sites")) {
+            return {};
+        }
+
+        let sites = this.get("sites");
+        for (let i = 0; i < sites.length; i++) {
+            if (sites[i]['$id'] == $id) {
+                return sites[i];
+            }
+        }
+
+        return {};
+    }
+
+    addSite(props) {
+        props = whitelistKeys(props, KeysSite, {
+            vars: KeysVars
+        });
+
+        if (!this.has("sites")) {
+            this.set("sites", []);
+        }
+
+        let sites = this.get("sites");
+        for (let i = 0; i < sites.length; i++) {
+            if (sites[i]['$id'] == props['$id']) {
+                sites[i] = {
+                    ...sites[i],
+                    ...props
+                };
+                this.set("sites", sites);
+                return;
+            }
+        }
+
+        sites.push(props);
+        this.set("sites", sites);
     }
 
     getFunctions() {
@@ -94,6 +220,10 @@ class Local extends Config {
     }
 
     addFunction(props) {
+        props = whitelistKeys(props, KeysFunction, {
+            vars: KeysVars
+        });
+
         if (!this.has("functions")) {
             this.set("functions", []);
         }
@@ -101,21 +231,6 @@ class Local extends Config {
         let functions = this.get("functions");
         for (let i = 0; i < functions.length; i++) {
             if (functions[i]['$id'] == props['$id']) {
-                return;
-            }
-        }
-        functions.push(props);
-        this.set("functions", functions);
-    }
-
-    updateFunction(id, props) {
-        if (!this.has("functions")) {
-            return;
-        }
-
-        let functions = this.get("functions");
-        for (let i = 0; i < functions.length; i++) {
-            if (functions[i]['$id'] == id) {
                 functions[i] = {
                     ...functions[i],
                     ...props
@@ -124,6 +239,9 @@ class Local extends Config {
                 return;
             }
         }
+
+        functions.push(props);
+        this.set("functions", functions);
     }
 
     getCollections() {
@@ -149,6 +267,11 @@ class Local extends Config {
     }
 
     addCollection(props) {
+        props = whitelistKeys(props, KeysCollection, {
+            attributes: KeysAttributes,
+            indexes: KeyIndexes
+        });
+
         if (!this.has("collections")) {
             this.set("collections", []);
         }
@@ -188,6 +311,8 @@ class Local extends Config {
     }
 
     addBucket(props) {
+        props = whitelistKeys(props, KeysStorage);
+
         if (!this.has("buckets")) {
             this.set("buckets", []);
         }
@@ -202,6 +327,47 @@ class Local extends Config {
         }
         buckets.push(props);
         this.set("buckets", buckets);
+    }
+
+    getMessagingTopics() {
+        if (!this.has("topics")) {
+            return [];
+        }
+        return this.get("topics");
+    }
+
+    getMessagingTopic($id) {
+        if (!this.has("topics")) {
+            return {};
+        }
+
+        let topic = this.get("topics");
+        for (let i = 0; i < topic.length; i++) {
+            if (topic[i]['$id'] == $id) {
+                return topic[i];
+            }
+        }
+
+        return {};
+    }
+
+    addMessagingTopic(props) {
+        props = whitelistKeys(props, KeysTopics);
+
+        if (!this.has("topics")) {
+            this.set("topics", []);
+        }
+
+        let topics = this.get("topics");
+        for (let i = 0; i < topics.length; i++) {
+            if (topics[i]['$id'] === props['$id']) {
+                topics[i] = props;
+                this.set("topics", topics);
+                return;
+            }
+        }
+        topics.push(props);
+        this.set("topics", topics);
     }
 
     getDatabases() {
@@ -227,6 +393,8 @@ class Local extends Config {
     }
 
     addDatabase(props) {
+        props = whitelistKeys(props, KeysDatabase);
+
         if (!this.has("databases")) {
             this.set("databases", []);
         }
@@ -266,6 +434,7 @@ class Local extends Config {
     }
 
     addTeam(props) {
+        props = whitelistKeys(props, KeysTeams);
         if (!this.has("teams")) {
             this.set("teams", []);
         }
@@ -283,32 +452,86 @@ class Local extends Config {
     }
 
     getProject() {
-        if (!this.has("projectId") || !this.has("projectName")) {
+        if (!this.has("projectId")) {
             return {};
         }
 
         return {
             projectId: this.get("projectId"),
             projectName: this.get("projectName"),
+            projectSettings: this.get('settings')
         };
     }
 
-    setProject(projectId, projectName) {
+    setProject(projectId, projectName = '', projectSettings = undefined) {
         this.set("projectId", projectId);
-        this.set("projectName", projectName);
+
+        if (projectName !== '') {
+            this.set("projectName", projectName);
+        }
+
+        if (projectSettings === undefined) {
+            return;
+        }
+
+        this.set('settings', this.createSettingsObject(projectSettings));
+    }
+
+    createSettingsObject(projectSettings) {
+        return {
+            services: {
+                account: projectSettings.serviceStatusForAccount,
+                avatars: projectSettings.serviceStatusForAvatars,
+                databases: projectSettings.serviceStatusForDatabases,
+                locale: projectSettings.serviceStatusForLocale,
+                health: projectSettings.serviceStatusForHealth,
+                storage: projectSettings.serviceStatusForStorage,
+                teams: projectSettings.serviceStatusForTeams,
+                users: projectSettings.serviceStatusForUsers,
+                sites: projectSettings.serviceStatusForSites,
+                functions: projectSettings.serviceStatusForFunctions,
+                graphql: projectSettings.serviceStatusForGraphql,
+                messaging: projectSettings.serviceStatusForMessaging,
+            },
+            auth: {
+                methods: {
+                    jwt: projectSettings.authJWT,
+                    phone: projectSettings.authPhone,
+                    invites: projectSettings.authInvites,
+                    anonymous: projectSettings.authAnonymous,
+                    "email-otp": projectSettings.authEmailOtp,
+                    "magic-url": projectSettings.authUsersAuthMagicURL,
+                    "email-password": projectSettings.authEmailPassword
+                },
+                security: {
+                    duration: projectSettings.authDuration,
+                    limit: projectSettings.authLimit,
+                    sessionsLimit: projectSettings.authSessionsLimit,
+                    passwordHistory: projectSettings.authPasswordHistory,
+                    passwordDictionary: projectSettings.authPasswordDictionary,
+                    personalDataCheck: projectSettings.authPersonalDataCheck,
+                    sessionAlerts: projectSettings.authSessionAlerts,
+                    mockNumbers: projectSettings.authMockNumbers
+                },
+            }
+        };
     }
 }
 
 class Global extends Config {
     static CONFIG_FILE_PATH = ".{{ spec.title|caseLower }}/prefs.json";
 
+    static PREFERENCE_CURRENT = "current";
     static PREFERENCE_ENDPOINT = "endpoint";
+    static PREFERENCE_EMAIL = "email";
     static PREFERENCE_SELF_SIGNED = "selfSigned";
     static PREFERENCE_COOKIE = "cookie";
     static PREFERENCE_PROJECT = "project";
     static PREFERENCE_KEY = "key";
     static PREFERENCE_LOCALE = "locale";
     static PREFERENCE_MODE = "mode";
+
+    static IGNORE_ATTRIBUTES = [Global.PREFERENCE_CURRENT, Global.PREFERENCE_SELF_SIGNED, Global.PREFERENCE_ENDPOINT, Global.PREFERENCE_COOKIE, Global.PREFERENCE_PROJECT, Global.PREFERENCE_KEY, Global.PREFERENCE_LOCALE, Global.PREFERENCE_MODE];
 
     static MODE_ADMIN = "admin";
     static MODE_DEFAULT = "default";
@@ -320,63 +543,153 @@ class Global extends Config {
         super(`${homeDir}/${path}`);
     }
 
-    getEndpoint() {
-        if (!this.has(Global.PREFERENCE_ENDPOINT)) {
+    getCurrentSession() {
+        if (!this.has(Global.PREFERENCE_CURRENT)) {
             return "";
         }
-        return this.get(Global.PREFERENCE_ENDPOINT);
+        return this.get(Global.PREFERENCE_CURRENT);
+    }
+
+    setCurrentSession(session) {
+        if (session !== undefined) {
+            this.set(Global.PREFERENCE_CURRENT, session);
+        }
+    }
+
+    getSessionIds() {
+        return Object.keys(this.data).filter((key) => !Global.IGNORE_ATTRIBUTES.includes(key));
+    }
+
+    getSessions() {
+        const sessions = Object.keys(this.data).filter((key) => !Global.IGNORE_ATTRIBUTES.includes(key))
+
+        return sessions.map((session) => {
+
+            return {
+                id: session,
+                endpoint: this.data[session][Global.PREFERENCE_ENDPOINT],
+                email: this.data[session][Global.PREFERENCE_EMAIL]
+            }
+        })
+    }
+
+    addSession(session, data) {
+        this.set(session, data);
+    }
+
+    removeSession(session) {
+        this.delete(session);
+    }
+
+    getEmail() {
+        if (!this.hasFrom(Global.PREFERENCE_EMAIL)) {
+            return "";
+        }
+
+        return this.getFrom(Global.PREFERENCE_EMAIL);
+    }
+
+    setEmail(email) {
+        this.setTo(Global.PREFERENCE_EMAIL, email);
+    }
+
+    getEndpoint() {
+        if (!this.hasFrom(Global.PREFERENCE_ENDPOINT)) {
+            return "";
+        }
+
+        return this.getFrom(Global.PREFERENCE_ENDPOINT);
     }
 
     setEndpoint(endpoint) {
-        this.set(Global.PREFERENCE_ENDPOINT, endpoint);
+        this.setTo(Global.PREFERENCE_ENDPOINT, endpoint);
     }
 
     getSelfSigned() {
-        if (!this.has(Global.PREFERENCE_SELF_SIGNED)) {
+        if (!this.hasFrom(Global.PREFERENCE_SELF_SIGNED)) {
             return false;
         }
-        return this.get(Global.PREFERENCE_SELF_SIGNED);
+        return this.getFrom(Global.PREFERENCE_SELF_SIGNED);
     }
 
     setSelfSigned(selfSigned) {
-        this.set(Global.PREFERENCE_SELF_SIGNED, selfSigned);
+        this.setTo(Global.PREFERENCE_SELF_SIGNED, selfSigned);
     }
 
     getCookie() {
-        if (!this.has(Global.PREFERENCE_COOKIE)) {
+        if (!this.hasFrom(Global.PREFERENCE_COOKIE)) {
             return "";
         }
-        return this.get(Global.PREFERENCE_COOKIE);
+        return this.getFrom(Global.PREFERENCE_COOKIE);
     }
 
     setCookie(cookie) {
-        this.set(Global.PREFERENCE_COOKIE, cookie);
+        this.setTo(Global.PREFERENCE_COOKIE, cookie);
     }
 
     getProject() {
-        if (!this.has(Global.PREFERENCE_PROJECT)) {
+        if (!this.hasFrom(Global.PREFERENCE_PROJECT)) {
             return "";
         }
-        return this.get(Global.PREFERENCE_PROJECT);
+        return this.getFrom(Global.PREFERENCE_PROJECT);
     }
 
     setProject(project) {
-        this.set(Global.PREFERENCE_PROJECT, project);
+        this.setTo(Global.PREFERENCE_PROJECT, project);
     }
 
     getKey() {
-        if (!this.has(Global.PREFERENCE_KEY)) {
+        if (!this.hasFrom(Global.PREFERENCE_KEY)) {
             return "";
         }
-        return this.get(Global.PREFERENCE_KEY);
+        return this.getFrom(Global.PREFERENCE_KEY);
     }
 
     setKey(key) {
-        this.set(Global.PREFERENCE_KEY, key);
+        this.setTo(Global.PREFERENCE_KEY, key);
+    }
+
+    hasFrom(key) {
+        const current = this.getCurrentSession();
+
+        if (current) {
+            const config = this.get(current) ?? {};
+
+            return config[key] !== undefined;
+        }
+    }
+
+    getFrom(key) {
+        const current = this.getCurrentSession();
+
+        if (current) {
+            const config = this.get(current) ?? {};
+
+            return config[key];
+        }
+    }
+
+    setTo(key, value) {
+        const current = this.getCurrentSession();
+
+        if (current) {
+            const config = this.get(current);
+
+            config[key] = value;
+            this.write();
+        }
     }
 }
 
 module.exports = {
     localConfig: new Local(),
     globalConfig: new Global(),
+    KeysAttributes,
+    KeysSite,
+    KeysFunction,
+    KeysTopics,
+    KeysStorage,
+    KeysTeams,
+    KeysCollection,
+    whitelistKeys
 };

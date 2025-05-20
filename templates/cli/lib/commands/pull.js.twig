@@ -1,0 +1,351 @@
+const fs = require("fs");
+const chalk = require('chalk');
+const tar = require("tar");
+const { Command } = require("commander");
+const inquirer = require("inquirer");
+const { messagingListTopics } = require("./messaging");
+const { teamsList } = require("./teams");
+const { projectsGet } = require("./projects");
+const { functionsList, functionsGetDeploymentDownload, functionsListDeployments } = require("./functions");
+const { databasesGet, databasesListCollections, databasesList } = require("./databases");
+const { storageListBuckets } = require("./storage");
+const { localConfig } = require("../config");
+const { paginate } = require("../paginate");
+const { questionsPullCollection, questionsPullFunctions, questionsPullFunctionsCode, questionsPullResources } = require("../questions");
+const { cliConfig, success, log, warn, actionRunner, commandDescriptions } = require("../parser");
+
+const pullResources = async () => {
+    const actions = {
+        settings: pullSettings,
+        functions: pullFunctions,
+        collections: pullCollection,
+        buckets: pullBucket,
+        teams: pullTeam,
+        messages: pullMessagingTopic
+    }
+
+    if (cliConfig.all) {
+        for (let action of Object.values(actions)) {
+            cliConfig.all = true;
+            await action({ returnOnZero: true });
+        }
+    } else {
+        const answers = await inquirer.prompt(questionsPullResources[0]);
+
+        const action = actions[answers.resource];
+        if (action !== undefined) {
+            await action({ returnOnZero: true });
+        }
+    }
+};
+
+const pullSettings = async () => {
+    log("Pulling project settings ...");
+
+    try {
+        let response = await projectsGet({
+            parseOutput: false,
+            projectId: localConfig.getProject().projectId
+        });
+
+        localConfig.setProject(response.$id, response.name, response);
+
+        success(`Successfully pulled ${chalk.bold('all')} project settings.`);
+    } catch (e) {
+        throw e;
+    }
+}
+
+const pullFunctions = async ({ code, withVariables }) => {
+    process.chdir(localConfig.configDirectoryPath)
+
+    log("Fetching functions ...");
+    let total = 0;
+
+    const fetchResponse = await functionsList({
+        queries: [JSON.stringify({ method: 'limit', values: [1] })],
+        parseOutput: false
+    });
+    if (fetchResponse["functions"].length <= 0) {
+        log("No functions found.");
+        success(`Successfully pulled ${chalk.bold(total)} functions.`);
+        return;
+    }
+
+    const functions = cliConfig.all
+        ? (await paginate(functionsList, { parseOutput: false }, 100, 'functions')).functions
+        : (await inquirer.prompt(questionsPullFunctions)).functions;
+
+    let allowCodePull = cliConfig.force === true ? true : null;
+
+    for (let func of functions) {
+        total++;
+        log(`Pulling function ${chalk.bold(func['name'])} ...`);
+
+        const localFunction = localConfig.getFunction(func.$id);
+
+        func['path'] = localFunction['path'];
+        if (!localFunction['path']) {
+            func['path'] = `functions/${func.name}`;
+        }
+        const holdingVars = func['vars'];
+        // We don't save var in to the config
+        delete func['vars'];
+        localConfig.addFunction(func);
+
+        if (!fs.existsSync(func['path'])) {
+            fs.mkdirSync(func['path'], { recursive: true });
+        }
+
+        if (code === false) {
+            warn("Source code download skipped.");
+            continue;
+        }
+
+        if (allowCodePull === null) {
+            const codeAnswer = await inquirer.prompt(questionsPullFunctionsCode);
+            allowCodePull = codeAnswer.override;
+        }
+
+        if (!allowCodePull) {
+            continue;
+        }
+
+        let deploymentId = null;
+
+        try {
+            const fetchResponse = await functionsListDeployments({
+                functionId: func['$id'],
+                queries: [
+                    JSON.stringify({ method: 'limit', values: [1] }),
+                    JSON.stringify({ method: 'orderDesc', values: ['$id'] })
+                ],
+                parseOutput: false
+            });
+
+            if (fetchResponse['total'] > 0) {
+                deploymentId = fetchResponse['deployments'][0]['$id'];
+            }
+
+        } catch {
+        }
+
+        if (deploymentId === null) {
+            log("Source code download skipped because function doesn't have any available deployment");
+            continue;
+        }
+
+        log("Pulling latest deployment code ...");
+
+        const compressedFileName = `${func['$id']}-${+new Date()}.tar.gz`
+        await functionsGetDeploymentDownload({
+            functionId: func['$id'],
+            deploymentId,
+            destination: compressedFileName,
+            overrideForCli: true,
+            parseOutput: false
+        });
+
+        tar.extract({
+            sync: true,
+            cwd: func['path'],
+            file: compressedFileName,
+            strict: false,
+        });
+
+        fs.rmSync(compressedFileName);
+
+        if (withVariables) {
+            const envFileLocation = `${func['path']}/.env`
+            try {
+                fs.rmSync(envFileLocation);
+            } catch {
+            }
+
+            fs.writeFileSync(envFileLocation, holdingVars.map(r => `${r.key}=${r.value}\n`).join(''))
+        }
+    }
+
+    success(`Successfully pulled ${chalk.bold(total)} functions.`);
+}
+
+const pullCollection = async () => {
+    log("Fetching collections ...");
+    let total = 0;
+
+    const fetchResponse = await databasesList({
+        queries: [JSON.stringify({ method: 'limit', values: [1] })],
+        parseOutput: false
+    });
+    if (fetchResponse["databases"].length <= 0) {
+        log("No collections found.");
+        success(`Successfully pulled ${chalk.bold(total)} collections.`);
+        return;
+    }
+
+    let databases = cliConfig.ids;
+
+    if (databases.length === 0) {
+        if (cliConfig.all) {
+            databases = (await paginate(databasesList, { parseOutput: false }, 100, 'databases')).databases.map(database => database.$id);
+        } else {
+            databases = (await inquirer.prompt(questionsPullCollection)).databases;
+        }
+    }
+
+    for (const databaseId of databases) {
+        const database = await databasesGet({
+            databaseId,
+            parseOutput: false
+        });
+
+        total++;
+        log(`Pulling all collections from ${chalk.bold(database['name'])} database ...`);
+
+        localConfig.addDatabase(database);
+
+        const { collections } = await paginate(databasesListCollections, {
+            databaseId,
+            parseOutput: false
+        }, 100, 'collections');
+
+        for (const collection of collections) {
+            localConfig.addCollection({
+                ...collection,
+                '$createdAt': undefined,
+                '$updatedAt': undefined
+            });
+        }
+    }
+
+    success(`Successfully pulled ${chalk.bold(total)} collections.`);
+}
+
+const pullBucket = async () => {
+    log("Fetching buckets ...");
+    let total = 0;
+
+    const fetchResponse = await storageListBuckets({
+        queries: [JSON.stringify({ method: 'limit', values: [1] })],
+        parseOutput: false
+    });
+    if (fetchResponse["buckets"].length <= 0) {
+        log("No buckets found.");
+        success(`Successfully pulled ${chalk.bold(total)} buckets.`);
+        return;
+    }
+
+    const { buckets } = await paginate(storageListBuckets, { parseOutput: false }, 100, 'buckets');
+
+    for (const bucket of buckets) {
+        total++;
+        log(`Pulling bucket ${chalk.bold(bucket['name'])} ...`);
+        localConfig.addBucket(bucket);
+    }
+
+    success(`Successfully pulled ${chalk.bold(total)} buckets.`);
+}
+
+const pullTeam = async () => {
+    log("Fetching teams ...");
+    let total = 0;
+
+    const fetchResponse = await teamsList({
+        queries: [JSON.stringify({ method: 'limit', values: [1] })],
+        parseOutput: false
+    });
+    if (fetchResponse["teams"].length <= 0) {
+        log("No teams found.");
+        success(`Successfully pulled ${chalk.bold(total)} teams.`);
+        return;
+    }
+
+    const { teams } = await paginate(teamsList, { parseOutput: false }, 100, 'teams');
+
+    for (const team of teams) {
+        total++;
+        log(`Pulling team ${chalk.bold(team['name'])} ...`);
+        localConfig.addTeam(team);
+    }
+
+    success(`Successfully pulled ${chalk.bold(total)} teams.`);
+}
+
+const pullMessagingTopic = async () => {
+    log("Fetching topics ...");
+    let total = 0;
+
+    const fetchResponse = await messagingListTopics({
+        queries: [JSON.stringify({ method: 'limit', values: [1] })],
+        parseOutput: false
+    });
+    if (fetchResponse["topics"].length <= 0) {
+        log("No topics found.");
+        success(`Successfully pulled ${chalk.bold(total)} topics.`);
+        return;
+    }
+
+    const { topics } = await paginate(messagingListTopics, { parseOutput: false }, 100, 'topics');
+
+    for (const topic of topics) {
+        total++;
+        log(`Pulling topic ${chalk.bold(topic['name'])} ...`);
+        localConfig.addMessagingTopic(topic);
+    }
+
+    success(`Successfully pulled ${chalk.bold(total)} topics.`);
+}
+
+const pull = new Command("pull")
+    .description(commandDescriptions['pull'])
+    .action(actionRunner(pullResources));
+
+pull
+    .command("all")
+    .description("Pull all resource.")
+    .action(actionRunner(() => {
+        cliConfig.all = true;
+        return pullResources();
+    }));
+
+pull
+    .command("settings")
+    .description("Pull your {{ spec.title|caseUcfirst }} project name, services and auth settings")
+    .action(actionRunner(pullSettings));
+
+pull
+    .command("function")
+    .alias("functions")
+    .description("Pull your {{ spec.title|caseUcfirst }} cloud function")
+    .option("--no-code", "Don't pull the function's code")
+    .option("--with-variables", `Pull function variables. ${chalk.red('recommend for testing purposes only')}`)
+    .action(actionRunner(pullFunctions))
+
+pull
+    .command("collection")
+    .alias("collections")
+    .description("Pull your {{ spec.title|caseUcfirst }} collections")
+    .action(actionRunner(pullCollection))
+
+pull
+    .command("bucket")
+    .alias("buckets")
+    .description("Pull your Appwrite buckets")
+    .action(actionRunner(pullBucket))
+
+pull
+    .command("team")
+    .alias("teams")
+    .description("Pull your Appwrite teams")
+    .action(actionRunner(pullTeam))
+
+pull
+    .command("topic")
+    .alias("topics")
+    .description("Pull your Appwrite messaging topics")
+    .action(actionRunner(pullMessagingTopic))
+
+module.exports = {
+    pull,
+    pullResources
+};
