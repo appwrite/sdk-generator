@@ -588,8 +588,11 @@ class Client {
         let options: RequestInit = {
             method,
             headers,
-            credentials: 'include',
         };
+
+        if (headers['X-Appwrite-Dev-Key'] === undefined) {
+            options.credentials = 'include';
+        }
 
         if (method === 'GET') {
             for (const [key, value] of Object.entries(Client.flatten(params))) {
