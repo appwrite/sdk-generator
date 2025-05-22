@@ -70,7 +70,7 @@ namespace {{ spec.title | caseUcfirst }}.Models
                 {%~ endif %}
             {%~ endfor %}
             {%- if definition.additionalProperties %}
-                , data: map
+            data: map
             {%- endif ~%}
         );
 

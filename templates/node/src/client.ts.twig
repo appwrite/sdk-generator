@@ -96,8 +96,11 @@ class Client {
      * @returns {this}
      */
     setEndpoint(endpoint: string): this {
-        this.config.endpoint = endpoint;
+        if (!endpoint.startsWith('http://') && !endpoint.startsWith('https://')) {
+            throw new {{spec.title | caseUcfirst}}Exception('Invalid endpoint URL: ' + endpoint);
+        }
 
+        this.config.endpoint = endpoint;
         return this;
     }
 
@@ -200,6 +203,10 @@ class Client {
     async chunkedUpload(method: string, url: URL, headers: Headers = {}, originalPayload: Payload = {}, onProgress: (progress: UploadProgress) => void) {
         const file = Object.values(originalPayload).find((value) => value instanceof File);
 
+        if (!file) {
+            throw new Error('File not found in payload');
+        }
+
         if (file.size <= Client.CHUNK_SIZE) {
             return await this.call(method, url, headers, originalPayload);
         }
@@ -282,7 +289,13 @@ class Client {
         }
 
         if (400 <= response.status) {
-            throw new {{spec.title | caseUcfirst}}Exception(data?.message, response.status, data?.type, data);
+            let responseText = '';
+            if (response.headers.get('content-type')?.includes('application/json') || responseType === 'arrayBuffer') {
+                responseText = JSON.stringify(data);
+            } else {
+                responseText = data?.message;
+            }
+            throw new {{spec.title | caseUcfirst}}Exception(data?.message, response.status, data?.type, responseText);
         }
 
         return data;

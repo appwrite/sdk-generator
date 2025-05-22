@@ -46,8 +46,11 @@ export class Client {
      * @return this
      */
     setEndpoint(endpoint: string): this {
-        this.endpoint = endpoint;
+        if (!endpoint.startsWith('http://') && !endpoint.startsWith('https://')) {
+            throw new {{spec.title | caseUcfirst}}Exception('Invalid endpoint URL: ' + endpoint);
+        }
 
+        this.endpoint = endpoint;
         return this;
     }
 
@@ -113,7 +116,7 @@ export class Client {
             } catch (error) {
                 throw new {{spec.title | caseUcfirst}}Exception(text, response.status, "", text);
             }
-            throw new {{spec.title | caseUcfirst}}Exception(json.message, json.code, json.type, json);
+            throw new {{spec.title | caseUcfirst}}Exception(json.message, json.code, json.type, text);
         }
 
         if (responseType === "arraybuffer") {

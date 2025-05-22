@@ -91,6 +91,7 @@ namespace AppwriteTests
             catch (AppwriteException e)
             {
                 TestContext.WriteLine(e.Message);
+                TestContext.WriteLine(e.Response);
             }
 
             try
@@ -100,11 +101,22 @@ namespace AppwriteTests
             catch (AppwriteException e)
             {
                 TestContext.WriteLine(e.Message);
+                TestContext.WriteLine(e.Response);
             }
 
             try
             {
                 await general.Error502();
+            }
+            catch (AppwriteException e)
+            {
+                TestContext.WriteLine(e.Message);
+                TestContext.WriteLine(e.Response);
+            }
+
+            try
+            {
+                client.SetEndpoint("htp://cloud.appwrite.io/v1");
             }
             catch (AppwriteException e)
             {

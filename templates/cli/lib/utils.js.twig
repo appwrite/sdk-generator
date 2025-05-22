@@ -9,7 +9,13 @@ function getAllFiles(folder) {
     const files = [];
     for (const pathDir of fs.readdirSync(folder)) {
         const pathAbsolute = path.join(folder, pathDir);
-        if (fs.statSync(pathAbsolute).isDirectory()) {
+        let stats;
+        try {
+            stats = fs.statSync(pathAbsolute);
+        } catch (error) {
+            continue;
+        }
+        if (stats.isDirectory()) {
             files.push(...getAllFiles(pathAbsolute));
         } else {
             files.push(pathAbsolute);

@@ -5,7 +5,7 @@ const fs = require('fs');
 
 const client = new sdk.Client()
     {%~ if method.auth|length > 0 %}
-    .setEndpoint('https://cloud.appwrite.io/v1') // Your API Endpoint
+    .setEndpoint('{{ spec.endpointDocs | raw }}') // Your API Endpoint
     {%~ for node in method.auth %}
     {%~ for key,header in node|keys %}
     .set{{header}}('{{node[header]['x-appwrite']['demo'] | raw }}'){% if loop.last %};{% endif%} // {{node[header].description}}

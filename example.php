@@ -187,7 +187,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '1.6.0',
+            'X-Appwrite-Response-Format' => '1.7.0',
         ])
     ;
 
@@ -221,6 +221,7 @@ try {
 
     $sdk
         ->setName('NAME')
+        ->setVersion('7.2.0')
         ->setDescription('Repo description goes here')
         ->setShortDescription('Repo short description goes here')
         ->setURL('https://example.com')

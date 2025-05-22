@@ -1,10 +1,10 @@
-import '../lib/packageName.dart';
-import '../lib/models.dart';
-import '../lib/enums.dart';
-import '../lib/src/input_file.dart';
-
-import 'dart:io';
 import 'dart:convert';
+import 'dart:io';
+
+import '../lib/enums.dart';
+import '../lib/models.dart';
+import '../lib/packageName.dart';
+import '../lib/src/input_file.dart';
 
 void main() async {
   Client client = Client().setSelfSigned();
@@ -92,25 +92,28 @@ void main() async {
     await general.error400();
   } on AppwriteException catch (e) {
     print(e.message);
+    print(e.response);
   }
 
   try {
     await general.error500();
   } on AppwriteException catch (e) {
     print(e.message);
+    print(e.response);
   }
 
   try {
     await general.error502();
   } on AppwriteException catch (e) {
     print(e.message);
+    print(e.response);
   }
 
-  // response = await general.setCookie();
-  // print(response.result);
-
-  // response = await general.getCookie();
-  // print(response.result);
+  try {
+    client.setEndpoint("htp://cloud.appwrite.io/v1");
+  } on AppwriteException catch (e) {
+    print(e.message);
+  }
 
   await general.empty();
 

@@ -93,16 +93,25 @@ try {
     $response = $general->error400();
 } catch (AppwriteException $e) {
     echo "{$e->getMessage()}\n";
+    echo "{$e->getResponse()}\n";
 }
 
 try {
     $response = $general->error500();
 } catch (AppwriteException $e) {
     echo "{$e->getMessage()}\n";
+    echo "{$e->getResponse()}\n";
 }
 
 try {
     $response = $general->error502();
+} catch (AppwriteException $e) {
+    echo "{$e->getMessage()}\n";
+    echo "{$e->getResponse()}\n";
+}
+
+try {
+    $client->setEndpoint("htp://cloud.appwrite.io/v1");
 } catch (AppwriteException $e) {
     echo "{$e->getMessage()}\n";
 }

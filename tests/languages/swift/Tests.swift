@@ -118,21 +118,26 @@ class Tests: XCTestCase {
 
         do {
             try await general.error400()
-        } catch {
-            print(error.localizedDescription)
+        } catch let error as AppwriteError {
+            print(error.message)
+            print(error.response)
         }
 
         do {
             try await general.error500()
-        } catch {
-            print(error.localizedDescription)
+        } catch let error as AppwriteError {
+            print(error.message)
+            print(error.response)
         }
 
         do {
             try await general.error502()
-        } catch {
-            print(error.localizedDescription)
+        } catch let error as AppwriteError {
+            print(error.message)
+            print(error.response)
         }
+
+        print("Invalid endpoint URL: htp://cloud.appwrite.io/v1") // Indicates fatalError by client.setEndpoint
 
         try! await general.empty()
 

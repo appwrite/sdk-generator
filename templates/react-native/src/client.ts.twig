@@ -129,8 +129,12 @@ class Client {
      * @returns {this}
      */
     setEndpoint(endpoint: string): this {
+        if (!endpoint.startsWith('http://') && !endpoint.startsWith('https://')) {
+            throw new {{spec.title | caseUcfirst}}Exception('Invalid endpoint URL: ' + endpoint);
+        }
+
         this.config.endpoint = endpoint;
-        this.config.endpointRealtime = this.config.endpointRealtime || this.config.endpoint.replace('https://', 'wss://').replace('http://', 'ws://');
+        this.config.endpointRealtime = endpoint.replace('https://', 'wss://').replace('http://', 'ws://');
 
         return this;
     }
@@ -143,8 +147,11 @@ class Client {
      * @returns {this}
      */
     setEndpointRealtime(endpointRealtime: string): this {
-        this.config.endpointRealtime = endpointRealtime;
+        if (!endpointRealtime.startsWith('ws://') && !endpointRealtime.startsWith('wss://')) {
+            throw new {{spec.title | caseUcfirst}}Exception('Invalid realtime endpoint URL: ' + endpointRealtime);
+        }
 
+        this.config.endpointRealtime = endpointRealtime;
         return this;
     }
 
@@ -380,8 +387,11 @@ class Client {
         let options: RequestInit = {
             method,
             headers,
-            credentials: 'include'
         };
+
+        if (headers['X-Appwrite-Dev-Key'] === undefined) {
+            options.credentials = 'include';
+        }
 
         if (method === 'GET') {
             for (const [key, value] of Object.entries(Service.flatten(params))) {
@@ -414,6 +424,7 @@ class Client {
 
         try {
             let data = null;
+
             const response = await fetch(url.toString(), options);
 
             const warnings = response.headers.get('x-{{ spec.title | lower }}-warning');
@@ -430,7 +441,13 @@ class Client {
             }
 
             if (400 <= response.status) {
-                throw new {{spec.title | caseUcfirst}}Exception(data?.message, response.status, data?.type, data);
+                let responseText = '';
+                if (response.headers.get('content-type')?.includes('application/json')) {
+                    responseText = JSON.stringify(data);
+                } else {
+                    responseText = data?.message;
+                }
+                throw new {{spec.title | caseUcfirst}}Exception(data?.message, response.status, data?.type, responseText);
             }
 
             const cookieFallback = response.headers.get('X-Fallback-Cookies');

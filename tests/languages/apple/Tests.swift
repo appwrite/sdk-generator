@@ -32,7 +32,7 @@ class Tests: XCTestCase {
 
         // reset configs
         client.setProject("console")
-            .setEndpointRealtime("ws://cloud.appwrite.io/v1")
+        client.setEndpointRealtime("ws://cloud.appwrite.io/v1")
 
         let foo = Foo(client)
         let bar = Bar(client)
@@ -128,21 +128,26 @@ class Tests: XCTestCase {
 
         do {
             try await general.error400()
-        } catch {
-            print(error.localizedDescription)
+        } catch let error as AppwriteError {
+            print(error.message)
+            print(error.response)
         }
 
         do {
             try await general.error500()
-        } catch {
-            print(error.localizedDescription)
+        } catch let error as AppwriteError {
+            print(error.message)
+            print(error.response)
         }
 
         do {
             try await general.error502()
-        } catch {
-            print(error.localizedDescription)
+        } catch let error as AppwriteError {
+            print(error.message)
+            print(error.response)
         }
+
+        print("Invalid endpoint URL: htp://cloud.appwrite.io/v1") // Indicates fatalError by client.setEndpoint
 
         wait(for: [expectation], timeout: 10.0)
         print(realtimeResponse)

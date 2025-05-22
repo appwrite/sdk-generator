@@ -118,16 +118,25 @@ async function start() {
     response = await general.error400();
   } catch (error) {
     console.log(error.message);
+    console.log(error.response);
   }
 
   try {
     response = await general.error500();
   } catch (error) {
     console.log(error.message);
+    console.log(error.response);
   }
 
   try {
     response = await general.error502();
+  } catch (error) {
+    console.log(error.message);
+    console.log(error.response);
+  }
+
+  try {
+    client.setEndpoint("htp://cloud.appwrite.io/v1");
   } catch (error) {
     console.log(error.message);
   }
