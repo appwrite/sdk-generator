@@ -1,0 +1,57 @@
+/** @typedef {import('../attribute').Attribute} Attribute */
+const { AttributeType } = require('../attribute');
+const { LanguageMeta } = require("./language");
+
+class PHP extends LanguageMeta {
+  getType(attribute) {
+    if (attribute.array) {
+      return "array";
+    }
+    let type = ""
+    switch (attribute.type) {
+      case AttributeType.STRING:
+      case AttributeType.EMAIL:
+      case AttributeType.DATETIME:
+      case AttributeType.ENUM:
+        type = "string";
+        break;
+      case AttributeType.INTEGER:
+        type = "int";
+        break;
+      case AttributeType.FLOAT:
+        type = "float";
+        break;
+      case AttributeType.BOOLEAN:
+        type = "bool";
+        break;
+      case AttributeType.RELATIONSHIP:
+        type = "mixed";
+        break;
+      default:
+        throw new Error(`Unknown attribute type: ${attribute.type}`);
+    }
+    if (attribute.required) {
+      type += "|null";
+    }
+    return type;
+  }
+
+  getTemplate() {
+    return `<?php
+namespace Appwrite\\Models;
+
+use Appwrite\\Models\\Document;
+
+class <%- toPascalCase(collection.name) %> extends Document {
+<% for (const attribute of collection.attributes ){ -%>
+  public <%- getType(attribute) %> $<%- toCamelCase(attribute.key) %>;
+<% } -%>
+}`;
+  }
+
+  getFileName(collection) {
+    return LanguageMeta.toPascalCase(collection.name) + ".php";
+  }
+}
+
+module.exports = { PHP };

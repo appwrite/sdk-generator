@@ -1,0 +1,60 @@
+/** @typedef {import('../attribute').Attribute} Attribute */
+const { AttributeType } = require('../attribute');
+const { LanguageMeta } = require("./language");
+
+class Swift extends LanguageMeta {
+  getType(attribute) {
+    let type = "";
+    switch (attribute.type) {
+      case AttributeType.STRING:
+      case AttributeType.EMAIL:
+      case AttributeType.DATETIME:
+      case AttributeType.ENUM:
+        type = "String";
+        break;
+      case AttributeType.INTEGER:
+        type = "Int";
+        break;
+      case AttributeType.FLOAT:
+        type = "Double";
+        break;
+      case AttributeType.BOOLEAN:
+        type = "Bool";
+        break;
+      case AttributeType.RELATIONSHIP:
+        return "Map<String, Any>";
+        break;
+      default:
+        throw new Error(`Unknown attribute type: ${attribute.type}`);
+    }
+    if (attribute.array) {
+      type = "[" + type + "]";
+    }
+    if (attribute.required) {
+      type += "?";
+    }
+    return type;
+  }
+
+  getTemplate() {
+    return `import Foundation
+import Codable
+
+public class <%- toPascalCase(collection.name) %>: Codable {
+<% for (const attribute of collection.attributes) { -%>
+    public var <%- toCamelCase(attribute.key) %>: <%- getType(attribute) %>
+<% } %>
+    enum CodingKeys: String, CodingKey {
+<% for (const attribute of collection.attributes) { -%>
+        case <%- toCamelCase(attribute.key) %>
+<% } -%>
+    }
+}`;
+  }
+
+  getFileName(collection) {
+    return LanguageMeta.toPascalCase(collection.name) + ".swift";
+  }
+}
+
+module.exports = { Swift };
