@@ -9,6 +9,10 @@ import AsyncHTTPClient
 let DASHDASH = "--"
 let CRLF = "\r\n"
 
+extension CharacterSet {
+    static let rfc3986Unreserved = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~")
+}
+
 open class Client {
 
     // MARK: Properties
@@ -214,7 +218,7 @@ open class Client {
        }
 
        return output.addingPercentEncoding(
-           withAllowedCharacters: .urlHostAllowed
+           withAllowedCharacters: .rfc3986Unreserved
        ) ?? ""
    }
 
