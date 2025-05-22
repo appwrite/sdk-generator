@@ -31,7 +31,7 @@ fun createHttpClient(selfSigned: Boolean, dataStoreCookieStorage: DataStoreCooki
         socketTimeoutMillis = 30000
     }
     install(ContentNegotiation) {
-        json(io.appwrite.extensions.json)
+        json({{ spec.namespace | caseDot }}.extensions.json)
     }
 
     if (selfSigned) {

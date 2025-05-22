@@ -6,10 +6,10 @@ plugins {
 }
 
 android {
-    namespace = "io.appwrite.android"
+    namespace = "{{ spec.namespace | caseDot }}.android"
     compileSdk = 35
     defaultConfig {
-        applicationId = "io.appwrite.android"
+        applicationId = "{{ spec.namespace | caseDot }}.android"
         minSdk = 21
         targetSdk = 35
         versionCode = 1

@@ -525,7 +525,12 @@ class KMP extends Kotlin
             [
                 'scope'         => 'default',
                 'destination'   => 'androidApp/src/main/AndroidManifest.xml',
-                'template'      => '/kmp/androidApp/src/main/AndroidManifest.xml',
+                'template'      => '/kmp/androidApp/src/main/AndroidManifest.xml.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'androidApp/build.gradle.kts',
+                'template'      => '/kmp/androidApp/build.gradle.kts.twig',
             ],
 
 // Java files
