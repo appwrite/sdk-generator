@@ -426,8 +426,8 @@ class Kotlin extends Language
     public function getFilters(): array
     {
         return [
-            new TwigFilter('returnType', function (array $method, array $spec, string $namespace, string $generic = 'T') {
-                return $this->getReturnType($method, $spec, $namespace, $generic);
+            new TwigFilter('returnType', function (array $method, array $spec, string $namespace, string $generic = 'T', bool $withGeneric = true) {
+                return $this->getReturnType($method, $spec, $namespace, $generic, $withGeneric);
             }),
             new TwigFilter('modelType', function (array $property, array $spec, string $generic = 'T') {
                 return $this->getModelType($property, $spec, $generic);
@@ -447,7 +447,7 @@ class Kotlin extends Language
         ];
     }
 
-    protected function getReturnType(array $method, array $spec, string $namespace, string $generic = 'T'): string
+    protected function getReturnType(array $method, array $spec, string $namespace, string $generic = 'T', bool $withGeneric = true): string
     {
         if ($method['type'] === 'webAuth') {
             return 'String';
@@ -466,7 +466,7 @@ class Kotlin extends Language
 
         $ret = $this->toPascalCase($method['responseModel']);
 
-        if ($this->hasGenericType($method['responseModel'], $spec)) {
+        if ($this->hasGenericType($method['responseModel'], $spec) && $withGeneric) {
             $ret .= '<' . $generic . '>';
         }
 

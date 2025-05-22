@@ -1,0 +1,37 @@
+package {{ sdk.namespace | caseDot }}.android.services
+
+import com.google.firebase.messaging.FirebaseMessagingService
+import {{ sdk.namespace | caseDot }}.ID
+import {{ sdk.namespace | caseDot }}.services.Account
+import kotlinx.coroutines.runBlocking
+
+class MessagingService : FirebaseMessagingService() {
+
+    companion object {
+        var account: Account? = null
+    }
+
+    override fun onNewToken(token: String) {
+        super.onNewToken(token)
+
+        val prefs = getSharedPreferences("example", MODE_PRIVATE)
+
+        prefs.edit().putString("fcmToken", token).apply()
+
+        if (account == null) {
+            return
+        }
+
+        val targetId = prefs.getString("targetId", null)
+
+        runBlocking {
+            if (targetId == null) {
+                val target = account!!.createPushTarget(ID.unique(), token)
+
+                prefs.edit().putString("targetId", target.id).apply()
+            } else {
+                account!!.updatePushTarget(targetId, token)
+            }
+        }
+    }
+}

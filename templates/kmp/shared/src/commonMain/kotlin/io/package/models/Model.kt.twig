@@ -1,0 +1,112 @@
+package {{ sdk.namespace | caseDot }}.models
+
+import {{ sdk.namespace | caseDot }}.extensions.jsonCast
+import {{ sdk.namespace | caseDot }}.extensions.json
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.Contextual
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.descriptors.buildClassSerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.encodeToJsonElement
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
+
+/**
+ * {{ definition.description }}
+ */
+@Serializable{% if definition.additionalProperties %}(with = {{ definition.name | caseUcfirst }}Serializer::class){% endif %}
+
+{% if definition.properties | length != 0 or definition.additionalProperties %}data {% endif %}class {{ definition | modelType(spec) | raw }}(
+    {%~ if definition.properties is defined %}
+    {%~ for property in definition.properties %}
+    /**
+     * {{ property.description }}
+     */
+    @SerialName("{{ property.name | escapeKeyword | escapeDollarSign}}")
+    {%~ if property.type == 'object' %}
+    @Contextual
+    {%~ endif %}
+    {% if property.required -%} val
+    {%- else -%} var
+    {%- endif %} {{ property.name | escapeKeyword | removeDollarSign }}: {{ property | propertyType(spec, 'T', true) | raw }},
+
+    {%~ endfor %}
+    {%~ endif %}
+    {%~ if definition.additionalProperties %}
+    /**
+     * Additional properties
+     */
+    @SerialName("data")
+    val data: T
+    {%~ endif %}
+)
+
+{%~ if definition.additionalProperties %}
+class {{ definition.name | caseUcfirst }}Serializer<T>(private val dataSerializer: KSerializer<T>): KSerializer<{{ definition | modelType(spec) | raw }}> {
+    override val descriptor: SerialDescriptor = buildClassSerialDescriptor("Document") {
+        {%~ for property in definition.properties %}
+        element("{{ property.name | escapeKeyword | escapeDollarSign}}", {{ property | propertySerializerName}}.descriptor)
+        {%~ endfor %}
+        element("data", dataSerializer.descriptor)
+    }
+
+    override fun deserialize(decoder: Decoder): {{ definition | modelType(spec) | raw }} {
+        val jsonObject = decoder.decodeSerializableValue(JsonObject.serializer())
+
+        // Extract system fields ($ prefixed)
+        {%~ for property in definition.properties %}
+        val {{ property.name | escapeKeyword | removeDollarSign }} = jsonObject["{{ property.name | escapeKeyword | escapeDollarSign }}"]{% if property.type == 'array' %}?.jsonArray?.map { it.jsonPrimitive.content } ?: listOf(){% else %}?.jsonPrimitive?.content ?: ""{% endif %}
+
+        {%~ endfor %}
+
+        // Create data object from remaining fields
+        val dataObject = buildJsonObject {
+            jsonObject.forEach { (key, value) ->
+                if (key.startsWith("$")) {
+                    // Remove $ prefix for system fields
+                    put(key.substring(1), value)
+                } else {
+                    put(key, value)
+                }
+            }
+        }
+
+        return {{ definition.name | caseUcfirst }}(
+            {%~ for property in definition.properties %}
+            {{ property.name | escapeKeyword | removeDollarSign }} = {{ property.name | escapeKeyword | removeDollarSign }},
+            {%~ endfor %}
+            data = json.decodeFromJsonElement(dataSerializer, dataObject)
+        )
+    }
+
+    override fun serialize(encoder: Encoder, value: {{ definition | modelType(spec) | raw }}) {
+        val combined = buildJsonObject {
+            {%~ for property in definition.properties %}
+            put("{{ property.name | escapeKeyword | escapeDollarSign}}", {% if property.type == 'array' -%}
+            json.encodeToJsonElement(value.{{ property.name | escapeKeyword | removeDollarSign }}))
+            {%- else -%}
+            value.{{ property.name | escapeKeyword | removeDollarSign }})
+            {%- endif %}
+
+            {%~ endfor %}
+            val jsonValues = json.encodeToJsonElement(dataSerializer, value.data).jsonObject
+
+            // Add all data fields to root
+            jsonValues.forEach { (key, value) ->
+                put(key, value)
+            }
+        }
+
+        return encoder.encodeSerializableValue(JsonObject.serializer(), combined)
+    }
+}
+{%~ endif %}

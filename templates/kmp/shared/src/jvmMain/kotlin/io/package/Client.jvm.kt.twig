@@ -1,0 +1,46 @@
+package {{ sdk.namespace | caseDot }}
+
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import java.util.Properties
+
+actual class Client(
+    endpoint: String = "{{spec.endpoint}}",
+    endpointRealtime: String? = null,
+    selfSigned: Boolean = false,
+) : BaseClient<Client>(endpoint, endpointRealtime) {
+    actual override val coroutineContext = Job() + Dispatchers.Default
+
+    private val appVersion by lazy {
+        try {
+            val properties = Properties()
+            properties.load(this.javaClass.getResourceAsStream("/version.properties"))
+            return@lazy properties.getProperty("version", "unknown")
+        } catch (e: Exception) {
+            e.printStackTrace()
+            return@lazy "unknown"
+        }
+    }
+
+    init {
+        httpClient = createHttpClient(selfSigned)
+        headers = mutableMapOf(
+            "content-type" to "application/json",
+            "origin" to "{{ spec.title | caseLower }}-jvm://app",
+            "user-agent" to "JVM/$appVersion, ${System.getProperty("java.version")}",
+            "x-sdk-name" to "{{ sdk.name }}",
+            "x-sdk-platform" to "{{ sdk.platform }}",
+            "x-sdk-language" to "{{ language.name | caseLower }}",
+            "x-sdk-version" to "{{ sdk.version }}"{% if spec.global.defaultHeaders | length > 0 %},{% endif %}
+
+            {% for key,header in spec.global.defaultHeaders %}
+            "{{ key | caseLower }}" to "{{ header }}"{% if not loop.last %},{% endif %}
+            {% endfor %}
+          )
+    }
+
+    actual fun setSelfSigned(value: Boolean): Client {
+        httpClient = createHttpClient(value)
+        return this
+    }
+}
