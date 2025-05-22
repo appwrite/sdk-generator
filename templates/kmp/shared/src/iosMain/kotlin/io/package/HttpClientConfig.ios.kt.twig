@@ -43,7 +43,6 @@ fun createHttpClient(selfSigned: Boolean, iosCookieStorage: IosCookieStorage) = 
                 val disposition = NSURLSessionAuthChallengeUseCredential
                 val credential =
                     NSURLCredential.credentialForTrust(challenge.protectionSpace.serverTrust!!)
-                println("Challenge response: $disposition")
                 completionHandler(disposition.convert(), credential)
             }
         }
@@ -52,7 +51,6 @@ fun createHttpClient(selfSigned: Boolean, iosCookieStorage: IosCookieStorage) = 
             // Use default SSL configuration for secure connections
             handleChallenge { session, task, challenge, completionHandler ->
                 val disposition = NSURLSessionAuthChallengePerformDefaultHandling
-                println("Challenge response: $disposition")
                 completionHandler(disposition.convert(), null)
             }
         }

@@ -9,6 +9,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.builtins.ListSerializer
+import java.net.HttpCookie.domainMatches
 
 class DataStoreCookieStorage(private val dataStoreManager: DataStoreManager) : CookiesStorage {
     private val storageMutex = Mutex()
@@ -16,7 +17,12 @@ class DataStoreCookieStorage(private val dataStoreManager: DataStoreManager) : C
         val jsonString = dataStoreManager.read()
         return if (jsonString != null) {
             try {
-                json.decodeFromString(ListSerializer(SerializableCookie.serializer()), jsonString)
+                val cookies = json.decodeFromString(
+                    ListSerializer(SerializableCookie.serializer()),
+                    jsonString
+                ).filter { it.isNotExpired() }
+                saveCookies(cookies)
+                cookies
             } catch (e: Exception) {
                 throw Exception("Error parsing cookies from DataStore", e)
             }
@@ -31,47 +37,9 @@ class DataStoreCookieStorage(private val dataStoreManager: DataStoreManager) : C
         dataStoreManager.write(jsonString)
     }
 
-    private fun isNotExpired(cookie: SerializableCookie): Boolean {
-        return cookie.expiration.let { System.currentTimeMillis() < it }
-    }
-
-    private fun domainMatches(cookieDomain: String?, requestHost: String?): Boolean {
-        val cd = cookieDomain?.lowercase()
-        val host = requestHost?.lowercase()
-        return if (cd != null && host != null) {
-            if (cd.startsWith(".")) {
-                host == cd.substring(1) || host.endsWith(cd)
-            } else if (requestHost.startsWith(".")){
-                host == host.substring(1) || cd.endsWith(cd)
-            } else {
-                host == cd
-            }
-        } else {
-            false
-        }
-    }
-
-    private fun pathMatches(cookiePath: String, requestPath: String): Boolean {
-        return requestPath.startsWith(cookiePath)
-    }
-
-    private fun cookieApplies(cookie: SerializableCookie, requestUrl: Url): Boolean {
-        if (!isNotExpired(cookie)) return false
-        val cookieDomain = cookie.domain ?: return false
-        if (!domainMatches(cookieDomain, requestUrl.host)) return false
-
-        val cookiePath = cookie.path
-        val requestPath = requestUrl.encodedPath.ifEmpty { "/" }
-        if (!pathMatches(cookiePath, requestPath)) return false
-
-        if (cookie.secure && requestUrl.protocol.name != "https") return false
-
-        return true
-    }
-
     override suspend fun get(requestUrl: Url): List<Cookie> = storageMutex.withLock {
         return loadCookies()
-            .filter { cookieApplies(it, requestUrl) }
+            .filter { it.cookieApplies(requestUrl) }
             .map { it.toCookie() }
     }
 
@@ -90,7 +58,7 @@ class DataStoreCookieStorage(private val dataStoreManager: DataStoreManager) : C
     override fun close() {
         runBlocking {
             storageMutex.withLock {
-                val validCookies = loadCookies().filter { isNotExpired(it) }
+                val validCookies = loadCookies().filter { it.isNotExpired() }
                 saveCookies(validCookies)
             }
         }

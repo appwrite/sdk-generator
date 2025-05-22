@@ -34,7 +34,6 @@ actual class Client constructor(
     }
 
     init {
-
         httpClient = createHttpClient(selfSigned, dataStoreCookieStorage)
         headers = mutableMapOf(
               "content-type" to "application/json",

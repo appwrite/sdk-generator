@@ -17,6 +17,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Appwrite_KMP_SDK"
+rootProject.name = "sdk-for-kmp"
 include(":androidApp")
 include(":shared")

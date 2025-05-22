@@ -6,6 +6,7 @@ import androidx.activity.ComponentActivity
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
+import {{ sdk.namespace | caseDot }}.services.KeepAliveService
 import kotlinx.coroutines.delay
 import kotlin.collections.component1
 import kotlin.collections.component2
@@ -17,31 +18,34 @@ import kotlin.collections.set
  * Used to authenticate with external OAuth2 providers. Launches browser windows and handles
  * suspension until the user completes the process or otherwise returns to the app.
  */
-actual class WebAuthComponent(private val activity: ComponentActivity) {
+internal class WebAuthComponent {
 
-    internal companion object : DefaultLifecycleObserver {
+    companion object : DefaultLifecycleObserver {
         private var suspended = false
-        private val callbacks = mutableMapOf<String, ((Result<String>) -> Unit)?>()
+        private val callbacks = mutableMapOf<String, (((Result<String>) -> Unit)?)>()
 
         override fun onResume(owner: LifecycleOwner) {
-            // When the activity resumes, end the suspension so that the caller can continue.
             suspended = false
         }
 
         /**
-         * Authenticate session using OAuth2.
+         * Authenticate Session with OAuth2
          *
-         * Launches a Chrome Custom Tab from the provided activity to open the given URL.
-         * Once the user returns to the app (resuming the activity), the provided callback is invoked.
+         * Launches a chrome custom tab from the given activity and directs to the given url,
+         * suspending until the user returns to the app, at which point the given [onComplete] callback
+         * will run, passing the callback url from the intent used to launch the [CallbackActivity],
+         * or an [IllegalStateException] in the case the user closed the window or returned to the
+         * app without passing through the [CallbackActivity].
          *
-         * @param activity          The activity used to launch the browser and observe lifecycle events.
-         * @param url               The URL to open.
-         * @param callbackUrlScheme The URL scheme to match for the authentication callback.
-         * @param onComplete        The callback to run with the authentication result.
+         *
+         * @param activity              The activity to launch the browser from and observe the lifecycle of
+         * @param url                   The url to launch
+         * @param callbackUrlScheme     The callback url scheme used to key the given callback
+         * @param onComplete            The callback to run when a result (success or failure) is received
          */
-        internal suspend fun authenticate(
+        suspend fun authenticate(
             activity: ComponentActivity,
-            url: String,
+            url: Uri,
             callbackUrlScheme: String,
             onComplete: ((Result<String>) -> Unit)?
         ) {
@@ -52,14 +56,13 @@ actual class WebAuthComponent(private val activity: ComponentActivity) {
 
             intent.intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
             intent.intent.putExtra("android.support.customtabs.extra.KEEP_ALIVE", keepAliveIntent)
-            intent.launchUrl(activity, Uri.parse(url))
+            intent.launchUrl(activity, url)
 
-            // Add this as a lifecycle observer so that we know when the user returns to the app.
             activity.runOnUiThread {
                 activity.lifecycle.addObserver(this)
             }
 
-            // Poll until the authentication has been resumed.
+            // Need to dirty poll block so execution doesn't continue at the callsite of this function
             suspended = true
             while (suspended) {
                 delay(200)
@@ -68,49 +71,30 @@ actual class WebAuthComponent(private val activity: ComponentActivity) {
         }
 
         /**
-         * Invoke the callback for the provided scheme.
+         * Trigger a web auth callback
          *
-         * This method ends the suspension, allowing any waiting coroutines to resume.
+         * Attempts to find a callback for the given [scheme] and if found, invokes it, passing the
+         * given [url]. Calling this method stops auth suspension, so any calls to [authenticate]
+         * will continue execution from their suspension points immediately after this method
+         * is called.
          *
-         * @param scheme The callback scheme key.
-         * @param url    The URL provided in the callback.
+         * @param scheme    The scheme to match to a callback's key
+         * @param url       The url received through intent data from the [CallbackActivity]
          */
-        internal fun onCallback(scheme: String, url: String) {
-            callbacks.remove(scheme)?.invoke(Result.success(url))
+        fun onCallback(scheme: String, url: Uri) {
+            callbacks.remove(scheme)?.invoke(
+                Result.success(url.toString())
+            )
             suspended = false
         }
 
         private fun cleanUp() {
-            callbacks.forEach { (_, callback) ->
-                callback?.invoke(Result.failure(IllegalStateException("User cancelled login")))
+            callbacks.forEach { (_, danglingResultCallback) ->
+                danglingResultCallback?.invoke(
+                    Result.failure(IllegalStateException("User cancelled login"))
+                )
             }
             callbacks.clear()
         }
-    }
-
-    /**
-     * Suspend function to perform authentication.
-     *
-     * @param url The URL to launch.
-     * @param callbackUrlScheme The callback URL scheme.
-     * @param onComplete The callback to invoke with the result.
-     */
-    @Throws(Throwable::class)
-    internal actual suspend fun authenticate(
-        url: String,
-        callbackUrlScheme: String,
-        onComplete: ((Result<String>) -> Unit)?
-    ) {
-        authenticate(activity, url, callbackUrlScheme, onComplete)
-    }
-
-    /**
-     * Called when the external callback URL is received.
-     *
-     * @param scheme The scheme received.
-     * @param url The full URL for the callback.
-     */
-    internal actual fun onCallback(scheme: String, url: String) {
-        WebAuthComponent.onCallback(scheme, url)
     }
 }

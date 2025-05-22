@@ -1,7 +1,6 @@
 package {{ sdk.namespace | caseDot }}.extensions
 
 import {{ sdk.namespace | caseDot }}.serializers.DynamicLookupSerializer
-import kotlinx.serialization.Contextual
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.builtins.MapSerializer
@@ -12,7 +11,9 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonObjectBuilder
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.put
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.serializer
 import kotlin.reflect.KClass
@@ -56,16 +57,32 @@ fun <T : Any> Any.jsonCast(to: KClass<T>): T =
 inline fun <reified T> Any.jsonCast(): T =
     toJson().fromJson<T>()
 
-fun <T : Any> Any.tryJsonCast(to: KClass<T>): T? = try {
-    toJson().fromJson(to)
-} catch (ex: Exception) {
-    ex.printStackTrace()
-    null
+fun JsonObjectBuilder.addToJsonObject(key: String, value: Any?) {
+    when (value) {
+        is String -> put(key, value)
+        is Number -> put(key, value)
+        is Boolean -> put(key, value)
+        is List<*> -> {
+            val jsonArray = getJsonArray(value)
+            put(key, jsonArray)
+        }
+
+        is Enum<*> -> put(key, JsonPrimitive(value.name))
+        null -> put(key, JsonNull)
+        else -> put(key, JsonPrimitive(value.toString()))
+    }
 }
 
-inline fun <reified T> Any.tryJsonCast(): T? = try {
-    toJson().fromJson<T>()
-} catch (ex: Exception) {
-    ex.printStackTrace()
-    null
+fun getJsonArray(items: List<Any?>): JsonArray {
+    return JsonArray(items.map { item ->
+        when (item) {
+            is String -> JsonPrimitive(item)
+            is Number -> JsonPrimitive(item)
+            is Boolean -> JsonPrimitive(item)
+            is Enum<*> -> JsonPrimitive(item.name)
+            null -> JsonNull
+            is List<*> -> getJsonArray(item)
+            else -> JsonPrimitive(item.toString())
+        }
+    })
 }

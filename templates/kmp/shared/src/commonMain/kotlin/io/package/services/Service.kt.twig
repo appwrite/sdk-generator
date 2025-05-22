@@ -24,7 +24,7 @@ import io.ktor.http.Cookie
 {%~ endif %}
 
 /**
- * {{ service.description | raw | replace({"\n": "", "\r": ""}) }}
+ * {{ service.description | raw | replace({"\n": " ", "\r": " "}) }}
  **/
 class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
 {%~ for method in service.methods %}

@@ -11,6 +11,7 @@ import io.ktor.client.plugins.websocket.pingInterval
 import io.ktor.serialization.kotlinx.json.json
 import java.security.KeyStore
 import java.security.SecureRandom
+import java.security.cert.X509Certificate
 import javax.net.ssl.SSLContext
 import javax.net.ssl.TrustManagerFactory
 import javax.net.ssl.X509TrustManager
@@ -36,7 +37,23 @@ fun createHttpClient(selfSigned: Boolean, dataStoreCookieStorage: DataStoreCooki
     if (selfSigned) {
         engine {
             config {
-                val trustManager = AllCertsTrustManager()
+                val trustManager = object : X509TrustManager {
+                        override fun checkClientTrusted(
+                            chain: Array<out X509Certificate>?,
+                            authType: String?
+                        ) {
+                            // Empty implementation to trust all clients
+                        }
+
+                        override fun checkServerTrusted(
+                            chain: Array<out X509Certificate>?,
+                            authType: String?
+                        ) {
+                            // Empty implementation to trust all servers
+                        }
+
+                        override fun getAcceptedIssuers(): Array<X509Certificate> = emptyArray()
+                    }
                 val sslContext = SSLContext.getInstance("TLS").apply {
                     init(null, arrayOf(trustManager), SecureRandom())
                 }

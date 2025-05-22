@@ -280,18 +280,6 @@ class KMP extends Kotlin
                 'destination'   => 'shared/src/commonMain/kotlin/{{ sdk.namespace | caseSlash }}/extensions/TypeExtensions.kt',
                 'template'      => '/kmp/shared/src/commonMain/kotlin/io/package/extensions/TypeExtensions.kt.twig',
             ],
-            [
-                'scope'         => 'default',
-                'destination'   => 'shared/src/commonMain/kotlin/{{ sdk.namespace | caseSlash }}/extensions/JsonObjectBuilderExtensions.kt',
-                'template'      => '/kmp/shared/src/commonMain/kotlin/io/package/extensions/JsonObjectBuilderExtensions.kt.twig',
-            ],
-
-            // File Operations
-            [
-                'scope'         => 'default',
-                'destination'   => 'shared/src/commonMain/kotlin/{{ sdk.namespace | caseSlash }}/fileOperations/FileOperations.kt',
-                'template'      => '/kmp/shared/src/commonMain/kotlin/io/package/fileOperations/FileOperations.kt.twig',
-            ],
 
             // Models
             [
@@ -397,6 +385,11 @@ class KMP extends Kotlin
                 'scope'         => 'default',
                 'destination'   => 'shared/src/androidMain/kotlin/{{ sdk.namespace | caseSlash }}/extensions/OAuth2Extensions.kt',
                 'template'      => '/kmp/shared/src/androidMain/kotlin/io/package/extensions/OAuth2Extensions.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'shared/src/commonMain/kotlin/{{ sdk.namespace | caseSlash }}/extensions/IOExtensions.kt',
+                'template'      => '/kmp/shared/src/commonMain/kotlin/io/package/extensions/IOExtensions.kt.twig',
             ],
 
             // Models

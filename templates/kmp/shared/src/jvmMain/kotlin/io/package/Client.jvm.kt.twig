@@ -25,7 +25,6 @@ actual class Client(
     init {
         httpClient = createHttpClient(selfSigned)
         headers = mutableMapOf(
-            "origin" to "appwrite-jvm://app",
             "content-type" to "application/json",
             "origin" to "{{ spec.title | caseLower }}-jvm://app",
             "user-agent" to "JVM/$appVersion, ${System.getProperty("java.version")}",

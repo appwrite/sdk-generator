@@ -25,28 +25,31 @@
 
 ### Gradle
 
-Appwrite's Android SDK is hosted on Maven Central. In order to fetch the Appwrite SDK, add this to your root level `build.gradle(.kts)` file:
+Appwrite's KMP SDK is hosted on Maven Central. In order to fetch the Appwrite SDK, add this to your root level `build.gradle(.kts)` file:
 
-```groovy
-repositories {      
-    mavenCentral()
+### Gradle Setup
+Add the following to your root level `settings.gradle.kts`:
+
+```
+dependencyResolutionManagement {
+   repositories {
+      mavenLocal()
+   }
 }
 ```
 
-If you would like to fetch our SNAPSHOT releases, you need to add the SNAPSHOT maven repository to your `build.gradle(.kts)`:
+In your shared module's `build.gradle.kts`:
 
-```groovy
-repositories {
-    maven {
-        url "https://s01.oss.sonatype.org/content/repositories/snapshots/"
-    }
-}
 ```
-
-Next, add the dependency to your project's `build.gradle(.kts)` file:
-
-```groovy
-implementation("{{ sdk.namespace | caseDot }}:{{ sdk.gitRepoName | caseDash }}:{{ sdk.version }}")
+kotlin {
+   sourceSets {
+      commonMain {
+         dependencies {
+            implementation("io.github.camka14.appwrite:sdk-for-kmp:0.1.0")
+         }
+      }
+   }
+}
 ```
 
 ### Maven
