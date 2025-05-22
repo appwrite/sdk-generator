@@ -51,6 +51,16 @@ class Swagger2 extends Spec
     /**
      * @return string
      */
+    public function getEndpointDocs()
+    {
+        return $this->getAttribute('schemes.0', 'https') .
+        '://' . $this->getAttribute('x-host-docs', 'example.com') .
+        $this->getAttribute('basePath', '');
+    }
+
+    /**
+     * @return string
+     */
     public function getLicenseName()
     {
         return $this->getAttribute('info.license.name', '');
@@ -298,6 +308,7 @@ class Swagger2 extends Spec
                 foreach ($method['x-appwrite']['methods'] as $additionalMethod) {
                     $duplicatedMethod = $method;
                     $duplicatedMethod['x-appwrite']['method'] = $additionalMethod['name'];
+                    $duplicatedMethod['x-appwrite']['auth'] = $additionalMethod['auth'] ?? [];
 
                     // Update Response
                     $responses = $additionalMethod['responses'];

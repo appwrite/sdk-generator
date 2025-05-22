@@ -171,7 +171,11 @@ class Client {
 
     let cookies = response.headers.getSetCookie();
     if (cookies && cookies.length > 0) {
-      globalConfig.setCookie(cookies.join(";"));
+      for (const cookie of cookies) {
+        if (cookie.startsWith('a_session_console=')) {
+          globalConfig.setCookie(cookie);
+        }
+      }
     }
 
     const text = await response.text();

@@ -23,7 +23,7 @@ import {{ sdk.namespace | caseDot }}.enums.{{ name | caseUcfirst }};
 
 Client client = new Client(context)
     {%~ if method.auth|length > 0 %}
-    .setEndpoint("https://cloud.appwrite.io/v1") // Your API Endpoint
+    .setEndpoint("{{ spec.endpointDocs | raw }}") // Your API Endpoint
     {%~ for node in method.auth %}
     {%~ for key,header in node|keys %}
     .set{{header | caseUcfirst}}("{{node[header]['x-appwrite']['demo'] | raw }}"){% if loop.last %};{% endif %} // {{ node[header].description }}
