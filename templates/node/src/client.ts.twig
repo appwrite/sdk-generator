@@ -224,7 +224,7 @@ class Client {
             const chunk = file.slice(start, end);
 
             let payload = { ...originalPayload };
-            payload[fileParam] = new File([chunk], file.name);
+            payload[fileParam ?? ''] = new File([chunk], file.name);
 
             response = await this.call(method, url, headers, payload);
 
