@@ -39,7 +39,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
      * @param {{ '{' }}{{ parameter | getPropertyType(method) | raw }}{{ '}' }} {{ parameter.name | caseCamel | escapeKeyword }}
 {% endfor %}
      * @throws {{ '{' }}{{ spec.title | caseUcfirst}}Exception}
-     * @returns {% if method.type == 'webAuth' %}{void|string}{% elseif method.type == 'location' %}{URL}{% else %}{Promise}{% endif %}
+     * @returns {% if method.type == 'webAuth' %}{void|string}{% elseif method.type == 'location' %}{ArrayBuffer}{% else %}{Promise}{% endif %}
 
     */
     {% if method.type == 'upload'%}async {% endif %}{{ method.name | caseCamel }}{{ method.responseModel | getGenerics(spec) | raw }}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | getPropertyType(method) | raw }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, onProgress = (progress: UploadProgress) => {}{% endif %}): {{ method | getReturn(spec) | raw }} {
@@ -82,8 +82,6 @@ export class {{ service.name | caseUcfirst }} extends Service {
         }
 {% endif %}
 {% if method.type == 'webAuth' %}
-        return uri;
-{% elseif method.type == 'location' %}
         return uri;
 {% else %}
 {% if 'multipart/form-data' in method.consumes %}
@@ -170,9 +168,48 @@ export class {{ service.name | caseUcfirst }} extends Service {
 {% for key, header in method.headers %}
             '{{ key }}': '{{ header }}',
 {% endfor %}
-        }, payload);
+        }, payload{% if method.type == 'location' %}, 'arrayBuffer'{% endif %});
 {% endif %}
 {% endif %}
     }
+{% endfor %}
+
+{# Extra methods for just getting the URL of 'location' type methods #}
+{% for method in service.methods %}
+{% if method.type == 'location' %}
+
+    /**
+{% if method.description %}
+{{ method.description|comment2 }}
+{% endif %}
+     *
+{% for parameter in method.parameters.all %}
+     * @param {{ '{' }}{{ parameter | getPropertyType(method) | raw }}{{ '}' }} {{ parameter.name | caseCamel | escapeKeyword }}
+{% endfor %}
+     * @throws {{ '{' }}{{ spec.title | caseUcfirst}}Exception}
+     * @returns {{ '{' }}URL{{ '}' }}
+
+    */
+    {{ method.name | caseCamel }}URL({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | getPropertyType(method) | raw }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, onProgress = (progress: UploadProgress) => {}{% endif %}): URL {
+        const apiPath = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name | caseCamel | escapeKeyword }}{{ '}' }}', {{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
+        const payload: Payload = {};
+
+{% for parameter in method.parameters.query %}
+        if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
+            payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
+        }
+
+{% endfor %}
+{% for parameter in method.parameters.body %}
+        if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
+            payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
+        }
+
+{% endfor %}
+        const uri = new URL(this.client.config.endpoint + apiPath);
+
+        return uri;
+    }
+{% endif %}
 {% endfor %}
 };
