@@ -224,6 +224,7 @@ class ClientBrowser extends ClientBase with ClientMixin {
   return FlutterWebAuth2.authenticate(
       url: url.toString(),
       callbackUrlScheme: "{{spec.title | caseLower}}-callback-" + config['project']!,
+      options: const FlutterWebAuth2Options(useWebview: false),
     );
   }
 }
