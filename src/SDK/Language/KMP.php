@@ -339,11 +339,6 @@ class KMP extends Kotlin
             // Android Main root files
             [
                 'scope'         => 'default',
-                'destination'   => 'shared/src/androidMain/kotlin/{{ sdk.namespace | caseSlash }}/AllCertsTrustManager.kt',
-                'template'      => '/kmp/shared/src/androidMain/kotlin/io/package/AllCertsTrustManager.kt.twig',
-            ],
-            [
-                'scope'         => 'default',
                 'destination'   => 'shared/src/androidMain/kotlin/{{ sdk.namespace | caseSlash }}/Client.android.kt',
                 'template'      => '/kmp/shared/src/androidMain/kotlin/io/package/Client.android.kt.twig',
             ],
@@ -526,11 +521,6 @@ class KMP extends Kotlin
                 'scope'         => 'default',
                 'destination'   => 'androidApp/src/main/AndroidManifest.xml',
                 'template'      => '/kmp/androidApp/src/main/AndroidManifest.xml.twig',
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => 'androidApp/build.gradle.kts',
-                'template'      => '/kmp/androidApp/build.gradle.kts.twig',
             ],
 
 // Java files

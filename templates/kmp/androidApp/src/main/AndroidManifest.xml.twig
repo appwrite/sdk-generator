@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="{{ spec.namespace | caseDot }}.android">
+    package="{{ sdk.namespace | caseDot }}.kmp">
 
     <application
         android:allowBackup="false"
@@ -18,7 +18,7 @@
             </intent-filter>
         </activity>
 
-        <activity android:name="{{ spec.namespace | caseDot }}.views.CallbackActivity" android:exported="true">
+        <activity android:name="{{ sdk.namespace | caseDot }}.views.CallbackActivity" android:exported="true">
             <intent-filter android:label="android_web_auth">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />

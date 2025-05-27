@@ -69,7 +69,7 @@ kotlin {
         binaries.framework {
             baseName = "shared"
             isStatic = true
-            binaryOption("bundleId", "{{ spec.namespace | caseDot }}.shared")
+            binaryOption("bundleId", "{{ sdk.namespace | caseDot }}.shared")
         }
         withSourcesJar(publish = false)
     }
@@ -77,7 +77,7 @@ kotlin {
         binaries.framework {
             baseName = "shared"
             isStatic = true
-            binaryOption("bundleId", "{{ spec.namespace | caseDot }}.shared")
+            binaryOption("bundleId", "{{ sdk.namespace | caseDot }}.shared")
         }
         withSourcesJar(publish = false)
     }
@@ -85,7 +85,7 @@ kotlin {
         binaries.framework {
             baseName = "shared"
             isStatic = true
-            binaryOption("bundleId", "{{ spec.namespace | caseDot }}.shared")
+            binaryOption("bundleId", "{{ sdk.namespace | caseDot }}.shared")
         }
         withSourcesJar(publish = false)
     }
@@ -205,7 +205,7 @@ publishing {
 }
 
 android {
-    namespace = "{{ spec.namespace | caseDot }}"
+    namespace = "{{ sdk.namespace | caseDot }}.kmp"
     compileSdk = 35
     defaultConfig {
         minSdk = 21

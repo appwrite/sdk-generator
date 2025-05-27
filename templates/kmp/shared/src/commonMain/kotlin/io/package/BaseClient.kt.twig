@@ -85,6 +85,9 @@ abstract class BaseClient<This : BaseClient<This>>(
      * @return [This]
      */
     fun setEndpoint(endpoint: String): This {
+        require(endpoint.startsWith("http://") || endpoint.startsWith("https://")) {
+            "Invalid endpoint URL: $endpoint"
+        }
         this.endpoint = endpoint
         if (this.endpointRealtime == null && endpoint.startsWith("http")) {
             this.endpointRealtime = endpoint.replaceFirst("http", "ws")
