@@ -22,7 +22,10 @@ class Swift extends LanguageMeta {
         type = "Bool";
         break;
       case AttributeType.RELATIONSHIP:
-        return "Map<String, Any>";
+        type = LanguageMeta.toPascalCase(attribute.relatedCollection);
+        if ((attribute.relationType === 'oneToMany' && attribute.side === 'parent') || attribute.relationType === 'manyToMany') {
+          type = `[${type}]`;
+        }
         break;
       default:
         throw new Error(`Unknown attribute type: ${attribute.type}`);
@@ -101,7 +104,7 @@ public class <%- toPascalCase(collection.name) %>: Codable {
         return <%- toPascalCase(collection.name) %>(
 <% for (const attribute of collection.attributes) { -%>
 <% if (attribute.type === 'relationship') { -%>
-            <%- toCamelCase(attribute.key) %>: map["<%- attribute.key %>"] as<% if (!attribute.required) { %>?<% } else { %>!<% } %> Map<String, Any><% if (attribute !== collection.attributes[collection.attributes.length - 1]) { %>,<% } %>
+            <%- toCamelCase(attribute.key) %>: map["<%- attribute.key %>"] as<% if (!attribute.required) { %>?<% } else { %>!<% } %> <%- toPascalCase(attribute.relatedCollection) %><% if (attribute !== collection.attributes[collection.attributes.length - 1]) { %>,<% } %>
 <% } else if (attribute.array) { -%>
 <% if (attribute.type === 'string') { -%>
             <%- toCamelCase(attribute.key) %>: map["<%- attribute.key %>"] as<% if (!attribute.required) { %>?<% } else { %>!<% } %> [String]<% if (attribute !== collection.attributes[collection.attributes.length - 1]) { %>,<% } %>

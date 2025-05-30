@@ -25,7 +25,10 @@ class PHP extends LanguageMeta {
         type = "bool";
         break;
       case AttributeType.RELATIONSHIP:
-        type = "mixed";
+        type = LanguageMeta.toPascalCase(attribute.relatedCollection);
+        if ((attribute.relationType === 'oneToMany' && attribute.side === 'parent') || attribute.relationType === 'manyToMany') {
+          type = "array";
+        }
         break;
       default:
         throw new Error(`Unknown attribute type: ${attribute.type}`);
@@ -40,6 +43,12 @@ class PHP extends LanguageMeta {
     return `<?php
 namespace Appwrite\\Models;
 
+<% for (const attribute of collection.attributes) { -%>
+<% if (attribute.type === 'relationship' && !(attribute.relationType === 'manyToMany') && !(attribute.relationType === 'oneToMany' && attribute.side === 'parent')) { -%>
+use Appwrite\\Models\\<%- toPascalCase(attribute.relatedCollection) %>;
+
+<% } -%>
+<% } -%>
 class <%- toPascalCase(collection.name) %> {
 <% for (const attribute of collection.attributes ){ -%>
   private <%- getType(attribute) %> $<%- toCamelCase(attribute.key) %>;

@@ -22,7 +22,10 @@ class Java extends LanguageMeta {
         type = "Boolean";
         break;
       case AttributeType.RELATIONSHIP:
-        type = "Map<String, Object>";
+        type = LanguageMeta.toPascalCase(attribute.relatedCollection);
+        if ((attribute.relationType === 'oneToMany' && attribute.side === 'parent') || attribute.relationType === 'manyToMany') {
+          type = "List<" + type + ">";
+        }
         break;
       default:
         throw new Error(`Unknown attribute type: ${attribute.type}`);
@@ -37,10 +40,15 @@ class Java extends LanguageMeta {
     return `package io.appwrite.models;
 
 import java.util.*;
+<% for (const attribute of collection.attributes) { -%>
+<% if (attribute.type === 'relationship') { -%>
+import <%- toPascalCase(attribute.relatedCollection) %>;
 
+<% } -%>
+<% } -%>
 public class <%- toPascalCase(collection.name) %> {
 <% for (const attribute of collection.attributes) { -%>
-    private <%= getType(attribute) %> <%= toCamelCase(attribute.key) %>;
+    private <%- getType(attribute) %> <%= toCamelCase(attribute.key) %>;
 <% } -%>
 
     public <%- toPascalCase(collection.name) %>() {
@@ -48,7 +56,7 @@ public class <%- toPascalCase(collection.name) %> {
 
     public <%- toPascalCase(collection.name) %>(
 <% for (const [index, attribute] of Object.entries(collection.attributes)) { -%>
-        <%= getType(attribute) %> <%= toCamelCase(attribute.key) %><%- index < collection.attributes.length - 1 ? ',' : '' %>
+        <%- getType(attribute) %> <%= toCamelCase(attribute.key) %><%- index < collection.attributes.length - 1 ? ',' : '' %>
 <% } -%>
     ) {
 <% for (const attribute of collection.attributes) { -%>
@@ -57,11 +65,11 @@ public class <%- toPascalCase(collection.name) %> {
     }
 
 <% for (const attribute of collection.attributes) { -%>
-    public <%= getType(attribute) %> get<%- toPascalCase(attribute.key) %>() {
+    public <%- getType(attribute) %> get<%- toPascalCase(attribute.key) %>() {
         return <%= toCamelCase(attribute.key) %>;
     }
 
-    public void set<%- toPascalCase(attribute.key) %>(<%= getType(attribute) %> <%= toCamelCase(attribute.key) %>) {
+    public void set<%- toPascalCase(attribute.key) %>(<%- getType(attribute) %> <%= toCamelCase(attribute.key) %>) {
         this.<%= toCamelCase(attribute.key) %> = <%= toCamelCase(attribute.key) %>;
     }
 

@@ -27,7 +27,10 @@ class JavaScript extends LanguageMeta {
         type = "boolean";
         break;
       case AttributeType.RELATIONSHIP:
-        type = "any";
+        type = LanguageMeta.toPascalCase(attribute.relatedCollection);
+        if ((attribute.relationType === 'oneToMany' && attribute.side === 'parent') || attribute.relationType === 'manyToMany') {
+          type = `Array<${type}>`;
+        }
         break;
       default:
         throw new Error(`Unknown attribute type: ${attribute.type}`);
