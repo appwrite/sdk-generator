@@ -203,6 +203,11 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'lib/type-generation/languages/javascript.js',
+                'template'      => 'cli/lib/type-generation/languages/javascript.js.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'lib/type-generation/languages/kotlin.js',
                 'template'      => 'cli/lib/type-generation/languages/kotlin.js.twig',
             ],

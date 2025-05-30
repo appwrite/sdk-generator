@@ -11,6 +11,7 @@ const { Kotlin } = require("../type-generation/languages/kotlin");
 const { Swift } = require("../type-generation/languages/swift");
 const { Java } = require("../type-generation/languages/java");
 const { Dart } = require("../type-generation/languages/dart");
+const { JavaScript } = require("../type-generation/languages/javascript");
 
 /**
  * @param {string} language
@@ -20,6 +21,8 @@ function createLanguageMeta(language) {
   switch (language) {
     case "ts":
       return new TypeScript();
+    case "js":
+      return new JavaScript();
     case "php":
       return new PHP();
     case "kotlin":
@@ -52,7 +55,7 @@ const typesLanguageOption = new Option(
   "-l, --language <language>",
   "The language of the types"
 )
-  .choices(["auto", "ts", "php", "kotlin", "swift", "java", "dart"])
+  .choices(["auto", "ts", "js", "php", "kotlin", "swift", "java", "dart"])
   .default("auto");
 
 const typesCommand = actionRunner(async (rawOutputDirectory, {language}) => {
