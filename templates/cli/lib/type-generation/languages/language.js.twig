@@ -31,7 +31,7 @@ class LanguageMeta {
   }
 
   static toCamelCase(string) {
-    return this.toKebabCase(string).replace(/-([a-z])/g, (g) =>
+    return this.toKebabCase(string).replace(/-([a-z0-9])/g, (g) =>
       g[1].toUpperCase()
     );
   }
