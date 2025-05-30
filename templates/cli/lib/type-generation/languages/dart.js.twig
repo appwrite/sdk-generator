@@ -52,7 +52,7 @@ import '<%- attribute.relatedCollection.toLowerCase() %>.dart';
 <% if (attribute.format === 'enum') { -%>
 enum <%- toPascalCase(attribute.key) %> {
 <% for (const element of attribute.elements) { -%>
-  <%- toPascalCase(element) %>,
+  <%- element %>,
 <% } -%>
 }
 

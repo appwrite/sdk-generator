@@ -9,8 +9,10 @@ class Java extends LanguageMeta {
       case AttributeType.STRING:
       case AttributeType.EMAIL:
       case AttributeType.DATETIME:
-      case AttributeType.ENUM:
         type = "String";
+        if (attribute.format === AttributeType.ENUM) {
+          type = LanguageMeta.toPascalCase(attribute.key);
+        }
         break;
       case AttributeType.INTEGER:
         type = "int";
@@ -47,6 +49,17 @@ import <%- toPascalCase(attribute.relatedCollection) %>;
 <% } -%>
 <% } -%>
 public class <%- toPascalCase(collection.name) %> {
+<% for (const attribute of collection.attributes) { -%>
+<% if (attribute.format === 'enum') { -%>
+
+    public enum <%- toPascalCase(attribute.key) %> {
+<% for (const [index, element] of Object.entries(attribute.elements)) { -%>
+        <%- element %><%- index < attribute.elements.length - 1 ? ',' : ';' %>
+<% } -%>
+    }
+
+<% } -%>
+<% } -%>
 <% for (const attribute of collection.attributes) { -%>
     private <%- getType(attribute) %> <%= toCamelCase(attribute.key) %>;
 <% } -%>
