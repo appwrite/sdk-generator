@@ -30,7 +30,7 @@ class Swift extends LanguageMeta {
     if (attribute.array) {
       type = "[" + type + "]";
     }
-    if (attribute.required) {
+    if (!attribute.required) {
       type += "?";
     }
     return type;

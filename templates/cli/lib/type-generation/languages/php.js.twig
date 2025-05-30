@@ -30,7 +30,7 @@ class PHP extends LanguageMeta {
       default:
         throw new Error(`Unknown attribute type: ${attribute.type}`);
     }
-    if (attribute.required) {
+    if (!attribute.required) {
       type += "|null";
     }
     return type;

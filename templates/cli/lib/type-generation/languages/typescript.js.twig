@@ -35,7 +35,7 @@ class TypeScript extends LanguageMeta {
     if (attribute.array) {
       type += "[]";
     }
-    if (attribute.required) {
+    if (!attribute.required) {
       type += " | null";
     }
     return type;

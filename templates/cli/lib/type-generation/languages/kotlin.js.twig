@@ -30,7 +30,7 @@ class Kotlin extends LanguageMeta {
     if (attribute.array) {
       type = "List<" + type + ">";
     }
-    if (attribute.required) {
+    if (!attribute.required) {
       type += "?";
     }
     return type;
