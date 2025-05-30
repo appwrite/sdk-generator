@@ -71,7 +71,8 @@ public class <%- toPascalCase(collection.name) %> {
         if (this == obj) return true;
         if (obj == null || getClass() != obj.getClass()) return false;
         <%- toPascalCase(collection.name) %> that = (<%- toPascalCase(collection.name) %>) obj;
-        return Objects.equals(<%= collection.attributes.map(attr => toCamelCase(attr.key)).join(', ') %><%- collection.attributes.length > 1 ? ', that.' + collection.attributes.map(attr => toCamelCase(attr.key)).join(', that.') : collection.attributes.length === 1 ? ', that.' + toCamelCase(collection.attributes[0].key) : '' %>);
+        return <% collection.attributes.forEach((attr, index) => { %>Objects.equals(<%= toCamelCase(attr.key) %>, that.<%= toCamelCase(attr.key) %>)<% if (index < collection.attributes.length - 1) { %> &&
+              <% } }); %>;
     }
 
     @Override
