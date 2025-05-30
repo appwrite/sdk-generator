@@ -42,7 +42,7 @@ namespace Appwrite\\Models;
 
 class <%- toPascalCase(collection.name) %> {
 <% for (const attribute of collection.attributes ){ -%>
-  public <%- getType(attribute) %> $<%- toCamelCase(attribute.key) %>;
+  private <%- getType(attribute) %> $<%- toCamelCase(attribute.key) %>;
 <% } -%>
 
   public function __construct(
@@ -58,6 +58,16 @@ class <%- toPascalCase(collection.name) %> {
     $this-><%- toCamelCase(attribute.key) %> = $<%- toCamelCase(attribute.key) %>;
 <% } -%>
   }
+
+<% for (const attribute of collection.attributes ){ -%>
+  public function get<%- toPascalCase(attribute.key) %>(): <%- getType(attribute) %> {
+    return $this-><%- toCamelCase(attribute.key) %>;
+  }
+
+  public function set<%- toPascalCase(attribute.key) %>(<%- getType(attribute) %> $<%- toCamelCase(attribute.key) %>): void {
+    $this-><%- toCamelCase(attribute.key) %> = $<%- toCamelCase(attribute.key) %>;
+  }
+<% } -%>
 }`;
   }
 

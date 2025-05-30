@@ -114,7 +114,7 @@ const typesCommand = actionRunner(async (rawOutputDirectory, {language}) => {
     }
   }
   
-  success();
+  success(`Generated types for all the listed collections`);
 });
 
 const types = new Command("types")
