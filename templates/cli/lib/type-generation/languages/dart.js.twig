@@ -22,7 +22,7 @@ class Dart extends LanguageMeta {
         type = "bool";
         break;
       case AttributeType.RELATIONSHIP:
-        type = "Map<String, dynamic>";
+        type = LanguageMeta.toPascalCase(attribute.relatedCollection);
         break;
       default:
         throw new Error(`Unknown attribute type: ${attribute.type}`);
