@@ -13,17 +13,17 @@ class Java extends LanguageMeta {
         type = "String";
         break;
       case AttributeType.INTEGER:
-        type = "Integer";
+        type = "int";
         break;
       case AttributeType.FLOAT:
-        type = "Double";
+        type = "double";
         break;
       case AttributeType.BOOLEAN:
-        type = "Boolean";
+        type = "boolean";
         break;
       case AttributeType.RELATIONSHIP:
         type = LanguageMeta.toPascalCase(attribute.relatedCollection);
-        if ((attribute.relationType === 'oneToMany' && attribute.side === 'parent') || attribute.relationType === 'manyToMany') {
+        if ((attribute.relationType === 'oneToMany' && attribute.side === 'parent') || (attribute.relationType === 'manyToOne' && attribute.side === 'child') || attribute.relationType === 'manyToMany') {
           type = "List<" + type + ">";
         }
         break;

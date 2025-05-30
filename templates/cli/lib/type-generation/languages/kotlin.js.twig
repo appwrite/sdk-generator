@@ -23,7 +23,7 @@ class Kotlin extends LanguageMeta {
         break;
       case AttributeType.RELATIONSHIP:
         type = LanguageMeta.toPascalCase(attribute.relatedCollection);
-        if ((attribute.relationType === 'oneToMany' && attribute.side === 'parent') || attribute.relationType === 'manyToMany') {
+        if ((attribute.relationType === 'oneToMany' && attribute.side === 'parent') || (attribute.relationType === 'manyToOne' && attribute.side === 'child') || attribute.relationType === 'manyToMany') {
           type = `List<${type}>`;
         }
         break;
