@@ -13,25 +13,22 @@ class Java extends LanguageMeta {
         type = "String";
         break;
       case AttributeType.INTEGER:
-        type = "Int";
+        type = "Integer";
         break;
       case AttributeType.FLOAT:
-        type = "Float";
+        type = "Double";
         break;
       case AttributeType.BOOLEAN:
         type = "Boolean";
         break;
       case AttributeType.RELATIONSHIP:
-        type = "Map<String, Any>";
+        type = "Map<String, Object>";
         break;
       default:
         throw new Error(`Unknown attribute type: ${attribute.type}`);
     }
     if (attribute.array) {
       type = "List<" + type + ">";
-    }
-    if (attribute.required) {
-      type += "?";
     }
     return type;
   }
@@ -40,12 +37,58 @@ class Java extends LanguageMeta {
     return `package io.appwrite.models;
 
 import java.util.*;
-    
-public record <%- toPascalCase(collection.name) %>(
-<% for (const [index, attribute] of Object.entries(collection.attributes)) { -%>
-    <%= getType(attribute) %> <%= toCamelCase(attribute.key) %><%- index < collection.attributes.length - 1 ? ',' : '' %>
+
+public class <%- toPascalCase(collection.name) %> {
+<% for (const attribute of collection.attributes) { -%>
+    private <%= getType(attribute) %> <%= toCamelCase(attribute.key) %>;
 <% } -%>
-) { }`;
+
+    public <%- toPascalCase(collection.name) %>() {
+    }
+
+    public <%- toPascalCase(collection.name) %>(
+<% for (const [index, attribute] of Object.entries(collection.attributes)) { -%>
+        <%= getType(attribute) %> <%= toCamelCase(attribute.key) %><%- index < collection.attributes.length - 1 ? ',' : '' %>
+<% } -%>
+    ) {
+<% for (const attribute of collection.attributes) { -%>
+        this.<%= toCamelCase(attribute.key) %> = <%= toCamelCase(attribute.key) %>;
+<% } -%>
+    }
+
+<% for (const attribute of collection.attributes) { -%>
+    public <%= getType(attribute) %> get<%- toPascalCase(attribute.key) %>() {
+        return <%= toCamelCase(attribute.key) %>;
+    }
+
+    public void set<%- toPascalCase(attribute.key) %>(<%= getType(attribute) %> <%= toCamelCase(attribute.key) %>) {
+        this.<%= toCamelCase(attribute.key) %> = <%= toCamelCase(attribute.key) %>;
+    }
+
+<% } -%>
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        <%- toPascalCase(collection.name) %> that = (<%- toPascalCase(collection.name) %>) obj;
+        return Objects.equals(<%= collection.attributes.map(attr => toCamelCase(attr.key)).join(', ') %><%- collection.attributes.length > 1 ? ', that.' + collection.attributes.map(attr => toCamelCase(attr.key)).join(', that.') : collection.attributes.length === 1 ? ', that.' + toCamelCase(collection.attributes[0].key) : '' %>);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(<%= collection.attributes.map(attr => toCamelCase(attr.key)).join(', ') %>);
+    }
+
+    @Override
+    public String toString() {
+        return "<%- toPascalCase(collection.name) %>{" +
+<% for (const [index, attribute] of Object.entries(collection.attributes)) { -%>
+                "<%= toCamelCase(attribute.key) %>=" + <%= toCamelCase(attribute.key) %> +
+<% } -%>
+                '}';
+    }
+}
+`;
   }
 
   getFileName(collection) {
