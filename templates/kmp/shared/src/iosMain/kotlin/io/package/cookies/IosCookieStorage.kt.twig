@@ -57,8 +57,6 @@ class IosCookieStorage : CookiesStorage {
         try {
             cleanupExpiredCookies()
             restoreCookies()
-        } catch (e: Exception) {
-            println("Failed to initialize cookies: ${e.message}")
         } finally {
             lock.unlock()
         }
@@ -71,9 +69,6 @@ class IosCookieStorage : CookiesStorage {
             cookieStorage.cookiesForURL(nsUrl)
                 ?.map { (it as NSHTTPCookie).toKtorCookie() }
                 ?: emptyList()
-        } catch (e: Exception) {
-            println("Failed to get cookies: ${e.message}")
-            emptyList()
         } finally {
             lock.unlock()
         }
@@ -97,8 +92,6 @@ class IosCookieStorage : CookiesStorage {
             ).forEach {
                 cookieStorage.setCookie(it as NSHTTPCookie)
             }
-        } catch (e: Exception) {
-            println("Failed to add cookie: ${e.message}")
         } finally {
             lock.unlock()
         }
@@ -173,7 +166,6 @@ class IosCookieStorage : CookiesStorage {
                     userDefaults.removeObjectForKey(key)
                 }
             } catch (e: Exception) {
-                println("Failed to restore cookie: ${e.message}")
                 userDefaults.removeObjectForKey(key)
             }
         }
