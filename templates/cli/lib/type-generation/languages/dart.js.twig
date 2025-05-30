@@ -9,8 +9,10 @@ class Dart extends LanguageMeta {
       case AttributeType.STRING:
       case AttributeType.EMAIL:
       case AttributeType.DATETIME:
-      case AttributeType.ENUM:
         type = "String";
+        if (attribute.format === AttributeType.ENUM) {
+          type = LanguageMeta.toPascalCase(attribute.key);
+        }
         break;
       case AttributeType.INTEGER:
         type = "int";
@@ -23,7 +25,7 @@ class Dart extends LanguageMeta {
         break;
       case AttributeType.RELATIONSHIP:
         type = LanguageMeta.toPascalCase(attribute.relatedCollection);
-        if ((attribute.relationType === 'oneToMany' && attribute.side === 'parent') (attribute.relationType === 'manyToOne' && attribute.side === 'child') || || attribute.relationType === 'manyToMany') {
+        if ((attribute.relationType === 'oneToMany' && attribute.side === 'parent') || (attribute.relationType === 'manyToOne' && attribute.side === 'child') || attribute.relationType === 'manyToMany') {
           type = `List<${type}>`;
         }
         break;
@@ -43,6 +45,16 @@ class Dart extends LanguageMeta {
     return `<% for (const attribute of collection.attributes) { -%>
 <% if (attribute.type === 'relationship') { -%>
 import '<%- attribute.relatedCollection.toLowerCase() %>.dart';
+
+<% } -%>
+<% } -%>
+<% for (const attribute of collection.attributes) { -%>
+<% if (attribute.format === 'enum') { -%>
+enum <%- toPascalCase(attribute.key) %> {
+<% for (const element of attribute.elements) { -%>
+  <%- toPascalCase(element) %>,
+<% } -%>
+}
 
 <% } -%>
 <% } -%>
