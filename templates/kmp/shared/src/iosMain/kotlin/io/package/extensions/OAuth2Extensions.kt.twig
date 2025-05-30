@@ -15,62 +15,69 @@ suspend fun {{ sdk.namespace | caseDot }}.services.{{ service.className | caseUc
     {%~ endfor %}
 ) {
     val apiPath = "{{ method.path }}"
-        {%~ for parameter in method.parameters.path %}
-            .replace("{{ '{' ~ parameter.name | caseCamel ~ '}' }}", {{ parameter.name | caseCamel }}{%~ if parameter.enumValues is not empty %}.value{%~ endif %})
-        {%~ endfor %}
+    {%~ for parameter in method.parameters.path %}
+        .replace("{{ '{' ~ parameter.name | caseCamel ~ '}' }}", {{ parameter.name | caseCamel }}{%~ if parameter.enumValues is not empty %}.value{%~ endif %})
+    {%~ endfor %}
 
-        val apiParams = mutableMapOf<String, Any?>(
-        {%~ for parameter in method.parameters.query | merge(method.parameters.body) %}
-            "{{ parameter.name }}" to {{ parameter.name | caseCamel }},
-        {%~ endfor %}
-        {%~ if method.auth | length > 0 %}
-        {%~ for node in method.auth %}
-        {%~ for key,header in node | keys %}
-            "{{ header | caseLower }}" to client.config["{{ header | caseLower }}"],
-        {%~ endfor %}
-        {%~ endfor %}
-        {%~ endif %}
-        )
+    val apiParams = mutableMapOf<String, Any?>(
+    {%~ for parameter in method.parameters.query | merge(method.parameters.body) %}
+        "{{ parameter.name }}" to {{ parameter.name | caseCamel }},
+    {%~ endfor %}
+    {%~ if method.auth | length > 0 %}
+    {%~ for node in method.auth %}
+    {%~ for key,header in node | keys %}
+        "{{ header | caseLower }}" to client.config["{{ header | caseLower }}"],
+    {%~ endfor %}
+    {%~ endfor %}
+    {%~ endif %}
+    )
 
-        val apiQuery = mutableListOf<String>()
-        apiParams.forEach {
-            when (it.value) {
-                null -> return@forEach
-                is List<*> -> apiQuery.add("${it.key}[]=${it.value.toString()}")
-                else -> apiQuery.add("${it.key}=${it.value.toString()}")
-            }
+    val apiQuery = mutableListOf<String>()
+    apiParams.forEach {
+        when (it.value) {
+            null -> return@forEach
+            is List<*> -> apiQuery.add("${it.key}[]=${it.value.toString()}")
+            else -> apiQuery.add("${it.key}=${it.value.toString()}")
+        }
+    }
+
+    val urlParser = UrlParser()
+    val fullUrl = "${client.endpoint}${apiPath}?${apiQuery.joinToString("&")}"
+    val apiUrl = urlParser.parse(fullUrl)
+    val callbackUrlScheme = "{{ spec.title | caseLower }}-callback-${client.config["project"]}"
+
+    WebAuthComponent.setCookieStorage(client.iosCookieStorage)
+    WebAuthComponent.authenticate(apiUrl.toString(), callbackUrlScheme) { result ->
+        if (result.isFailure) {
+            throw AppwriteException("OAuth authentication failed: ${result.exceptionOrNull()?.message}")
         }
 
-        val urlParser = UrlParser()
-        val fullUrl = "${client.endpoint}${apiPath}?${apiQuery.joinToString("&")}"
-        val apiUrl = urlParser.parse(fullUrl)
-        val callbackUrlScheme = "{{ spec.title | caseLower }}-callback-${client.config["project"]}"
-
-        WebAuthComponent.authenticate(apiUrl.toString(), callbackUrlScheme) {
-            if (it.isFailure) {
-                throw it.exceptionOrNull()!!
-            }
-
-            val resultUrl = it.getOrNull()!!
-            val key = urlParser.getQueryParameter(resultUrl, "key")
-            val secret = urlParser.getQueryParameter(resultUrl, "secret")
-            if (key == null || secret == null) {
-                throw {{ spec.title | caseUcfirst }}Exception("Authentication cookie missing!")
-            }
-
+        result.getOrNull()?.let { callbackUrl ->
             runBlocking {
+                val key = urlParser.getQueryParameter(callbackUrl, "key")
+                val secret = urlParser.getQueryParameter(callbackUrl, "secret")
+
+                if (key == null && secret == null) {
+                    throw {{ spec.title | caseUpper }}Exception("Authentication cookie missing!")
+                }
+                val cookie = Cookie(
+                    name = key!!,
+                    value = secret!!,
+                    domain = urlParser.getHost(client.endpoint),
+                    path = "/",
+                    httpOnly = true,
+                    secure = client.endpoint.startsWith("https")
+                )
+
                 client.iosCookieStorage.addCookie(
-                    Url(fullUrl),
-                    Cookie(
-                        name = key,
-                        value = secret,
-                        domain = urlParser.getHost(client.endpoint),
-                        httpOnly = true,
-                    )
+                    requestUrl = Url(fullUrl),
+                    cookie = cookie
                 )
             }
         }
+    }
 }
+
 
 {% endfor %}
 {% endfor %}
