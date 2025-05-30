@@ -42,7 +42,7 @@ import Codable
 
 public class <%- toPascalCase(collection.name) %>: Codable {
 <% for (const attribute of collection.attributes) { -%>
-    public var <%- toCamelCase(attribute.key) %>: <%- getType(attribute) %>
+    public let <%- toCamelCase(attribute.key) %>: <%- getType(attribute) %>
 <% } %>
     enum CodingKeys: String, CodingKey {
 <% for (const attribute of collection.attributes) { -%>

@@ -40,9 +40,7 @@ class PHP extends LanguageMeta {
     return `<?php
 namespace Appwrite\\Models;
 
-use Appwrite\\Models\\Document;
-
-class <%- toPascalCase(collection.name) %> extends Document {
+class <%- toPascalCase(collection.name) %> {
 <% for (const attribute of collection.attributes ){ -%>
   public <%- getType(attribute) %> $<%- toCamelCase(attribute.key) %>;
 <% } -%>
