@@ -9,8 +9,10 @@ class Swift extends LanguageMeta {
       case AttributeType.STRING:
       case AttributeType.EMAIL:
       case AttributeType.DATETIME:
-      case AttributeType.ENUM:
         type = "String";
+        if (attribute.format === AttributeType.ENUM) {
+          type = LanguageMeta.toPascalCase(attribute.key);
+        }
         break;
       case AttributeType.INTEGER:
         type = "Int";
@@ -42,6 +44,16 @@ class Swift extends LanguageMeta {
   getTemplate() {
     return `import Foundation
 
+<% for (const attribute of collection.attributes) { -%>
+<% if (attribute.format === 'enum') { -%>
+public enum <%- toPascalCase(attribute.key) %>: String, Codable, CaseIterable {
+<% for (const [index, element] of Object.entries(attribute.elements)) { -%>
+  case <%- element %> = "<%- element %>"
+<% } -%>
+}
+
+<% } -%>
+<% } -%>
 public class <%- toPascalCase(collection.name) %>: Codable {
 <% for (const attribute of collection.attributes) { -%>
     public let <%- toCamelCase(attribute.key) %>: <%- getType(attribute) %>

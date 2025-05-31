@@ -12,8 +12,10 @@ class PHP extends LanguageMeta {
       case AttributeType.STRING:
       case AttributeType.EMAIL:
       case AttributeType.DATETIME:
-      case AttributeType.ENUM:
         type = "string";
+        if (attribute.format === AttributeType.ENUM) {
+          type = LanguageMeta.toPascalCase(attribute.key);
+        }
         break;
       case AttributeType.INTEGER:
         type = "int";
@@ -46,6 +48,16 @@ namespace Appwrite\\Models;
 <% for (const attribute of collection.attributes) { -%>
 <% if (attribute.type === 'relationship' && !(attribute.relationType === 'manyToMany') && !(attribute.relationType === 'oneToMany' && attribute.side === 'parent')) { -%>
 use Appwrite\\Models\\<%- toPascalCase(attribute.relatedCollection) %>;
+
+<% } -%>
+<% } -%>
+<% for (const attribute of collection.attributes) { -%>
+<% if (attribute.format === 'enum') { -%>
+enum <%- toPascalCase(attribute.key) %> {
+<% for (const [index, element] of Object.entries(attribute.elements)) { -%>
+  case <%- element.toUpperCase() %> = '<%- element %>';
+<% } -%>
+}
 
 <% } -%>
 <% } -%>

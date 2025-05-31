@@ -12,10 +12,12 @@ class TypeScript extends LanguageMeta {
       case AttributeType.STRING:
       case AttributeType.EMAIL:
       case AttributeType.DATETIME:
-      case AttributeType.ENUM:
       case AttributeType.IP:
       case AttributeType.URL:
         type = "string";
+        if (attribute.format === AttributeType.ENUM) {
+          type = LanguageMeta.toPascalCase(attribute.key);
+        }
         break;
       case AttributeType.INTEGER:
         type = "number";
@@ -64,6 +66,18 @@ class TypeScript extends LanguageMeta {
 
   getTemplate() {
     return `import { Models } from '${this._getAppwriteDependency()}';
+
+<% for (const collection of collections) { -%>
+<% for (const attribute of collection.attributes) { -%>
+<% if (attribute.format === 'enum') { -%>
+export enum <%- toPascalCase(attribute.key) %> {
+<% for (const [index, element] of Object.entries(attribute.elements)) { -%>
+  <%- element.toUpperCase() %> = "<%- element %>",
+<% } -%>
+}
+<% } -%>
+<% } -%>
+<% } -%>
 <% for (const collection of collections) { %>
 export type <%- toPascalCase(collection.name) %> = Models.Document & {
 <% for (const attribute of collection.attributes) { -%>
