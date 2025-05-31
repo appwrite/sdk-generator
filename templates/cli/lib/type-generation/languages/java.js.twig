@@ -61,7 +61,7 @@ public class <%- toPascalCase(collection.name) %> {
 <% } -%>
 <% } -%>
 <% for (const attribute of collection.attributes) { -%>
-    private <%- getType(attribute) %> <%= toCamelCase(attribute.key) %>;
+    private <%- getType(attribute) %> <%- toCamelCase(attribute.key) %>;
 <% } -%>
 
     public <%- toPascalCase(collection.name) %>() {
