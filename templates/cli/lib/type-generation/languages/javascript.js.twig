@@ -12,10 +12,12 @@ class JavaScript extends LanguageMeta {
       case AttributeType.STRING:
       case AttributeType.EMAIL:
       case AttributeType.DATETIME:
-      case AttributeType.ENUM:
       case AttributeType.IP:
       case AttributeType.URL:
         type = "string";
+        if (attribute.format === AttributeType.ENUM) {
+          type = `"${attribute.elements.join('"|"')}"`;
+        }
         break;
       case AttributeType.INTEGER:
         type = "number";

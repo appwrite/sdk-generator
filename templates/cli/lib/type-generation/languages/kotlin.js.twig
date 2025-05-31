@@ -9,8 +9,10 @@ class Kotlin extends LanguageMeta {
       case AttributeType.STRING:
       case AttributeType.EMAIL:
       case AttributeType.DATETIME:
-      case AttributeType.ENUM:
         type = "String";
+        if (attribute.format === AttributeType.ENUM) {
+          type = LanguageMeta.toPascalCase(attribute.key);
+        }
         break;
       case AttributeType.INTEGER:
         type = "Int";
@@ -45,6 +47,16 @@ class Kotlin extends LanguageMeta {
 <% for (const attribute of collection.attributes) { -%>
 <% if (attribute.type === 'relationship') { -%>
 import <%- toPascalCase(attribute.relatedCollection) %>
+
+<% } -%>
+<% } -%>
+<% for (const attribute of collection.attributes) { -%>
+<% if (attribute.format === 'enum') { -%>
+enum class <%- toPascalCase(attribute.key) %> {
+<% for (const [index, element] of Object.entries(attribute.elements)) { -%>
+    <%- element %><%- index < attribute.elements.length - 1 ? ',' : '' %>
+<% } -%>
+}
 
 <% } -%>
 <% } -%>
