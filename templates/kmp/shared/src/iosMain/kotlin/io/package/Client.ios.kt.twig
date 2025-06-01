@@ -35,12 +35,12 @@ actual class Client(
 
         headers = mutableMapOf(
             "content-type" to "application/json",
-            "x-sdk-name" to "KMP",
-            "x-sdk-platform" to "",
-            "x-sdk-language" to "kmp",
-            "x-sdk-version" to "0.0.0-SNAPSHOT",
+            "x-sdk-name" to "{{ sdk.name }}",
+            "x-sdk-platform" to "{{ sdk.platform }}",
+            "x-sdk-language" to "{{ language.name | caseLower }}",
+            "x-sdk-version" to "{{ sdk.version }}",
             "user-agent" to "${appName}/${version} ios",
-            "origin" to "appwrite-ios://${appName}",
+            "origin" to "{{ spec.title | caseLower }}-ios://${appName}",
             {%~ for key,header in spec.global.defaultHeaders %}
             "{{key | caseLower }}" to "{{header}}"{% if not loop.last %},{% endif %}
 
