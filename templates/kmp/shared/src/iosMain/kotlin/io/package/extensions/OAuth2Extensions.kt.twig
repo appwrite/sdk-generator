@@ -58,7 +58,7 @@ suspend fun {{ sdk.namespace | caseDot }}.services.{{ service.className | caseUc
                 val secret = urlParser.getQueryParameter(callbackUrl, "secret")
 
                 if (key == null && secret == null) {
-                    throw {{ spec.title | caseUpper }}Exception("Authentication cookie missing!")
+                    throw {{ spec.title | caseUcfirst }}Exception("Authentication cookie missing!")
                 }
                 val cookie = Cookie(
                     name = key!!,
