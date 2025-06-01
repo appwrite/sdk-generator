@@ -24,7 +24,8 @@ actual class Client(
     val iosCookieStorage = IosCookieStorage()
 
     init {
-        httpClient = createHttpClient(selfSigned, iosCookieStorage)val appName =
+        httpClient = createHttpClient(selfSigned, iosCookieStorage)
+        val appName =
         NSBundle.mainBundle.objectForInfoDictionaryKey("CFBundleDisplayName") as String?
             ?: NSBundle.mainBundle.objectForInfoDictionaryKey("CFBundleName") as? String
                 ?: ""
