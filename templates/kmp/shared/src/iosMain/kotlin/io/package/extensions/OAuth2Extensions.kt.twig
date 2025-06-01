@@ -49,7 +49,7 @@ suspend fun {{ sdk.namespace | caseDot }}.services.{{ service.className | caseUc
     WebAuthComponent.setCookieStorage(client.iosCookieStorage)
     WebAuthComponent.authenticate(apiUrl.toString(), callbackUrlScheme) { result ->
         if (result.isFailure) {
-            throw AppwriteException("OAuth authentication failed: ${result.exceptionOrNull()?.message}")
+            throw {{ spec.title | caseUcfirst }}Exception("OAuth authentication failed: ${result.exceptionOrNull()?.message}")
         }
 
         result.getOrNull()?.let { callbackUrl ->
