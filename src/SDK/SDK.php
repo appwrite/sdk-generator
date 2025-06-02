@@ -71,6 +71,15 @@ class SDK
     ];
 
     /**
+     * @var array
+     */
+    protected array $excludeRules = [
+        'services' => [],
+        'methods' => [],
+        'definitions' => []
+    ];
+
+    /**
      * SDK constructor.
      *
      * @param Language $language
@@ -655,6 +664,28 @@ class SDK
     }
 
     /**
+     * Add additional exclusion rules for services, methods, or definitions.
+     *
+     * @param array $rules Array containing exclusion rules with format:
+     *                     [
+     *                         'services' => [['name' => 'serviceName'], ['feature' => 'featureName']],
+     *                         'methods' => [['name' => 'methodName'], ['type' => 'methodType']],
+     *                         'definitions' => [['name' => 'definitionName']]
+     *                     ]
+     * @return $this
+     */
+    public function setExclude(array $rules): SDK
+    {
+        foreach (['services', 'methods', 'definitions'] as $type) {
+            if (isset($rules[$type]) && is_array($rules[$type])) {
+                $this->excludeRules[$type] = array_merge($this->excludeRules[$type], $rules[$type]);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
      * Determine if a file should be excluded from generation.
      *
      * Allows for files to be excluded based on:
@@ -668,7 +699,7 @@ class SDK
      */
     protected function exclude($file, $params): bool
     {
-        $exclude = $file['exclude'] ?? [];
+        $exclude = array_merge_recursive($file['exclude'] ?? [], $this->excludeRules);
 
         $services = [];
         $features = [];
