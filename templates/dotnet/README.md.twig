@@ -47,24 +47,24 @@ dotnet add package {{ spec.title | caseUcfirst }} --version {{ sdk.version }}
 
 ### Preparing Models for Databases API
 
-For the .NET SDK, we use the `Newtonsoft.Json` library for serialization/deserialization support. The default behavior converts property names from `PascalCase` to `camelCase` on serializing to JSON. In case the names of attributes in your Appwrite collection are not created in `camelCase`, this serializer behavior can cause errors due to mismatches in the names in the serialized JSON and the actual attribute names in your collection.
+For the .NET SDK, we use the `System.Text.Json` library for serialization/deserialization support. The default behavior converts property names from `PascalCase` to `camelCase` on serializing to JSON. In case the names of attributes in your Appwrite collection are not created in `camelCase`, this serializer behavior can cause errors due to mismatches in the names in the serialized JSON and the actual attribute names in your collection.
 
-The way to fix this is to add the `JsonProperty` attribute to the properties in the POCO class you create for your model.
+The way to fix this is to add the `JsonPropertyName` attribute to the properties in the POCO class you create for your model.
 
 For e.g., if you have two attributes, `name` (`string` type) and `release_date` (`DateTime` type), your POCO class would be created as follows:
 
 ```csharp
 public class TestModel
 {
-  [JsonProperty("name")]
+  [JsonPropertyName("name")]
   public string Name { get; set; }
 
-  [JsonProperty("release_date")]
+  [JsonPropertyName("release_date")]
   public DateTime ReleaseDate { get; set; }
 }
 ```
 
-The `JsonProperty` attribute will ensure that your data object for the Appwrite database is serialized with the correct names.
+The `JsonPropertyName` attribute will ensure that your data object for the Appwrite database is serialized with the correct names.
 
 ## Contribution
 
