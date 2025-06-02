@@ -2,7 +2,7 @@
 
 namespace Tests;
 
-class DotNet80Test extends Base
+class DotNet90Test extends Base
 {
     protected string $sdkName = 'dotnet';
     protected string $sdkPlatform = 'server';
