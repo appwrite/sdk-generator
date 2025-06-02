@@ -69,7 +69,7 @@ namespace {{ spec.title | caseUcfirst }}
             _headers = new Dictionary<string, string>()
             {
                 { "content-type", "application/json" },
-                { "user-agent" , "{{spec.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} (${Environment.OSVersion.Platform}; ${Environment.OSVersion.VersionString})"},
+                { "user-agent" , $"{{spec.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} ({Environment.OSVersion.Platform}; {Environment.OSVersion.VersionString})"},
                 { "x-sdk-name", "{{ sdk.name }}" },
                 { "x-sdk-platform", "{{ sdk.platform }}" },
                 { "x-sdk-language", "{{ language.name | caseLower }}" },
