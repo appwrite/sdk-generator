@@ -188,6 +188,11 @@ try {
         ->setDefaultHeaders([
             'X-Appwrite-Response-Format' => '1.7.0',
         ])
+        ->setExclude([
+            'services' => [
+                ['name' => 'assistant'],
+            ],
+        ])
     ;
 
     $sdk->generate(__DIR__ . '/examples/cli');
