@@ -215,7 +215,7 @@ class ReactNative extends Web
         if ($method['type'] === 'webAuth') {
             return 'void | URL';
         } elseif ($method['type'] === 'location') {
-            return 'URL';
+            return 'Promise<ArrayBuffer>';
         }
 
         if (array_key_exists('responseModel', $method) && !empty($method['responseModel']) && $method['responseModel'] !== 'any') {
