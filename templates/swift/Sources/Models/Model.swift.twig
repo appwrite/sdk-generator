@@ -81,8 +81,20 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
     public static func from(map: [String: Any] ) -> {{ definition.name | caseUcfirst }} {
         return {{ definition.name | caseUcfirst }}(
             {%~ for property in definition.properties %}
-            {%~ set isDocument = definition.name | lower == 'document' %} {# Temporary Fix until BE is fixed to return all attributes #}
-            {{ property.name | escapeSwiftKeyword | removeDollarSign }}: {% if property.sub_schema %}{% if property.type == 'array' %}(map["{{property.name }}"] as{% if isDocument %}?{% else %}{% if property.required %}!{% else %}?{% endif %}{% endif %} [[String: Any]]{% if isDocument %} ?? []{% elseif not property.required %} ?? []{% endif %}).map { {{property.sub_schema | caseUcfirst}}.from(map: $0) }{% else %}{% if isDocument %}map["{{property.name }}"] as? [String: Any] != nil ? {{property.sub_schema | caseUcfirst}}.from(map: map["{{property.name }}"] as! [String: Any]) : nil{% else %}{{property.sub_schema | caseUcfirst}}.from(map: map["{{property.name }}"] as! [String: Any]){% endif %}{% endif %}{% else %}{% if property | isAnyCodableArray(spec) %}(map["{{property.name }}"] as{% if isDocument %}?{% else %}{% if property.required %}!{% else %}?{% endif %}{% endif %} [Any]{% if isDocument or not property.required %} ?? []{% endif %}).map { AnyCodable($0) }{% else %}map["{{property.name }}"] as{% if isDocument %}?{% else %}{% if property.required %}!{% else %}?{% endif %}{% endif %} {{ property | propertyType(spec) | raw }}{% if isDocument and property.required %}{% if property.type == 'string' %} ?? ""{% elseif property.type == 'integer' %} ?? 0{% elseif property.type == 'number' %} ?? 0.0{% elseif property.type == 'boolean' %} ?? false{% elseif property.type == 'array' %} ?? []{% endif %}{% endif %}{% endif %}{% endif %}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
+            {%~ set isDocument = definition.name | lower == 'document' %}{# Temporary Fix until BE is fixed to return all attributes #}
+            {{ property.name | escapeSwiftKeyword | removeDollarSign }}: {% if property.sub_schema -%}
+                {%- if property.type == 'array' -%}
+                    (map["{{property.name }}"] as{% if isDocument %}?{% else %}{% if property.required %}!{% else %}?{% endif %}{% endif %} [[String: Any]]{% if isDocument %} ?? []{% elseif not property.required %} ?? []{% endif %}).map { {{property.sub_schema | caseUcfirst}}.from(map: $0) }
+                {%- else -%}
+                    {% if isDocument %}map["{{property.name }}"] as? [String: Any] != nil ? {{property.sub_schema | caseUcfirst}}.from(map: map["{{property.name }}"] as! [String: Any]) : nil{% else %}{{property.sub_schema | caseUcfirst}}.from(map: map["{{property.name }}"] as! [String: Any]){% endif %}
+                {%- endif -%}
+            {%- else -%}
+                {%- if property | isAnyCodableArray(spec) -%}
+                    (map["{{property.name }}"] as{% if isDocument %}?{% else %}{% if property.required %}!{% else %}?{% endif %}{% endif %} [Any]{% if isDocument or not property.required %} ?? []{% endif %}).map { AnyCodable($0) }
+                {%- else -%}
+                    map["{{property.name }}"] as{% if isDocument %}?{% else %}{% if property.required %}!{% else %}?{% endif %}{% endif %} {{ property | propertyType(spec) | raw }}{% if isDocument and property.required %}{% if property.type == 'string' %} ?? ""{% elseif property.type == 'integer' %} ?? 0{% elseif property.type == 'number' %} ?? 0.0{% elseif property.type == 'boolean' %} ?? false{% elseif property.type == 'array' %} ?? []{% endif %}{% endif %}
+                {%- endif -%}
+            {%- endif %}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
 
             {%~ endfor %}
             {%~ if definition.additionalProperties %}
