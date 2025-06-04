@@ -538,7 +538,7 @@ class Swift extends Language
 
     /**
      * Check if a property is an array that results in [AnyCodable] type
-     * 
+     *
      * @param array $property
      * @param array $spec
      * @return bool
