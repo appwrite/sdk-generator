@@ -462,6 +462,9 @@ class Swift extends Language
             new TwigFilter('propertyType', function (array $property, array $spec, string $generic = 'T') {
                 return $this->getPropertyType($property, $spec, $generic);
             }),
+            new TwigFilter('isAnyCodableArray', function (array $property, array $spec) {
+                return $this->isAnyCodableArray($property, $spec);
+            }),
             new TwigFilter('hasGenericType', function (string $model, array $spec) {
                 return $this->hasGenericType($model, $spec);
             }),
@@ -531,6 +534,18 @@ class Swift extends Language
         }
 
         return $type;
+    }
+
+    /**
+     * Check if a property is an array that results in [AnyCodable] type
+     *
+     * @param array $property
+     * @param array $spec
+     * @return bool
+     */
+    protected function isAnyCodableArray(array $property, array $spec): bool
+    {
+        return $property['type'] === 'array' && $this->getPropertyType($property, $spec, 'T') === '[AnyCodable]';
     }
 
     protected function hasGenericType(?string $model, array $spec): string
