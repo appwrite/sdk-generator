@@ -16,18 +16,18 @@ import (
 )
 
 func main() {
-    client := client.NewClient()
-
+    client := client.New(
 {% if method.auth|length > 0 %}
-    client.SetEndpoint("{{ spec.endpointDocs | raw }}") // Your API Endpoint
+        client.WithEndpoint("{{ spec.endpointDocs | raw }}") // Your API Endpoint
 {% for node in method.auth %}
 {% for key,header in node|keys %}
-    client.Set{{header}}("{{node[header]['x-appwrite']['demo'] | raw }}") // {{node[header].description}}
+        client.With{{header}}("{{node[header]['x-appwrite']['demo'] | raw }}") // {{node[header].description}}
 {% endfor %}
 {% endfor %}
+    )
 
 {% endif %}
-    service := {{ service.name | caseLower }}.New{{ service.name | caseUcfirst }}(client)
+    service := {{ service.name | caseLower }}.New(client)
     response, error := service.{{ method.name | caseUcfirst }}(
 {% for parameter in method.parameters.all %}
 {% if parameter.required %}
