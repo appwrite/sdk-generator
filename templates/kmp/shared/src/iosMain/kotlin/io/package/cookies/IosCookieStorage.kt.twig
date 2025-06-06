@@ -10,7 +10,6 @@ import platform.Foundation.NSDateFormatter
 import platform.Foundation.NSHTTPCookie
 import platform.Foundation.NSHTTPCookieAcceptPolicy
 import platform.Foundation.NSHTTPCookieDomain
-import platform.Foundation.NSHTTPCookieExpires
 import platform.Foundation.NSHTTPCookieName
 import platform.Foundation.NSHTTPCookiePath
 import platform.Foundation.NSHTTPCookieStorage
@@ -24,7 +23,6 @@ import platform.Foundation.timeIntervalSince1970
 import platform.Foundation.timeZoneWithAbbreviation
 import kotlin.collections.component1
 import kotlin.collections.component2
-import kotlin.collections.set
 
 @Serializable
 private data class StoredCookie(
@@ -78,7 +76,6 @@ class IosCookieStorage : CookiesStorage {
         lock.lock()
         try {
             val nsUrl = NSURL(string = requestUrl.toString())
-            // Use cookie's domain if provided, otherwise use the host without leading dot
             val domain = cookie.domain ?: requestUrl.host
 
             val setCookieHeader = buildCookieHeader(cookie, domain)
@@ -97,7 +94,6 @@ class IosCookieStorage : CookiesStorage {
         }
     }
 
-
     override fun close() {
         lock.lock()
         try {
@@ -115,7 +111,7 @@ class IosCookieStorage : CookiesStorage {
         val cookieDomain = if (!domain.startsWith(".") && !domain.equals("localhost", true)) {
             ".$domain"
         } else domain
-        append("; Domain=${cookieDomain}")  // Only one Domain attribute
+        append("; Domain=${cookieDomain}")
         append("; Path=${cookie.path ?: "/"}")
         cookie.expires?.let { gmtDate ->
             append("; Expires=${formatDate(gmtDate.timestamp)}")
@@ -159,7 +155,6 @@ class IosCookieStorage : CookiesStorage {
                     return@forEach
                 }
 
-                // Validate domain and path before recreating
                 if (storedCookie.domain.isNotBlank() && storedCookie.path.isNotBlank()) {
                     recreateCookie(storedCookie)
                 } else {
@@ -179,10 +174,6 @@ class IosCookieStorage : CookiesStorage {
             NSHTTPCookiePath to storedCookie.path,
             NSHTTPCookieDomain to storedCookie.domain
         )
-
-        storedCookie.expires?.let {
-            properties[NSHTTPCookieExpires] = NSDate.dateWithTimeIntervalSince1970(it / 1000)
-        }
 
         NSHTTPCookie.cookieWithProperties(properties)?.let {
             cookieStorage.setCookie(it)
