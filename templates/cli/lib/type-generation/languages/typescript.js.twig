@@ -1,0 +1,95 @@
+/** @typedef {import('../attribute').Attribute} Attribute */
+const fs = require("fs");
+const path = require("path");
+
+const { AttributeType } = require('../attribute');
+const { LanguageMeta } = require("./language");
+
+class TypeScript extends LanguageMeta {
+  getType(attribute) {
+    let type = ""
+    switch (attribute.type) {
+      case AttributeType.STRING:
+      case AttributeType.EMAIL:
+      case AttributeType.DATETIME:
+      case AttributeType.IP:
+      case AttributeType.URL:
+        type = "string";
+        if (attribute.format === AttributeType.ENUM) {
+          type = LanguageMeta.toPascalCase(attribute.key);
+        }
+        break;
+      case AttributeType.INTEGER:
+        type = "number";
+        break;
+      case AttributeType.FLOAT:
+        type = "number";
+        break;
+      case AttributeType.BOOLEAN:
+        type = "boolean";
+        break;
+      case AttributeType.RELATIONSHIP:
+        type = LanguageMeta.toPascalCase(attribute.relatedCollection);
+        if ((attribute.relationType === 'oneToMany' && attribute.side === 'parent') || (attribute.relationType === 'manyToOne' && attribute.side === 'child') || attribute.relationType === 'manyToMany') {
+          type = `${type}[]`;
+        }
+        break;
+      default:
+        throw new Error(`Unknown attribute type: ${attribute.type}`);
+    }
+    if (attribute.array) {
+      type += "[]";
+    }
+    if (!attribute.required) {
+      type += " | null";
+    }
+    return type;
+  }
+
+  isSingleFile() {
+    return true;
+  }
+
+  _getAppwriteDependency() {
+    if (fs.existsSync(path.resolve(process.cwd(), 'package.json'))) {
+      const packageJsonRaw = fs.readFileSync(path.resolve(process.cwd(), 'package.json'));
+      const packageJson = JSON.parse(packageJsonRaw.toString('utf-8'));
+      return packageJson.dependencies['node-appwrite'] ? 'node-appwrite' : 'appwrite';
+    }
+
+    if (fs.existsSync(path.resolve(process.cwd(), 'deno.json'))) {
+      return "https://deno.land/x/appwrite/mod.ts";
+    }
+
+    return "appwrite";
+  }
+
+  getTemplate() {
+    return `import { Models } from '${this._getAppwriteDependency()}';
+
+<% for (const collection of collections) { -%>
+<% for (const attribute of collection.attributes) { -%>
+<% if (attribute.format === 'enum') { -%>
+export enum <%- toPascalCase(attribute.key) %> {
+<% for (const [index, element] of Object.entries(attribute.elements)) { -%>
+  <%- element.toUpperCase() %> = "<%- element %>",
+<% } -%>
+}
+<% } -%>
+<% } -%>
+<% } -%>
+<% for (const collection of collections) { %>
+export type <%- toPascalCase(collection.name) %> = Models.Document & {
+<% for (const attribute of collection.attributes) { -%>
+  <%- toCamelCase(attribute.key) %>: <%- getType(attribute) %>;
+<% } -%>
+}
+<% } %>`;
+  }
+
+  getFileName(_) {
+    return "appwrite.d.ts";
+  }
+}
+
+module.exports = { TypeScript };

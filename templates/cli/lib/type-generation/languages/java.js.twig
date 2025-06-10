@@ -1,0 +1,121 @@
+/** @typedef {import('../attribute').Attribute} Attribute */
+const { AttributeType } = require('../attribute');
+const { LanguageMeta } = require("./language");
+
+class Java extends LanguageMeta {
+  getType(attribute) {
+    let type = "";
+    switch (attribute.type) {
+      case AttributeType.STRING:
+      case AttributeType.EMAIL:
+      case AttributeType.DATETIME:
+        type = "String";
+        if (attribute.format === AttributeType.ENUM) {
+          type = LanguageMeta.toPascalCase(attribute.key);
+        }
+        break;
+      case AttributeType.INTEGER:
+        type = "int";
+        break;
+      case AttributeType.FLOAT:
+        type = "double";
+        break;
+      case AttributeType.BOOLEAN:
+        type = "boolean";
+        break;
+      case AttributeType.RELATIONSHIP:
+        type = LanguageMeta.toPascalCase(attribute.relatedCollection);
+        if ((attribute.relationType === 'oneToMany' && attribute.side === 'parent') || (attribute.relationType === 'manyToOne' && attribute.side === 'child') || attribute.relationType === 'manyToMany') {
+          type = "List<" + type + ">";
+        }
+        break;
+      default:
+        throw new Error(`Unknown attribute type: ${attribute.type}`);
+    }
+    if (attribute.array) {
+      type = "List<" + type + ">";
+    }
+    return type;
+  }
+
+  getTemplate() {
+    return `package io.appwrite.models;
+
+import java.util.*;
+<% for (const attribute of collection.attributes) { -%>
+<% if (attribute.type === 'relationship') { -%>
+import <%- toPascalCase(attribute.relatedCollection) %>;
+
+<% } -%>
+<% } -%>
+public class <%- toPascalCase(collection.name) %> {
+<% for (const attribute of collection.attributes) { -%>
+<% if (attribute.format === 'enum') { -%>
+
+    public enum <%- toPascalCase(attribute.key) %> {
+<% for (const [index, element] of Object.entries(attribute.elements)) { -%>
+        <%- element %><%- index < attribute.elements.length - 1 ? ',' : ';' %>
+<% } -%>
+    }
+
+<% } -%>
+<% } -%>
+<% for (const attribute of collection.attributes) { -%>
+    private <%- getType(attribute) %> <%- toCamelCase(attribute.key) %>;
+<% } -%>
+
+    public <%- toPascalCase(collection.name) %>() {
+    }
+
+    public <%- toPascalCase(collection.name) %>(
+<% for (const [index, attribute] of Object.entries(collection.attributes)) { -%>
+        <%- getType(attribute) %> <%= toCamelCase(attribute.key) %><%- index < collection.attributes.length - 1 ? ',' : '' %>
+<% } -%>
+    ) {
+<% for (const attribute of collection.attributes) { -%>
+        this.<%= toCamelCase(attribute.key) %> = <%= toCamelCase(attribute.key) %>;
+<% } -%>
+    }
+
+<% for (const attribute of collection.attributes) { -%>
+    public <%- getType(attribute) %> get<%- toPascalCase(attribute.key) %>() {
+        return <%= toCamelCase(attribute.key) %>;
+    }
+
+    public void set<%- toPascalCase(attribute.key) %>(<%- getType(attribute) %> <%= toCamelCase(attribute.key) %>) {
+        this.<%= toCamelCase(attribute.key) %> = <%= toCamelCase(attribute.key) %>;
+    }
+
+<% } -%>
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        <%- toPascalCase(collection.name) %> that = (<%- toPascalCase(collection.name) %>) obj;
+        return <% collection.attributes.forEach((attr, index) => { %>Objects.equals(<%= toCamelCase(attr.key) %>, that.<%= toCamelCase(attr.key) %>)<% if (index < collection.attributes.length - 1) { %> &&
+              <% } }); %>;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(<%= collection.attributes.map(attr => toCamelCase(attr.key)).join(', ') %>);
+    }
+
+    @Override
+    public String toString() {
+        return "<%- toPascalCase(collection.name) %>{" +
+<% for (const [index, attribute] of Object.entries(collection.attributes)) { -%>
+                "<%= toCamelCase(attribute.key) %>=" + <%= toCamelCase(attribute.key) %> +
+<% } -%>
+                '}';
+    }
+}
+`;
+  }
+
+  getFileName(collection) {
+    return LanguageMeta.toPascalCase(collection.name) + ".java";
+  }
+}
+
+module.exports = { Java };
