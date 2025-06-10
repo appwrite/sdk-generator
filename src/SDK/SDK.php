@@ -538,6 +538,58 @@ class SDK
     }
 
     /**
+     * Get services filtered by exclusion rules
+     *
+     * @return array
+     */
+    protected function getFilteredServices(): array
+    {
+        $allServices = $this->spec->getServices();
+        $filteredServices = [];
+
+        // Extract exclusion rules for services
+        $excludeServices = [];
+        $excludeFeatures = [];
+        foreach ($this->excludeRules['services'] ?? [] as $service) {
+            if (isset($service['name'])) {
+                $excludeServices[] = $service['name'];
+            }
+            if (isset($service['feature'])) {
+                $excludeFeatures[] = $service['feature'];
+            }
+        }
+
+        foreach ($allServices as $serviceName => $service) {
+            // Check if service is excluded by name
+            if (in_array($serviceName, $excludeServices)) {
+                continue;
+            }
+
+            // Check if service is excluded by feature
+            $methods = $this->spec->getMethods($serviceName);
+            $serviceFeatures = [
+                'upload' => $this->hasUploads($methods),
+                'location' => $this->hasLocation($methods),
+                'webAuth' => $this->hasWebAuth($methods),
+            ];
+
+            $shouldExclude = false;
+            foreach ($excludeFeatures as $feature) {
+                if ($serviceFeatures[$feature] ?? false) {
+                    $shouldExclude = true;
+                    break;
+                }
+            }
+
+            if (!$shouldExclude) {
+                $filteredServices[$serviceName] = $service;
+            }
+        }
+
+        return $filteredServices;
+    }
+
+    /**
      * @param string $target
      * @throws Throwable
      * @throws LoaderError
@@ -561,7 +613,7 @@ class SDK
                 'contactName' => $this->spec->getContactName(),
                 'contactURL' => $this->spec->getContactURL(),
                 'contactEmail' => $this->spec->getContactEmail(),
-                'services' => $this->spec->getServices(),
+                'services' => $this->getFilteredServices(),
                 'enums' => $this->spec->getEnums(),
                 'definitions' => $this->spec->getDefinitions(),
                 'global' => [
@@ -595,7 +647,7 @@ class SDK
                     copy(realpath(__DIR__ . '/../../templates/' . $file['template']), $destination);
                     break;
                 case 'service':
-                    foreach ($this->spec->getServices() as $key => $service) {
+                    foreach ($this->getFilteredServices() as $key => $service) {
                         $methods = $this->spec->getMethods($key);
                         $params['service'] = [
                             'globalParams' => $service['globalParams'] ?? [],
@@ -628,7 +680,7 @@ class SDK
                     }
                     break;
                 case 'method':
-                    foreach ($this->spec->getServices() as $key => $service) {
+                    foreach ($this->getFilteredServices() as $key => $service) {
                         $methods = $this->spec->getMethods($key);
                         $params['service'] = [
                             'name' => $key,
