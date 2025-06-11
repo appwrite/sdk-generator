@@ -69,7 +69,7 @@ class JavaScript extends LanguageMeta {
 /**
  * @typedef {Object} <%- toPascalCase(collection.name) %>
 <% for (const attribute of collection.attributes) { -%>
- * @property {<%- getType(attribute) %>} <%- toCamelCase(attribute.key) %>
+ * @property {<%- getType(attribute) %>} <%- attribute.key %>
 <% } -%>
  */
 

@@ -75,15 +75,17 @@ export enum <%- toPascalCase(attribute.key) %> {
   <%- element.toUpperCase() %> = "<%- element %>",
 <% } -%>
 }
+
 <% } -%>
 <% } -%>
 <% } -%>
-<% for (const collection of collections) { %>
+<% for (const collection of collections) { -%>
 export type <%- toPascalCase(collection.name) %> = Models.Document & {
 <% for (const attribute of collection.attributes) { -%>
-  <%- toCamelCase(attribute.key) %>: <%- getType(attribute) %>;
+  <%- attribute.key %>: <%- getType(attribute) %>;
 <% } -%>
 }
+
 <% } %>`;
   }
 
