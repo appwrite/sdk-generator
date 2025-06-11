@@ -60,19 +60,19 @@ enum <%- toPascalCase(attribute.key) %> {
 <% } -%>
 class <%= toPascalCase(collection.name) %> {
 <% for (const [index, attribute] of Object.entries(collection.attributes)) { -%>
-  <%- getType(attribute) %> <%= toCamelCase(attribute.key) %>;
+  <%- getType(attribute) %> <%- attribute.key %>;
 <% } -%>
 
   <%= toPascalCase(collection.name) %>({
   <% for (const [index, attribute] of Object.entries(collection.attributes)) { -%>
-  <% if (attribute.required) { %>required <% } %>this.<%= toCamelCase(attribute.key) %>,
+  <% if (attribute.required) { %>required <% } %>this.<%- attribute.key %>,
   <% } -%>
 });
 
   factory <%= toPascalCase(collection.name) %>.fromMap(Map<String, dynamic> map) {
     return <%= toPascalCase(collection.name) %>(
 <% for (const [index, attribute] of Object.entries(collection.attributes)) { -%>
-      <%= toCamelCase(attribute.key) %>: <% if (attribute.type === 'string' || attribute.type === 'email' || attribute.type === 'datetime') { -%>
+      <%- attribute.key %>: <% if (attribute.type === 'string' || attribute.type === 'email' || attribute.type === 'datetime') { -%>
 <% if (attribute.format === 'enum') { -%>
 <% if (attribute.array) { -%>
 (map['<%= attribute.key %>'] as List<dynamic>?)?.map((e) => <%- toPascalCase(attribute.key) %>.values.firstWhere((element) => element.name == e)).toList()<% if (!attribute.required) { %> ?? []<% } -%>
@@ -124,18 +124,18 @@ map['<%= attribute.key %>'] != null ? <%- toPascalCase(attribute.relatedCollecti
 <% for (const [index, attribute] of Object.entries(collection.attributes)) { -%>
       "<%= attribute.key %>": <% if (attribute.type === 'relationship') { -%>
 <% if ((attribute.relationType === 'oneToMany' && attribute.side === 'parent') || (attribute.relationType === 'manyToOne' && attribute.side === 'child') || attribute.relationType === 'manyToMany') { -%>
-<%= toCamelCase(attribute.key) %><% if (!attribute.required) { %>?<% } %>.map((e) => e.toMap()).toList()<% if (!attribute.required) { %> ?? []<% } -%>
+<%- attribute.key %><% if (!attribute.required) { %>?<% } %>.map((e) => e.toMap()).toList()<% if (!attribute.required) { %> ?? []<% } -%>
 <% } else { -%>
-<%= toCamelCase(attribute.key) %><% if (!attribute.required) { %>?<% } %>.toMap()<% if (!attribute.required) { %> ?? {}<% } -%>
+<%- attribute.key %><% if (!attribute.required) { %>?<% } %>.toMap()<% if (!attribute.required) { %> ?? {}<% } -%>
 <% } -%>
 <% } else if (attribute.format === 'enum') { -%>
 <% if (attribute.array) { -%>
-<%= toCamelCase(attribute.key) %><% if (!attribute.required) { %>?<% } %>.map((e) => e.name).toList()<% if (!attribute.required) { %> ?? []<% } -%>
+<%- attribute.key %><% if (!attribute.required) { %>?<% } %>.map((e) => e.name).toList()<% if (!attribute.required) { %> ?? []<% } -%>
 <% } else { -%>
-<%= toCamelCase(attribute.key) %><% if (!attribute.required) { %>?<% } %>.name<% if (!attribute.required) { %> ?? null<% } -%>
+<%- attribute.key %><% if (!attribute.required) { %>?<% } %>.name<% if (!attribute.required) { %> ?? null<% } -%>
 <% } -%>
 <% } else { -%>
-<%= toCamelCase(attribute.key) -%>
+<%- attribute.key -%>
 <% } -%>,
 <% } -%>
     };
