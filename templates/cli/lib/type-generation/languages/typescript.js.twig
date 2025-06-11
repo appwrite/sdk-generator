@@ -75,6 +75,7 @@ export enum <%- toPascalCase(attribute.key) %> {
   <%- element.toUpperCase() %> = "<%- element %>",
 <% } -%>
 }
+
 <% } -%>
 <% } -%>
 <% } -%>
@@ -84,6 +85,7 @@ export type <%- toPascalCase(collection.name) %> = Models.Document & {
   <%- attribute.key %>: <%- getType(attribute) %>;
 <% } -%>
 }
+
 <% } %>`;
   }
 
