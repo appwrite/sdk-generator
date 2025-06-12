@@ -48,7 +48,7 @@ class Swift extends LanguageMeta {
 <% if (attribute.format === 'enum') { -%>
 public enum <%- toPascalCase(attribute.key) %>: String, Codable, CaseIterable {
 <% for (const [index, element] of Object.entries(attribute.elements)) { -%>
-  case <%- element %> = "<%- element %>"
+  case <%- toSnakeCase(element) %> = "<%- element %>"
 <% } -%>
 }
 
