@@ -42,7 +42,7 @@ try {
      $platform = 'console';
     // $platform = 'server';
 
-    $spec = getSSLPage("https://raw.githubusercontent.com/appwrite/appwrite/1.6.x/app/config/specs/swagger2-latest-{$platform}.json");
+    $spec = getSSLPage("https://raw.githubusercontent.com/appwrite/appwrite/1.7.x/app/config/specs/swagger2-latest-{$platform}.json");
 
     if(empty($spec)) {
         throw new Exception('Failed to fetch spec from Appwrite server');
@@ -187,6 +187,11 @@ try {
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
             'X-Appwrite-Response-Format' => '1.7.0',
+        ])
+        ->setExclude([
+            'services' => [
+                ['name' => 'assistant'],
+            ],
         ])
     ;
 

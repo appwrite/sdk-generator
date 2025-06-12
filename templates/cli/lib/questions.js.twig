@@ -13,6 +13,7 @@ const { isPortTaken } = require('./utils');
 const { databasesList } = require('./commands/databases');
 const { checkDeployConditions } = require('./utils');
 const JSONbig = require("json-bigint")({ storeAsString: false });
+const { sitesListFrameworks, sitesListSpecifications, sitesList } = require('./commands/sites');
 
 const whenOverride = (answers) => answers.override === undefined ? true : answers.override;
 
@@ -262,6 +263,36 @@ const questionsPullFunctions = [
 ];
 
 const questionsPullFunctionsCode = [
+    {
+        type: "confirm",
+        name: "override",
+        message: "Do you want to pull source code of the latest deployment?"
+    },
+];
+
+const questionsPullSites = [
+    {
+        type: "checkbox",
+        name: "sites",
+        message: "Which sites would you like to pull?",
+        validate: (value) => validateRequired('site', value),
+        choices: async () => {
+            const { sites } = await paginate(sitesList, { parseOutput: false }, 100, 'sites');
+
+            if (sites.length === 0) {
+                throw "We couldn't find any sites in your {{ spec.title|caseUcfirst }} project";
+            }
+            return sites.map(site => {
+                return {
+                    name: `${site.name} (${site.$id})`,
+                    value: { ...site }
+                }
+            });
+        }
+    }
+];
+
+const questionsPullSitesCode = [
     {
         type: "confirm",
         name: "override",
@@ -627,12 +658,34 @@ const questionsInitResources = [
         message: "Which resource would you create?",
         choices: [
             { name: 'Function', value: 'function' },
+            { name: 'Site', value: 'site' },
             { name: 'Collection', value: 'collection' },
             { name: 'Bucket', value: 'bucket' },
             { name: 'Team', value: 'team' },
             { name: 'Topic', value: 'message' }
         ]
     }
+];
+
+const questionsPushSites = [
+    {
+        type: "checkbox",
+        name: "sites",
+        message: "Which sites would you like to push?",
+        validate: (value) => validateRequired('site', value),
+        when: () => localConfig.getSites().length > 0,
+        choices: () => {
+            let sites = localConfig.getSites();
+            checkDeployConditions(localConfig)
+            let choices = sites.map((site, idx) => {
+                return {
+                    name: `${site.name} (${site.$id})`,
+                    value: site.$id
+                }
+            })
+            return choices;
+        }
+    },
 ];
 
 const questionsPushFunctions = [
@@ -842,6 +895,58 @@ const questionsRunFunctions = [
     }
 ];
 
+const questionsCreateSite = [
+    {
+        type: "input",
+        name: "name",
+        message: "What would you like to name your site?",
+        default: "My Awesome Site"
+    },
+    {
+        type: "input",
+        name: "id",
+        message: "What ID would you like to have for your site?",
+        default: "unique()"
+    },
+    {
+        type: "list",
+        name: "framework",
+        message: "What framework would you like to use?",
+        choices: async () => {
+            let response = await sitesListFrameworks({
+                parseOutput: false
+            });
+            let frameworks = response["frameworks"];
+            let choices = frameworks.map((framework) => {
+                return {
+                    name: `${framework.name} (${framework.key})`,
+                    value: framework,
+                }
+            });
+            return choices;
+        },
+    },
+    {
+        type: "list",
+        name: "specification",
+        message: "What specification would you like to use?",
+        choices: async () => {
+            let response = await sitesListSpecifications({
+                parseOutput: false
+            });
+            let specifications = response["specifications"];
+            let choices = specifications.map((spec) => {
+                return {
+                    name: `${spec.cpus} CPU, ${spec.memory}MB RAM`,
+                    value: spec.slug,
+                    disabled: spec.enabled === false ? 'Upgrade to use' : false
+                }
+            });
+            return choices;
+        },
+    }
+];
+
 module.exports = {
     questionsInitProject,
     questionsInitProjectAutopull,
@@ -852,12 +957,15 @@ module.exports = {
     questionsCreateMessagingTopic,
     questionsPullFunctions,
     questionsPullFunctionsCode,
+    questionsPullSites,
+    questionsPullSitesCode,
     questionsLogin,
     questionsPullResources,
     questionsLogout,
     questionsPullCollection,
     questionsPushResources,
     questionsPushFunctions,
+    questionsPushSites,
     questionsPushCollections,
     questionsPushBuckets,
     questionsPushMessagingTopics,
@@ -870,5 +978,6 @@ module.exports = {
     questionsInitResources,
     questionsCreateTeam,
     questionPushChanges,
-    questionPushChangesConfirmation
+    questionPushChangesConfirmation,
+    questionsCreateSite
 };
