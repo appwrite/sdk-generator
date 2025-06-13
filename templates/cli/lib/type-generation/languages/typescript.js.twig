@@ -72,7 +72,7 @@ class TypeScript extends LanguageMeta {
 <% if (attribute.format === 'enum') { -%>
 export enum <%- toPascalCase(attribute.key) %> {
 <% for (const [index, element] of Object.entries(attribute.elements)) { -%>
-  <%- element.toUpperCase() %> = "<%- element %>",
+  <%- toUpperSnakeCase(element) %> = "<%- element %>",
 <% } -%>
 }
 
@@ -82,7 +82,7 @@ export enum <%- toPascalCase(attribute.key) %> {
 <% for (const collection of collections) { -%>
 export type <%- toPascalCase(collection.name) %> = Models.Document & {
 <% for (const attribute of collection.attributes) { -%>
-  <%- attribute.key %>: <%- getType(attribute) %>;
+  <%- toCamelCase(attribute.key) %>: <%- getType(attribute) %>;
 <% } -%>
 }
 

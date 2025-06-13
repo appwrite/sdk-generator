@@ -62,7 +62,7 @@ enum class <%- toPascalCase(attribute.key) %> {
 <% } -%>
 data class <%- toPascalCase(collection.name) %>(
 <% for (const attribute of collection.attributes) { -%>
-    val <%- attribute.key %>: <%- getType(attribute) %>,
+    val <%- toCamelCase(attribute.key) %>: <%- getType(attribute) %>,
 <% } -%>
 )`;
   }
