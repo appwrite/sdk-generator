@@ -1,38 +1,39 @@
 using System;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using {{ spec.title | caseUcfirst }}.Enums;
-using Newtonsoft.Json;
 
 namespace {{ spec.title | caseUcfirst }}.Converters
 {
-    public class ValueClassConverter : JsonConverter {
-
-        public override bool CanConvert(System.Type objectType)
+    public class ValueClassConverter : JsonConverter<object>
+    {
+        public override bool CanConvert(Type objectType)
         {
             return typeof(IEnum).IsAssignableFrom(objectType);
         }
 
-        public override object ReadJson(JsonReader reader, System.Type objectType, object existingValue, JsonSerializer serializer)
+        public override object Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
-            var value = (string)reader.Value;
-            var constructor = objectType.GetConstructor(new[] { typeof(string) });
-            var obj = constructor.Invoke(new object[] { value });
+            var value = reader.GetString();
+            var constructor = typeToConvert.GetConstructor(new[] { typeof(string) });
+            var obj = constructor?.Invoke(new object[] { value! });
 
-            return Convert.ChangeType(obj, objectType);
+            return Convert.ChangeType(obj, typeToConvert)!;
         }
 
-        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+        public override void Write(Utf8JsonWriter writer, object value, JsonSerializerOptions options)
         {
             var type = value.GetType();
             var property = type.GetProperty(nameof(IEnum.Value));
-            var propertyValue = property.GetValue(value);
+            var propertyValue = property?.GetValue(value);
 
             if (propertyValue == null)
             {
-                writer.WriteNull();
+                writer.WriteNullValue();
                 return;
             }
 
-            writer.WriteValue(propertyValue);
+            writer.WriteStringValue(propertyValue.ToString());
         }
     }
 }
