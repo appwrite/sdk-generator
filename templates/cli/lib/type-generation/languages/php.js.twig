@@ -53,9 +53,9 @@ use Appwrite\\Models\\<%- toPascalCase(attribute.relatedCollection) %>;
 <% } -%>
 <% for (const attribute of collection.attributes) { -%>
 <% if (attribute.format === 'enum') { -%>
-enum <%- toPascalCase(attribute.key) %> {
+enum <%- toPascalCase(attribute.key) %>: string {
 <% for (const [index, element] of Object.entries(attribute.elements)) { -%>
-  case <%- toUpperSnakeCase(element) %> = "<%- element %>";
+  case <%- toUpperSnakeCase(element) %> = '<%- element %>';
 <% } -%>
 }
 
