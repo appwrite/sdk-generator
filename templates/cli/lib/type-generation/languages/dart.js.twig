@@ -52,7 +52,7 @@ import '<%- attribute.relatedCollection.toLowerCase() %>.dart';
 <% if (attribute.format === 'enum') { -%>
 enum <%- toPascalCase(attribute.key) %> {
 <% for (const element of attribute.elements) { -%>
-  <%- element %>,
+  <%- toSnakeCase(element) %>,
 <% } -%>
 }
 
@@ -60,25 +60,25 @@ enum <%- toPascalCase(attribute.key) %> {
 <% } -%>
 class <%= toPascalCase(collection.name) %> {
 <% for (const [index, attribute] of Object.entries(collection.attributes)) { -%>
-  <%- getType(attribute) %> <%- attribute.key %>;
+  <%- getType(attribute) %> <%= toCamelCase(attribute.key) %>;
 <% } -%>
 
   <%= toPascalCase(collection.name) %>({
   <% for (const [index, attribute] of Object.entries(collection.attributes)) { -%>
-  <% if (attribute.required) { %>required <% } %>this.<%- attribute.key %>,
+  <% if (attribute.required) { %>required <% } %>this.<%= toCamelCase(attribute.key) %>,
   <% } -%>
 });
 
   factory <%= toPascalCase(collection.name) %>.fromMap(Map<String, dynamic> map) {
     return <%= toPascalCase(collection.name) %>(
 <% for (const [index, attribute] of Object.entries(collection.attributes)) { -%>
-      <%- attribute.key %>: <% if (attribute.type === 'string' || attribute.type === 'email' || attribute.type === 'datetime') { -%>
+      <%= toCamelCase(attribute.key) %>: <% if (attribute.type === 'string' || attribute.type === 'email' || attribute.type === 'datetime') { -%>
 <% if (attribute.format === 'enum') { -%>
 <% if (attribute.array) { -%>
 (map['<%= attribute.key %>'] as List<dynamic>?)?.map((e) => <%- toPascalCase(attribute.key) %>.values.firstWhere((element) => element.name == e)).toList()<% if (!attribute.required) { %> ?? []<% } -%>
 <% } else { -%>
 <% if (!attribute.required) { -%>
-map['<%= attribute.key %>'] != null ? <%- toPascalCase(attribute.key) %>.values.where((e) => e.name == map['<%= attribute.key %>']).firstOrNull : null<% } else { -%>
+map['<%= attribute.key %>'] != null ? <%- toPascalCase(attribute.key) %>.values.where((e) => e.name == map['<%= attribute.key %>']).firstOrNull() : null<% } else { -%>
 <%- toPascalCase(attribute.key) %>.values.firstWhere((e) => e.name == map['<%= attribute.key %>'])<% } -%>
 <% } -%>
 <% } else { -%>
@@ -124,18 +124,18 @@ map['<%= attribute.key %>'] != null ? <%- toPascalCase(attribute.relatedCollecti
 <% for (const [index, attribute] of Object.entries(collection.attributes)) { -%>
       "<%= attribute.key %>": <% if (attribute.type === 'relationship') { -%>
 <% if ((attribute.relationType === 'oneToMany' && attribute.side === 'parent') || (attribute.relationType === 'manyToOne' && attribute.side === 'child') || attribute.relationType === 'manyToMany') { -%>
-<%- attribute.key %><% if (!attribute.required) { %>?<% } %>.map((e) => e.toMap()).toList()<% if (!attribute.required) { %> ?? []<% } -%>
+<%= toCamelCase(attribute.key) %><% if (!attribute.required) { %>?<% } %>.map((e) => e.toMap()).toList()<% if (!attribute.required) { %> ?? []<% } -%>
 <% } else { -%>
-<%- attribute.key %><% if (!attribute.required) { %>?<% } %>.toMap()<% if (!attribute.required) { %> ?? {}<% } -%>
+<%= toCamelCase(attribute.key) %><% if (!attribute.required) { %>?<% } %>.toMap()<% if (!attribute.required) { %> ?? {}<% } -%>
 <% } -%>
 <% } else if (attribute.format === 'enum') { -%>
 <% if (attribute.array) { -%>
-<%- attribute.key %><% if (!attribute.required) { %>?<% } %>.map((e) => e.name).toList()<% if (!attribute.required) { %> ?? []<% } -%>
+<%= toCamelCase(attribute.key) %><% if (!attribute.required) { %>?<% } %>.map((e) => e.name).toList()<% if (!attribute.required) { %> ?? []<% } -%>
 <% } else { -%>
-<%- attribute.key %><% if (!attribute.required) { %>?<% } %>.name<% if (!attribute.required) { %> ?? null<% } -%>
+<%= toCamelCase(attribute.key) %><% if (!attribute.required) { %>?<% } %>.name<% if (!attribute.required) { %> ?? null<% } -%>
 <% } -%>
 <% } else { -%>
-<%- attribute.key -%>
+<%= toCamelCase(attribute.key) -%>
 <% } -%>,
 <% } -%>
     };

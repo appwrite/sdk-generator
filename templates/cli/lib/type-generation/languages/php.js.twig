@@ -53,9 +53,9 @@ use Appwrite\\Models\\<%- toPascalCase(attribute.relatedCollection) %>;
 <% } -%>
 <% for (const attribute of collection.attributes) { -%>
 <% if (attribute.format === 'enum') { -%>
-enum <%- toPascalCase(attribute.key) %> {
+enum <%- toPascalCase(attribute.key) %>: string {
 <% for (const [index, element] of Object.entries(attribute.elements)) { -%>
-  case <%- element.toUpperCase() %> = '<%- element %>';
+  case <%- toUpperSnakeCase(element) %> = '<%- element %>';
 <% } -%>
 }
 
@@ -63,30 +63,30 @@ enum <%- toPascalCase(attribute.key) %> {
 <% } -%>
 class <%- toPascalCase(collection.name) %> {
 <% for (const attribute of collection.attributes ){ -%>
-  private <%- getType(attribute) %> $<%- attribute.key %>;
+  private <%- getType(attribute) %> $<%- toCamelCase(attribute.key) %>;
 <% } -%>
 
   public function __construct(
 <% for (const attribute of collection.attributes ){ -%>
 <% if (attribute.required) { -%>
-    <%- getType(attribute).replace('|null', '') %> $<%- attribute.key %><% if (collection.attributes.indexOf(attribute) < collection.attributes.length - 1) { %>,<% } %>
+    <%- getType(attribute).replace('|null', '') %> $<%- toCamelCase(attribute.key) %><% if (collection.attributes.indexOf(attribute) < collection.attributes.length - 1) { %>,<% } %>
 <% } else { -%>
-    ?<%- getType(attribute).replace('|null', '') %> $<%- attribute.key %> = null<% if (collection.attributes.indexOf(attribute) < collection.attributes.length - 1) { %>,<% } %>
+    ?<%- getType(attribute).replace('|null', '') %> $<%- toCamelCase(attribute.key) %> = null<% if (collection.attributes.indexOf(attribute) < collection.attributes.length - 1) { %>,<% } %>
 <% } -%>
 <% } -%>
   ) {
 <% for (const attribute of collection.attributes ){ -%>
-    $this-><%- attribute.key %> = $<%- attribute.key %>;
+    $this-><%- toCamelCase(attribute.key) %> = $<%- toCamelCase(attribute.key) %>;
 <% } -%>
   }
 
 <% for (const attribute of collection.attributes ){ -%>
   public function get<%- toPascalCase(attribute.key) %>(): <%- getType(attribute) %> {
-    return $this-><%- attribute.key %>;
+    return $this-><%- toCamelCase(attribute.key) %>;
   }
 
-  public function set<%- toPascalCase(attribute.key) %>(<%- getType(attribute) %> $<%- attribute.key %>): void {
-    $this-><%- attribute.key %> = $<%- attribute.key %>;
+  public function set<%- toPascalCase(attribute.key) %>(<%- getType(attribute) %> $<%- toCamelCase(attribute.key) %>): void {
+    $this-><%- toCamelCase(attribute.key) %> = $<%- toCamelCase(attribute.key) %>;
   }
 <% } -%>
 }`;
