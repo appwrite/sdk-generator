@@ -44,7 +44,7 @@ class Java extends LanguageMeta {
 import java.util.*;
 <% for (const attribute of collection.attributes) { -%>
 <% if (attribute.type === 'relationship') { -%>
-import <%- toPascalCase(attribute.relatedCollection) %>;
+import io.appwrite.models.<%- toPascalCase(attribute.relatedCollection) %>;
 
 <% } -%>
 <% } -%>
