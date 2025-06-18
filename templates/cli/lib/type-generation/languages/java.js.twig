@@ -44,7 +44,7 @@ class Java extends LanguageMeta {
 import java.util.*;
 <% for (const attribute of collection.attributes) { -%>
 <% if (attribute.type === 'relationship') { -%>
-import <%- toPascalCase(attribute.relatedCollection) %>;
+import io.appwrite.models.<%- toPascalCase(attribute.relatedCollection) %>;
 
 <% } -%>
 <% } -%>
@@ -54,7 +54,7 @@ public class <%- toPascalCase(collection.name) %> {
 
     public enum <%- toPascalCase(attribute.key) %> {
 <% for (const [index, element] of Object.entries(attribute.elements)) { -%>
-        <%- element %><%- index < attribute.elements.length - 1 ? ',' : ';' %>
+        <%- toSnakeCase(element) %><%- index < attribute.elements.length - 1 ? ',' : ';' %>
 <% } -%>
     }
 

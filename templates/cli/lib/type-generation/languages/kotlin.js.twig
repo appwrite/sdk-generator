@@ -54,7 +54,7 @@ import <%- toPascalCase(attribute.relatedCollection) %>
 <% if (attribute.format === 'enum') { -%>
 enum class <%- toPascalCase(attribute.key) %> {
 <% for (const [index, element] of Object.entries(attribute.elements)) { -%>
-    <%- element %><%- index < attribute.elements.length - 1 ? ',' : '' %>
+    <%- toUpperSnakeCase(element) %><%- index < attribute.elements.length - 1 ? ',' : '' %>
 <% } -%>
 }
 

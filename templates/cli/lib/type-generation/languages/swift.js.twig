@@ -116,7 +116,11 @@ public class <%- toPascalCase(collection.name) %>: Codable {
         return <%- toPascalCase(collection.name) %>(
 <% for (const attribute of collection.attributes) { -%>
 <% if (attribute.type === 'relationship') { -%>
+<% if ((attribute.relationType === 'oneToMany' && attribute.side === 'parent') || (attribute.relationType === 'manyToOne' && attribute.side === 'child') || attribute.relationType === 'manyToMany') { -%>
+            <%- toCamelCase(attribute.key) %>: map["<%- attribute.key %>"] as<% if (!attribute.required) { %>?<% } else { %>!<% } %> [<%- toPascalCase(attribute.relatedCollection) %>]<% if (attribute !== collection.attributes[collection.attributes.length - 1]) { %>,<% } %>
+<% } else { -%>
             <%- toCamelCase(attribute.key) %>: map["<%- attribute.key %>"] as<% if (!attribute.required) { %>?<% } else { %>!<% } %> <%- toPascalCase(attribute.relatedCollection) %><% if (attribute !== collection.attributes[collection.attributes.length - 1]) { %>,<% } %>
+<% } -%>
 <% } else if (attribute.array) { -%>
 <% if (attribute.type === 'string') { -%>
             <%- toCamelCase(attribute.key) %>: map["<%- attribute.key %>"] as<% if (!attribute.required) { %>?<% } else { %>!<% } %> [String]<% if (attribute !== collection.attributes[collection.attributes.length - 1]) { %>,<% } %>
@@ -130,8 +134,10 @@ public class <%- toPascalCase(collection.name) %>: Codable {
             <%- toCamelCase(attribute.key) %>: (map["<%- attribute.key %>"] as<% if (!attribute.required) { %>?<% } else { %>!<% } %> [[String: Any]])<% if (!attribute.required) { %>?<% } %>.map { <%- toPascalCase(attribute.type) %>.from(map: $0) }<% if (attribute !== collection.attributes[collection.attributes.length - 1]) { %>,<% } %>
 <% } -%>
 <% } else { -%>
-<% if (attribute.type === 'string' || attribute.type === 'email' || attribute.type === 'datetime' || attribute.type === 'enum') { -%>
+<% if ((attribute.type === 'string' || attribute.type === 'email' || attribute.type === 'datetime') && attribute.format !== 'enum') { -%>
             <%- toCamelCase(attribute.key) %>: map["<%- attribute.key %>"] as<% if (!attribute.required) { %>?<% } else { %>!<% } %> String<% if (attribute !== collection.attributes[collection.attributes.length - 1]) { %>,<% } %>
+<% } else if (attribute.type === 'string' && attribute.format === 'enum') { -%>
+            <%- toCamelCase(attribute.key) %>: <%- toPascalCase(attribute.key) %>(rawValue: map["<%- attribute.key %>"] as! String)!<% if (attribute !== collection.attributes[collection.attributes.length - 1]) { %>,<% } %>
 <% } else if (attribute.type === 'integer') { -%>
             <%- toCamelCase(attribute.key) %>: map["<%- attribute.key %>"] as<% if (!attribute.required) { %>?<% } else { %>!<% } %> Int<% if (attribute !== collection.attributes[collection.attributes.length - 1]) { %>,<% } %>
 <% } else if (attribute.type === 'float') { -%>
