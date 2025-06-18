@@ -54,7 +54,7 @@ public class <%- toPascalCase(collection.name) %> {
 
     public enum <%- toPascalCase(attribute.key) %> {
 <% for (const [index, element] of Object.entries(attribute.elements)) { -%>
-        <%- element %><%- index < attribute.elements.length - 1 ? ',' : ';' %>
+        <%- toSnakeCase(element) %><%- index < attribute.elements.length - 1 ? ',' : ';' %>
 <% } -%>
     }
 
