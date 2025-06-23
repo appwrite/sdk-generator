@@ -568,6 +568,8 @@ const createAttribute = (databaseId, collectionId, attribute) => {
                 onDelete: attribute.onDelete,
                 parseOutput: false
             })
+        default:
+            throw new Error(`Unsupported attribute type: ${attribute.type}`);
     }
 }
 
@@ -641,7 +643,7 @@ const updateAttribute = (databaseId, collectionId, attribute) => {
                 array: attribute.array,
                 parseOutput: false
             })
-        case 'double':
+        case 'float':
             return databasesUpdateFloatAttribute({
                 databaseId,
                 collectionId,
@@ -685,6 +687,8 @@ const updateAttribute = (databaseId, collectionId, attribute) => {
                 onDelete: attribute.onDelete,
                 parseOutput: false
             })
+        default:
+            throw new Error(`Unsupported attribute type: ${attribute.type}`);
     }
 }
 const deleteAttribute = async (collection, attribute, isIndex = false) => {
@@ -753,7 +757,7 @@ const checkAttributeChanges = (remote, local, collection, recraeting = true) => 
 
         if (changeableKeys.includes(key)) {
             if (!recraeting) {
-                reason += compareAttribute(remote[key], local[key], reason, key)
+                reason = compareAttribute(remote[key], local[key], reason, key)
             }
             continue;
         }
@@ -762,7 +766,7 @@ const checkAttributeChanges = (remote, local, collection, recraeting = true) => 
             continue;
         }
 
-        reason += compareAttribute(remote[key], local[key], reason, key)
+        reason = compareAttribute(remote[key], local[key], reason, key)
     }
 
     return reason === '' ? undefined : { key: keyName, attribute, reason, action };
