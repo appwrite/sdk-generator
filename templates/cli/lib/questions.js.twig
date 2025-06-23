@@ -219,17 +219,17 @@ const questionsInitProject = [
         type: "list",
         name: "region",
         message: "Select your Appwrite Cloud region",
-        choices: [
-            { name: "Frankfurt (fra)", value: "fra" },
-            { name: "New York (nyc)", value: "nyc" },
-            { name: "Sydney (syd)", value: "syd" }
-        ],
-        default: () => {
-            const endpoint = globalConfig.getEndpoint() || "https://cloud.appwrite.io/v1";
-            if (endpoint.includes('fra')) return 'fra';
-            if (endpoint.includes('nyc')) return 'nyc';
-            if (endpoint.includes('syd')) return 'syd';
-            return '';
+        choices: async () => {
+            let client = await sdkForConsole(true);
+            let response = await client.call("GET", "/console/regions");
+            let regions = response.regions || [];
+            if (!regions.length) {
+                throw new Error("No regions found. Please check your network or Appwrite Cloud availability.");
+            }
+            return regions.filter(region => !region.disabled).map(region => ({
+                name: `${region.name} (${region.$id})`,
+                value: region.$id
+            }));
         },
         when: () => {
             try {
