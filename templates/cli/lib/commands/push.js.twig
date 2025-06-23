@@ -643,7 +643,7 @@ const updateAttribute = (databaseId, collectionId, attribute) => {
                 array: attribute.array,
                 parseOutput: false
             })
-        case 'float':
+        case 'double':
             return databasesUpdateFloatAttribute({
                 databaseId,
                 collectionId,
