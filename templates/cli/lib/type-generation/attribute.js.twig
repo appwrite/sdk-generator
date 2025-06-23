@@ -1,7 +1,7 @@
 const AttributeType = {
     STRING: "string",
     INTEGER: "integer",
-    FLOAT: "float",
+    FLOAT: "double",
     BOOLEAN: "boolean",
     DATETIME: "datetime",
     EMAIL: "email",
