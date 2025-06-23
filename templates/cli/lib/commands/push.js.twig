@@ -737,16 +737,16 @@ const compareAttribute = (remote, local, reason, key) => {
  * @param remote
  * @param local
  * @param collection
- * @param recraeting when true will check only non-changeable keys
+ * @param recreating when true will check only non-changeable keys
  * @returns {undefined|{reason: string, action: *, attribute, key: string}}
  */
-const checkAttributeChanges = (remote, local, collection, recraeting = true) => {
+const checkAttributeChanges = (remote, local, collection, recreating = true) => {
     if (local === undefined) {
         return undefined;
     }
 
     const keyName = `${chalk.yellow(local.key)} in ${collection.name} (${collection['$id']})`;
-    const action = chalk.cyan(recraeting ? 'recreating' : 'changing');
+    const action = chalk.cyan(recreating ? 'recreating' : 'changing');
     let reason = '';
     let attribute = remote;
 
@@ -756,13 +756,13 @@ const checkAttributeChanges = (remote, local, collection, recraeting = true) => 
         }
 
         if (changeableKeys.includes(key)) {
-            if (!recraeting) {
+            if (!recreating) {
                 reason = compareAttribute(remote[key], local[key], reason, key)
             }
             continue;
         }
 
-        if (!recraeting) {
+        if (!recreating) {
             continue;
         }
 
