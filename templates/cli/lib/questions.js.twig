@@ -207,13 +207,39 @@ const questionsInitProject = [
                 }
             })
 
-            if (choices.length == 0) {
+            if (choices.length === 0) {
                 throw new Error("No projects found. Please create a new project.")
             }
 
             return choices;
         },
         when: (answer) => answer.start === 'existing'
+    },
+    {
+        type: "list",
+        name: "region",
+        message: "Select your Appwrite Cloud region",
+        choices: [
+            { name: "Frankfurt (fra)", value: "fra" },
+            { name: "New York (nyc)", value: "nyc" },
+            { name: "Sydney (syd)", value: "syd" }
+        ],
+        default: () => {
+            const endpoint = globalConfig.getEndpoint() || "https://cloud.appwrite.io/v1";
+            if (endpoint.includes('fra')) return 'fra';
+            if (endpoint.includes('nyc')) return 'nyc';
+            if (endpoint.includes('syd')) return 'syd';
+            return '';
+        },
+        when: () => {
+            try {
+                const endpoint = globalConfig.getEndpoint() || "https://cloud.appwrite.io/v1";
+                const hostname = new URL(endpoint).hostname;
+                return hostname.endsWith('appwrite.io');
+            } catch {
+                return false;
+            }
+        }
     }
 ];
 const questionsInitProjectAutopull = [

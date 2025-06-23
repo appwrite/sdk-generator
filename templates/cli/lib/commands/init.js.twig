@@ -94,6 +94,11 @@ const initProject = async ({ organizationId, projectId, projectName } = {}) => {
         }
     }
 
+    if (answers.region) {
+        const endpoint = `https://${answers.region}.cloud.appwrite.io/v1`;
+        localConfig.setEndpoint(endpoint);
+    }
+
     if (answers.start === 'new') {
         response = await projectsCreate({
             projectId: answers.id,
