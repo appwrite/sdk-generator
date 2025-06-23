@@ -712,6 +712,33 @@ const deleteAttribute = async (collection, attribute, isIndex = false) => {
     });
 }
 
+const isEqual = (a, b) => {
+    if (a === b) return true;
+    
+    if (a && b && typeof a === 'object' && typeof b === 'object') {
+        if (a.constructor && a.constructor.name === 'BigNumber' && 
+            b.constructor && b.constructor.name === 'BigNumber') {
+            return a.eq(b);
+        }
+        
+        if (typeof a.equals === 'function') {
+            return a.equals(b);
+        }
+        
+        if (typeof a.eq === 'function') {
+            return a.eq(b);
+        }
+    }
+    
+    if (typeof a === 'number' && typeof b === 'number') {
+        if (isNaN(a) && isNaN(b)) return true;
+        if (!isFinite(a) && !isFinite(b)) return a === b;
+        return Math.abs(a - b) < Number.EPSILON;
+    }
+    
+    return false;
+};
+
 const compareAttribute = (remote, local, reason, key) => {
     if (isEmpty(remote) && isEmpty(local)) {
         return reason;
@@ -722,7 +749,7 @@ const compareAttribute = (remote, local, reason, key) => {
             const bol = reason === '' ? '' : '\n';
             reason += `${bol}${key} changed from ${chalk.red(remote)} to ${chalk.green(local)}`;
         }
-    } else if (remote !== local) {
+    } else if (!isEqual(remote, local)) {
         const bol = reason === '' ? '' : '\n';
         reason += `${bol}${key} changed from ${chalk.red(remote)} to ${chalk.green(local)}`;
     }
