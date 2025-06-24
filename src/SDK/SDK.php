@@ -207,6 +207,9 @@ class SDK
             }
             return $value;
         }));
+        $this->twig->addFilter(new TwigFilter('capitalizeFirst', function ($value) {
+            return ucfirst($value);
+        }));
     }
 
     /**
