@@ -275,7 +275,7 @@ function getUsersPath(action, ids) {
 }
 
 function isCloud() {
-    const endpoint = globalConfig.getEndpoint() || "https://cloud.appwrite.io/v1";
+    const endpoint = globalConfig.getEndpoint() || "{{ spec.endpoint }}";
     const hostname = new URL(endpoint).hostname;
     return hostname.endsWith('appwrite.io');
 }

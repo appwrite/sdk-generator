@@ -95,8 +95,10 @@ const initProject = async ({ organizationId, projectId, projectName } = {}) => {
         }
     }
 
+    localConfig.clear(); // Clear the config to avoid any conflicts
+    const url = new URL("{{ spec.endpoint }}");
+    
     if (answers.start === 'new') {
-        localConfig.clear();
         response = await projectsCreate({
             projectId: answers.id,
             name: answers.project,
@@ -105,16 +107,13 @@ const initProject = async ({ organizationId, projectId, projectName } = {}) => {
         })
 
         localConfig.setProject(response['$id']);
-
         if (answers.region) {
-            const endpoint = `https://${answers.region}.cloud.appwrite.io/v1`;
-            localConfig.setEndpoint(endpoint);
+            localConfig.setEndpoint(`https://${answers.region}.${url.host}${url.pathname}`);
         }
     } else {
         localConfig.setProject(answers.project["$id"]);
         if(isCloud()) {
-            const endpoint = `https://${answers.project["region"]}.cloud.appwrite.io/v1`;
-            localConfig.setEndpoint(endpoint);
+            localConfig.setEndpoint(`https://${answers.project["region"]}.${url.host}${url.pathname}`);
         }
     }
 
