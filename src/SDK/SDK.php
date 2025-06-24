@@ -210,6 +210,17 @@ class SDK
         $this->twig->addFilter(new TwigFilter('capitalizeFirst', function ($value) {
             return ucfirst($value);
         }));
+        $this->twig->addFilter(new TwigFilter('caseSnakeExceptFirstDot', function ($value) {
+            $parts = explode('.', $value, 2);
+            $toSnake = function ($str) {
+                preg_match_all('!([A-Za-z][A-Z0-9]*(?=$|[A-Z][a-z0-9])|[A-Za-z][a-z0-9]+)!', $str, $matches);
+                return implode('_', array_map(function ($m) {
+                    return $m === strtoupper($m) ? strtolower($m) : lcfirst($m);
+                }, $matches[0]));
+            };
+            if (count($parts) < 2) return $toSnake($value);
+            return $parts[0] . '.' . $toSnake($parts[1]);
+        }));
     }
 
     /**
