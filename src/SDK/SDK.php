@@ -164,8 +164,18 @@ class SDK
         }, ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('comment1', function ($value) {
             $value = explode("\n", $value);
+            $prefix = "     * ";
+            $prefixLength = strlen($prefix);
+            $maxLineLength = 75 - $prefixLength;
+            
             foreach ($value as $key => $line) {
-                $value[$key] = "     * " . wordwrap($line, 75, "\n     * ");
+                if (empty(trim($line))) {
+                    $value[$key] = $prefix;
+                    continue;
+                }
+                
+                $wrapped = wordwrap($line, $maxLineLength, "\n" . $prefix, true);
+                $value[$key] = $prefix . $wrapped;
             }
             return implode("\n", $value);
         }, ['is_safe' => ['html']]));
