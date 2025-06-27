@@ -218,7 +218,9 @@ class SDK
                     return $m === strtoupper($m) ? strtolower($m) : lcfirst($m);
                 }, $matches[0]));
             };
-            if (count($parts) < 2) return $toSnake($value);
+            if (count($parts) < 2) {
+                return $toSnake($value);
+            }
             return $parts[0] . '.' . $toSnake($parts[1]);
         }));
     }
