@@ -127,6 +127,11 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'CHANGELOG.md',
+                'template'      => 'cli/CHANGELOG.md.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'package.json',
                 'template'      => 'cli/package.json.twig',
             ],

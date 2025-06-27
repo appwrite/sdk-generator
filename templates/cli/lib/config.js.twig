@@ -150,6 +150,14 @@ class Local extends Config {
         return _path.dirname(this.path)
     }
 
+    getEndpoint() {
+        return this.get('endpoint') || '';
+    }
+
+    setEndpoint(endpoint) {
+        this.set('endpoint', endpoint);
+    }
+
     getSites() {
         if (!this.has("sites")) {
             return [];

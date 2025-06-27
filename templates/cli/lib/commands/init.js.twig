@@ -28,6 +28,7 @@ const { cliConfig, success, log, hint, error, actionRunner, commandDescriptions 
 const { accountGet } = require("./account");
 const { sitesListTemplates } = require("./sites");
 const { sdkForConsole } = require("../sdks");
+const { isCloud } = require('../utils');
 
 const initResources = async () => {
     const actions = {
@@ -94,6 +95,9 @@ const initProject = async ({ organizationId, projectId, projectName } = {}) => {
         }
     }
 
+    localConfig.clear(); // Clear the config to avoid any conflicts
+    const url = new URL("{{ spec.endpoint }}");
+    
     if (answers.start === 'new') {
         response = await projectsCreate({
             projectId: answers.id,
@@ -103,8 +107,14 @@ const initProject = async ({ organizationId, projectId, projectName } = {}) => {
         })
 
         localConfig.setProject(response['$id']);
+        if (answers.region) {
+            localConfig.setEndpoint(`https://${answers.region}.${url.host}${url.pathname}`);
+        }
     } else {
-        localConfig.setProject(answers.project);
+        localConfig.setProject(answers.project["$id"]);
+        if(isCloud()) {
+            localConfig.setEndpoint(`https://${answers.project["region"]}.${url.host}${url.pathname}`);
+        }
     }
 
     success(`Project successfully ${answers.start === 'existing' ? 'linked' : 'created'}. Details are now stored in appwrite.json file.`);

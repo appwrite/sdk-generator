@@ -274,10 +274,17 @@ function getUsersPath(action, ids) {
     return path;
 }
 
+function isCloud() {
+    const endpoint = globalConfig.getEndpoint() || "{{ spec.endpoint }}";
+    const hostname = new URL(endpoint).hostname;
+    return hostname.endsWith('appwrite.io');
+}
+
 module.exports = {
     getAllFiles,
     isPortTaken,
     systemHasCommand,
     checkDeployConditions,
-    showConsoleLink
+    showConsoleLink,
+    isCloud
 };

@@ -9,7 +9,7 @@ const ID = require("../id");
 const { questionsLogin, questionsLogout, questionsListFactors, questionsMfaChallenge } = require("../questions");
 const { accountUpdateMfaChallenge, accountCreateMfaChallenge, accountGet, accountCreateEmailPasswordSession, accountDeleteSession } = require("./account");
 
-const DEFAULT_ENDPOINT = 'https://cloud.appwrite.io/v1';
+const DEFAULT_ENDPOINT = '{{ spec.endpoint }}';
 
 const loginCommand = async ({ email, password, endpoint, mfa, code }) => {
     const oldCurrent = globalConfig.getCurrentSession();

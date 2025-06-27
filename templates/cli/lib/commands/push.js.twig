@@ -568,6 +568,8 @@ const createAttribute = (databaseId, collectionId, attribute) => {
                 onDelete: attribute.onDelete,
                 parseOutput: false
             })
+        default:
+            throw new Error(`Unsupported attribute type: ${attribute.type}`);
     }
 }
 
@@ -685,6 +687,8 @@ const updateAttribute = (databaseId, collectionId, attribute) => {
                 onDelete: attribute.onDelete,
                 parseOutput: false
             })
+        default:
+            throw new Error(`Unsupported attribute type: ${attribute.type}`);
     }
 }
 const deleteAttribute = async (collection, attribute, isIndex = false) => {
@@ -708,6 +712,33 @@ const deleteAttribute = async (collection, attribute, isIndex = false) => {
     });
 }
 
+const isEqual = (a, b) => {
+    if (a === b) return true;
+    
+    if (a && b && typeof a === 'object' && typeof b === 'object') {
+        if (a.constructor && a.constructor.name === 'BigNumber' && 
+            b.constructor && b.constructor.name === 'BigNumber') {
+            return a.eq(b);
+        }
+        
+        if (typeof a.equals === 'function') {
+            return a.equals(b);
+        }
+        
+        if (typeof a.eq === 'function') {
+            return a.eq(b);
+        }
+    }
+    
+    if (typeof a === 'number' && typeof b === 'number') {
+        if (isNaN(a) && isNaN(b)) return true;
+        if (!isFinite(a) && !isFinite(b)) return a === b;
+        return Math.abs(a - b) < Number.EPSILON;
+    }
+    
+    return false;
+};
+
 const compareAttribute = (remote, local, reason, key) => {
     if (isEmpty(remote) && isEmpty(local)) {
         return reason;
@@ -718,7 +749,7 @@ const compareAttribute = (remote, local, reason, key) => {
             const bol = reason === '' ? '' : '\n';
             reason += `${bol}${key} changed from ${chalk.red(remote)} to ${chalk.green(local)}`;
         }
-    } else if (remote !== local) {
+    } else if (!isEqual(remote, local)) {
         const bol = reason === '' ? '' : '\n';
         reason += `${bol}${key} changed from ${chalk.red(remote)} to ${chalk.green(local)}`;
     }
@@ -733,16 +764,16 @@ const compareAttribute = (remote, local, reason, key) => {
  * @param remote
  * @param local
  * @param collection
- * @param recraeting when true will check only non-changeable keys
+ * @param recreating when true will check only non-changeable keys
  * @returns {undefined|{reason: string, action: *, attribute, key: string}}
  */
-const checkAttributeChanges = (remote, local, collection, recraeting = true) => {
+const checkAttributeChanges = (remote, local, collection, recreating = true) => {
     if (local === undefined) {
         return undefined;
     }
 
     const keyName = `${chalk.yellow(local.key)} in ${collection.name} (${collection['$id']})`;
-    const action = chalk.cyan(recraeting ? 'recreating' : 'changing');
+    const action = chalk.cyan(recreating ? 'recreating' : 'changing');
     let reason = '';
     let attribute = remote;
 
@@ -752,17 +783,17 @@ const checkAttributeChanges = (remote, local, collection, recraeting = true) => 
         }
 
         if (changeableKeys.includes(key)) {
-            if (!recraeting) {
-                reason += compareAttribute(remote[key], local[key], reason, key)
+            if (!recreating) {
+                reason = compareAttribute(remote[key], local[key], reason, key)
             }
             continue;
         }
 
-        if (!recraeting) {
+        if (!recreating) {
             continue;
         }
 
-        reason += compareAttribute(remote[key], local[key], reason, key)
+        reason = compareAttribute(remote[key], local[key], reason, key)
     }
 
     return reason === '' ? undefined : { key: keyName, attribute, reason, action };
