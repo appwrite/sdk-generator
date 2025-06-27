@@ -5,6 +5,7 @@ const { description } = require('../package.json');
 const { globalConfig } = require("./config.js");
 const os = require('os');
 const Client = require("./client");
+const { isCloud } = require("./utils");
 
 const cliConfig = {
     verbose: false,
@@ -111,7 +112,6 @@ const parseError = (err) => {
         (async () => {
             let appwriteVersion = 'unknown';
             const endpoint = globalConfig.getEndpoint();
-            const isCloud = endpoint.includes('cloud.appwrite.io') ? 'Yes' : 'No';
 
             try {
                 const client = new Client().setEndpoint(endpoint);
@@ -122,7 +122,7 @@ const parseError = (err) => {
 
             const version = '{{ sdk.version }}';
             const stepsToReproduce = `Running \`appwrite ${cliConfig.reportData.data.args.join(' ')}\``;
-            const yourEnvironment = `CLI version: ${version}\nOperation System: ${os.type()}\nAppwrite version: ${appwriteVersion}\nIs Cloud: ${isCloud}`;
+            const yourEnvironment = `CLI version: ${version}\nOperation System: ${os.type()}\nAppwrite version: ${appwriteVersion}\nIs Cloud: ${isCloud()}`;
 
             const stack = '```\n' + err.stack + '\n```';
 

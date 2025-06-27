@@ -23,7 +23,7 @@ const sdkForConsole = async (requiresAuth = true) => {
 
 const sdkForProject = async () => {
   let client = new Client();
-  let endpoint = globalConfig.getEndpoint();
+  let endpoint = localConfig.getEndpoint() || globalConfig.getEndpoint();
   let project = localConfig.getProject().projectId ? localConfig.getProject().projectId : globalConfig.getProject();
   let key = globalConfig.getKey();
   let cookie = globalConfig.getCookie()

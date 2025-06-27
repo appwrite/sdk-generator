@@ -78,7 +78,7 @@ class <%= toPascalCase(collection.name) %> {
 (map['<%= attribute.key %>'] as List<dynamic>?)?.map((e) => <%- toPascalCase(attribute.key) %>.values.firstWhere((element) => element.name == e)).toList()<% if (!attribute.required) { %> ?? []<% } -%>
 <% } else { -%>
 <% if (!attribute.required) { -%>
-map['<%= attribute.key %>'] != null ? <%- toPascalCase(attribute.key) %>.values.where((e) => e.name == map['<%= attribute.key %>']).firstOrNull() : null<% } else { -%>
+map['<%= attribute.key %>'] != null ? <%- toPascalCase(attribute.key) %>.values.where((e) => e.name == map['<%= attribute.key %>']).firstOrNull : null<% } else { -%>
 <%- toPascalCase(attribute.key) %>.values.firstWhere((e) => e.name == map['<%= attribute.key %>'])<% } -%>
 <% } -%>
 <% } else { -%>

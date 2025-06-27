@@ -11,7 +11,7 @@ const { validateRequired } = require("./validations");
 const { paginate } = require('./paginate');
 const { isPortTaken } = require('./utils');
 const { databasesList } = require('./commands/databases');
-const { checkDeployConditions } = require('./utils');
+const { checkDeployConditions, isCloud } = require('./utils');
 const JSONbig = require("json-bigint")({ storeAsString: false });
 const { sitesListFrameworks, sitesListSpecifications, sitesList } = require('./commands/sites');
 
@@ -154,8 +154,7 @@ const questionsInitProject = [
         message: "Choose your organization",
         choices: async () => {
             let client = await sdkForConsole(true);
-            const hostname = new URL(client.endpoint).hostname;
-            const { teams } = hostname.endsWith('appwrite.io')
+            const { teams } = isCloud()
                 ? await paginate(organizationsList, { parseOutput: false, sdk: client }, 100, 'teams') 
                 : await paginate(teamsList, { parseOutput: false, sdk: client }, 100, 'teams');
 
@@ -203,17 +202,41 @@ const questionsInitProject = [
             let choices = projects.map((project) => {
                 return {
                     name: `${project.name} (${project['$id']})`,
-                    value: project['$id']
+                    value: {
+                        "$id": project['$id'],
+                        "region": project.region || ''
+                    }
                 }
             })
 
-            if (choices.length == 0) {
+            if (choices.length === 0) {
                 throw new Error("No projects found. Please create a new project.")
             }
 
             return choices;
         },
         when: (answer) => answer.start === 'existing'
+    },
+    {
+        type: "list",
+        name: "region",
+        message: "Select your Appwrite Cloud region",
+        choices: async () => {
+            let client = await sdkForConsole(true);
+            let response = await client.call("GET", "/console/regions");
+            let regions = response.regions || [];
+            if (!regions.length) {
+                throw new Error("No regions found. Please check your network or Appwrite Cloud availability.");
+            }
+            return regions.filter(region => !region.disabled).map(region => ({
+                name: `${region.name} (${region.$id})`,
+                value: region.$id
+            }));
+        },
+        when: (answer) => {
+            if (answer.start === 'existing') return false;
+            return isCloud();
+        }
     }
 ];
 const questionsInitProjectAutopull = [
