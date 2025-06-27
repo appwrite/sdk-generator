@@ -382,6 +382,11 @@ class DotNet extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseUcfirst }}/Converters/ObjectToInferredTypesConverter.cs',
+                'template'      => 'dotnet/Package/Converters/ObjectToInferredTypesConverter.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '{{ spec.title | caseUcfirst }}/Extensions/Extensions.cs',
                 'template'      => 'dotnet/Package/Extensions/Extensions.cs.twig',
             ],

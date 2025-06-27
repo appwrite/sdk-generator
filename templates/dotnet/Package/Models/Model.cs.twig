@@ -4,16 +4,15 @@
 using System;
 using System.Linq;
 using System.Collections.Generic;
-
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace {{ spec.title | caseUcfirst }}.Models
 {
     public class {{ definition.name | caseUcfirst | overrideIdentifier }}
     {
         {%~ for property in definition.properties %}
-        [JsonProperty("{{ property.name }}")]
+        [JsonPropertyName("{{ property.name }}")]
         public {{ _self.sub_schema(property) }} {{ _self.property_name(definition, property) | overrideProperty(definition.name) }} { get; private set; }
 
         {%~ endfor %}
@@ -43,13 +42,13 @@ namespace {{ spec.title | caseUcfirst }}.Models
             {{ property.name | caseCamel | escapeKeyword | removeDollarSign }}:{{' '}}
                 {%- if property.sub_schema %}
                     {%- if property.type == 'array' -%}
-                        ((JArray)map["{{ property.name }}"]).ToObject<List<Dictionary<string, object>>>().Select(it => {{ property.sub_schema | caseUcfirst | overrideIdentifier }}.From(map: it)).ToList()
+                        map["{{ property.name }}"] is JsonElement jsonArray{{ loop.index }} ? jsonArray{{ loop.index }}.Deserialize<List<Dictionary<string, object>>>()!.Select(it => {{ property.sub_schema | caseUcfirst | overrideIdentifier }}.From(map: it)).ToList() : ((IEnumerable<Dictionary<string, object>>)map["{{ property.name }}"]).Select(it => {{ property.sub_schema | caseUcfirst | overrideIdentifier }}.From(map: it)).ToList()
                     {%- else -%}
-                        {{ property.sub_schema | caseUcfirst | overrideIdentifier }}.From(map: ((JObject)map["{{ property.name }}"]).ToObject<Dictionary<string, object>>()!)
+                        {{ property.sub_schema | caseUcfirst | overrideIdentifier }}.From(map: map["{{ property.name }}"] is JsonElement jsonObj{{ loop.index }} ? jsonObj{{ loop.index }}.Deserialize<Dictionary<string, object>>()! : (Dictionary<string, object>)map["{{ property.name }}"])
                     {%- endif %}
                 {%- else %}
                     {%- if property.type == 'array' -%}
-                        ((JArray)map["{{ property.name }}"]).ToObject<{{ property | typeName }}>()
+                        map["{{ property.name }}"] is JsonElement jsonArrayProp{{ loop.index }} ? jsonArrayProp{{ loop.index }}.Deserialize<{{ property | typeName }}>()! : ({{ property | typeName }})map["{{ property.name }}"]
                     {%- else %}
                         {%- if property.type == "integer" or property.type == "number" %}
                             {%- if not property.required -%}map["{{ property.name }}"] == null ? null :{% endif %}Convert.To{% if property.type == "integer" %}Int64{% else %}Double{% endif %}(map["{{ property.name }}"])
