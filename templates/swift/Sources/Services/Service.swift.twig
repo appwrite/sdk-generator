@@ -20,6 +20,9 @@ open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
     /// @throws Exception
     /// @return array
     ///
+    {%~ if method.deprecated %}
+    @available(*, deprecated, message: "This API is deprecated and uses outdated terminologies. Please use `{{ method.replaceWith | capitalizeFirst }}` instead.")
+    {%~ endif %}
     open func {{ method.name | caseCamel | overrideIdentifier }}{% if method.responseModel | hasGenericType(spec) %}<T>{% endif %}(
         {%~ for parameter in method.parameters.all %}
         {{ parameter.name | caseCamel | escapeSwiftKeyword }}: {{ parameter | typeName(spec) | raw }}{% if not parameter.required or parameter.nullable %}? = nil{% endif %}{% if not loop.last or 'multipart/form-data' in method.consumes or method.responseModel | hasGenericType(spec) %},{% endif %}
@@ -81,6 +84,9 @@ open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
     /// @throws Exception
     /// @return array
     ///
+    {%~ if method.deprecated %}
+    @available(*, deprecated, message: "This API is deprecated and uses outdated terminologies. Please use `{{ method.replaceWith | capitalizeFirst }}` instead.")
+    {%~ endif %}
     open func {{ method.name | caseCamel }}(
         {%~ for parameter in method.parameters.all %}
         {{ parameter.name | caseCamel | escapeSwiftKeyword }}: {{ parameter | typeName(spec) | raw }}{% if not parameter.required or parameter.nullable %}? = nil{% endif %}{% if not loop.last or 'multipart/form-data' in method.consumes %},{% endif %}
