@@ -167,13 +167,13 @@ class SDK
             $prefix = "     * ";
             $prefixLength = strlen($prefix);
             $maxLineLength = 75 - $prefixLength;
-            
+
             foreach ($value as $key => $line) {
                 if (empty(trim($line))) {
                     $value[$key] = $prefix;
                     continue;
                 }
-                
+
                 $wrapped = wordwrap($line, $maxLineLength, "\n" . $prefix, true);
                 $value[$key] = $prefix . $wrapped;
             }
