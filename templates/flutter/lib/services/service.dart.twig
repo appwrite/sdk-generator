@@ -19,7 +19,6 @@ class {{ service.name | caseUcfirst }} extends Service {
 {{ method.description|dartComment }}
 {% endif %}
 {%~ if method.deprecated %}
-    @override
     @Deprecated('This API is deprecated and uses outdated terminologies. Please use `{{ method.replaceWith | capitalizeFirst }}` instead.')
 {%~ endif %}
     {% if method.type == 'webAuth' %}Future{% elseif method.type == 'location' %}Future<Uint8List>{% else %}{% if method.responseModel and method.responseModel != 'any' %}Future<models.{{method.responseModel | caseUcfirst | overrideIdentifier}}>{% else %}Future{% endif %}{% endif %} {{ method.name | caseCamel | overrideIdentifier }}({{ _self.method_parameters(method.parameters.all, method.consumes) }}) async {
