@@ -31,6 +31,7 @@ class {{ service.name | caseUcfirst }} extends Service
      }
 
 {% for method in service.methods %}
+{% set deprecated_message = '' %}
     /**
 {% if method.description %}
 {{ method.description|comment1 }}
@@ -41,6 +42,15 @@ class {{ service.name | caseUcfirst }} extends Service
 {% endfor %}
      * @throws {{spec.title | caseUcfirst}}Exception
      * @return {{ method | getReturn }}
+{% if method.deprecated %}
+     *
+{% set method_name = method.replaceWith | split('.') | last | caseCamel %}
+{% set deprecated_message = deprecated_message ~ 'Please use ' ~ method_name ~ '() instead.' %}
+     * @deprecated {{ deprecated_message }}
+{% if method.replaceWith %}
+     * @see {{ method.replaceWith | replace({'.': '::'}) | capitalizeFirst }}
+{% endif %}
+{% endif %}
      */
     public function {{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{% if not parameter.required or parameter.nullable %}?{% endif %}{{ parameter | typeName }} ${{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required %} = null{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, callable $onProgress = null{% endif %}): {{ method | getReturn }}
     {

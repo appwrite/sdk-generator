@@ -164,8 +164,18 @@ class SDK
         }, ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('comment1', function ($value) {
             $value = explode("\n", $value);
+            $prefix = "     * ";
+            $prefixLength = strlen($prefix);
+            $maxLineLength = 75 - $prefixLength;
+            
             foreach ($value as $key => $line) {
-                $value[$key] = "     * " . wordwrap($line, 75, "\n     * ");
+                if (empty(trim($line))) {
+                    $value[$key] = $prefix;
+                    continue;
+                }
+                
+                $wrapped = wordwrap($line, $maxLineLength, "\n" . $prefix, true);
+                $value[$key] = $prefix . $wrapped;
             }
             return implode("\n", $value);
         }, ['is_safe' => ['html']]));
@@ -206,6 +216,22 @@ class SDK
                 return $language->getIdentifierOverrides()[$value];
             }
             return $value;
+        }));
+        $this->twig->addFilter(new TwigFilter('capitalizeFirst', function ($value) {
+            return ucfirst($value);
+        }));
+        $this->twig->addFilter(new TwigFilter('caseSnakeExceptFirstDot', function ($value) {
+            $parts = explode('.', $value, 2);
+            $toSnake = function ($str) {
+                preg_match_all('!([A-Za-z][A-Z0-9]*(?=$|[A-Z][a-z0-9])|[A-Za-z][a-z0-9]+)!', $str, $matches);
+                return implode('_', array_map(function ($m) {
+                    return $m === strtoupper($m) ? strtolower($m) : lcfirst($m);
+                }, $matches[0]));
+            };
+            if (count($parts) < 2) {
+                return $toSnake($value);
+            }
+            return $parts[0] . '.' . $toSnake($parts[1]);
         }));
     }
 

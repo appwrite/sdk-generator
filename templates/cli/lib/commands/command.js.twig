@@ -59,7 +59,7 @@ const {{ service.name | caseLower }} = new Command("{{ service.name | caseLower 
 /**
  * @param {{ "{" }}{{ service.name | caseUcfirst }}{{ method.name | caseUcfirst }}RequestParams{{ "}" }} params
  */
-{%~ block decleration -%}
+{% block decleration %}
 const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({
         {%- for parameter in method.parameters.all -%}
             {{ parameter.name | caseCamel | escapeKeyword }},
@@ -72,7 +72,9 @@ const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({
         {%- if method.type == 'location' -%}, destination{%- endif -%}
         {% if hasConsolePreview(method.name,service.name) %}, console{%- endif -%}
 }) => {
-{%~ endblock %}
+{% if method.deprecated %}
+    console.warn('Warning: This command is deprecated.{% if method.replaceWith %} Please use "{{ method.replaceWith | replace({'.': ' '}) }}" instead.{% endif %}');
+{% endif %}
     let client = !sdk ? await {% if service.name == "projects" %}sdkForConsole(){% else %}sdkForProject(){% endif %} :
     sdk;
     let apiPath = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', {{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
@@ -82,13 +84,14 @@ const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({
 {{ include('cli/base/requests/api.twig') }}
 {% endif %}
 }
+{% endblock %}
 
 {% endfor %}
 {% for method in service.methods %}
 {{service.name | caseLower }}
     .command(`{{ method.name | caseKebab }}`)
 {% autoescape false %}
-    .description(`{{ method.description | replace({'`':'\''}) | replace({'\n':' '}) | replace({'\n \n':' '}) }}`)
+    .description(`{% if method.deprecated %}[DEPRECATED] This command is deprecated.{% if method.replaceWith %} Please use '{{ method.replaceWith | replace({'.': ' '}) }}' instead.{% endif %} {% endif %}{{ method.description | replace({'`':'\''}) | replace({'\n':' '}) | replace({'\n \n':' '}) }}`)
 {% for parameter in method.parameters.all %}
     .{% if parameter.required and not parameter.nullable %}requiredOption{% else %}option{% endif %}(`--{{ parameter.name | escapeKeyword | caseKebab }}{% if parameter | typeName == 'boolean' %} [value]{% else %} {% if parameter.array.type|length > 0 %}[{% else %}<{% endif %}{{ parameter.name | escapeKeyword | caseKebab }}{% if parameter.array.type|length > 0 %}...{% endif %}{% if parameter.array.type|length > 0 %}]{% else %}>{% endif %}{% endif %}`, `{{ parameter.description | replace({'`':'\''}) | replace({'\n':' '}) | replace({'\n \n':' '}) }}`{% if parameter | typeName == 'boolean' %}, (value) => value === undefined ? true : parseBool(value){% elseif parameter | typeName == 'number' %}, parseInteger{% endif %})
 {% endfor %}
