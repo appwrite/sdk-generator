@@ -49,7 +49,7 @@ class Client:
         return self
 {% endfor %}
 
-    def call(self, method, path='', headers=None, params=None, response_type='json', nullable_params=None):
+    def call(self, method, path='', headers=None, params=None, nullable_params=None, response_type='json'):
         if headers is None:
             headers = {}
 
