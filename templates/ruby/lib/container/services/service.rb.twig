@@ -8,6 +8,11 @@ module {{spec.title | caseUcfirst}}
         end
 
 {% for method in service.methods %}
+{% if method.deprecated %}
+        #
+        # @deprecated This API is deprecated since {{ method.deprecatedVersion }} and uses outdated terminologies.{% if method.replaceWith %} Please use `{{ method.replaceWith | capitalizeFirst }}` instead.{% endif %} 
+        #
+{% endif %}
 {{ method.description | rubyComment }}
         #
 {% for parameter in method.parameters.all %}

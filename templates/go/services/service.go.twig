@@ -87,6 +87,10 @@ func (srv *{{ service.name | caseUcfirst }}) With{{ method.name | caseUcfirst }}
 {% else %}
 // {{ method.name | caseUcfirst }}
 {% endif %}
+{% if method.deprecated %}
+//
+// Deprecated: This API is deprecated since {{ method.deprecatedVersion }} and uses outdated terminologies. Please use `{{ method.replaceWith | capitalizeFirst }}` instead.
+{% endif %}
 func (srv *{{ service.name | caseUcfirst }}) {{ method.name | caseUcfirst }}({{ params }})(*{{ method | returnType(spec, spec.title | caseLower) }}, error) {
 {% if method.parameters.path|length > 0 %}
 	r := strings.NewReplacer({% for parameter in method.parameters.path %}"{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}", {{ parameter.name | caseUcfirst }}{% if not loop.last %}, {% endif %}{% endfor %})

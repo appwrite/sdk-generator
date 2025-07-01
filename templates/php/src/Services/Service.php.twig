@@ -45,7 +45,7 @@ class {{ service.name | caseUcfirst }} extends Service
 {% if method.deprecated %}
      *
 {% set method_name = method.replaceWith | split('.') | last | caseCamel %}
-{% set deprecated_message = deprecated_message ~ 'Please use ' ~ method_name ~ '() instead.' %}
+{% set deprecated_message = deprecated_message ~ 'This API is deprecated since ' ~ method.deprecatedVersion ~ ' and uses outdated terminologies. Please use `' ~ method_name ~ '()` instead.' %}
      * @deprecated {{ deprecated_message }}
 {% if method.replaceWith %}
      * @see {{ method.replaceWith | replace({'.': '::'}) | capitalizeFirst }}

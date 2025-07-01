@@ -73,7 +73,7 @@ const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({
         {% if hasConsolePreview(method.name,service.name) %}, console{%- endif -%}
 }) => {
 {% if method.deprecated %}
-    console.warn('Warning: This command is deprecated.{% if method.replaceWith %} Please use "{{ method.replaceWith | replace({'.': ' '}) }}" instead.{% endif %}');
+    console.warn('Warning: This command is deprecated since {{ method.deprecatedVersion }}.{% if method.replaceWith %} Please use "{{ method.replaceWith | replace({'.': ' '}) }}" instead.{% endif %}');
 {% endif %}
     let client = !sdk ? await {% if service.name == "projects" %}sdkForConsole(){% else %}sdkForProject(){% endif %} :
     sdk;

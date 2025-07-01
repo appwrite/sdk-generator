@@ -21,7 +21,7 @@ open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
     /// @return array
     ///
     {%~ if method.deprecated %}
-    @available(*, deprecated, message: "This API is deprecated and uses outdated terminologies. Please use `{{ method.replaceWith | capitalizeFirst }}` instead.")
+    @available(*, deprecated, message: "This API is deprecated since {{ method.deprecatedVersion }} and uses outdated terminologies. Please use `{{ method.replaceWith | capitalizeFirst }}` instead.")
     {%~ endif %}
     open func {{ method.name | caseCamel | overrideIdentifier }}{% if method.responseModel | hasGenericType(spec) %}<T>{% endif %}(
         {%~ for parameter in method.parameters.all %}
@@ -85,7 +85,7 @@ open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
     /// @return array
     ///
     {%~ if method.deprecated %}
-    @available(*, deprecated, message: "This API is deprecated and uses outdated terminologies. Please use `{{ method.replaceWith | capitalizeFirst }}` instead.")
+    @available(*, deprecated, message: "This API is deprecated since {{ method.deprecatedVersion }} and uses outdated terminologies. Please use `{{ method.replaceWith | capitalizeFirst }}` instead.")
     {%~ endif %}
     open func {{ method.name | caseCamel }}(
         {%~ for parameter in method.parameters.all %}
