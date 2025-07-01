@@ -177,6 +177,8 @@ class Swagger2 extends Spec
             'cookies' => $method['x-appwrite']['cookies'] ?? false,
             'type' => $method['x-appwrite']['type'] ?? false,
             'deprecated' => $method['x-appwrite']['deprecated'] ?? false,
+            'deprecatedMessage' => $method['x-appwrite']['deprecatedMessage'] ?? '',
+            'deprecatedVersion' => $method['x-appwrite']['deprecatedVersion'] ?? '',
             'replaceWith' => $method['x-appwrite']['replaceWith'] ?? '',
             'headers' => [],
             'parameters' => [

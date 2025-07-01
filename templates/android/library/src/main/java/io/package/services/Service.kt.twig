@@ -39,12 +39,13 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
     {%~ endif %}
      */
     {%~ if method.deprecated %}
-{% set deprecated_message = "This API is deprecated and uses outdated terminologies." %}
+{% set deprecated_message = "This API is deprecated since " ~ method.deprecatedVersion ~ " and uses outdated terminologies." %}
 {% if method.replaceWith %}
-{% set deprecated_message = deprecated_message ~ ' Please use ' ~ (method.replaceWith | capitalizeFirst) ~ ' instead.' %}
+{% set deprecated_message = deprecated_message ~ ' Please use `' ~ (method.replaceWith | capitalizeFirst) ~ '` instead.' %}
     @Deprecated(
-        "{{ deprecated_message }}",
-        ReplaceWith("{{ sdk.namespace | caseDot }}.services.{{ method.replaceWith | capitalizeFirst }}")
+        message = "{{ deprecated_message }}",
+        replaceWith = ReplaceWith("{{ sdk.namespace | caseDot }}.services.{{ method.replaceWith | capitalizeFirst }}"),
+        since = "{{ method.deprecatedVersion }}"
     )
 {% else %}
     @Deprecated("{{ deprecated_message }}")
@@ -205,12 +206,13 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
     {%~ endif %}
      */
     {%~ if method.deprecated %}
-{% set deprecated_message = "This API is deprecated and uses outdated terminologies." %}
+{% set deprecated_message = "This API is deprecated since " ~ method.deprecatedVersion ~ " and uses outdated terminologies." %}
 {% if method.replaceWith %}
-{% set deprecated_message = deprecated_message ~ ' Please use ' ~ (method.replaceWith | capitalizeFirst) ~ ' instead.' %}
+{% set deprecated_message = deprecated_message ~ ' Please use `' ~ (method.replaceWith | capitalizeFirst) ~ '` instead.' %}
     @Deprecated(
-        "{{ deprecated_message }}",
-        ReplaceWith("{{ sdk.namespace | caseDot }}.services.{{ method.replaceWith | capitalizeFirst }}")
+        message = "{{ deprecated_message }}",
+        replaceWith = ReplaceWith("{{ sdk.namespace | caseDot }}.services.{{ method.replaceWith | capitalizeFirst }}"),
+        since = "{{ method.deprecatedVersion }}"
     )
 {% else %}
     @Deprecated("{{ deprecated_message }}")
