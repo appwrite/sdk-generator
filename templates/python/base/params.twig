@@ -1,9 +1,15 @@
         api_params = {}
+        nullable_params = []
+
 {% if method.parameters.all | length %}
 {% for parameter in method.parameters.all  %}
 {% if parameter.required and not parameter.nullable %}
         if {{ parameter.name | escapeKeyword | caseSnake }} is None:
             raise {{spec.title | caseUcfirst}}Exception('Missing required parameter: "{{ parameter.name | escapeKeyword | caseSnake }}"')
+
+{% endif %}
+{% if parameter.nullable %}
+        nullable_params.append('{{ parameter.name }}')
 
 {% endif %}
 {% endfor %}

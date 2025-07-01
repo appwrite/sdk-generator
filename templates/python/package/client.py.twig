@@ -49,14 +49,18 @@ class Client:
         return self
 {% endfor %}
 
-    def call(self, method, path='', headers=None, params=None, response_type='json'):
+    def call(self, method, path='', headers=None, params=None, response_type='json', nullable_params=None):
         if headers is None:
             headers = {}
 
         if params is None:
             params = {}
 
-        params = {k: v for k, v in params.items() if v is not None}  # Remove None values from params dictionary
+        if nullable_params is None:
+            nullable_params = []
+
+        # Only filter out None values for non-nullable params
+        params = {k: v for k, v in params.items() if v is not None or k in nullable_params}
 
         data = {}
         files = {}
