@@ -176,10 +176,6 @@ class Swagger2 extends Spec
             'consumes' => $method['consumes'] ?? [],
             'cookies' => $method['x-appwrite']['cookies'] ?? false,
             'type' => $method['x-appwrite']['type'] ?? false,
-            'deprecated' => $method['x-appwrite']['deprecated'] ?? false,
-            'deprecatedMessage' => $method['x-appwrite']['deprecatedMessage'] ?? '',
-            'deprecatedVersion' => $method['x-appwrite']['deprecatedVersion'] ?? '',
-            'replaceWith' => $method['x-appwrite']['replaceWith'] ?? '',
             'headers' => [],
             'parameters' => [
                 'all' => [],
@@ -191,6 +187,17 @@ class Swagger2 extends Spec
             'emptyResponse' => $emptyResponse,
             'responseModel' => $responseModel,
         ];
+
+        if (($method['x-appwrite']['deprecated'] ?? false) !== false) {
+            $output['deprecated'] = true;
+            if (is_array($method['x-appwrite']['deprecated'])) {
+                $output['since'] = $method['x-appwrite']['deprecated']['since'] ?? '';
+                $output['replaceWith'] = $method['x-appwrite']['deprecated']['replaceWith'] ?? '';
+            } else {
+                $output['since'] = '';
+                $output['replaceWith'] = '';
+            }
+        }
 
         if ($output['type'] == 'graphql') {
             $output['headers']['x-sdk-graphql'] = "true";

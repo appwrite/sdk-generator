@@ -89,7 +89,7 @@ func (srv *{{ service.name | caseUcfirst }}) With{{ method.name | caseUcfirst }}
 {% endif %}
 {% if method.deprecated %}
 //
-// Deprecated: This API is deprecated since {{ method.deprecatedVersion }} and uses outdated terminologies. Please use `{{ method.replaceWith | capitalizeFirst }}` instead.
+// Deprecated: This API is deprecated since {{ method.since }} and uses outdated terminologies. Please use `{{ method.replaceWith | capitalizeFirst }}` instead.
 {% endif %}
 func (srv *{{ service.name | caseUcfirst }}) {{ method.name | caseUcfirst }}({{ params }})(*{{ method | returnType(spec, spec.title | caseLower) }}, error) {
 {% if method.parameters.path|length > 0 %}

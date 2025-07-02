@@ -31,13 +31,13 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
      * @return [{{ method | returnType(spec, sdk.namespace | caseDot) | raw }}]
      */
     {%~ if method.deprecated %}
-{% set deprecated_message = "This API is deprecated since " ~ method.deprecatedVersion ~ " and uses outdated terminologies." %}
+{% set deprecated_message = "This API is deprecated since " ~ method.since ~ " and uses outdated terminologies." %}
 {% if method.replaceWith %}
 {% set deprecated_message = deprecated_message ~ ' Please use `' ~ (method.replaceWith | capitalizeFirst) ~ '` instead.' %}
     @Deprecated(
         message = "{{ deprecated_message }}",
         replaceWith = ReplaceWith("{{ sdk.namespace | caseDot }}.services.{{ method.replaceWith | capitalizeFirst }}"),
-        since = "{{ method.deprecatedVersion }}"
+        since = "{{ method.since }}"
     )
 {% else %}
     @Deprecated("{{ deprecated_message }}")
@@ -105,13 +105,13 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
      * @return [{{ method | returnType(spec, sdk.namespace | caseDot) | raw }}]
      */
     {%~ if method.deprecated %}
-{% set deprecated_message = "This API is deprecated since " ~ method.deprecatedVersion ~ " and uses outdated terminologies." %}
+{% set deprecated_message = "This API is deprecated since " ~ method.since ~ " and uses outdated terminologies." %}
 {% if method.replaceWith %}
 {% set deprecated_message = deprecated_message ~ ' Please use `' ~ (method.replaceWith | capitalizeFirst) ~ '` instead.' %}
     @Deprecated(
         message = "{{ deprecated_message }}",
         replaceWith = ReplaceWith("{{ sdk.namespace | caseDot }}.services.{{ method.replaceWith | capitalizeFirst }}"),
-        since = "{{ method.deprecatedVersion }}"
+        since = "{{ method.since }}"
     )
 {% else %}
     @Deprecated("{{ deprecated_message }}")
