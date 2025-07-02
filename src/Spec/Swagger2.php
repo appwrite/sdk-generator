@@ -193,9 +193,6 @@ class Swagger2 extends Spec
             if (is_array($method['x-appwrite']['deprecated'])) {
                 $output['since'] = $method['x-appwrite']['deprecated']['since'] ?? '';
                 $output['replaceWith'] = $method['x-appwrite']['deprecated']['replaceWith'] ?? '';
-            } else {
-                $output['since'] = '';
-                $output['replaceWith'] = '';
             }
         }
 
