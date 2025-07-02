@@ -10,7 +10,11 @@ module {{spec.title | caseUcfirst}}
 {% for method in service.methods %}
 {% if method.deprecated %}
         #
+{%~ if method.since and method.replaceWith %}
         # @deprecated This API is deprecated since {{ method.since }} and uses outdated terminologies.{% if method.replaceWith %} Please use `{{ method.replaceWith | capitalizeFirst }}` instead.{% endif %} 
+{%~ else %}
+        # @deprecated This API is deprecated.
+{%~ endif %}
         #
 {% endif %}
 {{ method.description | rubyComment }}

@@ -27,7 +27,11 @@ namespace {{ spec.title | caseUcfirst }}.Services
         {%~ endif %}
         /// </summary>
         {%~ if method.deprecated %}
+        {%~ if method.since and method.replaceWith %}
         [Obsolete("This API is deprecated since {{ method.since }} and uses outdated terminologies. Please use `{{ method.replaceWith | capitalizeFirst }}` instead.")]
+        {%~ else %}
+        [Obsolete("This API is deprecated.")]
+        {%~ endif %}
         {%~ endif %}
         public Task{% if method.type == "webAuth" %}<String>{% else %}<{{ utils.resultType(spec.title, method) }}>{% endif %} {{ method.name | caseUcfirst }}({{ utils.method_parameters(method.parameters, method.consumes) }})
         {

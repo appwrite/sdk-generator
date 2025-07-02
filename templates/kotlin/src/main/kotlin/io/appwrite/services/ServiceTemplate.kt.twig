@@ -39,7 +39,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
     )
     {%~ else %}
     @Deprecated(
-        message = "This API is deprecated and uses outdated terminologies."
+        message = "This API is deprecated."
     )
     {%~ endif %}
     {%~ endif %}
@@ -113,7 +113,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
     )
     {%~ else %}
     @Deprecated(
-        message = "This API is deprecated and uses outdated terminologies."
+        message = "This API is deprecated."
     )
     {%~ endif %}
     {%~ endif %}

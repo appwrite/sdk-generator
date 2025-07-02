@@ -36,7 +36,11 @@ export class {{ service.name | caseUcfirst }} {
      * @throws {{ '{' }}{{ spec.title | caseUcfirst}}Exception}
      * @returns {{ '{' }}{{ method | getReturn(spec) | raw }}{{ '}' }}
     {%~ if method.deprecated %}
+    {%~ if method.since and method.replaceWith %}
      * @deprecated This API is deprecated since {{ method.since }} and uses outdated terminologies.{% if method.replaceWith %} Please use `{{ method.replaceWith | capitalizeFirst }}` instead.{% endif %} 
+    {%~ else %}
+     * @deprecated This API is deprecated.
+    {%~ endif %}
     {%~ endif %}
      */
     {{ method.name | caseCamel }}{{ method.responseModel | getGenerics(spec) | raw }}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | getPropertyType(method) | raw }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, onProgress = (progress: UploadProgress) => {}{% endif %}): {{ method | getReturn(spec) | raw }} {

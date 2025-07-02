@@ -35,8 +35,13 @@ class {{ service.name | caseUcfirst }}(Service):
 {% if method.parameters.all|length > 0 or 'multipart/form-data' in method.consumes %}
 
 {% if method.deprecated %}
+{%~ if method.since and method.replaceWith %}
         .. deprecated::{{ method.since }}
             This API is deprecated since {{ method.since }} and uses outdated terminologies.{% if method.replaceWith %} Please use `{{ method.replaceWith | caseSnakeExceptFirstDot }}` instead.{% endif %} 
+{%~ else %}
+        .. deprecated::
+            This API is deprecated.
+{%~ endif %}
 {% endif %}
 
         Parameters
