@@ -3,11 +3,7 @@ import Foundation
 public enum {{ enum.name | caseUcfirst | overrideIdentifier }}: String, CustomStringConvertible {
     {%~ for value in enum.enum %}
     {%~ set key = enum.keys is empty ? value : enum.keys[loop.index0] %}
-    {% if key[0] matches '/\\d/' %}
-    case _{{ key | caseEnumKey | escapeSwiftKeyword }} = "{{ value }}"
-    {% else %}
     case {{ key | caseEnumKey | escapeSwiftKeyword }} = "{{ value }}"
-    {% endif %}
     {%~ endfor %}
 
     public var description: String {
