@@ -78,7 +78,7 @@ const typesCommand = actionRunner(async (rawOutputDirectory, {language}) => {
       outputDirectory = path.dirname(rawOutputPath);
       singleFileDestination = rawOutputPath;
     } else {
-      throw new Error("Output path must be a directory for languages that generate multiple files.");
+      throw new Error(`Invalid output path: ${rawOutputPath}. Output path must be a directory for languages that generate multiple files.`);
     }
   }
 

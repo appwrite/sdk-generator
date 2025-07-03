@@ -40,6 +40,9 @@ class TypeScript extends LanguageMeta {
     if (attribute.array) {
       type += "[]";
     }
+    if (!attribute.required && attribute.default === null) {
+      type += " | null";
+    }
     return type;
   }
 
@@ -87,7 +90,7 @@ export enum <%- toPascalCase(attribute.key) %> {
 <% for (const collection of collections) { -%>
 export type <%- toPascalCase(collection.name) %> = Models.Document & {
 <% for (const attribute of collection.attributes) { -%>
-  <%- toCamelCase(attribute.key) %><% if (!attribute.required) { %>?<% } %>: <%- getType(attribute) %>;
+  <%- toCamelCase(attribute.key) %>: <%- getType(attribute) %>;
 <% } -%>
 }
 
