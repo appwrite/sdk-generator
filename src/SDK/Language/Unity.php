@@ -1,0 +1,510 @@
+<?php
+
+namespace Appwrite\SDK\Language;
+
+use Appwrite\SDK\Language;
+use Twig\TwigFilter;
+
+class Unity extends Language
+{
+    /**
+     * @return string
+     */
+    public function getName(): string
+    {
+        return 'Unity';
+    }
+
+    /**
+     * Get Language Keywords List
+     *
+     * @return array
+     */
+    public function getKeywords(): array
+    {
+        return [
+            'abstract',
+            'add',
+            'alias',
+            'as',
+            'ascending',
+            'async',
+            'await',
+            'base',
+            'bool',
+            'break',
+            'by',
+            'byte',
+            'case',
+            'catch',
+            'char',
+            'checked',
+            'class',
+            'const',
+            'continue',
+            'decimal',
+            'default',
+            'delegate',
+            'do',
+            'double',
+            'descending',
+            'dynamic',
+            'else',
+            'enum',
+            'equals',
+            'event',
+            'explicit',
+            'extern',
+            'false',
+            'finally',
+            'fixed',
+            'float',
+            'for',
+            'foreach',
+            'from',
+            'get',
+            'global',
+            'goto',
+            'group',
+            'if',
+            'implicit',
+            'in',
+            'int',
+            'interface',
+            'internal',
+            'into',
+            'is',
+            'join',
+            'let',
+            'lock',
+            'long',
+            'nameof',
+            'namespace',
+            'new',
+            'null',
+            'object',
+            'on',
+            'operator',
+            'orderby',
+            'out',
+            'override',
+            'params',
+            'partial',
+            'private',
+            'protected',
+            'public',
+            'readonly',
+            'ref',
+            'remove',
+            'return',
+            'sbyte',
+            'sealed',
+            'select',
+            'set',
+            'short',
+            'sizeof',
+            'stackalloc',
+            'static',
+            'string',
+            'struct',
+            'switch',
+            'this',
+            'throw',
+            'true',
+            'try',
+            'typeof',
+            'uint',
+            'ulong',
+            'unchecked',
+            'unmanaged',
+            'unsafe',
+            'ushort',
+            'using',
+            'using static',
+            'value',
+            'var',
+            'virtual',
+            'void',
+            'volatile',
+            'when',
+            'where',
+            'while',
+            'yield',
+            'path',
+            // Unity specific keywords
+            'GameObject',
+            'MonoBehaviour',
+            'Transform',
+            'Component',
+            'ScriptableObject',
+            'UnityEngine',
+            'UnityEditor'
+        ];
+    }
+
+    /**
+     * @return array
+     */
+    public function getIdentifierOverrides(): array
+    {
+        return [
+            'Jwt' => 'JWT',
+            'Domain' => 'XDomain',
+        ];
+    }
+
+    public function getPropertyOverrides(): array
+    {
+        return [
+            'provider' => [
+                'Provider' => 'MessagingProvider',
+            ],
+        ];
+    }
+
+    /**
+     * @param array $parameter
+     * @return string
+     */
+    public function getTypeName(array $parameter, array $spec = []): string
+    {
+        if (isset($parameter['enumName'])) {
+            return 'Appwrite.Enums.' . \ucfirst($parameter['enumName']);
+        }
+        if (!empty($parameter['enumValues'])) {
+            return 'Appwrite.Enums.' . \ucfirst($parameter['name']);
+        }
+        if (isset($parameter['items'])) {
+            // Map definition nested type to parameter nested type
+            $parameter['array'] = $parameter['items'];
+        }
+        return match ($parameter['type']) {
+            self::TYPE_INTEGER => 'long',
+            self::TYPE_NUMBER => 'double',
+            self::TYPE_STRING => 'string',
+            self::TYPE_BOOLEAN => 'bool',
+            self::TYPE_FILE => 'InputFile',
+            self::TYPE_ARRAY => (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type']))
+                ? 'List<' . $this->getTypeName($parameter['array']) . '>'
+                : 'List<object>',
+            self::TYPE_OBJECT => 'object',
+            default => $parameter['type']
+        };
+    }
+
+    /**
+     * @param array $param
+     * @return string
+     */
+    public function getParamDefault(array $param): string
+    {
+        $type       = $param['type'] ?? '';
+        $default    = $param['default'] ?? '';
+        $required   = $param['required'] ?? '';
+
+        if ($required) {
+            return '';
+        }
+
+        $output = ' = ';
+
+        if (empty($default) && $default !== 0 && $default !== false) {
+            switch ($type) {
+                case self::TYPE_INTEGER:
+                case self::TYPE_ARRAY:
+                case self::TYPE_OBJECT:
+                case self::TYPE_BOOLEAN:
+                    $output .= 'null';
+                    break;
+                case self::TYPE_STRING:
+                    $output .= '""';
+                    break;
+            }
+        } else {
+            switch ($type) {
+                case self::TYPE_INTEGER:
+                    $output .= $default;
+                    break;
+                case self::TYPE_BOOLEAN:
+                    $output .= ($default) ? 'true' : 'false';
+                    break;
+                case self::TYPE_STRING:
+                    $output .= "\"{$default}\"";
+                    break;
+                case self::TYPE_ARRAY:
+                case self::TYPE_OBJECT:
+                    $output .= 'null';
+                    break;
+            }
+        }
+
+        return $output;
+    }
+
+    /**
+     * @param array $param
+     * @return string
+     */
+    public function getParamExample(array $param): string
+    {
+        $type       = $param['type'] ?? '';
+        $example    = $param['example'] ?? '';
+
+        $output = '';
+
+        if (empty($example) && $example !== 0 && $example !== false) {
+            switch ($type) {
+                case self::TYPE_FILE:
+                    $output .= 'InputFile.FromPath("./path-to-files/image.jpg")';
+                    break;
+                case self::TYPE_NUMBER:
+                case self::TYPE_INTEGER:
+                    $output .= '0';
+                    break;
+                case self::TYPE_BOOLEAN:
+                    $output .= 'false';
+                    break;
+                case self::TYPE_STRING:
+                    $output .= '""';
+                    break;
+                case self::TYPE_OBJECT:
+                    $output .= '[object]';
+                    break;
+                case self::TYPE_ARRAY:
+                    if (\str_starts_with($example, '[')) {
+                        $example = \substr($example, 1);
+                    }
+                    if (\str_ends_with($example, ']')) {
+                        $example = \substr($example, 0, -1);
+                    }
+                    if (!empty($example)) {
+                        $output .= 'new List<' . $this->getTypeName($param['array']) . '>() {' . $example . '}';
+                    } else {
+                        $output .= 'new List<' . $this->getTypeName($param['array']) . '>()';
+                    }
+                    break;
+            }
+        } else {
+            switch ($type) {
+                case self::TYPE_FILE:
+                case self::TYPE_NUMBER:
+                case self::TYPE_INTEGER:
+                case self::TYPE_ARRAY:
+                    $output .= $example;
+                    break;
+                case self::TYPE_OBJECT:
+                    $output .= '[object]';
+                    break;
+                case self::TYPE_BOOLEAN:
+                    $output .= ($example) ? 'true' : 'false';
+                    break;
+                case self::TYPE_STRING:
+                    $output .= "\"{$example}\"";
+                    break;
+            }
+        }
+
+        return $output;
+    }
+
+    /**
+     * @return array
+     */
+    public function getFiles(): array
+    {
+        return [
+            [
+                'scope'         => 'default',
+                'destination'   => 'CHANGELOG.md',
+                'template'      => 'unity/CHANGELOG.md.twig',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => '/icon.png',
+                'template'      => 'unity/icon.png',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'LICENSE',
+                'template'      => 'unity/LICENSE.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'README.md',
+                'template'      => 'unity/README.md.twig',
+            ],
+            [
+                'scope'         => 'method',
+                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
+                'template'      => 'unity/docs/example.md.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'package.json',
+                'template'      => 'unity/package.json.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'Runtime/{{ spec.title | caseUcfirst }}.asmdef',
+                'template'      => 'unity/Runtime/Appwrite.asmdef.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'Runtime/Client.cs',
+                'template'      => 'unity/Runtime/Client.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'Runtime/{{ spec.title | caseUcfirst }}Client.cs',
+                'template'      => 'unity/Runtime/AppwriteClient.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'Runtime/{{ spec.title | caseUcfirst }}Config.cs',
+                'template'      => 'unity/Runtime/AppwriteConfig.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'Runtime/{{ spec.title | caseUcfirst }}Manager.cs',
+                'template'      => 'unity/Runtime/AppwriteManager.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'Runtime/SDK.cs',
+                'template'      => 'unity/Runtime/SDK.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'Runtime/Realtime.cs',
+                'template'      => 'unity/Runtime/Realtime.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'Editor/{{ spec.title | caseUcfirst }}.Editor.asmdef',
+                'template'      => 'unity/Editor/Appwrite.Editor.asmdef.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'Editor/{{ spec.title | caseUcfirst }}SetupAssistant.cs',
+                'template'      => 'unity/Editor/AppwriteSetupAssistant.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'Editor/{{ spec.title | caseUcfirst }}SetupWindow.cs',
+                'template'      => 'unity/Editor/AppwriteSetupWindow.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'Runtime/{{ spec.title | caseUcfirst }}Exception.cs',
+                'template'      => 'unity/Runtime/Exception.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'Runtime/ID.cs',
+                'template'      => 'unity/Runtime/ID.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'Runtime/Permission.cs',
+                'template'      => 'unity/Runtime/Permission.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'Runtime/Query.cs',
+                'template'      => 'unity/Runtime/Query.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'Runtime/Role.cs',
+                'template'      => 'unity/Runtime/Role.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'Runtime/Converters/ValueClassConverter.cs',
+                'template'      => 'unity/Runtime/Converters/ValueClassConverter.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'Runtime/Converters/ObjectToInferredTypesConverter.cs',
+                'template'      => 'unity/Runtime/Converters/ObjectToInferredTypesConverter.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'Runtime/Extensions/Extensions.cs',
+                'template'      => 'unity/Runtime/Extensions/Extensions.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'Runtime/Models/OrderType.cs',
+                'template'      => 'unity/Runtime/Models/OrderType.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'Runtime/Models/UploadProgress.cs',
+                'template'      => 'unity/Runtime/Models/UploadProgress.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'Runtime/Models/InputFile.cs',
+                'template'      => 'unity/Runtime/Models/InputFile.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'Runtime/Services/Service.cs',
+                'template'      => 'unity/Runtime/Services/Service.cs.twig',
+            ],
+            [
+                'scope'         => 'service',
+                'destination'   => 'Runtime/Services/{{service.name | caseUcfirst}}.cs',
+                'template'      => 'unity/Runtime/Services/ServiceTemplate.cs.twig',
+            ],
+            [
+                'scope'         => 'definition',
+                'destination'   => 'Runtime/Models/{{ definition.name | caseUcfirst | overrideIdentifier }}.cs',
+                'template'      => 'unity/Runtime/Models/Model.cs.twig',
+            ],
+            [
+                'scope'         => 'enum',
+                'destination'   => 'Runtime/Enums/{{ enum.name | caseUcfirst | overrideIdentifier }}.cs',
+                'template'      => 'unity/Runtime/Enums/Enum.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'Runtime/Enums/IEnum.cs',
+                'template'      => 'unity/Runtime/Enums/IEnum.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'Samples~/AppwriteExample/AppwriteExample.unity',
+                'template'      => 'unity/Samples/AppwriteExample/AppwriteExample.unity.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'Samples~/AppwriteExample/AppwriteExampleScript.cs',
+                'template'      => 'unity/Samples/AppwriteExample/AppwriteExampleScript.cs.twig',
+            ]
+        ];
+    }
+
+    public function getFilters(): array
+    {
+        return [
+            new TwigFilter('unityComment', function ($value) {
+                $value = explode("\n", $value);
+                foreach ($value as $key => $line) {
+                    $value[$key] = "        /// " . wordwrap($line, 75, "\n        /// ");
+                }
+                return implode("\n", $value);
+            }, ['is_safe' => ['html']]),
+            new TwigFilter('caseEnumKey', function (string $value) {
+                return $this->toPascalCase($value);
+            }),
+            new TwigFilter('overrideProperty', function (string $property, string $class) {
+                if (isset($this->getPropertyOverrides()[$class][$property])) {
+                    return $this->getPropertyOverrides()[$class][$property];
+                }
+                return $property;
+            }),
+        ];
+    }
+}

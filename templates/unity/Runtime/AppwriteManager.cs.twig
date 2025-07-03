@@ -1,0 +1,287 @@
+using UnityEngine;
+using Cysharp.Threading.Tasks;
+
+namespace {{ spec.title | caseUcfirst }}
+{
+    /// <summary>
+    /// {{ spec.title | caseUcfirst }} Manager - MonoBehaviour wrapper for easy Unity integration
+    /// Attach this to a GameObject for automatic {{ spec.title | caseUcfirst }} setup
+    /// </summary>
+    public class {{ spec.title | caseUcfirst }}Manager : MonoBehaviour
+    {
+        [Header("Configuration")]
+        [Tooltip("{{ spec.title | caseUcfirst }} configuration asset")]
+        public {{ spec.title | caseUcfirst }}Config config;
+        
+        [Tooltip("Initialize automatically on Start")]
+        public bool autoInitialize = true;
+        
+        [Tooltip("Connect to realtime automatically")]
+        public bool autoConnectRealtime = false;
+        
+        [Header("Events")]
+        [Tooltip("Events to listen for initialization")]
+        public UnityEngine.Events.UnityEvent OnInitialized;
+        public UnityEngine.Events.UnityEvent OnInitializationFailed;
+        public UnityEngine.Events.UnityEvent OnRealtimeConnected;
+        public UnityEngine.Events.UnityEvent OnRealtimeDisconnected;
+        
+        // Static instance for singleton pattern
+        private static {{ spec.title | caseUcfirst }}Manager _instance;
+        public static {{ spec.title | caseUcfirst }}Manager Instance
+        {
+            get
+            {
+                if (_instance == null)
+                {
+                    _instance = FindObjectOfType<{{ spec.title | caseUcfirst }}Manager>();
+                    
+                    if (_instance == null)
+                    {
+                        var go = new GameObject("{{ spec.title | caseUcfirst }} Manager");
+                        _instance = go.AddComponent<{{ spec.title | caseUcfirst }}Manager>();
+                        DontDestroyOnLoad(go);
+                    }
+                }
+                return _instance;
+            }
+        }
+        
+        private {{ spec.title | caseUcfirst }}Client _client;
+        private bool _isInitialized = false;
+        
+        /// <summary>
+        /// Get the {{ spec.title | caseUcfirst }} client instance
+        /// </summary>
+        public {{ spec.title | caseUcfirst }}Client Client
+        {
+            get
+            {
+                if (_client == null && _isInitialized)
+                {
+                    Debug.LogError("{{ spec.title | caseUcfirst }} client is null but marked as initialized. This shouldn't happen.");
+                }
+                return _client;
+            }
+        }
+        
+        /// <summary>
+        /// Check if {{ spec.title | caseUcfirst }} is initialized
+        /// </summary>
+        public bool IsInitialized => _isInitialized && _client != null;
+        
+        /// <summary>
+        /// Check if realtime is connected
+        /// </summary>
+        public bool IsRealtimeConnected => _client?.Realtime?.IsConnected ?? false;
+        
+        private void Awake()
+        {
+            // Implement singleton pattern
+            if (_instance == null)
+            {
+                _instance = this;
+                DontDestroyOnLoad(gameObject);
+            }
+            else if (_instance != this)
+            {
+                Destroy(gameObject);
+                return;
+            }
+            
+            // Load default config if none assigned
+            if (config == null)
+            {
+                config = Resources.Load<{{ spec.title | caseUcfirst }}Config>("{{ spec.title | caseUcfirst }}Config");
+                
+                if (config == null)
+                {
+                    Debug.LogWarning("{{ spec.title | caseUcfirst }}Manager: No configuration found. Please assign a {{ spec.title | caseUcfirst }}Config or create one in Resources folder.");
+                }
+            }
+        }
+        
+        private async void Start()
+        {
+            if (autoInitialize)
+            {
+                await Initialize();
+            }
+        }
+        
+        /// <summary>
+        /// Initialize {{ spec.title | caseUcfirst }} with the assigned configuration
+        /// </summary>
+        public async UniTask<bool> Initialize()
+        {
+            if (_isInitialized)
+            {
+                Debug.LogWarning("{{ spec.title | caseUcfirst }} is already initialized.");
+                return true;
+            }
+            
+            if (config == null)
+            {
+                Debug.LogError("{{ spec.title | caseUcfirst }}Manager: No configuration assigned!");
+                OnInitializationFailed?.Invoke();
+                return false;
+            }
+            
+            if (!config.IsValid(out string error))
+            {
+                Debug.LogError($"{{ spec.title | caseUcfirst }}Manager: Invalid configuration - {error}");
+                OnInitializationFailed?.Invoke();
+                return false;
+            }
+            
+            try
+            {
+                _client = config.CreateClient();
+                
+                // Setup realtime event handlers
+                if (_client.Realtime != null)
+                {
+                    _client.Realtime.OnConnected += () => OnRealtimeConnected?.Invoke();
+                    _client.Realtime.OnDisconnected += () => OnRealtimeDisconnected?.Invoke();
+                    _client.Realtime.OnError += (ex) => Debug.LogError($"{{ spec.title | caseUcfirst }} Realtime Error: {ex.Message}");
+                }
+                
+                _isInitialized = true;
+                
+                if (config.enableDebugLogging)
+                {
+                    Debug.Log($"{{ spec.title | caseUcfirst }} initialized successfully! Endpoint: {config.endpoint}, Project: {config.projectId}");
+                }
+                
+                OnInitialized?.Invoke();
+                
+                // Auto-connect realtime if enabled
+                if (autoConnectRealtime && config.enableRealtime)
+                {
+                    await ConnectRealtime();
+                }
+                
+                return true;
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"{{ spec.title | caseUcfirst }}Manager: Failed to initialize - {ex.Message}");
+                OnInitializationFailed?.Invoke();
+                return false;
+            }
+        }
+        
+        /// <summary>
+        /// Connect to {{ spec.title | caseUcfirst }} realtime
+        /// </summary>
+        public async UniTask<bool> ConnectRealtime()
+        {
+            if (!IsInitialized)
+            {
+                Debug.LogError("{{ spec.title | caseUcfirst }} must be initialized before connecting to realtime.");
+                return false;
+            }
+            
+            if (!config.enableRealtime)
+            {
+                Debug.LogWarning("{{ spec.title | caseUcfirst }} realtime is disabled in configuration.");
+                return false;
+            }
+            
+            try
+            {
+                await _client.ConnectRealtime();
+                
+                if (config.enableDebugLogging)
+                {
+                    Debug.Log("{{ spec.title | caseUcfirst }} realtime connected successfully!");
+                }
+                
+                return true;
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"{{ spec.title | caseUcfirst }}Manager: Failed to connect realtime - {ex.Message}");
+                return false;
+            }
+        }
+        
+        /// <summary>
+        /// Disconnect from {{ spec.title | caseUcfirst }} realtime
+        /// </summary>
+        public async UniTask DisconnectRealtime()
+        {
+            if (IsRealtimeConnected)
+            {
+                try
+                {
+                    await _client.DisconnectRealtime();
+                    
+                    if (config.enableDebugLogging)
+                    {
+                        Debug.Log("{{ spec.title | caseUcfirst }} realtime disconnected.");
+                    }
+                }
+                catch (System.Exception ex)
+                {
+                    Debug.LogError($"{{ spec.title | caseUcfirst }}Manager: Failed to disconnect realtime - {ex.Message}");
+                }
+            }
+        }
+        
+        /// <summary>
+        /// Reinitialize {{ spec.title | caseUcfirst }} with new configuration
+        /// </summary>
+        public async UniTask<bool> Reinitialize({{ spec.title | caseUcfirst }}Config newConfig = null)
+        {
+            if (IsRealtimeConnected)
+            {
+                await DisconnectRealtime();
+            }
+            
+            _isInitialized = false;
+            _client = null;
+            
+            if (newConfig != null)
+            {
+                config = newConfig;
+            }
+            
+            return await Initialize();
+        }
+        
+        private async void OnDestroy()
+        {
+            if (IsRealtimeConnected)
+            {
+                try
+                {
+                    await DisconnectRealtime();
+                }
+                catch (System.Exception ex)
+                {
+                    Debug.LogError($"{{ spec.title | caseUcfirst }}Manager: Error during cleanup - {ex.Message}");
+                }
+            }
+        }
+        
+        private void OnApplicationPause(bool pauseStatus)
+        {
+            if (pauseStatus && IsRealtimeConnected)
+            {
+                // Optionally disconnect realtime when app is paused
+                // DisconnectRealtime().Forget();
+            }
+        }
+        
+        #if UNITY_EDITOR
+        [UnityEditor.MenuItem("GameObject/{{ spec.title | caseUcfirst }}/{{ spec.title | caseUcfirst }} Manager", false, 10)]
+        private static void CreateAppwriteManager()
+        {
+            var go = new GameObject("{{ spec.title | caseUcfirst }} Manager");
+            go.AddComponent<{{ spec.title | caseUcfirst }}Manager>();
+            UnityEditor.Selection.activeGameObject = go;
+        }
+        #endif
+    }
+}

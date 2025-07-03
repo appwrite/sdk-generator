@@ -1,0 +1,685 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using Cysharp.Threading.Tasks;
+using UnityEngine;
+using UnityEngine.Networking;
+using {{ spec.title | caseUcfirst }}.Converters;
+using {{ spec.title | caseUcfirst }}.Extensions;
+using {{ spec.title | caseUcfirst }}.Models;
+
+namespace {{ spec.title | caseUcfirst }}
+{
+    public class Client
+    {
+        public string Endpoint => _endpoint;
+        public Dictionary<string, string> Config => _config;
+
+        private readonly Dictionary<string, string> _headers;
+        private readonly Dictionary<string, string> _config;
+        private string _endpoint;
+        private bool _selfSigned;
+
+        private static readonly int ChunkSize = 5 * 1024 * 1024;
+
+        public static JsonSerializerOptions DeserializerOptions { get; set; } = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+            PropertyNameCaseInsensitive = true,
+            Converters =
+            {
+                new JsonStringEnumConverter(JsonNamingPolicy.CamelCase),
+                new ValueClassConverter(),
+                new ObjectToInferredTypesConverter()
+            }
+        };
+
+        public static JsonSerializerOptions SerializerOptions { get; set; } = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+            Converters =
+            {
+                new JsonStringEnumConverter(JsonNamingPolicy.CamelCase),
+                new ValueClassConverter(),
+                new ObjectToInferredTypesConverter()
+            }
+        };
+
+        public Client(
+            string endpoint = "{{spec.endpoint}}",
+            bool selfSigned = false)
+        {
+            _endpoint = endpoint;
+            _selfSigned = selfSigned;
+
+            _headers = new Dictionary<string, string>()
+            {
+                { "Content-Type", "application/json" },
+                { "User-Agent" , $"{{spec.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} (Unity {Application.unityVersion}; {SystemInfo.operatingSystem})"},
+                { "X-SDK-Name", "{{ sdk.name }}" },
+                { "X-SDK-Platform", "{{ sdk.platform }}" },
+                { "X-SDK-Language", "{{ language.name | caseLower }}" },
+                { "X-SDK-Version", "{{ sdk.version }}"}{% if spec.global.defaultHeaders | length > 0 %},{% endif %}
+                {%~ for key,header in spec.global.defaultHeaders %}
+                { "{{key}}", "{{header}}" }{% if not loop.last %},{% endif %}
+                {%~ endfor %}
+            };
+
+            _config = new Dictionary<string, string>();
+        }
+
+        public Client SetSelfSigned(bool selfSigned)
+        {
+            _selfSigned = selfSigned;
+            return this;
+        }
+
+        public Client SetEndpoint(string endpoint)
+        {
+            if (!endpoint.StartsWith("http://") && !endpoint.StartsWith("https://")) {
+                throw new {{spec.title | caseUcfirst}}Exception("Invalid endpoint URL: " + endpoint);
+            }
+
+            _endpoint = endpoint;
+            return this;
+        }
+
+        {%~ for header in spec.global.headers %}
+        {%~ if header.description %}
+        /// <summary>{{header.description}}</summary>
+        {%~ endif %}
+        public Client Set{{header.key | caseUcfirst}}(string value) {
+            _config.Add("{{ header.key | caseCamel }}", value);
+            AddHeader("{{header.name}}", value);
+
+            return this;
+        }
+
+        {%~ endfor %}
+        
+        /// <summary>
+        /// Set the current session for authenticated requests
+        /// </summary>
+        /// <param name="session">Session token</param>
+        /// <returns>Client instance for method chaining</returns>
+        public Client SetSession(string session)
+        {
+            _config["session"] = session;
+            AddHeader("X-Appwrite-Session", session);
+            return this;
+        }
+
+        /// <summary>
+        /// Initialize OAuth2 authentication flow
+        /// </summary>
+        /// <param name="provider">OAuth provider name</param>
+        /// <param name="success">Success callback URL</param>
+        /// <param name="failure">Failure callback URL</param>
+        /// <param name="scopes">OAuth scopes</param>
+        /// <returns>OAuth URL for authentication</returns>
+        public string PrepareOAuth2(string provider, string success = null, string failure = null, List<string> scopes = null)
+        {
+            var parameters = new Dictionary<string, object>
+            {
+                ["provider"] = provider,
+                ["success"] = success ?? $"{_endpoint}/auth/oauth2/success",
+                ["failure"] = failure ?? $"{_endpoint}/auth/oauth2/failure"
+            };
+
+            if (scopes != null && scopes.Count > 0)
+            {
+                parameters["scopes"] = scopes;
+            }
+
+            var queryString = parameters.ToQueryString();
+            return $"{_endpoint}/auth/oauth2/{provider}?{queryString}";
+        }
+
+        /// <summary>
+        /// Get the current session from config
+        /// </summary>
+        /// <returns>Current session token or null</returns>
+        public string GetSession()
+        {
+            return _config.TryGetValue("session", out var session) ? session : null;
+        }
+
+        /// <summary>
+        /// Get the current JWT from config
+        /// </summary>
+        /// <returns>Current JWT token or null</returns>
+        public string GetJWT()
+        {
+            return _config.TryGetValue("jwt", out var jwt) ? jwt : null;
+        }
+
+        /// <summary>
+        /// Clear session and JWT from client
+        /// </summary>
+        /// <returns>Client instance for method chaining</returns>
+        public Client ClearSession()
+        {
+            _config.Remove("session");
+            _config.Remove("jwt");
+            _headers.Remove("X-Appwrite-Session");
+            _headers.Remove("X-Appwrite-JWT");
+            return this;
+        }
+
+        public Client AddHeader(string key, string value)
+        {
+            _headers[key] = value;
+            return this;
+        }
+
+        private UnityWebRequest PrepareRequest(
+            string method,
+            string path,
+            Dictionary<string, string> headers,
+            Dictionary<string, object?> parameters)
+        {
+            var methodGet = "GET".Equals(method, StringComparison.OrdinalIgnoreCase);
+            var methodPost = "POST".Equals(method, StringComparison.OrdinalIgnoreCase);
+            var methodPut = "PUT".Equals(method, StringComparison.OrdinalIgnoreCase);
+            var methodPatch = "PATCH".Equals(method, StringComparison.OrdinalIgnoreCase);
+            var methodDelete = "DELETE".Equals(method, StringComparison.OrdinalIgnoreCase);
+
+            var queryString = methodGet ?
+                "?" + parameters.ToQueryString() :
+                string.Empty;
+
+            var url = _endpoint + path + queryString;
+            UnityWebRequest request;
+
+            var isMultipart = headers.TryGetValue("Content-Type", out var contentType) && 
+                              "multipart/form-data".Equals(contentType, StringComparison.OrdinalIgnoreCase);
+
+            if (isMultipart)
+            {
+                var form = new List<IMultipartFormSection>();
+
+                foreach (var parameter in parameters)
+                {
+                    if (parameter.Key == "file" && parameter.Value is InputFile inputFile)
+                    {
+                        byte[] fileData = null;
+                        switch (inputFile.SourceType)
+                        {
+                            case "path":
+                                if (System.IO.File.Exists(inputFile.Path))
+                                {
+                                    fileData = System.IO.File.ReadAllBytes(inputFile.Path);
+                                }
+                                break;
+                            case "stream":
+                                if (inputFile.Data is Stream stream)
+                                {
+                                    using (var memoryStream = new MemoryStream())
+                                    {
+                                        stream.CopyTo(memoryStream);
+                                        fileData = memoryStream.ToArray();
+                                    }
+                                }
+                                break;
+                            case "bytes":
+                                fileData = inputFile.Data as byte[];
+                                break;
+                        }
+
+                        if (fileData != null)
+                        {
+                            form.Add(new MultipartFormFileSection(parameter.Key, fileData, inputFile.Filename, inputFile.MimeType));
+                        }
+                    }
+                    else if (parameter.Value is IEnumerable<object> enumerable)
+                    {
+                        var list = new List<object>(enumerable);
+                        for (int index = 0; index < list.Count; index++)
+                        {
+                            form.Add(new MultipartFormDataSection($"{parameter.Key}[{index}]", list[index]?.ToString() ?? string.Empty));
+                        }
+                    }
+                    else
+                    {
+                        form.Add(new MultipartFormDataSection(parameter.Key, parameter.Value?.ToString() ?? string.Empty));
+                    }
+                }
+
+                request = UnityWebRequest.Post(url, form);
+            }
+            else if (methodGet)
+            {
+                request = UnityWebRequest.Get(url);
+            }
+            else
+            {
+                string body = parameters.ToJson();
+                byte[] bodyData = Encoding.UTF8.GetBytes(body);
+
+                if (methodPost)
+                    request = UnityWebRequest.Post(url, body, "application/json");
+                else if (methodPut)
+                    request = UnityWebRequest.Put(url, bodyData);
+                else if (methodPatch)
+                {
+                    request = new UnityWebRequest(url, "PATCH");
+                    request.uploadHandler = new UploadHandlerRaw(bodyData);
+                    request.downloadHandler = new DownloadHandlerBuffer();
+                }
+                else if (methodDelete)
+                    request = UnityWebRequest.Delete(url);
+                else
+                {
+                    request = new UnityWebRequest(url, method);
+                    request.uploadHandler = new UploadHandlerRaw(bodyData);
+                    request.downloadHandler = new DownloadHandlerBuffer();
+                }
+            }
+
+            // Add default headers
+            foreach (var header in _headers)
+            {
+                if (!header.Key.Equals("Content-Type", StringComparison.OrdinalIgnoreCase) || !isMultipart)
+                {
+                    request.SetRequestHeader(header.Key, header.Value);
+                }
+            }
+
+            // Add specific headers
+            foreach (var header in headers)
+            {
+                if (!header.Key.Equals("Content-Type", StringComparison.OrdinalIgnoreCase) || !isMultipart)
+                {
+                    request.SetRequestHeader(header.Key, header.Value);
+                }
+            }
+
+            // Handle self-signed certificates
+            if (_selfSigned)
+            {
+                request.certificateHandler = new AcceptAllCertificatesSignedWithASpecificKeyPublicKey();
+            }
+
+            return request;
+        }
+
+        public async UniTask<string> Redirect(
+            string method,
+            string path,
+            Dictionary<string, string> headers,
+            Dictionary<string, object?> parameters)
+        {
+            var request = PrepareRequest(method, path, headers, parameters);
+            request.redirectLimit = 0; // Disable auto-redirect
+
+            var operation = request.SendWebRequest();
+            
+            while (!operation.isDone)
+            {
+                await UniTask.Yield();
+            }
+
+            var code = (int)request.responseCode;
+
+            if (code >= 400)
+            {
+                var text = request.downloadHandler?.text ?? string.Empty;
+                var message = "";
+                var type = "";
+
+                var contentType = request.GetResponseHeader("Content-Type") ?? string.Empty;
+
+                if (contentType.Contains("application/json"))
+                {
+                    try
+                    {
+                        using var errorDoc = JsonDocument.Parse(text);
+                        message = errorDoc.RootElement.GetProperty("message").GetString() ?? "";
+                        if (errorDoc.RootElement.TryGetProperty("type", out var typeElement))
+                        {
+                            type = typeElement.GetString() ?? "";
+                        }
+                    }
+                    catch
+                    {
+                        message = text;
+                    }
+                }
+                else
+                {
+                    message = text;
+                }
+
+                request.Dispose();
+                throw new {{spec.title | caseUcfirst}}Exception(message, code, type, text);
+            }
+
+            var location = request.GetResponseHeader("Location") ?? string.Empty;
+            request.Dispose();
+            return location;
+        }
+
+        public UniTask<Dictionary<string, object?>> Call(
+            string method,
+            string path,
+            Dictionary<string, string> headers,
+            Dictionary<string, object?> parameters)
+        {
+            return Call<Dictionary<string, object?>>(method, path, headers, parameters);
+        }
+
+        public async UniTask<T> Call<T>(
+            string method,
+            string path,
+            Dictionary<string, string> headers,
+            Dictionary<string, object?> parameters,
+            Func<Dictionary<string, object>, T>? convert = null) where T : class
+        {
+            var request = PrepareRequest(method, path, headers, parameters);
+
+            var operation = request.SendWebRequest();
+            
+            while (!operation.isDone)
+            {
+                await UniTask.Yield();
+            }
+
+            var code = (int)request.responseCode;
+
+            // Check for warnings
+            var warning = request.GetResponseHeader("x-{{ spec.title | lower }}-warning");
+            if (!string.IsNullOrEmpty(warning))
+            {
+                Debug.LogWarning("Warning: " + warning);
+            }
+
+            var contentType = request.GetResponseHeader("Content-Type") ?? string.Empty;
+            var isJson = contentType.Contains("application/json");
+
+            if (code >= 400)
+            {
+                var text = request.downloadHandler?.text ?? string.Empty;
+                var message = "";
+                var type = "";
+
+                if (isJson)
+                {
+                    try
+                    {
+                        using var errorDoc = JsonDocument.Parse(text);
+                        message = errorDoc.RootElement.GetProperty("message").GetString() ?? "";
+                        if (errorDoc.RootElement.TryGetProperty("type", out var typeElement))
+                        {
+                            type = typeElement.GetString() ?? "";
+                        }
+                    }
+                    catch
+                    {
+                        message = text;
+                    }
+                }
+                else
+                {
+                    message = text;
+                }
+
+                request.Dispose();
+                throw new {{spec.title | caseUcfirst}}Exception(message, code, type, text);
+            }
+
+            if (isJson)
+            {
+                var responseString = request.downloadHandler.text;
+
+                var dict = JsonSerializer.Deserialize<Dictionary<string, object>>(
+                    responseString,
+                    DeserializerOptions);
+
+                request.Dispose();
+
+                if (convert != null && dict != null)
+                {
+                    return convert(dict);
+                }
+
+                return (dict as T)!;
+            }
+            else
+            {
+                var result = request.downloadHandler.data as T;
+                request.Dispose();
+                return result!;
+            }
+        }
+
+        public async UniTask<T> ChunkedUpload<T>(
+            string path,
+            Dictionary<string, string> headers,
+            Dictionary<string, object?> parameters,
+            Func<Dictionary<string, object>, T> converter,
+            string paramName,
+            string? idParamName = null,
+            Action<UploadProgress>? onProgress = null) where T : class
+        {
+            if (string.IsNullOrEmpty(paramName))
+                throw new ArgumentException("Parameter name cannot be null or empty", nameof(paramName));
+                
+            if (!parameters.ContainsKey(paramName))
+                throw new ArgumentException($"Parameter {paramName} not found", nameof(paramName));
+                
+            var input = parameters[paramName] as InputFile;
+            if (input == null)
+                throw new ArgumentException($"Parameter {paramName} must be an InputFile", nameof(paramName));
+                
+            var size = 0L;
+            byte[] fileData = null;
+
+            switch(input.SourceType)
+            {
+                case "path":
+                    if (System.IO.File.Exists(input.Path))
+                    {
+                        fileData = System.IO.File.ReadAllBytes(input.Path);
+                        size = fileData.Length;
+                    }
+                    break;
+                case "stream":
+                    if (input.Data is Stream stream)
+                    {
+                        using (var memoryStream = new MemoryStream())
+                        {
+                            stream.CopyTo(memoryStream);
+                            fileData = memoryStream.ToArray();
+                            size = fileData.Length;
+                        }
+                    }
+                    break;
+                case "bytes":
+                    fileData = input.Data as byte[];
+                    if (fileData != null)
+                        size = fileData.Length;
+                    break;
+            };
+
+            if (fileData == null)
+                throw new InvalidOperationException("Unable to read file data");
+
+            var offset = 0L;
+            var result = new Dictionary<string, object?>();
+
+            if (size < ChunkSize)
+            {
+                var form = new List<IMultipartFormSection>
+                {
+                    new MultipartFormFileSection(paramName, fileData, input.Filename, input.MimeType)
+                };
+
+                // Add other parameters
+                foreach (var param in parameters)
+                {
+                    if (param.Key != paramName)
+                    {
+                        form.Add(new MultipartFormDataSection(param.Key, param.Value?.ToString() ?? string.Empty));
+                    }
+                }
+
+                var request = UnityWebRequest.Post(_endpoint + path, form);
+                
+                // Add headers
+                foreach (var header in _headers)
+                {
+                    if (!header.Key.Equals("Content-Type", StringComparison.OrdinalIgnoreCase))
+                    {
+                        request.SetRequestHeader(header.Key, header.Value);
+                    }
+                }
+
+                foreach (var header in headers)
+                {
+                    if (!header.Key.Equals("Content-Type", StringComparison.OrdinalIgnoreCase))
+                    {
+                        request.SetRequestHeader(header.Key, header.Value);
+                    }
+                }
+
+                var operation = request.SendWebRequest();
+                
+                while (!operation.isDone)
+                {
+                    await UniTask.Yield();
+                }
+
+                var responseString = request.downloadHandler.text;
+                var dict = JsonSerializer.Deserialize<Dictionary<string, object>>(
+                    responseString,
+                    DeserializerOptions);
+
+                request.Dispose();
+                return converter(dict!);
+            }
+
+            if (!string.IsNullOrEmpty(idParamName))
+            {
+                try
+                {
+                    // Make a request to check if a file already exists
+                    var current = await Call<Dictionary<string, object?>>(
+                        method: "GET",
+                        path: $"{path}/{parameters[idParamName!]}",
+                        new Dictionary<string, string> { { "Content-Type", "application/json" } },
+                        parameters: new Dictionary<string, object?>()
+                    );
+                    if (current.TryGetValue("chunksUploaded", out var chunksUploadedValue) && chunksUploadedValue != null)
+                    {
+                        offset = Convert.ToInt64(chunksUploadedValue) * ChunkSize;
+                    }
+                }
+                catch
+                {
+                    // ignored as it mostly means file not found
+                }
+            }
+
+            while (offset < size)
+            {
+                var chunkSize = (int)Math.Min(size - offset, ChunkSize);
+                var chunk = new byte[chunkSize];
+                Array.Copy(fileData, offset, chunk, 0, chunkSize);
+
+                var form = new List<IMultipartFormSection>
+                {
+                    new MultipartFormFileSection(paramName, chunk, input.Filename, input.MimeType)
+                };
+
+                // Add other parameters
+                foreach (var param in parameters)
+                {
+                    if (param.Key != paramName)
+                    {
+                        form.Add(new MultipartFormDataSection(param.Key, param.Value?.ToString() ?? string.Empty));
+                    }
+                }
+
+                var request = UnityWebRequest.Post(_endpoint + path, form);
+
+                // Add headers
+                foreach (var header in _headers)
+                {
+                    if (!header.Key.Equals("Content-Type", StringComparison.OrdinalIgnoreCase))
+                    {
+                        request.SetRequestHeader(header.Key, header.Value);
+                    }
+                }
+
+                foreach (var header in headers)
+                {
+                    if (!header.Key.Equals("Content-Type", StringComparison.OrdinalIgnoreCase))
+                    {
+                        request.SetRequestHeader(header.Key, header.Value);
+                    }
+                }
+
+                request.SetRequestHeader("Content-Range",
+                    $"bytes {offset}-{Math.Min(offset + ChunkSize - 1, size - 1)}/{size}");
+
+                var operation = request.SendWebRequest();
+                
+                while (!operation.isDone)
+                {
+                    await UniTask.Yield();
+                }
+
+                var responseString = request.downloadHandler.text;
+                result = JsonSerializer.Deserialize<Dictionary<string, object?>>(
+                    responseString,
+                    DeserializerOptions);
+
+                request.Dispose();
+
+                offset += ChunkSize;
+
+                var id = result.ContainsKey("$id")
+                    ? result["$id"]?.ToString() ?? string.Empty
+                    : string.Empty;
+                var chunksTotal = result.TryGetValue("chunksTotal", out var chunksTotalValue) && chunksTotalValue != null
+                    ? Convert.ToInt64(chunksTotalValue)
+                    : 0L;
+                var chunksUploaded = result.TryGetValue("chunksUploaded", out var chunksUploadedValue) && chunksUploadedValue != null
+                    ? Convert.ToInt64(chunksUploadedValue)
+                    : 0L;
+
+                headers["x-appwrite-id"] = id;
+
+                onProgress?.Invoke(
+                    new UploadProgress(
+                        id: id,
+                        progress: Math.Min(offset, size) / size * 100,
+                        sizeUploaded: Math.Min(offset, size),
+                        chunksTotal: chunksTotal,
+                        chunksUploaded: chunksUploaded));
+            }
+
+            // Convert to non-nullable dictionary for converter
+            var nonNullableResult = result.Where(kvp => kvp.Value != null)
+                .ToDictionary(kvp => kvp.Key, kvp => kvp.Value!);
+            
+            return converter(nonNullableResult);
+        }
+    }
+
+    // Custom certificate handler for self-signed certificates
+    public class AcceptAllCertificatesSignedWithASpecificKeyPublicKey : CertificateHandler
+    {
+        protected override bool ValidateCertificate(byte[] certificateData)
+        {
+            return true; // Accept all certificates
+        }
+    }
+}

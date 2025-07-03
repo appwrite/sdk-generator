@@ -1,0 +1,28 @@
+{
+  "name": "{{sdk.namespace | caseLower}}.{{spec.title | caseLower}}",
+  "version": "{{sdk.version}}",
+  "displayName": "{{spec.title}} SDK",
+  "description": "{{sdk.shortDescription}}",
+  "unity": "2021.3",
+  "unityRelease": "0f1",
+  "documentationUrl": "{{sdk.url}}",
+  "changelogUrl": "{{sdk.url}}/blob/main/CHANGELOG.md",
+  "licensesUrl": "{{sdk.url}}/blob/main/LICENSE",
+  "keywords": [
+    "{{spec.title | caseLower}}",
+    "backend",
+    "baas",
+    "api",
+    "database",
+    "authentication",
+    "storage",
+    "functions"
+  ],
+  "author": {
+    "name": "{{spec.contactName}}",
+    "email": "{{spec.contactEmail}}",
+    "url": "{{spec.contactURL}}"
+  },
+  "type": "library",
+  "dependencies": {}
+}

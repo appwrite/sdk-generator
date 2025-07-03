@@ -1,0 +1,376 @@
+using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Text;
+using System.Text.Json;
+using Cysharp.Threading.Tasks;
+using UnityEngine;
+using UnityEngine.Networking;
+using {{ spec.title | caseUcfirst }}.Models;
+
+namespace {{ spec.title | caseUcfirst }}
+{
+    /// <summary>
+    /// Realtime response event structure
+    /// </summary>
+    [Serializable]
+    public class RealtimeResponseEvent<T>
+    {
+        public string[] Events { get; set; }
+        public string[] Channels { get; set; }
+        public long Timestamp { get; set; }
+        public T Payload { get; set; }
+    }
+
+    /// <summary>
+    /// Realtime connection interface for Unity WebSocket communication
+    /// </summary>
+    public class Realtime
+    {
+        private readonly Client _client;
+        private WebSocket _webSocket;
+        private readonly Dictionary<int, RealtimeSubscription> _subscriptions;
+        private int _subscriptionCounter;
+        private bool _reconnect = true;
+        private int _reconnectAttempts = 0;
+        private const int MaxReconnectAttempts = 10;
+        private CancellationTokenSource _cancellationTokenSource;
+
+        public bool IsConnected => _webSocket?.State == WebSocketState.Open;
+        public event Action OnConnected;
+        public event Action OnDisconnected;
+        public event Action<Exception> OnError;
+
+        public Realtime(Client client)
+        {
+            _client = client;
+            _subscriptions = new Dictionary<int, RealtimeSubscription>();
+            _subscriptionCounter = 0;
+        }
+
+        /// <summary>
+        /// Connect to Appwrite Realtime
+        /// </summary>
+        public async UniTask Connect()
+        {
+            try
+            {
+                var endpoint = _client.Endpoint.Replace("http://", "ws://").Replace("https://", "wss://");
+                var url = $"{endpoint}/realtime";
+                
+                _cancellationTokenSource = new CancellationTokenSource();
+                _webSocket = new WebSocket(url);
+                
+                _webSocket.OnOpen += OnWebSocketOpen;
+                _webSocket.OnMessage += OnWebSocketMessage;
+                _webSocket.OnError += OnWebSocketError;
+                _webSocket.OnClose += OnWebSocketClose;
+
+                await _webSocket.Connect();
+            }
+            catch (Exception ex)
+            {
+                OnError?.Invoke(ex);
+                throw new {{ spec.title | caseUcfirst }}Exception($"Failed to connect to realtime: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Subscribe to realtime events
+        /// </summary>
+        public int Subscribe<T>(string[] channels, Action<RealtimeResponseEvent<T>> callback)
+        {
+            var subscriptionId = ++_subscriptionCounter;
+            var subscription = new RealtimeSubscription
+            {
+                Id = subscriptionId,
+                Channels = channels,
+                Callback = (payload) => callback((RealtimeResponseEvent<T>)payload)
+            };
+
+            _subscriptions[subscriptionId] = subscription;
+
+            if (IsConnected)
+            {
+                SendSubscription(subscription);
+            }
+
+            return subscriptionId;
+        }
+
+        /// <summary>
+        /// Unsubscribe from realtime events
+        /// </summary>
+        public void Unsubscribe(int subscriptionId)
+        {
+            if (_subscriptions.TryGetValue(subscriptionId, out var subscription))
+            {
+                _subscriptions.Remove(subscriptionId);
+                
+                if (IsConnected)
+                {
+                    SendUnsubscription(subscription);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Disconnect from realtime
+        /// </summary>
+        public async UniTask Disconnect()
+        {
+            _reconnect = false;
+            _cancellationTokenSource?.Cancel();
+            
+            if (_webSocket != null)
+            {
+                await _webSocket.Close();
+            }
+        }
+
+        private void OnWebSocketOpen()
+        {
+            _reconnectAttempts = 0;
+            OnConnected?.Invoke();
+
+            // Authenticate if needed
+            Authenticate();
+
+            // Resubscribe to all channels
+            foreach (var subscription in _subscriptions.Values)
+            {
+                SendSubscription(subscription);
+            }
+        }
+
+        private void OnWebSocketMessage(byte[] data)
+        {
+            try
+            {
+                var message = Encoding.UTF8.GetString(data);
+                var response = JsonSerializer.Deserialize<Dictionary<string, object>>(message, Client.DeserializerOptions);
+                
+                if (response.TryGetValue("type", out var typeObj) && typeObj.ToString() == "event")
+                {
+                    HandleRealtimeEvent(response);
+                }
+            }
+            catch (Exception ex)
+            {
+                OnError?.Invoke(ex);
+            }
+        }
+
+        private void OnWebSocketError(string error)
+        {
+            OnError?.Invoke(new {{ spec.title | caseUcfirst }}Exception($"WebSocket error: {error}"));
+        }
+
+        private void OnWebSocketClose(WebSocketCloseCode closeCode)
+        {
+            OnDisconnected?.Invoke();
+
+            if (_reconnect && _reconnectAttempts < MaxReconnectAttempts)
+            {
+                _reconnectAttempts++;
+                var delay = Math.Min(1000 * Math.Pow(2, _reconnectAttempts), 30000);
+                
+                UniTask.Delay(TimeSpan.FromMilliseconds(delay), cancellationToken: _cancellationTokenSource?.Token ?? default)
+                    .ContinueWith(() => Connect()).Forget();
+            }
+        }
+
+        private void Authenticate()
+        {
+            var session = _client.Config.TryGetValue("session", out var sessionValue) ? sessionValue : null;
+            
+            if (!string.IsNullOrEmpty(session))
+            {
+                var authMessage = new
+                {
+                    type = "authentication",
+                    data = new { session }
+                };
+
+                var json = JsonSerializer.Serialize(authMessage, Client.SerializerOptions);
+                _webSocket.SendText(json);
+            }
+        }
+
+        private void SendSubscription(RealtimeSubscription subscription)
+        {
+            var message = new
+            {
+                type = "subscribe",
+                data = new { channels = subscription.Channels }
+            };
+
+            var json = JsonSerializer.Serialize(message, Client.SerializerOptions);
+            _webSocket.SendText(json);
+        }
+
+        private void SendUnsubscription(RealtimeSubscription subscription)
+        {
+            var message = new
+            {
+                type = "unsubscribe", 
+                data = new { channels = subscription.Channels }
+            };
+
+            var json = JsonSerializer.Serialize(message, Client.SerializerOptions);
+            _webSocket.SendText(json);
+        }
+
+        private void HandleRealtimeEvent(Dictionary<string, object> response)
+        {
+            try
+            {
+                if (response.TryGetValue("data", out var dataObj) && dataObj is Dictionary<string, object> data)
+                {
+                    var channels = data.TryGetValue("channels", out var channelsObj) ? 
+                        JsonSerializer.Deserialize<string[]>(channelsObj.ToString()) : new string[0];
+                    var events = data.TryGetValue("events", out var eventsObj) ? 
+                        JsonSerializer.Deserialize<string[]>(eventsObj.ToString()) : new string[0];
+                    var timestamp = data.TryGetValue("timestamp", out var timestampObj) ? 
+                        Convert.ToInt64(timestampObj) : 0;
+                    var payload = data.TryGetValue("payload", out var payloadObj) ? payloadObj : null;
+
+                    foreach (var subscription in _subscriptions.Values)
+                    {
+                        if (HasMatchingChannel(subscription.Channels, channels))
+                        {
+                            var eventResponse = new RealtimeResponseEvent<object>
+                            {
+                                Events = events,
+                                Channels = channels,
+                                Timestamp = timestamp,
+                                Payload = payload
+                            };
+
+                            subscription.Callback?.Invoke(eventResponse);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                OnError?.Invoke(ex);
+            }
+        }
+
+        private bool HasMatchingChannel(string[] subscriptionChannels, string[] eventChannels)
+        {
+            foreach (var subChannel in subscriptionChannels)
+            {
+                foreach (var eventChannel in eventChannels)
+                {
+                    if (eventChannel.StartsWith(subChannel) || subChannel == "*")
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        private class RealtimeSubscription
+        {
+            public int Id { get; set; }
+            public string[] Channels { get; set; }
+            public Action<object> Callback { get; set; }
+        }
+    }
+
+    // Simple WebSocket implementation for Unity
+    public enum WebSocketState
+    {
+        Connecting,
+        Open,
+        Closing,
+        Closed
+    }
+
+    public enum WebSocketCloseCode
+    {
+        Normal = 1000,
+        GoingAway = 1001,
+        ProtocolError = 1002,
+        UnsupportedData = 1003,
+        NoStatusReceived = 1005,
+        AbnormalClosure = 1006,
+        InvalidPayloadData = 1007,
+        PolicyViolation = 1008,
+        MessageTooBig = 1009,
+        ExtensionNegotiationFailure = 1010,
+        InternalServerError = 1011
+    }
+
+    public class WebSocket
+    {
+        private UnityWebSocket _unityWebSocket;
+        
+        public WebSocketState State { get; private set; } = WebSocketState.Closed;
+        public event Action OnOpen;
+        public event Action<byte[]> OnMessage;
+        public event Action<string> OnError;
+        public event Action<WebSocketCloseCode> OnClose;
+
+        public WebSocket(string url)
+        {
+            _unityWebSocket = new UnityWebSocket(url);
+        }
+
+        public async UniTask Connect()
+        {
+            State = WebSocketState.Connecting;
+            await _unityWebSocket.Connect();
+            State = WebSocketState.Open;
+            OnOpen?.Invoke();
+        }
+
+        public void SendText(string text)
+        {
+            if (State == WebSocketState.Open)
+            {
+                _unityWebSocket.SendText(text);
+            }
+        }
+
+        public async UniTask Close()
+        {
+            State = WebSocketState.Closing;
+            await _unityWebSocket.Close();
+            State = WebSocketState.Closed;
+            OnClose?.Invoke(WebSocketCloseCode.Normal);
+        }
+    }
+
+    // Placeholder for Unity WebSocket implementation
+    // This would need to be implemented using Unity's networking or a WebSocket plugin
+    internal class UnityWebSocket
+    {
+        private readonly string _url;
+
+        public UnityWebSocket(string url)
+        {
+            _url = url;
+        }
+
+        public async UniTask Connect()
+        {
+            // Implementation would use Unity WebSocket plugin or native implementation
+            await UniTask.Delay(100);
+        }
+
+        public void SendText(string text)
+        {
+            // Implementation would send text via WebSocket
+        }
+
+        public async UniTask Close()
+        {
+            // Implementation would close WebSocket connection
+            await UniTask.Delay(100);
+        }
+    }
+}

@@ -1,0 +1,231 @@
+using UnityEngine;
+
+namespace {{ spec.title | caseUcfirst }}
+{
+    /// <summary>
+    /// {{ spec.title | caseUcfirst }} SDK Configuration ScriptableObject
+    /// Create via: Create > {{ spec.title | caseUcfirst }} > SDK Configuration
+    /// </summary>
+    [CreateAssetMenu(fileName = "{{ spec.title | caseUcfirst }}Config", menuName = "{{ spec.title | caseUcfirst }}/SDK Configuration", order = 1)]
+    public class {{ spec.title | caseUcfirst }}Config : ScriptableObject
+    {
+        [Header("{{ spec.title | caseUcfirst }} Settings")]
+        [Tooltip("{{ spec.title | caseUcfirst }} API endpoint URL")]
+        public string endpoint = "{{ spec.endpoint }}";
+        
+        [Tooltip("Your {{ spec.title | caseUcfirst }} project ID")]
+        public string projectId = "";
+        
+        [Tooltip("Accept self-signed certificates (for development only)")]
+        public bool selfSigned = false;
+        
+        [Header("Client Configuration")]
+        [Tooltip("Default locale for API responses")]
+        public string defaultLocale = "en";
+        
+        [Tooltip("Enable debug logging")]
+        public bool enableDebugLogging = true;
+        
+        [Tooltip("Connection timeout in seconds")]
+        [Range(5, 60)]
+        public int connectionTimeout = 30;
+        
+        [Header("Realtime Settings")]
+        [Tooltip("Enable realtime features")]
+        public bool enableRealtime = true;
+        
+        [Tooltip("Maximum reconnection attempts")]
+        [Range(1, 20)]
+        public int maxReconnectAttempts = 10;
+        
+        [Tooltip("Reconnection delay multiplier")]
+        [Range(1.0f, 3.0f)]
+        public float reconnectDelayMultiplier = 1.5f;
+        
+        [Header("Security Settings")]
+        [Tooltip("API Key (for server-side usage only)")]
+        [SerializeField]
+        private string apiKey = "";
+        
+        [Tooltip("JWT Token (for authentication)")]
+        [SerializeField]
+        private string jwtToken = "";
+        
+        [Header("Advanced Settings")]
+        [Tooltip("Custom headers to include with all requests")]
+        [SerializeField]
+        private HeaderEntry[] customHeaders = new HeaderEntry[0];
+        
+        /// <summary>
+        /// Get API Key (server-side only)
+        /// </summary>
+        public string ApiKey 
+        { 
+            get => apiKey; 
+            set => apiKey = value; 
+        }
+        
+        /// <summary>
+        /// Get JWT Token
+        /// </summary>
+        public string JwtToken 
+        { 
+            get => jwtToken; 
+            set => jwtToken = value; 
+        }
+        
+        /// <summary>
+        /// Get custom headers as dictionary
+        /// </summary>
+        public System.Collections.Generic.Dictionary<string, string> GetCustomHeaders()
+        {
+            var headers = new System.Collections.Generic.Dictionary<string, string>();
+            
+            if (customHeaders != null)
+            {
+                foreach (var header in customHeaders)
+                {
+                    if (!string.IsNullOrEmpty(header.key) && !string.IsNullOrEmpty(header.value))
+                    {
+                        headers[header.key] = header.value;
+                    }
+                }
+            }
+            
+            return headers;
+        }
+        
+        /// <summary>
+        /// Validate configuration settings
+        /// </summary>
+        public bool IsValid(out string errorMessage)
+        {
+            errorMessage = "";
+            
+            if (string.IsNullOrEmpty(endpoint))
+            {
+                errorMessage = "Endpoint URL is required";
+                return false;
+            }
+            
+            if (!endpoint.StartsWith("http://") && !endpoint.StartsWith("https://"))
+            {
+                errorMessage = "Endpoint URL must start with http:// or https://";
+                return false;
+            }
+            
+            if (string.IsNullOrEmpty(projectId))
+            {
+                errorMessage = "Project ID is required";
+                return false;
+            }
+            
+            return true;
+        }
+        
+        /// <summary>
+        /// Create a client instance using this configuration
+        /// </summary>
+        public {{ spec.title | caseUcfirst }}Client CreateClient()
+        {
+            if (!IsValid(out string error))
+            {
+                throw new {{ spec.title | caseUcfirst }}Exception($"Invalid configuration: {error}");
+            }
+            
+            var client = new {{ spec.title | caseUcfirst }}Client(endpoint, projectId, selfSigned);
+            
+            if (!string.IsNullOrEmpty(apiKey))
+            {
+                client.SetKey(apiKey);
+            }
+            
+            if (!string.IsNullOrEmpty(jwtToken))
+            {
+                client.SetJWT(jwtToken);
+            }
+            
+            if (!string.IsNullOrEmpty(defaultLocale))
+            {
+                client.SetLocale(defaultLocale);
+            }
+            
+            // Add custom headers
+            var headers = GetCustomHeaders();
+            foreach (var header in headers)
+            {
+                client.Client.AddHeader(header.Key, header.Value);
+            }
+            
+            return client;
+        }
+        
+        /// <summary>
+        /// Create a server-side client instance using this configuration
+        /// </summary>
+        public Client CreateServerClient()
+        {
+            if (!IsValid(out string error))
+            {
+                throw new {{ spec.title | caseUcfirst }}Exception($"Invalid configuration: {error}");
+            }
+            
+            var client = new Client(endpoint, selfSigned);
+            client.SetProject(projectId);
+            
+            if (!string.IsNullOrEmpty(apiKey))
+            {
+                client.SetKey(apiKey);
+            }
+            
+            if (!string.IsNullOrEmpty(jwtToken))
+            {
+                client.SetJWT(jwtToken);
+            }
+            
+            if (!string.IsNullOrEmpty(defaultLocale))
+            {
+                client.SetLocale(defaultLocale);
+            }
+            
+            // Add custom headers
+            var headers = GetCustomHeaders();
+            foreach (var header in headers)
+            {
+                client.AddHeader(header.Key, header.Value);
+            }
+            
+            return client;
+        }
+        
+        [System.Serializable]
+        public class HeaderEntry
+        {
+            public string key;
+            public string value;
+        }
+        
+        #if UNITY_EDITOR
+        [UnityEditor.MenuItem("{{ spec.title | caseUcfirst }}/Create Configuration")]
+        public static void CreateConfiguration()
+        {
+            var config = CreateInstance<{{ spec.title | caseUcfirst }}Config>();
+            
+            if (!System.IO.Directory.Exists("Assets/{{ spec.title | caseUcfirst }}"))
+            {
+                UnityEditor.AssetDatabase.CreateFolder("Assets", "{{ spec.title | caseUcfirst }}");
+            }
+            
+            string path = "Assets/{{ spec.title | caseUcfirst }}/Resources/{{ spec.title | caseUcfirst }}Config.asset";
+            path = UnityEditor.AssetDatabase.GenerateUniqueAssetPath(path);
+            
+            UnityEditor.AssetDatabase.CreateAsset(config, path);
+            UnityEditor.AssetDatabase.SaveAssets();
+            UnityEditor.EditorUtility.FocusProjectWindow();
+            UnityEditor.Selection.activeObject = config;
+            
+            Debug.Log($"{{ spec.title | caseUcfirst }} configuration created at: {path}");
+        }
+        #endif
+    }
+}

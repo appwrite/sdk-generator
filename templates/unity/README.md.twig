@@ -1,0 +1,372 @@
+# {{ spec.title | caseUcfirst }} Unity SDK
+
+{{ sdk.description }}
+
+![Version](https://img.shields.io/badge/version-{{ sdk.version }}-blue.svg)
+![Unity](https://img.shields.io/badge/Unity-2021.3+-blue.svg)
+![License](https://img.shields.io/badge/License-{{ spec.licenseName }}-green.svg)
+
+This Unity SDK provides both **client-side** and **server-side** functionality for {{ spec.title | caseUcfirst }} applications:
+
+- ✅ **Client-side authentication** (sessions, OAuth2)
+- ✅ **Real-time subscriptions** via WebSocket
+- ✅ **Server-side API access** (admin operations)
+- ✅ **Unity-friendly async/await** with UniTask
+- ✅ **Type-safe models** and enums
+- ✅ **File upload with progress**
+- ✅ **Comprehensive error handling**
+
+{{ sdk.gettingStarted }}
+
+## Installation
+
+### Unity Package Manager (UPM)
+
+1. Open Unity and go to **Window > Package Manager**
+2. Click the **+** button and select **Add package from git URL**
+3. Enter the following URL: `{{ sdk.gitURL }}.git`
+4. Click **Add**
+
+### Manual Installation
+
+1. Download the latest release from [GitHub]({{ sdk.gitURL }}/releases)
+2. Import the Unity package into your project
+
+## Dependencies
+
+This SDK requires the following Unity packages:
+
+- **UniTask**: For async/await support in Unity
+- **System.Text.Json**: For JSON serialization (included in Unity 2021.3+)
+
+To install UniTask:
+1. Open Unity Package Manager
+2. Add package from Git URL: `https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask`
+
+## Quick Start
+
+### Client-side Usage (Recommended for Unity Games)
+
+For Unity applications with user authentication, real-time features, and client-side operations:
+
+```csharp
+using {{ spec.title | caseUcfirst }};
+using {{ spec.title | caseUcfirst }}.Models;
+using Cysharp.Threading.Tasks;
+using UnityEngine;
+
+public class GameManager : MonoBehaviour
+{
+    private {{ spec.title | caseUcfirst }}Client appwrite;
+
+    async void Start()
+    {
+        // Initialize client-side SDK
+        appwrite = new {{ spec.title | caseUcfirst }}Client(
+            endpoint: "https://cloud.appwrite.io/v1",
+            projectId: "your-project-id"
+        );
+
+        // Try to restore existing session
+        await CheckSession();
+    }
+
+    async UniTask CheckSession()
+    {
+        try
+        {
+            var user = await appwrite.Account.Get();
+            Debug.Log($"Welcome back, {user.Name}!");
+        }
+        catch
+        {
+            Debug.Log("Please login to continue");
+        }
+    }
+
+    // User Registration
+    public async UniTask<User> Register(string email, string password, string name)
+    {
+        try
+        {
+            var user = await appwrite.Account.Create(
+                userId: ID.Unique(),
+                email: email,
+                password: password,
+                name: name
+            );
+
+            Debug.Log($"Account created: {user.Name}");
+            return user;
+        }
+        catch ({{ spec.title | caseUcfirst }}Exception ex)
+        {
+            Debug.LogError($"Registration failed: {ex.Message}");
+            throw;
+        }
+    }
+
+    // User Login
+    public async UniTask<Session> Login(string email, string password)
+    {
+        try
+        {
+            var session = await appwrite.Account.CreateEmailPasswordSession(
+                email: email,
+                password: password
+            );
+
+            // Set session for future requests
+            appwrite.SetSession(session.Secret);
+            
+            Debug.Log("Login successful!");
+            return session;
+        }
+        catch ({{ spec.title | caseUcfirst }}Exception ex)
+        {
+            Debug.LogError($"Login failed: {ex.Message}");
+            throw;
+        }
+    }
+
+    // OAuth2 Login
+    public void LoginWithGoogle()
+    {
+        var oauthUrl = appwrite.PrepareOAuth2(
+            provider: "google",
+            success: "https://your-game.com/auth/success",
+            failure: "https://your-game.com/auth/failure"
+        );
+
+        // Open OAuth URL in browser
+        Application.OpenURL(oauthUrl);
+    }
+
+    // Real-time subscriptions
+    public async UniTask SubscribeToUserEvents()
+    {
+        await appwrite.Subscribe<User>("account", (eventData) =>
+        {
+            Debug.Log($"User event: {string.Join(", ", eventData.Events)}");
+            // Handle user updates in real-time
+        });
+    }
+
+    // File upload with progress
+    public async UniTask UploadAvatar(string filePath)
+    {
+        try
+        {
+            var file = InputFile.FromPath(filePath);
+            
+            var document = await appwrite.Storage.CreateFile(
+                bucketId: "avatars",
+                fileId: ID.Unique(),
+                file: file,
+                permissions: new[] { Permission.Read(Role.Any()) },
+                onProgress: (progress) =>
+                {
+                    Debug.Log($"Upload progress: {progress.Progress}%");
+                }
+            );
+
+            Debug.Log($"Avatar uploaded: {document.Id}");
+        }
+        catch ({{ spec.title | caseUcfirst }}Exception ex)
+        {
+            Debug.LogError($"Upload failed: {ex.Message}");
+        }
+    }
+
+    // Logout
+    public async UniTask Logout()
+    {
+        try
+        {
+            await appwrite.Account.DeleteSession("current");
+            appwrite.ClearSession();
+            Debug.Log("Logged out successfully");
+        }
+        catch ({{ spec.title | caseUcfirst }}Exception ex)
+        {
+            Debug.LogError($"Logout failed: {ex.Message}");
+        }
+    }
+}
+```
+
+### Server-side Usage
+
+For admin operations, server-to-server communication, and bulk operations:
+
+```csharp
+using {{ spec.title | caseUcfirst }};
+using {{ spec.title | caseUcfirst }}.Services;
+using Cysharp.Threading.Tasks;
+
+public class AdminManager : MonoBehaviour
+{
+    private Client client;
+    private Users users;
+
+    async void Start()
+    {
+        // Initialize server-side client
+        client = new Client("https://cloud.appwrite.io/v1")
+            .SetProject("your-project-id")
+            .SetKey("your-api-key");
+
+        users = new Users(client);
+
+        // Example admin operations
+        await ListAllUsers();
+    }
+
+    async UniTask ListAllUsers()
+    {
+        try
+        {
+            var usersList = await users.List();
+            Debug.Log($"Total users: {usersList.Total}");
+            
+            foreach (var user in usersList.Users)
+            {
+                Debug.Log($"User: {user.Name} ({user.Email})");
+            }
+        }
+        catch ({{ spec.title | caseUcfirst }}Exception ex)
+        {
+            Debug.LogError($"Failed to list users: {ex.Message}");
+        }
+    }
+}
+        client = gameObject.AddComponent<Client>();
+        client.SetEndpoint("{{spec.endpoint}}") // Your API Endpoint
+{% for header in spec.global.headers %}
+{% if header.name != 'mode' %}
+              .Set{{header.name | caseUcfirst}}("{{header.description}}"); // {{header.description}}
+{% endif %}
+{% endfor %}
+    }
+}
+```
+
+### Example Usage
+
+{%~ for service in spec.services %}
+{%~ if loop.first %}
+#### {{service.name | caseUcfirst}} Service
+
+```csharp
+{%~ for method in service.methods %}
+{%~ if loop.first %}
+try 
+{
+    var result = await client.{{service.name | caseUcfirst}}.{{method.name | caseUcfirst}}Async(
+        {%~ for parameter in method.parameters.all %}
+        {%~ if parameter.required %}
+        {{parameter.name | caseCamel}}: {{parameter | paramExample}}{% if not loop.last %},{% endif %}
+
+        {%~ endif %}
+        {%~ endfor %}
+    );
+    
+    Debug.Log("Success: " + result);
+}
+catch ({{spec.title | caseUcfirst}}Exception ex)
+{
+    Debug.LogError($"Error: {ex.Message} (Code: {ex.Code})");
+}
+```
+{%~ endif %}
+{%~ endfor %}
+{%~ endif %}
+{%~ endfor %}
+
+## Unity-Specific Features
+
+### MonoBehaviour Integration
+The Client class extends MonoBehaviour, making it easy to integrate with Unity's lifecycle:
+
+```csharp
+public class GameManager : MonoBehaviour
+{
+    [SerializeField] private Client appwriteClient;
+    
+    async void Start()
+    {
+        // Client is automatically initialized
+        await InitializeAppwrite();
+    }
+    
+    private async UniTask InitializeAppwrite()
+    {
+        try
+        {
+            // Your initialization code here
+        }
+        catch ({{spec.title | caseUcfirst}}Exception ex)
+        {
+            Debug.LogError($"Failed to initialize: {ex.Message}");
+        }
+    }
+}
+```
+
+### UniTask Integration
+All API calls return UniTask for seamless async/await support in Unity:
+
+```csharp
+// Method returns UniTask<T>
+var result = await client.{{spec.services[0].name | caseUcfirst}}.{{spec.services[0].methods[0].name | caseUcfirst}}Async();
+
+// With cancellation token
+var cts = new CancellationTokenSource();
+var result = await client.{{spec.services[0].name | caseUcfirst}}.{{spec.services[0].methods[0].name | caseUcfirst}}Async(cancellationToken: cts.Token);
+```
+
+### Error Handling
+```csharp
+try
+{
+    var result = await client.{{spec.services[0].name | caseUcfirst}}.{{spec.services[0].methods[0].name | caseUcfirst}}Async();
+}
+catch ({{spec.title | caseUcfirst}}Exception ex)
+{
+    Debug.LogError($"{{spec.title}} Error: {ex.Message}");
+    Debug.LogError($"Status Code: {ex.Code}");
+    Debug.LogError($"Response: {ex.Response}");
+}
+```
+
+## Services
+
+{%~ for service in spec.services %}
+### {{service.name | caseUcfirst}}
+
+{%~ for method in service.methods %}
+- `{{method.name | caseUcfirst}}Async()` - {{method.title}}
+{%~ endfor %}
+
+{%~ endfor %}
+
+## Learn More
+
+You can use the following resources to learn more and get help:
+
+- 🚀 [Getting Started Tutorial]({{spec.contactURL}})
+- 📜 [{{spec.title}} Docs]({{spec.contactURL}})
+- 💬 [Discord Community]({{sdk.discordUrl}})
+- 🐛 [Report Issues]({{sdk.gitURL}}/issues)
+
+## Changelog
+
+Please see [CHANGELOG](CHANGELOG.md) for more information about recent changes.
+
+## Contributing
+
+This project follows the [all-contributors](https://github.com/all-contributors/all-contributors) specification. Contributions of any kind are welcome!
+
+## License
+
+This project is licensed under the {{spec.licenseName}} License - see the [LICENSE](LICENSE) file for details.
