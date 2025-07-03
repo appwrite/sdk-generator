@@ -95,7 +95,7 @@ const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({
 {{service.name | caseLower }}
     .command(`{{ method.name | caseKebab }}`)
 {% autoescape false %}
-    .description(`{% if method.deprecated %}[DEPRECATED] This command is deprecated.{% if method.replaceWith %} Please use '{{ method.replaceWith | replace({'.': ' '}) | caseKebab }}' instead.{% endif %} {% endif %}{{ method.description | replace({'`':'\''}) | replace({'\n':' '}) | replace({'\n \n':' '}) }}`)
+    .description(`{% if method.deprecated %}[**DEPRECATED** - This command is deprecated.{% if method.replaceWith %} Please use '{{ method.replaceWith | replace({'.': ' '}) | caseKebab }}' instead{% endif %}] {% endif %}{{ method.description | replace({'`':'\''}) | replace({'\n':' '}) | replace({'\n \n':' '}) }}`)
 {% for parameter in method.parameters.all %}
     .{% if parameter.required and not parameter.nullable %}requiredOption{% else %}option{% endif %}(`--{{ parameter.name | escapeKeyword | caseKebab }}{% if parameter | typeName == 'boolean' %} [value]{% else %} {% if parameter.array.type|length > 0 %}[{% else %}<{% endif %}{{ parameter.name | escapeKeyword | caseKebab }}{% if parameter.array.type|length > 0 %}...{% endif %}{% if parameter.array.type|length > 0 %}]{% else %}>{% endif %}{% endif %}`, `{{ parameter.description | replace({'`':'\''}) | replace({'\n':' '}) | replace({'\n \n':' '}) }}`{% if parameter | typeName == 'boolean' %}, (value) => value === undefined ? true : parseBool(value){% elseif parameter | typeName == 'number' %}, parseInteger{% endif %})
 {% endfor %}
