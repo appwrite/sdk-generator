@@ -19,9 +19,9 @@ class {{ service.name | caseUcfirst }} extends Service {
 {% endif %}
 {%~ if method.deprecated %}
 {%~ if method.since and method.replaceWith %}
-    @Deprecated('This API is deprecated since {{ method.since }}. Please use `{{ method.replaceWith | capitalizeFirst }}` instead.')
+    @Deprecated('This API has been deprecated since {{ method.since }}. Please use `{{ method.replaceWith | capitalizeFirst }}` instead.')
 {%~ else %}
-    @Deprecated('This API is deprecated.')
+    @Deprecated('This API has been deprecated.')
 {%~ endif %}
 {%~ endif %}
     {% if method.type == 'location' %}Future<Uint8List>{% else %}{% if method.responseModel and method.responseModel != 'any' %}Future<models.{{method.responseModel | caseUcfirst | overrideIdentifier}}>{% else %}Future{% endif %}{% endif %} {{ method.name | caseCamel | overrideIdentifier }}({{ _self.method_parameters(method.parameters.all, method.consumes) }}) async {
