@@ -66,7 +66,22 @@ const typesCommand = actionRunner(async (rawOutputDirectory, {language}) => {
 
   const meta = createLanguageMeta(language);
 
-  const outputDirectory = path.resolve(rawOutputDirectory);
+  const rawOutputPath = rawOutputDirectory;
+  const outputExt = path.extname(rawOutputPath);
+  const isFileOutput = !!outputExt;
+  let outputDirectory = rawOutputPath;
+  let singleFileDestination = null;
+
+  if (isFileOutput) {
+    if (meta.isSingleFile()) {
+      // Use the file path directly for single file languages
+      outputDirectory = path.dirname(rawOutputPath);
+      singleFileDestination = rawOutputPath;
+    } else {
+      throw new Error("Output path must be a directory for languages that generate multiple files.");
+    }
+  }
+
   if (!fs.existsSync(outputDirectory)) {
     log(`Directory: ${outputDirectory} does not exist, creating...`);
     fs.mkdirSync(outputDirectory, { recursive: true });
@@ -95,7 +110,7 @@ const typesCommand = actionRunner(async (rawOutputDirectory, {language}) => {
       getType: meta.getType
     });
 
-    const destination = path.join(outputDirectory, meta.getFileName());
+    const destination = singleFileDestination || path.join(outputDirectory, meta.getFileName());
 
     fs.writeFileSync(destination, content);
     log(`Added types to ${destination}`);
