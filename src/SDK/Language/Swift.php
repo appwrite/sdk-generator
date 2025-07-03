@@ -478,9 +478,6 @@ class Swift extends Language
                 if (isset($this->getIdentifierOverrides()[$value])) {
                     $value = $this->getIdentifierOverrides()[$value];
                 }
-                if (preg_match('/^\\d/', $value)) {
-                    $value = '_' . $value;
-                }
                 return $this->toCamelCase($value);
             }),
         ];
