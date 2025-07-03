@@ -20,7 +20,7 @@ class {{ service.name | caseUcfirst }} extends Service {
 {% endif %}
 {%~ if method.deprecated %}
 {%~ if method.since and method.replaceWith %}
-    @Deprecated('This API is deprecated since {{ method.since }} and uses outdated terminologies. Please use `{{ method.replaceWith | capitalizeFirst }}` instead.')
+    @Deprecated('This API is deprecated since {{ method.since }}. Please use `{{ method.replaceWith | capitalizeFirst }}` instead.')
 {%~ else %}
     @Deprecated('This API is deprecated.')
 {%~ endif %}

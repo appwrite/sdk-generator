@@ -25,7 +25,7 @@ open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
     {%~ endif %}
     {%~ if method.deprecated %}
     {%~ if method.since and method.replaceWith %}
-    @available(*, deprecated, message: "This API is deprecated since {{ method.since }} and uses outdated terminologies. Please use `{{ method.replaceWith | capitalizeFirst }}` instead.")
+    @available(*, deprecated, message: "This API is deprecated since {{ method.since }}. Please use `{{ method.replaceWith | capitalizeFirst }}` instead.")
     {%~ else %}
     @available(*, deprecated, message: "This API is deprecated.")
     {%~ endif %}
@@ -96,7 +96,7 @@ open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
     {%~ endif %}
     {%~ if method.deprecated %}
     {%~ if method.since and method.replaceWith %}
-    @available(*, deprecated, message: "This API is deprecated since {{ method.since }} and uses outdated terminologies. Please use `{{ method.replaceWith | capitalizeFirst }}` instead.")
+    @available(*, deprecated, message: "This API is deprecated since {{ method.since }}. Please use `{{ method.replaceWith | capitalizeFirst }}` instead.")
     {%~ else %}
     @available(*, deprecated, message: "This API is deprecated.")
     {%~ endif %}

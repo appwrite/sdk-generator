@@ -38,7 +38,7 @@ export class {{ service.name | caseUcfirst }} {
      * @returns {{ '{' }}{{ method | getReturn(spec) | raw }}{{ '}' }}
     {%~ if method.deprecated %}
     {%~ if method.since and method.replaceWith %}
-     * @deprecated This API is deprecated since {{ method.since }} and uses outdated terminologies.{% if method.replaceWith %} Please use `{{ method.replaceWith | capitalizeFirst }}` instead.{% endif %} 
+     * @deprecated This API is deprecated since {{ method.since }}. Please use `{{ method.replaceWith | capitalizeFirst }}` instead.
     {%~ else %}
      * @deprecated This API is deprecated.
     {%~ endif %}

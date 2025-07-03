@@ -45,7 +45,7 @@ class {{ service.name | caseUcfirst }} extends Service
 {% if method.deprecated %}
      *
 {%~ if method.since and method.replaceWith %}
-     * @deprecated This API is deprecated since {{ method.since }} and uses outdated terminologies. Please use `{{ method.replaceWith | split('.') | last | caseCamel }}` instead.
+     * @deprecated This API is deprecated since {{ method.since }}. Please use `{{ method.replaceWith | split('.') | last | caseCamel }}` instead.
 {%~ else %}
      * @deprecated This API is deprecated.
 {%~ endif %}

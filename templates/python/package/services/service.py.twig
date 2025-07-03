@@ -37,7 +37,7 @@ class {{ service.name | caseUcfirst }}(Service):
 {% if method.deprecated %}
 {%~ if method.since and method.replaceWith %}
         .. deprecated::{{ method.since }}
-            This API is deprecated since {{ method.since }} and uses outdated terminologies.{% if method.replaceWith %} Please use `{{ method.replaceWith | caseSnakeExceptFirstDot }}` instead.{% endif %} 
+            This API is deprecated since {{ method.since }}. Please use `{{ method.replaceWith | caseSnakeExceptFirstDot }}` instead.
 {%~ else %}
         .. deprecated::
             This API is deprecated.

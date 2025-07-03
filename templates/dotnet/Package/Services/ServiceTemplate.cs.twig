@@ -28,7 +28,7 @@ namespace {{ spec.title | caseUcfirst }}.Services
         /// </summary>
         {%~ if method.deprecated %}
         {%~ if method.since and method.replaceWith %}
-        [Obsolete("This API is deprecated since {{ method.since }} and uses outdated terminologies. Please use `{{ method.replaceWith | capitalizeFirst }}` instead.")]
+        [Obsolete("This API is deprecated since {{ method.since }}. Please use `{{ method.replaceWith | capitalizeFirst }}` instead.")]
         {%~ else %}
         [Obsolete("This API is deprecated.")]
         {%~ endif %}
