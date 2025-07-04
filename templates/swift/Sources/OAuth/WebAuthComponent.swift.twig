@@ -44,7 +44,7 @@ public class WebAuthComponent {
                 url: url,
                 callbackURLScheme: callbackScheme
             ) { callbackURL, error in
-                if let error = error {
+                if error != nil {
                     cleanUp()
                 } else if let callbackURL = callbackURL {
                     // handle cookies here itself!
@@ -161,7 +161,7 @@ class PresentationContextProvider: NSObject, ASWebAuthenticationPresentationCont
     static let shared = PresentationContextProvider()
 
     func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
-        if let mainWindow = OSApplication.shared.windows.first { $0.isKeyWindow } {
+        if let mainWindow = OSApplication.shared.windows.first(where: { $0.isKeyWindow }) {
             return mainWindow
         }
 
