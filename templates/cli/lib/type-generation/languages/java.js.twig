@@ -61,63 +61,63 @@ public class <%- toPascalCase(collection.name) %> {
 <% for (const attribute of collection.attributes) { -%>
 <% if (attribute.format === 'enum') { -%>
 
-    public enum <%- toPascalCase(attribute.key) %> {
+  public enum <%- toPascalCase(attribute.key) %> {
 <% for (const [index, element] of Object.entries(attribute.elements)) { -%>
-        <%- toSnakeCase(element) %><%- index < attribute.elements.length - 1 ? ',' : ';' %>
+    <%- toSnakeCase(element) %><%- index < attribute.elements.length - 1 ? ',' : ';' %>
 <% } -%>
-    }
+  }
 
 <% } -%>
 <% } -%>
 <% for (const attribute of collection.attributes) { -%>
-    private <%- getType(attribute) %> <%- toCamelCase(attribute.key) %>;
+  private <%- getType(attribute) %> <%- toCamelCase(attribute.key) %>;
 <% } -%>
 
-    public <%- toPascalCase(collection.name) %>() {
-    }
+  public <%- toPascalCase(collection.name) %>() {
+  }
 
-    public <%- toPascalCase(collection.name) %>(
+  public <%- toPascalCase(collection.name) %>(
 <% for (const [index, attribute] of Object.entries(collection.attributes)) { -%>
-        <%- getType(attribute) %> <%= toCamelCase(attribute.key) %><%- index < collection.attributes.length - 1 ? ',' : '' %>
+    <%- getType(attribute) %> <%= toCamelCase(attribute.key) %><%- index < collection.attributes.length - 1 ? ',' : '' %>
 <% } -%>
-    ) {
+  ) {
 <% for (const attribute of collection.attributes) { -%>
-        this.<%= toCamelCase(attribute.key) %> = <%= toCamelCase(attribute.key) %>;
+    this.<%= toCamelCase(attribute.key) %> = <%= toCamelCase(attribute.key) %>;
 <% } -%>
-    }
+  }
 
 <% for (const attribute of collection.attributes) { -%>
-    public <%- getType(attribute) %> get<%- toPascalCase(attribute.key) %>() {
-        return <%= toCamelCase(attribute.key) %>;
-    }
+  public <%- getType(attribute) %> get<%- toPascalCase(attribute.key) %>() {
+    return <%= toCamelCase(attribute.key) %>;
+  }
 
-    public void set<%- toPascalCase(attribute.key) %>(<%- getType(attribute) %> <%= toCamelCase(attribute.key) %>) {
-        this.<%= toCamelCase(attribute.key) %> = <%= toCamelCase(attribute.key) %>;
-    }
+  public void set<%- toPascalCase(attribute.key) %>(<%- getType(attribute) %> <%= toCamelCase(attribute.key) %>) {
+    this.<%= toCamelCase(attribute.key) %> = <%= toCamelCase(attribute.key) %>;
+  }
 
 <% } -%>
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (obj == null || getClass() != obj.getClass()) return false;
-        <%- toPascalCase(collection.name) %> that = (<%- toPascalCase(collection.name) %>) obj;
-        return <% collection.attributes.forEach((attr, index) => { %>Objects.equals(<%= toCamelCase(attr.key) %>, that.<%= toCamelCase(attr.key) %>)<% if (index < collection.attributes.length - 1) { %> &&
-              <% } }); %>;
-    }
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) return true;
+    if (obj == null || getClass() != obj.getClass()) return false;
+    <%- toPascalCase(collection.name) %> that = (<%- toPascalCase(collection.name) %>) obj;
+    return <% collection.attributes.forEach((attr, index) => { %>Objects.equals(<%= toCamelCase(attr.key) %>, that.<%= toCamelCase(attr.key) %>)<% if (index < collection.attributes.length - 1) { %> &&
+          <% } }); %>;
+  }
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(<%= collection.attributes.map(attr => toCamelCase(attr.key)).join(', ') %>);
-    }
+  @Override
+  public int hashCode() {
+    return Objects.hash(<%= collection.attributes.map(attr => toCamelCase(attr.key)).join(', ') %>);
+  }
 
-    @Override
-    public String toString() {
-        return "<%- toPascalCase(collection.name) %>{" +
+  @Override
+  public String toString() {
+    return "<%- toPascalCase(collection.name) %>{" +
 <% for (const [index, attribute] of Object.entries(collection.attributes)) { -%>
-                "<%= toCamelCase(attribute.key) %>=" + <%= toCamelCase(attribute.key) %> +
+            "<%= toCamelCase(attribute.key) %>=" + <%= toCamelCase(attribute.key) %> +
 <% } -%>
-                '}';
-    }
+            '}';
+  }
 }
 `;
   }
