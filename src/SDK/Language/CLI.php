@@ -433,7 +433,7 @@ class CLI extends Node
     {
         return array_merge(parent::getFilters(), [
             new TwigFilter('caseKebab', function ($value) {
-                return strtolower(preg_replace('/(?<!^)([A-Z][a-z]|(?<=[a-z])[^a-z]|(?<=[A-Z])[0-9_])/', '-$1', $value));
+                return strtolower(preg_replace('/(?<!^)([A-Z][a-z]|(?<=[a-z])[^a-z\s]|(?<=[A-Z])[0-9_])/', '-$1', $value));
             })
         ]);
     }
