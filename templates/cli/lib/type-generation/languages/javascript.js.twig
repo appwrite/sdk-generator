@@ -41,7 +41,7 @@ class JavaScript extends LanguageMeta {
       type += "[]";
     }
     if (!attribute.required && attribute.default === null) {
-      type += "|null|undefined";
+      type += "|null";
     }
     return type;
   }
