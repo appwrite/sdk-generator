@@ -5,11 +5,11 @@ namespace {{ spec.title | caseUcfirst }}.Models
 {
     public class InputFile
     {
-        public string Path { get; set; }
-        public string Filename { get; set; }
-        public string MimeType { get; set; }
-        public string SourceType { get; set; }
-        public object Data { get; set; }
+        public string Path { get; set; } = string.Empty;
+        public string Filename { get; set; } = string.Empty;
+        public string MimeType { get; set; } = string.Empty;
+        public string SourceType { get; set; } = string.Empty;
+        public object Data { get; set; } = new object();
 
         public static InputFile FromPath(string path) => new InputFile
         {
