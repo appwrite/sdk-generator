@@ -113,7 +113,7 @@ public class <%- toPascalCase(collection.name) %> {
   @Override
   public String toString() {
     return "<%- toPascalCase(collection.name) %>{" +
-<% for (const [index, attribute] of Object.entries(collection.attributes)) { -%>
+<% for (const attribute of collection.attributes) { -%>
             "<%= toCamelCase(attribute.key) %>=" + <%= toCamelCase(attribute.key) %> +
 <% } -%>
             '}';
