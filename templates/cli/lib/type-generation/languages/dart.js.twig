@@ -97,7 +97,7 @@ import '<%- attribute.relatedCollection.toLowerCase() %>.dart';
 <% if (attribute.format === 'enum') { -%>
 enum <%- toPascalCase(attribute.key) %> {
 <% for (const [index, element] of Object.entries(attribute.elements)) { -%>
-  <%- toSnakeCase(element) %><% if (index < attribute.elements.length - 1) { %>,<% } %>
+  <%- toCamelCase(element) %><% if (index < attribute.elements.length - 1) { %>,<% } %>
 <% } -%>
 }
 
