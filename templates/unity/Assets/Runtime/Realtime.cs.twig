@@ -175,8 +175,7 @@ namespace {{ spec.title | caseUcfirst }}
                 _reconnectAttempts++;
                 var delay = Math.Min(1000 * Math.Pow(2, _reconnectAttempts), 30000);
                 
-                UniTask.Delay(TimeSpan.FromMilliseconds(delay), cancellationToken: _cancellationTokenSource?.Token ?? default)
-                    .ContinueWith(() => Connect()).Forget();
+                //UniTask.Delay(TimeSpan.FromMilliseconds(delay), cancellationToken: _cancellationTokenSource?.Token ?? default).ContinueWith(() => Connect()).Forget();
             }
         }
 
@@ -359,7 +358,7 @@ namespace {{ spec.title | caseUcfirst }}
         public async UniTask Connect()
         {
             // Implementation would use Unity WebSocket plugin or native implementation
-            await UniTask.Delay(100);
+            await UniTask.CompletedTask;
         }
 
         public void SendText(string text)
@@ -370,7 +369,7 @@ namespace {{ spec.title | caseUcfirst }}
         public async UniTask Close()
         {
             // Implementation would close WebSocket connection
-            await UniTask.Delay(100);
+            await UniTask.CompletedTask;
         }
     }
 }

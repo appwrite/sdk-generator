@@ -1,5 +1,4 @@
 using System;
-using UnityEngine;
 
 namespace {{spec.title | caseUcfirst}}
 {
@@ -18,15 +17,11 @@ namespace {{spec.title | caseUcfirst}}
             this.Code = code;
             this.Type = type;
             this.Response = response;
-            
-            // Log error to Unity console
-            Debug.LogError($"{{spec.title | caseUcfirst}} Exception: {message} (Code: {code})");
         }
         
         public {{spec.title | caseUcfirst}}Exception(string message, Exception inner)
         : base(message, inner)
         {
-            Debug.LogError($"{{spec.title | caseUcfirst}} Exception: {message}");
         }
     }
 }

@@ -264,7 +264,12 @@ namespace {{ spec.title | caseUcfirst }}
                 byte[] bodyData = Encoding.UTF8.GetBytes(body);
 
                 if (methodPost)
-                    request = UnityWebRequest.Post(url, body, "application/json");
+                {
+                    request = new UnityWebRequest(url, "POST");
+                    request.uploadHandler = new UploadHandlerRaw(bodyData);
+                    request.downloadHandler = new DownloadHandlerBuffer();
+                    request.SetRequestHeader("Content-Type", "application/json");
+                }
                 else if (methodPut)
                     request = UnityWebRequest.Put(url, bodyData);
                 else if (methodPatch)
@@ -274,7 +279,11 @@ namespace {{ spec.title | caseUcfirst }}
                     request.downloadHandler = new DownloadHandlerBuffer();
                 }
                 else if (methodDelete)
-                    request = UnityWebRequest.Delete(url);
+                {
+                    request = new UnityWebRequest(url, "DELETE");
+                    request.uploadHandler = new UploadHandlerRaw(bodyData);
+                    request.downloadHandler = new DownloadHandlerBuffer();
+                }
                 else
                 {
                     request = new UnityWebRequest(url, method);
@@ -479,90 +488,71 @@ namespace {{ spec.title | caseUcfirst }}
                 throw new ArgumentException($"Parameter {paramName} must be an InputFile", nameof(paramName));
                 
             var size = 0L;
-            byte[] fileData = null;
-
             switch(input.SourceType)
             {
                 case "path":
-                    if (System.IO.File.Exists(input.Path))
-                    {
-                        fileData = System.IO.File.ReadAllBytes(input.Path);
-                        size = fileData.Length;
-                    }
+                    var info = new FileInfo(input.Path);
+                    input.Data = info.OpenRead();
+                    size = info.Length;
                     break;
                 case "stream":
-                    if (input.Data is Stream stream)
-                    {
-                        using (var memoryStream = new MemoryStream())
-                        {
-                            stream.CopyTo(memoryStream);
-                            fileData = memoryStream.ToArray();
-                            size = fileData.Length;
-                        }
-                    }
+                    var stream = input.Data as Stream;
+                    if (stream == null)
+                        throw new InvalidOperationException("Stream data is null");
+                    size = stream.Length;
                     break;
                 case "bytes":
-                    fileData = input.Data as byte[];
-                    if (fileData != null)
-                        size = fileData.Length;
+                    var bytes = input.Data as byte[];
+                    if (bytes == null)
+                        throw new InvalidOperationException("Byte array data is null");
+                    size = bytes.Length;
                     break;
             };
 
-            if (fileData == null)
-                throw new InvalidOperationException("Unable to read file data");
-
             var offset = 0L;
+            var buffer = new byte[Math.Min(size, ChunkSize)];
             var result = new Dictionary<string, object?>();
 
             if (size < ChunkSize)
             {
-                var form = new List<IMultipartFormSection>
+                switch(input.SourceType)
                 {
-                    new MultipartFormFileSection(paramName, fileData, input.Filename, input.MimeType)
+                    case "path":
+                    case "stream":
+                        var dataStream = input.Data as Stream;
+                        if (dataStream == null)
+                            throw new InvalidOperationException("Stream data is null");
+                        await dataStream.ReadAsync(buffer, 0, (int)size);
+                        break;
+                    case "bytes":
+                        var dataBytes = input.Data as byte[];
+                        if (dataBytes == null)
+                            throw new InvalidOperationException("Byte array data is null");
+                        buffer = dataBytes;
+                        break;
+                }
+
+                var multipartHeaders = new Dictionary<string, string>(headers)
+                {
+                    ["Content-Type"] = "multipart/form-data"
                 };
 
-                // Add other parameters
-                foreach (var param in parameters)
-                {
-                    if (param.Key != paramName)
-                    {
-                        form.Add(new MultipartFormDataSection(param.Key, param.Value?.ToString() ?? string.Empty));
-                    }
-                }
+                var multipartParameters = new Dictionary<string, object?>(parameters);
+                multipartParameters[paramName] = new InputFile 
+                { 
+                    Data = buffer, 
+                    Filename = input.Filename, 
+                    MimeType = input.MimeType, 
+                    SourceType = "bytes" 
+                };
 
-                var request = UnityWebRequest.Post(_endpoint + path, form);
-                
-                // Add headers
-                foreach (var header in _headers)
-                {
-                    if (!header.Key.Equals("Content-Type", StringComparison.OrdinalIgnoreCase))
-                    {
-                        request.SetRequestHeader(header.Key, header.Value);
-                    }
-                }
-
-                foreach (var header in headers)
-                {
-                    if (!header.Key.Equals("Content-Type", StringComparison.OrdinalIgnoreCase))
-                    {
-                        request.SetRequestHeader(header.Key, header.Value);
-                    }
-                }
-
-                var operation = request.SendWebRequest();
-                
-                while (!operation.isDone)
-                {
-                    await UniTask.Yield();
-                }
-
-                var responseString = request.downloadHandler.text;
-                var dict = JsonSerializer.Deserialize<Dictionary<string, object>>(
-                    responseString,
-                    DeserializerOptions);
-
-                request.Dispose();
-                return converter(dict!);
+                return await Call(
+                    method: "POST",
+                    path,
+                    multipartHeaders,
+                    multipartParameters,
+                    converter
+                );
             }
 
             if (!string.IsNullOrEmpty(idParamName))
@@ -589,59 +579,45 @@ namespace {{ spec.title | caseUcfirst }}
 
             while (offset < size)
             {
-                var chunkSize = (int)Math.Min(size - offset, ChunkSize);
-                var chunk = new byte[chunkSize];
-                Array.Copy(fileData, offset, chunk, 0, chunkSize);
-
-                var form = new List<IMultipartFormSection>
+                switch(input.SourceType)
                 {
-                    new MultipartFormFileSection(paramName, chunk, input.Filename, input.MimeType)
+                    case "path":
+                    case "stream":
+                        var stream = input.Data as Stream;
+                        if (stream == null)
+                            throw new InvalidOperationException("Stream data is null");
+                        stream.Seek(offset, SeekOrigin.Begin);
+                        await stream.ReadAsync(buffer, 0, ChunkSize);
+                        break;
+                    case "bytes":
+                        buffer = ((byte[])input.Data)
+                            .Skip((int)offset)
+                            .Take((int)Math.Min(size - offset, ChunkSize - 1))
+                            .ToArray();
+                        break;
+                }
+
+                var chunkHeaders = new Dictionary<string, string>(headers)
+                {
+                    ["Content-Type"] = "multipart/form-data",
+                    ["Content-Range"] = $"bytes {offset}-{Math.Min(offset + ChunkSize - 1, size - 1)}/{size}"
                 };
 
-                // Add other parameters
-                foreach (var param in parameters)
-                {
-                    if (param.Key != paramName)
-                    {
-                        form.Add(new MultipartFormDataSection(param.Key, param.Value?.ToString() ?? string.Empty));
-                    }
-                }
+                var chunkParameters = new Dictionary<string, object?>(parameters);
+                chunkParameters[paramName] = new InputFile 
+                { 
+                    Data = buffer, 
+                    Filename = input.Filename, 
+                    MimeType = input.MimeType, 
+                    SourceType = "bytes" 
+                };
 
-                var request = UnityWebRequest.Post(_endpoint + path, form);
-
-                // Add headers
-                foreach (var header in _headers)
-                {
-                    if (!header.Key.Equals("Content-Type", StringComparison.OrdinalIgnoreCase))
-                    {
-                        request.SetRequestHeader(header.Key, header.Value);
-                    }
-                }
-
-                foreach (var header in headers)
-                {
-                    if (!header.Key.Equals("Content-Type", StringComparison.OrdinalIgnoreCase))
-                    {
-                        request.SetRequestHeader(header.Key, header.Value);
-                    }
-                }
-
-                request.SetRequestHeader("Content-Range",
-                    $"bytes {offset}-{Math.Min(offset + ChunkSize - 1, size - 1)}/{size}");
-
-                var operation = request.SendWebRequest();
-                
-                while (!operation.isDone)
-                {
-                    await UniTask.Yield();
-                }
-
-                var responseString = request.downloadHandler.text;
-                result = JsonSerializer.Deserialize<Dictionary<string, object?>>(
-                    responseString,
-                    DeserializerOptions);
-
-                request.Dispose();
+                result = await Call<Dictionary<string, object?>>(
+                    method: "POST",
+                    path,
+                    chunkHeaders,
+                    chunkParameters
+                );
 
                 offset += ChunkSize;
 
