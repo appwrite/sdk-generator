@@ -35,7 +35,9 @@ const KeysAttributes = new Set([
     "side",
     // Indexes
     "attributes",
-    "orders"
+    "orders",
+    // Strings
+    "encrypt",
 ]);
 const KeyIndexes = new Set(["key", "type", "status", "attributes", "orders"]);
 
