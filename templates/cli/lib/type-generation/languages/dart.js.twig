@@ -97,7 +97,7 @@ import '<%- attribute.relatedCollection.toLowerCase() %>.dart';
 <% if (attribute.format === 'enum') { -%>
 enum <%- toPascalCase(attribute.key) %> {
 <% for (const [index, element] of Object.entries(attribute.elements)) { -%>
-  <%- toCamelCase(element) %><% if (index < attribute.elements.length - 1) { %>,<% } %>
+  <%- strict ? toCamelCase(element) : element %><% if (index < attribute.elements.length - 1) { %>,<% } %>
 <% } -%>
 }
 
@@ -105,7 +105,7 @@ enum <%- toPascalCase(attribute.key) %> {
 <% } -%>
 class <%= toPascalCase(collection.name) %> extends Document {
 <% for (const [index, attribute] of Object.entries(collection.attributes)) { -%>
-  <%- getType(attribute) %> <%= toCamelCase(attribute.key) %>;
+  <%- getType(attribute) %> <%= strict ? toCamelCase(attribute.key) : attribute.key %>;
 <% } -%>
 
   <%= toPascalCase(collection.name) %>({
@@ -117,7 +117,7 @@ class <%= toPascalCase(collection.name) %> extends Document {
     required super.$permissions,
     required super.data,
   <% for (const [index, attribute] of Object.entries(collection.attributes)) { -%>
-  <% if (attribute.required) { %>required <% } %>this.<%= toCamelCase(attribute.key) %><% if (index < collection.attributes.length - 1) { %>,<% } %>
+  <% if (attribute.required) { %>required <% } %>this.<%= strict ? toCamelCase(attribute.key) : attribute.key %><% if (index < collection.attributes.length - 1) { %>,<% } %>
   <% } -%>
 });
 
@@ -131,7 +131,7 @@ class <%= toPascalCase(collection.name) %> extends Document {
       $permissions: List<String>.from(map['\\$permissions'] ?? []),
       data: map,
 <% for (const [index, attribute] of Object.entries(collection.attributes)) { -%>
-      <%= toCamelCase(attribute.key) %>: <% if (attribute.type === 'string' || attribute.type === 'email' || attribute.type === 'datetime') { -%>
+      <%= strict ? toCamelCase(attribute.key) : attribute.key %>: <% if (attribute.type === 'string' || attribute.type === 'email' || attribute.type === 'datetime') { -%>
 <% if (attribute.format === 'enum') { -%>
 <% if (attribute.array) { -%>
 (map['<%= attribute.key %>'] as List<dynamic>?)?.map((e) => <%- toPascalCase(attribute.key) %>.values.firstWhere((element) => element.name == e)).toList()<% if (!attribute.required) { %> ?? []<% } -%>
@@ -189,18 +189,18 @@ map['<%= attribute.key %>'] != null ? <%- toPascalCase(attribute.relatedCollecti
 <% for (const [index, attribute] of Object.entries(collection.attributes)) { -%>
       "<%= attribute.key %>": <% if (attribute.type === 'relationship') { -%>
 <% if ((attribute.relationType === 'oneToMany' && attribute.side === 'parent') || (attribute.relationType === 'manyToOne' && attribute.side === 'child') || attribute.relationType === 'manyToMany') { -%>
-<%= toCamelCase(attribute.key) %><% if (!attribute.required) { %>?<% } %>.map((e) => e.toMap()).toList()<% if (!attribute.required) { %> ?? []<% } -%>
+<%= strict ? toCamelCase(attribute.key) : attribute.key %><% if (!attribute.required) { %>?<% } %>.map((e) => e.toMap()).toList()<% if (!attribute.required) { %> ?? []<% } -%>
 <% } else { -%>
-<%= toCamelCase(attribute.key) %><% if (!attribute.required) { %>?<% } %>.toMap()<% if (!attribute.required) { %> ?? {}<% } -%>
+<%= strict ? toCamelCase(attribute.key) : attribute.key %><% if (!attribute.required) { %>?<% } %>.toMap()<% if (!attribute.required) { %> ?? {}<% } -%>
 <% } -%>
 <% } else if (attribute.format === 'enum') { -%>
 <% if (attribute.array) { -%>
-<%= toCamelCase(attribute.key) %><% if (!attribute.required) { %>?<% } %>.map((e) => e.name).toList()<% if (!attribute.required) { %> ?? []<% } -%>
+<%= strict ? toCamelCase(attribute.key) : attribute.key %><% if (!attribute.required) { %>?<% } %>.map((e) => e.name).toList()<% if (!attribute.required) { %> ?? []<% } -%>
 <% } else { -%>
-<%= toCamelCase(attribute.key) %><% if (!attribute.required) { %>?<% } %>.name<% if (!attribute.required) { %> ?? null<% } -%>
+<%= strict ? toCamelCase(attribute.key) : attribute.key %><% if (!attribute.required) { %>?<% } %>.name<% if (!attribute.required) { %> ?? null<% } -%>
 <% } -%>
 <% } else { -%>
-<%= toCamelCase(attribute.key) -%>
+<%= strict ? toCamelCase(attribute.key) : attribute.key -%>
 <% } -%><% if (index < collection.attributes.length - 1) { %>,<% } %>
 <% } -%>
     };

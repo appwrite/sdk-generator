@@ -90,7 +90,7 @@ export enum <%- toPascalCase(attribute.key) %> {
 <% for (const collection of collections) { -%>
 export type <%- toPascalCase(collection.name) %> = Models.Document & {
 <% for (const attribute of collection.attributes) { -%>
-  <%- toCamelCase(attribute.key) %>: <%- getType(attribute) %>;
+  <%- strict ? toCamelCase(attribute.key) : attribute.key %>: <%- getType(attribute) %>;
 <% } -%>
 }
 
