@@ -508,6 +508,7 @@ const createAttribute = (databaseId, collectionId, attribute) => {
                         required: attribute.required,
                         xdefault: attribute.default,
                         array: attribute.array,
+                        encrypt: attribute.encrypt,
                         parseOutput: false
                     })
 
@@ -844,10 +845,14 @@ const attributesToCreate = async (remoteAttributes, localAttributes, collection,
 
     if (!cliConfig.force) {
         if (deleting.length > 0 && !isIndex) {
-            log(`Attribute deletion will cause ${chalk.red('loss of data')}`);
+            console.log(`${chalk.red('-------------------------------------------------------')}`);
+            console.log(`${chalk.red('| WARNING: Attribute deletion may cause loss of data |')}`);
+            console.log(`${chalk.red('-------------------------------------------------------')}`);
         }
         if (conflicts.length > 0 && !isIndex) {
-            log(`Attribute recreation will cause ${chalk.red('loss of data')}`);
+            console.log(`${chalk.red('---------------------------------------------------------')}`);
+            console.log(`${chalk.red('| WARNING: Attribute recreation may cause loss of data |')}`);
+            console.log(`${chalk.red('---------------------------------------------------------')}`);
         }
 
         if ((await getConfirmation()) !== true) {

@@ -14,11 +14,15 @@ open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
     {{~ method.description | swiftComment }}
     ///
     {%~ endif %}
+    {%~ if method.parameters.all | length > 0 %}
+    /// - Parameters:
+    {%~ endif %}
     {%~ for parameter in method.parameters.all %}
-    /// @param {{ parameter | typeName(spec) | raw}} {{ parameter.name | caseCamel }}
+    ///   - {{ parameter.name | caseCamel }}: {{ parameter | typeName(spec) | raw }}{% if not parameter.required or parameter.nullable %} (optional){% endif %}
+
     {%~ endfor %}
-    /// @throws Exception
-    /// @return array
+    /// - Throws: Exception if the request fails
+    /// - Returns: {{ method | returnType(spec) | raw }}
     ///
     open func {{ method.name | caseCamel | overrideIdentifier }}{% if method.responseModel | hasGenericType(spec) %}<T>{% endif %}(
         {%~ for parameter in method.parameters.all %}
@@ -75,11 +79,15 @@ open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
     {{~ method.description | swiftComment }}
     ///
     {%~ endif %}
+    {%~ if method.parameters.all | length > 0 %}
+    /// - Parameters:
+    {%~ endif %}
     {%~ for parameter in method.parameters.all %}
-    /// @param {{ parameter | typeName(spec) | raw}} {{ parameter.name | caseCamel }}
+    ///   - {{ parameter.name | caseCamel }}: {{ parameter | typeName(spec) | raw }}{% if not parameter.required or parameter.nullable %} (optional){% endif %}
+
     {%~ endfor %}
-    /// @throws Exception
-    /// @return array
+    /// - Throws: Exception if the request fails
+    /// - Returns: {{ method | returnType(spec) | raw }}
     ///
     open func {{ method.name | caseCamel }}(
         {%~ for parameter in method.parameters.all %}

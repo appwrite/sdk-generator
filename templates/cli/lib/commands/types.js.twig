@@ -58,15 +58,40 @@ const typesLanguageOption = new Option(
   .choices(["auto", "ts", "js", "php", "kotlin", "swift", "java", "dart"])
   .default("auto");
 
-const typesCommand = actionRunner(async (rawOutputDirectory, {language}) => {
+const typesStrictOption = new Option(
+  "-s, --strict",
+  "Enable strict mode to automatically convert field names to follow language conventions"
+)
+  .default(false);
+
+const typesCommand = actionRunner(async (rawOutputDirectory, {language, strict}) => {
   if (language === "auto") {
     language = detectLanguage();
     log(`Detected language: ${language}`);
   }
 
+  if (strict) {
+    log(`Strict mode enabled: Field names will be converted to follow ${language} conventions`);
+  }
+
   const meta = createLanguageMeta(language);
 
-  const outputDirectory = path.resolve(rawOutputDirectory);
+  const rawOutputPath = rawOutputDirectory;
+  const outputExt = path.extname(rawOutputPath);
+  const isFileOutput = !!outputExt;
+  let outputDirectory = rawOutputPath;
+  let singleFileDestination = null;
+
+  if (isFileOutput) {
+    if (meta.isSingleFile()) {
+      // Use the file path directly for single file languages
+      outputDirectory = path.dirname(rawOutputPath);
+      singleFileDestination = rawOutputPath;
+    } else {
+      throw new Error(`Invalid output path: ${rawOutputPath}. Output path must be a directory for languages that generate multiple files.`);
+    }
+  }
+
   if (!fs.existsSync(outputDirectory)) {
     log(`Directory: ${outputDirectory} does not exist, creating...`);
     fs.mkdirSync(outputDirectory, { recursive: true });
@@ -91,11 +116,12 @@ const typesCommand = actionRunner(async (rawOutputDirectory, {language}) => {
   if (meta.isSingleFile()) {
     const content = templater({
       collections,
+      strict,
       ...templateHelpers,
       getType: meta.getType
     });
 
-    const destination = path.join(outputDirectory, meta.getFileName());
+    const destination = singleFileDestination || path.join(outputDirectory, meta.getFileName());
 
     fs.writeFileSync(destination, content);
     log(`Added types to ${destination}`);
@@ -103,6 +129,7 @@ const typesCommand = actionRunner(async (rawOutputDirectory, {language}) => {
     for (const collection of collections) {
       const content = templater({
         collection,
+        strict,
         ...templateHelpers,
         getType: meta.getType
       });
@@ -121,6 +148,7 @@ const types = new Command("types")
   .description("Generate types for your Appwrite project")
   .addArgument(typesOutputArgument)
   .addOption(typesLanguageOption)
+  .addOption(typesStrictOption)
   .action(actionRunner(typesCommand));
 
 module.exports = { types };
