@@ -844,10 +844,14 @@ const attributesToCreate = async (remoteAttributes, localAttributes, collection,
 
     if (!cliConfig.force) {
         if (deleting.length > 0 && !isIndex) {
-            log(`Attribute deletion will cause ${chalk.red('loss of data')}`);
+            console.log(`${chalk.red('-------------------------------------------------------')}`);
+            console.log(`${chalk.red('| WARNING: Attribute deletion will cause loss of data |')}`);
+            console.log(`${chalk.red('-------------------------------------------------------')}`);
         }
         if (conflicts.length > 0 && !isIndex) {
-            log(`Attribute recreation will cause ${chalk.red('loss of data')}`);
+            console.log(`${chalk.red('---------------------------------------------------------')}`);
+            console.log(`${chalk.red('| WARNING: Attribute recreation will cause loss of data |')}`);
+            console.log(`${chalk.red('---------------------------------------------------------')}`);
         }
 
         if ((await getConfirmation()) !== true) {
