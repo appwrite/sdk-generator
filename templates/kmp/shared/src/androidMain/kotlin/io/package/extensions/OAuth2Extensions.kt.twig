@@ -1,0 +1,79 @@
+package {{ sdk.namespace | caseDot }}.extensions
+
+import androidx.activity.ComponentActivity
+import {{ sdk.namespace | caseDot }}.WebAuthComponent
+import {{ sdk.namespace | caseDot }}.cookies.SerializableCookie
+import {{ sdk.namespace | caseDot }}.exceptions.AppwriteException
+import {{ sdk.namespace | caseDot }}.webInterface.UrlParser
+import io.ktor.http.Url
+import kotlinx.coroutines.runBlocking
+
+{% for service in spec | webAuthServices %}
+{% for method in service.methods %}
+suspend fun {{ sdk.namespace | caseDot }}.services.{{ service.className | caseUcfirst }}.{{ method.methodName }}(
+    activity: ComponentActivity,
+    {%~ for parameter in method.parameters.all %}
+    {{ parameter.name | caseCamel }}: {{ parameter | typeName }}{%~ if not parameter.required or parameter.nullable %}? = null{%~ endif %},
+    {%~ endfor %}
+    ) {
+        val apiPath = "{{ method.path }}"
+        {%~ for parameter in method.parameters.path %}
+            .replace("{{ '{' ~ parameter.name | caseCamel ~ '}' }}", {{ parameter.name | caseCamel }}{%~ if parameter.enumValues is not empty %}.value{%~ endif %})
+        {%~ endfor %}
+
+        val apiParams = mutableMapOf<String, Any?>(
+        {%~ for parameter in method.parameters.query | merge(method.parameters.body) %}
+            "{{ parameter.name }}" to {{ parameter.name | caseCamel }},
+        {%~ endfor %}
+        {%~ if method.auth | length > 0 %}
+        {%~ for node in method.auth %}
+        {%~ for key,header in node | keys %}
+            "{{ header | caseLower }}" to client.config["{{ header | caseLower }}"],
+        {%~ endfor %}
+        {%~ endfor %}
+        {%~ endif %}
+        )
+
+        val apiQuery = mutableListOf<String>()
+        apiParams.forEach {
+            when (it.value) {
+                null -> return@forEach
+                is List<*> -> apiQuery.add("${it.key}[]=${it.value.toString()}")
+                else -> apiQuery.add("${it.key}=${it.value.toString()}")
+            }
+        }
+
+        val urlParser = UrlParser()
+        val fullUrl = "${client.endpoint}${apiPath}?${apiQuery.joinToString("&")}"
+        val apiUrl = urlParser.parse(fullUrl)
+        val callbackUrlScheme = "{{ spec.title | caseLower }}-callback-${client.config["project"]}"
+
+        WebAuthComponent.authenticate(activity, apiUrl.toString(), callbackUrlScheme) {
+            if (it.isFailure) {
+                throw it.exceptionOrNull()!!
+            }
+
+            val resultUrl = it.getOrNull()!!
+            val key = urlParser.getQueryParameter(resultUrl, "key")
+            val secret = urlParser.getQueryParameter(resultUrl, "secret")
+            if (key == null || secret == null) {
+                throw {{ spec.title | caseUcfirst }}Exception("Authentication cookie missing!")
+            }
+
+        val host = urlParser.getHost(client.endpoint)
+        val cookie = SerializableCookie(
+            name = key,
+            value = secret,
+            domain = host,
+            httpOnly = true,
+        )
+
+        val requestUrl = Url(client.endpoint)
+        runBlocking {
+            client.dataStoreCookieStorage.addCookie(requestUrl, cookie.toCookie())
+        }
+    }
+}
+
+{% endfor %}
+{% endfor %}
