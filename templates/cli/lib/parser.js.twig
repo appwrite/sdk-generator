@@ -26,7 +26,6 @@ const parse = (data) => {
     for (let key in data) {
         if (data[key] === null) {
             console.log(`${chalk.yellow.bold(key)} : null`);
-            continue;
         } else if (Array.isArray(data[key])) {
             console.log(`${chalk.yellow.bold.underline(key)}`);
             if (typeof data[key][0] === 'object') {
