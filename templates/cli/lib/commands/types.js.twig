@@ -58,10 +58,20 @@ const typesLanguageOption = new Option(
   .choices(["auto", "ts", "js", "php", "kotlin", "swift", "java", "dart"])
   .default("auto");
 
-const typesCommand = actionRunner(async (rawOutputDirectory, {language}) => {
+const typesStrictOption = new Option(
+  "-s, --strict",
+  "Enable strict mode to automatically convert field names to follow language conventions"
+)
+  .default(false);
+
+const typesCommand = actionRunner(async (rawOutputDirectory, {language, strict}) => {
   if (language === "auto") {
     language = detectLanguage();
     log(`Detected language: ${language}`);
+  }
+
+  if (strict) {
+    log(`Strict mode enabled: Field names will be converted to follow ${language} conventions`);
   }
 
   const meta = createLanguageMeta(language);
@@ -106,6 +116,7 @@ const typesCommand = actionRunner(async (rawOutputDirectory, {language}) => {
   if (meta.isSingleFile()) {
     const content = templater({
       collections,
+      strict,
       ...templateHelpers,
       getType: meta.getType
     });
@@ -118,6 +129,7 @@ const typesCommand = actionRunner(async (rawOutputDirectory, {language}) => {
     for (const collection of collections) {
       const content = templater({
         collection,
+        strict,
         ...templateHelpers,
         getType: meta.getType
       });
@@ -136,6 +148,7 @@ const types = new Command("types")
   .description("Generate types for your Appwrite project")
   .addArgument(typesOutputArgument)
   .addOption(typesLanguageOption)
+  .addOption(typesStrictOption)
   .action(actionRunner(typesCommand));
 
 module.exports = { types };
