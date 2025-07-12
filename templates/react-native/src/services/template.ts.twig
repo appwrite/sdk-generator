@@ -205,6 +205,9 @@ export class {{ service.name | caseUcfirst }} extends Service {
 
 {% endfor %}
         const uri = new URL(this.client.config.endpoint + apiPath);
+        for (const [key, value] of Object.entries(Service.flatten(payload))) {
+            uri.searchParams.append(key, value);
+        }
 
         return uri;
     }
