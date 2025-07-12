@@ -130,7 +130,7 @@ namespace {{ spec.title | caseUcfirst }}
         /// <summary>{{header.description}}</summary>
         {%~ endif %}
         public Client Set{{header.key | caseUcfirst}}(string value) {
-            _config.Add("{{ header.key | caseCamel }}", value);
+            _config["{{ header.key | caseCamel }}"] = value;
             AddHeader("{{header.name}}", value);
 
             return this;
