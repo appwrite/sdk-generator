@@ -1,4 +1,3 @@
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -11,7 +10,7 @@ using Appwrite.Models;
 using Appwrite.Enums;
 using Appwrite.Services;
 using NUnit.Framework;
-using Console = System.Console;
+
 namespace AppwriteTests
 {
     public class Tests
@@ -37,14 +36,51 @@ namespace AppwriteTests
         }
         
         private async Task RunAsyncTest()
-        {
+        {            
             var client = new Client()
+                .SetProject("123456")
                 .AddHeader("Origin", "http://localhost")
                 .SetSelfSigned(true);
 
             var foo = new Foo(client);
             var bar = new Bar(client);
             var general = new General(client);
+
+            client.SetProject("console");
+            client.SetEndPointRealtime("wss://cloud.appwrite.io/v1");
+            
+            // Create GameObject for Realtime MonoBehaviour
+            var realtimeObject = new GameObject("RealtimeTest");
+            var realtime = realtimeObject.AddComponent<Realtime>();
+            realtime.Initialize(client);
+            
+            string realtimeResponse = "No realtime message received within timeout";            
+            RealtimeSubscription subscription = null;
+            subscription = realtime.Subscribe(new [] { "tests" }, (eventData) => 
+            {
+                Debug.Log($"[Test] Realtime callback invoked! Payload count: {eventData.Payload?.Count}");
+                if (eventData.Payload != null && eventData.Payload.TryGetValue("response", out var value))
+                {
+                    Debug.Log($"[Test] Found response value: {value}");
+                    realtimeResponse = value.ToString();
+                    Debug.Log($"[Test] Updated realtimeResponse to: {realtimeResponse}");
+                }
+                else
+                {
+                    Debug.Log("[Test] No 'response' key found in payload");
+                }
+                subscription?.Close();
+            });
+
+            await Task.Delay(5000);
+
+            // Ping test
+            client.SetProject("123456");
+            var ping = await client.Ping();
+            Debug.Log(ping);
+
+            // Reset a project for other tests
+            client.SetProject("console");
 
             Mock mock;
             // Foo Tests
@@ -97,6 +133,14 @@ namespace AppwriteTests
             mock = await general.Upload("string", 123, new List<string>() { "string in array" }, InputFile.FromStream(info.OpenRead(), "large_file.mp4", "video/mp4"));
             Debug.Log(mock.Result);
 
+            // Download test
+            var downloadResult = await general.Download();
+            if (downloadResult != null)
+            {
+                var downloadString = System.Text.Encoding.UTF8.GetString(downloadResult);
+                Debug.Log(downloadString);
+            }
+
             mock = await general.Enum(MockType.First);
             Debug.Log(mock.Result);
 
@@ -140,6 +184,16 @@ namespace AppwriteTests
             }
 
             await general.Empty();
+
+            await Task.Delay(25000);
+            Debug.Log(realtimeResponse);
+
+            // Cookie tests
+            mock = await general.SetCookie();
+            Debug.Log(mock.Result);
+
+            mock = await general.GetCookie();
+            Debug.Log(mock.Result);
 
             var url = await general.Oauth2(
                 clientId: "clientId",
@@ -194,6 +248,12 @@ namespace AppwriteTests
 
             mock = await general.Headers();
             Debug.Log(mock.Result);
+            
+            // Cleanup Realtime GameObject
+            if (realtimeObject)
+            {
+                Object.DestroyImmediate(realtimeObject);
+            }
             
         }
     }
