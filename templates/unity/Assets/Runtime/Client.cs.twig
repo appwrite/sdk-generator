@@ -93,6 +93,23 @@ namespace {{ spec.title | caseUcfirst }}
             return this;
         }
 
+        /// <summary>
+        /// Sends a "ping" request to {{ spec.title | caseUcfirst }} to verify connectivity.
+        /// </summary>
+        /// <returns>Ping response as string</returns>
+        public async UniTask<string> Ping()
+        {
+            var headers = new Dictionary<string, string>
+            {
+                ["content-type"] = "application/json"
+            };
+
+            var parameters = new Dictionary<string, object?>();
+
+            return await Call<string>("GET", "/ping", headers, parameters, 
+                response => response.TryGetValue("result", out var result) ? result?.ToString() : null);
+        }
+
         {%~ for header in spec.global.headers %}
         {%~ if header.description %}
         /// <summary>{{header.description}}</summary>
