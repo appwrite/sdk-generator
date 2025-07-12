@@ -185,7 +185,7 @@ namespace AppwriteTests
 
             await general.Empty();
 
-            await Task.Delay(25000);
+            await Task.Delay(5000);
             Debug.Log(realtimeResponse);
 
             // Cookie tests
