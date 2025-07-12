@@ -415,6 +415,11 @@ class Unity extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'Assets/Runtime/CookieContainer.cs',
+                'template'      => 'unity/Assets/Runtime/CookieContainer.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'Assets/Runtime/Converters/ValueClassConverter.cs',
                 'template'      => 'unity/Assets/Runtime/Converters/ValueClassConverter.cs.twig',
             ],
