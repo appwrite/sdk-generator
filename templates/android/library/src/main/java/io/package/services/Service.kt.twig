@@ -38,6 +38,19 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
      * @return [{{ method | returnType(spec, sdk.namespace | caseDot) | raw }}]
     {%~ endif %}
      */
+    {%~ if method.deprecated %}
+    {%~ if method.since and method.replaceWith %}
+    @Deprecated(
+        message = "This API has been deprecated since {{ method.since }}. Please use `{{ method.replaceWith | capitalizeFirst }}` instead.",
+        replaceWith = ReplaceWith("{{ sdk.namespace | caseDot }}.services.{{ method.replaceWith | capitalizeFirst }}"),
+        since = "{{ method.since }}"
+    )
+    {%~ else %}
+    @Deprecated(
+        message = "This API has been deprecated."
+    )
+    {%~ endif %}
+    {%~ endif %}
     {%~ if method.parameters.all | reduce((carry, param) => carry or not param.required) %}
     @JvmOverloads
     {%~ endif %}
@@ -192,6 +205,19 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
      * @return [{{ method | returnType(spec, sdk.namespace | caseDot) | raw }}]
     {%~ endif %}
      */
+    {%~ if method.deprecated %}
+    {%~ if method.since and method.replaceWith %}
+    @Deprecated(
+        message = "This API has been deprecated since {{ method.since }}. Please use `{{ method.replaceWith | capitalizeFirst }}` instead.",
+        replaceWith = ReplaceWith("{{ sdk.namespace | caseDot }}.services.{{ method.replaceWith | capitalizeFirst }}"),
+        since = "{{ method.since }}"
+    )
+    {%~ else %}
+    @Deprecated(
+        message = "This API has been deprecated."
+    )
+    {%~ endif %}
+    {%~ endif %}
     {%~ if method.parameters.all | reduce((carry, param) => carry or not param.required) %}
     @JvmOverloads
     {%~ endif %}
