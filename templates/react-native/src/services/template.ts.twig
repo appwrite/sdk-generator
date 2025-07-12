@@ -205,6 +205,15 @@ export class {{ service.name | caseUcfirst }} extends Service {
 
 {% endfor %}
         const uri = new URL(this.client.config.endpoint + apiPath);
+{% for node in method.auth %}
+{% for key,header in node|keys %}
+        payload['{{header|caseLower}}'] = this.client.config.{{header|caseLower}};
+
+{% endfor %}
+{% endfor %}
+        for (const [key, value] of Object.entries(Service.flatten(payload))) {
+            uri.searchParams.append(key, value);
+        }
 
         return uri;
     }
