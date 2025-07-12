@@ -1,0 +1,11 @@
+{% import 'unity/base/utils.twig' as utils %}
+return _client.Call<{{ utils.resultType(spec.title, method) }}>(
+method: "{{ method.method | caseUpper }}",
+path: apiPath,
+headers: apiHeaders,
+{%~ if not method.responseModel %}
+    parameters: apiParameters.Where(it => it.Value != null).ToDictionary(it => it.Key, it => it.Value)!);
+{%~ else %}
+    parameters: apiParameters.Where(it => it.Value != null).ToDictionary(it => it.Key, it => it.Value)!,
+    convert: Convert);
+{%~ endif %}

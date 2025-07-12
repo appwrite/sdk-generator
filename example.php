@@ -22,6 +22,7 @@ use Appwrite\SDK\Language\Flutter;
 use Appwrite\SDK\Language\Android;
 use Appwrite\SDK\Language\Kotlin;
 use Appwrite\SDK\Language\ReactNative;
+use Appwrite\SDK\Language\Unity;
 
 try {
 
@@ -74,6 +75,31 @@ try {
     ;
 
     $sdk->generate(__DIR__ . '/examples/php');
+
+    
+    // Unity
+    $sdk  = new SDK(new Unity(), new Swagger2($spec));
+
+    $sdk
+        ->setName('NAME')
+        ->setDescription('Repo description goes here')
+        ->setShortDescription('Repo short description goes here')
+        ->setURL('https://example.com')
+        ->setLogo('https://appwrite.io/v1/images/console.png')
+        ->setLicenseContent('test test test')
+        ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
+        ->setChangelog('**CHANGELOG**')
+        ->setVersion('0.0.1')
+        ->setGitUserName('repoowner')
+        ->setGitRepoName('reponame')
+        ->setTwitter('appwrite_io')
+        ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
+        ->setDefaultHeaders([
+            'X-Appwrite-Response-Format' => '1.6.0',
+        ])
+    ;
+
+    $sdk->generate(__DIR__ . '/examples/unity');
 
     // // Web
     $sdk  = new SDK(new Web(), new Swagger2($spec));
