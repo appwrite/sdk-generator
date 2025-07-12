@@ -36,7 +36,7 @@ namespace AppwriteTests
         }
         
         private async Task RunAsyncTest()
-        {            
+        {
             var client = new Client()
                 .SetProject("123456")
                 .AddHeader("Origin", "http://localhost")
