@@ -110,6 +110,21 @@ namespace {{ spec.title | caseUcfirst }}
                 response => response.TryGetValue("result", out var result) ? result?.ToString() : null);
         }
 
+        /// <summary>
+        /// Set realtime endpoint for WebSocket connections
+        /// </summary>
+        /// <param name="endpointRealtime">Realtime endpoint URL</param>
+        /// <returns>Client instance for method chaining</returns>
+        public Client SetEndPointRealtime(string endpointRealtime)
+        {
+            if (!endpointRealtime.StartsWith("ws://") && !endpointRealtime.StartsWith("wss://")) {
+                throw new {{spec.title | caseUcfirst}}Exception("Invalid realtime endpoint URL: " + endpointRealtime);
+            }
+
+            _config["endpointRealtime"] = endpointRealtime;
+            return this;
+        }
+
         {%~ for header in spec.global.headers %}
         {%~ if header.description %}
         /// <summary>{{header.description}}</summary>
