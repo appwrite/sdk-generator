@@ -1,3 +1,5 @@
+const fs = require('fs');
+const path = require('path');
 const chalk = require('chalk');
 const inquirer = require("inquirer");
 const JSONbig = require("json-bigint")({ storeAsString: false });
@@ -12,7 +14,7 @@ const { proxyCreateFunctionRule, proxyCreateSiteRule, proxyListRules } = require
 const { consoleVariables } = require('./console');
 const { sdkForConsole } = require('../sdks')
 const { functionsGet, functionsCreate, functionsUpdate, functionsCreateDeployment, functionsGetDeployment, functionsListVariables, functionsDeleteVariable, functionsCreateVariable } = require('./functions');
-const { sitesGet, sitesCreate, sitesUpdate, sitesCreateDeployment, sitesGetDeployment, sitesCreateVariable } = require('./sites');
+const { sitesGet, sitesCreate, sitesUpdate, sitesCreateDeployment, sitesGetDeployment, sitesCreateVariable, sitesListVariables, sitesDeleteVariable } = require('./sites');
 const {
     databasesGet,
     databasesCreate,
@@ -375,6 +377,50 @@ const getConfirmation = async () => {
 
 };
 const isEmpty = (value) => (value === null || value === undefined || (typeof value === "string" && value.trim().length === 0) || (Array.isArray(value) && value.length === 0));
+
+const parseEnvFile = (filePath) => {
+    const envVars = [];
+    
+    try {
+        if (!fs.existsSync(filePath)) {
+            return envVars;
+        }
+        
+        const envContent = fs.readFileSync(filePath, 'utf8');
+        const lines = envContent.split('\n');
+        
+        for (const line of lines) {
+            const trimmedLine = line.trim();
+            
+            // Skip empty lines and comments
+            if (!trimmedLine || trimmedLine.startsWith('#')) {
+                continue;
+            }
+            
+            // Parse KEY=VALUE format
+            const equalIndex = trimmedLine.indexOf('=');
+            if (equalIndex > 0) {
+                const key = trimmedLine.substring(0, equalIndex).trim();
+                let value = trimmedLine.substring(equalIndex + 1).trim();
+                
+                // Remove surrounding quotes if present
+                if ((value.startsWith('"') && value.endsWith('"')) || 
+                    (value.startsWith("'") && value.endsWith("'"))) {
+                    value = value.slice(1, -1);
+                }
+                
+                if (key) {
+                    envVars.push({ key, value });
+                }
+            }
+        }
+    } catch (error) {
+        // Silently ignore file reading errors
+        console.warn(`Warning: Could not read .env file at ${filePath}: ${error.message}`);
+    }
+    
+    return envVars;
+};
 
 const approveChanges = async (resource, resourceGetFunction, keys, resourceName, resourcePlural, skipKeys = [], secondId = '', secondResourceName = '') => {
     log('Checking for changes ...');
@@ -1047,7 +1093,7 @@ const pushSettings = async () => {
     }
 }
 
-const pushSite = async({ siteId, async, code } = { returnOnZero: false }) => {
+const pushSite = async({ siteId, async, code, withVariables } = { returnOnZero: false }) => {
     process.chdir(localConfig.configDirectoryPath)
 
     const siteIds = [];
@@ -1180,7 +1226,6 @@ const pushSite = async({ siteId, async, code } = { returnOnZero: false }) => {
                     timeout: site.timeout,
                     enabled: site.enabled,
                     logging: site.logging,
-                    vars: JSON.stringify(site.vars),
                     parseOutput: false
                 });
 
@@ -1213,16 +1258,39 @@ const pushSite = async({ siteId, async, code } = { returnOnZero: false }) => {
             }
         }
 
-        updaterRow.update({ status: 'Creating variables' }).replaceSpinner(SPINNER_ARC);
+        if (withVariables) {
+            updaterRow.update({ status: 'Creating variables' }).replaceSpinner(SPINNER_ARC);
 
-        await Promise.all((site['vars'] ?? []).map(async variable => {
-            await sitesCreateVariable({
+            const { variables } = await paginate(sitesListVariables, {
                 siteId: site['$id'],
-                key: variable['key'],
-                value: variable['value'],
                 parseOutput: false
-            });
-        }));
+            }, 100, 'variables');
+
+            await Promise.all(variables.map(async variable => {
+                await sitesDeleteVariable({
+                    siteId: site['$id'],
+                    variableId: variable['$id'],
+                    parseOutput: false
+                });
+            }));
+
+            let result = await awaitPools.wipeVariables(site['$id']);
+            if (!result) {
+                updaterRow.fail({ errorMessage: `Variable deletion timed out.` })
+                return;
+            }
+
+            const envFileLocation = `${site['path']}/.env`;
+            const envVariables = parseEnvFile(envFileLocation);
+            await Promise.all(envVariables.map(async variable => {
+                await sitesCreateVariable({
+                    siteId: site['$id'],
+                    key: variable['key'],
+                    value: variable['value'],
+                    parseOutput: false
+                });
+            }));
+        }
 
         if (code === false) {
             successfullyPushed++;
@@ -1475,7 +1543,6 @@ const pushFunction = async ({ functionId, async, code, withVariables } = { retur
                     entrypoint: func.entrypoint,
                     commands: func.commands,
                     scopes: func.scopes,
-                    vars: JSON.stringify(func.vars),
                     parseOutput: false
                 });
 
@@ -1530,13 +1597,16 @@ const pushFunction = async ({ functionId, async, code, withVariables } = { retur
                 return;
             }
 
-            // Deploy local variables
-            await Promise.all((func['vars'] ?? []).map(async variable => {
+            const envFileLocation = `${func['path']}/.env`;
+            const envVariables = parseEnvFile(envFileLocation);
+            await Promise.all(envVariables.map(async variable => {
                 await functionsCreateVariable({
                     functionId: func['$id'],
-                    key: variable['key'],
-                    value: variable['value'],
-                    parseOutput: false
+                    variableId: ID.unique(),
+                    key: variable.key,
+                    value: variable.value,
+                    parseOutput: false,
+                    secret: false
                 });
             }));
         }
@@ -2065,6 +2135,7 @@ push
     .option(`-f, --site-id <site-id>`, `ID of site to run`)
     .option(`-A, --async`, `Don't wait for sites deployments status`)
     .option("--no-code", "Don't push the site's code")
+    .option("--with-variables", `Push site variables.`)
     .action(actionRunner(pushSite));
 
 push
