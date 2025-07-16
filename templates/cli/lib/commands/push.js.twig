@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { parse: parseDotenv } = require('dotenv');
 const chalk = require('chalk');
 const inquirer = require("inquirer");
 const JSONbig = require("json-bigint")({ storeAsString: false });
@@ -377,50 +378,6 @@ const getConfirmation = async () => {
 
 };
 const isEmpty = (value) => (value === null || value === undefined || (typeof value === "string" && value.trim().length === 0) || (Array.isArray(value) && value.length === 0));
-
-const parseEnvFile = (filePath) => {
-    const envVars = [];
-    
-    try {
-        if (!fs.existsSync(filePath)) {
-            return envVars;
-        }
-        
-        const envContent = fs.readFileSync(filePath, 'utf8');
-        const lines = envContent.split('\n');
-        
-        for (const line of lines) {
-            const trimmedLine = line.trim();
-            
-            // Skip empty lines and comments
-            if (!trimmedLine || trimmedLine.startsWith('#')) {
-                continue;
-            }
-            
-            // Parse KEY=VALUE format
-            const equalIndex = trimmedLine.indexOf('=');
-            if (equalIndex > 0) {
-                const key = trimmedLine.substring(0, equalIndex).trim();
-                let value = trimmedLine.substring(equalIndex + 1).trim();
-                
-                // Remove surrounding quotes if present
-                if ((value.startsWith('"') && value.endsWith('"')) || 
-                    (value.startsWith("'") && value.endsWith("'"))) {
-                    value = value.slice(1, -1);
-                }
-                
-                if (key) {
-                    envVars.push({ key, value });
-                }
-            }
-        }
-    } catch (error) {
-        // Silently ignore file reading errors
-        console.warn(`Warning: Could not read .env file at ${filePath}: ${error.message}`);
-    }
-    
-    return envVars;
-};
 
 const approveChanges = async (resource, resourceGetFunction, keys, resourceName, resourcePlural, skipKeys = [], secondId = '', secondResourceName = '') => {
     log('Checking for changes ...');
@@ -1281,12 +1238,21 @@ const pushSite = async({ siteId, async, code, withVariables } = { returnOnZero: 
             }
 
             const envFileLocation = `${site['path']}/.env`;
-            const envVariables = parseEnvFile(envFileLocation);
+            let envVariables = [];
+            try {
+                if (fs.existsSync(envFileLocation)) {
+                    const envObject = parseDotenv(fs.readFileSync(envFileLocation, 'utf8'));
+                    envVariables = Object.entries(envObject || {}).map(([key, value]) => ({ key, value }));
+                }
+            } catch (error) {
+                // Handle parsing errors gracefully
+                envVariables = [];
+            }
             await Promise.all(envVariables.map(async variable => {
                 await sitesCreateVariable({
                     siteId: site['$id'],
-                    key: variable['key'],
-                    value: variable['value'],
+                    key: variable.key,
+                    value: variable.value,
                     parseOutput: false
                 });
             }));
@@ -1598,7 +1564,16 @@ const pushFunction = async ({ functionId, async, code, withVariables } = { retur
             }
 
             const envFileLocation = `${func['path']}/.env`;
-            const envVariables = parseEnvFile(envFileLocation);
+            let envVariables = [];
+            try {
+                if (fs.existsSync(envFileLocation)) {
+                    const envObject = parseDotenv(fs.readFileSync(envFileLocation, 'utf8'));
+                    envVariables = Object.entries(envObject || {}).map(([key, value]) => ({ key, value }));
+                }
+            } catch (error) {
+                // Handle parsing errors gracefully
+                envVariables = [];
+            }
             await Promise.all(envVariables.map(async variable => {
                 await functionsCreateVariable({
                     functionId: func['$id'],
