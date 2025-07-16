@@ -152,68 +152,6 @@ const awaitPools = {
             iteration + 1
         );
     },
-    wipeFunctionVariables: async (functionId, iteration = 1) => {
-        if (iteration > pollMaxDebounces) {
-            return false;
-        }
-
-        const { total } = await functionsListVariables({
-            functionId,
-            queries: ['limit(1)'],
-            parseOutput: false
-        });
-
-        if (total === 0) {
-            return true;
-        }
-
-        if (pollMaxDebounces === POLL_DEFAULT_VALUE) {
-            let steps = Math.max(1, Math.ceil(total / STEP_SIZE));
-            if (steps > 1 && iteration === 1) {
-                pollMaxDebounces *= steps;
-
-                log('Found a large number of variables, increasing timeout to ' + (pollMaxDebounces * POLL_DEBOUNCE / 1000 / 60) + ' minutes')
-            }
-        }
-
-        await new Promise(resolve => setTimeout(resolve, POLL_DEBOUNCE));
-
-        return await awaitPools.wipeFunctionVariables(
-            functionId,
-            iteration + 1
-        );
-    },
-    wipeSiteVariables: async (siteId, iteration = 1) => {
-        if (iteration > pollMaxDebounces) {
-            return false;
-        }
-
-        const { total } = await sitesListVariables({
-            siteId,
-            queries: ['limit(1)'],
-            parseOutput: false
-        });
-
-        if (total === 0) {
-            return true;
-        }
-
-        if (pollMaxDebounces === POLL_DEFAULT_VALUE) {
-            let steps = Math.max(1, Math.ceil(total / STEP_SIZE));
-            if (steps > 1 && iteration === 1) {
-                pollMaxDebounces *= steps;
-
-                log('Found a large number of variables, increasing timeout to ' + (pollMaxDebounces * POLL_DEBOUNCE / 1000 / 60) + ' minutes')
-            }
-        }
-
-        await new Promise(resolve => setTimeout(resolve, POLL_DEBOUNCE));
-
-        return await awaitPools.wipeSiteVariables(
-            siteId,
-            iteration + 1
-        );
-    },
     deleteAttributes: async (databaseId, collectionId, attributeKeys, iteration = 1) => {
         if (iteration > pollMaxDebounces) {
             return false;
@@ -1262,12 +1200,6 @@ const pushSite = async({ siteId, async, code, withVariables } = { returnOnZero: 
                 });
             }));
 
-            let result = await awaitPools.wipeSiteVariables(site['$id']);
-            if (!result) {
-                updaterRow.fail({ errorMessage: `Variable deletion timed out.` })
-                return;
-            }
-
             const envFileLocation = `${site['path']}/.env`;
             let envVariables = [];
             try {
@@ -1588,12 +1520,6 @@ const pushFunction = async ({ functionId, async, code, withVariables } = { retur
                     parseOutput: false
                 });
             }));
-
-            let result = await awaitPools.wipeFunctionVariables(func['$id']);
-            if (!result) {
-                updaterRow.fail({ errorMessage: `Variable deletion timed out.` })
-                return;
-            }
 
             const envFileLocation = `${func['path']}/.env`;
             let envVariables = [];
