@@ -152,7 +152,7 @@ const awaitPools = {
             iteration + 1
         );
     },
-    wipeVariables: async (functionId, iteration = 1) => {
+    wipeFunctionVariables: async (functionId, iteration = 1) => {
         if (iteration > pollMaxDebounces) {
             return false;
         }
@@ -178,8 +178,39 @@ const awaitPools = {
 
         await new Promise(resolve => setTimeout(resolve, POLL_DEBOUNCE));
 
-        return await awaitPools.wipeVariables(
+        return await awaitPools.wipeFunctionVariables(
             functionId,
+            iteration + 1
+        );
+    },
+    wipeSiteVariables: async (siteId, iteration = 1) => {
+        if (iteration > pollMaxDebounces) {
+            return false;
+        }
+
+        const { total } = await sitesListVariables({
+            siteId,
+            queries: ['limit(1)'],
+            parseOutput: false
+        });
+
+        if (total === 0) {
+            return true;
+        }
+
+        if (pollMaxDebounces === POLL_DEFAULT_VALUE) {
+            let steps = Math.max(1, Math.ceil(total / STEP_SIZE));
+            if (steps > 1 && iteration === 1) {
+                pollMaxDebounces *= steps;
+
+                log('Found a large number of variables, increasing timeout to ' + (pollMaxDebounces * POLL_DEBOUNCE / 1000 / 60) + ' minutes')
+            }
+        }
+
+        await new Promise(resolve => setTimeout(resolve, POLL_DEBOUNCE));
+
+        return await awaitPools.wipeSiteVariables(
+            siteId,
             iteration + 1
         );
     },
@@ -1231,7 +1262,7 @@ const pushSite = async({ siteId, async, code, withVariables } = { returnOnZero: 
                 });
             }));
 
-            let result = await awaitPools.wipeVariables(site['$id']);
+            let result = await awaitPools.wipeSiteVariables(site['$id']);
             if (!result) {
                 updaterRow.fail({ errorMessage: `Variable deletion timed out.` })
                 return;
@@ -1253,7 +1284,8 @@ const pushSite = async({ siteId, async, code, withVariables } = { returnOnZero: 
                     siteId: site['$id'],
                     key: variable.key,
                     value: variable.value,
-                    parseOutput: false
+                    parseOutput: false,
+                    secret: false
                 });
             }));
         }
@@ -1557,7 +1589,7 @@ const pushFunction = async ({ functionId, async, code, withVariables } = { retur
                 });
             }));
 
-            let result = await awaitPools.wipeVariables(func['$id']);
+            let result = await awaitPools.wipeFunctionVariables(func['$id']);
             if (!result) {
                 updaterRow.fail({ errorMessage: `Variable deletion timed out.` })
                 return;
