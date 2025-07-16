@@ -395,6 +395,11 @@ class Unity extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'Assets/Runtime/Utilities/AppwriteUtilities.cs',
+                'template'      => 'unity/Assets/Runtime/Utilities/AppwriteUtilities.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'Assets/Runtime/ID.cs',
                 'template'      => 'unity/Assets/Runtime/ID.cs.twig',
             ],
