@@ -340,7 +340,7 @@ class Unity extends Language
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'package.json',
+                'destination'   => 'Assets/package.json',
                 'template'      => 'unity/package.json.twig',
             ],
             [
