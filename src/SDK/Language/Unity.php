@@ -384,7 +384,7 @@ class Unity extends Language
                 'scope'         => 'default',
                 'destination'   => 'Assets/Runtime/Core/Client.cs',
                 'template'      => 'unity/Assets/Runtime/Core/Client.cs.twig',
-            ],            
+            ],
             [
                 'scope'         => 'default',
                 'destination'   => 'Assets/Runtime/Core/{{ spec.title | caseUcfirst }}Exception.cs',
