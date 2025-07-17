@@ -5,10 +5,13 @@
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
         "Appwrite",
+        "Appwrite.Core",
         "UniTask",
         "endel.nativewebsocket"
     ],
-    "includePlatforms": [],
+    "includePlatforms": [
+        "Editor"
+    ],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": true,
@@ -16,9 +19,7 @@
         "nunit.framework.dll"
     ],
     "autoReferenced": false,
-    "defineConstraints": [
-        "UNITY_INCLUDE_TESTS"
-    ],
+    "defineConstraints": [],
     "versionDefines": [],
     "noEngineReferences": false
 }
