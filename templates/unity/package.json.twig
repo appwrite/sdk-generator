@@ -1,13 +1,10 @@
 {
-  "name": "{{sdk.namespace | caseLower}}.{{spec.title | caseLower}}",
+  "name": "com.fellmonkey.{{spec.title | caseLower}}-sdk",
   "version": "{{sdk.version}}",
   "displayName": "{{spec.title}} SDK",
-  "description": "{{sdk.shortDescription}}",
+  "description": "Unofficial Appwrite SDK for Unity, generated using the Appwrite SDK Generator. This package provides integration with Appwrite backend services for Unity projects.",
   "unity": "2021.3",
-  "unityRelease": "0f1",
-  "documentationUrl": "{{sdk.url}}",
-  "changelogUrl": "{{sdk.url}}/blob/main/CHANGELOG.md",
-  "licensesUrl": "{{sdk.url}}/blob/main/LICENSE",
+  "documentationUrl": "https://appwrite.io/docs",
   "keywords": [
     "{{spec.title | caseLower}}",
     "backend",
@@ -18,13 +15,14 @@
     "storage",
     "functions"
   ],
-  "author": {
-    "name": "{{spec.contactName}}",
-    "email": "{{spec.contactEmail}}",
-    "url": "{{spec.contactURL}}"
-  },
-  "type": "library",
   "dependencies": {
-    "com.cysharp.unitask": "2.5.10"
-  }
+    "com.cysharp.unitask": "2.5.10",
+    "com.endel.nativewebsocket": "1.1.5"
+  },
+  "samples": [
+  {
+      "displayName": "Example",
+      "description": "Appwrite Example",
+      "path": "Samples~/AppwriteExample",
+  } ]
 }
