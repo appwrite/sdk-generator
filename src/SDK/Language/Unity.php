@@ -335,12 +335,12 @@ class Unity extends Language
             ],
             [
                 'scope'         => 'method',
-                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
+                'destination'   => 'Assets/docs~/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
                 'template'      => 'unity/docs/example.md.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'package.json',
+                'destination'   => 'Assets/package.json',
                 'template'      => 'unity/package.json.twig',
             ],
             [
@@ -348,11 +348,7 @@ class Unity extends Language
                 'destination'   => 'Assets/Runtime/{{ spec.title | caseUcfirst }}.asmdef',
                 'template'      => 'unity/Assets/Runtime/Appwrite.asmdef.twig',
             ],
-            [
-                'scope'         => 'default',
-                'destination'   => 'Assets/Runtime/Client.cs',
-                'template'      => 'unity/Assets/Runtime/Client.cs.twig',
-            ],
+            // Appwrite
             [
                 'scope'         => 'default',
                 'destination'   => 'Assets/Runtime/{{ spec.title | caseUcfirst }}Config.cs',
@@ -370,6 +366,138 @@ class Unity extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'Assets/Runtime/Utilities/{{ spec.title | caseUcfirst }}Utilities.cs',
+                'template'      => 'unity/Assets/Runtime/Utilities/AppwriteUtilities.cs.twig',
+            ],
+            // Appwrite.Core
+            [
+                'scope'         => 'copy',
+                'destination'   => 'Assets/Runtime/Core/csc.rsp',
+                'template'      => 'unity/Assets/Runtime/Core/csc.rsp',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'Assets/Runtime/Core/{{ spec.title | caseUcfirst }}.Core.asmdef',
+                'template'      => 'unity/Assets/Runtime/Core/Appwrite.Core.asmdef.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'Assets/Runtime/Core/Client.cs',
+                'template'      => 'unity/Assets/Runtime/Core/Client.cs.twig',
+            ],            
+            [
+                'scope'         => 'default',
+                'destination'   => 'Assets/Runtime/Core/{{ spec.title | caseUcfirst }}Exception.cs',
+                'template'      => 'unity/Assets/Runtime/Core/Exception.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'Assets/Runtime/Core/ID.cs',
+                'template'      => 'unity/Assets/Runtime/Core/ID.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'Assets/Runtime/Core/Permission.cs',
+                'template'      => 'unity/Assets/Runtime/Core/Permission.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'Assets/Runtime/Core/Query.cs',
+                'template'      => 'unity/Assets/Runtime/Core/Query.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'Assets/Runtime/Core/Role.cs',
+                'template'      => 'unity/Assets/Runtime/Core/Role.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'Assets/Runtime/Core/CookieContainer.cs',
+                'template'      => 'unity/Assets/Runtime/Core/CookieContainer.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'Assets/Runtime/Core/Converters/ValueClassConverter.cs',
+                'template'      => 'unity/Assets/Runtime/Core/Converters/ValueClassConverter.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'Assets/Runtime/Core/Converters/ObjectToInferredTypesConverter.cs',
+                'template'      => 'unity/Assets/Runtime/Core/Converters/ObjectToInferredTypesConverter.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'Assets/Runtime/Core/Extensions/Extensions.cs',
+                'template'      => 'unity/Assets/Runtime/Core/Extensions/Extensions.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'Assets/Runtime/Core/Models/OrderType.cs',
+                'template'      => 'unity/Assets/Runtime/Core/Models/OrderType.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'Assets/Runtime/Core/Models/UploadProgress.cs',
+                'template'      => 'unity/Assets/Runtime/Core/Models/UploadProgress.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'Assets/Runtime/Core/Models/InputFile.cs',
+                'template'      => 'unity/Assets/Runtime/Core/Models/InputFile.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'Assets/Runtime/Core/Services/Service.cs',
+                'template'      => 'unity/Assets/Runtime/Core/Services/Service.cs.twig',
+            ],
+            [
+                'scope'         => 'service',
+                'destination'   => 'Assets/Runtime/Core/Services/{{service.name | caseUcfirst}}.cs',
+                'template'      => 'unity/Assets/Runtime/Core/Services/ServiceTemplate.cs.twig',
+            ],
+            [
+                'scope'         => 'definition',
+                'destination'   => 'Assets/Runtime/Core/Models/{{ definition.name | caseUcfirst | overrideIdentifier }}.cs',
+                'template'      => 'unity/Assets/Runtime/Core/Models/Model.cs.twig',
+            ],
+            [
+                'scope'         => 'enum',
+                'destination'   => 'Assets/Runtime/Core/Enums/{{ enum.name | caseUcfirst | overrideIdentifier }}.cs',
+                'template'      => 'unity/Assets/Runtime/Core/Enums/Enum.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'Assets/Runtime/Core/Enums/IEnum.cs',
+                'template'      => 'unity/Assets/Runtime/Core/Enums/IEnum.cs.twig',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'Assets/Runtime/Core/Plugins/Microsoft.Bcl.AsyncInterfaces.dll',
+                'template'      => 'unity/Assets/Runtime/Core/Plugins/Microsoft.Bcl.AsyncInterfaces.dll',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'Assets/Runtime/Core/Plugins/System.IO.Pipelines.dll',
+                'template'      => 'unity/Assets/Runtime/Core/Plugins/System.IO.Pipelines.dll',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'Assets/Runtime/Core/Plugins/System.Runtime.CompilerServices.Unsafe.dll',
+                'template'      => 'unity/Assets/Runtime/Core/Plugins/System.Runtime.CompilerServices.Unsafe.dll',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'Assets/Runtime/Core/Plugins/System.Text.Encodings.Web.dll',
+                'template'      => 'unity/Assets/Runtime/Core/Plugins/System.Text.Encodings.Web.dll',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'Assets/Runtime/Core/Plugins/System.Text.Json.dll',
+                'template'      => 'unity/Assets/Runtime/Core/Plugins/System.Text.Json.dll',
+            ],
+            // Appwrite.Editor
+            [
+                'scope'         => 'default',
                 'destination'   => 'Assets/Editor/{{ spec.title | caseUcfirst }}.Editor.asmdef',
                 'template'      => 'unity/Assets/Editor/Appwrite.Editor.asmdef.twig',
             ],
@@ -383,125 +511,11 @@ class Unity extends Language
                 'destination'   => 'Assets/Editor/{{ spec.title | caseUcfirst }}SetupWindow.cs',
                 'template'      => 'unity/Assets/Editor/AppwriteSetupWindow.cs.twig',
             ],
+            // Samples
             [
                 'scope'         => 'default',
-                'destination'   => 'Assets/Runtime/{{ spec.title | caseUcfirst }}Exception.cs',
-                'template'      => 'unity/Assets/Runtime/Exception.cs.twig',
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => 'Assets/Runtime/Utilities/AppwriteUtilities.cs',
-                'template'      => 'unity/Assets/Runtime/Utilities/AppwriteUtilities.cs.twig',
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => 'Assets/Runtime/ID.cs',
-                'template'      => 'unity/Assets/Runtime/ID.cs.twig',
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => 'Assets/Runtime/Permission.cs',
-                'template'      => 'unity/Assets/Runtime/Permission.cs.twig',
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => 'Assets/Runtime/Query.cs',
-                'template'      => 'unity/Assets/Runtime/Query.cs.twig',
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => 'Assets/Runtime/Role.cs',
-                'template'      => 'unity/Assets/Runtime/Role.cs.twig',
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => 'Assets/Runtime/CookieContainer.cs',
-                'template'      => 'unity/Assets/Runtime/CookieContainer.cs.twig',
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => 'Assets/Runtime/Converters/ValueClassConverter.cs',
-                'template'      => 'unity/Assets/Runtime/Converters/ValueClassConverter.cs.twig',
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => 'Assets/Runtime/Converters/ObjectToInferredTypesConverter.cs',
-                'template'      => 'unity/Assets/Runtime/Converters/ObjectToInferredTypesConverter.cs.twig',
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => 'Assets/Runtime/Extensions/Extensions.cs',
-                'template'      => 'unity/Assets/Runtime/Extensions/Extensions.cs.twig',
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => 'Assets/Runtime/Models/OrderType.cs',
-                'template'      => 'unity/Assets/Runtime/Models/OrderType.cs.twig',
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => 'Assets/Runtime/Models/UploadProgress.cs',
-                'template'      => 'unity/Assets/Runtime/Models/UploadProgress.cs.twig',
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => 'Assets/Runtime/Models/InputFile.cs',
-                'template'      => 'unity/Assets/Runtime/Models/InputFile.cs.twig',
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => 'Assets/Runtime/Services/Service.cs',
-                'template'      => 'unity/Assets/Runtime/Services/Service.cs.twig',
-            ],
-            [
-                'scope'         => 'service',
-                'destination'   => 'Assets/Runtime/Services/{{service.name | caseUcfirst}}.cs',
-                'template'      => 'unity/Assets/Runtime/Services/ServiceTemplate.cs.twig',
-            ],
-            [
-                'scope'         => 'definition',
-                'destination'   => 'Assets/Runtime/Models/{{ definition.name | caseUcfirst | overrideIdentifier }}.cs',
-                'template'      => 'unity/Assets/Runtime/Models/Model.cs.twig',
-            ],
-            [
-                'scope'         => 'enum',
-                'destination'   => 'Assets/Runtime/Enums/{{ enum.name | caseUcfirst | overrideIdentifier }}.cs',
-                'template'      => 'unity/Assets/Runtime/Enums/Enum.cs.twig',
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => 'Assets/Runtime/Enums/IEnum.cs',
-                'template'      => 'unity/Assets/Runtime/Enums/IEnum.cs.twig',
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => 'Assets/Samples/AppwriteExample/AppwriteExample.cs',
-                'template'      => 'unity/Assets/Samples/AppwriteExample/AppwriteExample.cs.twig',
-            ],
-            [
-                'scope'         => 'copy',
-                'destination'   => 'Assets/Plugins/Microsoft.Bcl.AsyncInterfaces.dll',
-                'template'      => 'unity/Assets/Runtime/Plugins/Microsoft.Bcl.AsyncInterfaces.dll',
-            ],
-            [
-                'scope'         => 'copy',
-                'destination'   => 'Assets/Plugins/System.IO.Pipelines.dll',
-                'template'      => 'unity/Assets/Runtime/Plugins/System.IO.Pipelines.dll',
-            ],
-            [
-                'scope'         => 'copy',
-                'destination'   => 'Assets/Plugins/System.Runtime.CompilerServices.Unsafe.dll',
-                'template'      => 'unity/Assets/Runtime/Plugins/System.Runtime.CompilerServices.Unsafe.dll',
-            ],
-            [
-                'scope'         => 'copy',
-                'destination'   => 'Assets/Plugins/System.Text.Encodings.Web.dll',
-                'template'      => 'unity/Assets/Runtime/Plugins/System.Text.Encodings.Web.dll',
-            ],
-            [
-                'scope'         => 'copy',
-                'destination'   => 'Assets/Plugins/System.Text.Json.dll',
-                'template'      => 'unity/Assets/Runtime/Plugins/System.Text.Json.dll',
+                'destination'   => 'Assets/Samples~/{{ spec.title | caseUcfirst }}Example/{{ spec.title | caseUcfirst }}Example.cs',
+                'template'      => 'unity/Assets/Samples~/AppwriteExample/AppwriteExample.cs.twig',
             ],
             // Packages
             [
@@ -636,7 +650,7 @@ class Unity extends Language
         // Check if we're in test mode by looking for a global variable
         if (isset($GLOBALS['UNITY_TEST_MODE']) && $GLOBALS['UNITY_TEST_MODE'] === true) {
             $excludeInTest = [
-                'Assets/Runtime/{{ spec.title | caseUcfirst }}Client.cs',
+                'Assets/Runtime/Utilities/{{ spec.title | caseUcfirst }}Utilities.cs',
                 'Assets/Runtime/{{ spec.title | caseUcfirst }}Config.cs',
                 'Assets/Runtime/{{ spec.title | caseUcfirst }}Manager.cs',
                 'Assets/Editor/{{ spec.title | caseUcfirst }}.Editor.asmdef',
