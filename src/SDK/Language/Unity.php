@@ -355,11 +355,6 @@ class Unity extends Language
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'Assets/Runtime/{{ spec.title | caseUcfirst }}Client.cs',
-                'template'      => 'unity/Assets/Runtime/AppwriteClient.cs.twig',
-            ],
-            [
-                'scope'         => 'default',
                 'destination'   => 'Assets/Runtime/{{ spec.title | caseUcfirst }}Config.cs',
                 'template'      => 'unity/Assets/Runtime/AppwriteConfig.cs.twig',
             ],
