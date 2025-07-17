@@ -1,82 +1,35 @@
 using UnityEngine;
 using UnityEditor;
 using System;
+using System.IO;
 
 namespace {{ spec.title | caseUcfirst }}.Editor
 {
-    /// <summary>
-    /// Setup window for {{ spec.title | caseUcfirst }} SDK
-    /// </summary>
     public class {{ spec.title | caseUcfirst }}SetupWindow : EditorWindow
     {
         private Vector2 scrollPosition;
-        private bool isInstalling;
         private string statusMessage = "";
         private MessageType statusMessageType = MessageType.Info;
-        private float lastUpdateTime;
-        private bool needsRepaint;
-        
-        // Installation progress
-        private int progressStep;
-        private string[] progressSteps = {
-            "Preparing installation...",
-            "Downloading UniTask...",
-            "Installing package...",
-            "Verifying installation...",
-            "Finishing..."
-        };
 
         private void OnEnable()
         {
             titleContent = new GUIContent("{{ spec.title | caseUcfirst }} Setup", "{{ spec.title | caseUcfirst }} SDK Setup");
-            minSize = new Vector2(520, 480);
-            maxSize = new Vector2(520, 480);
-            
-            // Subscribe to updates
-            EditorApplication.update += OnEditorUpdate;
-            
-            // Force refresh UniTask status on window open
-            {{ spec.title | caseUcfirst }}SetupAssistant.RefreshUniTaskStatus();
+            minSize = new Vector2(520, 520);
+            maxSize = new Vector2(520, 520);
+            {{ spec.title | caseUcfirst }}SetupAssistant.RefreshPackageStatus();
         }
-        
-        private void OnDisable()
+
+        private void OnFocus()
         {
-            EditorApplication.update -= OnEditorUpdate;
-        }
-        
-        private void OnEditorUpdate()
-        {
-            // Update every 0.5 seconds for better performance
-            if (Time.realtimeSinceStartup - lastUpdateTime > 0.5f)
-            {
-                lastUpdateTime = Time.realtimeSinceStartup;
-                
-                // Check for status changes
-                bool previousUniTaskState = {{ spec.title | caseUcfirst }}SetupAssistant.HasUniTask;
-                
-                // Force refresh UniTask status
-                {{ spec.title | caseUcfirst }}SetupAssistant.RefreshUniTaskStatus();
-                
-                if (previousUniTaskState != {{ spec.title | caseUcfirst }}SetupAssistant.HasUniTask)
-                {
-                    needsRepaint = true;
-                }
-                
-                if (needsRepaint)
-                {
-                    Repaint();
-                    needsRepaint = false;
-                }
-            }
+            // Refresh package status when the window gains focus
+            {{ spec.title | caseUcfirst }}SetupAssistant.RefreshPackageStatus();
+            Repaint();
         }
 
         private void OnGUI()
         {
             EditorGUILayout.Space(20);
-            
-            // Header with icon
             DrawHeader();
-            
             EditorGUILayout.Space(15);
             
             scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
@@ -84,48 +37,26 @@ namespace {{ spec.title | caseUcfirst }}.Editor
             // Status message
             if (!string.IsNullOrEmpty(statusMessage))
             {
-                DrawStatusMessage();
+                EditorGUILayout.HelpBox(statusMessage, statusMessageType);
                 EditorGUILayout.Space(10);
             }
             
-            // Dependencies section
             DrawDependenciesSection();
-            
             EditorGUILayout.Space(15);
             
-            // Installation progress section
-            if (isInstalling)
-            {
-                DrawInstallationProgress();
-                EditorGUILayout.Space(15);
-            }
-            
-            // Configuration section
-            DrawConfigurationSection();
-            
+            DrawQuickStartSection();
             EditorGUILayout.Space(15);
             
-            // Quick start guide
-            DrawQuickStartGuide();
-            
-            EditorGUILayout.Space(15);
-            
-            // Action buttons
             DrawActionButtons();
             
             EditorGUILayout.EndScrollView();
             
             EditorGUILayout.Space(10);
-            
-            // Footer
             DrawFooter();
         }
         
         private void DrawHeader()
         {
-            EditorGUILayout.BeginVertical();
-            
-            // Title with proper spacing
             EditorGUILayout.BeginHorizontal();
             GUILayout.FlexibleSpace();
             
@@ -143,277 +74,286 @@ namespace {{ spec.title | caseUcfirst }}.Editor
             
             EditorGUILayout.BeginHorizontal();
             GUILayout.FlexibleSpace();
-            
-            var subtitleStyle = new GUIStyle(EditorStyles.centeredGreyMiniLabel)
-            {
-                wordWrap = true,
-                alignment = TextAnchor.MiddleCenter
-            };
-            
-            EditorGUILayout.LabelField("Welcome! Let's set up your {{ spec.title | caseUcfirst }} SDK for Unity", 
-                subtitleStyle, 
-                GUILayout.ExpandWidth(false));
-            
+            EditorGUILayout.LabelField("Configure your {{ spec.title | caseUcfirst }} SDK for Unity", 
+                EditorStyles.centeredGreyMiniLabel, GUILayout.ExpandWidth(false));
             GUILayout.FlexibleSpace();
             EditorGUILayout.EndHorizontal();
-
-            EditorGUILayout.EndVertical();
-        }
-        
-        private void DrawStatusMessage()
-        {
-            EditorGUILayout.HelpBox(statusMessage, statusMessageType);
         }
         
         private void DrawDependenciesSection()
         {
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            
+            EditorGUILayout.BeginHorizontal();
             EditorGUILayout.LabelField("📦 Dependencies", EditorStyles.boldLabel);
-            EditorGUILayout.Space(5);
             
-            // UniTask status
-            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-            EditorGUILayout.BeginHorizontal();
-            
-            bool hasUniTask = {{ spec.title | caseUcfirst }}SetupAssistant.HasUniTask;
-            
-            // Status icon and text
-            var statusIcon = hasUniTask ? "✅" : "❌";
-            var statusText = hasUniTask ? "UniTask installed" : "UniTask not installed";
-            
-            EditorGUILayout.LabelField($"{statusIcon} {statusText}", GUILayout.Width(200));
-            
-            // Install button
-            GUI.enabled = !hasUniTask && !isInstalling;
-            if (GUILayout.Button(isInstalling ? "Installing..." : "Install", GUILayout.Width(100)))
+            var missingPackages = !{{ spec.title | caseUcfirst }}SetupAssistant.HasUniTask || !{{ spec.title | caseUcfirst }}SetupAssistant.HasWebSocket;
+            if (GUILayout.Button("Install All", GUILayout.Width(100)) && missingPackages)
             {
-                StartUniTaskInstallation();
+                InstallAllPackages();
             }
-            GUI.enabled = true;
             
             EditorGUILayout.EndHorizontal();
+            EditorGUILayout.Space(10);
             
-            if (!hasUniTask)
+            // UniTask package
+            DrawPackageStatus("UniTask", {{ spec.title | caseUcfirst }}SetupAssistant.HasUniTask, 
+                "Required for async operations", 
+                {{ spec.title | caseUcfirst }}SetupAssistant.InstallUniTask);
+            
+            EditorGUILayout.Space(5);
+            
+            // WebSocket package
+            DrawPackageStatus("NativeWebSocket", {{ spec.title | caseUcfirst }}SetupAssistant.HasWebSocket,
+                "Required for realtime features",
+                {{ spec.title | caseUcfirst }}SetupAssistant.InstallWebSocket);
+            
+            EditorGUILayout.Space(5);
+            
+            if (!missingPackages)
             {
-                EditorGUILayout.Space(5);
-                EditorGUILayout.LabelField("UniTask is required for async operations in Unity", EditorStyles.miniLabel);
+                EditorGUILayout.HelpBox("✨ All required packages are installed!", MessageType.Info);
             }
             
             EditorGUILayout.EndVertical();
         }
         
-        private void DrawInstallationProgress()
+        private void DrawPackageStatus(string packageName, bool isInstalled, string description, Action installAction)
         {
-            EditorGUI.DrawRect(GUILayoutUtility.GetRect(0, 2), Color.gray);
-            EditorGUILayout.Space(10);
-            
-            EditorGUILayout.LabelField("🔄 Installation in progress...", EditorStyles.boldLabel);
-            
-            // Progress bar
-            var rect = GUILayoutUtility.GetRect(0, 20);
-            var progress = (float)progressStep / (progressSteps.Length - 1);
-            EditorGUI.ProgressBar(rect, progress, $"{(int)(progress * 100)}%");
-            
-            EditorGUILayout.Space(5);
-            
-            // Current step
-            if (progressStep < progressSteps.Length)
+            var boxStyle = new GUIStyle(EditorStyles.helpBox)
             {
-                EditorGUILayout.LabelField(progressSteps[progressStep], EditorStyles.centeredGreyMiniLabel);
-            }
+                padding = new RectOffset(10, 10, 10, 10),
+                margin = new RectOffset(5, 5, 0, 0)
+            };
+
+            EditorGUILayout.BeginVertical(boxStyle);
             
-            EditorGUILayout.Space(10);
-            EditorGUI.DrawRect(GUILayoutUtility.GetRect(0, 2), Color.gray);
-        }
-        
-        private void DrawConfigurationSection()
-        {
-            EditorGUILayout.LabelField("⚙️ Configuration", EditorStyles.boldLabel);
-            EditorGUILayout.Space(5);
-            
-            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-            
-            // Check configuration
-            var configExists = CheckConfigExists();
-            var configIcon = configExists ? "✅" : "⚠️";
-            var configText = configExists ? "Configuration created" : "Configuration not found";
-            
+            // Package name and status
             EditorGUILayout.BeginHorizontal();
-            EditorGUILayout.LabelField($"{configIcon} {configText}", GUILayout.Width(200));
-            
-            GUI.enabled = !configExists;
-            if (GUILayout.Button("Create", GUILayout.Width(100)))
+            var statusIcon = isInstalled ? "✅" : "⚠️";
+            var nameStyle = new GUIStyle(EditorStyles.boldLabel)
             {
-                CreateConfiguration();
+                fontSize = 12
+            };
+            EditorGUILayout.LabelField($"{statusIcon} {packageName}", nameStyle);
+            
+            if (!isInstalled && GUILayout.Button("Install", GUILayout.Width(100)))
+            {
+                installAction?.Invoke();
             }
-            GUI.enabled = true;
             
             EditorGUILayout.EndHorizontal();
             
-            if (!configExists)
+            // Description
+            if (!isInstalled)
             {
-                EditorGUILayout.Space(5);
-                EditorGUILayout.LabelField("Create a configuration to store your project settings", EditorStyles.miniLabel);
+                EditorGUILayout.Space(2);
+                var descStyle = new GUIStyle(EditorStyles.miniLabel)
+                {
+                    wordWrap = true
+                };
+                EditorGUILayout.LabelField(description, descStyle);
             }
             
             EditorGUILayout.EndVertical();
         }
-        
-        private void DrawQuickStartGuide()
+
+        private void InstallAllPackages()
         {
-            EditorGUILayout.LabelField("📋 Quick Start", EditorStyles.boldLabel);
-            EditorGUILayout.Space(5);
-            
-            var steps = new string[]
+            try
             {
-                "1. Install UniTask dependency",
-                "2. Create {{ spec.title | caseUcfirst }} Configuration asset",
-                "3. Set your Project ID and API Endpoint",
-                "4. Start using {{ spec.title | caseUcfirst }}Client in your scripts",
-                "5. Check samples and documentation"
+                var manifestPath = "Packages/manifest.json";
+                string[] lines = File.ReadAllLines(manifestPath);
+                var sb = new System.Text.StringBuilder();
+                
+                bool inserted = false;
+                bool needsUpdate = false;
+                foreach (string line in lines)
+                {
+                    sb.AppendLine(line);
+                    if (!inserted && line.Trim() == "\"dependencies\": {")
+                    {
+                        if (!{{ spec.title | caseUcfirst }}SetupAssistant.HasUniTask)
+                        {
+                            sb.AppendLine("    \"com.cysharp.unitask\": \"https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask\",");
+                            needsUpdate = true;
+                        }
+                        if (!{{ spec.title | caseUcfirst }}SetupAssistant.HasWebSocket)
+                        {
+                            sb.AppendLine("    \"com.endel.nativewebsocket\": \"https://github.com/endel/NativeWebSocket.git#upm\",");
+                            needsUpdate = true;
+                        }
+                        inserted = true;
+                    }
+                }
+
+                if (needsUpdate)
+                {
+                    File.WriteAllText(manifestPath, sb.ToString());
+                    ShowMessage("Installing packages...", MessageType.Info);
+                    
+                    EditorApplication.delayCall += () => {
+                        AssetDatabase.Refresh();
+                        UnityEditor.PackageManager.Client.Resolve();
+                        EditorApplication.delayCall += {{ spec.title | caseUcfirst }}SetupAssistant.RefreshPackageStatus;
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Failed to update manifest.json: {ex.Message}");
+                ShowMessage("Failed to install packages. Check console for details.", MessageType.Error);
+            }
+        }
+
+        private void DrawQuickStartSection()
+        {
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            
+            EditorGUILayout.LabelField("⚡ Quick Start", EditorStyles.boldLabel);
+            EditorGUILayout.Space(10);
+            
+            var allPackagesInstalled = {{ spec.title | caseUcfirst }}SetupAssistant.HasUniTask && {{ spec.title | caseUcfirst }}SetupAssistant.HasWebSocket;
+            GUI.enabled = allPackagesInstalled;
+
+            var buttonStyle = new GUIStyle(GUI.skin.button)
+            {
+                padding = new RectOffset(12, 12, 8, 8),
+                margin = new RectOffset(5, 5, 5, 5),
+                fontSize = 12
+            };
+
+            if (GUILayout.Button("🎮 Setup Current Scene", buttonStyle))
+            {
+                SetupCurrentScene();
+            }
+
+            GUI.enabled = true;
+
+            EditorGUILayout.Space(10);
+            var headerStyle = new GUIStyle(EditorStyles.boldLabel)
+            {
+                fontSize = 11
+            };
+            EditorGUILayout.LabelField("This will create in the current scene:", headerStyle);
+            
+            var itemStyle = new GUIStyle(EditorStyles.label)
+            {
+                richText = true,
+                padding = new RectOffset(15, 0, 2, 2),
+                fontSize = 11
             };
             
-            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-            foreach (var step in steps)
+            EditorGUILayout.LabelField("• <b>{{ spec.title | caseUcfirst }}Manager</b> - Main SDK manager component", itemStyle);
+            EditorGUILayout.LabelField("• <b>{{ spec.title | caseUcfirst }}Config</b> - Configuration asset for your project", itemStyle);
+            EditorGUILayout.LabelField("• <b>Realtime</b> - WebSocket connection handler", itemStyle);
+
+            if (!allPackagesInstalled)
             {
-                EditorGUILayout.LabelField(step, EditorStyles.wordWrappedLabel);
+                EditorGUILayout.Space(10);
+                EditorGUILayout.HelpBox("Please install all required packages first", MessageType.Warning);
             }
+
             EditorGUILayout.EndVertical();
         }
         
         private void DrawActionButtons()
         {
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            
             EditorGUILayout.BeginHorizontal();
             
-            // Sample button
-            if (GUILayout.Button("📁 Open Samples"))
+            var buttonStyle = new GUIStyle(GUI.skin.button)
             {
-                ShowSampleDialog();
+                padding = new RectOffset(15, 15, 8, 8),
+                margin = new RectOffset(5, 5, 5, 5),
+                fontSize = 11
+            };
+
+            if (GUILayout.Button(new GUIContent(" 📖 Documentation", "Open {{ spec.title | caseUcfirst }} documentation"), buttonStyle))
+            {
+                Application.OpenURL("https://{{ spec.title | caseUcfirst }}.io/docs");
             }
             
-            // Documentation button
-            if (GUILayout.Button("📖 Documentation"))
+            if (GUILayout.Button(new GUIContent(" 💬 Discord Community", "Join our Discord community"), buttonStyle))
             {
-                Application.OpenURL("{{ sdk.url | raw }}");
+                Application.OpenURL("https://{{ spec.title | caseUcfirst }}.io/discord");
             }
             
             EditorGUILayout.EndHorizontal();
-            
-            EditorGUILayout.Space(10);
-            
+            EditorGUILayout.EndVertical();
         }
         
         private void DrawFooter()
         {
             EditorGUI.DrawRect(GUILayoutUtility.GetRect(0, 1), Color.gray);
             EditorGUILayout.Space(5);
-            EditorGUILayout.LabelField("{{ spec.title | caseUcfirst }} SDK for Unity • Need help? Visit our GitHub", EditorStyles.centeredGreyMiniLabel);
+            EditorGUILayout.LabelField("{{ spec.title | caseUcfirst }} SDK for Unity", EditorStyles.centeredGreyMiniLabel);
         }
-        
-        // Methods for installation workflow
-        private void StartUniTaskInstallation()
+
+        private async void SetupCurrentScene()
         {
-            isInstalling = true;
-            progressStep = 0;
-            ShowMessage("Starting UniTask installation...", MessageType.Info);
-            
-            // Start installation
-            {{ spec.title | caseUcfirst }}SetupAssistant.InstallUniTask();
-            
-            // Start monitoring progress
-            EditorApplication.delayCall += MonitorInstallationProgress;
-        }
-        
-        private void MonitorInstallationProgress()
-        {
-            if (!isInstalling) return;
-            
-            progressStep = Math.Min(progressStep + 1, progressSteps.Length - 1);
-            needsRepaint = true;
-            
-            // Check if installation completed
-            if ({{ spec.title | caseUcfirst }}SetupAssistant.HasUniTask)
+            try
             {
-                CompleteInstallation(true);
-            }
-            else if (progressStep < progressSteps.Length - 1)
-            {
-                // Continue monitoring
-                EditorApplication.delayCall += () => {
-                    System.Threading.Thread.Sleep(800); // Delay for smoothness
-                    MonitorInstallationProgress();
-                };
-            }
-            else
-            {
-                // Timeout - check once more after longer delay
-                EditorApplication.delayCall += () => {
-                    System.Threading.Thread.Sleep(3000);
-                    {{ spec.title | caseUcfirst }}SetupAssistant.RefreshUniTaskStatus();
-                    if ({{ spec.title | caseUcfirst }}SetupAssistant.HasUniTask)
+                ShowMessage("Setting up the scene...", MessageType.Info);
+
+                //WARNING: This code uses reflection to access {{ spec.title | caseUcfirst }}Utilities. CAREFUL with path changes!
+                var type = Type.GetType("{{ spec.title | caseUcfirst }}.Utilities.{{ spec.title | caseUcfirst }}Utilities, {{ spec.title | caseUcfirst }}"); 
+                if (type == null)
+                {
+                    ShowMessage("{{ spec.title | caseUcfirst }}Utilities не найден. Убедитесь, что Runtime сборка скомпилирована.", MessageType.Warning);
+                    return;
+                }
+
+                var method = type.GetMethod("QuickSetup", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public);
+                if (method == null)
+                {
+                    ShowMessage("Метод QuickSetup не найден в {{ spec.title | caseUcfirst }}Utilities.", MessageType.Warning);
+                    return;
+                }
+
+                var task = method.Invoke(null, null);
+                if (task == null)
+                {
+                    ShowMessage("QuickSetup вернул null.", MessageType.Warning);
+                    return;
+                }
+
+                dynamic dynamicTask = task;
+                var result = await dynamicTask;
+
+                if (result != null)
+                {
+                    var goProp = result.GetType().GetProperty("gameObject");
+                    var go = goProp?.GetValue(result) as GameObject;
+                    if (go != null)
                     {
-                        CompleteInstallation(true);
+                        Selection.activeGameObject = go;
+                        ShowMessage("Scene setup completed successfully!", MessageType.Info);
                     }
-                    else
-                    {
-                        CompleteInstallation(false);
-                    }
-                };
+                }
             }
-        }
-        
-        private void CompleteInstallation(bool success)
-        {
-            isInstalling = false;
-            progressStep = 0;
-            
-            if (success)
+            catch (Exception ex)
             {
-                ShowMessage("✅ UniTask installed successfully! SDK is ready to use.", MessageType.Info);
+                ShowMessage($"Setup failed: {ex.Message}", MessageType.Error);
             }
-            else
-            {
-                ShowMessage("❌ Failed to install UniTask automatically. Try installing manually via Package Manager.", MessageType.Error);
-            }
-            
-            needsRepaint = true;
         }
-        
-        private bool CheckConfigExists()
-        {
-            // Check for configuration file
-            var config = Resources.Load("{{ spec.title | caseUcfirst }}Config");
-            return config != null || System.IO.File.Exists("Assets/{{ spec.title | caseUcfirst }}/Resources/{{ spec.title | caseUcfirst }}Config.asset");
-        }
-        
-        private void CreateConfiguration()
-        {
-            AppwriteConfig.CreateConfiguration();
-        }
-        
-        private void ShowSampleDialog()
-        {
-            EditorUtility.DisplayDialog(
-                "Code Samples",
-                "{{ spec.title | caseUcfirst }} SDK usage samples will be available after completing setup.\n\nVisit the documentation for detailed information.",
-                "OK"
-            );
-        }
-        
+
+
         private void ShowMessage(string message, MessageType type)
         {
             statusMessage = message;
             statusMessageType = type;
-            needsRepaint = true;
+            Repaint();
             
-            // Auto-hide message after 5 seconds (except errors)
             if (type != MessageType.Error)
             {
                 EditorApplication.delayCall += () => {
                     System.Threading.Thread.Sleep(5000);
-                    if (statusMessage == message) // Check if message hasn't changed
+                    if (statusMessage == message)
                     {
                         statusMessage = "";
-                        needsRepaint = true;
+                        Repaint();
                     }
                 };
             }

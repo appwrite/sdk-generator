@@ -108,7 +108,7 @@ namespace {{ spec.title | caseUcfirst }}
             var parameters = new Dictionary<string, object?>();
 
             return await Call<string>("GET", "/ping", headers, parameters, 
-                response => response.TryGetValue("result", out var result) ? result?.ToString() : null);
+                response => (response.TryGetValue("result", out var result) ? result?.ToString() : null) ?? string.Empty);
         }
 
         /// <summary>
@@ -159,16 +159,16 @@ namespace {{ spec.title | caseUcfirst }}
         /// <param name="failure">Failure callback URL</param>
         /// <param name="scopes">OAuth scopes</param>
         /// <returns>OAuth URL for authentication</returns>
-        public string PrepareOAuth2(string provider, string success = null, string failure = null, List<string> scopes = null)
+        public string PrepareOAuth2(string provider, string? success = null, string? failure = null, List<string>? scopes = null)
         {
-            var parameters = new Dictionary<string, object>
+            var parameters = new Dictionary<string, object?>
             {
                 ["provider"] = provider,
                 ["success"] = success ?? $"{_endpoint}/auth/oauth2/success",
                 ["failure"] = failure ?? $"{_endpoint}/auth/oauth2/failure"
             };
 
-            if (scopes != null && scopes.Count > 0)
+            if (scopes is { Count: > 0 })
             {
                 parameters["scopes"] = scopes;
             }
@@ -183,7 +183,7 @@ namespace {{ spec.title | caseUcfirst }}
         /// <returns>Current session token or null</returns>
         public string GetSession()
         {
-            return _config.TryGetValue("session", out var session) ? session : null;
+            return _config.GetValueOrDefault("session");
         }
 
         /// <summary>
@@ -192,7 +192,7 @@ namespace {{ spec.title | caseUcfirst }}
         /// <returns>Current JWT token or null</returns>
         public string GetJWT()
         {
-            return _config.TryGetValue("jwt", out var jwt) ? jwt : null;
+            return _config.GetValueOrDefault("jwt");
         }
 
         /// <summary>
@@ -244,7 +244,7 @@ namespace {{ spec.title | caseUcfirst }}
                 {
                     if (parameter.Key == "file" && parameter.Value is InputFile inputFile)
                     {
-                        byte[] fileData = null;
+                        byte[] fileData = {};
                         switch (inputFile.SourceType)
                         {
                             case "path":
@@ -264,14 +264,11 @@ namespace {{ spec.title | caseUcfirst }}
                                 }
                                 break;
                             case "bytes":
-                                fileData = inputFile.Data as byte[];
+                                fileData = inputFile.Data as byte[] ?? Array.Empty<byte>();
                                 break;
                         }
 
-                        if (fileData != null)
-                        {
-                            form.Add(new MultipartFormFileSection(parameter.Key, fileData, inputFile.Filename, inputFile.MimeType));
-                        }
+                        form.Add(new MultipartFormFileSection(parameter.Key, fileData, inputFile.Filename, inputFile.MimeType));
                     }
                     else if (parameter.Value is IEnumerable<object> enumerable)
                     {

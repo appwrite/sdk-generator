@@ -1,6 +1,5 @@
 {% macro sub_schema(property) %}{% if property.sub_schema %}{% if property.type == 'array' %}List<{{property.sub_schema | caseUcfirst | overrideIdentifier}}>{% else %}{{property.sub_schema | caseUcfirst | overrideIdentifier}}{% endif %}{% else %}{{property | typeName}}{% endif %}{% if not property.required %}?{% endif %}{% endmacro %}
 {% macro property_name(definition, property) %}{{ property.name | caseUcfirst | removeDollarSign | escapeKeyword }}{% endmacro %}
-
 using System;
 using System.Linq;
 using System.Collections.Generic;
