@@ -480,8 +480,8 @@ class Unity extends Language
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'Assets/Samples~/AppwriteExample/AppwriteExampleScript.cs',
-                'template'      => 'unity/Assets/Samples~/AppwriteExample/AppwriteExampleScript.cs.twig',
+                'destination'   => 'Assets/Samples/AppwriteExample/AppwriteExample.cs',
+                'template'      => 'unity/Assets/Samples/AppwriteExample/AppwriteExample.cs.twig',
             ],
             [
                 'scope'         => 'copy',

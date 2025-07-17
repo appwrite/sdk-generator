@@ -1,0 +1,128 @@
+using {{ spec.title | caseUcfirst }};
+using Cysharp.Threading.Tasks;
+using UnityEngine;
+
+namespace Samples.{{ spec.title | caseUcfirst }}Example
+{
+    /// <summary>
+    /// Example of how to use {{ spec.title | caseUcfirst }} with Unity integration
+    /// </summary>
+    public class {{ spec.title | caseUcfirst }}Example : MonoBehaviour
+    {
+        [Header("Configuration")]
+        [SerializeField] private {{ spec.title | caseUcfirst }}Config config;
+        
+        private {{ spec.title | caseUcfirst }}Manager _manager;
+        
+        private async void Start()
+        
+        {
+            // Method 1: Using {{ spec.title | caseUcfirst }}Manager (Recommended)
+            await ExampleWithManager();
+            
+            // Method 2: Using Client directly
+            await ExampleWithDirectClient();
+        }
+        
+        /// <summary>
+        /// Example using {{ spec.title | caseUcfirst }}Manager for easy setup
+        /// </summary>
+        private async UniTask ExampleWithManager()
+        {
+            Debug.Log("=== Example with {{ spec.title | caseUcfirst }}Manager ===");
+            
+            // Get or create manager
+            _manager = {{ spec.title | caseUcfirst }}Manager.Instance;
+            if (_manager == null)
+            {
+                var managerGo = new GameObject("{{ spec.title | caseUcfirst }}Manager");
+                _manager = managerGo.AddComponent<{{ spec.title | caseUcfirst }}Manager>();
+                _manager.SetConfig(config);
+            }
+            
+            // Initialize
+            var success = await _manager.Initialize();
+            if (!success)
+            {
+                Debug.LogError("Failed to initialize {{ spec.title | caseUcfirst }}Manager");
+                return;
+            }
+            
+            // Use services through manager
+            try
+            {
+                // Direct client access
+                var client = _manager.Client;
+                var pingResult = await client.Ping();
+                Debug.Log($"Ping result: {pingResult}");
+                
+                // Service creation through DI container
+                // var account = _manager.GetService<Account>();
+                // var databases = _manager.GetService<Databases>();
+                
+                // Realtime example
+                var realtime = _manager.Realtime;
+                var subscription = realtime.Subscribe(
+                    new[] { "databases.*.collections.*.documents" },
+                    response =>
+                    {
+                        Debug.Log($"Realtime event: {response.Events[0]}");
+                    }
+                );
+                
+                Debug.Log("{{ spec.title | caseUcfirst }}Manager example completed successfully");
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"{{ spec.title | caseUcfirst }}Manager example failed: {ex.Message}");
+            }
+        }
+        
+        /// <summary>
+        /// Example using Client directly
+        /// </summary>
+        private async UniTask ExampleWithDirectClient()
+        {
+            Debug.Log("=== Example with Direct Client ===");
+            
+            try
+            {
+                // Create and configure client
+                var client = new Client()
+                    .SetEndpoint(config.Endpoint)
+                    .SetProject(config.ProjectId);
+                    
+                if (!string.IsNullOrEmpty(config.ApiKey))
+                    client.SetKey(config.ApiKey);
+                    
+                if (!string.IsNullOrEmpty(config.RealtimeEndpoint))
+                    client.SetEndPointRealtime(config.RealtimeEndpoint);
+                
+                // Test connection
+                var pingResult = await client.Ping();
+                Debug.Log($"Direct client ping: {pingResult}");
+                
+                // Create services manually
+                // var account = new Account(client);
+                // var databases = new Databases(client);
+                
+                // Realtime example
+                // You need to create a Realtime instance manually or attach dependently
+                // realtime.Initialize(client);
+                // var subscription = realtime.Subscribe(
+                //     new[] { "databases.*.collections.*.documents" },
+                //     response =>
+                //     {
+                //         Debug.Log($"Realtime event: {response.Events[0]}");
+                //     }
+                // );
+                
+                Debug.Log("Direct client example completed successfully");
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"Direct client example failed: {ex.Message}");
+            }
+        }
+    }
+}
