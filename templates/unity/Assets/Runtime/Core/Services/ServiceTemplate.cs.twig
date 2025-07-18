@@ -1,4 +1,5 @@
 {% import 'unity/base/utils.twig' as utils %}
+#if UNI_TASK
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -55,3 +56,4 @@ namespace {{ spec.title | caseUcfirst }}.Services
     {%~ endfor %}
     }
 }
+#endif
