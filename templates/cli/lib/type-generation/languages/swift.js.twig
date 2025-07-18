@@ -71,13 +71,13 @@ public class <%- toPascalCase(collection.name) %>: Codable {
 <% } -%>
     }
 
-    init(
+    public init(
 <% for (const [index, attribute] of Object.entries(collection.attributes)) { -%>
-    <%- strict ? toCamelCase(attribute.key) : attribute.key %>: <%- getType(attribute) %><% if (index < collection.attributes.length - 1) { %>,<% } %>
+        <%- strict ? toCamelCase(attribute.key) : attribute.key %>: <%- getType(attribute) %><% if (index < collection.attributes.length - 1) { %>,<% } %>
 <% } -%>
     ) {
 <% for (const attribute of collection.attributes) { -%>
-    self.<%- strict ? toCamelCase(attribute.key) : attribute.key %> = <%- strict ? toCamelCase(attribute.key) : attribute.key %>
+        self.<%- strict ? toCamelCase(attribute.key) : attribute.key %> = <%- strict ? toCamelCase(attribute.key) : attribute.key %>
 <% } -%>
     }
 
@@ -85,7 +85,7 @@ public class <%- toPascalCase(collection.name) %>: Codable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
 <% for (const attribute of collection.attributes) { -%>
-<% if (attribute.required) { -%>
+<% if (!(!attribute.required && attribute.default === null)) { -%>
         self.<%- strict ? toCamelCase(attribute.key) : attribute.key %> = try container.decode(<%- getType(attribute).replace('?', '') %>.self, forKey: .<%- strict ? toCamelCase(attribute.key) : attribute.key %>)
 <% } else { -%>
         self.<%- strict ? toCamelCase(attribute.key) : attribute.key %> = try container.decodeIfPresent(<%- getType(attribute).replace('?', '') %>.self, forKey: .<%- strict ? toCamelCase(attribute.key) : attribute.key %>)
@@ -97,7 +97,7 @@ public class <%- toPascalCase(collection.name) %>: Codable {
         var container = encoder.container(keyedBy: CodingKeys.self)
 
 <% for (const attribute of collection.attributes) { -%>
-<% if (attribute.required) { -%>
+<% if (!(!attribute.required && attribute.default === null)) { -%>
         try container.encode(<%- strict ? toCamelCase(attribute.key) : attribute.key %>, forKey: .<%- strict ? toCamelCase(attribute.key) : attribute.key %>)
 <% } else { -%>
         try container.encodeIfPresent(<%- strict ? toCamelCase(attribute.key) : attribute.key %>, forKey: .<%- strict ? toCamelCase(attribute.key) : attribute.key %>)
