@@ -417,8 +417,17 @@ const getObjectChanges = (remote, local, index, what) => {
 
     if (remote[index] && local[index]) {
         for (let [service, status] of Object.entries(remote[index])) {
-            if (status !== local[index][service]) {
-                changes.push({ group: what, setting: service, remote: chalk.red(status), local: chalk.green(local[index][service]) })
+            const localValue = local[index][service];
+            let valuesEqual = false;
+
+            if (Array.isArray(status) && Array.isArray(localValue)) {
+                valuesEqual = JSON.stringify(status) === JSON.stringify(localValue);
+            } else {
+                valuesEqual = status === localValue;
+            }
+            
+            if (!valuesEqual) {
+                changes.push({ group: what, setting: service, remote: chalk.red(status), local: chalk.green(localValue) })
             }
         }
     }
