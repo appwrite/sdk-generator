@@ -80,21 +80,21 @@ class TypeScript extends LanguageMeta {
 export enum <%- toPascalCase(attribute.key) %> {
 <% const entries = Object.entries(attribute.elements); -%>
 <% for (let i = 0; i < entries.length; i++) { -%>
-  <%- toUpperSnakeCase(entries[i][1]) %> = "<%- entries[i][1] %>"<% if (i !== entries.length - 1) { %>,<% } %>
+    <%- toUpperSnakeCase(entries[i][1]) %> = "<%- entries[i][1] %>"<% if (i !== entries.length - 1) { %>,<% } %>
 <% } -%>
 }
 
 <% } -%>
 <% } -%>
 <% } -%>
-<% for (const collection of collections) { -%>
+<% for (const [index, collection] of Object.entries(collections)) { -%>
 export type <%- toPascalCase(collection.name) %> = Models.Document & {
 <% for (const attribute of collection.attributes) { -%>
-  <%- strict ? toCamelCase(attribute.key) : attribute.key %>: <%- getType(attribute) %>;
+    <%- strict ? toCamelCase(attribute.key) : attribute.key %>: <%- getType(attribute) %>;
 <% } -%>
-}
-
-<% } %>`;
+}<% if (index < collections.length - 1) { %>
+<% } %>
+<% } -%>`;
   }
 
   getFileName(_) {
