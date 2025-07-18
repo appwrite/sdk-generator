@@ -83,8 +83,7 @@ class Dart extends LanguageMeta {
   }
 
   getTemplate() {
-    return `import 'package:${this.getPackageName()}/models.dart';
-<% for (const attribute of collection.attributes) { -%>
+    return `<% for (const attribute of collection.attributes) { -%>
 <% if (attribute.type === 'relationship') { -%>
 import '<%- toSnakeCase(attribute.relatedCollection) %>.dart';
 
