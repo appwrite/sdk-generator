@@ -62,7 +62,7 @@ use Appwrite\\Models\\<%- toPascalCase(attribute.relatedCollection) %>;
 <% if (attribute.format === 'enum') { -%>
 enum <%- toPascalCase(attribute.key) %>: string {
 <% for (const [index, element] of Object.entries(attribute.elements)) { -%>
-  case <%- strict ? toUpperSnakeCase(element) : element %> = '<%- element %>';
+    case <%- strict ? toUpperSnakeCase(element) : element %> = '<%- element %>';
 <% } -%>
 }
 
@@ -70,31 +70,31 @@ enum <%- toPascalCase(attribute.key) %>: string {
 <% } -%>
 class <%- toPascalCase(collection.name) %> {
 <% for (const attribute of collection.attributes ){ -%>
-  private <%- getType(attribute) %> $<%- strict ? toCamelCase(attribute.key) : attribute.key %>;
+    private <%- getType(attribute) %> $<%- strict ? toCamelCase(attribute.key) : attribute.key %>;
 <% } -%>
 
-  public function __construct(
+    public function __construct(
 <% for (const attribute of collection.attributes ){ -%>
 <% if (attribute.required) { -%>
-    <%- getType(attribute).replace('|null', '') %> $<%- strict ? toCamelCase(attribute.key) : attribute.key %><% if (collection.attributes.indexOf(attribute) < collection.attributes.length - 1) { %>,<% } %>
+        <%- getType(attribute).replace('|null', '') %> $<%- strict ? toCamelCase(attribute.key) : attribute.key %><% if (collection.attributes.indexOf(attribute) < collection.attributes.length - 1) { %>,<% } %>
 <% } else { -%>
-    ?<%- getType(attribute).replace('|null', '') %> $<%- strict ? toCamelCase(attribute.key) : attribute.key %> = null<% if (collection.attributes.indexOf(attribute) < collection.attributes.length - 1) { %>,<% } %>
+        ?<%- getType(attribute).replace('|null', '') %> $<%- strict ? toCamelCase(attribute.key) : attribute.key %> = null<% if (collection.attributes.indexOf(attribute) < collection.attributes.length - 1) { %>,<% } %>
 <% } -%>
 <% } -%>
-  ) {
+    ) {
 <% for (const attribute of collection.attributes ){ -%>
-    $this-><%- strict ? toCamelCase(attribute.key) : attribute.key %> = $<%- strict ? toCamelCase(attribute.key) : attribute.key %>;
+        $this-><%- strict ? toCamelCase(attribute.key) : attribute.key %> = $<%- strict ? toCamelCase(attribute.key) : attribute.key %>;
 <% } -%>
-  }
+    }
 
 <% for (const [index, attribute] of Object.entries(collection.attributes)) { -%>
-  public function get<%- toPascalCase(attribute.key) %>(): <%- getType(attribute) %> {
-    return $this-><%- strict ? toCamelCase(attribute.key) : attribute.key %>;
-  }
+    public function get<%- toPascalCase(attribute.key) %>(): <%- getType(attribute) %> {
+        return $this-><%- strict ? toCamelCase(attribute.key) : attribute.key %>;
+    }
 
-  public function set<%- toPascalCase(attribute.key) %>(<%- getType(attribute) %> $<%- strict ? toCamelCase(attribute.key) : attribute.key %>): void {
-    $this-><%- strict ? toCamelCase(attribute.key) : attribute.key %> = $<%- strict ? toCamelCase(attribute.key) : attribute.key %>;
-  }
+    public function set<%- toPascalCase(attribute.key) %>(<%- getType(attribute) %> $<%- strict ? toCamelCase(attribute.key) : attribute.key %>): void {
+        $this-><%- strict ? toCamelCase(attribute.key) : attribute.key %> = $<%- strict ? toCamelCase(attribute.key) : attribute.key %>;
+    }
 <% if (index < collection.attributes.length - 1) { %>
 <% } -%>
 <% } -%>
