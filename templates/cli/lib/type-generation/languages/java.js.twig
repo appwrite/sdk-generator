@@ -63,7 +63,7 @@ public class <%- toPascalCase(collection.name) %> {
 
     public enum <%- toPascalCase(attribute.key) %> {
 <% for (const [index, element] of Object.entries(attribute.elements)) { -%>
-        <%- strict ? toSnakeCase(element) : element %><%- index < attribute.elements.length - 1 ? ',' : ';' %>
+        <%- strict ? toUpperSnakeCase(element) : element %><%- index < attribute.elements.length - 1 ? ',' : ';' %>
 <% } -%>
     }
 
@@ -113,8 +113,8 @@ public class <%- toPascalCase(collection.name) %> {
     @Override
     public String toString() {
         return "<%- toPascalCase(collection.name) %>{" +
-<% for (const attribute of collection.attributes) { -%>
-                "<%= strict ? toCamelCase(attribute.key) : attribute.key %>=" + <%= strict ? toCamelCase(attribute.key) : attribute.key %> +
+<% for (const [index, attribute] of Object.entries(collection.attributes)) { -%>
+                "<%= strict ? toCamelCase(attribute.key) : attribute.key %>=" + <%= strict ? toCamelCase(attribute.key) : attribute.key %> +<% if (index < collection.attributes.length - 1) { %> ", " +<% } %>
 <% } -%>
                 '}';
     }
