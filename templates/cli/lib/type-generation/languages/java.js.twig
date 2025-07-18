@@ -50,7 +50,7 @@ class Java extends LanguageMeta {
  * You can regenerate it by running \`appwrite types -l java ${this.getCurrentDirectory()}\`.
  */
 
-import java.util.*;
+import java.util.Objects;
 <% for (const attribute of collection.attributes) { -%>
 <% if (attribute.type === 'relationship') { -%>
 import io.appwrite.models.<%- toPascalCase(attribute.relatedCollection) %>;
