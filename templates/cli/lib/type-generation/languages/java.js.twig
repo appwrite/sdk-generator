@@ -3,7 +3,7 @@ const { AttributeType } = require('../attribute');
 const { LanguageMeta } = require("./language");
 
 class Java extends LanguageMeta {
-  getType(attribute) {
+  getType(attribute, collections) {
     let type = "";
     switch (attribute.type) {
       case AttributeType.STRING:
@@ -24,7 +24,8 @@ class Java extends LanguageMeta {
         type = "boolean";
         break;
       case AttributeType.RELATIONSHIP:
-        type = LanguageMeta.toPascalCase(attribute.relatedCollection);
+        const relatedCollection = collections.find(c => c.$id === attribute.relatedCollection);
+        type = LanguageMeta.toPascalCase(relatedCollection.name);
         if ((attribute.relationType === 'oneToMany' && attribute.side === 'parent') || (attribute.relationType === 'manyToOne' && attribute.side === 'child') || attribute.relationType === 'manyToMany') {
           type = "List<" + type + ">";
         }
@@ -53,7 +54,7 @@ class Java extends LanguageMeta {
 import java.util.Objects;
 <% for (const attribute of collection.attributes) { -%>
 <% if (attribute.type === 'relationship') { -%>
-import io.appwrite.models.<%- toPascalCase(attribute.relatedCollection) %>;
+import io.appwrite.models.<%- toPascalCase(collections.find(c => c.$id === attribute.relatedCollection).name) %>;
 
 <% } -%>
 <% } -%>
@@ -70,7 +71,7 @@ public class <%- toPascalCase(collection.name) %> {
 <% } -%>
 <% } -%>
 <% for (const attribute of collection.attributes) { -%>
-    private <%- getType(attribute) %> <%- strict ? toCamelCase(attribute.key) : attribute.key %>;
+    private <%- getType(attribute, collections) %> <%- strict ? toCamelCase(attribute.key) : attribute.key %>;
 <% } -%>
 
     public <%- toPascalCase(collection.name) %>() {
@@ -78,7 +79,7 @@ public class <%- toPascalCase(collection.name) %> {
 
     public <%- toPascalCase(collection.name) %>(
 <% for (const [index, attribute] of Object.entries(collection.attributes)) { -%>
-        <%- getType(attribute) %> <%= strict ? toCamelCase(attribute.key) : attribute.key %><%- index < collection.attributes.length - 1 ? ',' : '' %>
+        <%- getType(attribute, collections) %> <%= strict ? toCamelCase(attribute.key) : attribute.key %><%- index < collection.attributes.length - 1 ? ',' : '' %>
 <% } -%>
     ) {
 <% for (const attribute of collection.attributes) { -%>
@@ -87,11 +88,11 @@ public class <%- toPascalCase(collection.name) %> {
     }
 
 <% for (const attribute of collection.attributes) { -%>
-    public <%- getType(attribute) %> get<%- toPascalCase(attribute.key) %>() {
+    public <%- getType(attribute, collections) %> get<%- toPascalCase(attribute.key) %>() {
         return <%= strict ? toCamelCase(attribute.key) : attribute.key %>;
     }
 
-    public void set<%- toPascalCase(attribute.key) %>(<%- getType(attribute) %> <%= strict ? toCamelCase(attribute.key) : attribute.key %>) {
+    public void set<%- toPascalCase(attribute.key) %>(<%- getType(attribute, collections) %> <%= strict ? toCamelCase(attribute.key) : attribute.key %>) {
         this.<%= strict ? toCamelCase(attribute.key) : attribute.key %> = <%= strict ? toCamelCase(attribute.key) : attribute.key %>;
     }
 

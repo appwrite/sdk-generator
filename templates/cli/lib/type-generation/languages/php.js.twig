@@ -55,7 +55,7 @@ namespace Appwrite\\Models;
 
 <% for (const attribute of collection.attributes) { -%>
 <% if (attribute.type === 'relationship' && !(attribute.relationType === 'manyToMany') && !(attribute.relationType === 'oneToMany' && attribute.side === 'parent')) { -%>
-use Appwrite\\Models\\<%- toPascalCase(attribute.relatedCollection) %>;
+use Appwrite\\Models\\<%- toPascalCase(collections.find(c => c.$id === attribute.relatedCollection).name) %>;
 
 <% } -%>
 <% } -%>

@@ -86,7 +86,7 @@ class Dart extends LanguageMeta {
   getTemplate() {
     return `<% for (const attribute of collection.attributes) { -%>
 <% if (attribute.type === 'relationship') { -%>
-import '<%- toSnakeCase(attribute.relatedCollection) %>.dart';
+import '<%- toSnakeCase(collections.find(c => c.$id === attribute.relatedCollection).name) %>.dart';
 
 <% } -%>
 <% } -%>
@@ -153,11 +153,11 @@ map['<%= attribute.key %>']<% if (!attribute.required) { %> ?? null<% } -%>
 <% } -%>
 <% } else if (attribute.type === 'relationship') { -%>
 <% if ((attribute.relationType === 'oneToMany' && attribute.side === 'parent') || (attribute.relationType === 'manyToOne' && attribute.side === 'child') || attribute.relationType === 'manyToMany') { -%>
-(map['<%= attribute.key %>'] as List<dynamic>?)?.map((e) => <%- toPascalCase(attribute.relatedCollection) %>.fromMap(e)).toList()<% if (!attribute.required) { %> ?? []<% } -%>
+(map['<%= attribute.key %>'] as List<dynamic>?)?.map((e) => <%- toPascalCase(collections.find(c => c.$id === attribute.relatedCollection).name) %>.fromMap(e)).toList()<% if (!attribute.required) { %> ?? []<% } -%>
 <% } else { -%>
 <% if (!attribute.required) { -%>
-map['<%= attribute.key %>'] != null ? <%- toPascalCase(attribute.relatedCollection) %>.fromMap(map['<%= attribute.key %>']) : null<% } else { -%>
-<%- toPascalCase(attribute.relatedCollection) %>.fromMap(map['<%= attribute.key %>'])<% } -%>
+map['<%= attribute.key %>'] != null ? <%- toPascalCase(collections.find(c => c.$id === attribute.relatedCollection).name) %>.fromMap(map['<%= attribute.key %>']) : null<% } else { -%>
+<%- toPascalCase(collections.find(c => c.$id === attribute.relatedCollection).name) %>.fromMap(map['<%= attribute.key %>'])<% } -%>
 <% } -%>
 <% } -%><% if (index < collection.attributes.length - 1) { %>,<% } %>
 <% } -%>

@@ -129,6 +129,7 @@ const typesCommand = actionRunner(async (rawOutputDirectory, {language, strict})
   } else {
     for (const collection of collections) {
       const content = templater({
+        collections,
         collection,
         strict,
         path: rawOutputDirectory ?? '',

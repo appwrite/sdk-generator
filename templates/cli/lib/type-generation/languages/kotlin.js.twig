@@ -51,7 +51,7 @@ class Kotlin extends LanguageMeta {
 
 <% for (const attribute of collection.attributes) { -%>
 <% if (attribute.type === 'relationship') { -%>
-import <%- toPascalCase(attribute.relatedCollection) %>
+import <%- toPascalCase(collections.find(c => c.$id === attribute.relatedCollection).name) %>
 
 <% } -%>
 <% } -%>
