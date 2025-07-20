@@ -117,8 +117,9 @@ const typesCommand = actionRunner(async (rawOutputDirectory, {language, strict})
     const content = templater({
       collections,
       strict,
+      path: rawOutputDirectory ?? '',
       ...templateHelpers,
-      getType: meta.getType
+      getType: meta.getType,
     });
 
     const destination = singleFileDestination || path.join(outputDirectory, meta.getFileName());
@@ -130,8 +131,9 @@ const typesCommand = actionRunner(async (rawOutputDirectory, {language, strict})
       const content = templater({
         collection,
         strict,
+        path: rawOutputDirectory ?? '',
         ...templateHelpers,
-        getType: meta.getType
+        getType: meta.getType,
       });
   
       const destination = path.join(outputDirectory, meta.getFileName(collection));
