@@ -3,7 +3,7 @@ const { AttributeType } = require('../attribute');
 const { LanguageMeta } = require("./language");
 
 class Kotlin extends LanguageMeta {
-  getType(attribute) {
+  getType(attribute, collections) {
     let type = "";
     switch (attribute.type) {
       case AttributeType.STRING:
@@ -24,7 +24,8 @@ class Kotlin extends LanguageMeta {
         type = "Boolean";
         break;
       case AttributeType.RELATIONSHIP:
-        type = LanguageMeta.toPascalCase(attribute.relatedCollection);
+        const relatedCollection = collections.find(c => c.$id === attribute.relatedCollection);
+        type = LanguageMeta.toPascalCase(relatedCollection.name);
         if ((attribute.relationType === 'oneToMany' && attribute.side === 'parent') || (attribute.relationType === 'manyToOne' && attribute.side === 'child') || attribute.relationType === 'manyToMany') {
           type = `List<${type}>`;
         }
@@ -71,7 +72,7 @@ enum class <%- toPascalCase(attribute.key) %> {
 <% } -%>
 data class <%- toPascalCase(collection.name) %>(
 <% for (const [index, attribute] of Object.entries(collection.attributes)) { -%>
-    val <%- strict ? toCamelCase(attribute.key) : attribute.key %>: <%- getType(attribute) %><% if (index < collection.attributes.length - 1) { %>,<% } %>
+    val <%- strict ? toCamelCase(attribute.key) : attribute.key %>: <%- getType(attribute, collections) %><% if (index < collection.attributes.length - 1) { %>,<% } %>
 <% } -%>
 )`;
   }

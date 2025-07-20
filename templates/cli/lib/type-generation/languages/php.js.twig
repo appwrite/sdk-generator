@@ -3,7 +3,7 @@ const { AttributeType } = require('../attribute');
 const { LanguageMeta } = require("./language");
 
 class PHP extends LanguageMeta {
-  getType(attribute) {
+  getType(attribute, collections) {
     if (attribute.array) {
       return "array";
     }
@@ -27,7 +27,8 @@ class PHP extends LanguageMeta {
         type = "bool";
         break;
       case AttributeType.RELATIONSHIP:
-        type = LanguageMeta.toPascalCase(attribute.relatedCollection);
+        const relatedCollection = collections.find(c => c.$id === attribute.relatedCollection);
+        type = LanguageMeta.toPascalCase(relatedCollection.name);
         if ((attribute.relationType === 'oneToMany' && attribute.side === 'parent') || (attribute.relationType === 'manyToOne' && attribute.side === 'child') || attribute.relationType === 'manyToMany') {
           type = "array";
         }
@@ -70,15 +71,15 @@ enum <%- toPascalCase(attribute.key) %>: string {
 <% } -%>
 class <%- toPascalCase(collection.name) %> {
 <% for (const attribute of collection.attributes ){ -%>
-    private <%- getType(attribute) %> $<%- strict ? toCamelCase(attribute.key) : attribute.key %>;
+    private <%- getType(attribute, collections) %> $<%- strict ? toCamelCase(attribute.key) : attribute.key %>;
 <% } -%>
 
     public function __construct(
 <% for (const attribute of collection.attributes ){ -%>
 <% if (attribute.required) { -%>
-        <%- getType(attribute).replace('|null', '') %> $<%- strict ? toCamelCase(attribute.key) : attribute.key %><% if (collection.attributes.indexOf(attribute) < collection.attributes.length - 1) { %>,<% } %>
+        <%- getType(attribute, collections).replace('|null', '') %> $<%- strict ? toCamelCase(attribute.key) : attribute.key %><% if (collection.attributes.indexOf(attribute) < collection.attributes.length - 1) { %>,<% } %>
 <% } else { -%>
-        ?<%- getType(attribute).replace('|null', '') %> $<%- strict ? toCamelCase(attribute.key) : attribute.key %> = null<% if (collection.attributes.indexOf(attribute) < collection.attributes.length - 1) { %>,<% } %>
+        ?<%- getType(attribute, collections).replace('|null', '') %> $<%- strict ? toCamelCase(attribute.key) : attribute.key %> = null<% if (collection.attributes.indexOf(attribute) < collection.attributes.length - 1) { %>,<% } %>
 <% } -%>
 <% } -%>
     ) {
@@ -88,11 +89,11 @@ class <%- toPascalCase(collection.name) %> {
     }
 
 <% for (const [index, attribute] of Object.entries(collection.attributes)) { -%>
-    public function get<%- toPascalCase(attribute.key) %>(): <%- getType(attribute) %> {
+    public function get<%- toPascalCase(attribute.key) %>(): <%- getType(attribute, collections) %> {
         return $this-><%- strict ? toCamelCase(attribute.key) : attribute.key %>;
     }
 
-    public function set<%- toPascalCase(attribute.key) %>(<%- getType(attribute) %> $<%- strict ? toCamelCase(attribute.key) : attribute.key %>): void {
+    public function set<%- toPascalCase(attribute.key) %>(<%- getType(attribute, collections) %> $<%- strict ? toCamelCase(attribute.key) : attribute.key %>): void {
         $this-><%- strict ? toCamelCase(attribute.key) : attribute.key %> = $<%- strict ? toCamelCase(attribute.key) : attribute.key %>;
     }
 <% if (index < collection.attributes.length - 1) { %>

@@ -40,7 +40,7 @@ class Dart extends LanguageMeta {
     return 'appwrite';
   }
 
-  getType(attribute) {
+  getType(attribute, collections) {
     let type = "";
     switch (attribute.type) {
       case AttributeType.STRING:
@@ -61,7 +61,8 @@ class Dart extends LanguageMeta {
         type = "bool";
         break;
       case AttributeType.RELATIONSHIP:
-        type = LanguageMeta.toPascalCase(attribute.relatedCollection);
+        const relatedCollection = collections.find(c => c.$id === attribute.relatedCollection);
+        type = LanguageMeta.toPascalCase(relatedCollection.name);
         if ((attribute.relationType === 'oneToMany' && attribute.side === 'parent') || (attribute.relationType === 'manyToOne' && attribute.side === 'child') || attribute.relationType === 'manyToMany') {
           type = `List<${type}>`;
         }
@@ -104,7 +105,7 @@ enum <%- toPascalCase(attribute.key) %> {
 <% } -%>
 class <%= toPascalCase(collection.name) %> {
 <% for (const [index, attribute] of Object.entries(collection.attributes)) { -%>
-  <%- getType(attribute) %> <%= strict ? toCamelCase(attribute.key) : attribute.key %>;
+  <%- getType(attribute, collections) %> <%= strict ? toCamelCase(attribute.key) : attribute.key %>;
 <% } -%>
 
   <%= toPascalCase(collection.name) %>({

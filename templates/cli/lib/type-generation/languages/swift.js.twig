@@ -3,7 +3,7 @@ const { AttributeType } = require('../attribute');
 const { LanguageMeta } = require("./language");
 
 class Swift extends LanguageMeta {
-  getType(attribute) {
+  getType(attribute, collections) {
     let type = "";
     switch (attribute.type) {
       case AttributeType.STRING:
@@ -24,7 +24,8 @@ class Swift extends LanguageMeta {
         type = "Bool";
         break;
       case AttributeType.RELATIONSHIP:
-        type = LanguageMeta.toPascalCase(attribute.relatedCollection);
+        const relatedCollection = collections.find(c => c.$id === attribute.relatedCollection);
+        type = LanguageMeta.toPascalCase(relatedCollection.name);
         if ((attribute.relationType === 'oneToMany' && attribute.side === 'parent') || (attribute.relationType === 'manyToOne' && attribute.side === 'child') || attribute.relationType === 'manyToMany') {
           type = `[${type}]`;
         }
@@ -63,7 +64,7 @@ public enum <%- toPascalCase(attribute.key) %>: String, Codable, CaseIterable {
 <% } -%>
 public class <%- toPascalCase(collection.name) %>: Codable {
 <% for (const attribute of collection.attributes) { -%>
-    public let <%- strict ? toCamelCase(attribute.key) : attribute.key %>: <%- getType(attribute) %>
+    public let <%- strict ? toCamelCase(attribute.key) : attribute.key %>: <%- getType(attribute, collections) %>
 <% } %>
     enum CodingKeys: String, CodingKey {
 <% for (const attribute of collection.attributes) { -%>
@@ -73,7 +74,7 @@ public class <%- toPascalCase(collection.name) %>: Codable {
 
     public init(
 <% for (const [index, attribute] of Object.entries(collection.attributes)) { -%>
-        <%- strict ? toCamelCase(attribute.key) : attribute.key %>: <%- getType(attribute) %><% if (index < collection.attributes.length - 1) { %>,<% } %>
+        <%- strict ? toCamelCase(attribute.key) : attribute.key %>: <%- getType(attribute, collections) %><% if (index < collection.attributes.length - 1) { %>,<% } %>
 <% } -%>
     ) {
 <% for (const attribute of collection.attributes) { -%>
@@ -86,9 +87,9 @@ public class <%- toPascalCase(collection.name) %>: Codable {
 
 <% for (const attribute of collection.attributes) { -%>
 <% if (!(!attribute.required && attribute.default === null)) { -%>
-        self.<%- strict ? toCamelCase(attribute.key) : attribute.key %> = try container.decode(<%- getType(attribute).replace('?', '') %>.self, forKey: .<%- strict ? toCamelCase(attribute.key) : attribute.key %>)
+        self.<%- strict ? toCamelCase(attribute.key) : attribute.key %> = try container.decode(<%- getType(attribute, collections).replace('?', '') %>.self, forKey: .<%- strict ? toCamelCase(attribute.key) : attribute.key %>)
 <% } else { -%>
-        self.<%- strict ? toCamelCase(attribute.key) : attribute.key %> = try container.decodeIfPresent(<%- getType(attribute).replace('?', '') %>.self, forKey: .<%- strict ? toCamelCase(attribute.key) : attribute.key %>)
+        self.<%- strict ? toCamelCase(attribute.key) : attribute.key %> = try container.decodeIfPresent(<%- getType(attribute, collections).replace('?', '') %>.self, forKey: .<%- strict ? toCamelCase(attribute.key) : attribute.key %>)
 <% } -%>
 <% } -%>
     }
