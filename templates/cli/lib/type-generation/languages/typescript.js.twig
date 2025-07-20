@@ -6,7 +6,7 @@ const { AttributeType } = require('../attribute');
 const { LanguageMeta } = require("./language");
 
 class TypeScript extends LanguageMeta {
-  getType(attribute) {
+  getType(attribute, collections) {
     let type = ""
     switch (attribute.type) {
       case AttributeType.STRING:
@@ -29,7 +29,8 @@ class TypeScript extends LanguageMeta {
         type = "boolean";
         break;
       case AttributeType.RELATIONSHIP:
-        type = LanguageMeta.toPascalCase(attribute.relatedCollection);
+        const relatedCollection = collections.find(c => c.$id === attribute.relatedCollection);
+        type = LanguageMeta.toPascalCase(relatedCollection.name);
         if ((attribute.relationType === 'oneToMany' && attribute.side === 'parent') || (attribute.relationType === 'manyToOne' && attribute.side === 'child') || attribute.relationType === 'manyToMany') {
           type = `${type}[]`;
         }
@@ -86,7 +87,7 @@ export enum <%- toPascalCase(attribute.key) %> {
 <% for (const [index, collection] of Object.entries(collections)) { -%>
 export type <%- toPascalCase(collection.name) %> = Models.Document & {
 <% for (const attribute of collection.attributes) { -%>
-    <%- strict ? toCamelCase(attribute.key) : attribute.key %>: <%- getType(attribute) %>;
+    <%- strict ? toCamelCase(attribute.key) : attribute.key %>: <%- getType(attribute, collections) %>;
 <% } -%>
 }<% if (index < collections.length - 1) { %>
 <% } %>
