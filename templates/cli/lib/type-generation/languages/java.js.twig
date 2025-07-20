@@ -55,9 +55,9 @@ import java.util.Objects;
 <% for (const attribute of collection.attributes) { -%>
 <% if (attribute.type === 'relationship') { -%>
 import io.appwrite.models.<%- toPascalCase(collections.find(c => c.$id === attribute.relatedCollection).name) %>;
+<% } -%>
+<% } -%>
 
-<% } -%>
-<% } -%>
 public class <%- toPascalCase(collection.name) %> {
 <% for (const attribute of collection.attributes) { -%>
 <% if (attribute.format === 'enum') { -%>
