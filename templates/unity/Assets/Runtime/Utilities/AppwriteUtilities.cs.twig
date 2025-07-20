@@ -10,8 +10,9 @@ namespace {{ spec.title | caseUcfirst }}.Utilities
     /// </summary>
     public static class {{ spec.title | caseUcfirst }}Utilities
     {
+        #if UNITY_EDITOR
         /// <summary>
-        /// Quick setup for {{ spec.title | caseUcfirst }} in Unity
+        /// Quick setup for {{ spec.title | caseUcfirst }} in Unity (Editor Only)
         /// </summary>
         public static async UniTask<{{ spec.title | caseUcfirst }}Manager> QuickSetup()
         {
@@ -35,6 +36,7 @@ namespace {{ spec.title | caseUcfirst }}.Utilities
             var a =manager.Realtime;
             return manager;
         }
+        #endif
 
         /// <summary>
         /// Run async operation with Unity-safe error handling
