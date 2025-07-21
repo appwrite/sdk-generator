@@ -125,27 +125,39 @@ class Config {
 }
 
 class Local extends Config {
-    static CONFIG_FILE_PATH = "{{ spec.title|caseLower }}.json";
+    static CONFIG_FILE_PATH = "{{ spec.title|caseLower }}.config.json";
+    static CONFIG_FILE_PATH_LEGACY = "{{ spec.title|caseLower }}.json";
     configDirectoryPath = ""
 
-    constructor(path = Local.CONFIG_FILE_PATH) {
+    constructor(path = Local.CONFIG_FILE_PATH, legacyPath = Local.CONFIG_FILE_PATH_LEGACY) {
+        let absolutePath = Local.findConfigFile(path) || Local.findConfigFile(legacyPath);
+        
+        if (!absolutePath) {
+            absolutePath = `${process.cwd()}/${path}`;
+        }
+
+        super(absolutePath);
+        this.configDirectoryPath = _path.dirname(absolutePath);
+    }
+
+    static findConfigFile(filename) {
         let currentPath = process.cwd();
-        let absolutePath = `${currentPath}/${path}`;
 
         while (true) {
-            if (fs.existsSync(`${currentPath}/${path}`)) {
-                absolutePath = `${currentPath}/${path}`;
-                break
-            } else {
-                const parentDirectory = _path.dirname(currentPath);
-                if (parentDirectory === currentPath) { // we hit the top directory
-                    break;
-                }
-                currentPath = parentDirectory
+            const filePath = `${currentPath}/${filename}`;
+            
+            if (fs.existsSync(filePath)) {
+                return filePath;
             }
+            
+            const parentDirectory = _path.dirname(currentPath);
+            if (parentDirectory === currentPath) {
+                break;
+            }
+            currentPath = parentDirectory;
         }
-        super(absolutePath);
-        this.configDirectoryPath =_path.dirname(absolutePath);
+
+        return null;
     }
 
     getDirname() {
