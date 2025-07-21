@@ -37,14 +37,11 @@ try {
         return $result;
     }
 
-    // Leave the platform you want uncommented
-//    $platform = 'client';
-     $platform = 'console';
-    // $platform = 'server';
+    $consoleSpec = getSSLPage("https://raw.githubusercontent.com/appwrite/appwrite/1.7.x/app/config/specs/swagger2-latest-console.json");
+    $clientSpec = getSSLPage("https://raw.githubusercontent.com/appwrite/appwrite/1.7.x/app/config/specs/swagger2-latest-client.json");
+    $serverSpec = getSSLPage("https://raw.githubusercontent.com/appwrite/appwrite/1.7.x/app/config/specs/swagger2-latest-server.json");
 
-    $spec = getSSLPage("https://raw.githubusercontent.com/appwrite/appwrite/1.7.x/app/config/specs/swagger2-latest-{$platform}.json");
-
-    if(empty($spec)) {
+    if (empty($consoleSpec) || empty($clientSpec) || empty($serverSpec)) {
         throw new Exception('Failed to fetch spec from Appwrite server');
     }
 
@@ -53,7 +50,7 @@ try {
     $php
         ->setComposerVendor('appwrite')
         ->setComposerPackage('appwrite');
-    $sdk  = new SDK($php, new Swagger2($spec));
+    $sdk  = new SDK($php, new Swagger2($serverSpec));
 
     $sdk
         ->setName('NAME')
@@ -76,7 +73,7 @@ try {
     $sdk->generate(__DIR__ . '/examples/php');
 
     // // Web
-    $sdk  = new SDK(new Web(), new Swagger2($spec));
+    $sdk  = new SDK(new Web(), new Swagger2($clientSpec));
 
     $sdk
         ->setName('NAME')
@@ -101,7 +98,7 @@ try {
     $sdk->generate(__DIR__ . '/examples/web');
 
     // Deno
-    $sdk  = new SDK(new Deno(), new Swagger2($spec));
+    $sdk  = new SDK(new Deno(), new Swagger2($serverSpec));
 
     $sdk
         ->setName('NAME')
@@ -125,7 +122,7 @@ try {
     $sdk->generate(__DIR__ . '/examples/deno');
 
     // Node
-    $sdk  = new SDK(new Node(), new Swagger2($spec));
+    $sdk  = new SDK(new Node(), new Swagger2($serverSpec));
 
     $sdk
         ->setName('NAME')
@@ -168,7 +165,7 @@ try {
   \_/ \_/ .__/| .__/ \_/\_/ |_|  |_|\__\___| \____/\____/\____/  
         |_|   |_|                                                ");
 
-    $sdk  = new SDK($language, new Swagger2($spec));
+    $sdk  = new SDK($language, new Swagger2($consoleSpec));
 
     $sdk
         ->setName('NAME')
@@ -198,7 +195,7 @@ try {
     $sdk->generate(__DIR__ . '/examples/cli');
 
     // Ruby
-    $sdk  = new SDK(new Ruby(), new Swagger2($spec));
+    $sdk  = new SDK(new Ruby(), new Swagger2($serverSpec));
 
     $sdk
         ->setName('NAME')
@@ -221,7 +218,7 @@ try {
     $sdk->generate(__DIR__ . '/examples/ruby');
 
     // Python
-    $sdk  = new SDK(new Python(), new Swagger2($spec));
+    $sdk  = new SDK(new Python(), new Swagger2($serverSpec));
 
     $sdk
         ->setName('NAME')
@@ -248,7 +245,7 @@ try {
     $dart = new Dart();
     $dart->setPackageName('dart_appwrite');
 
-    $sdk  = new SDK($dart, new Swagger2($spec));
+    $sdk  = new SDK($dart, new Swagger2($serverSpec));
 
     $sdk
         ->setName('NAME')
@@ -275,7 +272,7 @@ try {
     // Flutter
     $flutter = new Flutter();
     $flutter->setPackageName('appwrite');
-    $sdk  = new SDK($flutter, new Swagger2($spec));
+    $sdk  = new SDK($flutter, new Swagger2($clientSpec));
 
     $sdk
         ->setName('NAME')
@@ -302,7 +299,7 @@ try {
     // React Native
     $reactNative = new ReactNative();
     $reactNative->setNPMPackage('react-native-appwrite');
-    $sdk  = new SDK($reactNative, new Swagger2($spec));
+    $sdk  = new SDK($reactNative, new Swagger2($clientSpec));
 
     $sdk
         ->setName('NAME')
@@ -328,7 +325,7 @@ try {
 
     // GO
 
-    $sdk  = new SDK(new Go(), new Swagger2($spec));
+    $sdk  = new SDK(new Go(), new Swagger2($serverSpec));
 
     $sdk
         ->setName('NAME')
@@ -353,7 +350,7 @@ try {
 
 
     // Swift (Server)
-    $sdk  = new SDK(new Swift(), new Swagger2($spec));
+    $sdk  = new SDK(new Swift(), new Swagger2($serverSpec));
 
     $sdk
         ->setName('NAME')
@@ -377,7 +374,7 @@ try {
     $sdk->generate(__DIR__ . '/examples/swift');
 
     // Swift (Client)
-    $sdk  = new SDK(new Apple(), new Swagger2($spec));
+    $sdk  = new SDK(new Apple(), new Swagger2($clientSpec));
 
     $sdk
         ->setName('NAME')
@@ -401,7 +398,7 @@ try {
     $sdk->generate(__DIR__ . '/examples/apple');
 
     // DotNet
-    $sdk  = new SDK(new DotNet(), new Swagger2($spec));
+    $sdk  = new SDK(new DotNet(), new Swagger2($serverSpec));
 
     $sdk
         ->setName('NAME')
@@ -425,7 +422,7 @@ try {
     $sdk->generate(__DIR__ . '/examples/dotnet');
 
     // REST
-    $sdk  = new SDK(new REST(), new Swagger2($spec));
+    $sdk  = new SDK(new REST(), new Swagger2($serverSpec));
 
     $sdk
         ->setName('NAME')
@@ -447,7 +444,7 @@ try {
 
     // Android
 
-    $sdk = new SDK(new Android(), new Swagger2($spec));
+    $sdk = new SDK(new Android(), new Swagger2($clientSpec));
 
     $sdk
         ->setName('Android')
@@ -471,7 +468,7 @@ try {
     $sdk->generate(__DIR__ . '/examples/android');
 
     // Kotlin
-    $sdk = new SDK(new Kotlin(), new Swagger2($spec));
+    $sdk = new SDK(new Kotlin(), new Swagger2($serverSpec));
 
     $sdk
         ->setName('Kotlin')
@@ -495,7 +492,7 @@ try {
     $sdk->generate(__DIR__ . '/examples/kotlin');
 
     // GraphQL
-    $sdk = new SDK(new GraphQL(), new Swagger2($spec));
+    $sdk = new SDK(new GraphQL(), new Swagger2($serverSpec));
 
     $sdk
         ->setName('GraphQL')
