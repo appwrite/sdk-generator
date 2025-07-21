@@ -15,17 +15,30 @@ class {{ definition.name | caseUcfirst | overrideIdentifier }}<T> implements Mod
     {{ definition.name | caseUcfirst | overrideIdentifier}}({% if definition.properties | length or definition.additionalProperties %}{{ '{' }}{% endif %}
 
 {% for property in definition.properties %}
+{% if property.name starts with '_' %}
+        {% if property.required %}required {% endif %}{{_self.sub_schema(property)}}{% if not property.required %}?{% endif %} {{ property.name | slice(1) | escapeKeyword }},
+{% else %}
         {% if property.required %}required {% endif %}this.{{ property.name | escapeKeyword }},
+{% endif %}
 {% endfor %}
 {% if definition.additionalProperties %}
         required this.data,
 {% endif %}
-    {% if definition.properties | length or definition.additionalProperties %}{{ '}' }}{% endif %});
+    {% if definition.properties | length or definition.additionalProperties %}{{ '}' }}{% endif %}){% set hasUnderscoreProps = false %}{% for property in definition.properties %}{% if property.name starts with '_' %}{% set hasUnderscoreProps = true %}{% endif %}{% endfor %}{% if hasUnderscoreProps %} : 
+{% for property in definition.properties %}
+{% if property.name starts with '_' %}
+        {{ property.name | escapeKeyword }} = {{ property.name | slice(1) | escapeKeyword }}{% if not loop.last %},{% endif %}
+
+{% endif %}
+{% endfor %}{% endif %};
 
     factory {{ definition.name | caseUcfirst | overrideIdentifier}}.fromMap(Map<String, dynamic> map, [T Function(Map<String, dynamic>)? fromJson]) {
         return {{ definition.name | caseUcfirst | overrideIdentifier }}(
 {% for property in definition.properties %}
+{% if property.name starts with '_' %}
+            {{ property.name | slice(1) | escapeKeyword }}:{{' '}}{% else %}
             {{ property.name | escapeKeyword }}:{{' '}}
+{% endif %}
             {%- if property.sub_schema -%}
                 {%- if property.type == 'array' -%}
                     List<{{property.sub_schema | caseUcfirst | overrideIdentifier}}<T>>.from(map['{{property.name | escapeDollarSign }}'].map((p) => {{property.sub_schema | caseUcfirst | overrideIdentifier}}.fromMap(p, fromJson)))
@@ -75,6 +88,13 @@ class {{ definition.name | caseUcfirst | overrideIdentifier }}<T> implements Mod
         {{property.name}}.map((d) => d.convertTo<T>(fromJson)).toList();
 {% endif %}
 {% endfor %}
+{% endif %}
+{% endfor %}
+
+    // Public getters for private underscore fields
+{% for property in definition.properties %}
+{% if property.name starts with '_' %}
+    {{_self.sub_schema(property)}}{% if not property.required %}?{% endif %} get {{ property.name | slice(1) | escapeKeyword }} => {{ property.name | escapeKeyword }};
 {% endif %}
 {% endfor %}
 }
