@@ -513,6 +513,59 @@ class Dart extends Language
             new TwigFilter('caseEnumKey', function (string $value) {
                 return $this->toCamelCase($value);
             }),
+            
+            new TwigFilter('hasGenericType', function (?string $model, array $spec) {
+                return $this->hasGenericType($model, $spec);
+            }),
+            new TwigFilter('propertyType', function (array $property, array $spec, string $generic = 'T') {
+                return $this->getPropertyType($property, $spec, $generic);
+            }),
         ];
+    }
+
+    protected function hasGenericType(?string $model, array $spec): bool
+    {
+        if (empty($model) || $model === 'any') {
+            return false;
+        }
+
+        $model = $spec['definitions'][$model];
+
+        if ($model['additionalProperties']) {
+            return true;
+        }
+
+        foreach ($model['properties'] as $property) {
+            if (!\array_key_exists('sub_schema', $property) || !$property['sub_schema']) {
+                continue;
+            }
+
+            return $this->hasGenericType($property['sub_schema'], $spec);
+        }
+
+        return false;
+    }
+
+    protected function getPropertyType(array $property, array $spec, string $generic = 'T'): string
+    {
+        if (\array_key_exists('sub_schema', $property)) {
+            $type = $this->toPascalCase($property['sub_schema']);
+
+            if ($this->hasGenericType($property['sub_schema'], $spec)) {
+                $type .= '<' . $generic . '>';
+            }
+
+            if ($property['type'] === 'array') {
+                $type = 'List<' . $type . '>';
+            }
+        } else {
+            $type = $this->getTypeName($property);
+        }
+
+        if (!$property['required']) {
+            $type .= '?';
+        }
+
+        return $type;
     }
 }

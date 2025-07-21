@@ -504,7 +504,7 @@ class Kotlin extends Language
         return $type;
     }
 
-    protected function hasGenericType(?string $model, array $spec): string
+    protected function hasGenericType(?string $model, array $spec): bool
     {
         if (empty($model) || $model === 'any') {
             return false;

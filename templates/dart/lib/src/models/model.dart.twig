@@ -1,11 +1,11 @@
-{% macro sub_schema(property) %}{% if property.sub_schema %}{% if property.type == 'array' %}List<{{property.sub_schema | caseUcfirst | overrideIdentifier}}<T>>{% else %}{{property.sub_schema | caseUcfirst | overrideIdentifier }}{% endif %}{% else %}{% if property.type == 'object' and property.additionalProperties %}Map<String, dynamic>{% else %}{{property | typeName}}{% endif %}{% endif %}{% endmacro %}
+{% macro sub_schema(property, spec) %}{% if property.sub_schema %}{% if property.type == 'array' %}List<{{property.sub_schema | caseUcfirst | overrideIdentifier}}{% if definition.name | hasGenericType(spec) %}<T>{% endif %}>{% else %}{{property.sub_schema | caseUcfirst | overrideIdentifier }}{% endif %}{% else %}{% if property.type == 'object' and property.additionalProperties %}Map<String, dynamic>{% else %}{{property | typeName}}{% endif %}{% endif %}{% endmacro %}
 part of '../../models.dart';
 
 /// {{ definition.description }}
-class {{ definition.name | caseUcfirst | overrideIdentifier }}<T> implements Model {
+class {{ definition.name | caseUcfirst | overrideIdentifier }}{% if definition.name | hasGenericType(spec) %}<T>{% endif %} implements Model {
 {% for property in definition.properties %}
     /// {{ property.description }}
-    final {% if not property.required %}{{_self.sub_schema(property)}}? {{ property.name | escapeKeyword }}{% else %}{{_self.sub_schema(property)}} {{ property.name | escapeKeyword }}{% endif %};
+    final {% if not property.required %}{{_self.sub_schema(property, spec)}}? {{ property.name | escapeKeyword }}{% else %}{{_self.sub_schema(property, spec)}} {{ property.name | escapeKeyword }}{% endif %};
 
 {% endfor %}
 {%~ if definition.additionalProperties %}
@@ -16,7 +16,7 @@ class {{ definition.name | caseUcfirst | overrideIdentifier }}<T> implements Mod
 
 {% for property in definition.properties %}
 {% if property.name starts with '_' %}
-        {% if property.required %}required {% endif %}{{_self.sub_schema(property)}}{% if not property.required %}?{% endif %} {{ property.name | slice(1) | escapeKeyword }},
+        {% if property.required %}required {% endif %}{{_self.sub_schema(property, spec)}}{% if not property.required %}?{% endif %} {{ property.name | slice(1) | escapeKeyword }},
 {% else %}
         {% if property.required %}required {% endif %}this.{{ property.name | escapeKeyword }},
 {% endif %}
@@ -32,7 +32,7 @@ class {{ definition.name | caseUcfirst | overrideIdentifier }}<T> implements Mod
 {% endif %}
 {% endfor %}{% endif %};
 
-    factory {{ definition.name | caseUcfirst | overrideIdentifier}}.fromMap(Map<String, dynamic> map, [T Function(Map<String, dynamic>)? fromJson]) {
+    factory {{ definition.name | caseUcfirst | overrideIdentifier}}.fromMap(Map<String, dynamic> map{% if definition.name | hasGenericType(spec) %}, [T Function(Map<String, dynamic>)? fromJson]{% endif %}) {
         return {{ definition.name | caseUcfirst | overrideIdentifier }}(
 {% for property in definition.properties %}
 {% if property.name starts with '_' %}
@@ -41,7 +41,7 @@ class {{ definition.name | caseUcfirst | overrideIdentifier }}<T> implements Mod
 {% endif %}
             {%- if property.sub_schema -%}
                 {%- if property.type == 'array' -%}
-                    List<{{property.sub_schema | caseUcfirst | overrideIdentifier}}<T>>.from(map['{{property.name | escapeDollarSign }}'].map((p) => {{property.sub_schema | caseUcfirst | overrideIdentifier}}.fromMap(p, fromJson)))
+                    List<{{property.sub_schema | caseUcfirst | overrideIdentifier}}{% if property.sub_schema | hasGenericType(spec) %}<T>{% endif %}>.from(map['{{property.name | escapeDollarSign }}'].map((p) => {{property.sub_schema | caseUcfirst | overrideIdentifier}}.fromMap(p{% if property.sub_schema | hasGenericType(spec) %}, fromJson{% endif %})))
                 {%- else -%}
                     {{property.sub_schema | caseUcfirst | overrideIdentifier}}.fromMap(map['{{property.name | escapeDollarSign }}'])
                 {%- endif -%}
@@ -93,7 +93,7 @@ class {{ definition.name | caseUcfirst | overrideIdentifier }}<T> implements Mod
 
 {% for property in definition.properties %}
 {% if property.name starts with '_' %}
-    {{_self.sub_schema(property)}}{% if not property.required %}?{% endif %} get {{ property.name | slice(1) | escapeKeyword }} => {{ property.name | escapeKeyword }};
+    {{_self.sub_schema(property, spec)}}{% if not property.required %}?{% endif %} get {{ property.name | slice(1) | escapeKeyword }} => {{ property.name | escapeKeyword }};
 {% endif %}
 {% endfor %}
 }
