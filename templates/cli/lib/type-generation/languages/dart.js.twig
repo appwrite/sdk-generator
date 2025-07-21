@@ -79,10 +79,6 @@ class Dart extends LanguageMeta {
     return type;
   }
 
-  getCurrentDirectory() {
-    return process.cwd();
-  }
-
   getTemplate() {
     return `<% for (const attribute of collection.attributes) { -%>
 <% if (attribute.type === 'relationship') { -%>
