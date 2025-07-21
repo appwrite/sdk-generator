@@ -91,7 +91,6 @@ class {{ definition.name | caseUcfirst | overrideIdentifier }}<T> implements Mod
 {% endif %}
 {% endfor %}
 
-    // Public getters for private underscore fields
 {% for property in definition.properties %}
 {% if property.name starts with '_' %}
     {{_self.sub_schema(property)}}{% if not property.required %}?{% endif %} get {{ property.name | slice(1) | escapeKeyword }} => {{ property.name | escapeKeyword }};
