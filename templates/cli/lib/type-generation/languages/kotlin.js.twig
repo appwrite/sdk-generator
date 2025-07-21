@@ -70,7 +70,8 @@ data class <%- toPascalCase(collection.name) %>(
 <% for (const [index, attribute] of Object.entries(collection.attributes)) { -%>
     val <%- strict ? toCamelCase(attribute.key) : attribute.key %>: <%- getType(attribute, collections) %><% if (index < collection.attributes.length - 1) { %>,<% } %>
 <% } -%>
-)`;
+)
+`;
   }
 
   getFileName(collection) {
