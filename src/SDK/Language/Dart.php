@@ -513,7 +513,7 @@ class Dart extends Language
             new TwigFilter('caseEnumKey', function (string $value) {
                 return $this->toCamelCase($value);
             }),
-            
+
             new TwigFilter('hasGenericType', function (?string $model, array $spec) {
                 return $this->hasGenericType($model, $spec);
             }),
