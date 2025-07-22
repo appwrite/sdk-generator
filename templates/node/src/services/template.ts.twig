@@ -94,5 +94,8 @@ export class {{ service.name | caseUcfirst }} {
         );
         {%~ endif %}
     }
+{%~ if not loop.last %}
+
+{%~ endif %}
     {%~ endfor %}
 }
