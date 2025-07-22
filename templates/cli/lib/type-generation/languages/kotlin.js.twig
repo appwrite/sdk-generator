@@ -25,6 +25,9 @@ class Kotlin extends LanguageMeta {
         break;
       case AttributeType.RELATIONSHIP:
         const relatedCollection = collections.find(c => c.$id === attribute.relatedCollection);
+        if (!relatedCollection) {
+          throw new Error(`Related collection with ID '${attribute.relatedCollection}' not found.`);
+        }
         type = LanguageMeta.toPascalCase(relatedCollection.name);
         if ((attribute.relationType === 'oneToMany' && attribute.side === 'parent') || (attribute.relationType === 'manyToOne' && attribute.side === 'child') || attribute.relationType === 'manyToMany') {
           type = `List<${type}>`;
