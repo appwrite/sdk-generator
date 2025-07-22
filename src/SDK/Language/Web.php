@@ -222,10 +222,10 @@ class Web extends JS
                         return "Partial<Preferences>";
                     case 'document':
                         if ($method['method'] === 'post') {
-                            return "Omit<Document, keyof Models.Document>";
+                            return "Document extends Models.DefaultDocument ? Models.DataWithoutDocumentKeys : Omit<Document, keyof Models.Document>";
                         }
                         if ($method['method'] === 'patch') {
-                            return "Partial<Omit<Document, keyof Models.Document>>";
+                            return "Partial<Document extends Models.DefaultDocument ? Models.DataWithoutDocumentKeys : Omit<Document, keyof Models.Document>>";
                         }
                 }
                 break;
@@ -261,7 +261,7 @@ class Web extends JS
         }
 
         $generics = array_unique($generics);
-        $generics = array_map(fn ($type) => "{$type} extends Models.{$type}", $generics);
+        $generics = array_map(fn ($type) => "{$type} extends Models.{$type} = Models.Default{$type}", $generics);
 
         return '<' . implode(', ', $generics) . '>';
     }
