@@ -57,10 +57,10 @@ class Node extends Web
                         return "Partial<Preferences>";
                     case 'document':
                         if ($method['method'] === 'post') {
-                            return "Omit<Document, keyof Models.Document>";
+                            return "Document extends Models.DefaultDocument ? Models.DataWithoutDocumentKeys : Omit<Document, keyof Models.Document>";
                         }
                         if ($method['method'] === 'patch') {
-                            return "Partial<Omit<Document, keyof Models.Document>>";
+                            return "Partial<Document extends Models.DefaultDocument ? Models.DataWithoutDocumentKeys : Omit<Document, keyof Models.Document>>";
                         }
                 }
                 break;

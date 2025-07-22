@@ -2,7 +2,10 @@
  * {{spec.title | caseUcfirst}} Models
  */
 export namespace Models {
+
+    declare const __default: unique symbol;
 {% for definition in spec.definitions %}
+
     /**
      * {{ definition.description }}
      */
@@ -13,8 +16,19 @@ export namespace Models {
          */
         {{ property.name }}{% if not property.required %}?{% endif %}: {{ property | getSubSchema(spec) | raw }};
 {% endfor %}
-{% if definition.additionalProperties %}        [key: string]: any;
-{% endif %}
     }
+{% if definition.additionalProperties %}
+
+    export type Default{{ definition.name | caseUcfirst }}{{ definition.name | getGenerics(spec, true) | raw }} = {{ definition.name | caseUcfirst }}{{ definition.name | getGenerics(spec, true) | raw }} & {
+        [key: string]: any;
+        [__default]: true;
+    };
+
+    export type DataWithout{{ definition.name | caseUcfirst }}Keys{{ definition.name | getGenerics(spec, true) | raw }} = {
+        [K in string]: any;
+    } & {
+        [K in keyof {{ definition.name | caseUcfirst }}{{ definition.name | getGenerics(spec, true) | raw }}]?: never;
+    };
+{% endif %}
 {% endfor %}
 }

@@ -83,10 +83,9 @@ class Dart extends LanguageMeta {
   }
 
   getTemplate() {
-    return `import 'package:${this.getPackageName()}/models.dart';
-<% for (const attribute of collection.attributes) { -%>
+    return `<% for (const attribute of collection.attributes) { -%>
 <% if (attribute.type === 'relationship') { -%>
-import '<%- attribute.relatedCollection.toLowerCase() %>.dart';
+import '<%- toSnakeCase(attribute.relatedCollection) %>.dart';
 
 <% } -%>
 <% } -%>
@@ -103,19 +102,12 @@ enum <%- toPascalCase(attribute.key) %> {
 
 <% } -%>
 <% } -%>
-class <%= toPascalCase(collection.name) %> extends Document {
+class <%= toPascalCase(collection.name) %> {
 <% for (const [index, attribute] of Object.entries(collection.attributes)) { -%>
   <%- getType(attribute) %> <%= strict ? toCamelCase(attribute.key) : attribute.key %>;
 <% } -%>
 
   <%= toPascalCase(collection.name) %>({
-    required super.$id,
-    required super.$collectionId,
-    required super.$databaseId,
-    required super.$createdAt,
-    required super.$updatedAt,
-    required super.$permissions,
-    required super.data,
   <% for (const [index, attribute] of Object.entries(collection.attributes)) { -%>
   <% if (attribute.required) { %>required <% } %>this.<%= strict ? toCamelCase(attribute.key) : attribute.key %><% if (index < collection.attributes.length - 1) { %>,<% } %>
   <% } -%>
@@ -123,13 +115,6 @@ class <%= toPascalCase(collection.name) %> extends Document {
 
   factory <%= toPascalCase(collection.name) %>.fromMap(Map<String, dynamic> map) {
     return <%= toPascalCase(collection.name) %>(
-      $id: map['\\$id'].toString(),
-      $collectionId: map['\\$collectionId'].toString(),
-      $databaseId: map['\\$databaseId'].toString(),
-      $createdAt: map['\\$createdAt'].toString(),
-      $updatedAt: map['\\$updatedAt'].toString(),
-      $permissions: List<String>.from(map['\\$permissions'] ?? []),
-      data: map,
 <% for (const [index, attribute] of Object.entries(collection.attributes)) { -%>
       <%= strict ? toCamelCase(attribute.key) : attribute.key %>: <% if (attribute.type === 'string' || attribute.type === 'email' || attribute.type === 'datetime') { -%>
 <% if (attribute.format === 'enum') { -%>
@@ -180,12 +165,6 @@ map['<%= attribute.key %>'] != null ? <%- toPascalCase(attribute.relatedCollecti
 
   Map<String, dynamic> toMap() {
     return {
-      "\\$id": $id,
-      "\\$collectionId": $collectionId,
-      "\\$databaseId": $databaseId,
-      "\\$createdAt": $createdAt,
-      "\\$updatedAt": $updatedAt,
-      "\\$permissions": $permissions,
 <% for (const [index, attribute] of Object.entries(collection.attributes)) { -%>
       "<%= attribute.key %>": <% if (attribute.type === 'relationship') { -%>
 <% if ((attribute.relationType === 'oneToMany' && attribute.side === 'parent') || (attribute.relationType === 'manyToOne' && attribute.side === 'child') || attribute.relationType === 'manyToMany') { -%>

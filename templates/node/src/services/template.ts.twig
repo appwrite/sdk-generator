@@ -27,7 +27,7 @@ export class {{ service.name | caseUcfirst }} {
     {%~ for method in service.methods %}
     /**
     {%~ if method.description %}
-     * {{ method.description }}
+     * {{ method.description | replace({'\n': '\n     * '}) }}
     {%~ endif %}
      *
     {%~ for parameter in method.parameters.all %}
@@ -35,6 +35,13 @@ export class {{ service.name | caseUcfirst }} {
     {%~ endfor %}
      * @throws {{ '{' }}{{ spec.title | caseUcfirst}}Exception}
      * @returns {{ '{' }}{{ method | getReturn(spec) | raw }}{{ '}' }}
+    {%~ if method.deprecated %}
+    {%~ if method.since and method.replaceWith %}
+     * @deprecated This API has been deprecated since {{ method.since }}. Please use `{{ method.replaceWith | capitalizeFirst }}` instead.
+    {%~ else %}
+     * @deprecated This API has been deprecated.
+    {%~ endif %}
+    {%~ endif %}
      */
     {{ method.name | caseCamel }}{{ method.responseModel | getGenerics(spec) | raw }}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | getPropertyType(method) | raw }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, onProgress = (progress: UploadProgress) => {}{% endif %}): {{ method | getReturn(spec) | raw }} {
         {%~ for parameter in method.parameters.all %}
@@ -94,5 +101,8 @@ export class {{ service.name | caseUcfirst }} {
         );
         {%~ endif %}
     }
+{%~ if not loop.last %}
+
+{%~ endif %}
     {%~ endfor %}
 }
