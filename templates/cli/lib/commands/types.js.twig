@@ -59,11 +59,10 @@ const typesLanguageOption = new Option(
   .default("auto");
 
 const typesStrictOption = new Option(
-  "-s, --strict <value>",
-  "Disable strict mode to not automatically convert field names to follow language conventions"
+  "-s, --strict",
+  "Enable strict mode to automatically convert field names to follow language conventions"
 )
-  .choices(["true", "false"])
-  .default("true");
+  .default(false);
 
 const typesCommand = actionRunner(async (rawOutputDirectory, {language, strict}) => {
   if (language === "auto") {
@@ -71,11 +70,8 @@ const typesCommand = actionRunner(async (rawOutputDirectory, {language, strict})
     log(`Detected language: ${language}`);
   }
 
-  strict = strict === "true" || strict === true;
   if (strict) {
-    log(`Strict mode enabled: Field names will be converted to follow ${language} conventions`);
-  } else {
-    warn(`Strict mode disabled: Field names will not be converted to follow ${language} conventions`);
+    warn(`Strict mode enabled: Field names will be converted to follow ${language} conventions`);
   }
 
   const meta = createLanguageMeta(language);
@@ -121,7 +117,6 @@ const typesCommand = actionRunner(async (rawOutputDirectory, {language, strict})
     const content = templater({
       collections,
       strict,
-      path: rawOutputDirectory ?? '',
       ...templateHelpers,
       getType: meta.getType,
     });
@@ -136,7 +131,6 @@ const typesCommand = actionRunner(async (rawOutputDirectory, {language, strict})
         collections,
         collection,
         strict,
-        path: rawOutputDirectory ?? '',
         ...templateHelpers,
         getType: meta.getType,
       });
