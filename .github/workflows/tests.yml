@@ -24,6 +24,7 @@ jobs:
           Deno1303,
           DotNet60,
           DotNet80,
+          DotNet90,
           FlutterStable,
           FlutterBeta,
           Go112,

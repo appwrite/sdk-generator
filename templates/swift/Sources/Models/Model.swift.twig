@@ -82,7 +82,7 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
         return {{ definition.name | caseUcfirst }}(
             {%~ for property in definition.properties %}
             {%~ set isDocument = definition.name | lower == 'document' %}{# Temporary Fix until BE is fixed to return all attributes #}
-            {{ property.name | escapeSwiftKeyword | removeDollarSign }}: {% if property.sub_schema -%}
+            {{ property.name | removeDollarSign }}: {% if property.sub_schema -%}
                 {%- if property.type == 'array' -%}
                     (map["{{property.name }}"] as{% if isDocument %}?{% else %}{% if property.required %}!{% else %}?{% endif %}{% endif %} [[String: Any]]{% if isDocument %} ?? []{% elseif not property.required %} ?? []{% endif %}).map { {{property.sub_schema | caseUcfirst}}.from(map: $0) }
                 {%- else -%}

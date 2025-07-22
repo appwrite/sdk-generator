@@ -64,7 +64,7 @@ class {{ definition.name | caseUcfirst | overrideIdentifier }} implements Model 
     }
 {% if definition.additionalProperties %}
 
-    T convertTo<T>(T Function(Map) fromJson) => fromJson(data);
+    T convertTo<T>(T Function(Map<String, dynamic>) fromJson) => fromJson(data);
 {% endif %}
 {% for property in definition.properties %}
 {% if property.sub_schema %}

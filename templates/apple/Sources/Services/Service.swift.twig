@@ -14,11 +14,15 @@ open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
     {{~ method.description | swiftComment }}
     ///
     {%~ endif %}
+    {%~ if method.parameters.all | length > 0 %}
+    /// - Parameters:
+    {%~ endif %}
     {%~ for parameter in method.parameters.all %}
-    /// @param {{ parameter | typeName(spec) | raw}} {{ parameter.name | caseCamel }}
+    ///   - {{ parameter.name | caseCamel }}: {{ parameter | typeName(spec) | raw }}{% if not parameter.required or parameter.nullable %} (optional){% endif %}
+
     {%~ endfor %}
-    /// @throws Exception
-    /// @return array
+    /// - Throws: Exception if the request fails
+    /// - Returns: {{ method | returnType(spec) | raw }}
     ///
     {%~ if method.type == "webAuth" %}
     @available(iOS 14.0, macOS 11.0, tvOS 14.0, watchOS 7.0, *)
@@ -85,11 +89,15 @@ open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
     {{~ method.description | swiftComment }}
     ///
     {%~ endif %}
+    {%~ if method.parameters.all | length > 0 %}
+    /// - Parameters:
+    {%~ endif %}
     {%~ for parameter in method.parameters.all %}
-    /// @param {{ parameter | typeName(spec) | raw}} {{ parameter.name | caseCamel }}
+    ///   - {{ parameter.name | caseCamel }}: {{ parameter | typeName(spec) | raw }}{% if not parameter.required or parameter.nullable %} (optional){% endif %}
+
     {%~ endfor %}
-    /// @throws Exception
-    /// @return array
+    /// - Throws: Exception if the request fails
+    /// - Returns: {{ method | returnType(spec) | raw }}
     ///
     {%~ if method.type == "webAuth" %}
     @available(iOS 14.0, macOS 11.0, tvOS 14.0, watchOS 7.0, *)

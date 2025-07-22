@@ -2,8 +2,8 @@ const fs = require("fs");
 const path = require("path");
 const net = require("net");
 const childProcess = require('child_process');
+const chalk = require('chalk');
 const { localConfig, globalConfig } = require("./config");
-const { success } = require('./parser')
 
 function getAllFiles(folder) {
     const files = [];
@@ -105,8 +105,7 @@ function showConsoleLink(serviceName, action, ...ids) {
             return;
     }
 
-
-    success(url);
+    console.log(`${chalk.green.bold("✓ Success:")} ${chalk.green(url)}`);
 }
 
 function getAccountPath(action) {
