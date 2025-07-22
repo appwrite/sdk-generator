@@ -10,4 +10,15 @@
 
         final res = await client.call(HttpMethod.{{ method.method | caseLower }}, path: apiPath, params: apiParams, headers: apiHeaders);
 
-        return {% if method.responseModel and method.responseModel != 'any' %}models.{{method.responseModel | caseUcfirst | overrideIdentifier}}.fromMap(res.data){% else %} res.data{% endif %};
+{% if method.responseModel and method.responseModel != 'any' %}
+{% set modelName = method.responseModel | caseUcfirst | overrideIdentifier %}
+        {% if modelName == 'Document' %}
+        return models.{{modelName}}.fromMap(res.data, fromJson);
+        {% elseif modelName ends with 'List' %}
+        return models.{{modelName}}.fromMap(res.data, fromJson);
+        {% else %}
+        return models.{{modelName}}.fromMap(res.data);
+        {% endif %}
+{% else %}
+        return res.data;
+{% endif %}
