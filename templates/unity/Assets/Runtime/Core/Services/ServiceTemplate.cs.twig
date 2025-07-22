@@ -27,6 +27,13 @@ namespace {{ spec.title | caseUcfirst }}.Services
         /// </para>
         {%~ endif %}
         /// </summary>
+        {%~ if method.deprecated %}
+        {%~ if method.since and method.replaceWith %}
+        [Obsolete("This API has been deprecated since {{ method.since }}. Please use `{{ method.replaceWith | capitalizeFirst }}` instead.")]
+        {%~ else %}
+        [Obsolete("This API has been deprecated.")]
+        {%~ endif %}
+        {%~ endif %}
         public UniTask{% if method.type == "webAuth" %}<String>{% else %}<{{ utils.resultType(spec.title, method) }}>{% endif %} {{ method.name | caseUcfirst }}({{ utils.method_parameters(method.parameters, method.consumes) }})
         {
             var apiPath = "{{ method.path }}"{% if method.parameters.path | length == 0 %};{% endif %}
