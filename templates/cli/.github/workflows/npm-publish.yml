@@ -41,7 +41,7 @@ jobs:
             npm publish
           fi
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN_NO_ORG }}
       - uses: fnkr/github-action-ghr@v1
         env:
           GHR_PATH: build/

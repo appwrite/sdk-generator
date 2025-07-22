@@ -176,6 +176,7 @@ class Swagger2 extends Spec
             'consumes' => $method['consumes'] ?? [],
             'cookies' => $method['x-appwrite']['cookies'] ?? false,
             'type' => $method['x-appwrite']['type'] ?? false,
+            'deprecated' => $method['deprecated'] ?? false,
             'headers' => [],
             'parameters' => [
                 'all' => [],
@@ -187,6 +188,11 @@ class Swagger2 extends Spec
             'emptyResponse' => $emptyResponse,
             'responseModel' => $responseModel,
         ];
+
+        if ($method['x-appwrite']['deprecated'] ?? false) {
+            $output['since'] = $method['x-appwrite']['deprecated']['since'] ?? '';
+            $output['replaceWith'] = $method['x-appwrite']['deprecated']['replaceWith'] ?? '';
+        }
 
         if ($output['type'] == 'graphql') {
             $output['headers']['x-sdk-graphql'] = "true";
