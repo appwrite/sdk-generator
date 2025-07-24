@@ -32,7 +32,6 @@ namespace AppwriteTests
                 Debug.LogError($"Test failed with exception: {task.Exception}");
                 throw task.Exception;
             }
-            
         }
         
         private async Task RunAsyncTest()
