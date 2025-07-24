@@ -39,11 +39,12 @@ try {
     }
 
     // Leave the platform you want uncommented
-//    $platform = 'client';
-     $platform = 'console';
+    $platform = 'client';
+    // $platform = 'console';
     // $platform = 'server';
 
-    $spec = getSSLPage("https://raw.githubusercontent.com/appwrite/appwrite/deprecate-old-methods/app/config/specs/swagger2-1.8.x-{$platform}.json");
+    $version = '1.8.x';
+    $spec = getSSLPage("https://raw.githubusercontent.com/appwrite/appwrite/{$version}/app/config/specs/swagger2-{$version}-{$platform}.json");
 
     if(empty($spec)) {
         throw new Exception('Failed to fetch spec from Appwrite server');
@@ -101,7 +102,7 @@ try {
 
     $sdk->generate(__DIR__ . '/examples/unity');
 
-    // // Web
+    // Web
     $sdk  = new SDK(new Web(), new Swagger2($spec));
 
     $sdk
@@ -353,7 +354,6 @@ try {
     $sdk->generate(__DIR__ . '/examples/react-native');
 
     // GO
-
     $sdk  = new SDK(new Go(), new Swagger2($spec));
 
     $sdk
@@ -378,7 +378,7 @@ try {
     $sdk->generate(__DIR__ . '/examples/go');
 
 
-    // Swift (Server)
+    // Swift
     $sdk  = new SDK(new Swift(), new Swagger2($spec));
 
     $sdk
@@ -402,7 +402,7 @@ try {
 
     $sdk->generate(__DIR__ . '/examples/swift');
 
-    // Swift (Client)
+    // Apple
     $sdk  = new SDK(new Apple(), new Swagger2($spec));
 
     $sdk
@@ -472,7 +472,6 @@ try {
     $sdk->generate(__DIR__ . '/examples/REST');
 
     // Android
-
     $sdk = new SDK(new Android(), new Swagger2($spec));
 
     $sdk

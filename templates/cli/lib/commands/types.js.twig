@@ -4,7 +4,7 @@ const path = require("path");
 const { LanguageMeta, detectLanguage } = require("../type-generation/languages/language");
 const { Command, Option, Argument } = require("commander");
 const { localConfig } = require("../config");
-const { success, log, actionRunner } = require("../parser");
+const { success, log, warn, actionRunner } = require("../parser");
 const { PHP } = require("../type-generation/languages/php");
 const { TypeScript } = require("../type-generation/languages/typescript");
 const { Kotlin } = require("../type-generation/languages/kotlin");
@@ -71,7 +71,7 @@ const typesCommand = actionRunner(async (rawOutputDirectory, {language, strict})
   }
 
   if (strict) {
-    log(`Strict mode enabled: Field names will be converted to follow ${language} conventions`);
+    warn(`Strict mode enabled: Field names will be converted to follow ${language} conventions`);
   }
 
   const meta = createLanguageMeta(language);
@@ -118,7 +118,7 @@ const typesCommand = actionRunner(async (rawOutputDirectory, {language, strict})
       collections,
       strict,
       ...templateHelpers,
-      getType: meta.getType
+      getType: meta.getType,
     });
 
     const destination = singleFileDestination || path.join(outputDirectory, meta.getFileName());
@@ -128,10 +128,11 @@ const typesCommand = actionRunner(async (rawOutputDirectory, {language, strict})
   } else {
     for (const collection of collections) {
       const content = templater({
+        collections,
         collection,
         strict,
         ...templateHelpers,
-        getType: meta.getType
+        getType: meta.getType,
       });
   
       const destination = path.join(outputDirectory, meta.getFileName(collection));
