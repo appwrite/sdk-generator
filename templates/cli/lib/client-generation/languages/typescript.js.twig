@@ -46,11 +46,11 @@ client
 export const db = {
 <% for (const collection of collections) { -%>
   <%- strict ? toCamelCase(collection.name) : collection.name %>: {
-    create: (data: Omit<<%- toPascalCase(collection.name) %>, keyof Models.Document>) => 
-      databases.createDocument('<%- collection.databaseId %>', '<%- collection.$id %>', 'unique()', data),
+    create: (data: <%- toPascalCase(collection.name) %>) => 
+      databases.createDocument<<%- toPascalCase(collection.name) %>>('<%- collection.databaseId %>', '<%- collection.$id %>', 'unique()', data),
     get: (id: string) => 
       databases.getDocument<<%- toPascalCase(collection.name) %>>('<%- collection.databaseId %>', '<%- collection.$id %>', id),
-    update: (id: string, data: Partial<Omit<<%- toPascalCase(collection.name) %>, keyof Models.Document>>) => 
+    update: (id: string, data: Partial<<%- toPascalCase(collection.name) %>>) => 
       databases.updateDocument<<%- toPascalCase(collection.name) %>>('<%- collection.databaseId %>', '<%- collection.$id %>', id, data),
     delete: (id: string) => 
       databases.deleteDocument('<%- collection.databaseId %>', '<%- collection.$id %>', id),
