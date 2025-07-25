@@ -43,7 +43,6 @@ class {{ service.name | caseUcfirst }}(Service):
             This API has been deprecated.
 {%~ endif %}
 {% endif %}
-
         Parameters
         ----------
         {% for parameter in method.parameters.all %}{{ parameter.name | escapeKeyword | caseSnake }} : {{ parameter | getPropertyType(method) | raw }}
