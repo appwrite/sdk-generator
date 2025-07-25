@@ -233,6 +233,11 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'lib/client-generation/languages/typescript.js',
+                'template'      => 'cli/lib/client-generation/languages/typescript.js.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'lib/questions.js',
                 'template'      => 'cli/lib/questions.js.twig',
             ],
