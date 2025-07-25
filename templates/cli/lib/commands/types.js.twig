@@ -12,6 +12,7 @@ const { Swift } = require("../type-generation/languages/swift");
 const { Java } = require("../type-generation/languages/java");
 const { Dart } = require("../type-generation/languages/dart");
 const { JavaScript } = require("../type-generation/languages/javascript");
+const { TypeScriptClient } = require("../client-generation/languages/typescript");
 
 /**
  * @param {string} language
@@ -64,14 +65,28 @@ const typesStrictOption = new Option(
 )
   .default(false);
 
-const typesCommand = actionRunner(async (rawOutputDirectory, {language, strict}) => {
+const typesIncludeClientOption = new Option(
+  "-c, --include-client",
+  "Generate a Prisma-style client file (TypeScript only)"
+)
+  .default(false);
+
+const typesCommand = actionRunner(async (rawOutputDirectory, {language, strict, includeClient}) => {
   if (language === "auto") {
     language = detectLanguage();
     log(`Detected language: ${language}`);
   }
 
+  if (includeClient && language !== "ts") {
+    throw new Error("Client generation is only supported for TypeScript. Please use --language ts or ensure TypeScript is auto-detected.");
+  }
+
   if (strict) {
     warn(`Strict mode enabled: Field names will be converted to follow ${language} conventions`);
+  }
+
+  if (includeClient) {
+    log("Client generation enabled: Will generate appwrite.db.ts file");
   }
 
   const meta = createLanguageMeta(language);
@@ -97,13 +112,10 @@ const typesCommand = actionRunner(async (rawOutputDirectory, {language, strict})
     fs.mkdirSync(outputDirectory, { recursive: true });
   }
 
-  if (!fs.existsSync("appwrite.json")) {
-    throw new Error("appwrite.json not found in current directory");
-  }
-
   const collections = localConfig.getCollections();
   if (collections.length === 0) {
-    throw new Error("No collections found in appwrite.json");
+    const configFileName = path.basename(localConfig.path);
+    throw new Error(`No collections found in configuration. Make sure ${configFileName} exists and contains collections.`);
   }
 
   log(`Found ${collections.length} collections: ${collections.map(c => c.name).join(", ")}`);
@@ -125,6 +137,24 @@ const typesCommand = actionRunner(async (rawOutputDirectory, {language, strict})
 
     fs.writeFileSync(destination, content);
     log(`Added types to ${destination}`);
+
+    // Generate client file if requested and language is TypeScript
+    if (includeClient && language === "ts") {
+      const clientMeta = new TypeScriptClient();
+      const clientTemplate = ejs.compile(clientMeta.getTemplate());
+      const clientContent = clientTemplate({
+        collections,
+        strict,
+        projectId: localConfig.getProject()['projectId'],
+        endpoint: localConfig.getEndpoint(),
+        ...templateHelpers,
+        typesFileName: meta.getFileName(),
+      });
+
+      const clientDestination = path.join(outputDirectory, clientMeta.getFileName());
+      fs.writeFileSync(clientDestination, clientContent);
+      log(`Added client to ${clientDestination}`);
+    }
   } else {
     for (const collection of collections) {
       const content = templater({
@@ -140,6 +170,11 @@ const typesCommand = actionRunner(async (rawOutputDirectory, {language, strict})
       fs.writeFileSync(destination, content);
       log(`Added types for ${collection.name} to ${destination}`);
     }
+
+    // Client generation for multi-file languages not supported yet
+    if (includeClient) {
+      warn("Client generation for multi-file languages is not yet supported");
+    }
   }
   
   success(`Generated types for all the listed collections`);
@@ -150,6 +185,7 @@ const types = new Command("types")
   .addArgument(typesOutputArgument)
   .addOption(typesLanguageOption)
   .addOption(typesStrictOption)
+  .addOption(typesIncludeClientOption)
   .action(actionRunner(typesCommand));
 
 module.exports = { types };
