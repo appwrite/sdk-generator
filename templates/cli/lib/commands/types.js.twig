@@ -97,13 +97,10 @@ const typesCommand = actionRunner(async (rawOutputDirectory, {language, strict})
     fs.mkdirSync(outputDirectory, { recursive: true });
   }
 
-  if (!fs.existsSync("appwrite.json")) {
-    throw new Error("appwrite.json not found in current directory");
-  }
-
   const collections = localConfig.getCollections();
   if (collections.length === 0) {
-    throw new Error("No collections found in appwrite.json");
+    const configFileName = path.basename(localConfig.path);
+    throw new Error(`No collections found in configuration. Make sure ${configFileName} exists and contains collections.`);
   }
 
   log(`Found ${collections.length} collections: ${collections.map(c => c.name).join(", ")}`);
