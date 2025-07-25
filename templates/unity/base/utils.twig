@@ -1,0 +1,16 @@
+{% macro parameter(parameter) %}
+{% if parameter.name == 'orderType' %}{{ 'OrderType orderType = OrderType.ASC' }}{% else %}
+{{ parameter | typeName }}{% if not parameter.required %}?{% endif %} {{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required %} = null{% endif %}{% endif %}
+{% endmacro %}
+{% macro method_parameters(parameters, consumes) %}
+{% if parameters.all|length > 0 %}{% for parameter in parameters.all | filter((param) => not param.isGlobal)  %}{{ _self.parameter(parameter) }}{% if not loop.last %}{{ ', ' }}{% endif %}{% endfor %}{% if 'multipart/form-data' in consumes %},{% endif %}{% endif %}{% if 'multipart/form-data' in consumes %} Action<UploadProgress>? onProgress = null{% endif %}
+{% endmacro %}
+{% macro map_parameter(parameter) %}
+{% if parameter.name == 'orderType' %}{{ parameter.name | caseCamel ~ '.ToString()'}}{% elseif parameter.isGlobal %}{{ parameter.name | caseUcfirst | escapeKeyword }}{% else %}{{ parameter.name | caseCamel | escapeKeyword }}{% endif %}
+{% endmacro %}
+{% macro methodNeedsSecurityParameters(method) %}
+{% if (method.type == "webAuth" or method.type == "location") and method.auth|length > 0 %}{{ true }}{% else %}{{false}}{% endif %}
+{% endmacro %}
+{% macro resultType(namespace, method) %}
+{% if method.type == "webAuth" %}bool{% elseif method.type == "location" %}byte[]{% elseif not method.responseModel or method.responseModel == 'any' %}object{% else %}Models.{{method.responseModel | caseUcfirst | overrideIdentifier }}{% endif %}
+{% endmacro %}
