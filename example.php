@@ -38,8 +38,8 @@ try {
     }
 
     // Leave the platform you want uncommented
-    // $platform = 'client';
-    $platform = 'console';
+    $platform = 'client';
+    // $platform = 'console';
     // $platform = 'server';
 
     $version = '1.7.x';
