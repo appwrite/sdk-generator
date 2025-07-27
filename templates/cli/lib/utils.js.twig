@@ -60,7 +60,7 @@ function systemHasCommand(command) {
 
 const checkDeployConditions = (localConfig) => {
     if (Object.keys(localConfig.data).length === 0) {
-        throw new Error("No appwrite.json file found in the current directory. Please run this command again in the folder containing your appwrite.json file, or run 'appwrite init project' to link current directory to an Appwrite project.");
+        throw new Error("No appwrite.config.json file found in the current directory. Please run this command again in the folder containing your appwrite.config.json file, or run 'appwrite init project' to link current directory to an Appwrite project.");
     }
 }
 

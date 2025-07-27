@@ -85,7 +85,7 @@ const runFunction = async ({ port, functionId, withVariables, reload, userId } =
     };
 
     drawTable([settings]);
-    log("If you wish to change your local settings, update the appwrite.json file and rerun the 'appwrite run' command.");
+    log("If you wish to change your local settings, update the appwrite.config.json file and rerun the 'appwrite run' command.");
     hint("Permissions, events, CRON and timeouts dont apply when running locally.");
 
     await dockerCleanup(func.$id);
