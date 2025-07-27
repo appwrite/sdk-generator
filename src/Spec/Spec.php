@@ -106,6 +106,13 @@ abstract class Spec extends ArrayObject
     abstract public function getMethods($service);
 
     /**
+     * @param array $method
+     * @param string $service
+     * @return string
+     */
+    abstract public function getTargetNamespace(array $method, string $service);
+
+    /**
      * @return string
      */
     abstract public function getGlobalHeaders();
