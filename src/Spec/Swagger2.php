@@ -349,6 +349,15 @@ class Swagger2 extends Spec
         $duplicatedMethod['x-appwrite']['method'] = $additionalMethod['name'];
         $duplicatedMethod['x-appwrite']['auth'] = $additionalMethod['auth'] ?? [];
 
+        if (isset($additionalMethod['deprecated'])) {
+            $duplicatedMethod['deprecated'] = $additionalMethod['deprecated'];
+            $duplicatedMethod['x-appwrite']['deprecated'] = $additionalMethod['deprecated'];
+        } else {
+            // remove inherited deprecations!
+            unset($duplicatedMethod['deprecated']);
+            unset($duplicatedMethod['x-appwrite']['deprecated']);
+        }
+
         // Update Response
         $responses = $additionalMethod['responses'];
         $convertedResponse = [];
