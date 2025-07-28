@@ -140,18 +140,6 @@ namespace {{ spec.title | caseUcfirst }}
         }
 
         {%~ endfor %}
-        
-        /// <summary>
-        /// Set the current session for authenticated requests
-        /// </summary>
-        /// <param name="session">Session token</param>
-        /// <returns>Client instance for method chaining</returns>
-        public Client SetSession(string session)
-        {
-            _config["session"] = session;
-            AddHeader("X-Appwrite-Session", session);
-            return this;
-        }
 
         /// <summary>
         /// Initialize OAuth2 authentication flow
