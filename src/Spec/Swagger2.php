@@ -302,7 +302,19 @@ class Swagger2 extends Spec
 
         foreach ($paths as $pathName => $path) {
             foreach ($path as $methodName => $method) {
-                if (!(isset($method['tags']) && is_array($method['tags']) && in_array($service, $method['tags']))) {
+                $isCurrentService = isset($method['tags']) && is_array($method['tags']) && in_array($service, $method['tags']);
+
+                if (!$isCurrentService) {
+                    if (!empty($method['x-appwrite']['methods'] ?? [])) {
+                        foreach ($method['x-appwrite']['methods'] as $additionalMethod) {
+                            // has multiple namespaced methods!
+                            $targetNamespace = $this->getTargetNamespace($additionalMethod, $service);
+
+                            if ($targetNamespace === $service) {
+                                $list[] = $this->handleAdditionalMethods($methodName, $pathName, $method, $additionalMethod);
+                            }
+                        }
+                    }
                     continue;
                 }
 
@@ -312,79 +324,112 @@ class Swagger2 extends Spec
                 }
 
                 foreach ($method['x-appwrite']['methods'] as $additionalMethod) {
-                    $duplicatedMethod = $method;
-                    $duplicatedMethod['x-appwrite']['method'] = $additionalMethod['name'];
-                    $duplicatedMethod['x-appwrite']['auth'] = $additionalMethod['auth'] ?? [];
+                    $targetNamespace = $this->getTargetNamespace($additionalMethod, $service);
 
-                    // Update Response
-                    $responses = $additionalMethod['responses'];
-                    $convertedResponse = [];
-
-                    foreach ($responses as $desc) {
-                        $code = $desc['code'];
-                        if (isset($desc['model'])) {
-                            if (\is_array($desc['model'])) {
-                                $convertedResponse[$code] = [
-                                    'schema' => [
-                                        'x-oneOf' => \array_map(fn($model) => [
-                                            '$ref' => $model,
-                                        ], $desc['model']),
-                                    ],
-                                ];
-                                continue;
-                            }
-
-                            $convertedResponse[$code] = [
-                                'schema' => [
-                                    '$ref' => $desc['model'],
-                                ],
-                            ];
-                        }
+                    if ($targetNamespace === $service) {
+                        $list[] = $this->handleAdditionalMethods($methodName, $pathName, $method, $additionalMethod);
                     }
-
-                    $duplicatedMethod['responses'] = $convertedResponse;
-
-                    // Remove non-whitelisted parameters on body parameters, also set required.
-                    $handleParams = function (&$params) use ($additionalMethod) {
-                        if (isset($additionalMethod['parameters'])) {
-                            foreach ($params as $key => $param) {
-                                if (empty($param['in']) || $param['in'] !== 'body' || empty($param['schema']['properties'])) {
-                                    continue;
-                                }
-
-                                $whitelistedParams = $additionalMethod['parameters'] ?? [];
-
-                                foreach ($param['schema']['properties'] as $paramName => $value) {
-                                    if (!in_array($paramName, $whitelistedParams)) {
-                                        unset($param['schema']['properties'][$paramName]);
-                                    }
-                                }
-
-                                $param['schema']['required'] = $additionalMethod['required'] ?? [];
-                                $params[$key] = $param;
-                            }
-                        }
-
-                        return;
-                    };
-
-                    $handleParams($duplicatedMethod['parameters']);
-
-                    // Overwrite description and name if method has one
-                    if (!empty($additionalMethod['name'])) {
-                        $duplicatedMethod['summary'] = $additionalMethod['name'];
-                    }
-
-                    if (!empty($additionalMethod['description'])) {
-                        $duplicatedMethod['description'] = $additionalMethod['description'];
-                    }
-
-                    $list[] = $this->parseMethod($methodName, $pathName, $duplicatedMethod);
                 }
             }
         }
 
         return $list;
+    }
+
+    /**
+     * @param $methodName
+     * @param $pathName
+     * @param $method
+     * @param $additionalMethod
+     * @return array
+     */
+    private function handleAdditionalMethods($methodName, $pathName, $method, $additionalMethod): array
+    {
+        $duplicatedMethod = $method;
+        $duplicatedMethod['x-appwrite']['method'] = $additionalMethod['name'];
+        $duplicatedMethod['x-appwrite']['auth'] = $additionalMethod['auth'] ?? [];
+
+        if (isset($additionalMethod['deprecated'])) {
+            $duplicatedMethod['deprecated'] = $additionalMethod['deprecated'];
+            $duplicatedMethod['x-appwrite']['deprecated'] = $additionalMethod['deprecated'];
+        } else {
+            // remove inherited deprecations!
+            unset($duplicatedMethod['deprecated']);
+            unset($duplicatedMethod['x-appwrite']['deprecated']);
+        }
+
+        // Update Response
+        $responses = $additionalMethod['responses'];
+        $convertedResponse = [];
+
+        foreach ($responses as $desc) {
+            $code = $desc['code'];
+            if (isset($desc['model'])) {
+                if (\is_array($desc['model'])) {
+                    $convertedResponse[$code] = [
+                        'schema' => [
+                            'x-oneOf' => \array_map(fn($model) => [
+                                '$ref' => $model,
+                            ], $desc['model']),
+                        ],
+                    ];
+                    continue;
+                }
+
+                $convertedResponse[$code] = [
+                    'schema' => [
+                        '$ref' => $desc['model'],
+                    ],
+                ];
+            }
+        }
+
+        $duplicatedMethod['responses'] = $convertedResponse;
+
+        // Remove non-whitelisted parameters on body parameters, also set required.
+        $handleParams = function (&$params) use ($additionalMethod) {
+            if (isset($additionalMethod['parameters'])) {
+                foreach ($params as $key => $param) {
+                    if (empty($param['in']) || $param['in'] !== 'body' || empty($param['schema']['properties'])) {
+                        continue;
+                    }
+
+                    $whitelistedParams = $additionalMethod['parameters'];
+
+                    foreach ($param['schema']['properties'] as $paramName => $value) {
+                        if (!in_array($paramName, $whitelistedParams)) {
+                            unset($param['schema']['properties'][$paramName]);
+                        }
+                    }
+
+                    $param['schema']['required'] = $additionalMethod['required'] ?? [];
+                    $params[$key] = $param;
+                }
+            }
+        };
+
+        $handleParams($duplicatedMethod['parameters']);
+
+        // Overwrite description and name if method has one
+        if (!empty($additionalMethod['name'])) {
+            $duplicatedMethod['summary'] = $additionalMethod['name'];
+        }
+
+        if (!empty($additionalMethod['description'])) {
+            $duplicatedMethod['description'] = $additionalMethod['description'];
+        }
+
+        return $this->parseMethod($methodName, $pathName, $duplicatedMethod);
+    }
+
+    /**
+     * @param array $method
+     * @param string $service
+     * @return string
+     */
+    public function getTargetNamespace(array $method, string $service): string
+    {
+        return $method['namespace'] ?? $service;
     }
 
     /**
