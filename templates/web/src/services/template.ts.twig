@@ -69,7 +69,7 @@ export class {{ service.name | caseUcfirst }} {
         } else {
             params = {
                 {%~ for parameter in method.parameters.all %}
-                {{ parameter.name | caseCamel | escapeKeyword }}: {% if loop.index0 == 0 %}paramsOrFirst{% else %}rest[{{ loop.index0 - 1 }}]{% endif %} as {{ parameter | getPropertyType(method) | raw }}{% if not loop.last %},
+                {{ parameter.name | caseCamel | escapeKeyword }}: {% if loop.index0 == 0 %}paramsOrFirst{% else %}rest[{{ loop.index0 - 1 }}]{% endif %} as {{ parameter | getPropertyType(method) | raw }}{% if not parameter.required or parameter.nullable %} | undefined{% endif %}{% if not loop.last %},
 {% endif %}
                 {%~ endfor %}
             
@@ -82,6 +82,7 @@ export class {{ service.name | caseUcfirst }} {
         {%~ for parameter in method.parameters.all %}
         const {{ parameter.name | caseCamel | escapeKeyword }} = params.{{ parameter.name | caseCamel | escapeKeyword }};
         {%~ endfor %}
+
         {%~ else %}
         {%~ if 'multipart/form-data' in method.consumes %}
         if (typeof paramsOrFirst === 'function') {
