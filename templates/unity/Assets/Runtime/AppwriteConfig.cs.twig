@@ -56,9 +56,9 @@ namespace {{ spec.title | caseUcfirst }}
         [SerializeField] private {{ spec.title | caseUcfirst }}Service servicesToInitialize = {{ spec.title | caseUcfirst }}Service.All;
         
         [Header("Advanced Settings")]
-        [Tooltip("API key (optional). WARNING: Storing API keys in ScriptableObjects is a security risk. Do not expose this in public repositories. Consider loading from a secure location at runtime for production builds.")]
-        [SerializeField] private string apiKey = "";
-        
+        [Tooltip("Dev key (optional). Dev keys allow bypassing rate limits and CORS errors in your development environment. WARNING: Storing dev keys in ScriptableObjects is a security risk. Do not expose this in public repositories. Consider loading from a secure location at runtime for production builds.")]
+        [SerializeField] private string devKey = "";
+
         [Tooltip("Automatically connect to {{ spec.title | caseUcfirst }} on start")]
         [SerializeField] private bool autoConnect;
 
@@ -66,7 +66,7 @@ namespace {{ spec.title | caseUcfirst }}
         public string RealtimeEndpoint => realtimeEndpoint;
         public bool SelfSigned => selfSigned;
         public string ProjectId => projectId;
-        public string ApiKey => apiKey;
+        public string DevKey => devKey;
         public bool AutoConnect => autoConnect;
         public {{ spec.title | caseUcfirst }}Service ServicesToInitialize => servicesToInitialize;
 
@@ -81,8 +81,8 @@ namespace {{ spec.title | caseUcfirst }}
             if (string.IsNullOrEmpty(projectId))
                 Debug.LogWarning("{{ spec.title | caseUcfirst }}Config: Project ID is required");
 
-            if (!string.IsNullOrEmpty(apiKey))
-                Debug.LogWarning("{{ spec.title | caseUcfirst }}Config: API Key is set. For security, avoid storing keys directly in assets for production builds.");
+            if (!string.IsNullOrEmpty(devKey))
+                Debug.LogWarning("{{ spec.title | caseUcfirst }}Config: Dev Key is set. For security, avoid storing keys directly in assets for production builds.");
         }
         
         
@@ -99,8 +99,8 @@ namespace {{ spec.title | caseUcfirst }}
                 
             client.SetSelfSigned(selfSigned);
             
-            if (!string.IsNullOrEmpty(apiKey))
-                client.SetKey(apiKey);
+            if (!string.IsNullOrEmpty(devKey))
+                client.SetDevKey(devKey);
         }
 
         #if UNITY_EDITOR

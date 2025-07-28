@@ -91,21 +91,21 @@ namespace Samples.{{ spec.title | caseUcfirst }}Example
                 var client = new Client()
                     .SetEndpoint(config.Endpoint)
                     .SetProject(config.ProjectId);
-                    
-                if (!string.IsNullOrEmpty(config.ApiKey))
-                    client.SetKey(config.ApiKey);
-                    
+
+                if (!string.IsNullOrEmpty(config.DevKey))
+                    client.SetDevKey(config.DevKey);
+
                 if (!string.IsNullOrEmpty(config.RealtimeEndpoint))
                     client.SetEndPointRealtime(config.RealtimeEndpoint);
-                
+
                 // Test connection
                 var pingResult = await client.Ping();
                 Debug.Log($"Direct client ping: {pingResult}");
-                
+
                 // Create services manually
                 // var account = new Account(client);
                 // var databases = new Databases(client);
-                
+
                 // Realtime example
                 // You need to create a Realtime instance manually or attach dependently
                 // realtime.Initialize(client);
@@ -116,7 +116,7 @@ namespace Samples.{{ spec.title | caseUcfirst }}Example
                 //         Debug.Log($"Realtime event: {response.Events[0]}");
                 //     }
                 // );
-                
+
                 Debug.Log("Direct client example completed successfully");
             }
             catch (System.Exception ex)
