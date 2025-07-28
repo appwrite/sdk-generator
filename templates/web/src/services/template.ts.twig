@@ -32,7 +32,7 @@ export class {{ service.name | caseUcfirst }} {
     {%~ endif %}
      *
     {%~ for parameter in method.parameters.all %}
-     * @param {{ '{' }}{{ parameter | getPropertyType(method) | raw }}{{ '}' }} {{ parameter.name | caseCamel | escapeKeyword }}
+     * @param {{ '{' }}{{ parameter | getPropertyType(method) | raw }}{{ '}' }} {{ parameter.name | caseCamel | escapeKeyword }} - {{ parameter.description }}
     {%~ endfor %}
      * @throws {{ '{' }}{{ spec.title | caseUcfirst}}Exception}
      * @returns {{ '{' }}{{ method | getReturn(spec) | raw }}{{ '}' }}
