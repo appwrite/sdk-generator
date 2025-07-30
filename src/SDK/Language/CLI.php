@@ -137,8 +137,8 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'scoop/appwrite.json',
-                'template'      => 'cli/scoop/appwrite.json.twig',
+                'destination'   => 'scoop/appwrite.config.json',
+                'template'      => 'cli/scoop/appwrite.config.json.twig',
                 'minify'        => false,
             ],
             [

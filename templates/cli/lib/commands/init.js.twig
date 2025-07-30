@@ -117,7 +117,7 @@ const initProject = async ({ organizationId, projectId, projectName } = {}) => {
         }
     }
 
-    success(`Project successfully ${answers.start === 'existing' ? 'linked' : 'created'}. Details are now stored in appwrite.json file.`);
+    success(`Project successfully ${answers.start === 'existing' ? 'linked' : 'created'}. Details are now stored in appwrite.config.json file.`);
 
     if(answers.start === 'existing') {
         answers = await inquirer.prompt(questionsInitProjectAutopull);

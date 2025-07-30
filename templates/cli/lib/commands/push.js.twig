@@ -792,7 +792,7 @@ const generateChangesObject = (attribute, collection, isAdding) => {
     return {
         key: `${chalk.yellow(attribute.key)} in ${collection.name} (${collection['$id']})`,
         attribute: attribute,
-        reason: isAdding ? 'Field isn\'t present on the remote server' : 'Field isn\'t present on the appwrite.json file',
+        reason: isAdding ? 'Field isn\'t present on the remote server' : 'Field isn\'t present on the appwrite.config.json file',
         action: isAdding ? chalk.green('adding') : chalk.red('deleting')
     };
 
@@ -1094,7 +1094,7 @@ const pushSite = async({ siteId, async, code, withVariables } = { returnOnZero: 
     await Promise.all(sites.map(async (site) => {
         let response = {};
 
-        const ignore = site.ignore ? 'appwrite.json' : '.gitignore';
+        const ignore = site.ignore ? 'appwrite.config.json' : '.gitignore';
         let siteExists = false;
         let deploymentCreated = false;
 
@@ -1109,7 +1109,7 @@ const pushSite = async({ siteId, async, code, withVariables } = { returnOnZero: 
             });
             siteExists = true;
             if (response.framework !== site.framework) {
-                updaterRow.fail({ errorMessage: `Framework mismatch! (local=${site.framework},remote=${response.framework}) Please delete remote site or update your appwrite.json` })
+                updaterRow.fail({ errorMessage: `Framework mismatch! (local=${site.framework},remote=${response.framework}) Please delete remote site or update your appwrite.config.json` })
                 return;
             }
 
@@ -1417,7 +1417,7 @@ const pushFunction = async ({ functionId, async, code, withVariables } = { retur
     await Promise.all(functions.map(async (func) => {
         let response = {};
 
-        const ignore = func.ignore ? 'appwrite.json' : '.gitignore';
+        const ignore = func.ignore ? 'appwrite.config.json' : '.gitignore';
         let functionExists = false;
         let deploymentCreated = false;
 
@@ -1431,7 +1431,7 @@ const pushFunction = async ({ functionId, async, code, withVariables } = { retur
             });
             functionExists = true;
             if (response.runtime !== func.runtime) {
-                updaterRow.fail({ errorMessage: `Runtime mismatch! (local=${func.runtime},remote=${response.runtime}) Please delete remote function or update your appwrite.json` })
+                updaterRow.fail({ errorMessage: `Runtime mismatch! (local=${func.runtime},remote=${response.runtime}) Please delete remote function or update your appwrite.config.json` })
                 return;
             }
 
