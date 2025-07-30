@@ -1209,7 +1209,7 @@ const pushSite = async({ siteId, async, code, withVariables } = { returnOnZero: 
                 });
             }));
 
-            const envFileLocation = `${site['path']}/.env`;
+            const envFileLocation = path.join(site['path'], '.env');
             let envVariables = [];
             try {
                 if (fs.existsSync(envFileLocation)) {
@@ -1530,7 +1530,7 @@ const pushFunction = async ({ functionId, async, code, withVariables } = { retur
                 });
             }));
 
-            const envFileLocation = `${func['path']}/.env`;
+            const envFileLocation = path.join(func['path'], '.env');
             let envVariables = [];
             try {
                 if (fs.existsSync(envFileLocation)) {
