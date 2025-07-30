@@ -308,7 +308,7 @@ class Swagger2 extends Spec
                     if (!empty($method['x-appwrite']['methods'] ?? [])) {
                         foreach ($method['x-appwrite']['methods'] as $additionalMethod) {
                             // has multiple namespaced methods!
-                            $targetNamespace = $this->getTargetNamespace($additionalMethod, $service);
+                            $targetNamespace = $additionalMethod['namespace'] ?? null;
 
                             if ($targetNamespace === $service) {
                                 $list[] = $this->handleAdditionalMethods($methodName, $pathName, $method, $additionalMethod);
