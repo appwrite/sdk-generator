@@ -30,6 +30,42 @@ async function start() {
     response = await foo.delete('string', 123, ['string in array']);
     console.log(response.result);
 
+    // Foo (Object params)
+    response = await foo.get({
+        x: 'string',
+        y: 123,
+        z: ['string in array']
+    });
+    console.log(response.result);
+
+    response = await foo.post({
+        x: 'string',
+        y: 123,
+        z: ['string in array']
+    });
+    console.log(response.result);
+
+    response = await foo.put({
+        x: 'string',
+        y: 123,
+        z: ['string in array']
+    });
+    console.log(response.result);
+
+    response = await foo.patch({
+        x: 'string',
+        y: 123,
+        z: ['string in array']
+    });
+    console.log(response.result);
+
+    response = await foo.delete({
+        x: 'string',
+        y: 123,
+        z: ['string in array']
+    });
+    console.log(response.result);
+
     // Bar
     response = await bar.get('string', 123, ['string in array']);
     console.log(response.result);
@@ -44,6 +80,42 @@ async function start() {
     console.log(response.result);
 
     response = await bar.delete('string', 123, ['string in array']);
+    console.log(response.result);
+
+    // Bar (Object params)
+    response = await bar.get({
+        required: 'string',
+        xdefault: 123,
+        z: ['string in array']
+    });
+    console.log(response.result);
+
+    response = await bar.post({
+        required: 'string',
+        xdefault: 123,
+        z: ['string in array']
+    });
+    console.log(response.result);
+
+    response = await bar.put({
+        required: 'string',
+        xdefault: 123,
+        z: ['string in array']
+    });
+    console.log(response.result);
+
+    response = await bar.patch({
+        required: 'string',
+        xdefault: 123,
+        z: ['string in array']
+    });
+    console.log(response.result);
+
+    response = await bar.delete({
+        required: 'string',
+        xdefault: 123,
+        z: ['string in array']
+    });
     console.log(response.result);
 
     // General
