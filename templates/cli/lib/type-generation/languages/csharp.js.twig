@@ -120,21 +120,21 @@ public class <%= toPascalCase(collection.name) %>
                 if (attribute.array) {
                     -%> (map["<%- attribute.key %>"] as IEnumerable<object>)<%- !attribute.required ? '?' : '' %>.Select(e => Convert.ToInt32(e)).ToList()<%
                 } else {
-                    -%> map["<%- attribute.key %>"] != null ? Convert.ToInt32(map["<%- attribute.key %>"]) : (<%- attribute.required ? '0' : 'null' %>)<%
+                    -%> map["<%- attribute.key %>"] != null ? Convert.ToInt32(map["<%- attribute.key %>"]) : <% if (attribute.required) { %>throw new ArgumentNullException("<%- attribute.key %>", "Required attribute '<%- attribute.key %>' was null.")<% } else { %>null<% } %><%
                 }
             // FLOAT
-            } else if (attribute.type === 'float') {
+            } else if (attribute.type === 'double') {
                 if (attribute.array) {
                     -%> (map["<%- attribute.key %>"] as IEnumerable<object>)<%- !attribute.required ? '?' : '' %>.Select(e => Convert.ToDouble(e)).ToList()<%
                 } else {
-                    -%> map["<%- attribute.key %>"] != null ? Convert.ToDouble(map["<%- attribute.key %>"]) : (<%- attribute.required ? '0.0' : 'null' %>)<%
+                    -%> map["<%- attribute.key %>"] != null ? Convert.ToDouble(map["<%- attribute.key %>"]) : <% if (attribute.required) { %>throw new ArgumentNullException("<%- attribute.key %>", "Required attribute '<%- attribute.key %>' was null.")<% } else { %>null<% } %><%
                 }
             // BOOLEAN
             } else if (attribute.type === 'boolean') {
                 if (attribute.array) {
                     -%> (map["<%- attribute.key %>"] as IEnumerable<object>)<%- !attribute.required ? '?' : '' %>.Select(e => Convert.ToBoolean(e)).ToList()<%
                 } else {
-                    -%> map["<%- attribute.key %>"] != null ? Convert.ToBoolean(map["<%- attribute.key %>"]) : (<%- attribute.required ? 'false' : 'null' %>)<%
+                    -%> map["<%- attribute.key %>"] != null ? Convert.ToBoolean(map["<%- attribute.key %>"]) : <% if (attribute.required) { %>throw new ArgumentNullException("<%- attribute.key %>", "Required attribute '<%- attribute.key %>' was null.")<% } else { %>null<% } %><%
                 }
             // STRING, DATETIME, EMAIL
             } else if (attribute.type === 'string' || attribute.type === 'datetime' || attribute.type === 'email') {
