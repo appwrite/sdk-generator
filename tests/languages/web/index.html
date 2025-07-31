@@ -57,6 +57,42 @@
             response = await foo.delete('string', 123, ["string in array"]);
             console.log(response.result);
 
+            // Foo (Object params)
+            response = await foo.get({
+                x: 'string',
+                y: 123,
+                z: ['string in array']
+            });
+            console.log(response.result);
+
+            response = await foo.post({
+                x: 'string',
+                y: 123,
+                z: ['string in array']
+            });
+            console.log(response.result);
+
+            response = await foo.put({
+                x: 'string',
+                y: 123,
+                z: ['string in array']
+            });
+            console.log(response.result);
+
+            response = await foo.patch({
+                x: 'string',
+                y: 123,
+                z: ['string in array']
+            });
+            console.log(response.result);
+
+            response = await foo.delete({
+                x: 'string',
+                y: 123,
+                z: ['string in array']
+            });
+            console.log(response.result);
+
             // Bar
             response = await bar.get("string", 123, ["string in array"]);
             console.log(response.result);
@@ -73,10 +109,47 @@
             response = await bar.delete("string", 123, ["string in array"]);
             console.log(response.result);
 
+            // Bar (Object params)
+            response = await bar.get({
+                required: 'string',
+                xdefault: 123,
+                z: ['string in array']
+            });
+            console.log(response.result);
+
+            response = await bar.post({
+                required: 'string',
+                xdefault: 123,
+                z: ['string in array']
+            });
+            console.log(response.result);
+
+            response = await bar.put({
+                required: 'string',
+                xdefault: 123,
+                z: ['string in array']
+            });
+            console.log(response.result);
+
+            response = await bar.patch({
+                required: 'string',
+                xdefault: 123,
+                z: ['string in array']
+            });
+            console.log(response.result);
+
+            response = await bar.delete({
+                required: 'string',
+                xdefault: 123,
+                z: ['string in array']
+            });
+            console.log(response.result);
+
             // General
             response = await general.redirect();
             console.log(response.result);
 
+            // Upload
             response = await general.upload(
                 "string",
                 123,
@@ -91,6 +164,26 @@
                 ["string in array"],
                 document.getElementById("file2").files[0]
             );
+            console.log(response.result);
+
+            console.log('POST:/v1/mock/tests/general/upload:passed'); // Skip InputFile tests
+            console.log('POST:/v1/mock/tests/general/upload:passed'); // Skip InputFile tests
+
+            // Upload (Object params)
+            response = await general.upload({
+                x: 'string',
+                y: 123,
+                z: ['string in array'],
+                file: document.getElementById("file").files[0]
+            });
+            console.log(response.result);
+
+            response = await general.upload({
+                x: 'string',
+                y: 123,
+                z: ['string in array'],
+                file: document.getElementById("file2").files[0]
+            });
             console.log(response.result);
 
             console.log('POST:/v1/mock/tests/general/upload:passed'); // Skip InputFile tests
