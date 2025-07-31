@@ -149,6 +149,7 @@
             response = await general.redirect();
             console.log(response.result);
 
+            // Upload
             response = await general.upload(
                 "string",
                 123,
@@ -157,7 +158,6 @@
             );
             console.log(response.result);
 
-            // Upload
             response = await general.upload(
                 "string",
                 123,
@@ -175,6 +175,14 @@
                 y: 123,
                 z: ['string in array'],
                 file: document.getElementById("file").files[0]
+            });
+            console.log(response.result);
+
+            response = await general.upload({
+                x: 'string',
+                y: 123,
+                z: ['string in array'],
+                file: document.getElementById("file2").files[0]
             });
             console.log(response.result);
 
