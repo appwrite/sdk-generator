@@ -8,27 +8,23 @@ namespace {{ spec.title | caseUcfirst }}
     public enum {{ spec.title | caseUcfirst }}Service
     {
         None = 0,
+        [Tooltip("Selects all main services: Account, Databases, Functions, Storage")]
+        Main = (1 << 4) - 1, // 0-3
+        [Tooltip("Selects all other services: Avatars, GraphQL, Locale, Messaging, Teams")]
+        Others = (1 << 9) - 1 ^ (1 << 4) - 1, // 4-8
         Account = 1 << 0,
         Databases = 1 << 1,
-        Storage = 1 << 2,
-        Functions = 1 << 3,
-        Messaging = 1 << 4,
-        Sites = 1 << 5,
+        Functions = 1 << 2,
+        Storage = 1 << 3,
+        Avatars = 1 << 4,
+        Graphql = 1 << 5,
         Locale = 1 << 6,
-        Avatars = 1 << 7,
-        Health = 1 << 8,
-        Migrations = 1 << 9,
-        Tokens = 1 << 10,
-        Teams = 1 << 11,
-        Users = 1 << 12,
-        [Tooltip("Selects all main services: Account, Databases, Storage, Functions, Messaging, Sites")]
-        Main = (1 << 6) - 1, // 0-5
-        [Tooltip("Selects all other services: Locale, Avatars, Health, Migrations, Tokens, Teams, Users")]
-        Others = (1 << 13) - 1 ^ (1 << 6) - 1, // 6-12
+        Messaging = 1 << 7,
+        Teams = 1 << 8,
 
         [Tooltip("Selects all available services.")]
         All = ~0
-        
+
     }
 
     /// <summary>
@@ -42,7 +38,7 @@ namespace {{ spec.title | caseUcfirst }}
         [SerializeField] private string endpoint = "https://cloud.{{ spec.title | caseUcfirst }}.io/v1";
         
         [Tooltip("WebSocket endpoint for realtime updates (optional)")]
-        [SerializeField] private string realtimeEndpoint = "";
+        [SerializeField] private string realtimeEndpoint = "wss://cloud.{{ spec.title | caseUcfirst }}.io/v1";
         
         [Tooltip("Enable if using a self-signed SSL certificate")]
         [SerializeField] private bool selfSigned;
