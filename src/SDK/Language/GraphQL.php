@@ -2,6 +2,8 @@
 
 namespace Appwrite\SDK\Language;
 
+use Twig\TwigFilter;
+
 class GraphQL extends HTTP
 {
     /**
@@ -149,8 +151,10 @@ class GraphQL extends HTTP
                 case self::TYPE_FILE:
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
-                case self::TYPE_ARRAY:
                     $output .= $example;
+                    break;
+                case self::TYPE_ARRAY:
+                    $output .= is_array($example) ? json_encode($example) : $example;
                     break;
                 case self::TYPE_STRING:
                 case self::TYPE_OBJECT:
@@ -166,6 +170,18 @@ class GraphQL extends HTTP
     }
 
     /**
+     * @return string
+     */
+    public function getAdditionalPropertiesExamples(): string
+    {
+        return '    "username": "john_doe",
+    "email": "john@example.com",
+    "fullName": "John Doe",
+    "age": 25,
+    "isActive": true';
+    }
+
+    /**
      * @return array
      */
     public function getFiles(): array
@@ -173,13 +189,34 @@ class GraphQL extends HTTP
         return [
             [
                 'scope'         => 'method',
-                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
-                'template'      => '/graphql/docs/example.md.twig',
+                'destination'   => 'docs/examples/services/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
+                'template'      => '/graphql/docs/services/example.md.twig',
                 'exclude'       => [
                     'services'  => [['name' => 'graphql']],
                     'methods'   => [['type' => 'webAuth']],
                 ],
             ],
+            [
+                'scope'         => 'definition',
+                'destination'   => 'docs/examples/models/{{definition.name | caseLower}}.md',
+                'template'      => '/graphql/docs/models/example.md.twig',
+                'exclude'       => [
+                    'services'  => [['name' => 'graphql']],
+                    'methods'   => [['type' => 'webAuth']],
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * @return array
+     */
+    public function getFilters(): array
+    {
+        return [
+            new TwigFilter('additionalPropertiesExamples', function () {
+                return $this->getAdditionalPropertiesExamples();
+            }),
         ];
     }
 }

@@ -2,6 +2,8 @@
 
 namespace Appwrite\SDK\Language;
 
+use Twig\TwigFilter;
+
 class REST extends HTTP
 {
     /**
@@ -111,14 +113,14 @@ e8 ee 55 94 29 e7 94 89 19 26 28 01 26 29 3f 16...';
                     break;
                 case self::TYPE_ARRAY:
                     // If array of strings, make sure any sub-strings are escaped
-                    if (\substr($example, 1, 1) === '"') {
+                    if (is_string($example) && \substr($example, 1, 1) === '"') {
                         $start = \substr($example, 0, 2);
                         $end = \substr($example, -2);
                         $contents = \substr($example, 2, -2);
                         $contents = \addslashes($contents);
                         $output .= $start . $contents . $end;
                     } else {
-                        $output .= $example;
+                        $output .= is_array($example) ? json_encode($example) : $example;
                     }
                     break;
                 case self::TYPE_STRING:
@@ -134,6 +136,18 @@ e8 ee 55 94 29 e7 94 89 19 26 28 01 26 29 3f 16...';
     }
 
     /**
+     * @return string
+     */
+    public function getAdditionalPropertiesExamples(): string
+    {
+        return '    "username": "john_doe",
+    "email": "john@example.com",
+    "fullName": "John Doe",
+    "age": 25,
+    "isActive": true';
+    }
+
+    /**
      * @return array
      */
     public function getFiles(): array
@@ -141,9 +155,26 @@ e8 ee 55 94 29 e7 94 89 19 26 28 01 26 29 3f 16...';
         return [
           [
             'scope'         => 'method',
-            'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
-            'template'      => '/rest/docs/example.md.twig',
+            'destination'   => 'docs/examples/services/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
+            'template'      => '/rest/docs/services/example.md.twig',
           ],
+          [
+            'scope'         => 'definition',
+            'destination'   => 'docs/examples/models/{{definition.name | caseLower}}.md',
+            'template'      => '/rest/docs/models/example.md.twig',
+          ],
+        ];
+    }
+
+    /**
+     * @return array
+     */
+    public function getFilters(): array
+    {
+        return [
+            new TwigFilter('additionalPropertiesExamples', function () {
+                return $this->getAdditionalPropertiesExamples();
+            }),
         ];
     }
 }

@@ -1,0 +1,9 @@
+{
+{%~ for property in definition.properties %}
+    "{{ property.name | replace({'$': '_'}) }}": {{ property | paramExample }}{% if not loop.last or definition.additionalProperties %},{% endif %}
+
+{%~ endfor %}
+{%~ if definition.additionalProperties %}
+{{ definition | additionalPropertiesExamples | raw }}
+{%~ endif %}
+}
