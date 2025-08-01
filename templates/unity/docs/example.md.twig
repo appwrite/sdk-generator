@@ -1,0 +1,78 @@
+# {{method.name | caseUcfirst}}
+
+## Example
+
+```csharp
+using {{spec.title | caseUcfirst}};
+using Cysharp.Threading.Tasks;
+using UnityEngine;
+
+public class {{method.name | caseUcfirst}}Example : MonoBehaviour
+{
+    private Client client;
+    
+    async void Start()
+    {
+        client = gameObject.AddComponent<Client>();
+        client.SetEndpoint("{{spec.endpoint}}")
+{% for header in spec.global.headers %}
+{% if header.name != 'mode' %}
+              .Set{{header.name | caseUcfirst}}("YOUR_{{header.key | caseUpper}}");
+{% endif %}
+{% endfor %}
+        
+        await Example{{method.name | caseUcfirst}}();
+    }
+    
+    async UniTask Example{{method.name | caseUcfirst}}()
+    {
+        try
+        {
+{%~ if method.parameters.all | filter(p => p.required) | length > 0 %}
+            // Setup parameters
+{%~ for parameter in method.parameters.all | filter(p => p.required) %}
+            var {{parameter.name | caseCamel}} = {{parameter | paramExample}}; // {{parameter.description}}
+{%~ endfor %}
+            
+{%~ endif %}
+            var result = await client.{{service.name | caseUcfirst}}.{{method.name | caseUcfirst}}Async(
+{%~ for parameter in method.parameters.all | filter(p => p.required) %}
+                {{parameter.name | caseCamel}}{% if not loop.last %},{% endif %}
+
+{%~ endfor %}
+            );
+            
+            Debug.Log("Success: " + result);
+        }
+        catch ({{spec.title | caseUcfirst}}Exception ex)
+        {
+            Debug.LogError($"Error: {ex.Message} (Code: {ex.Code})");
+        }
+    }
+}
+```
+
+## Parameters
+
+{%~ for parameter in method.parameters.all %}
+- **{{parameter.name | caseCamel}}** *{{parameter.type}}* - {{parameter.description}}{% if parameter.required %} *(required)*{% endif %}
+
+{%~ endfor %}
+
+## Response
+
+{% if method.responseModel and method.responseModel != 'any' -%}
+Returns `{{method.responseModel | caseUcfirst}}` object.
+{%- else -%}
+{% if method.type == "webAuth" -%}
+Returns boolean indicating success.
+{%- elseif method.type == "location" -%}
+Returns byte array of the file.
+{%- else -%}
+Returns response object.
+{%- endif -%}
+{%- endif %}
+
+## More Info
+
+{{method.description}}
