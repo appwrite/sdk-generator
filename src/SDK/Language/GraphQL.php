@@ -2,8 +2,6 @@
 
 namespace Appwrite\SDK\Language;
 
-use Twig\TwigFilter;
-
 class GraphQL extends HTTP
 {
     /**
@@ -170,18 +168,6 @@ class GraphQL extends HTTP
     }
 
     /**
-     * @return string
-     */
-    public function getAdditionalPropertiesExamples(): string
-    {
-        return '    "username": "john_doe",
-    "email": "john@example.com",
-    "fullName": "John Doe",
-    "age": 25,
-    "isActive": true';
-    }
-
-    /**
      * @return array
      */
     public function getFiles(): array
@@ -205,18 +191,6 @@ class GraphQL extends HTTP
                     'methods'   => [['type' => 'webAuth']],
                 ],
             ],
-        ];
-    }
-
-    /**
-     * @return array
-     */
-    public function getFilters(): array
-    {
-        return [
-            new TwigFilter('additionalPropertiesExamples', function () {
-                return $this->getAdditionalPropertiesExamples();
-            }),
         ];
     }
 }

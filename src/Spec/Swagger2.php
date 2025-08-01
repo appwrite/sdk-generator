@@ -491,6 +491,30 @@ class Swagger2 extends Spec
                     }
                 }
             }
+            if (isset($schema['additionalProperties'])) {
+                $sch['additionalPropertiesExamples'] = [
+                    'name' => [
+                        'type' => 'string',
+                        'example' => 'john_doe',
+                    ],
+                    'email' => [
+                        'type' => 'string',
+                        'example' => 'john@example.com',
+                    ],
+                    'fullName' => [
+                        'type' => 'string',
+                        'example' => 'John Doe',
+                    ],
+                    'age' => [
+                        'type' => 'number',
+                        'example' => 25,
+                    ],
+                    'isActive' => [
+                        'type' => 'boolean',
+                        'example' => true,
+                    ],
+                ];
+            }
             $list[$key] = $sch;
         }
         return $list;

@@ -4,6 +4,9 @@
 
 {%~ endfor %}
 {%~ if definition.additionalProperties %}
-{{ definition | additionalPropertiesExamples | raw }}
+{%~ for key, value in definition.additionalPropertiesExamples %}
+    "{{ key }}": {{ value | paramExample }}{% if not loop.last %},{% endif %}
+
+{%~ endfor %}
 {%~ endif %}
 }

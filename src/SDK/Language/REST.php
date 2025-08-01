@@ -2,8 +2,6 @@
 
 namespace Appwrite\SDK\Language;
 
-use Twig\TwigFilter;
-
 class REST extends HTTP
 {
     /**
@@ -136,18 +134,6 @@ e8 ee 55 94 29 e7 94 89 19 26 28 01 26 29 3f 16...';
     }
 
     /**
-     * @return string
-     */
-    public function getAdditionalPropertiesExamples(): string
-    {
-        return '    "username": "john_doe",
-    "email": "john@example.com",
-    "fullName": "John Doe",
-    "age": 25,
-    "isActive": true';
-    }
-
-    /**
      * @return array
      */
     public function getFiles(): array
@@ -163,18 +149,6 @@ e8 ee 55 94 29 e7 94 89 19 26 28 01 26 29 3f 16...';
             'destination'   => 'docs/examples/models/{{definition.name | caseLower}}.md',
             'template'      => '/rest/docs/models/example.md.twig',
           ],
-        ];
-    }
-
-    /**
-     * @return array
-     */
-    public function getFilters(): array
-    {
-        return [
-            new TwigFilter('additionalPropertiesExamples', function () {
-                return $this->getAdditionalPropertiesExamples();
-            }),
         ];
     }
 }
