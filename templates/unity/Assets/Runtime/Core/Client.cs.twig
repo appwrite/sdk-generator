@@ -19,6 +19,9 @@ namespace {{ spec.title | caseUcfirst }}
 {
     public class Client
     {
+        private const string SESSION_PREF = "{{ spec.title | caseUcfirst }}_Session";
+        private const string JWT_PREF = "{{ spec.title | caseUcfirst }}_JWT";
+    
         public string Endpoint => _endpoint;
         public Dictionary<string, string> Config => _config;
 
@@ -78,6 +81,10 @@ namespace {{ spec.title | caseUcfirst }}
             };
 
             _config = new Dictionary<string, string>();
+            
+            // Load persistent data
+            LoadSession();
+            _cookieContainer.LoadCookies();
         }
 
         public Client SetSelfSigned(bool selfSigned)
@@ -135,7 +142,10 @@ namespace {{ spec.title | caseUcfirst }}
         public Client Set{{header.key | caseUcfirst}}(string value) {
             _config["{{ header.key | caseCamel }}"] = value;
             AddHeader("{{header.name}}", value);
-
+            {%~ if header.key | caseCamel == "session" or header.key | caseCamel == "jWT" %}
+            SaveSession();
+            {%~ endif %}
+            
             return this;
         }
 
@@ -182,7 +192,7 @@ namespace {{ spec.title | caseUcfirst }}
         /// <returns>Current JWT token or null</returns>
         public string GetJWT()
         {
-            return _config.GetValueOrDefault("jwt");
+            return _config.GetValueOrDefault("jWT");
         }
 
         /// <summary>
@@ -192,9 +202,10 @@ namespace {{ spec.title | caseUcfirst }}
         public Client ClearSession()
         {
             _config.Remove("session");
-            _config.Remove("jwt");
+            _config.Remove("jWT");
             _headers.Remove("X-Appwrite-Session");
             _headers.Remove("X-Appwrite-JWT");
+            SaveSession(); // Auto-save when session is cleared
             return this;
         }
 
@@ -204,6 +215,67 @@ namespace {{ spec.title | caseUcfirst }}
             return this;
         }
 
+        /// <summary>
+        /// Load session data from persistent storage
+        /// </summary>
+        private void LoadSession()
+        {
+            try {
+                LoadPref(SESSION_PREF, "session", "X-Appwrite-Session");
+                LoadPref(JWT_PREF, "jWT", "X-Appwrite-JWT");
+            } catch (Exception ex) {
+                Debug.LogWarning($"Failed to load session: {ex.Message}");
+            }
+        }
+
+        private void LoadPref(string prefKey, string configKey, string headerKey)
+        {
+            if (!PlayerPrefs.HasKey(prefKey)) return;
+            var value = PlayerPrefs.GetString(prefKey);
+            if (string.IsNullOrEmpty(value)) return;
+            _config[configKey] = value;
+            _headers[headerKey] = value;
+        }
+
+        /// <summary>
+        /// Save session data to persistent storage
+        /// </summary>
+        private void SaveSession()
+        {
+            try {
+                SavePref("session", SESSION_PREF);
+                SavePref("jWT", JWT_PREF);
+                PlayerPrefs.Save();
+            } catch (Exception ex) {
+                Debug.LogWarning($"Failed to save session: {ex.Message}");
+            }
+        }
+
+        private void SavePref(string configKey, string prefKey)
+        {
+            if (_config.ContainsKey(configKey)) {
+                PlayerPrefs.SetString(prefKey, _config[configKey]);
+            }
+            else {
+                PlayerPrefs.DeleteKey(prefKey);
+            }
+        }
+
+        /// <summary>
+        /// Delete persistent session storage
+        /// </summary>
+        public void DeleteSessionStorage()
+        {
+            try {
+                PlayerPrefs.DeleteKey(SESSION_PREF);
+                PlayerPrefs.DeleteKey(JWT_PREF);
+                PlayerPrefs.Save();
+                _cookieContainer.DeleteCookieStorage();
+            } catch (Exception ex) {
+                Debug.LogWarning($"Failed to delete session storage: {ex.Message}");
+            }
+        }
+
         private UnityWebRequest PrepareRequest(
             string method,
             string path,
@@ -211,20 +283,13 @@ namespace {{ spec.title | caseUcfirst }}
             Dictionary<string, object?> parameters)
         {
             var methodGet = "GET".Equals(method, StringComparison.OrdinalIgnoreCase);
-            var methodPost = "POST".Equals(method, StringComparison.OrdinalIgnoreCase);
-            var methodPut = "PUT".Equals(method, StringComparison.OrdinalIgnoreCase);
-            var methodPatch = "PATCH".Equals(method, StringComparison.OrdinalIgnoreCase);
-            var methodDelete = "DELETE".Equals(method, StringComparison.OrdinalIgnoreCase);
-
-            var queryString = methodGet ?
-                "?" + parameters.ToQueryString() :
-                string.Empty;
-
+            var queryString = methodGet ? "?" + parameters.ToQueryString() : string.Empty;
             var url = _endpoint + path + queryString;
-            UnityWebRequest request;
-
+            
             var isMultipart = headers.TryGetValue("Content-Type", out var contentType) && 
                               "multipart/form-data".Equals(contentType, StringComparison.OrdinalIgnoreCase);
+
+            UnityWebRequest request;
 
             if (isMultipart)
             {
@@ -282,36 +347,7 @@ namespace {{ spec.title | caseUcfirst }}
             }
             else
             {
-                string body = parameters.ToJson();
-                byte[] bodyData = Encoding.UTF8.GetBytes(body);
-
-                if (methodPost)
-                {
-                    request = new UnityWebRequest(url, "POST");
-                    request.uploadHandler = new UploadHandlerRaw(bodyData);
-                    request.downloadHandler = new DownloadHandlerBuffer();
-                    request.SetRequestHeader("Content-Type", "application/json");
-                }
-                else if (methodPut)
-                    request = UnityWebRequest.Put(url, bodyData);
-                else if (methodPatch)
-                {
-                    request = new UnityWebRequest(url, "PATCH");
-                    request.uploadHandler = new UploadHandlerRaw(bodyData);
-                    request.downloadHandler = new DownloadHandlerBuffer();
-                }
-                else if (methodDelete)
-                {
-                    request = new UnityWebRequest(url, "DELETE");
-                    request.uploadHandler = new UploadHandlerRaw(bodyData);
-                    request.downloadHandler = new DownloadHandlerBuffer();
-                }
-                else
-                {
-                    request = new UnityWebRequest(url, method);
-                    request.uploadHandler = new UploadHandlerRaw(bodyData);
-                    request.downloadHandler = new DownloadHandlerBuffer();
-                }
+                request = CreateJsonRequest(url, method, parameters);
             }
 
             // Add default headers
@@ -348,6 +384,20 @@ namespace {{ spec.title | caseUcfirst }}
 
             return request;
         }
+
+        private UnityWebRequest CreateJsonRequest(string url, string method, Dictionary<string, object?> parameters)
+        {
+            string body = parameters.ToJson();
+            byte[] bodyData = Encoding.UTF8.GetBytes(body);
+
+            var request = new UnityWebRequest(url, method.ToUpperInvariant());
+            request.uploadHandler = new UploadHandlerRaw(bodyData);
+            request.downloadHandler = new DownloadHandlerBuffer();
+            request.SetRequestHeader("Content-Type", "application/json");
+
+            return request;
+        }
+
 #if UNI_TASK
         public async UniTask<string> Redirect(
             string method,
