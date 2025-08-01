@@ -14,6 +14,7 @@ const { localConfig } = require("../config");
 const { paginate } = require("../paginate");
 const { questionsPullCollection, questionsPullFunctions, questionsPullFunctionsCode, questionsPullSites, questionsPullSitesCode, questionsPullResources } = require("../questions");
 const { cliConfig, success, log, warn, actionRunner, commandDescriptions } = require("../parser");
+const path = require("path");
 
 const pullResources = async () => {
     const actions = {
@@ -158,7 +159,7 @@ const pullFunctions = async ({ code, withVariables }) => {
         fs.rmSync(compressedFileName);
 
         if (withVariables) {
-            const envFileLocation = `${func['path']}/.env`
+            const envFileLocation = path.join(func['path'], '.env')
             try {
                 fs.rmSync(envFileLocation);
             } catch {
@@ -271,7 +272,7 @@ const pullSites = async ({ code, withVariables }) => {
         fs.rmSync(compressedFileName);
 
         if (withVariables) {
-            const envFileLocation = `${site['path']}/.env`
+            const envFileLocation = path.join(site['path'], '.env')
             try {
                 fs.rmSync(envFileLocation);
             } catch {
