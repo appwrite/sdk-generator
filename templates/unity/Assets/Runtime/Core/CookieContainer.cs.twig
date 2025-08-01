@@ -17,6 +17,8 @@ namespace {{ spec.title | caseUcfirst }}
         public string domain;
         public string path;
         public DateTime expires;
+        public int? maxAge; // null means not set, 0+ means seconds from creation
+        public DateTime createdAt; // When the cookie was created/received
         public bool httpOnly;
         public bool secure;
         public string sameSite;
@@ -28,9 +30,28 @@ namespace {{ spec.title | caseUcfirst }}
             this.domain = domain;
             this.path = path;
             this.expires = DateTime.MaxValue;
+            this.maxAge = null; // Not set by default
+            this.createdAt = DateTime.Now;
         }
 
-        public bool IsExpired => DateTime.Now > expires;
+        public bool IsExpired 
+        { 
+            get
+            {
+                // max-age has priority over expires according to RFC 6265
+                if (maxAge.HasValue)
+                {
+                    // If maxAge is 0 or negative, cookie should be deleted immediately
+                    if (maxAge.Value <= 0)
+                        return true;
+                    
+                    // Check if cookie has exceeded its max-age from creation time
+                    return DateTime.Now > createdAt.AddSeconds(maxAge.Value);
+                }
+                
+                return DateTime.Now > expires;
+            }
+        }
 
         public bool MatchesDomain(string requestDomain)
         {
@@ -192,10 +213,9 @@ namespace {{ spec.title | caseUcfirst }}
                         }
                         break;
                     case "max-age":
-                        if (keyValue.Length > 1 && int.TryParse(keyValue[1].Trim(), out var maxAge) && maxAge >= 0)
+                        if (keyValue.Length > 1 && int.TryParse(keyValue[1].Trim(), out var maxAge))
                         {
-                            // max-age has priority over expires
-                            cookie.expires = maxAge == 0 ? DateTime.Now : DateTime.Now.AddSeconds(maxAge);
+                            cookie.maxAge = maxAge;
                         }
                         break;
                     case "httponly":
