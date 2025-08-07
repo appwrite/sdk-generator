@@ -146,4 +146,48 @@ final class QueryTest extends TestCase {
     public function testOffset(): void {
         $this->assertSame('offset(1)', Query::offset(1));
     }
+
+    public function testNotContains(): void {
+        $this->assertSame('notContains("attr", ["value"])', Query::notContains('attr', 'value'));
+    }
+
+    public function testNotSearch(): void {
+        $this->assertSame('notSearch("attr", ["keyword1 keyword2"])', Query::notSearch('attr', 'keyword1 keyword2'));
+    }
+
+    public function testNotBetweenWithIntegers(): void {
+        $this->assertSame('notBetween("attr", 1, 2)', Query::notBetween('attr', 1, 2));
+    }
+
+    public function testNotBetweenWithDoubles(): void {
+        $this->assertSame('notBetween("attr", 1, 2)', Query::notBetween('attr', 1.0, 2.0));
+    }
+
+    public function testNotBetweenWithStrings(): void {
+        $this->assertSame('notBetween("attr", "a", "z")', Query::notBetween('attr', 'a', 'z'));
+    }
+
+    public function testNotStartsWith(): void {
+        $this->assertSame('notStartsWith("attr", ["prefix"])', Query::notStartsWith('attr', 'prefix'));
+    }
+
+    public function testNotEndsWith(): void {
+        $this->assertSame('notEndsWith("attr", ["suffix"])', Query::notEndsWith('attr', 'suffix'));
+    }
+
+    public function testCreatedBefore(): void {
+        $this->assertSame('createdBefore("2023-01-01")', Query::createdBefore('2023-01-01'));
+    }
+
+    public function testCreatedAfter(): void {
+        $this->assertSame('createdAfter("2023-01-01")', Query::createdAfter('2023-01-01'));
+    }
+
+    public function testUpdatedBefore(): void {
+        $this->assertSame('updatedBefore("2023-01-01")', Query::updatedBefore('2023-01-01'));
+    }
+
+    public function testUpdatedAfter(): void {
+        $this->assertSame('updatedAfter("2023-01-01")', Query::updatedAfter('2023-01-01'));
+    }
 }

@@ -156,6 +156,83 @@ func Contains(attribute string, value interface{}) string {
 	})
 }
 
+func NotContains(attribute string, value interface{}) string {
+	values := toArray(value)
+	return parseQuery(queryOptions{
+		Method:    "notContains",
+		Attribute: &attribute,
+		Values:    &values,
+	})
+}
+
+func NotSearch(attribute string, value interface{}) string {
+	values := toArray(value)
+	return parseQuery(queryOptions{
+		Method:    "notSearch",
+		Attribute: &attribute,
+		Values:    &values,
+	})
+}
+
+func NotBetween(attribute string, start, end interface{}) string {
+	values := []interface{}{start, end}
+	return parseQuery(queryOptions{
+		Method:    "notBetween",
+		Attribute: &attribute,
+		Values:    &values,
+	})
+}
+
+func NotStartsWith(attribute string, value interface{}) string {
+	values := toArray(value)
+	return parseQuery(queryOptions{
+		Method:    "notStartsWith",
+		Attribute: &attribute,
+		Values:    &values,
+	})
+}
+
+func NotEndsWith(attribute string, value interface{}) string {
+	values := toArray(value)
+	return parseQuery(queryOptions{
+		Method:    "notEndsWith",
+		Attribute: &attribute,
+		Values:    &values,
+	})
+}
+
+func CreatedBefore(value interface{}) string {
+	values := toArray(value)
+	return parseQuery(queryOptions{
+		Method: "createdBefore",
+		Values: &values,
+	})
+}
+
+func CreatedAfter(value interface{}) string {
+	values := toArray(value)
+	return parseQuery(queryOptions{
+		Method: "createdAfter",
+		Values: &values,
+	})
+}
+
+func UpdatedBefore(value interface{}) string {
+	values := toArray(value)
+	return parseQuery(queryOptions{
+		Method: "updatedBefore",
+		Values: &values,
+	})
+}
+
+func UpdatedAfter(value interface{}) string {
+	values := toArray(value)
+	return parseQuery(queryOptions{
+		Method: "updatedAfter",
+		Values: &values,
+	})
+}
+
 func Select(attributes interface{}) string {
 	values := toArray(attributes)
 	return parseQuery(queryOptions{

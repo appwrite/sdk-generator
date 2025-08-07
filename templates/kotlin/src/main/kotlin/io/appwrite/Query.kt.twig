@@ -51,6 +51,24 @@ class Query(
 
         fun contains(attribute: String, value: Any) = Query("contains", attribute, parseValue(value)).toJson()
 
+        fun notContains(attribute: String, value: Any) = Query("notContains", attribute, parseValue(value)).toJson()
+
+        fun notSearch(attribute: String, value: String) = Query("notSearch", attribute, listOf(value)).toJson()
+
+        fun notBetween(attribute: String, start: Any, end: Any) = Query("notBetween", attribute, listOf(start, end)).toJson()
+
+        fun notStartsWith(attribute: String, value: String) = Query("notStartsWith", attribute, listOf(value)).toJson()
+
+        fun notEndsWith(attribute: String, value: String) = Query("notEndsWith", attribute, listOf(value)).toJson()
+
+        fun createdBefore(value: String) = Query("createdBefore", null, listOf(value)).toJson()
+
+        fun createdAfter(value: String) = Query("createdAfter", null, listOf(value)).toJson()
+
+        fun updatedBefore(value: String) = Query("updatedBefore", null, listOf(value)).toJson()
+
+        fun updatedAfter(value: String) = Query("updatedAfter", null, listOf(value)).toJson()
+
         fun or(queries: List<String>) = Query("or", null, queries.map { it.fromJson<Query>() }).toJson()
 
         fun and(queries: List<String>) = Query("and", null, queries.map { it.fromJson<Query>() }).toJson()

@@ -268,6 +268,111 @@ class Query implements \JsonSerializable
     }
 
     /**
+     * Not Contains
+     *
+     * @param string $attribute
+     * @param mixed $value
+     * @return string
+     */
+    public static function notContains(string $attribute, $value): string
+    {
+        return (new Query('notContains', $attribute, $value))->__toString();
+    }
+
+    /**
+     * Not Search
+     *
+     * @param string $attribute
+     * @param string $value
+     * @return string
+     */
+    public static function notSearch(string $attribute, string $value): string
+    {
+        return (new Query('notSearch', $attribute, $value))->__toString();
+    }
+
+    /**
+     * Not Between
+     *
+     * @param string $attribute
+     * @param string|int|float $start
+     * @param string|int|float $end
+     * @return string
+     */
+    public static function notBetween(string $attribute, mixed $start, mixed $end): string
+    {
+        return (new Query('notBetween', $attribute, [$start, $end]))->__toString();
+    }
+
+    /**
+     * Not Starts With
+     *
+     * @param string $attribute
+     * @param string $value
+     * @return string
+     */
+    public static function notStartsWith(string $attribute, string $value): string
+    {
+        return (new Query('notStartsWith', $attribute, $value))->__toString();
+    }
+
+    /**
+     * Not Ends With
+     *
+     * @param string $attribute
+     * @param string $value
+     * @return string
+     */
+    public static function notEndsWith(string $attribute, string $value): string
+    {
+        return (new Query('notEndsWith', $attribute, $value))->__toString();
+    }
+
+    /**
+     * Created Before
+     *
+     * @param string $value
+     * @return string
+     */
+    public static function createdBefore(string $value): string
+    {
+        return (new Query('createdBefore', null, $value))->__toString();
+    }
+
+    /**
+     * Created After
+     *
+     * @param string $value
+     * @return string
+     */
+    public static function createdAfter(string $value): string
+    {
+        return (new Query('createdAfter', null, $value))->__toString();
+    }
+
+    /**
+     * Updated Before
+     *
+     * @param string $value
+     * @return string
+     */
+    public static function updatedBefore(string $value): string
+    {
+        return (new Query('updatedBefore', null, $value))->__toString();
+    }
+
+    /**
+     * Updated After
+     *
+     * @param string $value
+     * @return string
+     */
+    public static function updatedAfter(string $value): string
+    {
+        return (new Query('updatedAfter', null, $value))->__toString();
+    }
+
+    /**
      * Or
      *
      * @param array<string> $queries

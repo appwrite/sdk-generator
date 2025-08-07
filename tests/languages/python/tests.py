@@ -135,6 +135,18 @@ print(Query.limit(50))
 print(Query.offset(20))
 print(Query.contains("title", "Spider"))
 print(Query.contains("labels", "first"))
+
+# New query methods
+print(Query.not_contains("title", "Spider"))
+print(Query.not_search("name", "john"))
+print(Query.not_between("age", 50, 100))
+print(Query.not_starts_with("name", "Ann"))
+print(Query.not_ends_with("name", "nne"))
+print(Query.created_before("2023-01-01"))
+print(Query.created_after("2023-01-01"))
+print(Query.updated_before("2023-01-01"))
+print(Query.updated_after("2023-01-01"))
+
 print(Query.or_queries(
     [Query.equal("released", True), Query.less_than("releasedYear", 1990)]
 ))
