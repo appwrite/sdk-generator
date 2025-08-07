@@ -183,6 +183,18 @@ void main() async {
   print(Query.offset(20));
   print(Query.contains("title", "Spider"));
   print(Query.contains("labels", "first"));
+  
+  // New query methods
+  print(Query.notContains("title", "Spider"));
+  print(Query.notSearch("name", "john"));
+  print(Query.notBetween("age", 50, 100));
+  print(Query.notStartsWith("name", "Ann"));
+  print(Query.notEndsWith("name", "nne"));
+  print(Query.createdBefore("2023-01-01"));
+  print(Query.createdAfter("2023-01-01"));
+  print(Query.updatedBefore("2023-01-01"));
+  print(Query.updatedAfter("2023-01-01"));
+  
   print(Query.or([
     Query.equal("released", true),
     Query.lessThan("releasedYear", 1990)

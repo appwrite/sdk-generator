@@ -173,6 +173,18 @@ class Tests: XCTestCase {
         print(Query.offset(20))
         print(Query.contains("title", value: "Spider"))
         print(Query.contains("labels", value: "first"))
+        
+        // New query methods
+        print(Query.notContains("title", value: "Spider"))
+        print(Query.notSearch("name", value: "john"))
+        print(Query.notBetween("age", start: 50, end: 100))
+        print(Query.notStartsWith("name", value: "Ann"))
+        print(Query.notEndsWith("name", value: "nne"))
+        print(Query.createdBefore("2023-01-01"))
+        print(Query.createdAfter("2023-01-01"))
+        print(Query.updatedBefore("2023-01-01"))
+        print(Query.updatedAfter("2023-01-01"))
+        
         print(Query.or(
             [Query.equal("released", value: true), Query.lessThan("releasedYear", value: 1990)]
         ))
