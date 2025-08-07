@@ -70,7 +70,6 @@ const compareVersions = (currentVersion, newVersion) => {
 
 // Update via npm
 const updateViaNpm = async (targetVersion = "latest") => {
-    log("Updating via npm...");
     try {
         const { stdout, stderr } = await execAsync(`npm install -g appwrite-cli@${targetVersion}`);
         if (stderr && !stderr.includes("npm WARN")) {
@@ -84,7 +83,6 @@ const updateViaNpm = async (targetVersion = "latest") => {
 
 // Update via homebrew
 const updateViaHomebrew = async () => {
-    log("Updating via Homebrew...");
     try {
         const { stdout, stderr } = await execAsync("brew upgrade appwrite");
         if (stderr && !stderr.includes("Warning")) {
@@ -98,13 +96,8 @@ const updateViaHomebrew = async () => {
 
 const updateCli = async () => {
     try {
-        log("Checking current version...");
         const currentVersion = getCurrentVersion();
-        log(`Current version: ${chalk.blue(currentVersion)}`);
-
-        log("Fetching latest version...");
         const latestVersion = await getLatestNpmVersion();
-        log(`Latest version: ${chalk.blue(latestVersion)}`);
 
         const versionComparison = compareVersions(currentVersion, latestVersion);
         
@@ -127,20 +120,18 @@ const updateCli = async () => {
                 return;
             }
         }
-
-        log("Detecting installation method...");
+        
+        log(`Updating from ${chalk.blue(currentVersion)} to ${chalk.green(latestVersion)}...`);
         
         const isNpm = await isNpmInstallation();
         const isHomebrew = await isHomebrewInstallation();
         
         if (isHomebrew) {
-            log("Detected Homebrew installation.");
             await updateViaHomebrew();
-            success(`{{ spec.title|caseUcfirst }} CLI has been updated via Homebrew!`);
+            success(`Updated to latest version via Homebrew!`);
         } else if (isNpm) {
-            log("Detected npm installation.");
             await updateViaNpm(latestVersion);
-            success(`{{ spec.title|caseUcfirst }} CLI has been updated to version ${chalk.bold(latestVersion)}!`);
+            success(`Updated to version ${chalk.bold(latestVersion)} via npm!`);
         } else {
             error("Could not detect installation method. Please update manually using:");
             log("  • npm: " + chalk.cyan("npm install -g appwrite-cli@latest"));
@@ -148,7 +139,7 @@ const updateCli = async () => {
             return;
         }
         
-        log(`\nRun ${chalk.cyan('appwrite -v')} to verify the new version.`);
+        log(`Run ${chalk.cyan('appwrite -v')} to verify the new version.`);
         
     } catch (e) {
         error(`Update failed: ${e.message}`);
