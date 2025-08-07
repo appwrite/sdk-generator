@@ -32,7 +32,7 @@ inquirer.registerPrompt('search-list', require('inquirer-search-list'));
 /**
  * Check for updates and show version information
  */
-async function checkVersionAndUpdate() {
+async function checkVersion() {
     process.stdout.write(chalk.bold(`{{ language.params.executableName|caseLower }} version ${version}`) + '\n');
     
     try {
@@ -58,7 +58,7 @@ async function checkVersionAndUpdate() {
 // Intercept version flag before Commander.js processes it
 if (process.argv.includes('-v') || process.argv.includes('--version')) {
     (async () => {
-        await checkVersionAndUpdate();
+        await checkVersion();
         process.exit(0);
     })();
     return;

@@ -127,7 +127,7 @@ const showManualInstructions = (latestVersion) => {
     console.log(`  npm install -g {{ language.params.npmPackage|caseDash }}@latest`);
     console.log("");
     
-    log(`${chalk.bold("Option 2: Homebrew (macOS)")}`);
+    log(`${chalk.bold("Option 2: Homebrew")}`);
     console.log(`  brew upgrade {{ language.params.executableName|caseLower }}`);
     console.log("");
     
@@ -141,7 +141,7 @@ const showManualInstructions = (latestVersion) => {
 const chooseUpdateMethod = async (latestVersion) => {
     const choices = [
         { name: 'NPM', value: 'npm' },
-        { name: 'Homebrew (macOS)', value: 'homebrew' },
+        { name: 'Homebrew', value: 'homebrew' },
         { name: 'Show manual instructions', value: 'manual' }
     ];
 
