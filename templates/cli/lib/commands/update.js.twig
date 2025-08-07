@@ -78,13 +78,16 @@ const execCommand = (command, args = [], options = {}) => {
 const updateViaNpm = async () => {
     try {
         await execCommand('npm', ['install', '-g', '{{ language.params.npmPackage|caseDash }}@latest']);
+        console.log("");
         success("Updated to latest version via npm!");
         hint("Run '{{ language.params.executableName|caseLower }} --version' to verify the new version.");
     } catch (e) {
         if (e.message.includes('EEXIST') || e.message.includes('file already exists')) {
+            console.log("");
             success("Latest version is already installed via npm!");
             hint("The CLI is up to date. Run '{{ language.params.executableName|caseLower }} --version' to verify.");
         } else {
+            console.log("");
             error(`Failed to update via npm: ${e.message}`);
             hint("Try running: npm install -g {{ language.params.npmPackage|caseDash }}@latest --force");
         }
@@ -97,13 +100,16 @@ const updateViaNpm = async () => {
 const updateViaHomebrew = async () => {
     try {
         await execCommand('brew', ['upgrade', '{{ language.params.executableName|caseLower }}']);
+        console.log("");
         success("Updated to latest version via Homebrew!");
         hint("Run '{{ language.params.executableName|caseLower }} --version' to verify the new version.");
     } catch (e) {
         if (e.message.includes('already installed') || e.message.includes('up-to-date')) {
+            console.log("");
             success("Latest version is already installed via Homebrew!");
             hint("The CLI is up to date. Run '{{ language.params.executableName|caseLower }} --version' to verify.");
         } else {
+            console.log("");
             error(`Failed to update via Homebrew: ${e.message}`);
             hint("Try running: brew upgrade {{ language.params.executableName|caseLower }}");
         }
@@ -114,7 +120,6 @@ const updateViaHomebrew = async () => {
  * Show manual update instructions
  */
 const showManualInstructions = (latestVersion) => {
-    console.log("");
     log("Manual update options:");
     console.log("");
     
@@ -181,6 +186,7 @@ const updateCli = async ({ manual } = {}) => {
         }
         
         log(`Updating from ${chalk.blue(version)} to ${chalk.green(latestVersion)}...`);
+        console.log("");
         
         if (manual) {
             showManualInstructions(latestVersion);
@@ -196,6 +202,7 @@ const updateCli = async ({ manual } = {}) => {
         }
         
     } catch (e) {
+        console.log("");
         error(`Failed to check for updates: ${e.message}`);
         hint("You can manually check for updates at: https://github.com/{{ language.params.npmPackage|caseDash }}/releases");
     }
