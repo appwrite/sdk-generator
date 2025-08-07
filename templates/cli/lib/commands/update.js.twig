@@ -1,0 +1,198 @@
+const fs = require("fs");
+const { exec } = require("child_process");
+const { promisify } = require("util");
+const chalk = require('chalk');
+const { Command } = require("commander");
+const inquirer = require("inquirer");
+const { success, log, warn, error, actionRunner, commandDescriptions } = require("../parser");
+
+const execAsync = promisify(exec);
+
+// Get current CLI version
+const getCurrentVersion = () => {
+    try {
+        const packageJsonPath = require.resolve("../../package.json");
+        const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+        return packageJson.version;
+    } catch (e) {
+        throw new Error("Could not determine current CLI version");
+    }
+};
+
+// Check if CLI was installed via npm
+const isNpmInstallation = async () => {
+    try {
+        const { stdout } = await execAsync("npm list -g appwrite-cli --depth=0 2>/dev/null || true");
+        return stdout.includes("appwrite-cli@");
+    } catch {
+        return false;
+    }
+};
+
+// Check if CLI was installed via homebrew
+const isHomebrewInstallation = async () => {
+    try {
+        const { stdout } = await execAsync("which appwrite 2>/dev/null || true");
+        if (stdout.trim()) {
+            const { stdout: brewList } = await execAsync("brew list appwrite 2>/dev/null || true");
+            return brewList.trim() !== "";
+        }
+        return false;
+    } catch {
+        return false;
+    }
+};
+
+// Get latest version from npm
+const getLatestNpmVersion = async () => {
+    try {
+        const { stdout } = await execAsync("npm view appwrite-cli version 2>/dev/null");
+        return stdout.trim();
+    } catch (e) {
+        throw new Error("Could not fetch latest version from npm registry");
+    }
+};
+
+// Compare versions (returns 1 if newVersion > currentVersion, 0 if equal, -1 if older)
+const compareVersions = (currentVersion, newVersion) => {
+    const current = currentVersion.split('.').map(Number);
+    const latest = newVersion.split('.').map(Number);
+    
+    for (let i = 0; i < Math.max(current.length, latest.length); i++) {
+        const currentPart = current[i] || 0;
+        const latestPart = latest[i] || 0;
+        
+        if (latestPart > currentPart) return 1;
+        if (latestPart < currentPart) return -1;
+    }
+    return 0;
+};
+
+// Update via npm
+const updateViaNpm = async (targetVersion = "latest") => {
+    log("Updating via npm...");
+    try {
+        const { stdout, stderr } = await execAsync(`npm install -g appwrite-cli@${targetVersion}`);
+        if (stderr && !stderr.includes("npm WARN")) {
+            throw new Error(stderr);
+        }
+        return true;
+    } catch (e) {
+        throw new Error(`Failed to update via npm: ${e.message}`);
+    }
+};
+
+// Update via homebrew
+const updateViaHomebrew = async () => {
+    log("Updating via Homebrew...");
+    try {
+        const { stdout, stderr } = await execAsync("brew upgrade appwrite");
+        if (stderr && !stderr.includes("Warning")) {
+            throw new Error(stderr);
+        }
+        return true;
+    } catch (e) {
+        throw new Error(`Failed to update via Homebrew: ${e.message}`);
+    }
+};
+
+const updateCli = async () => {
+    try {
+        log("Checking current version...");
+        const currentVersion = getCurrentVersion();
+        log(`Current version: ${chalk.blue(currentVersion)}`);
+
+        log("Fetching latest version...");
+        const latestVersion = await getLatestNpmVersion();
+        log(`Latest version: ${chalk.blue(latestVersion)}`);
+
+        const versionComparison = compareVersions(currentVersion, latestVersion);
+        
+        if (versionComparison === 0) {
+            success(`You are already running the latest version (${chalk.bold(currentVersion)}).`);
+            return;
+        }
+        
+        if (versionComparison < 0) {
+            warn(`You are running a newer version (${chalk.bold(currentVersion)}) than the latest stable release (${chalk.bold(latestVersion)}).`);
+            const { confirmUpdate } = await inquirer.prompt([{
+                type: 'confirm',
+                name: 'confirmUpdate',
+                message: 'Do you want to downgrade to the stable release?',
+                default: false
+            }]);
+            
+            if (!confirmUpdate) {
+                log("Update cancelled.");
+                return;
+            }
+        }
+
+        log("Detecting installation method...");
+        
+        const isNpm = await isNpmInstallation();
+        const isHomebrew = await isHomebrewInstallation();
+        
+        if (isHomebrew) {
+            log("Detected Homebrew installation.");
+            await updateViaHomebrew();
+            success(`{{ spec.title|caseUcfirst }} CLI has been updated via Homebrew!`);
+        } else if (isNpm) {
+            log("Detected npm installation.");
+            await updateViaNpm(latestVersion);
+            success(`{{ spec.title|caseUcfirst }} CLI has been updated to version ${chalk.bold(latestVersion)}!`);
+        } else {
+            error("Could not detect installation method. Please update manually using:");
+            log("  • npm: " + chalk.cyan("npm install -g appwrite-cli@latest"));
+            log("  • Homebrew: " + chalk.cyan("brew upgrade appwrite"));
+            return;
+        }
+        
+        log(`\nRun ${chalk.cyan('appwrite -v')} to verify the new version.`);
+        
+    } catch (e) {
+        error(`Update failed: ${e.message}`);
+        log("\nYou can try updating manually:");
+        log("  • npm: " + chalk.cyan("npm install -g appwrite-cli@latest"));
+        log("  • Homebrew: " + chalk.cyan("brew upgrade appwrite"));
+    }
+};
+
+const checkForUpdates = async () => {
+    try {
+        log("Checking for updates...");
+        const currentVersion = getCurrentVersion();
+        const latestVersion = await getLatestNpmVersion();
+        
+        const versionComparison = compareVersions(currentVersion, latestVersion);
+        
+        if (versionComparison === 0) {
+            success(`You are running the latest version (${chalk.bold(currentVersion)}).`);
+        } else if (versionComparison > 0) {
+            log(`Current version: ${chalk.blue(currentVersion)}`);
+            log(`Latest version: ${chalk.green(latestVersion)}`);
+            log(`\nA new version is available! Run ${chalk.cyan('appwrite update')} to update.`);
+        } else {
+            log(`Current version: ${chalk.blue(currentVersion)}`);
+            log(`Latest stable: ${chalk.blue(latestVersion)}`);
+            warn("You are running a newer version than the latest stable release.");
+        }
+    } catch (e) {
+        error(`Failed to check for updates: ${e.message}`);
+    }
+};
+
+const update = new Command("update")
+    .description("Update the {{ spec.title|caseUcfirst }} CLI to the latest version")
+    .action(actionRunner(updateCli));
+
+update
+    .command("check")
+    .description("Check if a new version is available without updating")
+    .action(actionRunner(checkForUpdates));
+
+module.exports = {
+    update,
+    updateCli,
+    checkForUpdates
+};

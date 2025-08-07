@@ -18,6 +18,7 @@ const { types } = require("./lib/commands/types");
 const { pull } = require("./lib/commands/pull");
 const { run } = require("./lib/commands/run");
 const { push, deploy } = require("./lib/commands/push");
+const { update } = require("./lib/commands/update");
 {% else %}
 const { migrate } = require("./lib/commands/generic");
 {% endif %}
@@ -72,6 +73,7 @@ program
   .addCommand(types)
   .addCommand(deploy)
   .addCommand(run)
+  .addCommand(update)
   .addCommand(logout)
 {% endif %}
 {% for service in spec.services %}
