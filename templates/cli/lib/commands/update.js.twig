@@ -105,10 +105,9 @@ const execCommand = (command, args = [], options = {}) => {
  * Update via npm
  */
 const updateViaNpm = async () => {
-    log("Updating via npm...");
     try {
         await execCommand('npm', ['install', '-g', '{{ language.params.npmPackage|caseDash }}@latest']);
-        success("Successfully updated {{ language.params.executableName|caseLower }} via npm!");
+        success("Updated to latest version via npm!");
         hint("Run '{{ language.params.executableName|caseLower }} --version' to verify the new version.");
     } catch (e) {
         error(`Failed to update via npm: ${e.message}`);
@@ -120,10 +119,9 @@ const updateViaNpm = async () => {
  * Update via Homebrew
  */
 const updateViaHomebrew = async () => {
-    log("Updating via Homebrew...");
     try {
         await execCommand('brew', ['upgrade', '{{ language.params.executableName|caseLower }}']);
-        success("Successfully updated {{ language.params.executableName|caseLower }} via Homebrew!");
+        success("Updated to latest version via Homebrew!");
         hint("Run '{{ language.params.executableName|caseLower }} --version' to verify the new version.");
     } catch (e) {
         error(`Failed to update via Homebrew: ${e.message}`);
@@ -135,7 +133,6 @@ const updateViaHomebrew = async () => {
  * Update via installation script
  */
 const updateViaScript = async () => {
-    log("Updating via installation script...");
     const platform = os.platform();
     
     try {
@@ -146,7 +143,7 @@ const updateViaScript = async () => {
             // Linux/macOS bash script
             await execCommand('sh', ['-c', 'wget -q https://appwrite.io/cli/install.sh -O - | /bin/bash']);
         }
-        success("Successfully updated {{ language.params.executableName|caseLower }} via installation script!");
+        success("Updated to latest version via installation script!");
         hint("Run '{{ language.params.executableName|caseLower }} --version' to verify the new version.");
     } catch (e) {
         error(`Failed to update via installation script: ${e.message}`);
@@ -190,10 +187,7 @@ const showManualInstructions = (latestVersion) => {
  * Main update function
  */
 const updateCli = async ({ manual } = {}) => {
-    log(`Current version: ${chalk.bold(version)}`);
-    
     try {
-        log("Checking for updates...");
         const latestVersion = await getLatestVersion();
         
         const comparison = compareVersions(version, latestVersion);
@@ -207,8 +201,7 @@ const updateCli = async ({ manual } = {}) => {
             return;
         }
         
-        log(`Latest version: ${chalk.bold(latestVersion)}`);
-        log(`${chalk.green('→')} A new version is available!`);
+        log(`Updating from ${chalk.blue(version)} to ${chalk.green(latestVersion)}...`);
         console.log("");
         
         if (manual) {
