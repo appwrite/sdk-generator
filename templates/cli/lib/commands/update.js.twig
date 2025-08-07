@@ -16,7 +16,7 @@ const isInstalledViaNpm = () => {
     try {
         const scriptPath = process.argv[1];
 
-        if (scriptPath.includes('node_modules') && scriptPath.includes('appwrite-cli')) {
+        if (scriptPath.includes('node_modules') && scriptPath.includes('{{ language.params.npmPackage|caseDash }}')) {
             return true;
         }
 
