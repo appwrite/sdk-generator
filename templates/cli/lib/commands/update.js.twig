@@ -14,8 +14,6 @@ const { version } = require("../../package.json");
  */
 const isInstalledViaNpm = () => {
     try {
-        // Check if we're in a global npm installation
-        const execPath = process.argv[0];
         const scriptPath = process.argv[1];
         
         // Common indicators of npm global installation
@@ -23,7 +21,14 @@ const isInstalledViaNpm = () => {
             return true;
         }
         
-        // Check if npm is available and appwrite-cli is installed globally
+        // Check for npm global paths
+        if (scriptPath.includes('/usr/local/lib/node_modules/') || 
+            scriptPath.includes('/opt/homebrew/lib/node_modules/') ||
+            scriptPath.includes('/.npm-global/') ||
+            scriptPath.includes('/node_modules/.bin/')) {
+            return true;
+        }
+        
         return false;
     } catch (e) {
         return false;
@@ -110,8 +115,14 @@ const updateViaNpm = async () => {
         success("Updated to latest version via npm!");
         hint("Run '{{ language.params.executableName|caseLower }} --version' to verify the new version.");
     } catch (e) {
-        error(`Failed to update via npm: ${e.message}`);
-        hint("Try running: npm install -g {{ language.params.npmPackage|caseDash }}@latest");
+        // Check if error is due to file already existing (likely already latest version)
+        if (e.message.includes('EEXIST') || e.message.includes('file already exists')) {
+            success("Latest version is already installed via npm!");
+            hint("The CLI is up to date. Run '{{ language.params.executableName|caseLower }} --version' to verify.");
+        } else {
+            error(`Failed to update via npm: ${e.message}`);
+            hint("Try running: npm install -g {{ language.params.npmPackage|caseDash }}@latest --force");
+        }
     }
 };
 
@@ -124,8 +135,14 @@ const updateViaHomebrew = async () => {
         success("Updated to latest version via Homebrew!");
         hint("Run '{{ language.params.executableName|caseLower }} --version' to verify the new version.");
     } catch (e) {
-        error(`Failed to update via Homebrew: ${e.message}`);
-        hint("Try running: brew upgrade {{ language.params.executableName|caseLower }}");
+        // Check if error is due to package already being up-to-date
+        if (e.message.includes('already installed') || e.message.includes('up-to-date')) {
+            success("Latest version is already installed via Homebrew!");
+            hint("The CLI is up to date. Run '{{ language.params.executableName|caseLower }} --version' to verify.");
+        } else {
+            error(`Failed to update via Homebrew: ${e.message}`);
+            hint("Try running: brew upgrade {{ language.params.executableName|caseLower }}");
+        }
     }
 };
 
@@ -146,11 +163,17 @@ const updateViaScript = async () => {
         success("Updated to latest version via installation script!");
         hint("Run '{{ language.params.executableName|caseLower }} --version' to verify the new version.");
     } catch (e) {
-        error(`Failed to update via installation script: ${e.message}`);
-        if (platform === 'win32') {
-            hint("Try running: iwr -useb https://appwrite.io/cli/install.ps1 | iex");
+        // Check if error indicates already up-to-date
+        if (e.message.includes('already exists') || e.message.includes('up-to-date')) {
+            success("Latest version is already installed!");
+            hint("The CLI is up to date. Run '{{ language.params.executableName|caseLower }} --version' to verify.");
         } else {
-            hint("Try running: wget -q https://appwrite.io/cli/install.sh -O - | /bin/bash");
+            error(`Failed to update via installation script: ${e.message}`);
+            if (platform === 'win32') {
+                hint("Try running: iwr -useb https://appwrite.io/cli/install.ps1 | iex");
+            } else {
+                hint("Try running: wget -q https://appwrite.io/cli/install.sh -O - | /bin/bash");
+            }
         }
     }
 };
@@ -209,56 +232,22 @@ const updateCli = async ({ manual } = {}) => {
             return;
         }
         
-        // Auto-detect installation method and suggest appropriate update
+        // Auto-detect installation method and update automatically
         if (isInstalledViaNpm()) {
-            const answer = await inquirer.prompt([{
-                type: 'confirm',
-                name: 'update',
-                message: 'Update via npm?',
-                default: true
-            }]);
-            
-            if (answer.update) {
-                await updateViaNpm();
-            }
+            await updateViaNpm();
         } else if (isInstalledViaHomebrew()) {
-            const answer = await inquirer.prompt([{
-                type: 'confirm',
-                name: 'update',
-                message: 'Update via Homebrew?',
-                default: true
-            }]);
-            
-            if (answer.update) {
-                await updateViaHomebrew();
-            }
+            await updateViaHomebrew();
         } else {
-            // Unknown installation method - show options
-            const answer = await inquirer.prompt([{
-                type: 'list',
-                name: 'method',
-                message: 'How would you like to update?',
-                choices: [
-                    { name: 'NPM (npm install -g)', value: 'npm' },
-                    { name: 'Homebrew (macOS)', value: 'homebrew' },
-                    { name: 'Installation Script', value: 'script' },
-                    { name: 'Show manual instructions', value: 'manual' }
-                ]
-            }]);
-            
-            switch (answer.method) {
-                case 'npm':
-                    await updateViaNpm();
-                    break;
-                case 'homebrew':
-                    await updateViaHomebrew();
-                    break;
-                case 'script':
-                    await updateViaScript();
-                    break;
-                case 'manual':
+            // Unknown installation method - try npm first, then show manual instructions
+            try {
+                await updateViaNpm();
+            } catch (e) {
+                // If npm failed and it's not because the version is already installed
+                if (!e.message.includes('EEXIST') && !e.message.includes('file already exists')) {
+                    error("Could not detect installation method or update failed.");
                     showManualInstructions(latestVersion);
-                    break;
+                }
+                // If it's EEXIST error, updateViaNpm already handled it with success message
             }
         }
         
