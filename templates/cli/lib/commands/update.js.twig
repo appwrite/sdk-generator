@@ -1,12 +1,12 @@
 const fs = require("fs");
 const path = require("path");
-const os = require("os");
 const { spawn } = require("child_process");
 const { Command } = require("commander");
 const { fetch } = require("undici");
 const chalk = require("chalk");
 const inquirer = require("inquirer");
 const { success, log, warn, error, hint, actionRunner, commandDescriptions } = require("../parser");
+const { getLatestVersion, compareVersions } = require("../utils");
 const { version } = require("../../package.json");
 
 /**
@@ -15,13 +15,11 @@ const { version } = require("../../package.json");
 const isInstalledViaNpm = () => {
     try {
         const scriptPath = process.argv[1];
-        
-        // Common indicators of npm global installation
+
         if (scriptPath.includes('node_modules') && scriptPath.includes('appwrite-cli')) {
             return true;
         }
-        
-        // Check for npm global paths
+
         if (scriptPath.includes('/usr/local/lib/node_modules/') || 
             scriptPath.includes('/opt/homebrew/lib/node_modules/') ||
             scriptPath.includes('/.npm-global/') ||
@@ -47,39 +45,7 @@ const isInstalledViaHomebrew = () => {
     }
 };
 
-/**
- * Get the latest version from npm registry
- */
-const getLatestVersion = async () => {
-    try {
-        const response = await fetch('https://registry.npmjs.org/{{ language.params.npmPackage|caseDash }}/latest');
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-        }
-        const data = await response.json();
-        return data.version;
-    } catch (e) {
-        throw new Error(`Failed to fetch latest version: ${e.message}`);
-    }
-};
 
-/**
- * Compare versions using semantic versioning
- */
-const compareVersions = (current, latest) => {
-    const currentParts = current.split('.').map(Number);
-    const latestParts = latest.split('.').map(Number);
-    
-    for (let i = 0; i < Math.max(currentParts.length, latestParts.length); i++) {
-        const currentPart = currentParts[i] || 0;
-        const latestPart = latestParts[i] || 0;
-        
-        if (latestPart > currentPart) return 1;  // Latest is newer
-        if (latestPart < currentPart) return -1; // Current is newer
-    }
-    
-    return 0; // Same version
-};
 
 /**
  * Execute command and return promise
@@ -115,7 +81,6 @@ const updateViaNpm = async () => {
         success("Updated to latest version via npm!");
         hint("Run '{{ language.params.executableName|caseLower }} --version' to verify the new version.");
     } catch (e) {
-        // Check if error is due to file already existing (likely already latest version)
         if (e.message.includes('EEXIST') || e.message.includes('file already exists')) {
             success("Latest version is already installed via npm!");
             hint("The CLI is up to date. Run '{{ language.params.executableName|caseLower }} --version' to verify.");
@@ -135,7 +100,6 @@ const updateViaHomebrew = async () => {
         success("Updated to latest version via Homebrew!");
         hint("Run '{{ language.params.executableName|caseLower }} --version' to verify the new version.");
     } catch (e) {
-        // Check if error is due to package already being up-to-date
         if (e.message.includes('already installed') || e.message.includes('up-to-date')) {
             success("Latest version is already installed via Homebrew!");
             hint("The CLI is up to date. Run '{{ language.params.executableName|caseLower }} --version' to verify.");
@@ -147,41 +111,10 @@ const updateViaHomebrew = async () => {
 };
 
 /**
- * Update via installation script
- */
-const updateViaScript = async () => {
-    const platform = os.platform();
-    
-    try {
-        if (platform === 'win32') {
-            // Windows PowerShell script
-            await execCommand('powershell', ['-Command', 'iwr -useb https://appwrite.io/cli/install.ps1 | iex']);
-        } else {
-            // Linux/macOS bash script
-            await execCommand('sh', ['-c', 'wget -q https://appwrite.io/cli/install.sh -O - | /bin/bash']);
-        }
-        success("Updated to latest version via installation script!");
-        hint("Run '{{ language.params.executableName|caseLower }} --version' to verify the new version.");
-    } catch (e) {
-        // Check if error indicates already up-to-date
-        if (e.message.includes('already exists') || e.message.includes('up-to-date')) {
-            success("Latest version is already installed!");
-            hint("The CLI is up to date. Run '{{ language.params.executableName|caseLower }} --version' to verify.");
-        } else {
-            error(`Failed to update via installation script: ${e.message}`);
-            if (platform === 'win32') {
-                hint("Try running: iwr -useb https://appwrite.io/cli/install.ps1 | iex");
-            } else {
-                hint("Try running: wget -q https://appwrite.io/cli/install.sh -O - | /bin/bash");
-            }
-        }
-    }
-};
-
-/**
  * Show manual update instructions
  */
 const showManualInstructions = (latestVersion) => {
+    console.log("");
     log("Manual update options:");
     console.log("");
     
@@ -193,17 +126,40 @@ const showManualInstructions = (latestVersion) => {
     console.log(`  brew upgrade {{ language.params.executableName|caseLower }}`);
     console.log("");
     
-    log(`${chalk.bold("Option 3: Installation Script")}`);
-    if (os.platform() === 'win32') {
-        console.log(`  iwr -useb https://appwrite.io/cli/install.ps1 | iex`);
-    } else {
-        console.log(`  wget -q https://appwrite.io/cli/install.sh -O - | /bin/bash`);
+    log(`${chalk.bold("Option 3: Download Binary")}`);
+    console.log(`  Visit: https://github.com/{{ language.params.npmPackage|caseDash }}/releases/tag/${latestVersion}`);
+};
+
+/**
+ * Show interactive menu for choosing update method
+ */
+const chooseUpdateMethod = async (latestVersion) => {
+    const choices = [
+        { name: 'NPM', value: 'npm' },
+        { name: 'Homebrew (macOS)', value: 'homebrew' },
+        { name: 'Show manual instructions', value: 'manual' }
+    ];
+
+    const { method } = await inquirer.prompt([
+        {
+            type: 'list',
+            name: 'method',
+            message: 'Could not detect installation method. How would you like to update?',
+            choices: choices
+        }
+    ]);
+
+    switch (method) {
+        case 'npm':
+            await updateViaNpm();
+            break;
+        case 'homebrew':
+            await updateViaHomebrew();
+            break;
+        case 'manual':
+            showManualInstructions(latestVersion);
+            break;
     }
-    console.log("");
-    
-    log(`${chalk.bold("Option 4: Download Binary")}`);
-    console.log(`  Visit: https://github.com/appwrite/sdk-for-cli/releases/tag/${latestVersion}`);
-    console.log("");
 };
 
 /**
@@ -225,35 +181,23 @@ const updateCli = async ({ manual } = {}) => {
         }
         
         log(`Updating from ${chalk.blue(version)} to ${chalk.green(latestVersion)}...`);
-        console.log("");
         
         if (manual) {
             showManualInstructions(latestVersion);
             return;
         }
         
-        // Auto-detect installation method and update automatically
         if (isInstalledViaNpm()) {
             await updateViaNpm();
         } else if (isInstalledViaHomebrew()) {
             await updateViaHomebrew();
         } else {
-            // Unknown installation method - try npm first, then show manual instructions
-            try {
-                await updateViaNpm();
-            } catch (e) {
-                // If npm failed and it's not because the version is already installed
-                if (!e.message.includes('EEXIST') && !e.message.includes('file already exists')) {
-                    error("Could not detect installation method or update failed.");
-                    showManualInstructions(latestVersion);
-                }
-                // If it's EEXIST error, updateViaNpm already handled it with success message
-            }
+            await chooseUpdateMethod(latestVersion);
         }
         
     } catch (e) {
         error(`Failed to check for updates: ${e.message}`);
-        hint("You can manually check for updates at: https://github.com/appwrite/sdk-for-cli/releases");
+        hint("You can manually check for updates at: https://github.com/{{ language.params.npmPackage|caseDash }}/releases");
     }
 };
 
