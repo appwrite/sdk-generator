@@ -100,6 +100,42 @@ class Query():
         return str(Query("contains", attribute, value))
 
     @staticmethod
+    def not_contains(attribute, value):
+        return str(Query("notContains", attribute, value))
+
+    @staticmethod
+    def not_search(attribute, value):
+        return str(Query("notSearch", attribute, value))
+
+    @staticmethod
+    def not_between(attribute, start, end):
+        return str(Query("notBetween", attribute, [start, end]))
+
+    @staticmethod
+    def not_starts_with(attribute, value):
+        return str(Query("notStartsWith", attribute, value))
+
+    @staticmethod
+    def not_ends_with(attribute, value):
+        return str(Query("notEndsWith", attribute, value))
+
+    @staticmethod
+    def created_before(value):
+        return str(Query("createdBefore", None, value))
+
+    @staticmethod
+    def created_after(value):
+        return str(Query("createdAfter", None, value))
+
+    @staticmethod
+    def updated_before(value):
+        return str(Query("updatedBefore", None, value))
+
+    @staticmethod
+    def updated_after(value):
+        return str(Query("updatedAfter", None, value))
+
+    @staticmethod
     def or_queries(queries):
         return str(Query("or", None, [json.loads(query) for query in queries]))
 

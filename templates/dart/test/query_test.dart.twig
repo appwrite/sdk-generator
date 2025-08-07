@@ -211,5 +211,84 @@ void main() {
     expect(query['values'], 1);
     expect(query['method'], 'offset');
   });
+
+  test('returns notContains', () {
+    final query = Query.notContains('attr', 'value').toJson();
+    expect(query['attribute'], 'attr');
+    expect(query['values'], ['value']);
+    expect(query['method'], 'notContains');
+  });
+
+  test('returns notSearch', () {
+    final query = Query.notSearch('attr', 'keyword1 keyword2').toJson();
+    expect(query['attribute'], 'attr');
+    expect(query['values'], ['keyword1 keyword2']);
+    expect(query['method'], 'notSearch');
+  });
+
+  group('notBetween()', () {
+    test('with integers', () {
+      final query = Query.notBetween('attr', 1, 2).toJson();
+      expect(query['attribute'], 'attr');
+      expect(query['values'], [1, 2]);
+      expect(query['method'], 'notBetween');
+    });
+
+    test('with doubles', () {
+      final query = Query.notBetween('attr', 1.0, 2.0).toJson();
+      expect(query['attribute'], 'attr');
+      expect(query['values'], [1.0, 2.0]);
+      expect(query['method'], 'notBetween');
+    });
+
+    test('with strings', () {
+      final query = Query.notBetween('attr', 'a', 'z').toJson();
+      expect(query['attribute'], 'attr');
+      expect(query['values'], ['a', 'z']);
+      expect(query['method'], 'notBetween');
+    });
+  });
+
+  test('returns notStartsWith', () {
+    final query = Query.notStartsWith('attr', 'prefix').toJson();
+    expect(query['attribute'], 'attr');
+    expect(query['values'], ['prefix']);
+    expect(query['method'], 'notStartsWith');
+  });
+
+  test('returns notEndsWith', () {
+    final query = Query.notEndsWith('attr', 'suffix').toJson();
+    expect(query['attribute'], 'attr');
+    expect(query['values'], ['suffix']);
+    expect(query['method'], 'notEndsWith');
+  });
+
+  test('returns createdBefore', () {
+    final query = Query.createdBefore('2023-01-01').toJson();
+    expect(query['attribute'], null);
+    expect(query['values'], '2023-01-01');
+    expect(query['method'], 'createdBefore');
+  });
+
+  test('returns createdAfter', () {
+    final query = Query.createdAfter('2023-01-01').toJson();
+    expect(query['attribute'], null);
+    expect(query['values'], '2023-01-01');
+    expect(query['method'], 'createdAfter');
+  });
+
+  test('returns updatedBefore', () {
+    final query = Query.updatedBefore('2023-01-01').toJson();
+    expect(query['attribute'], null);
+    expect(query['values'], '2023-01-01');
+    expect(query['method'], 'updatedBefore');
+  });
+
+  test('returns updatedAfter', () {
+    final query = Query.updatedAfter('2023-01-01').toJson();
+    expect(query['attribute'], null);
+    expect(query['values'], '2023-01-01');
+    expect(query['method'], 'updatedAfter');
+  });
 }
 

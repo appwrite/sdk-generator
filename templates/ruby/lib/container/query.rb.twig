@@ -108,6 +108,42 @@ module {{spec.title | caseUcfirst}}
                 return Query.new("contains", attribute, value).to_s
             end
 
+            def not_contains(attribute, value)
+                return Query.new("notContains", attribute, value).to_s
+            end
+
+            def not_search(attribute, value)
+                return Query.new("notSearch", attribute, value).to_s
+            end
+
+            def not_between(attribute, start, ending)
+                return Query.new("notBetween", attribute, [start, ending]).to_s
+            end
+
+            def not_starts_with(attribute, value)
+                return Query.new("notStartsWith", attribute, value).to_s
+            end
+
+            def not_ends_with(attribute, value)
+                return Query.new("notEndsWith", attribute, value).to_s
+            end
+
+            def created_before(value)
+                return Query.new("createdBefore", nil, value).to_s
+            end
+
+            def created_after(value)
+                return Query.new("createdAfter", nil, value).to_s
+            end
+
+            def updated_before(value)
+                return Query.new("updatedBefore", nil, value).to_s
+            end
+
+            def updated_after(value)
+                return Query.new("updatedAfter", nil, value).to_s
+            end
+
             def or(queries)
                 return Query.new("or", nil, queries.map { |query| JSON.parse(query) }).to_s
             end
