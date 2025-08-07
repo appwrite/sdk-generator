@@ -9,6 +9,7 @@ const { projectsGet } = require("./projects");
 const { functionsList, functionsGetDeploymentDownload, functionsListDeployments } = require("./functions");
 const { sitesList, sitesGetDeploymentDownload, sitesListDeployments } = require("./sites");
 const { databasesGet, databasesListCollections, databasesList } = require("./databases");
+const { gridsListDatabases, gridsGetDatabase, gridsListTables } = require("./grids");
 const { storageListBuckets } = require("./storage");
 const { localConfig } = require("../config");
 const { paginate } = require("../paginate");
@@ -336,6 +337,58 @@ const pullCollection = async () => {
     success(`Successfully pulled ${chalk.bold(total)} collections.`);
 }
 
+const pullTable = async () => {
+    log("Fetching tables ...");
+    let total = 0;
+
+    const fetchResponse = await gridsListDatabases({
+        queries: [JSON.stringify({ method: 'limit', values: [1] })],
+        parseOutput: false
+    });
+    if (fetchResponse["databases"].length <= 0) {
+        log("No tables found.");
+        success(`Successfully pulled ${chalk.bold(total)} tables.`);
+        return;
+    }
+
+    let databases = cliConfig.ids;
+
+    if (databases.length === 0) {
+        if (cliConfig.all) {
+            databases = (await paginate(gridsListDatabases, { parseOutput: false }, 100, 'databases')).databases.map(database => database.$id);
+        } else {
+            databases = (await inquirer.prompt(questionsPullCollection)).databases;
+        }
+    }
+
+    for (const databaseId of databases) {
+        const database = await gridsGetDatabase({
+            databaseId,
+            parseOutput: false
+        });
+
+        total++;
+        log(`Pulling all tables from ${chalk.bold(database['name'])} database ...`);
+
+        localConfig.addDatabase(database);
+
+        const { tables } = await paginate(gridsListTables, {
+            databaseId,
+            parseOutput: false
+        }, 100, 'collections');
+
+        for (const table of tables) {
+            localConfig.addTable({
+                ...table,
+                '$createdAt': undefined,
+                '$updatedAt': undefined
+            });
+        }
+    }
+
+    success(`Successfully pulled ${chalk.bold(total)} tables.`);
+}
+
 const pullBucket = async () => {
     log("Fetching buckets ...");
     let total = 0;
@@ -449,6 +502,12 @@ pull
     .alias("collections")
     .description("Pull your {{ spec.title|caseUcfirst }} collections")
     .action(actionRunner(pullCollection))
+
+pull
+    .command("table")
+    .alias("tables")
+    .description("Pull your {{ spec.title|caseUcfirst }} tables")
+    .action(actionRunner(pullTable))
 
 pull
     .command("bucket")

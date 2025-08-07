@@ -9,6 +9,7 @@ const KeysSite = new Set(["path", "$id", "name", "enabled", "logging", "timeout"
 const KeysFunction = new Set(["path", "$id", "execute", "name", "enabled", "logging", "runtime", "specification", "scopes", "events", "schedule", "timeout", "entrypoint", "commands", "vars"]);
 const KeysDatabase = new Set(["$id", "name", "enabled"]);
 const KeysCollection = new Set(["$id", "$permissions", "databaseId", "name", "enabled", "documentSecurity", "attributes", "indexes"]);
+const KeysTable = new Set(["$id", "$permissions", "databaseId", "name", "enabled", "documentSecurity", "attributes", "indexes"]);
 const KeysStorage = new Set(["$id", "$permissions", "fileSecurity", "name", "enabled", "maximumFileSize", "allowedFileExtensions", "compression", "encryption", "antivirus"]);
 const KeysTopics = new Set(["$id", "name", "subscribe"]);
 const KeysTeams = new Set(["$id", "name"]);
@@ -308,6 +309,50 @@ class Local extends Config {
         }
         collections.push(props);
         this.set("collections", collections);
+    }
+
+    getTables() {
+        if (!this.has("tables")) {
+            return [];
+        }
+        return this.get("tables");
+    }
+
+    getTable($id) {
+        if (!this.has("tables")) {
+            return {};
+        }
+
+        let tables = this.get("tables");
+        for (let i = 0; i < tables.length; i++) {
+            if (tables[i]['$id'] == $id) {
+                return tables[i];
+            }
+        }
+
+        return {};
+    }
+
+    addTable(props) {
+        props = whitelistKeys(props, KeysTable, {
+            attributes: KeysAttributes,
+            indexes: KeyIndexes
+        });
+
+        if (!this.has("tables")) {
+            this.set("tables", []);
+        }
+
+        let tables = this.get("tables");
+        for (let i = 0; i < tables.length; i++) {
+            if (tables[i]['$id'] == props['$id'] && tables[i]['databaseId'] == props['databaseId']) {
+                tables[i] = props;
+                this.set("tables", tables);
+                return;
+            }
+        }
+        tables.push(props);
+        this.set("tables", tables);
     }
 
     getBuckets() {
@@ -713,5 +758,6 @@ module.exports = {
     KeysStorage,
     KeysTeams,
     KeysCollection,
+    KeysTable,
     whitelistKeys
 };
