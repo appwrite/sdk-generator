@@ -375,7 +375,7 @@ const pullTable = async () => {
         const { tables } = await paginate(gridsListTables, {
             databaseId,
             parseOutput: false
-        }, 100, 'collections');
+        }, 100, 'tables');
 
         for (const table of tables) {
             localConfig.addTable({

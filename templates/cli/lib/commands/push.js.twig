@@ -6,7 +6,7 @@ const inquirer = require("inquirer");
 const JSONbig = require("json-bigint")({ storeAsString: false });
 const { Command } = require("commander");
 const ID = require("../id");
-const { localConfig, globalConfig, KeysAttributes, KeysFunction, KeysSite, whitelistKeys, KeysTopics, KeysStorage, KeysTeams, KeysCollection } = require("../config");
+const { localConfig, globalConfig, KeysAttributes, KeysFunction, KeysSite, whitelistKeys, KeysTopics, KeysStorage, KeysTeams, KeysCollection, KeysTable } = require("../config");
 const { Spinner, SPINNER_ARC, SPINNER_DOTS } = require('../spinner');
 const { paginate } = require('../paginate');
 const { questionsPushBuckets, questionsPushTeams, questionsPushFunctions, questionsPushSites, questionsGetEntrypoint, questionsPushCollections, questionsPushTables, questionPushChanges, questionPushChangesConfirmation, questionsPushMessagingTopics, questionsPushResources } = require("../questions");
@@ -50,7 +50,8 @@ const {
     databasesUpdateCollection
 } = require("./databases");
 const {
-    gridsGetDatabase
+    gridsGetDatabase,
+    gridsGetTable
 } = require("./grids");
 const {
     storageGetBucket, storageUpdateBucket, storageCreateBucket
@@ -1738,13 +1739,13 @@ const pushTable = async ({ returnOnZero, attempts } = { returnOnZero: false }) =
     }));
 
 
-    if (!(await approveChanges(tables, databasesGetTable, KeysTable, 'tableId', 'tables', ['attributes', 'indexes'], 'databaseId', 'databaseId',))) {
+    if (!(await approveChanges(tables, gridsGetTable, KeysTable, 'tableId', 'tables', ['columns', 'indexes'], 'databaseId', 'databaseId',))) {
         return;
     }
     // Parallel collection actions
     await Promise.all(tables.map(async (table) => {
         try {
-            const remoteTable = await databasesGetTable({
+            const remoteTable = await gridsGetTable({
                 databaseId: table['databaseId'],
                 tableId: table['$id'],
                 parseOutput: false,
@@ -1784,14 +1785,14 @@ const pushTable = async ({ returnOnZero, attempts } = { returnOnZero: false }) =
     let numberOfTables = 0;
     // Serialize attribute actions
     for (let table of tables) {
-        let attributes = table.attributes;
+        let columns = table.columns;
         let indexes = table.indexes;
 
         if (table.isExisted) {
-            attributes = await attributesToCreate(table.remoteVersion.attributes, table.attributes, table);
+            columns = await attributesToCreate(table.remoteVersion.columns, table.columns, table);
             indexes = await attributesToCreate(table.remoteVersion.indexes, table.indexes, table, true);
 
-            if ((Array.isArray(attributes) && attributes.length <= 0) && (Array.isArray(indexes) && indexes.length <= 0)) {
+            if ((Array.isArray(columns) && columns.length <= 0) && (Array.isArray(indexes) && indexes.length <= 0)) {
                 continue;
             }
 
@@ -1800,7 +1801,7 @@ const pushTable = async ({ returnOnZero, attempts } = { returnOnZero: false }) =
         log(`Pushing table ${table.name} ( ${table['databaseId']} - ${table['$id']} ) attributes`)
 
         try {
-            await createAttributes(attributes, table)
+            await createAttributes(columns, table)
         } catch (e) {
             throw e;
         }
@@ -1881,7 +1882,7 @@ const pushCollection = async ({ returnOnZero, attempts } = { returnOnZero: false
     }));
 
 
-    if (!(await approveChanges(collections, databasesGetCollection, KeysCollection, 'collectionId', 'collections', ['attributes', 'indexes'], 'databaseId', 'databaseId',))) {
+    if (!(await approveChanges(collections, databasesGetCollection, KeysCollection, 'collectionId', 'collections', ['columns', 'indexes'], 'databaseId', 'databaseId',))) {
         return;
     }
     // Parallel collection actions
