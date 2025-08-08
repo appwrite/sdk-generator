@@ -21,7 +21,7 @@ const pullResources = async () => {
         settings: pullSettings,
         functions: pullFunctions,
         sites: pullSites,
-        collections: pullCollection,
+        tables: pullTable,
         buckets: pullBucket,
         teams: pullTeam,
         messages: pullMessagingTopic
@@ -286,6 +286,7 @@ const pullSites = async ({ code, withVariables }) => {
 }
 
 const pullCollection = async () => {
+    warn("appwrite push collection has been deprecated. Please consider using 'appwrite push tables' instead");
     log("Fetching collections ...");
     let total = 0;
 
@@ -500,7 +501,7 @@ pull
 pull
     .command("collection")
     .alias("collections")
-    .description("Pull your {{ spec.title|caseUcfirst }} collections")
+    .description("Pull your {{ spec.title|caseUcfirst }} collections (deprecated, please use 'pull tables' instead)")
     .action(actionRunner(pullCollection))
 
 pull

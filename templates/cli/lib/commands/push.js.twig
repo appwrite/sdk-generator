@@ -1819,7 +1819,7 @@ const pushTable = async ({ returnOnZero, attempts } = { returnOnZero: false }) =
 }
 
 const pushCollection = async ({ returnOnZero, attempts } = { returnOnZero: false }) => {
-    warn("⚠️  DEPRECATED: Use 'appwrite push table' instead. This command might be removed in the future");
+    warn("appwrite push collection has been deprecated. Please consider using 'appwrite push tables' instead");
     const collections = [];
 
     if (attempts) {
@@ -1882,7 +1882,7 @@ const pushCollection = async ({ returnOnZero, attempts } = { returnOnZero: false
     }));
 
 
-    if (!(await approveChanges(collections, databasesGetCollection, KeysCollection, 'collectionId', 'collections', ['columns', 'indexes'], 'databaseId', 'databaseId',))) {
+    if (!(await approveChanges(collections, databasesGetCollection, KeysCollection, 'collectionId', 'collections', ['attributes', 'indexes'], 'databaseId', 'databaseId',))) {
         return;
     }
     // Parallel collection actions
@@ -2228,18 +2228,18 @@ push
     .action(actionRunner(pushSite));
 
 push
+    .command("collection")
+    .alias("collections")
+    .description("Push collections in the current project. (deprecated, please use 'push tables' instead)")
+    .option(`-a, --attempts <numberOfAttempts>`, `Max number of attempts before timing out. default: 30.`)
+    .action(actionRunner(pushCollection));
+
+push
     .command("table")
     .alias("tables")
     .description("Push tables in the current project.")
     .option(`-a, --attempts <numberOfAttempts>`, `Max number of attempts before timing out. default: 30.`)
     .action(actionRunner(pushTable));
-
-push
-    .command("collection")
-    .alias("collections")
-    .description("Push collections in the current project.")
-    .option(`-a, --attempts <numberOfAttempts>`, `Max number of attempts before timing out. default: 30.`)
-    .action(actionRunner(pushCollection));
 
 push
     .command("bucket")
