@@ -510,7 +510,7 @@ class Unity extends Language
                 'scope'         => 'copy',
                 'destination'   => 'Assets/Runtime/Core/Plugins/System.Text.Json.dll',
                 'template'      => 'unity/Assets/Runtime/Core/Plugins/System.Text.Json.dll',
-            ],                        
+            ],
             // Appwrite.Editor
             [
                 'scope'         => 'default',
