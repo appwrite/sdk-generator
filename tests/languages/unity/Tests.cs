@@ -219,15 +219,15 @@ namespace AppwriteTests
             Debug.Log(Query.Contains("labels", "first"));
 
              // New query methods
-            TestContext.WriteLine(Query.NotContains("title", "Spider"));
-            TestContext.WriteLine(Query.NotSearch("name", "john"));
-            TestContext.WriteLine(Query.NotBetween("age", 50, 100));
-            TestContext.WriteLine(Query.NotStartsWith("name", "Ann"));
-            TestContext.WriteLine(Query.NotEndsWith("name", "nne"));
-            TestContext.WriteLine(Query.CreatedBefore("2023-01-01"));
-            TestContext.WriteLine(Query.CreatedAfter("2023-01-01"));
-            TestContext.WriteLine(Query.UpdatedBefore("2023-01-01"));
-            TestContext.WriteLine(Query.UpdatedAfter("2023-01-01"));
+            Debug.Log(Query.NotContains("title", "Spider"));
+            Debug.Log(Query.NotSearch("name", "john"));
+            Debug.Log(Query.NotBetween("age", 50, 100));
+            Debug.Log(Query.NotStartsWith("name", "Ann"));
+            Debug.Log(Query.NotEndsWith("name", "nne"));
+            Debug.Log(Query.CreatedBefore("2023-01-01"));
+            Debug.Log(Query.CreatedAfter("2023-01-01"));
+            Debug.Log(Query.UpdatedBefore("2023-01-01"));
+            Debug.Log(Query.UpdatedAfter("2023-01-01"));
             
             Debug.Log(Query.Or(new List<string> { Query.Equal("released", true), Query.LessThan("releasedYear", 1990) }));
             Debug.Log(Query.And(new List<string> { Query.Equal("released", false), Query.GreaterThan("releasedYear", 2015) }));
