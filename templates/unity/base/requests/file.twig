@@ -1,0 +1,18 @@
+            string? idParamName = {% if method.parameters.all | filter(p => p.isUploadID) | length > 0 %}{% for parameter in method.parameters.all | filter(parameter => parameter.isUploadID) %}"{{ parameter.name }}"{% endfor %}{% else %}null{% endif %};
+
+            {%~ for parameter in method.parameters.all %}
+            {%~ if parameter.type == 'file' %}
+            var paramName = "{{ parameter.name }}";
+            {%~ endif %}
+            {%~ endfor %}
+
+            return _client.ChunkedUpload(
+                apiPath,
+                apiHeaders,
+                apiParameters,
+                {%~ if method.responseModel %}
+                Convert,
+                {%~ endif %}
+                paramName,
+                idParamName,
+                onProgress);
