@@ -217,6 +217,18 @@ namespace AppwriteTests
             Debug.Log(Query.Offset(20));
             Debug.Log(Query.Contains("title", "Spider"));
             Debug.Log(Query.Contains("labels", "first"));
+
+             // New query methods
+            Debug.Log(Query.NotContains("title", "Spider"));
+            Debug.Log(Query.NotSearch("name", "john"));
+            Debug.Log(Query.NotBetween("age", 50, 100));
+            Debug.Log(Query.NotStartsWith("name", "Ann"));
+            Debug.Log(Query.NotEndsWith("name", "nne"));
+            Debug.Log(Query.CreatedBefore("2023-01-01"));
+            Debug.Log(Query.CreatedAfter("2023-01-01"));
+            Debug.Log(Query.UpdatedBefore("2023-01-01"));
+            Debug.Log(Query.UpdatedAfter("2023-01-01"));
+            
             Debug.Log(Query.Or(new List<string> { Query.Equal("released", true), Query.LessThan("releasedYear", 1990) }));
             Debug.Log(Query.And(new List<string> { Query.Equal("released", false), Query.GreaterThan("releasedYear", 2015) }));
 
