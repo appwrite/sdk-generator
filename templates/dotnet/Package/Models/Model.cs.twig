@@ -39,6 +39,7 @@ namespace {{ spec.title | caseUcfirst }}.Models
         public static {{ definition.name | caseUcfirst | overrideIdentifier }} From(Dictionary<string, object> map) => new {{ definition.name | caseUcfirst | overrideIdentifier }}(
             {%~ for property in definition.properties %}
             {{ property.name | caseCamel | escapeKeyword | removeDollarSign }}:{{' '}}
+                {%- if not property.required -%}map.ContainsKey("{{ property.name }}") ? {% endif %}
                 {%- if property.sub_schema %}
                     {%- if property.type == 'array' -%}
                         ((IEnumerable<object>)map["{{ property.name }}"]).Select(it => {{ property.sub_schema | caseUcfirst | overrideIdentifier }}.From(map: (Dictionary<string, object>)it)).ToList()
@@ -60,6 +61,7 @@ namespace {{ spec.title | caseUcfirst }}.Models
                         {%~ endif %}
                     {%~ endif %}
                 {%~ endif %}
+                {%- if not property.required %} : null{% endif %}
                 {%- if not loop.last or (loop.last and definition.additionalProperties) %},
                 {%~ endif %}
             {%~ endfor %}
