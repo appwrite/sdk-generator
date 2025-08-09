@@ -194,15 +194,6 @@ namespace AppwriteTests
             mock = await general.GetCookie();
             Debug.Log(mock.Result);
 
-            var url = await general.Oauth2(
-                clientId: "clientId",
-                scopes: new List<string>() {"test"},
-                state: "123456",
-                success: "https://localhost",
-                failure: "https://localhost"
-            );
-            Debug.Log(url);
-
             // Query helper tests
             Debug.Log(Query.Equal("released", new List<bool> { true }));
             Debug.Log(Query.Equal("title", new List<string> { "Spiderman", "Dr. Strange" }));

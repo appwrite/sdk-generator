@@ -10,7 +10,7 @@ using {{ spec.title | caseUcfirst }}.Models;
 {% if spec.enums is not empty %}
 using {{ spec.title | caseUcfirst }}.Enums;
 {% endif %}
-{% if service.name|lower == 'account' %}
+{% if service.name|lower == 'account' or service.name|lower == 'general' %}
 using {{ spec.title | caseUcfirst }}.Extensions;
 using System.Web;
 using UnityEngine;
