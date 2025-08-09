@@ -101,6 +101,7 @@ namespace {{ spec.title | caseUcfirst }}
         private bool _creatingSocket;
         private string _lastUrl;
         private CancellationTokenSource _heartbeatTokenSource;
+        public HashSet<string> Channels => _channels;
 
         public bool IsConnected => _webSocket?.State == WebSocketState.Open;
         public event Action OnConnected;

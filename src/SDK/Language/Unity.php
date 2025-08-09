@@ -467,9 +467,15 @@ class Unity extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'Assets/Runtime/Core/WebAuthComponent.cs',
+                'template'      => 'unity/Assets/Runtime/Core/WebAuthComponent.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'Assets/Runtime/Core/Enums/IEnum.cs',
                 'template'      => 'unity/Assets/Runtime/Core/Enums/IEnum.cs.twig',
             ],
+            // Plugins
             [
                 'scope'         => 'copy',
                 'destination'   => 'Assets/Runtime/Core/Plugins/Microsoft.Bcl.AsyncInterfaces.dll',
@@ -492,9 +498,19 @@ class Unity extends Language
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'Assets/Runtime/Core/Plugins/Android/AndroidManifest.xml',
+                'template'      => 'unity/Assets/Runtime/Core/Plugins/Android/AndroidManifest.xml',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'Assets/Runtime/Core/Plugins/WebGLCookies.jslib',
+                'template'      => 'unity/Assets/Runtime/Core/Plugins/WebGLCookies.jslib',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'Assets/Runtime/Core/Plugins/System.Text.Json.dll',
                 'template'      => 'unity/Assets/Runtime/Core/Plugins/System.Text.Json.dll',
-            ],
+            ],                        
             // Appwrite.Editor
             [
                 'scope'         => 'default',
