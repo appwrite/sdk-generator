@@ -22,6 +22,12 @@
 
 ## Installation
 
+Initialize your go module if you haven't already:
+
+```bash
+go mod init <YOUR_MODULE_NAME>
+```
+
 To install using `go get`:
 
 ```bash
@@ -30,65 +36,72 @@ go get github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName }}
 
 ## Testing the SDK
 
-* clone this repo.
-* create a project and within this project a collection.
-* configure the documents in the collection to have a _key_ = __hello__.
+* Clone this repo.
+* Create a project and within this project a collection.
+* Configure the documents in the collection to have a attribute `key` = `hello`.
 * Then inject these environment variables:
 
   ```bash
-  export YOUR_ENDPOINT=https://{{ sdk.gitUserName|url_encode }}.io/v1  
-  export YOUR_PROJECT_ID=6…8  
-  export YOUR_KEY="7055781…cd95"  
-  export COLLECTION_ID=616a095b20180  
+  export YOUR_ENDPOINT=https://<REGION>.cloud.{{ sdk.gitUserName|url_encode }}.io/v1
+  export YOUR_PROJECT_ID=616a09..0180
+  export YOUR_KEY=7055781..cd95
+  export DATABASE_ID=616a09..0180
+  export COLLECTION_ID=616a09..20180
   ```
 
-Create `main.go` file with:
+* Create `main.go` file with:
 
-```go
-package main
+	```go
+	package main
 
-import (
-	"log"
-	"os"
-	"time"
+	import (
+		"log"
+		"os"
+		"time"
 
-	"github.com/{{sdk.gitUserName}}/{{ sdk.gitRepoName|url_encode }}/appwrite"
-	"github.com/{{sdk.gitUserName}}/{{ sdk.gitRepoName|url_encode }}/id"
-)
-
-func main() {
-	client := appwrite.NewClient(
-		appwrite.WithEndpoint(os.Getenv("YOUR_ENDPOINT")),
-		appwrite.WithProject(os.Getenv("YOUR_PROJECT_ID")),
-		appwrite.WithKey(os.Getenv("YOUR_KEY")),
+		"github.com/{{sdk.gitUserName}}/{{ sdk.gitRepoName|url_encode }}/appwrite"
+		"github.com/{{sdk.gitUserName}}/{{ sdk.gitRepoName|url_encode }}/id"
 	)
 
-	databases := appwrite.NewDatabase(client)
+	func main() {
+		client := appwrite.NewClient(
+			appwrite.WithEndpoint(os.Getenv("YOUR_ENDPOINT")),
+			appwrite.WithProject(os.Getenv("YOUR_PROJECT_ID")),
+			appwrite.WithKey(os.Getenv("YOUR_KEY")),
+		)
 
-	data := map[string]string{
-		"hello": "world",
-	}
-	doc, err := databases.CreateDocument(
-		os.Getenv("DATABASE_ID"),
-		os.Getenv("COLLECTION_ID"),
-		id.Unique(),
-		data,
-	)
-	if err != nil {
-		log.Printf("Error creating document: %v", err)
-	}
+		databases := appwrite.NewDatabases(client)
 
-	log.Printf("Created document: %v", doc)
-}
-```
+		data := map[string]interface{}{
+			"hello": "world",
+		}
+		doc, err := databases.CreateDocument(
+			os.Getenv("DATABASE_ID"),
+			os.Getenv("COLLECTION_ID"),
+			id.Unique(),
+			data,
+		)
+		if err != nil {
+			log.Printf("Error creating document: %v", err)
+		}
+
+		log.Printf("Created document: %v", doc)
+	}
+	```
 
 * After that, run the following
 
-  > % go run main.go  
-  > 2021/10/16 03:41:17 Created document: map[$collection:616a095b20180 $id:616a2dbd4df16 $permissions:map[read:[] write:[]] hello:world]  
+  ```bash
+  go run main.go
+  ```
+
+* You should see the following output:
+
+  ```bash
+  2021/10/16 03:41:17 Created document: map[$collection:616a095b20180 $id:616a2dbd4df16 $permissions:map[read:[] write:[]] hello:world]
+  ```
 
 {% if sdk.gettingStarted %}
-
 {{ sdk.gettingStarted|raw }}
 {% endif %}
 

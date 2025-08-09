@@ -150,6 +150,18 @@ echo Query::limit(50) . "\n";
 echo Query::offset(20) . "\n";
 echo Query::contains('title', ['Spider']) . "\n";
 echo Query::contains('labels', ['first']) . "\n";
+
+// New query methods
+echo Query::notContains('title', ['Spider']) . "\n";
+echo Query::notSearch('name', 'john') . "\n";
+echo Query::notBetween('age', 50, 100) . "\n";
+echo Query::notStartsWith('name', 'Ann') . "\n";
+echo Query::notEndsWith('name', 'nne') . "\n";
+echo Query::createdBefore('2023-01-01') . "\n";
+echo Query::createdAfter('2023-01-01') . "\n";
+echo Query::updatedBefore('2023-01-01') . "\n";
+echo Query::updatedAfter('2023-01-01') . "\n";
+
 echo Query::or([
     Query::equal('released', [true]),
     Query::lessThan('releasedYear', 1990)

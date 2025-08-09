@@ -137,8 +137,8 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'scoop/appwrite.json',
-                'template'      => 'cli/scoop/appwrite.json.twig',
+                'destination'   => 'scoop/appwrite.config.json',
+                'template'      => 'cli/scoop/appwrite.config.json.twig',
                 'minify'        => false,
             ],
             [
@@ -330,6 +330,11 @@ class CLI extends Node
                 'scope'         => 'default',
                 'destination'   => 'lib/commands/types.js',
                 'template'      => 'cli/lib/commands/types.js.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/commands/update.js',
+                'template'      => 'cli/lib/commands/update.js.twig',
             ]
         ];
     }

@@ -109,6 +109,15 @@ abstract class Base extends TestCase
         '{"method":"offset","values":[20]}',
         '{"method":"contains","attribute":"title","values":["Spider"]}',
         '{"method":"contains","attribute":"labels","values":["first"]}',
+        '{"method":"notContains","attribute":"title","values":["Spider"]}',
+        '{"method":"notSearch","attribute":"name","values":["john"]}',
+        '{"method":"notBetween","attribute":"age","values":[50,100]}',
+        '{"method":"notStartsWith","attribute":"name","values":["Ann"]}',
+        '{"method":"notEndsWith","attribute":"name","values":["nne"]}',
+        '{"method":"createdBefore","values":["2023-01-01"]}',
+        '{"method":"createdAfter","values":["2023-01-01"]}',
+        '{"method":"updatedBefore","values":["2023-01-01"]}',
+        '{"method":"updatedAfter","values":["2023-01-01"]}',
         '{"method":"or","values":[{"method":"equal","attribute":"released","values":[true]},{"method":"lessThan","attribute":"releasedYear","values":[1990]}]}',
         '{"method":"and","values":[{"method":"equal","attribute":"released","values":[false]},{"method":"greaterThan","attribute":"releasedYear","values":[2015]}]}'
     ];

@@ -172,4 +172,59 @@ describe('Query', () => {
         Query.offset(1).toString(),
         `{"method":"offset","values":[1]}`,
     ));
+
+    test('notContains', () => assertEquals(
+        Query.notContains('attr', 'value').toString(),
+        `{"method":"notContains","attribute":"attr","values":["value"]}`,
+    ));
+
+    test('notSearch', () => assertEquals(
+        Query.notSearch('attr', 'keyword1 keyword2').toString(),
+        '{"method":"notSearch","attribute":"attr","values":["keyword1 keyword2"]}',
+    ));
+
+    describe('notBetween', () => {
+        test('with integers', () => assertEquals(
+            Query.notBetween('attr', 1, 2).toString(),
+            `{"method":"notBetween","attribute":"attr","values":[1,2]}`,
+        ));
+        test('with doubles', () => assertEquals(
+            Query.notBetween('attr', 1.2, 2.2).toString(),
+            `{"method":"notBetween","attribute":"attr","values":[1.2,2.2]}`,
+        ));
+        test('with strings', () => assertEquals(
+            Query.notBetween('attr', "a", "z").toString(),
+            `{"method":"notBetween","attribute":"attr","values":["a","z"]}`,
+        ));
+    });
+
+    test('notStartsWith', () => assertEquals(
+        Query.notStartsWith('attr', 'prefix').toString(),
+        `{"method":"notStartsWith","attribute":"attr","values":["prefix"]}`,
+    ));
+
+    test('notEndsWith', () => assertEquals(
+        Query.notEndsWith('attr', 'suffix').toString(),
+        `{"method":"notEndsWith","attribute":"attr","values":["suffix"]}`,
+    ));
+
+    test('createdBefore', () => assertEquals(
+        Query.createdBefore('2023-01-01').toString(),
+        `{"method":"createdBefore","values":["2023-01-01"]}`,
+    ));
+
+    test('createdAfter', () => assertEquals(
+        Query.createdAfter('2023-01-01').toString(),
+        `{"method":"createdAfter","values":["2023-01-01"]}`,
+    ));
+
+    test('updatedBefore', () => assertEquals(
+        Query.updatedBefore('2023-01-01').toString(),
+        `{"method":"updatedBefore","values":["2023-01-01"]}`,
+    ));
+
+    test('updatedAfter', () => assertEquals(
+        Query.updatedAfter('2023-01-01').toString(),
+        `{"method":"updatedAfter","values":["2023-01-01"]}`,
+    ));
 })

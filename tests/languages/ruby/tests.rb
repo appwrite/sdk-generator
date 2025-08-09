@@ -147,6 +147,18 @@ puts Query.limit(50)
 puts Query.offset(20)
 puts Query.contains("title", "Spider")
 puts Query.contains("labels", "first")
+
+# New query methods
+puts Query.not_contains("title", "Spider")
+puts Query.not_search("name", "john")
+puts Query.not_between("age", 50, 100)
+puts Query.not_starts_with("name", "Ann")
+puts Query.not_ends_with("name", "nne")
+puts Query.created_before("2023-01-01")
+puts Query.created_after("2023-01-01")
+puts Query.updated_before("2023-01-01")
+puts Query.updated_after("2023-01-01")
+
 puts Query.or([Query.equal("released", true), Query.less_than("releasedYear", 1990)])
 puts Query.and([Query.equal("released", false), Query.greater_than("releasedYear", 2015)])
 

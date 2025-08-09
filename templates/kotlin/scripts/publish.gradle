@@ -10,18 +10,6 @@ java {
 }
 
 publishing {
-    repositories {
-        maven {
-            name = "sonatype"
-            def releaseUrl = "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/"
-            def snapshotUrl = "https://s01.oss.sonatype.org/content/repositories/snapshots/"
-            url = version.endsWith('-SNAPSHOT') ? snapshotUrl : releaseUrl
-            credentials {
-                username = rootProject.ext["ossrhUsername"]
-                password = rootProject.ext["ossrhPassword"]
-            }
-        }
-    }
     publications {
         mavenJava(MavenPublication) {
             from components.java

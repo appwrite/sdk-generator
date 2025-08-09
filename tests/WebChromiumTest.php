@@ -23,9 +23,12 @@ class WebChromiumTest extends Base
     protected array $expectedOutput = [
         ...Base::PING_RESPONSE,
         ...Base::FOO_RESPONSES,
+        ...Base::FOO_RESPONSES, // Object params
         ...Base::BAR_RESPONSES,
+        ...Base::BAR_RESPONSES, // Object params
         ...Base::GENERAL_RESPONSES,
         ...Base::UPLOAD_RESPONSES,
+        ...Base::UPLOAD_RESPONSES, // Object params
         ...Base::ENUM_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
         ...Base::REALTIME_RESPONSES,

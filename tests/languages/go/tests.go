@@ -208,6 +208,18 @@ func testQueries() {
 	fmt.Println(query.Offset(20))
 	fmt.Println(query.Contains("title", "Spider"))
 	fmt.Println(query.Contains("labels", "first"))
+	
+	// New query methods
+	fmt.Println(query.NotContains("title", "Spider"))
+	fmt.Println(query.NotSearch("name", "john"))
+	fmt.Println(query.NotBetween("age", 50, 100))
+	fmt.Println(query.NotStartsWith("name", "Ann"))
+	fmt.Println(query.NotEndsWith("name", "nne"))
+	fmt.Println(query.CreatedBefore("2023-01-01"))
+	fmt.Println(query.CreatedAfter("2023-01-01"))
+	fmt.Println(query.UpdatedBefore("2023-01-01"))
+	fmt.Println(query.UpdatedAfter("2023-01-01"))
+	
 	fmt.Println(query.Or([]string{
 		query.Equal("released", true),
 		query.LessThan("releasedYear", 1990),

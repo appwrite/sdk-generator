@@ -284,6 +284,90 @@ public struct Query : Codable, CustomStringConvertible {
         ).description
     }
 
+    public static func notContains(_ attribute: String, value: Any) -> String {
+        return Query(
+            method: "notContains",
+            attribute: attribute,
+            values: Query.parseValue(value)
+        ).description
+    }
+
+    public static func notSearch(_ attribute: String, value: String) -> String {
+        return Query(
+            method: "notSearch",
+            attribute: attribute,
+            values: [value]
+        ).description
+    }
+
+    public static func notBetween(_ attribute: String, start: Int, end: Int) -> String {
+        return Query(
+            method: "notBetween",
+            attribute: attribute,
+            values: [start, end]
+        ).description
+    }
+
+    public static func notBetween(_ attribute: String, start: Double, end: Double) -> String {
+        return Query(
+            method: "notBetween",
+            attribute: attribute,
+            values: [start, end]
+        ).description
+    }
+
+    public static func notBetween(_ attribute: String, start: String, end: String) -> String {
+        return Query(
+            method: "notBetween",
+            attribute: attribute,
+            values: [start, end]
+        ).description
+    }
+
+    public static func notStartsWith(_ attribute: String, value: String) -> String {
+        return Query(
+            method: "notStartsWith",
+            attribute: attribute,
+            values: [value]
+        ).description
+    }
+
+    public static func notEndsWith(_ attribute: String, value: String) -> String {
+        return Query(
+            method: "notEndsWith",
+            attribute: attribute,
+            values: [value]
+        ).description
+    }
+
+    public static func createdBefore(_ value: String) -> String {
+        return Query(
+            method: "createdBefore",
+            values: [value]
+        ).description
+    }
+
+    public static func createdAfter(_ value: String) -> String {
+        return Query(
+            method: "createdAfter",
+            values: [value]
+        ).description
+    }
+
+    public static func updatedBefore(_ value: String) -> String {
+        return Query(
+            method: "updatedBefore",
+            values: [value]
+        ).description
+    }
+
+    public static func updatedAfter(_ value: String) -> String {
+        return Query(
+            method: "updatedAfter",
+            values: [value]
+        ).description
+    }
+
     public static func or(_ queries: [String]) -> String {
         let decoder = JSONDecoder()
         let decodedQueries = queries.compactMap { queryStr -> Query? in
