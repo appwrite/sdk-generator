@@ -39,31 +39,29 @@ namespace {{ spec.title | caseUcfirst }}.Models
         public static {{ definition.name | caseUcfirst | overrideIdentifier }} From(Dictionary<string, object> map) => new {{ definition.name | caseUcfirst | overrideIdentifier }}(
             {%~ for property in definition.properties %}
             {{ property.name | caseCamel | escapeKeyword | removeDollarSign }}:{{' '}}
+                {%- if not property.required -%}map.ContainsKey("{{ property.name }}") ? {% endif %}
                 {%- if property.sub_schema %}
                     {%- if property.type == 'array' -%}
-                        map["{{ property.name }}"] is JsonElement jsonArray{{ loop.index }} ? jsonArray{{ loop.index }}.Deserialize<List<Dictionary<string, object>>>()!.Select(it => {{ property.sub_schema | caseUcfirst | overrideIdentifier }}.From(map: it)).ToList() : ((IEnumerable<Dictionary<string, object>>)map["{{ property.name }}"]).Select(it => {{ property.sub_schema | caseUcfirst | overrideIdentifier }}.From(map: it)).ToList()
+                        ((IEnumerable<object>)map["{{ property.name }}"]).Select(it => {{ property.sub_schema | caseUcfirst | overrideIdentifier }}.From(map: (Dictionary<string, object>)it)).ToList()
                     {%- else -%}
-                        {{ property.sub_schema | caseUcfirst | overrideIdentifier }}.From(map: map["{{ property.name }}"] is JsonElement jsonObj{{ loop.index }} ? jsonObj{{ loop.index }}.Deserialize<Dictionary<string, object>>()! : (Dictionary<string, object>)map["{{ property.name }}"])
+                        {{ property.sub_schema | caseUcfirst | overrideIdentifier }}.From(map: (Dictionary<string, object>)map["{{ property.name }}"])
                     {%- endif %}
                 {%- else %}
                     {%- if property.type == 'array' -%}
-                        map["{{ property.name }}"] is JsonElement jsonArrayProp{{ loop.index }} ? jsonArrayProp{{ loop.index }}.Deserialize<{{ property | typeName }}>()! : ({{ property | typeName }})map["{{ property.name }}"]
+                        ((IEnumerable<object>)map["{{ property.name }}"]).Select(x => {% if property.items.type == "string" %}x?.ToString(){% elseif property.items.type == "integer" %}{% if not property.required %}x == null ? (long?)null : {% endif %}Convert.ToInt64(x){% elseif property.items.type == "number" %}{% if not property.required %}x == null ? (double?)null : {% endif %}Convert.ToDouble(x){% elseif property.items.type == "boolean" %}{% if not property.required %}x == null ? (bool?)null : {% endif %}(bool)x{% else %}x{% endif %}).{% if property.items.type == "string" and property.required %}Where(x => x != null).{% endif %}ToList()!
                     {%- else %}
                         {%- if property.type == "integer" or property.type == "number" %}
-                            {%- if not property.required -%}map["{{ property.name }}"] == null ? null :{% endif %}Convert.To{% if property.type == "integer" %}Int64{% else %}Double{% endif %}(map["{{ property.name }}"])
+                            {%- if not property.required -%}map["{{ property.name }}"] == null ? null : {% endif %}Convert.To{% if property.type == "integer" %}Int64{% else %}Double{% endif %}(map["{{ property.name }}"])
                         {%- else %}
                             {%- if property.type == "boolean" -%}
                                 ({{ property | typeName }}{% if not property.required %}?{% endif %})map["{{ property.name }}"]
-                            {%- else %}
-                                {%- if not property.required -%}
-                                    map.TryGetValue("{{ property.name }}", out var {{ property.name | caseCamel | escapeKeyword | removeDollarSign }}) ? {{ property.name | caseCamel | escapeKeyword | removeDollarSign }}?.ToString() : null
-                                {%- else -%}
-                                    map["{{ property.name }}"].ToString()
-                                {%- endif %}
+                            {%- else -%}
+                                map["{{ property.name }}"]{% if not property.required %}?{% endif %}.ToString()
                             {%- endif %}
                         {%~ endif %}
                     {%~ endif %}
                 {%~ endif %}
+                {%- if not property.required %} : null{% endif %}
                 {%- if not loop.last or (loop.last and definition.additionalProperties) %},
                 {%~ endif %}
             {%~ endfor %}
