@@ -34,11 +34,11 @@ namespace {{ spec.title | caseUcfirst }}
     public class {{ spec.title | caseUcfirst }}Config : ScriptableObject
     {
         [Header("Connection Settings")]
-        [Tooltip("Endpoint URL for {{ spec.title | caseUcfirst }} API (e.g., https://cloud.{{ spec.title | caseUcfirst }}.io/v1)")]
-        [SerializeField] private string endpoint = "https://cloud.{{ spec.title | caseUcfirst }}.io/v1";
+        [Tooltip("Endpoint URL for {{ spec.title | caseUcfirst }} API (e.g., https://cloud.{{ spec.title | lower }}.io/v1)")]
+        [SerializeField] private string endpoint = "https://cloud.{{ spec.title | lower }}.io/v1";
         
         [Tooltip("WebSocket endpoint for realtime updates (optional)")]
-        [SerializeField] private string realtimeEndpoint = "wss://cloud.{{ spec.title | caseUcfirst }}.io/v1";
+        [SerializeField] private string realtimeEndpoint = "wss://cloud.{{ spec.title | lower }}.io/v1";
         
         [Tooltip("Enable if using a self-signed SSL certificate")]
         [SerializeField] private bool selfSigned;
