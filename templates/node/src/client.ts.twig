@@ -67,6 +67,7 @@ function getUserAgent() {
 
 class Client {
     static CHUNK_SIZE = 1024 * 1024 * 5;
+    static MAX_CONCURRENCY = 5;
 
     config = {
         endpoint: '{{ spec.endpoint }}',
@@ -211,38 +212,102 @@ class Client {
             return await this.call(method, url, headers, originalPayload);
         }
 
-        let start = 0;
-        let response = null;
+        const totalChunks = Math.ceil(file.size / Client.CHUNK_SIZE);
+        const chunks: Array<{ index: number; start: number; end: number; chunk: Blob }> = [];
 
-        while (start < file.size) {
-            let end = start + Client.CHUNK_SIZE; // Prepare end for the next chunk
-            if (end >= file.size) {
-                end = file.size; // Adjust for the last chunk to include the last byte
-            }
-
-            headers['content-range'] = `bytes ${start}-${end-1}/${file.size}`;
+        for (let i = 0; i < totalChunks; i++) {
+            const start = i * Client.CHUNK_SIZE;
+            const end = Math.min(start + Client.CHUNK_SIZE, file.size);
             const chunk = file.slice(start, end);
+            chunks.push({ index: i, start, end, chunk });
+        }
 
-            let payload = { ...originalPayload };
-            payload[fileParam] = new File([chunk], file.name);
+        const firstChunk = chunks[0];
+        const firstChunkHeaders = { ...headers };
+        firstChunkHeaders['content-range'] = `bytes ${firstChunk?.start}-${(firstChunk?.end ?? 0) - 1}/${file.size}`;
+        
+        const firstPayload = { ...originalPayload };
+        firstPayload[fileParam] = new File([firstChunk?.chunk ?? new Blob([])], file.name);
+        
+        const firstResponse = await this.call(method, url, firstChunkHeaders, firstPayload);
+        
+        if (!firstResponse?.$id) {
+            throw new Error('First chunk upload failed - no ID returned');
+        }
 
-            response = await this.call(method, url, headers, payload);
+        let completedChunks = 1;
+        let totalUploaded = firstChunk?.end ?? 0;
+        
+        if (onProgress && typeof onProgress === 'function') {
+            onProgress({
+                $id: firstResponse.$id,
+                progress: Math.round((totalUploaded / file.size) * 100),
+                sizeUploaded: totalUploaded,
+                chunksTotal: totalChunks,
+                chunksUploaded: completedChunks
+            });
+        }
 
-            if (onProgress && typeof onProgress === 'function') {
-                onProgress({
-                    $id: response.$id,
-                    progress: Math.round((end / file.size) * 100),
-                    sizeUploaded: end,
-                    chunksTotal: Math.ceil(file.size / Client.CHUNK_SIZE),
-                    chunksUploaded: Math.ceil(end / Client.CHUNK_SIZE)
-                });
+        if (totalChunks === 1) {
+            return firstResponse;
+        }
+
+        const remainingChunks = chunks.slice(1);
+        let response = firstResponse;
+
+        for (let batchStart = 0; batchStart < remainingChunks.length; batchStart += Client.MAX_CONCURRENCY) {
+            const batch = remainingChunks.slice(batchStart, batchStart + Client.MAX_CONCURRENCY);
+            
+            const batchPromises = batch.map(async (chunkInfo) => {
+                const chunkHeaders = { ...headers };
+                chunkHeaders['content-range'] = `bytes ${chunkInfo?.start}-${chunkInfo?.end - 1}/${file.size}`;
+                chunkHeaders['x-appwrite-id'] = firstResponse.$id;
+                
+                const payload = { ...originalPayload };
+                payload[fileParam] = new File([chunkInfo.chunk], file.name);
+                
+                try {
+                    const chunkResponse = await this.call(method, url, chunkHeaders, payload);
+                    return {
+                        success: true,
+                        response: chunkResponse,
+                        chunkInfo,
+                        error: null
+                    };
+                } catch (error) {
+                    return {
+                        success: false,
+                        response: null,
+                        chunkInfo,
+                        error
+                    };
+                }
+            });
+            const batchResults = await Promise.all(batchPromises);
+            
+            const failures = batchResults.filter(result => !result.success);
+            if (failures.length > 0) {
+                const errorMessages = failures.map(f => `Chunk ${f.chunkInfo.index}: ${f.error}`);
+                throw new Error(`Chunk upload failures: ${errorMessages.join(', ')}`);
             }
 
-            if (response && response.$id) {
-                headers['x-{{spec.title | caseLower }}-id'] = response.$id;
+            for (const result of batchResults) {
+                if (result.success) {
+                    completedChunks++;
+                    totalUploaded += (result.chunkInfo.end - result.chunkInfo.start);
+                    response = result.response;
+                    
+                    if (onProgress && typeof onProgress === 'function') {
+                        onProgress({
+                            $id: firstResponse.$id,
+                            progress: Math.round((totalUploaded / file.size) * 100),
+                            sizeUploaded: totalUploaded,
+                            chunksTotal: totalChunks,
+                            chunksUploaded: completedChunks
+                        });
+                    }
+                }
             }
-
-            start = end;
         }
 
         return response;
