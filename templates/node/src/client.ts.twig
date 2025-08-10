@@ -219,10 +219,10 @@ class Client {
         const firstChunk = file.slice(firstChunkStart, firstChunkEnd);
 
         const firstChunkHeaders = { ...headers };
-        firstChunkHeaders['content-range'] = `bytes ${firstChunk.start}-${(firstChunk.end ?? 0) - 1}/${file.size}`;
+        firstChunkHeaders['content-range'] = `bytes ${firstChunkStart}-${firstChunkEnd - 1}/${file.size}`;
         
         const firstPayload = { ...originalPayload };
-        firstPayload[fileParam] = new File([firstChunk.chunk], file.name);
+        firstPayload[fileParam] = new File([firstChunk], file.name);
         
         const firstResponse = await this.call(method, url, firstChunkHeaders, firstPayload);
         
@@ -231,7 +231,7 @@ class Client {
         }
 
         let completedChunks = 1;
-        let totalUploaded = firstChunk.end ?? 0;
+        let totalUploaded = firstChunkEnd;
         
         if (onProgress && typeof onProgress === 'function') {
             onProgress({
