@@ -651,11 +651,16 @@ class Client {
         }
 
         const firstChunk = chunks[0];
+
+        if (!firstChunk) {
+            throw new Error('First chunk not found');
+        }
+
         const firstChunkHeaders = { ...headers };
-        firstChunkHeaders['content-range'] = `bytes ${firstChunk?.start}-${(firstChunk?.end ?? 0) - 1}/${file.size}`;
+        firstChunkHeaders['content-range'] = `bytes ${firstChunk.start}-${(firstChunk.end ?? 0) - 1}/${file.size}`;
         
         const firstPayload = { ...originalPayload };
-        firstPayload[fileParam] = new File([firstChunk?.chunk ?? new Blob()], file.name);
+        firstPayload[fileParam] = new File([firstChunk.chunk], file.name);
         
         const firstResponse = await this.call(method, url, firstChunkHeaders, firstPayload);
         
@@ -664,7 +669,7 @@ class Client {
         }
 
         let completedChunks = 1;
-        let totalUploaded = firstChunk?.end ?? 0;
+        let totalUploaded = firstChunk.end ?? 0;
         
         if (onProgress && typeof onProgress === 'function') {
             onProgress({
@@ -688,8 +693,8 @@ class Client {
             
             const batchPromises = batch.map(async (chunkInfo) => {
                 const chunkHeaders = { ...headers };
-                chunkHeaders['content-range'] = `bytes ${chunkInfo?.start}-${chunkInfo?.end - 1}/${file.size}`;
-                chunkHeaders['x-appwrite-id'] = firstResponse.$id;
+                chunkHeaders['content-range'] = `bytes ${chunkInfo.start}-${chunkInfo.end - 1}/${file.size}`;
+                chunkHeaders['x-{{spec.title | caseLower }}-id'] = firstResponse.$id;
                 
                 const payload = { ...originalPayload };
                 payload[fileParam] = new File([chunkInfo.chunk], file.name);
