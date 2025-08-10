@@ -3,24 +3,36 @@
 ## Example
 
 ```csharp
-using {{spec.title | caseUcfirst}};
+using {{ spec.title | caseUcfirst }};
+{% set addedEnum = false %}
+{% for parameter in method.parameters.all %}
+{% if parameter.enumValues | length > 0 and not addedEnum %}
+using {{ spec.title | caseUcfirst }}.Enums;
+{% set addedEnum = true %}
+{% endif %}
+{% endfor %}
+using {{ spec.title | caseUcfirst }}.Models;
+using {{ spec.title | caseUcfirst }}.Services;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 
 public class {{method.name | caseUcfirst}}Example : MonoBehaviour
 {
     private Client client;
-    
+    private {{service.name | caseUcfirst}} {{service.name | caseCamel}};
+
     async void Start()
     {
-        client = gameObject.AddComponent<Client>();
-        client.SetEndpoint("{{spec.endpoint}}")
-{% for header in spec.global.headers %}
-{% if header.name != 'mode' %}
-              .Set{{header.name | caseUcfirst}}("YOUR_{{header.key | caseUpper}}");
-{% endif %}
-{% endfor %}
-        
+        client = new Client()
+{% if method.auth|length > 0 %}
+            .SetEndpoint("{{ spec.endpointDocs | raw }}") // Your API Endpoint
+{% for node in method.auth %}
+{% for key,header in node|keys %}
+            .Set{{header | caseUcfirst}}("{{node[header]['x-appwrite']['demo'] | raw }}"){% if loop.last %};{% endif %} // {{node[header].description}}
+{% endfor %}{% endfor %}{% endif %}
+
+        {{ service.name | caseCamel }} = new {{ service.name | caseUcfirst }}(client);
+
         await Example{{method.name | caseUcfirst}}();
     }
     
@@ -28,21 +40,17 @@ public class {{method.name | caseUcfirst}}Example : MonoBehaviour
     {
         try
         {
-{%~ if method.parameters.all | filter(p => p.required) | length > 0 %}
-            // Setup parameters
-{%~ for parameter in method.parameters.all | filter(p => p.required) %}
-            var {{parameter.name | caseCamel}} = {{parameter | paramExample}}; // {{parameter.description}}
-{%~ endfor %}
-            
-{%~ endif %}
-            var result = await client.{{service.name | caseUcfirst}}.{{method.name | caseUcfirst}}Async(
-{%~ for parameter in method.parameters.all | filter(p => p.required) %}
-                {{parameter.name | caseCamel}}{% if not loop.last %},{% endif %}
+{% if method.method != 'delete' and method.type != 'webAuth' %}{% if method.type == 'location' %}            byte[] result = {% else %}            {{ method.responseModel | caseUcfirst | overrideIdentifier }} result = {% endif %}{% endif %}await {{ service.name | caseCamel }}.{{ method.name | caseUcfirst }}({% if method.parameters.all | length == 0 %});{% endif %}
+{%~ for parameter in method.parameters.all %}
 
+                {{ parameter.name }}: {% if parameter.enumValues | length > 0%}{{ parameter.enumName }}.{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}{% else %}{{ parameter | paramExample }}{% endif %}{% if not loop.last %},{% endif %}{% if not parameter.required %} // optional{% endif %}
 {%~ endfor %}
-            );
-            
-            Debug.Log("Success: " + result);
+
+{% if method.parameters.all | length > 0 %}            );{% endif %}
+
+{% if method.method != 'delete' and method.type != 'webAuth' %}            Debug.Log("Success: " + result);
+{% else %}            Debug.Log("Success");
+{% endif %}
         }
         catch ({{spec.title | caseUcfirst}}Exception ex)
         {
@@ -55,7 +63,7 @@ public class {{method.name | caseUcfirst}}Example : MonoBehaviour
 ## Parameters
 
 {%~ for parameter in method.parameters.all %}
-- **{{parameter.name | caseCamel}}** *{{parameter.type}}* - {{parameter.description}}{% if parameter.required %} *(required)*{% endif %}
+- **{{parameter.name | caseCamel}}** *{{parameter.type}}* - {{parameter.description}}{% if parameter.required %} *(required)* {% else %} *(optional)*{% endif %}
 
 {%~ endfor %}
 
@@ -65,9 +73,7 @@ public class {{method.name | caseUcfirst}}Example : MonoBehaviour
 Returns `{{method.responseModel | caseUcfirst}}` object.
 {%- else -%}
 {% if method.type == "webAuth" -%}
-Returns boolean indicating success.
-{%- elseif method.type == "location" -%}
-Returns byte array of the file.
+None Returns
 {%- else -%}
 Returns response object.
 {%- endif -%}

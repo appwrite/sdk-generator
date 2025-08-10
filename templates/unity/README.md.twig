@@ -1,22 +1,25 @@
-# {{ spec.title | caseUcfirst }} Unity SDK
+# {{ spec.title }} {{ sdk.name }} SDK
+
+![License](https://img.shields.io/github/license/{{ sdk.gitUserName|url_encode }}/{{ sdk.gitRepoName|url_encode }}.svg?style=flat-square)
+![Version](https://img.shields.io/badge/api%20version-{{ spec.version|url_encode }}-blue.svg?style=flat-square)
+![Unity](https://img.shields.io/badge/Unity-2021.3%2B-blue.svg)
+[![Build Status](https://img.shields.io/travis/com/appwrite/sdk-generator?style=flat-square)](https://travis-ci.com/appwrite/sdk-generator)
+{% if sdk.twitterHandle %}
+[![Twitter Account](https://img.shields.io/twitter/follow/{{ sdk.twitterHandle }}?color=00acee&label=twitter&style=flat-square)](https://twitter.com/{{ sdk.twitterHandle }})
+{% endif %}
+{% if sdk.discordChannel %}
+[![Discord](https://img.shields.io/discord/{{ sdk.discordChannel }}?label=discord&style=flat-square)]({{ sdk.discordUrl }})
+{% endif %}
+{% if sdk.warning %}
+
+{{ sdk.warning|raw }}
+{% endif %}
 
 {{ sdk.description }}
 
-![Version](https://img.shields.io/badge/version-{{ sdk.version }}-blue.svg)
-![Unity](https://img.shields.io/badge/Unity-2021.3+-blue.svg)
-![License](https://img.shields.io/badge/License-{{ spec.licenseName }}-green.svg)
-
-This Unity SDK provides both **client-side** and **server-side** functionality for {{ spec.title | caseUcfirst }} applications:
-
-- ✅ **Client-side authentication** (sessions, OAuth2)
-- ✅ **Real-time subscriptions** via WebSocket
-- ✅ **Server-side API access** (admin operations)
-- ✅ **Unity-friendly async/await** with UniTask
-- ✅ **Type-safe models** and enums
-- ✅ **File upload with progress**
-- ✅ **Comprehensive error handling**
-
-{{ sdk.gettingStarted }}
+{% if sdk.logo %}
+![{{ spec.title }}]({{ sdk.logo }})
+{% endif %}
 
 ## Installation
 
@@ -24,349 +27,150 @@ This Unity SDK provides both **client-side** and **server-side** functionality f
 
 1. Open Unity and go to **Window > Package Manager**
 2. Click the **+** button and select **Add package from git URL**
-3. Enter the following URL: `{{ sdk.gitURL }}.git`
+3. Enter the following URL: 
+```
+https://github.com/{{ sdk.gitUserName|url_encode }}/{{ sdk.gitRepoName|url_encode }}.git?path=Assets
+```
 4. Click **Add**
-
+5. In Unity, open the **Appwrite → Setup Assistant** menu and install the required dependencies
+![](./.media/setup-assistant.png)
 ### Manual Installation
 
-1. Download the latest release from [GitHub]({{ sdk.gitURL }}/releases)
+1. Download the latest release from [GitHub](/releases) or zip
 2. Import the Unity package into your project
+3. In Unity, open the **Appwrite → Setup Assistant** menu and install the required dependencies
 
 ## Dependencies
 
-This SDK requires the following Unity packages:
 
-- **UniTask**: For async/await support in Unity
-- **System.Text.Json**: For JSON serialization (included in Unity 2021.3+)
+This SDK requires the following Unity packages and libraries:
 
-To install UniTask:
-1. Open Unity Package Manager
-2. Add package from Git URL: `https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask`
+- [**UniTask**](https://github.com/Cysharp/UniTask): For async/await support in Unity
+- [**NativeWebSocket**](https://github.com/endel/NativeWebSocket): For WebSocket real-time subscriptions
+- **System.Text.Json**: For JSON serialization (provided as a DLL in the project)
+
+You can also install UniTask and other required dependencies automatically via **Appwrite → Setup Assistant** in Unity.
 
 ## Quick Start
+> **Before you begin**  
+> First, create an Appwrite configuration:  
+> — via the **QuickStart** window in the **Appwrite Setup Assistant**  
+> — or through the menu **Appwrite → Create Configuration**
+![](./.media/config.png)
 
-### Client-side Usage (Recommended for Unity Games)
-
-For Unity applications with user authentication, real-time features, and client-side operations:
+### Example: Unity Integration - Using AppwriteManager
 
 ```csharp
-using {{ spec.title | caseUcfirst }};
-using {{ spec.title | caseUcfirst }}.Models;
-using Cysharp.Threading.Tasks;
-using UnityEngine;
+    [SerializeField] private AppwriteConfig config;
+    private AppwriteManager _manager;
 
-public class GameManager : MonoBehaviour
-{
-    private {{ spec.title | caseUcfirst }}Client appwrite;
-
-    async void Start()
+    private async UniTask ExampleWithManager()
     {
-        // Initialize client-side SDK
-        appwrite = new {{ spec.title | caseUcfirst }}Client(
-            endpoint: "https://cloud.appwrite.io/v1",
-            projectId: "your-project-id"
+        // Get or create manager
+        _manager = AppwriteManager.Instance ?? new GameObject("AppwriteManager").AddComponent<AppwriteManager>();
+        _manager.SetConfig(config);
+
+        // Initialize
+        var success = await _manager.Initialize();
+        if (!success) { Debug.LogError("Failed to initialize AppwriteManager"); return; }
+
+        // Direct client access
+        var client = _manager.Client;
+        var pingResult = await client.Ping();
+        Debug.Log($"Ping result: {pingResult}");
+
+        // Service creation through DI container
+        var account = _manager.GetService<Account>();
+        var databases = _manager.GetService<Databases>();
+                
+        // Realtime example
+        var realtime = _manager.Realtime;
+        var subscription = realtime.Subscribe(
+            new[] { "databases.*.collections.*.documents" },
+            response => Debug.Log($"Realtime event: {response.Events[0]}")
         );
-
-        // Try to restore existing session
-        await CheckSession();
     }
+```
 
-    async UniTask CheckSession()
+### Example: Unity Integration - Using Client directly
+
+```csharp
+    [SerializeField] private AppwriteConfig config;
+
+    private async UniTask ExampleWithDirectClient()
     {
-        try
-        {
-            var user = await appwrite.Account.Get();
-            Debug.Log($"Welcome back, {user.Name}!");
-        }
-        catch
-        {
-            Debug.Log("Please login to continue");
-        }
-    }
-
-    // User Registration
-    public async UniTask<User> Register(string email, string password, string name)
-    {
-        try
-        {
-            var user = await appwrite.Account.Create(
-                userId: ID.Unique(),
-                email: email,
-                password: password,
-                name: name
-            );
-
-            Debug.Log($"Account created: {user.Name}");
-            return user;
-        }
-        catch ({{ spec.title | caseUcfirst }}Exception ex)
-        {
-            Debug.LogError($"Registration failed: {ex.Message}");
-            throw;
-        }
-    }
-
-    // User Login
-    public async UniTask<Session> Login(string email, string password)
-    {
-        try
-        {
-            var session = await appwrite.Account.CreateEmailPasswordSession(
-                email: email,
-                password: password
-            );
-
-            // Set session for future requests
-            appwrite.SetSession(session.Secret);
-            
-            Debug.Log("Login successful!");
-            return session;
-        }
-        catch ({{ spec.title | caseUcfirst }}Exception ex)
-        {
-            Debug.LogError($"Login failed: {ex.Message}");
-            throw;
-        }
-    }
-
-    // OAuth2 Login
-    public void LoginWithGoogle()
-    {
-        var oauthUrl = appwrite.PrepareOAuth2(
-            provider: "google",
-            success: "https://your-game.com/auth/success",
-            failure: "https://your-game.com/auth/failure"
+        // Create and configure client
+        var client = new Client()
+            .SetEndpoint(config.Endpoint)
+            .SetProject(config.ProjectId);
+                    
+        if (!string.IsNullOrEmpty(config.ApiKey))
+            client.SetKey(config.ApiKey);
+                    
+        if (!string.IsNullOrEmpty(config.RealtimeEndpoint))
+            client.SetEndPointRealtime(config.RealtimeEndpoint);
+                
+        // Test connection
+        var pingResult = await client.Ping();
+        Debug.Log($"Direct client ping: {pingResult}");
+                
+        // Create services manually
+        var account = new Account(client);
+        var databases = new Databases(client);
+                
+        // Realtime example
+        // You need to create a Realtime instance manually or attach dependently
+        realtime.Initialize(client);
+        var subscription = realtime.Subscribe(
+            new[] { "databases.*.collections.*.documents" },
+            response => Debug.Log($"Realtime event: {response.Events[0]}")
         );
-
-        // Open OAuth URL in browser
-        Application.OpenURL(oauthUrl);
     }
-
-    // Real-time subscriptions
-    public async UniTask SubscribeToUserEvents()
-    {
-        await appwrite.Subscribe<User>("account", (eventData) =>
-        {
-            Debug.Log($"User event: {string.Join(", ", eventData.Events)}");
-            // Handle user updates in real-time
-        });
-    }
-
-    // File upload with progress
-    public async UniTask UploadAvatar(string filePath)
-    {
-        try
-        {
-            var file = InputFile.FromPath(filePath);
-            
-            var document = await appwrite.Storage.CreateFile(
-                bucketId: "avatars",
-                fileId: ID.Unique(),
-                file: file,
-                permissions: new[] { Permission.Read(Role.Any()) },
-                onProgress: (progress) =>
-                {
-                    Debug.Log($"Upload progress: {progress.Progress}%");
-                }
-            );
-
-            Debug.Log($"Avatar uploaded: {document.Id}");
-        }
-        catch ({{ spec.title | caseUcfirst }}Exception ex)
-        {
-            Debug.LogError($"Upload failed: {ex.Message}");
-        }
-    }
-
-    // Logout
-    public async UniTask Logout()
-    {
-        try
-        {
-            await appwrite.Account.DeleteSession("current");
-            appwrite.ClearSession();
-            Debug.Log("Logged out successfully");
-        }
-        catch ({{ spec.title | caseUcfirst }}Exception ex)
-        {
-            Debug.LogError($"Logout failed: {ex.Message}");
-        }
-    }
-}
 ```
-
-### Server-side Usage
-
-For admin operations, server-to-server communication, and bulk operations:
-
-```csharp
-using {{ spec.title | caseUcfirst }};
-using {{ spec.title | caseUcfirst }}.Services;
-using Cysharp.Threading.Tasks;
-
-public class AdminManager : MonoBehaviour
-{
-    private Client client;
-    private Users users;
-
-    async void Start()
-    {
-        // Initialize server-side client
-        client = new Client("https://cloud.appwrite.io/v1")
-            .SetProject("your-project-id")
-            .SetKey("your-api-key");
-
-        users = new Users(client);
-
-        // Example admin operations
-        await ListAllUsers();
-    }
-
-    async UniTask ListAllUsers()
-    {
-        try
-        {
-            var usersList = await users.List();
-            Debug.Log($"Total users: {usersList.Total}");
-            
-            foreach (var user in usersList.Users)
-            {
-                Debug.Log($"User: {user.Name} ({user.Email})");
-            }
-        }
-        catch ({{ spec.title | caseUcfirst }}Exception ex)
-        {
-            Debug.LogError($"Failed to list users: {ex.Message}");
-        }
-    }
-}
-        client = gameObject.AddComponent<Client>();
-        client.SetEndpoint("{{spec.endpoint}}") // Your API Endpoint
-{% for header in spec.global.headers %}
-{% if header.name != 'mode' %}
-              .Set{{header.name | caseUcfirst}}("{{header.description}}"); // {{header.description}}
-{% endif %}
-{% endfor %}
-    }
-}
-```
-
-### Example Usage
-
-{%~ for service in spec.services %}
-{%~ if loop.first %}
-#### {{service.name | caseUcfirst}} Service
-
-```csharp
-{%~ for method in service.methods %}
-{%~ if loop.first %}
-try 
-{
-    var result = await client.{{service.name | caseUcfirst}}.{{method.name | caseUcfirst}}Async(
-        {%~ for parameter in method.parameters.all %}
-        {%~ if parameter.required %}
-        {{parameter.name | caseCamel}}: {{parameter | paramExample}}{% if not loop.last %},{% endif %}
-
-        {%~ endif %}
-        {%~ endfor %}
-    );
-    
-    Debug.Log("Success: " + result);
-}
-catch ({{spec.title | caseUcfirst}}Exception ex)
-{
-    Debug.LogError($"Error: {ex.Message} (Code: {ex.Code})");
-}
-```
-{%~ endif %}
-{%~ endfor %}
-{%~ endif %}
-{%~ endfor %}
-
-## Unity-Specific Features
-
-### MonoBehaviour Integration
-The Client class extends MonoBehaviour, making it easy to integrate with Unity's lifecycle:
-
-```csharp
-public class GameManager : MonoBehaviour
-{
-    [SerializeField] private Client appwriteClient;
-    
-    async void Start()
-    {
-        // Client is automatically initialized
-        await InitializeAppwrite();
-    }
-    
-    private async UniTask InitializeAppwrite()
-    {
-        try
-        {
-            // Your initialization code here
-        }
-        catch ({{spec.title | caseUcfirst}}Exception ex)
-        {
-            Debug.LogError($"Failed to initialize: {ex.Message}");
-        }
-    }
-}
-```
-
-### UniTask Integration
-All API calls return UniTask for seamless async/await support in Unity:
-
-```csharp
-// Method returns UniTask<T>
-var result = await client.{{spec.services[0].name | caseUcfirst}}.{{spec.services[0].methods[0].name | caseUcfirst}}Async();
-
-// With cancellation token
-var cts = new CancellationTokenSource();
-var result = await client.{{spec.services[0].name | caseUcfirst}}.{{spec.services[0].methods[0].name | caseUcfirst}}Async(cancellationToken: cts.Token);
-```
-
 ### Error Handling
 ```csharp
 try
 {
-    var result = await client.{{spec.services[0].name | caseUcfirst}}.{{spec.services[0].methods[0].name | caseUcfirst}}Async();
+    var result = await client..Async();
 }
-catch ({{spec.title | caseUcfirst}}Exception ex)
+catch (AppwriteException ex)
 {
-    Debug.LogError($"{{spec.title}} Error: {ex.Message}");
+    Debug.LogError($"Appwrite Error: {ex.Message}");
     Debug.LogError($"Status Code: {ex.Code}");
     Debug.LogError($"Response: {ex.Response}");
 }
 ```
 
-## Services
+## Preparing Models for Databases API
 
-{%~ for service in spec.services %}
-### {{service.name | caseUcfirst}}
+When working with the Databases API in Unity, models should be prepared for serialization using the System.Text.Json library. By default, System.Text.Json converts property names from PascalCase to camelCase when serializing to JSON. If your Appwrite collection attributes are not in camelCase, this can cause errors due to mismatches between serialized property names and actual attribute names in your collection.
 
-{%~ for method in service.methods %}
-- `{{method.name | caseUcfirst}}Async()` - {{method.title}}
-{%~ endfor %}
+To avoid this, add the `JsonPropertyName` attribute to each property in your model class to match the attribute name in Appwrite:
 
-{%~ endfor %}
+```csharp
+using System.Text.Json.Serialization;
 
-## Learn More
+public class TestModel
+{
+    [JsonPropertyName("name")]
+    public string Name { get; set; }
 
-You can use the following resources to learn more and get help:
+    [JsonPropertyName("release_date")]
+    public System.DateTime ReleaseDate { get; set; }
+}
+```
 
-- 🚀 [Getting Started Tutorial]({{spec.contactURL}})
-- 📜 [{{spec.title}} Docs]({{spec.contactURL}})
-- 💬 [Discord Community]({{sdk.discordUrl}})
-- 🐛 [Report Issues]({{sdk.gitURL}}/issues)
+The `JsonPropertyName` attribute ensures your data object is serialized with the correct attribute names for Appwrite databases. This approach works seamlessly in Unity with the included System.Text.Json DLL.
+
+## Contribution
+
+This library is auto-generated by the Appwrite [SDK Generator](https://github.com/appwrite/sdk-generator). To learn how you can help improve this SDK, please check the [contribution guide](https://github.com/appwrite/sdk-generator/blob/master/CONTRIBUTING.md) before sending a pull request.
+
+## License
+
+Please see the [{{spec.licenseName}} license]({{spec.licenseURL}}) file for more information.
 
 ## Changelog
 
 Please see [CHANGELOG](CHANGELOG.md) for more information about recent changes.
 
-## Contributing
-
-This project follows the [all-contributors](https://github.com/all-contributors/all-contributors) specification. Contributions of any kind are welcome!
-
-## License
-
-This project is licensed under the {{spec.licenseName}} License - see the [LICENSE](LICENSE) file for details.
