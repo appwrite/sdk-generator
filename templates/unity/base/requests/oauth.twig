@@ -19,12 +19,12 @@
 
             // Use domain from callback if available, otherwise fallback to endpoint host
             var domain = !string.IsNullOrEmpty(callbackDomain) ? callbackDomain : new Uri(_client.Endpoint).Host;
-
+            var parsedDomain = domain.StartsWith(".") ? domain.Substring(1) : domain;
             // Create a Set-Cookie header format and parse it
             // This ensures consistent cookie processing with server responses
-            var setCookieHeader = $"{key}={secret}; Path=/; Domain={domain}; Secure; HttpOnly; Max-Age={30 * 24 * 60 * 60}";
-            Debug.Log($"Setting cookie: {setCookieHeader} for domain: {domain}");
-            _client.CookieContainer.ParseSetCookieHeader(setCookieHeader, domain.StartsWith(".") ? domain.Substring(1) : domain);
+            var setCookieHeader = $"{key}={secret}; Path=/; Domain={parsedDomain}; Secure; HttpOnly; Max-Age={30 * 24 * 60 * 60}";
+            Debug.Log($"Setting cookie: {setCookieHeader} for domain: {parsedDomain}");
+            _client.CookieContainer.ParseSetCookieHeader(setCookieHeader, parsedDomain);
 
 #if UNITY_EDITOR
             Debug.LogWarning("[Appwrite] OAuth authorization in Editor: you can open and authorize, but cookies cannot be obtained. The session will not be set.");
