@@ -5,7 +5,7 @@ part of '../../models.dart';
 class {{ definition.name | caseUcfirst | overrideIdentifier }} implements Model {
 {% for property in definition.properties %}
     /// {{ property.description }}
-    final {% if not property.required %}{{_self.sub_schema(property)}}? {{ property.name | escapeKeyword }}{% else %}{{_self.sub_schema(property)}} {{ property.name | escapeKeyword }}{% endif %};
+    final {% if (not property.required) or (property.name == '$sequence') %}{{_self.sub_schema(property)}}?{% else %}{{_self.sub_schema(property)}}{% endif %} {{ property.name | escapeKeyword }};
 
 {% endfor %}
 {%~ if definition.additionalProperties %}
@@ -36,12 +36,20 @@ class {{ definition.name | caseUcfirst | overrideIdentifier }} implements Model 
                 {%- if property.type == 'array' -%}
                     List.from(map['{{property.name | escapeDollarSign }}'] ?? [])
                 {%- else -%}
-                    map['{{property.name | escapeDollarSign }}']
-                    {%- if property.type == "number" -%}
-                        {%- if not property.required %}?{% endif %}.toDouble()
-                    {%- endif -%}
-                    {%- if property.type == "string" -%}
-                        {%- if not property.required %}?{% endif %}.toString()
+                    {%- if property.type == "integer" -%}
+                        {%- if property.required -%}
+                            (map['{{property.name | escapeDollarSign}}'] as num?)?.toInt() ?? 0
+                        {%- else -%}
+                            (map['{{property.name | escapeDollarSign}}'] as num?)?.toInt()
+                        {%- endif -%}
+                    {%- else -%}
+                        map['{{property.name | escapeDollarSign }}']
+                        {%- if property.type == "number" -%}
+                            {%- if not property.required %}?{% endif %}.toDouble()
+                        {%- endif -%}
+                        {%- if property.type == "string" -%}
+                            {%- if not property.required %}?{% endif %}.toString()
+                        {%- endif -%}
                     {%- endif -%}
                 {%- endif -%}
             {%- endif -%},
