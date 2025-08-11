@@ -181,11 +181,13 @@ class Web extends JS
     {
         $properties = [];
 
-        if (!isset($spec['definitions'][$responseModel]['properties']) || 
-            !is_array($spec['definitions'][$responseModel]['properties'])) {
+        if (
+            !isset($spec['definitions'][$responseModel]['properties']) ||
+            !is_array($spec['definitions'][$responseModel]['properties'])
+        ) {
             return $properties;
         }
-        
+
         foreach ($spec['definitions'][$responseModel]['properties'] as $property) {
             if (isset($property['readOnly']) && $property['readOnly']) {
                 $properties[] = $property['name'];

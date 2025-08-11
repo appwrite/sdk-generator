@@ -165,8 +165,8 @@ class ReactNative extends Web
                         if ($method['method'] === 'patch' || $method['method'] === 'put') {
                             return "Document extends Models.DefaultDocument ? Partial<Models.Document> & Record<string, any> : Partial<Models.Document> & Partial<Omit<Document, keyof Models.Document>>";
                         }
-                    }
-                    break;
+                }
+                break;
         }
 
         return $parameter['type'];
