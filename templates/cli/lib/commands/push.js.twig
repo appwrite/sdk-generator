@@ -6,10 +6,10 @@ const inquirer = require("inquirer");
 const JSONbig = require("json-bigint")({ storeAsString: false });
 const { Command } = require("commander");
 const ID = require("../id");
-const { localConfig, globalConfig, KeysAttributes, KeysFunction, KeysSite, whitelistKeys, KeysTopics, KeysStorage, KeysTeams, KeysCollection } = require("../config");
+const { localConfig, globalConfig, KeysAttributes, KeysFunction, KeysSite, whitelistKeys, KeysTopics, KeysStorage, KeysTeams, KeysCollection, KeysTable } = require("../config");
 const { Spinner, SPINNER_ARC, SPINNER_DOTS } = require('../spinner');
 const { paginate } = require('../paginate');
-const { questionsPushBuckets, questionsPushTeams, questionsPushFunctions, questionsPushSites, questionsGetEntrypoint, questionsPushCollections, questionPushChanges, questionPushChangesConfirmation, questionsPushMessagingTopics, questionsPushResources } = require("../questions");
+const { questionsPushBuckets, questionsPushTeams, questionsPushFunctions, questionsPushSites, questionsGetEntrypoint, questionsPushCollections, questionsPushTables, questionPushChanges, questionPushChangesConfirmation, questionsPushMessagingTopics, questionsPushResources } = require("../questions");
 const { cliConfig, actionRunner, success, warn, log, hint, error, commandDescriptions, drawTable } = require("../parser");
 const { proxyCreateFunctionRule, proxyCreateSiteRule, proxyListRules } = require('./proxy');
 const { consoleVariables } = require('./console');
@@ -49,6 +49,10 @@ const {
     databasesListIndexes,
     databasesUpdateCollection
 } = require("./databases");
+const {
+    gridsGetDatabase,
+    gridsGetTable
+} = require("./grids");
 const {
     storageGetBucket, storageUpdateBucket, storageCreateBucket
 } = require("./storage");
@@ -919,6 +923,7 @@ const pushResources = async () => {
         functions: pushFunction,
         sites: pushSite,
         collections: pushCollection,
+        tables: pushTable,
         buckets: pushBucket,
         teams: pushTeam,
         messages: pushMessagingTopic
@@ -1672,7 +1677,150 @@ const pushFunction = async ({ functionId, async, code, withVariables } = { retur
     }
 }
 
+const pushTable = async ({ returnOnZero, attempts } = { returnOnZero: false }) => {
+    const tables = [];
+
+    if (attempts) {
+        pollMaxDebounces = attempts;
+    }
+
+    if (cliConfig.all) {
+        checkDeployConditions(localConfig);
+        tables.push(...localConfig.getTables());
+    } else {
+        const answers = await inquirer.prompt(questionsPushTables)
+        if (answers.tables) {
+            const configTables = new Map();
+            localConfig.getTables().forEach((c) => {
+                configTables.set(`${c['databaseId']}|${c['$id']}`, c);
+            });
+            answers.tables.forEach((a) => {
+                const table = configTables.get(a);
+                tables.push(table);
+            })
+        }
+    }
+
+    if (tables.length === 0) {
+        log("No tables found.");
+        hint("Use 'appwrite pull tables' to synchronize existing one, or use 'appwrite init table' to create a new one.");
+        return;
+    }
+
+    const databases = Array.from(new Set(tables.map(table => table['databaseId'])));
+
+    // Parallel db actions
+    await Promise.all(databases.map(async (databaseId) => {
+        const localDatabase = localConfig.getDatabase(databaseId);
+
+        try {
+            const database = await gridsGetDatabase({
+                databaseId: databaseId,
+                parseOutput: false,
+            });
+
+            if (database.name !== (localDatabase.name ?? databaseId)) {
+                await databasesUpdate({
+                    databaseId: databaseId,
+                    name: localDatabase.name ?? databaseId,
+                    parseOutput: false
+                })
+
+                success(`Updated ${localDatabase.name} ( ${databaseId} ) name`);
+            }
+        } catch (err) {
+            log(`Database ${databaseId} not found. Creating it now ...`);
+
+            await databasesCreate({
+                databaseId: databaseId,
+                name: localDatabase.name ?? databaseId,
+                parseOutput: false,
+            });
+        }
+    }));
+
+
+    if (!(await approveChanges(tables, gridsGetTable, KeysTable, 'tableId', 'tables', ['columns', 'indexes'], 'databaseId', 'databaseId',))) {
+        return;
+    }
+    // Parallel collection actions
+    await Promise.all(tables.map(async (table) => {
+        try {
+            const remoteTable = await gridsGetTable({
+                databaseId: table['databaseId'],
+                tableId: table['$id'],
+                parseOutput: false,
+            });
+
+            if (remoteTable.name !== table.name) {
+                await databasesUpdateTable({
+                    databaseId: table['databaseId'],
+                    tableId: table['$id'],
+                    name: table.name,
+                    name: table.name,
+                    parseOutput: false
+                })
+
+                success(`Updated ${table.name} ( ${table['$id']} ) name`);
+            }
+            table.remoteVersion = remoteTable;
+
+            table.isExisted = true;
+        } catch
+            (e) {
+            if (Number(e.code) === 404) {
+                log(`Table ${table.name} does not exist in the project. Creating ... `);
+                await databasesCreateTable({
+                    databaseId: table['databaseId'],
+                    tableId: table['$id'],
+                    name: table.name,
+                    documentSecurity: table.documentSecurity,
+                    permissions: table['$permissions'],
+                    parseOutput: false
+                })
+            } else {
+                throw e;
+            }
+        }
+    }))
+    let numberOfTables = 0;
+    // Serialize attribute actions
+    for (let table of tables) {
+        let columns = table.columns;
+        let indexes = table.indexes;
+
+        if (table.isExisted) {
+            columns = await attributesToCreate(table.remoteVersion.columns, table.columns, table);
+            indexes = await attributesToCreate(table.remoteVersion.indexes, table.indexes, table, true);
+
+            if ((Array.isArray(columns) && columns.length <= 0) && (Array.isArray(indexes) && indexes.length <= 0)) {
+                continue;
+            }
+
+        }
+
+        log(`Pushing table ${table.name} ( ${table['databaseId']} - ${table['$id']} ) attributes`)
+
+        try {
+            await createAttributes(columns, table)
+        } catch (e) {
+            throw e;
+        }
+
+        try {
+            await createIndexes(indexes, table);
+        } catch (e) {
+            throw e;
+        }
+        numberOfTables++;
+        success(`Successfully pushed ${table.name} ( ${table['$id']} )`);
+    }
+
+    success(`Successfully pushed ${numberOfTables} tables`);
+}
+
 const pushCollection = async ({ returnOnZero, attempts } = { returnOnZero: false }) => {
+    warn("appwrite push collection has been deprecated. Please consider using 'appwrite push tables' instead");
     const collections = [];
 
     if (attempts) {
@@ -2083,9 +2231,16 @@ push
 push
     .command("collection")
     .alias("collections")
-    .description("Push collections in the current project.")
+    .description("Push collections in the current project. (deprecated, please use 'push tables' instead)")
     .option(`-a, --attempts <numberOfAttempts>`, `Max number of attempts before timing out. default: 30.`)
     .action(actionRunner(pushCollection));
+
+push
+    .command("table")
+    .alias("tables")
+    .description("Push tables in the current project.")
+    .option(`-a, --attempts <numberOfAttempts>`, `Max number of attempts before timing out. default: 30.`)
+    .action(actionRunner(pushTable));
 
 push
     .command("bucket")

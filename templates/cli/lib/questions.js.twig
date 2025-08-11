@@ -255,10 +255,11 @@ const questionsPullResources = [
         choices: [
             { name: `Settings ${chalk.blackBright(`(Project)`)}`, value: 'settings' },
             { name: `Functions ${chalk.blackBright(`(Deployment)`)}`, value: 'functions' },
-            { name: `Collections ${chalk.blackBright(`(Databases)`)}`, value: 'collections' },
+            { name: `Tables ${chalk.blackBright(`(Grids)`)}`, value: 'tables' },
             { name: `Buckets ${chalk.blackBright(`(Storage)`)}`, value: 'buckets' },
             { name: `Teams ${chalk.blackBright(`(Auth)`)}`, value: 'teams' },
-            { name: `Topics ${chalk.blackBright(`(Messaging)`)}`, value: 'messages' }
+            { name: `Topics ${chalk.blackBright(`(Messaging)`)}`, value: 'messages' },
+            { name: `Collections ${chalk.blackBright(`(Database)`)}`, value: 'collections' }
         ]
     }
 ]
@@ -666,10 +667,11 @@ const questionsPushResources = [
         choices: [
             { name: `Settings ${chalk.blackBright(`(Project)`)}`, value: 'settings' },
             { name: `Functions ${chalk.blackBright(`(Deployment)`)}`, value: 'functions' },
-            { name: `Collections ${chalk.blackBright(`(Databases)`)}`, value: 'collections' },
+            { name: `Tables ${chalk.blackBright(`(Grids)`)}`, value: 'tables' },
             { name: `Buckets ${chalk.blackBright(`(Storage)`)}`, value: 'buckets' },
             { name: `Teams ${chalk.blackBright(`(Auth)`)}`, value: 'teams' },
-            { name: `Topics ${chalk.blackBright(`(Messaging)`)}`, value: 'messages' }
+            { name: `Topics ${chalk.blackBright(`(Messaging)`)}`, value: 'messages' },
+            { name: `Collections ${chalk.blackBright(`(Database)`)}`, value: 'collections' }
         ]
     }
 ];
@@ -682,10 +684,11 @@ const questionsInitResources = [
         choices: [
             { name: 'Function', value: 'function' },
             { name: 'Site', value: 'site' },
-            { name: 'Collection', value: 'collection' },
+            { name: 'Table', value: 'table' },
             { name: 'Bucket', value: 'bucket' },
             { name: 'Team', value: 'team' },
-            { name: 'Topic', value: 'message' }
+            { name: 'Topic', value: 'message' },
+            { name: 'Collection', value: 'collection' }
         ]
     }
 ];
@@ -747,6 +750,27 @@ const questionsPushCollections = [
                 return {
                     name: `${collection.name} (${collection['databaseId']} - ${collection['$id']})`,
                     value: `${collection['databaseId']}|${collection['$id']}`
+                }
+            });
+        }
+    }
+];
+
+const questionsPushTables = [
+    {
+        type: "checkbox",
+        name: "tables",
+        message: "Which tables would you like to push?",
+        validate: (value) => validateRequired('table', value),
+        when: () => localConfig.getTables().length > 0,
+        choices: () => {
+            let tables = localConfig.getTables();
+            checkDeployConditions(localConfig)
+
+            return tables.map(table => {
+                return {
+                    name: `${table.name} (${table['databaseId']} - ${table['$id']})`,
+                    value: `${table['databaseId']}|${table['$id']}`
                 }
             });
         }
@@ -1002,5 +1026,6 @@ module.exports = {
     questionsCreateTeam,
     questionPushChanges,
     questionPushChangesConfirmation,
-    questionsCreateSite
+    questionsCreateSite,
+    questionsPushTables
 };

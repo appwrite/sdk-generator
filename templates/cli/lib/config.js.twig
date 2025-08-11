@@ -9,10 +9,38 @@ const KeysSite = new Set(["path", "$id", "name", "enabled", "logging", "timeout"
 const KeysFunction = new Set(["path", "$id", "execute", "name", "enabled", "logging", "runtime", "specification", "scopes", "events", "schedule", "timeout", "entrypoint", "commands", "vars"]);
 const KeysDatabase = new Set(["$id", "name", "enabled"]);
 const KeysCollection = new Set(["$id", "$permissions", "databaseId", "name", "enabled", "documentSecurity", "attributes", "indexes"]);
+const KeysTable = new Set(["$id", "$permissions", "databaseId", "name", "enabled", "documentSecurity", "columns", "indexes"]);
 const KeysStorage = new Set(["$id", "$permissions", "fileSecurity", "name", "enabled", "maximumFileSize", "allowedFileExtensions", "compression", "encryption", "antivirus"]);
 const KeysTopics = new Set(["$id", "name", "subscribe"]);
 const KeysTeams = new Set(["$id", "name"]);
 const KeysAttributes = new Set([
+    "key",
+    "type",
+    "required",
+    "array",
+    "size",
+    "default",
+    // integer and float
+    "min",
+    "max",
+    // email, enum, URL, IP, and datetime
+    "format",
+    // enum
+    "elements",
+    // relationship
+    "relatedCollection",
+    "relationType",
+    "twoWay",
+    "twoWayKey",
+    "onDelete",
+    "side",
+    // Indexes
+    "attributes",
+    "orders",
+    // Strings
+    "encrypt",
+]);
+const KeysColumns = new Set([
     "key",
     "type",
     "required",
@@ -308,6 +336,50 @@ class Local extends Config {
         }
         collections.push(props);
         this.set("collections", collections);
+    }
+
+    getTables() {
+        if (!this.has("tables")) {
+            return [];
+        }
+        return this.get("tables");
+    }
+
+    getTable($id) {
+        if (!this.has("tables")) {
+            return {};
+        }
+
+        let tables = this.get("tables");
+        for (let i = 0; i < tables.length; i++) {
+            if (tables[i]['$id'] == $id) {
+                return tables[i];
+            }
+        }
+
+        return {};
+    }
+
+    addTable(props) {
+        props = whitelistKeys(props, KeysTable, {
+            columns: KeysColumns,
+            indexes: KeyIndexes
+        });
+
+        if (!this.has("tables")) {
+            this.set("tables", []);
+        }
+
+        let tables = this.get("tables");
+        for (let i = 0; i < tables.length; i++) {
+            if (tables[i]['$id'] == props['$id'] && tables[i]['databaseId'] == props['databaseId']) {
+                tables[i] = props;
+                this.set("tables", tables);
+                return;
+            }
+        }
+        tables.push(props);
+        this.set("tables", tables);
     }
 
     getBuckets() {
@@ -713,5 +785,6 @@ module.exports = {
     KeysStorage,
     KeysTeams,
     KeysCollection,
+    KeysTable,
     whitelistKeys
 };
