@@ -177,6 +177,20 @@ class Web extends JS
         return $output;
     }
 
+    public function getReadOnlyProperties(array $parameter, string $responseModel, array $spec = []): array
+    {
+        // fwrite(STDOUT, json_encode($parameter) . "\n");
+        // fwrite(STDOUT, json_encode($spec['definitions'][$responseModel]) . "\n");
+        $properties = [];
+        foreach ($spec['definitions'][$responseModel]['properties'] as $property) {
+            if (isset($property['readOnly']) && $property['readOnly']) {
+                $properties[] = $property['name'];
+            }
+        }
+
+        return $properties;
+    }
+
     public function getTypeName(array $parameter, array $method = []): string
     {
         if (isset($parameter['enumName'])) {
@@ -224,7 +238,7 @@ class Web extends JS
                         if ($method['method'] === 'post') {
                             return "Document extends Models.DefaultDocument ? Partial<Models.Document> & Record<string, any> : Partial<Models.Document> & Omit<Document, keyof Models.Document>";
                         }
-                        if ($method['method'] === 'patch') {
+                        if ($method['method'] === 'patch' || $method['method'] === 'put') {
                             return "Document extends Models.DefaultDocument ? Partial<Models.Document> & Record<string, any> : Partial<Models.Document> & Partial<Omit<Document, keyof Models.Document>>";
                         }
                 }
@@ -335,6 +349,9 @@ class Web extends JS
         return [
             new TwigFilter('getPropertyType', function ($value, $method = []) {
                 return $this->getTypeName($value, $method);
+            }),
+            new TwigFilter('getReadOnlyProperties', function ($value, $responseModel, $spec = []) {
+                return $this->getReadOnlyProperties($value, $responseModel, $spec);
             }),
             new TwigFilter('getSubSchema', function (array $property, array $spec) {
                 return $this->getSubSchema($property, $spec);
