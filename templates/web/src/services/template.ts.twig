@@ -100,7 +100,6 @@ export class {{ service.name | caseUcfirst }} {
         }
         {%~ endif %}
         {%~ endfor %}
-
         {%~ for parameter in method.parameters.all %}
         {%~ if parameter.type == 'object' %}
         {%~ for attribute in parameter | getReadOnlyProperties(method.responseModel, spec) %}
