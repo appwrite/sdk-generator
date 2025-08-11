@@ -179,8 +179,6 @@ class Web extends JS
 
     public function getReadOnlyProperties(array $parameter, string $responseModel, array $spec = []): array
     {
-        // fwrite(STDOUT, json_encode($parameter) . "\n");
-        // fwrite(STDOUT, json_encode($spec['definitions'][$responseModel]) . "\n");
         $properties = [];
         foreach ($spec['definitions'][$responseModel]['properties'] as $property) {
             if (isset($property['readOnly']) && $property['readOnly']) {
