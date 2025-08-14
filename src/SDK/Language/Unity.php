@@ -2,10 +2,7 @@
 
 namespace Appwrite\SDK\Language;
 
-use Appwrite\SDK\Language;
-use Twig\TwigFilter;
-
-class Unity extends Language
+class Unity extends DotNet
 {
     /**
      * @return string
@@ -22,289 +19,17 @@ class Unity extends Language
      */
     public function getKeywords(): array
     {
-        return [
-            'abstract',
-            'add',
-            'alias',
-            'as',
-            'ascending',
-            'async',
-            'await',
-            'base',
-            'bool',
-            'break',
-            'by',
-            'byte',
-            'case',
-            'catch',
-            'char',
-            'checked',
-            'class',
-            'const',
-            'continue',
-            'decimal',
-            'default',
-            'delegate',
-            'do',
-            'double',
-            'descending',
-            'dynamic',
-            'else',
-            'enum',
-            'equals',
-            'event',
-            'explicit',
-            'extern',
-            'false',
-            'finally',
-            'fixed',
-            'float',
-            'for',
-            'foreach',
-            'from',
-            'get',
-            'global',
-            'goto',
-            'group',
-            'if',
-            'implicit',
-            'in',
-            'int',
-            'interface',
-            'internal',
-            'into',
-            'is',
-            'join',
-            'let',
-            'lock',
-            'long',
-            'nameof',
-            'namespace',
-            'new',
-            'null',
-            'object',
-            'on',
-            'operator',
-            'orderby',
-            'out',
-            'override',
-            'params',
-            'partial',
-            'private',
-            'protected',
-            'public',
-            'readonly',
-            'ref',
-            'remove',
-            'return',
-            'sbyte',
-            'sealed',
-            'select',
-            'set',
-            'short',
-            'sizeof',
-            'stackalloc',
-            'static',
-            'string',
-            'struct',
-            'switch',
-            'this',
-            'throw',
-            'true',
-            'try',
-            'typeof',
-            'uint',
-            'ulong',
-            'unchecked',
-            'unmanaged',
-            'unsafe',
-            'ushort',
-            'using',
-            'using static',
-            'value',
-            'var',
-            'virtual',
-            'void',
-            'volatile',
-            'when',
-            'where',
-            'while',
-            'yield',
-            'path',
-            // Unity specific keywords
+        $base = parent::getKeywords();
+        $unity = [
             'GameObject',
             'MonoBehaviour',
             'Transform',
             'Component',
             'ScriptableObject',
             'UnityEngine',
-            'UnityEditor'
+            'UnityEditor',
         ];
-    }
-
-    /**
-     * @return array
-     */
-    public function getIdentifierOverrides(): array
-    {
-        return [
-            'Jwt' => 'JWT',
-            'Domain' => 'XDomain',
-        ];
-    }
-
-    public function getPropertyOverrides(): array
-    {
-        return [
-            'provider' => [
-                'Provider' => 'MessagingProvider',
-            ],
-        ];
-    }
-
-    /**
-     * @param array $parameter
-     * @return string
-     */
-    public function getTypeName(array $parameter, array $spec = []): string
-    {
-        if (isset($parameter['enumName'])) {
-            return 'Appwrite.Enums.' . \ucfirst($parameter['enumName']);
-        }
-        if (!empty($parameter['enumValues'])) {
-            return 'Appwrite.Enums.' . \ucfirst($parameter['name']);
-        }
-        if (isset($parameter['items'])) {
-            // Map definition nested type to parameter nested type
-            $parameter['array'] = $parameter['items'];
-        }
-        return match ($parameter['type']) {
-            self::TYPE_INTEGER => 'long',
-            self::TYPE_NUMBER => 'double',
-            self::TYPE_STRING => 'string',
-            self::TYPE_BOOLEAN => 'bool',
-            self::TYPE_FILE => 'InputFile',
-            self::TYPE_ARRAY => (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type']))
-                ? 'List<' . $this->getTypeName($parameter['array']) . '>'
-                : 'List<object>',
-            self::TYPE_OBJECT => 'object',
-            default => $parameter['type']
-        };
-    }
-
-    /**
-     * @param array $param
-     * @return string
-     */
-    public function getParamDefault(array $param): string
-    {
-        $type       = $param['type'] ?? '';
-        $default    = $param['default'] ?? '';
-        $required   = $param['required'] ?? '';
-
-        if ($required) {
-            return '';
-        }
-
-        $output = ' = ';
-
-        if (empty($default) && $default !== 0 && $default !== false) {
-            switch ($type) {
-                case self::TYPE_INTEGER:
-                case self::TYPE_ARRAY:
-                case self::TYPE_OBJECT:
-                case self::TYPE_BOOLEAN:
-                    $output .= 'null';
-                    break;
-                case self::TYPE_STRING:
-                    $output .= '""';
-                    break;
-            }
-        } else {
-            switch ($type) {
-                case self::TYPE_INTEGER:
-                    $output .= $default;
-                    break;
-                case self::TYPE_BOOLEAN:
-                    $output .= ($default) ? 'true' : 'false';
-                    break;
-                case self::TYPE_STRING:
-                    $output .= "\"{$default}\"";
-                    break;
-                case self::TYPE_ARRAY:
-                case self::TYPE_OBJECT:
-                    $output .= 'null';
-                    break;
-            }
-        }
-
-        return $output;
-    }
-
-    /**
-     * @param array $param
-     * @return string
-     */
-    public function getParamExample(array $param): string
-    {
-        $type       = $param['type'] ?? '';
-        $example    = $param['example'] ?? '';
-
-        $output = '';
-
-        if (empty($example) && $example !== 0 && $example !== false) {
-            switch ($type) {
-                case self::TYPE_FILE:
-                    $output .= 'InputFile.FromPath("./path-to-files/image.jpg")';
-                    break;
-                case self::TYPE_NUMBER:
-                case self::TYPE_INTEGER:
-                    $output .= '0';
-                    break;
-                case self::TYPE_BOOLEAN:
-                    $output .= 'false';
-                    break;
-                case self::TYPE_STRING:
-                    $output .= '""';
-                    break;
-                case self::TYPE_OBJECT:
-                    $output .= '[object]';
-                    break;
-                case self::TYPE_ARRAY:
-                    if (\str_starts_with($example, '[')) {
-                        $example = \substr($example, 1);
-                    }
-                    if (\str_ends_with($example, ']')) {
-                        $example = \substr($example, 0, -1);
-                    }
-                    if (!empty($example)) {
-                        $output .= 'new List<' . $this->getTypeName($param['array']) . '>() {' . $example . '}';
-                    } else {
-                        $output .= 'new List<' . $this->getTypeName($param['array']) . '>()';
-                    }
-                    break;
-            }
-        } else {
-            switch ($type) {
-                case self::TYPE_FILE:
-                case self::TYPE_NUMBER:
-                case self::TYPE_INTEGER:
-                case self::TYPE_ARRAY:
-                    $output .= $example;
-                    break;
-                case self::TYPE_OBJECT:
-                    $output .= '[object]';
-                    break;
-                case self::TYPE_BOOLEAN:
-                    $output .= ($example) ? 'true' : 'false';
-                    break;
-                case self::TYPE_STRING:
-                    $output .= "\"{$example}\"";
-                    break;
-            }
-        }
-
-        return $output;
+        return array_values(array_unique(array_merge($base, $unity)));
     }
 
     /**
@@ -388,27 +113,27 @@ class Unity extends Language
             [
                 'scope'         => 'default',
                 'destination'   => 'Assets/Runtime/Core/{{ spec.title | caseUcfirst }}Exception.cs',
-                'template'      => 'unity/Assets/Runtime/Core/Exception.cs.twig',
+                'template'      => 'dotnet/Package/Exception.cs.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'Assets/Runtime/Core/ID.cs',
-                'template'      => 'unity/Assets/Runtime/Core/ID.cs.twig',
+                'template'      => 'dotnet/Package/ID.cs.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'Assets/Runtime/Core/Permission.cs',
-                'template'      => 'unity/Assets/Runtime/Core/Permission.cs.twig',
+                'template'      => 'dotnet/Package/Permission.cs.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'Assets/Runtime/Core/Query.cs',
-                'template'      => 'unity/Assets/Runtime/Core/Query.cs.twig',
+                'template'      => 'dotnet/Package/Query.cs.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'Assets/Runtime/Core/Role.cs',
-                'template'      => 'unity/Assets/Runtime/Core/Role.cs.twig',
+                'template'      => 'dotnet/Package/Role.cs.twig',
             ],
             [
                 'scope'         => 'default',
@@ -418,37 +143,37 @@ class Unity extends Language
             [
                 'scope'         => 'default',
                 'destination'   => 'Assets/Runtime/Core/Converters/ValueClassConverter.cs',
-                'template'      => 'unity/Assets/Runtime/Core/Converters/ValueClassConverter.cs.twig',
+                'template'      => 'dotnet/Package/Converters/ValueClassConverter.cs.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'Assets/Runtime/Core/Converters/ObjectToInferredTypesConverter.cs',
-                'template'      => 'unity/Assets/Runtime/Core/Converters/ObjectToInferredTypesConverter.cs.twig',
+                'template'      => 'dotnet/Package/Converters/ObjectToInferredTypesConverter.cs.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'Assets/Runtime/Core/Extensions/Extensions.cs',
-                'template'      => 'unity/Assets/Runtime/Core/Extensions/Extensions.cs.twig',
+                'template'      => 'dotnet/Package/Extensions/Extensions.cs.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'Assets/Runtime/Core/Models/OrderType.cs',
-                'template'      => 'unity/Assets/Runtime/Core/Models/OrderType.cs.twig',
+                'template'      => 'dotnet/Package/Models/OrderType.cs.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'Assets/Runtime/Core/Models/UploadProgress.cs',
-                'template'      => 'unity/Assets/Runtime/Core/Models/UploadProgress.cs.twig',
+                'template'      => 'dotnet/Package/Models/UploadProgress.cs.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'Assets/Runtime/Core/Models/InputFile.cs',
-                'template'      => 'unity/Assets/Runtime/Core/Models/InputFile.cs.twig',
+                'template'      => 'dotnet/Package/Models/InputFile.cs.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'Assets/Runtime/Core/Services/Service.cs',
-                'template'      => 'unity/Assets/Runtime/Core/Services/Service.cs.twig',
+                'template'      => 'dotnet/Package/Services/Service.cs.twig',
             ],
             [
                 'scope'         => 'service',
@@ -458,12 +183,12 @@ class Unity extends Language
             [
                 'scope'         => 'definition',
                 'destination'   => 'Assets/Runtime/Core/Models/{{ definition.name | caseUcfirst | overrideIdentifier }}.cs',
-                'template'      => 'unity/Assets/Runtime/Core/Models/Model.cs.twig',
+                'template'      => 'dotnet/Package/Models/Model.cs.twig',
             ],
             [
                 'scope'         => 'enum',
                 'destination'   => 'Assets/Runtime/Core/Enums/{{ enum.name | caseUcfirst | overrideIdentifier }}.cs',
-                'template'      => 'unity/Assets/Runtime/Core/Enums/Enum.cs.twig',
+                'template'      => 'dotnet/Package/Enums/Enum.cs.twig',
             ],
             [
                 'scope'         => 'default',
@@ -473,7 +198,7 @@ class Unity extends Language
             [
                 'scope'         => 'default',
                 'destination'   => 'Assets/Runtime/Core/Enums/IEnum.cs',
-                'template'      => 'unity/Assets/Runtime/Core/Enums/IEnum.cs.twig',
+                'template'      => 'dotnet/Package/Enums/IEnum.cs.twig',
             ],
             // Plugins
             [
@@ -680,27 +405,5 @@ class Unity extends Language
         }
 
         return $files;
-    }
-
-    public function getFilters(): array
-    {
-        return [
-            new TwigFilter('unityComment', function ($value) {
-                $value = explode("\n", $value);
-                foreach ($value as $key => $line) {
-                    $value[$key] = "        /// " . wordwrap($line, 75, "\n        /// ");
-                }
-                return implode("\n", $value);
-            }, ['is_safe' => ['html']]),
-            new TwigFilter('caseEnumKey', function (string $value) {
-                return $this->toPascalCase($value);
-            }),
-            new TwigFilter('overrideProperty', function (string $property, string $class) {
-                if (isset($this->getPropertyOverrides()[$class][$property])) {
-                    return $this->getPropertyOverrides()[$class][$property];
-                }
-                return $property;
-            }),
-        ];
     }
 }

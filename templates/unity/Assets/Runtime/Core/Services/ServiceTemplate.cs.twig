@@ -1,4 +1,4 @@
-{% import 'unity/base/utils.twig' as utils %}
+{% import 'dotnet/base/utils.twig' as utils %}
 #if UNI_TASK
 using System;
 using System.Collections.Generic;
@@ -27,7 +27,7 @@ namespace {{ spec.title | caseUcfirst }}.Services
         {%~ for method in service.methods %}
         {%~ if method.description %}
         /// <para>
-        {{~ method.description | unityComment }}
+        {{~ method.description | dotnetComment }}
         /// </para>
         {%~ endif %}
         /// </summary>
@@ -45,7 +45,7 @@ namespace {{ spec.title | caseUcfirst }}.Services
         {
             var apiPath = "{{ method.path }}"{% if method.parameters.path | length == 0 %};{% endif %}
 
-            {{~ include('unity/base/params.twig') }}
+            {{~ include('dotnet/base/params.twig') }}
 
             {%~ if method.responseModel %}
             static {{ utils.resultType(spec.title, method) }} Convert(Dictionary<string, object> it) =>
@@ -57,13 +57,13 @@ namespace {{ spec.title | caseUcfirst }}.Services
             {%~ endif %}
 
             {%~ if method.type == 'location' %}
-            {{~ include('unity/base/requests/location.twig') }}
+            {{~ include('dotnet/base/requests/location.twig') }}
             {%~ elseif method.type == 'webAuth' %}
             {{~ include('unity/base/requests/oauth.twig') }}
             {%~ elseif 'multipart/form-data' in method.consumes %}
-            {{~ include('unity/base/requests/file.twig') }}
+            {{~ include('dotnet/base/requests/file.twig') }}
             {%~ else %}
-            {{~ include('unity/base/requests/api.twig')}}
+            {{~ include('dotnet/base/requests/api.twig')}}
             {%~ endif %}
         }
 {% if method.type == "webAuth" %}
