@@ -8,7 +8,6 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('{{ definition.name | caseUcfirst | overrideIdentifier }}', () {
-
     test('model', () {
       final model = {{ definition.name | caseUcfirst | overrideIdentifier }}(
 {% for property in definition.properties | filter(p => p.required) %}
