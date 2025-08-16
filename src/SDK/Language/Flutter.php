@@ -241,6 +241,11 @@ class Flutter extends Dart
                 'template'      => 'flutter/pubspec.yaml.twig',
             ],
             [
+                'scope'         => 'default',
+                'destination'   => '/analysis_options.yaml',
+                'template'      => 'flutter/analysis_options.yaml.twig',
+            ],
+            [
                 'scope'         => 'service',
                 'destination'   => '/lib/services/{{service.name | caseDash}}.dart',
                 'template'      => 'flutter/lib/services/service.dart.twig',

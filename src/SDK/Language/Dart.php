@@ -374,6 +374,11 @@ class Dart extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/analysis_options.yaml',
+                'template'      => 'dart/analysis_options.yaml.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/lib/client_io.dart',
                 'template'      => 'dart/lib/client_io.dart.twig',
             ],
