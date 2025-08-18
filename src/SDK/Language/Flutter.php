@@ -253,7 +253,7 @@ class Flutter extends Dart
             [
                 'scope'         => 'service',
                 'destination'   => '/test/services/{{service.name | caseDash}}_test.dart',
-                'template'      => 'dart/test/services/service_test.dart.twig',
+                'template'      => 'flutter/test/services/service_test.dart.twig',
             ],
             [
                 'scope'         => 'definition',
