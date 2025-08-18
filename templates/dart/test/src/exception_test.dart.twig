@@ -12,13 +12,22 @@ void main() {
       expect(exception1.toString(), equals('{{spec.title | caseUcfirst}}Exception'));
 
       final exception2 = {{spec.title | caseUcfirst}}Exception('Some error message');
-      expect(exception2.toString(),
-          equals('AppwriteException: , Some error message (0)'));
+      expect(
+        exception2.toString(),
+        equals('AppwriteException: , Some error message (0)'),
+      );
 
-      final exception3 =
-          AppwriteException('Invalid request', 400, 'ValidationError');
-      expect(exception3.toString(),
-          equals('AppwriteException: ValidationError, Invalid request (400)'));
+      final exception3 = AppwriteException(
+        'Invalid request',
+        400,
+        'ValidationError',
+      );
+      expect(
+        exception3.toString(),
+        equals(
+          'AppwriteException: ValidationError, Invalid request (400)',
+        ),
+      );
     });
   });
 }
