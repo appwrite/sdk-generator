@@ -346,6 +346,11 @@ class Flutter extends Dart
                 'template'      => 'flutter/.github/workflows/format.yml.twig',
             ],
             [
+                'scope'         => 'default',
+                'destination'   => '.github/workflows/test.yml',
+                'template'      => 'flutter/.github/workflows/test.yml',
+            ],
+            [
                 'scope'         => 'enum',
                 'destination'   => 'lib/src/enums/{{ enum.name | caseSnake }}.dart',
                 'template'      => 'dart/lib/src/enums/enum.dart.twig',
