@@ -494,6 +494,11 @@ class Dart extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '.github/workflows/test.yml',
+                'template'      => 'dart/.github/workflows/test.yml',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'lib/src/input_file.dart',
                 'template'      => 'dart/lib/src/input_file.dart.twig',
             ],
