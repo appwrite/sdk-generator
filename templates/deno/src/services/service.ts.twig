@@ -88,6 +88,10 @@ export class {{ service.name | caseUcfirst }} extends Service {
     {%~ if method.parameters.all|length > 0 %}
     {{ method.name | caseCamel }}{% if generics %}<{{generics}}>{% endif %}(params: { {% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | typeName }}{% if not loop.last %}, {% endif %}{% endfor %} {% if 'multipart/form-data' in method.consumes %}, onProgress?: (progress: UploadProgress) => {}{% endif %} }): Promise<{% if method.type == 'webAuth' %}string{% elseif method.type == 'location' %}ArrayBuffer{% else %}{% if method.responseModel and method.responseModel != 'any' %}{% if not spec.definitions[method.responseModel].additionalProperties %}Models.{% endif %}{{method.responseModel | caseUcfirst}}{% if generics_return %}<{{generics_return}}>{% endif %}{% else %}Response{% endif %}{% endif %}>;
     /**
+     {%~ if method.description %}
+     * {{ method.description | replace({'\n': '\n     * '}) | raw }}
+     {%~ endif %}
+     *
      {%~ for parameter in method.parameters.all %}
      * @param {{ '{' }}{{ parameter | typeName }}{{ '}' }} {{ parameter.name | caseCamel | escapeKeyword }}
      {%~ endfor %}
