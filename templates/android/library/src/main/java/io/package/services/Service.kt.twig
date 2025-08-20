@@ -29,7 +29,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
 
 {% for method in service.methods %}
     /**
-     * {{ method.description | replace({"\n": "\n * "}) | raw }}
+     * {{ method.description | replace({"\n": "\n    * "}) | raw }}
      *
     {%~ for parameter in method.parameters.all %}
      * @param {{ parameter.name | caseCamel }} {{ parameter.description | raw }}
