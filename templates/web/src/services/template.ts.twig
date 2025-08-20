@@ -79,7 +79,7 @@ export class {{ service.name | caseUcfirst }} {
         let onProgress: ((progress: UploadProgress) => {});
         {%~ endif %}
         
-        if (!paramsOrFirst{% for parameter in method.parameters.all %}{% if parameter.required %} || false{% endif %}{% endfor %} || (paramsOrFirst && typeof paramsOrFirst === 'object' && !Array.isArray(paramsOrFirst){% set firstParamType = method.parameters.all[0] | getPropertyType(method) | raw %}{% if not (firstParamType starts with 'string' or firstParamType starts with 'number' or firstParamType starts with 'boolean') %} && '{{ method.parameters.all[0].name | caseCamel | escapeKeyword }}' in paramsOrFirst{% endif %})) {
+        if ({% set hasRequired = false %}{% for parameter in method.parameters.all %}{% if parameter.required %}{% set hasRequired = true %}{% endif %}{% endfor %}{% if not hasRequired %}!paramsOrFirst || {% endif %}(paramsOrFirst && typeof paramsOrFirst === 'object' && !Array.isArray(paramsOrFirst){% set firstParamType = method.parameters.all[0] | getPropertyType(method) | raw %}{% if not (firstParamType starts with 'string' or firstParamType starts with 'number' or firstParamType starts with 'boolean') %} && '{{ method.parameters.all[0].name | caseCamel | escapeKeyword }}' in paramsOrFirst{% endif %})) {
             params = (paramsOrFirst || {}) as { {% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | getPropertyType(method) | raw }}{% if not loop.last %}, {% endif %}{% endfor %} };
             {%~ if 'multipart/form-data' in method.consumes %}
             onProgress = paramsOrFirst?.onProgress as ((progress: UploadProgress) => {});
