@@ -32,7 +32,7 @@ export class {{ service.name | caseUcfirst }} {
     {%~ endif %}
      *
     {%~ for parameter in method.parameters.all %}
-     * @param {{ '{' }}{{ parameter | getPropertyType(method) | raw }}{{ '}' }} {{ parameter.name | caseCamel | escapeKeyword }} - {{ parameter.description | raw }}
+     * @param {{ '{' }}{{ parameter | getPropertyType(method) | raw }}{{ '}' }} params.{{ parameter.name | caseCamel | escapeKeyword }} - {{ parameter.description | raw }}
     {%~ endfor %}
      * @throws {{ '{' }}{{ spec.title | caseUcfirst}}Exception}
      * @returns {{ '{' }}{{ method | getReturn(spec) | raw }}{{ '}' }}
@@ -47,8 +47,13 @@ export class {{ service.name | caseUcfirst }} {
     {%~ if method.parameters.all|length > 0 %}
     {{ method.name | caseCamel }}{{ method.responseModel | getGenerics(spec) | raw }}(params: { {% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | getPropertyType(method) | raw }}{% if not loop.last %}, {% endif %}{% endfor %} {% if 'multipart/form-data' in method.consumes %}, onProgress?: (progress: UploadProgress) => {}{% endif %} }): {{ method | getReturn(spec) | raw }};
     /**
-     * @deprecated Parameter-based methods will be removed in a future version.
-     * Please use the object based method instead for better developer experience.
+     {%~ for parameter in method.parameters.all %}
+     * @param {{ '{' }}{{ parameter | getPropertyType(method) | raw }}{{ '}' }} {{ parameter.name | caseCamel | escapeKeyword }} - {{ parameter.description | raw }}
+     {%~ endfor %}
+     * @throws {{ '{' }}{{ spec.title | caseUcfirst}}Exception}
+     * @returns {{ '{' }}{{ method | getReturn(spec) | raw }}{{ '}' }}
+     * @deprecated Flat parameter style methods will be removed in a future version.
+     * Please use the object parameter style method instead for a better developer experience.
      *
      * @example
      * // Old (deprecated)
