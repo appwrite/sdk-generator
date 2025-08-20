@@ -414,7 +414,7 @@ class Dart extends Language
             ],
             [
                 'scope'         => 'service',
-                'destination'   => '/lib/services/{{service.name | caseDash}}.dart',
+                'destination'   => '/lib/services/{{service.name | caseSnake}}.dart',
                 'template'      => 'dart/lib/services/service.dart.twig',
             ],
             [
@@ -429,7 +429,7 @@ class Dart extends Language
             ],
             [
                 'scope'         => 'service',
-                'destination'   => '/test/services/{{service.name | caseDash}}_test.dart',
+                'destination'   => '/test/services/{{service.name | caseSnake}}_test.dart',
                 'template'      => 'dart/test/services/service_test.dart.twig',
             ],
             [

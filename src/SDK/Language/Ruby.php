@@ -164,7 +164,7 @@ class Ruby extends Language
             ],
             [
                 'scope'         => 'service',
-                'destination'   => '/lib/{{ spec.title | caseDash}}/services/{{service.name | caseDash}}.rb',
+                'destination'   => '/lib/{{ spec.title | caseDash}}/services/{{service.name | caseSnake}}.rb',
                 'template'      => 'ruby/lib/container/services/service.rb.twig',
             ],
             [
