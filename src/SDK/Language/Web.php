@@ -247,6 +247,15 @@ class Web extends JS
                         if ($method['method'] === 'patch' || $method['method'] === 'put') {
                             return "Document extends Models.DefaultDocument ? Partial<Models.Document> & Record<string, any> : Partial<Models.Document> & Partial<Omit<Document, keyof Models.Document>>";
                         }
+                        break;
+                    case 'row':
+                        if ($method['method'] === 'post') {
+                            return "Row extends Models.DefaultRow ? Partial<Models.Row> & Record<string, any> : Partial<Models.Row> & Omit<Row, keyof Models.Row>";
+                        }
+                        if ($method['method'] === 'patch' || $method['method'] === 'put') {
+                            return "Row extends Models.DefaultRow ? Partial<Models.Row> & Record<string, any> : Partial<Models.Row> & Partial<Omit<Row, keyof Models.Row>>";
+                        }
+                        break;
                 }
                 break;
         }

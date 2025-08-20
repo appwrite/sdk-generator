@@ -47,7 +47,7 @@ export class {{ service.name | caseUcfirst }} {
     {%~ if method.parameters.all|length > 0 %}
     {{ method.name | caseCamel }}{{ method.responseModel | getGenerics(spec) | raw }}(params: { {% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | getPropertyType(method) | raw }}{% if not loop.last %}, {% endif %}{% endfor %} {% if 'multipart/form-data' in method.consumes %}, onProgress?: (progress: UploadProgress) => {}{% endif %} }): {{ method | getReturn(spec) | raw }};
     /**
-     * @deprecated Parameter-based methods will be removed in the upcoming version.
+     * @deprecated Parameter-based methods will be removed in a future version.
      * Please use the object based method instead for better developer experience.
      *
      * @example
