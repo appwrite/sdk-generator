@@ -73,7 +73,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
      *
 {% endif %}
 {% for parameter in method.parameters.all%}
-     * @param {{ '{' }}{{ parameter | typeName }}{{ '}' }} params.{{ parameter.name | caseCamel | escapeKeyword }}
+     * @param {{ '{' }}{{ parameter | typeName }}{{ '}' }} {{ parameter.name | caseCamel | escapeKeyword }}
 {% endfor %}
      * @throws {AppwriteException}
      * @returns {Promise}
@@ -85,72 +85,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
      {%~ endif %}
     {%~ endif %}
      */
-    {%~ if method.parameters.all|length > 0 %}
-    {{ method.name | caseCamel }}{% if generics %}<{{generics}}>{% endif %}(params: { {% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | typeName }}{% if not loop.last %}, {% endif %}{% endfor %} {% if 'multipart/form-data' in method.consumes %}, onProgress?: (progress: UploadProgress) => {}{% endif %} }): Promise<{% if method.type == 'webAuth' %}string{% elseif method.type == 'location' %}ArrayBuffer{% else %}{% if method.responseModel and method.responseModel != 'any' %}{% if not spec.definitions[method.responseModel].additionalProperties %}Models.{% endif %}{{method.responseModel | caseUcfirst}}{% if generics_return %}<{{generics_return}}>{% endif %}{% else %}Response{% endif %}{% endif %}>;
-    /**
-     {%~ if method.description %}
-     * {{ method.description | replace({'\n': '\n     * '}) | raw }}
-     {%~ endif %}
-     *
-     {%~ for parameter in method.parameters.all %}
-     * @param {{ '{' }}{{ parameter | typeName }}{{ '}' }} {{ parameter.name | caseCamel | escapeKeyword }}
-     {%~ endfor %}
-     * @throws {AppwriteException}
-     * @returns {Promise}
-     * @deprecated Flat parameter style methods will be removed in a future version.
-     * Please use the object parameter style method instead for better developer experience.
-     *
-     * @example
-     * // Old (deprecated)
-     * {{ method.name | caseCamel }}{% if generics %}<{{generics}}>{% endif %}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | typeName }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, onProgress?: (progress: UploadProgress) => {}{% endif %}): Promise<{% if method.type == 'webAuth' %}string{% elseif method.type == 'location' %}ArrayBuffer{% else %}{% if method.responseModel and method.responseModel != 'any' %}{% if not spec.definitions[method.responseModel].additionalProperties %}Models.{% endif %}{{method.responseModel | caseUcfirst}}{% if generics_return %}<{{generics_return}}>{% endif %}{% else %}Response{% endif %}{% endif %}>;
-     *
-     * // New (object based)
-     * {{ method.name | caseCamel }}{% if generics %}<{{generics}}>{% endif %}(params: { {% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | typeName }}{% if not loop.last %}, {% endif %}{% endfor %} {% if 'multipart/form-data' in method.consumes %}, onProgress?: (progress: UploadProgress) => {}{% endif %} }): Promise<{% if method.type == 'webAuth' %}string{% elseif method.type == 'location' %}ArrayBuffer{% else %}{% if method.responseModel and method.responseModel != 'any' %}{% if not spec.definitions[method.responseModel].additionalProperties %}Models.{% endif %}{{method.responseModel | caseUcfirst}}{% if generics_return %}<{{generics_return}}>{% endif %}{% else %}Response{% endif %}{% endif %}>;
-     */
-    {{ method.name | caseCamel }}{% if generics %}<{{generics}}>{% endif %}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | typeName }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, onProgress?: (progress: UploadProgress) => {}{% endif %}): Promise<{% if method.type == 'webAuth' %}string{% elseif method.type == 'location' %}ArrayBuffer{% else %}{% if method.responseModel and method.responseModel != 'any' %}{% if not spec.definitions[method.responseModel].additionalProperties %}Models.{% endif %}{{method.responseModel | caseUcfirst}}{% if generics_return %}<{{generics_return}}>{% endif %}{% else %}Response{% endif %}{% endif %}>;
-    async {{ method.name | caseCamel }}{% if generics %}<{{generics}}>{% endif %}(
-        {% if method.parameters.all|length > 0 %}paramsOrFirst{% if not method.parameters.all[0].required or method.parameters.all[0].nullable %}?{% endif %}: { {% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | typeName }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, onProgress?: (progress: UploadProgress) => {} {% endif %} } | {{ method.parameters.all[0] | typeName }}{% if method.parameters.all|length > 1 %},
-        ...rest: [{% for parameter in method.parameters.all[1:] %}({{ parameter | typeName }})?{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %},((progress: UploadProgress) => {})?{% endif %}]{% endif %}{% endif %}
-    
-    ): Promise<{% if method.type == 'webAuth' %}string{% elseif method.type == 'location' %}ArrayBuffer{% else %}{% if method.responseModel and method.responseModel != 'any' %}{% if not spec.definitions[method.responseModel].additionalProperties %}Models.{% endif %}{{method.responseModel | caseUcfirst}}{% if generics_return %}<{{generics_return}}>{% endif %}{% else %}Response{% endif %}{% endif %}> {
-        {%~ if method.parameters.all|length > 0 %}
-        let params: { {% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | typeName }}{% if not loop.last %}, {% endif %}{% endfor %} };
-        {%~ if 'multipart/form-data' in method.consumes %}
-        let onProgress: ((progress: UploadProgress) => {});
-        {%~ endif %}
-        
-        if (paramsOrFirst && typeof paramsOrFirst === 'object' && !Array.isArray(paramsOrFirst){% set firstParamType = method.parameters.all[0] | typeName %}{% if not (firstParamType starts with 'string' or firstParamType starts with 'number' or firstParamType starts with 'boolean') %} && '{{ method.parameters.all[0].name | caseCamel | escapeKeyword }}' in paramsOrFirst{% endif %}) {
-            params = paramsOrFirst as { {% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | typeName }}{% if not loop.last %}, {% endif %}{% endfor %} };
-            {%~ if 'multipart/form-data' in method.consumes %}
-            onProgress = paramsOrFirst.onProgress as ((progress: UploadProgress) => {});
-            {%~ endif %}
-        } else {
-            params = {
-                {%~ for parameter in method.parameters.all %}
-                {{ parameter.name | caseCamel | escapeKeyword }}: {% if loop.index0 == 0 %}paramsOrFirst{% else %}rest[{{ loop.index0 - 1 }}]{% endif %} as {{ parameter | typeName }}{% if not loop.last %},
-{% endif %}
-                {%~ endfor %}
-            
-            };
-            {%~ if 'multipart/form-data' in method.consumes %}
-            onProgress = rest[{{ method.parameters.all|length - 1 }}] as ((progress: UploadProgress) => {});
-            {%~ endif %}
-        }
-        
-        {%~ for parameter in method.parameters.all %}
-        const {{ parameter.name | caseCamel | escapeKeyword }} = params.{{ parameter.name | caseCamel | escapeKeyword }};
-        {%~ endfor %}
-
-        {%~ else %}
-        {%~ if 'multipart/form-data' in method.consumes %}
-        if (typeof paramsOrFirst === 'function') {
-            onProgress = paramsOrFirst;
-        }
-        {%~ endif %}
-        {%~ endif %}
-    {%~ else %}
     async {{ method.name | caseCamel }}{% if generics %}<{{generics}}>{% endif %}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | typeName }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, onProgress = (progress: UploadProgress) => {}{% endif %}): Promise<{% if method.type == 'webAuth' %}string{% elseif method.type == 'location' %}ArrayBuffer{% else %}{% if method.responseModel and method.responseModel != 'any' %}{% if not spec.definitions[method.responseModel].additionalProperties %}Models.{% endif %}{{method.responseModel | caseUcfirst}}{% if generics_return %}<{{generics_return}}>{% endif %}{% else %}Response{% endif %}{% endif %}> {
-    {%~ endif %}
 {% for parameter in method.parameters.all %}
 {% if parameter.required %}
         if (typeof {{ parameter.name | caseCamel | escapeKeyword }} === 'undefined') {
