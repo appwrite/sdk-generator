@@ -69,7 +69,7 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
     public func toMap() -> [String: Any] {
         return [
             {%~ for property in definition.properties %}
-            "{{ property.name | escapeSwiftKeyword }}": {% if property.sub_schema %}{% if property.type == 'array' %}{{property.name | escapeSwiftKeyword | removeDollarSign}}.map { $0.toMap() }{% else %}{{property.name | escapeSwiftKeyword | removeDollarSign}}.toMap(){% endif %}{% else %}{{property.name | escapeSwiftKeyword | removeDollarSign}}{% endif %} as Any{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
+            "{{ property.name }}": {% if property.sub_schema %}{% if property.type == 'array' %}{{property.name | escapeSwiftKeyword | removeDollarSign}}.map { $0.toMap() }{% else %}{{property.name | escapeSwiftKeyword | removeDollarSign}}.toMap(){% endif %}{% else %}{{property.name | escapeSwiftKeyword | removeDollarSign}}{% endif %} as Any{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
 
             {%~ endfor %}
             {%~ if definition.additionalProperties %}
