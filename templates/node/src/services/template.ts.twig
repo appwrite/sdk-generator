@@ -56,15 +56,7 @@ export class {{ service.name | caseUcfirst }} {
      {%~ endfor %}
      * @throws {{ '{' }}{{ spec.title | caseUcfirst}}Exception}
      * @returns {{ '{' }}{{ method | getReturn(spec) | raw }}{{ '}' }}
-     * @deprecated Flat parameter style methods will be removed in a future version.
-     * Please use the object parameter style method instead for a better developer experience.
-     *
-     * @example
-     * // Old (deprecated)
-     * {{ method.name | caseCamel }}{{ method.responseModel | getGenerics(spec) | raw }}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | getPropertyType(method) | raw }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, onProgress?: (progress: UploadProgress) => {}{% endif %}): {{ method | getReturn(spec) | raw }};
-     *
-     * // New (object based)
-     * {{ method.name | caseCamel }}{{ method.responseModel | getGenerics(spec) | raw }}(params: { {% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | getPropertyType(method) | raw }}{% if not loop.last %}, {% endif %}{% endfor %} {% if 'multipart/form-data' in method.consumes %}, onProgress?: (progress: UploadProgress) => {}{% endif %} }): {{ method | getReturn(spec) | raw }};
+     * @deprecated Use the object parameter style method for a better developer experience.
      */
     {{ method.name | caseCamel }}{{ method.responseModel | getGenerics(spec) | raw }}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | getPropertyType(method) | raw }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, onProgress?: (progress: UploadProgress) => {}{% endif %}): {{ method | getReturn(spec) | raw }};
     {{ method.name | caseCamel }}{{ method.responseModel | getGenerics(spec) | raw }}(
