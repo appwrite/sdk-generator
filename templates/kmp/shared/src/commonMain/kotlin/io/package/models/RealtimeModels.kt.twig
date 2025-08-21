@@ -24,7 +24,7 @@ data class RealtimeCallback(
 open class RealtimeResponse(
     val type: String,
     @Contextual
-    val data: Any
+    val data: Any?
 )
 
 @Serializable
