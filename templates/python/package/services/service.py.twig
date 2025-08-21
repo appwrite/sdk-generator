@@ -34,6 +34,15 @@ class {{ service.name | caseUcfirst }}(Service):
 
 {% if method.parameters.all|length > 0 or 'multipart/form-data' in method.consumes %}
 
+{% if method.deprecated %}
+{%~ if method.since and method.replaceWith %}
+        .. deprecated::{{ method.since }}
+            This API has been deprecated since {{ method.since }}. Please use `{{ method.replaceWith | caseSnakeExceptFirstDot }}` instead.
+{%~ else %}
+        .. deprecated::
+            This API has been deprecated.
+{%~ endif %}
+{% endif %}
         Parameters
         ----------
         {% for parameter in method.parameters.all %}{{ parameter.name | escapeKeyword | caseSnake }} : {{ parameter | getPropertyType(method) | raw }}

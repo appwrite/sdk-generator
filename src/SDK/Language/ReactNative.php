@@ -128,7 +128,7 @@ class ReactNative extends Web
      * @param array $nestedTypes
      * @return string
      */
-    public function getTypeName(array $parameter, array $spec = []): string
+    public function getTypeName(array $parameter, array $method = []): string
     {
         if (isset($parameter['enumName'])) {
             return \ucfirst($parameter['enumName']);
@@ -151,6 +151,31 @@ class ReactNative extends Web
                 return 'string[]';
             case self::TYPE_FILE:
                 return '{name: string, type: string, size: number, uri: string}';
+            case self::TYPE_OBJECT:
+                if (empty($method)) {
+                    return $parameter['type'];
+                }
+                switch ($method['responseModel']) {
+                    case 'user':
+                        return "Partial<Preferences>";
+                    case 'document':
+                        if ($method['method'] === 'post') {
+                            return "Document extends Models.DefaultDocument ? Partial<Models.Document> & Record<string, any> : Partial<Models.Document> & Omit<Document, keyof Models.Document>";
+                        }
+                        if ($method['method'] === 'patch' || $method['method'] === 'put') {
+                            return "Document extends Models.DefaultDocument ? Partial<Models.Document> & Record<string, any> : Partial<Models.Document> & Partial<Omit<Document, keyof Models.Document>>";
+                        }
+                        break;
+                    case 'row':
+                        if ($method['method'] === 'post') {
+                            return "Row extends Models.DefaultRow ? Partial<Models.Row> & Record<string, any> : Partial<Models.Row> & Omit<Row, keyof Models.Row>";
+                        }
+                        if ($method['method'] === 'patch' || $method['method'] === 'put') {
+                            return "Row extends Models.DefaultRow ? Partial<Models.Row> & Record<string, any> : Partial<Models.Row> & Partial<Omit<Row, keyof Models.Row>>";
+                        }
+                        break;
+                }
+                break;
         }
 
         return $parameter['type'];
@@ -215,7 +240,7 @@ class ReactNative extends Web
         if ($method['type'] === 'webAuth') {
             return 'void | URL';
         } elseif ($method['type'] === 'location') {
-            return 'URL';
+            return 'Promise<ArrayBuffer>';
         }
 
         if (array_key_exists('responseModel', $method) && !empty($method['responseModel']) && $method['responseModel'] !== 'any') {

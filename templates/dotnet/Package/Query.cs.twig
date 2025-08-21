@@ -1,39 +1,49 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using Newtonsoft.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 
-namespace Appwrite
+namespace {{ spec.title | caseUcfirst }}
 {
     public class Query
     {
-        public string method;
-        public string? attribute;
-        public List<object>? values;
+        [JsonPropertyName("method")]
+        public string Method { get; set; } = string.Empty;
+        
+        [JsonPropertyName("attribute")]
+        public string? Attribute { get; set; }
+        
+        [JsonPropertyName("values")]
+        public List<object>? Values { get; set; }
+
+        public Query()
+        {
+        }
 
         public Query(string method, string? attribute, object? values)
         {
-            this.method = method;
-            this.attribute = attribute;
+            this.Method = method;
+            this.Attribute = attribute;
 
             if (values is IList valuesList)
             {
-                this.values = new List<object>();
+                this.Values = new List<object>();
                 foreach (var value in valuesList)
                 {
-                    this.values.Add(value); // Automatically boxes if value is a value type
+                    this.Values.Add(value); // Automatically boxes if value is a value type
                 }
             }
             else if (values != null)
             {
-                this.values = new List<object> { values };
+                this.Values = new List<object> { values };
             }
         }
 
         override public string ToString()
         {
-            return JsonConvert.SerializeObject(this);
+            return JsonSerializer.Serialize(this, Client.SerializerOptions);
         }
 
         public static string Equal(string attribute, object value)
@@ -140,12 +150,56 @@ namespace Appwrite
             return new Query("contains", attribute, value).ToString();
         }
 
+        public static string NotContains(string attribute, object value) {
+            return new Query("notContains", attribute, value).ToString();
+        }
+
+        public static string NotSearch(string attribute, string value) {
+            return new Query("notSearch", attribute, value).ToString();
+        }
+
+        public static string NotBetween(string attribute, string start, string end) {
+            return new Query("notBetween", attribute, new List<string> { start, end }).ToString();
+        }
+
+        public static string NotBetween(string attribute, int start, int end) {
+            return new Query("notBetween", attribute, new List<int> { start, end }).ToString();
+        }
+
+        public static string NotBetween(string attribute, double start, double end) {
+            return new Query("notBetween", attribute, new List<double> { start, end }).ToString();
+        }
+
+        public static string NotStartsWith(string attribute, string value) {
+            return new Query("notStartsWith", attribute, value).ToString();
+        }
+
+        public static string NotEndsWith(string attribute, string value) {
+            return new Query("notEndsWith", attribute, value).ToString();
+        }
+
+        public static string CreatedBefore(string value) {
+            return new Query("createdBefore", null, value).ToString();
+        }
+
+        public static string CreatedAfter(string value) {
+            return new Query("createdAfter", null, value).ToString();
+        }
+
+        public static string UpdatedBefore(string value) {
+            return new Query("updatedBefore", null, value).ToString();
+        }
+
+        public static string UpdatedAfter(string value) {
+            return new Query("updatedAfter", null, value).ToString();
+        }
+
         public static string Or(List<string> queries) {
-            return new Query("or", null, queries.Select(q => JsonConvert.DeserializeObject<Query>(q)).ToList()).ToString();
+            return new Query("or", null, queries.Select(q => JsonSerializer.Deserialize<Query>(q, Client.DeserializerOptions)).ToList()).ToString();
         }
 
         public static string And(List<string> queries) {
-            return new Query("and", null, queries.Select(q => JsonConvert.DeserializeObject<Query>(q)).ToList()).ToString();
+            return new Query("and", null, queries.Select(q => JsonSerializer.Deserialize<Query>(q, Client.DeserializerOptions)).ToList()).ToString();
         }
     }
 }

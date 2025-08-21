@@ -5,10 +5,11 @@ const process = require("process");
 const JSONbig = require("json-bigint")({ storeAsString: false });
 
 const KeysVars = new Set(["key", "value"]);
-const KeysSite = new Set(["path", "$id", "name", "enabled", "logging", "timeout", "framework", "buildRuntime", "adapter", "installCommand", "buildCommand", "outputDirectory", "fallbackFile", "specification"]);
+const KeysSite = new Set(["path", "$id", "name", "enabled", "logging", "timeout", "framework", "buildRuntime", "adapter", "installCommand", "buildCommand", "outputDirectory", "fallbackFile", "specification", "vars"]);
 const KeysFunction = new Set(["path", "$id", "execute", "name", "enabled", "logging", "runtime", "specification", "scopes", "events", "schedule", "timeout", "entrypoint", "commands", "vars"]);
 const KeysDatabase = new Set(["$id", "name", "enabled"]);
 const KeysCollection = new Set(["$id", "$permissions", "databaseId", "name", "enabled", "documentSecurity", "attributes", "indexes"]);
+const KeysTable = new Set(["$id", "$permissions", "databaseId", "name", "enabled", "documentSecurity", "columns", "indexes"]);
 const KeysStorage = new Set(["$id", "$permissions", "fileSecurity", "name", "enabled", "maximumFileSize", "allowedFileExtensions", "compression", "encryption", "antivirus"]);
 const KeysTopics = new Set(["$id", "name", "subscribe"]);
 const KeysTeams = new Set(["$id", "name"]);
@@ -35,7 +36,36 @@ const KeysAttributes = new Set([
     "side",
     // Indexes
     "attributes",
-    "orders"
+    "orders",
+    // Strings
+    "encrypt",
+]);
+const KeysColumns = new Set([
+    "key",
+    "type",
+    "required",
+    "array",
+    "size",
+    "default",
+    // integer and float
+    "min",
+    "max",
+    // email, enum, URL, IP, and datetime
+    "format",
+    // enum
+    "elements",
+    // relationship
+    "relatedCollection",
+    "relationType",
+    "twoWay",
+    "twoWayKey",
+    "onDelete",
+    "side",
+    // Indexes
+    "attributes",
+    "orders",
+    // Strings
+    "encrypt",
 ]);
 const KeyIndexes = new Set(["key", "type", "status", "attributes", "orders"]);
 
@@ -123,31 +153,51 @@ class Config {
 }
 
 class Local extends Config {
-    static CONFIG_FILE_PATH = "{{ spec.title|caseLower }}.json";
+    static CONFIG_FILE_PATH = "{{ spec.title|caseLower }}.config.json";
+    static CONFIG_FILE_PATH_LEGACY = "{{ spec.title|caseLower }}.json";
     configDirectoryPath = ""
 
-    constructor(path = Local.CONFIG_FILE_PATH) {
+    constructor(path = Local.CONFIG_FILE_PATH, legacyPath = Local.CONFIG_FILE_PATH_LEGACY) {
+        let absolutePath = Local.findConfigFile(path) || Local.findConfigFile(legacyPath);
+        
+        if (!absolutePath) {
+            absolutePath = `${process.cwd()}/${path}`;
+        }
+
+        super(absolutePath);
+        this.configDirectoryPath = _path.dirname(absolutePath);
+    }
+
+    static findConfigFile(filename) {
         let currentPath = process.cwd();
-        let absolutePath = `${currentPath}/${path}`;
 
         while (true) {
-            if (fs.existsSync(`${currentPath}/${path}`)) {
-                absolutePath = `${currentPath}/${path}`;
-                break
-            } else {
-                const parentDirectory = _path.dirname(currentPath);
-                if (parentDirectory === currentPath) { // we hit the top directory
-                    break;
-                }
-                currentPath = parentDirectory
+            const filePath = `${currentPath}/${filename}`;
+            
+            if (fs.existsSync(filePath)) {
+                return filePath;
             }
+            
+            const parentDirectory = _path.dirname(currentPath);
+            if (parentDirectory === currentPath) {
+                break;
+            }
+            currentPath = parentDirectory;
         }
-        super(absolutePath);
-        this.configDirectoryPath =_path.dirname(absolutePath);
+
+        return null;
     }
 
     getDirname() {
         return _path.dirname(this.path)
+    }
+
+    getEndpoint() {
+        return this.get('endpoint') || '';
+    }
+
+    setEndpoint(endpoint) {
+        this.set('endpoint', endpoint);
     }
 
     getSites() {
@@ -286,6 +336,50 @@ class Local extends Config {
         }
         collections.push(props);
         this.set("collections", collections);
+    }
+
+    getTables() {
+        if (!this.has("tables")) {
+            return [];
+        }
+        return this.get("tables");
+    }
+
+    getTable($id) {
+        if (!this.has("tables")) {
+            return {};
+        }
+
+        let tables = this.get("tables");
+        for (let i = 0; i < tables.length; i++) {
+            if (tables[i]['$id'] == $id) {
+                return tables[i];
+            }
+        }
+
+        return {};
+    }
+
+    addTable(props) {
+        props = whitelistKeys(props, KeysTable, {
+            columns: KeysColumns,
+            indexes: KeyIndexes
+        });
+
+        if (!this.has("tables")) {
+            this.set("tables", []);
+        }
+
+        let tables = this.get("tables");
+        for (let i = 0; i < tables.length; i++) {
+            if (tables[i]['$id'] == props['$id'] && tables[i]['databaseId'] == props['databaseId']) {
+                tables[i] = props;
+                this.set("tables", tables);
+                return;
+            }
+        }
+        tables.push(props);
+        this.set("tables", tables);
     }
 
     getBuckets() {
@@ -691,5 +785,6 @@ module.exports = {
     KeysStorage,
     KeysTeams,
     KeysCollection,
+    KeysTable,
     whitelistKeys
 };

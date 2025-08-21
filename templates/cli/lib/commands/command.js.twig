@@ -7,7 +7,7 @@ const libClient = require('../client.js');
 const { getAllFiles, showConsoleLink } = require('../utils.js');
 const { Command } = require('commander');
 const { sdkForProject, sdkForConsole } = require('../sdks')
-const { parse, actionRunner, parseInteger, parseBool, commandDescriptions, success, log } = require('../parser')
+const { parse, actionRunner, parseInteger, parseBool, commandDescriptions, success, log, warn } = require('../parser')
 const { localConfig, globalConfig } = require("../config");
 const { File } = require('undici');
 const { ReadableStream } = require('stream/web');
@@ -59,7 +59,7 @@ const {{ service.name | caseLower }} = new Command("{{ service.name | caseLower 
 /**
  * @param {{ "{" }}{{ service.name | caseUcfirst }}{{ method.name | caseUcfirst }}RequestParams{{ "}" }} params
  */
-{%~ block decleration -%}
+{% block declaration %}
 const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({
         {%- for parameter in method.parameters.all -%}
             {{ parameter.name | caseCamel | escapeKeyword }},
@@ -72,7 +72,6 @@ const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({
         {%- if method.type == 'location' -%}, destination{%- endif -%}
         {% if hasConsolePreview(method.name,service.name) %}, console{%- endif -%}
 }) => {
-{%~ endblock %}
     let client = !sdk ? await {% if service.name == "projects" %}sdkForConsole(){% else %}sdkForProject(){% endif %} :
     sdk;
     let apiPath = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', {{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
@@ -82,13 +81,14 @@ const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({
 {{ include('cli/base/requests/api.twig') }}
 {% endif %}
 }
+{% endblock declaration %}
 
 {% endfor %}
 {% for method in service.methods %}
 {{service.name | caseLower }}
     .command(`{{ method.name | caseKebab }}`)
 {% autoescape false %}
-    .description(`{{ method.description | replace({'`':'\''}) | replace({'\n':' '}) | replace({'\n \n':' '}) }}`)
+    .description(`{% if method.deprecated %}[**DEPRECATED** - This command is deprecated.{% if method.replaceWith %} Please use '{{ method.replaceWith | replace({'.': ' '}) | caseKebab }}' instead{% endif %}] {% endif %}{{ method.description | replace({'`':'\''}) | replace({'\n':' '}) | replace({'\n \n':' '}) }}`)
 {% for parameter in method.parameters.all %}
     .{% if parameter.required and not parameter.nullable %}requiredOption{% else %}option{% endif %}(`--{{ parameter.name | escapeKeyword | caseKebab }}{% if parameter | typeName == 'boolean' %} [value]{% else %} {% if parameter.array.type|length > 0 %}[{% else %}<{% endif %}{{ parameter.name | escapeKeyword | caseKebab }}{% if parameter.array.type|length > 0 %}...{% endif %}{% if parameter.array.type|length > 0 %}]{% else %}>{% endif %}{% endif %}`, `{{ parameter.description | replace({'`':'\''}) | replace({'\n':' '}) | replace({'\n \n':' '}) }}`{% if parameter | typeName == 'boolean' %}, (value) => value === undefined ? true : parseBool(value){% elseif parameter | typeName == 'number' %}, parseInteger{% endif %})
 {% endfor %}

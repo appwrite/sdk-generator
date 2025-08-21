@@ -209,6 +209,18 @@ class ServiceTest {
             writeToFile(Query.offset(20))
             writeToFile(Query.contains("title", listOf("Spider")))
             writeToFile(Query.contains("labels", listOf("first")))
+            
+            // New query methods
+            writeToFile(Query.notContains("title", listOf("Spider")))
+            writeToFile(Query.notSearch("name", "john"))
+            writeToFile(Query.notBetween("age", 50, 100))
+            writeToFile(Query.notStartsWith("name", "Ann"))
+            writeToFile(Query.notEndsWith("name", "nne"))
+            writeToFile(Query.createdBefore("2023-01-01"))
+            writeToFile(Query.createdAfter("2023-01-01"))
+            writeToFile(Query.updatedBefore("2023-01-01"))
+            writeToFile(Query.updatedAfter("2023-01-01"))
+            
             writeToFile(Query.or(listOf(Query.equal("released", listOf(true)), Query.lessThan("releasedYear", 1990))))
             writeToFile(Query.and(listOf(Query.equal("released", listOf(false)), Query.greaterThan("releasedYear", 2015))))
 

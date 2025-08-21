@@ -374,6 +374,11 @@ class Dart extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/analysis_options.yaml',
+                'template'      => 'dart/analysis_options.yaml.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/lib/client_io.dart',
                 'template'      => 'dart/lib/client_io.dart.twig',
             ],
@@ -409,7 +414,7 @@ class Dart extends Language
             ],
             [
                 'scope'         => 'service',
-                'destination'   => '/lib/services/{{service.name | caseDash}}.dart',
+                'destination'   => '/lib/services/{{service.name | caseSnake}}.dart',
                 'template'      => 'dart/lib/services/service.dart.twig',
             ],
             [
@@ -424,7 +429,7 @@ class Dart extends Language
             ],
             [
                 'scope'         => 'service',
-                'destination'   => '/test/services/{{service.name | caseDash}}_test.dart',
+                'destination'   => '/test/services/{{service.name | caseSnake}}_test.dart',
                 'template'      => 'dart/test/services/service_test.dart.twig',
             ],
             [
@@ -489,6 +494,11 @@ class Dart extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '.github/workflows/test.yml',
+                'template'      => 'dart/.github/workflows/test.yml',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'lib/src/input_file.dart',
                 'template'      => 'dart/lib/src/input_file.dart.twig',
             ],
@@ -506,7 +516,7 @@ class Dart extends Language
             new TwigFilter('dartComment', function ($value) {
                 $value = explode("\n", $value);
                 foreach ($value as $key => $line) {
-                    $value[$key] = "    /// " . wordwrap($value[$key], 75, "\n    /// ");
+                    $value[$key] = "  /// " . wordwrap($value[$key], 75, "\n  /// ");
                 }
                 return implode("\n", $value);
             }, ['is_safe' => ['html']]),

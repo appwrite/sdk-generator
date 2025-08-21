@@ -157,6 +157,18 @@ namespace AppwriteTests
             TestContext.WriteLine(Query.Offset(20));
             TestContext.WriteLine(Query.Contains("title", "Spider"));
             TestContext.WriteLine(Query.Contains("labels", "first"));
+            
+            // New query methods
+            TestContext.WriteLine(Query.NotContains("title", "Spider"));
+            TestContext.WriteLine(Query.NotSearch("name", "john"));
+            TestContext.WriteLine(Query.NotBetween("age", 50, 100));
+            TestContext.WriteLine(Query.NotStartsWith("name", "Ann"));
+            TestContext.WriteLine(Query.NotEndsWith("name", "nne"));
+            TestContext.WriteLine(Query.CreatedBefore("2023-01-01"));
+            TestContext.WriteLine(Query.CreatedAfter("2023-01-01"));
+            TestContext.WriteLine(Query.UpdatedBefore("2023-01-01"));
+            TestContext.WriteLine(Query.UpdatedAfter("2023-01-01"));
+            
             TestContext.WriteLine(Query.Or(
                 new List<string> {
                     Query.Equal("released", true),

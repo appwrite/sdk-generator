@@ -241,6 +241,11 @@ class Flutter extends Dart
                 'template'      => 'flutter/pubspec.yaml.twig',
             ],
             [
+                'scope'         => 'default',
+                'destination'   => '/analysis_options.yaml',
+                'template'      => 'flutter/analysis_options.yaml.twig',
+            ],
+            [
                 'scope'         => 'service',
                 'destination'   => '/lib/services/{{service.name | caseDash}}.dart',
                 'template'      => 'flutter/lib/services/service.dart.twig',
@@ -248,7 +253,7 @@ class Flutter extends Dart
             [
                 'scope'         => 'service',
                 'destination'   => '/test/services/{{service.name | caseDash}}_test.dart',
-                'template'      => 'dart/test/services/service_test.dart.twig',
+                'template'      => 'flutter/test/services/service_test.dart.twig',
             ],
             [
                 'scope'         => 'definition',
@@ -339,6 +344,11 @@ class Flutter extends Dart
                 'scope'         => 'default',
                 'destination'   => '.github/workflows/format.yml',
                 'template'      => 'flutter/.github/workflows/format.yml.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '.github/workflows/test.yml',
+                'template'      => 'flutter/.github/workflows/test.yml',
             ],
             [
                 'scope'         => 'enum',

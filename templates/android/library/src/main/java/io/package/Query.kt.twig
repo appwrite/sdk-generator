@@ -193,6 +193,84 @@ class Query(
         fun contains(attribute: String, value: Any) = Query("contains", attribute, parseValue(value)).toJson()
 
         /**
+         * Filter resources where attribute does not contain the specified value.
+         *
+         * @param attribute The attribute to filter on.
+         * @param value The value to compare against.
+         * @returns The query string.
+         */
+        fun notContains(attribute: String, value: Any) = Query("notContains", attribute, parseValue(value)).toJson()
+
+        /**
+         * Filter resources by searching attribute for value (inverse of search).
+         *
+         * @param attribute The attribute to filter on.
+         * @param value The search value to match against.
+         * @returns The query string.
+         */
+        fun notSearch(attribute: String, value: String) = Query("notSearch", attribute, listOf(value)).toJson()
+
+        /**
+         * Filter resources where attribute is not between start and end (exclusive).
+         *
+         * @param attribute The attribute to filter on.
+         * @param start The start value of the range.
+         * @param end The end value of the range.
+         * @returns The query string.
+         */
+        fun notBetween(attribute: String, start: Any, end: Any) = Query("notBetween", attribute, listOf(start, end)).toJson()
+
+        /**
+         * Filter resources where attribute does not start with value.
+         *
+         * @param attribute The attribute to filter on.
+         * @param value The value to compare against.
+         * @returns The query string.
+         */
+        fun notStartsWith(attribute: String, value: String) = Query("notStartsWith", attribute, listOf(value)).toJson()
+
+        /**
+         * Filter resources where attribute does not end with value.
+         *
+         * @param attribute The attribute to filter on.
+         * @param value The value to compare against.
+         * @returns The query string.
+         */
+        fun notEndsWith(attribute: String, value: String) = Query("notEndsWith", attribute, listOf(value)).toJson()
+
+        /**
+         * Filter resources where document was created before date.
+         *
+         * @param value The date value to compare against.
+         * @returns The query string.
+         */
+        fun createdBefore(value: String) = Query("createdBefore", null, listOf(value)).toJson()
+
+        /**
+         * Filter resources where document was created after date.
+         *
+         * @param value The date value to compare against.
+         * @returns The query string.
+         */
+        fun createdAfter(value: String) = Query("createdAfter", null, listOf(value)).toJson()
+
+        /**
+         * Filter resources where document was updated before date.
+         *
+         * @param value The date value to compare against.
+         * @returns The query string.
+         */
+        fun updatedBefore(value: String) = Query("updatedBefore", null, listOf(value)).toJson()
+
+        /**
+         * Filter resources where document was updated after date.
+         *
+         * @param value The date value to compare against.
+         * @returns The query string.
+         */
+        fun updatedAfter(value: String) = Query("updatedAfter", null, listOf(value)).toJson()
+
+        /**
          * Combine multiple queries using logical OR operator.
          *
          * @param queries The list of query strings to combine.

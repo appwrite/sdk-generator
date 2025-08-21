@@ -57,11 +57,20 @@ class Node extends Web
                         return "Partial<Preferences>";
                     case 'document':
                         if ($method['method'] === 'post') {
-                            return "Omit<Document, keyof Models.Document>";
+                            return "Document extends Models.DefaultDocument ? Partial<Models.Document> & Record<string, any> : Partial<Models.Document> & Omit<Document, keyof Models.Document>";
                         }
                         if ($method['method'] === 'patch') {
-                            return "Partial<Omit<Document, keyof Models.Document>>";
+                            return "Document extends Models.DefaultDocument ? Partial<Models.Document> & Record<string, any> : Partial<Models.Document> & Partial<Omit<Document, keyof Models.Document>>";
                         }
+                        break;
+                    case 'row':
+                        if ($method['method'] === 'post') {
+                            return "Row extends Models.DefaultRow ? Partial<Models.Row> & Record<string, any> : Partial<Models.Row> & Omit<Row, keyof Models.Row>";
+                        }
+                        if ($method['method'] === 'patch' || $method['method'] === 'put') {
+                            return "Row extends Models.DefaultRow ? Partial<Models.Row> & Record<string, any> : Partial<Models.Row> & Partial<Omit<Row, keyof Models.Row>>";
+                        }
+                        break;
                 }
                 break;
         }

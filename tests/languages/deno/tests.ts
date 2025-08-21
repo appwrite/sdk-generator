@@ -175,6 +175,18 @@ async function start() {
   console.log(Query.offset(20));
   console.log(Query.contains("title", "Spider"));
   console.log(Query.contains("labels", "first"));
+  
+  // New query methods
+  console.log(Query.notContains("title", "Spider"));
+  console.log(Query.notSearch("name", "john"));
+  console.log(Query.notBetween("age", 50, 100));
+  console.log(Query.notStartsWith("name", "Ann"));
+  console.log(Query.notEndsWith("name", "nne"));
+  console.log(Query.createdBefore("2023-01-01"));
+  console.log(Query.createdAfter("2023-01-01"));
+  console.log(Query.updatedBefore("2023-01-01"));
+  console.log(Query.updatedAfter("2023-01-01"));
+  
   console.log(Query.or([
     Query.equal("released", true),
     Query.lessThan("releasedYear", 1990)
