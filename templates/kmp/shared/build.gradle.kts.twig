@@ -5,8 +5,8 @@ plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.kotlinx.serialization)
-    id("org.jetbrains.kotlinx.atomicfu") version "0.26.0"
-    id("maven-publish")
+    id("org.jetbrains.kotlinx.atomicfu") version "0.29.0"
+    id("maven-publish") version "0.34.0"
     id("signing")
 }
 
@@ -102,6 +102,7 @@ kotlin {
             implementation(libs.ktor.client.content.negotiation)
             implementation(libs.ktor.client.websockets)
             implementation(libs.okio)
+            implementation(libs.kotlin.metadata.jvm)
             api(libs.kotlinx.serialization.json)
             api(libs.ktor.serialization.kotlinx.json)
             api(libs.napier)
@@ -125,7 +126,7 @@ kotlin {
         }
 
         iosMain.dependencies {
-            implementation(libs.jetbrains.kotlinx.coroutines.core)
+            implementation(libs.kotlinx.coroutines.core)
             implementation(libs.ktor.client.darwin)
         }
 
@@ -206,7 +207,7 @@ publishing {
 
 android {
     namespace = "{{ sdk.namespace | caseDot }}.kmp"
-    compileSdk = 35
+    compileSdk = 36
     defaultConfig {
         minSdk = 21
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
