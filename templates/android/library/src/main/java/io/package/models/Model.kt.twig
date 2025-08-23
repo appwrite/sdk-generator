@@ -4,12 +4,12 @@ import com.google.gson.annotations.SerializedName
 import io.appwrite.extensions.jsonCast
 
 /**
- * {{ definition.description }}
+ * {{ definition.description | replace({"\n": "\n * "}) | raw }}
  */
 {% if definition.properties | length != 0 or definition.additionalProperties %}data {% endif %}class {{ definition | modelType(spec) | raw }}(
     {%~ for property in definition.properties %}
     /**
-     * {{ property.description }}
+     * {{ property.description | replace({"\n": "\n     * "}) | raw }}
      */
     @SerializedName("{{ property.name | escapeKeyword | escapeDollarSign}}")
     {% if property.required -%} val
