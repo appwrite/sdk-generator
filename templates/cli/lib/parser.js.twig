@@ -230,7 +230,7 @@ const commandDescriptions = {
     "main": chalk.redBright(`${logo}${description}`),
 {% if sdk.test == "true" %}
 {% for service in spec.services %}
-    "{{ service.name | caseLower }}": `The {{ service.name }} command allows you to manage your {{ service.name }} service.`,
+    "{{ service.name | caseKebab }}": `The {{ service.name | caseKebab }} command allows you to manage your {{ service.name }} service.`,
 {% endfor %}
 {% endif %}
 }

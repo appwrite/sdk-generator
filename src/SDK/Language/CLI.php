@@ -163,7 +163,7 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'method',
-                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
+                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseKebab}}.md',
                 'template'      => 'cli/docs/example.md.twig',
             ],
             [
@@ -313,7 +313,7 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'service',
-                'destination'   => '/lib/commands/{{service.name | caseDash}}.js',
+                'destination'   => '/lib/commands/{{ service.name | caseKebab }}.js',
                 'template'      => 'cli/lib/commands/command.js.twig',
             ],
             [
