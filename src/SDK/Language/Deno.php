@@ -2,7 +2,6 @@
 
 namespace Appwrite\SDK\Language;
 
-
 class Deno extends JS
 {
     /**
