@@ -37,7 +37,7 @@ class Web extends JS
             ],
             [
                 'scope'         => 'service',
-                'destination'   => 'src/services/{{service.name | caseDash}}.ts',
+                'destination'   => 'src/services/{{service.name | caseKebab}}.ts',
                 'template'      => 'web/src/services/template.ts.twig',
             ],
             [
@@ -87,7 +87,7 @@ class Web extends JS
             ],
             [
                 'scope'         => 'method',
-                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
+                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseKebab}}.md',
                 'template'      => 'web/docs/example.md.twig',
             ],
             [
@@ -117,7 +117,7 @@ class Web extends JS
             ],
             [
                 'scope'         => 'enum',
-                'destination'   => 'src/enums/{{ enum.name | caseDash }}.ts',
+                'destination'   => 'src/enums/{{ enum.name | caseKebab }}.ts',
                 'template'      => 'web/src/enums/enum.ts.twig',
             ],
         ];
@@ -361,7 +361,7 @@ class Web extends JS
 
     public function getFilters(): array
     {
-        return [
+        return \array_merge(parent::getFilters(), [
             new TwigFilter('getPropertyType', function ($value, $method = []) {
                 return $this->getTypeName($value, $method);
             }),
@@ -391,9 +391,6 @@ class Web extends JS
                 }
                 return implode("\n", $value);
             }, ['is_safe' => ['html']]),
-            new TwigFilter('caseEnumKey', function ($value) {
-                return $this->toPascalCase($value);
-            }),
-        ];
+        ]);
     }
 }
