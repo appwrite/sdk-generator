@@ -266,12 +266,12 @@ class Kotlin extends Language
             ],
             [
                 'scope'         => 'method',
-                'destination'   => 'docs/examples/kotlin/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
+                'destination'   => 'docs/examples/kotlin/{{service.name | caseLower}}/{{method.name | caseKebab}}.md',
                 'template'      => '/kotlin/docs/kotlin/example.md.twig',
             ],
             [
                 'scope'         => 'method',
-                'destination'   => 'docs/examples/java/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
+                'destination'   => 'docs/examples/java/{{service.name | caseLower}}/{{method.name | caseKebab}}.md',
                 'template'      => '/kotlin/docs/java/example.md.twig',
             ],
             [

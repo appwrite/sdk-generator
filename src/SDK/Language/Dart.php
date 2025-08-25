@@ -424,7 +424,7 @@ class Dart extends Language
             ],
             [
                 'scope'         => 'method',
-                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
+                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseKebab}}.md',
                 'template'      => 'dart/docs/example.md.twig',
             ],
             [

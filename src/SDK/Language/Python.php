@@ -197,7 +197,7 @@ class Python extends Language
             ],
             [
                 'scope' => 'method',
-                'destination' => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
+                'destination' => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseKebab}}.md',
                 'template' => 'python/docs/example.md.twig',
             ],
             [

@@ -115,12 +115,12 @@ class Go extends Language
             ],
             [
                 'scope'         => 'service',
-                'destination'   => '{{ service.name | caseLower}}/{{service.name | caseDash}}.go',
+                'destination'   => '{{ service.name | caseLower}}/{{service.name | caseKebab}}.go',
                 'template'      => 'go/services/service.go.twig',
             ],
             [
                 'scope'         => 'method',
-                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
+                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseKebab}}.md',
                 'template'      => 'go/docs/example.md.twig',
             ],
             [
