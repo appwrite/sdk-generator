@@ -9,7 +9,7 @@ import { {{spec.title | caseUcfirst}}Exception } from "./src/exception.ts";
 import { {{service.name | caseUcfirst}} } from "./src/services/{{service.name | caseDash}}.ts";
 {% endfor %}
 {% for enum in spec.enums %}
-import { {{enum.name | caseUcfirst}} } from "./src/enums/{{enum.name | caseDash}}.ts";
+import { {{enum.name | caseUcfirst}} } from "./src/enums/{{enum.name | caseKebab}}.ts";
 {% endfor %}
 
 export {

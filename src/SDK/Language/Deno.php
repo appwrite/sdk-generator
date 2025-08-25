@@ -2,8 +2,6 @@
 
 namespace Appwrite\SDK\Language;
 
-use Twig\TwigFilter;
-
 class Deno extends JS
 {
     /**
@@ -92,12 +90,12 @@ class Deno extends JS
             ],
             [
                 'scope'         => 'service',
-                'destination'   => '/src/services/{{service.name | caseDash}}.ts',
+                'destination'   => '/src/services/{{service.name | caseKebab}}.ts',
                 'template'      => 'deno/src/services/service.ts.twig',
             ],
             [
                 'scope'         => 'service',
-                'destination'   => '/test/services/{{service.name | caseDash}}.test.ts',
+                'destination'   => '/test/services/{{service.name | caseKebab}}.test.ts',
                 'template'      => 'deno/test/services/service.test.ts.twig',
             ],
             [
@@ -117,12 +115,12 @@ class Deno extends JS
             ],
             [
                 'scope'         => 'method',
-                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
+                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseKebab}}.md',
                 'template'      => 'deno/docs/example.md.twig',
             ],
             [
                 'scope'         => 'enum',
-                'destination'   => 'src/enums/{{ enum.name | caseDash }}.ts',
+                'destination'   => 'src/enums/{{ enum.name | caseKebab }}.ts',
                 'template'      => 'deno/src/enums/enum.ts.twig',
             ],
         ];

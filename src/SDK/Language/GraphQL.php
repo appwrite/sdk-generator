@@ -173,7 +173,7 @@ class GraphQL extends HTTP
         return [
             [
                 'scope'         => 'method',
-                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
+                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseKebab}}.md',
                 'template'      => '/graphql/docs/example.md.twig',
                 'exclude'       => [
                     'services'  => [['name' => 'graphql']],

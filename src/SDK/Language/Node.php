@@ -195,7 +195,7 @@ class Node extends Web
             ],
             [
                 'scope'         => 'service',
-                'destination'   => 'src/services/{{service.name | caseDash}}.ts',
+                'destination'   => 'src/services/{{service.name | caseKebab}}.ts',
                 'template'      => 'node/src/services/template.ts.twig',
             ],
             [
@@ -245,7 +245,7 @@ class Node extends Web
             ],
             [
                 'scope'         => 'method',
-                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
+                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseKebab}}.md',
                 'template'      => 'node/docs/example.md.twig',
             ],
             [
@@ -265,7 +265,7 @@ class Node extends Web
             ],
             [
                 'scope'         => 'enum',
-                'destination'   => 'src/enums/{{ enum.name | caseDash }}.ts',
+                'destination'   => 'src/enums/{{ enum.name | caseKebab }}.ts',
                 'template'      => 'web/src/enums/enum.ts.twig',
             ],
         ];

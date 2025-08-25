@@ -37,7 +37,7 @@ class ReactNative extends Web
             ],
             [
                 'scope'         => 'service',
-                'destination'   => 'src/services/{{service.name | caseDash}}.ts',
+                'destination'   => 'src/services/{{service.name | caseKebab}}.ts',
                 'template'      => 'react-native/src/services/template.ts.twig',
             ],
             [
@@ -87,7 +87,7 @@ class ReactNative extends Web
             ],
             [
                 'scope'         => 'method',
-                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
+                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseKebab}}.md',
                 'template'      => 'react-native/docs/example.md.twig',
             ],
             [
@@ -117,7 +117,7 @@ class ReactNative extends Web
             ],
             [
                 'scope'         => 'enum',
-                'destination'   => 'src/enums/{{ enum.name | caseDash }}.ts',
+                'destination'   => 'src/enums/{{ enum.name | caseKebab }}.ts',
                 'template'      => 'react-native/src/enums/enum.ts.twig',
             ],
         ];

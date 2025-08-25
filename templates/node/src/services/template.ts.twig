@@ -11,7 +11,7 @@ import type { Models } from '../models';
 {% set name = parameter.name %}
 {% endif %}
 {% if name not in added %}
-import { {{ name | caseUcfirst }} } from '../enums/{{ name | caseDash }}';
+import { {{ name | caseUcfirst }} } from '../enums/{{ name | caseKebab }}';
 {% set added = added|merge([name]) %}
 {% endif %}
 {% endif %}
