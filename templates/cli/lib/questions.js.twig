@@ -255,7 +255,7 @@ const questionsPullResources = [
         choices: [
             { name: `Settings ${chalk.blackBright(`(Project)`)}`, value: 'settings' },
             { name: `Functions ${chalk.blackBright(`(Deployment)`)}`, value: 'functions' },
-            { name: `Tables ${chalk.blackBright(`(Grids)`)}`, value: 'tables' },
+            { name: `Tables ${chalk.blackBright(`(TablesDB)`)}`, value: 'tables' },
             { name: `Buckets ${chalk.blackBright(`(Storage)`)}`, value: 'buckets' },
             { name: `Teams ${chalk.blackBright(`(Auth)`)}`, value: 'teams' },
             { name: `Topics ${chalk.blackBright(`(Messaging)`)}`, value: 'messages' },
@@ -667,7 +667,7 @@ const questionsPushResources = [
         choices: [
             { name: `Settings ${chalk.blackBright(`(Project)`)}`, value: 'settings' },
             { name: `Functions ${chalk.blackBright(`(Deployment)`)}`, value: 'functions' },
-            { name: `Tables ${chalk.blackBright(`(Grids)`)}`, value: 'tables' },
+            { name: `Tables ${chalk.blackBright(`(TablesDB)`)}`, value: 'tables' },
             { name: `Buckets ${chalk.blackBright(`(Storage)`)}`, value: 'buckets' },
             { name: `Teams ${chalk.blackBright(`(Auth)`)}`, value: 'teams' },
             { name: `Topics ${chalk.blackBright(`(Messaging)`)}`, value: 'messages' },

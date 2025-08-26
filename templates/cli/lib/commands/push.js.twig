@@ -50,9 +50,9 @@ const {
     databasesUpdateCollection
 } = require("./databases");
 const {
-    gridsGetDatabase,
-    gridsGetTable
-} = require("./grids");
+    tablesDBGet,
+    tablesDBGetTable
+} = require("./tables-db");
 const {
     storageGetBucket, storageUpdateBucket, storageCreateBucket
 } = require("./storage");
@@ -1714,7 +1714,7 @@ const pushTable = async ({ returnOnZero, attempts } = { returnOnZero: false }) =
         const localDatabase = localConfig.getDatabase(databaseId);
 
         try {
-            const database = await gridsGetDatabase({
+            const database = await tablesDBGet({
                 databaseId: databaseId,
                 parseOutput: false,
             });
@@ -1740,13 +1740,13 @@ const pushTable = async ({ returnOnZero, attempts } = { returnOnZero: false }) =
     }));
 
 
-    if (!(await approveChanges(tables, gridsGetTable, KeysTable, 'tableId', 'tables', ['columns', 'indexes'], 'databaseId', 'databaseId',))) {
+    if (!(await approveChanges(tables, tablesDBGetTable, KeysTable, 'tableId', 'tables', ['columns', 'indexes'], 'databaseId', 'databaseId',))) {
         return;
     }
     // Parallel collection actions
     await Promise.all(tables.map(async (table) => {
         try {
-            const remoteTable = await gridsGetTable({
+            const remoteTable = await tablesDBGetTable({
                 databaseId: table['databaseId'],
                 tableId: table['$id'],
                 parseOutput: false,

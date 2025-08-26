@@ -9,7 +9,7 @@ const { projectsGet } = require("./projects");
 const { functionsList, functionsGetDeploymentDownload, functionsListDeployments } = require("./functions");
 const { sitesList, sitesGetDeploymentDownload, sitesListDeployments } = require("./sites");
 const { databasesGet, databasesListCollections, databasesList } = require("./databases");
-const { gridsListDatabases, gridsGetDatabase, gridsListTables } = require("./grids");
+const { tablesDBList, tablesDBget, tablesDBListTables } = require("./tables-db");
 const { storageListBuckets } = require("./storage");
 const { localConfig } = require("../config");
 const { paginate } = require("../paginate");
@@ -343,7 +343,7 @@ const pullTable = async () => {
     log("Fetching tables ...");
     let total = 0;
 
-    const fetchResponse = await gridsListDatabases({
+    const fetchResponse = await tablesDBList({
         queries: [JSON.stringify({ method: 'limit', values: [1] })],
         parseOutput: false
     });
@@ -357,14 +357,14 @@ const pullTable = async () => {
 
     if (databases.length === 0) {
         if (cliConfig.all) {
-            databases = (await paginate(gridsListDatabases, { parseOutput: false }, 100, 'databases')).databases.map(database => database.$id);
+            databases = (await paginate(tablesDBList, { parseOutput: false }, 100, 'databases')).databases.map(database => database.$id);
         } else {
             databases = (await inquirer.prompt(questionsPullCollection)).databases;
         }
     }
 
     for (const databaseId of databases) {
-        const database = await gridsGetDatabase({
+        const database = await tablesDBget({
             databaseId,
             parseOutput: false
         });
@@ -374,7 +374,7 @@ const pullTable = async () => {
 
         localConfig.addDatabase(database);
 
-        const { tables } = await paginate(gridsListTables, {
+        const { tables } = await paginate(tablesDBListTables, {
             databaseId,
             parseOutput: false
         }, 100, 'tables');

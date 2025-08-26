@@ -113,7 +113,7 @@ program
   .addCommand(logout)
 {% endif %}
 {% for service in spec.services %}
-  .addCommand({{ service.name | caseLower }})
+  .addCommand({{ service.name }})
 {% endfor %}
   .addCommand(client)
   .parse(process.argv);
