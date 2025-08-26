@@ -34,8 +34,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
     {%~ if method.since and method.replaceWith %}
     @Deprecated(
         message = "This API has been deprecated since {{ method.since }}. Please use `{{ method.replaceWith | capitalizeFirst }}` instead.",
-        replaceWith = ReplaceWith("{{ sdk.namespace | caseDot }}.services.{{ method.replaceWith | capitalizeFirst }}"),
-        since = "{{ method.since }}"
+        replaceWith = ReplaceWith("{{ sdk.namespace | caseDot }}.services.{{ method.replaceWith | capitalizeFirst }}")
     )
     {%~ else %}
     @Deprecated(
@@ -108,8 +107,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
     {%~ if method.since and method.replaceWith %}
     @Deprecated(
         message = "This API has been deprecated since {{ method.since }}. Please use `{{ method.replaceWith | capitalizeFirst }}` instead.",
-        replaceWith = ReplaceWith("{{ sdk.namespace | caseDot }}.services.{{ method.replaceWith | capitalizeFirst }}"),
-        since = "{{ method.since }}"
+        replaceWith = ReplaceWith("{{ sdk.namespace | caseDot }}.services.{{ method.replaceWith | capitalizeFirst }}")
     )
     {%~ else %}
     @Deprecated(
