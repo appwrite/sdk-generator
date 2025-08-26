@@ -59,7 +59,7 @@ class Node extends Web
                         if ($method['method'] === 'post') {
                             return "Document extends Models.DefaultDocument ? Partial<Models.Document> & Record<string, any> : Partial<Models.Document> & Omit<Document, keyof Models.Document>";
                         }
-                        if ($method['method'] === 'patch') {
+                        if ($method['method'] === 'patch' || $method['method'] === 'put') {
                             return "Document extends Models.DefaultDocument ? Partial<Models.Document> & Record<string, any> : Partial<Models.Document> & Partial<Omit<Document, keyof Models.Document>>";
                         }
                         break;
