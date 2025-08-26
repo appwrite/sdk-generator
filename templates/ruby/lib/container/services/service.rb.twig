@@ -8,6 +8,17 @@ module {{spec.title | caseUcfirst}}
         end
 
 {% for method in service.methods %}
+{% set methodNameSnake = method.name | caseSnake %}
+{# Check if this method should be skipped (is deprecated and has a non-deprecated duplicate) #}
+{% set shouldSkip = false %}
+{% if method.deprecated %}
+{% for otherMethod in service.methods %}
+{% if not otherMethod.deprecated and (otherMethod.name | caseSnake) == methodNameSnake %}
+{% set shouldSkip = true %}
+{% endif %}
+{% endfor %}
+{% endif %}
+{% if not shouldSkip %}
 {% if method.deprecated %}
         #
 {%~ if method.since and method.replaceWith %}
@@ -33,7 +44,7 @@ module {{spec.title | caseUcfirst}}
 {% endif %}
         end
 
-        
+{% endif %}
 {% endfor %}
     end 
 end
