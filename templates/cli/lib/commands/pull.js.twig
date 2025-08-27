@@ -9,7 +9,7 @@ const { projectsGet } = require("./projects");
 const { functionsList, functionsGetDeploymentDownload, functionsListDeployments } = require("./functions");
 const { sitesList, sitesGetDeploymentDownload, sitesListDeployments } = require("./sites");
 const { databasesGet, databasesListCollections, databasesList } = require("./databases");
-const { tablesDBList, tablesDBget, tablesDBListTables } = require("./tables-db");
+const { tablesDBList, tablesDBGet, tablesDBListTables } = require("./tables-db");
 const { storageListBuckets } = require("./storage");
 const { localConfig } = require("../config");
 const { paginate } = require("../paginate");
@@ -364,7 +364,7 @@ const pullTable = async () => {
     }
 
     for (const databaseId of databases) {
-        const database = await tablesDBget({
+        const database = await tablesDBGet({
             databaseId,
             parseOutput: false
         });
