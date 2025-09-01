@@ -399,4 +399,152 @@ class Query implements \JsonSerializable
         }
         return (new Query('and', null, $queries))->__toString();
     }
+
+    /**
+     * Distance Equal
+     *
+     * @param string $attribute
+     * @param array<mixed> $values
+     * @param int|float $distance
+     * @return string
+     */
+    public static function distanceEqual(string $attribute, array $values, int|float $distance): string
+    {
+        return (new Query('distanceEqual', $attribute, [[$values, $distance]]))->__toString();
+    }
+
+    /**
+     * Distance Not Equal
+     *
+     * @param string $attribute
+     * @param array<mixed> $values
+     * @param int|float $distance
+     * @return string
+     */
+    public static function distanceNotEqual(string $attribute, array $values, int|float $distance): string
+    {
+        return (new Query('distanceNotEqual', $attribute, [[$values, $distance]]))->__toString();
+    }
+
+    /**
+     * Distance Greater Than
+     *
+     * @param string $attribute
+     * @param array<mixed> $values
+     * @param int|float $distance
+     * @return string
+     */
+    public static function distanceGreaterThan(string $attribute, array $values, int|float $distance): string
+    {
+        return (new Query('distanceGreaterThan', $attribute, [[$values, $distance]]))->__toString();
+    }
+
+    /**
+     * Distance Less Than
+     *
+     * @param string $attribute
+     * @param array<mixed> $values
+     * @param int|float $distance
+     * @return string
+     */
+    public static function distanceLessThan(string $attribute, array $values, int|float $distance): string
+    {
+        return (new Query('distanceLessThan', $attribute, [[$values, $distance]]))->__toString();
+    }
+
+    /**
+     * Intersects
+     *
+     * @param string $attribute
+     * @param array<mixed> $values
+     * @return string
+     */
+    public static function intersects(string $attribute, array $values): string
+    {
+        return (new Query('intersects', $attribute, $values))->__toString();
+    }
+
+    /**
+     * Not Intersects
+     *
+     * @param string $attribute
+     * @param array<mixed> $values
+     * @return string
+     */
+    public static function notIntersects(string $attribute, array $values): string
+    {
+        return (new Query('notIntersects', $attribute, $values))->__toString();
+    }
+
+    /**
+     * Crosses
+     *
+     * @param string $attribute
+     * @param array<mixed> $values
+     * @return string
+     */
+    public static function crosses(string $attribute, array $values): string
+    {
+        return (new Query('crosses', $attribute, $values))->__toString();
+    }
+
+    /**
+     * Not Crosses
+     *
+     * @param string $attribute
+     * @param array<mixed> $values
+     * @return string
+     */
+    public static function notCrosses(string $attribute, array $values): string
+    {
+        return (new Query('notCrosses', $attribute, $values))->__toString();
+    }
+
+    /**
+     * Overlaps
+     *
+     * @param string $attribute
+     * @param array<mixed> $values
+     * @return string
+     */
+    public static function overlaps(string $attribute, array $values): string
+    {
+        return (new Query('overlaps', $attribute, $values))->__toString();
+    }
+
+    /**
+     * Not Overlaps
+     *
+     * @param string $attribute
+     * @param array<mixed> $values
+     * @return string
+     */
+    public static function notOverlaps(string $attribute, array $values): string
+    {
+        return (new Query('notOverlaps', $attribute, $values))->__toString();
+    }
+
+    /**
+     * Touches
+     *
+     * @param string $attribute
+     * @param array<mixed> $values
+     * @return string
+     */
+    public static function touches(string $attribute, array $values): string
+    {
+        return (new Query('touches', $attribute, $values))->__toString();
+    }
+
+    /**
+     * Not Touches
+     *
+     * @param string $attribute
+     * @param array<mixed> $values
+     * @return string
+     */
+    public static function notTouches(string $attribute, array $values): string
+    {
+        return (new Query('notTouches', $attribute, $values))->__toString();
+    }
 }

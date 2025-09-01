@@ -398,6 +398,102 @@ public struct Query : Codable, CustomStringConvertible {
         ).description
     }
 
+    public static func distanceEqual(_ attribute: String, values: [Any], distance: Double) -> String {
+        return Query(
+            method: "distanceEqual",
+            attribute: attribute,
+            values: [values, distance]
+        ).description
+    }
+
+    public static func distanceNotEqual(_ attribute: String, values: [Any], distance: Double) -> String {
+        return Query(
+            method: "distanceNotEqual",
+            attribute: attribute,
+            values: [values, distance]
+        ).description
+    }
+
+    public static func distanceGreaterThan(_ attribute: String, values: [Any], distance: Double) -> String {
+        return Query(
+            method: "distanceGreaterThan",
+            attribute: attribute,
+            values: [values, distance]
+        ).description
+    }
+
+    public static func distanceLessThan(_ attribute: String, values: [Any], distance: Double) -> String {
+        return Query(
+            method: "distanceLessThan",
+            attribute: attribute,
+            values: [values, distance]
+        ).description
+    }
+
+    public static func intersects(_ attribute: String, values: [Any]) -> String {
+        return Query(
+            method: "intersects",
+            attribute: attribute,
+            values: values
+        ).description
+    }
+
+    public static func notIntersects(_ attribute: String, values: [Any]) -> String {
+        return Query(
+            method: "notIntersects",
+            attribute: attribute,
+            values: values
+        ).description
+    }
+
+    public static func crosses(_ attribute: String, values: [Any]) -> String {
+        return Query(
+            method: "crosses",
+            attribute: attribute,
+            values: values
+        ).description
+    }
+
+    public static func notCrosses(_ attribute: String, values: [Any]) -> String {
+        return Query(
+            method: "notCrosses",
+            attribute: attribute,
+            values: values
+        ).description
+    }
+
+    public static func overlaps(_ attribute: String, values: [Any]) -> String {
+        return Query(
+            method: "overlaps",
+            attribute: attribute,
+            values: values
+        ).description
+    }
+
+    public static func notOverlaps(_ attribute: String, values: [Any]) -> String {
+        return Query(
+            method: "notOverlaps",
+            attribute: attribute,
+            values: values
+        ).description
+    }
+
+    public static func touches(_ attribute: String, values: [Any]) -> String {
+        return Query(
+            method: "touches",
+            attribute: attribute,
+            values: values
+        ).description
+    }
+
+    public static func notTouches(_ attribute: String, values: [Any]) -> String {
+        return Query(
+            method: "notTouches",
+            attribute: attribute,
+            values: values
+        ).description
+    }
+
     private static func parseValue(_ value: Any) -> [Any] {
         if let value = value as? [Any] {
             return value

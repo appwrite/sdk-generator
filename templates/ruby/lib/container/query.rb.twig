@@ -151,6 +151,54 @@ module {{spec.title | caseUcfirst}}
             def and(queries)
                 return Query.new("and", nil, queries.map { |query| JSON.parse(query) }).to_s
             end
+
+            def distance_equal(attribute, values, distance)
+                return Query.new("distanceEqual", attribute, [values, distance]).to_s
+            end
+
+            def distance_not_equal(attribute, values, distance)
+                return Query.new("distanceNotEqual", attribute, [values, distance]).to_s
+            end
+
+            def distance_greater_than(attribute, values, distance)
+                return Query.new("distanceGreaterThan", attribute, [values, distance]).to_s
+            end
+
+            def distance_less_than(attribute, values, distance)
+                return Query.new("distanceLessThan", attribute, [values, distance]).to_s
+            end
+
+            def intersects(attribute, values)
+                return Query.new("intersects", attribute, values).to_s
+            end
+
+            def not_intersects(attribute, values)
+                return Query.new("notIntersects", attribute, values).to_s
+            end
+
+            def crosses(attribute, values)
+                return Query.new("crosses", attribute, values).to_s
+            end
+
+            def not_crosses(attribute, values)
+                return Query.new("notCrosses", attribute, values).to_s
+            end
+
+            def overlaps(attribute, values)
+                return Query.new("overlaps", attribute, values).to_s
+            end
+
+            def not_overlaps(attribute, values)
+                return Query.new("notOverlaps", attribute, values).to_s
+            end
+
+            def touches(attribute, values)
+                return Query.new("touches", attribute, values).to_s
+            end
+
+            def not_touches(attribute, values)
+                return Query.new("notTouches", attribute, values).to_s
+            end
         end
     end
 end
