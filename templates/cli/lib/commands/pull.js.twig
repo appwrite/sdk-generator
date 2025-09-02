@@ -378,7 +378,7 @@ const pullTable = async () => {
         total++;
         log(`Pulling all tables from ${chalk.bold(database['name'])} database ...`);
 
-        localConfig.addDatabase(database);
+        localConfig.addTablesDB(database);
 
         const { tables } = await paginate(tablesDBListTables, {
             databaseId,

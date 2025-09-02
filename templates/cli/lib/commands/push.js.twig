@@ -1711,7 +1711,7 @@ const pushTable = async ({ returnOnZero, attempts } = { returnOnZero: false }) =
 
     // Parallel db actions
     await Promise.all(databases.map(async (databaseId) => {
-        const localDatabase = localConfig.getDatabase(databaseId);
+        const localDatabase = localConfig.getTablesDB(databaseId);
 
         try {
             const database = await tablesDBGet({
