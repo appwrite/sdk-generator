@@ -85,6 +85,8 @@ public struct Query : Codable, CustomStringConvertible {
             return [.bool(boolValue)]
         case let queryValue as Query:
             return [.query(queryValue)]
+        case let anyArray as [Any]:
+            return anyArray.flatMap { convertToQueryValueArray($0) ?? [] }
         default:
             return nil
         }

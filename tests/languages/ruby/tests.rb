@@ -159,9 +159,6 @@ puts Query.created_after("2023-01-01")
 puts Query.updated_before("2023-01-01")
 puts Query.updated_after("2023-01-01")
 
-puts Query.or([Query.equal("released", true), Query.less_than("releasedYear", 1990)])
-puts Query.and([Query.equal("released", false), Query.greater_than("releasedYear", 2015)])
-
 # Spatial Distance query tests
 puts Query.distance_equal("location", [40.7128, -74], 1000)
 puts Query.distance_equal("location", [40.7128, -74], 1000, true)
@@ -181,6 +178,9 @@ puts Query.overlaps("location", [40.7128, -74])
 puts Query.not_overlaps("location", [40.7128, -74])
 puts Query.touches("location", [40.7128, -74])
 puts Query.not_touches("location", [40.7128, -74])
+
+puts Query.or([Query.equal("released", true), Query.less_than("releasedYear", 1990)])
+puts Query.and([Query.equal("released", false), Query.greater_than("releasedYear", 2015)])
 
 # Permission & Role helper tests
 puts Permission.read(Role.any())
