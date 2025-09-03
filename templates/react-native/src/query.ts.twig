@@ -204,7 +204,7 @@ export class Query {
    * @returns {string}
    */
   static distanceEqual = (attribute: string, values: any[], distance: number, meters: boolean = false): string =>
-    new Query("distanceEqual", attribute, [[values, distance, meters]] as QueryTypesList).toString();
+    new Query("distanceEqual", attribute, [[values, distance, meters]]).toString();
 
   /**
    * Filter resources where attribute is not at a specific distance from the given coordinates.
@@ -216,7 +216,7 @@ export class Query {
    * @returns {string}
    */
   static distanceNotEqual = (attribute: string, values: any[], distance: number, meters: boolean = false): string =>
-    new Query("distanceNotEqual", attribute, [[values, distance, meters]] as QueryTypesList).toString();
+    new Query("distanceNotEqual", attribute, [[values, distance, meters]]).toString();
 
   /**
    * Filter resources where attribute is at a distance greater than the specified value from the given coordinates.
@@ -228,7 +228,7 @@ export class Query {
    * @returns {string}
    */
   static distanceGreaterThan = (attribute: string, values: any[], distance: number, meters: boolean = false): string =>
-    new Query("distanceGreaterThan", attribute, [[values, distance, meters]] as QueryTypesList).toString();
+    new Query("distanceGreaterThan", attribute, [[values, distance, meters]]).toString();
 
   /**
    * Filter resources where attribute is at a distance less than the specified value from the given coordinates.
@@ -240,7 +240,7 @@ export class Query {
    * @returns {string}
    */
   static distanceLessThan = (attribute: string, values: any[], distance: number, meters: boolean = false): string =>
-    new Query("distanceLessThan", attribute, [[values, distance, meters]] as QueryTypesList).toString();
+    new Query("distanceLessThan", attribute, [[values, distance, meters]]).toString();
 
   /**
    * Filter resources where attribute intersects with the given geometry.
