@@ -259,7 +259,7 @@ const questionsPullResources = [
             { name: `Buckets ${chalk.blackBright(`(Storage)`)}`, value: 'buckets' },
             { name: `Teams ${chalk.blackBright(`(Auth)`)}`, value: 'teams' },
             { name: `Topics ${chalk.blackBright(`(Messaging)`)}`, value: 'messages' },
-            { name: `Collections ${chalk.blackBright(`(Database)`)}`, value: 'collections' }
+            { name: `Collections ${chalk.blackBright(`(Legacy Databases)`)}`, value: 'collections' }
         ]
     }
 ]
@@ -671,7 +671,7 @@ const questionsPushResources = [
             { name: `Buckets ${chalk.blackBright(`(Storage)`)}`, value: 'buckets' },
             { name: `Teams ${chalk.blackBright(`(Auth)`)}`, value: 'teams' },
             { name: `Topics ${chalk.blackBright(`(Messaging)`)}`, value: 'messages' },
-            { name: `Collections ${chalk.blackBright(`(Database)`)}`, value: 'collections' }
+            { name: `Collections ${chalk.blackBright(`(Legacy Databases)`)}`, value: 'collections' }
         ]
     }
 ];
