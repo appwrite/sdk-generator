@@ -383,8 +383,6 @@ const initSite = async () => {
 
     if(selected.template === './') {
         gitCloneCommands = `
-            mkdir -p .
-            cd .
             git init
             git remote add origin ${repo}
             git config --global init.defaultBranch main
@@ -393,13 +391,10 @@ const initSite = async () => {
         `.trim();
     } else {
         gitCloneCommands = `
-            mkdir -p .
-            cd .
             git init
             git remote add origin ${repo}
             git config --global init.defaultBranch main
             git config core.sparseCheckout true
-            echo "${sparse}" >> .git/info/sparse-checkout
             git config --add remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'
             git config remote.origin.tagopt --no-tags
             git fetch --depth=1 origin refs/tags/$(git ls-remote --tags origin "${templateDetails.providerVersion}" | tail -n 1 | awk -F '/' '{print $3}')
@@ -410,6 +405,19 @@ const initSite = async () => {
     /* Force use CMD as powershell does not support && */
     if (process.platform === 'win32') {
         gitCloneCommands = 'cmd /c "' + gitCloneCommands + '"';
+    }
+
+    if (!fs.existsSync(templatesDir)) {
+        fs.mkdirSync(templatesDir, { recursive: true });
+    }
+
+    if (selected.template !== './') {
+        const sparseCheckoutPath = path.join(templatesDir, '.git', 'info', 'sparse-checkout');
+        const sparseCheckoutDir = path.dirname(sparseCheckoutPath);
+        if (!fs.existsSync(sparseCheckoutDir)) {
+            fs.mkdirSync(sparseCheckoutDir, { recursive: true });
+        }
+        fs.writeFileSync(sparseCheckoutPath, sparse);
     }
 
     /*  Execute the child process but do not print any std output */
