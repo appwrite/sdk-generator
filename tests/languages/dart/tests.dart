@@ -170,6 +170,31 @@ void main() async {
     Query.greaterThan("releasedYear", 2015)
   ]));
 
+  // Spatial Distance query tests
+  print(Query.distanceEqual("location", [40.7128, -74.0060], 1000));
+  print(Query.distanceEqual("location", [40.7128, -74.0060], 1000, true));
+  print(Query.distanceNotEqual("location", [40.7128, -74.0060], 1000));
+  print(Query.distanceNotEqual("location", [40.7128, -74.0060], 1000, true));
+  print(Query.distanceGreaterThan("location", [40.7128, -74.0060], 1000));
+  print(Query.distanceGreaterThan("location", [40.7128, -74.0060], 1000, true));
+  print(Query.distanceLessThan("location", [40.7128, -74.0060], 1000));
+  print(Query.distanceLessThan("location", [40.7128, -74.0060], 1000, true));
+
+  // Spatial query tests
+  print(Query.intersects("location", [40.7128, -74.0060]));
+  print(Query.notIntersects("location", [40.7128, -74.0060]));
+  print(Query.crosses("location", [40.7128, -74.0060]));
+  print(Query.notCrosses("location", [40.7128, -74.0060]));
+  print(Query.overlaps("location", [40.7128, -74.0060]));
+  print(Query.notOverlaps("location", [40.7128, -74.0060]));
+  print(Query.touches("location", [40.7128, -74.0060]));
+  print(Query.notTouches("location", [40.7128, -74.0060]));
+  
+  print(Query.or([
+    Query.equal("released", true),
+    Query.lessThan("releasedYear", 1990)
+  ]));
+
   // Permission & Role helper tests
   print(Permission.read(Role.any()));
   print(Permission.write(Role.user(ID.custom('userid'))));

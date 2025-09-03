@@ -188,6 +188,26 @@ class ServiceTest {
             writeToFile(Query.updatedBefore("2023-01-01"))
             writeToFile(Query.updatedAfter("2023-01-01"))
             
+            // Spatial Distance query tests
+            writeToFile(Query.distanceEqual("location", listOf(40.7128, -74.0060), 1000))
+            writeToFile(Query.distanceEqual("location", listOf(40.7128, -74.0060), 1000, true))
+            writeToFile(Query.distanceNotEqual("location", listOf(40.7128, -74.0060), 1000))
+            writeToFile(Query.distanceNotEqual("location", listOf(40.7128, -74.0060), 1000, true))
+            writeToFile(Query.distanceGreaterThan("location", listOf(40.7128, -74.0060), 1000))
+            writeToFile(Query.distanceGreaterThan("location", listOf(40.7128, -74.0060), 1000, true))
+            writeToFile(Query.distanceLessThan("location", listOf(40.7128, -74.0060), 1000))
+            writeToFile(Query.distanceLessThan("location", listOf(40.7128, -74.0060), 1000, true))
+            
+            // Spatial query tests
+            writeToFile(Query.intersects("location", listOf(40.7128, -74.0060)))
+            writeToFile(Query.notIntersects("location", listOf(40.7128, -74.0060)))
+            writeToFile(Query.crosses("location", listOf(40.7128, -74.0060)))
+            writeToFile(Query.notCrosses("location", listOf(40.7128, -74.0060)))
+            writeToFile(Query.overlaps("location", listOf(40.7128, -74.0060)))
+            writeToFile(Query.notOverlaps("location", listOf(40.7128, -74.0060)))
+            writeToFile(Query.touches("location", listOf(40.7128, -74.0060)))
+            writeToFile(Query.notTouches("location", listOf(40.7128, -74.0060)))
+            
             writeToFile(Query.or(listOf(Query.equal("released", listOf(true)), Query.lessThan("releasedYear", 1990))))
             writeToFile(Query.and(listOf(Query.equal("released", listOf(false)), Query.greaterThan("releasedYear", 2015))))
 

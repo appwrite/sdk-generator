@@ -195,6 +195,26 @@ class Tests: XCTestCase {
         print(Query.updatedBefore("2023-01-01"))
         print(Query.updatedAfter("2023-01-01"))
         
+        // Spatial Distance query tests
+        print(Query.distanceEqual("location", values: [40.7128, -74.0060], distance: 1000))
+        print(Query.distanceEqual("location", values: [40.7128, -74.0060], distance: 1000, meters: true))
+        print(Query.distanceNotEqual("location", values: [40.7128, -74.0060], distance: 1000))
+        print(Query.distanceNotEqual("location", values: [40.7128, -74.0060], distance: 1000, meters: true))
+        print(Query.distanceGreaterThan("location", values: [40.7128, -74.0060], distance: 1000))
+        print(Query.distanceGreaterThan("location", values: [40.7128, -74.0060], distance: 1000, meters: true))
+        print(Query.distanceLessThan("location", values: [40.7128, -74.0060], distance: 1000))
+        print(Query.distanceLessThan("location", values: [40.7128, -74.0060], distance: 1000, meters: true))
+
+        // Spatial query tests
+        print(Query.intersects("location", values: [40.7128, -74.0060]))
+        print(Query.notIntersects("location", values: [40.7128, -74.0060]))
+        print(Query.crosses("location", values: [40.7128, -74.0060]))
+        print(Query.notCrosses("location", values: [40.7128, -74.0060]))
+        print(Query.overlaps("location", values: [40.7128, -74.0060]))
+        print(Query.notOverlaps("location", values: [40.7128, -74.0060]))
+        print(Query.touches("location", values: [40.7128, -74.0060]))
+        print(Query.notTouches("location", values: [40.7128, -74.0060]))
+        
         print(Query.or([
             Query.equal("released", value: true),
             Query.lessThan("releasedYear", value: 1990)

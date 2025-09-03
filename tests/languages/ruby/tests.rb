@@ -162,6 +162,26 @@ puts Query.updated_after("2023-01-01")
 puts Query.or([Query.equal("released", true), Query.less_than("releasedYear", 1990)])
 puts Query.and([Query.equal("released", false), Query.greater_than("releasedYear", 2015)])
 
+# Spatial Distance query tests
+puts Query.distance_equal("location", [40.7128, -74.0060], 1000)
+puts Query.distance_equal("location", [40.7128, -74.0060], 1000, true)
+puts Query.distance_not_equal("location", [40.7128, -74.0060], 1000)
+puts Query.distance_not_equal("location", [40.7128, -74.0060], 1000, true)
+puts Query.distance_greater_than("location", [40.7128, -74.0060], 1000)
+puts Query.distance_greater_than("location", [40.7128, -74.0060], 1000, true)
+puts Query.distance_less_than("location", [40.7128, -74.0060], 1000)
+puts Query.distance_less_than("location", [40.7128, -74.0060], 1000, true)
+
+# Spatial query tests
+puts Query.intersects("location", [40.7128, -74.0060])
+puts Query.not_intersects("location", [40.7128, -74.0060])
+puts Query.crosses("location", [40.7128, -74.0060])
+puts Query.not_crosses("location", [40.7128, -74.0060])
+puts Query.overlaps("location", [40.7128, -74.0060])
+puts Query.not_overlaps("location", [40.7128, -74.0060])
+puts Query.touches("location", [40.7128, -74.0060])
+puts Query.not_touches("location", [40.7128, -74.0060])
+
 # Permission & Role helper tests
 puts Permission.read(Role.any())
 puts Permission.write(Role.user(ID.custom('userid')))
