@@ -894,7 +894,7 @@ const createIndexes = async (indexes, collection) => {
     );
 
     if (!result) {
-        throw new Error("Index creation timed out.");
+        throw new Error('Index creation timed out.');
     }
 
     success(`Created ${indexes.length} indexes`);
@@ -1759,7 +1759,6 @@ const pushTable = async ({ returnOnZero, attempts } = { returnOnZero: false }) =
                     databaseId: table['databaseId'],
                     tableId: table['$id'],
                     name: table.name,
-                    name: table.name,
                     parseOutput: false
                 })
 
@@ -1901,7 +1900,6 @@ const pushCollection = async ({ returnOnZero, attempts } = { returnOnZero: false
                 await databasesUpdateCollection({
                     databaseId: collection['databaseId'],
                     collectionId: collection['$id'],
-                    name: collection.name,
                     name: collection.name,
                     parseOutput: false
                 })
