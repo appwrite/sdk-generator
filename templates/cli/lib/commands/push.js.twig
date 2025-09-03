@@ -51,7 +51,9 @@ const {
 } = require("./databases");
 const {
     tablesDBGet,
-    tablesDBGetTable
+    tablesDBGetTable,
+    tablesDBUpdateTable,
+    tablesDBCreateTable
 } = require("./tables-db");
 const {
     storageGetBucket, storageUpdateBucket, storageCreateBucket
@@ -1753,7 +1755,7 @@ const pushTable = async ({ returnOnZero, attempts } = { returnOnZero: false }) =
             });
 
             if (remoteTable.name !== table.name) {
-                await databasesUpdateTable({
+                await tablesDBUpdateTable({
                     databaseId: table['databaseId'],
                     tableId: table['$id'],
                     name: table.name,
@@ -1770,7 +1772,7 @@ const pushTable = async ({ returnOnZero, attempts } = { returnOnZero: false }) =
             (e) {
             if (Number(e.code) === 404) {
                 log(`Table ${table.name} does not exist in the project. Creating ... `);
-                await databasesCreateTable({
+                await tablesDBCreateTable({
                     databaseId: table['databaseId'],
                     tableId: table['$id'],
                     name: table.name,
