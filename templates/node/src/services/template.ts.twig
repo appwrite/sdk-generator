@@ -109,13 +109,6 @@ export class {{ service.name | caseUcfirst }} {
         }
         {%~ endif %}
         {%~ endfor %}
-        {%~ for parameter in method.parameters.all %}
-        {%~ if parameter.type == 'object' %}
-        {%~ for attribute in parameter | getReadOnlyProperties(method.responseModel, spec) %}
-        delete {{ parameter.name | caseCamel | escapeKeyword }}?.{{ attribute }};
-        {%~ endfor %}
-        {%~ endif %}
-        {%~ endfor %}
 
         const apiPath = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name | caseCamel | escapeKeyword }}{{ '}' }}', {{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
         const payload: Payload = {};
