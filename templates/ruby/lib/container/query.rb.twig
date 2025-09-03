@@ -153,19 +153,19 @@ module {{spec.title | caseUcfirst}}
             end
 
             def distance_equal(attribute, values, distance, meters = false)
-                return Query.new("distanceEqual", attribute, [[values, distance, meters]]).to_s
+                return Query.new("distanceEqual", attribute, [values, distance, meters]).to_s
             end
 
             def distance_not_equal(attribute, values, distance, meters = false)
-                return Query.new("distanceNotEqual", attribute, [[values, distance, meters]]).to_s
+                return Query.new("distanceNotEqual", attribute, [values, distance, meters]).to_s
             end
 
             def distance_greater_than(attribute, values, distance, meters = false)
-                return Query.new("distanceGreaterThan", attribute, [[values, distance, meters]]).to_s
+                return Query.new("distanceGreaterThan", attribute, [values, distance, meters]).to_s
             end
 
             def distance_less_than(attribute, values, distance, meters = false)
-                return Query.new("distanceLessThan", attribute, [[values, distance, meters]]).to_s
+                return Query.new("distanceLessThan", attribute, [values, distance, meters]).to_s
             end
 
             def intersects(attribute, values)

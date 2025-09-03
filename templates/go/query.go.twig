@@ -322,7 +322,7 @@ func DistanceEqual(attribute string, values []interface{}, distance float64, met
 	return parseQuery(queryOptions{
 		Method:    "distanceEqual",
 		Attribute: &attribute,
-		Values:    &[]interface{}{[]interface{}{values, distance, meters}},
+		Values:    &[]interface{}{values, distance, meters},
 	})
 }
 
@@ -330,7 +330,7 @@ func DistanceNotEqual(attribute string, values []interface{}, distance float64, 
 	return parseQuery(queryOptions{
 		Method:    "distanceNotEqual",
 		Attribute: &attribute,
-		Values:    &[]interface{}{[]interface{}{values, distance, meters}},
+		Values:    &[]interface{}{values, distance, meters},
 	})
 }
 
@@ -338,7 +338,7 @@ func DistanceGreaterThan(attribute string, values []interface{}, distance float6
 	return parseQuery(queryOptions{
 		Method:    "distanceGreaterThan",
 		Attribute: &attribute,
-		Values:    &[]interface{}{[]interface{}{values, distance, meters}},
+		Values:    &[]interface{}{values, distance, meters},
 	})
 }
 
@@ -346,7 +346,7 @@ func DistanceLessThan(attribute string, values []interface{}, distance float64, 
 	return parseQuery(queryOptions{
 		Method:    "distanceLessThan",
 		Attribute: &attribute,
-		Values:    &[]interface{}{[]interface{}{values, distance, meters}},
+		Values:    &[]interface{}{values, distance, meters},
 	})
 }
 
