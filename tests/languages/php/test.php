@@ -163,24 +163,24 @@ echo Query::updatedBefore('2023-01-01') . "\n";
 echo Query::updatedAfter('2023-01-01') . "\n";
 
 // Spatial Distance query tests
-echo Query::distanceEqual('location', [40.7128, -74.0060], 1000) . "\n";
-echo Query::distanceEqual('location', [40.7128, -74.0060], 1000, true) . "\n";
-echo Query::distanceNotEqual('location', [40.7128, -74.0060], 1000) . "\n";
-echo Query::distanceNotEqual('location', [40.7128, -74.0060], 1000, true) . "\n";
-echo Query::distanceGreaterThan('location', [40.7128, -74.0060], 1000) . "\n";
-echo Query::distanceGreaterThan('location', [40.7128, -74.0060], 1000, true) . "\n";
-echo Query::distanceLessThan('location', [40.7128, -74.0060], 1000) . "\n";
-echo Query::distanceLessThan('location', [40.7128, -74.0060], 1000, true) . "\n";
+echo Query::distanceEqual('location', [40.7128, -74], 1000) . "\n";
+echo Query::distanceEqual('location', [40.7128, -74], 1000, true) . "\n";
+echo Query::distanceNotEqual('location', [40.7128, -74], 1000) . "\n";
+echo Query::distanceNotEqual('location', [40.7128, -74], 1000, true) . "\n";
+echo Query::distanceGreaterThan('location', [40.7128, -74], 1000) . "\n";
+echo Query::distanceGreaterThan('location', [40.7128, -74], 1000, true) . "\n";
+echo Query::distanceLessThan('location', [40.7128, -74], 1000) . "\n";
+echo Query::distanceLessThan('location', [40.7128, -74], 1000, true) . "\n";
 
 // Spatial query tests
-echo Query::intersects('location', [40.7128, -74.0060]) . "\n";
-echo Query::notIntersects('location', [40.7128, -74.0060]) . "\n";
-echo Query::crosses('location', [40.7128, -74.0060]) . "\n";
-echo Query::notCrosses('location', [40.7128, -74.0060]) . "\n";
-echo Query::overlaps('location', [40.7128, -74.0060]) . "\n";
-echo Query::notOverlaps('location', [40.7128, -74.0060]) . "\n";
-echo Query::touches('location', [40.7128, -74.0060]) . "\n";
-echo Query::notTouches('location', [40.7128, -74.0060]) . "\n";
+echo Query::intersects('location', [40.7128, -74]) . "\n";
+echo Query::notIntersects('location', [40.7128, -74]) . "\n";
+echo Query::crosses('location', [40.7128, -74]) . "\n";
+echo Query::notCrosses('location', [40.7128, -74]) . "\n";
+echo Query::overlaps('location', [40.7128, -74]) . "\n";
+echo Query::notOverlaps('location', [40.7128, -74]) . "\n";
+echo Query::touches('location', [40.7128, -74]) . "\n";
+echo Query::notTouches('location', [40.7128, -74]) . "\n";
 
 echo Query::or([
     Query::equal('released', [true]),

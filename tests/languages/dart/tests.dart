@@ -171,24 +171,24 @@ void main() async {
   ]));
 
   // Spatial Distance query tests
-  print(Query.distanceEqual("location", [40.7128, -74.0060], 1000));
-  print(Query.distanceEqual("location", [40.7128, -74.0060], 1000, true));
-  print(Query.distanceNotEqual("location", [40.7128, -74.0060], 1000));
-  print(Query.distanceNotEqual("location", [40.7128, -74.0060], 1000, true));
-  print(Query.distanceGreaterThan("location", [40.7128, -74.0060], 1000));
-  print(Query.distanceGreaterThan("location", [40.7128, -74.0060], 1000, true));
-  print(Query.distanceLessThan("location", [40.7128, -74.0060], 1000));
-  print(Query.distanceLessThan("location", [40.7128, -74.0060], 1000, true));
+  print(Query.distanceEqual("location", [40.7128, -74], 1000));
+  print(Query.distanceEqual("location", [40.7128, -74], 1000, true));
+  print(Query.distanceNotEqual("location", [40.7128, -74], 1000));
+  print(Query.distanceNotEqual("location", [40.7128, -74], 1000, true));
+  print(Query.distanceGreaterThan("location", [40.7128, -74], 1000));
+  print(Query.distanceGreaterThan("location", [40.7128, -74], 1000, true));
+  print(Query.distanceLessThan("location", [40.7128, -74], 1000));
+  print(Query.distanceLessThan("location", [40.7128, -74], 1000, true));
 
   // Spatial query tests
-  print(Query.intersects("location", [40.7128, -74.0060]));
-  print(Query.notIntersects("location", [40.7128, -74.0060]));
-  print(Query.crosses("location", [40.7128, -74.0060]));
-  print(Query.notCrosses("location", [40.7128, -74.0060]));
-  print(Query.overlaps("location", [40.7128, -74.0060]));
-  print(Query.notOverlaps("location", [40.7128, -74.0060]));
-  print(Query.touches("location", [40.7128, -74.0060]));
-  print(Query.notTouches("location", [40.7128, -74.0060]));
+  print(Query.intersects("location", [40.7128, -74]));
+  print(Query.notIntersects("location", [40.7128, -74]));
+  print(Query.crosses("location", [40.7128, -74]));
+  print(Query.notCrosses("location", [40.7128, -74]));
+  print(Query.overlaps("location", [40.7128, -74]));
+  print(Query.notOverlaps("location", [40.7128, -74]));
+  print(Query.touches("location", [40.7128, -74]));
+  print(Query.notTouches("location", [40.7128, -74]));
   
   print(Query.or([
     Query.equal("released", true),
