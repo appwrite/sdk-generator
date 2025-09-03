@@ -318,35 +318,35 @@ func And(queries []string) string {
 	})
 }
 
-func DistanceEqual(attribute string, values []interface{}, distance float64) string {
+func DistanceEqual(attribute string, values []interface{}, distance float64, meters bool) string {
 	return parseQuery(queryOptions{
 		Method:    "distanceEqual",
 		Attribute: &attribute,
-		Values:    &[]interface{}{values, distance},
+		Values:    &[]interface{}{[]interface{}{values, distance, meters}},
 	})
 }
 
-func DistanceNotEqual(attribute string, values []interface{}, distance float64) string {
+func DistanceNotEqual(attribute string, values []interface{}, distance float64, meters bool) string {
 	return parseQuery(queryOptions{
 		Method:    "distanceNotEqual",
 		Attribute: &attribute,
-		Values:    &[]interface{}{values, distance},
+		Values:    &[]interface{}{[]interface{}{values, distance, meters}},
 	})
 }
 
-func DistanceGreaterThan(attribute string, values []interface{}, distance float64) string {
+func DistanceGreaterThan(attribute string, values []interface{}, distance float64, meters bool) string {
 	return parseQuery(queryOptions{
 		Method:    "distanceGreaterThan",
 		Attribute: &attribute,
-		Values:    &[]interface{}{values, distance},
+		Values:    &[]interface{}{[]interface{}{values, distance, meters}},
 	})
 }
 
-func DistanceLessThan(attribute string, values []interface{}, distance float64) string {
+func DistanceLessThan(attribute string, values []interface{}, distance float64, meters bool) string {
 	return parseQuery(queryOptions{
 		Method:    "distanceLessThan",
 		Attribute: &attribute,
-		Values:    &[]interface{}{values, distance},
+		Values:    &[]interface{}{[]interface{}{values, distance, meters}},
 	})
 }
 

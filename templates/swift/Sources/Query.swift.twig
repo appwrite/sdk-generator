@@ -398,35 +398,35 @@ public struct Query : Codable, CustomStringConvertible {
         ).description
     }
 
-    public static func distanceEqual(_ attribute: String, values: [Any], distance: Double) -> String {
+    public static func distanceEqual(_ attribute: String, values: [Any], distance: Double, meters: Bool = false) -> String {
         return Query(
             method: "distanceEqual",
             attribute: attribute,
-            values: [values, distance]
+            values: [[values, distance, meters]]
         ).description
     }
 
-    public static func distanceNotEqual(_ attribute: String, values: [Any], distance: Double) -> String {
+    public static func distanceNotEqual(_ attribute: String, values: [Any], distance: Double, meters: Bool = false) -> String {
         return Query(
             method: "distanceNotEqual",
             attribute: attribute,
-            values: [values, distance]
+            values: [[values, distance, meters]]
         ).description
     }
 
-    public static func distanceGreaterThan(_ attribute: String, values: [Any], distance: Double) -> String {
+    public static func distanceGreaterThan(_ attribute: String, values: [Any], distance: Double, meters: Bool = false) -> String {
         return Query(
             method: "distanceGreaterThan",
             attribute: attribute,
-            values: [values, distance]
+            values: [[values, distance, meters]]
         ).description
     }
 
-    public static func distanceLessThan(_ attribute: String, values: [Any], distance: Double) -> String {
+    public static func distanceLessThan(_ attribute: String, values: [Any], distance: Double, meters: Bool = false) -> String {
         return Query(
             method: "distanceLessThan",
             attribute: attribute,
-            values: [values, distance]
+            values: [[values, distance, meters]]
         ).description
     }
 

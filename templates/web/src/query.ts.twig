@@ -353,10 +353,11 @@ export class Query {
    * @param {string} attribute
    * @param {any[]} values
    * @param {number} distance
+   * @param {boolean} meters
    * @returns {string}
    */
-  static distanceEqual = (attribute: string, values: any[], distance: number): string =>
-    new Query("distanceEqual", attribute, [values, distance] as QueryTypesList).toString();
+  static distanceEqual = (attribute: string, values: any[], distance: number, meters: boolean = false): string =>
+    new Query("distanceEqual", attribute, [[values, distance, meters]] as QueryTypesList).toString();
 
   /**
    * Filter resources where attribute is not at a specific distance from the given coordinates.
@@ -364,10 +365,11 @@ export class Query {
    * @param {string} attribute
    * @param {any[]} values
    * @param {number} distance
+   * @param {boolean} meters
    * @returns {string}
    */
-  static distanceNotEqual = (attribute: string, values: any[], distance: number): string =>
-    new Query("distanceNotEqual", attribute, [values, distance] as QueryTypesList).toString();
+  static distanceNotEqual = (attribute: string, values: any[], distance: number, meters: boolean = false): string =>
+    new Query("distanceNotEqual", attribute, [[values, distance, meters]] as QueryTypesList).toString();
 
   /**
    * Filter resources where attribute is at a distance greater than the specified value from the given coordinates.
@@ -375,10 +377,11 @@ export class Query {
    * @param {string} attribute
    * @param {any[]} values
    * @param {number} distance
+   * @param {boolean} meters
    * @returns {string}
    */
-  static distanceGreaterThan = (attribute: string, values: any[], distance: number): string =>
-    new Query("distanceGreaterThan", attribute, [values, distance] as QueryTypesList).toString();
+  static distanceGreaterThan = (attribute: string, values: any[], distance: number, meters: boolean = false): string =>
+    new Query("distanceGreaterThan", attribute, [[values, distance, meters]] as QueryTypesList).toString();
 
   /**
    * Filter resources where attribute is at a distance less than the specified value from the given coordinates.
@@ -386,10 +389,11 @@ export class Query {
    * @param {string} attribute
    * @param {any[]} values
    * @param {number} distance
+   * @param {boolean} meters
    * @returns {string}
    */
-  static distanceLessThan = (attribute: string, values: any[], distance: number): string =>
-    new Query("distanceLessThan", attribute, [values, distance] as QueryTypesList).toString();
+  static distanceLessThan = (attribute: string, values: any[], distance: number, meters: boolean = false): string =>
+    new Query("distanceLessThan", attribute, [[values, distance, meters]] as QueryTypesList).toString();
 
   /**
    * Filter resources where attribute intersects with the given geometry.

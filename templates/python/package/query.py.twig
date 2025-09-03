@@ -144,20 +144,20 @@ class Query():
         return str(Query("and", None, [json.loads(query) for query in queries]))
 
     @staticmethod
-    def distance_equal(attribute, values, distance):
-        return str(Query("distanceEqual", attribute, [values, distance]))
+    def distance_equal(attribute, values, distance, meters=False):
+        return str(Query("distanceEqual", attribute, [[values, distance, meters]]))
 
     @staticmethod
-    def distance_not_equal(attribute, values, distance):
-        return str(Query("distanceNotEqual", attribute, [values, distance]))
+    def distance_not_equal(attribute, values, distance, meters=False):
+        return str(Query("distanceNotEqual", attribute, [[values, distance, meters]]))
 
     @staticmethod
-    def distance_greater_than(attribute, values, distance):
-        return str(Query("distanceGreaterThan", attribute, [values, distance]))
+    def distance_greater_than(attribute, values, distance, meters=False):
+        return str(Query("distanceGreaterThan", attribute, [[values, distance, meters]]))
 
     @staticmethod
-    def distance_less_than(attribute, values, distance):
-        return str(Query("distanceLessThan", attribute, [values, distance]))
+    def distance_less_than(attribute, values, distance, meters=False):
+        return str(Query("distanceLessThan", attribute, [[values, distance, meters]]))
 
     @staticmethod
     def intersects(attribute, values):

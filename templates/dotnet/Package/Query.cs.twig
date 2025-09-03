@@ -202,24 +202,24 @@ namespace {{ spec.title | caseUcfirst }}
             return new Query("and", null, queries.Select(q => JsonSerializer.Deserialize<Query>(q, Client.DeserializerOptions)).ToList()).ToString();
         }
 
-        public static string DistanceEqual(string attribute, List<object> values, double distance)
+        public static string DistanceEqual(string attribute, List<object> values, double distance, bool meters = false)
         {
-            return new Query("distanceEqual", attribute, new List<object> { values, distance }).ToString();
+            return new Query("distanceEqual", attribute, new List<object> { new List<object> { values, distance, meters } }).ToString();
         }
 
-        public static string DistanceNotEqual(string attribute, List<object> values, double distance)
+        public static string DistanceNotEqual(string attribute, List<object> values, double distance, bool meters = false)
         {
-            return new Query("distanceNotEqual", attribute, new List<object> { values, distance }).ToString();
+            return new Query("distanceNotEqual", attribute, new List<object> { new List<object> { values, distance, meters } }).ToString();
         }
 
-        public static string DistanceGreaterThan(string attribute, List<object> values, double distance)
+        public static string DistanceGreaterThan(string attribute, List<object> values, double distance, bool meters = false)
         {
-            return new Query("distanceGreaterThan", attribute, new List<object> { values, distance }).ToString();
+            return new Query("distanceGreaterThan", attribute, new List<object> { new List<object> { values, distance, meters } }).ToString();
         }
 
-        public static string DistanceLessThan(string attribute, List<object> values, double distance)
+        public static string DistanceLessThan(string attribute, List<object> values, double distance, bool meters = false)
         {
-            return new Query("distanceLessThan", attribute, new List<object> { values, distance }).ToString();
+            return new Query("distanceLessThan", attribute, new List<object> { new List<object> { values, distance, meters } }).ToString();
         }
 
         public static string Intersects(string attribute, List<object> values)
