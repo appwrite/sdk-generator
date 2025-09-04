@@ -87,7 +87,7 @@ public struct Query : Codable, CustomStringConvertible {
         case let queryValue as Query:
             return [.query(queryValue)]
         case let anyArray as [Any]:
-            return return [.array(anyArray.compactMap { convertToQueryValueArray($0).map { .array($0) } })]
+            return [.array(anyArray.compactMap { convertToQueryValueArray($0).map { .array($0) } })]
         default:
             return nil
         }
