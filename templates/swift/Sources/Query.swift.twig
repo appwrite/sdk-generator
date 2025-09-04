@@ -6,6 +6,7 @@ enum QueryValue: Codable {
     case double(Double)
     case bool(Bool)
     case query(Query)
+    case array([QueryValue])
 
     init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
@@ -86,7 +87,7 @@ public struct Query : Codable, CustomStringConvertible {
         case let queryValue as Query:
             return [.query(queryValue)]
         case let anyArray as [Any]:
-            return anyArray.flatMap { convertToQueryValueArray($0) ?? [] }
+            return return [.array(anyArray.compactMap { convertToQueryValueArray($0).map { .array($0) } })]
         default:
             return nil
         }

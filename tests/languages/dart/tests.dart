@@ -160,15 +160,6 @@ void main() async {
   print(Query.createdAfter("2023-01-01"));
   print(Query.updatedBefore("2023-01-01"));
   print(Query.updatedAfter("2023-01-01"));
-  
-  print(Query.or([
-    Query.equal("released", true),
-    Query.lessThan("releasedYear", 1990)
-  ]));
-  print(Query.and([
-    Query.equal("released", false),
-    Query.greaterThan("releasedYear", 2015)
-  ]));
 
   // Spatial Distance query tests
   print(Query.distanceEqual("location", [40.7128, -74], 1000));
@@ -194,7 +185,11 @@ void main() async {
     Query.equal("released", true),
     Query.lessThan("releasedYear", 1990)
   ]));
-
+  print(Query.and([
+    Query.equal("released", false),
+    Query.greaterThan("releasedYear", 2015)
+  ]));
+  
   // Permission & Role helper tests
   print(Permission.read(Role.any()));
   print(Permission.write(Role.user(ID.custom('userid'))));
