@@ -116,8 +116,10 @@ abstract class Base extends TestCase
         '{"method":"notEndsWith","attribute":"name","values":["nne"]}',
         '{"method":"createdBefore","values":["2023-01-01"]}',
         '{"method":"createdAfter","values":["2023-01-01"]}',
+        '{"method":"createdBetween","values":["2023-01-01","2023-12-31"]}',
         '{"method":"updatedBefore","values":["2023-01-01"]}',
         '{"method":"updatedAfter","values":["2023-01-01"]}',
+        '{"method":"updatedBetween","values":["2023-01-01","2023-12-31"]}',
         '{"method":"or","values":[{"method":"equal","attribute":"released","values":[true]},{"method":"lessThan","attribute":"releasedYear","values":[1990]}]}',
         '{"method":"and","values":[{"method":"equal","attribute":"released","values":[false]},{"method":"greaterThan","attribute":"releasedYear","values":[2015]}]}'
     ];
