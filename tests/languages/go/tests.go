@@ -217,8 +217,10 @@ func testQueries() {
 	fmt.Println(query.NotEndsWith("name", "nne"))
 	fmt.Println(query.CreatedBefore("2023-01-01"))
 	fmt.Println(query.CreatedAfter("2023-01-01"))
+	fmt.Println(query.CreatedBetween("2023-01-01", "2023-12-31"))
 	fmt.Println(query.UpdatedBefore("2023-01-01"))
 	fmt.Println(query.UpdatedAfter("2023-01-01"))
+	fmt.Println(query.UpdatedBetween("2023-01-01", "2023-12-31"))
 	
 	fmt.Println(query.Or([]string{
 		query.Equal("released", true),

@@ -65,9 +65,13 @@ class Query(
 
         fun createdAfter(value: String) = Query("createdAfter", null, listOf(value)).toJson()
 
+        fun createdBetween(start: String, end: String) = Query("createdBetween", null, listOf(start, end)).toJson()
+
         fun updatedBefore(value: String) = Query("updatedBefore", null, listOf(value)).toJson()
 
         fun updatedAfter(value: String) = Query("updatedAfter", null, listOf(value)).toJson()
+
+        fun updatedBetween(start: String, end: String) = Query("updatedBetween", null, listOf(start, end)).toJson()
 
         fun or(queries: List<String>) = Query("or", null, queries.map { it.fromJson<Query>() }).toJson()
 

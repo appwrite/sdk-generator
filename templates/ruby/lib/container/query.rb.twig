@@ -136,12 +136,20 @@ module {{spec.title | caseUcfirst}}
                 return Query.new("createdAfter", nil, value).to_s
             end
 
+            def created_between(start, ending)
+                return Query.new("createdBetween", nil, [start, ending]).to_s
+            end
+
             def updated_before(value)
                 return Query.new("updatedBefore", nil, value).to_s
             end
 
             def updated_after(value)
                 return Query.new("updatedAfter", nil, value).to_s
+            end
+
+            def updated_between(start, ending)
+                return Query.new("updatedBetween", nil, [start, ending]).to_s
             end
 
             def or(queries)

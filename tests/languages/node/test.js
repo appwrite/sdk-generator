@@ -269,8 +269,10 @@ async function start() {
     console.log(Query.notEndsWith("name", "nne"));
     console.log(Query.createdBefore("2023-01-01"));
     console.log(Query.createdAfter("2023-01-01"));
+    console.log(Query.createdBetween("2023-01-01", "2023-12-31"));
     console.log(Query.updatedBefore("2023-01-01"));
     console.log(Query.updatedAfter("2023-01-01"));
+    console.log(Query.updatedBetween("2023-01-01", "2023-12-31"));
     
     console.log(Query.or([
       Query.equal("released", true),
