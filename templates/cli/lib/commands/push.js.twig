@@ -1816,7 +1816,6 @@ const pushTable = async ({ returnOnZero, attempts } = { returnOnZero: false }) =
             if ((Array.isArray(columns) && columns.length <= 0) && (Array.isArray(indexes) && indexes.length <= 0)) {
                 continue;
             }
-
         }
 
         log(`Pushing table ${table.name} ( ${table['databaseId']} - ${table['$id']} ) attributes`)
