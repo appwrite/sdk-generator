@@ -12,6 +12,7 @@ const { Swift } = require("../type-generation/languages/swift");
 const { Java } = require("../type-generation/languages/java");
 const { Dart } = require("../type-generation/languages/dart");
 const { JavaScript } = require("../type-generation/languages/javascript");
+const { CSharp } = require("../type-generation/languages/csharp");
 
 /**
  * @param {string} language
@@ -33,6 +34,8 @@ function createLanguageMeta(language) {
       return new Java();
     case "dart":
       return new Dart();
+    case "cs":
+      return new CSharp();
     default:
       throw new Error(`Language '${language}' is not supported`);
   }
@@ -55,7 +58,7 @@ const typesLanguageOption = new Option(
   "-l, --language <language>",
   "The language of the types"
 )
-  .choices(["auto", "ts", "js", "php", "kotlin", "swift", "java", "dart"])
+  .choices(["auto", "ts", "js", "php", "kotlin", "swift", "java", "dart", "cs"])
   .default("auto");
 
 const typesStrictOption = new Option(
