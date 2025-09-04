@@ -918,6 +918,25 @@ const createAttributes = async (attributes, collection) => {
 
     success(`Created ${attributes.length} attributes`);
 }
+const createColumns = async (columns, table) => {
+    for (let column of columns) {
+        if (column.side !== 'child') {
+            await createAttribute(table['databaseId'], table['$id'], column);
+        }
+    }
+
+    const result = await awaitPools.expectAttributes(
+        table['databaseId'],
+        table['$id'],
+        table.columns.filter(column => column.side !== 'child').map(column => column.key)
+    );
+
+    if (!result) {
+        throw new Error(`Column creation timed out.`);
+    }
+
+    success(`Created ${columns.length} columns`);
+}
 
 const pushResources = async () => {
     const actions = {
@@ -1797,13 +1816,12 @@ const pushTable = async ({ returnOnZero, attempts } = { returnOnZero: false }) =
             if ((Array.isArray(columns) && columns.length <= 0) && (Array.isArray(indexes) && indexes.length <= 0)) {
                 continue;
             }
-
         }
 
         log(`Pushing table ${table.name} ( ${table['databaseId']} - ${table['$id']} ) attributes`)
 
         try {
-            await createAttributes(columns, table)
+            await createColumns(columns, table)
         } catch (e) {
             throw e;
         }
