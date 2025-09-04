@@ -351,6 +351,18 @@ class Query implements \JsonSerializable
     }
 
     /**
+     * Created Between
+     *
+     * @param string $start
+     * @param string $end
+     * @return string
+     */
+    public static function createdBetween(string $start, string $end): string
+    {
+        return (new Query('createdBetween', null, [$start, $end]))->__toString();
+    }
+
+    /**
      * Updated Before
      *
      * @param string $value
@@ -370,6 +382,18 @@ class Query implements \JsonSerializable
     public static function updatedAfter(string $value): string
     {
         return (new Query('updatedAfter', null, $value))->__toString();
+    }
+
+    /**
+     * Updated Between
+     *
+     * @param string $start
+     * @param string $end
+     * @return string
+     */
+    public static function updatedBetween(string $start, string $end): string
+    {
+        return (new Query('updatedBetween', null, [$start, $end]))->__toString();
     }
 
     /**

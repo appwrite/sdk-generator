@@ -354,6 +354,13 @@ public struct Query : Codable, CustomStringConvertible {
         ).description
     }
 
+    public static func createdBetween(_ start: String, _ end: String) -> String {
+        return Query(
+            method: "createdBetween",
+            values: [start, end]
+        ).description
+    }
+
     public static func updatedBefore(_ value: String) -> String {
         return Query(
             method: "updatedBefore",
@@ -365,6 +372,13 @@ public struct Query : Codable, CustomStringConvertible {
         return Query(
             method: "updatedAfter",
             values: [value]
+        ).description
+    }
+
+    public static func updatedBetween(_ start: String, _ end: String) -> String {
+        return Query(
+            method: "updatedBetween",
+            values: [start, end]
         ).description
     }
 

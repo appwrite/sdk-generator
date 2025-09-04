@@ -217,6 +217,14 @@ func CreatedAfter(value interface{}) string {
 	})
 }
 
+func CreatedBetween(start, end interface{}) string {
+	values := []interface{}{start, end}
+	return parseQuery(queryOptions{
+		Method: "createdBetween",
+		Values: &values,
+	})
+}
+
 func UpdatedBefore(value interface{}) string {
 	values := toArray(value)
 	return parseQuery(queryOptions{
@@ -229,6 +237,14 @@ func UpdatedAfter(value interface{}) string {
 	values := toArray(value)
 	return parseQuery(queryOptions{
 		Method: "updatedAfter",
+		Values: &values,
+	})
+}
+
+func UpdatedBetween(start, end interface{}) string {
+	values := []interface{}{start, end}
+	return parseQuery(queryOptions{
+		Method: "updatedBetween",
 		Values: &values,
 	})
 }

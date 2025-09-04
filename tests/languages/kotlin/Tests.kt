@@ -185,8 +185,10 @@ class ServiceTest {
             writeToFile(Query.notEndsWith("name", "nne"))
             writeToFile(Query.createdBefore("2023-01-01"))
             writeToFile(Query.createdAfter("2023-01-01"))
+            writeToFile(Query.createdBetween("2023-01-01", "2023-12-31"))
             writeToFile(Query.updatedBefore("2023-01-01"))
             writeToFile(Query.updatedAfter("2023-01-01"))
+            writeToFile(Query.updatedBetween("2023-01-01", "2023-12-31"))
             
             writeToFile(Query.or(listOf(Query.equal("released", listOf(true)), Query.lessThan("releasedYear", 1990))))
             writeToFile(Query.and(listOf(Query.equal("released", listOf(false)), Query.greaterThan("releasedYear", 2015))))
