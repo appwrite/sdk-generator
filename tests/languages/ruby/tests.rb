@@ -160,7 +160,7 @@ puts Query.updated_before("2023-01-01")
 puts Query.updated_after("2023-01-01")
 
 # Spatial Distance query tests
-puts Query.distance_equal("location", [40.7128, -74], 1000)
+puts Query.distance_equal("location", [[40.7128, -74], [40.7128, -74]], 1000)
 puts Query.distance_equal("location", [40.7128, -74], 1000, true)
 puts Query.distance_not_equal("location", [40.7128, -74], 1000)
 puts Query.distance_not_equal("location", [40.7128, -74], 1000, true)

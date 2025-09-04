@@ -198,7 +198,7 @@ async function start() {
     console.log(Query.updatedAfter("2023-01-01"));
     
     // Spatial Distance query tests
-    console.log(Query.distanceEqual("location", [40.7128, -74], 1000));
+    console.log(Query.distanceEqual("location", [[40.7128, -74], [40.7128, -74]], 1000));
     console.log(Query.distanceEqual("location", [40.7128, -74], 1000, true));
     console.log(Query.distanceNotEqual("location", [40.7128, -74], 1000));
     console.log(Query.distanceNotEqual("location", [40.7128, -74], 1000, true));

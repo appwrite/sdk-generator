@@ -162,7 +162,7 @@ void main() async {
   print(Query.updatedAfter("2023-01-01"));
 
   // Spatial Distance query tests
-  print(Query.distanceEqual("location", [40.7128, -74], 1000));
+  print(Query.distanceEqual("location", [[40.7128, -74], [40.7128, -74]], 1000));
   print(Query.distanceEqual("location", [40.7128, -74], 1000, true));
   print(Query.distanceNotEqual("location", [40.7128, -74], 1000));
   print(Query.distanceNotEqual("location", [40.7128, -74], 1000, true));

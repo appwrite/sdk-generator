@@ -186,7 +186,7 @@ class Tests: XCTestCase {
         print(Query.updatedAfter("2023-01-01"))
 
         // Spatial Distance query tests
-        print(Query.distanceEqual("location", values: [40.7128, -74], distance: 1000))
+        print(Query.distanceEqual("location", values: [[40.7128, -74], [40.7128, -74]], distance: 1000))
         print(Query.distanceEqual("location", values: [40.7128, -74], distance: 1000, meters: true))
         print(Query.distanceNotEqual("location", values: [40.7128, -74], distance: 1000))
         print(Query.distanceNotEqual("location", values: [40.7128, -74], distance: 1000, meters: true))

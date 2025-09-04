@@ -148,7 +148,7 @@ print(Query.updated_before("2023-01-01"))
 print(Query.updated_after("2023-01-01"))
 
 # Spatial Distance query tests
-print(Query.distance_equal("location", [40.7128, -74], 1000))
+print(Query.distance_equal("location", [[40.7128, -74], [40.7128, -74]], 1000))
 print(Query.distance_equal("location", [40.7128, -74], 1000, True))
 print(Query.distance_not_equal("location", [40.7128, -74], 1000))
 print(Query.distance_not_equal("location", [40.7128, -74], 1000, True))

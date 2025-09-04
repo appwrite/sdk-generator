@@ -163,7 +163,7 @@ echo Query::updatedBefore('2023-01-01') . "\n";
 echo Query::updatedAfter('2023-01-01') . "\n";
 
 // Spatial Distance query tests
-echo Query::distanceEqual('location', [40.7128, -74], 1000) . "\n";
+echo Query::distanceEqual('location', [[40.7128, -74], [40.7128, -74]], 1000) . "\n";
 echo Query::distanceEqual('location', [40.7128, -74], 1000, true) . "\n";
 echo Query::distanceNotEqual('location', [40.7128, -74], 1000) . "\n";
 echo Query::distanceNotEqual('location', [40.7128, -74], 1000, true) . "\n";
