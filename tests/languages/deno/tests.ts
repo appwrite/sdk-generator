@@ -1,21 +1,28 @@
 import * as appwrite from "../../sdks/deno/mod.ts";
 
-// TODO: Correct test typings and remove '// @ts-ignore'
-
 // Local helper type to reflect the shape the test expects
 type SDKResponse<T = unknown> = { result: T };
 
-// Safe error logger without using `any`
+// Hardened error logger (safe for unknowns, includes stack when available)
 function logError(e: unknown) {
+  if (e instanceof Error) {
+    console.error(e.message);
+    // Appwrite errors often carry a `response` payload
+    const resp = (e as Record<string, unknown>)["response"];
+    if (resp !== undefined) console.error(resp);
+    if (e.stack) console.error(e.stack);
+    return;
+  }
   if (typeof e === "object" && e !== null) {
-    const { message, response } = e as {
-      message?: unknown;
-      response?: unknown;
-    };
-    console.log(String(message ?? ""));
-    if (response !== undefined) console.log(response);
+    const obj = e as Record<string, unknown>;
+    const msg = typeof obj["message"] === "string"
+      ? (obj["message"] as string)
+      : "";
+    if (msg) console.error(msg);
+    if ("response" in obj) console.error(obj["response"]);
+    else console.error(obj);
   } else {
-    console.log(String(e));
+    console.error(String(e));
   }
 }
 
@@ -33,8 +40,6 @@ async function start() {
   const foo = new appwrite.Foo(client);
   const bar = new appwrite.Bar(client);
   const general = new appwrite.General(client);
-
-  client.addHeader("Origin", "http://localhost");
 
   console.log("\nTest Started");
 
@@ -132,7 +137,7 @@ async function start() {
   }
 
   try {
-    client.setEndpoint("htp://cloud.appwrite.io/v1");
+    client.setEndpoint("htp://cloud.appwrite.io/v1"); // intentional: trigger error for test
   } catch (error: unknown) {
     logError(error);
   }
@@ -216,6 +221,4 @@ async function start() {
   console.log(response.result);
 }
 
-start().catch((err) => {
-  console.error(err);
-});
+start().catch((err) => logError(err));
