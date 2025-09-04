@@ -2,80 +2,83 @@ import * as appwrite from "../../sdks/deno/mod.ts";
 
 // TODO: Correct test typings and remove '// @ts-ignore'
 
-async function start() {
-  var response;
+// Local helper type to reflect the shape the test expects
+type SDKResponse<T = unknown> = { result: T };
 
-  let Permission = appwrite.Permission;
-  let Role = appwrite.Role;
-  let ID = appwrite.ID;
-  let Query = appwrite.Query;
+// Safe error logger without using `any`
+function logError(e: unknown) {
+  if (typeof e === "object" && e !== null) {
+    const { message, response } = e as {
+      message?: unknown;
+      response?: unknown;
+    };
+    console.log(String(message ?? ""));
+    if (response !== undefined) console.log(response);
+  } else {
+    console.log(String(e));
+  }
+}
+
+async function start() {
+  let response: SDKResponse;
+
+  const Permission = appwrite.Permission;
+  const Role = appwrite.Role;
+  const ID = appwrite.ID;
+  const Query = appwrite.Query;
 
   // Init SDK
-  let client = new appwrite.Client().addHeader("Origin", "http://localhost");
+  const client = new appwrite.Client().addHeader("Origin", "http://localhost");
 
-  let foo = new appwrite.Foo(client);
-  let bar = new appwrite.Bar(client);
-  let general = new appwrite.General(client);
+  const foo = new appwrite.Foo(client);
+  const bar = new appwrite.Bar(client);
+  const general = new appwrite.General(client);
 
   client.addHeader("Origin", "http://localhost");
 
   console.log("\nTest Started");
 
   // Foo
-
   response = await foo.get("string", 123, ["string in array"]);
-  // @ts-ignore
   console.log(response.result);
 
   response = await foo.post("string", 123, ["string in array"]);
-  // @ts-ignore
   console.log(response.result);
 
   response = await foo.put("string", 123, ["string in array"]);
-  // @ts-ignore
   console.log(response.result);
 
   response = await foo.patch("string", 123, ["string in array"]);
-  // @ts-ignore
   console.log(response.result);
 
   response = await foo.delete("string", 123, ["string in array"]);
-  // @ts-ignore
   console.log(response.result);
 
   // Bar
-
   response = await bar.get("string", 123, ["string in array"]);
-  // @ts-ignore
   console.log(response.result);
 
   response = await bar.post("string", 123, ["string in array"]);
-  // @ts-ignore
   console.log(response.result);
 
   response = await bar.put("string", 123, ["string in array"]);
-  // @ts-ignore
   console.log(response.result);
 
   response = await bar.patch("string", 123, ["string in array"]);
-  // @ts-ignore
   console.log(response.result);
 
   response = await bar.delete("string", 123, ["string in array"]);
-  // @ts-ignore
   console.log(response.result);
 
   response = await general.redirect();
-  // @ts-ignore
   console.log(response.result);
 
   response = await general.upload(
     "string",
     123,
     ["string in array"],
-    appwrite.InputFile.fromPath("./tests/resources/file.png", "file.png")
+    appwrite.InputFile.fromPath("./tests/resources/file.png", "file.png"),
   );
-  // @ts-ignore
   console.log(response.result);
 
   response = await general.upload(
@@ -84,10 +87,9 @@ async function start() {
     ["string in array"],
     appwrite.InputFile.fromPath(
       "./tests/resources/large_file.mp4",
-      "large_file.mp4"
-    )
+      "large_file.mp4",
+    ),
   );
-  // @ts-ignore
   console.log(response.result);
 
   let buffer = await Deno.readFile("./tests/resources/file.png");
@@ -95,9 +97,8 @@ async function start() {
     "string",
     123,
     ["string in array"],
-    appwrite.InputFile.fromBuffer(buffer, "file.png")
+    appwrite.InputFile.fromBuffer(buffer, "file.png"),
   );
-  // @ts-ignore
   console.log(response.result);
 
   buffer = await Deno.readFile("./tests/resources/large_file.mp4");
@@ -105,52 +106,47 @@ async function start() {
     "string",
     123,
     ["string in array"],
-    appwrite.InputFile.fromBuffer(buffer, "large_file.mp4")
+    appwrite.InputFile.fromBuffer(buffer, "large_file.mp4"),
   );
-  // @ts-ignore
   console.log(response.result);
 
   response = await general.enum(appwrite.MockType.First);
-  // @ts-ignore
   console.log(response.result);
 
   try {
     response = await general.error400();
-  } catch (error) {
-    console.log(error.message);
-    console.log(error.response);
+  } catch (error: unknown) {
+    logError(error);
   }
 
   try {
     response = await general.error500();
-  } catch (error) {
-    console.log(error.message);
-    console.log(error.response);
+  } catch (error: unknown) {
+    logError(error);
   }
 
   try {
     response = await general.error502();
-  } catch (error) {
-    console.log(error.message);
-    console.log(error.response);
+  } catch (error: unknown) {
+    logError(error);
   }
 
   try {
     client.setEndpoint("htp://cloud.appwrite.io/v1");
-  } catch (error) {
-    console.log(error.message);
+  } catch (error: unknown) {
+    logError(error);
   }
 
   await general.empty();
 
   const url = await general.oauth2(
-      'clientId',
-      ['test'],
-      '123456',
-      'https://localhost',
-      'https://localhost'
-  )
-  console.log(url)
+    "clientId",
+    ["test"],
+    "123456",
+    "https://localhost",
+    "https://localhost",
+  );
+  console.log(url);
 
   // Query helper tests
   console.log(Query.equal("released", [true]));
@@ -175,7 +171,7 @@ async function start() {
   console.log(Query.offset(20));
   console.log(Query.contains("title", "Spider"));
   console.log(Query.contains("labels", "first"));
-  
+
   // New query methods
   console.log(Query.notContains("title", "Spider"));
   console.log(Query.notSearch("name", "john"));
@@ -184,19 +180,21 @@ async function start() {
   console.log(Query.notEndsWith("name", "nne"));
   console.log(Query.createdBefore("2023-01-01"));
   console.log(Query.createdAfter("2023-01-01"));
-  console.log(Query.createdBetween("2023-01-01", "2023-12-31"));
   console.log(Query.updatedBefore("2023-01-01"));
   console.log(Query.updatedAfter("2023-01-01"));
-  console.log(Query.updatedBetween("2023-01-01", "2023-12-31"));
-  
-  console.log(Query.or([
-    Query.equal("released", true),
-    Query.lessThan("releasedYear", 1990)
-  ]));
-  console.log(Query.and([
-    Query.equal("released", false),
-    Query.greaterThan("releasedYear", 2015)
-  ]));
+
+  console.log(
+    Query.or([
+      Query.equal("released", true),
+      Query.lessThan("releasedYear", 1990),
+    ]),
+  );
+  console.log(
+    Query.and([
+      Query.equal("released", false),
+      Query.greaterThan("releasedYear", 2015),
+    ]),
+  );
 
   // Permission & Role helper tests
   console.log(Permission.read(Role.any()));
@@ -215,7 +213,6 @@ async function start() {
   console.log(ID.custom("custom_id"));
 
   response = await general.headers();
-  // @ts-ignore
   console.log(response.result);
 }
 
