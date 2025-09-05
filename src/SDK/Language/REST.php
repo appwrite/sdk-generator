@@ -104,6 +104,22 @@ e8 ee 55 94 29 e7 94 89 19 26 28 01 26 29 3f 16...';
         } else {
             switch ($type) {
                 case self::TYPE_OBJECT:
+                    $formatted = json_encode(json_decode($example, true), JSON_PRETTY_PRINT);
+                    if ($formatted) {
+                        $lines = explode("\n", $formatted);
+                        $indentedLines = [];
+                        foreach ($lines as $i => $line) {
+                            if ($i === count($lines) - 1) { // just add space in last line
+                                $indentedLines[] = '  ' . $line;
+                            } else {
+                                $indentedLines[] = $line;
+                            }
+                        }
+                        $output .= implode("\n", $indentedLines);
+                    } else {
+                        $output .= $example;
+                    }
+                    break;
                 case self::TYPE_FILE:
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:

@@ -43,7 +43,7 @@ try {
     // $platform = 'server';
 
     $version = '1.8.x';
-    $spec = getSSLPage("https://raw.githubusercontent.com/appwrite/appwrite/{$version}/app/config/specs/swagger2-{$version}-{$platform}.json");
+    $spec = getSSLPage("https://raw.githubusercontent.com/appwrite/appwrite/add-param-examples/app/config/specs/swagger2-{$version}-{$platform}.json");
 
     if(empty($spec)) {
         throw new Exception('Failed to fetch spec from Appwrite server');

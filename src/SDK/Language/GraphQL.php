@@ -153,8 +153,24 @@ class GraphQL extends HTTP
                     $output .= $example;
                     break;
                 case self::TYPE_STRING:
-                case self::TYPE_OBJECT:
                     $output .= '"' . $example . '"';
+                    break;
+                case self::TYPE_OBJECT:
+                    $formatted = json_encode(json_decode($example, true), JSON_PRETTY_PRINT);
+                    if ($formatted) {
+                        $lines = explode("\n", $formatted);
+                        $indentedLines = [];
+                        foreach ($lines as $i => $line) {
+                            if ($i === 0) {
+                                $indentedLines[] = $line; // First line doesn't need extra indent
+                            } else {
+                                $indentedLines[] = '        ' . $line; // Add 8 spaces for indentation
+                            }
+                        }
+                        $output .= implode("\n", $indentedLines);
+                    } else {
+                        $output .= $example;
+                    }
                     break;
                 case self::TYPE_BOOLEAN:
                     $output .= ($example) ? 'true' : 'false';

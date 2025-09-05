@@ -346,8 +346,26 @@ class Python extends Language
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
                 case self::TYPE_ARRAY:
-                case self::TYPE_OBJECT:
                     $output .= $example;
+                    break;
+                case self::TYPE_OBJECT:
+                    $formatted = json_encode(json_decode($example, true), JSON_PRETTY_PRINT);
+                    if ($formatted) {
+                        $formatted = str_replace(['true', 'false'], ['True', 'False'], $formatted);
+
+                        $lines = explode("\n", $formatted);
+                        $indentedLines = [];
+                        foreach ($lines as $i => $line) {
+                            if ($i === 0) {
+                                $indentedLines[] = $line; // First line doesn't need extra indent
+                            } else {
+                                $indentedLines[] = '    ' . $line; // Add 4 spaces for indentation
+                            }
+                        }
+                        $output .= implode("\n", $indentedLines);
+                    } else {
+                        $output .= $example;
+                    }
                     break;
                 case self::TYPE_BOOLEAN:
                     $output .= ($example) ? 'True' : 'False';
