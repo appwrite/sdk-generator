@@ -285,7 +285,17 @@ class DotNet extends Language
                     $output .= $example;
                     break;
                 case self::TYPE_OBJECT:
-                    $output .= '[object]';
+                    if ($example === '{}') {
+                        $output .= '[object]';
+                    } else {
+                        $decoded = json_decode($example, true);
+                        if ($decoded && is_array($decoded)) {
+                            $csharpObject = $this->formatCSharpAnonymousObject($decoded, 1);
+                            $output .= 'new ' . $csharpObject;
+                        } else {
+                            $output .= 'new ' . $example;
+                        }
+                    }
                     break;
                 case self::TYPE_BOOLEAN:
                     $output .= ($example) ? 'true' : 'false';
@@ -453,5 +463,49 @@ class DotNet extends Language
                 return $property;
             }),
         ];
+    }
+
+    /**
+     * Format a PHP array as a C# anonymous object
+     */
+    private function formatCSharpAnonymousObject(array $data, int $indentLevel = 0): string
+    {
+        $propertyIndent = str_repeat('    ', $indentLevel + 1);
+        $properties = [];
+
+        foreach ($data as $key => $value) {
+            $formattedValue = $this->formatCSharpValue($value, $indentLevel + 2);
+            $properties[] = $propertyIndent . $key . ' = ' . $formattedValue;
+        }
+
+        if (count($properties) === 1) {
+            return '{ ' . trim($properties[0]) . ' }';
+        }
+
+        $baseIndent = str_repeat('    ', $indentLevel);
+        return "{\n" . implode(",\n", $properties) . "\n" . $baseIndent . "}";
+    }
+
+    /**
+     * Format a value for C# anonymous object property
+     */
+    private function formatCSharpValue($value, int $indentLevel = 0): string
+    {
+        if (is_string($value)) {
+            return '"' . $value . '"';
+        } elseif (is_bool($value)) {
+            return $value ? 'true' : 'false';
+        } elseif (is_numeric($value)) {
+            return (string) $value;
+        } elseif (is_array($value)) {
+            if (array_keys($value) !== range(0, count($value) - 1)) {
+                return $this->formatCSharpAnonymousObject($value, $indentLevel);
+            } else {
+                $items = array_map(fn($item) => $this->formatCSharpValue($item, $indentLevel), $value);
+                return 'new[] { ' . implode(', ', $items) . ' }';
+            }
+        } else {
+            return 'null';
+        }
     }
 }

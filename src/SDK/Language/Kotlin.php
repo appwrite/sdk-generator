@@ -224,7 +224,32 @@ class Kotlin extends Language
         } else {
             switch ($type) {
                 case self::TYPE_OBJECT:
-                    $output .= 'mapOf( "a" to "b" )';
+                    $decoded = json_decode($example, true);
+                    if ($decoded && is_array($decoded)) {
+                        $mapEntries = [];
+                        foreach ($decoded as $key => $value) {
+                            $formattedKey = '"' . $key . '"';
+                            if (is_string($value)) {
+                                $formattedValue = '"' . $value . '"';
+                            } elseif (is_bool($value)) {
+                                $formattedValue = $value ? 'true' : 'false';
+                            } elseif (is_null($value)) {
+                                $formattedValue = 'null';
+                            } elseif (is_array($value)) {
+                                $formattedValue = 'listOf()'; // Simplified for nested arrays
+                            } else {
+                                $formattedValue = (string)$value;
+                            }
+                            $mapEntries[] = '        ' . $formattedKey . ' to ' . $formattedValue;
+                        }
+                        if (count($mapEntries) > 0) {
+                            $output .= "mapOf(\n" . implode(",\n", $mapEntries) . "\n    )";
+                        } else {
+                            $output .= 'mapOf( "a" to "b" )';
+                        }
+                    } else {
+                        $output .= 'mapOf( "a" to "b" )';
+                    }
                     break;
                 case self::TYPE_FILE:
                 case self::TYPE_NUMBER:
