@@ -90,7 +90,19 @@ class REST extends HTTP
         }
 
         return match ($type) {
-            self::TYPE_ARRAY, self::TYPE_FILE, self::TYPE_INTEGER, self::TYPE_NUMBER => $example,
+            self::TYPE_ARRAY => (function () use ($example) {
+                // If array of strings, make sure any sub-strings are escaped
+                if (\substr($example, 1, 1) === '"') {
+                    $start = \substr($example, 0, 2);
+                    $end = \substr($example, -2);
+                    $contents = \substr($example, 2, -2);
+                    $contents = \addslashes($contents);
+                    return $start . $contents . $end;
+                } else {
+                    return $example;
+                }
+            })(),
+            self::TYPE_FILE, self::TYPE_INTEGER, self::TYPE_NUMBER => $example,
             self::TYPE_BOOLEAN => ($example) ? 'true' : 'false',
             self::TYPE_OBJECT => ($formatted = json_encode(json_decode($example, true), JSON_PRETTY_PRINT))
                 ? (function () use ($formatted) {
