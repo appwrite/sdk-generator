@@ -221,6 +221,26 @@ func testQueries() {
 	fmt.Println(query.UpdatedBefore("2023-01-01"))
 	fmt.Println(query.UpdatedAfter("2023-01-01"))
 	fmt.Println(query.UpdatedBetween("2023-01-01", "2023-12-31"))
+
+	// Spatial Distance query tests
+	fmt.Println(query.DistanceEqual("location", []interface{}{[]interface{}{40.7128, -74}, []interface{}{40.7128, -74}}, 1000, true))
+	fmt.Println(query.DistanceEqual("location", []interface{}{40.7128, -74}, 1000, true))
+	fmt.Println(query.DistanceNotEqual("location", []interface{}{40.7128, -74}, 1000, true))
+	fmt.Println(query.DistanceNotEqual("location", []interface{}{40.7128, -74}, 1000, true))
+	fmt.Println(query.DistanceGreaterThan("location", []interface{}{40.7128, -74}, 1000, true))
+	fmt.Println(query.DistanceGreaterThan("location", []interface{}{40.7128, -74}, 1000, true))
+	fmt.Println(query.DistanceLessThan("location", []interface{}{40.7128, -74}, 1000, true))
+	fmt.Println(query.DistanceLessThan("location", []interface{}{40.7128, -74}, 1000, true))
+
+	// Spatial query tests
+	fmt.Println(query.Intersects("location", []interface{}{40.7128, -74}))
+	fmt.Println(query.NotIntersects("location", []interface{}{40.7128, -74}))
+	fmt.Println(query.Crosses("location", []interface{}{40.7128, -74}))
+	fmt.Println(query.NotCrosses("location", []interface{}{40.7128, -74}))
+	fmt.Println(query.Overlaps("location", []interface{}{40.7128, -74}))
+	fmt.Println(query.NotOverlaps("location", []interface{}{40.7128, -74}))
+	fmt.Println(query.Touches("location", []interface{}{40.7128, -74}))
+	fmt.Println(query.NotTouches("location", []interface{}{40.7128, -74}))
 	
 	fmt.Println(query.Or([]string{
 		query.Equal("released", true),

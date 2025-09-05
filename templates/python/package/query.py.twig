@@ -150,3 +150,51 @@ class Query():
     @staticmethod
     def and_queries(queries):
         return str(Query("and", None, [json.loads(query) for query in queries]))
+
+    @staticmethod
+    def distance_equal(attribute, values, distance, meters=True):
+        return str(Query("distanceEqual", attribute, [values, distance, meters]))
+
+    @staticmethod
+    def distance_not_equal(attribute, values, distance, meters=True):
+        return str(Query("distanceNotEqual", attribute, [values, distance, meters]))
+
+    @staticmethod
+    def distance_greater_than(attribute, values, distance, meters=True):
+        return str(Query("distanceGreaterThan", attribute, [values, distance, meters]))
+
+    @staticmethod
+    def distance_less_than(attribute, values, distance, meters=True):
+        return str(Query("distanceLessThan", attribute, [values, distance, meters]))
+
+    @staticmethod
+    def intersects(attribute, values):
+        return str(Query("intersects", attribute, values))
+
+    @staticmethod
+    def not_intersects(attribute, values):
+        return str(Query("notIntersects", attribute, values))
+
+    @staticmethod
+    def crosses(attribute, values):
+        return str(Query("crosses", attribute, values))
+
+    @staticmethod
+    def not_crosses(attribute, values):
+        return str(Query("notCrosses", attribute, values))
+
+    @staticmethod
+    def overlaps(attribute, values):
+        return str(Query("overlaps", attribute, values))
+
+    @staticmethod
+    def not_overlaps(attribute, values):
+        return str(Query("notOverlaps", attribute, values))
+
+    @staticmethod
+    def touches(attribute, values):
+        return str(Query("touches", attribute, values))
+
+    @staticmethod
+    def not_touches(attribute, values):
+        return str(Query("notTouches", attribute, values))

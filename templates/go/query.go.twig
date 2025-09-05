@@ -333,3 +333,99 @@ func And(queries []string) string {
 		Values: &parsedQueries,
 	})
 }
+
+func DistanceEqual(attribute string, values []interface{}, distance float64, meters bool) string {
+	return parseQuery(queryOptions{
+		Method:    "distanceEqual",
+		Attribute: &attribute,
+		Values:    &[]interface{}{values, distance, true},
+	})
+}
+
+func DistanceNotEqual(attribute string, values []interface{}, distance float64, meters bool) string {
+	return parseQuery(queryOptions{
+		Method:    "distanceNotEqual",
+		Attribute: &attribute,
+		Values:    &[]interface{}{values, distance, meters},
+	})
+}
+
+func DistanceGreaterThan(attribute string, values []interface{}, distance float64, meters bool) string {
+	return parseQuery(queryOptions{
+		Method:    "distanceGreaterThan",
+		Attribute: &attribute,
+		Values:    &[]interface{}{values, distance, meters},
+	})
+}
+
+func DistanceLessThan(attribute string, values []interface{}, distance float64, meters bool) string {
+	return parseQuery(queryOptions{
+		Method:    "distanceLessThan",
+		Attribute: &attribute,
+		Values:    &[]interface{}{values, distance, meters},
+	})
+}
+
+func Intersects(attribute string, values []interface{}) string {
+	return parseQuery(queryOptions{
+		Method:    "intersects",
+		Attribute: &attribute,
+		Values:    &values,
+	})
+}
+
+func NotIntersects(attribute string, values []interface{}) string {
+	return parseQuery(queryOptions{
+		Method:    "notIntersects",
+		Attribute: &attribute,
+		Values:    &values,
+	})
+}
+
+func Crosses(attribute string, values []interface{}) string {
+	return parseQuery(queryOptions{
+		Method:    "crosses",
+		Attribute: &attribute,
+		Values:    &values,
+	})
+}
+
+func NotCrosses(attribute string, values []interface{}) string {
+	return parseQuery(queryOptions{
+		Method:    "notCrosses",
+		Attribute: &attribute,
+		Values:    &values,
+	})
+}
+
+func Overlaps(attribute string, values []interface{}) string {
+	return parseQuery(queryOptions{
+		Method:    "overlaps",
+		Attribute: &attribute,
+		Values:    &values,
+	})
+}
+
+func NotOverlaps(attribute string, values []interface{}) string {
+	return parseQuery(queryOptions{
+		Method:    "notOverlaps",
+		Attribute: &attribute,
+		Values:    &values,
+	})
+}
+
+func Touches(attribute string, values []interface{}) string {
+	return parseQuery(queryOptions{
+		Method:    "touches",
+		Attribute: &attribute,
+		Values:    &values,
+	})
+}
+
+func NotTouches(attribute string, values []interface{}) string {
+	return parseQuery(queryOptions{
+		Method:    "notTouches",
+		Attribute: &attribute,
+		Values:    &values,
+	})
+}

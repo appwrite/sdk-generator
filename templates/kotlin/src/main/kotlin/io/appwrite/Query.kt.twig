@@ -77,6 +77,66 @@ class Query(
 
         fun and(queries: List<String>) = Query("and", null, queries.map { it.fromJson<Query>() }).toJson()
 
+        /**
+         * Filter resources where attribute is at a specific distance from the given coordinates.
+         *
+         * @param attribute The attribute to filter on.
+         * @param values The coordinate values.
+         * @param distance The distance value.
+         * @param meters Whether the distance is in meters.
+         * @returns The query string.
+         */
+        fun distanceEqual(attribute: String, values: List<Any>, distance: Number, meters: Boolean = true) = Query("distanceEqual", attribute, listOf(values, distance, meters)).toJson()
+
+        /**
+         * Filter resources where attribute is not at a specific distance from the given coordinates.
+         *
+         * @param attribute The attribute to filter on.
+         * @param values The coordinate values.
+         * @param distance The distance value.
+         * @param meters Whether the distance is in meters.
+         * @returns The query string.
+         */
+        fun distanceNotEqual(attribute: String, values: List<Any>, distance: Number, meters: Boolean = true) = Query("distanceNotEqual", attribute, listOf(values, distance, meters)).toJson()
+
+        /**
+         * Filter resources where attribute is at a distance greater than the specified value from the given coordinates.
+         *
+         * @param attribute The attribute to filter on.
+         * @param values The coordinate values.
+         * @param distance The distance value.
+         * @param meters Whether the distance is in meters.
+         * @returns The query string.
+         */
+        fun distanceGreaterThan(attribute: String, values: List<Any>, distance: Number, meters: Boolean = true) = Query("distanceGreaterThan", attribute, listOf(values, distance, meters)).toJson()
+
+        /**
+         * Filter resources where attribute is at a distance less than the specified value from the given coordinates.
+         *
+         * @param attribute The attribute to filter on.
+         * @param values The coordinate values.
+         * @param distance The distance value.
+         * @param meters Whether the distance is in meters.
+         * @returns The query string.
+         */
+        fun distanceLessThan(attribute: String, values: List<Any>, distance: Number, meters: Boolean = true) = Query("distanceLessThan", attribute, listOf(values, distance, meters)).toJson()
+
+        fun intersects(attribute: String, values: List<Any>) = Query("intersects", attribute, values).toJson()
+
+        fun notIntersects(attribute: String, values: List<Any>) = Query("notIntersects", attribute, values).toJson()
+
+        fun crosses(attribute: String, values: List<Any>) = Query("crosses", attribute, values).toJson()
+
+        fun notCrosses(attribute: String, values: List<Any>) = Query("notCrosses", attribute, values).toJson()
+
+        fun overlaps(attribute: String, values: List<Any>) = Query("overlaps", attribute, values).toJson()
+
+        fun notOverlaps(attribute: String, values: List<Any>) = Query("notOverlaps", attribute, values).toJson()
+
+        fun touches(attribute: String, values: List<Any>) = Query("touches", attribute, values).toJson()
+
+        fun notTouches(attribute: String, values: List<Any>) = Query("notTouches", attribute, values).toJson()
+
         private fun parseValue(value: Any): List<Any> {
             return when (value) {
                 is List<*> -> value as List<Any>

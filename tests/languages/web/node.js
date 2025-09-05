@@ -199,6 +199,26 @@ async function start() {
     console.log(Query.updatedAfter("2023-01-01"));
     console.log(Query.updatedBetween("2023-01-01", "2023-12-31"));
     
+    // Spatial Distance query tests
+    console.log(Query.distanceEqual("location", [[40.7128, -74], [40.7128, -74]], 1000));
+    console.log(Query.distanceEqual("location", [40.7128, -74], 1000, true));
+    console.log(Query.distanceNotEqual("location", [40.7128, -74], 1000));
+    console.log(Query.distanceNotEqual("location", [40.7128, -74], 1000, true));
+    console.log(Query.distanceGreaterThan("location", [40.7128, -74], 1000));
+    console.log(Query.distanceGreaterThan("location", [40.7128, -74], 1000, true));
+    console.log(Query.distanceLessThan("location", [40.7128, -74], 1000));
+    console.log(Query.distanceLessThan("location", [40.7128, -74], 1000, true));
+
+    // Spatial query tests
+    console.log(Query.intersects("location", [40.7128, -74]));
+    console.log(Query.notIntersects("location", [40.7128, -74]));
+    console.log(Query.crosses("location", [40.7128, -74]));
+    console.log(Query.notCrosses("location", [40.7128, -74]));
+    console.log(Query.overlaps("location", [40.7128, -74]));
+    console.log(Query.notOverlaps("location", [40.7128, -74]));
+    console.log(Query.touches("location", [40.7128, -74]));
+    console.log(Query.notTouches("location", [40.7128, -74]));
+    
     console.log(Query.or([
         Query.equal("released", true),
         Query.lessThan("releasedYear", 1990)

@@ -209,5 +209,65 @@ namespace {{ spec.title | caseUcfirst }}
         public static string And(List<string> queries) {
             return new Query("and", null, queries.Select(q => JsonSerializer.Deserialize<Query>(q, Client.DeserializerOptions)).ToList()).ToString();
         }
+
+        public static string DistanceEqual(string attribute, object values, double distance, bool meters = true)
+        {
+            return new Query("distanceEqual", attribute, new List<object> { values, distance, meters }).ToString();
+        }
+
+        public static string DistanceNotEqual(string attribute, object values, double distance, bool meters = true)
+        {
+            return new Query("distanceNotEqual", attribute, new List<object> { values, distance, meters }).ToString();
+        }
+
+        public static string DistanceGreaterThan(string attribute, object values, double distance, bool meters = true)
+        {
+            return new Query("distanceGreaterThan", attribute, new List<object> { values, distance, meters }).ToString();
+        }
+
+        public static string DistanceLessThan(string attribute, object values, double distance, bool meters = true)
+        {
+            return new Query("distanceLessThan", attribute, new List<object> { values, distance, meters }).ToString();
+        }
+
+        public static string Intersects(string attribute, object values)
+        {
+            return new Query("intersects", attribute, values).ToString();
+        }
+
+        public static string NotIntersects(string attribute, object values)
+        {
+            return new Query("notIntersects", attribute, values).ToString();
+        }
+
+        public static string Crosses(string attribute, object values)
+        {
+            return new Query("crosses", attribute, values).ToString();
+        }
+
+        public static string NotCrosses(string attribute, object values)
+        {
+            return new Query("notCrosses", attribute, values).ToString();
+        }
+
+        public static string Overlaps(string attribute, object values)
+        {
+            return new Query("overlaps", attribute, values).ToString();
+        }
+
+        public static string NotOverlaps(string attribute, object values)
+        {
+            return new Query("notOverlaps", attribute, values).ToString();
+        }
+
+        public static string Touches(string attribute, object values)
+        {
+            return new Query("touches", attribute, values).ToString();
+        }
+
+        public static string NotTouches(string attribute, object values)
+        {
+            return new Query("notTouches", attribute, values).ToString();
+        }
     }
 }
