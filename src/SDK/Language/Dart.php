@@ -230,11 +230,11 @@ class Dart extends Language
 
         if (!$hasExample) {
             return match ($type) {
+                self::TYPE_OBJECT => '{}',
                 self::TYPE_ARRAY => '[]',
                 self::TYPE_BOOLEAN => 'false',
                 self::TYPE_FILE => 'InputFile(path: \'./path-to-files/image.jpg\', filename: \'image.jpg\')',
                 self::TYPE_INTEGER, self::TYPE_NUMBER => '0',
-                self::TYPE_OBJECT => '{}',
                 self::TYPE_STRING => "''",
             };
         }
@@ -242,8 +242,10 @@ class Dart extends Language
         return match ($type) {
             self::TYPE_ARRAY, self::TYPE_FILE, self::TYPE_INTEGER, self::TYPE_NUMBER => $example,
             self::TYPE_BOOLEAN => ($example) ? 'true' : 'false',
-            self::TYPE_OBJECT => ($formatted = json_encode(json_decode($example, true), JSON_PRETTY_PRINT))
-            ? preg_replace('/\n/', "\n    ", $formatted)
+            self::TYPE_OBJECT => ($decoded = json_decode($example, true)) !== null
+            ? (empty($decoded) && $example === '{}' 
+                ? '{}' 
+                : preg_replace('/\n/', "\n    ", json_encode($decoded, JSON_PRETTY_PRINT)))
             : $example,
             self::TYPE_STRING => "'{$example}'",
         };
