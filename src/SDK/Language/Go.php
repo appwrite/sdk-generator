@@ -265,7 +265,11 @@ class Go extends Language
                     $output .= 'interface{}{' . $example . '}';
                     break;
                 case self::TYPE_OBJECT:
-                    $output .= 'map[string]interface{}{}';
+                    $output .= ($example === '{}')
+                    ? '{map[string]interface{}{}}'
+                    : (($formatted = json_encode(json_decode($example, true), JSON_PRETTY_PRINT))
+                        ? 'map[string]interface{}' . preg_replace('/\n/', "\n    ", $formatted)
+                        : 'map[string]interface{}' . $example);
                     break;
                 case self::TYPE_BOOLEAN:
                     $output .= ($example) ? 'true' : 'false';
