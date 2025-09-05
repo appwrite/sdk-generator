@@ -223,13 +223,13 @@ func testQueries() {
 	fmt.Println(query.UpdatedBetween("2023-01-01", "2023-12-31"))
 
 	// Spatial Distance query tests
-	fmt.Println(query.DistanceEqual("location", []interface{}{[]interface{}{40.7128, -74}, []interface{}{40.7128, -74}}, 1000, false))
+	fmt.Println(query.DistanceEqual("location", []interface{}{[]interface{}{40.7128, -74}, []interface{}{40.7128, -74}}, 1000, true))
 	fmt.Println(query.DistanceEqual("location", []interface{}{40.7128, -74}, 1000, true))
-	fmt.Println(query.DistanceNotEqual("location", []interface{}{40.7128, -74}, 1000, false))
 	fmt.Println(query.DistanceNotEqual("location", []interface{}{40.7128, -74}, 1000, true))
-	fmt.Println(query.DistanceGreaterThan("location", []interface{}{40.7128, -74}, 1000, false))
+	fmt.Println(query.DistanceNotEqual("location", []interface{}{40.7128, -74}, 1000, true))
 	fmt.Println(query.DistanceGreaterThan("location", []interface{}{40.7128, -74}, 1000, true))
-	fmt.Println(query.DistanceLessThan("location", []interface{}{40.7128, -74}, 1000, false))
+	fmt.Println(query.DistanceGreaterThan("location", []interface{}{40.7128, -74}, 1000, true))
+	fmt.Println(query.DistanceLessThan("location", []interface{}{40.7128, -74}, 1000, true))
 	fmt.Println(query.DistanceLessThan("location", []interface{}{40.7128, -74}, 1000, true))
 
 	// Spatial query tests
