@@ -55,7 +55,7 @@ const KeysColumns = new Set([
     // enum
     "elements",
     // relationship
-    "relatedCollection",
+    "relatedTable",
     "relationType",
     "twoWay",
     "twoWayKey",
