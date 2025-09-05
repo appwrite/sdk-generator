@@ -338,7 +338,7 @@ class Ruby extends Language
         $output = "{\n";
         $indentStr = str_repeat('  ', $indent + 4);
         $keys = array_keys($data);
-        
+
         foreach ($data as $key => $node) {
             if (is_array($node)) {
                 $value = $this->jsonToHash($node, $indent + 1);
@@ -349,14 +349,14 @@ class Ruby extends Language
             } else {
                 $value = $node;
             }
-            
+
             $output .= $indentStr . '"' . $key . '" => ' . $value;
-            
+
             // Add comma if not the last item
             if ($key !== end($keys)) {
                 $output .= ',';
             }
-            
+
             $output .= "\n";
         }
 
