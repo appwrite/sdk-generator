@@ -223,7 +223,7 @@ export class Query {
    * @param {boolean} meters
    * @returns {string}
    */
-  static distanceEqual = (attribute: string, values: any[], distance: number, meters: boolean = false): string =>
+  static distanceEqual = (attribute: string, values: any[], distance: number, meters: boolean = true): string =>
     new Query("distanceEqual", attribute, [values, distance, meters] as QueryTypesList).toString();
 
   /**
@@ -235,7 +235,7 @@ export class Query {
    * @param {boolean} meters
    * @returns {string}
    */
-  static distanceNotEqual = (attribute: string, values: any[], distance: number, meters: boolean = false): string =>
+  static distanceNotEqual = (attribute: string, values: any[], distance: number, meters: boolean = true): string =>
     new Query("distanceNotEqual", attribute, [values, distance, meters] as QueryTypesList).toString();
 
   /**
@@ -247,7 +247,7 @@ export class Query {
    * @param {boolean} meters
    * @returns {string}
    */
-  static distanceGreaterThan = (attribute: string, values: any[], distance: number, meters: boolean = false): string =>
+  static distanceGreaterThan = (attribute: string, values: any[], distance: number, meters: boolean = true): string =>
     new Query("distanceGreaterThan", attribute, [values, distance, meters] as QueryTypesList).toString();
 
   /**
@@ -259,7 +259,7 @@ export class Query {
    * @param {boolean} meters
    * @returns {string}
    */
-  static distanceLessThan = (attribute: string, values: any[], distance: number, meters: boolean = false): string =>
+  static distanceLessThan = (attribute: string, values: any[], distance: number, meters: boolean = true): string =>
     new Query("distanceLessThan", attribute, [values, distance, meters] as QueryTypesList).toString();
 
   /**

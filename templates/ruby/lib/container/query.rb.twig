@@ -160,19 +160,19 @@ module {{spec.title | caseUcfirst}}
                 return Query.new("and", nil, queries.map { |query| JSON.parse(query) }).to_s
             end
 
-            def distance_equal(attribute, values, distance, meters = false)
+            def distance_equal(attribute, values, distance, meters = true)
                 return Query.new("distanceEqual", attribute, [values, distance, meters]).to_s
             end
 
-            def distance_not_equal(attribute, values, distance, meters = false)
+            def distance_not_equal(attribute, values, distance, meters = true)
                 return Query.new("distanceNotEqual", attribute, [values, distance, meters]).to_s
             end
 
-            def distance_greater_than(attribute, values, distance, meters = false)
+            def distance_greater_than(attribute, values, distance, meters = true)
                 return Query.new("distanceGreaterThan", attribute, [values, distance, meters]).to_s
             end
 
-            def distance_less_than(attribute, values, distance, meters = false)
+            def distance_less_than(attribute, values, distance, meters = true)
                 return Query.new("distanceLessThan", attribute, [values, distance, meters]).to_s
             end
 

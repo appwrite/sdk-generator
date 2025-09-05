@@ -338,7 +338,7 @@ func DistanceEqual(attribute string, values []interface{}, distance float64, met
 	return parseQuery(queryOptions{
 		Method:    "distanceEqual",
 		Attribute: &attribute,
-		Values:    &[]interface{}{values, distance, meters},
+		Values:    &[]interface{}{values, distance, true},
 	})
 }
 
