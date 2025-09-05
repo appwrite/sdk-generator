@@ -285,7 +285,11 @@ class DotNet extends Language
                     $output .= $example;
                     break;
                 case self::TYPE_OBJECT:
-                    $output .= '[object]';
+                    $output .= ($example === '{}')
+                    ? '[object]'
+                    : (($formatted = json_encode(json_decode($example, true), JSON_PRETTY_PRINT))
+                    ? 'new ' . preg_replace('/\n/', "\n    ", $formatted)
+                    : 'new ' . $example);
                     break;
                 case self::TYPE_BOOLEAN:
                     $output .= ($example) ? 'true' : 'false';
