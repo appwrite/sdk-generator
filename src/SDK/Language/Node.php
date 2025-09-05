@@ -132,9 +132,8 @@ class Node extends Web
         if (!$hasExample) {
             return match ($type) {
                 self::TYPE_ARRAY => '[]',
-                self::TYPE_BOOLEAN => 'false',
                 self::TYPE_FILE => 'InputFile.fromPath(\'/path/to/file\', \'filename\')',
-                self::TYPE_INTEGER, self::TYPE_NUMBER => '0',
+                self::TYPE_INTEGER, self::TYPE_NUMBER, self::TYPE_BOOLEAN => 'null',
                 self::TYPE_OBJECT => '{}',
                 self::TYPE_STRING => "''",
             };

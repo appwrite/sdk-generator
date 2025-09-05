@@ -104,15 +104,17 @@ class REST extends HTTP
             })(),
             self::TYPE_FILE, self::TYPE_INTEGER, self::TYPE_NUMBER => $example,
             self::TYPE_BOOLEAN => ($example) ? 'true' : 'false',
-            self::TYPE_OBJECT => ($formatted = json_encode(json_decode($example, true), JSON_PRETTY_PRINT))
-                ? (function () use ($formatted) {
-                    // Replace leading four spaces with two spaces for indentation
-                    $formatted = preg_replace('/^    /m', '  ', $formatted);
-                    // Add two spaces before the closing brace if it's on a new line at the end
-                    $formatted = preg_replace('/\n(?=[^}]*}$)/', "\n  ", $formatted);
-                    return $formatted;
-                })()
-                : $example,
+            self::TYPE_OBJECT => ($example === '{}') 
+                ? '{}'
+                : (($formatted = json_encode(json_decode($example, true), JSON_PRETTY_PRINT))
+                    ? (function () use ($formatted) {
+                        // Replace leading four spaces with two spaces for indentation
+                        $formatted = preg_replace('/^    /m', '  ', $formatted);
+                        // Add two spaces before the closing brace if it's on a new line at the end
+                        $formatted = preg_replace('/\n(?=[^}]*}$)/', "\n  ", $formatted);
+                        return $formatted;
+                    })()
+                    : $example),
             self::TYPE_STRING => "\"{$example}\"",
         };
     }
