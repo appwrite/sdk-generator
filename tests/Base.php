@@ -119,7 +119,7 @@ abstract class Base extends TestCase
         '{"method":"updatedBefore","values":["2023-01-01"]}',
         '{"method":"updatedAfter","values":["2023-01-01"]}',
         '{"method":"distanceEqual","attribute":"location","values":[[[40.7128, -74],[40.7128, -74]],1000,false]}',
-        '{"method":"distanceEqual","attribute":"location","values":[[[40.7128, -74],[40.7128, -74]],1000,true]}',
+        '{"method":"distanceEqual","attribute":"location","values":[[40.7128,-74],1000,true]}',
         '{"method":"distanceNotEqual","attribute":"location","values":[[40.7128,-74],1000,false]}',
         '{"method":"distanceNotEqual","attribute":"location","values":[[40.7128,-74],1000,true]}',
         '{"method":"distanceGreaterThan","attribute":"location","values":[[40.7128,-74],1000,false]}',
