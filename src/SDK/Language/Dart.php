@@ -243,8 +243,8 @@ class Dart extends Language
             self::TYPE_ARRAY, self::TYPE_FILE, self::TYPE_INTEGER, self::TYPE_NUMBER => $example,
             self::TYPE_BOOLEAN => ($example) ? 'true' : 'false',
             self::TYPE_OBJECT => ($decoded = json_decode($example, true)) !== null
-            ? (empty($decoded) && $example === '{}' 
-                ? '{}' 
+            ? (empty($decoded) && $example === '{}'
+                ? '{}'
                 : preg_replace('/\n/', "\n    ", json_encode($decoded, JSON_PRETTY_PRINT)))
             : $example,
             self::TYPE_STRING => "'{$example}'",
