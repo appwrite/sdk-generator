@@ -137,7 +137,7 @@ class GraphQL extends HTTP
             self::TYPE_ARRAY, self::TYPE_FILE, self::TYPE_INTEGER, self::TYPE_NUMBER => $example,
             self::TYPE_BOOLEAN => ($example) ? 'true' : 'false',
             self::TYPE_OBJECT => ($example === '{}')
-            ? '{}'
+            ? '"{}"'
             : (($formatted = json_encode(json_decode($example, true), JSON_PRETTY_PRINT))
                 ? preg_replace('/\n/', "\n        ", $formatted)
                 : $example),
