@@ -148,7 +148,7 @@ class ReactNative extends Web
                 if (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type'])) {
                     return $this->getTypeName($parameter['array']) . '[]';
                 }
-                return 'string[]';
+                return 'any[]';
             case self::TYPE_FILE:
                 return '{name: string, type: string, size: number, uri: string}';
             case self::TYPE_OBJECT:

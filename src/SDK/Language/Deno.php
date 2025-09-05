@@ -148,7 +148,7 @@ class Deno extends JS
             self::TYPE_BOOLEAN => 'boolean',
             self::TYPE_ARRAY => (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type']))
                 ? $this->getTypeName($parameter['array']) . '[]'
-                : 'string[]',
+                : 'any[]',
             self::TYPE_OBJECT => 'object',
             default => $parameter['type']
         };

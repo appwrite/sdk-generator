@@ -370,7 +370,7 @@ class CLI extends Node
             self::TYPE_OBJECT => 'object',
             self::TYPE_ARRAY => (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type']))
                 ? $this->getTypeName($parameter['array']) . '[]'
-                : 'string[]',
+                : 'any[]',
             default => $parameter['type'],
         };
     }
