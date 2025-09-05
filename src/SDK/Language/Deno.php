@@ -163,64 +163,26 @@ class Deno extends JS
         $type       = $param['type'] ?? '';
         $example    = $param['example'] ?? '';
 
-        $output = '';
+        $hasExample = !empty($example) || $example === 0 || $example === false;
 
-        if (empty($example) && $example !== 0 && $example !== false) {
-            switch ($type) {
-                case self::TYPE_NUMBER:
-                case self::TYPE_INTEGER:
-                case self::TYPE_BOOLEAN:
-                    $output .= 'null';
-                    break;
-                case self::TYPE_STRING:
-                    $output .= "''";
-                    break;
-                case self::TYPE_ARRAY:
-                    $output .= '[]';
-                    break;
-                case self::TYPE_OBJECT:
-                    $output .= '{}';
-                    break;
-                case self::TYPE_FILE:
-                    $output .= "InputFile.fromPath('/path/to/file.png', 'file.png')";
-                    break;
-            }
-        } else {
-            switch ($type) {
-                case self::TYPE_NUMBER:
-                case self::TYPE_INTEGER:
-                case self::TYPE_ARRAY:
-                    $output .= $example;
-                    break;
-                case self::TYPE_OBJECT:
-                    $formatted = json_encode(json_decode($example, true), JSON_PRETTY_PRINT);
-                    if ($formatted) {
-                        $lines = explode("\n", $formatted);
-                        $indentedLines = [];
-                        foreach ($lines as $i => $line) {
-                            if ($i === 0) {
-                                $indentedLines[] = $line; // First line doesn't need extra indent
-                            } else {
-                                $indentedLines[] = '    ' . $line; // Add 4 spaces for indentation
-                            }
-                        }
-                        $output .= implode("\n", $indentedLines);
-                    } else {
-                        $output .= $example;
-                    }
-                    break;
-                case self::TYPE_BOOLEAN:
-                    $output .= ($example) ? 'true' : 'false';
-                    break;
-                case self::TYPE_STRING:
-                    $output .= "'{$example}'";
-                    break;
-                case self::TYPE_FILE:
-                    $output .= "InputFile.fromPath('/path/to/file.png', 'file.png')";
-                    break;
-            }
+        if (!$hasExample) {
+            return match ($type) {
+                self::TYPE_FILE => 'InputFile(path: \'./path-to-files/image.jpg\', filename: \'image.jpg\')',
+                self::TYPE_NUMBER, self::TYPE_INTEGER => '0',
+                self::TYPE_BOOLEAN => 'false',
+                self::TYPE_STRING => "''",
+                self::TYPE_OBJECT => '{}',
+                self::TYPE_ARRAY => '[]',
+            };
         }
 
-        return $output;
+        return match ($type) {
+            self::TYPE_OBJECT => ($formatted = json_encode(json_decode($example, true), JSON_PRETTY_PRINT))
+            ? preg_replace('/\n/', "\n    ", $formatted)
+            : $example,
+            self::TYPE_FILE, self::TYPE_NUMBER, self::TYPE_INTEGER, self::TYPE_ARRAY => $example,
+            self::TYPE_BOOLEAN => ($example) ? 'true' : 'false',
+            self::TYPE_STRING => "'{$example}'",
+        };
     }
 }
