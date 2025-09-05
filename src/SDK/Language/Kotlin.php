@@ -245,10 +245,10 @@ class Kotlin extends Language
                         if (count($mapEntries) > 0) {
                             $output .= "mapOf(\n" . implode(",\n", $mapEntries) . "\n    )";
                         } else {
-                            $output .= 'mapOf()';
+                            $output .= 'mapOf("a" to "b")';
                         }
                     } else {
-                        $output .= 'mapOf()';
+                        $output .= 'mapOf("a" to "b")';
                     }
                     break;
                 case self::TYPE_FILE:
