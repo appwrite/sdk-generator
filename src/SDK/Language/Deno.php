@@ -167,21 +167,21 @@ class Deno extends JS
 
         if (!$hasExample) {
             return match ($type) {
-                self::TYPE_FILE => 'InputFile(path: \'./path-to-files/image.jpg\', filename: \'image.jpg\')',
-                self::TYPE_NUMBER, self::TYPE_INTEGER => '0',
-                self::TYPE_BOOLEAN => 'false',
-                self::TYPE_STRING => "''",
-                self::TYPE_OBJECT => '{}',
                 self::TYPE_ARRAY => '[]',
+                self::TYPE_BOOLEAN => 'false',
+                self::TYPE_FILE => 'InputFile(path: \'./path-to-files/image.jpg\', filename: \'image.jpg\')',
+                self::TYPE_INTEGER, self::TYPE_NUMBER => '0',
+                self::TYPE_OBJECT => '{}',
+                self::TYPE_STRING => "''",
             };
         }
 
         return match ($type) {
+            self::TYPE_ARRAY, self::TYPE_FILE, self::TYPE_INTEGER, self::TYPE_NUMBER => $example,
+            self::TYPE_BOOLEAN => ($example) ? 'true' : 'false',
             self::TYPE_OBJECT => ($formatted = json_encode(json_decode($example, true), JSON_PRETTY_PRINT))
             ? preg_replace('/\n/', "\n    ", $formatted)
             : $example,
-            self::TYPE_FILE, self::TYPE_NUMBER, self::TYPE_INTEGER, self::TYPE_ARRAY => $example,
-            self::TYPE_BOOLEAN => ($example) ? 'true' : 'false',
             self::TYPE_STRING => "'{$example}'",
         };
     }
