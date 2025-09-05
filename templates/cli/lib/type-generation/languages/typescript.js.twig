@@ -90,7 +90,9 @@ export enum <%- toPascalCase(attribute.key) %> {
 <% for (const [index, collection] of Object.entries(collections)) { -%>
 export type <%- toPascalCase(collection.name) %> = Models.Row & {
 <% for (const attribute of collection.attributes) { -%>
-    <%- strict ? toCamelCase(attribute.key) : attribute.key %>: <%- getType(attribute, collections) %>;
+<% const propertyName = strict ? toCamelCase(attribute.key) : attribute.key; -%>
+<% const isValidIdentifier = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(propertyName); -%>
+    <% if (isValidIdentifier) { %><%- propertyName %><% } else { %>"<%- propertyName %>"<% } %>: <%- getType(attribute, collections) %>;
 <% } -%>
 }<% if (index < collections.length - 1) { %>
 <% } %>
