@@ -76,77 +76,27 @@ class REST extends HTTP
         $type       = $param['type'] ?? '';
         $example    = $param['example'] ?? '';
 
-        $output = '';
+        $hasExample = !empty($example) || $example === 0 || $example === false;
 
-        if (empty($example) && $example !== 0 && $example !== false) {
-            switch ($type) {
-                case self::TYPE_FILE:
-                    $output .= 'cf 94 84 24 8d c4 91 10 0f dc 54 26 6c 8e 4b bc 
-e8 ee 55 94 29 e7 94 89 19 26 28 01 26 29 3f 16...';
-                    break;
-                case self::TYPE_NUMBER:
-                case self::TYPE_INTEGER:
-                    $output .= '0';
-                    break;
-                case self::TYPE_BOOLEAN:
-                    $output .= 'false';
-                    break;
-                case self::TYPE_STRING:
-                    $output .= "";
-                    break;
-                case self::TYPE_OBJECT:
-                    $output .= '{}';
-                    break;
-                case self::TYPE_ARRAY:
-                    $output .= '[]';
-                    break;
-            }
-        } else {
-            switch ($type) {
-                case self::TYPE_OBJECT:
-                    $formatted = json_encode(json_decode($example, true), JSON_PRETTY_PRINT);
-                    if ($formatted) {
-                        $lines = explode("\n", $formatted);
-                        $indentedLines = [];
-                        foreach ($lines as $i => $line) {
-                            if ($i === count($lines) - 1) { // just add space in last line
-                                $indentedLines[] = '  ' . $line;
-                            } else {
-                                $indentedLines[] = $line;
-                            }
-                        }
-                        $output .= implode("\n", $indentedLines);
-                    } else {
-                        $output .= $example;
-                    }
-                    break;
-                case self::TYPE_FILE:
-                case self::TYPE_NUMBER:
-                case self::TYPE_INTEGER:
-                    $output .= $example;
-                    break;
-                case self::TYPE_ARRAY:
-                    // If array of strings, make sure any sub-strings are escaped
-                    if (\substr($example, 1, 1) === '"') {
-                        $start = \substr($example, 0, 2);
-                        $end = \substr($example, -2);
-                        $contents = \substr($example, 2, -2);
-                        $contents = \addslashes($contents);
-                        $output .= $start . $contents . $end;
-                    } else {
-                        $output .= $example;
-                    }
-                    break;
-                case self::TYPE_STRING:
-                    $output .= '"' . \addslashes($example) . '"';
-                    break;
-                case self::TYPE_BOOLEAN:
-                    $output .= ($example) ? 'true' : 'false';
-                    break;
-            }
+        if (!$hasExample) {
+            return match ($type) {
+                self::TYPE_ARRAY => '[]',
+                self::TYPE_BOOLEAN => 'false',
+                self::TYPE_FILE => 'cf 94 84 24 8d c4 91 10 0f dc 54 26 6c 8e 4b bc e8 ee 55 94 29 e7 94 89 19 26 28 01 26 29 3f 16...',
+                self::TYPE_INTEGER, self::TYPE_NUMBER => '0',
+                self::TYPE_OBJECT => '{}',
+                self::TYPE_STRING => "''",
+            };
         }
 
-        return $output;
+        return match ($type) {
+            self::TYPE_ARRAY, self::TYPE_FILE, self::TYPE_INTEGER, self::TYPE_NUMBER => $example,
+            self::TYPE_BOOLEAN => ($example) ? 'true' : 'false',
+            self::TYPE_OBJECT => ($formatted = json_encode(json_decode($example, true), JSON_PRETTY_PRINT))
+            ? preg_replace(['/^    /m', '/\n(?=[^}]*}$)/'], ['  ', "\n  "], $formatted)
+            : $example,
+            self::TYPE_STRING => "'{$example}'",
+        };
     }
 
     /**
