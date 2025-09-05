@@ -324,9 +324,8 @@ class Python extends Language
         if (!$hasExample) {
             return match ($type) {
                 self::TYPE_ARRAY => '[]',
-                self::TYPE_BOOLEAN => 'False',
                 self::TYPE_FILE => 'InputFile.from_path(\'file.png\')',
-                self::TYPE_INTEGER, self::TYPE_NUMBER => '0',
+                self::TYPE_INTEGER, self::TYPE_NUMBER , self::TYPE_BOOLEAN => 'None',
                 self::TYPE_OBJECT => '{}',
                 self::TYPE_STRING => "''",
             };
