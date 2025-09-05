@@ -154,7 +154,7 @@ class Go extends Language
             self::TYPE_OBJECT => 'interface{}',
             self::TYPE_ARRAY => (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type']))
             ? '[]' . $this->getTypeName($parameter['array'])
-            : '[]string',
+            : '[]interface{}',
             default => $parameter['type'],
         };
     }

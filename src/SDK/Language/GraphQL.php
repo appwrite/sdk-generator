@@ -38,7 +38,7 @@ class GraphQL extends HTTP
                     $type = '[' . $this->getTypeName($parameter['array']) . ']';
                     break;
                 }
-                $type = '[String]';
+                $type = 'JSON';
                 break;
             case self::TYPE_OBJECT:
                 $type = 'JSON';
