@@ -126,7 +126,7 @@ class GraphQL extends HTTP
             return match ($type) {
                 self::TYPE_ARRAY => '[]',
                 self::TYPE_BOOLEAN => 'false',
-                self::TYPE_FILE => 'InputFile(path: \'./path-to-files/image.jpg\', filename: \'image.jpg\')',
+                self::TYPE_FILE => 'null',
                 self::TYPE_INTEGER, self::TYPE_NUMBER => '0',
                 self::TYPE_OBJECT => '{}',
                 self::TYPE_STRING => "''",
