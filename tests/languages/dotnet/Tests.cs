@@ -172,7 +172,7 @@ namespace AppwriteTests
             TestContext.WriteLine(Query.UpdatedBetween("2023-01-01", "2023-12-31"));
             
             // Spatial Distance query tests
-            TestContext.WriteLine(Query.DistanceEqual("location", new List<List<object>> { new List<object> { 40.7128, -74 }, new List<object> { 40.7128, -74 } }, 1000));
+            TestContext.WriteLine(Query.DistanceEqual("location", new List<object> { new List<object> { 40.7128, -74 }, new List<object> { 40.7128, -74 } }, 1000));
             TestContext.WriteLine(Query.DistanceEqual("location", new List<object> { 40.7128, -74 }, 1000, true));
             TestContext.WriteLine(Query.DistanceNotEqual("location", new List<object> { 40.7128, -74 }, 1000));
             TestContext.WriteLine(Query.DistanceNotEqual("location", new List<object> { 40.7128, -74 }, 1000, true));
