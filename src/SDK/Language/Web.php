@@ -137,9 +137,8 @@ class Web extends JS
         if (!$hasExample) {
             return match ($type) {
                 self::TYPE_ARRAY => '[]',
-                self::TYPE_BOOLEAN => 'false',
                 self::TYPE_FILE => 'document.getElementById(\'uploader/\').files[0]',
-                self::TYPE_INTEGER, self::TYPE_NUMBER => '0',
+                self::TYPE_INTEGER, self::TYPE_NUMBER, self::TYPE_BOOLEAN => 'null',
                 self::TYPE_OBJECT => '{}',
                 self::TYPE_STRING => "''",
             };
@@ -149,9 +148,11 @@ class Web extends JS
             self::TYPE_ARRAY, self::TYPE_INTEGER, self::TYPE_NUMBER => $example,
             self::TYPE_FILE => 'document.getElementById(\'uploader/\').files[0]',
             self::TYPE_BOOLEAN => ($example) ? 'true' : 'false',
-            self::TYPE_OBJECT => ($formatted = json_encode(json_decode($example, true), JSON_PRETTY_PRINT))
-            ? preg_replace('/\n/', "\n    ", $formatted)
-            : $example,
+            self::TYPE_OBJECT => ($example === '{}') 
+            ? '{}'
+            : (($formatted = json_encode(json_decode($example, true), JSON_PRETTY_PRINT))
+                ? preg_replace('/\n/', "\n    ", $formatted)
+                : $example),
             self::TYPE_STRING => "'{$example}'",
         };
     }

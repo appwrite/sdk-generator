@@ -141,7 +141,7 @@ class GraphQL extends HTTP
             : (($formatted = json_encode(json_decode($example, true), JSON_PRETTY_PRINT))
                 ? preg_replace('/\n/', "\n        ", $formatted)
                 : $example),
-            self::TYPE_STRING => "{$example}",
+            self::TYPE_STRING => '"' . $example . '"',
         };
     }
 
