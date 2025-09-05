@@ -266,7 +266,7 @@ class Go extends Language
                     break;
                 case self::TYPE_OBJECT:
                     $output .= ($example === '{}')
-                    ? '{map[string]interface{}{}}'
+                    ? 'map[string]interface{}{}'
                     : (($formatted = json_encode(json_decode($example, true), JSON_PRETTY_PRINT))
                         ? 'map[string]interface{}' . preg_replace('/\n/', "\n    ", $formatted)
                         : 'map[string]interface{}' . $example);
