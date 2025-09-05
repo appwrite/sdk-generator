@@ -55,7 +55,7 @@ const KeysColumns = new Set([
     // enum
     "elements",
     // relationship
-    "relatedCollection",
+    "relatedTable",
     "relationType",
     "twoWay",
     "twoWayKey",
@@ -149,6 +149,47 @@ class Config {
 
     toString() {
         return JSONbig.stringify(this.data, null, 4);
+    }
+
+    _getDBEntities(entityType) {
+        if (!this.has(entityType)) {
+            return [];
+        }
+        return this.get(entityType);
+    }
+
+    _getDBEntity(entityType, $id) {
+        if (!this.has(entityType)) {
+            return {};
+        }
+
+        let entities = this.get(entityType);
+        for (let i = 0; i < entities.length; i++) {
+            if (entities[i]['$id'] == $id) {
+                return entities[i];
+            }
+        }
+
+        return {};
+    }
+
+    _addDBEntity(entityType, props, keysSet, nestedKeys = {}) {
+        props = whitelistKeys(props, keysSet, nestedKeys);
+
+        if (!this.has(entityType)) {
+            this.set(entityType, []);
+        }
+
+        let entities = this.get(entityType);
+        for (let i = 0; i < entities.length; i++) {
+            if (entities[i]['$id'] == props['$id']) {
+                entities[i] = props;
+                this.set(entityType, entities);
+                return;
+            }
+        }
+        entities.push(props);
+        this.set(entityType, entities);
     }
 }
 
@@ -464,45 +505,28 @@ class Local extends Config {
         this.set("topics", topics);
     }
 
+    getTablesDBs() {
+        return this._getDBEntities("tablesDB");
+    }
+
+    getTablesDB($id) {
+        return this._getDBEntity("tablesDB", $id);
+    }
+    
+    addTablesDB(props) {
+        this._addDBEntity("tablesDB", props, KeysDatabase);
+    }
+
     getDatabases() {
-        if (!this.has("databases")) {
-            return [];
-        }
-        return this.get("databases");
+        return this._getDBEntities("databases");
     }
 
     getDatabase($id) {
-        if (!this.has("databases")) {
-            return {};
-        }
-
-        let databases = this.get("databases");
-        for (let i = 0; i < databases.length; i++) {
-            if (databases[i]['$id'] == $id) {
-                return databases[i];
-            }
-        }
-
-        return {};
+        return this._getDBEntity("databases", $id);
     }
 
     addDatabase(props) {
-        props = whitelistKeys(props, KeysDatabase);
-
-        if (!this.has("databases")) {
-            this.set("databases", []);
-        }
-
-        let databases = this.get("databases");
-        for (let i = 0; i < databases.length; i++) {
-            if (databases[i]['$id'] == props['$id']) {
-                databases[i] = props;
-                this.set("databases", databases);
-                return;
-            }
-        }
-        databases.push(props);
-        this.set("databases", databases);
+        this._addDBEntity("databases", props, KeysDatabase);
     }
 
     getTeams() {

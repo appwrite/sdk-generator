@@ -5,7 +5,7 @@ const { projectsList } = require('./commands/projects');
 const { organizationsList } = require('./commands/organizations');
 const { teamsList } = require('./commands/teams');
 const { functionsListRuntimes, functionsListSpecifications, functionsList } = require('./commands/functions');
-const { accountListMfaFactors } = require("./commands/account");
+const { accountListMFAFactors } = require("./commands/account");
 const { sdkForConsole } = require("./sdks");
 const { validateRequired } = require("./validations");
 const { paginate } = require('./paginate');
@@ -259,7 +259,7 @@ const questionsPullResources = [
             { name: `Buckets ${chalk.blackBright(`(Storage)`)}`, value: 'buckets' },
             { name: `Teams ${chalk.blackBright(`(Auth)`)}`, value: 'teams' },
             { name: `Topics ${chalk.blackBright(`(Messaging)`)}`, value: 'messages' },
-            { name: `Collections ${chalk.blackBright(`(Database)`)}`, value: 'collections' }
+            { name: `Collections ${chalk.blackBright(`(Legacy Databases)`)}`, value: 'collections' }
         ]
     }
 ]
@@ -671,7 +671,7 @@ const questionsPushResources = [
             { name: `Buckets ${chalk.blackBright(`(Storage)`)}`, value: 'buckets' },
             { name: `Teams ${chalk.blackBright(`(Auth)`)}`, value: 'teams' },
             { name: `Topics ${chalk.blackBright(`(Messaging)`)}`, value: 'messages' },
-            { name: `Collections ${chalk.blackBright(`(Database)`)}`, value: 'collections' }
+            { name: `Collections ${chalk.blackBright(`(Legacy Databases)`)}`, value: 'collections' }
         ]
     }
 ];
@@ -877,7 +877,7 @@ const questionsListFactors = [
         message: "Your account is protected by multi-factor authentication. Please choose one for verification.",
         choices: async () => {
             let client = await sdkForConsole(false);
-            const factors = await accountListMfaFactors({
+            const factors = await accountListMFAFactors({
                 sdk: client,
                 parseOutput: false
             });
@@ -906,7 +906,7 @@ const questionsListFactors = [
     }
 ];
 
-const questionsMfaChallenge = [
+const questionsMFAChallenge = [
     {
         type: "input",
         name: "otp",
@@ -1019,7 +1019,7 @@ module.exports = {
     questionsPushTeams,
     questionsGetEntrypoint,
     questionsListFactors,
-    questionsMfaChallenge,
+    questionsMFAChallenge,
     questionsRunFunctions,
     questionGetEndpoint,
     questionsInitResources,

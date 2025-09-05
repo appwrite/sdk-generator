@@ -51,7 +51,9 @@ const {
 } = require("./databases");
 const {
     tablesDBGet,
-    tablesDBGetTable
+    tablesDBGetTable,
+    tablesDBUpdateTable,
+    tablesDBCreateTable
 } = require("./tables-db");
 const {
     storageGetBucket, storageUpdateBucket, storageCreateBucket
@@ -892,7 +894,7 @@ const createIndexes = async (indexes, collection) => {
     );
 
     if (!result) {
-        throw new Error("Index creation timed out.");
+        throw new Error('Index creation timed out.');
     }
 
     success(`Created ${indexes.length} indexes`);
@@ -915,6 +917,25 @@ const createAttributes = async (attributes, collection) => {
     }
 
     success(`Created ${attributes.length} attributes`);
+}
+const createColumns = async (columns, table) => {
+    for (let column of columns) {
+        if (column.side !== 'child') {
+            await createAttribute(table['databaseId'], table['$id'], column);
+        }
+    }
+
+    const result = await awaitPools.expectAttributes(
+        table['databaseId'],
+        table['$id'],
+        table.columns.filter(column => column.side !== 'child').map(column => column.key)
+    );
+
+    if (!result) {
+        throw new Error(`Column creation timed out.`);
+    }
+
+    success(`Created ${columns.length} columns`);
 }
 
 const pushResources = async () => {
@@ -1711,7 +1732,7 @@ const pushTable = async ({ returnOnZero, attempts } = { returnOnZero: false }) =
 
     // Parallel db actions
     await Promise.all(databases.map(async (databaseId) => {
-        const localDatabase = localConfig.getDatabase(databaseId);
+        const localDatabase = localConfig.getTablesDB(databaseId);
 
         try {
             const database = await tablesDBGet({
@@ -1753,10 +1774,9 @@ const pushTable = async ({ returnOnZero, attempts } = { returnOnZero: false }) =
             });
 
             if (remoteTable.name !== table.name) {
-                await databasesUpdateTable({
+                await tablesDBUpdateTable({
                     databaseId: table['databaseId'],
                     tableId: table['$id'],
-                    name: table.name,
                     name: table.name,
                     parseOutput: false
                 })
@@ -1770,7 +1790,7 @@ const pushTable = async ({ returnOnZero, attempts } = { returnOnZero: false }) =
             (e) {
             if (Number(e.code) === 404) {
                 log(`Table ${table.name} does not exist in the project. Creating ... `);
-                await databasesCreateTable({
+                await tablesDBCreateTable({
                     databaseId: table['databaseId'],
                     tableId: table['$id'],
                     name: table.name,
@@ -1796,13 +1816,12 @@ const pushTable = async ({ returnOnZero, attempts } = { returnOnZero: false }) =
             if ((Array.isArray(columns) && columns.length <= 0) && (Array.isArray(indexes) && indexes.length <= 0)) {
                 continue;
             }
-
         }
 
         log(`Pushing table ${table.name} ( ${table['databaseId']} - ${table['$id']} ) attributes`)
 
         try {
-            await createAttributes(columns, table)
+            await createColumns(columns, table)
         } catch (e) {
             throw e;
         }
@@ -1899,7 +1918,6 @@ const pushCollection = async ({ returnOnZero, attempts } = { returnOnZero: false
                 await databasesUpdateCollection({
                     databaseId: collection['databaseId'],
                     collectionId: collection['$id'],
-                    name: collection.name,
                     name: collection.name,
                     parseOutput: false
                 })

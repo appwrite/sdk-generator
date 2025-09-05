@@ -128,12 +128,20 @@ class Query():
         return str(Query("createdAfter", None, value))
 
     @staticmethod
+    def created_between(start, end):
+        return str(Query("createdBetween", None, [start, end]))
+
+    @staticmethod
     def updated_before(value):
         return str(Query("updatedBefore", None, value))
 
     @staticmethod
     def updated_after(value):
         return str(Query("updatedAfter", None, value))
+
+    @staticmethod
+    def updated_between(start, end):
+        return str(Query("updatedBetween", None, [start, end]))
 
     @staticmethod
     def or_queries(queries):

@@ -185,8 +185,10 @@ class ServiceTest {
             writeToFile(Query.notEndsWith("name", "nne"))
             writeToFile(Query.createdBefore("2023-01-01"))
             writeToFile(Query.createdAfter("2023-01-01"))
+            writeToFile(Query.createdBetween("2023-01-01", "2023-12-31"))
             writeToFile(Query.updatedBefore("2023-01-01"))
             writeToFile(Query.updatedAfter("2023-01-01"))
+            writeToFile(Query.updatedBetween("2023-01-01", "2023-12-31"))
             
             // Spatial Distance query tests
             writeToFile(Query.distanceEqual("location", listOf(listOf(40.7128, -74), listOf(40.7128, -74)), 1000))

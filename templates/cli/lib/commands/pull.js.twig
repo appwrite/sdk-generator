@@ -16,7 +16,9 @@ const { paginate } = require("../paginate");
 const { questionsPullCollection, questionsPullFunctions, questionsPullFunctionsCode, questionsPullSites, questionsPullSitesCode, questionsPullResources } = require("../questions");
 const { cliConfig, success, log, warn, actionRunner, commandDescriptions } = require("../parser");
 
-const pullResources = async () => {
+const pullResources = async ({
+    skipDeprecated = false
+} = {}) => {
     const actions = {
         settings: pullSettings,
         functions: pullFunctions,
@@ -26,6 +28,10 @@ const pullResources = async () => {
         buckets: pullBucket,
         teams: pullTeam,
         messages: pullMessagingTopic
+    }
+
+    if (skipDeprecated) {
+        delete actions.collections;
     }
 
     if (cliConfig.all) {
@@ -372,7 +378,7 @@ const pullTable = async () => {
         total++;
         log(`Pulling all tables from ${chalk.bold(database['name'])} database ...`);
 
-        localConfig.addDatabase(database);
+        localConfig.addTablesDB(database);
 
         const { tables } = await paginate(tablesDBListTables, {
             databaseId,

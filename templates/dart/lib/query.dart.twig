@@ -111,6 +111,10 @@ class Query {
   static String createdAfter(String value) =>
       Query._('createdAfter', null, value).toString();
 
+  /// Filter resources where document was created between [start] and [end] (inclusive).
+  static String createdBetween(String start, String end) =>
+      Query._('createdBetween', null, [start, end]).toString();
+
   /// Filter resources where document was updated before [value].
   static String updatedBefore(String value) =>
       Query._('updatedBefore', null, value).toString();
@@ -118,6 +122,10 @@ class Query {
   /// Filter resources where document was updated after [value].
   static String updatedAfter(String value) =>
       Query._('updatedAfter', null, value).toString();
+
+  /// Filter resources where document was updated between [start] and [end] (inclusive).
+  static String updatedBetween(String start, String end) =>
+      Query._('updatedBetween', null, [start, end]).toString();
 
   static String or(List<String> queries) => Query._(
     'or',

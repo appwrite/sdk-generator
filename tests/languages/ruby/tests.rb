@@ -156,8 +156,10 @@ puts Query.not_starts_with("name", "Ann")
 puts Query.not_ends_with("name", "nne")
 puts Query.created_before("2023-01-01")
 puts Query.created_after("2023-01-01")
+puts Query.created_between('2023-01-01', '2023-12-31')
 puts Query.updated_before("2023-01-01")
 puts Query.updated_after("2023-01-01")
+puts Query.updated_between('2023-01-01', '2023-12-31')
 
 # Spatial Distance query tests
 puts Query.distance_equal("location", [[40.7128, -74], [40.7128, -74]], 1000)

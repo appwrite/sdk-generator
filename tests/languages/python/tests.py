@@ -144,8 +144,10 @@ print(Query.not_starts_with("name", "Ann"))
 print(Query.not_ends_with("name", "nne"))
 print(Query.created_before("2023-01-01"))
 print(Query.created_after("2023-01-01"))
+print(Query.created_between('2023-01-01', '2023-12-31'))
 print(Query.updated_before("2023-01-01"))
 print(Query.updated_after("2023-01-01"))
+print(Query.updated_between('2023-01-01', '2023-12-31'))
 
 # Spatial Distance query tests
 print(Query.distance_equal("location", [[40.7128, -74], [40.7128, -74]], 1000))

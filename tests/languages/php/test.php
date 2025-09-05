@@ -159,8 +159,10 @@ echo Query::notStartsWith('name', 'Ann') . "\n";
 echo Query::notEndsWith('name', 'nne') . "\n";
 echo Query::createdBefore('2023-01-01') . "\n";
 echo Query::createdAfter('2023-01-01') . "\n";
+echo Query::createdBetween('2023-01-01', '2023-12-31') . "\n";
 echo Query::updatedBefore('2023-01-01') . "\n";
 echo Query::updatedAfter('2023-01-01') . "\n";
+echo Query::updatedBetween('2023-01-01', '2023-12-31') . "\n";
 
 // Spatial Distance query tests
 echo Query::distanceEqual('location', [[40.7128, -74], [40.7128, -74]], 1000) . "\n";

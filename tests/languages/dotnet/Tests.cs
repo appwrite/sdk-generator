@@ -166,8 +166,10 @@ namespace AppwriteTests
             TestContext.WriteLine(Query.NotEndsWith("name", "nne"));
             TestContext.WriteLine(Query.CreatedBefore("2023-01-01"));
             TestContext.WriteLine(Query.CreatedAfter("2023-01-01"));
+            TestContext.WriteLine(Query.CreatedBetween("2023-01-01", "2023-12-31"));
             TestContext.WriteLine(Query.UpdatedBefore("2023-01-01"));
             TestContext.WriteLine(Query.UpdatedAfter("2023-01-01"));
+            TestContext.WriteLine(Query.UpdatedBetween("2023-01-01", "2023-12-31"));
             
             // Spatial Distance query tests
             TestContext.WriteLine(Query.DistanceEqual("location", new List<List<object>> { new List<object> { 40.7128, -74 }, new List<object> { 40.7128, -74 } }, 1000));

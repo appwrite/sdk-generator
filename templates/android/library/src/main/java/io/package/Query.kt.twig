@@ -255,6 +255,15 @@ class Query(
         fun createdAfter(value: String) = Query("createdAfter", null, listOf(value)).toJson()
 
         /**
+         * Filter resources where document was created between start and end dates (inclusive).
+         *
+         * @param start The start date value.
+         * @param end The end date value.
+         * @returns The query string.
+         */
+        fun createdBetween(start: String, end: String) = Query("createdBetween", null, listOf(start, end)).toJson()
+
+        /**
          * Filter resources where document was updated before date.
          *
          * @param value The date value to compare against.
@@ -269,6 +278,15 @@ class Query(
          * @returns The query string.
          */
         fun updatedAfter(value: String) = Query("updatedAfter", null, listOf(value)).toJson()
+
+        /**
+         * Filter resources where document was updated between start and end dates (inclusive).
+         *
+         * @param start The start date value.
+         * @param end The end date value.
+         * @returns The query string.
+         */
+        fun updatedBetween(start: String, end: String) = Query("updatedBetween", null, listOf(start, end)).toJson()
 
         /**
          * Combine multiple queries using logical OR operator.

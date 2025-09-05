@@ -182,8 +182,10 @@ class Tests: XCTestCase {
         print(Query.notEndsWith("name", value: "nne"))
         print(Query.createdBefore("2023-01-01"))
         print(Query.createdAfter("2023-01-01"))
+        print(Query.createdBetween("2023-01-01", "2023-12-31"))
         print(Query.updatedBefore("2023-01-01"))
         print(Query.updatedAfter("2023-01-01"))
+        print(Query.updatedBetween("2023-01-01", "2023-12-31"))
 
         // Spatial Distance query tests
         print(Query.distanceEqual("location", values: [[40.7128, -74], [40.7128, -74]], distance: 1000))
