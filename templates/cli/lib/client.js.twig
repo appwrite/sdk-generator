@@ -1,5 +1,4 @@
 const os = require('os');
-const join = require('path').join;
 const https = require("https");
 const { fetch, FormData, Agent } = require("undici");
 const JSONbig = require("json-bigint")({ storeAsString: false });
@@ -100,7 +99,7 @@ class Client {
 
   async call(method, path = "", headers = {}, params = {}, responseType = "json") {
     headers = {...this.headers, ...headers};
-    const url = new URL(join(this.endpoint + path));
+    const url = new URL(this.endpoint + path);
 
     let body = undefined;
 
