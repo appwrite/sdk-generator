@@ -141,15 +141,17 @@ const typesCommand = actionRunner(async (rawOutputDirectory, {language, strict})
 
   log(`Found ${dataItems.length} ${itemType}: ${dataItems.map(c => c.name).join(", ")}`);
 
+  // Use columns if available, otherwise use attributes
+  const resourceType = tables.length > 0 ? 'columns' : 'attributes';
+
   const totalAttributes = dataItems.reduce((count, item) => count + (item.attributes || []).length, 0);
-  log(`Found ${totalAttributes} attributes across all ${itemType}`);
+  log(`Found ${totalAttributes} ${resourceType} across all ${itemType}`);
 
   const templater = ejs.compile(meta.getTemplate());
 
   if (meta.isSingleFile()) {
     const content = templater({
       collections: dataItems,
-      tables: dataItems,
       strict,
       ...templateHelpers,
       getType: meta.getType,
