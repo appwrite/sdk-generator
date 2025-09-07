@@ -218,6 +218,10 @@ async function start() {
     console.log(Query.notOverlaps("location", [40.7128, -74]));
     console.log(Query.touches("location", [40.7128, -74]));
     console.log(Query.notTouches("location", [40.7128, -74]));
+    console.log(Query.contains("location", [[40.7128, -74], [40.7128, -74]]));
+    console.log(Query.notContains("location", [[40.7128, -74], [40.7128, -74]]));
+    console.log(Query.equal("location", [[40.7128, -74], [40.7128, -74]]));
+    console.log(Query.notEqual("location", [[40.7128, -74], [40.7128, -74]]));
     
     console.log(Query.or([
         Query.equal("released", true),

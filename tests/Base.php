@@ -136,6 +136,10 @@ abstract class Base extends TestCase
         '{"method":"notOverlaps","attribute":"location","values":[40.7128,-74]}',
         '{"method":"touches","attribute":"location","values":[40.7128,-74]}',
         '{"method":"notTouches","attribute":"location","values":[40.7128,-74]}',
+        '{"method":"contains","attribute":"location","values":[[40.7128, -74],[40.7128, -74]]}',
+        '{"method":"notContains","attribute":"location","values":[[40.7128, -74],[40.7128, -74]]}',
+        '{"method":"equal","attribute":"location","values":[[40.7128, -74],[40.7128, -74]]}',
+        '{"method":"notEqual","attribute":"location","values":[[40.7128, -74],[40.7128, -74]]}',
         '{"method":"or","values":[{"method":"equal","attribute":"released","values":[true]},{"method":"lessThan","attribute":"releasedYear","values":[1990]}]}',
         '{"method":"and","values":[{"method":"equal","attribute":"released","values":[false]},{"method":"greaterThan","attribute":"releasedYear","values":[2015]}]}'
     ];

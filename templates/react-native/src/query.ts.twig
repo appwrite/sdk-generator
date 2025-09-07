@@ -33,10 +33,10 @@ export class Query {
     });
   }
 
-  static equal = (attribute: string, value: QueryTypes): string =>
+  static equal = (attribute: string, value: QueryTypes | any[]): string =>
     new Query("equal", attribute, value).toString();
 
-  static notEqual = (attribute: string, value: QueryTypes): string =>
+  static notEqual = (attribute: string, value: QueryTypes | any[]): string =>
     new Query("notEqual", attribute, value).toString();
 
   static lessThan = (attribute: string, value: QueryTypes): string =>
@@ -97,7 +97,7 @@ export class Query {
    * @param {string | string[]} value
    * @returns {string}
    */
-  static contains = (attribute: string, value: string | string[]): string =>
+  static contains = (attribute: string, value: string | any[]): string =>
     new Query("contains", attribute, value).toString();
 
   /**
@@ -107,7 +107,7 @@ export class Query {
    * @param {string | string[]} value
    * @returns {string}
    */
-  static notContains = (attribute: string, value: string | string[]): string =>
+  static notContains = (attribute: string, value: string | any[]): string =>
     new Query("notContains", attribute, value).toString();
 
   /**

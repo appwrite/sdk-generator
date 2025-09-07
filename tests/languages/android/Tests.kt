@@ -242,6 +242,10 @@ class ServiceTest {
             writeToFile(Query.notOverlaps("location", listOf(40.7128, -74)))
             writeToFile(Query.touches("location", listOf(40.7128, -74)))
             writeToFile(Query.notTouches("location", listOf(40.7128, -74)))
+            writeToFile(Query.contains("location", listOf(listOf(40.7128, -74), listOf(40.7128, -74))))
+            writeToFile(Query.notContains("location", listOf(listOf(40.7128, -74), listOf(40.7128, -74))))
+            writeToFile(Query.equal("location", listOf(listOf(40.7128, -74), listOf(40.7128, -74))))
+            writeToFile(Query.notEqual("location", listOf(listOf(40.7128, -74), listOf(40.7128, -74))))
             
             writeToFile(Query.or(listOf(Query.equal("released", listOf(true)), Query.lessThan("releasedYear", 1990))))
             writeToFile(Query.and(listOf(Query.equal("released", listOf(false)), Query.greaterThan("releasedYear", 2015))))

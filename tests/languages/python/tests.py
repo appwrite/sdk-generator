@@ -168,6 +168,10 @@ print(Query.overlaps("location", [40.7128, -74]))
 print(Query.not_overlaps("location", [40.7128, -74]))
 print(Query.touches("location", [40.7128, -74]))
 print(Query.not_touches("location", [40.7128, -74]))
+print(Query.contains("location", [[40.7128, -74], [40.7128, -74]]))
+print(Query.not_contains("location", [[40.7128, -74], [40.7128, -74]]))
+print(Query.equal("location", [[40.7128, -74], [40.7128, -74]]))
+print(Query.not_equal("location", [[40.7128, -74], [40.7128, -74]]))
 
 print(Query.or_queries(
     [Query.equal("released", True), Query.less_than("releasedYear", 1990)]

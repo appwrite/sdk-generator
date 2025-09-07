@@ -190,6 +190,10 @@ namespace AppwriteTests
             TestContext.WriteLine(Query.NotOverlaps("location", new List<object> { 40.7128, -74 }));
             TestContext.WriteLine(Query.Touches("location", new List<object> { 40.7128, -74 }));
             TestContext.WriteLine(Query.NotTouches("location", new List<object> { 40.7128, -74 }));
+            TestContext.WriteLine(Query.Contains("location", new List<object> { new List<object> { 40.7128, -74 }, new List<object> { 40.7128, -74 } }));
+            TestContext.WriteLine(Query.NotContains("location", new List<object> { new List<object> { 40.7128, -74 }, new List<object> { 40.7128, -74 } }));
+            TestContext.WriteLine(Query.Equal("location", new List<object> { new List<object> { 40.7128, -74 }, new List<object> { 40.7128, -74 } }));
+            TestContext.WriteLine(Query.NotEqual("location", new List<object> { new List<object> { 40.7128, -74 }, new List<object> { 40.7128, -74 } }));
             
             TestContext.WriteLine(Query.Or(
                 new List<string> {

@@ -52,20 +52,20 @@ export class Query {
    * Filter resources where attribute is equal to value.
    *
    * @param {string} attribute
-   * @param {QueryTypes} value
+   * @param {QueryTypes | any[]} value
    * @returns {string}
    */
-  static equal = (attribute: string, value: QueryTypes): string =>
+  static equal = (attribute: string, value: QueryTypes | any[]): string =>
     new Query("equal", attribute, value).toString();
 
   /**
    * Filter resources where attribute is not equal to value.
    *
    * @param {string} attribute
-   * @param {QueryTypes} value
+   * @param {QueryTypes | any[]} value
    * @returns {string}
    */
-  static notEqual = (attribute: string, value: QueryTypes): string =>
+  static notEqual = (attribute: string, value: QueryTypes | any[]): string =>
     new Query("notEqual", attribute, value).toString();
 
   /**
@@ -238,17 +238,17 @@ export class Query {
    * @param {string | string[]} value
    * @returns {string}
    */
-  static contains = (attribute: string, value: string | string[]): string =>
+  static contains = (attribute: string, value: string | any[]): string =>
     new Query("contains", attribute, value).toString();
 
   /**
    * Filter resources where attribute does not contain the specified value.
    *
    * @param {string} attribute
-   * @param {string | string[]} value
+   * @param {string | any[]} value
    * @returns {string}
    */
-  static notContains = (attribute: string, value: string | string[]): string =>
+  static notContains = (attribute: string, value: string | any[]): string =>
     new Query("notContains", attribute, value).toString();
 
   /**

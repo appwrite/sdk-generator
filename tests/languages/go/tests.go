@@ -241,6 +241,10 @@ func testQueries() {
 	fmt.Println(query.NotOverlaps("location", []interface{}{40.7128, -74}))
 	fmt.Println(query.Touches("location", []interface{}{40.7128, -74}))
 	fmt.Println(query.NotTouches("location", []interface{}{40.7128, -74}))
+	fmt.Println(query.Contains("location", []interface{}{[]interface{}{40.7128, -74}, []interface{}{40.7128, -74}}))
+	fmt.Println(query.NotContains("location", []interface{}{[]interface{}{40.7128, -74}, []interface{}{40.7128, -74}}))
+	fmt.Println(query.Equal("location", []interface{}{[]interface{}{40.7128, -74}, []interface{}{40.7128, -74}}))
+	fmt.Println(query.NotEqual("location", []interface{}{[]interface{}{40.7128, -74}, []interface{}{40.7128, -74}}))
 	
 	fmt.Println(query.Or([]string{
 		query.Equal("released", true),
