@@ -120,7 +120,7 @@ abstract class Base extends TestCase
         '{"method":"updatedBefore","values":["2023-01-01"]}',
         '{"method":"updatedAfter","values":["2023-01-01"]}',
         '{"method":"updatedBetween","values":["2023-01-01","2023-12-31"]}',
-        '{"method":"distanceEqual","attribute":"location","values":[[[[40.7128, -74],[40.7128, -74]],1000,true]]}',
+        '{"method":"distanceEqual","attribute":"location","values":[[[[40.7128,-74],[40.7128,-74]],1000,true]]}',
         '{"method":"distanceEqual","attribute":"location","values":[[[40.7128,-74],1000,true]]}',
         '{"method":"distanceNotEqual","attribute":"location","values":[[[40.7128,-74],1000,true]]}',
         '{"method":"distanceNotEqual","attribute":"location","values":[[[40.7128,-74],1000,true]]}',
@@ -136,10 +136,10 @@ abstract class Base extends TestCase
         '{"method":"notOverlaps","attribute":"location","values":[[40.7128,-74]]}',
         '{"method":"touches","attribute":"location","values":[[40.7128,-74]]}',
         '{"method":"notTouches","attribute":"location","values":[[40.7128,-74]]}',
-        '{"method":"contains","attribute":"location","values":[[40.7128, -74],[40.7128, -74]]}',
-        '{"method":"notContains","attribute":"location","values":[[40.7128, -74],[40.7128, -74]]}',
-        '{"method":"equal","attribute":"location","values":[[40.7128, -74],[40.7128, -74]]}',
-        '{"method":"notEqual","attribute":"location","values":[[40.7128, -74],[40.7128, -74]]}',
+        '{"method":"contains","attribute":"location","values":[[40.7128,-74],[40.7128,-74]]}',
+        '{"method":"notContains","attribute":"location","values":[[40.7128,-74],[40.7128,-74]]}',
+        '{"method":"equal","attribute":"location","values":[[40.7128,-74],[40.7128,-74]]}',
+        '{"method":"notEqual","attribute":"location","values":[[40.7128,-74],[40.7128,-74]]}',
         '{"method":"or","values":[{"method":"equal","attribute":"released","values":[true]},{"method":"lessThan","attribute":"releasedYear","values":[1990]}]}',
         '{"method":"and","values":[{"method":"equal","attribute":"released","values":[false]},{"method":"greaterThan","attribute":"releasedYear","values":[2015]}]}'
     ];
