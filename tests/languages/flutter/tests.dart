@@ -219,7 +219,7 @@ void main() async {
   print(Query.contains("location", [[40.7128, -74], [40.7128, -74]]));
   print(Query.notContains("location", [[40.7128, -74], [40.7128, -74]]));
   print(Query.equal("location", [[40.7128, -74], [40.7128, -74]]));
-  print(Query.notEqualequal("location", [[40.7128, -74], [40.7128, -74]]));
+  print(Query.notEqual("location", [[40.7128, -74], [40.7128, -74]]));
   
   print(Query.or([
     Query.equal("released", true),

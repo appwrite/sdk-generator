@@ -448,7 +448,7 @@ public struct Query : Codable, CustomStringConvertible {
         return Query(
             method: "distanceEqual",
             attribute: attribute,
-            values: [values, distance, meters]
+            values: [[values, distance, meters]]
         ).description
     }
 
@@ -456,7 +456,7 @@ public struct Query : Codable, CustomStringConvertible {
         return Query(
             method: "distanceNotEqual",
             attribute: attribute,
-            values: [values, distance, meters]
+            values: [[values, distance, meters]]
         ).description
     }
 
@@ -464,7 +464,7 @@ public struct Query : Codable, CustomStringConvertible {
         return Query(
             method: "distanceGreaterThan",
             attribute: attribute,
-            values: [values, distance, meters]
+            values: [[values, distance, meters]]
         ).description
     }
 
@@ -472,7 +472,7 @@ public struct Query : Codable, CustomStringConvertible {
         return Query(
             method: "distanceLessThan",
             attribute: attribute,
-            values: [values, distance, meters]
+            values: [[values, distance, meters]]
         ).description
     }
 
@@ -480,7 +480,7 @@ public struct Query : Codable, CustomStringConvertible {
         return Query(
             method: "intersects",
             attribute: attribute,
-            values: values
+            values: [values]
         ).description
     }
 
@@ -488,7 +488,7 @@ public struct Query : Codable, CustomStringConvertible {
         return Query(
             method: "notIntersects",
             attribute: attribute,
-            values: values
+            values: [values]
         ).description
     }
 
@@ -496,7 +496,7 @@ public struct Query : Codable, CustomStringConvertible {
         return Query(
             method: "crosses",
             attribute: attribute,
-            values: values
+            values: [values]
         ).description
     }
 
@@ -504,7 +504,7 @@ public struct Query : Codable, CustomStringConvertible {
         return Query(
             method: "notCrosses",
             attribute: attribute,
-            values: values
+            values: [values]
         ).description
     }
 
@@ -512,7 +512,7 @@ public struct Query : Codable, CustomStringConvertible {
         return Query(
             method: "overlaps",
             attribute: attribute,
-            values: values
+            values: [values]
         ).description
     }
 
@@ -520,7 +520,7 @@ public struct Query : Codable, CustomStringConvertible {
         return Query(
             method: "notOverlaps",
             attribute: attribute,
-            values: values
+            values: [values]
         ).description
     }
 
@@ -528,7 +528,7 @@ public struct Query : Codable, CustomStringConvertible {
         return Query(
             method: "touches",
             attribute: attribute,
-            values: values
+            values: [values]
         ).description
     }
 
@@ -536,7 +536,7 @@ public struct Query : Codable, CustomStringConvertible {
         return Query(
             method: "notTouches",
             attribute: attribute,
-            values: values
+            values: [values]
         ).description
     }
 

@@ -434,7 +434,7 @@ class Query implements \JsonSerializable
      */
     public static function distanceEqual(string $attribute, array $values, int|float $distance, bool $meters = true): string
     {
-        return (new Query('distanceEqual', $attribute, [$values, $distance, $meters]))->__toString();
+        return (new Query('distanceEqual', $attribute, [[$values, $distance, $meters]]))->__toString();
     }
 
     /**
@@ -447,7 +447,7 @@ class Query implements \JsonSerializable
      */
     public static function distanceNotEqual(string $attribute, array $values, int|float $distance, bool $meters = true): string
     {
-        return (new Query('distanceNotEqual', $attribute, [$values, $distance, $meters]))->__toString();
+        return (new Query('distanceNotEqual', $attribute, [[$values, $distance, $meters]]))->__toString();
     }
 
     /**
@@ -460,7 +460,7 @@ class Query implements \JsonSerializable
      */
     public static function distanceGreaterThan(string $attribute, array $values, int|float $distance, bool $meters = true): string
     {
-        return (new Query('distanceGreaterThan', $attribute, [$values, $distance, $meters]))->__toString();
+        return (new Query('distanceGreaterThan', $attribute, [[$values, $distance, $meters]]))->__toString();
     }
 
     /**
@@ -474,7 +474,7 @@ class Query implements \JsonSerializable
      */
     public static function distanceLessThan(string $attribute, array $values, int|float $distance, bool $meters = true): string
     {
-        return (new Query('distanceLessThan', $attribute, [$values, $distance, $meters]))->__toString();
+        return (new Query('distanceLessThan', $attribute, [[$values, $distance, $meters]]))->__toString();
     }
 
     /**
@@ -486,7 +486,7 @@ class Query implements \JsonSerializable
      */
     public static function intersects(string $attribute, array $values): string
     {
-        return (new Query('intersects', $attribute, $values))->__toString();
+        return (new Query('intersects', $attribute, [$values]))->__toString();
     }
 
     /**
@@ -498,7 +498,7 @@ class Query implements \JsonSerializable
      */
     public static function notIntersects(string $attribute, array $values): string
     {
-        return (new Query('notIntersects', $attribute, $values))->__toString();
+        return (new Query('notIntersects', $attribute, [$values]))->__toString();
     }
 
     /**
@@ -510,7 +510,7 @@ class Query implements \JsonSerializable
      */
     public static function crosses(string $attribute, array $values): string
     {
-        return (new Query('crosses', $attribute, $values))->__toString();
+        return (new Query('crosses', $attribute, [$values]))->__toString();
     }
 
     /**
@@ -522,7 +522,7 @@ class Query implements \JsonSerializable
      */
     public static function notCrosses(string $attribute, array $values): string
     {
-        return (new Query('notCrosses', $attribute, $values))->__toString();
+        return (new Query('notCrosses', $attribute, [$values]))->__toString();
     }
 
     /**
@@ -534,7 +534,7 @@ class Query implements \JsonSerializable
      */
     public static function overlaps(string $attribute, array $values): string
     {
-        return (new Query('overlaps', $attribute, $values))->__toString();
+        return (new Query('overlaps', $attribute, [$values]))->__toString();
     }
 
     /**
@@ -546,7 +546,7 @@ class Query implements \JsonSerializable
      */
     public static function notOverlaps(string $attribute, array $values): string
     {
-        return (new Query('notOverlaps', $attribute, $values))->__toString();
+        return (new Query('notOverlaps', $attribute, [$values]))->__toString();
     }
 
     /**
@@ -558,7 +558,7 @@ class Query implements \JsonSerializable
      */
     public static function touches(string $attribute, array $values): string
     {
-        return (new Query('touches', $attribute, $values))->__toString();
+        return (new Query('touches', $attribute, [$values]))->__toString();
     }
 
     /**
@@ -570,6 +570,6 @@ class Query implements \JsonSerializable
      */
     public static function notTouches(string $attribute, array $values): string
     {
-        return (new Query('notTouches', $attribute, $values))->__toString();
+        return (new Query('notTouches', $attribute, [$values]))->__toString();
     }
 }
