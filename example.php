@@ -192,6 +192,7 @@ try {
         ->setExclude([
             'services' => [
                 ['name' => 'assistant'],
+                ['name' => 'avatars'],
             ],
         ])
     ;
