@@ -1,16 +1,23 @@
 import * as appwrite from "../../sdks/deno/mod.ts";
 
-// Local helper type to reflect the shape the test expects
-type SDKResponse<T = unknown> = { result: T };
+// Print either { result: ... } or the value itself
+function printResult(x: unknown) {
+  if (x && typeof x === "object" && "result" in x) {
+    const obj = x as Record<string, unknown>;
+    console.log(obj["result"]);
+  } else {
+    console.log(x);
+  }
+}
 
-// Hardened error logger (safe for unknowns, includes stack when available)
+// Error logger that writes to stdout (CI expects stdout), still robust for unknowns
 function logError(e: unknown) {
   if (e instanceof Error) {
-    console.error(e.message);
+    console.log(e.message);
     // Appwrite errors often carry a `response` payload
-    const resp = (e as Record<string, unknown>)["response"];
-    if (resp !== undefined) console.error(resp);
-    if (e.stack) console.error(e.stack);
+    const resp = (e as unknown as Record<string, unknown>)["response"];
+    if (resp !== undefined) console.log(resp);
+    if (e.stack) console.log(e.stack);
     return;
   }
   if (typeof e === "object" && e !== null) {
@@ -18,16 +25,16 @@ function logError(e: unknown) {
     const msg = typeof obj["message"] === "string"
       ? (obj["message"] as string)
       : "";
-    if (msg) console.error(msg);
-    if ("response" in obj) console.error(obj["response"]);
-    else console.error(obj);
+    if (msg) console.log(msg);
+    if ("response" in obj) console.log(obj["response"]);
+    else console.log(obj);
   } else {
-    console.error(String(e));
+    console.log(String(e));
   }
 }
 
 async function start() {
-  let response: SDKResponse;
+  let response: unknown;
 
   const Permission = appwrite.Permission;
   const Role = appwrite.Role;
@@ -45,38 +52,38 @@ async function start() {
 
   // Foo
   response = await foo.get("string", 123, ["string in array"]);
-  console.log(response.result);
+  printResult(response);
 
   response = await foo.post("string", 123, ["string in array"]);
-  console.log(response.result);
+  printResult(response);
 
   response = await foo.put("string", 123, ["string in array"]);
-  console.log(response.result);
+  printResult(response);
 
   response = await foo.patch("string", 123, ["string in array"]);
-  console.log(response.result);
+  printResult(response);
 
   response = await foo.delete("string", 123, ["string in array"]);
-  console.log(response.result);
+  printResult(response);
 
   // Bar
   response = await bar.get("string", 123, ["string in array"]);
-  console.log(response.result);
+  printResult(response);
 
   response = await bar.post("string", 123, ["string in array"]);
-  console.log(response.result);
+  printResult(response);
 
   response = await bar.put("string", 123, ["string in array"]);
-  console.log(response.result);
+  printResult(response);
 
   response = await bar.patch("string", 123, ["string in array"]);
-  console.log(response.result);
+  printResult(response);
 
   response = await bar.delete("string", 123, ["string in array"]);
-  console.log(response.result);
+  printResult(response);
 
   response = await general.redirect();
-  console.log(response.result);
+  printResult(response);
 
   response = await general.upload(
     "string",
@@ -84,7 +91,7 @@ async function start() {
     ["string in array"],
     appwrite.InputFile.fromPath("./tests/resources/file.png", "file.png"),
   );
-  console.log(response.result);
+  printResult(response);
 
   response = await general.upload(
     "string",
@@ -95,7 +102,7 @@ async function start() {
       "large_file.mp4",
     ),
   );
-  console.log(response.result);
+  printResult(response);
 
   let buffer = await Deno.readFile("./tests/resources/file.png");
   response = await general.upload(
@@ -104,7 +111,7 @@ async function start() {
     ["string in array"],
     appwrite.InputFile.fromBuffer(buffer, "file.png"),
   );
-  console.log(response.result);
+  printResult(response);
 
   buffer = await Deno.readFile("./tests/resources/large_file.mp4");
   response = await general.upload(
@@ -113,10 +120,10 @@ async function start() {
     ["string in array"],
     appwrite.InputFile.fromBuffer(buffer, "large_file.mp4"),
   );
-  console.log(response.result);
+  printResult(response);
 
   response = await general.enum(appwrite.MockType.First);
-  console.log(response.result);
+  printResult(response);
 
   try {
     response = await general.error400();
@@ -218,7 +225,7 @@ async function start() {
   console.log(ID.custom("custom_id"));
 
   response = await general.headers();
-  console.log(response.result);
+  printResult(response);
 }
 
 start().catch((err) => logError(err));
