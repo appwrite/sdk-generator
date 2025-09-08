@@ -9,17 +9,19 @@ class Query {
   Query._(this.method, [this.attribute = null, this.values = null]);
 
   Map<String, dynamic> toJson() {
-    final map = <String, dynamic>{'method': method};
-
+    final result = <String, dynamic>{};
+    
+    result['method'] = method;
+    
     if(attribute != null) {
-      map['attribute'] = attribute;
+      result['attribute'] = attribute;
     }
     
     if(values != null) {
-      map['values'] = values is List ? values : [values];
+      result['values'] = values is List ? values : [values];
     }
 
-    return map;
+    return result;
   }
 
   @override
@@ -35,7 +37,7 @@ class Query {
 
   /// Filter resources where [attribute] is not equal to [value].
   static String notEqual(String attribute, dynamic value) =>
-      Query._('notEqual', attribute, [value]).toString();
+      Query._('notEqual', attribute, value).toString();
 
   /// Filter resources where [attribute] is less than [value].
   static String lessThan(String attribute, dynamic value) =>
