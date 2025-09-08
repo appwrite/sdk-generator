@@ -183,6 +183,10 @@ echo Query::overlaps('location', [40.7128, -74]) . "\n";
 echo Query::notOverlaps('location', [40.7128, -74]) . "\n";
 echo Query::touches('location', [40.7128, -74]) . "\n";
 echo Query::notTouches('location', [40.7128, -74]) . "\n";
+echo Query::contains('location', [[40.7128, -74], [40.7128, -74]]) . "\n";
+echo Query::notContains('location', [[40.7128, -74], [40.7128, -74]]) . "\n";
+echo Query::equal('location', [[40.7128, -74], [40.7128, -74]]) . "\n";
+echo Query::notEqual('location', [[40.7128, -74], [40.7128, -74]]) . "\n";
 
 echo Query::or([
     Query::equal('released', [true]),

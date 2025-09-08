@@ -206,6 +206,10 @@ class Tests: XCTestCase {
         print(Query.notOverlaps("location", values: [40.7128, -74]))
         print(Query.touches("location", values: [40.7128, -74]))
         print(Query.notTouches("location", values: [40.7128, -74]))
+        print(Query.contains("location", value: [[40.7128, -74],[40.7128, -74]]))
+        print(Query.notContains("location", value: [[40.7128, -74],[40.7128, -74]]))
+        print(Query.equal("location", value: [[40.7128, -74],[40.7128, -74]]))
+        print(Query.notEqual("location", value: [[40.7128, -74],[40.7128, -74]]))
 
         print(Query.or(
             [Query.equal("released", value: true), Query.lessThan("releasedYear", value: 1990)]

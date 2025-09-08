@@ -212,62 +212,62 @@ namespace {{ spec.title | caseUcfirst }}
 
         public static string DistanceEqual(string attribute, object values, double distance, bool meters = true)
         {
-            return new Query("distanceEqual", attribute, new List<object> { values, distance, meters }).ToString();
+            return new Query("distanceEqual", attribute, new List<object> { new List<object> { values, distance, meters } }).ToString();
         }
 
         public static string DistanceNotEqual(string attribute, object values, double distance, bool meters = true)
         {
-            return new Query("distanceNotEqual", attribute, new List<object> { values, distance, meters }).ToString();
+            return new Query("distanceNotEqual", attribute, new List<object> { new List<object> { values, distance, meters } }).ToString();
         }
 
         public static string DistanceGreaterThan(string attribute, object values, double distance, bool meters = true)
         {
-            return new Query("distanceGreaterThan", attribute, new List<object> { values, distance, meters }).ToString();
+            return new Query("distanceGreaterThan", attribute, new List<object> { new List<object> { values, distance, meters } }).ToString();
         }
 
         public static string DistanceLessThan(string attribute, object values, double distance, bool meters = true)
         {
-            return new Query("distanceLessThan", attribute, new List<object> { values, distance, meters }).ToString();
+            return new Query("distanceLessThan", attribute, new List<object> { new List<object> { values, distance, meters } }).ToString();
         }
 
         public static string Intersects(string attribute, object values)
         {
-            return new Query("intersects", attribute, values).ToString();
+            return new Query("intersects", attribute, new List<object> { values }).ToString();
         }
 
         public static string NotIntersects(string attribute, object values)
         {
-            return new Query("notIntersects", attribute, values).ToString();
+            return new Query("notIntersects", attribute, new List<object> { values }).ToString();
         }
 
         public static string Crosses(string attribute, object values)
         {
-            return new Query("crosses", attribute, values).ToString();
+            return new Query("crosses", attribute, new List<object> { values }).ToString();
         }
 
         public static string NotCrosses(string attribute, object values)
         {
-            return new Query("notCrosses", attribute, values).ToString();
+            return new Query("notCrosses", attribute, new List<object> { values }).ToString();
         }
 
         public static string Overlaps(string attribute, object values)
         {
-            return new Query("overlaps", attribute, values).ToString();
+            return new Query("overlaps", attribute, new List<object> { values }).ToString();
         }
 
         public static string NotOverlaps(string attribute, object values)
         {
-            return new Query("notOverlaps", attribute, values).ToString();
+            return new Query("notOverlaps", attribute, new List<object> { values }).ToString();
         }
 
         public static string Touches(string attribute, object values)
         {
-            return new Query("touches", attribute, values).ToString();
+            return new Query("touches", attribute, new List<object> { values }).ToString();
         }
 
         public static string NotTouches(string attribute, object values)
         {
-            return new Query("notTouches", attribute, values).ToString();
+            return new Query("notTouches", attribute, new List<object> { values }).ToString();
         }
     }
 }
