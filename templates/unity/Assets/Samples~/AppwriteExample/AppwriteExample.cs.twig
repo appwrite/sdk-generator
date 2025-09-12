@@ -41,7 +41,7 @@ namespace Samples.{{ spec.title | caseUcfirst }}Example
             }
             
             // Initialize
-            var success = await _manager.Initialize();
+            var success = await _manager.Initialize(true);
             if (!success)
             {
                 Debug.LogError("Failed to initialize {{ spec.title | caseUcfirst }}Manager");

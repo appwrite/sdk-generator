@@ -23,7 +23,7 @@
             // Create a Set-Cookie header format and parse it
             // This ensures consistent cookie processing with server responses
             var setCookieHeader = $"{key}={secret}; Path=/; Domain={parsedDomain}; Secure; HttpOnly; Max-Age={30 * 24 * 60 * 60}";
-            Debug.Log($"Setting cookie: {setCookieHeader} for domain: {parsedDomain}");
+            Debug.Log($"Setting session cookie for domain: {parsedDomain}");
             _client.CookieContainer.ParseSetCookieHeader(setCookieHeader, parsedDomain);
 
 #if UNITY_EDITOR

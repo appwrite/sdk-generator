@@ -26,7 +26,7 @@ namespace {{ spec.title | caseUcfirst }}.Utilities
             manager.SetConfig(config);
 
             // Initialize
-            var success = await manager.Initialize();
+            var success = await manager.Initialize(true);
             if (!success)
             {
                 UnityEngine.Object.Destroy(managerGO);
