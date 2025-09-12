@@ -1,16 +1,12 @@
 using UnityEngine;
 using UnityEditor;
 using UnityEditor.PackageManager;
-using UnityEditor.PackageManager.Requests;
 using System.Linq;
+using System;
+using System.Collections.Generic;
 
 namespace {{ spec.title | caseUcfirst }}.Editor
 {
-    /// <summary>
-    /// {{ spec.title | caseUcfirst }} SDK Setup Assistant
-    /// Automatically handles dependencies and setup
-    /// Works even when there are compilation errors due to missing dependencies
-    /// </summary>
     [InitializeOnLoad]
     public static class {{ spec.title | caseUcfirst }}SetupAssistant
     {
@@ -20,174 +16,139 @@ namespace {{ spec.title | caseUcfirst }}.Editor
         private const string WEBSOCKET_PACKAGE_NAME = "com.endel.nativewebsocket";
         private const string SETUP_COMPLETED_KEY = "{{ spec.title | caseUcfirst }}_Setup_Completed";
         private const string SHOW_SETUP_DIALOG_KEY = "{{ spec.title | caseUcfirst }}_Show_Setup_Dialog";
-        private const string COMPILATION_ERRORS_KEY = "{{ spec.title | caseUcfirst }}_Compilation_Errors";
-
-        private static ListRequest listRequest;
-        private static AddRequest addRequest;
-        private static bool isInstalling;
+        private static bool _isBusy; // General flag to prevent running two operations at once
 
         public static bool HasUniTask { get; private set; }
         public static bool HasWebSocket { get; private set; }
 
         static {{ spec.title | caseUcfirst }}SetupAssistant()
         {
-            // Check for compilation errors on startup
-            EditorApplication.delayCall += CheckForCompilationErrors;
-            EditorApplication.delayCall += CheckDependencies;
+            // Use delayCall so the Unity Editor has time to initialize
+            EditorApplication.delayCall += InitialCheck;
         }
 
-        /// <summary>
-        /// Checks for compilation errors related to missing dependencies
-        /// </summary>
-        private static void CheckForCompilationErrors()
+        private static void InitialCheck()
         {
-            // Check compilation state
-            bool hasCompilationErrors = EditorApplication.isCompiling || 
-                                       UnityEditorInternal.InternalEditorUtility.inBatchMode;
+            if (EditorApplication.isCompiling || EditorApplication.isUpdating || EditorPrefs.GetBool(SETUP_COMPLETED_KEY, false)) return;
 
-            // Alternative way - check through console
-            if (!hasCompilationErrors)
-            {
-                // Use reflection to access console messages
-                try
+            RefreshPackageStatus(() => {
+                if (!HasUniTask || !HasWebSocket)
                 {
-                    var consoleWindowType = typeof(EditorWindow).Assembly.GetType("UnityEditor.ConsoleWindow");
-                    if (consoleWindowType != null)
-                    {
-                        var getCountsByTypeMethod = consoleWindowType.GetMethod("GetCountsByType", 
-                            System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public);
-                        
-                        if (getCountsByTypeMethod != null)
-                        {
-                            var result = (int[])getCountsByTypeMethod.Invoke(null, null);
-                            // result[2] - error count
-                            hasCompilationErrors = result is { Length: > 2 } && result[2] > 0;
-                        }
-                    }
-                }
-                catch (System.Exception)
-                {
-                    // If reflection failed, use simple check
-                    hasCompilationErrors = false;
-                }
-            }
-
-            if (hasCompilationErrors)
-            {
-                Debug.LogWarning("{{ spec.title | caseUcfirst }} Setup: Compilation errors detected. Setup window will be shown.");
-                EditorPrefs.SetBool(COMPILATION_ERRORS_KEY, true);
-                
-                // Force show setup window when compilation errors exist
-                if (!EditorPrefs.GetBool(SETUP_COMPLETED_KEY, false))
-                {
-                    EditorApplication.delayCall += ShowSetupWindow;
-                }
-            }
-            else
-            {
-                EditorPrefs.DeleteKey(COMPILATION_ERRORS_KEY);
-            }
-        }
-
-        private static void CheckDependencies()
-        {
-            if (EditorApplication.isCompiling || EditorApplication.isUpdating)
-                return;
-
-            // If there are compilation errors, prioritize resolving them
-            if (EditorPrefs.GetBool(COMPILATION_ERRORS_KEY, false))
-            {
-                if (!EditorPrefs.GetBool(SETUP_COMPLETED_KEY, false))
-                {
-                    EditorApplication.delayCall += ShowSetupWindow;
-                }
-                return;
-            }
-
-            // Check if setup was already completed
-            if (EditorPrefs.GetBool(SETUP_COMPLETED_KEY, false))
-                return;
-
-            // Use EditorApplication.delayCall instead of direct call
-            EditorApplication.delayCall += () => {
-                if (listRequest != null) return; // Avoid duplicate requests
-                
-                try
-                {
-                    listRequest = Client.List();
-                    EditorApplication.update += CheckListProgress;
-                }
-                catch (System.Exception ex)
-                {
-                    Debug.LogError($"{{ spec.title | caseUcfirst }} Setup: Failed to start package listing - {ex.Message}");
-                    
-                    // Show a setup window anyway if there's an issue
                     if (!EditorPrefs.GetBool(SHOW_SETUP_DIALOG_KEY, false))
                     {
                         EditorPrefs.SetBool(SHOW_SETUP_DIALOG_KEY, true);
-                        EditorApplication.delayCall += ShowSetupWindow;
-                    }
-                }
-            };
-        }
-
-        private static void CheckListProgress()
-        {
-            if (listRequest == null)
-            {
-                EditorApplication.update -= CheckListProgress;
-                return;
-            }
-
-            if (!listRequest.IsCompleted)
-                return;
-
-            EditorApplication.update -= CheckListProgress;
-
-            try
-            {
-                if (listRequest.Status == StatusCode.Success)
-                {
-                    HasUniTask = listRequest.Result.Any(package => package.name == UNITASK_PACKAGE_NAME);
-                    HasWebSocket = listRequest.Result.Any(package => package.name == WEBSOCKET_PACKAGE_NAME);
-
-                    // Show a window only if any required package is missing AND a window hasn't been shown yet
-                    if (!HasUniTask || !HasWebSocket)
-                    {
-                        bool dialogShown = EditorPrefs.GetBool(SHOW_SETUP_DIALOG_KEY, false);
-                        if (!dialogShown)
-                        {
-                            EditorPrefs.SetBool(SHOW_SETUP_DIALOG_KEY, true);
-                            EditorApplication.delayCall += ShowSetupWindow;
-                        }
-                    }
-                    else
-                    {
-                        CompleteSetup();
+                        ShowSetupWindow();
                     }
                 }
                 else
                 {
-                    string errorMessage = listRequest.Error?.message ?? "Unknown error";
-                    Debug.LogError($"{{ spec.title | caseUcfirst }} Setup: Failed to check dependencies - {errorMessage}");
-                    
-                    // On request error, show setup window
-                    if (!EditorPrefs.GetBool(SHOW_SETUP_DIALOG_KEY, false))
-                    {
-                        EditorPrefs.SetBool(SHOW_SETUP_DIALOG_KEY, true);
-                        EditorApplication.delayCall += ShowSetupWindow;
-                    }
+                    CompleteSetup();
+                }
+            });
+        }
+        
+        /// <summary>
+        /// Asynchronously checks installed packages and invokes the callback when finished.
+        /// </summary>
+        public static void RefreshPackageStatus(Action onRefreshed = null)
+        {
+            if (_isBusy) return;
+            _isBusy = true;
+            
+            var request = Client.List();
+            // Subscribe to the editor update event to poll the request status each frame
+            EditorApplication.update += CheckProgress;
+
+            void CheckProgress()
+            {
+                if (!request.IsCompleted) return;
+                
+                EditorApplication.update -= CheckProgress; // Unsubscribe so we don't call it again
+                if (request.Status == StatusCode.Success)
+                {
+                    HasUniTask = request.Result.Any(p => p.name == UNITASK_PACKAGE_NAME);
+                    HasWebSocket = request.Result.Any(p => p.name == WEBSOCKET_PACKAGE_NAME);
+                }
+                else
+                {
+                    Debug.LogWarning($"{{ spec.title | caseUcfirst }} Setup: Could not refresh package status - {request.Error?.message ?? "Unknown"}");
+                }
+                _isBusy = false;
+                onRefreshed?.Invoke(); // Invoke the callback
+            }
+        }
+        
+        public static void InstallUniTask(Action onCompleted) => InstallPackage(UNITASK_PACKAGE_URL, onCompleted);
+        public static void InstallWebSocket(Action onCompleted) => InstallPackage(WEBSOCKET_PACKAGE_URL, onCompleted);
+
+        /// <summary>
+        /// New reliable method to install all missing packages.
+        /// </summary>
+        public static void InstallAllPackages(Action onSuccess, Action<string> onError)
+        {
+            if (_isBusy) { onError?.Invoke("Another operation is already in progress."); return; }
+
+            var packagesToInstall = new Queue<string>();
+            if (!HasUniTask) packagesToInstall.Enqueue(UNITASK_PACKAGE_URL);
+            if (!HasWebSocket) packagesToInstall.Enqueue(WEBSOCKET_PACKAGE_URL);
+
+            if (packagesToInstall.Count == 0)
+            {
+                onSuccess?.Invoke();
+                return;
+            }
+
+            _isBusy = true;
+            AssetDatabase.StartAssetEditing(); // Pause asset importing to speed up operations
+            InstallNextPackage(packagesToInstall, onSuccess, onError);
+        }
+
+        /// <summary>
+        /// Recursively installs packages from the queue one by one.
+        /// </summary>
+        private static void InstallNextPackage(Queue<string> packageQueue, Action onSuccess, Action<string> onError)
+        {
+            if (packageQueue.Count == 0)
+            {
+                AssetDatabase.StopAssetEditing();
+                _isBusy = false;
+                onSuccess?.Invoke(); // All packages installed, invoke the final callback
+                return;
+            }
+
+            string packageUrl = packageQueue.Dequeue();
+            var request = Client.Add(packageUrl);
+            EditorApplication.update += CheckInstallProgress;
+
+            void CheckInstallProgress()
+            {
+                if (!request.IsCompleted) return;
+                
+                EditorApplication.update -= CheckInstallProgress;
+                if (request.Status == StatusCode.Success)
+                {
+                    Debug.Log($"{{ spec.title | caseUcfirst }} Setup: Successfully installed {request.Result.displayName}.");
+                    InstallNextPackage(packageQueue, onSuccess, onError); // Install the next package
+                }
+                else
+                {
+                    string error = request.Error?.message ?? "Unknown error";
+                    Debug.LogError($"{{ spec.title | caseUcfirst }} Setup: Failed to install {packageUrl} - {error}");
+                    AssetDatabase.StopAssetEditing();
+                    _isBusy = false;
+                    onError?.Invoke(error);
                 }
             }
-            catch (System.Exception ex)
-            {
-                Debug.LogError($"{{ spec.title | caseUcfirst }} Setup: Exception while processing package list - {ex.Message}");
-            }
-            finally
-            {
-                // Clear request reference
-                listRequest = null;
-            }
+        }
+        
+        private static void InstallPackage(string packageUrl, Action onCompleted)
+        {
+            if (_isBusy) return;
+            
+            var queue = new Queue<string>();
+            queue.Enqueue(packageUrl);
+            
+            InstallNextPackage(queue,() => onCompleted?.Invoke(), Debug.LogError);
         }
 
         private static void ShowSetupWindow()
@@ -196,105 +157,14 @@ namespace {{ spec.title | caseUcfirst }}.Editor
             window.Show();
             window.Focus();
         }
-
-        public static void InstallUniTask()
-        {
-            InstallPackage(UNITASK_PACKAGE_URL);
-        }
-
-        public static void InstallWebSocket()
-        {
-            InstallPackage(WEBSOCKET_PACKAGE_URL);
-        }
-
-        private static void InstallPackage(string packageUrl)
-        {
-            if (isInstalling)
-            {
-                Debug.LogWarning("{{ spec.title | caseUcfirst }} Setup: Another package installation is in progress.");
-                return;
-            }
-
-            isInstalling = true;
-            Debug.Log($"{{ spec.title | caseUcfirst }} Setup: Installing package {packageUrl}...");
-
-            try
-            {
-                AssetDatabase.StartAssetEditing();
-                addRequest = Client.Add(packageUrl);
-                EditorApplication.update += WaitForInstallation;
-            }
-            catch (System.Exception ex)
-            {
-                Debug.LogError($"{{ spec.title | caseUcfirst }} Setup: Failed to start package installation - {ex.Message}");
-                CompleteInstallation();
-            }
-        }
-
-        private static void WaitForInstallation()
-        {
-            if (!addRequest.IsCompleted)
-                return;
-
-            EditorApplication.update -= WaitForInstallation;
-
-            if (addRequest.Status == StatusCode.Success)
-            {
-                Debug.Log("{{ spec.title | caseUcfirst }} Setup: Package installed successfully!");
-                RefreshPackageStatus();
-            }
-            else
-            {
-                Debug.LogError($"{{ spec.title | caseUcfirst }} Setup: Failed to install package - {addRequest.Error?.message ?? "Unknown error"}");
-            }
-
-            CompleteInstallation();
-        }
-
-        private static void CompleteInstallation()
-        {
-            isInstalling = false;
-            addRequest = null;
-            AssetDatabase.StopAssetEditing();
-            AssetDatabase.Refresh();
-        }
-
-        /// <summary>
-        /// Refresh package status by checking installed packages
-        /// </summary>
-        public static void RefreshPackageStatus()
-        {
-            try
-            {
-                var request = Client.List();
-                EditorApplication.delayCall += () => {
-                    if (request.IsCompleted && request.Status == StatusCode.Success)
-                    {
-                        HasUniTask = request.Result.Any(package => package.name == UNITASK_PACKAGE_NAME);
-                        HasWebSocket = request.Result.Any(package => package.name == WEBSOCKET_PACKAGE_NAME);
-                    }
-                };
-            }
-            catch (System.Exception ex)
-            {
-                Debug.LogWarning($"{{ spec.title | caseUcfirst }} Setup: Could not refresh package status - {ex.Message}");
-            }
-        }
-
         private static void CompleteSetup()
         {
             EditorPrefs.SetBool(SETUP_COMPLETED_KEY, true);
             EditorPrefs.SetBool(SHOW_SETUP_DIALOG_KEY, true);
-
             Debug.Log("{{ spec.title | caseUcfirst }} Setup: Setup completed successfully!");
         }
-
         [MenuItem("{{ spec.title | caseUcfirst }}/Setup Assistant", priority = 1)]
-        public static void ShowSetupAssistant()
-        {
-            ShowSetupWindow();
-        }
-
+        public static void ShowSetupAssistant() => ShowSetupWindow();
         [MenuItem("{{ spec.title | caseUcfirst }}/Reset Setup", priority = 100)]
         public static void ResetSetup()
         {
@@ -302,11 +172,7 @@ namespace {{ spec.title | caseUcfirst }}.Editor
             EditorPrefs.DeleteKey(SHOW_SETUP_DIALOG_KEY);
             HasUniTask = false;
             HasWebSocket = false;
-
-            Debug.Log("{{ spec.title | caseUcfirst }} Setup: Setup state reset. Restart Unity or recompile scripts to trigger setup again.");
-
-            // Force check dependencies after reset
-            EditorApplication.delayCall += CheckDependencies;
+            Debug.Log("{{ spec.title | caseUcfirst }} Setup: Setup state reset. Reopening the window will trigger the check.");
         }
     }
 }
