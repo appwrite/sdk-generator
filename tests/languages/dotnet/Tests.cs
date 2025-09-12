@@ -166,8 +166,34 @@ namespace AppwriteTests
             TestContext.WriteLine(Query.NotEndsWith("name", "nne"));
             TestContext.WriteLine(Query.CreatedBefore("2023-01-01"));
             TestContext.WriteLine(Query.CreatedAfter("2023-01-01"));
+            TestContext.WriteLine(Query.CreatedBetween("2023-01-01", "2023-12-31"));
             TestContext.WriteLine(Query.UpdatedBefore("2023-01-01"));
             TestContext.WriteLine(Query.UpdatedAfter("2023-01-01"));
+            TestContext.WriteLine(Query.UpdatedBetween("2023-01-01", "2023-12-31"));
+            
+            // Spatial Distance query tests
+            TestContext.WriteLine(Query.DistanceEqual("location", new List<object> { new List<object> { 40.7128, -74 }, new List<object> { 40.7128, -74 } }, 1000));
+            TestContext.WriteLine(Query.DistanceEqual("location", new List<object> { 40.7128, -74 }, 1000, true));
+            TestContext.WriteLine(Query.DistanceNotEqual("location", new List<object> { 40.7128, -74 }, 1000));
+            TestContext.WriteLine(Query.DistanceNotEqual("location", new List<object> { 40.7128, -74 }, 1000, true));
+            TestContext.WriteLine(Query.DistanceGreaterThan("location", new List<object> { 40.7128, -74 }, 1000));
+            TestContext.WriteLine(Query.DistanceGreaterThan("location", new List<object> { 40.7128, -74 }, 1000, true));
+            TestContext.WriteLine(Query.DistanceLessThan("location", new List<object> { 40.7128, -74 }, 1000));
+            TestContext.WriteLine(Query.DistanceLessThan("location", new List<object> { 40.7128, -74 }, 1000, true));
+            
+            // Spatial query tests
+            TestContext.WriteLine(Query.Intersects("location", new List<object> { 40.7128, -74 }));
+            TestContext.WriteLine(Query.NotIntersects("location", new List<object> { 40.7128, -74 }));
+            TestContext.WriteLine(Query.Crosses("location", new List<object> { 40.7128, -74 }));
+            TestContext.WriteLine(Query.NotCrosses("location", new List<object> { 40.7128, -74 }));
+            TestContext.WriteLine(Query.Overlaps("location", new List<object> { 40.7128, -74 }));
+            TestContext.WriteLine(Query.NotOverlaps("location", new List<object> { 40.7128, -74 }));
+            TestContext.WriteLine(Query.Touches("location", new List<object> { 40.7128, -74 }));
+            TestContext.WriteLine(Query.NotTouches("location", new List<object> { 40.7128, -74 }));
+            TestContext.WriteLine(Query.Contains("location", new List<object> { new List<object> { 40.7128, -74 }, new List<object> { 40.7128, -74 } }));
+            TestContext.WriteLine(Query.NotContains("location", new List<object> { new List<object> { 40.7128, -74 }, new List<object> { 40.7128, -74 } }));
+            TestContext.WriteLine(Query.Equal("location", new List<object> { new List<object> { 40.7128, -74 }, new List<object> { 40.7128, -74 } }));
+            TestContext.WriteLine(Query.NotEqual("location", new List<object> { new List<object> { 40.7128, -74 }, new List<object> { 40.7128, -74 } }));
             
             TestContext.WriteLine(Query.Or(
                 new List<string> {

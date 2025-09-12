@@ -9,6 +9,7 @@ const KeysSite = new Set(["path", "$id", "name", "enabled", "logging", "timeout"
 const KeysFunction = new Set(["path", "$id", "execute", "name", "enabled", "logging", "runtime", "specification", "scopes", "events", "schedule", "timeout", "entrypoint", "commands", "vars"]);
 const KeysDatabase = new Set(["$id", "name", "enabled"]);
 const KeysCollection = new Set(["$id", "$permissions", "databaseId", "name", "enabled", "documentSecurity", "attributes", "indexes"]);
+const KeysTable = new Set(["$id", "$permissions", "databaseId", "name", "enabled", "documentSecurity", "columns", "indexes"]);
 const KeysStorage = new Set(["$id", "$permissions", "fileSecurity", "name", "enabled", "maximumFileSize", "allowedFileExtensions", "compression", "encryption", "antivirus"]);
 const KeysTopics = new Set(["$id", "name", "subscribe"]);
 const KeysTeams = new Set(["$id", "name"]);
@@ -28,6 +29,33 @@ const KeysAttributes = new Set([
     "elements",
     // relationship
     "relatedCollection",
+    "relationType",
+    "twoWay",
+    "twoWayKey",
+    "onDelete",
+    "side",
+    // Indexes
+    "attributes",
+    "orders",
+    // Strings
+    "encrypt",
+]);
+const KeysColumns = new Set([
+    "key",
+    "type",
+    "required",
+    "array",
+    "size",
+    "default",
+    // integer and float
+    "min",
+    "max",
+    // email, enum, URL, IP, and datetime
+    "format",
+    // enum
+    "elements",
+    // relationship
+    "relatedTable",
     "relationType",
     "twoWay",
     "twoWayKey",
@@ -121,6 +149,47 @@ class Config {
 
     toString() {
         return JSONbig.stringify(this.data, null, 4);
+    }
+
+    _getDBEntities(entityType) {
+        if (!this.has(entityType)) {
+            return [];
+        }
+        return this.get(entityType);
+    }
+
+    _getDBEntity(entityType, $id) {
+        if (!this.has(entityType)) {
+            return {};
+        }
+
+        let entities = this.get(entityType);
+        for (let i = 0; i < entities.length; i++) {
+            if (entities[i]['$id'] == $id) {
+                return entities[i];
+            }
+        }
+
+        return {};
+    }
+
+    _addDBEntity(entityType, props, keysSet, nestedKeys = {}) {
+        props = whitelistKeys(props, keysSet, nestedKeys);
+
+        if (!this.has(entityType)) {
+            this.set(entityType, []);
+        }
+
+        let entities = this.get(entityType);
+        for (let i = 0; i < entities.length; i++) {
+            if (entities[i]['$id'] == props['$id']) {
+                entities[i] = props;
+                this.set(entityType, entities);
+                return;
+            }
+        }
+        entities.push(props);
+        this.set(entityType, entities);
     }
 }
 
@@ -310,6 +379,50 @@ class Local extends Config {
         this.set("collections", collections);
     }
 
+    getTables() {
+        if (!this.has("tables")) {
+            return [];
+        }
+        return this.get("tables");
+    }
+
+    getTable($id) {
+        if (!this.has("tables")) {
+            return {};
+        }
+
+        let tables = this.get("tables");
+        for (let i = 0; i < tables.length; i++) {
+            if (tables[i]['$id'] == $id) {
+                return tables[i];
+            }
+        }
+
+        return {};
+    }
+
+    addTable(props) {
+        props = whitelistKeys(props, KeysTable, {
+            columns: KeysColumns,
+            indexes: KeyIndexes
+        });
+
+        if (!this.has("tables")) {
+            this.set("tables", []);
+        }
+
+        let tables = this.get("tables");
+        for (let i = 0; i < tables.length; i++) {
+            if (tables[i]['$id'] == props['$id'] && tables[i]['databaseId'] == props['databaseId']) {
+                tables[i] = props;
+                this.set("tables", tables);
+                return;
+            }
+        }
+        tables.push(props);
+        this.set("tables", tables);
+    }
+
     getBuckets() {
         if (!this.has("buckets")) {
             return [];
@@ -392,45 +505,28 @@ class Local extends Config {
         this.set("topics", topics);
     }
 
+    getTablesDBs() {
+        return this._getDBEntities("tablesDB");
+    }
+
+    getTablesDB($id) {
+        return this._getDBEntity("tablesDB", $id);
+    }
+    
+    addTablesDB(props) {
+        this._addDBEntity("tablesDB", props, KeysDatabase);
+    }
+
     getDatabases() {
-        if (!this.has("databases")) {
-            return [];
-        }
-        return this.get("databases");
+        return this._getDBEntities("databases");
     }
 
     getDatabase($id) {
-        if (!this.has("databases")) {
-            return {};
-        }
-
-        let databases = this.get("databases");
-        for (let i = 0; i < databases.length; i++) {
-            if (databases[i]['$id'] == $id) {
-                return databases[i];
-            }
-        }
-
-        return {};
+        return this._getDBEntity("databases", $id);
     }
 
     addDatabase(props) {
-        props = whitelistKeys(props, KeysDatabase);
-
-        if (!this.has("databases")) {
-            this.set("databases", []);
-        }
-
-        let databases = this.get("databases");
-        for (let i = 0; i < databases.length; i++) {
-            if (databases[i]['$id'] == props['$id']) {
-                databases[i] = props;
-                this.set("databases", databases);
-                return;
-            }
-        }
-        databases.push(props);
-        this.set("databases", databases);
+        this._addDBEntity("databases", props, KeysDatabase);
     }
 
     getTeams() {
@@ -713,5 +809,6 @@ module.exports = {
     KeysStorage,
     KeysTeams,
     KeysCollection,
+    KeysTable,
     whitelistKeys
 };

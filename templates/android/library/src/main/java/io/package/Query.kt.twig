@@ -255,6 +255,15 @@ class Query(
         fun createdAfter(value: String) = Query("createdAfter", null, listOf(value)).toJson()
 
         /**
+         * Filter resources where document was created between start and end dates (inclusive).
+         *
+         * @param start The start date value.
+         * @param end The end date value.
+         * @returns The query string.
+         */
+        fun createdBetween(start: String, end: String) = Query("createdBetween", null, listOf(start, end)).toJson()
+
+        /**
          * Filter resources where document was updated before date.
          *
          * @param value The date value to compare against.
@@ -271,6 +280,15 @@ class Query(
         fun updatedAfter(value: String) = Query("updatedAfter", null, listOf(value)).toJson()
 
         /**
+         * Filter resources where document was updated between start and end dates (inclusive).
+         *
+         * @param start The start date value.
+         * @param end The end date value.
+         * @returns The query string.
+         */
+        fun updatedBetween(start: String, end: String) = Query("updatedBetween", null, listOf(start, end)).toJson()
+
+        /**
          * Combine multiple queries using logical OR operator.
          *
          * @param queries The list of query strings to combine.
@@ -285,6 +303,122 @@ class Query(
          * @returns The query string.
          */
         fun and(queries: List<String>) = Query("and", null, queries.map { it.fromJson<Query>() }).toJson()
+
+        /**
+         * Filter resources where attribute is at a specific distance from the given coordinates.
+         *
+         * @param attribute The attribute to filter on.
+         * @param values The coordinate values.
+         * @param distance The distance value.
+         * @param meters Whether the distance is in meters.
+         * @returns The query string.
+         */
+        fun distanceEqual(attribute: String, values: List<Any>, distance: Number, meters: Boolean = true) = Query("distanceEqual", attribute, listOf(listOf(values, distance, meters))).toJson()
+
+        /**
+         * Filter resources where attribute is not at a specific distance from the given coordinates.
+         *
+         * @param attribute The attribute to filter on.
+         * @param values The coordinate values.
+         * @param distance The distance value.
+         * @param meters Whether the distance is in meters.
+         * @returns The query string.
+         */
+        fun distanceNotEqual(attribute: String, values: List<Any>, distance: Number, meters: Boolean = true) = Query("distanceNotEqual", attribute, listOf(listOf(values, distance, meters))).toJson()
+
+        /**
+         * Filter resources where attribute is at a distance greater than the specified value from the given coordinates.
+         *
+         * @param attribute The attribute to filter on.
+         * @param values The coordinate values.
+         * @param distance The distance value.
+         * @param meters Whether the distance is in meters.
+         * @returns The query string.
+         */
+        fun distanceGreaterThan(attribute: String, values: List<Any>, distance: Number, meters: Boolean = true) = Query("distanceGreaterThan", attribute, listOf(listOf(values, distance, meters))).toJson()
+
+        /**
+         * Filter resources where attribute is at a distance less than the specified value from the given coordinates.
+         *
+         * @param attribute The attribute to filter on.
+         * @param values The coordinate values.
+         * @param distance The distance value.
+         * @param meters Whether the distance is in meters.
+         * @returns The query string.
+         */
+        fun distanceLessThan(attribute: String, values: List<Any>, distance: Number, meters: Boolean = true) = Query("distanceLessThan", attribute, listOf(listOf(values, distance, meters))).toJson()
+
+        /**
+         * Filter resources where attribute intersects with the given geometry.
+         *
+         * @param attribute The attribute to filter on.
+         * @param values The coordinate values.
+         * @returns The query string.
+         */
+        fun intersects(attribute: String, values: List<Any>) = Query("intersects", attribute, listOf(values)).toJson()
+
+        /**
+         * Filter resources where attribute does not intersect with the given geometry.
+         *
+         * @param attribute The attribute to filter on.
+         * @param values The coordinate values.
+         * @returns The query string.
+         */
+        fun notIntersects(attribute: String, values: List<Any>) = Query("notIntersects", attribute, listOf(values)).toJson()
+
+        /**
+         * Filter resources where attribute crosses the given geometry.
+         *
+         * @param attribute The attribute to filter on.
+         * @param values The coordinate values.
+         * @returns The query string.
+         */
+        fun crosses(attribute: String, values: List<Any>) = Query("crosses", attribute, listOf(values)).toJson()
+
+        /**
+         * Filter resources where attribute does not cross the given geometry.
+         *
+         * @param attribute The attribute to filter on.
+         * @param values The coordinate values.
+         * @returns The query string.
+         */
+        fun notCrosses(attribute: String, values: List<Any>) = Query("notCrosses", attribute, listOf(values)).toJson()
+
+        /**
+         * Filter resources where attribute overlaps with the given geometry.
+         *
+         * @param attribute The attribute to filter on.
+         * @param values The coordinate values.
+         * @returns The query string.
+         */
+        fun overlaps(attribute: String, values: List<Any>) = Query("overlaps", attribute, listOf(values)).toJson()
+
+        /**
+         * Filter resources where attribute does not overlap with the given geometry.
+         *
+         * @param attribute The attribute to filter on.
+         * @param values The coordinate values.
+         * @returns The query string.
+         */
+        fun notOverlaps(attribute: String, values: List<Any>) = Query("notOverlaps", attribute, listOf(values)).toJson()
+
+        /**
+         * Filter resources where attribute touches the given geometry.
+         *
+         * @param attribute The attribute to filter on.
+         * @param values The coordinate values.
+         * @returns The query string.
+         */
+        fun touches(attribute: String, values: List<Any>) = Query("touches", attribute, listOf(values)).toJson()
+
+        /**
+         * Filter resources where attribute does not touch the given geometry.
+         *
+         * @param attribute The attribute to filter on.
+         * @param values The coordinate values.
+         * @returns The query string.
+         */
+        fun notTouches(attribute: String, values: List<Any>) = Query("notTouches", attribute, listOf(values)).toJson()
 
         /**
          * Parse the value to a list of values.

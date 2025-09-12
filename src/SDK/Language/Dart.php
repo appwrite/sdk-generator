@@ -226,49 +226,29 @@ class Dart extends Language
         $type       = $param['type'] ?? '';
         $example    = $param['example'] ?? '';
 
-        $output = '';
+        $hasExample = !empty($example) || $example === 0 || $example === false;
 
-        if (empty($example) && $example !== 0 && $example !== false) {
-            switch ($type) {
-                case self::TYPE_FILE:
-                    $output .= 'InputFile(path: \'./path-to-files/image.jpg\', filename: \'image.jpg\')';
-                    break;
-                case self::TYPE_NUMBER:
-                case self::TYPE_INTEGER:
-                    $output .= '0';
-                    break;
-                case self::TYPE_BOOLEAN:
-                    $output .= 'false';
-                    break;
-                case self::TYPE_STRING:
-                    $output .= "''";
-                    break;
-                case self::TYPE_OBJECT:
-                    $output .= '{}';
-                    break;
-                case self::TYPE_ARRAY:
-                    $output .= '[]';
-                    break;
-            }
-        } else {
-            switch ($type) {
-                case self::TYPE_OBJECT:
-                case self::TYPE_FILE:
-                case self::TYPE_NUMBER:
-                case self::TYPE_INTEGER:
-                case self::TYPE_ARRAY:
-                    $output .= $example;
-                    break;
-                case self::TYPE_BOOLEAN:
-                    $output .= ($example) ? 'true' : 'false';
-                    break;
-                case self::TYPE_STRING:
-                    $output .= "'{$example}'";
-                    break;
-            }
+        if (!$hasExample) {
+            return match ($type) {
+                self::TYPE_OBJECT => '{}',
+                self::TYPE_ARRAY => '[]',
+                self::TYPE_BOOLEAN => 'false',
+                self::TYPE_FILE => 'InputFile(path: \'./path-to-files/image.jpg\', filename: \'image.jpg\')',
+                self::TYPE_INTEGER, self::TYPE_NUMBER => '0',
+                self::TYPE_STRING => "''",
+            };
         }
 
-        return $output;
+        return match ($type) {
+            self::TYPE_ARRAY, self::TYPE_FILE, self::TYPE_INTEGER, self::TYPE_NUMBER => $example,
+            self::TYPE_BOOLEAN => ($example) ? 'true' : 'false',
+            self::TYPE_OBJECT => ($decoded = json_decode($example, true)) !== null
+            ? (empty($decoded) && $example === '{}'
+                ? '{}'
+                : preg_replace('/\n/', "\n    ", json_encode($decoded, JSON_PRETTY_PRINT)))
+            : $example,
+            self::TYPE_STRING => "'{$example}'",
+        };
     }
 
     /**
@@ -374,6 +354,11 @@ class Dart extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/analysis_options.yaml',
+                'template'      => 'dart/analysis_options.yaml.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/lib/client_io.dart',
                 'template'      => 'dart/lib/client_io.dart.twig',
             ],
@@ -409,7 +394,7 @@ class Dart extends Language
             ],
             [
                 'scope'         => 'service',
-                'destination'   => '/lib/services/{{service.name | caseDash}}.dart',
+                'destination'   => '/lib/services/{{service.name | caseSnake}}.dart',
                 'template'      => 'dart/lib/services/service.dart.twig',
             ],
             [
@@ -419,12 +404,12 @@ class Dart extends Language
             ],
             [
                 'scope'         => 'method',
-                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
+                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseKebab}}.md',
                 'template'      => 'dart/docs/example.md.twig',
             ],
             [
                 'scope'         => 'service',
-                'destination'   => '/test/services/{{service.name | caseDash}}_test.dart',
+                'destination'   => '/test/services/{{service.name | caseSnake}}_test.dart',
                 'template'      => 'dart/test/services/service_test.dart.twig',
             ],
             [
@@ -489,6 +474,11 @@ class Dart extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '.github/workflows/test.yml',
+                'template'      => 'dart/.github/workflows/test.yml',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'lib/src/input_file.dart',
                 'template'      => 'dart/lib/src/input_file.dart.twig',
             ],
@@ -506,7 +496,7 @@ class Dart extends Language
             new TwigFilter('dartComment', function ($value) {
                 $value = explode("\n", $value);
                 foreach ($value as $key => $line) {
-                    $value[$key] = "    /// " . wordwrap($value[$key], 75, "\n    /// ");
+                    $value[$key] = "  /// " . wordwrap($value[$key], 75, "\n  /// ");
                 }
                 return implode("\n", $value);
             }, ['is_safe' => ['html']]),

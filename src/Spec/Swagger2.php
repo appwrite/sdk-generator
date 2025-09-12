@@ -388,7 +388,7 @@ class Swagger2 extends Spec
 
         // Remove non-whitelisted parameters on body parameters, also set required.
         $handleParams = function (&$params) use ($additionalMethod) {
-            if (isset($additionalMethod['parameters'])) {
+            if (!empty($additionalMethod['parameters'])) {
                 foreach ($params as $key => $param) {
                     if (empty($param['in']) || $param['in'] !== 'body' || empty($param['schema']['properties'])) {
                         continue;

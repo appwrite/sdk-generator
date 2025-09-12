@@ -42,7 +42,7 @@ import { Query } from '../query.ts';
 {% set name = parameter.name %}
 {% endif %}
 {% if name not in added %}
-import { {{ name | caseUcfirst }} } from '../enums/{{ name | caseDash }}.ts';
+import { {{ name | caseUcfirst }} } from '../enums/{{ name | caseKebab }}.ts';
 {% set added = added|merge([name]) %}
 {% endif %}
 {% endif %}

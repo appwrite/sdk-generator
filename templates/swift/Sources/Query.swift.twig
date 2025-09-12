@@ -6,10 +6,11 @@ enum QueryValue: Codable {
     case double(Double)
     case bool(Bool)
     case query(Query)
+    case array([QueryValue])   // for nested arrays
 
     init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
-        // Attempt to decode each type
+
         if let stringValue = try? container.decode(String.self) {
             self = .string(stringValue)
         } else if let intValue = try? container.decode(Int.self) {
@@ -20,8 +21,13 @@ enum QueryValue: Codable {
             self = .bool(boolValue)
         } else if let queryValue = try? container.decode(Query.self) {
             self = .query(queryValue)
+        } else if let arrayValue = try? container.decode([QueryValue].self) {
+            self = .array(arrayValue)
         } else {
-            throw DecodingError.dataCorruptedError(in: container, debugDescription: "QueryValue cannot be decoded")
+            throw DecodingError.dataCorruptedError(
+                in: container,
+                debugDescription: "QueryValue cannot be decoded"
+            )
         }
     }
 
@@ -37,6 +43,8 @@ enum QueryValue: Codable {
         case .bool(let value):
             try container.encode(value)
         case .query(let value):
+            try container.encode(value)
+        case .array(let value):
             try container.encode(value)
         }
     }
@@ -85,6 +93,30 @@ public struct Query : Codable, CustomStringConvertible {
             return [.bool(boolValue)]
         case let queryValue as Query:
             return [.query(queryValue)]
+        case let anyArray as [Any]:
+            // Handle nested arrays
+            let nestedValues = anyArray.compactMap { item -> QueryValue? in
+                if let stringValue = item as? String {
+                    return .string(stringValue)
+                } else if let intValue = item as? Int {
+                    return .int(intValue)
+                } else if let doubleValue = item as? Double {
+                    return .double(doubleValue)
+                } else if let boolValue = item as? Bool {
+                    return .bool(boolValue)
+                } else if let queryValue = item as? Query {
+                    return .query(queryValue)
+                } else if let nestedArray = item as? [Any] {
+                    // Convert nested array to QueryValue.array
+                    if let converted = convertToQueryValueArray(nestedArray) {
+                        return .array(converted)
+                    }
+                    return nil
+                }
+                return nil
+            }
+            return nestedValues.isEmpty ? nil : nestedValues
+
         default:
             return nil
         }
@@ -354,6 +386,13 @@ public struct Query : Codable, CustomStringConvertible {
         ).description
     }
 
+    public static func createdBetween(_ start: String, _ end: String) -> String {
+        return Query(
+            method: "createdBetween",
+            values: [start, end]
+        ).description
+    }
+
     public static func updatedBefore(_ value: String) -> String {
         return Query(
             method: "updatedBefore",
@@ -365,6 +404,13 @@ public struct Query : Codable, CustomStringConvertible {
         return Query(
             method: "updatedAfter",
             values: [value]
+        ).description
+    }
+
+    public static func updatedBetween(_ start: String, _ end: String) -> String {
+        return Query(
+            method: "updatedBetween",
+            values: [start, end]
         ).description
     }
 
@@ -395,6 +441,102 @@ public struct Query : Codable, CustomStringConvertible {
         return Query(
             method: "and",
             values: decodedQueries
+        ).description
+    }
+
+    public static func distanceEqual(_ attribute: String, values: [Any], distance: Double, meters: Bool = true) -> String {
+        return Query(
+            method: "distanceEqual",
+            attribute: attribute,
+            values: [[values, distance, meters]]
+        ).description
+    }
+
+    public static func distanceNotEqual(_ attribute: String, values: [Any], distance: Double, meters: Bool = true) -> String {
+        return Query(
+            method: "distanceNotEqual",
+            attribute: attribute,
+            values: [[values, distance, meters]]
+        ).description
+    }
+
+    public static func distanceGreaterThan(_ attribute: String, values: [Any], distance: Double, meters: Bool = true) -> String {
+        return Query(
+            method: "distanceGreaterThan",
+            attribute: attribute,
+            values: [[values, distance, meters]]
+        ).description
+    }
+
+    public static func distanceLessThan(_ attribute: String, values: [Any], distance: Double, meters: Bool = true) -> String {
+        return Query(
+            method: "distanceLessThan",
+            attribute: attribute,
+            values: [[values, distance, meters]]
+        ).description
+    }
+
+    public static func intersects(_ attribute: String, values: [Any]) -> String {
+        return Query(
+            method: "intersects",
+            attribute: attribute,
+            values: [values]
+        ).description
+    }
+
+    public static func notIntersects(_ attribute: String, values: [Any]) -> String {
+        return Query(
+            method: "notIntersects",
+            attribute: attribute,
+            values: [values]
+        ).description
+    }
+
+    public static func crosses(_ attribute: String, values: [Any]) -> String {
+        return Query(
+            method: "crosses",
+            attribute: attribute,
+            values: [values]
+        ).description
+    }
+
+    public static func notCrosses(_ attribute: String, values: [Any]) -> String {
+        return Query(
+            method: "notCrosses",
+            attribute: attribute,
+            values: [values]
+        ).description
+    }
+
+    public static func overlaps(_ attribute: String, values: [Any]) -> String {
+        return Query(
+            method: "overlaps",
+            attribute: attribute,
+            values: [values]
+        ).description
+    }
+
+    public static func notOverlaps(_ attribute: String, values: [Any]) -> String {
+        return Query(
+            method: "notOverlaps",
+            attribute: attribute,
+            values: [values]
+        ).description
+    }
+
+    public static func touches(_ attribute: String, values: [Any]) -> String {
+        return Query(
+            method: "touches",
+            attribute: attribute,
+            values: [values]
+        ).description
+    }
+
+    public static func notTouches(_ attribute: String, values: [Any]) -> String {
+        return Query(
+            method: "notTouches",
+            attribute: attribute,
+            values: [values]
         ).description
     }
 

@@ -241,14 +241,19 @@ class Flutter extends Dart
                 'template'      => 'flutter/pubspec.yaml.twig',
             ],
             [
+                'scope'         => 'default',
+                'destination'   => '/analysis_options.yaml',
+                'template'      => 'flutter/analysis_options.yaml.twig',
+            ],
+            [
                 'scope'         => 'service',
-                'destination'   => '/lib/services/{{service.name | caseDash}}.dart',
+                'destination'   => '/lib/services/{{service.name | caseSnake}}.dart',
                 'template'      => 'flutter/lib/services/service.dart.twig',
             ],
             [
                 'scope'         => 'service',
-                'destination'   => '/test/services/{{service.name | caseDash}}_test.dart',
-                'template'      => 'dart/test/services/service_test.dart.twig',
+                'destination'   => '/test/services/{{service.name | caseSnake}}_test.dart',
+                'template'      => 'flutter/test/services/service_test.dart.twig',
             ],
             [
                 'scope'         => 'definition',
@@ -327,7 +332,7 @@ class Flutter extends Dart
             ],
             [
                 'scope'         => 'method',
-                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
+                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseKebab}}.md',
                 'template'      => 'flutter/docs/example.md.twig',
             ],
             [
@@ -339,6 +344,11 @@ class Flutter extends Dart
                 'scope'         => 'default',
                 'destination'   => '.github/workflows/format.yml',
                 'template'      => 'flutter/.github/workflows/format.yml.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '.github/workflows/test.yml',
+                'template'      => 'flutter/.github/workflows/test.yml',
             ],
             [
                 'scope'         => 'enum',

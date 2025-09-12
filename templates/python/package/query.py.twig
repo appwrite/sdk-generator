@@ -128,6 +128,10 @@ class Query():
         return str(Query("createdAfter", None, value))
 
     @staticmethod
+    def created_between(start, end):
+        return str(Query("createdBetween", None, [start, end]))
+
+    @staticmethod
     def updated_before(value):
         return str(Query("updatedBefore", None, value))
 
@@ -136,9 +140,61 @@ class Query():
         return str(Query("updatedAfter", None, value))
 
     @staticmethod
+    def updated_between(start, end):
+        return str(Query("updatedBetween", None, [start, end]))
+
+    @staticmethod
     def or_queries(queries):
         return str(Query("or", None, [json.loads(query) for query in queries]))
 
     @staticmethod
     def and_queries(queries):
         return str(Query("and", None, [json.loads(query) for query in queries]))
+
+    @staticmethod
+    def distance_equal(attribute, values, distance, meters=True):
+        return str(Query("distanceEqual", attribute, [[values, distance, meters]]))
+
+    @staticmethod
+    def distance_not_equal(attribute, values, distance, meters=True):
+        return str(Query("distanceNotEqual", attribute, [[values, distance, meters]]))
+
+    @staticmethod
+    def distance_greater_than(attribute, values, distance, meters=True):
+        return str(Query("distanceGreaterThan", attribute, [[values, distance, meters]]))
+
+    @staticmethod
+    def distance_less_than(attribute, values, distance, meters=True):
+        return str(Query("distanceLessThan", attribute, [[values, distance, meters]]))
+
+    @staticmethod
+    def intersects(attribute, values):
+        return str(Query("intersects", attribute, [values]))
+
+    @staticmethod
+    def not_intersects(attribute, values):
+        return str(Query("notIntersects", attribute, [values]))
+
+    @staticmethod
+    def crosses(attribute, values):
+        return str(Query("crosses", attribute, [values]))
+
+    @staticmethod
+    def not_crosses(attribute, values):
+        return str(Query("notCrosses", attribute, [values]))
+
+    @staticmethod
+    def overlaps(attribute, values):
+        return str(Query("overlaps", attribute, [values]))
+
+    @staticmethod
+    def not_overlaps(attribute, values):
+        return str(Query("notOverlaps", attribute, [values]))
+
+    @staticmethod
+    def touches(attribute, values):
+        return str(Query("touches", attribute, [values]))
+
+    @staticmethod
+    def not_touches(attribute, values):
+        return str(Query("notTouches", attribute, [values]))

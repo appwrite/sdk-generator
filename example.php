@@ -43,7 +43,7 @@ try {
     $platform = 'console';
     // $platform = 'server';
 
-    $version = '1.7.x';
+    $version = '1.8.x';
     $spec = getSSLPage("https://raw.githubusercontent.com/appwrite/appwrite/{$version}/app/config/specs/swagger2-{$version}-{$platform}.json");
 
     if(empty($spec)) {
@@ -218,6 +218,7 @@ try {
         ->setExclude([
             'services' => [
                 ['name' => 'assistant'],
+                ['name' => 'avatars'],
             ],
         ])
     ;

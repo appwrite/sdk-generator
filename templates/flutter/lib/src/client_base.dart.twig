@@ -2,7 +2,7 @@ import 'response.dart';
 import 'client.dart';
 import 'enums.dart';
 
-abstract class ClientBase implements Client {  
+abstract class ClientBase implements Client {
 {% for header in spec.global.headers %}
 {% if header.description %}
   /// {{header.description}}

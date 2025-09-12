@@ -182,9 +182,35 @@ class Tests: XCTestCase {
         print(Query.notEndsWith("name", value: "nne"))
         print(Query.createdBefore("2023-01-01"))
         print(Query.createdAfter("2023-01-01"))
+        print(Query.createdBetween("2023-01-01", "2023-12-31"))
         print(Query.updatedBefore("2023-01-01"))
         print(Query.updatedAfter("2023-01-01"))
-        
+        print(Query.updatedBetween("2023-01-01", "2023-12-31"))
+
+        // Spatial Distance query tests
+        print(Query.distanceEqual("location", values: [[40.7128, -74], [40.7128, -74]], distance: 1000))
+        print(Query.distanceEqual("location", values: [40.7128, -74], distance: 1000, meters: true))
+        print(Query.distanceNotEqual("location", values: [40.7128, -74], distance: 1000))
+        print(Query.distanceNotEqual("location", values: [40.7128, -74], distance: 1000, meters: true))
+        print(Query.distanceGreaterThan("location", values: [40.7128, -74], distance: 1000))
+        print(Query.distanceGreaterThan("location", values: [40.7128, -74], distance: 1000, meters: true))
+        print(Query.distanceLessThan("location", values: [40.7128, -74], distance: 1000))
+        print(Query.distanceLessThan("location", values: [40.7128, -74], distance: 1000, meters: true))
+
+        // Spatial query tests
+        print(Query.intersects("location", values: [40.7128, -74]))
+        print(Query.notIntersects("location", values: [40.7128, -74]))
+        print(Query.crosses("location", values: [40.7128, -74]))
+        print(Query.notCrosses("location", values: [40.7128, -74]))
+        print(Query.overlaps("location", values: [40.7128, -74]))
+        print(Query.notOverlaps("location", values: [40.7128, -74]))
+        print(Query.touches("location", values: [40.7128, -74]))
+        print(Query.notTouches("location", values: [40.7128, -74]))
+        print(Query.contains("location", value: [[40.7128, -74],[40.7128, -74]]))
+        print(Query.notContains("location", value: [[40.7128, -74],[40.7128, -74]]))
+        print(Query.equal("location", value: [[40.7128, -74],[40.7128, -74]]))
+        print(Query.notEqual("location", value: [[40.7128, -74],[40.7128, -74]]))
+
         print(Query.or(
             [Query.equal("released", value: true), Query.lessThan("releasedYear", value: 1990)]
         ))

@@ -9,7 +9,7 @@ import (
 type {{ definition.name | caseUcfirst }} struct {
     {%~ for property in definition.properties %}
     {{ property.description | godocComment(4) }}
-    {{ property.name | caseUcfirst  }} {{ property | propertyType(spec) }} `json:"{{ property.name | escapeKeyword }}"`
+    {{ property.name | caseUcfirst | escapeKeyword }} {{ property | propertyType(spec) }} `json:"{{ property.name }}"`
     {%~ endfor %}
 
     // Used by Decode() method

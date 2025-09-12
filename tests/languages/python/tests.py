@@ -144,8 +144,34 @@ print(Query.not_starts_with("name", "Ann"))
 print(Query.not_ends_with("name", "nne"))
 print(Query.created_before("2023-01-01"))
 print(Query.created_after("2023-01-01"))
+print(Query.created_between('2023-01-01', '2023-12-31'))
 print(Query.updated_before("2023-01-01"))
 print(Query.updated_after("2023-01-01"))
+print(Query.updated_between('2023-01-01', '2023-12-31'))
+
+# Spatial Distance query tests
+print(Query.distance_equal("location", [[40.7128, -74], [40.7128, -74]], 1000))
+print(Query.distance_equal("location", [40.7128, -74], 1000, True))
+print(Query.distance_not_equal("location", [40.7128, -74], 1000))
+print(Query.distance_not_equal("location", [40.7128, -74], 1000, True))
+print(Query.distance_greater_than("location", [40.7128, -74], 1000))
+print(Query.distance_greater_than("location", [40.7128, -74], 1000, True))
+print(Query.distance_less_than("location", [40.7128, -74], 1000))
+print(Query.distance_less_than("location", [40.7128, -74], 1000, True))
+
+# Spatial query tests
+print(Query.intersects("location", [40.7128, -74]))
+print(Query.not_intersects("location", [40.7128, -74]))
+print(Query.crosses("location", [40.7128, -74]))
+print(Query.not_crosses("location", [40.7128, -74]))
+print(Query.overlaps("location", [40.7128, -74]))
+print(Query.not_overlaps("location", [40.7128, -74]))
+print(Query.touches("location", [40.7128, -74]))
+print(Query.not_touches("location", [40.7128, -74]))
+print(Query.contains("location", [[40.7128, -74], [40.7128, -74]]))
+print(Query.not_contains("location", [[40.7128, -74], [40.7128, -74]]))
+print(Query.equal("location", [[40.7128, -74], [40.7128, -74]]))
+print(Query.not_equal("location", [[40.7128, -74], [40.7128, -74]]))
 
 print(Query.or_queries(
     [Query.equal("released", True), Query.less_than("releasedYear", 1990)]
