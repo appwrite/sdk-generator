@@ -1,4 +1,4 @@
-#if UNITY_EDITOR || UNITY_IOS || UNITY_ANDROID || UNITY_WEBGL
+#if (UNITY_EDITOR || UNITY_IOS || UNITY_ANDROID || UNITY_WEBGL) && UNI_TASK
 using System;
 using System.Collections.Concurrent;
 using System.Web;
