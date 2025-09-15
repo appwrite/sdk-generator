@@ -481,7 +481,9 @@ pull
     .description("Pull all resource.")
     .action(actionRunner(() => {
         cliConfig.all = true;
-        return pullResources();
+        return pullResources({
+            skipDeprecated: true
+        });
     }));
 
 pull
