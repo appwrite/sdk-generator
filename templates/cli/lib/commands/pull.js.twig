@@ -295,7 +295,8 @@ const pullSites = async ({ code, withVariables }) => {
 const pullCollection = async () => {
     warn("appwrite pull collection has been deprecated. Please consider using 'appwrite pull tables' instead");
     log("Fetching collections ...");
-    let total = 0;
+    let totalDatabases = 0;
+    let totalCollections = 0;
 
     const fetchResponse = await databasesList({
         queries: [JSON.stringify({ method: 'limit', values: [1] })],
@@ -303,7 +304,7 @@ const pullCollection = async () => {
     });
     if (fetchResponse["databases"].length <= 0) {
         log("No collections found.");
-        success(`Successfully pulled ${chalk.bold(total)} collections.`);
+        success(`Successfully pulled ${chalk.bold(totalCollections)} collections from ${chalk.bold(totalDatabases)} databases.`);
         return;
     }
 
@@ -323,7 +324,7 @@ const pullCollection = async () => {
             parseOutput: false
         });
 
-        total++;
+        totalDatabases++;
         log(`Pulling all collections from ${chalk.bold(database['name'])} database ...`);
 
         localConfig.addDatabase(database);
@@ -334,6 +335,7 @@ const pullCollection = async () => {
         }, 100, 'collections');
 
         for (const collection of collections) {
+            totalCollections++;
             localConfig.addCollection({
                 ...collection,
                 '$createdAt': undefined,
@@ -342,12 +344,13 @@ const pullCollection = async () => {
         }
     }
 
-    success(`Successfully pulled ${chalk.bold(total)} collections.`);
+    success(`Successfully pulled ${chalk.bold(totalCollections)} collections from ${chalk.bold(totalDatabases)} databases.`);
 }
 
 const pullTable = async () => {
     log("Fetching tables ...");
-    let total = 0;
+    let totalTablesDBs = 0;
+    let totalTables = 0;
 
     const fetchResponse = await tablesDBList({
         queries: [JSON.stringify({ method: 'limit', values: [1] })],
@@ -355,7 +358,7 @@ const pullTable = async () => {
     });
     if (fetchResponse["databases"].length <= 0) {
         log("No tables found.");
-        success(`Successfully pulled ${chalk.bold(total)} tables.`);
+        success(`Successfully pulled ${chalk.bold(totalTables)} tables from ${chalk.bold(totalTablesDBs)} tables databases.`);
         return;
     }
 
@@ -375,7 +378,7 @@ const pullTable = async () => {
             parseOutput: false
         });
 
-        total++;
+        totalTablesDBs++;
         log(`Pulling all tables from ${chalk.bold(database['name'])} database ...`);
 
         localConfig.addTablesDB(database);
@@ -386,6 +389,7 @@ const pullTable = async () => {
         }, 100, 'tables');
 
         for (const table of tables) {
+            totalTables++;
             localConfig.addTable({
                 ...table,
                 '$createdAt': undefined,
@@ -394,7 +398,7 @@ const pullTable = async () => {
         }
     }
 
-    success(`Successfully pulled ${chalk.bold(total)} tables.`);
+    success(`Successfully pulled ${chalk.bold(totalTables)} tables from ${chalk.bold(totalTablesDBs)} tables databases.`);
 }
 
 const pullBucket = async () => {
@@ -474,7 +478,7 @@ const pullMessagingTopic = async () => {
 
 const pull = new Command("pull")
     .description(commandDescriptions['pull'])
-    .action(actionRunner(pullResources));
+    .action(actionRunner(() => pullResources({ skipDeprecated: true })));
 
 pull
     .command("all")
