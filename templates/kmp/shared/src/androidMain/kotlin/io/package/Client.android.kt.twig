@@ -1,0 +1,58 @@
+package {{ sdk.namespace | caseDot }}
+
+import android.content.Context
+import android.content.pm.PackageManager
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import {{ sdk.namespace | caseDot }}.cookies.stores.DataStoreCookieStorage
+import {{ sdk.namespace | caseDot }}.cookies.stores.DataStoreManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import okio.Path.Companion.toPath
+
+actual class Client constructor(
+    private val context: Context,
+    endpoint: String = "{{spec.endpoint}}",
+    endpointRealtime: String? = null,
+    selfSigned: Boolean = false,
+) : BaseClient<Client>(endpoint, endpointRealtime) {
+    actual override val coroutineContext = Job() + Dispatchers.Default
+
+    private val dataStoreManager = DataStoreManager(
+        PreferenceDataStoreFactory.createWithPath (
+            produceFile = { context.filesDir.resolve("appwriteCookies.preferences_pb").absolutePath.toPath() }
+        ))
+    val dataStoreCookieStorage = DataStoreCookieStorage(dataStoreManager)
+
+    private val appVersion by lazy {
+        try {
+            val pInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+            return@lazy pInfo.versionName
+        } catch (e: PackageManager.NameNotFoundException) {
+            e.printStackTrace()
+            return@lazy ""
+        }
+    }
+
+    init {
+        httpClient = createHttpClient(selfSigned, dataStoreCookieStorage)
+        headers = mutableMapOf(
+              "content-type" to "application/json",
+              "origin" to "{{ spec.title | caseLower }}-android://${context.packageName}",
+              "user-agent" to "${context.packageName}/${appVersion}, ${System.getProperty("http.agent")}",
+              "x-sdk-name" to "{{ sdk.name }}",
+              "x-sdk-platform" to "{{ sdk.platform }}",
+              "x-sdk-language" to "{{ language.name | caseLower }}",
+              "x-sdk-version" to "{{ sdk.version }}"{% if spec.global.defaultHeaders | length > 0 %},{% endif %}
+
+  {% for key,header in spec.global.defaultHeaders %}
+              "{{ key | caseLower }}" to "{{ header }}"{% if not loop.last %},{% endif %}
+  {% endfor %}
+
+          )
+    }
+
+    actual fun setSelfSigned(value: Boolean): Client {
+        httpClient = createHttpClient(value, dataStoreCookieStorage)
+        return this
+    }
+}
