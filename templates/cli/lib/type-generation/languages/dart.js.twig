@@ -90,7 +90,7 @@ class Dart extends LanguageMeta {
      if (a.required === b.required) return 0;
      return a.required ? -1 : 1;
    }); -%>
-<% const __attrs = strict ? sortedAttributes : collection.attributes; -%>
+<% const __attrs = sortedAttributes; -%>
 <% for (const attribute of __attrs) { -%>
 <%   if (attribute.type === '${AttributeType.RELATIONSHIP}') { -%>
 <%     const related = collections.find(c => c.$id === attribute.relatedCollection); -%>
