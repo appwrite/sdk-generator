@@ -489,6 +489,11 @@ class Swagger2 extends Spec
                         //nested model
                         $sch['properties'][$name]['sub_schemas'] = \array_map(fn($schema) => str_replace('#/definitions/', '', $schema['$ref']), $def['items']['x-oneOf']);
                     }
+
+                    if (isset($def['enum'])) {
+                        // enum property
+                        $sch['properties'][$name]['enum'] = $def['enum'];
+                    }
                 }
             }
             $list[$key] = $sch;

@@ -336,6 +336,10 @@ class Web extends JS
             return $ret;
         }
 
+        if (array_key_exists('enum', $property)) {
+            return implode(' | ', array_map(fn($v) => '"' . addcslashes($v, '"\\') . '"', $property['enum']));
+        }
+
         return $this->getTypeName($property);
     }
 
