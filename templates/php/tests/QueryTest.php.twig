@@ -132,7 +132,7 @@ final class QueryTest extends TestCase {
     }
 
     public function testOrderRandom(): void {
-        $this->assertSame('orderRandom()', Query::orderRandom());
+        $this->assertSame('{"method":"orderRandom"}', Query::orderRandom());
     }
 
     public function testCursorBefore(): void {
