@@ -493,6 +493,8 @@ class Swagger2 extends Spec
                     if (isset($def['enum'])) {
                         // enum property
                         $sch['properties'][$name]['enum'] = $def['enum'];
+                        $sch['properties'][$name]['x-enum-name'] = $def['x-enum-name'] ?? null;
+                        $sch['properties'][$name]['x-enum-keys'] = $def['x-enum-keys'] ?? [];
                     }
                 }
             }
@@ -504,7 +506,7 @@ class Swagger2 extends Spec
     /**
      * @return array
      */
-    public function getEnums(): array
+    public function getRequestEnums(): array
     {
         $list = [];
 
@@ -519,6 +521,34 @@ class Swagger2 extends Spec
                                 'name' => $enumName,
                                 'enum' => $parameter['enumValues'],
                                 'keys' => $parameter['enumKeys'],
+                            ];
+                        }
+                    }
+                }
+            }
+        }
+
+        return \array_values($list);
+    }
+
+    /**
+     * @return array
+     */
+    public function getResponseEnums(): array
+    {
+        $list = [];
+        $definitions = $this->getDefinitions();
+
+        foreach ($definitions as $modelName => $model) {
+            if (isset($model['properties']) && is_array($model['properties'])) {
+                foreach ($model['properties'] as $propertyName => $property) {
+                    if (isset($property['enum'])) {
+                        $enumName = $property['x-enum-name'] ?? ucfirst($modelName) . ucfirst($propertyName);
+
+                        if (!\in_array($enumName, array_column($list, 'name'))) {
+                            $list[$enumName] = [
+                                'name' => $enumName,
+                                'enum' => $property['enum'],
                             ];
                         }
                     }

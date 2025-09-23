@@ -1,3 +1,11 @@
+{% if spec.responseEnums|length > 0 %}
+import {
+{% for responseEnum in spec.responseEnums %}
+    {{ responseEnum.name }}{% if not loop.last %},{% endif %}
+{% endfor %}
+} from './enums';
+{% endif %}
+
 export namespace Models {
 
     declare const __default: unique symbol;
@@ -11,7 +19,7 @@ export namespace Models {
         /**
          * {{ property.description }}
          */
-        {{ property.name }}{% if not property.required %}?{% endif %}: {{ property | getSubSchema(spec) | raw }};
+        {{ property.name }}{% if not property.required %}?{% endif %}: {{ property | getSubSchema(spec, definition.name) | raw }};
 {% endfor %}
     }
 {% if definition.additionalProperties %}
