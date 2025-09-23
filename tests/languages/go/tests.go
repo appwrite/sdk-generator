@@ -202,6 +202,7 @@ func testQueries() {
 	fmt.Println(query.Select([]interface{}{"name", "age"}))
 	fmt.Println(query.OrderAsc("title"))
 	fmt.Println(query.OrderDesc("title"))
+	fmt.Println(query.OrderRandom())
 	fmt.Println(query.CursorAfter("my_movie_id"))
 	fmt.Println(query.CursorBefore("my_movie_id"))
 	fmt.Println(query.Limit(50))

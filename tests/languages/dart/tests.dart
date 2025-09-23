@@ -143,6 +143,7 @@ void main() async {
   print(Query.select(["name", "age"]));
   print(Query.orderAsc("title"));
   print(Query.orderDesc("title"));
+  print(Query.orderRandom());
   print(Query.cursorAfter("my_movie_id"));
   print(Query.cursorBefore("my_movie_id"));
   print(Query.limit(50));

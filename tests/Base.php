@@ -103,6 +103,7 @@ abstract class Base extends TestCase
         '{"method":"select","values":["name","age"]}',
         '{"method":"orderAsc","attribute":"title"}',
         '{"method":"orderDesc","attribute":"title"}',
+        '{"method":"orderRandom"}',
         '{"method":"cursorAfter","values":["my_movie_id"]}',
         '{"method":"cursorBefore","values":["my_movie_id"]}',
         '{"method":"limit","values":[50]}',

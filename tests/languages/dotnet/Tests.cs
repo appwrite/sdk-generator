@@ -151,6 +151,7 @@ namespace AppwriteTests
             TestContext.WriteLine(Query.Select(new List<string> { "name", "age" }));
             TestContext.WriteLine(Query.OrderAsc("title"));
             TestContext.WriteLine(Query.OrderDesc("title"));
+            TestContext.WriteLine(Query.OrderRandom());
             TestContext.WriteLine(Query.CursorAfter("my_movie_id"));
             TestContext.WriteLine(Query.CursorBefore("my_movie_id"));
             TestContext.WriteLine(Query.Limit(50));
