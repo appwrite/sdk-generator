@@ -1,9 +1,7 @@
 {% if spec.responseEnums|length > 0 %}
-import {
 {% for responseEnum in spec.responseEnums %}
-    {{ responseEnum.name }}{% if not loop.last %},{% endif %}
+import { {{ responseEnum.name }} } from "./enums/{{ responseEnum.name | caseKebab }}"
 {% endfor %}
-} from './enums';
 {% endif %}
 
 export namespace Models {
