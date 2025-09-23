@@ -518,6 +518,9 @@ class Kotlin extends Language
             if ($property['type'] === 'array') {
                 $type = 'List<' . $type . '>';
             }
+        } elseif (isset($property['enum'])) {
+            $enumName = $property['x-enum-name'] ?? $property['name'];
+            $type = \ucfirst($enumName);
         } else {
             $type = $this->getTypeName($property);
         }

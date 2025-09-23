@@ -493,8 +493,8 @@ class Swagger2 extends Spec
                     if (isset($def['enum'])) {
                         // enum property
                         $sch['properties'][$name]['enum'] = $def['enum'];
-                        $sch['properties'][$name]['x-enum-name'] = $def['x-enum-name'] ?? null;
-                        $sch['properties'][$name]['x-enum-keys'] = $def['x-enum-keys'] ?? [];
+                        $sch['properties'][$name]['enumName'] = $def['x-enum-name'] ?? null;
+                        $sch['properties'][$name]['enumKeys'] = $def['x-enum-keys'] ?? [];
                     }
                 }
             }

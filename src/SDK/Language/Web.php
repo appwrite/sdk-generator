@@ -337,8 +337,8 @@ class Web extends JS
         }
 
         if (array_key_exists('enum', $property) && !empty($methodName)) {
-            if (isset($property['x-enum-name'])) {
-                return $this->toPascalCase($property['x-enum-name']);
+            if (isset($property['enumName'])) {
+                return $this->toPascalCase($property['enumName']);
             }
 
             return $this->toPascalCase($methodName) . $this->toPascalCase($property['name']);
