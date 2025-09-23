@@ -144,6 +144,7 @@ echo Query::endsWith('name', 'nne') . "\n";
 echo Query::select(['name', 'age']) . "\n";
 echo Query::orderAsc('title') . "\n";
 echo Query::orderDesc('title') . "\n";
+echo Query::orderRandom() . "\n";
 echo Query::cursorAfter('my_movie_id') . "\n";
 echo Query::cursorBefore('my_movie_id') . "\n";
 echo Query::limit(50) . "\n";

@@ -131,6 +131,10 @@ final class QueryTest extends TestCase {
         $this->assertSame('orderDesc("attr")', Query::orderDesc('attr'));
     }
 
+    public function testOrderRandom(): void {
+        $this->assertSame('orderRandom()', Query::orderRandom());
+    }
+
     public function testCursorBefore(): void {
         $this->assertSame('cursorBefore("attr")', Query::cursorBefore('attr'));
     }

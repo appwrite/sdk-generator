@@ -80,6 +80,10 @@ class Query():
         return str(Query("orderDesc", attribute, None))
 
     @staticmethod
+    def order_random():
+        return str(Query("orderRandom", None, None))
+
+    @staticmethod
     def cursor_before(id):
         return str(Query("cursorBefore", None, id))
 
