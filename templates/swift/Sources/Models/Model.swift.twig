@@ -1,5 +1,11 @@
 import Foundation
 import JSONCodable
+{%~ for property in definition.properties %}
+{%~ if property.enum %}
+{%~ set enumName = property['enumName'] ?? property.name %}
+import {{spec.title | caseUcfirst}}Enums
+{%~ endif %}
+{%~ endfor %}
 
 /// {{ definition.description }}
 {% if definition.properties | length == 0 and not definition.additionalProperties %}
@@ -69,7 +75,7 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
     public func toMap() -> [String: Any] {
         return [
             {%~ for property in definition.properties %}
-            "{{ property.name }}": {% if property.sub_schema %}{% if property.type == 'array' %}{{property.name | escapeSwiftKeyword | removeDollarSign}}.map { $0.toMap() }{% else %}{{property.name | escapeSwiftKeyword | removeDollarSign}}.toMap(){% endif %}{% else %}{{property.name | escapeSwiftKeyword | removeDollarSign}}{% endif %} as Any{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
+            "{{ property.name }}": {% if property.sub_schema %}{% if property.type == 'array' %}{{property.name | escapeSwiftKeyword | removeDollarSign}}.map { $0.toMap() }{% else %}{{property.name | escapeSwiftKeyword | removeDollarSign}}.toMap(){% endif %}{% elseif property.enum %}{{property.name | escapeSwiftKeyword | removeDollarSign}}{% if not property.required %}?{% endif %}.rawValue{% else %}{{property.name | escapeSwiftKeyword | removeDollarSign}}{% endif %} as Any{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
 
             {%~ endfor %}
             {%~ if definition.additionalProperties %}
@@ -91,6 +97,9 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
             {%- else -%}
                 {%- if property | isAnyCodableArray(spec) -%}
                     (map["{{property.name }}"] as{% if isDocument %}?{% else %}{% if property.required %}!{% else %}?{% endif %}{% endif %} [Any]{% if isDocument or not property.required %} ?? []{% endif %}).map { AnyCodable($0) }
+                {%- elseif property.enum -%}
+                    {%- set enumName = property['enumName'] ?? property.name -%}
+                    {{ enumName | caseUcfirst }}(rawValue: map["{{property.name }}"] as{% if isDocument %}?{% else %}{% if property.required %}!{% else %}?{% endif %}{% endif %} String{% if isDocument and property.required %} ?? ""{% endif %}){% if not property.required %}{% if not isDocument %}{% endif %}{% endif %}!
                 {%- else -%}
                     map["{{property.name }}"] as{% if isDocument %}?{% else %}{% if property.required %}!{% else %}?{% endif %}{% endif %} {{ property | propertyType(spec) | raw }}{% if isDocument and property.required %}{% if property.type == 'string' %} ?? ""{% elseif property.type == 'integer' %} ?? 0{% elseif property.type == 'number' %} ?? 0.0{% elseif property.type == 'boolean' %} ?? false{% elseif property.type == 'array' %} ?? []{% endif %}{% endif %}
                 {%- endif -%}

@@ -522,7 +522,7 @@ class Kotlin extends Language
                 $type = 'List<' . $type . '>';
             }
         } elseif (isset($property['enum'])) {
-            $enumName = $property['x-enum-name'] ?? $property['name'];
+            $enumName = $property['enumName'] ?? $property['name'];
             $type = \ucfirst($enumName);
         } else {
             $type = $this->getTypeName($property);
@@ -589,7 +589,7 @@ class Kotlin extends Language
 
         // Handle enum properties
         if (isset($property['enum']) && !empty($property['enum'])) {
-            $enumName = $property['x-enum-name'] ?? $property['name'];
+            $enumName = $property['enumName'] ?? $property['name'];
             $enumClass = $this->toPascalCase($enumName);
             $nullCheck = $property['required'] ? '!!' : ' ?: null';
 
