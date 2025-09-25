@@ -54,7 +54,19 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
         {%~ for property in definition.properties %}
+        {%~ if property.enum %}
+        {%~ if property.required %}
+        self.{{ property.name | escapeSwiftKeyword | removeDollarSign }} = {{ property | propertyType(spec) | raw }}(rawValue: try container.decode(String.self, forKey: .{{ property.name | escapeSwiftKeyword | removeDollarSign }}))!
+        {%~ else %}
+        if let {{ property.name | escapeSwiftKeyword | removeDollarSign }}String = try container.decodeIfPresent(String.self, forKey: .{{ property.name | escapeSwiftKeyword | removeDollarSign }}) {
+            self.{{ property.name | escapeSwiftKeyword | removeDollarSign }} = {{ property | propertyType(spec) | raw }}(rawValue: {{ property.name | escapeSwiftKeyword | removeDollarSign }}String)
+        } else {
+            self.{{ property.name | escapeSwiftKeyword | removeDollarSign }} = nil
+        }
+        {%~ endif %}
+        {%~ else %}
         self.{{ property.name | escapeSwiftKeyword | removeDollarSign }} = try container.decode{% if not property.required %}IfPresent{% endif %}({{ property | propertyType(spec) | raw }}.self, forKey: .{{ property.name | escapeSwiftKeyword | removeDollarSign }})
+        {%~ endif %}
         {%~ endfor %}
         {%~ if definition.additionalProperties %}
         self.data = try container.decode(T.self, forKey: .data)
@@ -65,7 +77,7 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
         var container = encoder.container(keyedBy: CodingKeys.self)
 
         {%~ for property in definition.properties %}
-        try container.encode{% if not property.required %}IfPresent{% endif %}({{ property.name | escapeSwiftKeyword | removeDollarSign }}, forKey: .{{ property.name | escapeSwiftKeyword | removeDollarSign }})
+        try container.encode{% if not property.required %}IfPresent{% endif %}({{ property.name | escapeSwiftKeyword | removeDollarSign }}{% if property.enum %}.rawValue{% endif %}, forKey: .{{ property.name | escapeSwiftKeyword | removeDollarSign }})
         {%~ endfor %}
         {%~ if definition.additionalProperties %}
         try container.encode(data, forKey: .data)
