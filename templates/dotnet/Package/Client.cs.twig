@@ -154,6 +154,7 @@ namespace {{ spec.title | caseUcfirst }}
 
                 foreach (var parameter in parameters)
                 {
+                    if (parameter.Value == null) continue; 
                     if (parameter.Key == "file")
                     {
                         var fileContent = parameters["file"] as MultipartFormDataContent;
