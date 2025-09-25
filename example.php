@@ -13,7 +13,6 @@ use Appwrite\SDK\Language\Python;
 use Appwrite\SDK\Language\Ruby;
 use Appwrite\SDK\Language\Dart;
 use Appwrite\SDK\Language\Go;
-use Appwrite\SDK\Language\Deno;
 use Appwrite\SDK\Language\REST;
 use Appwrite\SDK\Language\Swift;
 use Appwrite\SDK\Language\Apple;
