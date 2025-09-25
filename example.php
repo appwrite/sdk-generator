@@ -39,8 +39,8 @@ try {
 
     // Leave the platform you want uncommented
     // $platform = 'client';
-    // $platform = 'console';
-    $platform = 'server';
+    $platform = 'console';
+    // $platform = 'server';
 
     $version = '1.8.x';
     $spec = getSSLPage("https://raw.githubusercontent.com/appwrite/appwrite/{$version}/app/config/specs/swagger2-{$version}-{$platform}.json");
@@ -100,30 +100,6 @@ try {
     ;
 
     $sdk->generate(__DIR__ . '/examples/web');
-
-    // Deno
-    $sdk  = new SDK(new Deno(), new Swagger2($spec));
-
-    $sdk
-        ->setName('NAME')
-        ->setDescription('Repo description goes here')
-        ->setShortDescription('Repo short description goes here')
-        ->setVersion('0.0.0')
-        ->setURL('https://example.com')
-        ->setLogo('https://appwrite.io/v1/images/console.png')
-        ->setLicenseContent('test test test')
-        ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
-        ->setChangelog('**CHANGELOG**')
-        ->setGitUserName('repoowner')
-        ->setGitRepoName('reponame')
-        ->setTwitter('appwrite_io')
-        ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
-        ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '1.6.0',
-        ])
-    ;
-
-    $sdk->generate(__DIR__ . '/examples/deno');
 
     // Node
     $sdk  = new SDK(new Node(), new Swagger2($spec));
