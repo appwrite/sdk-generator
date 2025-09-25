@@ -4,8 +4,7 @@ import com.google.gson.annotations.SerializedName
 import io.appwrite.extensions.jsonCast
 {%~ for property in definition.properties %}
 {%~ if property.enum %}
-{%~ set enumName = property['x-enum-name'] ?? property.name %}
-import {{ sdk.namespace | caseDot }}.enums.{{ enumName | caseUcfirst }}
+import {{ sdk.namespace | caseDot }}.enums.{{ property.name | caseUcfirst }}
 {%~ endif %}
 {%~ endfor %}
 
