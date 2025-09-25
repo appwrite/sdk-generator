@@ -128,10 +128,10 @@ class Dart extends Language
     public function getTypeName(array $parameter, array $spec = []): string
     {
         if (isset($parameter['enumName'])) {
-            return \ucfirst($parameter['enumName']);
+            return 'enums.' . \ucfirst($parameter['enumName']);
         }
         if (!empty($parameter['enumValues'])) {
-            return \ucfirst($parameter['name']);
+            return 'enums.' . \ucfirst($parameter['name']);
         }
         if (isset($parameter['items'])) {
             // Map definition nested type to parameter nested type
