@@ -135,13 +135,14 @@ open class Client {
     /// @return Client
     ///
     open func setEndpoint(_ endPoint: String) -> Client {
-        self.endPoint = endPoint
-
-        if (self.endPointRealtime == nil && endPoint.starts(with: "http")) {
-            self.endPointRealtime = endPoint
-                .replacingOccurrences(of: "http://", with: "ws://")
-                .replacingOccurrences(of: "https://", with: "wss://")
+        if !endPoint.hasPrefix("http://") && !endPoint.hasPrefix("https://") {
+            fatalError("Invalid endpoint URL: \(endPoint)")
         }
+
+        self.endPoint = endPoint
+        self.endPointRealtime = endPoint
+            .replacingOccurrences(of: "http://", with: "ws://")
+            .replacingOccurrences(of: "https://", with: "wss://")
 
         return self
     }
@@ -154,8 +155,11 @@ open class Client {
     /// @return Client
     ///
     open func setEndpointRealtime(_ endPoint: String) -> Client {
-        self.endPointRealtime = endPoint
+        if !endPoint.hasPrefix("ws://") && !endPoint.hasPrefix("wss://") {
+            fatalError("Invalid realtime endpoint URL: \(endPoint)")
+        }
 
+        self.endPointRealtime = endPoint
         return self
     }
 
@@ -211,7 +215,7 @@ open class Client {
 
        return output.addingPercentEncoding(
            withAllowedCharacters: .urlHostAllowed
-       ) ?? ""
+       )?.replacingOccurrences(of: "+", with: "%2B") ?? "" // since urlHostAllowed doesn't include +
    }
 
     ///
@@ -300,7 +304,7 @@ open class Client {
 
         if let warning = response.headers["x-{{ spec.title | lower }}-warning"].first {
             warning.split(separator: ";").forEach { warning in
-                print("Warning: \(warning)")
+                fputs("Warning: \(warning)\n", stderr)
             }
         }
 

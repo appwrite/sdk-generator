@@ -143,7 +143,7 @@ abstract class JS extends Language
                 if (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type'])) {
                     return $this->getTypeName($parameter['array']) . '[]';
                 }
-                return 'string[]';
+                return 'any[]';
             case self::TYPE_FILE:
                 return 'File';
         }

@@ -107,6 +107,12 @@ rescue Exception => error
     puts error.response
 end
 
+begin
+    client.set_endpoint("htp://cloud.appwrite.io/v1")
+rescue Exception => error
+    puts error.message
+end
+
 general.empty()
 
 url = general.oauth2(
@@ -135,12 +141,51 @@ puts Query.ends_with("name", "nne")
 puts Query.select(["name", "age"])
 puts Query.order_asc("title")
 puts Query.order_desc("title")
+puts Query.order_random()
 puts Query.cursor_after("my_movie_id")
 puts Query.cursor_before("my_movie_id")
 puts Query.limit(50)
 puts Query.offset(20)
 puts Query.contains("title", "Spider")
 puts Query.contains("labels", "first")
+
+# New query methods
+puts Query.not_contains("title", "Spider")
+puts Query.not_search("name", "john")
+puts Query.not_between("age", 50, 100)
+puts Query.not_starts_with("name", "Ann")
+puts Query.not_ends_with("name", "nne")
+puts Query.created_before("2023-01-01")
+puts Query.created_after("2023-01-01")
+puts Query.created_between('2023-01-01', '2023-12-31')
+puts Query.updated_before("2023-01-01")
+puts Query.updated_after("2023-01-01")
+puts Query.updated_between('2023-01-01', '2023-12-31')
+
+# Spatial Distance query tests
+puts Query.distance_equal("location", [[40.7128, -74], [40.7128, -74]], 1000)
+puts Query.distance_equal("location", [40.7128, -74], 1000, true)
+puts Query.distance_not_equal("location", [40.7128, -74], 1000)
+puts Query.distance_not_equal("location", [40.7128, -74], 1000, true)
+puts Query.distance_greater_than("location", [40.7128, -74], 1000)
+puts Query.distance_greater_than("location", [40.7128, -74], 1000, true)
+puts Query.distance_less_than("location", [40.7128, -74], 1000)
+puts Query.distance_less_than("location", [40.7128, -74], 1000, true)
+
+# Spatial query tests
+puts Query.intersects("location", [40.7128, -74])
+puts Query.not_intersects("location", [40.7128, -74])
+puts Query.crosses("location", [40.7128, -74])
+puts Query.not_crosses("location", [40.7128, -74])
+puts Query.overlaps("location", [40.7128, -74])
+puts Query.not_overlaps("location", [40.7128, -74])
+puts Query.touches("location", [40.7128, -74])
+puts Query.not_touches("location", [40.7128, -74])
+puts Query.contains("location", [[40.7128, -74], [40.7128, -74]])
+puts Query.not_contains("location", [[40.7128, -74], [40.7128, -74]])
+puts Query.equal("location", [[40.7128, -74], [40.7128, -74]])
+puts Query.not_equal("location", [[40.7128, -74], [40.7128, -74]])
+
 puts Query.or([Query.equal("released", true), Query.less_than("releasedYear", 1990)])
 puts Query.and([Query.equal("released", false), Query.greater_than("releasedYear", 2015)])
 

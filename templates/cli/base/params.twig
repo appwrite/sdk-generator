@@ -14,19 +14,25 @@
 
     const ignorer = ignore();
 
-    const func = localConfig.getFunction(functionId);
+{% if service.name == 'sites' %}
+    const resourceId = siteId;
+    const resourceConfig = localConfig.getSite(resourceId);
+{% else %}
+    const resourceId = functionId;
+    const resourceConfig = localConfig.getFunction(resourceId);
+{% endif %}
 
     ignorer.add('.appwrite');
 
-    if (func.ignore) {
-        ignorer.add(func.ignore);
+    if (resourceConfig.ignore) {
+        ignorer.add(resourceConfig.ignore);
     } else if (fs.existsSync(pathLib.join({{ parameter.name | caseCamel | escapeKeyword }}, '.gitignore'))) {
         ignorer.add(fs.readFileSync(pathLib.join({{ parameter.name | caseCamel | escapeKeyword }}, '.gitignore')).toString());
     }
 
     const files = getAllFiles({{ parameter.name | caseCamel | escapeKeyword }}).map((file) => pathLib.relative({{ parameter.name | caseCamel | escapeKeyword }}, file)).filter((file) => !ignorer.ignores(file));
 
-    const archiveFileName = `${functionId}-code.tar.gz`;
+    const archiveFileName = `{{ service.name }}-${resourceId}-code.tar.gz`;
 
     await tar
         .create({

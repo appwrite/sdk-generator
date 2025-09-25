@@ -46,8 +46,11 @@ export class Client {
      * @return this
      */
     setEndpoint(endpoint: string): this {
-        this.endpoint = endpoint;
+        if (!endpoint.startsWith('http://') && !endpoint.startsWith('https://')) {
+            throw new {{spec.title | caseUcfirst}}Exception('Invalid endpoint URL: ' + endpoint);
+        }
 
+        this.endpoint = endpoint;
         return this;
     }
 

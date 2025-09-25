@@ -12,14 +12,11 @@ import 'input_file.dart';
 import 'upload_progress.dart';
 import 'response.dart';
 
-ClientBase createClient({
-  required String endPoint,
-  required bool selfSigned,
-}) =>
+ClientBase createClient({required String endPoint, required bool selfSigned}) =>
     ClientBrowser(endPoint: endPoint, selfSigned: selfSigned);
 
 class ClientBrowser extends ClientBase with ClientMixin {
-  static const int CHUNK_SIZE = 5*1024*1024;
+  static const int CHUNK_SIZE = 5 * 1024 * 1024;
   String _endPoint;
   Map<String, String>? _headers;
   @override
@@ -51,8 +48,10 @@ class ClientBrowser extends ClientBase with ClientMixin {
 
     config = {};
 
-    assert(_endPoint.startsWith(RegExp("http://|https://")),
-        "endPoint $_endPoint must start with 'http'");
+    assert(
+      _endPoint.startsWith(RegExp("http://|https://")),
+      "endPoint $_endPoint must start with 'http'",
+    );
     init();
   }
 
@@ -78,15 +77,24 @@ class ClientBrowser extends ClientBase with ClientMixin {
 
   @override
   ClientBrowser setEndpoint(String endPoint) {
+    if (!endPoint.startsWith('http://') && !endPoint.startsWith('https://')) {
+      throw {{spec.title | caseUcfirst}}Exception('Invalid endpoint URL: $endPoint');
+    }
+
     _endPoint = endPoint;
     _endPointRealtime = endPoint
         .replaceFirst('https://', 'wss://')
         .replaceFirst('http://', 'ws://');
+
     return this;
   }
 
   @override
   ClientBrowser setEndPointRealtime(String endPoint) {
+    if (!endPoint.startsWith('ws://') && !endPoint.startsWith('wss://')) {
+      throw {{spec.title | caseUcfirst}}Exception('Invalid realtime endpoint URL: $endPoint');
+    }
+
     _endPointRealtime = endPoint;
     return this;
   }
@@ -99,11 +107,10 @@ class ClientBrowser extends ClientBase with ClientMixin {
   }
 
   Future init() async {
-    final cookieFallback = web.window.localStorage['cookieFallback'];
+    final cookieFallback = web.window.localStorage.getItem('cookieFallback');
     if (cookieFallback != null) {
       addHeader('x-fallback-cookies', cookieFallback);
     }
-    _httpClient.withCredentials = true;
   }
 
   @override
@@ -124,7 +131,11 @@ class ClientBrowser extends ClientBase with ClientMixin {
 
     late Response res;
     if (size <= CHUNK_SIZE) {
-      params[paramName] = http.MultipartFile.fromBytes(paramName, file.bytes!, filename: file.filename);
+      params[paramName] = http.MultipartFile.fromBytes(
+        paramName,
+        file.bytes!,
+        filename: file.filename,
+      );
       return call(
         HttpMethod.post,
         path: path,
@@ -151,12 +162,19 @@ class ClientBrowser extends ClientBase with ClientMixin {
       List<int> chunk = [];
       final end = min(offset + CHUNK_SIZE, size);
       chunk = file.bytes!.getRange(offset, end).toList();
-      params[paramName] =
-          http.MultipartFile.fromBytes(paramName, chunk, filename: file.filename);
+      params[paramName] = http.MultipartFile.fromBytes(
+        paramName,
+        chunk,
+        filename: file.filename,
+      );
       headers['content-range'] =
           'bytes $offset-${min<int>((offset + CHUNK_SIZE - 1), size - 1)}/$size';
-      res = await call(HttpMethod.post,
-          path: path, headers: headers, params: params);
+      res = await call(
+        HttpMethod.post,
+        path: path,
+        headers: headers,
+        params: params,
+      );
       offset += CHUNK_SIZE;
       if (offset < size) {
         headers['x-{{spec.title | caseLower }}-id'] = res.data['\$id'];
@@ -183,11 +201,21 @@ class ClientBrowser extends ClientBase with ClientMixin {
   }) async {
     await init();
 
+    // Combine headers to check for dev key
+    final combinedHeaders = {..._headers!, ...headers};
+
+    // Only include credentials when dev key is not set
+    if (combinedHeaders['X-Appwrite-Dev-Key'] == null) {
+      _httpClient.withCredentials = true;
+    } else {
+      _httpClient.withCredentials = false;
+    }
+
     late http.Response res;
     http.BaseRequest request = prepareRequest(
       method,
       uri: Uri.parse(_endPoint + path),
-      headers: {..._headers!, ...headers},
+      headers: combinedHeaders,
       params: params,
     );
     try {
@@ -197,9 +225,10 @@ class ClientBrowser extends ClientBase with ClientMixin {
       final cookieFallback = res.headers['x-fallback-cookies'];
       if (cookieFallback != null) {
         debugPrint(
-            '{{spec.title | caseUcfirst}} is using localStorage for session management. Increase your security by adding a custom domain as your API endpoint.');
+          '{{spec.title | caseUcfirst}} is using localStorage for session management. Increase your security by adding a custom domain as your API endpoint.',
+        );
         addHeader('X-Fallback-Cookies', cookieFallback);
-        web.window.localStorage['cookieFallback'] = cookieFallback;
+        web.window.localStorage.setItem('cookieFallback', cookieFallback);
       }
       return prepareResponse(res, responseType: responseType);
     } catch (e) {
@@ -212,9 +241,10 @@ class ClientBrowser extends ClientBase with ClientMixin {
 
   @override
   Future webAuth(Uri url, {String? callbackUrlScheme}) {
-  return FlutterWebAuth2.authenticate(
+    return FlutterWebAuth2.authenticate(
       url: url.toString(),
       callbackUrlScheme: "{{spec.title | caseLower}}-callback-" + config['project']!,
+      options: const FlutterWebAuth2Options(useWebview: false),
     );
   }
 }

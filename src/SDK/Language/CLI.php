@@ -127,13 +127,18 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'CHANGELOG.md',
+                'template'      => 'cli/CHANGELOG.md.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'package.json',
                 'template'      => 'cli/package.json.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'scoop/appwrite.json',
-                'template'      => 'cli/scoop/appwrite.json.twig',
+                'destination'   => 'scoop/appwrite.config.json',
+                'template'      => 'cli/scoop/appwrite.config.json.twig',
                 'minify'        => false,
             ],
             [
@@ -158,7 +163,7 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'method',
-                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
+                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseKebab}}.md',
                 'template'      => 'cli/docs/example.md.twig',
             ],
             [
@@ -180,6 +185,56 @@ class CLI extends Node
                 'scope'         => 'default',
                 'destination'   => 'lib/sdks.js',
                 'template'      => 'cli/lib/sdks.js.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/type-generation/attribute.js',
+                'template'      => 'cli/lib/type-generation/attribute.js.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/type-generation/languages/language.js',
+                'template'      => 'cli/lib/type-generation/languages/language.js.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/type-generation/languages/php.js',
+                'template'      => 'cli/lib/type-generation/languages/php.js.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/type-generation/languages/typescript.js',
+                'template'      => 'cli/lib/type-generation/languages/typescript.js.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/type-generation/languages/javascript.js',
+                'template'      => 'cli/lib/type-generation/languages/javascript.js.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/type-generation/languages/kotlin.js',
+                'template'      => 'cli/lib/type-generation/languages/kotlin.js.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/type-generation/languages/swift.js',
+                'template'      => 'cli/lib/type-generation/languages/swift.js.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/type-generation/languages/java.js',
+                'template'      => 'cli/lib/type-generation/languages/java.js.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/type-generation/languages/dart.js',
+                'template'      => 'cli/lib/type-generation/languages/dart.js.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/type-generation/languages/csharp.js',
+                'template'      => 'cli/lib/type-generation/languages/csharp.js.twig',
             ],
             [
                 'scope'         => 'default',
@@ -263,7 +318,7 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'service',
-                'destination'   => '/lib/commands/{{service.name | caseDash}}.js',
+                'destination'   => '/lib/commands/{{service.name | caseKebab}}.js',
                 'template'      => 'cli/lib/commands/command.js.twig',
             ],
             [
@@ -275,6 +330,16 @@ class CLI extends Node
                 'scope'         => 'default',
                 'destination'   => 'lib/commands/organizations.js',
                 'template'      => 'cli/lib/commands/organizations.js.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/commands/types.js',
+                'template'      => 'cli/lib/commands/types.js.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/commands/update.js',
+                'template'      => 'cli/lib/commands/update.js.twig',
             ]
         ];
     }
@@ -305,7 +370,7 @@ class CLI extends Node
             self::TYPE_OBJECT => 'object',
             self::TYPE_ARRAY => (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type']))
                 ? $this->getTypeName($parameter['array']) . '[]'
-                : 'string[]',
+                : 'any[]',
             default => $parameter['type'],
         };
     }
@@ -374,14 +439,6 @@ class CLI extends Node
         return $output;
     }
 
-    public function getFilters(): array
-    {
-        return array_merge(parent::getFilters(), [
-            new TwigFilter('caseKebab', function ($value) {
-                return strtolower(preg_replace('/(?<!^)([A-Z][a-z]|(?<=[a-z])[^a-z]|(?<=[A-Z])[0-9_])/', '-$1', $value));
-            })
-        ]);
-    }
     /**
      * Language specific filters.
      * @return array

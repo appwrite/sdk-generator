@@ -129,8 +129,12 @@ class Client {
      * @returns {this}
      */
     setEndpoint(endpoint: string): this {
+        if (!endpoint.startsWith('http://') && !endpoint.startsWith('https://')) {
+            throw new {{spec.title | caseUcfirst}}Exception('Invalid endpoint URL: ' + endpoint);
+        }
+
         this.config.endpoint = endpoint;
-        this.config.endpointRealtime = this.config.endpointRealtime || this.config.endpoint.replace('https://', 'wss://').replace('http://', 'ws://');
+        this.config.endpointRealtime = endpoint.replace('https://', 'wss://').replace('http://', 'ws://');
 
         return this;
     }
@@ -143,8 +147,11 @@ class Client {
      * @returns {this}
      */
     setEndpointRealtime(endpointRealtime: string): this {
-        this.config.endpointRealtime = endpointRealtime;
+        if (!endpointRealtime.startsWith('ws://') && !endpointRealtime.startsWith('wss://')) {
+            throw new {{spec.title | caseUcfirst}}Exception('Invalid realtime endpoint URL: ' + endpointRealtime);
+        }
 
+        this.config.endpointRealtime = endpointRealtime;
         return this;
     }
 
@@ -371,7 +378,7 @@ class Client {
         }
     }
 
-    async call(method: string, url: URL, headers: Headers = {}, params: Payload = {}): Promise<any> {
+    async call(method: string, url: URL, headers: Headers = {}, params: Payload = {}, responseType = 'json'): Promise<any> {
         method = method.toUpperCase();
 
         headers = Object.assign({}, this.headers, headers);
@@ -380,8 +387,11 @@ class Client {
         let options: RequestInit = {
             method,
             headers,
-            credentials: 'include'
         };
+
+        if (headers['X-Appwrite-Dev-Key'] === undefined) {
+            options.credentials = 'include';
+        }
 
         if (method === 'GET') {
             for (const [key, value] of Object.entries(Service.flatten(params))) {
@@ -424,6 +434,8 @@ class Client {
 
             if (response.headers.get('content-type')?.includes('application/json')) {
                 data = await response.json();
+            } else if (responseType === 'arrayBuffer') {
+                data = await response.arrayBuffer();
             } else {
                 data = {
                     message: await response.text()

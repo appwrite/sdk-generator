@@ -7,21 +7,31 @@ const { messagingListTopics } = require("./messaging");
 const { teamsList } = require("./teams");
 const { projectsGet } = require("./projects");
 const { functionsList, functionsGetDeploymentDownload, functionsListDeployments } = require("./functions");
+const { sitesList, sitesGetDeploymentDownload, sitesListDeployments } = require("./sites");
 const { databasesGet, databasesListCollections, databasesList } = require("./databases");
+const { tablesDBList, tablesDBGet, tablesDBListTables } = require("./tables-db");
 const { storageListBuckets } = require("./storage");
 const { localConfig } = require("../config");
 const { paginate } = require("../paginate");
-const { questionsPullCollection, questionsPullFunctions, questionsPullFunctionsCode, questionsPullResources } = require("../questions");
+const { questionsPullCollection, questionsPullFunctions, questionsPullFunctionsCode, questionsPullSites, questionsPullSitesCode, questionsPullResources } = require("../questions");
 const { cliConfig, success, log, warn, actionRunner, commandDescriptions } = require("../parser");
 
-const pullResources = async () => {
+const pullResources = async ({
+    skipDeprecated = false
+} = {}) => {
     const actions = {
         settings: pullSettings,
         functions: pullFunctions,
+        sites: pullSites,
         collections: pullCollection,
+        tables: pullTable,
         buckets: pullBucket,
         teams: pullTeam,
         messages: pullMessagingTopic
+    }
+
+    if (skipDeprecated) {
+        delete actions.collections;
     }
 
     if (cliConfig.all) {
@@ -169,9 +179,124 @@ const pullFunctions = async ({ code, withVariables }) => {
     success(`Successfully pulled ${chalk.bold(total)} functions.`);
 }
 
-const pullCollection = async () => {
-    log("Fetching collections ...");
+const pullSites = async ({ code, withVariables }) => {
+    process.chdir(localConfig.configDirectoryPath)
+
+    log("Fetching sites ...");
     let total = 0;
+
+    const fetchResponse = await sitesList({
+        queries: [JSON.stringify({ method: 'limit', values: [1] })],
+        parseOutput: false
+    });
+    if (fetchResponse["sites"].length <= 0) {
+        log("No sites found.");
+        success(`Successfully pulled ${chalk.bold(total)} sites.`);
+        return;
+    }
+
+    const sites = cliConfig.all
+        ? (await paginate(sitesList, { parseOutput: false }, 100, 'sites')).sites
+        : (await inquirer.prompt(questionsPullSites)).sites;
+
+    let allowCodePull = cliConfig.force === true ? true : null;
+
+    for (let site of sites) {
+        total++;
+        log(`Pulling site ${chalk.bold(site['name'])} ...`);
+
+        const localSite = localConfig.getSite(site.$id);
+
+        site['path'] = localSite['path'];
+        if (!localSite['path']) {
+            site['path'] = `sites/${site.name}`;
+        }
+        const holdingVars = site['vars'];
+        // We don't save var in to the config
+        delete site['vars'];
+        localConfig.addSite(site);
+
+        if (!fs.existsSync(site['path'])) {
+            fs.mkdirSync(site['path'], { recursive: true });
+        }
+
+        if (code === false) {
+            warn("Source code download skipped.");
+            continue;
+        }
+
+        if (allowCodePull === null) {
+            const codeAnswer = await inquirer.prompt(questionsPullSitesCode);
+            allowCodePull = codeAnswer.override;
+        }
+
+        if (!allowCodePull) {
+            continue;
+        }
+
+        let deploymentId = null;
+
+        try {
+            const fetchResponse = await sitesListDeployments({
+                siteId: site['$id'],
+                queries: [
+                    JSON.stringify({ method: 'limit', values: [1] }),
+                    JSON.stringify({ method: 'orderDesc', values: ['$id'] })
+                ],
+                parseOutput: false
+            });
+
+            if (fetchResponse['total'] > 0) {
+                deploymentId = fetchResponse['deployments'][0]['$id'];
+            }
+
+        } catch {
+        }
+
+        if (deploymentId === null) {
+            log("Source code download skipped because site doesn't have any available deployment");
+            continue;
+        }
+
+        log("Pulling latest deployment code ...");
+
+        const compressedFileName = `${site['$id']}-${+new Date()}.tar.gz`
+        await sitesGetDeploymentDownload({
+            siteId: site['$id'],
+            deploymentId,
+            destination: compressedFileName,
+            overrideForCli: true,
+            parseOutput: false
+        });
+
+        tar.extract({
+            sync: true,
+            cwd: site['path'],
+            file: compressedFileName,
+            strict: false,
+        });
+
+        fs.rmSync(compressedFileName);
+
+        if (withVariables) {
+            const envFileLocation = `${site['path']}/.env`
+            try {
+                fs.rmSync(envFileLocation);
+            } catch {
+            }
+
+            fs.writeFileSync(envFileLocation, holdingVars.map(r => `${r.key}=${r.value}\n`).join(''))
+        }
+    }
+
+    success(`Successfully pulled ${chalk.bold(total)} sites.`);
+}
+
+const pullCollection = async () => {
+    warn("appwrite pull collection has been deprecated. Please consider using 'appwrite pull tables' instead");
+    log("Fetching collections ...");
+    let totalDatabases = 0;
+    let totalCollections = 0;
 
     const fetchResponse = await databasesList({
         queries: [JSON.stringify({ method: 'limit', values: [1] })],
@@ -179,7 +304,7 @@ const pullCollection = async () => {
     });
     if (fetchResponse["databases"].length <= 0) {
         log("No collections found.");
-        success(`Successfully pulled ${chalk.bold(total)} collections.`);
+        success(`Successfully pulled ${chalk.bold(totalCollections)} collections from ${chalk.bold(totalDatabases)} databases.`);
         return;
     }
 
@@ -199,7 +324,7 @@ const pullCollection = async () => {
             parseOutput: false
         });
 
-        total++;
+        totalDatabases++;
         log(`Pulling all collections from ${chalk.bold(database['name'])} database ...`);
 
         localConfig.addDatabase(database);
@@ -210,6 +335,7 @@ const pullCollection = async () => {
         }, 100, 'collections');
 
         for (const collection of collections) {
+            totalCollections++;
             localConfig.addCollection({
                 ...collection,
                 '$createdAt': undefined,
@@ -218,7 +344,61 @@ const pullCollection = async () => {
         }
     }
 
-    success(`Successfully pulled ${chalk.bold(total)} collections.`);
+    success(`Successfully pulled ${chalk.bold(totalCollections)} collections from ${chalk.bold(totalDatabases)} databases.`);
+}
+
+const pullTable = async () => {
+    log("Fetching tables ...");
+    let totalTablesDBs = 0;
+    let totalTables = 0;
+
+    const fetchResponse = await tablesDBList({
+        queries: [JSON.stringify({ method: 'limit', values: [1] })],
+        parseOutput: false
+    });
+    if (fetchResponse["databases"].length <= 0) {
+        log("No tables found.");
+        success(`Successfully pulled ${chalk.bold(totalTables)} tables from ${chalk.bold(totalTablesDBs)} tables databases.`);
+        return;
+    }
+
+    let databases = cliConfig.ids;
+
+    if (databases.length === 0) {
+        if (cliConfig.all) {
+            databases = (await paginate(tablesDBList, { parseOutput: false }, 100, 'databases')).databases.map(database => database.$id);
+        } else {
+            databases = (await inquirer.prompt(questionsPullCollection)).databases;
+        }
+    }
+
+    for (const databaseId of databases) {
+        const database = await tablesDBGet({
+            databaseId,
+            parseOutput: false
+        });
+
+        totalTablesDBs++;
+        log(`Pulling all tables from ${chalk.bold(database['name'])} database ...`);
+
+        localConfig.addTablesDB(database);
+
+        const { tables } = await paginate(tablesDBListTables, {
+            databaseId,
+            parseOutput: false
+        }, 100, 'tables');
+
+        for (const table of tables) {
+            totalTables++;
+            localConfig.addTable({
+                ...table,
+                '$createdAt': undefined,
+                '$updatedAt': undefined
+            });
+        }
+    }
+
+    success(`Successfully pulled ${chalk.bold(totalTables)} tables from ${chalk.bold(totalTablesDBs)} tables databases.`);
 }
 
 const pullBucket = async () => {
@@ -298,14 +478,16 @@ const pullMessagingTopic = async () => {
 
 const pull = new Command("pull")
     .description(commandDescriptions['pull'])
-    .action(actionRunner(pullResources));
+    .action(actionRunner(() => pullResources({ skipDeprecated: true })));
 
 pull
     .command("all")
     .description("Pull all resource.")
     .action(actionRunner(() => {
         cliConfig.all = true;
-        return pullResources();
+        return pullResources({
+            skipDeprecated: true
+        });
     }));
 
 pull
@@ -322,10 +504,24 @@ pull
     .action(actionRunner(pullFunctions))
 
 pull
+    .command("site")
+    .alias("sites")
+    .description("Pull your {{ spec.title|caseUcfirst }} site")
+    .option("--no-code", "Don't pull the site's code")
+    .option("--with-variables", `Pull site variables. ${chalk.red('recommend for testing purposes only')}`)
+    .action(actionRunner(pullSites))
+
+pull
     .command("collection")
     .alias("collections")
-    .description("Pull your {{ spec.title|caseUcfirst }} collections")
+    .description("Pull your {{ spec.title|caseUcfirst }} collections (deprecated, please use 'pull tables' instead)")
     .action(actionRunner(pullCollection))
+
+pull
+    .command("table")
+    .alias("tables")
+    .description("Pull your {{ spec.title|caseUcfirst }} tables")
+    .action(actionRunner(pullTable))
 
 pull
     .command("bucket")

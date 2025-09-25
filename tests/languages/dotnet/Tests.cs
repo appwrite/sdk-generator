@@ -114,6 +114,15 @@ namespace AppwriteTests
                 TestContext.WriteLine(e.Response);
             }
 
+            try
+            {
+                client.SetEndpoint("htp://cloud.appwrite.io/v1");
+            }
+            catch (AppwriteException e)
+            {
+                TestContext.WriteLine(e.Message);
+            }
+
             await general.Empty();
 
             var url = await general.Oauth2(
@@ -142,12 +151,51 @@ namespace AppwriteTests
             TestContext.WriteLine(Query.Select(new List<string> { "name", "age" }));
             TestContext.WriteLine(Query.OrderAsc("title"));
             TestContext.WriteLine(Query.OrderDesc("title"));
+            TestContext.WriteLine(Query.OrderRandom());
             TestContext.WriteLine(Query.CursorAfter("my_movie_id"));
             TestContext.WriteLine(Query.CursorBefore("my_movie_id"));
             TestContext.WriteLine(Query.Limit(50));
             TestContext.WriteLine(Query.Offset(20));
             TestContext.WriteLine(Query.Contains("title", "Spider"));
             TestContext.WriteLine(Query.Contains("labels", "first"));
+            
+            // New query methods
+            TestContext.WriteLine(Query.NotContains("title", "Spider"));
+            TestContext.WriteLine(Query.NotSearch("name", "john"));
+            TestContext.WriteLine(Query.NotBetween("age", 50, 100));
+            TestContext.WriteLine(Query.NotStartsWith("name", "Ann"));
+            TestContext.WriteLine(Query.NotEndsWith("name", "nne"));
+            TestContext.WriteLine(Query.CreatedBefore("2023-01-01"));
+            TestContext.WriteLine(Query.CreatedAfter("2023-01-01"));
+            TestContext.WriteLine(Query.CreatedBetween("2023-01-01", "2023-12-31"));
+            TestContext.WriteLine(Query.UpdatedBefore("2023-01-01"));
+            TestContext.WriteLine(Query.UpdatedAfter("2023-01-01"));
+            TestContext.WriteLine(Query.UpdatedBetween("2023-01-01", "2023-12-31"));
+            
+            // Spatial Distance query tests
+            TestContext.WriteLine(Query.DistanceEqual("location", new List<object> { new List<object> { 40.7128, -74 }, new List<object> { 40.7128, -74 } }, 1000));
+            TestContext.WriteLine(Query.DistanceEqual("location", new List<object> { 40.7128, -74 }, 1000, true));
+            TestContext.WriteLine(Query.DistanceNotEqual("location", new List<object> { 40.7128, -74 }, 1000));
+            TestContext.WriteLine(Query.DistanceNotEqual("location", new List<object> { 40.7128, -74 }, 1000, true));
+            TestContext.WriteLine(Query.DistanceGreaterThan("location", new List<object> { 40.7128, -74 }, 1000));
+            TestContext.WriteLine(Query.DistanceGreaterThan("location", new List<object> { 40.7128, -74 }, 1000, true));
+            TestContext.WriteLine(Query.DistanceLessThan("location", new List<object> { 40.7128, -74 }, 1000));
+            TestContext.WriteLine(Query.DistanceLessThan("location", new List<object> { 40.7128, -74 }, 1000, true));
+            
+            // Spatial query tests
+            TestContext.WriteLine(Query.Intersects("location", new List<object> { 40.7128, -74 }));
+            TestContext.WriteLine(Query.NotIntersects("location", new List<object> { 40.7128, -74 }));
+            TestContext.WriteLine(Query.Crosses("location", new List<object> { 40.7128, -74 }));
+            TestContext.WriteLine(Query.NotCrosses("location", new List<object> { 40.7128, -74 }));
+            TestContext.WriteLine(Query.Overlaps("location", new List<object> { 40.7128, -74 }));
+            TestContext.WriteLine(Query.NotOverlaps("location", new List<object> { 40.7128, -74 }));
+            TestContext.WriteLine(Query.Touches("location", new List<object> { 40.7128, -74 }));
+            TestContext.WriteLine(Query.NotTouches("location", new List<object> { 40.7128, -74 }));
+            TestContext.WriteLine(Query.Contains("location", new List<object> { new List<object> { 40.7128, -74 }, new List<object> { 40.7128, -74 } }));
+            TestContext.WriteLine(Query.NotContains("location", new List<object> { new List<object> { 40.7128, -74 }, new List<object> { 40.7128, -74 } }));
+            TestContext.WriteLine(Query.Equal("location", new List<object> { new List<object> { 40.7128, -74 }, new List<object> { 40.7128, -74 } }));
+            TestContext.WriteLine(Query.NotEqual("location", new List<object> { new List<object> { 40.7128, -74 }, new List<object> { 40.7128, -74 } }));
+            
             TestContext.WriteLine(Query.Or(
                 new List<string> {
                     Query.Equal("released", true),

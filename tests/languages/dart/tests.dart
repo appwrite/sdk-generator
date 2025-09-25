@@ -1,10 +1,10 @@
-import '../lib/packageName.dart';
-import '../lib/models.dart';
-import '../lib/enums.dart';
-import '../lib/src/input_file.dart';
-
-import 'dart:io';
 import 'dart:convert';
+import 'dart:io';
+
+import '../lib/enums.dart';
+import '../lib/models.dart';
+import '../lib/packageName.dart';
+import '../lib/src/input_file.dart';
 
 void main() async {
   Client client = Client().setSelfSigned();
@@ -109,11 +109,11 @@ void main() async {
     print(e.response);
   }
 
-  // response = await general.setCookie();
-  // print(response.result);
-
-  // response = await general.getCookie();
-  // print(response.result);
+  try {
+    client.setEndpoint("htp://cloud.appwrite.io/v1");
+  } on AppwriteException catch (e) {
+    print(e.message);
+  }
 
   await general.empty();
 
@@ -143,12 +143,51 @@ void main() async {
   print(Query.select(["name", "age"]));
   print(Query.orderAsc("title"));
   print(Query.orderDesc("title"));
+  print(Query.orderRandom());
   print(Query.cursorAfter("my_movie_id"));
   print(Query.cursorBefore("my_movie_id"));
   print(Query.limit(50));
   print(Query.offset(20));
   print(Query.contains("title", "Spider"));
   print(Query.contains("labels", "first"));
+  
+  // New query methods
+  print(Query.notContains("title", "Spider"));
+  print(Query.notSearch("name", "john"));
+  print(Query.notBetween("age", 50, 100));
+  print(Query.notStartsWith("name", "Ann"));
+  print(Query.notEndsWith("name", "nne"));
+  print(Query.createdBefore("2023-01-01"));
+  print(Query.createdAfter("2023-01-01"));
+  print(Query.createdBetween("2023-01-01", "2023-12-31"));
+  print(Query.updatedBefore("2023-01-01"));
+  print(Query.updatedAfter("2023-01-01"));
+  print(Query.updatedBetween("2023-01-01", "2023-12-31"));
+
+  // Spatial Distance query tests
+  print(Query.distanceEqual("location", [[40.7128, -74], [40.7128, -74]], 1000));
+  print(Query.distanceEqual("location", [40.7128, -74], 1000, true));
+  print(Query.distanceNotEqual("location", [40.7128, -74], 1000));
+  print(Query.distanceNotEqual("location", [40.7128, -74], 1000, true));
+  print(Query.distanceGreaterThan("location", [40.7128, -74], 1000));
+  print(Query.distanceGreaterThan("location", [40.7128, -74], 1000, true));
+  print(Query.distanceLessThan("location", [40.7128, -74], 1000));
+  print(Query.distanceLessThan("location", [40.7128, -74], 1000, true));
+
+  // Spatial query tests
+  print(Query.intersects("location", [40.7128, -74]));
+  print(Query.notIntersects("location", [40.7128, -74]));
+  print(Query.crosses("location", [40.7128, -74]));
+  print(Query.notCrosses("location", [40.7128, -74]));
+  print(Query.overlaps("location", [40.7128, -74]));
+  print(Query.notOverlaps("location", [40.7128, -74]));
+  print(Query.touches("location", [40.7128, -74]));
+  print(Query.notTouches("location", [40.7128, -74]));
+  print(Query.contains("location", [[40.7128, -74], [40.7128, -74]]));
+  print(Query.notContains("location", [[40.7128, -74], [40.7128, -74]]));
+  print(Query.equal("location", [[40.7128, -74], [40.7128, -74]]));
+  print(Query.notEqual("location", [[40.7128, -74], [40.7128, -74]]));
+  
   print(Query.or([
     Query.equal("released", true),
     Query.lessThan("releasedYear", 1990)
@@ -157,7 +196,7 @@ void main() async {
     Query.equal("released", false),
     Query.greaterThan("releasedYear", 2015)
   ]));
-
+  
   // Permission & Role helper tests
   print(Permission.read(Role.any()));
   print(Permission.write(Role.user(ID.custom('userid'))));

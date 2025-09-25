@@ -6,10 +6,10 @@ import { ID } from "./src/id.ts";
 import { InputFile } from "./src/inputFile.ts";
 import { {{spec.title | caseUcfirst}}Exception } from "./src/exception.ts";
 {% for service in spec.services %}
-import { {{service.name | caseUcfirst}} } from "./src/services/{{service.name | caseDash}}.ts";
+import { {{service.name | caseUcfirst}} } from "./src/services/{{service.name | caseKebab}}.ts";
 {% endfor %}
 {% for enum in spec.enums %}
-import { {{enum.name | caseUcfirst}} } from "./src/enums/{{enum.name | caseDash}}.ts";
+import { {{enum.name | caseUcfirst}} } from "./src/enums/{{enum.name | caseKebab}}.ts";
 {% endfor %}
 
 export {

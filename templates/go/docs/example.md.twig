@@ -15,32 +15,26 @@ import (
 {% endif %}
 )
 
-func main() {
-    client := client.NewClient()
-
+client := client.New(
 {% if method.auth|length > 0 %}
-    client.SetEndpoint("https://cloud.appwrite.io/v1") // Your API Endpoint
+    client.WithEndpoint("{{ spec.endpointDocs | raw }}")
 {% for node in method.auth %}
 {% for key,header in node|keys %}
-    client.Set{{header}}("{{node[header]['x-appwrite']['demo'] | raw }}") // {{node[header].description}}
+    client.With{{header}}("{{node[header]['x-appwrite']['demo'] | raw }}")
 {% endfor %}
 {% endfor %}
+)
 
 {% endif %}
-    service := {{ service.name | caseLower }}.New{{ service.name | caseUcfirst }}(client)
-    response, error := service.{{ method.name | caseUcfirst }}(
+service := {{ service.name | caseLower }}.New(client)
+
+response, error := service.{{ method.name | caseUcfirst }}({% if method.parameters.all | length == 0 %}){% else %}
+
 {% for parameter in method.parameters.all %}
 {% if parameter.required %}
-        {{ parameter | paramExample }},
+    {{ parameter | paramExample }},
 {% else %}
-        {{ service.name | caseLower }}.With{{ method.name | caseUcfirst }}{{ parameter.name | caseUcfirst }}({{ parameter | paramExample }}),
+    {{ service.name | caseLower }}.With{{ method.name | caseUcfirst }}{{ parameter.name | caseUcfirst }}({{ parameter | paramExample }}),
 {% endif %}
 {% endfor %}
-    )
-
-    if error != nil {
-        panic(error)
-    }
-
-    fmt.Println(response)
-}
+{% endif %})

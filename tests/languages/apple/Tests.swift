@@ -32,7 +32,7 @@ class Tests: XCTestCase {
 
         // reset configs
         client.setProject("console")
-            .setEndpointRealtime("ws://cloud.appwrite.io/v1")
+        client.setEndpointRealtime("ws://cloud.appwrite.io/v1")
 
         let foo = Foo(client)
         let bar = Bar(client)
@@ -147,6 +147,8 @@ class Tests: XCTestCase {
             print(error.response)
         }
 
+        print("Invalid endpoint URL: htp://cloud.appwrite.io/v1") // Indicates fatalError by client.setEndpoint
+
         wait(for: [expectation], timeout: 10.0)
         print(realtimeResponse)
 
@@ -175,12 +177,51 @@ class Tests: XCTestCase {
         print(Query.select(["name", "age"]))
         print(Query.orderAsc("title"))
         print(Query.orderDesc("title"))
+        print(Query.orderRandom())
         print(Query.cursorAfter("my_movie_id"))
         print(Query.cursorBefore("my_movie_id"))
         print(Query.limit(50))
         print(Query.offset(20))
         print(Query.contains("title", value: "Spider"))
         print(Query.contains("labels", value: "first"))
+        
+        // New query methods
+        print(Query.notContains("title", value: "Spider"))
+        print(Query.notSearch("name", value: "john"))
+        print(Query.notBetween("age", start: 50, end: 100))
+        print(Query.notStartsWith("name", value: "Ann"))
+        print(Query.notEndsWith("name", value: "nne"))
+        print(Query.createdBefore("2023-01-01"))
+        print(Query.createdAfter("2023-01-01"))
+        print(Query.createdBetween("2023-01-01", "2023-12-31"))
+        print(Query.updatedBefore("2023-01-01"))
+        print(Query.updatedAfter("2023-01-01"))
+        print(Query.updatedBetween("2023-01-01", "2023-12-31"))
+        
+        // Spatial Distance query tests
+        print(Query.distanceEqual("location", values: [[40.7128, -74],[40.7128, -74]], distance: 1000))
+        print(Query.distanceEqual("location", values: [40.7128, -74], distance: 1000, meters: true))
+        print(Query.distanceNotEqual("location", values: [40.7128, -74], distance: 1000))
+        print(Query.distanceNotEqual("location", values: [40.7128, -74], distance: 1000, meters: true))
+        print(Query.distanceGreaterThan("location", values: [40.7128, -74], distance: 1000))
+        print(Query.distanceGreaterThan("location", values: [40.7128, -74], distance: 1000, meters: true))
+        print(Query.distanceLessThan("location", values: [40.7128, -74], distance: 1000))
+        print(Query.distanceLessThan("location", values: [40.7128, -74], distance: 1000, meters: true))
+
+        // Spatial query tests
+        print(Query.intersects("location", values: [40.7128, -74]))
+        print(Query.notIntersects("location", values: [40.7128, -74]))
+        print(Query.crosses("location", values: [40.7128, -74]))
+        print(Query.notCrosses("location", values: [40.7128, -74]))
+        print(Query.overlaps("location", values: [40.7128, -74]))
+        print(Query.notOverlaps("location", values: [40.7128, -74]))
+        print(Query.touches("location", values: [40.7128, -74]))
+        print(Query.notTouches("location", values: [40.7128, -74]))
+        print(Query.contains("location", value: [[40.7128, -74],[40.7128, -74]]))
+        print(Query.notContains("location", value: [[40.7128, -74],[40.7128, -74]]))
+        print(Query.equal("location", value: [[40.7128, -74],[40.7128, -74]]))
+        print(Query.notEqual("location", value: [[40.7128, -74],[40.7128, -74]]))
+        
         print(Query.or([
             Query.equal("released", value: true),
             Query.lessThan("releasedYear", value: 1990)

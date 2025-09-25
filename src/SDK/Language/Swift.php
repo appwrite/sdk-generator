@@ -129,7 +129,7 @@ class Swift extends Language
             ],
             [
                 'scope'         => 'method',
-                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
+                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseKebab}}.md',
                 'template'      => 'swift/docs/example.md.twig',
             ],
             [
@@ -435,10 +435,57 @@ class Swift extends Language
                     $output .= "\"{$example}\"";
                     break;
                 case self::TYPE_OBJECT:
-                    $output .= '[:]';
+                    $decoded = json_decode($example, true);
+                    if ($decoded && is_array($decoded)) {
+                        $output .= $this->jsonToSwiftDict($decoded);
+                    } else {
+                        $output .= '[:]';
+                    }
                     break;
             }
         }
+
+        return $output;
+    }
+
+    /**
+     * Converts JSON Object To Swift Native Dictionary
+     *
+     * @param array $data
+     * @param int $indent
+     * @return string
+     */
+    protected function jsonToSwiftDict(array $data, int $indent = 0): string
+    {
+        if (empty($data)) {
+            return '[:]';
+        }
+
+        $baseIndent = str_repeat('    ', $indent);
+        $itemIndent = str_repeat('    ', $indent + 1);
+        $output = "[\n";
+
+        $keys = array_keys($data);
+        foreach ($keys as $index => $key) {
+            $node = $data[$key];
+
+            if (is_array($node)) {
+                $value = $this->jsonToSwiftDict($node, $indent + 1);
+            } elseif (is_string($node)) {
+                $value = '"' . $node . '"';
+            } elseif (is_bool($node)) {
+                $value = $node ? 'true' : 'false';
+            } elseif (is_null($node)) {
+                $value = 'nil';
+            } else {
+                $value = $node;
+            }
+
+            $comma = ($index < count($keys) - 1) ? ',' : '';
+            $output .= '    ' . $itemIndent . '"' . $key . '": ' . $value . $comma . "\n";
+        }
+
+        $output .= '    ' . $baseIndent . ']';
 
         return $output;
     }
@@ -461,6 +508,9 @@ class Swift extends Language
             }),
             new TwigFilter('propertyType', function (array $property, array $spec, string $generic = 'T') {
                 return $this->getPropertyType($property, $spec, $generic);
+            }),
+            new TwigFilter('isAnyCodableArray', function (array $property, array $spec) {
+                return $this->isAnyCodableArray($property, $spec);
             }),
             new TwigFilter('hasGenericType', function (string $model, array $spec) {
                 return $this->hasGenericType($model, $spec);
@@ -531,6 +581,18 @@ class Swift extends Language
         }
 
         return $type;
+    }
+
+    /**
+     * Check if a property is an array that results in [AnyCodable] type
+     *
+     * @param array $property
+     * @param array $spec
+     * @return bool
+     */
+    protected function isAnyCodableArray(array $property, array $spec): bool
+    {
+        return $property['type'] === 'array' && $this->getPropertyType($property, $spec, 'T') === '[AnyCodable]';
     }
 
     protected function hasGenericType(?string $model, array $spec): string

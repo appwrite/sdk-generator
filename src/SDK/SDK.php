@@ -71,6 +71,15 @@ class SDK
     ];
 
     /**
+     * @var array
+     */
+    protected array $excludeRules = [
+        'services' => [],
+        'methods' => [],
+        'definitions' => []
+    ];
+
+    /**
      * SDK constructor.
      *
      * @param Language $language
@@ -121,6 +130,9 @@ class SDK
         }));
         $this->twig->addFilter(new TwigFilter('caseDash', function ($value) {
             return str_replace([' ', '_'], '-', strtolower(preg_replace('/([a-zA-Z])(?=[A-Z])/', '$1-', $value)));
+        }));
+        $this->twig->addFilter(new TwigFilter('caseKebab', function ($value) {
+            return strtolower(preg_replace('/(?<!^)([A-Z][a-z]|(?<=[a-z])[^a-z\s]|(?<=[A-Z])[0-9_])/', '-$1', $value));
         }));
         $this->twig->addFilter(new TwigFilter('caseSlash', function ($value) {
             return str_replace([' ', '_'], '/', strtolower(preg_replace('/([a-zA-Z])(?=[A-Z])/', '$1/', $value)));
@@ -197,6 +209,22 @@ class SDK
                 return $language->getIdentifierOverrides()[$value];
             }
             return $value;
+        }));
+        $this->twig->addFilter(new TwigFilter('capitalizeFirst', function ($value) {
+            return ucfirst($value);
+        }));
+        $this->twig->addFilter(new TwigFilter('caseSnakeExceptFirstDot', function ($value) {
+            $parts = explode('.', $value, 2);
+            $toSnake = function ($str) {
+                preg_match_all('!([A-Za-z][A-Z0-9]*(?=$|[A-Z][a-z0-9])|[A-Za-z][a-z0-9]+)!', $str, $matches);
+                return implode('_', array_map(function ($m) {
+                    return $m === strtoupper($m) ? strtolower($m) : lcfirst($m);
+                }, $matches[0]));
+            };
+            if (count($parts) < 2) {
+                return $toSnake($value);
+            }
+            return $parts[0] . '.' . $toSnake($parts[1]);
         }));
     }
 
@@ -529,6 +557,58 @@ class SDK
     }
 
     /**
+     * Get services filtered by exclusion rules
+     *
+     * @return array
+     */
+    protected function getFilteredServices(): array
+    {
+        $allServices = $this->spec->getServices();
+        $filteredServices = [];
+
+        // Extract exclusion rules for services
+        $excludeServices = [];
+        $excludeFeatures = [];
+        foreach ($this->excludeRules['services'] ?? [] as $service) {
+            if (isset($service['name'])) {
+                $excludeServices[] = $service['name'];
+            }
+            if (isset($service['feature'])) {
+                $excludeFeatures[] = $service['feature'];
+            }
+        }
+
+        foreach ($allServices as $serviceName => $service) {
+            // Check if service is excluded by name
+            if (in_array($serviceName, $excludeServices)) {
+                continue;
+            }
+
+            // Check if service is excluded by feature
+            $methods = $this->spec->getMethods($serviceName);
+            $serviceFeatures = [
+                'upload' => $this->hasUploads($methods),
+                'location' => $this->hasLocation($methods),
+                'webAuth' => $this->hasWebAuth($methods),
+            ];
+
+            $shouldExclude = false;
+            foreach ($excludeFeatures as $feature) {
+                if ($serviceFeatures[$feature] ?? false) {
+                    $shouldExclude = true;
+                    break;
+                }
+            }
+
+            if (!$shouldExclude) {
+                $filteredServices[$serviceName] = $service;
+            }
+        }
+
+        return $filteredServices;
+    }
+
+    /**
      * @param string $target
      * @throws Throwable
      * @throws LoaderError
@@ -544,6 +624,7 @@ class SDK
                 'namespace' => $this->spec->getNamespace(),
                 'version' => $this->spec->getVersion(),
                 'endpoint' => $this->spec->getEndpoint(),
+                'endpointDocs' => $this->spec->getEndpointDocs(),
                 'host' => parse_url($this->spec->getEndpoint(), PHP_URL_HOST),
                 'basePath' => $this->spec->getAttribute('basePath', ''),
                 'licenseName' => $this->spec->getLicenseName(),
@@ -551,7 +632,7 @@ class SDK
                 'contactName' => $this->spec->getContactName(),
                 'contactURL' => $this->spec->getContactURL(),
                 'contactEmail' => $this->spec->getContactEmail(),
-                'services' => $this->spec->getServices(),
+                'services' => $this->getFilteredServices(),
                 'enums' => $this->spec->getEnums(),
                 'definitions' => $this->spec->getDefinitions(),
                 'global' => [
@@ -585,7 +666,7 @@ class SDK
                     copy(realpath(__DIR__ . '/../../templates/' . $file['template']), $destination);
                     break;
                 case 'service':
-                    foreach ($this->spec->getServices() as $key => $service) {
+                    foreach ($this->getFilteredServices() as $key => $service) {
                         $methods = $this->spec->getMethods($key);
                         $params['service'] = [
                             'globalParams' => $service['globalParams'] ?? [],
@@ -618,7 +699,7 @@ class SDK
                     }
                     break;
                 case 'method':
-                    foreach ($this->spec->getServices() as $key => $service) {
+                    foreach ($this->getFilteredServices() as $key => $service) {
                         $methods = $this->spec->getMethods($key);
                         $params['service'] = [
                             'name' => $key,
@@ -654,6 +735,28 @@ class SDK
     }
 
     /**
+     * Add additional exclusion rules for services, methods, or definitions.
+     *
+     * @param array $rules Array containing exclusion rules with format:
+     *                     [
+     *                         'services' => [['name' => 'serviceName'], ['feature' => 'featureName']],
+     *                         'methods' => [['name' => 'methodName'], ['type' => 'methodType']],
+     *                         'definitions' => [['name' => 'definitionName']]
+     *                     ]
+     * @return $this
+     */
+    public function setExclude(array $rules): SDK
+    {
+        foreach (['services', 'methods', 'definitions'] as $type) {
+            if (isset($rules[$type]) && is_array($rules[$type])) {
+                $this->excludeRules[$type] = array_merge($this->excludeRules[$type], $rules[$type]);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
      * Determine if a file should be excluded from generation.
      *
      * Allows for files to be excluded based on:
@@ -667,7 +770,7 @@ class SDK
      */
     protected function exclude($file, $params): bool
     {
-        $exclude = $file['exclude'] ?? [];
+        $exclude = array_merge_recursive($file['exclude'] ?? [], $this->excludeRules);
 
         $services = [];
         $features = [];

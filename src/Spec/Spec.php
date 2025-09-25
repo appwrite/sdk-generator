@@ -67,6 +67,11 @@ abstract class Spec extends ArrayObject
     /**
      * @return string
      */
+    abstract public function getEndpointDocs();
+
+    /**
+     * @return string
+     */
     abstract public function getLicenseName();
 
     /**
@@ -99,6 +104,13 @@ abstract class Spec extends ArrayObject
      * @return array
      */
     abstract public function getMethods($service);
+
+    /**
+     * @param array $method
+     * @param string $service
+     * @return string
+     */
+    abstract public function getTargetNamespace(array $method, string $service);
 
     /**
      * @return string

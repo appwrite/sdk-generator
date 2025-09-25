@@ -197,7 +197,7 @@ class Python extends Language
             ],
             [
                 'scope' => 'method',
-                'destination' => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
+                'destination' => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseKebab}}.md',
                 'template' => 'python/docs/example.md.twig',
             ],
             [
@@ -245,7 +245,7 @@ class Python extends Language
                 if (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type'])) {
                     return 'List[' . $this->getTypeName($parameter['array']) . ']';
                 }
-                return 'List[str]';
+                return 'List[Any]';
             case self::TYPE_OBJECT:
                 return 'dict';
             default:
@@ -319,49 +319,28 @@ class Python extends Language
         $type = $param['type'] ?? '';
         $example = $param['example'] ?? '';
 
-        $output = '';
+        $hasExample = !empty($example) || $example === 0 || $example === false;
 
-        if (empty($example) && $example !== 0 && $example !== false) {
-            switch ($type) {
-                case self::TYPE_NUMBER:
-                case self::TYPE_INTEGER:
-                case self::TYPE_BOOLEAN:
-                    $output .= 'None';
-                    break;
-                case self::TYPE_STRING:
-                    $output .= "''";
-                    break;
-                case self::TYPE_ARRAY:
-                    $output .= '[]';
-                    break;
-                case self::TYPE_OBJECT:
-                    $output .= '{}';
-                    break;
-                case self::TYPE_FILE:
-                    $output .= "InputFile.from_path('file.png')";
-                    break;
-            }
-        } else {
-            switch ($type) {
-                case self::TYPE_NUMBER:
-                case self::TYPE_INTEGER:
-                case self::TYPE_ARRAY:
-                case self::TYPE_OBJECT:
-                    $output .= $example;
-                    break;
-                case self::TYPE_BOOLEAN:
-                    $output .= ($example) ? 'True' : 'False';
-                    break;
-                case self::TYPE_STRING:
-                    $output .= "'{$example}'";
-                    break;
-                case self::TYPE_FILE:
-                    $output .= "InputFile.from_path('file.png')";
-                    break;
-            }
+        if (!$hasExample) {
+            return match ($type) {
+                self::TYPE_ARRAY => '[]',
+                self::TYPE_FILE => 'InputFile.from_path(\'file.png\')',
+                self::TYPE_INTEGER, self::TYPE_NUMBER , self::TYPE_BOOLEAN => 'None',
+                self::TYPE_OBJECT => '{}',
+                self::TYPE_STRING => "''",
+            };
         }
 
-        return $output;
+        return match ($type) {
+            self::TYPE_ARRAY, self::TYPE_FILE, self::TYPE_INTEGER, self::TYPE_NUMBER => $example,
+            self::TYPE_BOOLEAN => ($example) ? 'True' : 'False',
+            self::TYPE_OBJECT => ($example === '{}')
+            ? '{}'
+            : (($formatted = json_encode(json_decode($example, true), JSON_PRETTY_PRINT))
+                ? preg_replace('/\n/', "\n    ", str_replace(['true', 'false'], ['True', 'False'], $formatted))
+                : $example),
+            self::TYPE_STRING => "'{$example}'",
+        };
     }
 
     public function getFilters(): array

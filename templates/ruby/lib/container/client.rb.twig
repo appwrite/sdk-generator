@@ -48,6 +48,10 @@ module {{ spec.title | caseUcfirst }}
         #
         # @return [self]
         def set_endpoint(endpoint)
+            if not endpoint.start_with?('http://') and not endpoint.start_with?('https://')
+                raise {{spec.title | caseUcfirst}}::Exception.new('Invalid endpoint URL: ' + endpoint)
+            end
+
             @endpoint = endpoint
 
             self

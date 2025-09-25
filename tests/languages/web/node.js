@@ -30,6 +30,42 @@ async function start() {
     response = await foo.delete('string', 123, ['string in array']);
     console.log(response.result);
 
+    // Foo (Object params)
+    response = await foo.get({
+        x: 'string',
+        y: 123,
+        z: ['string in array']
+    });
+    console.log(response.result);
+
+    response = await foo.post({
+        x: 'string',
+        y: 123,
+        z: ['string in array']
+    });
+    console.log(response.result);
+
+    response = await foo.put({
+        x: 'string',
+        y: 123,
+        z: ['string in array']
+    });
+    console.log(response.result);
+
+    response = await foo.patch({
+        x: 'string',
+        y: 123,
+        z: ['string in array']
+    });
+    console.log(response.result);
+
+    response = await foo.delete({
+        x: 'string',
+        y: 123,
+        z: ['string in array']
+    });
+    console.log(response.result);
+
     // Bar
     response = await bar.get('string', 123, ['string in array']);
     console.log(response.result);
@@ -44,6 +80,42 @@ async function start() {
     console.log(response.result);
 
     response = await bar.delete('string', 123, ['string in array']);
+    console.log(response.result);
+
+    // Bar (Object params)
+    response = await bar.get({
+        required: 'string',
+        xdefault: 123,
+        z: ['string in array']
+    });
+    console.log(response.result);
+
+    response = await bar.post({
+        required: 'string',
+        xdefault: 123,
+        z: ['string in array']
+    });
+    console.log(response.result);
+
+    response = await bar.put({
+        required: 'string',
+        xdefault: 123,
+        z: ['string in array']
+    });
+    console.log(response.result);
+
+    response = await bar.patch({
+        required: 'string',
+        xdefault: 123,
+        z: ['string in array']
+    });
+    console.log(response.result);
+
+    response = await bar.delete({
+        required: 'string',
+        xdefault: 123,
+        z: ['string in array']
+    });
     console.log(response.result);
 
     // General
@@ -82,6 +154,12 @@ async function start() {
         console.log(error.response);
     }
 
+    try {
+        client.setEndpoint("htp://cloud.appwrite.io/v1");
+    } catch(error) {
+        console.log(error.message);
+    }
+
     console.log('WS:/v1/realtime:passed'); // Skip realtime test on Node.js
 
     // Query helper tests
@@ -101,12 +179,51 @@ async function start() {
     console.log(Query.select(["name", "age"]));
     console.log(Query.orderAsc("title"));
     console.log(Query.orderDesc("title"));
+    console.log(Query.orderRandom());
     console.log(Query.cursorAfter("my_movie_id"));
     console.log(Query.cursorBefore("my_movie_id"));
     console.log(Query.limit(50));
     console.log(Query.offset(20));
     console.log(Query.contains("title", "Spider"));
     console.log(Query.contains("labels", "first"));
+    
+    // New query methods
+    console.log(Query.notContains("title", "Spider"));
+    console.log(Query.notSearch("name", "john"));
+    console.log(Query.notBetween("age", 50, 100));
+    console.log(Query.notStartsWith("name", "Ann"));
+    console.log(Query.notEndsWith("name", "nne"));
+    console.log(Query.createdBefore("2023-01-01"));
+    console.log(Query.createdAfter("2023-01-01"));
+    console.log(Query.createdBetween("2023-01-01", "2023-12-31"));
+    console.log(Query.updatedBefore("2023-01-01"));
+    console.log(Query.updatedAfter("2023-01-01"));
+    console.log(Query.updatedBetween("2023-01-01", "2023-12-31"));
+    
+    // Spatial Distance query tests
+    console.log(Query.distanceEqual("location", [[40.7128, -74], [40.7128, -74]], 1000));
+    console.log(Query.distanceEqual("location", [40.7128, -74], 1000, true));
+    console.log(Query.distanceNotEqual("location", [40.7128, -74], 1000));
+    console.log(Query.distanceNotEqual("location", [40.7128, -74], 1000, true));
+    console.log(Query.distanceGreaterThan("location", [40.7128, -74], 1000));
+    console.log(Query.distanceGreaterThan("location", [40.7128, -74], 1000, true));
+    console.log(Query.distanceLessThan("location", [40.7128, -74], 1000));
+    console.log(Query.distanceLessThan("location", [40.7128, -74], 1000, true));
+
+    // Spatial query tests
+    console.log(Query.intersects("location", [40.7128, -74]));
+    console.log(Query.notIntersects("location", [40.7128, -74]));
+    console.log(Query.crosses("location", [40.7128, -74]));
+    console.log(Query.notCrosses("location", [40.7128, -74]));
+    console.log(Query.overlaps("location", [40.7128, -74]));
+    console.log(Query.notOverlaps("location", [40.7128, -74]));
+    console.log(Query.touches("location", [40.7128, -74]));
+    console.log(Query.notTouches("location", [40.7128, -74]));
+    console.log(Query.contains("location", [[40.7128, -74], [40.7128, -74]]));
+    console.log(Query.notContains("location", [[40.7128, -74], [40.7128, -74]]));
+    console.log(Query.equal("location", [[40.7128, -74], [40.7128, -74]]));
+    console.log(Query.notEqual("location", [[40.7128, -74], [40.7128, -74]]));
+    
     console.log(Query.or([
         Query.equal("released", true),
         Query.lessThan("releasedYear", 1990)

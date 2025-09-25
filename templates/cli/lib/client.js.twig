@@ -79,8 +79,11 @@ class Client {
    * @return this
    */
   setEndpoint(endpoint) {
-    this.endpoint = endpoint;
+    if (!endpoint.startsWith('http://') && !endpoint.startsWith('https://')) {
+      throw new {{spec.title | caseUcfirst}}Exception('Invalid endpoint URL: ' + endpoint);
+    }
 
+    this.endpoint = endpoint;
     return this;
   }
 
@@ -133,11 +136,6 @@ class Client {
             },
         }),
       });
-
-      const warnings = response.headers.get('x-{{ spec.title | lower }}-warning');
-      if (warnings) {
-          warnings.split(';').forEach((warning) => console.warn(warning));
-      }
     } catch (error) {
       throw new {{spec.title | caseUcfirst}}Exception(error.message);
     }
@@ -168,7 +166,11 @@ class Client {
 
     let cookies = response.headers.getSetCookie();
     if (cookies && cookies.length > 0) {
-      globalConfig.setCookie(cookies.join(";"));
+      for (const cookie of cookies) {
+        if (cookie.startsWith('a_session_console=')) {
+          globalConfig.setCookie(cookie);
+        }
+      }
     }
 
     const text = await response.text();
