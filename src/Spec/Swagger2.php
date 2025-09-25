@@ -494,7 +494,6 @@ class Swagger2 extends Spec
                         // enum property
                         $sch['properties'][$name]['enum'] = $def['enum'];
                         $sch['properties'][$name]['enumName'] = $def['x-enum-name'] ?? ucfirst($key) . ucfirst($name);
-                        ;
                         $sch['properties'][$name]['enumKeys'] = $def['x-enum-keys'] ?? [];
                     }
                 }
