@@ -1,5 +1,12 @@
 {% macro sub_schema(property) %}{% if property.sub_schema %}{% if property.type == 'array' %}List<{{property.sub_schema | caseUcfirst | overrideIdentifier}}>{% else %}{{property.sub_schema | caseUcfirst | overrideIdentifier}}{% endif %}{% else %}{{property | typeName}}{% endif %}{% if not property.required %}?{% endif %}{% endmacro %}
 {% macro property_name(definition, property) %}{{ property.name | caseUcfirst | removeDollarSign | escapeKeyword }}{% endmacro %}
+{% macro array_source(src, required) %}{% if required %}((IEnumerable<object>){{ src | raw }}){% else %}({{ src | raw }} as IEnumerable<object> ?? Array.Empty<object>()){% endif %}{% endmacro %}
+{%~ macro parse_primitive_array(items_type, src, required) -%}
+    {{ _self.array_source(src, required) }}.Select(x => {% if items_type == "string" %}x?.ToString(){% elseif items_type == "integer" %}{% if not required %}x == null ? (long?)null : {% endif %}Convert.ToInt64(x){% elseif items_type == "number" %}{% if not required %}x == null ? (double?)null : {% endif %}Convert.ToDouble(x){% elseif items_type == "boolean" %}{% if not required %}x == null ? (bool?)null : {% endif %}(bool)x{% else %}x{% endif %}){% if required and items_type == "string" %}.Where(x => x != null){% endif %}.ToList()!
+{%- endmacro -%}
+{%~ macro parse_subschema_array(sub_schema_name, src, required) -%}
+    {{ _self.array_source(src, required) }}.Select(it => {{ sub_schema_name | caseUcfirst | overrideIdentifier }}.From(map: (Dictionary<string, object>)it)).ToList()
+{%- endmacro -%}
 using System;
 using System.Linq;
 using System.Collections.Generic;
@@ -38,25 +45,49 @@ namespace {{ spec.title | caseUcfirst }}.Models
 
         public static {{ definition.name | caseUcfirst | overrideIdentifier }} From(Dictionary<string, object> map) => new {{ definition.name | caseUcfirst | overrideIdentifier }}(
             {%~ for property in definition.properties %}
+            {%~ set v = 'v' ~ loop.index0 %}
+            {%~ set mapAccess = 'map["' ~ property.name ~ '"]' %}
             {{ property.name | caseCamel | escapeKeyword | removeDollarSign }}:{{' '}}
-                {%- if not property.required -%}map.ContainsKey("{{ property.name }}") ? {% endif %}
+                {%- if not property.required -%}map.TryGetValue("{{ property.name }}", out var {{ v }}) ? {% endif %}
                 {%- if property.sub_schema %}
                     {%- if property.type == 'array' -%}
-                        ((IEnumerable<object>)map["{{ property.name }}"]).Select(it => {{ property.sub_schema | caseUcfirst | overrideIdentifier }}.From(map: (Dictionary<string, object>)it)).ToList()
+                        {%- if property.required -%}
+                    {{ _self.parse_subschema_array(property.sub_schema, mapAccess, true) }}
+                        {%- else -%}
+                    {{ _self.parse_subschema_array(property.sub_schema, v, false) }}
+                        {%- endif %}
                     {%- else -%}
-                        {{ property.sub_schema | caseUcfirst | overrideIdentifier }}.From(map: (Dictionary<string, object>)map["{{ property.name }}"])
+                        {%- if property.required -%}
+                        {{ property.sub_schema | caseUcfirst | overrideIdentifier }}.From(map: (Dictionary<string, object>){{ mapAccess | raw }})
+                        {%- else -%}
+                    ({{ v }} as Dictionary<string, object>) is { } obj
+                            ? {{ property.sub_schema | caseUcfirst | overrideIdentifier }}.From(map: obj)
+                            : null
+                        {%- endif %}
                     {%- endif %}
                 {%- else %}
                     {%- if property.type == 'array' -%}
-                        ((IEnumerable<object>)map["{{ property.name }}"]).Select(x => {% if property.items.type == "string" %}x?.ToString(){% elseif property.items.type == "integer" %}{% if not property.required %}x == null ? (long?)null : {% endif %}Convert.ToInt64(x){% elseif property.items.type == "number" %}{% if not property.required %}x == null ? (double?)null : {% endif %}Convert.ToDouble(x){% elseif property.items.type == "boolean" %}{% if not property.required %}x == null ? (bool?)null : {% endif %}(bool)x{% else %}x{% endif %}).{% if property.items.type == "string" and property.required %}Where(x => x != null).{% endif %}ToList()!
+                        {%- if property.required -%}
+                    {{ _self.parse_primitive_array(property.items.type, mapAccess, true) }}
+                        {%- else -%}
+                    {{ _self.parse_primitive_array(property.items.type, v, false) }}
+                        {%- endif -%}
                     {%- else %}
                         {%- if property.type == "integer" or property.type == "number" %}
-                            {%- if not property.required -%}map["{{ property.name }}"] == null ? null : {% endif %}Convert.To{% if property.type == "integer" %}Int64{% else %}Double{% endif %}(map["{{ property.name }}"])
+                            {%- if not property.required -%}Convert.To{% if property.type == "integer" %}Int64{% else %}Double{% endif %}({{ v }}){% else %}Convert.To{% if property.type == "integer" %}Int64{% else %}Double{% endif %}({{ mapAccess | raw }}){%- endif %}
                         {%- else %}
                             {%- if property.type == "boolean" -%}
-                                ({{ property | typeName }}{% if not property.required %}?{% endif %})map["{{ property.name }}"]
+                                {%- if not property.required -%}
+                                ({{ property | typeName }}?){{ v }}
+                                {%- else -%}
+                                ({{ property | typeName }}){{ mapAccess | raw }}
+                                {%- endif %}
                             {%- else -%}
-                                map["{{ property.name }}"]{% if not property.required %}?{% endif %}.ToString()
+                                {%- if not property.required -%}
+                                {{ v }}?.ToString()
+                                {%- else -%}
+                                {{ mapAccess | raw }}.ToString()
+                                {%- endif %}
                             {%- endif %}
                         {%~ endif %}
                     {%~ endif %}
