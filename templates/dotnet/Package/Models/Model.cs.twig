@@ -50,7 +50,11 @@ namespace {{ spec.title | caseUcfirst }}.Models
                 {%- elseif property.enum %}
                     {%- set enumName = property['enumName'] ?? property.name -%}
                     {%- if not property.required -%}
-                        map["{{ property.name }}"] == null ? null : new {{ enumName | caseUcfirst }}(map["{{ property.name }}"].ToString()!)
+                        map.TryGetValue("{{ property.name }}", out var enumRaw{{ loop.index }})
+                            ? enumRaw{{ loop.index }} == null
+                                ? null
+                                : new {{ enumName | caseUcfirst }}(enumRaw{{ loop.index }}.ToString()!)
+                            : null
                     {%- else -%}
                         new {{ enumName | caseUcfirst }}(map["{{ property.name }}"].ToString()!)
                     {%- endif %}

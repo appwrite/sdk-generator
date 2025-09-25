@@ -1,11 +1,14 @@
 import Foundation
 import JSONCodable
+{%~ set hasEnums = false %}
 {%~ for property in definition.properties %}
 {%~ if property.enum %}
-{%~ set enumName = property['enumName'] ?? property.name %}
-import {{spec.title | caseUcfirst}}Enums
+{%~ set hasEnums = true %}
 {%~ endif %}
 {%~ endfor %}
+{%~ if hasEnums %}
+import {{spec.title | caseUcfirst}}Enums
+{%~ endif %}
 
 /// {{ definition.description }}
 {% if definition.properties | length == 0 and not definition.additionalProperties %}
