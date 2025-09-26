@@ -1,7 +1,7 @@
 /// {{spec.title | caseUcfirst}} Models
 library {{ language.params.packageName }}.models;
 
-{% if (spec.enums | length) > 0 or (spec.responseEnums | length) > 0 %}
+{% if (spec.requestEnums | length) > 0 or (spec.responseEnums | length) > 0 %}
 import 'enums.dart' as enums;
 {% endif %}
 

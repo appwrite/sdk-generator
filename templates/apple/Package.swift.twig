@@ -34,7 +34,7 @@ let package = Package(
                 {%~ if spec.definitions is not empty %}
                 "{{spec.title | caseUcfirst}}Models",
                 {%~ endif %}
-                {%~ if spec.enums is not empty %}
+                {%~ if spec.requestEnums is not empty %}
                 "{{spec.title | caseUcfirst}}Enums",
                 {%~ endif %}
                 "JSONCodable"
@@ -48,7 +48,7 @@ let package = Package(
             ]
         ),
         {%~ endif %}
-        {%~ if spec.enums is not empty %}
+        {%~ if spec.requestEnums is not empty %}
         .target(
             name: "{{spec.title | caseUcfirst}}Enums"
         ),
