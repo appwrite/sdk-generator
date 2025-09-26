@@ -153,6 +153,11 @@ describe('Query', () => {
         `{"method":"orderDesc","attribute":"attr"}`,
     ));
 
+    test('orderRandom', () => assertEquals(
+        Query.orderRandom().toString(),
+        `{"method":"orderRandom"}`,
+    ));
+
     test('cursorBefore', () => assertEquals(
         Query.cursorBefore('attr').toString(),
         `{"method":"cursorBefore","attribute":"attr"}`,
