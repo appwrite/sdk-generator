@@ -50,10 +50,12 @@ const {
     databasesUpdateCollection
 } = require("./databases");
 const {
+    tablesDBCreate,
     tablesDBGet,
+    tablesDBUpdate,
+    tablesDBCreateTable,
     tablesDBGetTable,
-    tablesDBUpdateTable,
-    tablesDBCreateTable
+    tablesDBUpdateTable
 } = require("./tables-db");
 const {
     storageGetBucket, storageUpdateBucket, storageCreateBucket
@@ -1730,7 +1732,7 @@ const pushTable = async ({ returnOnZero, attempts } = { returnOnZero: false }) =
 
     const databases = Array.from(new Set(tables.map(table => table['databaseId'])));
 
-    // Parallel db actions
+    // Parallel tablesDB actions
     await Promise.all(databases.map(async (databaseId) => {
         const localDatabase = localConfig.getTablesDB(databaseId);
 
@@ -1741,7 +1743,7 @@ const pushTable = async ({ returnOnZero, attempts } = { returnOnZero: false }) =
             });
 
             if (database.name !== (localDatabase.name ?? databaseId)) {
-                await databasesUpdate({
+                await tablesDBUpdate({
                     databaseId: databaseId,
                     name: localDatabase.name ?? databaseId,
                     parseOutput: false
@@ -1752,7 +1754,7 @@ const pushTable = async ({ returnOnZero, attempts } = { returnOnZero: false }) =
         } catch (err) {
             log(`Database ${databaseId} not found. Creating it now ...`);
 
-            await databasesCreate({
+            await tablesDBCreate({
                 databaseId: databaseId,
                 name: localDatabase.name ?? databaseId,
                 parseOutput: false,
@@ -1761,10 +1763,12 @@ const pushTable = async ({ returnOnZero, attempts } = { returnOnZero: false }) =
     }));
 
 
-    if (!(await approveChanges(tables, tablesDBGetTable, KeysTable, 'tableId', 'tables', ['columns', 'indexes'], 'databaseId', 'databaseId',))) {
+    if (!(await approveChanges(tables, tablesDBGetTable, KeysTable, 'tableId', 'tables', ['columns', 'indexes'], 'databaseId', 'databaseId'))) {
         return;
     }
-    // Parallel collection actions
+    let tablesChanged = new Set();
+
+    // Parallel tables actions
     await Promise.all(tables.map(async (table) => {
         try {
             const remoteTable = await tablesDBGetTable({
@@ -1773,15 +1777,23 @@ const pushTable = async ({ returnOnZero, attempts } = { returnOnZero: false }) =
                 parseOutput: false,
             });
 
-            if (remoteTable.name !== table.name) {
+            const changes = [];
+            if (remoteTable.name !== table.name) changes.push('name');
+            if (remoteTable.rowSecurity !== table.rowSecurity) changes.push('rowSecurity');
+            if (JSON.stringify(remoteTable['$permissions']) !== JSON.stringify(table['$permissions'])) changes.push('permissions');
+
+            if (changes.length > 0) {
                 await tablesDBUpdateTable({
                     databaseId: table['databaseId'],
                     tableId: table['$id'],
                     name: table.name,
-                    parseOutput: false
+                    parseOutput: false,
+                    rowSecurity: table.rowSecurity,
+                    permissions: table['$permissions']
                 })
 
-                success(`Updated ${table.name} ( ${table['$id']} ) name`);
+                success(`Updated ${table.name} ( ${table['$id']} ) - ${changes.join(', ')}`);
+                tablesChanged.add(table['$id']);
             }
             table.remoteVersion = remoteTable;
 
@@ -1794,16 +1806,19 @@ const pushTable = async ({ returnOnZero, attempts } = { returnOnZero: false }) =
                     databaseId: table['databaseId'],
                     tableId: table['$id'],
                     name: table.name,
-                    documentSecurity: table.documentSecurity,
+                    rowSecurity: table.rowSecurity,
                     permissions: table['$permissions'],
                     parseOutput: false
                 })
+
+                success(`Created ${table.name} ( ${table['$id']} )`);
+                tablesChanged.add(table['$id']);
             } else {
                 throw e;
             }
         }
     }))
-    let numberOfTables = 0;
+
     // Serialize attribute actions
     for (let table of tables) {
         let columns = table.columns;
@@ -1831,11 +1846,11 @@ const pushTable = async ({ returnOnZero, attempts } = { returnOnZero: false }) =
         } catch (e) {
             throw e;
         }
-        numberOfTables++;
+        tablesChanged.add(table['$id']);
         success(`Successfully pushed ${table.name} ( ${table['$id']} )`);
     }
 
-    success(`Successfully pushed ${numberOfTables} tables`);
+    success(`Successfully pushed ${tablesChanged.size} tables`);
 }
 
 const pushCollection = async ({ returnOnZero, attempts } = { returnOnZero: false }) => {

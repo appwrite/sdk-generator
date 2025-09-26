@@ -358,7 +358,7 @@ const pullTable = async () => {
     });
     if (fetchResponse["databases"].length <= 0) {
         log("No tables found.");
-        success(`Successfully pulled ${chalk.bold(totalTables)} tables from ${chalk.bold(totalTablesDBs)} tables databases.`);
+        success(`Successfully pulled ${chalk.bold(totalTables)} tables from ${chalk.bold(totalTablesDBs)} tableDBs.`);
         return;
     }
 
@@ -398,7 +398,7 @@ const pullTable = async () => {
         }
     }
 
-    success(`Successfully pulled ${chalk.bold(totalTables)} tables from ${chalk.bold(totalTablesDBs)} tables databases.`);
+    success(`Successfully pulled ${chalk.bold(totalTables)} tables from ${chalk.bold(totalTablesDBs)} tableDBs.`);
 }
 
 const pullBucket = async () => {
