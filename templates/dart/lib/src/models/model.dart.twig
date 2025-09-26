@@ -34,7 +34,11 @@ class {{ definition.name | caseUcfirst | overrideIdentifier }} implements Model 
                 {%- endif -%}
             {%- elseif property.enum -%}
                 {%- set enumName = property['enumName'] ?? property.name -%}
+                {%- if property.required -%}
                 enums.{{ enumName | caseUcfirst }}.values.firstWhere((e) => e.value == map['{{property.name | escapeDollarSign }}'])
+                {%- else -%}
+                map['{{property.name | escapeDollarSign }}'] != null ? enums.{{ enumName | caseUcfirst }}.values.firstWhere((e) => e.value == map['{{property.name | escapeDollarSign }}']) : null
+                {%- endif -%}
             {%- else -%}
                 {%- if property.type == 'array' -%}
                     List.from(map['{{property.name | escapeDollarSign }}'] ?? [])
