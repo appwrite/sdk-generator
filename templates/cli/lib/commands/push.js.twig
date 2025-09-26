@@ -1779,7 +1779,7 @@ const pushTable = async ({ returnOnZero, attempts } = { returnOnZero: false }) =
 
             const changes = [];
             if (remoteTable.name !== table.name) changes.push('name');
-            if (remoteTable.rowSecurity !== (table.rowSecurity || false)) changes.push('rowSecurity');
+            if (remoteTable.rowSecurity !== table.rowSecurity) changes.push('rowSecurity');
             if (JSON.stringify(remoteTable['$permissions']) !== JSON.stringify(table['$permissions'])) changes.push('permissions');
 
             if (changes.length > 0) {
