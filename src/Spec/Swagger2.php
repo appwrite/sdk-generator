@@ -544,11 +544,23 @@ class Swagger2 extends Spec
                 foreach ($model['properties'] as $propertyName => $property) {
                     if (isset($property['enum'])) {
                         $enumName = $property['x-enum-name'] ?? ucfirst($modelName) . ucfirst($propertyName);
-
-                        if (!\in_array($enumName, array_column($list, 'name'))) {
+                        if (!isset($list[$enumName])) {
                             $list[$enumName] = [
                                 'name' => $enumName,
                                 'enum' => $property['enum'],
+                                'keys' => $property['x-enum-keys'] ?? [],
+                            ];
+                        }
+                    }
+
+                    // array of enums
+                    if ((($property['type'] ?? null) === 'array') && isset($property['items']['enum'])) {
+                        $enumName = $property['x-enum-name'] ?? ucfirst($modelName) . ucfirst($propertyName);
+                        if (!isset($list[$enumName])) {
+                            $list[$enumName] = [
+                                'name' => $enumName,
+                                'enum' => $property['items']['enum'],
+                                'keys' => $property['items']['x-enum-keys'] ?? [],
                             ];
                         }
                     }
