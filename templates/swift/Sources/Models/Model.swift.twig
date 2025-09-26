@@ -74,7 +74,7 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
         var container = encoder.container(keyedBy: CodingKeys.self)
 
         {%~ for property in definition.properties %}
-        try container.encode{% if not property.required %}IfPresent{% endif %}({{ property.name | escapeSwiftKeyword | removeDollarSign }}{% if property.enum %}.rawValue{% endif %}, forKey: .{{ property.name | escapeSwiftKeyword | removeDollarSign }})
+        try container.encode{% if not property.required %}IfPresent{% endif %}({{ property.name | escapeSwiftKeyword | removeDollarSign }}{% if property.enum %}{% if property.required %}.rawValue{% else %}?.rawValue{% endif %}{% endif %}, forKey: .{{ property.name | escapeSwiftKeyword | removeDollarSign }})
         {%~ endfor %}
         {%~ if definition.additionalProperties %}
         try container.encode(data, forKey: .data)
@@ -108,7 +108,7 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
                     (map["{{property.name }}"] as{% if isDocument %}?{% else %}{% if property.required %}!{% else %}?{% endif %}{% endif %} [Any]{% if isDocument or not property.required %} ?? []{% endif %}).map { AnyCodable($0) }
                 {%- elseif property.enum -%}
                     {%- set enumName = property['enumName'] ?? property.name -%}
-                    {{ enumName | caseUcfirst }}(rawValue: map["{{property.name }}"] as{% if isDocument %}?{% else %}{% if property.required %}!{% else %}?{% endif %}{% endif %} String{% if isDocument and property.required %} ?? ""{% endif %}){% if not property.required %}{% if not isDocument %}{% endif %}{% endif %}!
+                    {% if property.required %}{{ enumName | caseUcfirst }}(rawValue: map["{{property.name }}"] as{% if isDocument %}?{% else %}!{% endif %} String{% if isDocument %} ?? ""{% endif %})!{% else %}map["{{property.name }}"] as? String != nil ? {{ enumName | caseUcfirst }}(rawValue: map["{{property.name }}"] as! String) : nil{% endif %}
                 {%- else -%}
                     map["{{property.name }}"] as{% if isDocument %}?{% else %}{% if property.required %}!{% else %}?{% endif %}{% endif %} {{ property | propertyType(spec) | raw }}{% if isDocument and property.required %}{% if property.type == 'string' %} ?? ""{% elseif property.type == 'integer' %} ?? 0{% elseif property.type == 'number' %} ?? 0.0{% elseif property.type == 'boolean' %} ?? false{% elseif property.type == 'array' %} ?? []{% endif %}{% endif %}
                 {%- endif -%}
