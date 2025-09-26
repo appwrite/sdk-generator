@@ -544,6 +544,7 @@ class Swagger2 extends Spec
                 foreach ($model['properties'] as $propertyName => $property) {
                     if (isset($property['enum'])) {
                         $enumName = $property['x-enum-name'] ?? ucfirst($modelName) . ucfirst($propertyName);
+
                         if (!isset($list[$enumName])) {
                             $list[$enumName] = [
                                 'name' => $enumName,
@@ -556,6 +557,7 @@ class Swagger2 extends Spec
                     // array of enums
                     if ((($property['type'] ?? null) === 'array') && isset($property['items']['enum'])) {
                         $enumName = $property['x-enum-name'] ?? ucfirst($modelName) . ucfirst($propertyName);
+
                         if (!isset($list[$enumName])) {
                             $list[$enumName] = [
                                 'name' => $enumName,
@@ -566,6 +568,22 @@ class Swagger2 extends Spec
                     }
                 }
             }
+        }
+
+        return \array_values($list);
+    }
+
+    /**
+     * @return array
+     */
+    public function getAllEnums(): array
+    {
+        $list = [];
+        foreach ($this->getRequestEnums() as $enum) {
+            $list[$enum['name']] = $enum;
+        }
+        foreach ($this->getResponseEnums() as $enum) {
+            $list[$enum['name']] = $enum;
         }
 
         return \array_values($list);

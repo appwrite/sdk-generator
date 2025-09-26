@@ -1,9 +1,6 @@
 /// {{spec.title | caseUcfirst}} Enums
 library {{ language.params.packageName }}.enums;
 
-{% for enum in spec.requestEnums %}
-part 'src/enums/{{enum.name | caseSnake}}.dart';
-{% endfor %}
-{% for enum in spec.responseEnums %}
+{% for enum in spec.allEnums %}
 part 'src/enums/{{enum.name | caseSnake}}.dart';
 {% endfor %}
