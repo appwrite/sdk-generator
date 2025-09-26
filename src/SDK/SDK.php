@@ -633,7 +633,9 @@ class SDK
                 'contactURL' => $this->spec->getContactURL(),
                 'contactEmail' => $this->spec->getContactEmail(),
                 'services' => $this->getFilteredServices(),
-                'enums' => $this->spec->getEnums(),
+                'requestEnums' => $this->spec->getRequestEnums(),
+                'responseEnums' => $this->spec->getResponseEnums(),
+                'allEnums' => $this->spec->getAllEnums(),
                 'definitions' => $this->spec->getDefinitions(),
                 'global' => [
                     'headers' => $this->spec->getGlobalHeaders(),
@@ -724,7 +726,7 @@ class SDK
                     }
                     break;
                 case 'enum':
-                    foreach ($this->spec->getEnums() as $key => $enum) {
+                    foreach ($this->spec->getAllEnums() as $key => $enum) {
                         $params['enum'] = $enum;
 
                         $this->render($template, $destination, $block, $params, $minify);

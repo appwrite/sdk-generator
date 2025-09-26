@@ -32,6 +32,13 @@ class {{ definition.name | caseUcfirst | overrideIdentifier }} implements Model 
                 {%- else -%}
                     {{property.sub_schema | caseUcfirst | overrideIdentifier}}.fromMap(map['{{property.name | escapeDollarSign }}'])
                 {%- endif -%}
+            {%- elseif property.enum -%}
+                {%- set enumName = property['enumName'] ?? property.name -%}
+                {%- if property.required -%}
+                enums.{{ enumName | caseUcfirst }}.values.firstWhere((e) => e.value == map['{{property.name | escapeDollarSign }}'])
+                {%- else -%}
+                map['{{property.name | escapeDollarSign }}'] != null ? enums.{{ enumName | caseUcfirst }}.values.firstWhere((e) => e.value == map['{{property.name | escapeDollarSign }}']) : null
+                {%- endif -%}
             {%- else -%}
                 {%- if property.type == 'array' -%}
                     List.from(map['{{property.name | escapeDollarSign }}'] ?? [])
@@ -55,7 +62,7 @@ class {{ definition.name | caseUcfirst | overrideIdentifier }} implements Model 
     Map<String, dynamic> toMap() {
         return {
 {% for property in definition.properties %}
-            "{{ property.name | escapeDollarSign }}": {% if property.sub_schema %}{% if property.type == 'array' %}{{property.name | escapeKeyword}}.map((p) => p.toMap()).toList(){% else %}{{property.name | escapeKeyword}}.toMap(){% endif %}{% else %}{{property.name | escapeKeyword }}{% endif %},
+            "{{ property.name | escapeDollarSign }}": {% if property.sub_schema %}{% if property.type == 'array' %}{{property.name | escapeKeyword}}.map((p) => p.toMap()).toList(){% else %}{{property.name | escapeKeyword}}.toMap(){% endif %}{% elseif property.enum %}{{property.name | escapeKeyword}}{% if not property.required %}?{% endif %}.value{% else %}{{property.name | escapeKeyword }}{% endif %},
 {% endfor %}
 {% if definition.additionalProperties %}
             "data": data,

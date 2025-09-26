@@ -316,7 +316,7 @@ class Web extends JS
         return 'Promise<{}>';
     }
 
-    public function getSubSchema(array $property, array $spec): string
+    public function getSubSchema(array $property, array $spec, string $methodName = ''): string
     {
         if (array_key_exists('sub_schema', $property)) {
             $ret = '';
@@ -336,6 +336,14 @@ class Web extends JS
             return $ret;
         }
 
+        if (array_key_exists('enum', $property) && !empty($methodName)) {
+            if (isset($property['enumName'])) {
+                return $this->toPascalCase($property['enumName']);
+            }
+
+            return $this->toPascalCase($methodName) . $this->toPascalCase($property['name']);
+        }
+
         return $this->getTypeName($property);
     }
 
@@ -348,8 +356,8 @@ class Web extends JS
             new TwigFilter('getReadOnlyProperties', function ($value, $responseModel, $spec = []) {
                 return $this->getReadOnlyProperties($value, $responseModel, $spec);
             }),
-            new TwigFilter('getSubSchema', function (array $property, array $spec) {
-                return $this->getSubSchema($property, $spec);
+            new TwigFilter('getSubSchema', function (array $property, array $spec, string $methodName = '') {
+                return $this->getSubSchema($property, $spec, $methodName);
             }),
             new TwigFilter('getGenerics', function (string $model, array $spec, bool $skipAdditional = false) {
                 return $this->getGenerics($model, $spec, $skipAdditional);

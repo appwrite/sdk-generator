@@ -4,6 +4,7 @@ namespace Appwrite\SDK\Language;
 
 use Appwrite\SDK\Language;
 use Twig\TwigFilter;
+use Twig\TwigFunction;
 
 class DotNet extends Language
 {
@@ -461,6 +462,47 @@ class DotNet extends Language
                     return $this->getPropertyOverrides()[$class][$property];
                 }
                 return $property;
+            }),
+        ];
+    }
+
+    /**
+     * get sub_scheme and property_name functions
+     * @return TwigFunction[]
+     */
+    public function getFunctions(): array
+    {
+        return [
+            new TwigFunction('sub_schema', function (array $property) {
+                $result = '';
+
+                if (isset($property['sub_schema']) && !empty($property['sub_schema'])) {
+                    if ($property['type'] === 'array') {
+                        $result = 'List<' . \ucfirst($property['sub_schema']) . '>';
+                    } else {
+                        $result = \ucfirst($property['sub_schema']);
+                    }
+                } elseif (isset($property['enum']) && !empty($property['enum'])) {
+                    $enumName = $property['enumName'] ?? $property['name'];
+                    $result = \ucfirst($enumName);
+                } else {
+                    $result = $this->getTypeName($property);
+                }
+
+                if (!($property['required'] ?? true)) {
+                    $result .= '?';
+                }
+
+                return $result;
+            }),
+            new TwigFunction('property_name', function (array $definition, array $property) {
+                $name = $property['name'];
+                $name = \ucfirst($name);
+                $name = \str_replace('$', '', $name);
+                if (\in_array(\strtolower($name), $this->getKeywords())) {
+                    $name = '@' . $name;
+                }
+                return $name;
             }),
         ];
     }

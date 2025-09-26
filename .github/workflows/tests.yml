@@ -20,8 +20,6 @@ jobs:
           CLINode18,
           DartBeta,
           DartStable,
-          Deno1193,
-          Deno1303,
           DotNet60,
           DotNet80,
           DotNet90,
