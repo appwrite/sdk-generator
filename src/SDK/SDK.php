@@ -633,7 +633,7 @@ class SDK
                 'contactURL' => $this->spec->getContactURL(),
                 'contactEmail' => $this->spec->getContactEmail(),
                 'services' => $this->getFilteredServices(),
-                'enums' => $this->spec->getAllEnums(),
+                'requestEnums' => $this->spec->getRequestEnums(),
                 'responseEnums' => $this->spec->getResponseEnums(),
                 'allEnums' => $this->spec->getAllEnums(),
                 'definitions' => $this->spec->getDefinitions(),
