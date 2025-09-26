@@ -268,7 +268,14 @@ func OrderDesc(attribute string) string {
 	return parseQuery(queryOptions{
 		Method:    "orderDesc",
 		Attribute: &attribute,
-	})}
+	})
+}
+
+func OrderRandom() string {
+	return parseQuery(queryOptions{
+		Method: "orderRandom",
+	})
+}
 
 func CursorBefore(documentId interface{}) string {
 	values := toArray(documentId)

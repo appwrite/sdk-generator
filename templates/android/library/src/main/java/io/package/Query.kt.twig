@@ -152,6 +152,13 @@ class Query(
         fun orderDesc(attribute: String) = Query("orderDesc", attribute).toJson()
 
         /**
+         * Sort results randomly.
+         *
+         * @returns The query string.
+         */
+        fun orderRandom() = Query("orderRandom").toJson()
+
+        /**
          * Return results before documentId.
          *
          * @param documentId The document ID to use as cursor.

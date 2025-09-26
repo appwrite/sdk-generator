@@ -203,6 +203,7 @@ class ServiceTest {
             writeToFile(Query.select(listOf("name", "age")))
             writeToFile(Query.orderAsc("title"))
             writeToFile(Query.orderDesc("title"))
+            writeToFile(Query.orderRandom())
             writeToFile(Query.cursorAfter("my_movie_id"))
             writeToFile(Query.cursorBefore("my_movie_id"))
             writeToFile(Query.limit(50))

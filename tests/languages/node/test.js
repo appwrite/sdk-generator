@@ -254,6 +254,7 @@ async function start() {
     console.log(Query.select(["name", "age"]));
     console.log(Query.orderAsc("title"));
     console.log(Query.orderDesc("title"));
+    console.log(Query.orderRandom());
     console.log(Query.cursorAfter("my_movie_id"));
     console.log(Query.cursorBefore("my_movie_id"));
     console.log(Query.limit(50));

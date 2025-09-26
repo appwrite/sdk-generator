@@ -41,6 +41,8 @@ class Query(
 
         fun orderDesc(attribute: String) = Query("orderDesc", attribute).toJson()
 
+        fun orderRandom() = Query("orderRandom").toJson()
+
         fun cursorBefore(documentId: String) = Query("cursorBefore", null, listOf(documentId)).toJson()
 
         fun cursorAfter(documentId: String) = Query("cursorAfter", null, listOf(documentId)).toJson()
