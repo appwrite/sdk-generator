@@ -7,6 +7,7 @@
 {%~ macro parse_subschema_array(sub_schema_name, src, required) -%}
     {{ _self.array_source(src, required) }}.Select(it => {{ sub_schema_name | caseUcfirst | overrideIdentifier }}.From(map: (Dictionary<string, object>)it)).ToList()
 {%- endmacro -%}
+{% set DefinitionClass = definition.name | caseUcfirst | overrideIdentifier %}
 using System;
 using System.Linq;
 using System.Collections.Generic;
@@ -15,7 +16,7 @@ using System.Text.Json.Serialization;
 
 namespace {{ spec.title | caseUcfirst }}.Models
 {
-    public class {{ definition.name | caseUcfirst | overrideIdentifier }}
+    public class {{ DefinitionClass }}
     {
         {%~ for property in definition.properties %}
         [JsonPropertyName("{{ property.name }}")]
@@ -26,7 +27,7 @@ namespace {{ spec.title | caseUcfirst }}.Models
         public Dictionary<string, object> Data { get; private set; }
 
         {%~ endif %}
-        public {{ definition.name | caseUcfirst | overrideIdentifier }}(
+        public {{ DefinitionClass }}(
             {%~ for property in definition.properties %}
             {{ _self.sub_schema(property) }} {{ property.name | caseCamel | escapeKeyword }}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
 
@@ -43,7 +44,7 @@ namespace {{ spec.title | caseUcfirst }}.Models
             {%~ endif %}
         }
 
-        public static {{ definition.name | caseUcfirst | overrideIdentifier }} From(Dictionary<string, object> map) => new {{ definition.name | caseUcfirst | overrideIdentifier }}(
+        public static {{ DefinitionClass }} From(Dictionary<string, object> map) => new {{ DefinitionClass }}(
             {%~ for property in definition.properties %}
             {%~ set v = 'v' ~ loop.index0 %}
             {%~ set mapAccess = 'map["' ~ property.name ~ '"]' %}
