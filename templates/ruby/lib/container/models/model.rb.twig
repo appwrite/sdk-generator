@@ -22,7 +22,11 @@ module {{ spec.title | caseUcfirst }}
             )
 {% for property in definition.properties %}
 {% if property.enum %}
+{% if property.required %}
                 @{{ property.name | caseSnake | escapeKeyword }} = validate_{{ property.name | caseSnake | escapeKeyword }}({{ property.name | caseSnake | escapeKeyword }})
+{% else %}
+                @{{ property.name | caseSnake | escapeKeyword }} = {{ property.name | caseSnake | escapeKeyword }}.nil? ? {{ property.name | caseSnake | escapeKeyword }} : validate_{{ property.name | caseSnake | escapeKeyword }}({{ property.name | caseSnake | escapeKeyword }})
+{% endif %}
 {% else %}
                 @{{ property.name | caseSnake | escapeKeyword }} = {{ property.name | caseSnake | escapeKeyword }}
 {% endif %}
