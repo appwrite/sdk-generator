@@ -98,7 +98,7 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
 
             {%~ endfor %}
             {%~ if definition.additionalProperties %}
-            data: try! JSONDecoder().decode(T.self, from: JSONSerialization.data(withJSONObject: map, options: []))
+            data: try! JSONDecoder().decode(T.self, from: JSONSerialization.data(withJSONObject: map["data"] as? [String: Any] ?? map, options: []))
             {%~ endif %}
         )
     }

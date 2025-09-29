@@ -35,7 +35,7 @@ module {{ spec.title | caseUcfirst }}
 
 {% endfor %}
 {% if definition.additionalProperties %}
-                    data: map
+                    data: map["data"] || map
 {% endif %}
                 )
             end
