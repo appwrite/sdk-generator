@@ -47,7 +47,7 @@ class {{ definition.name | caseUcfirst | overrideIdentifier }} implements Model 
             {%- endif -%},
 {% endfor %}
 {% if definition.additionalProperties %}
-            data: map,
+            data: map["data"],
 {% endif %}
         );
     }
