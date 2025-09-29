@@ -302,10 +302,10 @@ class Swift extends Language
     public function getTypeName(array $parameter, array $spec = [], bool $isProperty = false): string
     {
         if (isset($parameter['enumName'])) {
-            return \ucfirst($parameter['enumName']);
+            return ($spec['title'] ?? '') . 'Enums.' . \ucfirst($parameter['enumName']);
         }
         if (!empty($parameter['enumValues'])) {
-            return \ucfirst($parameter['name']);
+            return ($spec['title'] ?? '') . 'Enums.' . \ucfirst($parameter['name']);
         }
         if (isset($parameter['items'])) {
             // Map definition nested type to parameter nested type
