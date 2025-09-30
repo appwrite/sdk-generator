@@ -593,8 +593,14 @@ class Kotlin extends Language
             $enumClass = $this->toPascalCase($enumName);
             $nullCheck = $property['required'] ? '!!' : ' ?: null';
 
+            if ($property['required']) {
+                return "$enumClass.values().find { " .
+                    "it.value == $mapKey as String " .
+                    "}$nullCheck";
+            }
+
             return "$enumClass.values().find { " .
-                   "it.value == $mapKey as String " .
+                   "it.value == ($mapKey as? String) " .
                    "}$nullCheck";
         }
 
