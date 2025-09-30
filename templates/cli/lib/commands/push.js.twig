@@ -550,7 +550,7 @@ const createAttribute = (databaseId, collectionId, attribute) => {
             return databasesCreateRelationshipAttribute({
                 databaseId,
                 collectionId,
-                relatedCollectionId: attribute.relatedCollection,
+                relatedCollectionId: attribute.relatedTable ?? attribute.relatedCollection,
                 type: attribute.relationType,
                 twoWay: attribute.twoWay,
                 key: attribute.key,
@@ -669,7 +669,7 @@ const updateAttribute = (databaseId, collectionId, attribute) => {
             return databasesUpdateRelationshipAttribute({
                 databaseId,
                 collectionId,
-                relatedCollectionId: attribute.relatedCollection,
+                relatedCollectionId: attribute.relatedTable ?? attribute.relatedCollection,
                 type: attribute.relationType,
                 twoWay: attribute.twoWay,
                 key: attribute.key,
@@ -883,7 +883,7 @@ const createIndexes = async (indexes, collection) => {
             collectionId: collection['$id'],
             key: index.key,
             type: index.type,
-            attributes: index.attributes,
+            attributes: index.columns ?? index.attributes,
             orders: index.orders,
             parseOutput: false
         });
