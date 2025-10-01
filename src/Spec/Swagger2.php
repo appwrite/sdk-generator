@@ -388,7 +388,7 @@ class Swagger2 extends Spec
 
         // Remove non-whitelisted parameters on body parameters, also set required.
         $handleParams = function (&$params) use ($additionalMethod) {
-            if (isset($additionalMethod['parameters'])) {
+            if (!empty($additionalMethod['parameters'])) {
                 foreach ($params as $key => $param) {
                     if (empty($param['in']) || $param['in'] !== 'body' || empty($param['schema']['properties'])) {
                         continue;
@@ -489,6 +489,13 @@ class Swagger2 extends Spec
                         //nested model
                         $sch['properties'][$name]['sub_schemas'] = \array_map(fn($schema) => str_replace('#/definitions/', '', $schema['$ref']), $def['items']['x-oneOf']);
                     }
+
+                    if (isset($def['enum'])) {
+                        // enum property
+                        $sch['properties'][$name]['enum'] = $def['enum'];
+                        $sch['properties'][$name]['enumName'] = $def['x-enum-name'] ?? ucfirst($key) . ucfirst($name);
+                        $sch['properties'][$name]['enumKeys'] = $def['x-enum-keys'] ?? [];
+                    }
                 }
             }
             $list[$key] = $sch;
@@ -499,7 +506,7 @@ class Swagger2 extends Spec
     /**
      * @return array
      */
-    public function getEnums(): array
+    public function getRequestEnums(): array
     {
         $list = [];
 
@@ -519,6 +526,64 @@ class Swagger2 extends Spec
                     }
                 }
             }
+        }
+
+        return \array_values($list);
+    }
+
+    /**
+     * @return array
+     */
+    public function getResponseEnums(): array
+    {
+        $list = [];
+        $definitions = $this->getDefinitions();
+
+        foreach ($definitions as $modelName => $model) {
+            if (isset($model['properties']) && is_array($model['properties'])) {
+                foreach ($model['properties'] as $propertyName => $property) {
+                    if (isset($property['enum'])) {
+                        $enumName = $property['x-enum-name'] ?? ucfirst($modelName) . ucfirst($propertyName);
+
+                        if (!isset($list[$enumName])) {
+                            $list[$enumName] = [
+                                'name' => $enumName,
+                                'enum' => $property['enum'],
+                                'keys' => $property['x-enum-keys'] ?? [],
+                            ];
+                        }
+                    }
+
+                    // array of enums
+                    if ((($property['type'] ?? null) === 'array') && isset($property['items']['enum'])) {
+                        $enumName = $property['x-enum-name'] ?? ucfirst($modelName) . ucfirst($propertyName);
+
+                        if (!isset($list[$enumName])) {
+                            $list[$enumName] = [
+                                'name' => $enumName,
+                                'enum' => $property['items']['enum'],
+                                'keys' => $property['items']['x-enum-keys'] ?? [],
+                            ];
+                        }
+                    }
+                }
+            }
+        }
+
+        return \array_values($list);
+    }
+
+    /**
+     * @return array
+     */
+    public function getAllEnums(): array
+    {
+        $list = [];
+        foreach ($this->getRequestEnums() as $enum) {
+            $list[$enum['name']] = $enum;
+        }
+        foreach ($this->getResponseEnums() as $enum) {
+            $list[$enum['name']] = $enum;
         }
 
         return \array_values($list);

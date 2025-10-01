@@ -22,15 +22,15 @@ ext["signing.keyId"] = System.getenv('SIGNING_KEY_ID') ?: ext["signing.keyId"]
 ext["signing.password"] = System.getenv('SIGNING_PASSWORD') ?: ext["signing.password"]
 ext["signing.secretKeyRingFile"] = System.getenv('SIGNING_SECRET_KEY_RING_FILE') ?: ext["signing.secretKeyRingFile"]
 
-// Set up Sonatype repository
+// Set up Sonatype repository using OSSRH Staging API
 nexusPublishing {
     repositories {
         sonatype {
             stagingProfileId = sonatypeStagingProfileId
             username = ossrhUsername
             password = ossrhPassword
-            nexusUrl.set(uri("https://s01.oss.sonatype.org/service/local/"))
-            snapshotRepositoryUrl.set(uri("https://s01.oss.sonatype.org/content/repositories/snapshots/"))
+            nexusUrl.set(uri("https://ossrh-staging-api.central.sonatype.com/service/local/"))
+            snapshotRepositoryUrl.set(uri("https://central.sonatype.com/repository/maven-snapshots/"))
         }
     }
 }

@@ -124,7 +124,9 @@ const initProject = async ({ organizationId, projectId, projectName } = {}) => {
         if(answers.autopull) {
             cliConfig.all = true;
             cliConfig.force = true;
-            await pullResources();
+            await pullResources({
+                skipDeprecated: true
+            });
         } else {
             log("You can run 'appwrite pull all' to synchronize all of your existing resources.");
         }

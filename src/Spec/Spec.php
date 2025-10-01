@@ -178,9 +178,16 @@ abstract class Spec extends ArrayObject
     }
 
     /**
-     * Get Enums
+     * Get Request Enums
      *
      * @return array
      */
-    abstract public function getEnums();
+    abstract public function getRequestEnums();
+
+    /**
+     * Get Response Enums
+     *
+     * @return array
+     */
+    abstract public function getResponseEnums();
 }

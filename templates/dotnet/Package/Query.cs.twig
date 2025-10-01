@@ -138,6 +138,10 @@ namespace {{ spec.title | caseUcfirst }}
             return new Query("orderDesc", attribute, null).ToString();
         }
 
+        public static string OrderRandom() {
+            return new Query("orderRandom", null, null).ToString();
+        }
+
         public static string Limit(int limit) {
             return new Query("limit", null, limit).ToString();
         }
@@ -150,12 +154,124 @@ namespace {{ spec.title | caseUcfirst }}
             return new Query("contains", attribute, value).ToString();
         }
 
+        public static string NotContains(string attribute, object value) {
+            return new Query("notContains", attribute, value).ToString();
+        }
+
+        public static string NotSearch(string attribute, string value) {
+            return new Query("notSearch", attribute, value).ToString();
+        }
+
+        public static string NotBetween(string attribute, string start, string end) {
+            return new Query("notBetween", attribute, new List<string> { start, end }).ToString();
+        }
+
+        public static string NotBetween(string attribute, int start, int end) {
+            return new Query("notBetween", attribute, new List<int> { start, end }).ToString();
+        }
+
+        public static string NotBetween(string attribute, double start, double end) {
+            return new Query("notBetween", attribute, new List<double> { start, end }).ToString();
+        }
+
+        public static string NotStartsWith(string attribute, string value) {
+            return new Query("notStartsWith", attribute, value).ToString();
+        }
+
+        public static string NotEndsWith(string attribute, string value) {
+            return new Query("notEndsWith", attribute, value).ToString();
+        }
+
+        public static string CreatedBefore(string value) {
+            return new Query("createdBefore", null, value).ToString();
+        }
+
+        public static string CreatedAfter(string value) {
+            return new Query("createdAfter", null, value).ToString();
+        }
+
+        public static string CreatedBetween(string start, string end) {
+            return new Query("createdBetween", null, new List<string> { start, end }).ToString();
+        }
+
+        public static string UpdatedBefore(string value) {
+            return new Query("updatedBefore", null, value).ToString();
+        }
+
+        public static string UpdatedAfter(string value) {
+            return new Query("updatedAfter", null, value).ToString();
+        }
+
+        public static string UpdatedBetween(string start, string end) {
+            return new Query("updatedBetween", null, new List<string> { start, end }).ToString();
+        }
+
         public static string Or(List<string> queries) {
             return new Query("or", null, queries.Select(q => JsonSerializer.Deserialize<Query>(q, Client.DeserializerOptions)).ToList()).ToString();
         }
 
         public static string And(List<string> queries) {
             return new Query("and", null, queries.Select(q => JsonSerializer.Deserialize<Query>(q, Client.DeserializerOptions)).ToList()).ToString();
+        }
+
+        public static string DistanceEqual(string attribute, object values, double distance, bool meters = true)
+        {
+            return new Query("distanceEqual", attribute, new List<object> { new List<object> { values, distance, meters } }).ToString();
+        }
+
+        public static string DistanceNotEqual(string attribute, object values, double distance, bool meters = true)
+        {
+            return new Query("distanceNotEqual", attribute, new List<object> { new List<object> { values, distance, meters } }).ToString();
+        }
+
+        public static string DistanceGreaterThan(string attribute, object values, double distance, bool meters = true)
+        {
+            return new Query("distanceGreaterThan", attribute, new List<object> { new List<object> { values, distance, meters } }).ToString();
+        }
+
+        public static string DistanceLessThan(string attribute, object values, double distance, bool meters = true)
+        {
+            return new Query("distanceLessThan", attribute, new List<object> { new List<object> { values, distance, meters } }).ToString();
+        }
+
+        public static string Intersects(string attribute, object values)
+        {
+            return new Query("intersects", attribute, new List<object> { values }).ToString();
+        }
+
+        public static string NotIntersects(string attribute, object values)
+        {
+            return new Query("notIntersects", attribute, new List<object> { values }).ToString();
+        }
+
+        public static string Crosses(string attribute, object values)
+        {
+            return new Query("crosses", attribute, new List<object> { values }).ToString();
+        }
+
+        public static string NotCrosses(string attribute, object values)
+        {
+            return new Query("notCrosses", attribute, new List<object> { values }).ToString();
+        }
+
+        public static string Overlaps(string attribute, object values)
+        {
+            return new Query("overlaps", attribute, new List<object> { values }).ToString();
+        }
+
+        public static string NotOverlaps(string attribute, object values)
+        {
+            return new Query("notOverlaps", attribute, new List<object> { values }).ToString();
+        }
+
+        public static string Touches(string attribute, object values)
+        {
+            return new Query("touches", attribute, new List<object> { values }).ToString();
+        }
+
+        public static string NotTouches(string attribute, object values)
+        {
+            return new Query("notTouches", attribute, new List<object> { values }).ToString();
         }
     }
 }
