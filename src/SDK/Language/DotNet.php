@@ -514,8 +514,8 @@ class DotNet extends Language
                     if ($property['type'] === 'array') {
                         $arraySource = $required 
                             ? "((IEnumerable<object>){$mapAccess})" 
-                            : "({$v} as IEnumerable<object>)";
-                        return "{$arraySource}?.Select(it => {$subSchema}.From(map: (Dictionary<string, object>)it)).ToList()!";
+                            : "({$v} as IEnumerable<object>)?";
+                        return "{$arraySource}.Select(it => {$subSchema}.From(map: (Dictionary<string, object>)it)).ToList()";
                     } else {
                         if ($required) {
                             return "{$subSchema}.From(map: (Dictionary<string, object>){$mapAccess})";
@@ -541,7 +541,7 @@ class DotNet extends Language
                     $src = $required ? $mapAccess : $v;
                     $arraySource = $required 
                         ? "((IEnumerable<object>){$src})" 
-                        : "({$src} as IEnumerable<object>)";
+                        : "({$src} as IEnumerable<object>)?";
                     
                     $selectExpression = match($itemsType) {
                         'string' => 'x.ToString()',
@@ -551,7 +551,7 @@ class DotNet extends Language
                         default => 'x'
                     };
                     
-                    return "{$arraySource}?.Select(x => {$selectExpression}).ToList()!";
+                    return "{$arraySource}.Select(x => {$selectExpression}).ToList()";
                 }
                 
                 // Handle integer/number
