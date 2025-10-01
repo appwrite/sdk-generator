@@ -577,7 +577,7 @@ class Swift extends Language
                 $type = '[' . $type . ']';
             }
         } else {
-            $type = $this->getTypeName($property, isProperty: true);
+            $type = $this->getTypeName($property, $spec, true);
         }
 
         return $type;

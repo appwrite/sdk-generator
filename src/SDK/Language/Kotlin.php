@@ -469,6 +469,9 @@ class Kotlin extends Language
                 }
                 return $this->toUpperSnakeCase($value);
             }),
+            new TwigFilter('propertyAssignment', function (array $property, array $spec) {
+                return $this->getPropertyAssignment($property, $spec);
+            }),
         ];
     }
 
@@ -518,6 +521,9 @@ class Kotlin extends Language
             if ($property['type'] === 'array') {
                 $type = 'List<' . $type . '>';
             }
+        } elseif (isset($property['enum'])) {
+            $enumName = $property['enumName'] ?? $property['name'];
+            $type = \ucfirst($enumName);
         } else {
             $type = $this->getTypeName($property);
         }
@@ -550,5 +556,72 @@ class Kotlin extends Language
         }
 
         return false;
+    }
+
+    /**
+     * Generate property assignment logic for model deserialization
+     *
+     * @param array $property
+     * @param array $spec
+     * @return string
+     */
+    protected function getPropertyAssignment(array $property, array $spec): string
+    {
+        $propertyName = $property['name'];
+        $escapedPropertyName = str_replace('$', '\$', $propertyName);
+        $mapKey = "map[\"$escapedPropertyName\"]";
+
+        // Handle sub-schema (nested objects)
+        if (isset($property['sub_schema']) && !empty($property['sub_schema'])) {
+            $subSchemaClass = $this->toPascalCase($property['sub_schema']);
+            $hasGenericType = $this->hasGenericType($property['sub_schema'], $spec);
+            $nestedTypeParam = $hasGenericType ? ', nestedType' : '';
+
+            if ($property['type'] === 'array') {
+                return "($mapKey as List<Map<String, Any>>).map { " .
+                       "$subSchemaClass.from(map = it$nestedTypeParam) }";
+            } else {
+                return "$subSchemaClass.from(" .
+                       "map = $mapKey as Map<String, Any>$nestedTypeParam" .
+                       ")";
+            }
+        }
+
+        // Handle enum properties
+        if (isset($property['enum']) && !empty($property['enum'])) {
+            $enumName = $property['enumName'] ?? $property['name'];
+            $enumClass = $this->toPascalCase($enumName);
+            $nullCheck = $property['required'] ? '!!' : ' ?: null';
+
+            if ($property['required']) {
+                return "$enumClass.values().find { " .
+                    "it.value == $mapKey as String " .
+                    "}$nullCheck";
+            }
+
+            return "$enumClass.values().find { " .
+                   "it.value == ($mapKey as? String) " .
+                   "}$nullCheck";
+        }
+
+        // Handle primitive types
+        $nullableModifier = $property['required'] ? '' : '?';
+
+        if ($property['type'] === 'integer') {
+            return "($mapKey as$nullableModifier Number)" .
+                   ($nullableModifier ? '?' : '') . '.toLong()';
+        }
+
+        if ($property['type'] === 'number') {
+            return "($mapKey as$nullableModifier Number)" .
+                   ($nullableModifier ? '?' : '') . '.toDouble()';
+        }
+
+        // Handle other types (string, boolean, etc.)
+        $kotlinType = $this->getPropertyType($property, $spec);
+        // Remove nullable modifier from type since we handle it in the cast
+        $kotlinType = str_replace('?', '', $kotlinType);
+
+        return "$mapKey as$nullableModifier $kotlinType";
     }
 }

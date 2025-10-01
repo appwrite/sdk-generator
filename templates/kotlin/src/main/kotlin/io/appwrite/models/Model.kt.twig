@@ -2,6 +2,11 @@ package {{ sdk.namespace | caseDot }}.models
 
 import com.google.gson.annotations.SerializedName
 import io.appwrite.extensions.jsonCast
+{%~ for property in definition.properties %}
+{%~ if property.enum %}
+import {{ sdk.namespace | caseDot }}.enums.{{ (property.enumName ?? property.name) | caseUcfirst }}
+{%~ endif %}
+{%~ endfor %}
 
 /**
  * {{ definition.description | replace({"\n": "\n * "}) | raw }}
@@ -27,7 +32,7 @@ import io.appwrite.extensions.jsonCast
 ) {
     fun toMap(): Map<String, Any> = mapOf(
         {%~ for property in definition.properties %}
-        "{{ property.name | escapeDollarSign }}" to {% if property.sub_schema %}{% if property.type == 'array' %}{{property.name | escapeKeyword | removeDollarSign}}.map { it.toMap() }{% else %}{{property.name | escapeKeyword | removeDollarSign}}.toMap(){% endif %}{% else %}{{property.name | escapeKeyword | removeDollarSign}}{% endif %} as Any,
+        "{{ property.name | escapeDollarSign }}" to {% if property.sub_schema %}{% if property.type == 'array' %}{{property.name | escapeKeyword | removeDollarSign}}.map { it.toMap() }{% else %}{{property.name | escapeKeyword | removeDollarSign}}.toMap(){% endif %}{% elseif property.enum %}{{property.name | escapeKeyword | removeDollarSign}}{% if not property.required %}?{% endif %}.value{% else %}{{property.name | escapeKeyword | removeDollarSign}}{% endif %} as Any,
         {%~ endfor %}
         {%~ if definition.additionalProperties %}
         "data" to data!!.jsonCast(to = Map::class.java)
@@ -61,7 +66,7 @@ import io.appwrite.extensions.jsonCast
             {%~ endif %}
         ) = {{ definition | modelType(spec) | raw }}(
             {%~ for property in definition.properties %}
-            {{ property.name | escapeKeyword | removeDollarSign }} = {% if property.sub_schema %}{% if property.type == 'array' %}(map["{{ property.name | escapeDollarSign }}"] as List<Map<String, Any>>).map { {{ property.sub_schema | caseUcfirst }}.from(map = it{% if property.sub_schema | hasGenericType(spec) %}, nestedType{% endif %}) }{% else %}{{ property.sub_schema | caseUcfirst }}.from(map = map["{{property.name | escapeDollarSign }}"] as Map<String, Any>{% if property.sub_schema | hasGenericType(spec) %}, nestedType{% endif %}){% endif %}{% else %}{% if property.type == "integer" or property.type == "number" %}({% endif %}map["{{ property.name | escapeDollarSign }}"]{% if property.type == "integer" or property.type == "number" %} as{% if not property.required %}?{% endif %} Number){% endif %}{% if property.type == "integer" %}{% if not property.required %}?{% endif %}.toLong(){% elseif property.type == "number" %}{% if not property.required %}?{% endif %}.toDouble(){% else %} as{% if not property.required %}?{% endif %} {{ property | propertyType(spec) | raw }}{% endif %}{% endif %},
+            {{ property.name | escapeKeyword | removeDollarSign }} = {{ property | propertyAssignment(spec) | raw }},
             {%~ endfor %}
             {%~ if definition.additionalProperties %}
             data = map["data"]?.jsonCast(to = nestedType) ?: map.jsonCast(to = nestedType)

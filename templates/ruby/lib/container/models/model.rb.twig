@@ -21,7 +21,15 @@ module {{ spec.title | caseUcfirst }}
 {% endif %}
             )
 {% for property in definition.properties %}
+{% if property.enum %}
+{% if property.required %}
+                @{{ property.name | caseSnake | escapeKeyword }} = validate_{{ property.name | caseSnake | escapeKeyword }}({{ property.name | caseSnake | escapeKeyword }})
+{% else %}
+                @{{ property.name | caseSnake | escapeKeyword }} = {{ property.name | caseSnake | escapeKeyword }}.nil? ? {{ property.name | caseSnake | escapeKeyword }} : validate_{{ property.name | caseSnake | escapeKeyword }}({{ property.name | caseSnake | escapeKeyword }})
+{% endif %}
+{% else %}
                 @{{ property.name | caseSnake | escapeKeyword }} = {{ property.name | caseSnake | escapeKeyword }}
+{% endif %}
 {% endfor %}
 {% if definition.additionalProperties %}
                 @data = data
@@ -67,6 +75,29 @@ module {{ spec.title | caseUcfirst }}
             end
 {% endif %}
 {% endfor %}
+{% endif %}
+{% endfor %}
+{% if definition.properties | filter(p => p.enum) | length > 0 %}
+
+            private
+
+{% endif %}
+{% for property in definition.properties %}
+{% if property.enum %}
+            def validate_{{ property.name | caseSnake | escapeKeyword }}({{ property.name | caseSnake | escapeKeyword }})
+                valid_{{ property.name | caseSnake }} = [
+{% for value in property.enum %}
+                    {{ spec.title | caseUcfirst }}::Enums::{{ property.enumName | caseUcfirst }}::{{ value | caseUpper }},
+{% endfor %}
+                ]
+
+                unless valid_{{ property.name | caseSnake }}.include?({{ property.name | caseSnake | escapeKeyword }})
+                    raise ArgumentError, "Invalid " + {{ property.name | caseSnake | escapeKeyword }} + ". Must be one of: " + valid_{{ property.name | caseSnake }}.join(', ')
+                end
+
+                {{ property.name | caseSnake | escapeKeyword }}
+            end
+
 {% endif %}
 {% endfor %}
         end
