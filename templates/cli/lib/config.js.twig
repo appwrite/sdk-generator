@@ -62,12 +62,13 @@ const KeysColumns = new Set([
     "onDelete",
     "side",
     // Indexes
-    "attributes",
+    "columns",
     "orders",
     // Strings
     "encrypt",
 ]);
 const KeyIndexes = new Set(["key", "type", "status", "attributes", "orders"]);
+const KeyIndexesColumns = new Set(["key", "type", "status", "columns", "orders"]);
 
 function whitelistKeys(value, keys, nestedKeys = {}) {
     if (Array.isArray(value)) {
@@ -404,7 +405,7 @@ class Local extends Config {
     addTable(props) {
         props = whitelistKeys(props, KeysTable, {
             columns: KeysColumns,
-            indexes: KeyIndexes
+            indexes: KeyIndexesColumns
         });
 
         if (!this.has("tables")) {
