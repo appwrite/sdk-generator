@@ -499,7 +499,7 @@ class DotNet extends Language
                 $name = $property['name'];
                 $name = \str_replace('$', '', $name);
                 $name = $this->toPascalCase($name);
-                if (\in_array(\strtolower($name), $this->getKeywords())) {
+                if (\in_array($name, $this->getKeywords())) {
                     $name = '@' . $name;
                 }
                 return $name;
