@@ -478,13 +478,13 @@ class DotNet extends Language
 
                 if (isset($property['sub_schema']) && !empty($property['sub_schema'])) {
                     if ($property['type'] === 'array') {
-                        $result = 'List<' . \ucfirst($property['sub_schema']) . '>';
+                        $result = 'List<' . $this->toPascalCase($property['sub_schema']) . '>';
                     } else {
-                        $result = \ucfirst($property['sub_schema']);
+                        $result = $this->toPascalCase($property['sub_schema']);
                     }
                 } elseif (isset($property['enum']) && !empty($property['enum'])) {
                     $enumName = $property['enumName'] ?? $property['name'];
-                    $result = \ucfirst($enumName);
+                    $result = $this->toPascalCase($enumName);
                 } else {
                     $result = $this->getTypeName($property);
                 }
@@ -497,9 +497,9 @@ class DotNet extends Language
             }),
             new TwigFunction('property_name', function (array $definition, array $property) {
                 $name = $property['name'];
-                $name = \ucfirst($name);
                 $name = \str_replace('$', '', $name);
-                if (\in_array(\strtolower($name), $this->getKeywords())) {
+                $name = $this->toPascalCase($name);
+                if (\in_array($name, $this->getKeywords())) {
                     $name = '@' . $name;
                 }
                 return $name;
