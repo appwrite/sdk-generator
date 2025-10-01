@@ -1,3 +1,4 @@
+
 using System;
 using System.Linq;
 using System.Collections.Generic;
@@ -11,7 +12,7 @@ namespace {{ spec.title | caseUcfirst }}.Models
     {
         {%~ for property in definition.properties %}
         [JsonPropertyName("{{ property.name }}")]
-        public {{ sub_schema(property) }} {{ property_name(definition, property) | overrideProperty(definition.name) }} { get; private set; }
+        public {{ sub_schema(property) | raw }} {{ property_name(definition, property) | overrideProperty(definition.name) }} { get; private set; }
 
         {%~ endfor %}
         {%~ if definition.additionalProperties %}
@@ -20,7 +21,7 @@ namespace {{ spec.title | caseUcfirst }}.Models
         {%~ endif %}
         public {{ definition.name | caseUcfirst | overrideIdentifier }}(
             {%~ for property in definition.properties %}
-            {{ sub_schema(property) }} {{ property.name | caseCamel | escapeKeyword }}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
+            {{ sub_schema(property) | raw }} {{ property.name | caseCamel | escapeKeyword }}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
 
             {%~ endfor %}
             {%~ if definition.additionalProperties %}
