@@ -1,4 +1,4 @@
-name: SDK Build Validation
+name: Appwrite SDK Build Validation
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -8,7 +8,7 @@ on: [pull_request]
 
 jobs:
   generate-and-build:
-    name: ${{ matrix.sdk }} (${{ matrix.platform }})
+    name: Appwrite - ${{ matrix.sdk }} (${{ matrix.platform }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
