@@ -4,7 +4,9 @@ using System.Linq;
 using System.Collections.Generic;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+{% if definition.properties | filter(p => p.enum) | length > 0 %}
 using {{ spec.title | caseUcfirst }}.Enums;
+{% endif %}
 
 namespace {{ spec.title | caseUcfirst }}.Models
 {
