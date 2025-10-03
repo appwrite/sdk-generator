@@ -78,7 +78,7 @@ jobs:
         run: composer install
 
       - name: Generate SDK for ${{ matrix.sdk }}
-        run: php generate-sdk.php ${{ matrix.sdk }} ${{ matrix.platform }}
+        run: php example.php ${{ matrix.sdk }} ${{ matrix.platform }}
 
       # Language-specific setup
       - name: Setup Node.js
