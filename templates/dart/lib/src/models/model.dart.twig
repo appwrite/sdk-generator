@@ -43,15 +43,14 @@ class {{ definition.name | caseUcfirst | overrideIdentifier }} implements Model 
                 {%- if property.type == 'array' -%}
                     List.from(map['{{property.name | escapeDollarSign }}'] ?? [])
                 {%- else -%}
-                    map['{{property.name | escapeDollarSign }}']
                     {%- if property.type == "integer" -%}
-                        {%- if not property.required %}?{% endif %}.toInt()
-                    {%- endif -%}
-                    {%- if property.type == "number" -%}
-                        {%- if not property.required %}?{% endif %}.toDouble()
-                    {%- endif -%}
-                    {%- if property.type == "string" -%}
-                        {%- if not property.required %}?{% endif %}.toString()
+                        (map['{{property.name | escapeDollarSign }}'] is int ? map['{{property.name | escapeDollarSign }}'] : {% if property.required %}int.parse(map['{{property.name | escapeDollarSign }}'].toString()){% else %}map['{{property.name | escapeDollarSign }}'] != null ? int.parse(map['{{property.name | escapeDollarSign }}'].toString()) : null{% endif %})
+                    {%- elseif property.type == "number" -%}
+                        (map['{{property.name | escapeDollarSign }}'] is double ? map['{{property.name | escapeDollarSign }}'] : {% if property.required %}double.parse(map['{{property.name | escapeDollarSign }}'].toString()){% else %}map['{{property.name | escapeDollarSign }}'] != null ? double.parse(map['{{property.name | escapeDollarSign }}'].toString()) : null{% endif %})
+                    {%- elseif property.type == "string" -%}
+                        map['{{property.name | escapeDollarSign }}']{% if not property.required %}?{% endif %}.toString()
+                    {%- else -%}
+                        map['{{property.name | escapeDollarSign }}']
                     {%- endif -%}
                 {%- endif -%}
             {%- endif -%},
