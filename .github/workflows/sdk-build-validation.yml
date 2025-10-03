@@ -158,7 +158,7 @@ jobs:
               ;;
             flutter)
               flutter pub get
-              flutter analyze --no-fatal-infos --no-fatal-warnings
+              flutter analyze --no-fatal-warnings
               ;;
             apple|swift)
               swift build
@@ -179,7 +179,7 @@ jobs:
               ;;
             dart)
               dart pub get
-              dart analyze --no-fatal-infos --no-fatal-warnings
+              dart analyze --no-fatal-warnings
               ;;
             go)
               go mod tidy || true
