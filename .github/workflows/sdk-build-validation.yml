@@ -163,9 +163,13 @@ jobs:
             apple|swift)
               swift build
               ;;
-            android|kotlin)
+            android)
               chmod +x ./gradlew || true
               ./gradlew build -x lint
+              ;;
+            kotlin)
+              chmod +x ./gradlew || true
+              ./gradlew build
               ;;
             php)
               composer install
