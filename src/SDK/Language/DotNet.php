@@ -506,14 +506,14 @@ class DotNet extends Language
             }),
             new TwigFunction('parse_value', function (array $property, string $mapAccess, string $v) {
                 $required = $property['required'] ?? false;
-                
+
                 // Handle sub_schema
                 if (isset($property['sub_schema']) && !empty($property['sub_schema'])) {
                     $subSchema = \ucfirst($property['sub_schema']);
-                    
+
                     if ($property['type'] === 'array') {
-                        $arraySource = $required 
-                            ? "((IEnumerable<object>){$mapAccess})" 
+                        $arraySource = $required
+                            ? "((IEnumerable<object>){$mapAccess})"
                             : "({$v} as IEnumerable<object>)?";
                         return "{$arraySource}.Select(it => {$subSchema}.From(map: (Dictionary<string, object>)it)).ToList()";
                     } else {
@@ -523,7 +523,7 @@ class DotNet extends Language
                         return "({$v} as Dictionary<string, object>) is { } obj ? {$subSchema}.From(map: obj) : null";
                     }
                 }
-                
+
                 // Handle enum
                 if (isset($property['enum']) && !empty($property['enum'])) {
                     $enumName = $property['enumName'] ?? $property['name'];
@@ -534,46 +534,46 @@ class DotNet extends Language
                     }
                     return "{$v} == null ? null : new {$enumClass}({$v}.ToString())";
                 }
-                
+
                 // Handle arrays
                 if ($property['type'] === 'array') {
                     $itemsType = $property['items']['type'] ?? 'object';
                     $src = $required ? $mapAccess : $v;
-                    $arraySource = $required 
-                        ? "((IEnumerable<object>){$src})" 
+                    $arraySource = $required
+                        ? "((IEnumerable<object>){$src})"
                         : "({$src} as IEnumerable<object>)?";
-                    
-                    $selectExpression = match($itemsType) {
+
+                    $selectExpression = match ($itemsType) {
                         'string' => 'x.ToString()',
                         'integer' => 'Convert.ToInt64(x)',
                         'number' => 'Convert.ToDouble(x)',
                         'boolean' => '(bool)x',
                         default => 'x'
                     };
-                    
+
                     return "{$arraySource}.Select(x => {$selectExpression}).ToList()";
                 }
-                
+
                 // Handle integer/number
                 if ($property['type'] === 'integer' || $property['type'] === 'number') {
                     $convertMethod = $property['type'] === 'integer' ? 'Int64' : 'Double';
-                    
+
                     if ($required) {
                         return "Convert.To{$convertMethod}({$mapAccess})";
                     }
                     return "{$v} == null ? null : Convert.To{$convertMethod}({$v})";
                 }
-                
+
                 // Handle boolean
                 if ($property['type'] === 'boolean') {
                     $typeName = $this->getTypeName($property);
-                    
+
                     if ($required) {
                         return "({$typeName}){$mapAccess}";
                     }
                     return "({$typeName}?){$v}";
                 }
-                
+
                 // Handle string type
                 if ($required) {
                     return "{$mapAccess}.ToString()";
