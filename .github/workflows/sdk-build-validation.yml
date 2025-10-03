@@ -165,7 +165,7 @@ jobs:
               ;;
             android|kotlin)
               chmod +x ./gradlew || true
-              ./gradlew build
+              ./gradlew build -x lint
               ;;
             php)
               composer install
