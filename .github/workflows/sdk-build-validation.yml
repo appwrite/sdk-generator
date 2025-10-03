@@ -8,7 +8,7 @@ on: [pull_request]
 
 jobs:
   generate-and-build:
-    name: Appwrite - ${{ matrix.sdk }} (${{ matrix.platform }})
+    name: ${{ matrix.sdk }} (${{ matrix.platform }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
