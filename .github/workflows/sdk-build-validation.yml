@@ -158,7 +158,7 @@ jobs:
               ;;
             flutter)
               flutter pub get
-              flutter analyze --fatal-warnings --no-fatal-infos
+              dart analyze --fatal-warnings
               ;;
             apple|swift)
               swift build
