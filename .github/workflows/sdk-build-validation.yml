@@ -95,9 +95,13 @@ jobs:
 
       - name: Setup Swift
         if: matrix.sdk == 'apple' || matrix.sdk == 'swift'
-        uses: swift-actions/setup-swift@v2
-        with:
-          swift-version: '5.9'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget
+          wget https://download.swift.org/swift-5.9.2-release/ubuntu2204/swift-5.9.2-RELEASE/swift-5.9.2-RELEASE-ubuntu22.04.tar.gz
+          tar xzf swift-5.9.2-RELEASE-ubuntu22.04.tar.gz
+          sudo mv swift-5.9.2-RELEASE-ubuntu22.04 /usr/share/swift
+          echo "/usr/share/swift/usr/bin" >> $GITHUB_PATH
 
       - name: Setup Java
         if: matrix.sdk == 'android' || matrix.sdk == 'kotlin'
