@@ -43,12 +43,20 @@ class {{ definition.name | caseUcfirst | overrideIdentifier }} implements Model 
                 {%- if property.type == 'array' -%}
                     List.from(map['{{property.name | escapeDollarSign }}'] ?? [])
                 {%- else -%}
-                    map['{{property.name | escapeDollarSign }}']
-                    {%- if property.type == "number" -%}
-                        {%- if not property.required %}?{% endif %}.toDouble()
-                    {%- endif -%}
-                    {%- if property.type == "string" -%}
-                        {%- if not property.required %}?{% endif %}.toString()
+                    {%- if property.type == "integer" -%}
+                        {%- if property.required -%}
+                            (map['{{property.name | escapeDollarSign }}'] as int)
+                        {%- else -%}
+                            (map['{{property.name | escapeDollarSign }}'] as int?)
+                        {%- endif -%}
+                    {%- else -%}
+                        map['{{property.name | escapeDollarSign }}']
+                        {%- if property.type == "number" -%}
+                            {%- if not property.required %}?{% endif %}.toDouble()
+                        {%- endif -%}
+                        {%- if property.type == "string" -%}
+                            {%- if not property.required %}?{% endif %}.toString()
+                        {%- endif -%}
                     {%- endif -%}
                 {%- endif -%}
             {%- endif -%},
