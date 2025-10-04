@@ -8,7 +8,7 @@ import 'upload_progress.dart';
 /// [Client] that handles requests to {{spec.title | caseUcfirst}}
 abstract class Client {
   /// The size for chunked uploads in bytes.
-  static const int CHUNK_SIZE = 5 * 1024 * 1024;
+  static const int chunkSize = 5 * 1024 * 1024;
 
   /// Holds configuration such as project.
   late Map<String, String> config;
