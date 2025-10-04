@@ -257,14 +257,18 @@ try {
     // Android
     if (!$requestedSdk || $requestedSdk === 'android') {
         $sdk = new SDK(new Android(), new Swagger2($spec));
-        configureSDK($sdk);
+        configureSDK($sdk, [
+            'namespace' => 'io.appwrite',
+        ]);
         $sdk->generate(__DIR__ . '/examples/android');
     }
 
     // Kotlin
     if (!$requestedSdk || $requestedSdk === 'kotlin') {
         $sdk = new SDK(new Kotlin(), new Swagger2($spec));
-        configureSDK($sdk);
+        configureSDK($sdk, [
+            'namespace' => 'io.appwrite',
+        ]);
         $sdk->generate(__DIR__ . '/examples/kotlin');
     }
 
