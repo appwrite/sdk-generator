@@ -43,13 +43,13 @@ try {
             'description' => 'Repo description goes here',
             'shortDescription' => 'Repo short description goes here',
             'url' => 'https://example.com',
-            'logo' => 'https://appwrite.io/v1/images/console.png',
+            'logo' => 'https://appwrite.io/images/logos/logo.svg',
             'licenseContent' => 'test test test',
             'warning' => '**WORK IN PROGRESS - NOT READY FOR USAGE**',
             'changelog' => '**CHANGELOG**',
             'gitUserName' => 'repoowner',
             'gitRepoName' => 'reponame',
-            'twitter' => 'appwrite_io',
+            'twitter' => 'appwrite',
             'discord' => ['564160730845151244', 'https://appwrite.io/discord'],
             'defaultHeaders' => ['X-Appwrite-Response-Format' => '1.6.0'],
             'readme' => '**README**',
@@ -271,10 +271,7 @@ try {
     // GraphQL
     if (!$requestedSdk || $requestedSdk === 'graphql') {
         $sdk = new SDK(new GraphQL(), new Swagger2($spec));
-        $sdk
-            ->setName('GraphQL')
-            ->setDescription('Appwrite is an open-source backend as a service server that abstract and simplify complex and repetitive development tasks behind a very simple to use REST API. Appwrite aims to help you develop your apps faster and in a more secure way. Use the Flutter SDK to integrate your app with the Appwrite server to easily start interacting with all of Appwrite backend APIs and tools. For full API documentation and tutorials go to https://appwrite.io/docs')
-            ->setLogo('https://appwrite.io/v1/images/console.png');
+        configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/graphql');
     }
 }
