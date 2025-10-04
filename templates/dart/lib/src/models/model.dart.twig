@@ -59,6 +59,7 @@ class {{ definition.name | caseUcfirst | overrideIdentifier }} implements Model 
         );
     }
 
+    @override
     Map<String, dynamic> toMap() {
         return {
 {% for property in definition.properties %}
