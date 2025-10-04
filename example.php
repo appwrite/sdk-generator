@@ -73,12 +73,6 @@ try {
             ->setDefaultHeaders($config['defaultHeaders'])
             ->setReadme($config['readme']);
 
-        if (isset($config['examples'])) {
-            $sdk->setExamples($config['examples']);
-        }
-        if (isset($config['license'])) {
-            $sdk->setLicense($config['license']);
-        }
         if (isset($config['namespace'])) {
             $sdk->setNamespace($config['namespace']);
         }
@@ -191,7 +185,6 @@ try {
         $dart->setPackageName('dart_appwrite');
         $sdk  = new SDK($dart, new Swagger2($spec));
         configureSDK($sdk);
-
         $sdk->generate(__DIR__ . '/examples/dart');
     }
 
@@ -209,20 +202,14 @@ try {
         $reactNative = new ReactNative();
         $reactNative->setNPMPackage('react-native-appwrite');
         $sdk  = new SDK($reactNative, new Swagger2($spec));
-        configureSDK($sdk, [
-            'examples' => '**EXAMPLES** <HTML>',
-            'version' => '0.0.1',
-        ]);
+        configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/react-native');
     }
 
     // GO
     if (!$requestedSdk || $requestedSdk === 'go') {
         $sdk  = new SDK(new Go(), new Swagger2($spec));
-        configureSDK($sdk, [
-            'gitUserName' => 'appwrite',
-            'gitRepoName' => 'sdk-for-go',
-        ]);
+        configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/go');
     }
 
