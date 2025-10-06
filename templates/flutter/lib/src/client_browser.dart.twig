@@ -150,7 +150,7 @@ class ClientBrowser extends ClientBase with ClientMixin {
       try {
         res = await call(
           HttpMethod.get,
-          path: path + '/' + params[idParamName],
+          path: '$path/${params[idParamName]}',
           headers: headers,
         );
         final int chunksUploaded = res.data['chunksUploaded'] as int;
@@ -243,7 +243,7 @@ class ClientBrowser extends ClientBase with ClientMixin {
   Future webAuth(Uri url, {String? callbackUrlScheme}) {
     return FlutterWebAuth2.authenticate(
       url: url.toString(),
-      callbackUrlScheme: "{{spec.title | caseLower}}-callback-" + config['project']!,
+      callbackUrlScheme: "{{spec.title | caseLower}}-callback-${config['project']!}",
       options: const FlutterWebAuth2Options(useWebview: false),
     );
   }

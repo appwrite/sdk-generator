@@ -272,7 +272,7 @@ class ClientIO extends ClientBase with ClientMixin {
       try {
         res = await call(
           HttpMethod.get,
-          path: path + '/' + params[idParamName],
+          path: '$path/${params[idParamName]}',
           headers: headers,
         );
         final int chunksUploaded = res.data['chunksUploaded'] as int;
@@ -333,7 +333,7 @@ class ClientIO extends ClientBase with ClientMixin {
       url: url.toString(),
       callbackUrlScheme: callbackUrlScheme != null && _customSchemeAllowed
           ? callbackUrlScheme
-          : "{{spec.title | caseLower}}-callback-" + config['project']!,
+          : "{{spec.title | caseLower}}-callback-${config['project']!}",
       options: const FlutterWebAuth2Options(
         intentFlags: ephemeralIntentFlags,
         useWebview: false,
