@@ -6,7 +6,7 @@ class Query {
   final String? attribute;
   final dynamic values;
 
-  Query._(this.method, [this.attribute = null, this.values = null]);
+  Query._(this.method, [this.attribute, this.values]);
 
   Map<String, dynamic> toJson() {
     final result = <String, dynamic>{};
