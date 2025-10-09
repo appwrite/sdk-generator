@@ -42,7 +42,7 @@ abstract class Client {
   ///
   /// {{header.description}}
 {% endif %}
-  Client set{{header.key | caseUcfirst}}(value);
+  Client set{{header.key | caseUcfirst}}(String value);
 
 {% endfor %}
   /// Add headers that should be sent with all API calls.
