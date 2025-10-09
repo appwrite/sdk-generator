@@ -127,6 +127,16 @@ class Python extends Language
             ],
             [
                 'scope' => 'default',
+                'destination' => '{{ spec.title | caseSnake}}/utils/deprecated.py',
+                'template' => 'python/package/utils/deprecated.py.twig',
+            ],
+            [
+                'scope' => 'default',
+                'destination' => '{{ spec.title | caseSnake}}/utils/__init__.py',
+                'template' => 'python/package/utils/__init__.py.twig',
+            ],
+            [
+                'scope' => 'default',
                 'destination' => '{{ spec.title | caseSnake}}/client.py',
                 'template' => 'python/package/client.py.twig',
             ],

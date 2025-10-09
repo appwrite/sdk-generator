@@ -1,0 +1,51 @@
+"""
+A decorator to mark functions as deprecated.
+
+When the function is called, a DeprecationWarning is emitted.
+Compatible with Python 2.7+ and Python 3.x.
+"""
+
+import functools
+import warnings
+
+def deprecated(reason=None):
+    """
+    Decorator to mark functions as deprecated.
+    Emits a DeprecationWarning when the function is called.
+
+    Args:
+        reason (str, optional): Reason for deprecation. Defaults to None.
+
+    Usage:
+        @deprecated("Use another_function instead.")
+        def old_function(...):
+            ...
+    """
+    def decorator(func):
+        message = "Call to deprecated function '{}'.{}".format(
+            func.__name__,
+            " " + reason if reason else ""
+        )
+
+        @functools.wraps(func)
+        def wrapped(*args, **kwargs):
+            warnings.simplefilter('always', DeprecationWarning) # show warning every time
+            try:
+                warnings.warn(
+                    message,
+                    category=DeprecationWarning,
+                    stacklevel=2
+                )
+                return func(*args, **kwargs)
+            finally:
+                warnings.simplefilter('default', DeprecationWarning)  # reset filter
+        return wrapped
+
+    # Support both @deprecated and @deprecated("reason")
+    if callable(reason):
+        # Used as @deprecated without arguments
+        func = reason
+        reason = None
+        return decorator(func)
+    else:
+        return decorator
