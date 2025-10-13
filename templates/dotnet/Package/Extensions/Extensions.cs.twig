@@ -12,6 +12,17 @@ namespace {{ spec.title | caseUcfirst }}.Extensions
             return JsonSerializer.Serialize(dict, Client.SerializerOptions);
         }
 
+        public static IEnumerable<object> ToEnumerable(this object value)
+        {
+            return value switch
+            {
+                object[] array => array,
+                IEnumerable<object> enumerable => enumerable,
+                IEnumerable nonGeneric => nonGeneric.Cast<object>(),
+                _ => throw new InvalidCastException($"Cannot convert {value?.GetType().Name ?? "null"} to IEnumerable<object>")
+            };
+        }
+
         public static string ToQueryString(this Dictionary<string, object?> parameters)
         {
             var query = new List<string>();

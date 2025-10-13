@@ -7,6 +7,7 @@ using System.Text.Json.Serialization;
 {% if definition.properties | filter(p => p.enum) | length > 0 %}
 using {{ spec.title | caseUcfirst }}.Enums;
 {% endif %}
+using {{ spec.title | caseUcfirst }}.Extensions;
 
 namespace {{ spec.title | caseUcfirst }}.Models
 {
