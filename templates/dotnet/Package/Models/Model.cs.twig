@@ -42,7 +42,7 @@ namespace {{ spec.title | caseUcfirst }}.Models
             {{ property.name | caseCamel | escapeKeyword | removeDollarSign }}:{{' '}}
                 {%- if property.sub_schema %}
                     {%- if property.type == 'array' -%}
-                        Extensions.ToList<Dictionary<string, object>>(map["{{ property.name }}"]).Select(it => {{ property.sub_schema | caseUcfirst | overrideIdentifier }}.From(map: it)).ToList()
+                        Extensions.ConvertToList<Dictionary<string, object>>(map["{{ property.name }}"]).Select(it => {{ property.sub_schema | caseUcfirst | overrideIdentifier }}.From(map: it)).ToList()
                     {%- else -%}
                         {{ property.sub_schema | caseUcfirst | overrideIdentifier }}.From(map: map["{{ property.name }}"] is JsonElement jsonObj{{ loop.index }} ? jsonObj{{ loop.index }}.Deserialize<Dictionary<string, object>>()! : (Dictionary<string, object>)map["{{ property.name }}"])
                     {%- endif %}
@@ -59,7 +59,7 @@ namespace {{ spec.title | caseUcfirst }}.Models
                     {%- endif %}
                 {%- else %}
                     {%- if property.type == 'array' -%}
-                        Extensions.ToList<{{ property | typeName }}>(map["{{ property.name }}"])
+                        Extensions.ConvertToList<{{ property | typeName }}>(map["{{ property.name }}"])
                     {%- else %}
                         {%- if property.type == "integer" or property.type == "number" %}
                             {%- if not property.required -%}map["{{ property.name }}"] == null ? null :{% endif %}Convert.To{% if property.type == "integer" %}Int64{% else %}Double{% endif %}(map["{{ property.name }}"])

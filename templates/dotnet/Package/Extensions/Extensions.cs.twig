@@ -13,7 +13,7 @@ namespace {{ spec.title | caseUcfirst }}.Extensions
             return JsonSerializer.Serialize(dict, Client.SerializerOptions);
         }
 
-        public static List<T> ToList<T>(object value)
+        public static List<T> ConvertToList<T>(object value)
         {
             return value switch
             {
