@@ -178,8 +178,8 @@ class DotNet extends Language
             self::TYPE_BOOLEAN => 'bool',
             self::TYPE_FILE => 'InputFile',
             self::TYPE_ARRAY => (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type']))
-                ? 'List<' . $this->getTypeName($parameter['array']) . '>'
-                : 'List<object>',
+                ? $this->getTypeName($parameter['array'])
+                : 'object',
             self::TYPE_OBJECT => 'object',
             default => $parameter['type']
         };
