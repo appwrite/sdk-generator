@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using {{ spec.title | caseUcfirst }}.Enums;
+using {{ spec.title | caseUcfirst }}.Extensions;
 
 namespace {{ spec.title | caseUcfirst }}.Models
 {
@@ -41,7 +42,7 @@ namespace {{ spec.title | caseUcfirst }}.Models
             {{ property.name | caseCamel | escapeKeyword | removeDollarSign }}:{{' '}}
                 {%- if property.sub_schema %}
                     {%- if property.type == 'array' -%}
-                        map["{{ property.name }}"] is JsonElement jsonArray{{ loop.index }} ? jsonArray{{ loop.index }}.Deserialize<List<Dictionary<string, object>>>()!.Select(it => {{ property.sub_schema | caseUcfirst | overrideIdentifier }}.From(map: it)).ToList() : ((IEnumerable<Dictionary<string, object>>)map["{{ property.name }}"]).Select(it => {{ property.sub_schema | caseUcfirst | overrideIdentifier }}.From(map: it)).ToList()
+                        Extensions.ToList<Dictionary<string, object>>(map["{{ property.name }}"]).Select(it => {{ property.sub_schema | caseUcfirst | overrideIdentifier }}.From(map: it)).ToList()
                     {%- else -%}
                         {{ property.sub_schema | caseUcfirst | overrideIdentifier }}.From(map: map["{{ property.name }}"] is JsonElement jsonObj{{ loop.index }} ? jsonObj{{ loop.index }}.Deserialize<Dictionary<string, object>>()! : (Dictionary<string, object>)map["{{ property.name }}"])
                     {%- endif %}
@@ -58,7 +59,7 @@ namespace {{ spec.title | caseUcfirst }}.Models
                     {%- endif %}
                 {%- else %}
                     {%- if property.type == 'array' -%}
-                        map["{{ property.name }}"] is JsonElement jsonArrayProp{{ loop.index }} ? jsonArrayProp{{ loop.index }}.Deserialize<{{ property | typeName }}>()! : ({{ property | typeName }})map["{{ property.name }}"]
+                        Extensions.ToList<{{ property | typeName | replace({'List<': '', '>': ''}) }}>(map["{{ property.name }}"])
                     {%- else %}
                         {%- if property.type == "integer" or property.type == "number" %}
                             {%- if not property.required -%}map["{{ property.name }}"] == null ? null :{% endif %}Convert.To{% if property.type == "integer" %}Int64{% else %}Double{% endif %}(map["{{ property.name }}"])
