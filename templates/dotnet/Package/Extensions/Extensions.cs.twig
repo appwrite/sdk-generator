@@ -17,7 +17,7 @@ namespace {{ spec.title | caseUcfirst }}.Extensions
         {
             return value switch
             {
-                JsonElement jsonElement => jsonElement.Deserialize<List<T>>()!,
+                JsonElement jsonElement => jsonElement.Deserialize<List<T>>() ?? throw new InvalidCastException($"Cannot deserialize {jsonElement} to List<{typeof(T)}>."),
                 object[] objArray => objArray.Cast<T>().ToList(),
                 List<T> list => list,
                 IEnumerable<T> enumerable => enumerable.ToList(),
