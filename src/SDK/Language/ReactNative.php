@@ -203,16 +203,49 @@ class ReactNative extends Web
             };
         }
 
-        return match ($type) {
-            self::TYPE_ARRAY, self::TYPE_FILE, self::TYPE_INTEGER, self::TYPE_NUMBER => $example,
-            self::TYPE_BOOLEAN => ($example) ? 'true' : 'false',
-            self::TYPE_OBJECT => ($example === '{}')
-            ? '{}'
-            : (($formatted = json_encode(json_decode($example, true), JSON_PRETTY_PRINT))
-                ? preg_replace('/\n/', "\n    ", $formatted)
-                : $example),
-            self::TYPE_STRING => "'{$example}'",
-        };
+        switch ($type) {
+            case self::TYPE_ARRAY:
+                if (is_array($example)) {
+                    return json_encode($example, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+                }
+
+                $decoded = json_decode($example, true);
+                if (null !== $decoded && is_array($decoded)) {
+                    return json_encode($decoded, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+                }
+
+                // Fallback: normalize permission-like tokens inside array elements
+                $fixed = preg_replace_callback('/([a-zA-Z_][a-zA-Z0-9_]*)\(\s*"([^"\)]*)"\s*\)/', function ($m) {
+                    return $m[1] . "('" . $m[2] . "')";
+                }, $example);
+
+                return $fixed ?? $example;
+
+            case self::TYPE_INTEGER:
+            case self::TYPE_NUMBER:
+                return $example;
+
+            case self::TYPE_FILE:
+                return 'InputFile.fromPath(\'/path/to/file\', \'filename\')';
+
+            case self::TYPE_BOOLEAN:
+                return ($example) ? 'true' : 'false';
+
+            case self::TYPE_OBJECT:
+                if ($example === '{}') {
+                    return '{}';
+                }
+                $decodedObj = json_decode($example, true);
+                if (null !== $decodedObj && is_array($decodedObj)) {
+                    $formatted = json_encode($decodedObj, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+                    return preg_replace('/\n/', "\n    ", $formatted);
+                }
+                return $example;
+
+            case self::TYPE_STRING:
+            default:
+                return json_encode((string) $example, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        }
     }
 
     public function getReturn(array $method, array $spec): string
@@ -241,7 +274,7 @@ class ReactNative extends Web
             $this->populateGenerics($method['responseModel'], $spec, $models);
 
             $models = array_unique($models);
-            $models = array_filter($models, fn ($model) => $model != $this->toPascalCase($method['responseModel']));
+            $models = array_filter($models, fn($model) => $model != $this->toPascalCase($method['responseModel']));
 
             if (!empty($models)) {
                 $ret .= '<' . implode(', ', $models) . '>';

@@ -916,6 +916,9 @@ class SDK
                     throw new Exception('No minifier found for ' . $ext . ' file');
             }
         }
+
+        // No post-processing here: per-language getParamExample implementations should
+        // produce properly escaped, language-appropriate example literals.
     }
 
     /**
