@@ -144,17 +144,52 @@ class Web extends JS
             };
         }
 
-        return match ($type) {
-            self::TYPE_ARRAY, self::TYPE_INTEGER, self::TYPE_NUMBER => $example,
-            self::TYPE_FILE => 'document.getElementById(\'uploader\').files[0]',
-            self::TYPE_BOOLEAN => ($example) ? 'true' : 'false',
-            self::TYPE_OBJECT => ($example === '{}')
-            ? '{}'
-            : (($formatted = json_encode(json_decode($example, true), JSON_PRETTY_PRINT))
-                ? preg_replace('/\n/', "\n    ", $formatted)
-                : $example),
-            self::TYPE_STRING => "'{$example}'",
-        };
+        switch ($type) {
+            case self::TYPE_ARRAY:
+                // Try to decode JSON array and re-encode to ensure valid JS array literal
+                if (is_array($example)) {
+                    return json_encode($example, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+                }
+
+                $decoded = json_decode($example, true);
+                if (null !== $decoded && is_array($decoded)) {
+                    return json_encode($decoded, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+                }
+
+                // Fallback: handle permission-like strings that contain unescaped inner quotes,
+                // e.g. ["read("any")"] -> ["read('any')"] by converting inner double-quotes to single-quotes
+                $fixed = preg_replace_callback('/([a-zA-Z_]+)\(\"([^\"]+)\"\)/', function ($m) {
+                    return $m[1] . "('" . $m[2] . "')";
+                }, $example);
+
+                return $fixed ?? $example;
+
+            case self::TYPE_INTEGER:
+            case self::TYPE_NUMBER:
+                return $example;
+
+            case self::TYPE_FILE:
+                return 'document.getElementById(\'uploader\').files[0]';
+
+            case self::TYPE_BOOLEAN:
+                return ($example) ? 'true' : 'false';
+
+            case self::TYPE_OBJECT:
+                if ($example === '{}') {
+                    return '{}';
+                }
+                $decodedObj = json_decode($example, true);
+                if (null !== $decodedObj && is_array($decodedObj)) {
+                    $formatted = json_encode($decodedObj, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+                    return preg_replace('/\n/', "\n    ", $formatted);
+                }
+                return $example;
+
+            case self::TYPE_STRING:
+            default:
+                // Use json_encode to produce properly quoted and escaped JS string literal
+                return json_encode((string) $example, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        }
     }
 
     public function getReadOnlyProperties(array $parameter, string $responseModel, array $spec = []): array
@@ -270,7 +305,7 @@ class Web extends JS
         }
 
         $generics = array_unique($generics);
-        $generics = array_map(fn ($type) => "{$type} extends Models.{$type} = Models.Default{$type}", $generics);
+        $generics = array_map(fn($type) => "{$type} extends Models.{$type} = Models.Default{$type}", $generics);
 
         return '<' . implode(', ', $generics) . '>';
     }
@@ -303,7 +338,7 @@ class Web extends JS
             $this->populateGenerics($method['responseModel'], $spec, $models);
 
             $models = array_unique($models);
-            $models = array_filter($models, fn ($model) => $model != $this->toPascalCase($method['responseModel']));
+            $models = array_filter($models, fn($model) => $model != $this->toPascalCase($method['responseModel']));
 
             if (!empty($models)) {
                 $ret .= '<' . implode(', ', $models) . '>';
@@ -323,7 +358,7 @@ class Web extends JS
             $generics = [];
             $this->populateGenerics($property['sub_schema'], $spec, $generics);
 
-            $generics = array_filter($generics, fn ($model) => $model != $this->toPascalCase($property['sub_schema']));
+            $generics = array_filter($generics, fn($model) => $model != $this->toPascalCase($property['sub_schema']));
 
             $ret .= $this->toPascalCase($property['sub_schema']);
             if (!empty($generics)) {
