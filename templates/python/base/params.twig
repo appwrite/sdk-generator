@@ -2,36 +2,96 @@
         nullable_params = []
 
 {% if method.parameters.all | length %}
-{% for parameter in method.parameters.all  %}
-{% if parameter.required and not parameter.nullable %}
-        if {{ parameter.name | escapeKeyword | caseSnake }} is None:
-            raise {{spec.title | caseUcfirst}}Exception('Missing required parameter: "{{ parameter.name | escapeKeyword | caseSnake }}"')
-
-{% endif %}
+{% for parameter in method.parameters.all %}
 {% if parameter.nullable %}
         nullable_params.append('{{ parameter.name }}')
-
 {% endif %}
 {% endfor %}
+
 {% for parameter in method.parameters.path %}
-        api_path = api_path.replace('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', {{ parameter.name | escapeKeyword | caseSnake }})
+{% if parameter.required %}
+        # Required path parameters - convert None to explicit null
+        if {{ parameter.name | escapeKeyword | caseSnake }} is None:
+            path_value = 'null'
+        else:
+            path_value = str({{ parameter.name | escapeKeyword | caseSnake }})
+        api_path = api_path.replace('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', path_value)
+{% else %}
+        # Optional path parameters - only include if not None
+        if {{ parameter.name | escapeKeyword | caseSnake }} is not None:
+            api_path = api_path.replace('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', str({{ parameter.name | escapeKeyword | caseSnake }}))
+{% endif %}
 {% endfor %}
 
 {% for parameter in method.parameters.query %}
-        api_params['{{ parameter.name }}'] = {{ parameter.name | escapeKeyword | caseSnake }}
-{% endfor %}
-{% for parameter in method.parameters.body %}
-{% if method.consumes[0] == "multipart/form-data" and ( parameter.type != "string" and parameter.type != "array" ) %}
-        api_params['{{ parameter.name }}'] = str({{ parameter.name | escapeKeyword | caseSnake }}).lower() if type({{ parameter.name | escapeKeyword | caseSnake }}) is bool else {{ parameter.name | escapeKeyword | caseSnake }}
+{% if parameter.required %}
+        # Required query parameters - convert None to explicit null
+        if {{ parameter.name | escapeKeyword | caseSnake }} is None:
+            api_params['{{ parameter.name }}'] = self.client.null()
+        else:
+            api_params['{{ parameter.name }}'] = {{ parameter.name | escapeKeyword | caseSnake }}
 {% else %}
-        api_params['{{ parameter.name }}'] = {{ parameter.name | escapeKeyword | caseSnake }}
+        # Optional query parameters - only include if not None
+        if {{ parameter.name | escapeKeyword | caseSnake }} is not None:
+            api_params['{{ parameter.name }}'] = {{ parameter.name | escapeKeyword | caseSnake }}
 {% endif %}
 {% endfor %}
-{% for parameter in method.parameters.formData %}
+
+{% for parameter in method.parameters.body %}
+{% if parameter.required %}
+        # Required body parameters - convert None to explicit null
+        if {{ parameter.name | escapeKeyword | caseSnake }} is None:
+            api_params['{{ parameter.name }}'] = self.client.null()
+        else:
 {% if method.consumes[0] == "multipart/form-data" and ( parameter.type != "string" and parameter.type != "array" ) %}
-        api_params['{{ parameter.name }}'] = str({{ parameter.name | escapeKeyword | caseSnake }}).lower() if type({{ parameter.name | escapeKeyword | caseSnake }}) is bool else {{ parameter.name | escapeKeyword | caseSnake }}
+            api_params['{{ parameter.name }}'] = str({{ parameter.name | escapeKeyword | caseSnake }}).lower() if isinstance({{ parameter.name | escapeKeyword | caseSnake }}, bool) else {{ parameter.name | escapeKeyword | caseSnake }}
 {% else %}
-        api_params['{{ parameter.name }}'] = {{ parameter.name | escapeKeyword | caseSnake }}
+            api_params['{{ parameter.name }}'] = {{ parameter.name | escapeKeyword | caseSnake }}
+{% endif %}
+{% else %}
+        # Optional body parameters - only include if not None
+        if {{ parameter.name | escapeKeyword | caseSnake }} is not None:
+{% if method.consumes[0] == "multipart/form-data" and ( parameter.type != "string" and parameter.type != "array" ) %}
+            api_params['{{ parameter.name }}'] = str({{ parameter.name | escapeKeyword | caseSnake }}).lower() if isinstance({{ parameter.name | escapeKeyword | caseSnake }}, bool) else {{ parameter.name | escapeKeyword | caseSnake }}
+{% else %}
+            api_params['{{ parameter.name }}'] = {{ parameter.name | escapeKeyword | caseSnake }}
+{% endif %}
+{% endif %}
+{% endfor %}
+
+{% for parameter in method.parameters.formData %}
+{% if parameter.required %}
+        # Required form data parameters - convert None to explicit null
+        if {{ parameter.name | escapeKeyword | caseSnake }} is None:
+            api_params['{{ parameter.name }}'] = self.client.null()
+        else:
+{% if method.consumes[0] == "multipart/form-data" and ( parameter.type != "string" and parameter.type != "array" ) %}
+            api_params['{{ parameter.name }}'] = str({{ parameter.name | escapeKeyword | caseSnake }}).lower() if isinstance({{ parameter.name | escapeKeyword | caseSnake }}, bool) else {{ parameter.name | escapeKeyword | caseSnake }}
+{% else %}
+            api_params['{{ parameter.name }}'] = {{ parameter.name | escapeKeyword | caseSnake }}
+{% endif %}
+{% else %}
+        # Optional form data parameters - only include if not None
+        if {{ parameter.name | escapeKeyword | caseSnake }} is not None:
+{% if method.consumes[0] == "multipart/form-data" and ( parameter.type != "string" and parameter.type != "array" ) %}
+            api_params['{{ parameter.name }}'] = str({{ parameter.name | escapeKeyword | caseSnake }}).lower() if isinstance({{ parameter.name | escapeKeyword | caseSnake }}, bool) else {{ parameter.name | escapeKeyword | caseSnake }}
+{% else %}
+            api_params['{{ parameter.name }}'] = {{ parameter.name | escapeKeyword | caseSnake }}
+{% endif %}
+{% endif %}
+{% endfor %}
+
+{% for parameter in method.parameters.header %}
+{% if parameter.required %}
+        # Required header parameters - convert None to explicit null
+        if {{ parameter.name | escapeKeyword | caseSnake }} is None:
+            self.client.add_header('{{ parameter.name }}', self.client.null())
+        else:
+            self.client.add_header('{{ parameter.name }}', {{ parameter.name | escapeKeyword | caseSnake }})
+{% else %}
+        # Optional header parameters - only include if not None
+        if {{ parameter.name | escapeKeyword | caseSnake }} is not None:
+            self.client.add_header('{{ parameter.name }}', {{ parameter.name | escapeKeyword | caseSnake }})
 {% endif %}
 {% endfor %}
 {% endif %}
