@@ -24,6 +24,19 @@ class Client:
 {% endfor %}
         }
 
+    @staticmethod
+    def _is_explicitly_null(value):
+        """Helper method to distinguish between None (undefined) and explicit null values"""
+        # Check if value is a special marker indicating an explicit null
+        return isinstance(value, type('NullValue', (), {'is_null': True}))
+
+    @staticmethod
+    def null():
+        """Helper method to create an explicit null value to be sent to the API
+        Use this when you want to explicitly set a field to null, as opposed to 
+        not sending the field at all (which happens when you use None)"""
+        return type('NullValue', (), {'is_null': True})()
+
     def set_self_signed(self, status=True):
         self._self_signed = status
         return self
@@ -49,79 +62,21 @@ class Client:
         return self
 {% endfor %}
 
-    def call(self, method, path='', headers=None, params=None, nullable_params=None, response_type='json'):
+    def call(self, method, path='', headers=None, params=None, response_type='json'):
         if headers is None:
             headers = {}
 
         if params is None:
             params = {}
 
-        if nullable_params is None:
-            nullable_params = []
-
-        # Only filter out None values for non-nullable params
-        params = {k: v for k, v in params.items() if v is not None or k in nullable_params}
+        # Convert params to keep explicit nulls while removing undefined (None) values
+        params = {k: v for k, v in params.items() if v is not None or self._is_explicitly_null(v)}
+        # Replace explicit null markers with None for JSON serialization
+        params = {k: None if self._is_explicitly_null(v) else v for k, v in params.items()}
 
         data = {}
         files = {}
         stringify = False
-
-        headers = {**self._global_headers, **headers}
-
-        if method != 'get':
-            data = params
-            params = {}
-
-        if headers['content-type'].startswith('application/json'):
-            data = json.dumps(data, cls=ValueClassEncoder)
-
-        if headers['content-type'].startswith('multipart/form-data'):
-            del headers['content-type']
-            stringify = True
-            for key in data.copy():
-                if isinstance(data[key], InputFile):
-                    files[key] = (data[key].filename, data[key].data)
-                    del data[key]
-            data = self.flatten(data, stringify=stringify)
-
-        response = None
-        try:
-            response = requests.request(  # call method dynamically https://stackoverflow.com/a/4246075/2299554
-                method=method,
-                url=self._endpoint + path,
-                params=self.flatten(params, stringify=stringify),
-                data=data,
-                files=files,
-                headers=headers,
-                verify=(not self._self_signed),
-                allow_redirects=False if response_type == 'location' else True
-            )
-
-            response.raise_for_status()
-
-            warnings = response.headers.get('x-{{ spec.title | lower }}-warning')
-            if warnings:
-                for warning in warnings.split(';'):
-                    print(f'Warning: {warning}')
-
-            content_type = response.headers['Content-Type']
-
-            if response_type == 'location':
-                return response.headers.get('Location')
-
-            if content_type.startswith('application/json'):
-                return response.json()
-
-            return response._content
-        except Exception as e:
-            if response != None:
-                content_type = response.headers['Content-Type']
-                if content_type.startswith('application/json'):
-                    raise {{spec.title | caseUcfirst}}Exception(response.json()['message'], response.status_code, response.json().get('type'), response.text)
-                else:
-                    raise {{spec.title | caseUcfirst}}Exception(response.text, response.status_code, None, response.text)
-            else:
-                raise {{spec.title | caseUcfirst}}Exception(e)
 
     def chunked_upload(
         self,
@@ -206,6 +161,7 @@ class Client:
         return result
 
     def flatten(self, data, prefix='', stringify=False):
+        """Flatten a nested dictionary/list into a flat dictionary with dot notation."""
         output = {}
         i = 0
 
@@ -215,7 +171,12 @@ class Client:
             finalKey = prefix + '[' + str(i) +']' if isinstance(data, list) else finalKey
             i += 1
 
-            if isinstance(value, list) or isinstance(value, dict):
+            if value is None:  # Handle null values
+                if stringify:
+                    output[finalKey] = ''
+                else:
+                    output[finalKey] = None
+            elif isinstance(value, (list, dict)):
                 output = {**output, **self.flatten(value, finalKey, stringify)}
             else:
                 if stringify:
