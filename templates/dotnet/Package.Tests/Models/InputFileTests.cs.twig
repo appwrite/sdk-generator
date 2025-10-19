@@ -1,0 +1,217 @@
+using System;
+using System.IO;
+using Xunit;
+using {{ spec.title | caseUcfirst }}.Models;
+
+namespace {{ spec.title | caseUcfirst }}.Tests.Models
+{
+    public class InputFileTests
+    {
+        [Fact]
+        public void FromPath_WithValidPath_CreatesInputFile()
+        {
+            // Arrange
+            var path = "test.txt";
+
+            // Act
+            var inputFile = InputFile.FromPath(path);
+
+            // Assert
+            Assert.NotNull(inputFile);
+            Assert.Equal(path, inputFile.Path);
+            Assert.Equal("test.txt", inputFile.Filename);
+            Assert.Equal("path", inputFile.SourceType);
+            Assert.NotNull(inputFile.MimeType);
+        }
+
+        [Fact]
+        public void FromPath_ExtractsCorrectFilename()
+        {
+            // Arrange
+            var path = "/some/directory/file.jpg";
+
+            // Act
+            var inputFile = InputFile.FromPath(path);
+
+            // Assert
+            Assert.Equal("file.jpg", inputFile.Filename);
+        }
+
+        [Fact]
+        public void FromPath_WithWindowsPath_ExtractsCorrectFilename()
+        {
+            // Arrange
+            var path = @"C:\Users\test\document.pdf";
+
+            // Act
+            var inputFile = InputFile.FromPath(path);
+
+            // Assert
+            Assert.Equal("document.pdf", inputFile.Filename);
+        }
+
+        [Fact]
+        public void FromFileInfo_WithValidFileInfo_CreatesInputFile()
+        {
+            // Arrange
+            var tempFile = Path.GetTempFileName();
+            var fileInfo = new FileInfo(tempFile);
+
+            try
+            {
+                // Act
+                var inputFile = InputFile.FromFileInfo(fileInfo);
+
+                // Assert
+                Assert.NotNull(inputFile);
+                Assert.Equal(fileInfo.FullName, inputFile.Path);
+                Assert.Equal(fileInfo.Name, inputFile.Filename);
+                Assert.Equal("path", inputFile.SourceType);
+            }
+            finally
+            {
+                System.IO.File.Delete(tempFile);
+            }
+        }
+
+        [Fact]
+        public void FromStream_WithValidStream_CreatesInputFile()
+        {
+            // Arrange
+            var stream = new MemoryStream(new byte[] { 1, 2, 3 });
+            var filename = "test.bin";
+            var mimeType = "application/octet-stream";
+
+            // Act
+            var inputFile = InputFile.FromStream(stream, filename, mimeType);
+
+            // Assert
+            Assert.NotNull(inputFile);
+            Assert.Equal(stream, inputFile.Data);
+            Assert.Equal(filename, inputFile.Filename);
+            Assert.Equal(mimeType, inputFile.MimeType);
+            Assert.Equal("stream", inputFile.SourceType);
+        }
+
+        [Fact]
+        public void FromStream_WithCustomMimeType_SetsCorrectMimeType()
+        {
+            // Arrange
+            var stream = new MemoryStream();
+            var customMimeType = "image/png";
+
+            // Act
+            var inputFile = InputFile.FromStream(stream, "image.png", customMimeType);
+
+            // Assert
+            Assert.Equal(customMimeType, inputFile.MimeType);
+        }
+
+        [Fact]
+        public void FromBytes_WithValidBytes_CreatesInputFile()
+        {
+            // Arrange
+            var bytes = new byte[] { 1, 2, 3, 4, 5 };
+            var filename = "data.bin";
+            var mimeType = "application/octet-stream";
+
+            // Act
+            var inputFile = InputFile.FromBytes(bytes, filename, mimeType);
+
+            // Assert
+            Assert.NotNull(inputFile);
+            Assert.Equal(bytes, inputFile.Data);
+            Assert.Equal(filename, inputFile.Filename);
+            Assert.Equal(mimeType, inputFile.MimeType);
+            Assert.Equal("bytes", inputFile.SourceType);
+        }
+
+        [Fact]
+        public void FromBytes_WithEmptyBytes_CreatesInputFile()
+        {
+            // Arrange
+            var bytes = new byte[] { };
+            var filename = "empty.bin";
+            var mimeType = "application/octet-stream";
+
+            // Act
+            var inputFile = InputFile.FromBytes(bytes, filename, mimeType);
+
+            // Assert
+            Assert.NotNull(inputFile);
+            Assert.Equal(bytes, inputFile.Data);
+            Assert.Equal(filename, inputFile.Filename);
+        }
+
+        [Fact]
+        public void FromBytes_WithImageData_SetsCorrectMimeType()
+        {
+            // Arrange
+            var bytes = new byte[] { 137, 80, 78, 71 }; // PNG header
+            var mimeType = "image/png";
+
+            // Act
+            var inputFile = InputFile.FromBytes(bytes, "image.png", mimeType);
+
+            // Assert
+            Assert.Equal(mimeType, inputFile.MimeType);
+        }
+
+        [Fact]
+        public void SourceType_Path_IsCorrect()
+        {
+            var inputFile = InputFile.FromPath("test.txt");
+            Assert.Equal("path", inputFile.SourceType);
+        }
+
+        [Fact]
+        public void SourceType_Stream_IsCorrect()
+        {
+            var inputFile = InputFile.FromStream(new MemoryStream(), "test.txt", "text/plain");
+            Assert.Equal("stream", inputFile.SourceType);
+        }
+
+        [Fact]
+        public void SourceType_Bytes_IsCorrect()
+        {
+            var inputFile = InputFile.FromBytes(new byte[] { 1 }, "test.bin", "application/octet-stream");
+            Assert.Equal("bytes", inputFile.SourceType);
+        }
+
+        [Fact]
+        public void Properties_CanBeSet()
+        {
+            // Arrange & Act
+            var inputFile = new InputFile
+            {
+                Path = "custom/path.txt",
+                Filename = "custom.txt",
+                MimeType = "text/plain",
+                SourceType = "custom",
+                Data = new object()
+            };
+
+            // Assert
+            Assert.Equal("custom/path.txt", inputFile.Path);
+            Assert.Equal("custom.txt", inputFile.Filename);
+            Assert.Equal("text/plain", inputFile.MimeType);
+            Assert.Equal("custom", inputFile.SourceType);
+            Assert.NotNull(inputFile.Data);
+        }
+
+        [Fact]
+        public void DefaultConstructor_InitializesProperties()
+        {
+            // Act
+            var inputFile = new InputFile();
+
+            // Assert
+            Assert.NotNull(inputFile);
+            Assert.NotNull(inputFile.Path);
+            Assert.NotNull(inputFile.Filename);
+            Assert.NotNull(inputFile.MimeType);
+            Assert.NotNull(inputFile.SourceType);
+            Assert.NotNull(inputFile.Data);
+        }
+    }
+}

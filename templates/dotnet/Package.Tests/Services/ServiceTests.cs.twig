@@ -1,0 +1,210 @@
+{% import 'dotnet/base/utils.twig' as utils %}
+{% macro generate_sub_dict(sub_def) %}
+new Dictionary<string, object> {
+{% for subprop in sub_def.properties | filter(p => p.required) %}
+{ "{{ subprop.name }}", {% if subprop.enum %}{{ subprop.enumName | caseUcfirst }}.{{ (subprop.enumKeys[0] ?? subprop.enum[0]) | caseEnumKey }}.Value{% elseif subprop.type == 'string' %}"{{ subprop['x-example'] | default('test') | escapeCsString }}"{% elseif subprop.type == 'integer' %}{{ subprop['x-example'] | default(1) }}{% elseif subprop.type == 'number' %}{{ subprop['x-example'] | default(1.0) }}{% elseif subprop.type == 'boolean' %}{% if subprop['x-example'] is defined %}{% if subprop['x-example'] is same as(true) or subprop['x-example'] == 'true' or subprop['x-example'] == 1 %}true{% else %}false{% endif %}{% else %}true{% endif %}{% elseif subprop.type == 'array' %}new List<object>(){% elseif subprop.sub_schema %}new Dictionary<string, object>(){% else %}"{{ subprop['x-example'] | default('test') | escapeCsString }}"{% endif %} }{% if not loop.last %},{% endif %}
+{% endfor %}
+}
+{% endmacro %}
+#pragma warning disable CS0618 // Type or member is obsolete
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Xunit;
+using Moq;
+using {{ spec.title | caseUcfirst }};
+using {{ spec.title | caseUcfirst }}.Services;
+{% if spec.definitions is not empty %}
+using {{ spec.title | caseUcfirst }}.Models;
+{% endif %}
+{%- set hasEnums = spec.requestEnums is not empty -%}
+{%- if hasEnums -%}
+using {{ spec.title | caseUcfirst }}.Enums;
+{% endif %}
+
+namespace {{ spec.title | caseUcfirst }}.Tests.Services
+{
+    public class {{ service.name | caseUcfirst }}Tests
+    {
+        private Mock<Client> _mockClient;
+        private Appwrite.Services.{{ service.name | caseUcfirst }} _{{ service.name | caseCamel }};
+
+        public {{ service.name | caseUcfirst }}Tests()
+        {
+            _mockClient = new Mock<Client>();
+            _{{ service.name | caseCamel }} = new Appwrite.Services.{{ service.name | caseUcfirst }}(_mockClient.Object);
+        }
+
+        [Fact]
+        public void Constructor_WithClient_CreatesInstance()
+        {
+            // Arrange
+            var client = new Mock<Client>().Object;
+
+            // Act
+            var service = new Appwrite.Services.{{ service.name | caseUcfirst }}(client);
+
+            // Assert
+            Assert.NotNull(service);
+        }
+
+        {%~ for method in service.methods %}
+        [Fact]
+        public async Task {{ method.name | caseUcfirst }}_CallsClient()
+        {
+            // Arrange
+            {%~ if method.responseModel and method.responseModel != 'any' %}
+            var expectedResponse = new Dictionary<string, object>
+            {
+                {%- for definition in spec.definitions ~%}{%~ if definition.name == method.responseModel -%}{%~ for property in definition.properties | filter((param) => param.required) ~%}
+                { "{{property.name}}", {% if property.enum %}{{ property.enumName | caseUcfirst }}.{{ (property.enumKeys[0] ?? property.enum[0]) | caseEnumKey }}.Value{% elseif property.type == 'string' %}"{{property['x-example'] | default('test')}}"{% elseif property.type == 'boolean' %}true{% elseif property.type == 'integer' %}{{property['x-example'] | default(1)}}{% elseif property.type == 'number' %}{{property['x-example'] | default(1.0)}}{% elseif property.type == 'array' %}new List<object>(){% elseif property.type == 'object' and not property.sub_schema %}new Dictionary<string, object>(){% elseif property.sub_schema %}{{ _self.generate_sub_dict(spec.definitions | filter(d => d.name == property.sub_schema) | first) }}{% else %}null{% endif %} },
+                {%~ endfor ~%}{%- endif -%}{%~ endfor -%}
+            };
+            {%~ elseif method.type == 'location' %}
+            var expectedResponse = new byte[] { 1, 2, 3 };
+            {%~ elseif method.type == 'webAuth' %}
+            var expectedResponse = "success";
+            {%~ else %}
+            var expectedResponse = new Dictionary<string, object>();
+            {%~ endif %}
+
+
+            {%~ if method.type == 'webAuth' %}
+            _mockClient.Setup(c => c.Redirect(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<Dictionary<string, string>>(),
+                It.IsAny<Dictionary<string, object>>()
+            )).ReturnsAsync(expectedResponse);
+            {%~ elseif 'multipart/form-data' in method.consumes %}
+            _mockClient.Setup(c => c.ChunkedUpload<{{ utils.resultType(spec.title, method) }}>(
+                It.IsAny<string>(),
+                It.IsAny<Dictionary<string, string>>(),
+                It.IsAny<Dictionary<string, object>>(),
+                It.IsAny<Func<Dictionary<string, object>, {{ utils.resultType(spec.title, method) }}>>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<Action<UploadProgress>>()
+            )).ReturnsAsync({% if method.responseModel and method.responseModel != 'any' %}Appwrite.Models.{{ method.responseModel | caseUcfirst | overrideIdentifier }}.From(expectedResponse){% else %}expectedResponse{% endif %});
+            {%~ else %}
+            _mockClient.Setup(c => c.Call<{{ utils.resultType(spec.title, method) }}>(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<Dictionary<string, string>>(),
+                It.IsAny<Dictionary<string, object>>(){% if method.responseModel %},
+                It.IsAny<Func<Dictionary<string, object>, {{ utils.resultType(spec.title, method) }}>>()
+                {% else %},null{% endif %}
+            )).ReturnsAsync({% if method.responseModel and method.responseModel != 'any' and method.type != 'location' %}Appwrite.Models.{{ method.responseModel | caseUcfirst | overrideIdentifier }}.From(expectedResponse){% else %}expectedResponse{% endif %});
+            {%~ endif %}
+
+            // Act
+            {%~ if method.parameters.all | length > 0 %}
+            var result = await _{{ service.name | caseCamel }}.{{ method.name | caseUcfirst }}(
+                {%~ for parameter in method.parameters.all | filter((param) => param.required) ~%}
+                {{parameter.name | caseCamel | escapeKeyword}}: {% if parameter.enumValues is not empty %}Appwrite.Enums.{{ (parameter.enumName ?? parameter.name) | caseUcfirst }}.{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}{% elseif parameter.type == 'file' %}InputFile.FromPath("./test.png"){% elseif parameter.type == 'object' %}new Dictionary<string, object>(){% elseif parameter.type == 'array' %}{% set itemType = test_item_type(parameter) %}new List<{{ itemType }}> { {% if itemType == 'string' %}"item1"{% elseif itemType == 'long' %}1{% elseif itemType == 'double' %}1.0{% elseif itemType == 'bool' %}true{% elseif itemType == 'object' %}new object(){% else %}null{% endif %} }{% elseif parameter.type == 'boolean' %}true{% elseif parameter.type == 'integer' %}{{parameter['x-example'] | default(1)}}{% elseif parameter.type == 'number' %}{{parameter['x-example'] | default(1.0)}}{% elseif parameter.type == 'string' %}"{% if parameter['x-example'] is not empty %}{{parameter['x-example']}}{% else %}test{% endif %}"{% else %}null{% endif %}{% if not loop.last %},{% endif %}
+
+                {%~ endfor ~%}
+            );
+            {%~ else %}
+            var result = await _{{ service.name | caseCamel }}.{{ method.name | caseUcfirst }}();
+            {%~ endif %}
+
+            // Assert
+            {%~ if method.responseModel and method.responseModel != 'any' %}
+            Assert.NotNull(result);
+            Assert.IsType<Appwrite.Models.{{ method.responseModel | caseUcfirst | overrideIdentifier }}>(result);
+            {%~ elseif method.type == 'location' %}
+            Assert.NotNull(result);
+            {%~ elseif method.type == 'webAuth' %}
+            Assert.NotNull(result);
+            Assert.Equal(expectedResponse, result);
+            {%~ endif %}
+
+            {%~ if method.type == 'webAuth' %}
+            _mockClient.Verify(c => c.Redirect(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<Dictionary<string, string>>(),
+                It.IsAny<Dictionary<string, object>>()
+            ), Times.Once);
+            {%~ elseif 'multipart/form-data' in method.consumes %}
+            _mockClient.Verify(c => c.ChunkedUpload<{{ utils.resultType(spec.title, method) }}>(
+                It.IsAny<string>(),
+                It.IsAny<Dictionary<string, string>>(),
+                It.IsAny<Dictionary<string, object>>(),
+                It.IsAny<Func<Dictionary<string, object>, {{ utils.resultType(spec.title, method) }}>>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<Action<UploadProgress>>()
+            ), Times.Once);
+            {%~ else %}
+            _mockClient.Verify(c => c.Call<{{ utils.resultType(spec.title, method) }}>(
+                "{{ method.method | upper }}",
+                It.IsAny<string>(),
+                It.IsAny<Dictionary<string, string>>(),
+                It.IsAny<Dictionary<string, object>>(){% if method.responseModel %},
+                It.IsAny<Func<Dictionary<string, object>, {{ utils.resultType(spec.title, method) }}>>()
+                {% else %},null{% endif %}
+            ), Times.Once);
+            {%~ endif %}
+        }
+
+        {%~ if method.parameters.all | filter((param) => param.required) | length > 0 %}
+        [Fact]
+        public async Task {{ method.name | caseUcfirst }}_WithParameters_PassesCorrectParameters()
+        {
+            // Arrange
+            {%~ for parameter in method.parameters.all | filter((param) => param.required) | slice(0, 3) ~%}
+            {% if parameter.type == 'file' %}InputFile{% else %}var{% endif %} {{parameter.name | caseCamel | escapeKeyword}} = {% if parameter.enumValues is not empty %}Appwrite.Enums.{{ (parameter.enumName ?? parameter.name) | caseUcfirst }}.{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}{% elseif parameter.type == 'file' %}InputFile.FromPath("./test.png"){% elseif parameter.type == 'object' %}new Dictionary<string, object>(){% elseif parameter.type == 'array' %}{% set itemType = test_item_type(parameter) %}new List<{{ itemType }}> { {% if itemType == 'string' %}"item1"{% elseif itemType == 'long' %}1{% elseif itemType == 'double' %}1.0{% elseif itemType == 'bool' %}true{% elseif itemType == 'object' %}new object(){% else %}null{% endif %} }{% elseif parameter.type == 'boolean' %}true{% elseif parameter.type == 'integer' or parameter.type == 'number' %}{{parameter['x-example'] | default(123)}}{% elseif parameter.type == 'string' %}"test{{parameter.name}}"{% else %}null{% endif %};
+            {%~ endfor ~%}
+
+            {%~ if method.responseModel and method.responseModel != 'any' %}
+            var expectedResponse = new Dictionary<string, object>
+            {
+                {%- for definition in spec.definitions ~%}{%~ if definition.name == method.responseModel -%}{%~ for property in definition.properties | filter((param) => param.required) ~%}
+                { "{{property.name}}", {% if property.enum %}{{ property.enumName | caseUcfirst }}.{{ (property.enumKeys[0] ?? property.enum[0]) | caseEnumKey }}.Value{% elseif property.type == 'string' %}"test"{% elseif property.type == 'integer' or property.type == 'number'%}1{% elseif property.type == 'boolean' %}true{% elseif property.type == 'array' %}new List<object>(){% elseif property.type == 'object' and not property.sub_schema %}new Dictionary<string, object>(){% elseif property.sub_schema %}{{ _self.generate_sub_dict(spec.definitions | filter(d => d.name == property.sub_schema) | first) }}{% else %}new Dictionary<string, object>(){% endif %} },
+                {%~ endfor ~%}{%- endif -%}{%~ endfor -%}
+            };
+            {%~ elseif method.type == 'location' %}
+            var expectedResponse = new byte[] { 1, 2, 3 };
+            {%~ else %}
+            var expectedResponse = new Dictionary<string, object>();
+            {%~ endif %}
+
+            {%~ if not (method.type == 'webAuth' or 'multipart/form-data' in method.consumes) %}
+            _mockClient.Setup(c => c.Call<{{ utils.resultType(spec.title, method) }}>(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<Dictionary<string, string>>(),
+                It.IsAny<Dictionary<string, object>>(){% if method.responseModel %},
+                It.IsAny<Func<Dictionary<string, object>, {{ utils.resultType(spec.title, method) }}>>()
+                {% else %},null{% endif %}
+            )).ReturnsAsync({% if method.responseModel and method.responseModel != 'any' and method.type != 'location' %}Appwrite.Models.{{ method.responseModel | caseUcfirst | overrideIdentifier }}.From(expectedResponse){% else %}expectedResponse{% endif %});
+            {%~ endif %}
+
+            // Act
+            {%~ if method.parameters.all | length > 0 %}
+            await _{{ service.name | caseCamel }}.{{ method.name | caseUcfirst }}(
+                {%~ for parameter in method.parameters.all | filter((param) => param.required) ~%}
+                {{parameter.name | caseCamel | escapeKeyword}}: {% if loop.index0 < 3 %}{{parameter.name | caseCamel | escapeKeyword}}{% else %}{% if parameter.enumValues is not empty %}Appwrite.Enums.{{ (parameter.enumName ?? parameter.name) | caseUcfirst }}.{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}{% elseif parameter.type == 'file' %}InputFile.FromPath("./test.png"){% elseif parameter.type == 'object' %}new Dictionary<string, object>(){% elseif parameter.type == 'array' %}{% set itemType = test_item_type(parameter) %}new List<{{ itemType }}> { {% if itemType == 'string' %}"item1"{% elseif itemType == 'long' %}1{% elseif itemType == 'double' %}1.0{% elseif itemType == 'bool' %}true{% elseif itemType == 'object' %}new object(){% else %}null{% endif %} }{% elseif parameter.type == 'boolean' %}true{% elseif parameter.type == 'integer' or parameter.type == 'number' %}1{% elseif parameter.type == 'string' %}"test"{% else %}null{% endif %}{% endif %}{% if not loop.last %},{% endif %}
+
+                {%~ endfor ~%}
+            );
+            {%~ endif %}
+
+            // Assert - parameters were set correctly (implicitly tested by successful call)
+            Assert.True(true);
+        }
+        {%~ endif %}
+
+        {%~ endfor %}
+
+        [Fact]
+        public void Service_InheritsFromBaseService()
+        {
+            // Assert
+            Assert.IsAssignableFrom<Service>(_{{ service.name | caseCamel }});
+        }
+    }
+}

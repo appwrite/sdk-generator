@@ -440,6 +440,85 @@ class DotNet extends Language
                 'scope'         => 'default',
                 'destination'   => '{{ spec.title | caseUcfirst }}/Enums/IEnum.cs',
                 'template'      => 'dotnet/Package/Enums/IEnum.cs.twig',
+            ],
+            // Tests
+            [
+                'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseUcfirst }}.Tests/{{ spec.title | caseUcfirst }}.Tests.csproj',
+                'template'      => 'dotnet/Package.Tests/Tests.csproj.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseUcfirst }}.Tests/.gitignore',
+                'template'      => 'dotnet/Package.Tests/.gitignore',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseUcfirst }}.Tests/ClientTests.cs',
+                'template'      => 'dotnet/Package.Tests/ClientTests.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseUcfirst }}.Tests/IDTests.cs',
+                'template'      => 'dotnet/Package.Tests/IDTests.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseUcfirst }}.Tests/PermissionTests.cs',
+                'template'      => 'dotnet/Package.Tests/PermissionTests.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseUcfirst }}.Tests/RoleTests.cs',
+                'template'      => 'dotnet/Package.Tests/RoleTests.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseUcfirst }}.Tests/QueryTests.cs',
+                'template'      => 'dotnet/Package.Tests/QueryTests.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseUcfirst }}.Tests/ExceptionTests.cs',
+                'template'      => 'dotnet/Package.Tests/ExceptionTests.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseUcfirst }}.Tests/UploadProgressTests.cs',
+                'template'      => 'dotnet/Package.Tests/UploadProgressTests.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseUcfirst }}.Tests/Models/InputFileTests.cs',
+                'template'      => 'dotnet/Package.Tests/Models/InputFileTests.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseUcfirst }}.Tests/Converters/ObjectToInferredTypesConverterTests.cs',
+                'template'      => 'dotnet/Package.Tests/Converters/ObjectToInferredTypesConverterTests.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseUcfirst }}.Tests/Converters/ValueClassConverterTests.cs',
+                'template'      => 'dotnet/Package.Tests/Converters/ValueClassConverterTests.cs.twig',
+            ],
+            // Tests for each definition (model)
+            [
+                'scope'         => 'definition',
+                'destination'   => '{{ spec.title | caseUcfirst }}.Tests/Models/{{ definition.name | caseUcfirst | overrideIdentifier }}Tests.cs',
+                'template'      => 'dotnet/Package.Tests/Models/ModelTests.cs.twig',
+            ],
+            // Tests for each enum
+            [
+                'scope'         => 'enum',
+                'destination'   => '{{ spec.title | caseUcfirst }}.Tests/Enums/{{ enum.name | caseUcfirst | overrideIdentifier }}Tests.cs',
+                'template'      => 'dotnet/Package.Tests/Enums/EnumTests.cs.twig',
+            ],
+            // Tests for each service
+            [
+                'scope'         => 'service',
+                'destination'   => '{{ spec.title | caseUcfirst }}.Tests/Services/{{service.name | caseUcfirst}}Tests.cs',
+                'template'      => 'dotnet/Package.Tests/Services/ServiceTests.cs.twig',
             ]
         ];
     }
@@ -462,6 +541,12 @@ class DotNet extends Language
                     return $this->getPropertyOverrides()[$class][$property];
                 }
                 return $property;
+            }),
+            new TwigFilter('escapeCsString', function ($value) {
+                if (is_string($value)) {
+                    return addcslashes($value, '\\"');
+                }
+                return $value;
             }),
         ];
     }
@@ -491,6 +576,30 @@ class DotNet extends Language
 
                 if (!($property['required'] ?? true)) {
                     $result .= '?';
+                }
+
+                return $result;
+            }, ['is_safe' => ['html']]),
+            new TwigFunction('test_item_type', function (array $property) {
+                // For test templates: returns the item type for arrays without the List<> wrapper
+                $result = '';
+
+                if (isset($property['sub_schema']) && !empty($property['sub_schema'])) {
+                    // Model type
+                    $result = $this->toPascalCase($property['sub_schema']);
+                    $result = 'Appwrite.Models.' . $result;
+                } elseif (isset($property['enum']) && !empty($property['enum'])) {
+                    // Enum type
+                    $enumName = $property['enumName'] ?? $property['name'];
+                    $result = 'Appwrite.Enums.' . $this->toPascalCase($enumName);
+                } elseif (isset($property['items']) && isset($property['items']['type'])) {
+                    // Primitive array type (for definitions)
+                    $result = $this->getTypeName($property['items']);
+                } elseif (isset($property['array']) && isset($property['array']['type'])) {
+                    // Primitive array type (for method parameters)
+                    $result = $this->getTypeName($property['array']);
+                } else {
+                    $result = 'object';
                 }
 
                 return $result;

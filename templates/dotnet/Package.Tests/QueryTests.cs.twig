@@ -1,0 +1,575 @@
+using System;
+using System.Text.Json;
+using Xunit;
+using {{ spec.title | caseUcfirst }};
+
+namespace {{ spec.title | caseUcfirst }}.Tests
+{
+    public class QueryTests
+    {
+        [Fact]
+        public void Equal_WithString_ReturnsCorrectQuery()
+        {
+            var result = Query.Equal("attr", "value");
+            var query = JsonSerializer.Deserialize<Query>(result);
+            
+            Assert.NotNull(query);
+            Assert.Equal("equal", query.Method);
+            Assert.Equal("attr", query.Attribute);
+            Assert.NotNull(query.Values);
+            Assert.Single(query.Values);
+            Assert.Equal("value", query.Values[0].ToString());
+        }
+
+        [Fact]
+        public void Equal_WithInteger_ReturnsCorrectQuery()
+        {
+            var result = Query.Equal("attr", 1);
+            var query = JsonSerializer.Deserialize<Query>(result);
+            
+            Assert.NotNull(query);
+            Assert.Equal("equal", query.Method);
+            Assert.Equal("attr", query.Attribute);
+            Assert.NotNull(query.Values);
+            Assert.Single(query.Values);
+            Assert.Equal(1, ((JsonElement)query.Values[0]).GetInt32());
+        }
+
+        [Fact]
+        public void Equal_WithDouble_ReturnsCorrectQuery()
+        {
+            var result = Query.Equal("attr", 1.5);
+            var query = JsonSerializer.Deserialize<Query>(result);
+            
+            Assert.NotNull(query);
+            Assert.Equal("equal", query.Method);
+            Assert.Equal("attr", query.Attribute);
+            Assert.NotNull(query.Values);
+            Assert.Single(query.Values);
+            Assert.Equal(1.5, ((JsonElement)query.Values[0]).GetDouble());
+        }
+
+        [Fact]
+        public void Equal_WithBoolean_ReturnsCorrectQuery()
+        {
+            var result = Query.Equal("attr", true);
+            var query = JsonSerializer.Deserialize<Query>(result);
+            
+            Assert.NotNull(query);
+            Assert.Equal("equal", query.Method);
+            Assert.Equal("attr", query.Attribute);
+            Assert.NotNull(query.Values);
+            Assert.Single(query.Values);
+            Assert.True(((JsonElement)query.Values[0]).GetBoolean());
+        }
+
+        [Fact]
+        public void Equal_WithList_ReturnsCorrectQuery()
+        {
+            var result = Query.Equal("attr", new[] { "a", "b", "c" });
+            var query = JsonSerializer.Deserialize<Query>(result);
+            
+            Assert.NotNull(query);
+            Assert.Equal("equal", query.Method);
+            Assert.Equal("attr", query.Attribute);
+            Assert.NotNull(query.Values);
+            Assert.Equal(3, query.Values.Count);
+        }
+
+        [Fact]
+        public void NotEqual_WithString_ReturnsCorrectQuery()
+        {
+            var result = Query.NotEqual("attr", "value");
+            var query = JsonSerializer.Deserialize<Query>(result);
+            
+            Assert.NotNull(query);
+            Assert.Equal("notEqual", query.Method);
+            Assert.Equal("attr", query.Attribute);
+            Assert.NotNull(query.Values);
+        }
+
+        [Fact]
+        public void LessThan_WithInteger_ReturnsCorrectQuery()
+        {
+            var result = Query.LessThan("attr", 10);
+            var query = JsonSerializer.Deserialize<Query>(result);
+            
+            Assert.NotNull(query);
+            Assert.Equal("lessThan", query.Method);
+            Assert.Equal("attr", query.Attribute);
+            Assert.NotNull(query.Values);
+        }
+
+        [Fact]
+        public void LessThanEqual_WithInteger_ReturnsCorrectQuery()
+        {
+            var result = Query.LessThanEqual("attr", 10);
+            var query = JsonSerializer.Deserialize<Query>(result);
+            
+            Assert.NotNull(query);
+            Assert.Equal("lessThanEqual", query.Method);
+            Assert.Equal("attr", query.Attribute);
+            Assert.NotNull(query.Values);
+        }
+
+        [Fact]
+        public void GreaterThan_WithInteger_ReturnsCorrectQuery()
+        {
+            var result = Query.GreaterThan("attr", 5);
+            var query = JsonSerializer.Deserialize<Query>(result);
+            
+            Assert.NotNull(query);
+            Assert.Equal("greaterThan", query.Method);
+            Assert.Equal("attr", query.Attribute);
+            Assert.NotNull(query.Values);
+        }
+
+        [Fact]
+        public void GreaterThanEqual_WithInteger_ReturnsCorrectQuery()
+        {
+            var result = Query.GreaterThanEqual("attr", 5);
+            var query = JsonSerializer.Deserialize<Query>(result);
+            
+            Assert.NotNull(query);
+            Assert.Equal("greaterThanEqual", query.Method);
+            Assert.Equal("attr", query.Attribute);
+            Assert.NotNull(query.Values);
+        }
+
+        [Fact]
+        public void Search_ReturnsCorrectQuery()
+        {
+            var result = Query.Search("attr", "keyword1 keyword2");
+            var query = JsonSerializer.Deserialize<Query>(result);
+            
+            Assert.NotNull(query);
+            Assert.Equal("search", query.Method);
+            Assert.Equal("attr", query.Attribute);
+            Assert.NotNull(query.Values);
+            Assert.Single(query.Values);
+            Assert.Equal("keyword1 keyword2", query.Values[0].ToString());
+        }
+
+        [Fact]
+        public void IsNull_ReturnsCorrectQuery()
+        {
+            var result = Query.IsNull("attr");
+            var query = JsonSerializer.Deserialize<Query>(result);
+            
+            Assert.NotNull(query);
+            Assert.Equal("isNull", query.Method);
+            Assert.Equal("attr", query.Attribute);
+        }
+
+        [Fact]
+        public void IsNotNull_ReturnsCorrectQuery()
+        {
+            var result = Query.IsNotNull("attr");
+            var query = JsonSerializer.Deserialize<Query>(result);
+            
+            Assert.NotNull(query);
+            Assert.Equal("isNotNull", query.Method);
+            Assert.Equal("attr", query.Attribute);
+        }
+
+        [Fact]
+        public void Between_WithIntegers_ReturnsCorrectQuery()
+        {
+            var result = Query.Between("attr", 1, 10);
+            var query = JsonSerializer.Deserialize<Query>(result);
+            
+            Assert.NotNull(query);
+            Assert.Equal("between", query.Method);
+            Assert.Equal("attr", query.Attribute);
+            Assert.NotNull(query.Values);
+            Assert.Equal(2, query.Values.Count);
+        }
+
+        [Fact]
+        public void Between_WithDoubles_ReturnsCorrectQuery()
+        {
+            var result = Query.Between("attr", 1.5, 10.5);
+            var query = JsonSerializer.Deserialize<Query>(result);
+            
+            Assert.NotNull(query);
+            Assert.Equal("between", query.Method);
+            Assert.Equal("attr", query.Attribute);
+            Assert.NotNull(query.Values);
+            Assert.Equal(2, query.Values.Count);
+        }
+
+        [Fact]
+        public void Between_WithStrings_ReturnsCorrectQuery()
+        {
+            var result = Query.Between("attr", "a", "z");
+            var query = JsonSerializer.Deserialize<Query>(result);
+            
+            Assert.NotNull(query);
+            Assert.Equal("between", query.Method);
+            Assert.Equal("attr", query.Attribute);
+            Assert.NotNull(query.Values);
+            Assert.Equal(2, query.Values.Count);
+        }
+
+        [Fact]
+        public void StartsWith_ReturnsCorrectQuery()
+        {
+            var result = Query.StartsWith("attr", "prefix");
+            var query = JsonSerializer.Deserialize<Query>(result);
+            
+            Assert.NotNull(query);
+            Assert.Equal("startsWith", query.Method);
+            Assert.Equal("attr", query.Attribute);
+            Assert.NotNull(query.Values);
+            Assert.Single(query.Values);
+            Assert.Equal("prefix", query.Values[0].ToString());
+        }
+
+        [Fact]
+        public void EndsWith_ReturnsCorrectQuery()
+        {
+            var result = Query.EndsWith("attr", "suffix");
+            var query = JsonSerializer.Deserialize<Query>(result);
+            
+            Assert.NotNull(query);
+            Assert.Equal("endsWith", query.Method);
+            Assert.Equal("attr", query.Attribute);
+            Assert.NotNull(query.Values);
+            Assert.Single(query.Values);
+            Assert.Equal("suffix", query.Values[0].ToString());
+        }
+
+        [Fact]
+        public void Select_WithSingleAttribute_ReturnsCorrectQuery()
+        {
+            var result = Query.Select([ "attr1" ]);
+            var query = JsonSerializer.Deserialize<Query>(result);
+            
+            Assert.NotNull(query);
+            Assert.Equal("select", query.Method);
+            Assert.NotNull(query.Values);
+            Assert.Single(query.Values);
+        }
+
+        [Fact]
+        public void Select_WithMultipleAttributes_ReturnsCorrectQuery()
+        {
+            var result = Query.Select([ "attr1", "attr2", "attr3" ]);
+            var query = JsonSerializer.Deserialize<Query>(result);
+            
+            Assert.NotNull(query);
+            Assert.Equal("select", query.Method);
+            Assert.NotNull(query.Values);
+            Assert.Equal(3, query.Values.Count);
+        }
+
+        [Fact]
+        public void OrderAsc_ReturnsCorrectQuery()
+        {
+            var result = Query.OrderAsc("attr");
+            var query = JsonSerializer.Deserialize<Query>(result);
+            
+            Assert.NotNull(query);
+            Assert.Equal("orderAsc", query.Method);
+            Assert.Equal("attr", query.Attribute);
+        }
+
+        [Fact]
+        public void OrderDesc_ReturnsCorrectQuery()
+        {
+            var result = Query.OrderDesc("attr");
+            var query = JsonSerializer.Deserialize<Query>(result);
+            
+            Assert.NotNull(query);
+            Assert.Equal("orderDesc", query.Method);
+            Assert.Equal("attr", query.Attribute);
+        }
+
+        [Fact]
+        public void CursorAfter_ReturnsCorrectQuery()
+        {
+            var result = Query.CursorAfter("documentId");
+            var query = JsonSerializer.Deserialize<Query>(result);
+            
+            Assert.NotNull(query);
+            Assert.Equal("cursorAfter", query.Method);
+            Assert.NotNull(query.Values);
+            Assert.Single(query.Values);
+            Assert.Equal("documentId", query.Values[0].ToString());
+        }
+
+        [Fact]
+        public void CursorBefore_ReturnsCorrectQuery()
+        {
+            var result = Query.CursorBefore("documentId");
+            var query = JsonSerializer.Deserialize<Query>(result);
+            
+            Assert.NotNull(query);
+            Assert.Equal("cursorBefore", query.Method);
+            Assert.NotNull(query.Values);
+            Assert.Single(query.Values);
+            Assert.Equal("documentId", query.Values[0].ToString());
+        }
+
+        [Fact]
+        public void Limit_ReturnsCorrectQuery()
+        {
+            var result = Query.Limit(25);
+            var query = JsonSerializer.Deserialize<Query>(result);
+            
+            Assert.NotNull(query);
+            Assert.Equal("limit", query.Method);
+            Assert.NotNull(query.Values);
+            Assert.Single(query.Values);
+            Assert.Equal(25, ((JsonElement)query.Values[0]).GetInt32());
+        }
+
+        [Fact]
+        public void Offset_ReturnsCorrectQuery()
+        {
+            var result = Query.Offset(10);
+            var query = JsonSerializer.Deserialize<Query>(result);
+            
+            Assert.NotNull(query);
+            Assert.Equal("offset", query.Method);
+            Assert.NotNull(query.Values);
+            Assert.Single(query.Values);
+            Assert.Equal(10, ((JsonElement)query.Values[0]).GetInt32());
+        }
+
+        [Fact]
+        public void Contains_ReturnsCorrectQuery()
+        {
+            var result = Query.Contains("attr", "value");
+            var query = JsonSerializer.Deserialize<Query>(result);
+            
+            Assert.NotNull(query);
+            Assert.Equal("contains", query.Method);
+            Assert.Equal("attr", query.Attribute);
+            Assert.NotNull(query.Values);
+            Assert.Single(query.Values);
+            Assert.Equal("value", query.Values[0].ToString());
+        }
+
+        [Fact]
+        public void Or_WithMultipleQueries_ReturnsCorrectQuery()
+        {
+            var result = Query.Or([
+                Query.Equal("attr1", "value1"),
+                Query.Equal("attr2", "value2")
+            ]);
+            var query = JsonSerializer.Deserialize<Query>(result);
+            
+            Assert.NotNull(query);
+            Assert.Equal("or", query.Method);
+            Assert.NotNull(query.Values);
+            Assert.Equal(2, query.Values.Count);
+        }
+
+        [Fact]
+        public void And_WithMultipleQueries_ReturnsCorrectQuery()
+        {
+            var result = Query.And([
+                Query.Equal("attr1", "value1"),
+                Query.Equal("attr2", "value2")
+            ]);
+            var query = JsonSerializer.Deserialize<Query>(result);
+            
+            Assert.NotNull(query);
+            Assert.Equal("and", query.Method);
+            Assert.NotNull(query.Values);
+            Assert.Equal(2, query.Values.Count);
+        }
+
+        [Fact]
+        public void NotContains_ReturnsCorrectQuery()
+        {
+            var result = Query.NotContains("attr", "value");
+            var query = JsonSerializer.Deserialize<Query>(result);
+            
+            Assert.NotNull(query);
+            Assert.Equal("notContains", query.Method);
+            Assert.Equal("attr", query.Attribute);
+            Assert.NotNull(query.Values);
+            Assert.Single(query.Values);
+            Assert.Equal("value", query.Values[0].ToString());
+        }
+
+        [Fact]
+        public void NotSearch_ReturnsCorrectQuery()
+        {
+            var result = Query.NotSearch("attr", "keyword1 keyword2");
+            var query = JsonSerializer.Deserialize<Query>(result);
+            
+            Assert.NotNull(query);
+            Assert.Equal("notSearch", query.Method);
+            Assert.Equal("attr", query.Attribute);
+            Assert.NotNull(query.Values);
+            Assert.Single(query.Values);
+            Assert.Equal("keyword1 keyword2", query.Values[0].ToString());
+        }
+
+        [Fact]
+        public void NotBetween_WithIntegers_ReturnsCorrectQuery()
+        {
+            var result = Query.NotBetween("attr", 1, 2);
+            var query = JsonSerializer.Deserialize<Query>(result);
+            
+            Assert.NotNull(query);
+            Assert.Equal("notBetween", query.Method);
+            Assert.Equal("attr", query.Attribute);
+            Assert.NotNull(query.Values);
+            Assert.Equal(2, query.Values.Count);
+            Assert.Equal(1, ((JsonElement)query.Values[0]).GetInt32());
+            Assert.Equal(2, ((JsonElement)query.Values[1]).GetInt32());
+        }
+
+        [Fact]
+        public void NotBetween_WithDoubles_ReturnsCorrectQuery()
+        {
+            var result = Query.NotBetween("attr", 1.0, 2.0);
+            var query = JsonSerializer.Deserialize<Query>(result);
+            
+            Assert.NotNull(query);
+            Assert.Equal("notBetween", query.Method);
+            Assert.Equal("attr", query.Attribute);
+            Assert.NotNull(query.Values);
+            Assert.Equal(2, query.Values.Count);
+            Assert.Equal(1.0, ((JsonElement)query.Values[0]).GetDouble());
+            Assert.Equal(2.0, ((JsonElement)query.Values[1]).GetDouble());
+        }
+
+        [Fact]
+        public void NotBetween_WithStrings_ReturnsCorrectQuery()
+        {
+            var result = Query.NotBetween("attr", "a", "z");
+            var query = JsonSerializer.Deserialize<Query>(result);
+            
+            Assert.NotNull(query);
+            Assert.Equal("notBetween", query.Method);
+            Assert.Equal("attr", query.Attribute);
+            Assert.NotNull(query.Values);
+            Assert.Equal(2, query.Values.Count);
+            Assert.Equal("a", query.Values[0].ToString());
+            Assert.Equal("z", query.Values[1].ToString());
+        }
+
+        [Fact]
+        public void NotStartsWith_ReturnsCorrectQuery()
+        {
+            var result = Query.NotStartsWith("attr", "prefix");
+            var query = JsonSerializer.Deserialize<Query>(result);
+            
+            Assert.NotNull(query);
+            Assert.Equal("notStartsWith", query.Method);
+            Assert.Equal("attr", query.Attribute);
+            Assert.NotNull(query.Values);
+            Assert.Single(query.Values);
+            Assert.Equal("prefix", query.Values[0].ToString());
+        }
+
+        [Fact]
+        public void NotEndsWith_ReturnsCorrectQuery()
+        {
+            var result = Query.NotEndsWith("attr", "suffix");
+            var query = JsonSerializer.Deserialize<Query>(result);
+            
+            Assert.NotNull(query);
+            Assert.Equal("notEndsWith", query.Method);
+            Assert.Equal("attr", query.Attribute);
+            Assert.NotNull(query.Values);
+            Assert.Single(query.Values);
+            Assert.Equal("suffix", query.Values[0].ToString());
+        }
+
+        [Fact]
+        public void CreatedBefore_ReturnsCorrectQuery()
+        {
+            var result = Query.CreatedBefore("2023-01-01");
+            var query = JsonSerializer.Deserialize<Query>(result);
+            
+            Assert.NotNull(query);
+            Assert.Equal("createdBefore", query.Method);
+            Assert.NotNull(query.Values);
+            Assert.Single(query.Values);
+            Assert.Equal("2023-01-01", query.Values[0].ToString());
+        }
+
+        [Fact]
+        public void CreatedAfter_ReturnsCorrectQuery()
+        {
+            var result = Query.CreatedAfter("2023-01-01");
+            var query = JsonSerializer.Deserialize<Query>(result);
+            
+            Assert.NotNull(query);
+            Assert.Equal("createdAfter", query.Method);
+            Assert.NotNull(query.Values);
+            Assert.Single(query.Values);
+            Assert.Equal("2023-01-01", query.Values[0].ToString());
+        }
+
+        [Fact]
+        public void CreatedBetween_ReturnsCorrectQuery()
+        {
+            var result = Query.CreatedBetween("2023-01-01", "2023-12-31");
+            var query = JsonSerializer.Deserialize<Query>(result);
+            
+            Assert.NotNull(query);
+            Assert.Equal("createdBetween", query.Method);
+            Assert.NotNull(query.Values);
+            Assert.Equal(2, query.Values.Count);
+            Assert.Equal("2023-01-01", query.Values[0].ToString());
+            Assert.Equal("2023-12-31", query.Values[1].ToString());
+        }
+
+        [Fact]
+        public void UpdatedBefore_ReturnsCorrectQuery()
+        {
+            var result = Query.UpdatedBefore("2023-01-01");
+            var query = JsonSerializer.Deserialize<Query>(result);
+            
+            Assert.NotNull(query);
+            Assert.Equal("updatedBefore", query.Method);
+            Assert.NotNull(query.Values);
+            Assert.Single(query.Values);
+            Assert.Equal("2023-01-01", query.Values[0].ToString());
+        }
+
+        [Fact]
+        public void UpdatedAfter_ReturnsCorrectQuery()
+        {
+            var result = Query.UpdatedAfter("2023-01-01");
+            var query = JsonSerializer.Deserialize<Query>(result);
+            
+            Assert.NotNull(query);
+            Assert.Equal("updatedAfter", query.Method);
+            Assert.NotNull(query.Values);
+            Assert.Single(query.Values);
+            Assert.Equal("2023-01-01", query.Values[0].ToString());
+        }
+
+        [Fact]
+        public void UpdatedBetween_ReturnsCorrectQuery()
+        {
+            var result = Query.UpdatedBetween("2023-01-01", "2023-12-31");
+            var query = JsonSerializer.Deserialize<Query>(result);
+            
+            Assert.NotNull(query);
+            Assert.Equal("updatedBetween", query.Method);
+            Assert.NotNull(query.Values);
+            Assert.Equal(2, query.Values.Count);
+            Assert.Equal("2023-01-01", query.Values[0].ToString());
+            Assert.Equal("2023-12-31", query.Values[1].ToString());
+        }
+
+        [Fact]
+        public void OrderRandom_ReturnsCorrectQuery()
+        {
+            var result = Query.OrderRandom();
+            var query = JsonSerializer.Deserialize<Query>(result);
+            
+            Assert.NotNull(query);
+            Assert.Equal("orderRandom", query.Method);
+        }
+    }
+}

@@ -1,0 +1,78 @@
+using Xunit;
+using {{ spec.title | caseUcfirst }};
+
+namespace {{ spec.title | caseUcfirst }}.Tests
+{
+    public class PermissionTests
+    {
+        [Fact]
+        public void Read_ReturnsCorrectPermission()
+        {
+            var result = Permission.Read(Role.Any());
+            Assert.Equal("read(\"any\")", result);
+        }
+
+        [Fact]
+        public void Write_ReturnsCorrectPermission()
+        {
+            var result = Permission.Write(Role.Any());
+            Assert.Equal("write(\"any\")", result);
+        }
+
+        [Fact]
+        public void Create_ReturnsCorrectPermission()
+        {
+            var result = Permission.Create(Role.Any());
+            Assert.Equal("create(\"any\")", result);
+        }
+
+        [Fact]
+        public void Update_ReturnsCorrectPermission()
+        {
+            var result = Permission.Update(Role.Any());
+            Assert.Equal("update(\"any\")", result);
+        }
+
+        [Fact]
+        public void Delete_ReturnsCorrectPermission()
+        {
+            var result = Permission.Delete(Role.Any());
+            Assert.Equal("delete(\"any\")", result);
+        }
+
+        [Fact]
+        public void Read_WithUserRole_ReturnsCorrectFormat()
+        {
+            var result = Permission.Read(Role.User("123"));
+            Assert.Equal("read(\"user:123\")", result);
+        }
+
+        [Fact]
+        public void Write_WithTeamRole_ReturnsCorrectFormat()
+        {
+            var result = Permission.Write(Role.Team("team123", "owner"));
+            Assert.Equal("write(\"team:team123/owner\")", result);
+        }
+
+        [Fact]
+        public void Create_WithGuestsRole_ReturnsCorrectFormat()
+        {
+            var result = Permission.Create(Role.Guests());
+            Assert.Equal("create(\"guests\")", result);
+        }
+
+        [Fact]
+        public void Update_WithLabelRole_ReturnsCorrectFormat()
+        {
+            var result = Permission.Update(Role.Label("admin"));
+            Assert.Equal("update(\"label:admin\")", result);
+        }
+
+        [Fact]
+        public void Delete_WithMemberRole_ReturnsCorrectFormat()
+        {
+            var result = Permission.Delete(Role.Member("member123"));
+            Assert.Equal("delete(\"member:member123\")", result);
+        }
+    }
+}
