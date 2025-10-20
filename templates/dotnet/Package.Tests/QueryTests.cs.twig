@@ -1,7 +1,6 @@
-using System;
+using System.Collections.Generic;
 using System.Text.Json;
 using Xunit;
-using {{ spec.title | caseUcfirst }};
 
 namespace {{ spec.title | caseUcfirst }}.Tests
 {
@@ -242,7 +241,7 @@ namespace {{ spec.title | caseUcfirst }}.Tests
         [Fact]
         public void Select_WithSingleAttribute_ReturnsCorrectQuery()
         {
-            var result = Query.Select([ "attr1" ]);
+            var result = Query.Select(new List<string>() { "attr1" });
             var query = JsonSerializer.Deserialize<Query>(result);
             
             Assert.NotNull(query);
@@ -254,7 +253,7 @@ namespace {{ spec.title | caseUcfirst }}.Tests
         [Fact]
         public void Select_WithMultipleAttributes_ReturnsCorrectQuery()
         {
-            var result = Query.Select([ "attr1", "attr2", "attr3" ]);
+            var result = Query.Select(new List<string>() { "attr1", "attr2", "attr3" });
             var query = JsonSerializer.Deserialize<Query>(result);
             
             Assert.NotNull(query);
@@ -354,10 +353,10 @@ namespace {{ spec.title | caseUcfirst }}.Tests
         [Fact]
         public void Or_WithMultipleQueries_ReturnsCorrectQuery()
         {
-            var result = Query.Or([
+            var result = Query.Or(new List<string>() {
                 Query.Equal("attr1", "value1"),
                 Query.Equal("attr2", "value2")
-            ]);
+            });
             var query = JsonSerializer.Deserialize<Query>(result);
             
             Assert.NotNull(query);
@@ -369,10 +368,10 @@ namespace {{ spec.title | caseUcfirst }}.Tests
         [Fact]
         public void And_WithMultipleQueries_ReturnsCorrectQuery()
         {
-            var result = Query.And([
+            var result = Query.And(new List<string>() {
                 Query.Equal("attr1", "value1"),
                 Query.Equal("attr2", "value2")
-            ]);
+            });
             var query = JsonSerializer.Deserialize<Query>(result);
             
             Assert.NotNull(query);
