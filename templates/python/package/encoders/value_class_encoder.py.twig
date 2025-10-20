@@ -4,11 +4,17 @@ from ..enums.{{ enum.name | caseSnake }} import {{ enum.name | caseUcfirst | ove
 {%~ endfor %}
 
 
+from enum import Enum
+
 class ValueClassEncoder(json.JSONEncoder):
     def default(self, o):
         # Handle explicit null values
         if hasattr(o, 'is_null') and o.is_null:
             return None
+            
+        # Handle any enum type
+        if isinstance(o, Enum):
+            return o.value
             
         {%~ for enum in spec.enums %}
         if isinstance(o, {{ enum.name | caseUcfirst | overrideIdentifier }}):
