@@ -22,7 +22,7 @@ namespace {{ spec.title | caseUcfirst }}.Tests.Models
         public void Constructor_WithValidParameters_CreatesInstance()
         {
             // Arrange & Act
-            var model = new Appwrite.Models.{{ DefinitionClass }}(
+            var model = new {{ spec.title | caseUcfirst }}.Models.{{ DefinitionClass }}(
                 {%~ for property in definition.properties %}
                 {%~ if property.enum %}
                 {{ property.name | caseCamel | escapeKeyword }}: {{ property.enumName | caseUcfirst }}.{{ (property.enumKeys[0] ?? property.enum[0]) | caseEnumKey }}
@@ -80,7 +80,7 @@ namespace {{ spec.title | caseUcfirst }}.Tests.Models
         public void ToMap_ReturnsCorrectDictionary()
         {
             // Arrange
-            var model = new Appwrite.Models.{{ DefinitionClass }}(
+            var model = new {{ spec.title | caseUcfirst }}.Models.{{ DefinitionClass }}(
                 {%~ for property in definition.properties %}
                 {%~ if property.enum %}
                 {{ property.name | caseCamel | escapeKeyword }}: {{ property.enumName | caseUcfirst }}.{{ (property.enumKeys[0] ?? property.enum[0]) | caseEnumKey }}
@@ -158,7 +158,7 @@ namespace {{ spec.title | caseUcfirst }}.Tests.Models
             };
 
             // Act
-            var model = Appwrite.Models.{{ DefinitionClass }}.From(map);
+            var model = {{ spec.title | caseUcfirst }}.Models.{{ DefinitionClass }}.From(map);
 
             // Assert
             Assert.NotNull(model);
@@ -171,7 +171,7 @@ namespace {{ spec.title | caseUcfirst }}.Tests.Models
         public void ToMap_AndFrom_RoundTrip_PreservesData()
         {
             // Arrange
-            var original = new Appwrite.Models.{{ DefinitionClass }}(
+            var original = new {{ spec.title | caseUcfirst }}.Models.{{ DefinitionClass }}(
                 {%~ for property in definition.properties %}
                 {%~ if property.enum %}
                 {{ property.name | caseCamel | escapeKeyword }}: {{ property.enumName | caseUcfirst }}.{{ (property.enumKeys[0] ?? property.enum[0]) | caseEnumKey }}
@@ -206,7 +206,7 @@ namespace {{ spec.title | caseUcfirst }}.Tests.Models
 
             // Act
             var map = original.ToMap();
-            var result = Appwrite.Models.{{ DefinitionClass }}.From(map);
+            var result = {{ spec.title | caseUcfirst }}.Models.{{ DefinitionClass }}.From(map);
 
             // Assert
             {%~ for property in definition.properties | filter(p => p.required) %}
@@ -227,7 +227,7 @@ namespace {{ spec.title | caseUcfirst }}.Tests.Models
             {
                 { "customKey", "customValue" }
             };
-            var model = new Appwrite.Models.{{ DefinitionClass }}(
+            var model = new {{ spec.title | caseUcfirst }}.Models.{{ DefinitionClass }}(
                 {%~ for property in definition.properties %}
                 {%~ if property.type == 'string' %}
                 {{ property.name | caseCamel | escapeKeyword }}: "test"
@@ -268,7 +268,7 @@ namespace {{ spec.title | caseUcfirst }}.Tests.Models
         public void Properties_AreReadOnly()
         {
             // Arrange
-            var model = new Appwrite.Models.{{ DefinitionClass }}(
+            var model = new {{ spec.title | caseUcfirst }}.Models.{{ DefinitionClass }}(
                 {%~ for property in definition.properties %}
                 {%~ if property.enum %}
                 {{ property.name | caseCamel | escapeKeyword }}: {{ property.enumName | caseUcfirst }}.{{ (property.enumKeys[0] ?? property.enum[0]) | caseEnumKey }}
@@ -299,7 +299,7 @@ namespace {{ spec.title | caseUcfirst }}.Tests.Models
 
             // Assert - properties should have private setters
             {%~ for property in definition.properties | slice(0, 1) %}
-            var propertyInfo = typeof(Appwrite.Models.{{ DefinitionClass }}).GetProperty("{{ property_name(definition, property) | overrideProperty(definition.name) }}");
+            var propertyInfo = typeof({{ spec.title | caseUcfirst }}.Models.{{ DefinitionClass }}).GetProperty("{{ property_name(definition, property) | overrideProperty(definition.name) }}");
             Assert.NotNull(propertyInfo);
             Assert.Null(propertyInfo.GetSetMethod());
             {%~ endfor %}

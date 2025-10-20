@@ -28,12 +28,12 @@ namespace {{ spec.title | caseUcfirst }}.Tests.Services
     public class {{ service.name | caseUcfirst }}Tests
     {
         private Mock<Client> _mockClient;
-        private Appwrite.Services.{{ service.name | caseUcfirst }} _{{ service.name | caseCamel }};
+        private {{ spec.title | caseUcfirst }}.Services.{{ service.name | caseUcfirst }} _{{ service.name | caseCamel }};
 
         public {{ service.name | caseUcfirst }}Tests()
         {
             _mockClient = new Mock<Client>();
-            _{{ service.name | caseCamel }} = new Appwrite.Services.{{ service.name | caseUcfirst }}(_mockClient.Object);
+            _{{ service.name | caseCamel }} = new {{ spec.title | caseUcfirst }}.Services.{{ service.name | caseUcfirst }}(_mockClient.Object);
         }
 
         [Fact]
@@ -43,7 +43,7 @@ namespace {{ spec.title | caseUcfirst }}.Tests.Services
             var client = new Mock<Client>().Object;
 
             // Act
-            var service = new Appwrite.Services.{{ service.name | caseUcfirst }}(client);
+            var service = new {{ spec.title | caseUcfirst }}.Services.{{ service.name | caseUcfirst }}(client);
 
             // Assert
             Assert.NotNull(service);
@@ -86,7 +86,7 @@ namespace {{ spec.title | caseUcfirst }}.Tests.Services
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<Action<UploadProgress>>()
-            )).ReturnsAsync({% if method.responseModel and method.responseModel != 'any' %}Appwrite.Models.{{ method.responseModel | caseUcfirst | overrideIdentifier }}.From(expectedResponse){% else %}expectedResponse{% endif %});
+            )).ReturnsAsync({% if method.responseModel and method.responseModel != 'any' %}{{ spec.title | caseUcfirst }}.Models.{{ method.responseModel | caseUcfirst | overrideIdentifier }}.From(expectedResponse){% else %}expectedResponse{% endif %});
             {%~ else %}
             _mockClient.Setup(c => c.Call<{{ utils.resultType(spec.title, method) }}>(
                 It.IsAny<string>(),
@@ -95,14 +95,14 @@ namespace {{ spec.title | caseUcfirst }}.Tests.Services
                 It.IsAny<Dictionary<string, object>>(){% if method.responseModel %},
                 It.IsAny<Func<Dictionary<string, object>, {{ utils.resultType(spec.title, method) }}>>()
                 {% else %},null{% endif %}
-            )).ReturnsAsync({% if method.responseModel and method.responseModel != 'any' and method.type != 'location' %}Appwrite.Models.{{ method.responseModel | caseUcfirst | overrideIdentifier }}.From(expectedResponse){% else %}expectedResponse{% endif %});
+            )).ReturnsAsync({% if method.responseModel and method.responseModel != 'any' and method.type != 'location' %}{{ spec.title | caseUcfirst }}.Models.{{ method.responseModel | caseUcfirst | overrideIdentifier }}.From(expectedResponse){% else %}expectedResponse{% endif %});
             {%~ endif %}
 
             // Act
             {%~ if method.parameters.all | length > 0 %}
             var result = await _{{ service.name | caseCamel }}.{{ method.name | caseUcfirst }}(
                 {%~ for parameter in method.parameters.all | filter((param) => param.required) ~%}
-                {{parameter.name | caseCamel | escapeKeyword}}: {% if parameter.enumValues is not empty %}Appwrite.Enums.{{ (parameter.enumName ?? parameter.name) | caseUcfirst }}.{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}{% elseif parameter.type == 'file' %}InputFile.FromPath("./test.png"){% elseif parameter.type == 'object' %}new Dictionary<string, object>(){% elseif parameter.type == 'array' %}{% set itemType = test_item_type(parameter) %}new List<{{ itemType }}> { {% if itemType == 'string' %}"item1"{% elseif itemType == 'long' %}1{% elseif itemType == 'double' %}1.0{% elseif itemType == 'bool' %}true{% elseif itemType == 'object' %}new object(){% else %}null{% endif %} }{% elseif parameter.type == 'boolean' %}true{% elseif parameter.type == 'integer' %}{{parameter['x-example'] | default(1)}}{% elseif parameter.type == 'number' %}{{parameter['x-example'] | default(1.0)}}{% elseif parameter.type == 'string' %}"{% if parameter['x-example'] is not empty %}{{parameter['x-example']}}{% else %}test{% endif %}"{% else %}null{% endif %}{% if not loop.last %},{% endif %}
+                {{parameter.name | caseCamel | escapeKeyword}}: {% if parameter.enumValues is not empty %}{{ spec.title | caseUcfirst }}.Enums.{{ (parameter.enumName ?? parameter.name) | caseUcfirst }}.{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}{% elseif parameter.type == 'file' %}InputFile.FromPath("./test.png"){% elseif parameter.type == 'object' %}new Dictionary<string, object>(){% elseif parameter.type == 'array' %}{% set itemType = test_item_type(parameter) %}new List<{{ itemType }}> { {% if itemType == 'string' %}"item1"{% elseif itemType == 'long' %}1{% elseif itemType == 'double' %}1.0{% elseif itemType == 'bool' %}true{% elseif itemType == 'object' %}new object(){% else %}null{% endif %} }{% elseif parameter.type == 'boolean' %}true{% elseif parameter.type == 'integer' %}{{parameter['x-example'] | default(1)}}{% elseif parameter.type == 'number' %}{{parameter['x-example'] | default(1.0)}}{% elseif parameter.type == 'string' %}"{% if parameter['x-example'] is not empty %}{{parameter['x-example']}}{% else %}test{% endif %}"{% else %}null{% endif %}{% if not loop.last %},{% endif %}
 
                 {%~ endfor ~%}
             );
@@ -113,7 +113,7 @@ namespace {{ spec.title | caseUcfirst }}.Tests.Services
             // Assert
             {%~ if method.responseModel and method.responseModel != 'any' %}
             Assert.NotNull(result);
-            Assert.IsType<Appwrite.Models.{{ method.responseModel | caseUcfirst | overrideIdentifier }}>(result);
+            Assert.IsType<{{ spec.title | caseUcfirst }}.Models.{{ method.responseModel | caseUcfirst | overrideIdentifier }}>(result);
             {%~ elseif method.type == 'location' %}
             Assert.NotNull(result);
             {%~ elseif method.type == 'webAuth' %}
@@ -156,7 +156,7 @@ namespace {{ spec.title | caseUcfirst }}.Tests.Services
         {
             // Arrange
             {%~ for parameter in method.parameters.all | filter((param) => param.required) | slice(0, 3) ~%}
-            {% if parameter.type == 'file' %}InputFile{% else %}var{% endif %} {{parameter.name | caseCamel | escapeKeyword}} = {% if parameter.enumValues is not empty %}Appwrite.Enums.{{ (parameter.enumName ?? parameter.name) | caseUcfirst }}.{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}{% elseif parameter.type == 'file' %}InputFile.FromPath("./test.png"){% elseif parameter.type == 'object' %}new Dictionary<string, object>(){% elseif parameter.type == 'array' %}{% set itemType = test_item_type(parameter) %}new List<{{ itemType }}> { {% if itemType == 'string' %}"item1"{% elseif itemType == 'long' %}1{% elseif itemType == 'double' %}1.0{% elseif itemType == 'bool' %}true{% elseif itemType == 'object' %}new object(){% else %}null{% endif %} }{% elseif parameter.type == 'boolean' %}true{% elseif parameter.type == 'integer' or parameter.type == 'number' %}{{parameter['x-example'] | default(123)}}{% elseif parameter.type == 'string' %}"test{{parameter.name}}"{% else %}null{% endif %};
+            {% if parameter.type == 'file' %}InputFile{% else %}var{% endif %} {{parameter.name | caseCamel | escapeKeyword}} = {% if parameter.enumValues is not empty %}{{ spec.title | caseUcfirst }}.Enums.{{ (parameter.enumName ?? parameter.name) | caseUcfirst }}.{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}{% elseif parameter.type == 'file' %}InputFile.FromPath("./test.png"){% elseif parameter.type == 'object' %}new Dictionary<string, object>(){% elseif parameter.type == 'array' %}{% set itemType = test_item_type(parameter) %}new List<{{ itemType }}> { {% if itemType == 'string' %}"item1"{% elseif itemType == 'long' %}1{% elseif itemType == 'double' %}1.0{% elseif itemType == 'bool' %}true{% elseif itemType == 'object' %}new object(){% else %}null{% endif %} }{% elseif parameter.type == 'boolean' %}true{% elseif parameter.type == 'integer' or parameter.type == 'number' %}{{parameter['x-example'] | default(123)}}{% elseif parameter.type == 'string' %}"test{{parameter.name}}"{% else %}null{% endif %};
             {%~ endfor ~%}
 
             {%~ if method.responseModel and method.responseModel != 'any' %}
@@ -180,14 +180,14 @@ namespace {{ spec.title | caseUcfirst }}.Tests.Services
                 It.IsAny<Dictionary<string, object>>(){% if method.responseModel %},
                 It.IsAny<Func<Dictionary<string, object>, {{ utils.resultType(spec.title, method) }}>>()
                 {% else %},null{% endif %}
-            )).ReturnsAsync({% if method.responseModel and method.responseModel != 'any' and method.type != 'location' %}Appwrite.Models.{{ method.responseModel | caseUcfirst | overrideIdentifier }}.From(expectedResponse){% else %}expectedResponse{% endif %});
+            )).ReturnsAsync({% if method.responseModel and method.responseModel != 'any' and method.type != 'location' %}{{ spec.title | caseUcfirst }}.Models.{{ method.responseModel | caseUcfirst | overrideIdentifier }}.From(expectedResponse){% else %}expectedResponse{% endif %});
             {%~ endif %}
 
             // Act
             {%~ if method.parameters.all | length > 0 %}
             await _{{ service.name | caseCamel }}.{{ method.name | caseUcfirst }}(
                 {%~ for parameter in method.parameters.all | filter((param) => param.required) ~%}
-                {{parameter.name | caseCamel | escapeKeyword}}: {% if loop.index0 < 3 %}{{parameter.name | caseCamel | escapeKeyword}}{% else %}{% if parameter.enumValues is not empty %}Appwrite.Enums.{{ (parameter.enumName ?? parameter.name) | caseUcfirst }}.{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}{% elseif parameter.type == 'file' %}InputFile.FromPath("./test.png"){% elseif parameter.type == 'object' %}new Dictionary<string, object>(){% elseif parameter.type == 'array' %}{% set itemType = test_item_type(parameter) %}new List<{{ itemType }}> { {% if itemType == 'string' %}"item1"{% elseif itemType == 'long' %}1{% elseif itemType == 'double' %}1.0{% elseif itemType == 'bool' %}true{% elseif itemType == 'object' %}new object(){% else %}null{% endif %} }{% elseif parameter.type == 'boolean' %}true{% elseif parameter.type == 'integer' or parameter.type == 'number' %}1{% elseif parameter.type == 'string' %}"test"{% else %}null{% endif %}{% endif %}{% if not loop.last %},{% endif %}
+                {{parameter.name | caseCamel | escapeKeyword}}: {% if loop.index0 < 3 %}{{parameter.name | caseCamel | escapeKeyword}}{% else %}{% if parameter.enumValues is not empty %}{{ spec.title | caseUcfirst }}.Enums.{{ (parameter.enumName ?? parameter.name) | caseUcfirst }}.{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}{% elseif parameter.type == 'file' %}InputFile.FromPath("./test.png"){% elseif parameter.type == 'object' %}new Dictionary<string, object>(){% elseif parameter.type == 'array' %}{% set itemType = test_item_type(parameter) %}new List<{{ itemType }}> { {% if itemType == 'string' %}"item1"{% elseif itemType == 'long' %}1{% elseif itemType == 'double' %}1.0{% elseif itemType == 'bool' %}true{% elseif itemType == 'object' %}new object(){% else %}null{% endif %} }{% elseif parameter.type == 'boolean' %}true{% elseif parameter.type == 'integer' or parameter.type == 'number' %}1{% elseif parameter.type == 'string' %}"test"{% else %}null{% endif %}{% endif %}{% if not loop.last %},{% endif %}
 
                 {%~ endfor ~%}
             );
