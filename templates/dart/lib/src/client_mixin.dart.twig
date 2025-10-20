@@ -45,7 +45,7 @@ mixin ClientMixin {
             return MapEntry(key, value.toString());
           }
           if (value is List) {
-            return MapEntry(key + "[]", value);
+            return MapEntry("$key[]", value);
           }
           return MapEntry(key, value);
         });

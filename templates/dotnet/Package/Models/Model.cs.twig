@@ -1,20 +1,19 @@
-{% macro sub_schema(property) %}{% if property.sub_schema %}{% if property.type == 'array' %}List<{{property.sub_schema | caseUcfirst | overrideIdentifier}}>{% else %}{{property.sub_schema | caseUcfirst | overrideIdentifier}}{% endif %}{% else %}{{property | typeName}}{% endif %}{% if not property.required %}?{% endif %}{% endmacro %}
-{% macro property_name(definition, property) %}{{ property.name | caseUcfirst | removeDollarSign | escapeKeyword }}{% endmacro %}
 
 using System;
 using System.Linq;
 using System.Collections.Generic;
-
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using {{ spec.title | caseUcfirst }}.Enums;
+using {{ spec.title | caseUcfirst }}.Extensions;
 
 namespace {{ spec.title | caseUcfirst }}.Models
 {
     public class {{ definition.name | caseUcfirst | overrideIdentifier }}
     {
         {%~ for property in definition.properties %}
-        [JsonProperty("{{ property.name }}")]
-        public {{ _self.sub_schema(property) }} {{ _self.property_name(definition, property) | overrideProperty(definition.name) }} { get; private set; }
+        [JsonPropertyName("{{ property.name }}")]
+        public {{ sub_schema(property) | raw }} {{ property_name(definition, property) | overrideProperty(definition.name) }} { get; private set; }
 
         {%~ endfor %}
         {%~ if definition.additionalProperties %}
@@ -23,7 +22,7 @@ namespace {{ spec.title | caseUcfirst }}.Models
         {%~ endif %}
         public {{ definition.name | caseUcfirst | overrideIdentifier }}(
             {%~ for property in definition.properties %}
-            {{ _self.sub_schema(property) }} {{ property.name | caseCamel | escapeKeyword }}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
+            {{ sub_schema(property) | raw }} {{ property.name | caseCamel | escapeKeyword }}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
 
             {%~ endfor %}
             {%~ if definition.additionalProperties %}
@@ -31,7 +30,7 @@ namespace {{ spec.title | caseUcfirst }}.Models
             {%~ endif %}
         ) {
             {%~ for property in definition.properties %}
-            {{ _self.property_name(definition, property) | overrideProperty(definition.name) }} = {{ property.name | caseCamel | escapeKeyword }};
+            {{ property_name(definition, property) | overrideProperty(definition.name) }} = {{ property.name | caseCamel | escapeKeyword }};
             {%~ endfor %}
             {%~ if definition.additionalProperties %}
             Data = data;
@@ -43,13 +42,24 @@ namespace {{ spec.title | caseUcfirst }}.Models
             {{ property.name | caseCamel | escapeKeyword | removeDollarSign }}:{{' '}}
                 {%- if property.sub_schema %}
                     {%- if property.type == 'array' -%}
-                        ((JArray)map["{{ property.name }}"]).ToObject<List<Dictionary<string, object>>>().Select(it => {{ property.sub_schema | caseUcfirst | overrideIdentifier }}.From(map: it)).ToList()
+                        map["{{ property.name }}"].ConvertToList<Dictionary<string, object>>().Select(it => {{ property.sub_schema | caseUcfirst | overrideIdentifier }}.From(map: it)).ToList()
                     {%- else -%}
-                        {{ property.sub_schema | caseUcfirst | overrideIdentifier }}.From(map: ((JObject)map["{{ property.name }}"]).ToObject<Dictionary<string, object>>()!)
+                        {{ property.sub_schema | caseUcfirst | overrideIdentifier }}.From(map: map["{{ property.name }}"] is JsonElement jsonObj{{ loop.index }} ? jsonObj{{ loop.index }}.Deserialize<Dictionary<string, object>>()! : (Dictionary<string, object>)map["{{ property.name }}"])
+                    {%- endif %}
+                {%- elseif property.enum %}
+                    {%- set enumName = property['enumName'] ?? property.name -%}
+                    {%- if not property.required -%}
+                        map.TryGetValue("{{ property.name }}", out var enumRaw{{ loop.index }})
+                            ? enumRaw{{ loop.index }} == null
+                                ? null
+                                : new {{ enumName | caseUcfirst }}(enumRaw{{ loop.index }}.ToString()!)
+                            : null
+                    {%- else -%}
+                        new {{ enumName | caseUcfirst }}(map["{{ property.name }}"].ToString()!)
                     {%- endif %}
                 {%- else %}
                     {%- if property.type == 'array' -%}
-                        ((JArray)map["{{ property.name }}"]).ToObject<{{ property | typeName }}>()
+                        map["{{ property.name }}"].ConvertToList<{{ property | typeName | replace({'List<': '', '>': ''}) }}>()
                     {%- else %}
                         {%- if property.type == "integer" or property.type == "number" %}
                             {%- if not property.required -%}map["{{ property.name }}"] == null ? null :{% endif %}Convert.To{% if property.type == "integer" %}Int64{% else %}Double{% endif %}(map["{{ property.name }}"])
@@ -70,14 +80,14 @@ namespace {{ spec.title | caseUcfirst }}.Models
                 {%~ endif %}
             {%~ endfor %}
             {%- if definition.additionalProperties %}
-            data: map
+            data: map.TryGetValue("data", out var dataValue) ? (Dictionary<string, object>)dataValue : map
             {%- endif ~%}
         );
 
         public Dictionary<string, object?> ToMap() => new Dictionary<string, object?>()
         {
             {%~ for property in definition.properties %}
-            { "{{ property.name }}", {% if property.sub_schema %}{% if property.type == 'array' %}{{ _self.property_name(definition, property) | overrideProperty(definition.name) }}.Select(it => it.ToMap()){% else %}{{ _self.property_name(definition, property) | overrideProperty(definition.name) }}.ToMap(){% endif %}{% else %}{{ _self.property_name(definition, property) | overrideProperty(definition.name) }}{% endif %}{{ ' }' }}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
+            { "{{ property.name }}", {% if property.sub_schema %}{% if property.type == 'array' %}{{ property_name(definition, property) | overrideProperty(definition.name) }}.Select(it => it.ToMap()){% else %}{{ property_name(definition, property) | overrideProperty(definition.name) }}.ToMap(){% endif %}{% elseif property.enum %}{{ property_name(definition, property) | overrideProperty(definition.name) }}{% if not property.required %}?{% endif %}.Value{% else %}{{ property_name(definition, property) | overrideProperty(definition.name) }}{% endif %}{{ ' }' }}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
 
             {%~ endfor %}
             {%~ if definition.additionalProperties %}

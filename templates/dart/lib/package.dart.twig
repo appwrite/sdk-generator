@@ -1,6 +1,6 @@
 /// {{spec.title | caseUcfirst}} {{sdk.name}} SDK
 ///
-/// This SDK is compatible with Appwrite server version {{spec.version | split('.') | slice(0,2) | join('.') ~ '.x' }}. 
+/// This SDK is compatible with Appwrite server version {{spec.version | split('.') | slice(0,2) | join('.') ~ '.x' }}.
 /// For older versions, please check
 /// [previous releases](https://github.com/{{sdk.gitUserName}}/{{sdk.gitRepoName}}/releases).
 library {{ language.params.packageName }};
@@ -28,5 +28,5 @@ part 'permission.dart';
 part 'role.dart';
 part 'id.dart';
 {% for service in spec.services %}
-part 'services/{{service.name | caseDash}}.dart';
+part 'services/{{service.name | caseSnake}}.dart';
 {% endfor %}

@@ -7,8 +7,8 @@ import 'upload_progress.dart';
 
 /// [Client] that handles requests to {{spec.title | caseUcfirst}}
 abstract class Client {
-  /// The size for cunked uploads in bytes.
-  static const int CHUNK_SIZE = 5*1024*1024;
+  /// The size for chunked uploads in bytes.
+  static const int chunkSize = 5 * 1024 * 1024;
 
   /// Holds configuration such as project.
   late Map<String, String> config;
@@ -18,10 +18,10 @@ abstract class Client {
   String get endPoint => _endPoint;
 
   /// Initializes a [Client].
-  factory Client(
-          {String endPoint = '{{ spec.endpoint }}',
-          bool selfSigned = false}) =>
-      createClient(endPoint: endPoint, selfSigned: selfSigned);
+  factory Client({
+    String endPoint = '{{ spec.endpoint }}',
+    bool selfSigned = false,
+  }) => createClient(endPoint: endPoint, selfSigned: selfSigned);
 
   /// Handle OAuth2 session creation.
   Future<String?> webAuth(Uri url);
@@ -42,7 +42,7 @@ abstract class Client {
   ///
   /// {{header.description}}
 {% endif %}
-  Client set{{header.key | caseUcfirst}}(value);
+  Client set{{header.key | caseUcfirst}}(String value);
 
 {% endfor %}
   /// Add headers that should be sent with all API calls.

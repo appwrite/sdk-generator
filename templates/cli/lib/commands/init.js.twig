@@ -117,14 +117,16 @@ const initProject = async ({ organizationId, projectId, projectName } = {}) => {
         }
     }
 
-    success(`Project successfully ${answers.start === 'existing' ? 'linked' : 'created'}. Details are now stored in appwrite.json file.`);
+    success(`Project successfully ${answers.start === 'existing' ? 'linked' : 'created'}. Details are now stored in appwrite.config.json file.`);
 
     if(answers.start === 'existing') {
         answers = await inquirer.prompt(questionsInitProjectAutopull);
         if(answers.autopull) {
             cliConfig.all = true;
             cliConfig.force = true;
-            await pullResources();
+            await pullResources({
+                skipDeprecated: true
+            });
         } else {
             log("You can run 'appwrite pull all' to synchronize all of your existing resources.");
         }

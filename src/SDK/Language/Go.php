@@ -115,17 +115,17 @@ class Go extends Language
             ],
             [
                 'scope'         => 'service',
-                'destination'   => '{{ service.name | caseLower}}/{{service.name | caseDash}}.go',
+                'destination'   => '{{ service.name | caseLower}}/{{service.name | caseSnake}}.go',
                 'template'      => 'go/services/service.go.twig',
             ],
             [
                 'scope'         => 'method',
-                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
+                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseKebab}}.md',
                 'template'      => 'go/docs/example.md.twig',
             ],
             [
                 'scope'         => 'definition',
-                'destination'   => 'models/{{ definition.name | caseLower }}.go',
+                'destination'   => 'models/{{ definition.name | caseSnake }}.go',
                 'template'      => 'go/models/model.go.twig',
             ],
         ];
@@ -154,7 +154,7 @@ class Go extends Language
             self::TYPE_OBJECT => 'interface{}',
             self::TYPE_ARRAY => (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type']))
             ? '[]' . $this->getTypeName($parameter['array'])
-            : '[]string',
+            : '[]interface{}',
             default => $parameter['type'],
         };
     }
@@ -265,7 +265,11 @@ class Go extends Language
                     $output .= 'interface{}{' . $example . '}';
                     break;
                 case self::TYPE_OBJECT:
-                    $output .= 'map[string]interface{}{}';
+                    $output .= ($example === '{}')
+                    ? 'map[string]interface{}{}'
+                    : (($formatted = json_encode(json_decode($example, true), JSON_PRETTY_PRINT))
+                        ? 'map[string]interface{}' . preg_replace('/\n/', "\n    ", $formatted)
+                        : 'map[string]interface{}' . $example);
                     break;
                 case self::TYPE_BOOLEAN:
                     $output .= ($example) ? 'true' : 'false';

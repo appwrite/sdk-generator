@@ -2,6 +2,7 @@ import io
 import json
 import os
 import platform
+import sys
 import requests
 from .input_file import InputFile
 from .exception import {{spec.title | caseUcfirst}}Exception
@@ -126,7 +127,7 @@ class Client:
             warnings = response.headers.get('x-{{ spec.title | lower }}-warning')
             if warnings:
                 for warning in warnings.split(';'):
-                    print(f'Warning: {warning}')
+                    print(f'Warning: {warning}', file=sys.stderr)
 
             content_type = response.headers['Content-Type']
 

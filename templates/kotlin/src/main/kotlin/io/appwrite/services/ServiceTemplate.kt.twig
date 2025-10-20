@@ -4,7 +4,7 @@ import {{ sdk.namespace | caseDot }}.Client
 {% if spec.definitions is not empty %}
 import {{ sdk.namespace | caseDot }}.models.*
 {% endif %}
-{% if spec.enums is not empty %}
+{% if spec.requestEnums is not empty %}
 import {{ sdk.namespace | caseDot }}.enums.*
 {% endif %}
 import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.title | caseUcfirst }}Exception
@@ -17,19 +17,31 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 import java.io.File
 
 /**
- * {{ service.description | raw | replace({"\n": "", "\r": ""}) }}
+ * {{ service.description | replace({"\n": "\n * "}) | raw }}
 **/
 class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
 
 {% for method in service.methods %}
     /**
-     * {{ method.description | raw | replace({"\n": "", "\r": ""}) }}
+     * {{ method.description | replace({"\n": "\n     * "}) | raw }}
      *
     {%~ for parameter in method.parameters.all %}
      * @param {{ parameter.name | caseCamel }} {{ parameter.description | raw }}
     {%~ endfor %}
      * @return [{{ method | returnType(spec, sdk.namespace | caseDot) | raw }}]
      */
+    {%~ if method.deprecated %}
+    {%~ if method.since and method.replaceWith %}
+    @Deprecated(
+        message = "This API has been deprecated since {{ method.since }}. Please use `{{ method.replaceWith | capitalizeFirst }}` instead.",
+        replaceWith = ReplaceWith("{{ sdk.namespace | caseDot }}.services.{{ method.replaceWith | capitalizeFirst }}")
+    )
+    {%~ else %}
+    @Deprecated(
+        message = "This API has been deprecated."
+    )
+    {%~ endif %}
+    {%~ endif %}
     {%~ if method.parameters.all | reduce((carry, param) => carry or not param.required) %}
     @JvmOverloads
     {%~ endif %}
@@ -84,13 +96,25 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
     {%~ if method.responseModel | hasGenericType(spec) %}
 
     /**
-     * {{ method.description | raw | replace({"\n": "", "\r": ""}) }}
+     * {{ method.description | replace({"\n": "\n     * "}) | raw }}
      *
     {%~ for parameter in method.parameters.all %}
      * @param {{ parameter.name | caseCamel }} {{ parameter.description | raw }}
     {%~ endfor %}
      * @return [{{ method | returnType(spec, sdk.namespace | caseDot) | raw }}]
      */
+    {%~ if method.deprecated %}
+    {%~ if method.since and method.replaceWith %}
+    @Deprecated(
+        message = "This API has been deprecated since {{ method.since }}. Please use `{{ method.replaceWith | capitalizeFirst }}` instead.",
+        replaceWith = ReplaceWith("{{ sdk.namespace | caseDot }}.services.{{ method.replaceWith | capitalizeFirst }}")
+    )
+    {%~ else %}
+    @Deprecated(
+        message = "This API has been deprecated."
+    )
+    {%~ endif %}
+    {%~ endif %}
     {%~ if method.parameters.all | reduce((carry, param) => carry or not param.required) %}
     @JvmOverloads
     {%~ endif %}

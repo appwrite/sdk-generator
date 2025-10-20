@@ -6,7 +6,7 @@
 {% if parameters.all|length > 0 %}{% for parameter in parameters.all | filter((param) => not param.isGlobal)  %}{{ _self.parameter(parameter) }}{% if not loop.last %}{{ ', ' }}{% endif %}{% endfor %}{% if 'multipart/form-data' in consumes %},{% endif %}{% endif %}{% if 'multipart/form-data' in consumes %} Action<UploadProgress>? onProgress = null{% endif %}
 {% endmacro %}
 {% macro map_parameter(parameter) %}
-{% if parameter.name == 'orderType' %}{{ parameter.name | caseCamel ~ '.ToString()'}}{% elseif parameter.isGlobal %}{{ parameter.name | caseUcfirst | escapeKeyword }}{% else %}{{ parameter.name | caseCamel | escapeKeyword }}{% endif %}
+{% if parameter.name == 'orderType' %}{{ parameter.name | caseCamel ~ '.ToString()'}}{% elseif parameter.isGlobal %}{{ parameter.name | caseUcfirst | escapeKeyword }}{% elseif parameter.enumValues is not empty %}{{ parameter.name | caseCamel | escapeKeyword }}?.Value{% else %}{{ parameter.name | caseCamel | escapeKeyword }}{% endif %}
 {% endmacro %}
 {% macro methodNeedsSecurityParameters(method) %}
 {% if (method.type == "webAuth" or method.type == "location") and method.auth|length > 0 %}{{ true }}{% else %}{{false}}{% endif %}
