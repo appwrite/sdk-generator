@@ -172,12 +172,11 @@ const deleteSession = async (accountId) => {
             parseOutput: false,
             sdk: client
         })
-
-        globalConfig.removeSession(accountId);
     } catch (e) {
         error('Unable to log out, removing locally saved session information')
+    } finally {
+        globalConfig.removeSession(accountId);
     }
-    globalConfig.removeSession(accountId);
 }
 
 const logout = new Command("logout")
@@ -195,6 +194,7 @@ const logout = new Command("logout")
         }
         if (sessions.length === 1) {
             await deleteSession(current);
+            globalConfig.setCurrentSession('');
             success("Logging out");
 
             return;
@@ -216,6 +216,8 @@ const logout = new Command("logout")
             globalConfig.setCurrentSession(accountId);
 
             success(`Current account is ${accountId}`);
+        } else if (remainingSessions.length === 0) {
+            globalConfig.setCurrentSession('');
         }
 
         success("Logging out");
