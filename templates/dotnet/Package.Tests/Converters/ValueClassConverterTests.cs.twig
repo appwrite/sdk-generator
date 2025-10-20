@@ -31,19 +31,6 @@ namespace {{ spec.title | caseUcfirst }}.Tests.Converters
         }
 
         [Fact]
-        public void CanConvert_WithNonIEnumType_ReturnsFalse()
-        {
-            // Arrange
-            var converter = new ValueClassConverter();
-            
-            // Act
-            var result = converter.CanConvert(typeof(string));
-
-            // Assert
-            Assert.False(result);
-        }
-
-        [Fact]
         public void CanConvert_WithStringType_ReturnsFalse()
         {
             // Arrange
