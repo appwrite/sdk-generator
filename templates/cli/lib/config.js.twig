@@ -681,15 +681,25 @@ class Global extends Config {
 
     getSessions() {
         const sessions = Object.keys(this.data).filter((key) => !Global.IGNORE_ATTRIBUTES.includes(key))
+        const current = this.getCurrentSession();
 
-        return sessions.map((session) => {
+        const sessionMap = new Map();
+        
+        sessions.forEach((sessionId) => {
+            const email = this.data[sessionId][Global.PREFERENCE_EMAIL];
+            const endpoint = this.data[sessionId][Global.PREFERENCE_ENDPOINT];
+            const key = `${email}|${endpoint}`;
 
-            return {
-                id: session,
-                endpoint: this.data[session][Global.PREFERENCE_ENDPOINT],
-                email: this.data[session][Global.PREFERENCE_EMAIL]
+            if (sessionId === current || !sessionMap.has(key)) {
+                sessionMap.set(key, {
+                    id: sessionId,
+                    endpoint: this.data[sessionId][Global.PREFERENCE_ENDPOINT],
+                    email: this.data[sessionId][Global.PREFERENCE_EMAIL]
+                });
             }
-        })
+        });
+
+        return Array.from(sessionMap.values());
     }
 
     addSession(session, data) {
