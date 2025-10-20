@@ -1,5 +1,14 @@
+{% if spec.responseEnums|length > 0 %}
+{% for responseEnum in spec.responseEnums %}
+import { {{ responseEnum.name }} } from "./enums/{{ responseEnum.name | caseKebab }}"
+{% endfor %}
+{% endif %}
+
 export namespace Models {
+
+    declare const __default: unique symbol;
 {% for definition in spec.definitions %}
+
     /**
      * {{ definition.description }}
      */
@@ -8,10 +17,15 @@ export namespace Models {
         /**
          * {{ property.description }}
          */
-        {{ property.name }}{% if not property.required %}?{% endif %}: {{ property | getSubSchema(spec) | raw }};
+        {{ property.name }}{% if not property.required %}?{% endif %}: {{ property | getSubSchema(spec, definition.name) | raw }};
 {% endfor %}
-{% if definition.additionalProperties %}        [key: string]: any;
-{% endif %}
     }
+{% if definition.additionalProperties %}
+
+    export type Default{{ definition.name | caseUcfirst }}{{ definition.name | getGenerics(spec, true) | raw }} = {{ definition.name | caseUcfirst }}{{ definition.name | getGenerics(spec, true) | raw }} & {
+        [key: string]: any;
+        [__default]: true;
+    };
+{% endif %}
 {% endfor %}
 }

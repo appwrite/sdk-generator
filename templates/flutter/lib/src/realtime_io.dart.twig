@@ -32,10 +32,10 @@ class RealtimeIO extends RealtimeBase with RealtimeMixin {
     final cookies = await (client as ClientIO).cookieJar.loadForRequest(uri);
     headers = {HttpHeaders.cookieHeader: CookieManager.getCookies(cookies)};
 
-    final _websok = IOWebSocketChannel((client as ClientIO).selfSigned
+    final websok = IOWebSocketChannel((client as ClientIO).selfSigned
         ? await _connectForSelfSignedCert(uri, headers)
         : await WebSocket.connect(uri.toString(), headers: headers));
-    return _websok;
+    return websok;
   }
 
   /// Subscribe

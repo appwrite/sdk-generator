@@ -106,6 +106,13 @@ abstract class Spec extends ArrayObject
     abstract public function getMethods($service);
 
     /**
+     * @param array $method
+     * @param string $service
+     * @return string
+     */
+    abstract public function getTargetNamespace(array $method, string $service);
+
+    /**
      * @return string
      */
     abstract public function getGlobalHeaders();
@@ -171,9 +178,16 @@ abstract class Spec extends ArrayObject
     }
 
     /**
-     * Get Enums
+     * Get Request Enums
      *
      * @return array
      */
-    abstract public function getEnums();
+    abstract public function getRequestEnums();
+
+    /**
+     * Get Response Enums
+     *
+     * @return array
+     */
+    abstract public function getResponseEnums();
 }

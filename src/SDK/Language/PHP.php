@@ -164,7 +164,7 @@ class PHP extends Language
             ],
             [
                 'scope'         => 'method',
-                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
+                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseKebab}}.md',
                 'template'      => 'php/docs/example.md.twig',
             ],
             [
@@ -382,16 +382,37 @@ class PHP extends Language
      *
      * @var $data array
      */
-    protected function jsonToAssoc(array $data): string
+    protected function jsonToAssoc(array $data, int $indent = 0): string
     {
-        $output = '[';
-
-        foreach ($data as $key => $node) {
-            $value = (is_array($node)) ? $this->jsonToAssoc($node) : $node;
-            $output .= '\'' . $key . '\' => ' . ((is_string($node)) ? '\'' . $value . '\'' : $value) . (($key !== \array_key_last($data)) ? ', ' : '');
+        if (empty($data)) {
+            return '[]';
         }
 
-        $output .= ']';
+        $baseIndent = str_repeat('    ', $indent);
+        $itemIndent = str_repeat('    ', $indent + 1);
+        $output = "[\n";
+
+        $keys = array_keys($data);
+        foreach ($keys as $index => $key) {
+            $node = $data[$key];
+
+            if (is_array($node)) {
+                $value = $this->jsonToAssoc($node, $indent + 1);
+            } elseif (is_string($node)) {
+                $value = '\'' . $node . '\'';
+            } elseif (is_bool($node)) {
+                $value = $node ? 'true' : 'false';
+            } elseif (is_null($node)) {
+                $value = 'null';
+            } else {
+                $value = $node;
+            }
+
+            $comma = ($index < count($keys) - 1) ? ',' : '';
+            $output .= '    ' . $itemIndent . '\'' . $key . '\' => ' . $value . $comma . "\n";
+        }
+
+        $output .= $baseIndent . '    ]';
 
         return $output;
     }

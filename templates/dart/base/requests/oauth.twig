@@ -1,34 +1,35 @@
 {% import 'dart/base/utils.twig' as utils %}
-        final Map<String, dynamic> params = {
-            {{ utils.map_parameter(method.parameters.query) }}
-            {{ utils.map_parameter(method.parameters.body) }}
+    final Map<String, dynamic> params = {
+      {{ utils.map_parameter(method.parameters.query) }}
+      {{ utils.map_parameter(method.parameters.body) }}
 {% if method.auth|length > 0 %}
 {% for node in method.auth %}
 {% for key,header in node|keys %}
-            '{{header|caseLower}}': client.config['{{header|caseLower}}'],
+      '{{header|caseLower}}': client.config['{{header|caseLower}}'],
 {% endfor %}
 {% endfor %}
 {% endif %}
-        };
+    };
 
-        final List query = [];
+    final List query = [];
 
-        params.forEach((key, value) {
-          if (value is List) { 
-            for (var item in value) {
-              query.add(Uri.encodeComponent(key + '[]') + '=' + Uri.encodeComponent(item));
-            }
-          } else if(value != null) {
-              query.add(Uri.encodeComponent(key) + '=' + Uri.encodeComponent(value));
-          }
-        });
+    params.forEach((key, value) {
+      if (value is List) { 
+        for (var item in value) {
+          query.add(
+              '${Uri.encodeComponent('$key[]')}=${Uri.encodeComponent(item)}');
+        }
+      } else if (value != null) {
+        query.add('${Uri.encodeComponent(key)}=${Uri.encodeComponent(value)}');
+      }
+    });
 
-        Uri endpoint = Uri.parse(client.endPoint);
-        Uri url = Uri(scheme: endpoint.scheme,
-          host: endpoint.host,
-          port: endpoint.port,
-          path: endpoint.path + apiPath,
-          query: query.join('&')
-        );
+    Uri endpoint = Uri.parse(client.endPoint);
+    Uri url = Uri(scheme: endpoint.scheme,
+      host: endpoint.host,
+      port: endpoint.port,
+      path: endpoint.path + apiPath,
+      query: query.join('&')
+    );
 
-      return client.webAuth(url);
+    return client.webAuth(url);

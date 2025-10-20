@@ -1,14 +1,14 @@
 {% import 'dart/base/utils.twig' as utils %}
-        final Map<String, dynamic> params = {
-            {{ utils.map_parameter(method.parameters.query) }}
-            {{ utils.map_parameter(method.parameters.body) }}
+    final Map<String, dynamic> params = {
+      {{ utils.map_parameter(method.parameters.query) }}
+      {{ utils.map_parameter(method.parameters.body) }}
 {% if method.auth|length > 0 %}{% for node in method.auth %}
 {% for key,header in node|keys %}
-            '{{header|caseLower}}': client.config['{{header|caseLower}}'],
+      '{{header|caseLower}}': client.config['{{header|caseLower}}'],
 {% endfor %}
 {% endfor %}
 {% endif %}
-        };
+    };
 
-        final res = await client.call(HttpMethod.{{ method.method | caseLower }}, path: apiPath, params: params, responseType: ResponseType.bytes);
-        return res.data;
+    final res = await client.call(HttpMethod.{{ method.method | caseLower }}, path: apiPath, params: params, responseType: ResponseType.bytes);
+    return res.data;

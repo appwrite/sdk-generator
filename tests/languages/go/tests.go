@@ -202,12 +202,51 @@ func testQueries() {
 	fmt.Println(query.Select([]interface{}{"name", "age"}))
 	fmt.Println(query.OrderAsc("title"))
 	fmt.Println(query.OrderDesc("title"))
+	fmt.Println(query.OrderRandom())
 	fmt.Println(query.CursorAfter("my_movie_id"))
 	fmt.Println(query.CursorBefore("my_movie_id"))
 	fmt.Println(query.Limit(50))
 	fmt.Println(query.Offset(20))
 	fmt.Println(query.Contains("title", "Spider"))
 	fmt.Println(query.Contains("labels", "first"))
+	
+	// New query methods
+	fmt.Println(query.NotContains("title", "Spider"))
+	fmt.Println(query.NotSearch("name", "john"))
+	fmt.Println(query.NotBetween("age", 50, 100))
+	fmt.Println(query.NotStartsWith("name", "Ann"))
+	fmt.Println(query.NotEndsWith("name", "nne"))
+	fmt.Println(query.CreatedBefore("2023-01-01"))
+	fmt.Println(query.CreatedAfter("2023-01-01"))
+	fmt.Println(query.CreatedBetween("2023-01-01", "2023-12-31"))
+	fmt.Println(query.UpdatedBefore("2023-01-01"))
+	fmt.Println(query.UpdatedAfter("2023-01-01"))
+	fmt.Println(query.UpdatedBetween("2023-01-01", "2023-12-31"))
+
+	// Spatial Distance query tests
+	fmt.Println(query.DistanceEqual("location", []interface{}{[]interface{}{40.7128, -74}, []interface{}{40.7128, -74}}, 1000, true))
+	fmt.Println(query.DistanceEqual("location", []interface{}{40.7128, -74}, 1000, true))
+	fmt.Println(query.DistanceNotEqual("location", []interface{}{40.7128, -74}, 1000, true))
+	fmt.Println(query.DistanceNotEqual("location", []interface{}{40.7128, -74}, 1000, true))
+	fmt.Println(query.DistanceGreaterThan("location", []interface{}{40.7128, -74}, 1000, true))
+	fmt.Println(query.DistanceGreaterThan("location", []interface{}{40.7128, -74}, 1000, true))
+	fmt.Println(query.DistanceLessThan("location", []interface{}{40.7128, -74}, 1000, true))
+	fmt.Println(query.DistanceLessThan("location", []interface{}{40.7128, -74}, 1000, true))
+
+	// Spatial query tests
+	fmt.Println(query.Intersects("location", []interface{}{40.7128, -74}))
+	fmt.Println(query.NotIntersects("location", []interface{}{40.7128, -74}))
+	fmt.Println(query.Crosses("location", []interface{}{40.7128, -74}))
+	fmt.Println(query.NotCrosses("location", []interface{}{40.7128, -74}))
+	fmt.Println(query.Overlaps("location", []interface{}{40.7128, -74}))
+	fmt.Println(query.NotOverlaps("location", []interface{}{40.7128, -74}))
+	fmt.Println(query.Touches("location", []interface{}{40.7128, -74}))
+	fmt.Println(query.NotTouches("location", []interface{}{40.7128, -74}))
+	fmt.Println(query.Contains("location", []interface{}{[]interface{}{40.7128, -74}, []interface{}{40.7128, -74}}))
+	fmt.Println(query.NotContains("location", []interface{}{[]interface{}{40.7128, -74}, []interface{}{40.7128, -74}}))
+	fmt.Println(query.Equal("location", []interface{}{[]interface{}{40.7128, -74}, []interface{}{40.7128, -74}}))
+	fmt.Println(query.NotEqual("location", []interface{}{[]interface{}{40.7128, -74}, []interface{}{40.7128, -74}}))
+	
 	fmt.Println(query.Or([]string{
 		query.Equal("released", true),
 		query.LessThan("releasedYear", 1990),

@@ -131,6 +131,9 @@ class SDK
         $this->twig->addFilter(new TwigFilter('caseDash', function ($value) {
             return str_replace([' ', '_'], '-', strtolower(preg_replace('/([a-zA-Z])(?=[A-Z])/', '$1-', $value)));
         }));
+        $this->twig->addFilter(new TwigFilter('caseKebab', function ($value) {
+            return strtolower(preg_replace('/(?<!^)([A-Z][a-z]|(?<=[a-z])[^a-z\s]|(?<=[A-Z])[0-9_])/', '-$1', $value));
+        }));
         $this->twig->addFilter(new TwigFilter('caseSlash', function ($value) {
             return str_replace([' ', '_'], '/', strtolower(preg_replace('/([a-zA-Z])(?=[A-Z])/', '$1/', $value)));
         }));
@@ -206,6 +209,22 @@ class SDK
                 return $language->getIdentifierOverrides()[$value];
             }
             return $value;
+        }));
+        $this->twig->addFilter(new TwigFilter('capitalizeFirst', function ($value) {
+            return ucfirst($value);
+        }));
+        $this->twig->addFilter(new TwigFilter('caseSnakeExceptFirstDot', function ($value) {
+            $parts = explode('.', $value, 2);
+            $toSnake = function ($str) {
+                preg_match_all('!([A-Za-z][A-Z0-9]*(?=$|[A-Z][a-z0-9])|[A-Za-z][a-z0-9]+)!', $str, $matches);
+                return implode('_', array_map(function ($m) {
+                    return $m === strtoupper($m) ? strtolower($m) : lcfirst($m);
+                }, $matches[0]));
+            };
+            if (count($parts) < 2) {
+                return $toSnake($value);
+            }
+            return $parts[0] . '.' . $toSnake($parts[1]);
         }));
     }
 
@@ -614,7 +633,9 @@ class SDK
                 'contactURL' => $this->spec->getContactURL(),
                 'contactEmail' => $this->spec->getContactEmail(),
                 'services' => $this->getFilteredServices(),
-                'enums' => $this->spec->getEnums(),
+                'requestEnums' => $this->spec->getRequestEnums(),
+                'responseEnums' => $this->spec->getResponseEnums(),
+                'allEnums' => $this->spec->getAllEnums(),
                 'definitions' => $this->spec->getDefinitions(),
                 'global' => [
                     'headers' => $this->spec->getGlobalHeaders(),
@@ -705,7 +726,7 @@ class SDK
                     }
                     break;
                 case 'enum':
-                    foreach ($this->spec->getEnums() as $key => $enum) {
+                    foreach ($this->spec->getAllEnums() as $key => $enum) {
                         $params['enum'] = $enum;
 
                         $this->render($template, $destination, $block, $params, $minify);

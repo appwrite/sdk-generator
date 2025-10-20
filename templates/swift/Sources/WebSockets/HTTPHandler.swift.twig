@@ -48,8 +48,6 @@ extension HTTPHandler : ChannelInboundHandler, RemovableChannelHandler {
         var headers = HTTPHeaders()
         
         headers.add(name: "Host", value: "\(client.host):\(client.port)")
-        headers.add(name: "Content-Type", value: "text/plain")
-        headers.add(name: "Content-Length", value: "\(1)")
         headers.add(contentsOf: self.headers)
         headers.addDomainCookies(for: client.host)
         let requestHead = HTTPRequestHead(
@@ -60,7 +58,6 @@ extension HTTPHandler : ChannelInboundHandler, RemovableChannelHandler {
         )
         
         context.write(wrapOutboundOut(.head(requestHead)), promise: nil)
-        context.write(wrapOutboundOut(.body(.byteBuffer(ByteBuffer(string: "\r\n")))), promise: nil)
         context.writeAndFlush(wrapOutboundOut(.end(nil)), promise: nil)
     }
 

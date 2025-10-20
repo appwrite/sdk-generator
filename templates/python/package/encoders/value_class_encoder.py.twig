@@ -1,5 +1,5 @@
 import json
-{%~ for enum in spec.enums %}
+{%~ for enum in spec.allEnums %}
 from ..enums.{{ enum.name | caseSnake }} import {{ enum.name | caseUcfirst | overrideIdentifier }}
 {%~ endfor %}
 
