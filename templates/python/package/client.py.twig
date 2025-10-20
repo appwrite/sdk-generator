@@ -62,20 +62,23 @@ class Client:
         return self
 {% endfor %}
 
-    def call(self, method, path='', headers=None, params=None, response_type='json'):
+    def call(self, method, path='', headers=None, params=None, nullable_params=None, response_type='json'):
         if headers is None:
             headers = {}
 
         if params is None:
             params = {}
+            
+        if nullable_params is None:
+            nullable_params = []
 
         # Process headers and params to handle explicit nulls while removing undefined (None) values
         headers = {k: v for k, v in headers.items() if v is not None or self._is_explicitly_null(v)}
-        params = {k: v for k, v in params.items() if v is not None or self._is_explicitly_null(v)}
+        params = {k: v for k, v in params.items() if v is not None or self._is_explicitly_null(v) or k in nullable_params}
 
         # Replace explicit null markers with None for JSON serialization
         headers = {k: None if self._is_explicitly_null(v) else v for k, v in headers.items()}
-        params = {k: None if self._is_explicitly_null(v) else v for k, v in params.items()}
+        params = {k: None if self._is_explicitly_null(v) or (v is None and k in nullable_params) else v for k, v in params.items()}
 
         # Merge with global headers
         headers = {**self._global_headers, **headers}
@@ -239,7 +242,7 @@ class Client:
             finalKey = prefix + '[' + str(i) +']' if isinstance(data, list) else finalKey
             i += 1
 
-            if value is None:  # Handle null values
+            if value is None or self._is_explicitly_null(value):  # Handle null values
                 if stringify:
                     output[finalKey] = ''
                 else:
