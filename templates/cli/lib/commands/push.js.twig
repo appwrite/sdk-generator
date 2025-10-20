@@ -55,7 +55,10 @@ const {
     tablesDBUpdate,
     tablesDBCreateTable,
     tablesDBGetTable,
-    tablesDBUpdateTable
+    tablesDBUpdateTable,
+    tablesDBList,
+    tablesDBDelete,
+    tablesDBListTables
 } = require("./tables-db");
 const {
     storageGetBucket, storageUpdateBucket, storageCreateBucket
@@ -1700,11 +1703,145 @@ const pushFunction = async ({ functionId, async, code, withVariables } = { retur
     }
 }
 
+const checkAndApplyTablesDBChanges = async () => {
+    log('Checking for tablesDB changes ...');
+    
+    const localTablesDBs = localConfig.getTablesDBs();
+    const { databases: remoteTablesDBs } = await paginate(tablesDBList, { parseOutput: false }, 100, 'databases');
+    
+    if (localTablesDBs.length === 0 && remoteTablesDBs.length === 0) {
+        return { applied: false, resyncNeeded: false };
+    }
+    
+    const changes = [];
+    const toCreate = [];
+    const toUpdate = [];
+    const toDelete = [];
+
+    // Check for deletions - remote DBs that aren't in local config
+    for (const remoteDB of remoteTablesDBs) {
+        const localDB = localTablesDBs.find(db => db.$id === remoteDB.$id);
+        if (!localDB) {
+            toDelete.push(remoteDB);
+            changes.push({
+                id: remoteDB.$id,
+                key: 'Database',
+                remote: chalk.red(`${remoteDB.name} (${remoteDB.$id})`),
+                local: chalk.green('(deleted locally)')
+            });
+        }
+    }
+
+    // Check for additions and updates
+    for (const localDB of localTablesDBs) {
+        const remoteDB = remoteTablesDBs.find(db => db.$id === localDB.$id);
+        
+        if (!remoteDB) {
+            toCreate.push(localDB);
+            changes.push({
+                id: localDB.$id,
+                key: 'Database',
+                remote: chalk.red('(does not exist)'),
+                local: chalk.green(`${localDB.name} (${localDB.$id})`)
+            });
+        } else if (remoteDB.name !== localDB.name) {
+            toUpdate.push(localDB);
+            changes.push({
+                id: localDB.$id,
+                key: 'Name',
+                remote: chalk.red(remoteDB.name),
+                local: chalk.green(localDB.name)
+            });
+        } else if (remoteDB.enabled !== localDB.enabled) {
+            toUpdate.push(localDB);
+            changes.push({
+                id: localDB.$id,
+                key: 'Enabled?',
+                remote: chalk.red(remoteDB.enabled),
+                local: chalk.green(localDB.enabled)
+            });
+        }
+    }
+
+    if (changes.length === 0) {
+        return { applied: false, resyncNeeded: false };
+    }
+
+    log('Found changes in tablesDB resources:');
+    drawTable(changes);
+
+    if (toDelete.length > 0) {
+        console.log(`${chalk.red('-------------------------------------------------------------------')}`);
+        console.log(`${chalk.red('| WARNING: Database deletion will also delete all related tables |')}`);
+        console.log(`${chalk.red('-------------------------------------------------------------------')}`);
+    }
+
+    if ((await getConfirmation()) !== true) {
+        return { applied: false, resyncNeeded: false };
+    }
+
+    // Apply deletions first
+    let needsResync = false;
+    for (const db of toDelete) {
+        log(`Deleting database ${db.name} ( ${db.$id} ) ...`);
+        await tablesDBDelete({
+            databaseId: db.$id,
+            parseOutput: false
+        });
+        success(`Deleted ${db.name} ( ${db.$id} )`);
+        needsResync = true;
+    }
+
+    // Apply creations
+    for (const db of toCreate) {
+        log(`Creating database ${db.name} ( ${db.$id} ) ...`);
+        await tablesDBCreate({
+            databaseId: db.$id,
+            name: db.name,
+            parseOutput: false
+        });
+        success(`Created ${db.name} ( ${db.$id} )`);
+    }
+
+    // Apply updates
+    for (const db of toUpdate) {
+        log(`Updating database ${db.name} ( ${db.$id} ) ...`);
+        await tablesDBUpdate({
+            databaseId: db.$id,
+            name: db.name,
+            enabled: db.enabled,
+            parseOutput: false
+        });
+        success(`Updated ${db.name} ( ${db.$id} )`);
+    }
+
+    return { applied: true, resyncNeeded: needsResync };
+};
+
 const pushTable = async ({ returnOnZero, attempts } = { returnOnZero: false }) => {
     const tables = [];
 
     if (attempts) {
         pollMaxDebounces = attempts;
+    }
+
+    const { applied: tablesDBApplied, resyncNeeded } = await checkAndApplyTablesDBChanges();
+    if (resyncNeeded) {
+        log('Resyncing configuration due to tablesDB deletions ...');
+
+        const remoteTablesDBs = (await paginate(tablesDBList, { parseOutput: false }, 100, 'databases')).databases;
+        const localTablesDBs = localConfig.getTablesDBs();
+
+        const remoteDatabaseIds = new Set(remoteTablesDBs.map(db => db.$id));
+        const localTables = localConfig.getTables();
+        const validTables = localTables.filter(table => remoteDatabaseIds.has(table.databaseId));
+
+        localConfig.set('tables', validTables);
+
+        const validTablesDBs = localTablesDBs.filter(db => remoteDatabaseIds.has(db.$id));
+        localConfig.set('tablesDB', validTablesDBs);
+
+        success('Configuration resynced successfully.');
     }
 
     if (cliConfig.all) {
