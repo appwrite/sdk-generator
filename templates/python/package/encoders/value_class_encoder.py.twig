@@ -1,20 +1,18 @@
 import json
 {%~ for enum in spec.enums %}
-from ..enums.{{ enum.name | caseSnake }}
-import
-{{ enum.name | caseUcfirst | overrideIdentifier }}
+from ..enums.{{ enum.name | caseSnake }} import {{ enum.name | caseUcfirst | overrideIdentifier }}
 {%~ endfor %}
+
 
 class ValueClassEncoder(json.JSONEncoder):
     def default(self, o):
         # Handle explicit null values
         if hasattr(o, 'is_null') and o.is_null:
             return None
-
-{%~ for enum in spec.enums %}
-if isinstance(o,
-{{ enum.name | caseUcfirst | overrideIdentifier }}):
+            
+        {%~ for enum in spec.enums %}
+        if isinstance(o, {{ enum.name | caseUcfirst | overrideIdentifier }}):
             return o.value
-
-{%~ endfor %}
-return super().default(o)
+        {%~ endfor %}
+        
+        return super().default(o)
