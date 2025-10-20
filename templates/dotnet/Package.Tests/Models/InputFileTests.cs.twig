@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Runtime.InteropServices;
 using Xunit;
 using {{ spec.title | caseUcfirst }}.Models;
 
@@ -47,7 +48,8 @@ namespace {{ spec.title | caseUcfirst }}.Tests.Models
             var inputFile = InputFile.FromPath(path);
 
             // Assert
-            Assert.Equal("document.pdf", inputFile.Filename);
+            string expectedFilename = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "document.pdf" : path;
+            Assert.Equal(expectedFilename, inputFile.Filename);
         }
 
         [Fact]
