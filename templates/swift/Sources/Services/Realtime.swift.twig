@@ -223,7 +223,7 @@ extension Realtime: WebSocketClientDelegate {
         stopHeartbeat()
         
         if (!reconnect) {
-            onCloseCallback?()
+            onCloseCallbacks.forEach { $0() }
             reconnect = true
             return
         }
@@ -243,7 +243,7 @@ extension Realtime: WebSocketClientDelegate {
         stopHeartbeat()
         print(error?.localizedDescription ?? "Unknown error")
 
-        onErrorCallback?(error, status)
+        onErrorCallbacks.forEach { $0(error, status) }
     }
 
     func handleResponseError(from json: [String: Any]) throws {
