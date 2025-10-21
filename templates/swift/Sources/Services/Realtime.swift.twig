@@ -22,6 +22,17 @@ open class Realtime : Service {
     private var reconnectAttempts = 0
     private var subscriptionsCounter = 0
     private var reconnect = true
+    
+    private var onErrorCallbacks: [((Swift.Error?, HTTPResponseStatus?) -> Void)] = []
+    private var onCloseCallbacks: [(() -> Void)] = []
+
+    public func onError(_ callback: @escaping (Swift.Error?, HTTPResponseStatus?) -> Void) {
+        self.onErrorCallbacks.append(callback)
+    }
+    
+    public func onClose(_ callback: @escaping () -> Void) {
+        self.onCloseCallbacks.append(callback)
+    }
 
     private func startHeartbeat() {
         stopHeartbeat()
@@ -212,6 +223,7 @@ extension Realtime: WebSocketClientDelegate {
         stopHeartbeat()
         
         if (!reconnect) {
+            onCloseCallbacks.forEach { $0() }
             reconnect = true
             return
         }
@@ -230,6 +242,8 @@ extension Realtime: WebSocketClientDelegate {
     public func onError(error: Swift.Error?, status: HTTPResponseStatus?) {
         stopHeartbeat()
         print(error?.localizedDescription ?? "Unknown error")
+
+        onErrorCallbacks.forEach { $0(error, status) }
     }
 
     func handleResponseError(from json: [String: Any]) throws {
