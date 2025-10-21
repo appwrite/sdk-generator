@@ -1793,37 +1793,52 @@ const checkAndApplyTablesDBChanges = async () => {
     // Apply deletions first
     let needsResync = false;
     for (const db of toDelete) {
-        log(`Deleting database ${db.name} ( ${db.$id} ) ...`);
-        await tablesDBDelete({
-            databaseId: db.$id,
-            parseOutput: false
-        });
-        success(`Deleted ${db.name} ( ${db.$id} )`);
-        needsResync = true;
+        try {
+            log(`Deleting database ${db.name} ( ${db.$id} ) ...`);
+            await tablesDBDelete({
+                databaseId: db.$id,
+                parseOutput: false
+            });
+            success(`Deleted ${db.name} ( ${db.$id} )`);
+            needsResync = true;
+        } catch (e) {
+            error(`Failed to delete database ${db.name} ( ${db.$id} ): ${e.message}`);
+            throw new Error(`Database sync failed during deletion of ${db.$id}. Some changes may have been applied.`);
+        }
     }
 
     // Apply creations
     for (const db of toCreate) {
-        log(`Creating database ${db.name} ( ${db.$id} ) ...`);
-        await tablesDBCreate({
-            databaseId: db.$id,
-            name: db.name,
-            enabled: db.enabled,
-            parseOutput: false
-        });
-        success(`Created ${db.name} ( ${db.$id} )`);
+        try {
+            log(`Creating database ${db.name} ( ${db.$id} ) ...`);
+            await tablesDBCreate({
+                databaseId: db.$id,
+                name: db.name,
+                enabled: db.enabled,
+                parseOutput: false
+            });
+            success(`Created ${db.name} ( ${db.$id} )`);
+        } catch (e) {
+            error(`Failed to create database ${db.name} ( ${db.$id} ): ${e.message}`);
+            throw new Error(`Database sync failed during creation of ${db.$id}. Some changes may have been applied.`);
+        }
     }
 
     // Apply updates
     for (const db of toUpdate) {
-        log(`Updating database ${db.name} ( ${db.$id} ) ...`);
-        await tablesDBUpdate({
-            databaseId: db.$id,
-            name: db.name,
-            enabled: db.enabled,
-            parseOutput: false
-        });
-        success(`Updated ${db.name} ( ${db.$id} )`);
+        try {
+            log(`Updating database ${db.name} ( ${db.$id} ) ...`);
+            await tablesDBUpdate({
+                databaseId: db.$id,
+                name: db.name,
+                enabled: db.enabled,
+                parseOutput: false
+            });
+            success(`Updated ${db.name} ( ${db.$id} )`);
+        } catch (e) {
+            error(`Failed to update database ${db.name} ( ${db.$id} ): ${e.message}`);
+            throw new Error(`Database sync failed during update of ${db.$id}. Some changes may have been applied.`);
+        }
     }
 
     return { applied: true, resyncNeeded: needsResync };
