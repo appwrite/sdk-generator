@@ -12,20 +12,43 @@
 {% endfor %}
 
 {% for parameter in method.parameters.query %}
+{% if not parameter.required or parameter.nullable %}
+        if {{ parameter.name | escapeKeyword | caseSnake }} is not None:
+            api_params['{{ parameter.name }}'] = {{ parameter.name | escapeKeyword | caseSnake }}
+{% else %}
         api_params['{{ parameter.name }}'] = {{ parameter.name | escapeKeyword | caseSnake }}
+{% endif %}
 {% endfor %}
 {% for parameter in method.parameters.body %}
+{% if not parameter.required or parameter.nullable %}
+        if {{ parameter.name | escapeKeyword | caseSnake }} is not None:
+{% if method.consumes[0] == "multipart/form-data" and ( parameter.type != "string" and parameter.type != "array" ) %}
+            api_params['{{ parameter.name }}'] = str({{ parameter.name | escapeKeyword | caseSnake }}).lower() if type({{ parameter.name | escapeKeyword | caseSnake }}) is bool else {{ parameter.name | escapeKeyword | caseSnake }}
+{% else %}
+            api_params['{{ parameter.name }}'] = {{ parameter.name | escapeKeyword | caseSnake }}
+{% endif %}
+{% else %}
 {% if method.consumes[0] == "multipart/form-data" and ( parameter.type != "string" and parameter.type != "array" ) %}
         api_params['{{ parameter.name }}'] = str({{ parameter.name | escapeKeyword | caseSnake }}).lower() if type({{ parameter.name | escapeKeyword | caseSnake }}) is bool else {{ parameter.name | escapeKeyword | caseSnake }}
 {% else %}
         api_params['{{ parameter.name }}'] = {{ parameter.name | escapeKeyword | caseSnake }}
 {% endif %}
+{% endif %}
 {% endfor %}
 {% for parameter in method.parameters.formData %}
+{% if not parameter.required or parameter.nullable %}
+        if {{ parameter.name | escapeKeyword | caseSnake }} is not None:
+{% if method.consumes[0] == "multipart/form-data" and ( parameter.type != "string" and parameter.type != "array" ) %}
+            api_params['{{ parameter.name }}'] = str({{ parameter.name | escapeKeyword | caseSnake }}).lower() if type({{ parameter.name | escapeKeyword | caseSnake }}) is bool else {{ parameter.name | escapeKeyword | caseSnake }}
+{% else %}
+            api_params['{{ parameter.name }}'] = {{ parameter.name | escapeKeyword | caseSnake }}
+{% endif %}
+{% else %}
 {% if method.consumes[0] == "multipart/form-data" and ( parameter.type != "string" and parameter.type != "array" ) %}
         api_params['{{ parameter.name }}'] = str({{ parameter.name | escapeKeyword | caseSnake }}).lower() if type({{ parameter.name | escapeKeyword | caseSnake }}) is bool else {{ parameter.name | escapeKeyword | caseSnake }}
 {% else %}
         api_params['{{ parameter.name }}'] = {{ parameter.name | escapeKeyword | caseSnake }}
+{% endif %}
 {% endif %}
 {% endfor %}
 {% endif %}
