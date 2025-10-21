@@ -1808,6 +1808,7 @@ const checkAndApplyTablesDBChanges = async () => {
         await tablesDBCreate({
             databaseId: db.$id,
             name: db.name,
+            enabled: db.enabled,
             parseOutput: false
         });
         success(`Created ${db.name} ( ${db.$id} )`);
