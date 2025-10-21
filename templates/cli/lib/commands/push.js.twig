@@ -1744,22 +1744,32 @@ const checkAndApplyTablesDBChanges = async () => {
                 remote: chalk.red('(does not exist)'),
                 local: chalk.green(`${localDB.name} (${localDB.$id})`)
             });
-        } else if (remoteDB.name !== localDB.name) {
-            toUpdate.push(localDB);
-            changes.push({
-                id: localDB.$id,
-                key: 'Name',
-                remote: chalk.red(remoteDB.name),
-                local: chalk.green(localDB.name)
-            });
-        } else if (remoteDB.enabled !== localDB.enabled) {
-            toUpdate.push(localDB);
-            changes.push({
-                id: localDB.$id,
-                key: 'Enabled?',
-                remote: chalk.red(remoteDB.enabled),
-                local: chalk.green(localDB.enabled)
-            });
+        } else {
+            let hasChanges = false;
+            
+            if (remoteDB.name !== localDB.name) {
+                hasChanges = true;
+                changes.push({
+                    id: localDB.$id,
+                    key: 'Name',
+                    remote: chalk.red(remoteDB.name),
+                    local: chalk.green(localDB.name)
+                });
+            }
+            
+            if (remoteDB.enabled !== localDB.enabled) {
+                hasChanges = true;
+                changes.push({
+                    id: localDB.$id,
+                    key: 'Enabled?',
+                    remote: chalk.red(remoteDB.enabled),
+                    local: chalk.green(localDB.enabled)
+                });
+            }
+            
+            if (hasChanges) {
+                toUpdate.push(localDB);
+            }
         }
     }
 
