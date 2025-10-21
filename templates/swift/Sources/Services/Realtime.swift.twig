@@ -23,15 +23,15 @@ open class Realtime : Service {
     private var subscriptionsCounter = 0
     private var reconnect = true
     
-    private var onErrorCallback: ((Swift.Error?, HTTPResponseStatus?) -> Void)?
-    private var onCloseCallback: (() -> Void)?
+    private var onErrorCallbacks: [((Swift.Error?, HTTPResponseStatus?) -> Void)] = []
+    private var onCloseCallbacks: [(() -> Void)] = []
 
     public func onError(_ callback: @escaping (Swift.Error?, HTTPResponseStatus?) -> Void) {
-        self.onErrorCallback = callback
+        self.onErrorCallbacks.append(callback)
     }
     
     public func onClose(_ callback: @escaping () -> Void) {
-        self.onCloseCallback = callback
+        self.onCloseCallbacks.append(callback)
     }
 
     private func startHeartbeat() {
