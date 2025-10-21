@@ -1867,39 +1867,6 @@ const pushTable = async ({ returnOnZero, attempts } = { returnOnZero: false }) =
         return;
     }
 
-    const databases = Array.from(new Set(tables.map(table => table['databaseId'])));
-
-    // Parallel tablesDB actions
-    await Promise.all(databases.map(async (databaseId) => {
-        const localDatabase = localConfig.getTablesDB(databaseId);
-
-        try {
-            const database = await tablesDBGet({
-                databaseId: databaseId,
-                parseOutput: false,
-            });
-
-            if (database.name !== (localDatabase.name ?? databaseId)) {
-                await tablesDBUpdate({
-                    databaseId: databaseId,
-                    name: localDatabase.name ?? databaseId,
-                    parseOutput: false
-                })
-
-                success(`Updated ${localDatabase.name} ( ${databaseId} ) name`);
-            }
-        } catch (err) {
-            log(`Database ${databaseId} not found. Creating it now ...`);
-
-            await tablesDBCreate({
-                databaseId: databaseId,
-                name: localDatabase.name ?? databaseId,
-                parseOutput: false,
-            });
-        }
-    }));
-
-
     if (!(await approveChanges(tables, tablesDBGetTable, KeysTable, 'tableId', 'tables', ['columns', 'indexes'], 'databaseId', 'databaseId'))) {
         return;
     }
