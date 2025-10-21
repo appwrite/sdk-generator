@@ -222,9 +222,8 @@ extension Realtime: WebSocketClientDelegate {
     public func onClose(channel: Channel, data: Data) async throws {
         stopHeartbeat()
         
-        onCloseCallback?()
-
         if (!reconnect) {
+            onCloseCallback?()
             reconnect = true
             return
         }
