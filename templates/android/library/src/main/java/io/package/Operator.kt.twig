@@ -9,7 +9,9 @@ enum class Condition(val value: String) {
     GREATER_THAN_EQUAL("greaterThanEqual"),
     LESS_THAN("lessThan"),
     LESS_THAN_EQUAL("lessThanEqual"),
-    CONTAINS("contains");
+    CONTAINS("contains"),
+    IS_NULL("isNull"),
+    IS_NOT_NULL("isNotNull");
 
     override fun toString() = value
 }

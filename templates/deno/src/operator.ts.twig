@@ -10,6 +10,8 @@ export enum Condition {
   LessThan = "lessThan",
   LessThanEqual = "lessThanEqual",
   Contains = "contains",
+  IsNull = "isNull",
+  IsNotNull = "isNotNull",
 }
 
 /**
@@ -207,7 +209,7 @@ export class Operator {
    * @returns {string}
    */
   static arrayFilter = (condition: Condition, value?: any): string => {
-    const values: any[] = [condition];
+    const values: any[] = [condition.valueOf()];
     if (value !== undefined) {
       values.push(value);
     }

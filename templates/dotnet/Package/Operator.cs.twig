@@ -22,7 +22,11 @@ namespace {{ spec.title | caseUcfirst }}
         [EnumMember(Value = "lessThanEqual")]
         LessThanEqual,
         [EnumMember(Value = "contains")]
-        Contains
+        Contains,
+        [EnumMember(Value = "isNull")]
+        IsNull,
+        [EnumMember(Value = "isNotNull")]
+        IsNotNull
     }
 
     public static class ConditionExtensions
