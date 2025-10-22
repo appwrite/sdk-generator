@@ -209,7 +209,7 @@ export class Operator {
    * @returns {string}
    */
   static arrayFilter = (condition: Condition, value?: any): string => {
-    const values: any[] = [condition.valueOf()];
+    const values: any[] = [condition as string];
     if (value !== undefined) {
       values.push(value);
     }

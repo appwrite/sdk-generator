@@ -42,6 +42,8 @@ namespace {{ spec.title | caseUcfirst }}
                 Condition.LessThan => "lessThan",
                 Condition.LessThanEqual => "lessThanEqual",
                 Condition.Contains => "contains",
+                Condition.IsNull => "isNull",
+                Condition.IsNotNull => "isNotNull",
                 _ => throw new ArgumentOutOfRangeException(nameof(condition), condition, null)
             };
         }
@@ -139,11 +141,19 @@ namespace {{ spec.title | caseUcfirst }}
 
         public static string ArrayAppend(List<object> values)
         {
+            if (values == null)
+            {
+                throw new ArgumentNullException(nameof(values));
+            }
             return new Operator("arrayAppend", values).ToString();
         }
 
         public static string ArrayPrepend(List<object> values)
         {
+            if (values == null)
+            {
+                throw new ArgumentNullException(nameof(values));
+            }
             return new Operator("arrayPrepend", values).ToString();
         }
 
@@ -164,11 +174,19 @@ namespace {{ spec.title | caseUcfirst }}
 
         public static string ArrayIntersect(List<object> values)
         {
+            if (values == null)
+            {
+                throw new ArgumentNullException(nameof(values));
+            }
             return new Operator("arrayIntersect", values).ToString();
         }
 
         public static string ArrayDiff(List<object> values)
         {
+            if (values == null)
+            {
+                throw new ArgumentNullException(nameof(values));
+            }
             return new Operator("arrayDiff", values).ToString();
         }
 
