@@ -67,6 +67,11 @@ class Web extends JS
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'src/operator.ts',
+                'template'      => 'web/src/operator.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'README.md',
                 'template'      => 'web/README.md.twig',
             ],

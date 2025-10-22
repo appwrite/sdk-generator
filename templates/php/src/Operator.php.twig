@@ -1,0 +1,278 @@
+<?php
+
+namespace {{ spec.title | caseUcfirst }};
+
+class Operator implements \JsonSerializable
+{
+    protected string $method;
+    protected ?array $values;
+
+    public function __construct(string $method, $values = null)
+    {
+        $this->method = $method;
+
+        if (is_null($values) || is_array($values)) {
+            $this->values = $values;
+        } else {
+            $this->values = [$values];
+        }
+    }
+
+    public function __toString(): string
+    {
+        return json_encode($this);
+    }
+
+    public function jsonSerialize(): mixed
+    {
+        return array_filter([
+            'method' => $this->method,
+            'values' => $this->values,
+        ]);
+    }
+
+    /**
+     * Increment
+     *
+     * @param int|float $value
+     * @param int|float|null $max
+     * @return string
+     */
+    public static function increment(int|float $value = 1, int|float|null $max = null): string
+    {
+        $values = [$value];
+        if ($max !== null) {
+            $values[] = $max;
+        }
+        return (new Operator('increment', $values))->__toString();
+    }
+
+    /**
+     * Decrement
+     *
+     * @param int|float $value
+     * @param int|float|null $min
+     * @return string
+     */
+    public static function decrement(int|float $value = 1, int|float|null $min = null): string
+    {
+        $values = [$value];
+        if ($min !== null) {
+            $values[] = $min;
+        }
+        return (new Operator('decrement', $values))->__toString();
+    }
+
+    /**
+     * Multiply
+     *
+     * @param int|float $factor
+     * @param int|float|null $max
+     * @return string
+     */
+    public static function multiply(int|float $factor, int|float|null $max = null): string
+    {
+        $values = [$factor];
+        if ($max !== null) {
+            $values[] = $max;
+        }
+        return (new Operator('multiply', $values))->__toString();
+    }
+
+    /**
+     * Divide
+     *
+     * @param int|float $divisor
+     * @param int|float|null $min
+     * @return string
+     */
+    public static function divide(int|float $divisor, int|float|null $min = null): string
+    {
+        $values = [$divisor];
+        if ($min !== null) {
+            $values[] = $min;
+        }
+        return (new Operator('divide', $values))->__toString();
+    }
+
+    /**
+     * Modulo
+     *
+     * @param int|float $divisor
+     * @return string
+     */
+    public static function modulo(int|float $divisor): string
+    {
+        return (new Operator('modulo', [$divisor]))->__toString();
+    }
+
+    /**
+     * Power
+     *
+     * @param int|float $exponent
+     * @param int|float|null $max
+     * @return string
+     */
+    public static function power(int|float $exponent, int|float|null $max = null): string
+    {
+        $values = [$exponent];
+        if ($max !== null) {
+            $values[] = $max;
+        }
+        return (new Operator('power', $values))->__toString();
+    }
+
+    /**
+     * Array Append
+     *
+     * @param array<mixed> $values
+     * @return string
+     */
+    public static function arrayAppend(array $values): string
+    {
+        return (new Operator('arrayAppend', $values))->__toString();
+    }
+
+    /**
+     * Array Prepend
+     *
+     * @param array<mixed> $values
+     * @return string
+     */
+    public static function arrayPrepend(array $values): string
+    {
+        return (new Operator('arrayPrepend', $values))->__toString();
+    }
+
+    /**
+     * Array Insert
+     *
+     * @param int $index
+     * @param mixed $value
+     * @return string
+     */
+    public static function arrayInsert(int $index, mixed $value): string
+    {
+        return (new Operator('arrayInsert', [$index, $value]))->__toString();
+    }
+
+    /**
+     * Array Remove
+     *
+     * @param mixed $value
+     * @return string
+     */
+    public static function arrayRemove(mixed $value): string
+    {
+        return (new Operator('arrayRemove', [$value]))->__toString();
+    }
+
+    /**
+     * Array Unique
+     *
+     * @return string
+     */
+    public static function arrayUnique(): string
+    {
+        return (new Operator('arrayUnique', []))->__toString();
+    }
+
+    /**
+     * Array Intersect
+     *
+     * @param array<mixed> $values
+     * @return string
+     */
+    public static function arrayIntersect(array $values): string
+    {
+        return (new Operator('arrayIntersect', $values))->__toString();
+    }
+
+    /**
+     * Array Diff
+     *
+     * @param array<mixed> $values
+     * @return string
+     */
+    public static function arrayDiff(array $values): string
+    {
+        return (new Operator('arrayDiff', $values))->__toString();
+    }
+
+    /**
+     * Array Filter
+     *
+     * @param string $condition
+     * @param mixed $value
+     * @return string
+     */
+    public static function arrayFilter(string $condition, mixed $value = null): string
+    {
+        return (new Operator('arrayFilter', [$condition, $value]))->__toString();
+    }
+
+    /**
+     * Concat
+     *
+     * @param mixed $value
+     * @return string
+     */
+    public static function concat(mixed $value): string
+    {
+        return (new Operator('concat', [$value]))->__toString();
+    }
+
+    /**
+     * Replace
+     *
+     * @param string $search
+     * @param string $replace
+     * @return string
+     */
+    public static function replace(string $search, string $replace): string
+    {
+        return (new Operator('replace', [$search, $replace]))->__toString();
+    }
+
+    /**
+     * Toggle
+     *
+     * @return string
+     */
+    public static function toggle(): string
+    {
+        return (new Operator('toggle', []))->__toString();
+    }
+
+    /**
+     * Date Add Days
+     *
+     * @param int $days
+     * @return string
+     */
+    public static function dateAddDays(int $days): string
+    {
+        return (new Operator('dateAddDays', [$days]))->__toString();
+    }
+
+    /**
+     * Date Subtract Days
+     *
+     * @param int $days
+     * @return string
+     */
+    public static function dateSubDays(int $days): string
+    {
+        return (new Operator('dateSubDays', [$days]))->__toString();
+    }
+
+    /**
+     * Date Set Now
+     *
+     * @return string
+     */
+    public static function dateSetNow(): string
+    {
+        return (new Operator('dateSetNow', []))->__toString();
+    }
+}

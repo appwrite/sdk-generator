@@ -344,6 +344,11 @@ class Dart extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/lib/operator.dart',
+                'template'      => 'dart/lib/operator.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/lib/{{ language.params.packageName }}.dart',
                 'template'      => 'dart/lib/package.dart.twig',
             ],

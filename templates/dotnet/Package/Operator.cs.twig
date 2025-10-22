@@ -1,0 +1,168 @@
+using System.Collections;
+using System.Collections.Generic;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
+namespace {{ spec.title | caseUcfirst }}
+{
+    public class Operator
+    {
+        [JsonPropertyName("method")]
+        public string Method { get; set; } = string.Empty;
+
+        [JsonPropertyName("values")]
+        public List<object>? Values { get; set; }
+
+        public Operator()
+        {
+        }
+
+        public Operator(string method, object? values)
+        {
+            this.Method = method;
+
+            if (values is IList valuesList)
+            {
+                this.Values = new List<object>();
+                foreach (var value in valuesList)
+                {
+                    this.Values.Add(value);
+                }
+            }
+            else if (values != null)
+            {
+                this.Values = new List<object> { values };
+            }
+        }
+
+        override public string ToString()
+        {
+            return JsonSerializer.Serialize(this, Client.SerializerOptions);
+        }
+
+        public static string Increment(double value = 1, double? max = null)
+        {
+            var values = new List<object> { value };
+            if (max.HasValue)
+            {
+                values.Add(max.Value);
+            }
+            return new Operator("increment", values).ToString();
+        }
+
+        public static string Decrement(double value = 1, double? min = null)
+        {
+            var values = new List<object> { value };
+            if (min.HasValue)
+            {
+                values.Add(min.Value);
+            }
+            return new Operator("decrement", values).ToString();
+        }
+
+        public static string Multiply(double factor, double? max = null)
+        {
+            var values = new List<object> { factor };
+            if (max.HasValue)
+            {
+                values.Add(max.Value);
+            }
+            return new Operator("multiply", values).ToString();
+        }
+
+        public static string Divide(double divisor, double? min = null)
+        {
+            var values = new List<object> { divisor };
+            if (min.HasValue)
+            {
+                values.Add(min.Value);
+            }
+            return new Operator("divide", values).ToString();
+        }
+
+        public static string Modulo(double divisor)
+        {
+            return new Operator("modulo", new List<object> { divisor }).ToString();
+        }
+
+        public static string Power(double exponent, double? max = null)
+        {
+            var values = new List<object> { exponent };
+            if (max.HasValue)
+            {
+                values.Add(max.Value);
+            }
+            return new Operator("power", values).ToString();
+        }
+
+        public static string ArrayAppend(List<object> values)
+        {
+            return new Operator("arrayAppend", values).ToString();
+        }
+
+        public static string ArrayPrepend(List<object> values)
+        {
+            return new Operator("arrayPrepend", values).ToString();
+        }
+
+        public static string ArrayInsert(int index, object value)
+        {
+            return new Operator("arrayInsert", new List<object> { index, value }).ToString();
+        }
+
+        public static string ArrayRemove(object value)
+        {
+            return new Operator("arrayRemove", new List<object> { value }).ToString();
+        }
+
+        public static string ArrayUnique()
+        {
+            return new Operator("arrayUnique", new List<object>()).ToString();
+        }
+
+        public static string ArrayIntersect(List<object> values)
+        {
+            return new Operator("arrayIntersect", values).ToString();
+        }
+
+        public static string ArrayDiff(List<object> values)
+        {
+            return new Operator("arrayDiff", values).ToString();
+        }
+
+        public static string ArrayFilter(string condition, object? value = null)
+        {
+            return new Operator("arrayFilter", new List<object> { condition, value! }).ToString();
+        }
+
+        public static string Concat(object value)
+        {
+            return new Operator("concat", new List<object> { value }).ToString();
+        }
+
+        public static string Replace(string search, string replace)
+        {
+            return new Operator("replace", new List<object> { search, replace }).ToString();
+        }
+
+        public static string Toggle()
+        {
+            return new Operator("toggle", new List<object>()).ToString();
+        }
+
+        public static string DateAddDays(int days)
+        {
+            return new Operator("dateAddDays", new List<object> { days }).ToString();
+        }
+
+        public static string DateSubDays(int days)
+        {
+            return new Operator("dateSubDays", new List<object> { days }).ToString();
+        }
+
+        public static string DateSetNow()
+        {
+            return new Operator("dateSetNow", new List<object>()).ToString();
+        }
+    }
+}

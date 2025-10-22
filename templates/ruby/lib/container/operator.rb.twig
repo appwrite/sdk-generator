@@ -1,0 +1,120 @@
+require 'json'
+
+module {{spec.title | caseUcfirst}}
+    class Operator
+        def initialize(method, values = nil)
+            @method = method
+
+            if values != nil
+                if values.is_a?(Array)
+                    @values = values
+                else
+                    @values = [values]
+                end
+            end
+        end
+
+        def to_json(*args)
+            {
+                method: @method,
+                values: @values
+            }.compact.to_json(*args)
+        end
+
+        def to_s
+            return self.to_json
+        end
+
+        class << Operator
+            def increment(value = 1, max = nil)
+                values = [value]
+                values << max if max != nil
+                return Operator.new("increment", values).to_s
+            end
+
+            def decrement(value = 1, min = nil)
+                values = [value]
+                values << min if min != nil
+                return Operator.new("decrement", values).to_s
+            end
+
+            def multiply(factor, max = nil)
+                values = [factor]
+                values << max if max != nil
+                return Operator.new("multiply", values).to_s
+            end
+
+            def divide(divisor, min = nil)
+                values = [divisor]
+                values << min if min != nil
+                return Operator.new("divide", values).to_s
+            end
+
+            def modulo(divisor)
+                return Operator.new("modulo", [divisor]).to_s
+            end
+
+            def power(exponent, max = nil)
+                values = [exponent]
+                values << max if max != nil
+                return Operator.new("power", values).to_s
+            end
+
+            def array_append(values)
+                return Operator.new("arrayAppend", values).to_s
+            end
+
+            def array_prepend(values)
+                return Operator.new("arrayPrepend", values).to_s
+            end
+
+            def array_insert(index, value)
+                return Operator.new("arrayInsert", [index, value]).to_s
+            end
+
+            def array_remove(value)
+                return Operator.new("arrayRemove", [value]).to_s
+            end
+
+            def array_unique()
+                return Operator.new("arrayUnique", []).to_s
+            end
+
+            def array_intersect(values)
+                return Operator.new("arrayIntersect", values).to_s
+            end
+
+            def array_diff(values)
+                return Operator.new("arrayDiff", values).to_s
+            end
+
+            def array_filter(condition, value = nil)
+                return Operator.new("arrayFilter", [condition, value]).to_s
+            end
+
+            def concat(value)
+                return Operator.new("concat", [value]).to_s
+            end
+
+            def replace(search, replace)
+                return Operator.new("replace", [search, replace]).to_s
+            end
+
+            def toggle()
+                return Operator.new("toggle", []).to_s
+            end
+
+            def date_add_days(days)
+                return Operator.new("dateAddDays", [days]).to_s
+            end
+
+            def date_sub_days(days)
+                return Operator.new("dateSubDays", [days]).to_s
+            end
+
+            def date_set_now()
+                return Operator.new("dateSetNow", []).to_s
+            end
+        end
+    end
+end

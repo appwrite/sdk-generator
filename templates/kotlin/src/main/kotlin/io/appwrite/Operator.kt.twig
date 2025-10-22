@@ -1,0 +1,102 @@
+package {{ sdk.namespace | caseDot }}
+
+import {{ sdk.namespace | caseDot }}.extensions.toJson
+
+class Operator(
+    val method: String,
+    val values: List<Any>? = null,
+) {
+    override fun toString() = this.toJson()
+
+    companion object {
+        fun increment(value: Number = 1, max: Number? = null): String {
+            val values = mutableListOf<Any>(value)
+            max?.let { values.add(it) }
+            return Operator("increment", values).toJson()
+        }
+
+        fun decrement(value: Number = 1, min: Number? = null): String {
+            val values = mutableListOf<Any>(value)
+            min?.let { values.add(it) }
+            return Operator("decrement", values).toJson()
+        }
+
+        fun multiply(factor: Number, max: Number? = null): String {
+            val values = mutableListOf<Any>(factor)
+            max?.let { values.add(it) }
+            return Operator("multiply", values).toJson()
+        }
+
+        fun divide(divisor: Number, min: Number? = null): String {
+            val values = mutableListOf<Any>(divisor)
+            min?.let { values.add(it) }
+            return Operator("divide", values).toJson()
+        }
+
+        fun modulo(divisor: Number): String {
+            return Operator("modulo", listOf(divisor)).toJson()
+        }
+
+        fun power(exponent: Number, max: Number? = null): String {
+            val values = mutableListOf<Any>(exponent)
+            max?.let { values.add(it) }
+            return Operator("power", values).toJson()
+        }
+
+        fun arrayAppend(values: List<Any>): String {
+            return Operator("arrayAppend", values).toJson()
+        }
+
+        fun arrayPrepend(values: List<Any>): String {
+            return Operator("arrayPrepend", values).toJson()
+        }
+
+        fun arrayInsert(index: Int, value: Any): String {
+            return Operator("arrayInsert", listOf(index, value)).toJson()
+        }
+
+        fun arrayRemove(value: Any): String {
+            return Operator("arrayRemove", listOf(value)).toJson()
+        }
+
+        fun arrayUnique(): String {
+            return Operator("arrayUnique", emptyList()).toJson()
+        }
+
+        fun arrayIntersect(values: List<Any>): String {
+            return Operator("arrayIntersect", values).toJson()
+        }
+
+        fun arrayDiff(values: List<Any>): String {
+            return Operator("arrayDiff", values).toJson()
+        }
+
+        fun arrayFilter(condition: String, value: Any? = null): String {
+            return Operator("arrayFilter", listOf(condition, value)).toJson()
+        }
+
+        fun concat(value: Any): String {
+            return Operator("concat", listOf(value)).toJson()
+        }
+
+        fun replace(search: String, replace: String): String {
+            return Operator("replace", listOf(search, replace)).toJson()
+        }
+
+        fun toggle(): String {
+            return Operator("toggle", emptyList()).toJson()
+        }
+
+        fun dateAddDays(days: Int): String {
+            return Operator("dateAddDays", listOf(days)).toJson()
+        }
+
+        fun dateSubDays(days: Int): String {
+            return Operator("dateSubDays", listOf(days)).toJson()
+        }
+
+        fun dateSetNow(): String {
+            return Operator("dateSetNow", emptyList()).toJson()
+        }
+    }
+}

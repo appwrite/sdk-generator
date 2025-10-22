@@ -1,0 +1,92 @@
+<?php
+
+namespace Appwrite;
+
+use PHPUnit\Framework\TestCase;
+
+final class OperatorTest extends TestCase {
+    public function testIncrement(): void {
+        $this->assertSame('{"method":"increment","values":[1]}', Operator::increment());
+        $this->assertSame('{"method":"increment","values":[5,100]}', Operator::increment(5, 100));
+    }
+
+    public function testDecrement(): void {
+        $this->assertSame('{"method":"decrement","values":[1]}', Operator::decrement());
+        $this->assertSame('{"method":"decrement","values":[3,0]}', Operator::decrement(3, 0));
+    }
+
+    public function testMultiply(): void {
+        $this->assertSame('{"method":"multiply","values":[2]}', Operator::multiply(2));
+        $this->assertSame('{"method":"multiply","values":[3,1000]}', Operator::multiply(3, 1000));
+    }
+
+    public function testDivide(): void {
+        $this->assertSame('{"method":"divide","values":[2]}', Operator::divide(2));
+        $this->assertSame('{"method":"divide","values":[4,1]}', Operator::divide(4, 1));
+    }
+
+    public function testModulo(): void {
+        $this->assertSame('{"method":"modulo","values":[5]}', Operator::modulo(5));
+    }
+
+    public function testPower(): void {
+        $this->assertSame('{"method":"power","values":[2]}', Operator::power(2));
+        $this->assertSame('{"method":"power","values":[3,100]}', Operator::power(3, 100));
+    }
+
+    public function testArrayAppend(): void {
+        $this->assertSame('{"method":"arrayAppend","values":["item1","item2"]}', Operator::arrayAppend(['item1', 'item2']));
+    }
+
+    public function testArrayPrepend(): void {
+        $this->assertSame('{"method":"arrayPrepend","values":["first","second"]}', Operator::arrayPrepend(['first', 'second']));
+    }
+
+    public function testArrayInsert(): void {
+        $this->assertSame('{"method":"arrayInsert","values":[0,"newItem"]}', Operator::arrayInsert(0, 'newItem'));
+    }
+
+    public function testArrayRemove(): void {
+        $this->assertSame('{"method":"arrayRemove","values":["oldItem"]}', Operator::arrayRemove('oldItem'));
+    }
+
+    public function testArrayUnique(): void {
+        $this->assertSame('{"method":"arrayUnique","values":[]}', Operator::arrayUnique());
+    }
+
+    public function testArrayIntersect(): void {
+        $this->assertSame('{"method":"arrayIntersect","values":["a","b","c"]}', Operator::arrayIntersect(['a', 'b', 'c']));
+    }
+
+    public function testArrayDiff(): void {
+        $this->assertSame('{"method":"arrayDiff","values":["x","y"]}', Operator::arrayDiff(['x', 'y']));
+    }
+
+    public function testArrayFilter(): void {
+        $this->assertSame('{"method":"arrayFilter","values":["equals","test"]}', Operator::arrayFilter('equals', 'test'));
+    }
+
+    public function testConcat(): void {
+        $this->assertSame('{"method":"concat","values":["suffix"]}', Operator::concat('suffix'));
+    }
+
+    public function testReplace(): void {
+        $this->assertSame('{"method":"replace","values":["old","new"]}', Operator::replace('old', 'new'));
+    }
+
+    public function testToggle(): void {
+        $this->assertSame('{"method":"toggle","values":[]}', Operator::toggle());
+    }
+
+    public function testDateAddDays(): void {
+        $this->assertSame('{"method":"dateAddDays","values":[7]}', Operator::dateAddDays(7));
+    }
+
+    public function testDateSubDays(): void {
+        $this->assertSame('{"method":"dateSubDays","values":[3]}', Operator::dateSubDays(3));
+    }
+
+    public function testDateSetNow(): void {
+        $this->assertSame('{"method":"dateSetNow","values":[]}', Operator::dateSetNow());
+    }
+}

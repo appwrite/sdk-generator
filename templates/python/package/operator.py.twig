@@ -1,0 +1,111 @@
+import json
+
+
+class Operator():
+    def __init__(self, method, values=None):
+        self.method = method
+
+        if values is not None:
+            self.values = values if isinstance(values, list) else [values]
+
+    def __str__(self):
+        return json.dumps(
+            self.__dict__,
+            separators=(",", ":"),
+            default=lambda obj: obj.__dict__
+        )
+
+    @staticmethod
+    def increment(value=1, max=None):
+        values = [value]
+        if max is not None:
+            values.append(max)
+        return str(Operator("increment", values))
+
+    @staticmethod
+    def decrement(value=1, min=None):
+        values = [value]
+        if min is not None:
+            values.append(min)
+        return str(Operator("decrement", values))
+
+    @staticmethod
+    def multiply(factor, max=None):
+        values = [factor]
+        if max is not None:
+            values.append(max)
+        return str(Operator("multiply", values))
+
+    @staticmethod
+    def divide(divisor, min=None):
+        values = [divisor]
+        if min is not None:
+            values.append(min)
+        return str(Operator("divide", values))
+
+    @staticmethod
+    def modulo(divisor):
+        return str(Operator("modulo", [divisor]))
+
+    @staticmethod
+    def power(exponent, max=None):
+        values = [exponent]
+        if max is not None:
+            values.append(max)
+        return str(Operator("power", values))
+
+    @staticmethod
+    def array_append(values):
+        return str(Operator("arrayAppend", values))
+
+    @staticmethod
+    def array_prepend(values):
+        return str(Operator("arrayPrepend", values))
+
+    @staticmethod
+    def array_insert(index, value):
+        return str(Operator("arrayInsert", [index, value]))
+
+    @staticmethod
+    def array_remove(value):
+        return str(Operator("arrayRemove", [value]))
+
+    @staticmethod
+    def array_unique():
+        return str(Operator("arrayUnique", []))
+
+    @staticmethod
+    def array_intersect(values):
+        return str(Operator("arrayIntersect", values))
+
+    @staticmethod
+    def array_diff(values):
+        return str(Operator("arrayDiff", values))
+
+    @staticmethod
+    def array_filter(condition, value=None):
+        return str(Operator("arrayFilter", [condition, value]))
+
+    @staticmethod
+    def concat(value):
+        return str(Operator("concat", [value]))
+
+    @staticmethod
+    def replace(search, replace):
+        return str(Operator("replace", [search, replace]))
+
+    @staticmethod
+    def toggle():
+        return str(Operator("toggle", []))
+
+    @staticmethod
+    def date_add_days(days):
+        return str(Operator("dateAddDays", [days]))
+
+    @staticmethod
+    def date_sub_days(days):
+        return str(Operator("dateSubDays", [days]))
+
+    @staticmethod
+    def date_set_now():
+        return str(Operator("dateSetNow", []))
