@@ -1,10 +1,47 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.Serialization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace {{ spec.title | caseUcfirst }}
 {
+    public enum Condition
+    {
+        [EnumMember(Value = "equal")]
+        Equal,
+        [EnumMember(Value = "notEqual")]
+        NotEqual,
+        [EnumMember(Value = "greaterThan")]
+        GreaterThan,
+        [EnumMember(Value = "greaterThanEqual")]
+        GreaterThanEqual,
+        [EnumMember(Value = "lessThan")]
+        LessThan,
+        [EnumMember(Value = "lessThanEqual")]
+        LessThanEqual,
+        [EnumMember(Value = "contains")]
+        Contains
+    }
+
+    public static class ConditionExtensions
+    {
+        public static string ToValue(this Condition condition)
+        {
+            return condition switch
+            {
+                Condition.Equal => "equal",
+                Condition.NotEqual => "notEqual",
+                Condition.GreaterThan => "greaterThan",
+                Condition.GreaterThanEqual => "greaterThanEqual",
+                Condition.LessThan => "lessThan",
+                Condition.LessThanEqual => "lessThanEqual",
+                Condition.Contains => "contains",
+                _ => throw new ArgumentOutOfRangeException(nameof(condition), condition, null)
+            };
+        }
+    }
+
     public class Operator
     {
         [JsonPropertyName("method")]
@@ -130,9 +167,14 @@ namespace {{ spec.title | caseUcfirst }}
             return new Operator("arrayDiff", values).ToString();
         }
 
-        public static string ArrayFilter(string condition, object? value = null)
+        public static string ArrayFilter(Condition condition, object? value = null)
         {
-            return new Operator("arrayFilter", new List<object> { condition, value! }).ToString();
+            var values = new List<object> { condition.ToValue() };
+            if (value != null)
+            {
+                values.Add(value);
+            }
+            return new Operator("arrayFilter", values).ToString();
         }
 
         public static string Concat(object value)

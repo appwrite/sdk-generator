@@ -8,7 +8,7 @@ from appwrite.query import Query
 from appwrite.permission import Permission
 from appwrite.role import Role
 from appwrite.id import ID
-from appwrite.operator import Operator
+from appwrite.operator import Operator, Condition
 from appwrite.enums.mock_type import MockType
 
 import os.path
@@ -217,7 +217,7 @@ print(Operator.array_remove('oldItem'))
 print(Operator.array_unique())
 print(Operator.array_intersect(['a', 'b', 'c']))
 print(Operator.array_diff(['x', 'y']))
-print(Operator.array_filter('equals', 'test'))
+print(Operator.array_filter(Condition.EQUAL, 'test'))
 print(Operator.concat('suffix'))
 print(Operator.replace('old', 'new'))
 print(Operator.toggle())

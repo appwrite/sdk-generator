@@ -245,7 +245,7 @@ namespace AppwriteTests
             TestContext.WriteLine(Operator.Unique());
             TestContext.WriteLine(Operator.Intersect(new List<string> { "value1", "value2" }));
             TestContext.WriteLine(Operator.Diff(new List<string> { "value1", "value2" }));
-            TestContext.WriteLine(Operator.Filter("value1", "value2"));
+            TestContext.WriteLine(Operator.Filter(Condition.Equal, "value2"));
             TestContext.WriteLine(Operator.Concat("newValue"));
             TestContext.WriteLine(Operator.Replace("oldValue", "newValue"));
             TestContext.WriteLine(Operator.Toggle());

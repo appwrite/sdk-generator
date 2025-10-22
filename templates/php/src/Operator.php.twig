@@ -2,6 +2,17 @@
 
 namespace {{ spec.title | caseUcfirst }};
 
+enum Condition: string
+{
+    case Equal = 'equal';
+    case NotEqual = 'notEqual';
+    case GreaterThan = 'greaterThan';
+    case GreaterThanEqual = 'greaterThanEqual';
+    case LessThan = 'lessThan';
+    case LessThanEqual = 'lessThanEqual';
+    case Contains = 'contains';
+}
+
 class Operator implements \JsonSerializable
 {
     protected string $method;
@@ -202,13 +213,17 @@ class Operator implements \JsonSerializable
     /**
      * Array Filter
      *
-     * @param string $condition
+     * @param Condition $condition
      * @param mixed $value
      * @return string
      */
-    public static function arrayFilter(string $condition, mixed $value = null): string
+    public static function arrayFilter(Condition $condition, mixed $value = null): string
     {
-        return (new Operator('arrayFilter', [$condition, $value]))->__toString();
+        $values = [$condition->value];
+        if ($value !== null) {
+            $values[] = $value;
+        }
+        return (new Operator('arrayFilter', $values))->__toString();
     }
 
     /**

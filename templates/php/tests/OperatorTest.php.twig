@@ -63,7 +63,7 @@ final class OperatorTest extends TestCase {
     }
 
     public function testArrayFilter(): void {
-        $this->assertSame('{"method":"arrayFilter","values":["equals","test"]}', Operator::arrayFilter('equals', 'test'));
+        $this->assertSame('{"method":"arrayFilter","values":["equal","test"]}', Operator::arrayFilter(Condition::Equal, 'test'));
     }
 
     public function testConcat(): void {

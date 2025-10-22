@@ -1,5 +1,15 @@
 import Foundation
 
+public enum Condition: String, Codable {
+    case equal = "equal"
+    case notEqual = "notEqual"
+    case greaterThan = "greaterThan"
+    case greaterThanEqual = "greaterThanEqual"
+    case lessThan = "lessThan"
+    case lessThanEqual = "lessThanEqual"
+    case contains = "contains"
+}
+
 enum OperatorValue: Codable {
     case string(String)
     case int(Int)
@@ -199,8 +209,12 @@ public struct Operator : Codable, CustomStringConvertible {
         return Operator(method: "arrayDiff", values: values).description
     }
 
-    public static func arrayFilter(_ condition: String, value: Any? = nil) -> String {
-        return Operator(method: "arrayFilter", values: [condition, value as Any]).description
+    public static func arrayFilter(_ condition: Condition, value: Any? = nil) -> String {
+        var values: [Any] = [condition.rawValue]
+        if let value = value {
+            values.append(value)
+        }
+        return Operator(method: "arrayFilter", values: values).description
     }
 
     public static func concat(_ value: Any) -> String {

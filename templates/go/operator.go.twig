@@ -4,6 +4,18 @@ import (
 	"encoding/json"
 )
 
+type Condition string
+
+const (
+	ConditionEqual              Condition = "equal"
+	ConditionNotEqual           Condition = "notEqual"
+	ConditionGreaterThan        Condition = "greaterThan"
+	ConditionGreaterThanEqual   Condition = "greaterThanEqual"
+	ConditionLessThan           Condition = "lessThan"
+	ConditionLessThanEqual      Condition = "lessThanEqual"
+	ConditionContains           Condition = "contains"
+)
+
 func toArray(val interface{}) []interface{} {
 	switch v := val.(type) {
 	case nil:
@@ -152,8 +164,11 @@ func ArrayDiff(values []interface{}) string {
 	})
 }
 
-func ArrayFilter(condition string, value interface{}) string {
-	values := []interface{}{condition, value}
+func ArrayFilter(condition Condition, value ...interface{}) string {
+	values := []interface{}{string(condition)}
+	if len(value) > 0 && value[0] != nil {
+		values = append(values, value[0])
+	}
 	return parseOperator(operatorOptions{
 		Method: "arrayFilter",
 		Values: &values,

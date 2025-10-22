@@ -255,7 +255,7 @@ class Tests: XCTestCase {
         print(Operator.unique())
         print(Operator.intersect(["value1", "value2"]))
         print(Operator.diff(["value1", "value2"]))
-        print(Operator.filter("value1", "value2"))
+        print(Operator.filter(Condition.equal, "value2"))
         print(Operator.concat("newValue"))
         print(Operator.replace("oldValue", "newValue"))
         print(Operator.toggle())

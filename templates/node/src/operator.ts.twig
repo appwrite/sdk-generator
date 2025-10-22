@@ -2,6 +2,16 @@ type OperatorValuesSingle = string | number | boolean;
 export type OperatorValuesList = string[] | number[] | boolean[] | any[];
 export type OperatorValues = OperatorValuesSingle | OperatorValuesList;
 
+export enum Condition {
+  Equal = "equal",
+  NotEqual = "notEqual",
+  GreaterThan = "greaterThan",
+  GreaterThanEqual = "greaterThanEqual",
+  LessThan = "lessThan",
+  LessThanEqual = "lessThanEqual",
+  Contains = "contains",
+}
+
 /**
  * Helper class to generate operator strings for atomic operations.
  */
@@ -192,12 +202,17 @@ export class Operator {
   /**
    * Filter array values based on a condition.
    *
-   * @param {string} condition
+   * @param {Condition} condition
    * @param {any} value
    * @returns {string}
    */
-  static arrayFilter = (condition: string, value?: any): string =>
-    new Operator("arrayFilter", [condition, value]).toString();
+  static arrayFilter = (condition: Condition, value?: any): string => {
+    const values: any[] = [condition];
+    if (value !== undefined) {
+      values.push(value);
+    }
+    return new Operator("arrayFilter", values).toString();
+  };
 
   /**
    * Concatenate a value to a string or array attribute.

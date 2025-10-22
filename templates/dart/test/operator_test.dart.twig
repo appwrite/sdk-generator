@@ -117,9 +117,9 @@ void main() {
   });
 
   test('returns arrayFilter', () {
-    final op = jsonDecode(Operator.arrayFilter('equals', 'test'));
+    final op = jsonDecode(Operator.arrayFilter(Condition.equal, 'test'));
     expect(op['method'], 'arrayFilter');
-    expect(op['values'], ['equals', 'test']);
+    expect(op['values'], ['equal', 'test']);
   });
 
   test('returns concat', () {

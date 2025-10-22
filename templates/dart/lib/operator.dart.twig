@@ -1,5 +1,22 @@
 part of '{{ language.params.packageName }}.dart';
 
+/// Filter condition for array operations
+enum Condition {
+  equal('equal'),
+  notEqual('notEqual'),
+  greaterThan('greaterThan'),
+  greaterThanEqual('greaterThanEqual'),
+  lessThan('lessThan'),
+  lessThanEqual('lessThanEqual'),
+  contains('contains');
+
+  final String value;
+  const Condition(this.value);
+
+  @override
+  String toString() => value;
+}
+
 /// Helper class to generate operator strings for atomic operations.
 class Operator {
   final String method;
@@ -100,8 +117,8 @@ class Operator {
       Operator._('arrayDiff', values).toString();
 
   /// Filter array values based on a condition.
-  static String arrayFilter(String condition, [dynamic value]) {
-    final values = <dynamic>[condition];
+  static String arrayFilter(Condition condition, [dynamic value]) {
+    final values = <dynamic>[condition.value];
     if (value != null) {
       values.add(value);
     }

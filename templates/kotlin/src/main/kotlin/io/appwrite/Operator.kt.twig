@@ -2,6 +2,18 @@ package {{ sdk.namespace | caseDot }}
 
 import {{ sdk.namespace | caseDot }}.extensions.toJson
 
+enum class Condition(val value: String) {
+    EQUAL("equal"),
+    NOT_EQUAL("notEqual"),
+    GREATER_THAN("greaterThan"),
+    GREATER_THAN_EQUAL("greaterThanEqual"),
+    LESS_THAN("lessThan"),
+    LESS_THAN_EQUAL("lessThanEqual"),
+    CONTAINS("contains");
+
+    override fun toString() = value
+}
+
 class Operator(
     val method: String,
     val values: List<Any>? = null,
@@ -71,8 +83,8 @@ class Operator(
             return Operator("arrayDiff", values).toJson()
         }
 
-        fun arrayFilter(condition: String, value: Any? = null): String {
-            val values = mutableListOf<Any>(condition)
+        fun arrayFilter(condition: Condition, value: Any? = null): String {
+            val values = mutableListOf<Any>(condition.value)
             value?.let { values.add(it) }
             return Operator("arrayFilter", values).toJson()
         }

@@ -10,6 +10,7 @@ async function start() {
   let ID = appwrite.ID;
   let Query = appwrite.Query;
   let Operator = appwrite.Operator;
+  let Condition = appwrite.Condition;
 
   // Init SDK
   let client = new appwrite.Client().addHeader("Origin", "http://localhost");
@@ -260,7 +261,7 @@ async function start() {
   console.log(Operator.unique());
   console.log(Operator.intersect(["value1", "value2"]));
   console.log(Operator.diff(["value1", "value2"]));
-  console.log(Operator.filter("value1", "value2"));
+  console.log(Operator.filter(Condition.Equal, "value2"));
   console.log(Operator.concat("newValue"));
   console.log(Operator.replace("oldValue", "newValue"));
   console.log(Operator.toggle());

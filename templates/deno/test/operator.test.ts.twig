@@ -1,6 +1,6 @@
 import {describe, it as test} from "https://deno.land/std@0.149.0/testing/bdd.ts";
 import {assertEquals} from "https://deno.land/std@0.204.0/assert/assert_equals.ts";
-import {Operator} from "../src/operator.ts";
+import {Operator, Condition} from "../src/operator.ts";
 
 describe('Operator', () => {
     test('increment', () => assertEquals(
@@ -94,8 +94,8 @@ describe('Operator', () => {
     ));
 
     test('arrayFilter', () => assertEquals(
-        Operator.arrayFilter('equals', 'test').toString(),
-        '{"method":"arrayFilter","values":["equals","test"]}',
+        Operator.arrayFilter(Condition.Equal, 'test').toString(),
+        '{"method":"arrayFilter","values":["equal","test"]}',
     ));
 
     test('concat', () => assertEquals(

@@ -9,6 +9,7 @@ import io.appwrite.Role
 import io.appwrite.ID
 import io.appwrite.Query
 import io.appwrite.Operator
+import io.appwrite.Condition
 import io.appwrite.enums.MockType
 import io.appwrite.extensions.fromJson
 import io.appwrite.extensions.toJson
@@ -288,7 +289,7 @@ class ServiceTest {
             writeToFile(Operator.unique())
             writeToFile(Operator.intersect(listOf("value1", "value2")))
             writeToFile(Operator.diff(listOf("value1", "value2")))
-            writeToFile(Operator.filter("value1", "value2"))
+            writeToFile(Operator.filter(Condition.EQUAL, "value2"))
             writeToFile(Operator.concat("newValue"))
             writeToFile(Operator.replace("oldValue", "newValue"))
             writeToFile(Operator.toggle())

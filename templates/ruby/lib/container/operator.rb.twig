@@ -1,6 +1,16 @@
 require 'json'
 
 module {{spec.title | caseUcfirst}}
+    module Condition
+        EQUAL = "equal"
+        NOT_EQUAL = "notEqual"
+        GREATER_THAN = "greaterThan"
+        GREATER_THAN_EQUAL = "greaterThanEqual"
+        LESS_THAN = "lessThan"
+        LESS_THAN_EQUAL = "lessThanEqual"
+        CONTAINS = "contains"
+    end
+
     class Operator
         def initialize(method, values = nil)
             @method = method
@@ -89,7 +99,9 @@ module {{spec.title | caseUcfirst}}
             end
 
             def array_filter(condition, value = nil)
-                return Operator.new("arrayFilter", [condition, value]).to_s
+                values = [condition]
+                values << value if value != nil
+                return Operator.new("arrayFilter", values).to_s
             end
 
             def concat(value)

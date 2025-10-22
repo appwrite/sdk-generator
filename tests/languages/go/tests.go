@@ -299,7 +299,7 @@ func testOperatorHelpers() {
 	fmt.Println(operator.Unique())
 	fmt.Println(operator.Intersect([]interface{}{"value1", "value2"}))
 	fmt.Println(operator.Diff([]interface{}{"value1", "value2"}))
-	fmt.Println(operator.Filter("value1", "value2"))
+	fmt.Println(operator.Filter(operator.ConditionEqual, "value2"))
 	fmt.Println(operator.Concat("newValue"))
 	fmt.Println(operator.Replace("oldValue", "newValue"))
 	fmt.Println(operator.Toggle())
