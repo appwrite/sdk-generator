@@ -182,7 +182,7 @@ abstract class Base extends TestCase
         '{"method":"arrayUnique","values":[]}',
         '{"method":"arrayIntersect","values":["a","b","c"]}',
         '{"method":"arrayDiff","values":["x","y"]}',
-        '{"method":"arrayFilter","values":["equals","test"]}',
+        '{"method":"arrayFilter","values":["equal","test"]}',
         '{"method":"concat","values":["suffix"]}',
         '{"method":"replace","values":["old","new"]}',
         '{"method":"toggle","values":[]}',

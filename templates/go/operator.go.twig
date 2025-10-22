@@ -25,7 +25,7 @@ type operatorOptions struct {
 func parseOperator(options operatorOptions) string {
 	data := struct {
 		Method string        `json:"method"`
-		Values []interface{} `json:"values,omitempty"`
+		Values []interface{} `json:"values"`
 	}{
 		Method: options.Method,
 	}
@@ -158,9 +158,9 @@ func ArrayDiff(values []interface{}) string {
 }
 
 func ArrayFilter(condition Condition, value ...interface{}) string {
-	values := []interface{}{string(condition)}
+	values := []interface{}{string(condition), nil}
 	if len(value) > 0 && value[0] != nil {
-		values = append(values, value[0])
+		values[1] = value[0]
 	}
 	return parseOperator(operatorOptions{
 		Method: "arrayFilter",
