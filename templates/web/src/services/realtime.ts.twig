@@ -105,7 +105,10 @@ export class Realtime {
             queryParams += `&channels[]=${encodeURIComponent(channel)}`;
         }
 
-        const endpoint = this.client.config.endpoint || '';
+        const endpoint =
+            this.client.config.endpointRealtime !== ''
+                ? this.client.config.endpointRealtime
+                : this.client.config.endpoint || '';
         const realtimeEndpoint = endpoint
             .replace('https://', 'wss://')
             .replace('http://', 'ws://');
