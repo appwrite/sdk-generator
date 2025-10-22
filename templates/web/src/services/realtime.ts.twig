@@ -1,19 +1,29 @@
 import { {{ spec.title | caseUcfirst}}Exception, Client } from '../client';
 
-type RealtimeCallback = {
-    channels: Set<string>;
-    callback: (event: RealtimeResponseEvent) => void;
+export type RealtimeSubscription = {
+    close: () => Promise<void>;
 }
 
-type RealtimeResponseEvent = {
+export type RealtimeCallback<T = any> = {
+    channels: Set<string>;
+    callback: (event: RealtimeResponseEvent<T>) => void;
+}
+
+export type RealtimeResponse = {
+    type: string;
+    data?: any;
+}
+
+export type RealtimeResponseEvent<T = any> = {
     events: string[];
     channels: string[];
     timestamp: string;
-    payload: Record<string, any>;
+    payload: T;
 }
 
-export type RealtimeSubscription = {
-    close: () => Promise<void>;
+export enum RealtimeCode {
+    POLICY_VIOLATION = 1008,
+    UNKNOWN_ERROR = -1
 }
 
 export class Realtime {
@@ -26,7 +36,7 @@ export class Realtime {
     private client: Client;
     private socket?: WebSocket;
     private activeChannels = new Set<string>();
-    private activeSubscriptions = new Map<number, RealtimeCallback>();
+    private activeSubscriptions = new Map<number, RealtimeCallback<any>>();
     private heartbeatTimer?: number;
 
     private subCallDepth = 0;
@@ -132,18 +142,18 @@ export class Realtime {
 
                 this.socket.addEventListener('message', (event: MessageEvent) => {
                     try {
-                        const message = JSON.parse(event.data);
+                        const message = JSON.parse(event.data) as RealtimeResponse;
                         this.handleMessage(message);
                     } catch (error) {
                         console.error('Failed to parse message:', error);
                     }
                 });
 
-                this.socket.addEventListener('close', async () => {
+                this.socket.addEventListener('close', async (event: CloseEvent) => {
                     this.stopHeartbeat();
                     this.onCloseCallbacks.forEach(callback => callback());
 
-                    if (!this.reconnect) {
+                    if (!this.reconnect || event.code === RealtimeCode.POLICY_VIOLATION) {
                         this.reconnect = true;
                         return;
                     }
@@ -189,7 +199,7 @@ export class Realtime {
                     this.socket.addEventListener('close', () => {
                         resolve();
                     }, { once: true });
-                    this.socket.close();
+                    this.socket.close(RealtimeCode.POLICY_VIOLATION);
                 } else {
                     resolve();
                 }
@@ -222,7 +232,7 @@ export class Realtime {
      */
     public async subscribe(
         channel: string,
-        callback: (event: RealtimeResponseEvent) => void
+        callback: (event: RealtimeResponseEvent<any>) => void
     ): Promise<RealtimeSubscription>;
 
     /**
@@ -234,12 +244,36 @@ export class Realtime {
      */
     public async subscribe(
         channels: string[],
-        callback: (event: RealtimeResponseEvent) => void
+        callback: (event: RealtimeResponseEvent<any>) => void
     ): Promise<RealtimeSubscription>;
 
-    public async subscribe(
+    /**
+     * Subscribe to a single channel with typed payload
+     *
+     * @param {string} channel - Channel name to subscribe to
+     * @param {Function} callback - Callback function to handle events with typed payload
+     * @returns {Promise<RealtimeSubscription>} Subscription object with close method
+     */
+    public async subscribe<T>(
+        channel: string,
+        callback: (event: RealtimeResponseEvent<T>) => void
+    ): Promise<RealtimeSubscription>;
+
+    /**
+     * Subscribe to multiple channels with typed payload
+     *
+     * @param {string[]} channels - Array of channel names to subscribe to
+     * @param {Function} callback - Callback function to handle events with typed payload
+     * @returns {Promise<RealtimeSubscription>} Subscription object with close method
+     */
+    public async subscribe<T>(
+        channels: string[],
+        callback: (event: RealtimeResponseEvent<T>) => void
+    ): Promise<RealtimeSubscription>;
+
+    public async subscribe<T = any>(
         channelsOrChannel: string | string[],
-        callback: (event: RealtimeResponseEvent) => void
+        callback: (event: RealtimeResponseEvent<T>) => void
     ): Promise<RealtimeSubscription> {
         const channels = Array.isArray(channelsOrChannel)
             ? new Set(channelsOrChannel)
@@ -291,7 +325,7 @@ export class Realtime {
         );
     }
 
-    private handleMessage(message: any): void {
+    private handleMessage(message: RealtimeResponse): void {
         if (!message.type) {
             return;
         }
@@ -309,15 +343,15 @@ export class Realtime {
         }
     }
 
-    private handleResponseError(message: any): void {
+    private handleResponseError(message: RealtimeResponse): void {
         const error = new {{spec.title | caseUcfirst}}Exception(
-            message.message || message.data?.message || 'Unknown error'
+            message.data?.message || 'Unknown error'
         );
-        const statusCode = message.code || message.data?.code;
+        const statusCode = message.data?.code;
         this.onErrorCallbacks.forEach(callback => callback(error, statusCode));
     }
 
-    private handleResponseEvent(message: any): void {
+    private handleResponseEvent(message: RealtimeResponse): void {
         const data = message.data;
         if (!data) {
             return;
@@ -325,7 +359,7 @@ export class Realtime {
 
         const channels = data.channels as string[];
         const events = data.events as string[];
-        const payload = data.payload as Record<string, any>;
+        const payload = data.payload;
         const timestamp = data.timestamp as string;
 
         if (!channels || !events || !payload) {
@@ -346,7 +380,7 @@ export class Realtime {
             );
 
             if (hasSubscribedChannel) {
-                const response: RealtimeResponseEvent = {
+                const response: RealtimeResponseEvent<any> = {
                     events,
                     channels,
                     timestamp,
