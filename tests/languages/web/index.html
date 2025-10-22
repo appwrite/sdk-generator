@@ -33,7 +33,7 @@
             response = await client.ping();
             console.log(response.result);
 
-            // Realtime
+            // Realtime setup
             client.setProject('console');
             client.setEndpointRealtime('wss://cloud.appwrite.io/v1');
 
