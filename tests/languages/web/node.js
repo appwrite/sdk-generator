@@ -1,4 +1,4 @@
-const { Client, Foo, Bar, General, Realtime, Query, Permission, Role, ID, MockType } = require('./dist/cjs/sdk.js');
+const { Client, Foo, Bar, General, Query, Permission, Role, ID, MockType } = require('./dist/cjs/sdk.js');
 
 async function start() {
     let response;
