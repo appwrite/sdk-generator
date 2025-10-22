@@ -16,11 +16,14 @@ enum OperatorValue: Codable {
     case double(Double)
     case bool(Bool)
     case array([OperatorValue])
+    case null
 
     init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
 
-        if let stringValue = try? container.decode(String.self) {
+        if container.decodeNil() {
+            self = .null
+        } else if let stringValue = try? container.decode(String.self) {
             self = .string(stringValue)
         } else if let intValue = try? container.decode(Int.self) {
             self = .int(intValue)
@@ -51,6 +54,8 @@ enum OperatorValue: Codable {
             try container.encode(value)
         case .array(let value):
             try container.encode(value)
+        case .null:
+            try container.encodeNil()
         }
     }
 }
@@ -72,6 +77,11 @@ public struct Operator : Codable, CustomStringConvertible {
     }
 
     private static func convertToOperatorValueArray(_ values: Any?) -> [OperatorValue]? {
+        // Handle nil or NSNull as [.null]
+        if values == nil || values is NSNull {
+            return [.null]
+        }
+
         switch values {
         case let valueArray as [OperatorValue]:
             return valueArray
@@ -92,8 +102,16 @@ public struct Operator : Codable, CustomStringConvertible {
         case let boolValue as Bool:
             return [.bool(boolValue)]
         case let anyArray as [Any]:
-            let nestedValues = anyArray.compactMap { item -> OperatorValue? in
-                if let stringValue = item as? String {
+            // Preserve empty arrays as empty OperatorValue arrays
+            if anyArray.isEmpty {
+                return []
+            }
+
+            // Map all items, converting nil/unknown to .null
+            let nestedValues = anyArray.map { item -> OperatorValue in
+                if item is NSNull {
+                    return .null
+                } else if let stringValue = item as? String {
                     return .string(stringValue)
                 } else if let intValue = item as? Int {
                     return .int(intValue)
@@ -102,16 +120,17 @@ public struct Operator : Codable, CustomStringConvertible {
                 } else if let boolValue = item as? Bool {
                     return .bool(boolValue)
                 } else if let nestedArray = item as? [Any] {
-                    if let converted = convertToOperatorValueArray(nestedArray) {
-                        return .array(converted)
-                    }
-                    return nil
+                    let converted = convertToOperatorValueArray(nestedArray) ?? []
+                    return .array(converted)
+                } else {
+                    // Unknown/unsupported types become .null
+                    return .null
                 }
-                return nil
             }
-            return nestedValues.isEmpty ? nil : nestedValues
+            return nestedValues
         default:
-            return nil
+            // Unknown types become [.null]
+            return [.null]
         }
     }
 

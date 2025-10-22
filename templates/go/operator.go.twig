@@ -2,6 +2,7 @@ package operator
 
 import (
 	"encoding/json"
+	"fmt"
 )
 
 type Condition string
@@ -15,17 +16,6 @@ const (
 	ConditionLessThanEqual      Condition = "lessThanEqual"
 	ConditionContains           Condition = "contains"
 )
-
-func toArray(val interface{}) []interface{} {
-	switch v := val.(type) {
-	case nil:
-		return nil
-	case []interface{}:
-		return v
-	default:
-		return []interface{}{val}
-	}
-}
 
 type operatorOptions struct {
 	Method string
@@ -44,7 +34,10 @@ func parseOperator(options operatorOptions) string {
 		data.Values = *options.Values
 	}
 
-	jsonData, _ := json.Marshal(data)
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		panic(fmt.Errorf("failed to marshal operator data: %w", err))
+	}
 
 	return string(jsonData)
 }
