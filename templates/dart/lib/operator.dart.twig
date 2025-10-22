@@ -100,8 +100,13 @@ class Operator {
       Operator._('arrayDiff', values).toString();
 
   /// Filter array values based on a condition.
-  static String arrayFilter(String condition, [dynamic value]) =>
-      Operator._('arrayFilter', [condition, value]).toString();
+  static String arrayFilter(String condition, [dynamic value]) {
+    final values = <dynamic>[condition];
+    if (value != null) {
+      values.add(value);
+    }
+    return Operator._('arrayFilter', values).toString();
+  }
 
   /// Concatenate a value to a string or array attribute.
   static String concat(dynamic value) =>
