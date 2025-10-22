@@ -1,4 +1,4 @@
-const { Client, Foo, Bar, General, Query, Permission, Role, ID, MockType } = require('./dist/cjs/sdk.js');
+const { Client, Foo, Bar, General, Realtime, Query, Permission, Role, ID, MockType } = require('./dist/cjs/sdk.js');
 
 async function start() {
     let response;
@@ -160,7 +160,18 @@ async function start() {
         console.log(error.message);
     }
 
-    console.log('WS:/v1/realtime:passed'); // Skip realtime test on Node.js
+    client.setProject('console');
+    client.setEndpointRealtime('wss://cloud.appwrite.io/v1');
+
+    const realtime = new Realtime(client);
+    let realtimeResponse = 'Realtime failed!';
+
+    await realtime.subscribe(['tests'], message => {
+        realtimeResponse = message.payload.response;
+    });
+
+    await new Promise(resolve => setTimeout(resolve, 5000));
+    console.log(realtimeResponse);
 
     // Query helper tests
     console.log(Query.equal("released", [true]));
