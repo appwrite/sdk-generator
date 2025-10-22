@@ -307,9 +307,11 @@ export class Realtime {
     }
 
     private handleResponseError(message: any): void {
-        throw new {{spec.title | caseUcfirst}}Exception(
+        const error = new {{spec.title | caseUcfirst}}Exception(
             message.message || message.data?.message || 'Unknown error'
         );
+        const statusCode = message.code || message.data?.code;
+        this.onErrorCallbacks.forEach(callback => callback(error, statusCode));
     }
 
     private handleResponseEvent(message: any): void {
