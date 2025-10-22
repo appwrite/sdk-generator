@@ -439,6 +439,11 @@ class Dart extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/test/operator_test.dart',
+                'template'      => 'dart/test/operator_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/test/role_test.dart',
                 'template'      => 'dart/test/role_test.dart.twig',
             ],

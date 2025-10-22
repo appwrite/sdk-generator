@@ -225,6 +225,34 @@ namespace AppwriteTests
             TestContext.WriteLine(ID.Unique());
             TestContext.WriteLine(ID.Custom("custom_id"));
 
+            // Operator helper tests
+            TestContext.WriteLine(Operator.Increment(1));
+            TestContext.WriteLine(Operator.Increment(5, 100));
+            TestContext.WriteLine(Operator.Decrement(1));
+            TestContext.WriteLine(Operator.Decrement(5, 0));
+            TestContext.WriteLine(Operator.Multiply(2));
+            TestContext.WriteLine(Operator.Divide(2));
+            TestContext.WriteLine(Operator.Modulo(3));
+            TestContext.WriteLine(Operator.Power(2));
+            TestContext.WriteLine(Operator.Append("value"));
+            TestContext.WriteLine(Operator.Append(new List<string> { "value1", "value2" }));
+            TestContext.WriteLine(Operator.Prepend("value"));
+            TestContext.WriteLine(Operator.Prepend(new List<string> { "value1", "value2" }));
+            TestContext.WriteLine(Operator.Insert(0, "value"));
+            TestContext.WriteLine(Operator.Insert(1, new List<string> { "value1", "value2" }));
+            TestContext.WriteLine(Operator.Remove("value"));
+            TestContext.WriteLine(Operator.Remove(new List<string> { "value1", "value2" }));
+            TestContext.WriteLine(Operator.Unique());
+            TestContext.WriteLine(Operator.Intersect(new List<string> { "value1", "value2" }));
+            TestContext.WriteLine(Operator.Diff(new List<string> { "value1", "value2" }));
+            TestContext.WriteLine(Operator.Filter("value1", "value2"));
+            TestContext.WriteLine(Operator.Concat("newValue"));
+            TestContext.WriteLine(Operator.Replace("oldValue", "newValue"));
+            TestContext.WriteLine(Operator.Toggle());
+            TestContext.WriteLine(Operator.DateAddDays(7));
+            TestContext.WriteLine(Operator.DateSubDays(7));
+            TestContext.WriteLine(Operator.DateSetNow());
+
             mock = await general.Headers();
             TestContext.WriteLine(mock.Result);
         }

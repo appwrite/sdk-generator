@@ -163,6 +163,34 @@ abstract class Base extends TestCase
         'custom_id'
     ];
 
+    protected const OPERATOR_HELPER_RESPONSES = [
+        '{"method":"increment","values":[1]}',
+        '{"method":"increment","values":[5,100]}',
+        '{"method":"decrement","values":[1]}',
+        '{"method":"decrement","values":[3,0]}',
+        '{"method":"multiply","values":[2]}',
+        '{"method":"multiply","values":[3,1000]}',
+        '{"method":"divide","values":[2]}',
+        '{"method":"divide","values":[4,1]}',
+        '{"method":"modulo","values":[5]}',
+        '{"method":"power","values":[2]}',
+        '{"method":"power","values":[3,100]}',
+        '{"method":"arrayAppend","values":["item1","item2"]}',
+        '{"method":"arrayPrepend","values":["first","second"]}',
+        '{"method":"arrayInsert","values":[0,"newItem"]}',
+        '{"method":"arrayRemove","values":["oldItem"]}',
+        '{"method":"arrayUnique","values":[]}',
+        '{"method":"arrayIntersect","values":["a","b","c"]}',
+        '{"method":"arrayDiff","values":["x","y"]}',
+        '{"method":"arrayFilter","values":["equals","test"]}',
+        '{"method":"concat","values":["suffix"]}',
+        '{"method":"replace","values":["old","new"]}',
+        '{"method":"toggle","values":[]}',
+        '{"method":"dateAddDays","values":[7]}',
+        '{"method":"dateSubDays","values":[3]}',
+        '{"method":"dateSetNow","values":[]}',
+    ];
+
     protected string $class = '';
     protected string $language = '';
     protected array $build = [];

@@ -1,9 +1,10 @@
-const { 
-    Client, 
+const {
+    Client,
     Permission,
     Query,
     Role,
     ID,
+    Operator,
     MockType,
     Foo,
     Bar,
@@ -323,6 +324,34 @@ async function start() {
     // ID helper tests
     console.log(ID.unique());
     console.log(ID.custom('custom_id'));
+
+    // Operator helper tests
+    console.log(Operator.increment(1));
+    console.log(Operator.increment(5, 100));
+    console.log(Operator.decrement(1));
+    console.log(Operator.decrement(5, 0));
+    console.log(Operator.multiply(2));
+    console.log(Operator.divide(2));
+    console.log(Operator.modulo(3));
+    console.log(Operator.power(2));
+    console.log(Operator.append("value"));
+    console.log(Operator.append(["value1", "value2"]));
+    console.log(Operator.prepend("value"));
+    console.log(Operator.prepend(["value1", "value2"]));
+    console.log(Operator.insert(0, "value"));
+    console.log(Operator.insert(1, ["value1", "value2"]));
+    console.log(Operator.remove("value"));
+    console.log(Operator.remove(["value1", "value2"]));
+    console.log(Operator.unique());
+    console.log(Operator.intersect(["value1", "value2"]));
+    console.log(Operator.diff(["value1", "value2"]));
+    console.log(Operator.filter("value1", "value2"));
+    console.log(Operator.concat("newValue"));
+    console.log(Operator.replace("oldValue", "newValue"));
+    console.log(Operator.toggle());
+    console.log(Operator.dateAddDays(7));
+    console.log(Operator.dateSubDays(7));
+    console.log(Operator.dateSetNow());
 
     response = await general.headers();
     console.log(response.result);

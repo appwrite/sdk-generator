@@ -9,6 +9,7 @@ import (
 	"github.com/repoowner/sdk-for-go/client"
 	"github.com/repoowner/sdk-for-go/file"
 	"github.com/repoowner/sdk-for-go/id"
+	"github.com/repoowner/sdk-for-go/operator"
 	"github.com/repoowner/sdk-for-go/permission"
 	"github.com/repoowner/sdk-for-go/query"
 	"github.com/repoowner/sdk-for-go/role"
@@ -144,6 +145,9 @@ func testGeneralService(client client.Client, stringInArray []string) {
 	// Test Id Helpers
 	testIdHelpers()
 
+	// Test Operator Helpers
+	testOperatorHelpers()
+
 	// Final test
 	headersResponse, err := general.Headers()
 	if err != nil {
@@ -273,4 +277,33 @@ func testPermissionHelpers() {
 func testIdHelpers() {
 	fmt.Println(id.Unique())
 	fmt.Println(id.Custom("custom_id"))
+}
+
+func testOperatorHelpers() {
+	fmt.Println(operator.Increment(1))
+	fmt.Println(operator.Increment(5, 100))
+	fmt.Println(operator.Decrement(1))
+	fmt.Println(operator.Decrement(5, 0))
+	fmt.Println(operator.Multiply(2))
+	fmt.Println(operator.Divide(2))
+	fmt.Println(operator.Modulo(3))
+	fmt.Println(operator.Power(2))
+	fmt.Println(operator.Append("value"))
+	fmt.Println(operator.Append([]interface{}{"value1", "value2"}))
+	fmt.Println(operator.Prepend("value"))
+	fmt.Println(operator.Prepend([]interface{}{"value1", "value2"}))
+	fmt.Println(operator.Insert(0, "value"))
+	fmt.Println(operator.Insert(1, []interface{}{"value1", "value2"}))
+	fmt.Println(operator.Remove("value"))
+	fmt.Println(operator.Remove([]interface{}{"value1", "value2"}))
+	fmt.Println(operator.Unique())
+	fmt.Println(operator.Intersect([]interface{}{"value1", "value2"}))
+	fmt.Println(operator.Diff([]interface{}{"value1", "value2"}))
+	fmt.Println(operator.Filter("value1", "value2"))
+	fmt.Println(operator.Concat("newValue"))
+	fmt.Println(operator.Replace("oldValue", "newValue"))
+	fmt.Println(operator.Toggle())
+	fmt.Println(operator.DateAddDays(7))
+	fmt.Println(operator.DateSubDays(7))
+	fmt.Println(operator.DateSetNow())
 }

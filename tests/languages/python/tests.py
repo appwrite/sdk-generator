@@ -8,6 +8,7 @@ from appwrite.query import Query
 from appwrite.permission import Permission
 from appwrite.role import Role
 from appwrite.id import ID
+from appwrite.operator import Operator
 from appwrite.enums.mock_type import MockType
 
 import os.path
@@ -196,6 +197,33 @@ print(Permission.create(Role.label('admin')))
 # ID helper tests
 print(ID.unique())
 print(ID.custom('custom_id'))
+
+# Operator helper tests
+print(Operator.increment())
+print(Operator.increment(5, 100))
+print(Operator.decrement())
+print(Operator.decrement(3, 0))
+print(Operator.multiply(2))
+print(Operator.multiply(3, 1000))
+print(Operator.divide(2))
+print(Operator.divide(4, 1))
+print(Operator.modulo(5))
+print(Operator.power(2))
+print(Operator.power(3, 100))
+print(Operator.array_append(['item1', 'item2']))
+print(Operator.array_prepend(['first', 'second']))
+print(Operator.array_insert(0, 'newItem'))
+print(Operator.array_remove('oldItem'))
+print(Operator.array_unique())
+print(Operator.array_intersect(['a', 'b', 'c']))
+print(Operator.array_diff(['x', 'y']))
+print(Operator.array_filter('equals', 'test'))
+print(Operator.concat('suffix'))
+print(Operator.replace('old', 'new'))
+print(Operator.toggle())
+print(Operator.date_add_days(7))
+print(Operator.date_sub_days(3))
+print(Operator.date_set_now())
 
 response = general.headers()
 print(response['result'])

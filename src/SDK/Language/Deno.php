@@ -75,6 +75,11 @@ class Deno extends JS
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'test/operator.test.ts',
+                'template'      => 'deno/test/operator.test.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'src/inputFile.ts',
                 'template'      => 'deno/src/inputFile.ts.twig',
             ],
