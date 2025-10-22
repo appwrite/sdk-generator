@@ -72,7 +72,9 @@ class Operator(
         }
 
         fun arrayFilter(condition: String, value: Any? = null): String {
-            return Operator("arrayFilter", listOf(condition, value)).toJson()
+            val values = mutableListOf<Any>(condition)
+            value?.let { values.add(it) }
+            return Operator("arrayFilter", values).toJson()
         }
 
         fun concat(value: Any): String {
