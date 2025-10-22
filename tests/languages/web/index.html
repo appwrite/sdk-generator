@@ -21,7 +21,7 @@
             let responseRealtime = 'Realtime failed!';
 
             // Init SDK
-            const { Client, Foo, Bar, General, Query, Permission, Role, ID, MockType } = Appwrite;
+            const { Client, Foo, Bar, General, Query, Permission, Role, ID, Operator, Condition, MockType } = Appwrite;
             const client = new Client();
 
             const foo = new Foo(client);
@@ -321,28 +321,27 @@
             console.log(Operator.increment(1));
             console.log(Operator.increment(5, 100));
             console.log(Operator.decrement(1));
-            console.log(Operator.decrement(5, 0));
+            console.log(Operator.decrement(3, 0));
             console.log(Operator.multiply(2));
+            console.log(Operator.multiply(3, 1000));
             console.log(Operator.divide(2));
-            console.log(Operator.modulo(3));
+            console.log(Operator.divide(4, 1));
+            console.log(Operator.modulo(5));
             console.log(Operator.power(2));
-            console.log(Operator.append("value"));
-            console.log(Operator.append(["value1", "value2"]));
-            console.log(Operator.prepend("value"));
-            console.log(Operator.prepend(["value1", "value2"]));
-            console.log(Operator.insert(0, "value"));
-            console.log(Operator.insert(1, ["value1", "value2"]));
-            console.log(Operator.remove("value"));
-            console.log(Operator.remove(["value1", "value2"]));
-            console.log(Operator.unique());
-            console.log(Operator.intersect(["value1", "value2"]));
-            console.log(Operator.diff(["value1", "value2"]));
-            console.log(Operator.filter("value1", "value2"));
-            console.log(Operator.concat("newValue"));
-            console.log(Operator.replace("oldValue", "newValue"));
+            console.log(Operator.power(3, 100));
+            console.log(Operator.arrayAppend(["item1", "item2"]));
+            console.log(Operator.arrayPrepend(["first", "second"]));
+            console.log(Operator.arrayInsert(0, "newItem"));
+            console.log(Operator.arrayRemove("oldItem"));
+            console.log(Operator.arrayUnique());
+            console.log(Operator.arrayIntersect(["a", "b", "c"]));
+            console.log(Operator.arrayDiff(["x", "y"]));
+            console.log(Operator.arrayFilter(Condition.equal, "test"));
+            console.log(Operator.concat("suffix"));
+            console.log(Operator.replace("old", "new"));
             console.log(Operator.toggle());
             console.log(Operator.dateAddDays(7));
-            console.log(Operator.dateSubDays(7));
+            console.log(Operator.dateSubDays(3));
             console.log(Operator.dateSetNow());
 
             response = await general.headers();
