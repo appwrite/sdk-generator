@@ -237,13 +237,13 @@ namespace AppwriteTests
             TestContext.WriteLine(Operator.Modulo(5));
             TestContext.WriteLine(Operator.Power(2));
             TestContext.WriteLine(Operator.Power(3, 100));
-            TestContext.WriteLine(Operator.ArrayAppend(new List<string> { "item1", "item2" }));
-            TestContext.WriteLine(Operator.ArrayPrepend(new List<string> { "first", "second" }));
+            TestContext.WriteLine(Operator.ArrayAppend(new List<object> { "item1", "item2" }));
+            TestContext.WriteLine(Operator.ArrayPrepend(new List<object> { "first", "second" }));
             TestContext.WriteLine(Operator.ArrayInsert(0, "newItem"));
             TestContext.WriteLine(Operator.ArrayRemove("oldItem"));
             TestContext.WriteLine(Operator.ArrayUnique());
-            TestContext.WriteLine(Operator.ArrayIntersect(new List<string> { "a", "b", "c" }));
-            TestContext.WriteLine(Operator.ArrayDiff(new List<string> { "x", "y" }));
+            TestContext.WriteLine(Operator.ArrayIntersect(new List<object> { "a", "b", "c" }));
+            TestContext.WriteLine(Operator.ArrayDiff(new List<object> { "x", "y" }));
             TestContext.WriteLine(Operator.ArrayFilter(Condition.Equal, "test"));
             TestContext.WriteLine(Operator.Concat("suffix"));
             TestContext.WriteLine(Operator.Replace("old", "new"));

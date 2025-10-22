@@ -25,10 +25,9 @@ module {{spec.title | caseUcfirst}}
         end
 
         def to_json(*args)
-            {
-                method: @method,
-                values: @values
-            }.compact.to_json(*args)
+            result = { method: @method }
+            result[:values] = @values unless @values.nil?
+            result.to_json(*args)
         end
 
         def to_s

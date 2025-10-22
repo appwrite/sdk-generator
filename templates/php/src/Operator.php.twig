@@ -36,10 +36,11 @@ class Operator implements \JsonSerializable
 
     public function jsonSerialize(): mixed
     {
-        return array_filter([
-            'method' => $this->method,
-            'values' => $this->values,
-        ]);
+        $result = ['method' => $this->method];
+        if ($this->values !== null) {
+            $result['values'] = $this->values;
+        }
+        return $result;
     }
 
     /**

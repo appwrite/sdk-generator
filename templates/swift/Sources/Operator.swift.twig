@@ -77,8 +77,13 @@ public struct Operator : Codable, CustomStringConvertible {
     }
 
     private static func convertToOperatorValueArray(_ values: Any?) -> [OperatorValue]? {
-        // Handle nil or NSNull as [.null]
-        if values == nil || values is NSNull {
+        // Handle nil
+        if values == nil {
+            return nil
+        }
+
+        // Handle NSNull as [.null]
+        if values is NSNull {
             return [.null]
         }
 

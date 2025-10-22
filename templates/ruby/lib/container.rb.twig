@@ -11,6 +11,7 @@ require_relative '{{ spec.title | caseSnake }}/query'
 require_relative '{{ spec.title | caseSnake }}/permission'
 require_relative '{{ spec.title | caseSnake }}/role'
 require_relative '{{ spec.title | caseSnake }}/id'
+require_relative '{{ spec.title | caseSnake }}/operator'
 
 {% for defintion in spec.definitions %}
 require_relative '{{ spec.title | caseSnake }}/models/{{ defintion.name | caseSnake }}'
