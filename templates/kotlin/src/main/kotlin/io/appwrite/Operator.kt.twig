@@ -59,11 +59,11 @@ class Operator(
             return Operator("power", values).toJson()
         }
 
-        fun arrayAppend(values: List<Any>): String {
+        fun arrayAppend(values: List<Any?>): String {
             return Operator("arrayAppend", values).toJson()
         }
 
-        fun arrayPrepend(values: List<Any>): String {
+        fun arrayPrepend(values: List<Any?>): String {
             return Operator("arrayPrepend", values).toJson()
         }
 
@@ -79,11 +79,11 @@ class Operator(
             return Operator("arrayUnique", emptyList()).toJson()
         }
 
-        fun arrayIntersect(values: List<Any>): String {
+        fun arrayIntersect(values: List<Any?>): String {
             return Operator("arrayIntersect", values).toJson()
         }
 
-        fun arrayDiff(values: List<Any>): String {
+        fun arrayDiff(values: List<Any?>): String {
             return Operator("arrayDiff", values).toJson()
         }
 

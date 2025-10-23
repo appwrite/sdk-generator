@@ -216,10 +216,7 @@ export class Operator {
    * @returns {string}
    */
   static arrayFilter = (condition: Condition, value?: any): string => {
-    const values: any[] = [condition as string];
-    if (value !== undefined) {
-      values.push(value);
-    }
+    const values: any[] = [condition as string, value === undefined ? null : value];
     return new Operator("arrayFilter", values).toString();
   };
 
