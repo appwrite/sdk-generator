@@ -188,7 +188,9 @@ public struct Operator : Codable, CustomStringConvertible {
     }
 
     public static func divide(_ divisor: Double, min: Double? = nil) -> String {
-        precondition(divisor != 0, "Divisor cannot be zero")
+        if divisor == 0 {
+            fatalError("Divisor cannot be zero")
+        }
         var values: [Any] = [divisor]
         if let min = min {
             values.append(min)
@@ -197,7 +199,9 @@ public struct Operator : Codable, CustomStringConvertible {
     }
 
     public static func modulo(_ divisor: Double) -> String {
-        precondition(divisor != 0, "Divisor cannot be zero")
+        if divisor == 0 {
+            fatalError("Divisor cannot be zero")
+        }
         return Operator(method: "modulo", values: [divisor]).description
     }
 
@@ -238,10 +242,7 @@ public struct Operator : Codable, CustomStringConvertible {
     }
 
     public static func arrayFilter(_ condition: Condition, value: Any? = nil) -> String {
-        var values: [Any] = [condition.rawValue]
-        if let value = value {
-            values.append(value)
-        }
+        let values: [Any] = [condition.rawValue, value ?? NSNull()]
         return Operator(method: "arrayFilter", values: values).description
     }
 

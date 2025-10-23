@@ -44,10 +44,14 @@ func parseOperator(options operatorOptions) string {
 	return string(jsonData)
 }
 
-func Increment(value interface{}, max ...interface{}) string {
-	values := []interface{}{value}
-	if len(max) > 0 && max[0] != nil {
-		values = append(values, max[0])
+func Increment(value ...interface{}) string {
+	var values []interface{}
+	if len(value) == 0 {
+		values = []interface{}{1}
+	} else if len(value) == 1 {
+		values = []interface{}{value[0]}
+	} else {
+		values = []interface{}{value[0], value[1]}
 	}
 	return parseOperator(operatorOptions{
 		Method: "increment",
@@ -55,10 +59,14 @@ func Increment(value interface{}, max ...interface{}) string {
 	})
 }
 
-func Decrement(value interface{}, min ...interface{}) string {
-	values := []interface{}{value}
-	if len(min) > 0 && min[0] != nil {
-		values = append(values, min[0])
+func Decrement(value ...interface{}) string {
+	var values []interface{}
+	if len(value) == 0 {
+		values = []interface{}{1}
+	} else if len(value) == 1 {
+		values = []interface{}{value[0]}
+	} else {
+		values = []interface{}{value[0], value[1]}
 	}
 	return parseOperator(operatorOptions{
 		Method: "decrement",

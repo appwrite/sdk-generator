@@ -102,8 +102,7 @@ module {{spec.title | caseUcfirst}}
             end
 
             def array_filter(condition, value = nil)
-                values = [condition]
-                values << value if value != nil
+                values = [condition, value]
                 return Operator.new("arrayFilter", values).to_s
             end
 

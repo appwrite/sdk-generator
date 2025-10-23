@@ -101,9 +101,7 @@ class Operator():
 
     @staticmethod
     def array_filter(condition, value=None):
-        values = [condition.value if isinstance(condition, Condition) else condition]
-        if value is not None:
-            values.append(value)
+        values = [condition.value if isinstance(condition, Condition) else condition, value]
         return str(Operator("arrayFilter", values))
 
     @staticmethod

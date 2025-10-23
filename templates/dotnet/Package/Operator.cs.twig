@@ -200,11 +200,7 @@ namespace {{ spec.title | caseUcfirst }}
 
         public static string ArrayFilter(Condition condition, object? value = null)
         {
-            var values = new List<object> { condition.ToValue() };
-            if (value != null)
-            {
-                values.Add(value);
-            }
+            var values = new List<object?> { condition.ToValue(), value };
             return new Operator("arrayFilter", values).ToString();
         }
 

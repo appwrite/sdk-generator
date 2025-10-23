@@ -38,11 +38,10 @@ class Operator implements \JsonSerializable
 
     public function jsonSerialize(): mixed
     {
-        $result = ['method' => $this->method];
-        if ($this->values !== null) {
-            $result['values'] = $this->values;
-        }
-        return $result;
+        return [
+            'method' => $this->method,
+            'values' => $this->values
+        ];
     }
 
     /**
@@ -228,10 +227,7 @@ class Operator implements \JsonSerializable
      */
     public static function arrayFilter(string $condition, mixed $value = null): string
     {
-        $values = [$condition];
-        if ($value !== null) {
-            $values[] = $value;
-        }
+        $values = [$condition, $value];
         return (new Operator('arrayFilter', $values))->__toString();
     }
 

@@ -88,8 +88,7 @@ class Operator(
         }
 
         fun arrayFilter(condition: Condition, value: Any? = null): String {
-            val values = mutableListOf<Any?>(condition.value)
-            value?.let { values.add(it) }
+            val values = listOf<Any?>(condition.value, value)
             return Operator("arrayFilter", values).toJson()
         }
 
