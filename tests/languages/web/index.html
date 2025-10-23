@@ -21,7 +21,7 @@
             let responseRealtime = 'Realtime failed!';
 
             // Init SDK
-            const { Client, Foo, Bar, General, Query, Permission, Role, ID, MockType } = Appwrite;
+            const { Client, Foo, Bar, General, Realtime, Query, Permission, Role, ID, MockType } = Appwrite;
             const client = new Client();
 
             const foo = new Foo(client);
@@ -37,8 +37,10 @@
             client.setProject('console');
             client.setEndpointRealtime('wss://cloud.appwrite.io/v1');
 
-            client.subscribe('tests', event => {
-                responseRealtime = event.payload.response;
+            const realtime = new Realtime(client);
+
+            await realtime.subscribe(['tests'], message => {
+                responseRealtime = message.payload.response;
             });
 
             // Foo

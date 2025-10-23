@@ -42,6 +42,11 @@ class Web extends JS
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'src/services/realtime.ts',
+                'template'      => 'web/src/services/realtime.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'src/models.ts',
                 'template'      => 'web/src/models.ts.twig',
             ],
