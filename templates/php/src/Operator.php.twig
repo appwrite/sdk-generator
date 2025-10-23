@@ -102,6 +102,9 @@ class Operator implements \JsonSerializable
      */
     public static function divide(int|float $divisor, int|float|null $min = null): string
     {
+        if ($divisor === 0 || $divisor === 0.0) {
+            throw new \InvalidArgumentException('Divisor cannot be zero');
+        }
         $values = [$divisor];
         if ($min !== null) {
             $values[] = $min;

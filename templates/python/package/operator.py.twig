@@ -51,6 +51,8 @@ class Operator():
 
     @staticmethod
     def divide(divisor, min=None):
+        if divisor == 0:
+            raise ValueError("Divisor cannot be zero")
         values = [divisor]
         if min is not None:
             values.append(min)

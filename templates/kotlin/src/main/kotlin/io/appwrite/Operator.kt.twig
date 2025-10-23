@@ -18,31 +18,32 @@ enum class Condition(val value: String) {
 
 class Operator(
     val method: String,
-    val values: List<Any>? = null,
+    val values: List<Any?>? = null,
 ) {
     override fun toString() = this.toJson()
 
     companion object {
         fun increment(value: Number = 1, max: Number? = null): String {
-            val values = mutableListOf<Any>(value)
+            val values = mutableListOf<Any?>(value)
             max?.let { values.add(it) }
             return Operator("increment", values).toJson()
         }
 
         fun decrement(value: Number = 1, min: Number? = null): String {
-            val values = mutableListOf<Any>(value)
+            val values = mutableListOf<Any?>(value)
             min?.let { values.add(it) }
             return Operator("decrement", values).toJson()
         }
 
         fun multiply(factor: Number, max: Number? = null): String {
-            val values = mutableListOf<Any>(factor)
+            val values = mutableListOf<Any?>(factor)
             max?.let { values.add(it) }
             return Operator("multiply", values).toJson()
         }
 
         fun divide(divisor: Number, min: Number? = null): String {
-            val values = mutableListOf<Any>(divisor)
+            require(divisor.toDouble() != 0.0) { "Divisor cannot be zero" }
+            val values = mutableListOf<Any?>(divisor)
             min?.let { values.add(it) }
             return Operator("divide", values).toJson()
         }
@@ -53,7 +54,7 @@ class Operator(
         }
 
         fun power(exponent: Number, max: Number? = null): String {
-            val values = mutableListOf<Any>(exponent)
+            val values = mutableListOf<Any?>(exponent)
             max?.let { values.add(it) }
             return Operator("power", values).toJson()
         }
@@ -87,7 +88,7 @@ class Operator(
         }
 
         fun arrayFilter(condition: Condition, value: Any? = null): String {
-            val values = mutableListOf<Any>(condition.value)
+            val values = mutableListOf<Any?>(condition.value)
             value?.let { values.add(it) }
             return Operator("arrayFilter", values).toJson()
         }

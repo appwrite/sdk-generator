@@ -107,6 +107,9 @@ export class Operator {
    * @returns {string}
    */
   static divide = (divisor: number, min?: number): string => {
+    if (divisor === 0) {
+      throw new Error("Divisor cannot be zero");
+    }
     const values: any[] = [divisor];
     if (min !== undefined) {
       values.push(min);

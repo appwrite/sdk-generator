@@ -188,6 +188,7 @@ public struct Operator : Codable, CustomStringConvertible {
     }
 
     public static func divide(_ divisor: Double, min: Double? = nil) -> String {
+        precondition(divisor != 0, "Divisor cannot be zero")
         var values: [Any] = [divisor]
         if let min = min {
             values.append(min)

@@ -78,6 +78,17 @@ func Multiply(factor interface{}, max ...interface{}) string {
 }
 
 func Divide(divisor interface{}, min ...interface{}) string {
+	// Check for zero divisor
+	switch v := divisor.(type) {
+	case int:
+		if v == 0 {
+			panic("divisor cannot be zero")
+		}
+	case float64:
+		if v == 0.0 {
+			panic("divisor cannot be zero")
+		}
+	}
 	values := []interface{}{divisor}
 	if len(min) > 0 && min[0] != nil {
 		values = append(values, min[0])

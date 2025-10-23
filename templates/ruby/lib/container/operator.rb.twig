@@ -56,6 +56,7 @@ module {{spec.title | caseUcfirst}}
             end
 
             def divide(divisor, min = nil)
+                raise ArgumentError, "Divisor cannot be zero" if divisor == 0 || divisor == 0.0
                 values = [divisor]
                 values << min if min != nil
                 return Operator.new("divide", values).to_s

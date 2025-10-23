@@ -116,6 +116,10 @@ namespace {{ spec.title | caseUcfirst }}
 
         public static string Divide(double divisor, double? min = null)
         {
+            if (divisor == 0)
+            {
+                throw new ArgumentException("Divisor cannot be zero", nameof(divisor));
+            }
             var values = new List<object> { divisor };
             if (min.HasValue)
             {
