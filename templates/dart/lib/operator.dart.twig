@@ -78,8 +78,12 @@ class Operator {
   }
 
   /// Apply modulo operation on a numeric attribute.
-  static String modulo(num divisor) =>
-      Operator._('modulo', [divisor]).toString();
+  static String modulo(num divisor) {
+    if (divisor == 0) {
+      throw ArgumentError('Divisor cannot be zero');
+    }
+    return Operator._('modulo', [divisor]).toString();
+  }
 
   /// Raise a numeric attribute to a specified power.
   static String power(num exponent, [num? max]) {

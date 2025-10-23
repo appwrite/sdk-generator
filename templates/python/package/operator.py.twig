@@ -58,6 +58,8 @@ class Operator():
 
     @staticmethod
     def modulo(divisor):
+        if divisor == 0:
+            raise ValueError("Divisor cannot be zero")
         return str(Operator("modulo", [divisor]))
 
     @staticmethod

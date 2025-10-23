@@ -120,8 +120,12 @@ export class Operator {
    * @param {number} divisor
    * @returns {string}
    */
-  static modulo = (divisor: number): string =>
-    new Operator("modulo", [divisor]).toString();
+  static modulo = (divisor: number): string => {
+    if (divisor === 0) {
+      throw new Error("Divisor cannot be zero");
+    }
+    return new Operator("modulo", [divisor]).toString();
+  };
 
   /**
    * Raise a numeric attribute to a specified power.

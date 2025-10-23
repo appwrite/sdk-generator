@@ -48,6 +48,7 @@ class Operator(
         }
 
         fun modulo(divisor: Number): String {
+            require(divisor.toDouble() != 0.0) { "Divisor cannot be zero" }
             return Operator("modulo", listOf(divisor)).toJson()
         }
 

@@ -89,6 +89,16 @@ func Divide(divisor interface{}, min ...interface{}) string {
 }
 
 func Modulo(divisor interface{}) string {
+	switch v := divisor.(type) {
+	case int:
+		if v == 0 {
+			panic("divisor cannot be zero")
+		}
+	case float64:
+		if v == 0.0 {
+			panic("divisor cannot be zero")
+		}
+	}
 	values := []interface{}{divisor}
 	return parseOperator(operatorOptions{
 		Method: "modulo",

@@ -126,6 +126,10 @@ namespace {{ spec.title | caseUcfirst }}
 
         public static string Modulo(double divisor)
         {
+            if (divisor == 0)
+            {
+                throw new ArgumentException("Divisor cannot be zero", nameof(divisor));
+            }
             return new Operator("modulo", new List<object> { divisor }).ToString();
         }
 

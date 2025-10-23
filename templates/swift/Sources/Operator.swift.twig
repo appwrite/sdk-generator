@@ -196,6 +196,7 @@ public struct Operator : Codable, CustomStringConvertible {
     }
 
     public static func modulo(_ divisor: Double) -> String {
+        precondition(divisor != 0, "Divisor cannot be zero")
         return Operator(method: "modulo", values: [divisor]).description
     }
 

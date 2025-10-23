@@ -62,6 +62,7 @@ module {{spec.title | caseUcfirst}}
             end
 
             def modulo(divisor)
+                raise ArgumentError, "Divisor cannot be zero" if divisor == 0 || divisor == 0.0
                 return Operator.new("modulo", [divisor]).to_s
             end
 
