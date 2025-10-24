@@ -367,7 +367,7 @@ export class Realtime {
 
         const messageData = message.data as RealtimeResponseConnected;
 
-        let session = this.client.config.session;
+        let session = this.client.config?.session;
         if (!session) {
             try {
                 const cookie = JSON.parse(window.localStorage.getItem('cookieFallback') ?? '{}');
