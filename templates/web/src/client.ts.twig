@@ -303,7 +303,7 @@ class Client {
     config: {
         endpoint: string;
         endpointRealtime: string;
-        [key: string]: string;
+        [key: string]: string | undefined;
     } = {
         endpoint: '{{ spec.endpoint }}',
         endpointRealtime: '',
