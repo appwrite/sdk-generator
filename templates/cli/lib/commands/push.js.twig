@@ -837,14 +837,16 @@ const attributesToCreate = async (remoteAttributes, localAttributes, collection,
 
     if (!cliConfig.force) {
         if (deleting.length > 0 && !isIndex) {
-            console.log(`${chalk.red('-------------------------------------------------------')}`);
+            console.log(`${chalk.red('------------------------------------------------------')}`);
             console.log(`${chalk.red('| WARNING: Attribute deletion may cause loss of data |')}`);
-            console.log(`${chalk.red('-------------------------------------------------------')}`);
+            console.log(`${chalk.red('------------------------------------------------------')}`);
+            console.log();
         }
         if (conflicts.length > 0 && !isIndex) {
-            console.log(`${chalk.red('---------------------------------------------------------')}`);
+            console.log(`${chalk.red('--------------------------------------------------------')}`);
             console.log(`${chalk.red('| WARNING: Attribute recreation may cause loss of data |')}`);
-            console.log(`${chalk.red('---------------------------------------------------------')}`);
+            console.log(`${chalk.red('--------------------------------------------------------')}`);
+            console.log();
         }
 
         if ((await getConfirmation()) !== true) {
@@ -1725,9 +1727,10 @@ const checkAndApplyTablesDBChanges = async () => {
             toDelete.push(remoteDB);
             changes.push({
                 id: remoteDB.$id,
+                action: chalk.red('deleting'),
                 key: 'Database',
-                remote: chalk.red(`${remoteDB.name} (${remoteDB.$id})`),
-                local: chalk.green('(deleted locally)')
+                remote: remoteDB.name,
+                local: '(deleted locally)'
             });
         }
     }
@@ -1740,9 +1743,10 @@ const checkAndApplyTablesDBChanges = async () => {
             toCreate.push(localDB);
             changes.push({
                 id: localDB.$id,
+                action: chalk.green('creating'),
                 key: 'Database',
-                remote: chalk.red('(does not exist)'),
-                local: chalk.green(`${localDB.name} (${localDB.$id})`)
+                remote: '(does not exist)',
+                local: localDB.name
             });
         } else {
             let hasChanges = false;
@@ -1751,9 +1755,10 @@ const checkAndApplyTablesDBChanges = async () => {
                 hasChanges = true;
                 changes.push({
                     id: localDB.$id,
+                    action: chalk.yellow('updating'),
                     key: 'Name',
-                    remote: chalk.red(remoteDB.name),
-                    local: chalk.green(localDB.name)
+                    remote: remoteDB.name,
+                    local: localDB.name
                 });
             }
             
@@ -1761,9 +1766,10 @@ const checkAndApplyTablesDBChanges = async () => {
                 hasChanges = true;
                 changes.push({
                     id: localDB.$id,
-                    key: 'Enabled?',
-                    remote: chalk.red(remoteDB.enabled),
-                    local: chalk.green(localDB.enabled)
+                    action: chalk.yellow('updating'),
+                    key: 'Enabled',
+                    remote: remoteDB.enabled,
+                    local: localDB.enabled
                 });
             }
             
@@ -1774,16 +1780,19 @@ const checkAndApplyTablesDBChanges = async () => {
     }
 
     if (changes.length === 0) {
+        console.log('No changes found in tablesDB resource');
+        console.log();
         return { applied: false, resyncNeeded: false };
     }
 
-    log('Found changes in tablesDB resources:');
+    log('Found changes in tablesDB resource:');
     drawTable(changes);
 
     if (toDelete.length > 0) {
-        console.log(`${chalk.red('-------------------------------------------------------------------')}`);
+        console.log(`${chalk.red('------------------------------------------------------------------')}`);
         console.log(`${chalk.red('| WARNING: Database deletion will also delete all related tables |')}`);
-        console.log(`${chalk.red('-------------------------------------------------------------------')}`);
+        console.log(`${chalk.red('------------------------------------------------------------------')}`);
+        console.log();
     }
 
     if ((await getConfirmation()) !== true) {
@@ -1841,6 +1850,10 @@ const checkAndApplyTablesDBChanges = async () => {
         }
     }
 
+    if (toDelete.length === 0){
+        console.log();
+    }
+
     return { applied: true, resyncNeeded: needsResync };
 };
 
@@ -1868,6 +1881,7 @@ const pushTable = async ({ returnOnZero, attempts } = { returnOnZero: false }) =
         localConfig.set('tablesDB', validTablesDBs);
 
         success('Configuration resynced successfully.');
+        console.log();
     }
 
     if (cliConfig.all) {
