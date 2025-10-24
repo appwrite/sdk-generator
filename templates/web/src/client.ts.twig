@@ -300,7 +300,11 @@ class Client {
     /**
      * Holds configuration such as project.
      */
-    config = {
+    config: {
+        endpoint: string;
+        endpointRealtime: string;
+        [key: string]: string | undefined;
+    } = {
         endpoint: '{{ spec.endpoint }}',
         endpointRealtime: '',
         {%~ for header in spec.global.headers %}
@@ -423,7 +427,9 @@ class Client {
             }
 
             const channels = new URLSearchParams();
-            channels.set('project', this.config.project);
+            if (this.config.project) {
+                channels.set('project', this.config.project);
+            }
             this.realtime.channels.forEach(channel => {
                 channels.append('channels[]', channel);
             });
@@ -478,7 +484,7 @@ class Client {
                 this.realtime.lastMessage = message;
                 switch (message.type) {
                     case 'connected':
-                        let session = this.config?.session;
+                        let session = this.config.session;
                         if (!session) {
                             const cookie = JSON.parse(window.localStorage.getItem('cookieFallback') ?? '{}');
                             session = cookie?.[`a_session_${this.config.project}`];
