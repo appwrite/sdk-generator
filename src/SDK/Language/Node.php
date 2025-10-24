@@ -204,6 +204,11 @@ class Node extends Web
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'src/operator.ts',
+                'template'      => 'node/src/operator.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'README.md',
                 'template'      => 'node/README.md.twig',
             ],
