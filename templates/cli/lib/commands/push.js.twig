@@ -58,7 +58,8 @@ const {
     tablesDBUpdateTable,
     tablesDBList,
     tablesDBDelete,
-    tablesDBListTables
+    tablesDBListTables,
+    tablesDBDeleteTable
 } = require("./tables-db");
 const {
     storageGetBucket, storageUpdateBucket, storageCreateBucket
@@ -1883,6 +1884,65 @@ const pushTable = async ({ returnOnZero, attempts } = { returnOnZero: false }) =
         success('Configuration resynced successfully.');
         console.log();
     }
+
+    log('Checking for deleted tables ...');
+    const localTablesDBs = localConfig.getTablesDBs();
+    const localTables = localConfig.getTables();
+    const tablesToDelete = [];
+
+    for (const db of localTablesDBs) {
+        try {
+            const { tables: remoteTables } = await paginate(tablesDBListTables, {
+                databaseId: db.$id,
+                parseOutput: false
+            }, 100, 'tables');
+
+            for (const remoteTable of remoteTables) {
+                const localTable = localTables.find(t => t.$id === remoteTable.$id && t.databaseId === db.$id);
+                if (!localTable) {
+                    tablesToDelete.push({
+                        ...remoteTable,
+                        databaseId: db.$id,
+                        databaseName: db.name
+                    });
+                }
+            }
+        } catch (e) {
+            // Skip if database doesn't exist or other errors
+        }
+    }
+
+    if (tablesToDelete.length > 0) {
+        log('Found tables that exist remotely but not locally:');
+        const deletionChanges = tablesToDelete.map(table => ({
+            id: table.$id,
+            action: chalk.red('deleting'),
+            key: 'Table',
+            database: table.databaseName,
+            remote: table.name,
+            local: '(deleted locally)'
+        }));
+        drawTable(deletionChanges);
+
+        if ((await getConfirmation()) === true) {
+            for (const table of tablesToDelete) {
+                try {
+                    log(`Deleting table ${table.name} ( ${table.$id} ) from database ${table.databaseName} ...`);
+                    await tablesDBDeleteTable({
+                        databaseId: table.databaseId,
+                        tableId: table.$id,
+                        parseOutput: false
+                    });
+                    success(`Deleted ${table.name} ( ${table.$id} )`);
+                } catch (e) {
+                    error(`Failed to delete table ${table.name} ( ${table.$id} ): ${e.message}`);
+                }
+            }
+        }
+    } else {
+        console.log('No tables found to delete');
+    }
+    console.log();
 
     if (cliConfig.all) {
         checkDeployConditions(localConfig);
