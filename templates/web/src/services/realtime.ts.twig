@@ -361,13 +361,21 @@ export class Realtime {
     }
 
     private handleResponseConnected(message: RealtimeResponse): void {
-        let session = this.client.config.session;
-        if (!session) {
-            const cookie = JSON.parse(window.localStorage.getItem('cookieFallback') ?? '{}');
-            session = cookie?.[`a_session_${this.client.config.project}`];
+        if (!message.data) {
+            return;
         }
 
-        const messageData = <RealtimeResponseConnected>message.data;
+        const messageData = message.data as RealtimeResponseConnected;
+
+        let session = this.client.config.session;
+        if (!session) {
+            try {
+                const cookie = JSON.parse(window.localStorage.getItem('cookieFallback') ?? '{}');
+                session = cookie?.[`a_session_${this.client.config.project}`];
+            } catch (error) {
+                console.error('Failed to parse cookie fallback:', error);
+            }
+        }
 
         if (session && !messageData.user) {
             this.socket?.send(JSON.stringify(<RealtimeRequest>{
