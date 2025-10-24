@@ -43,6 +43,12 @@ class Operator {
 
   /// Increment a numeric attribute by a specified value.
   static String increment([num value = 1, num? max]) {
+    if (value.toDouble().isNaN || value.toDouble().isInfinite) {
+      throw ArgumentError('Value cannot be NaN or Infinity');
+    }
+    if (max != null && (max.toDouble().isNaN || max.toDouble().isInfinite)) {
+      throw ArgumentError('Max cannot be NaN or Infinity');
+    }
     final values = <dynamic>[value];
     if (max != null) {
       values.add(max);
@@ -52,6 +58,12 @@ class Operator {
 
   /// Decrement a numeric attribute by a specified value.
   static String decrement([num value = 1, num? min]) {
+    if (value.toDouble().isNaN || value.toDouble().isInfinite) {
+      throw ArgumentError('Value cannot be NaN or Infinity');
+    }
+    if (min != null && (min.toDouble().isNaN || min.toDouble().isInfinite)) {
+      throw ArgumentError('Min cannot be NaN or Infinity');
+    }
     final values = <dynamic>[value];
     if (min != null) {
       values.add(min);
@@ -61,6 +73,12 @@ class Operator {
 
   /// Multiply a numeric attribute by a specified factor.
   static String multiply(num factor, [num? max]) {
+    if (factor.toDouble().isNaN || factor.toDouble().isInfinite) {
+      throw ArgumentError('Factor cannot be NaN or Infinity');
+    }
+    if (max != null && (max.toDouble().isNaN || max.toDouble().isInfinite)) {
+      throw ArgumentError('Max cannot be NaN or Infinity');
+    }
     final values = <dynamic>[factor];
     if (max != null) {
       values.add(max);
@@ -70,6 +88,12 @@ class Operator {
 
   /// Divide a numeric attribute by a specified divisor.
   static String divide(num divisor, [num? min]) {
+    if (divisor.toDouble().isNaN || divisor.toDouble().isInfinite) {
+      throw ArgumentError('Divisor cannot be NaN or Infinity');
+    }
+    if (min != null && (min.toDouble().isNaN || min.toDouble().isInfinite)) {
+      throw ArgumentError('Min cannot be NaN or Infinity');
+    }
     if (divisor == 0) {
       throw ArgumentError('Divisor cannot be zero');
     }
@@ -82,6 +106,9 @@ class Operator {
 
   /// Apply modulo operation on a numeric attribute.
   static String modulo(num divisor) {
+    if (divisor.toDouble().isNaN || divisor.toDouble().isInfinite) {
+      throw ArgumentError('Divisor cannot be NaN or Infinity');
+    }
     if (divisor == 0) {
       throw ArgumentError('Divisor cannot be zero');
     }
@@ -90,6 +117,12 @@ class Operator {
 
   /// Raise a numeric attribute to a specified power.
   static String power(num exponent, [num? max]) {
+    if (exponent.toDouble().isNaN || exponent.toDouble().isInfinite) {
+      throw ArgumentError('Exponent cannot be NaN or Infinity');
+    }
+    if (max != null && (max.toDouble().isNaN || max.toDouble().isInfinite)) {
+      throw ArgumentError('Max cannot be NaN or Infinity');
+    }
     final values = <dynamic>[exponent];
     if (max != null) {
       values.add(max);

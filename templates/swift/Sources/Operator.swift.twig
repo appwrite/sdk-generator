@@ -164,6 +164,12 @@ public struct Operator : Codable, CustomStringConvertible {
     }
 
     public static func increment(_ value: Double = 1, max: Double? = nil) -> String {
+        if value.isNaN || value.isInfinite {
+            fatalError("Value cannot be NaN or Infinity")
+        }
+        if let max = max, max.isNaN || max.isInfinite {
+            fatalError("Max cannot be NaN or Infinity")
+        }
         var values: [Any] = [value]
         if let max = max {
             values.append(max)
@@ -172,6 +178,12 @@ public struct Operator : Codable, CustomStringConvertible {
     }
 
     public static func decrement(_ value: Double = 1, min: Double? = nil) -> String {
+        if value.isNaN || value.isInfinite {
+            fatalError("Value cannot be NaN or Infinity")
+        }
+        if let min = min, min.isNaN || min.isInfinite {
+            fatalError("Min cannot be NaN or Infinity")
+        }
         var values: [Any] = [value]
         if let min = min {
             values.append(min)
@@ -180,6 +192,12 @@ public struct Operator : Codable, CustomStringConvertible {
     }
 
     public static func multiply(_ factor: Double, max: Double? = nil) -> String {
+        if factor.isNaN || factor.isInfinite {
+            fatalError("Factor cannot be NaN or Infinity")
+        }
+        if let max = max, max.isNaN || max.isInfinite {
+            fatalError("Max cannot be NaN or Infinity")
+        }
         var values: [Any] = [factor]
         if let max = max {
             values.append(max)
@@ -188,6 +206,12 @@ public struct Operator : Codable, CustomStringConvertible {
     }
 
     public static func divide(_ divisor: Double, min: Double? = nil) -> String {
+        if divisor.isNaN || divisor.isInfinite {
+            fatalError("Divisor cannot be NaN or Infinity")
+        }
+        if let min = min, min.isNaN || min.isInfinite {
+            fatalError("Min cannot be NaN or Infinity")
+        }
         if divisor == 0 {
             fatalError("Divisor cannot be zero")
         }
@@ -199,6 +223,9 @@ public struct Operator : Codable, CustomStringConvertible {
     }
 
     public static func modulo(_ divisor: Double) -> String {
+        if divisor.isNaN || divisor.isInfinite {
+            fatalError("Divisor cannot be NaN or Infinity")
+        }
         if divisor == 0 {
             fatalError("Divisor cannot be zero")
         }
@@ -206,6 +233,12 @@ public struct Operator : Codable, CustomStringConvertible {
     }
 
     public static func power(_ exponent: Double, max: Double? = nil) -> String {
+        if exponent.isNaN || exponent.isInfinite {
+            fatalError("Exponent cannot be NaN or Infinity")
+        }
+        if let max = max, max.isNaN || max.isInfinite {
+            fatalError("Max cannot be NaN or Infinity")
+        }
         var values: [Any] = [exponent]
         if let max = max {
             values.append(max)
