@@ -151,9 +151,30 @@ abstract class Language
 
         $result = [];
         foreach ($matches as $match) {
+            $action = $match[1];
+            $roleString = $match[2];
+            
+            $role = null;
+            $id = null;
+            $innerRole = null;
+
+            if (strpos($roleString, ':') !== false) {
+                $role = explode(':', $roleString, 2)[0];
+                $idString = explode(':', $roleString, 2)[1];
+
+                if (strpos($idString, '/') !== false) {
+                    $id = explode('/', $idString, 2)[0];
+                    $innerRole = explode('/', $idString, 2)[1];
+                }
+            } else {
+                $role = $roleString;
+            }
+
             $result[] = [
-                'action' => $match[1],
-                'role' => $match[2]
+                'action' => $action,
+                'role' => $role,
+                'id' => $id ?? null,
+                'innerRole' => $innerRole
             ];
         }
 
