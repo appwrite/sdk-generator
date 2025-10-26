@@ -19,6 +19,10 @@ from {{ spec.title | caseSnake }}.enums import {{parameter.enumName | caseUcfirs
 {% endif %}
 {% endif %}
 {% endfor %}
+{% if method.parameters.all | hasPermissionParam %}
+from {{ spec.title | caseSnake }}.permission import Permission
+from {{ spec.title | caseSnake }}.role import Role
+{% endif %}
 
 client = Client()
 {% if method.auth|length > 0 %}
