@@ -157,4 +157,15 @@ abstract class Language
         
         return $result;
     }
+
+    public function hasPermissionParam(array $parameters): bool
+    {
+        foreach ($parameters as $param) {
+            $example = $param['example'] ?? '';
+            if (!empty($example) && is_string($example) && $this->isPermissionString($example)) {
+                return true;
+            }
+        }
+        return false;
+    }
 }

@@ -391,9 +391,6 @@ class Web extends JS
             new TwigFilter('getReturn', function (array $method, array $spec) {
                 return $this->getReturn($method, $spec);
             }),
-            new TwigFilter('hasPermissionParam', function (array $parameters) {
-                return $this->hasPermissionParam($parameters);
-            }),
             new TwigFilter('comment2', function ($value) {
                 $value = explode("\n", $value);
                 foreach ($value as $key => $line) {
