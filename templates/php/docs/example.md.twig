@@ -21,6 +21,10 @@ use {{ spec.title | caseUcfirst }}\Enums\{{parameter.enumName | caseUcfirst}};
 {% endif %}
 {% endif %}
 {% endfor %}
+{% if method.parameters.all | hasPermissionParam %}
+use {{ spec.title | caseUcfirst }}\Permission;
+use {{ spec.title | caseUcfirst }}\Role;
+{% endif %}
 
 $client = (new Client())
     {%~ if method.auth|length > 0 %}
