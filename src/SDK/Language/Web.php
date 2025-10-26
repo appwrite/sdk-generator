@@ -167,7 +167,7 @@ class Web extends JS
     {
         $permissions = [];
         foreach ($this->extractPermissionParts($example) as $permission) {
-            $permissions[] = 'Permission.' . $permission['action'] . '("' . 'Role.' . $permission['role'] . '")';
+            $permissions[] = 'Permission.' . $permission['action'] . '(' . 'Role.' . $permission['role'] . '(' . ')' . ')';
         }
         return '[' . implode(', ', $permissions) . ']';
     }
