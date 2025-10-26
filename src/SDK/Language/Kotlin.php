@@ -285,7 +285,15 @@ class Kotlin extends Language
     {
         $permissions = [];
         foreach ($this->extractPermissionParts($example) as $permission) {
-            $permissions[] = 'Permission.' . $permission['action'] . '(Role.' . $permission['role'] . '())';
+            $args = [];
+            if ($permission['id'] !== null) {
+                $args[] = '"' . $permission['id'] . '"';
+            }
+            if ($permission['innerRole'] !== null) {
+                $args[] = '"' . $permission['innerRole'] . '"';
+            }
+            $argsString = implode(', ', $args);
+            $permissions[] = 'Permission.' . $permission['action'] . '(Role.' . $permission['role'] . '(' . $argsString . '))';
         }
         return 'listOf(' . implode(', ', $permissions) . ')';
     }
