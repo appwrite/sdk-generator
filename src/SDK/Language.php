@@ -153,7 +153,7 @@ abstract class Language
         foreach ($matches as $match) {
             $action = $match[1];
             $roleString = $match[2];
-            
+
             $role = null;
             $id = null;
             $innerRole = null;
