@@ -137,4 +137,24 @@ abstract class Language
     {
         return \strtoupper($this->toSnakeCase($str));
     }
+
+    function isPermissionString(string $string): bool {
+        $pattern = '/^\["(read|update|delete|write)\(\\"[^\\"]+\\"\)"\]$/';
+        return preg_match($pattern, $string) === 1;
+    }
+
+    function extractPermissionParts(string $string): array {
+        $inner = substr($string, 1, -1);
+        preg_match_all('/"(read|update|delete|write)\(\\"([^\\"]+)\\"\)"/', $inner, $matches, PREG_SET_ORDER);
+        
+        $result = [];
+        foreach ($matches as $match) {
+            $result[] = [
+                'action' => $match[1],
+                'role' => $match[2]
+            ];
+        }
+        
+        return $result;
+    }
 }
