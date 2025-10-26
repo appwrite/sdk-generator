@@ -2,6 +2,10 @@
 import 'dart:io';
 {% endif %}
 import 'package:{{ language.params.packageName }}/{{ language.params.packageName }}.dart';
+{% if method.parameters.all | hasPermissionParam %}
+import 'package:{{ language.params.packageName }}/permission.dart';
+import 'package:{{ language.params.packageName }}/role.dart';
+{% endif %}
 
 Client client = Client()
     {%~ if method.auth|length > 0 %}

@@ -282,8 +282,10 @@ class DotNet extends Language
                 case self::TYPE_FILE:
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
-                case self::TYPE_ARRAY:
                     $output .= $example;
+                    break;
+                case self::TYPE_ARRAY:
+                    $output .= $this->isPermissionString($example) ? $this->getPermissionExample($example) : $example;
                     break;
                 case self::TYPE_OBJECT:
                     if ($example === '{}') {
@@ -308,6 +310,15 @@ class DotNet extends Language
         }
 
         return $output;
+    }
+
+    public function getPermissionExample(string $example): string
+    {
+        $permissions = [];
+        foreach ($this->extractPermissionParts($example) as $permission) {
+            $permissions[] = 'Permission.' . ucfirst($permission['action']) . '(Role.' . ucfirst($permission['role']) . '())';
+        }
+        return 'new List<string> { ' . implode(', ', $permissions) . ' }';
     }
 
     /**

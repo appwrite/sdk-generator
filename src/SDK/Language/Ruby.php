@@ -302,8 +302,10 @@ class Ruby extends Language
             switch ($type) {
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
-                case self::TYPE_ARRAY:
                     $output .= $example;
+                    break;
+                case self::TYPE_ARRAY:
+                    $output .= $this->isPermissionString($example) ? $this->getPermissionExample($example) : $example;
                     break;
                 case self::TYPE_OBJECT:
                     $output .= $this->jsonToHash(json_decode($example, true));
@@ -321,6 +323,15 @@ class Ruby extends Language
         }
 
         return $output;
+    }
+
+    public function getPermissionExample(string $example): string
+    {
+        $permissions = [];
+        foreach ($this->extractPermissionParts($example) as $permission) {
+            $permissions[] = 'Permission.' . $permission['action'] . '(Role.' . $permission['role'] . '())';
+        }
+        return '[' . implode(', ', $permissions) . ']';
     }
 
     /**
