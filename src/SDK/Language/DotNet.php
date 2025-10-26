@@ -316,7 +316,15 @@ class DotNet extends Language
     {
         $permissions = [];
         foreach ($this->extractPermissionParts($example) as $permission) {
-            $permissions[] = 'Permission.' . ucfirst($permission['action']) . '(Role.' . ucfirst($permission['role']) . '())';
+            $args = [];
+            if ($permission['id'] !== null) {
+                $args[] = '"' . $permission['id'] . '"';
+            }
+            if ($permission['innerRole'] !== null) {
+                $args[] = '"' . $permission['innerRole'] . '"';
+            }
+            $argsString = implode(', ', $args);
+            $permissions[] = 'Permission.' . ucfirst($permission['action']) . '(Role.' . ucfirst($permission['role']) . '(' . $argsString . '))';
         }
         return 'new List<string> { ' . implode(', ', $permissions) . ' }';
     }

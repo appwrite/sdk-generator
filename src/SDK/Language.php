@@ -140,7 +140,7 @@ abstract class Language
 
     public function isPermissionString(string $string): bool
     {
-        $pattern = '/^\[("(read|update|delete|write)\(\\"[^\\"]+\\"\)"(,\s*)?)+\]$/';
+        $pattern = '/^\["(read|update|delete|write)\(\\"[^\\"]+\\"\)"(,\s*"(read|update|delete|write)\(\\"[^\\"]+\\"\)")*\]$/';
         return preg_match($pattern, $string) === 1;
     }
 
@@ -165,6 +165,8 @@ abstract class Language
                 if (strpos($idString, '/') !== false) {
                     $id = explode('/', $idString, 2)[0];
                     $innerRole = explode('/', $idString, 2)[1];
+                } else {
+                    $id = $idString;
                 }
             } else {
                 $role = $roleString;
