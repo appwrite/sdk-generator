@@ -6,10 +6,6 @@ import {{ spec.title | caseUcfirst }}Enums
 {% set addedEnum = true %}
 {% endif %}
 {% endfor %}
-{% if method.parameters.all | hasPermissionParam %}
-import {{ spec.title | caseUcfirst }}Permission
-import {{ spec.title | caseUcfirst }}Role
-{% endif %}
 
 let client = Client()
 {% if method.auth|length > 0 %}
