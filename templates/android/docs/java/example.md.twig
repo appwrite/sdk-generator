@@ -20,6 +20,10 @@ import {{ sdk.namespace | caseDot }}.enums.{{ name | caseUcfirst }};
 {% endif %}
 {% endif %}
 {% endfor %}
+{% if method.parameters.all | hasPermissionParam %}
+import {{ sdk.namespace | caseDot }}.Permission;
+import {{ sdk.namespace | caseDot }}.Role;
+{% endif %}
 
 Client client = new Client(context)
     {%~ if method.auth|length > 0 %}

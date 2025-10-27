@@ -176,7 +176,8 @@ class Deno extends JS
         }
 
         return match ($type) {
-            self::TYPE_ARRAY, self::TYPE_INTEGER, self::TYPE_NUMBER => $example,
+            self::TYPE_ARRAY => $this->isPermissionString($example) ? $this->getPermissionExample($example) : $example,
+            self::TYPE_INTEGER, self::TYPE_NUMBER => $example,
             self::TYPE_FILE => 'InputFile.fromPath(\'/path/to/file.png\', \'file.png\')',
             self::TYPE_BOOLEAN => ($example) ? 'true' : 'false',
             self::TYPE_OBJECT => ($example === '{}')
@@ -186,5 +187,22 @@ class Deno extends JS
                 : $example),
             self::TYPE_STRING => "'{$example}'",
         };
+    }
+
+    public function getPermissionExample(string $example): string
+    {
+        $permissions = [];
+        foreach ($this->extractPermissionParts($example) as $permission) {
+            $args = [];
+            if ($permission['id'] !== null) {
+                $args[] = "'" . $permission['id'] . "'";
+            }
+            if ($permission['innerRole'] !== null) {
+                $args[] = "'" . $permission['innerRole'] . "'";
+            }
+            $argsString = implode(', ', $args);
+            $permissions[] = 'Permission.' . $permission['action'] . '(Role.' . $permission['role'] . '(' . $argsString . '))';
+        }
+        return '[' . implode(', ', $permissions) . ']';
     }
 }

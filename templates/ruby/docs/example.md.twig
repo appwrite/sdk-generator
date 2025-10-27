@@ -12,6 +12,10 @@ include {{ spec.title | caseUcfirst }}::Enums
 {% endif %}
 {% endif %}
 {% endfor %}
+{% if method.parameters.all | hasPermissionParam %}
+include {{ spec.title | caseUcfirst }}::Permission
+include {{ spec.title | caseUcfirst }}::Role
+{% endif %}
 
 client = Client.new
     .set_endpoint('{{ spec.endpointDocs | raw }}') # Your API Endpoint

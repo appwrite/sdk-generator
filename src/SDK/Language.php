@@ -137,4 +137,60 @@ abstract class Language
     {
         return \strtoupper($this->toSnakeCase($str));
     }
+
+    public function isPermissionString(string $string): bool
+    {
+        $pattern = '/^\["(read|update|delete|write)\(\\"[^\\"]+\\"\)"(,\s*"(read|update|delete|write)\(\\"[^\\"]+\\"\)")*\]$/';
+        return preg_match($pattern, $string) === 1;
+    }
+
+    public function extractPermissionParts(string $string): array
+    {
+        $inner = substr($string, 1, -1);
+        preg_match_all('/"(read|update|delete|write)\(\\"([^\\"]+)\\"\)"/', $inner, $matches, PREG_SET_ORDER);
+
+        $result = [];
+        foreach ($matches as $match) {
+            $action = $match[1];
+            $roleString = $match[2];
+
+            $role = null;
+            $id = null;
+            $innerRole = null;
+
+            if (strpos($roleString, ':') !== false) {
+                $role = explode(':', $roleString, 2)[0];
+                $idString = explode(':', $roleString, 2)[1];
+
+                if (strpos($idString, '/') !== false) {
+                    $id = explode('/', $idString, 2)[0];
+                    $innerRole = explode('/', $idString, 2)[1];
+                } else {
+                    $id = $idString;
+                }
+            } else {
+                $role = $roleString;
+            }
+
+            $result[] = [
+                'action' => $action,
+                'role' => $role,
+                'id' => $id ?? null,
+                'innerRole' => $innerRole
+            ];
+        }
+
+        return $result;
+    }
+
+    public function hasPermissionParam(array $parameters): bool
+    {
+        foreach ($parameters as $param) {
+            $example = $param['example'] ?? '';
+            if (!empty($example) && is_string($example) && $this->isPermissionString($example)) {
+                return true;
+            }
+        }
+        return false;
+    }
 }

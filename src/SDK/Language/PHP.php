@@ -356,8 +356,10 @@ class PHP extends Language
             switch ($type) {
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
-                case self::TYPE_ARRAY:
                     $output .= $example;
+                    break;
+                case self::TYPE_ARRAY:
+                    $output .= $this->isPermissionString($example) ? $this->getPermissionExample($example) : $example;
                     break;
                 case self::TYPE_OBJECT:
                     $output .= $this->jsonToAssoc(json_decode($example, true));
@@ -375,6 +377,23 @@ class PHP extends Language
         }
 
         return $output;
+    }
+
+    public function getPermissionExample(string $example): string
+    {
+        $permissions = [];
+        foreach ($this->extractPermissionParts($example) as $permission) {
+            $args = [];
+            if ($permission['id'] !== null) {
+                $args[] = '"' . $permission['id'] . '"';
+            }
+            if ($permission['innerRole'] !== null) {
+                $args[] = '"' . $permission['innerRole'] . '"';
+            }
+            $argsString = implode(', ', $args);
+            $permissions[] = 'Permission::' . $permission['action'] . '(Role::' . $permission['role'] . '(' . $argsString . '))';
+        }
+        return '[' . implode(', ', $permissions) . ']';
     }
 
     /**

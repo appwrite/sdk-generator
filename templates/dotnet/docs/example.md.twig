@@ -8,6 +8,10 @@ using {{ spec.title | caseUcfirst }}.Enums;
 {% endfor %}
 using {{ spec.title | caseUcfirst }}.Models;
 using {{ spec.title | caseUcfirst }}.Services;
+{% if method.parameters.all | hasPermissionParam %}
+using {{ spec.title | caseUcfirst }}.Permission;
+using {{ spec.title | caseUcfirst }}.Role;
+{% endif %}
 
 Client client = new Client()
 {% if method.auth|length > 0 %}

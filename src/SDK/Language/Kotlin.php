@@ -257,13 +257,17 @@ class Kotlin extends Language
                     $output .= $example;
                     break;
                 case self::TYPE_ARRAY:
-                    if (\str_starts_with($example, '[')) {
-                        $example = \substr($example, 1);
+                    if ($this->isPermissionString($example)) {
+                        $output .= $this->getPermissionExample($example);
+                    } else {
+                        if (\str_starts_with($example, '[')) {
+                            $example = \substr($example, 1);
+                        }
+                        if (\str_ends_with($example, ']')) {
+                            $example = \substr($example, 0, -1);
+                        }
+                        $output .= 'listOf(' . $example . ')';
                     }
-                    if (\str_ends_with($example, ']')) {
-                        $example = \substr($example, 0, -1);
-                    }
-                    $output .= 'listOf(' . $example . ')';
                     break;
                 case self::TYPE_BOOLEAN:
                     $output .= ($example) ? 'true' : 'false';
@@ -275,6 +279,23 @@ class Kotlin extends Language
         }
 
         return $output;
+    }
+
+    public function getPermissionExample(string $example): string
+    {
+        $permissions = [];
+        foreach ($this->extractPermissionParts($example) as $permission) {
+            $args = [];
+            if ($permission['id'] !== null) {
+                $args[] = '"' . $permission['id'] . '"';
+            }
+            if ($permission['innerRole'] !== null) {
+                $args[] = '"' . $permission['innerRole'] . '"';
+            }
+            $argsString = implode(', ', $args);
+            $permissions[] = 'Permission.' . $permission['action'] . '(Role.' . $permission['role'] . '(' . $argsString . '))';
+        }
+        return 'listOf(' . implode(', ', $permissions) . ')';
     }
 
     /**
