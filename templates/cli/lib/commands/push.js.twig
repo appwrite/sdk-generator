@@ -43,6 +43,12 @@ const {
     databasesUpdateEnumAttribute,
     databasesUpdateRelationshipAttribute,
     databasesCreateRelationshipAttribute,
+    databasesCreatePointAttribute,
+    databasesUpdatePointAttribute,
+    databasesCreateLineAttribute,
+    databasesUpdateLineAttribute,
+    databasesCreatePolygonAttribute,
+    databasesUpdatePolygonAttribute,
     databasesDeleteAttribute,
     databasesDeleteIndex,
     databasesListAttributes,
@@ -562,6 +568,33 @@ const createAttribute = (databaseId, collectionId, attribute) => {
                 onDelete: attribute.onDelete,
                 parseOutput: false
             })
+        case 'point':
+            return databasesCreatePointAttribute({
+                databaseId,
+                collectionId,
+                key:attribute.key,
+                required:attribute.required,
+                xdefault:attribute.default,
+                parseOutput:false
+            })
+        case 'linestring':
+            return databasesCreateLineAttribute({
+                databaseId,
+                collectionId,
+                key:attribute.key,
+                required:attribute.required,
+                xdefault:attribute.default,
+                parseOutput:false
+            })
+        case 'polygon':
+            return databasesCreatePolygonAttribute({
+                databaseId,
+                collectionId,
+                key:attribute.key,
+                required:attribute.required,
+                xdefault:attribute.default,
+                parseOutput:false
+            })
         default:
             throw new Error(`Unsupported attribute type: ${attribute.type}`);
     }
@@ -680,6 +713,33 @@ const updateAttribute = (databaseId, collectionId, attribute) => {
                 twoWayKey: attribute.twoWayKey,
                 onDelete: attribute.onDelete,
                 parseOutput: false
+            })
+        case 'point':
+            return databasesUpdatePointAttribute({
+                databaseId,
+                collectionId,
+                key:attribute.key,
+                required:attribute.required,
+                xdefault:attribute.default,
+                parseOutput:false
+            })
+        case 'linestring':
+            return databasesUpdateLineAttribute({
+                databaseId,
+                collectionId,
+                key:attribute.key,
+                required:attribute.required,
+                xdefault:attribute.default,
+                parseOutput:false
+            })
+        case 'polygon':
+            return databasesUpdatePolygonAttribute({
+                databaseId,
+                collectionId,
+                key:attribute.key,
+                required:attribute.required,
+                xdefault:attribute.default,
+                parseOutput:false
             })
         default:
             throw new Error(`Unsupported attribute type: ${attribute.type}`);
