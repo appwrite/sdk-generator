@@ -14,6 +14,21 @@ class Web extends JS
         return 'Web';
     }
 
+    public function getStaticAccessOperator(): string
+    {
+        return '.';
+    }
+
+    public function getStringQuote(): string
+    {
+        return "'";
+    }
+
+    public function getArrayOf(string $elements): string
+    {
+        return '[' . $elements . ']';
+    }
+
     /**
      * @return array
      */
@@ -161,21 +176,6 @@ class Web extends JS
                 : $example),
             self::TYPE_STRING => "'{$example}'",
         };
-    }
-
-    public function getStaticAccessOperator(): string
-    {
-        return '.';
-    }
-
-    public function getStringQuote(): string
-    {
-        return "'";
-    }
-
-    public function getArrayOf(string $elements): string
-    {
-        return '[' . $elements . ']';
     }
 
     public function getReadOnlyProperties(array $parameter, string $responseModel, array $spec = []): array
