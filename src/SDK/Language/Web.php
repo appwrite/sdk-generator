@@ -163,21 +163,19 @@ class Web extends JS
         };
     }
 
-    public function getPermissionExample(string $example): string
+    public function getStaticAccessOperator(): string
     {
-        $permissions = [];
-        foreach ($this->extractPermissionParts($example) as $permission) {
-            $args = [];
-            if ($permission['id'] !== null) {
-                $args[] = "'" . $permission['id'] . "'";
-            }
-            if ($permission['innerRole'] !== null) {
-                $args[] = "'" . $permission['innerRole'] . "'";
-            }
-            $argsString = implode(', ', $args);
-            $permissions[] = 'Permission.' . $permission['action'] . '(Role.' . $permission['role'] . '(' . $argsString . '))';
-        }
-        return '[' . implode(', ', $permissions) . ']';
+        return '.';
+    }
+
+    public function getStringQuote(): string
+    {
+        return "'";
+    }
+
+    public function getArrayOf(string $elements): string
+    {
+        return '[' . $elements . ']';
     }
 
     public function getReadOnlyProperties(array $parameter, string $responseModel, array $spec = []): array
