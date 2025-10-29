@@ -272,7 +272,7 @@ class Python extends Language
             }
         }
 
-        if (!($parameter['required'] ?? true)) {
+        if (!($parameter['required'] ?? true) || ($parameter['nullable'] ?? false)) {
             return 'Optional[' . $typeName . ']';
         }
 
