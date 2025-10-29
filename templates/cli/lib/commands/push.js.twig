@@ -829,7 +829,7 @@ const checkAttributeChanges = (remote, local, collection, recreating = true) => 
     const keyName = `${chalk.yellow(local.key)} in ${collection.name} (${collection['$id']})`;
     const action = chalk.cyan(recreating ? 'recreating' : 'changing');
     let reason = '';
-    let attribute = remote;
+    let attribute = recreating ? remote : local;
 
     for (let key of Object.keys(remote)) {
         if (!KeysAttributes.has(key)) {
@@ -2044,6 +2044,7 @@ const pushTable = async ({ returnOnZero, attempts } = { returnOnZero: false }) =
             const changes = [];
             if (remoteTable.name !== table.name) changes.push('name');
             if (remoteTable.rowSecurity !== table.rowSecurity) changes.push('rowSecurity');
+            if (remoteTable.enabled !== table.enabled) changes.push('enabled');
             if (JSON.stringify(remoteTable['$permissions']) !== JSON.stringify(table['$permissions'])) changes.push('permissions');
 
             if (changes.length > 0) {
