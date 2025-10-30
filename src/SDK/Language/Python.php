@@ -84,6 +84,21 @@ class Python extends Language
         return [];
     }
 
+    public function getStaticAccessOperator(): string
+    {
+        return '.';
+    }
+
+    public function getStringQuote(): string
+    {
+        return '"';
+    }
+
+    public function getArrayOf(string $elements): string
+    {
+        return '[' . $elements . ']';
+    }
+
     /**
      * @return array
      */
@@ -368,23 +383,6 @@ class Python extends Language
                 : $example),
             self::TYPE_STRING => "'{$example}'",
         };
-    }
-
-    public function getPermissionExample(string $example): string
-    {
-        $permissions = [];
-        foreach ($this->extractPermissionParts($example) as $permission) {
-            $args = [];
-            if ($permission['id'] !== null) {
-                $args[] = '"' . $permission['id'] . '"';
-            }
-            if ($permission['innerRole'] !== null) {
-                $args[] = '"' . $permission['innerRole'] . '"';
-            }
-            $argsString = implode(', ', $args);
-            $permissions[] = 'Permission.' . $permission['action'] . '(Role.' . $permission['role'] . '(' . $argsString . '))';
-        }
-        return '[' . implode(', ', $permissions) . ']';
     }
 
     public function getFilters(): array

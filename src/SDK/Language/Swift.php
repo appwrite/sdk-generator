@@ -101,6 +101,21 @@ class Swift extends Language
         ];
     }
 
+    public function getStaticAccessOperator(): string
+    {
+        return '.';
+    }
+
+    public function getStringQuote(): string
+    {
+        return '"';
+    }
+
+    public function getArrayOf(string $elements): string
+    {
+        return '[' . $elements . ']';
+    }
+
     /**
      * @return array
      */
@@ -448,23 +463,6 @@ class Swift extends Language
         }
 
         return $output;
-    }
-
-    public function getPermissionExample(string $example): string
-    {
-        $permissions = [];
-        foreach ($this->extractPermissionParts($example) as $permission) {
-            $args = [];
-            if ($permission['id'] !== null) {
-                $args[] = '"' . $permission['id'] . '"';
-            }
-            if ($permission['innerRole'] !== null) {
-                $args[] = '"' . $permission['innerRole'] . '"';
-            }
-            $argsString = implode(', ', $args);
-            $permissions[] = 'Permission.' . $permission['action'] . '(Role.' . $permission['role'] . '(' . $argsString . '))';
-        }
-        return '[' . implode(', ', $permissions) . ']';
     }
 
     /**

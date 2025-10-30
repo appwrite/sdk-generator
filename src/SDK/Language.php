@@ -33,6 +33,25 @@ abstract class Language
     abstract public function getIdentifierOverrides(): array;
 
     /**
+     * Get the static access operator for the language (e.g. '::' for PHP, '.' for JS)
+     * @return string
+     */
+    abstract public function getStaticAccessOperator(): string;
+
+    /**
+     * Get the string quote character for the language (e.g. '"' for PHP, "'" for JS)
+     * @return string
+     */
+    abstract public function getStringQuote(): string;
+
+    /**
+     * Wrap elements in an array syntax for the language
+     * @param string $elements Comma-separated elements
+     * @return string
+     */
+    abstract public function getArrayOf(string $elements): string;
+
+    /**
      * @return array<array>
      */
     abstract public function getFiles(): array;
@@ -192,5 +211,69 @@ abstract class Language
             }
         }
         return false;
+    }
+
+    /**
+     * Get the prefix for Permission and Role classes (e.g., 'sdk.' for Node)
+     * @return string
+     */
+    protected function getPermissionPrefix(): string
+    {
+        return '';
+    }
+
+    /**
+     * Transform permission action name for language-specific casing
+     * Override in child classes if needed (e.g., DotNet uses ucfirst)
+     * @param string $action
+     * @return string
+     */
+    protected function transformPermissionAction(string $action): string
+    {
+        return $action;
+    }
+
+    /**
+     * Transform permission role name for language-specific casing
+     * Override in child classes if needed (e.g., DotNet uses ucfirst)
+     * @param string $role
+     * @return string
+     */
+    protected function transformPermissionRole(string $role): string
+    {
+        return $role;
+    }
+
+    /**
+     * Generate permission example code for the language
+     * @param string $example Permission string example
+     * @return string
+     */
+    public function getPermissionExample(string $example): string
+    {
+        $permissions = [];
+        $staticOp = $this->getStaticAccessOperator();
+        $quote = $this->getStringQuote();
+        $prefix = $this->getPermissionPrefix();
+
+        foreach ($this->extractPermissionParts($example) as $permission) {
+            $args = [];
+            if ($permission['id'] !== null) {
+                $args[] = $quote . $permission['id'] . $quote;
+            }
+            if ($permission['innerRole'] !== null) {
+                $args[] = $quote . $permission['innerRole'] . $quote;
+            }
+            $argsString = implode(', ', $args);
+
+            $action = $permission['action'];
+            $role = $permission['role'];
+            $action = $this->transformPermissionAction($action);
+            $role = $this->transformPermissionRole($role);
+
+            $permissions[] = $prefix . 'Permission' . $staticOp . $action . '(' . $prefix . 'Role' . $staticOp . $role . '(' . $argsString . '))';
+        }
+
+        return $this->getArrayOf(implode(', ', $permissions));
     }
 }

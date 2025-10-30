@@ -146,6 +146,31 @@ class DotNet extends Language
         ];
     }
 
+    public function getStaticAccessOperator(): string
+    {
+        return '.';
+    }
+
+    public function getStringQuote(): string
+    {
+        return '"';
+    }
+
+    public function getArrayOf(string $elements): string
+    {
+        return 'new List<string> { ' . $elements . ' }';
+    }
+
+    protected function transformPermissionAction(string $action): string
+    {
+        return ucfirst($action);
+    }
+
+    protected function transformPermissionRole(string $role): string
+    {
+        return ucfirst($role);
+    }
+
     public function getPropertyOverrides(): array
     {
         return [
@@ -310,23 +335,6 @@ class DotNet extends Language
         }
 
         return $output;
-    }
-
-    public function getPermissionExample(string $example): string
-    {
-        $permissions = [];
-        foreach ($this->extractPermissionParts($example) as $permission) {
-            $args = [];
-            if ($permission['id'] !== null) {
-                $args[] = '"' . $permission['id'] . '"';
-            }
-            if ($permission['innerRole'] !== null) {
-                $args[] = '"' . $permission['innerRole'] . '"';
-            }
-            $argsString = implode(', ', $args);
-            $permissions[] = 'Permission.' . ucfirst($permission['action']) . '(Role.' . ucfirst($permission['role']) . '(' . $argsString . '))';
-        }
-        return 'new List<string> { ' . implode(', ', $permissions) . ' }';
     }
 
     /**
