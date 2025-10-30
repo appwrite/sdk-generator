@@ -53,6 +53,12 @@
         "demo": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ..."
       }
     },
+    "Session": {
+      "type": "apiKey",
+      "name": "X-Appwrite-Session",
+      "description": "The user session to authenticate with",
+      "in": "header"
+    },
     "Locale": {
       "type": "apiKey",
       "name": "X-Appwrite-Locale",
