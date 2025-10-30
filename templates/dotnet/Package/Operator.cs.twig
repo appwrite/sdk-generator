@@ -86,6 +86,14 @@ namespace {{ spec.title | caseUcfirst }}
 
         public static string Increment(double value = 1, double? max = null)
         {
+            if (Double.IsNaN(value) || Double.IsInfinity(value))
+            {
+                throw new ArgumentException("Value cannot be NaN or Infinity", nameof(value));
+            }
+            if (max.HasValue && (Double.IsNaN(max.Value) || Double.IsInfinity(max.Value)))
+            {
+                throw new ArgumentException("Max cannot be NaN or Infinity", nameof(max));
+            }
             var values = new List<object> { value };
             if (max.HasValue)
             {
@@ -96,6 +104,14 @@ namespace {{ spec.title | caseUcfirst }}
 
         public static string Decrement(double value = 1, double? min = null)
         {
+            if (Double.IsNaN(value) || Double.IsInfinity(value))
+            {
+                throw new ArgumentException("Value cannot be NaN or Infinity", nameof(value));
+            }
+            if (min.HasValue && (Double.IsNaN(min.Value) || Double.IsInfinity(min.Value)))
+            {
+                throw new ArgumentException("Min cannot be NaN or Infinity", nameof(min));
+            }
             var values = new List<object> { value };
             if (min.HasValue)
             {
@@ -106,6 +122,14 @@ namespace {{ spec.title | caseUcfirst }}
 
         public static string Multiply(double factor, double? max = null)
         {
+            if (Double.IsNaN(factor) || Double.IsInfinity(factor))
+            {
+                throw new ArgumentException("Factor cannot be NaN or Infinity", nameof(factor));
+            }
+            if (max.HasValue && (Double.IsNaN(max.Value) || Double.IsInfinity(max.Value)))
+            {
+                throw new ArgumentException("Max cannot be NaN or Infinity", nameof(max));
+            }
             var values = new List<object> { factor };
             if (max.HasValue)
             {
@@ -116,6 +140,14 @@ namespace {{ spec.title | caseUcfirst }}
 
         public static string Divide(double divisor, double? min = null)
         {
+            if (Double.IsNaN(divisor) || Double.IsInfinity(divisor))
+            {
+                throw new ArgumentException("Divisor cannot be NaN or Infinity", nameof(divisor));
+            }
+            if (min.HasValue && (Double.IsNaN(min.Value) || Double.IsInfinity(min.Value)))
+            {
+                throw new ArgumentException("Min cannot be NaN or Infinity", nameof(min));
+            }
             if (divisor == 0)
             {
                 throw new ArgumentException("Divisor cannot be zero", nameof(divisor));
@@ -130,6 +162,10 @@ namespace {{ spec.title | caseUcfirst }}
 
         public static string Modulo(double divisor)
         {
+            if (Double.IsNaN(divisor) || Double.IsInfinity(divisor))
+            {
+                throw new ArgumentException("Divisor cannot be NaN or Infinity", nameof(divisor));
+            }
             if (divisor == 0)
             {
                 throw new ArgumentException("Divisor cannot be zero", nameof(divisor));
@@ -139,6 +175,14 @@ namespace {{ spec.title | caseUcfirst }}
 
         public static string Power(double exponent, double? max = null)
         {
+            if (Double.IsNaN(exponent) || Double.IsInfinity(exponent))
+            {
+                throw new ArgumentException("Exponent cannot be NaN or Infinity", nameof(exponent));
+            }
+            if (max.HasValue && (Double.IsNaN(max.Value) || Double.IsInfinity(max.Value)))
+            {
+                throw new ArgumentException("Max cannot be NaN or Infinity", nameof(max));
+            }
             var values = new List<object> { exponent };
             if (max.HasValue)
             {

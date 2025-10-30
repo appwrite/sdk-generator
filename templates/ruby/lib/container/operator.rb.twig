@@ -38,24 +38,32 @@ module {{spec.title | caseUcfirst}}
 
         class << Operator
             def increment(value = 1, max = nil)
+                raise ArgumentError, "Value cannot be NaN or Infinity" if value.respond_to?(:nan?) && (value.nan? || value.infinite?)
+                raise ArgumentError, "Max cannot be NaN or Infinity" if max != nil && max.respond_to?(:nan?) && (max.nan? || max.infinite?)
                 values = [value]
                 values << max if max != nil
                 return Operator.new("increment", values).to_s
             end
 
             def decrement(value = 1, min = nil)
+                raise ArgumentError, "Value cannot be NaN or Infinity" if value.respond_to?(:nan?) && (value.nan? || value.infinite?)
+                raise ArgumentError, "Min cannot be NaN or Infinity" if min != nil && min.respond_to?(:nan?) && (min.nan? || min.infinite?)
                 values = [value]
                 values << min if min != nil
                 return Operator.new("decrement", values).to_s
             end
 
             def multiply(factor, max = nil)
+                raise ArgumentError, "Factor cannot be NaN or Infinity" if factor.respond_to?(:nan?) && (factor.nan? || factor.infinite?)
+                raise ArgumentError, "Max cannot be NaN or Infinity" if max != nil && max.respond_to?(:nan?) && (max.nan? || max.infinite?)
                 values = [factor]
                 values << max if max != nil
                 return Operator.new("multiply", values).to_s
             end
 
             def divide(divisor, min = nil)
+                raise ArgumentError, "Divisor cannot be NaN or Infinity" if divisor.respond_to?(:nan?) && (divisor.nan? || divisor.infinite?)
+                raise ArgumentError, "Min cannot be NaN or Infinity" if min != nil && min.respond_to?(:nan?) && (min.nan? || min.infinite?)
                 raise ArgumentError, "Divisor cannot be zero" if divisor == 0 || divisor == 0.0
                 values = [divisor]
                 values << min if min != nil
@@ -63,11 +71,14 @@ module {{spec.title | caseUcfirst}}
             end
 
             def modulo(divisor)
+                raise ArgumentError, "Divisor cannot be NaN or Infinity" if divisor.respond_to?(:nan?) && (divisor.nan? || divisor.infinite?)
                 raise ArgumentError, "Divisor cannot be zero" if divisor == 0 || divisor == 0.0
                 return Operator.new("modulo", [divisor]).to_s
             end
 
             def power(exponent, max = nil)
+                raise ArgumentError, "Exponent cannot be NaN or Infinity" if exponent.respond_to?(:nan?) && (exponent.nan? || exponent.infinite?)
+                raise ArgumentError, "Max cannot be NaN or Infinity" if max != nil && max.respond_to?(:nan?) && (max.nan? || max.infinite?)
                 values = [exponent]
                 values << max if max != nil
                 return Operator.new("power", values).to_s

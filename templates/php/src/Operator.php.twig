@@ -53,6 +53,12 @@ class Operator implements \JsonSerializable
      */
     public static function increment(int|float $value = 1, int|float|null $max = null): string
     {
+        if (is_nan($value) || is_infinite($value)) {
+            throw new \InvalidArgumentException('Value cannot be NaN or Infinity');
+        }
+        if ($max !== null && (is_nan($max) || is_infinite($max))) {
+            throw new \InvalidArgumentException('Max cannot be NaN or Infinity');
+        }
         $values = [$value];
         if ($max !== null) {
             $values[] = $max;
@@ -69,6 +75,12 @@ class Operator implements \JsonSerializable
      */
     public static function decrement(int|float $value = 1, int|float|null $min = null): string
     {
+        if (is_nan($value) || is_infinite($value)) {
+            throw new \InvalidArgumentException('Value cannot be NaN or Infinity');
+        }
+        if ($min !== null && (is_nan($min) || is_infinite($min))) {
+            throw new \InvalidArgumentException('Min cannot be NaN or Infinity');
+        }
         $values = [$value];
         if ($min !== null) {
             $values[] = $min;
@@ -85,6 +97,12 @@ class Operator implements \JsonSerializable
      */
     public static function multiply(int|float $factor, int|float|null $max = null): string
     {
+        if (is_nan($factor) || is_infinite($factor)) {
+            throw new \InvalidArgumentException('Factor cannot be NaN or Infinity');
+        }
+        if ($max !== null && (is_nan($max) || is_infinite($max))) {
+            throw new \InvalidArgumentException('Max cannot be NaN or Infinity');
+        }
         $values = [$factor];
         if ($max !== null) {
             $values[] = $max;
@@ -101,6 +119,12 @@ class Operator implements \JsonSerializable
      */
     public static function divide(int|float $divisor, int|float|null $min = null): string
     {
+        if (is_nan($divisor) || is_infinite($divisor)) {
+            throw new \InvalidArgumentException('Divisor cannot be NaN or Infinity');
+        }
+        if ($min !== null && (is_nan($min) || is_infinite($min))) {
+            throw new \InvalidArgumentException('Min cannot be NaN or Infinity');
+        }
         if ($divisor === 0 || $divisor === 0.0) {
             throw new \InvalidArgumentException('Divisor cannot be zero');
         }
@@ -119,6 +143,9 @@ class Operator implements \JsonSerializable
      */
     public static function modulo(int|float $divisor): string
     {
+        if (is_nan($divisor) || is_infinite($divisor)) {
+            throw new \InvalidArgumentException('Divisor cannot be NaN or Infinity');
+        }
         if ($divisor === 0 || $divisor === 0.0) {
             throw new \InvalidArgumentException('Divisor cannot be zero');
         }
@@ -134,6 +161,12 @@ class Operator implements \JsonSerializable
      */
     public static function power(int|float $exponent, int|float|null $max = null): string
     {
+        if (is_nan($exponent) || is_infinite($exponent)) {
+            throw new \InvalidArgumentException('Exponent cannot be NaN or Infinity');
+        }
+        if ($max !== null && (is_nan($max) || is_infinite($max))) {
+            throw new \InvalidArgumentException('Max cannot be NaN or Infinity');
+        }
         $values = [$exponent];
         if ($max !== null) {
             $values[] = $max;
