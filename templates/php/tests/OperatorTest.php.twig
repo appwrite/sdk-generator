@@ -66,12 +66,12 @@ final class OperatorTest extends TestCase {
         $this->assertSame('{"method":"arrayFilter","values":["equal","test"]}', Operator::arrayFilter(Condition::Equal, 'test'));
     }
 
-    public function testConcat(): void {
-        $this->assertSame('{"method":"concat","values":["suffix"]}', Operator::concat('suffix'));
+    public function testStringConcat(): void {
+        $this->assertSame('{"method":"stringConcat","values":["suffix"]}', Operator::stringConcat('suffix'));
     }
 
-    public function testReplace(): void {
-        $this->assertSame('{"method":"replace","values":["old","new"]}', Operator::replace('old', 'new'));
+    public function testStringReplace(): void {
+        $this->assertSame('{"method":"stringReplace","values":["old","new"]}', Operator::stringReplace('old', 'new'));
     }
 
     public function testToggle(): void {

@@ -346,8 +346,8 @@ async function start() {
     console.log(Operator.arrayIntersect(["a", "b", "c"]));
     console.log(Operator.arrayDiff(["x", "y"]));
     console.log(Operator.arrayFilter(Condition.Equal, "test"));
-    console.log(Operator.concat("suffix"));
-    console.log(Operator.replace("old", "new"));
+    console.log(Operator.stringConcat("suffix"));
+    console.log(Operator.stringReplace("old", "new"));
     console.log(Operator.toggle());
     console.log(Operator.dateAddDays(7));
     console.log(Operator.dateSubDays(3));

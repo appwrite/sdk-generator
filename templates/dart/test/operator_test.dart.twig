@@ -122,15 +122,15 @@ void main() {
     expect(op['values'], ['equal', 'test']);
   });
 
-  test('returns concat', () {
-    final op = jsonDecode(Operator.concat('suffix'));
-    expect(op['method'], 'concat');
+  test('returns stringConcat', () {
+    final op = jsonDecode(Operator.stringConcat('suffix'));
+    expect(op['method'], 'stringConcat');
     expect(op['values'], ['suffix']);
   });
 
-  test('returns replace', () {
-    final op = jsonDecode(Operator.replace('old', 'new'));
-    expect(op['method'], 'replace');
+  test('returns stringReplace', () {
+    final op = jsonDecode(Operator.stringReplace('old', 'new'));
+    expect(op['method'], 'stringReplace');
     expect(op['values'], ['old', 'new']);
   });
 
