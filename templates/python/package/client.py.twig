@@ -57,8 +57,6 @@ class Client:
         if params is None:
             params = {}
 
-        params = {k: v for k, v in params.items() if v is not None}  # Remove None values from params dictionary
-
         data = {}
         files = {}
         stringify = False

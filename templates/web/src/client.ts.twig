@@ -300,7 +300,11 @@ class Client {
     /**
      * Holds configuration such as project.
      */
-    config = {
+    config: {
+        endpoint: string;
+        endpointRealtime: string;
+        [key: string]: string | undefined;
+    } = {
         endpoint: '{{ spec.endpoint }}',
         endpointRealtime: '',
         {%~ for header in spec.global.headers %}
@@ -423,7 +427,9 @@ class Client {
             }
 
             const channels = new URLSearchParams();
-            channels.set('project', this.config.project);
+            if (this.config.project) {
+                channels.set('project', this.config.project);
+            }
             this.realtime.channels.forEach(channel => {
                 channels.append('channels[]', channel);
             });

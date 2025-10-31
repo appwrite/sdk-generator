@@ -99,6 +99,21 @@ class Kotlin extends Language
         return [];
     }
 
+    public function getStaticAccessOperator(): string
+    {
+        return '.';
+    }
+
+    public function getStringQuote(): string
+    {
+        return '"';
+    }
+
+    public function getArrayOf(string $elements): string
+    {
+        return 'listOf(' . $elements . ')';
+    }
+
     /**
      * @param array $parameter
      * @param array $spec
@@ -257,13 +272,17 @@ class Kotlin extends Language
                     $output .= $example;
                     break;
                 case self::TYPE_ARRAY:
-                    if (\str_starts_with($example, '[')) {
-                        $example = \substr($example, 1);
+                    if ($this->isPermissionString($example)) {
+                        $output .= $this->getPermissionExample($example);
+                    } else {
+                        if (\str_starts_with($example, '[')) {
+                            $example = \substr($example, 1);
+                        }
+                        if (\str_ends_with($example, ']')) {
+                            $example = \substr($example, 0, -1);
+                        }
+                        $output .= 'listOf(' . $example . ')';
                     }
-                    if (\str_ends_with($example, ']')) {
-                        $example = \substr($example, 0, -1);
-                    }
-                    $output .= 'listOf(' . $example . ')';
                     break;
                 case self::TYPE_BOOLEAN:
                     $output .= ($example) ? 'true' : 'false';

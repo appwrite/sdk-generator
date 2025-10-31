@@ -146,6 +146,31 @@ class DotNet extends Language
         ];
     }
 
+    public function getStaticAccessOperator(): string
+    {
+        return '.';
+    }
+
+    public function getStringQuote(): string
+    {
+        return '"';
+    }
+
+    public function getArrayOf(string $elements): string
+    {
+        return 'new List<string> { ' . $elements . ' }';
+    }
+
+    protected function transformPermissionAction(string $action): string
+    {
+        return ucfirst($action);
+    }
+
+    protected function transformPermissionRole(string $role): string
+    {
+        return ucfirst($role);
+    }
+
     public function getPropertyOverrides(): array
     {
         return [
@@ -282,8 +307,10 @@ class DotNet extends Language
                 case self::TYPE_FILE:
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
-                case self::TYPE_ARRAY:
                     $output .= $example;
+                    break;
+                case self::TYPE_ARRAY:
+                    $output .= $this->isPermissionString($example) ? $this->getPermissionExample($example) : $example;
                     break;
                 case self::TYPE_OBJECT:
                     if ($example === '{}') {

@@ -12,6 +12,21 @@ class Deno extends JS
         return 'Deno';
     }
 
+    public function getStaticAccessOperator(): string
+    {
+        return '.';
+    }
+
+    public function getStringQuote(): string
+    {
+        return "'";
+    }
+
+    public function getArrayOf(string $elements): string
+    {
+        return '[' . $elements . ']';
+    }
+
     /**
      * @return array
      */
@@ -186,7 +201,8 @@ class Deno extends JS
         }
 
         return match ($type) {
-            self::TYPE_ARRAY, self::TYPE_INTEGER, self::TYPE_NUMBER => $example,
+            self::TYPE_ARRAY => $this->isPermissionString($example) ? $this->getPermissionExample($example) : $example,
+            self::TYPE_INTEGER, self::TYPE_NUMBER => $example,
             self::TYPE_FILE => 'InputFile.fromPath(\'/path/to/file.png\', \'file.png\')',
             self::TYPE_BOOLEAN => ($example) ? 'true' : 'false',
             self::TYPE_OBJECT => ($example === '{}')

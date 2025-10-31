@@ -226,6 +226,9 @@ class SDK
             }
             return $parts[0] . '.' . $toSnake($parts[1]);
         }));
+        $this->twig->addFilter(new TwigFilter('hasPermissionParam', function ($value) {
+            return $this->language->hasPermissionParam($value);
+        }));
     }
 
     /**
