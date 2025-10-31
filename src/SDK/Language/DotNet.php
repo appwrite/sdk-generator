@@ -410,6 +410,11 @@ class DotNet extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseUcfirst }}/Operator.cs',
+                'template'      => 'dotnet/Package/Operator.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '{{ spec.title | caseUcfirst }}/Role.cs',
                 'template'      => 'dotnet/Package/Role.cs.twig',
             ],

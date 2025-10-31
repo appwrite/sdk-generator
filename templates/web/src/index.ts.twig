@@ -15,6 +15,7 @@ export type { QueryTypes, QueryTypesList } from './query';
 export { Permission } from './permission';
 export { Role } from './role';
 export { ID } from './id';
+export { Operator, Condition } from './operator';
 {% for enum in spec.allEnums %}
 export { {{ enum.name | caseUcfirst  }} } from './enums/{{enum.name | caseKebab}}';
 {% endfor %}

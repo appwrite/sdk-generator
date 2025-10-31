@@ -125,27 +125,27 @@ class Query():
 
     @staticmethod
     def created_before(value):
-        return str(Query("createdBefore", None, value))
+        return Query.less_than("$createdAt", value)
 
     @staticmethod
     def created_after(value):
-        return str(Query("createdAfter", None, value))
+        return Query.greater_than("$createdAt", value)
 
     @staticmethod
     def created_between(start, end):
-        return str(Query("createdBetween", None, [start, end]))
+        return Query.between("$createdAt", start, end)
 
     @staticmethod
     def updated_before(value):
-        return str(Query("updatedBefore", None, value))
+        return Query.less_than("$updatedAt", value)
 
     @staticmethod
     def updated_after(value):
-        return str(Query("updatedAfter", None, value))
+        return Query.greater_than("$updatedAt", value)
 
     @staticmethod
     def updated_between(start, end):
-        return str(Query("updatedBetween", None, [start, end]))
+        return Query.between("$updatedAt", start, end)
 
     @staticmethod
     def or_queries(queries):

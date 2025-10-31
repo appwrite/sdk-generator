@@ -115,6 +115,11 @@ class Go extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'operator/operator.go',
+                'template'      => 'go/operator.go.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'permission/permission.go',
                 'template'      => 'go/permission.go.twig',
             ],

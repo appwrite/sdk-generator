@@ -133,27 +133,27 @@ module {{spec.title | caseUcfirst}}
             end
 
             def created_before(value)
-                return Query.new("createdBefore", nil, value).to_s
+                return less_than("$createdAt", value)
             end
 
             def created_after(value)
-                return Query.new("createdAfter", nil, value).to_s
+                return greater_than("$createdAt", value)
             end
 
             def created_between(start, ending)
-                return Query.new("createdBetween", nil, [start, ending]).to_s
+                return between("$createdAt", start, ending)
             end
 
             def updated_before(value)
-                return Query.new("updatedBefore", nil, value).to_s
+                return less_than("$updatedAt", value)
             end
 
             def updated_after(value)
-                return Query.new("updatedAfter", nil, value).to_s
+                return greater_than("$updatedAt", value)
             end
 
             def updated_between(start, ending)
-                return Query.new("updatedBetween", nil, [start, ending]).to_s
+                return between("$updatedAt", start, ending)
             end
 
             def or(queries)

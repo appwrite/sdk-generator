@@ -213,6 +213,33 @@ void main() async {
   print(ID.unique());
   print(ID.custom('custom_id'));
 
+  // Operator helper tests
+  print(Operator.increment(1));
+  print(Operator.increment(5, 100));
+  print(Operator.decrement(1));
+  print(Operator.decrement(3, 0));
+  print(Operator.multiply(2));
+  print(Operator.multiply(3, 1000));
+  print(Operator.divide(2));
+  print(Operator.divide(4, 1));
+  print(Operator.modulo(5));
+  print(Operator.power(2));
+  print(Operator.power(3, 100));
+  print(Operator.arrayAppend(["item1", "item2"]));
+  print(Operator.arrayPrepend(["first", "second"]));
+  print(Operator.arrayInsert(0, "newItem"));
+  print(Operator.arrayRemove("oldItem"));
+  print(Operator.arrayUnique());
+  print(Operator.arrayIntersect(["a", "b", "c"]));
+  print(Operator.arrayDiff(["x", "y"]));
+  print(Operator.arrayFilter(Condition.equal, "test"));
+  print(Operator.stringConcat("suffix"));
+  print(Operator.stringReplace("old", "new"));
+  print(Operator.toggle());
+  print(Operator.dateAddDays(7));
+  print(Operator.dateSubDays(3));
+  print(Operator.dateSetNow());
+
   response = await general.headers();
   print(response.result);
 }

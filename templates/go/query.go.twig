@@ -202,51 +202,27 @@ func NotEndsWith(attribute string, value interface{}) string {
 }
 
 func CreatedBefore(value interface{}) string {
-	values := toArray(value)
-	return parseQuery(queryOptions{
-		Method: "createdBefore",
-		Values: &values,
-	})
+	return LessThan("$createdAt", value)
 }
 
 func CreatedAfter(value interface{}) string {
-	values := toArray(value)
-	return parseQuery(queryOptions{
-		Method: "createdAfter",
-		Values: &values,
-	})
+	return GreaterThan("$createdAt", value)
 }
 
 func CreatedBetween(start, end interface{}) string {
-	values := []interface{}{start, end}
-	return parseQuery(queryOptions{
-		Method: "createdBetween",
-		Values: &values,
-	})
+	return Between("$createdAt", start, end)
 }
 
 func UpdatedBefore(value interface{}) string {
-	values := toArray(value)
-	return parseQuery(queryOptions{
-		Method: "updatedBefore",
-		Values: &values,
-	})
+	return LessThan("$updatedAt", value)
 }
 
 func UpdatedAfter(value interface{}) string {
-	values := toArray(value)
-	return parseQuery(queryOptions{
-		Method: "updatedAfter",
-		Values: &values,
-	})
+	return GreaterThan("$updatedAt", value)
 }
 
 func UpdatedBetween(start, end interface{}) string {
-	values := []interface{}{start, end}
-	return parseQuery(queryOptions{
-		Method: "updatedBetween",
-		Values: &values,
-	})
+	return Between("$updatedAt", start, end)
 }
 
 func Select(attributes interface{}) string {

@@ -80,8 +80,18 @@ class Deno extends JS
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'src/operator.ts',
+                'template'      => 'deno/src/operator.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'test/query.test.ts',
                 'template'      => 'deno/test/query.test.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'test/operator.test.ts',
+                'template'      => 'deno/test/operator.test.ts.twig',
             ],
             [
                 'scope'         => 'default',

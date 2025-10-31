@@ -180,26 +180,26 @@ final class QueryTest extends TestCase {
     }
 
     public function testCreatedBefore(): void {
-        $this->assertSame('createdBefore("2023-01-01")', Query::createdBefore('2023-01-01'));
+        $this->assertSame('lessThan("$createdAt", ["2023-01-01"])', Query::createdBefore('2023-01-01'));
     }
 
     public function testCreatedAfter(): void {
-        $this->assertSame('createdAfter("2023-01-01")', Query::createdAfter('2023-01-01'));
+        $this->assertSame('greaterThan("$createdAt", ["2023-01-01"])', Query::createdAfter('2023-01-01'));
     }
 
     public function testCreatedBetween(): void {
-        $this->assertSame('{"method":"createdBetween","values":["2023-01-01","2023-12-31"]}', Query::createdBetween('2023-01-01', '2023-12-31'));
+        $this->assertSame('between("$createdAt", ["2023-01-01","2023-12-31"])', Query::createdBetween('2023-01-01', '2023-12-31'));
     }
 
     public function testUpdatedBefore(): void {
-        $this->assertSame('updatedBefore("2023-01-01")', Query::updatedBefore('2023-01-01'));
+        $this->assertSame('lessThan("$updatedAt", ["2023-01-01"])', Query::updatedBefore('2023-01-01'));
     }
 
     public function testUpdatedAfter(): void {
-        $this->assertSame('updatedAfter("2023-01-01")', Query::updatedAfter('2023-01-01'));
+        $this->assertSame('greaterThan("$updatedAt", ["2023-01-01"])', Query::updatedAfter('2023-01-01'));
     }
 
     public function testUpdatedBetween(): void {
-        $this->assertSame('{"method":"updatedBetween","values":["2023-01-01","2023-12-31"]}', Query::updatedBetween('2023-01-01', '2023-12-31'));
+        $this->assertSame('between("$updatedAt", ["2023-01-01","2023-12-31"])', Query::updatedBetween('2023-01-01', '2023-12-31'));
     }
 }

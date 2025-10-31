@@ -177,6 +177,11 @@ class Python extends Language
             ],
             [
                 'scope' => 'default',
+                'destination' => '{{ spec.title | caseSnake}}/operator.py',
+                'template' => 'python/package/operator.py.twig',
+            ],
+            [
+                'scope' => 'default',
                 'destination' => '{{ spec.title | caseSnake}}/exception.py',
                 'template' => 'python/package/exception.py.twig',
             ],

@@ -229,6 +229,16 @@ class PHP extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'src/{{ spec.title | caseUcfirst}}/Operator.php',
+                'template'      => 'php/src/Operator.php.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'tests/{{ spec.title | caseUcfirst}}/OperatorTest.php',
+                'template'      => 'php/tests/OperatorTest.php.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'src/{{ spec.title | caseUcfirst}}/InputFile.php',
                 'template'      => 'php/src/InputFile.php.twig',
             ],

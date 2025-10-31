@@ -63,17 +63,17 @@ class Query(
 
         fun notEndsWith(attribute: String, value: String) = Query("notEndsWith", attribute, listOf(value)).toJson()
 
-        fun createdBefore(value: String) = Query("createdBefore", null, listOf(value)).toJson()
+        fun createdBefore(value: String) = lessThan("\$createdAt", value)
 
-        fun createdAfter(value: String) = Query("createdAfter", null, listOf(value)).toJson()
+        fun createdAfter(value: String) = greaterThan("\$createdAt", value)
 
-        fun createdBetween(start: String, end: String) = Query("createdBetween", null, listOf(start, end)).toJson()
+        fun createdBetween(start: String, end: String) = between("\$createdAt", start, end)
 
-        fun updatedBefore(value: String) = Query("updatedBefore", null, listOf(value)).toJson()
+        fun updatedBefore(value: String) = lessThan("\$updatedAt", value)
 
-        fun updatedAfter(value: String) = Query("updatedAfter", null, listOf(value)).toJson()
+        fun updatedAfter(value: String) = greaterThan("\$updatedAt", value)
 
-        fun updatedBetween(start: String, end: String) = Query("updatedBetween", null, listOf(start, end)).toJson()
+        fun updatedBetween(start: String, end: String) = between("\$updatedAt", start, end)
 
         fun or(queries: List<String>) = Query("or", null, queries.map { it.fromJson<Query>() }).toJson()
 

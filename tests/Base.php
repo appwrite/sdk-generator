@@ -115,12 +115,12 @@ abstract class Base extends TestCase
         '{"method":"notBetween","attribute":"age","values":[50,100]}',
         '{"method":"notStartsWith","attribute":"name","values":["Ann"]}',
         '{"method":"notEndsWith","attribute":"name","values":["nne"]}',
-        '{"method":"createdBefore","values":["2023-01-01"]}',
-        '{"method":"createdAfter","values":["2023-01-01"]}',
-        '{"method":"createdBetween","values":["2023-01-01","2023-12-31"]}',
-        '{"method":"updatedBefore","values":["2023-01-01"]}',
-        '{"method":"updatedAfter","values":["2023-01-01"]}',
-        '{"method":"updatedBetween","values":["2023-01-01","2023-12-31"]}',
+        '{"method":"lessThan","attribute":"$createdAt","values":["2023-01-01"]}',
+        '{"method":"greaterThan","attribute":"$createdAt","values":["2023-01-01"]}',
+        '{"method":"between","attribute":"$createdAt","values":["2023-01-01","2023-12-31"]}',
+        '{"method":"lessThan","attribute":"$updatedAt","values":["2023-01-01"]}',
+        '{"method":"greaterThan","attribute":"$updatedAt","values":["2023-01-01"]}',
+        '{"method":"between","attribute":"$updatedAt","values":["2023-01-01","2023-12-31"]}',
         '{"method":"distanceEqual","attribute":"location","values":[[[[40.7128,-74],[40.7128,-74]],1000,true]]}',
         '{"method":"distanceEqual","attribute":"location","values":[[[40.7128,-74],1000,true]]}',
         '{"method":"distanceNotEqual","attribute":"location","values":[[[40.7128,-74],1000,true]]}',
@@ -161,6 +161,34 @@ abstract class Base extends TestCase
     protected const ID_HELPER_RESPONSES = [
         'unique()',
         'custom_id'
+    ];
+
+    protected const OPERATOR_HELPER_RESPONSES = [
+        '{"method":"increment","values":[1]}',
+        '{"method":"increment","values":[5,100]}',
+        '{"method":"decrement","values":[1]}',
+        '{"method":"decrement","values":[3,0]}',
+        '{"method":"multiply","values":[2]}',
+        '{"method":"multiply","values":[3,1000]}',
+        '{"method":"divide","values":[2]}',
+        '{"method":"divide","values":[4,1]}',
+        '{"method":"modulo","values":[5]}',
+        '{"method":"power","values":[2]}',
+        '{"method":"power","values":[3,100]}',
+        '{"method":"arrayAppend","values":["item1","item2"]}',
+        '{"method":"arrayPrepend","values":["first","second"]}',
+        '{"method":"arrayInsert","values":[0,"newItem"]}',
+        '{"method":"arrayRemove","values":["oldItem"]}',
+        '{"method":"arrayUnique","values":[]}',
+        '{"method":"arrayIntersect","values":["a","b","c"]}',
+        '{"method":"arrayDiff","values":["x","y"]}',
+        '{"method":"arrayFilter","values":["equal","test"]}',
+        '{"method":"stringConcat","values":["suffix"]}',
+        '{"method":"stringReplace","values":["old","new"]}',
+        '{"method":"toggle","values":[]}',
+        '{"method":"dateAddDays","values":[7]}',
+        '{"method":"dateSubDays","values":[3]}',
+        '{"method":"dateSetNow","values":[]}',
     ];
 
     protected string $class = '';
