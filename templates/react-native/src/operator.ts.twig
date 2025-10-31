@@ -259,8 +259,8 @@ export class Operator {
    * @param {any} value
    * @returns {string}
    */
-  static concat = (value: any): string =>
-    new Operator("concat", [value]).toString();
+  static stringConcat = (value: any): string =>
+    new Operator("stringConcat", [value]).toString();
 
   /**
    * Replace occurrences of a search string with a replacement string.
@@ -269,8 +269,8 @@ export class Operator {
    * @param {string} replace
    * @returns {string}
    */
-  static replace = (search: string, replace: string): string =>
-    new Operator("replace", [search, replace]).toString();
+  static stringReplace = (search: string, replace: string): string =>
+    new Operator("stringReplace", [search, replace]).toString();
 
   /**
    * Toggle a boolean attribute.

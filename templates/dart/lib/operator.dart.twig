@@ -165,12 +165,12 @@ class Operator {
   }
 
   /// Concatenate a value to a string or array attribute.
-  static String concat(dynamic value) =>
-      Operator._('concat', [value]).toString();
+  static String stringConcat(dynamic value) =>
+      Operator._('stringConcat', [value]).toString();
 
   /// Replace occurrences of a search string with a replacement string.
-  static String replace(String search, String replace) =>
-      Operator._('replace', [search, replace]).toString();
+  static String stringReplace(String search, String replace) =>
+      Operator._('stringReplace', [search, replace]).toString();
 
   /// Toggle a boolean attribute.
   static String toggle() =>

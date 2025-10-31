@@ -248,14 +248,14 @@ namespace {{ spec.title | caseUcfirst }}
             return new Operator("arrayFilter", values).ToString();
         }
 
-        public static string Concat(object value)
+        public static string StringConcat(object value)
         {
-            return new Operator("concat", new List<object> { value }).ToString();
+            return new Operator("stringConcat", new List<object> { value }).ToString();
         }
 
-        public static string Replace(string search, string replace)
+        public static string StringReplace(string search, string replace)
         {
-            return new Operator("replace", new List<object> { search, replace }).ToString();
+            return new Operator("stringReplace", new List<object> { search, replace }).ToString();
         }
 
         public static string Toggle()

@@ -183,11 +183,11 @@ namespace {{ spec.title | caseUcfirst }}
         }
 
         public static string CreatedBefore(string value) {
-            return new Query("createdBefore", null, value).ToString();
+            return LessThan("$createdAt", value);
         }
 
         public static string CreatedAfter(string value) {
-            return new Query("createdAfter", null, value).ToString();
+            return GreaterThan("$createdAt", value);
         }
 
         public static string CreatedBetween(string start, string end) {
@@ -195,11 +195,11 @@ namespace {{ spec.title | caseUcfirst }}
         }
 
         public static string UpdatedBefore(string value) {
-            return new Query("updatedBefore", null, value).ToString();
+            return LessThan("$updatedAt", value);
         }
 
         public static string UpdatedAfter(string value) {
-            return new Query("updatedAfter", null, value).ToString();
+            return GreaterThan("$updatedAt", value);
         }
 
         public static string UpdatedBetween(string start, string end) {

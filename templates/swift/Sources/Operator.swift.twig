@@ -279,12 +279,12 @@ public struct Operator : Codable, CustomStringConvertible {
         return Operator(method: "arrayFilter", values: values).description
     }
 
-    public static func concat(_ value: Any) -> String {
-        return Operator(method: "concat", values: [value]).description
+    public static func stringConcat(_ value: Any) -> String {
+        return Operator(method: "stringConcat", values: [value]).description
     }
 
-    public static func replace(_ search: String, _ replace: String) -> String {
-        return Operator(method: "replace", values: [search, replace]).description
+    public static func stringReplace(_ search: String, _ replace: String) -> String {
+        return Operator(method: "stringReplace", values: [search, replace]).description
     }
 
     public static func toggle() -> String {

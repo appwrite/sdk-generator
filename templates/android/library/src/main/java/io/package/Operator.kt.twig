@@ -103,12 +103,12 @@ class Operator(
             return Operator("arrayFilter", values).toJson()
         }
 
-        fun concat(value: Any): String {
-            return Operator("concat", listOf(value)).toJson()
+        fun stringConcat(value: Any): String {
+            return Operator("stringConcat", listOf(value)).toJson()
         }
 
-        fun replace(search: String, replace: String): String {
-            return Operator("replace", listOf(search, replace)).toJson()
+        fun stringReplace(search: String, replace: String): String {
+            return Operator("stringReplace", listOf(search, replace)).toJson()
         }
 
         fun toggle(): String {

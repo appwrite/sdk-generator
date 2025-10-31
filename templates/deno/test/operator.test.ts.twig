@@ -98,14 +98,14 @@ describe('Operator', () => {
         '{"method":"arrayFilter","values":["equal","test"]}',
     ));
 
-    test('concat', () => assertEquals(
-        Operator.concat('suffix').toString(),
-        '{"method":"concat","values":["suffix"]}',
+    test('stringConcat', () => assertEquals(
+        Operator.stringConcat('suffix').toString(),
+        '{"method":"stringConcat","values":["suffix"]}',
     ));
 
-    test('replace', () => assertEquals(
-        Operator.replace('old', 'new').toString(),
-        '{"method":"replace","values":["old","new"]}',
+    test('stringReplace', () => assertEquals(
+        Operator.stringReplace('old', 'new').toString(),
+        '{"method":"stringReplace","values":["old","new"]}',
     ));
 
     test('toggle', () => assertEquals(

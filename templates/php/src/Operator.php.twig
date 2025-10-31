@@ -270,9 +270,9 @@ class Operator implements \JsonSerializable
      * @param mixed $value
      * @return string
      */
-    public static function concat(mixed $value): string
+    public static function stringConcat(mixed $value): string
     {
-        return (new Operator('concat', [$value]))->__toString();
+        return (new Operator('stringConcat', [$value]))->__toString();
     }
 
     /**
@@ -282,9 +282,9 @@ class Operator implements \JsonSerializable
      * @param string $replace
      * @return string
      */
-    public static function replace(string $search, string $replace): string
+    public static function stringReplace(string $search, string $replace): string
     {
-        return (new Operator('replace', [$search, $replace]))->__toString();
+        return (new Operator('stringReplace', [$search, $replace]))->__toString();
     }
 
     /**

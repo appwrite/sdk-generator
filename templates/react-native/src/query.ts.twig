@@ -162,7 +162,7 @@ export class Query {
    * @returns {string}
    */
   static createdBefore = (value: string): string =>
-    new Query("createdBefore", undefined, value).toString();
+    Query.lessThan("$createdAt", value);
 
   /**
    * Filter resources where document was created after date.
@@ -171,7 +171,7 @@ export class Query {
    * @returns {string}
    */
   static createdAfter = (value: string): string =>
-    new Query("createdAfter", undefined, value).toString();
+    Query.greaterThan("$createdAt", value);
 
   /**
    * Filter resources where document was created between dates.
@@ -190,7 +190,7 @@ export class Query {
    * @returns {string}
    */
   static updatedBefore = (value: string): string =>
-    new Query("updatedBefore", undefined, value).toString();
+    Query.lessThan("$updatedAt", value);
 
   /**
    * Filter resources where document was updated after date.
@@ -199,7 +199,7 @@ export class Query {
    * @returns {string}
    */
   static updatedAfter = (value: string): string =>
-    new Query("updatedAfter", undefined, value).toString();
+    Query.greaterThan("$updatedAt", value);
 
   /**
    * Filter resources where document was updated between dates.

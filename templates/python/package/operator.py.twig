@@ -128,12 +128,12 @@ class Operator():
         return str(Operator("arrayFilter", values))
 
     @staticmethod
-    def concat(value):
-        return str(Operator("concat", [value]))
+    def string_concat(value):
+        return str(Operator("stringConcat", [value]))
 
     @staticmethod
-    def replace(search, replace):
-        return str(Operator("replace", [search, replace]))
+    def string_replace(search, replace):
+        return str(Operator("stringReplace", [search, replace]))
 
     @staticmethod
     def toggle():

@@ -117,12 +117,12 @@ module {{spec.title | caseUcfirst}}
                 return Operator.new("arrayFilter", values).to_s
             end
 
-            def concat(value)
-                return Operator.new("concat", [value]).to_s
+            def string_concat(value)
+                return Operator.new("stringConcat", [value]).to_s
             end
 
-            def replace(search, replace)
-                return Operator.new("replace", [search, replace]).to_s
+            def string_replace(search, replace)
+                return Operator.new("stringReplace", [search, replace]).to_s
             end
 
             def toggle()

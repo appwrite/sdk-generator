@@ -228,18 +228,18 @@ func ArrayFilter(condition Condition, value ...interface{}) string {
 	})
 }
 
-func Concat(value interface{}) string {
+func StringConcat(value interface{}) string {
 	values := []interface{}{value}
 	return parseOperator(operatorOptions{
-		Method: "concat",
+		Method: "stringConcat",
 		Values: &values,
 	})
 }
 
-func Replace(search string, replace string) string {
+func StringReplace(search string, replace string) string {
 	values := []interface{}{search, replace}
 	return parseOperator(operatorOptions{
-		Method: "replace",
+		Method: "stringReplace",
 		Values: &values,
 	})
 }
