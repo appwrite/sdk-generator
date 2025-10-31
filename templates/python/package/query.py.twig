@@ -133,7 +133,7 @@ class Query():
 
     @staticmethod
     def created_between(start, end):
-        return str(Query("createdBetween", None, [start, end]))
+        return Query.between("$createdAt", start, end)
 
     @staticmethod
     def updated_before(value):
@@ -145,7 +145,7 @@ class Query():
 
     @staticmethod
     def updated_between(start, end):
-        return str(Query("updatedBetween", None, [start, end]))
+        return Query.between("$updatedAt", start, end)
 
     @staticmethod
     def or_queries(queries):

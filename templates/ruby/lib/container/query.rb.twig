@@ -141,7 +141,7 @@ module {{spec.title | caseUcfirst}}
             end
 
             def created_between(start, ending)
-                return Query.new("createdBetween", nil, [start, ending]).to_s
+                return between("$createdAt", start, ending)
             end
 
             def updated_before(value)
@@ -153,7 +153,7 @@ module {{spec.title | caseUcfirst}}
             end
 
             def updated_between(start, ending)
-                return Query.new("updatedBetween", nil, [start, ending]).to_s
+                return between("$updatedAt", start, ending)
             end
 
             def or(queries)

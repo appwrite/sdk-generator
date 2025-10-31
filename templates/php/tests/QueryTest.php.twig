@@ -188,7 +188,7 @@ final class QueryTest extends TestCase {
     }
 
     public function testCreatedBetween(): void {
-        $this->assertSame('{"method":"createdBetween","values":["2023-01-01","2023-12-31"]}', Query::createdBetween('2023-01-01', '2023-12-31'));
+        $this->assertSame('between("$createdAt", ["2023-01-01","2023-12-31"])', Query::createdBetween('2023-01-01', '2023-12-31'));
     }
 
     public function testUpdatedBefore(): void {
@@ -200,6 +200,6 @@ final class QueryTest extends TestCase {
     }
 
     public function testUpdatedBetween(): void {
-        $this->assertSame('{"method":"updatedBetween","values":["2023-01-01","2023-12-31"]}', Query::updatedBetween('2023-01-01', '2023-12-31'));
+        $this->assertSame('between("$updatedAt", ["2023-01-01","2023-12-31"])', Query::updatedBetween('2023-01-01', '2023-12-31'));
     }
 }

@@ -292,9 +292,9 @@ void main() {
 
   test('returns createdBetween', () {
     final query = jsonDecode(Query.createdBetween('2023-01-01', '2023-12-31'));
-    expect(query['attribute'], null);
+    expect(query['attribute'], '\$createdAt');
     expect(query['values'], ['2023-01-01', '2023-12-31']);
-    expect(query['method'], 'createdBetween');
+    expect(query['method'], 'between');
   });
 
   test('returns updatedBefore', () {
@@ -313,9 +313,9 @@ void main() {
 
   test('returns updatedBetween', () {
     final query = jsonDecode(Query.updatedBetween('2023-01-01', '2023-12-31'));
-    expect(query['attribute'], null);
+    expect(query['attribute'], '\$updatedAt');
     expect(query['values'], ['2023-01-01', '2023-12-31']);
-    expect(query['method'], 'updatedBetween');
+    expect(query['method'], 'between');
   });
 }
 

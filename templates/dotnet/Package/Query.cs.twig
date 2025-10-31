@@ -191,7 +191,7 @@ namespace {{ spec.title | caseUcfirst }}
         }
 
         public static string CreatedBetween(string start, string end) {
-            return new Query("createdBetween", null, new List<string> { start, end }).ToString();
+            return Between("$createdAt", start, end);
         }
 
         public static string UpdatedBefore(string value) {
@@ -203,7 +203,7 @@ namespace {{ spec.title | caseUcfirst }}
         }
 
         public static string UpdatedBetween(string start, string end) {
-            return new Query("updatedBetween", null, new List<string> { start, end }).ToString();
+            return Between("$updatedAt", start, end);
         }
 
         public static string Or(List<string> queries) {

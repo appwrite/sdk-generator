@@ -245,8 +245,8 @@ namespace AppwriteTests
             TestContext.WriteLine(Operator.ArrayIntersect(new List<object> { "a", "b", "c" }));
             TestContext.WriteLine(Operator.ArrayDiff(new List<object> { "x", "y" }));
             TestContext.WriteLine(Operator.ArrayFilter(Condition.Equal, "test"));
-            TestContext.WriteLine(Operator.Concat("suffix"));
-            TestContext.WriteLine(Operator.Replace("old", "new"));
+            TestContext.WriteLine(Operator.StringConcat("suffix"));
+            TestContext.WriteLine(Operator.StringReplace("old", "new"));
             TestContext.WriteLine(Operator.Toggle());
             TestContext.WriteLine(Operator.DateAddDays(7));
             TestContext.WriteLine(Operator.DateSubDays(3));

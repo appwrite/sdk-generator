@@ -387,10 +387,7 @@ public struct Query : Codable, CustomStringConvertible {
     }
 
     public static func createdBetween(_ start: String, _ end: String) -> String {
-        return Query(
-            method: "createdBetween",
-            values: [start, end]
-        ).description
+        return between("$createdAt", start: start, end: end)
     }
 
     public static func updatedBefore(_ value: String) -> String {
@@ -402,10 +399,7 @@ public struct Query : Codable, CustomStringConvertible {
     }
 
     public static func updatedBetween(_ start: String, _ end: String) -> String {
-        return Query(
-            method: "updatedBetween",
-            values: [start, end]
-        ).description
+        return between("$updatedAt", start: start, end: end)
     }
 
     public static func or(_ queries: [String]) -> String {

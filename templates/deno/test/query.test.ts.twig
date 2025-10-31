@@ -225,7 +225,7 @@ describe('Query', () => {
 
     test('createdBetween', () => assertEquals(
         Query.createdBetween('2023-01-01', '2023-12-31').toString(),
-        `{"method":"createdBetween","values":["2023-01-01","2023-12-31"]}`,
+        `{"method":"between","attribute":"$createdAt","values":["2023-01-01","2023-12-31"]}`,
     ));
 
     test('updatedBefore', () => assertEquals(
@@ -240,6 +240,6 @@ describe('Query', () => {
 
     test('updatedBetween', () => assertEquals(
         Query.updatedBetween('2023-01-01', '2023-12-31').toString(),
-        `{"method":"updatedBetween","values":["2023-01-01","2023-12-31"]}`,
+        `{"method":"between","attribute":"$updatedAt","values":["2023-01-01","2023-12-31"]}`,
     ));
 })

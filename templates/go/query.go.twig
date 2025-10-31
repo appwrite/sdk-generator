@@ -210,11 +210,7 @@ func CreatedAfter(value interface{}) string {
 }
 
 func CreatedBetween(start, end interface{}) string {
-	values := []interface{}{start, end}
-	return parseQuery(queryOptions{
-		Method: "createdBetween",
-		Values: &values,
-	})
+	return Between("$createdAt", start, end)
 }
 
 func UpdatedBefore(value interface{}) string {
@@ -226,11 +222,7 @@ func UpdatedAfter(value interface{}) string {
 }
 
 func UpdatedBetween(start, end interface{}) string {
-	values := []interface{}{start, end}
-	return parseQuery(queryOptions{
-		Method: "updatedBetween",
-		Values: &values,
-	})
+	return Between("$updatedAt", start, end)
 }
 
 func Select(attributes interface{}) string {

@@ -369,7 +369,7 @@ class Query implements \JsonSerializable
      */
     public static function createdBetween(string $start, string $end): string
     {
-        return (new Query('createdBetween', null, [$start, $end]))->__toString();
+        return self::between('$createdAt', $start, $end);
     }
 
     /**
@@ -403,7 +403,7 @@ class Query implements \JsonSerializable
      */
     public static function updatedBetween(string $start, string $end): string
     {
-        return (new Query('updatedBetween', null, [$start, $end]))->__toString();
+        return self::between('$updatedAt', $start, $end);
     }
 
     /**

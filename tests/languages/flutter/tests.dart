@@ -267,8 +267,8 @@ void main() async {
   print(Operator.arrayIntersect(["a", "b", "c"]));
   print(Operator.arrayDiff(["x", "y"]));
   print(Operator.arrayFilter(Condition.equal, "test"));
-  print(Operator.concat("suffix"));
-  print(Operator.replace("old", "new"));
+  print(Operator.stringConcat("suffix"));
+  print(Operator.stringReplace("old", "new"));
   print(Operator.toggle());
   print(Operator.dateAddDays(7));
   print(Operator.dateSubDays(3));
