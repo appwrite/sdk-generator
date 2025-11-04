@@ -400,7 +400,7 @@ class Python extends Language
                 return $this->getTypeName($value, $method);
             }),
             new TwigFilter('formatParamValue', function (string $paramName, string $paramType, bool $isMultipartFormData) {
-                if ($isMultipartFormData && $paramType !== self::TYPE_STRING && $paramType !== self::TYPE_ARRAY) {
+                if ($isMultipartFormData && $paramType === self::TYPE_BOOLEAN) {
                     return "str({$paramName}).lower() if type({$paramName}) is bool else {$paramName}";
                 }
                 return $paramName;
