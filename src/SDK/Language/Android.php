@@ -127,6 +127,11 @@ class Android extends Kotlin
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/Operator.kt',
+                'template'      => '/android/library/src/main/java/io/package/Operator.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/exceptions/{{spec.title | caseUcfirst}}Exception.kt',
                 'template'      => '/android/library/src/main/java/io/package/exceptions/Exception.kt.twig',
             ],

@@ -346,7 +346,7 @@ class Query implements \JsonSerializable
      */
     public static function createdBefore(string $value): string
     {
-        return (new Query('createdBefore', null, $value))->__toString();
+        return self::lessThan('$createdAt', $value);
     }
 
     /**
@@ -357,7 +357,7 @@ class Query implements \JsonSerializable
      */
     public static function createdAfter(string $value): string
     {
-        return (new Query('createdAfter', null, $value))->__toString();
+        return self::greaterThan('$createdAt', $value);
     }
 
     /**
@@ -369,7 +369,7 @@ class Query implements \JsonSerializable
      */
     public static function createdBetween(string $start, string $end): string
     {
-        return (new Query('createdBetween', null, [$start, $end]))->__toString();
+        return self::between('$createdAt', $start, $end);
     }
 
     /**
@@ -380,7 +380,7 @@ class Query implements \JsonSerializable
      */
     public static function updatedBefore(string $value): string
     {
-        return (new Query('updatedBefore', null, $value))->__toString();
+        return self::lessThan('$updatedAt', $value);
     }
 
     /**
@@ -391,7 +391,7 @@ class Query implements \JsonSerializable
      */
     public static function updatedAfter(string $value): string
     {
-        return (new Query('updatedAfter', null, $value))->__toString();
+        return self::greaterThan('$updatedAt', $value);
     }
 
     /**
@@ -403,7 +403,7 @@ class Query implements \JsonSerializable
      */
     public static function updatedBetween(string $start, string $end): string
     {
-        return (new Query('updatedBetween', null, [$start, $end]))->__toString();
+        return self::between('$updatedAt', $start, $end);
     }
 
     /**

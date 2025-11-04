@@ -43,6 +43,12 @@ const {
     databasesUpdateEnumAttribute,
     databasesUpdateRelationshipAttribute,
     databasesCreateRelationshipAttribute,
+    databasesCreatePointAttribute,
+    databasesUpdatePointAttribute,
+    databasesCreateLineAttribute,
+    databasesUpdateLineAttribute,
+    databasesCreatePolygonAttribute,
+    databasesUpdatePolygonAttribute,
     databasesDeleteAttribute,
     databasesDeleteIndex,
     databasesListAttributes,
@@ -55,7 +61,11 @@ const {
     tablesDBUpdate,
     tablesDBCreateTable,
     tablesDBGetTable,
-    tablesDBUpdateTable
+    tablesDBUpdateTable,
+    tablesDBList,
+    tablesDBDelete,
+    tablesDBListTables,
+    tablesDBDeleteTable
 } = require("./tables-db");
 const {
     storageGetBucket, storageUpdateBucket, storageCreateBucket
@@ -558,6 +568,33 @@ const createAttribute = (databaseId, collectionId, attribute) => {
                 onDelete: attribute.onDelete,
                 parseOutput: false
             })
+        case 'point':
+            return databasesCreatePointAttribute({
+                databaseId,
+                collectionId,
+                key:attribute.key,
+                required:attribute.required,
+                xdefault:attribute.default,
+                parseOutput:false
+            })
+        case 'linestring':
+            return databasesCreateLineAttribute({
+                databaseId,
+                collectionId,
+                key:attribute.key,
+                required:attribute.required,
+                xdefault:attribute.default,
+                parseOutput:false
+            })
+        case 'polygon':
+            return databasesCreatePolygonAttribute({
+                databaseId,
+                collectionId,
+                key:attribute.key,
+                required:attribute.required,
+                xdefault:attribute.default,
+                parseOutput:false
+            })
         default:
             throw new Error(`Unsupported attribute type: ${attribute.type}`);
     }
@@ -677,6 +714,33 @@ const updateAttribute = (databaseId, collectionId, attribute) => {
                 onDelete: attribute.onDelete,
                 parseOutput: false
             })
+        case 'point':
+            return databasesUpdatePointAttribute({
+                databaseId,
+                collectionId,
+                key:attribute.key,
+                required:attribute.required,
+                xdefault:attribute.default,
+                parseOutput:false
+            })
+        case 'linestring':
+            return databasesUpdateLineAttribute({
+                databaseId,
+                collectionId,
+                key:attribute.key,
+                required:attribute.required,
+                xdefault:attribute.default,
+                parseOutput:false
+            })
+        case 'polygon':
+            return databasesUpdatePolygonAttribute({
+                databaseId,
+                collectionId,
+                key:attribute.key,
+                required:attribute.required,
+                xdefault:attribute.default,
+                parseOutput:false
+            })
         default:
             throw new Error(`Unsupported attribute type: ${attribute.type}`);
     }
@@ -765,7 +829,7 @@ const checkAttributeChanges = (remote, local, collection, recreating = true) => 
     const keyName = `${chalk.yellow(local.key)} in ${collection.name} (${collection['$id']})`;
     const action = chalk.cyan(recreating ? 'recreating' : 'changing');
     let reason = '';
-    let attribute = remote;
+    let attribute = recreating ? remote : local;
 
     for (let key of Object.keys(remote)) {
         if (!KeysAttributes.has(key)) {
@@ -834,14 +898,16 @@ const attributesToCreate = async (remoteAttributes, localAttributes, collection,
 
     if (!cliConfig.force) {
         if (deleting.length > 0 && !isIndex) {
-            console.log(`${chalk.red('-------------------------------------------------------')}`);
+            console.log(`${chalk.red('------------------------------------------------------')}`);
             console.log(`${chalk.red('| WARNING: Attribute deletion may cause loss of data |')}`);
-            console.log(`${chalk.red('-------------------------------------------------------')}`);
+            console.log(`${chalk.red('------------------------------------------------------')}`);
+            console.log();
         }
         if (conflicts.length > 0 && !isIndex) {
-            console.log(`${chalk.red('---------------------------------------------------------')}`);
+            console.log(`${chalk.red('--------------------------------------------------------')}`);
             console.log(`${chalk.red('| WARNING: Attribute recreation may cause loss of data |')}`);
-            console.log(`${chalk.red('---------------------------------------------------------')}`);
+            console.log(`${chalk.red('--------------------------------------------------------')}`);
+            console.log();
         }
 
         if ((await getConfirmation()) !== true) {
@@ -1700,12 +1766,243 @@ const pushFunction = async ({ functionId, async, code, withVariables } = { retur
     }
 }
 
+const checkAndApplyTablesDBChanges = async () => {
+    log('Checking for tablesDB changes ...');
+    
+    const localTablesDBs = localConfig.getTablesDBs();
+    const { databases: remoteTablesDBs } = await paginate(tablesDBList, { parseOutput: false }, 100, 'databases');
+    
+    if (localTablesDBs.length === 0 && remoteTablesDBs.length === 0) {
+        return { applied: false, resyncNeeded: false };
+    }
+    
+    const changes = [];
+    const toCreate = [];
+    const toUpdate = [];
+    const toDelete = [];
+
+    // Check for deletions - remote DBs that aren't in local config
+    for (const remoteDB of remoteTablesDBs) {
+        const localDB = localTablesDBs.find(db => db.$id === remoteDB.$id);
+        if (!localDB) {
+            toDelete.push(remoteDB);
+            changes.push({
+                id: remoteDB.$id,
+                action: chalk.red('deleting'),
+                key: 'Database',
+                remote: remoteDB.name,
+                local: '(deleted locally)'
+            });
+        }
+    }
+
+    // Check for additions and updates
+    for (const localDB of localTablesDBs) {
+        const remoteDB = remoteTablesDBs.find(db => db.$id === localDB.$id);
+        
+        if (!remoteDB) {
+            toCreate.push(localDB);
+            changes.push({
+                id: localDB.$id,
+                action: chalk.green('creating'),
+                key: 'Database',
+                remote: '(does not exist)',
+                local: localDB.name
+            });
+        } else {
+            let hasChanges = false;
+            
+            if (remoteDB.name !== localDB.name) {
+                hasChanges = true;
+                changes.push({
+                    id: localDB.$id,
+                    action: chalk.yellow('updating'),
+                    key: 'Name',
+                    remote: remoteDB.name,
+                    local: localDB.name
+                });
+            }
+            
+            if (remoteDB.enabled !== localDB.enabled) {
+                hasChanges = true;
+                changes.push({
+                    id: localDB.$id,
+                    action: chalk.yellow('updating'),
+                    key: 'Enabled',
+                    remote: remoteDB.enabled,
+                    local: localDB.enabled
+                });
+            }
+            
+            if (hasChanges) {
+                toUpdate.push(localDB);
+            }
+        }
+    }
+
+    if (changes.length === 0) {
+        console.log('No changes found in tablesDB resource');
+        console.log();
+        return { applied: false, resyncNeeded: false };
+    }
+
+    log('Found changes in tablesDB resource:');
+    drawTable(changes);
+
+    if (toDelete.length > 0) {
+        console.log(`${chalk.red('------------------------------------------------------------------')}`);
+        console.log(`${chalk.red('| WARNING: Database deletion will also delete all related tables |')}`);
+        console.log(`${chalk.red('------------------------------------------------------------------')}`);
+        console.log();
+    }
+
+    if ((await getConfirmation()) !== true) {
+        return { applied: false, resyncNeeded: false };
+    }
+
+    // Apply deletions first
+    let needsResync = false;
+    for (const db of toDelete) {
+        try {
+            log(`Deleting database ${db.name} ( ${db.$id} ) ...`);
+            await tablesDBDelete({
+                databaseId: db.$id,
+                parseOutput: false
+            });
+            success(`Deleted ${db.name} ( ${db.$id} )`);
+            needsResync = true;
+        } catch (e) {
+            error(`Failed to delete database ${db.name} ( ${db.$id} ): ${e.message}`);
+            throw new Error(`Database sync failed during deletion of ${db.$id}. Some changes may have been applied.`);
+        }
+    }
+
+    // Apply creations
+    for (const db of toCreate) {
+        try {
+            log(`Creating database ${db.name} ( ${db.$id} ) ...`);
+            await tablesDBCreate({
+                databaseId: db.$id,
+                name: db.name,
+                enabled: db.enabled,
+                parseOutput: false
+            });
+            success(`Created ${db.name} ( ${db.$id} )`);
+        } catch (e) {
+            error(`Failed to create database ${db.name} ( ${db.$id} ): ${e.message}`);
+            throw new Error(`Database sync failed during creation of ${db.$id}. Some changes may have been applied.`);
+        }
+    }
+
+    // Apply updates
+    for (const db of toUpdate) {
+        try {
+            log(`Updating database ${db.name} ( ${db.$id} ) ...`);
+            await tablesDBUpdate({
+                databaseId: db.$id,
+                name: db.name,
+                enabled: db.enabled,
+                parseOutput: false
+            });
+            success(`Updated ${db.name} ( ${db.$id} )`);
+        } catch (e) {
+            error(`Failed to update database ${db.name} ( ${db.$id} ): ${e.message}`);
+            throw new Error(`Database sync failed during update of ${db.$id}. Some changes may have been applied.`);
+        }
+    }
+
+    if (toDelete.length === 0){
+        console.log();
+    }
+
+    return { applied: true, resyncNeeded: needsResync };
+};
+
 const pushTable = async ({ returnOnZero, attempts } = { returnOnZero: false }) => {
     const tables = [];
 
     if (attempts) {
         pollMaxDebounces = attempts;
     }
+
+    const { applied: tablesDBApplied, resyncNeeded } = await checkAndApplyTablesDBChanges();
+    if (resyncNeeded) {
+        log('Resyncing configuration due to tablesDB deletions ...');
+
+        const remoteTablesDBs = (await paginate(tablesDBList, { parseOutput: false }, 100, 'databases')).databases;
+        const localTablesDBs = localConfig.getTablesDBs();
+
+        const remoteDatabaseIds = new Set(remoteTablesDBs.map(db => db.$id));
+        const localTables = localConfig.getTables();
+        const validTables = localTables.filter(table => remoteDatabaseIds.has(table.databaseId));
+
+        localConfig.set('tables', validTables);
+
+        const validTablesDBs = localTablesDBs.filter(db => remoteDatabaseIds.has(db.$id));
+        localConfig.set('tablesDB', validTablesDBs);
+
+        success('Configuration resynced successfully.');
+        console.log();
+    }
+
+    log('Checking for deleted tables ...');
+    const localTablesDBs = localConfig.getTablesDBs();
+    const localTables = localConfig.getTables();
+    const tablesToDelete = [];
+
+    for (const db of localTablesDBs) {
+        try {
+            const { tables: remoteTables } = await paginate(tablesDBListTables, {
+                databaseId: db.$id,
+                parseOutput: false
+            }, 100, 'tables');
+
+            for (const remoteTable of remoteTables) {
+                const localTable = localTables.find(t => t.$id === remoteTable.$id && t.databaseId === db.$id);
+                if (!localTable) {
+                    tablesToDelete.push({
+                        ...remoteTable,
+                        databaseId: db.$id,
+                        databaseName: db.name
+                    });
+                }
+            }
+        } catch (e) {
+            // Skip if database doesn't exist or other errors
+        }
+    }
+
+    if (tablesToDelete.length > 0) {
+        log('Found tables that exist remotely but not locally:');
+        const deletionChanges = tablesToDelete.map(table => ({
+            id: table.$id,
+            action: chalk.red('deleting'),
+            key: 'Table',
+            database: table.databaseName,
+            remote: table.name,
+            local: '(deleted locally)'
+        }));
+        drawTable(deletionChanges);
+
+        if ((await getConfirmation()) === true) {
+            for (const table of tablesToDelete) {
+                try {
+                    log(`Deleting table ${table.name} ( ${table.$id} ) from database ${table.databaseName} ...`);
+                    await tablesDBDeleteTable({
+                        databaseId: table.databaseId,
+                        tableId: table.$id,
+                        parseOutput: false
+                    });
+                    success(`Deleted ${table.name} ( ${table.$id} )`);
+                } catch (e) {
+                    error(`Failed to delete table ${table.name} ( ${table.$id} ): ${e.message}`);
+                }
+            }
+        }
+    } else {
+        console.log('No tables found to delete');
+    }
+    console.log();
 
     if (cliConfig.all) {
         checkDeployConditions(localConfig);
@@ -1730,39 +2027,6 @@ const pushTable = async ({ returnOnZero, attempts } = { returnOnZero: false }) =
         return;
     }
 
-    const databases = Array.from(new Set(tables.map(table => table['databaseId'])));
-
-    // Parallel tablesDB actions
-    await Promise.all(databases.map(async (databaseId) => {
-        const localDatabase = localConfig.getTablesDB(databaseId);
-
-        try {
-            const database = await tablesDBGet({
-                databaseId: databaseId,
-                parseOutput: false,
-            });
-
-            if (database.name !== (localDatabase.name ?? databaseId)) {
-                await tablesDBUpdate({
-                    databaseId: databaseId,
-                    name: localDatabase.name ?? databaseId,
-                    parseOutput: false
-                })
-
-                success(`Updated ${localDatabase.name} ( ${databaseId} ) name`);
-            }
-        } catch (err) {
-            log(`Database ${databaseId} not found. Creating it now ...`);
-
-            await tablesDBCreate({
-                databaseId: databaseId,
-                name: localDatabase.name ?? databaseId,
-                parseOutput: false,
-            });
-        }
-    }));
-
-
     if (!(await approveChanges(tables, tablesDBGetTable, KeysTable, 'tableId', 'tables', ['columns', 'indexes'], 'databaseId', 'databaseId'))) {
         return;
     }
@@ -1780,6 +2044,7 @@ const pushTable = async ({ returnOnZero, attempts } = { returnOnZero: false }) =
             const changes = [];
             if (remoteTable.name !== table.name) changes.push('name');
             if (remoteTable.rowSecurity !== table.rowSecurity) changes.push('rowSecurity');
+            if (remoteTable.enabled !== table.enabled) changes.push('enabled');
             if (JSON.stringify(remoteTable['$permissions']) !== JSON.stringify(table['$permissions'])) changes.push('permissions');
 
             if (changes.length > 0) {

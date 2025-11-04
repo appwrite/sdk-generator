@@ -86,6 +86,21 @@ class Ruby extends Language
         return [];
     }
 
+    public function getStaticAccessOperator(): string
+    {
+        return '.';
+    }
+
+    public function getStringQuote(): string
+    {
+        return "'";
+    }
+
+    public function getArrayOf(string $elements): string
+    {
+        return '[' . $elements . ']';
+    }
+
     /**
      * @return array
      */
@@ -146,6 +161,11 @@ class Ruby extends Language
                 'scope'         => 'default',
                 'destination'   => 'lib/{{ spec.title | caseDash }}/query.rb',
                 'template'      => 'ruby/lib/container/query.rb.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/{{ spec.title | caseDash }}/operator.rb',
+                'template'      => 'ruby/lib/container/operator.rb.twig',
             ],
             [
                 'scope'         => 'default',
@@ -302,8 +322,10 @@ class Ruby extends Language
             switch ($type) {
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
-                case self::TYPE_ARRAY:
                     $output .= $example;
+                    break;
+                case self::TYPE_ARRAY:
+                    $output .= $this->isPermissionString($example) ? $this->getPermissionExample($example) : $example;
                     break;
                 case self::TYPE_OBJECT:
                     $output .= $this->jsonToHash(json_decode($example, true));

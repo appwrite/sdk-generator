@@ -379,45 +379,27 @@ public struct Query : Codable, CustomStringConvertible {
     }
 
     public static func createdBefore(_ value: String) -> String {
-        return Query(
-            method: "createdBefore",
-            values: [value]
-        ).description
+        return lessThan("$createdAt", value: value)
     }
 
     public static func createdAfter(_ value: String) -> String {
-        return Query(
-            method: "createdAfter",
-            values: [value]
-        ).description
+        return greaterThan("$createdAt", value: value)
     }
 
     public static func createdBetween(_ start: String, _ end: String) -> String {
-        return Query(
-            method: "createdBetween",
-            values: [start, end]
-        ).description
+        return between("$createdAt", start: start, end: end)
     }
 
     public static func updatedBefore(_ value: String) -> String {
-        return Query(
-            method: "updatedBefore",
-            values: [value]
-        ).description
+        return lessThan("$updatedAt", value: value)
     }
 
     public static func updatedAfter(_ value: String) -> String {
-        return Query(
-            method: "updatedAfter",
-            values: [value]
-        ).description
+        return greaterThan("$updatedAt", value: value)
     }
 
     public static func updatedBetween(_ start: String, _ end: String) -> String {
-        return Query(
-            method: "updatedBetween",
-            values: [start, end]
-        ).description
+        return between("$updatedAt", start: start, end: end)
     }
 
     public static func or(_ queries: [String]) -> String {

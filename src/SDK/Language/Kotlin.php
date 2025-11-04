@@ -99,6 +99,21 @@ class Kotlin extends Language
         return [];
     }
 
+    public function getStaticAccessOperator(): string
+    {
+        return '.';
+    }
+
+    public function getStringQuote(): string
+    {
+        return '"';
+    }
+
+    public function getArrayOf(string $elements): string
+    {
+        return 'listOf(' . $elements . ')';
+    }
+
     /**
      * @param array $parameter
      * @param array $spec
@@ -257,13 +272,17 @@ class Kotlin extends Language
                     $output .= $example;
                     break;
                 case self::TYPE_ARRAY:
-                    if (\str_starts_with($example, '[')) {
-                        $example = \substr($example, 1);
+                    if ($this->isPermissionString($example)) {
+                        $output .= $this->getPermissionExample($example);
+                    } else {
+                        if (\str_starts_with($example, '[')) {
+                            $example = \substr($example, 1);
+                        }
+                        if (\str_ends_with($example, ']')) {
+                            $example = \substr($example, 0, -1);
+                        }
+                        $output .= 'listOf(' . $example . ')';
                     }
-                    if (\str_ends_with($example, ']')) {
-                        $example = \substr($example, 0, -1);
-                    }
-                    $output .= 'listOf(' . $example . ')';
                     break;
                 case self::TYPE_BOOLEAN:
                     $output .= ($example) ? 'true' : 'false';
@@ -393,6 +412,11 @@ class Kotlin extends Language
                 'scope'         => 'default',
                 'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/Query.kt',
                 'template'      => '/kotlin/src/main/kotlin/io/appwrite/Query.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/Operator.kt',
+                'template'      => '/kotlin/src/main/kotlin/io/appwrite/Operator.kt.twig',
             ],
             [
                 'scope'         => 'default',

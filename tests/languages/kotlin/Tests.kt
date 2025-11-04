@@ -5,6 +5,8 @@ import io.appwrite.Permission
 import io.appwrite.Role
 import io.appwrite.ID
 import io.appwrite.Query
+import io.appwrite.Operator
+import io.appwrite.Condition
 import io.appwrite.enums.MockType
 import io.appwrite.exceptions.AppwriteException
 import io.appwrite.extensions.fromJson
@@ -233,6 +235,33 @@ class ServiceTest {
             // ID helper tests
             writeToFile(ID.unique())
             writeToFile(ID.custom("custom_id"))
+
+            // Operator helper tests
+            writeToFile(Operator.increment(1))
+            writeToFile(Operator.increment(5, 100))
+            writeToFile(Operator.decrement(1))
+            writeToFile(Operator.decrement(3, 0))
+            writeToFile(Operator.multiply(2))
+            writeToFile(Operator.multiply(3, 1000))
+            writeToFile(Operator.divide(2))
+            writeToFile(Operator.divide(4, 1))
+            writeToFile(Operator.modulo(5))
+            writeToFile(Operator.power(2))
+            writeToFile(Operator.power(3, 100))
+            writeToFile(Operator.arrayAppend(listOf("item1", "item2")))
+            writeToFile(Operator.arrayPrepend(listOf("first", "second")))
+            writeToFile(Operator.arrayInsert(0, "newItem"))
+            writeToFile(Operator.arrayRemove("oldItem"))
+            writeToFile(Operator.arrayUnique())
+            writeToFile(Operator.arrayIntersect(listOf("a", "b", "c")))
+            writeToFile(Operator.arrayDiff(listOf("x", "y")))
+            writeToFile(Operator.arrayFilter(Condition.EQUAL, "test"))
+            writeToFile(Operator.stringConcat("suffix"))
+            writeToFile(Operator.stringReplace("old", "new"))
+            writeToFile(Operator.toggle())
+            writeToFile(Operator.dateAddDays(7))
+            writeToFile(Operator.dateSubDays(3))
+            writeToFile(Operator.dateSetNow())
 
             mock = general.headers()
             writeToFile(mock.result)
