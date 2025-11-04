@@ -399,6 +399,12 @@ class Python extends Language
             new TwigFilter('getPropertyType', function ($value, $method = []) {
                 return $this->getTypeName($value, $method);
             }),
+            new TwigFilter('formatParamValue', function (string $paramName, string $paramType, bool $isMultipartFormData) {
+                if ($isMultipartFormData && $paramType === self::TYPE_BOOLEAN) {
+                    return "str({$paramName}).lower() if type({$paramName}) is bool else {$paramName}";
+                }
+                return $paramName;
+            }),
         ];
     }
 }
