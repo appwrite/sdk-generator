@@ -488,7 +488,8 @@ namespace {{ spec.title | caseUcfirst }}.Tests
             var query = JsonSerializer.Deserialize<Query>(result);
             
             Assert.NotNull(query);
-            Assert.Equal("createdBefore", query.Method);
+            Assert.Equal("lessThan", query.Method);
+            Assert.Equal("$createdAt", query.Attribute);
             Assert.NotNull(query.Values);
             Assert.Single(query.Values);
             Assert.Equal("2023-01-01", query.Values[0].ToString());
@@ -501,7 +502,8 @@ namespace {{ spec.title | caseUcfirst }}.Tests
             var query = JsonSerializer.Deserialize<Query>(result);
             
             Assert.NotNull(query);
-            Assert.Equal("createdAfter", query.Method);
+            Assert.Equal("greaterThan", query.Method);
+            Assert.Equal("$createdAt", query.Attribute);
             Assert.NotNull(query.Values);
             Assert.Single(query.Values);
             Assert.Equal("2023-01-01", query.Values[0].ToString());
@@ -514,7 +516,8 @@ namespace {{ spec.title | caseUcfirst }}.Tests
             var query = JsonSerializer.Deserialize<Query>(result);
             
             Assert.NotNull(query);
-            Assert.Equal("createdBetween", query.Method);
+            Assert.Equal("between", query.Method);
+            Assert.Equal("$createdAt", query.Attribute);
             Assert.NotNull(query.Values);
             Assert.Equal(2, query.Values.Count);
             Assert.Equal("2023-01-01", query.Values[0].ToString());
@@ -528,7 +531,8 @@ namespace {{ spec.title | caseUcfirst }}.Tests
             var query = JsonSerializer.Deserialize<Query>(result);
             
             Assert.NotNull(query);
-            Assert.Equal("updatedBefore", query.Method);
+            Assert.Equal("lessThan", query.Method);
+            Assert.Equal("$updatedAt", query.Attribute);
             Assert.NotNull(query.Values);
             Assert.Single(query.Values);
             Assert.Equal("2023-01-01", query.Values[0].ToString());
@@ -541,7 +545,8 @@ namespace {{ spec.title | caseUcfirst }}.Tests
             var query = JsonSerializer.Deserialize<Query>(result);
             
             Assert.NotNull(query);
-            Assert.Equal("updatedAfter", query.Method);
+            Assert.Equal("greaterThan", query.Method);
+            Assert.Equal("$updatedAt", query.Attribute);
             Assert.NotNull(query.Values);
             Assert.Single(query.Values);
             Assert.Equal("2023-01-01", query.Values[0].ToString());
@@ -554,7 +559,8 @@ namespace {{ spec.title | caseUcfirst }}.Tests
             var query = JsonSerializer.Deserialize<Query>(result);
             
             Assert.NotNull(query);
-            Assert.Equal("updatedBetween", query.Method);
+            Assert.Equal("between", query.Method);
+            Assert.Equal("$updatedAt", query.Attribute);
             Assert.NotNull(query.Values);
             Assert.Equal(2, query.Values.Count);
             Assert.Equal("2023-01-01", query.Values[0].ToString());
