@@ -40,7 +40,7 @@ class Dart extends LanguageMeta {
     return 'appwrite';
   }
 
-  getType(attribute, collections) {
+  getType(attribute, collections, collectionName) {
     let type = "";
     switch (attribute.type) {
       case AttributeType.STRING:
@@ -48,7 +48,7 @@ class Dart extends LanguageMeta {
       case AttributeType.DATETIME:
         type = "String";
         if (attribute.format === AttributeType.ENUM) {
-          type = LanguageMeta.toPascalCase(attribute.key);
+          type = LanguageMeta.toPascalCase(collectionName) + LanguageMeta.toPascalCase(attribute.key);
         }
         break;
       case AttributeType.INTEGER:
@@ -103,7 +103,7 @@ import '<%- toSnakeCase(related.name) %>.dart';
 
 <% for (const attribute of __attrs) { -%>
 <% if (attribute.format === '${AttributeType.ENUM}') { -%>
-enum <%- toPascalCase(attribute.key) %> {
+enum <%- toPascalCase(collection.name) %><%- toPascalCase(attribute.key) %> {
 <% for (const [index, element] of Object.entries(attribute.elements)) { -%>
   <%- strict ? toCamelCase(element) : element %><% if (index < attribute.elements.length - 1) { -%>,<% } %>
 <% } -%>
@@ -113,7 +113,7 @@ enum <%- toPascalCase(attribute.key) %> {
 <% } -%>
 class <%= toPascalCase(collection.name) %> {
 <% for (const [index, attribute] of Object.entries(__attrs)) { -%>
-  <%- getType(attribute, collections) %> <%= strict ? toCamelCase(attribute.key) : attribute.key %>;
+  <%- getType(attribute, collections, collection.name) %> <%= strict ? toCamelCase(attribute.key) : attribute.key %>;
 <% } -%>
 
   <%= toPascalCase(collection.name) %>({
@@ -128,10 +128,10 @@ class <%= toPascalCase(collection.name) %> {
   <%= strict ? toCamelCase(attribute.key) : attribute.key %>: <% if (attribute.type === '${AttributeType.STRING}' || attribute.type === '${AttributeType.EMAIL}' || attribute.type === '${AttributeType.DATETIME}') { -%>
 <% if (attribute.format === '${AttributeType.ENUM}') { -%>
 <% if (attribute.array) { -%>
-(map['<%= attribute.key %>'] as List<dynamic>?)?.map((e) => <%- toPascalCase(attribute.key) %>.values.firstWhere((element) => element.name == e)).toList()<% } else { -%>
+(map['<%= attribute.key %>'] as List<dynamic>?)?.map((e) => <%- toPascalCase(collection.name) %><%- toPascalCase(attribute.key) %>.values.firstWhere((element) => element.name == e)).toList()<% } else { -%>
 <% if (!attribute.required) { -%>
-map['<%= attribute.key %>'] != null ? <%- toPascalCase(attribute.key) %>.values.where((e) => e.name == map['<%= attribute.key %>']).firstOrNull : null<% } else { -%>
-<%- toPascalCase(attribute.key) %>.values.firstWhere((e) => e.name == map['<%= attribute.key %>'])<% } -%>
+map['<%= attribute.key %>'] != null ? <%- toPascalCase(collection.name) %><%- toPascalCase(attribute.key) %>.values.where((e) => e.name == map['<%= attribute.key %>']).firstOrNull : null<% } else { -%>
+<%- toPascalCase(collection.name) %><%- toPascalCase(attribute.key) %>.values.firstWhere((e) => e.name == map['<%= attribute.key %>'])<% } -%>
 <% } -%>
 <% } else { -%>
 <% if (attribute.array) { -%>
