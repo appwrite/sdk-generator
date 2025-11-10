@@ -12,9 +12,6 @@ mixin ClientMixin {
     required Map<String, String> headers,
     required Map<String, dynamic> params,
   }) {
-    if (params.isNotEmpty) {
-      params.removeWhere((key, value) => value == null);
-    }
 
     http.BaseRequest request = http.Request(method.name(), uri);
     if (headers['content-type'] == 'multipart/form-data') {
