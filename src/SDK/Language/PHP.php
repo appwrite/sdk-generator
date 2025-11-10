@@ -173,6 +173,11 @@ class PHP extends Language
                 'template'      => 'php/composer.json.twig',
             ],
             [
+                'scope'         => 'default',
+                'destination'   => 'phpunit.xml',
+                'template'      => 'php/phpunit.xml.twig',
+            ],
+            [
                 'scope'         => 'service',
                 'destination'   => 'docs/{{service.name | caseLower}}.md',
                 'template'      => 'php/docs/service.md.twig',

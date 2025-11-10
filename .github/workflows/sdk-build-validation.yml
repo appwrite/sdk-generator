@@ -173,6 +173,7 @@ jobs:
               ;;
             php)
               composer install
+              composer test
               ;;
             python)
               pip install -e .
