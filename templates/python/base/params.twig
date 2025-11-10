@@ -12,20 +12,22 @@
 {% endfor %}
 
 {% for parameter in method.parameters.query %}
-        api_params['{{ parameter.name }}'] = {{ parameter.name | escapeKeyword | caseSnake }}
-{% endfor %}
-{% for parameter in method.parameters.body %}
-{% if method.consumes[0] == "multipart/form-data" and ( parameter.type != "string" and parameter.type != "array" ) %}
-        api_params['{{ parameter.name }}'] = str({{ parameter.name | escapeKeyword | caseSnake }}).lower() if type({{ parameter.name | escapeKeyword | caseSnake }}) is bool else {{ parameter.name | escapeKeyword | caseSnake }}
+{% if not parameter.nullable and not parameter.required %}
+        if {{ parameter.name | escapeKeyword | caseSnake }} is not None:
+            api_params['{{ parameter.name }}'] = {{ parameter.name | escapeKeyword | caseSnake }}
 {% else %}
         api_params['{{ parameter.name }}'] = {{ parameter.name | escapeKeyword | caseSnake }}
 {% endif %}
 {% endfor %}
-{% for parameter in method.parameters.formData %}
-{% if method.consumes[0] == "multipart/form-data" and ( parameter.type != "string" and parameter.type != "array" ) %}
-        api_params['{{ parameter.name }}'] = str({{ parameter.name | escapeKeyword | caseSnake }}).lower() if type({{ parameter.name | escapeKeyword | caseSnake }}) is bool else {{ parameter.name | escapeKeyword | caseSnake }}
+{% for parameter in method.parameters.body|merge(method.parameters.formData|default([])) %}
+{% set paramName = parameter.name | escapeKeyword | caseSnake %}
+{% set isMultipart = method.consumes|length > 0 and method.consumes[0] == "multipart/form-data" %}
+{% set formattedValue = paramName | formatParamValue(parameter.type, isMultipart) %}
+{% if not parameter.nullable and not parameter.required %}
+        if {{ paramName }} is not None:
+            api_params['{{ parameter.name }}'] = {{ formattedValue }}
 {% else %}
-        api_params['{{ parameter.name }}'] = {{ parameter.name | escapeKeyword | caseSnake }}
+        api_params['{{ parameter.name }}'] = {{ formattedValue }}
 {% endif %}
 {% endfor %}
 {% endif %}

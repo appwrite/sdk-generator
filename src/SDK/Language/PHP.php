@@ -130,6 +130,21 @@ class PHP extends Language
         return [];
     }
 
+    public function getStaticAccessOperator(): string
+    {
+        return '::';
+    }
+
+    public function getStringQuote(): string
+    {
+        return '"';
+    }
+
+    public function getArrayOf(string $elements): string
+    {
+        return '[' . $elements . ']';
+    }
+
     /**
      * @return array
      */
@@ -158,13 +173,18 @@ class PHP extends Language
                 'template'      => 'php/composer.json.twig',
             ],
             [
+                'scope'         => 'default',
+                'destination'   => 'phpunit.xml',
+                'template'      => 'php/phpunit.xml.twig',
+            ],
+            [
                 'scope'         => 'service',
                 'destination'   => 'docs/{{service.name | caseLower}}.md',
                 'template'      => 'php/docs/service.md.twig',
             ],
             [
                 'scope'         => 'method',
-                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
+                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseKebab}}.md',
                 'template'      => 'php/docs/example.md.twig',
             ],
             [
@@ -211,6 +231,16 @@ class PHP extends Language
                 'scope'         => 'default',
                 'destination'   => 'tests/{{ spec.title | caseUcfirst}}/QueryTest.php',
                 'template'      => 'php/tests/QueryTest.php.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'src/{{ spec.title | caseUcfirst}}/Operator.php',
+                'template'      => 'php/src/Operator.php.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'tests/{{ spec.title | caseUcfirst}}/OperatorTest.php',
+                'template'      => 'php/tests/OperatorTest.php.twig',
             ],
             [
                 'scope'         => 'default',
@@ -356,8 +386,10 @@ class PHP extends Language
             switch ($type) {
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
-                case self::TYPE_ARRAY:
                     $output .= $example;
+                    break;
+                case self::TYPE_ARRAY:
+                    $output .= $this->isPermissionString($example) ? $this->getPermissionExample($example) : $example;
                     break;
                 case self::TYPE_OBJECT:
                     $output .= $this->jsonToAssoc(json_decode($example, true));
@@ -382,16 +414,37 @@ class PHP extends Language
      *
      * @var $data array
      */
-    protected function jsonToAssoc(array $data): string
+    protected function jsonToAssoc(array $data, int $indent = 0): string
     {
-        $output = '[';
-
-        foreach ($data as $key => $node) {
-            $value = (is_array($node)) ? $this->jsonToAssoc($node) : $node;
-            $output .= '\'' . $key . '\' => ' . ((is_string($node)) ? '\'' . $value . '\'' : $value) . (($key !== \array_key_last($data)) ? ', ' : '');
+        if (empty($data)) {
+            return '[]';
         }
 
-        $output .= ']';
+        $baseIndent = str_repeat('    ', $indent);
+        $itemIndent = str_repeat('    ', $indent + 1);
+        $output = "[\n";
+
+        $keys = array_keys($data);
+        foreach ($keys as $index => $key) {
+            $node = $data[$key];
+
+            if (is_array($node)) {
+                $value = $this->jsonToAssoc($node, $indent + 1);
+            } elseif (is_string($node)) {
+                $value = '\'' . $node . '\'';
+            } elseif (is_bool($node)) {
+                $value = $node ? 'true' : 'false';
+            } elseif (is_null($node)) {
+                $value = 'null';
+            } else {
+                $value = $node;
+            }
+
+            $comma = ($index < count($keys) - 1) ? ',' : '';
+            $output .= '    ' . $itemIndent . '\'' . $key . '\' => ' . $value . $comma . "\n";
+        }
+
+        $output .= $baseIndent . '    ]';
 
         return $output;
     }

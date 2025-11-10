@@ -151,6 +151,7 @@ namespace AppwriteTests
             TestContext.WriteLine(Query.Select(new List<string> { "name", "age" }));
             TestContext.WriteLine(Query.OrderAsc("title"));
             TestContext.WriteLine(Query.OrderDesc("title"));
+            TestContext.WriteLine(Query.OrderRandom());
             TestContext.WriteLine(Query.CursorAfter("my_movie_id"));
             TestContext.WriteLine(Query.CursorBefore("my_movie_id"));
             TestContext.WriteLine(Query.Limit(50));
@@ -166,8 +167,34 @@ namespace AppwriteTests
             TestContext.WriteLine(Query.NotEndsWith("name", "nne"));
             TestContext.WriteLine(Query.CreatedBefore("2023-01-01"));
             TestContext.WriteLine(Query.CreatedAfter("2023-01-01"));
+            TestContext.WriteLine(Query.CreatedBetween("2023-01-01", "2023-12-31"));
             TestContext.WriteLine(Query.UpdatedBefore("2023-01-01"));
             TestContext.WriteLine(Query.UpdatedAfter("2023-01-01"));
+            TestContext.WriteLine(Query.UpdatedBetween("2023-01-01", "2023-12-31"));
+            
+            // Spatial Distance query tests
+            TestContext.WriteLine(Query.DistanceEqual("location", new List<object> { new List<object> { 40.7128, -74 }, new List<object> { 40.7128, -74 } }, 1000));
+            TestContext.WriteLine(Query.DistanceEqual("location", new List<object> { 40.7128, -74 }, 1000, true));
+            TestContext.WriteLine(Query.DistanceNotEqual("location", new List<object> { 40.7128, -74 }, 1000));
+            TestContext.WriteLine(Query.DistanceNotEqual("location", new List<object> { 40.7128, -74 }, 1000, true));
+            TestContext.WriteLine(Query.DistanceGreaterThan("location", new List<object> { 40.7128, -74 }, 1000));
+            TestContext.WriteLine(Query.DistanceGreaterThan("location", new List<object> { 40.7128, -74 }, 1000, true));
+            TestContext.WriteLine(Query.DistanceLessThan("location", new List<object> { 40.7128, -74 }, 1000));
+            TestContext.WriteLine(Query.DistanceLessThan("location", new List<object> { 40.7128, -74 }, 1000, true));
+            
+            // Spatial query tests
+            TestContext.WriteLine(Query.Intersects("location", new List<object> { 40.7128, -74 }));
+            TestContext.WriteLine(Query.NotIntersects("location", new List<object> { 40.7128, -74 }));
+            TestContext.WriteLine(Query.Crosses("location", new List<object> { 40.7128, -74 }));
+            TestContext.WriteLine(Query.NotCrosses("location", new List<object> { 40.7128, -74 }));
+            TestContext.WriteLine(Query.Overlaps("location", new List<object> { 40.7128, -74 }));
+            TestContext.WriteLine(Query.NotOverlaps("location", new List<object> { 40.7128, -74 }));
+            TestContext.WriteLine(Query.Touches("location", new List<object> { 40.7128, -74 }));
+            TestContext.WriteLine(Query.NotTouches("location", new List<object> { 40.7128, -74 }));
+            TestContext.WriteLine(Query.Contains("location", new List<object> { new List<object> { 40.7128, -74 }, new List<object> { 40.7128, -74 } }));
+            TestContext.WriteLine(Query.NotContains("location", new List<object> { new List<object> { 40.7128, -74 }, new List<object> { 40.7128, -74 } }));
+            TestContext.WriteLine(Query.Equal("location", new List<object> { new List<object> { 40.7128, -74 }, new List<object> { 40.7128, -74 } }));
+            TestContext.WriteLine(Query.NotEqual("location", new List<object> { new List<object> { 40.7128, -74 }, new List<object> { 40.7128, -74 } }));
             
             TestContext.WriteLine(Query.Or(
                 new List<string> {
@@ -197,6 +224,33 @@ namespace AppwriteTests
             // ID helper tests
             TestContext.WriteLine(ID.Unique());
             TestContext.WriteLine(ID.Custom("custom_id"));
+
+            // Operator helper tests
+            TestContext.WriteLine(Operator.Increment(1));
+            TestContext.WriteLine(Operator.Increment(5, 100));
+            TestContext.WriteLine(Operator.Decrement(1));
+            TestContext.WriteLine(Operator.Decrement(3, 0));
+            TestContext.WriteLine(Operator.Multiply(2));
+            TestContext.WriteLine(Operator.Multiply(3, 1000));
+            TestContext.WriteLine(Operator.Divide(2));
+            TestContext.WriteLine(Operator.Divide(4, 1));
+            TestContext.WriteLine(Operator.Modulo(5));
+            TestContext.WriteLine(Operator.Power(2));
+            TestContext.WriteLine(Operator.Power(3, 100));
+            TestContext.WriteLine(Operator.ArrayAppend(new List<object> { "item1", "item2" }));
+            TestContext.WriteLine(Operator.ArrayPrepend(new List<object> { "first", "second" }));
+            TestContext.WriteLine(Operator.ArrayInsert(0, "newItem"));
+            TestContext.WriteLine(Operator.ArrayRemove("oldItem"));
+            TestContext.WriteLine(Operator.ArrayUnique());
+            TestContext.WriteLine(Operator.ArrayIntersect(new List<object> { "a", "b", "c" }));
+            TestContext.WriteLine(Operator.ArrayDiff(new List<object> { "x", "y" }));
+            TestContext.WriteLine(Operator.ArrayFilter(Condition.Equal, "test"));
+            TestContext.WriteLine(Operator.StringConcat("suffix"));
+            TestContext.WriteLine(Operator.StringReplace("old", "new"));
+            TestContext.WriteLine(Operator.Toggle());
+            TestContext.WriteLine(Operator.DateAddDays(7));
+            TestContext.WriteLine(Operator.DateSubDays(3));
+            TestContext.WriteLine(Operator.DateSetNow());
 
             mock = await general.Headers();
             TestContext.WriteLine(mock.Result);

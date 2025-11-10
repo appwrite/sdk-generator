@@ -19,6 +19,7 @@ const {
     questionsCreateBucket,
     questionsCreateMessagingTopic,
     questionsCreateCollection,
+    questionsCreateTable,
     questionsInitProject,
     questionsInitProjectAutopull,
     questionsInitResources,
@@ -34,10 +35,11 @@ const initResources = async () => {
     const actions = {
         function: initFunction,
         site: initSite,
-        collection: initCollection,
+        table: initTable,
         bucket: initBucket,
         team: initTeam,
-        message: initTopic
+        message: initTopic,
+        collection: initCollection
     }
 
     const answers = await inquirer.prompt(questionsInitResources[0]);
@@ -124,7 +126,9 @@ const initProject = async ({ organizationId, projectId, projectName } = {}) => {
         if(answers.autopull) {
             cliConfig.all = true;
             cliConfig.force = true;
-            await pullResources();
+            await pullResources({
+                skipDeprecated: true
+            });
         } else {
             log("You can run 'appwrite pull all' to synchronize all of your existing resources.");
         }
@@ -156,6 +160,40 @@ const initTeam = async () => {
 
     success("Initialing team");
     log("Next you can use 'appwrite push team' to deploy the changes.");
+};
+
+const initTable = async () => {
+    const answers = await inquirer.prompt(questionsCreateTable)
+    const newDatabase = (answers.method ?? '').toLowerCase() !== 'existing';
+
+    if (!newDatabase) {
+        answers.databaseId = answers.database;
+        answers.databaseName = localConfig.getTablesDB(answers.database).name;
+    }
+
+    const databaseId = answers.databaseId === 'unique()' ? ID.unique() : answers.databaseId;
+
+    if (newDatabase || !localConfig.getTablesDB(answers.databaseId)) {
+        localConfig.addTablesDB({
+            $id: databaseId,
+            name: answers.databaseName,
+            enabled: true
+        });
+    }
+
+    localConfig.addTable({
+        $id: answers.id === 'unique()' ? ID.unique() : answers.id,
+        $permissions: [],
+        databaseId: databaseId,
+        name: answers.table,
+        enabled: true,
+        rowSecurity: answers.rowSecurity.toLowerCase() === 'yes',
+        columns: [],
+        indexes: [],
+    });
+
+    success("Initialing table");
+    log("Next you can use 'appwrite push table' to deploy the changes.");
 };
 
 const initCollection = async () => {
@@ -554,6 +592,12 @@ init
     .alias("collections")
     .description("Init a new {{ spec.title|caseUcfirst }} collection")
     .action(actionRunner(initCollection));
+
+init
+    .command("table")
+    .alias("tables")
+    .description("Init a new {{ spec.title|caseUcfirst }} table")
+    .action(actionRunner(initTable));
 
 init
     .command("topic")

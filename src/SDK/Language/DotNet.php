@@ -4,6 +4,7 @@ namespace Appwrite\SDK\Language;
 
 use Appwrite\SDK\Language;
 use Twig\TwigFilter;
+use Twig\TwigFunction;
 
 class DotNet extends Language
 {
@@ -145,6 +146,31 @@ class DotNet extends Language
         ];
     }
 
+    public function getStaticAccessOperator(): string
+    {
+        return '.';
+    }
+
+    public function getStringQuote(): string
+    {
+        return '"';
+    }
+
+    public function getArrayOf(string $elements): string
+    {
+        return 'new List<string> { ' . $elements . ' }';
+    }
+
+    protected function transformPermissionAction(string $action): string
+    {
+        return ucfirst($action);
+    }
+
+    protected function transformPermissionRole(string $role): string
+    {
+        return ucfirst($role);
+    }
+
     public function getPropertyOverrides(): array
     {
         return [
@@ -281,11 +307,23 @@ class DotNet extends Language
                 case self::TYPE_FILE:
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
-                case self::TYPE_ARRAY:
                     $output .= $example;
                     break;
+                case self::TYPE_ARRAY:
+                    $output .= $this->isPermissionString($example) ? $this->getPermissionExample($example) : $example;
+                    break;
                 case self::TYPE_OBJECT:
-                    $output .= '[object]';
+                    if ($example === '{}') {
+                        $output .= '[object]';
+                    } else {
+                        $decoded = json_decode($example, true);
+                        if ($decoded && is_array($decoded)) {
+                            $csharpObject = $this->formatCSharpAnonymousObject($decoded, 1);
+                            $output .= 'new ' . $csharpObject;
+                        } else {
+                            $output .= 'new ' . $example;
+                        }
+                    }
                     break;
                 case self::TYPE_BOOLEAN:
                     $output .= ($example) ? 'true' : 'false';
@@ -332,7 +370,7 @@ class DotNet extends Language
             ],
             [
                 'scope'         => 'method',
-                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
+                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseKebab}}.md',
                 'template'      => 'dotnet/docs/example.md.twig',
             ],
             [
@@ -369,6 +407,11 @@ class DotNet extends Language
                 'scope'         => 'default',
                 'destination'   => '{{ spec.title | caseUcfirst }}/Query.cs',
                 'template'      => 'dotnet/Package/Query.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseUcfirst }}/Operator.cs',
+                'template'      => 'dotnet/Package/Operator.cs.twig',
             ],
             [
                 'scope'         => 'default',
@@ -453,5 +496,90 @@ class DotNet extends Language
                 return $property;
             }),
         ];
+    }
+
+    /**
+     * get sub_scheme and property_name functions
+     * @return TwigFunction[]
+     */
+    public function getFunctions(): array
+    {
+        return [
+            new TwigFunction('sub_schema', function (array $property) {
+                $result = '';
+
+                if (isset($property['sub_schema']) && !empty($property['sub_schema'])) {
+                    if ($property['type'] === 'array') {
+                        $result = 'List<' . $this->toPascalCase($property['sub_schema']) . '>';
+                    } else {
+                        $result = $this->toPascalCase($property['sub_schema']);
+                    }
+                } elseif (isset($property['enum']) && !empty($property['enum'])) {
+                    $enumName = $property['enumName'] ?? $property['name'];
+                    $result = $this->toPascalCase($enumName);
+                } else {
+                    $result = $this->getTypeName($property);
+                }
+
+                if (!($property['required'] ?? true)) {
+                    $result .= '?';
+                }
+
+                return $result;
+            }),
+            new TwigFunction('property_name', function (array $definition, array $property) {
+                $name = $property['name'];
+                $name = \str_replace('$', '', $name);
+                $name = $this->toPascalCase($name);
+                if (\in_array($name, $this->getKeywords())) {
+                    $name = '@' . $name;
+                }
+                return $name;
+            }),
+        ];
+    }
+
+    /**
+     * Format a PHP array as a C# anonymous object
+     */
+    private function formatCSharpAnonymousObject(array $data, int $indentLevel = 0): string
+    {
+        $propertyIndent = str_repeat('    ', $indentLevel + 1);
+        $properties = [];
+
+        foreach ($data as $key => $value) {
+            $formattedValue = $this->formatCSharpValue($value, $indentLevel + 2);
+            $properties[] = $propertyIndent . $key . ' = ' . $formattedValue;
+        }
+
+        if (count($properties) === 1) {
+            return '{ ' . trim($properties[0]) . ' }';
+        }
+
+        $baseIndent = str_repeat('    ', $indentLevel);
+        return "{\n" . implode(",\n", $properties) . "\n" . $baseIndent . "}";
+    }
+
+    /**
+     * Format a value for C# anonymous object property
+     */
+    private function formatCSharpValue($value, int $indentLevel = 0): string
+    {
+        if (is_string($value)) {
+            return '"' . $value . '"';
+        } elseif (is_bool($value)) {
+            return $value ? 'true' : 'false';
+        } elseif (is_numeric($value)) {
+            return (string) $value;
+        } elseif (is_array($value)) {
+            if (array_keys($value) !== range(0, count($value) - 1)) {
+                return $this->formatCSharpAnonymousObject($value, $indentLevel);
+            } else {
+                $items = array_map(fn($item) => $this->formatCSharpValue($item, $indentLevel), $value);
+                return 'new[] { ' . implode(', ', $items) . ' }';
+            }
+        } else {
+            return 'null';
+        }
     }
 }

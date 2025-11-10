@@ -53,6 +53,12 @@
         "demo": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ..."
       }
     },
+    "Session": {
+      "type": "apiKey",
+      "name": "X-Appwrite-Session",
+      "description": "The user session to authenticate with",
+      "in": "header"
+    },
     "Locale": {
       "type": "apiKey",
       "name": "X-Appwrite-Locale",
@@ -1961,6 +1967,19 @@
           "type": "string",
           "description": "Result message.",
           "x-example": "Success"
+        },
+        "status": {
+          "type": "string",
+          "description": "Mock status. Possible values: `active`, `inactive`, `pending`, `completed`, or `cancelled`",
+          "x-example": "active",
+          "enum": [
+            "active",
+            "inactive",
+            "pending",
+            "completed",
+            "cancelled"
+          ],
+          "x-enum-name": "MockStatus"
         }
       },
       "required": [

@@ -86,6 +86,21 @@ class Ruby extends Language
         return [];
     }
 
+    public function getStaticAccessOperator(): string
+    {
+        return '.';
+    }
+
+    public function getStringQuote(): string
+    {
+        return "'";
+    }
+
+    public function getArrayOf(string $elements): string
+    {
+        return '[' . $elements . ']';
+    }
+
     /**
      * @return array
      */
@@ -149,6 +164,11 @@ class Ruby extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'lib/{{ spec.title | caseDash }}/operator.rb',
+                'template'      => 'ruby/lib/container/operator.rb.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'lib/{{ spec.title | caseDash }}/service.rb',
                 'template'      => 'ruby/lib/container/service.rb.twig',
             ],
@@ -169,7 +189,7 @@ class Ruby extends Language
             ],
             [
                 'scope'         => 'method',
-                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
+                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseKebab}}.md',
                 'template'      => 'ruby/docs/example.md.twig',
             ],
             [
@@ -302,8 +322,10 @@ class Ruby extends Language
             switch ($type) {
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
-                case self::TYPE_ARRAY:
                     $output .= $example;
+                    break;
+                case self::TYPE_ARRAY:
+                    $output .= $this->isPermissionString($example) ? $this->getPermissionExample($example) : $example;
                     break;
                 case self::TYPE_OBJECT:
                     $output .= $this->jsonToHash(json_decode($example, true));
@@ -329,16 +351,38 @@ class Ruby extends Language
      * @return string
      * @var $data array
      */
-    protected function jsonToHash(array $data): string
+    protected function jsonToHash(array $data, int $indent = 0): string
     {
-        $output = '{';
-
-        foreach ($data as $key => $node) {
-            $value = (is_array($node)) ? $this->jsonToHash($node) : $node;
-            $output .= '"' . $key . '" => ' . ((is_string($node)) ? '"' . $value . '"' : $value) . (($key !== array_key_last($data)) ? ', ' : '');
+        if (empty($data)) {
+            return '{}';
         }
 
-        $output .= '}';
+        $output = "{\n";
+        $indentStr = str_repeat('  ', $indent + 4);
+        $keys = array_keys($data);
+
+        foreach ($data as $key => $node) {
+            if (is_array($node)) {
+                $value = $this->jsonToHash($node, $indent + 1);
+            } elseif (is_bool($node)) {
+                $value = $node ? 'true' : 'false';
+            } elseif (is_string($node)) {
+                $value = '"' . $node . '"';
+            } else {
+                $value = $node;
+            }
+
+            $output .= $indentStr . '"' . $key . '" => ' . $value;
+
+            // Add comma if not the last item
+            if ($key !== end($keys)) {
+                $output .= ',';
+            }
+
+            $output .= "\n";
+        }
+
+        $output .= str_repeat('  ', $indent + 2) . '}';
 
         return $output;
     }

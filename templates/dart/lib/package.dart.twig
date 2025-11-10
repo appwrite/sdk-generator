@@ -27,6 +27,7 @@ part 'query.dart';
 part 'permission.dart';
 part 'role.dart';
 part 'id.dart';
+part 'operator.dart';
 {% for service in spec.services %}
-part 'services/{{service.name | caseDash}}.dart';
+part 'services/{{service.name | caseSnake}}.dart';
 {% endfor %}

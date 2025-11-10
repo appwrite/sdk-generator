@@ -9,6 +9,7 @@ import (
 	"github.com/repoowner/sdk-for-go/client"
 	"github.com/repoowner/sdk-for-go/file"
 	"github.com/repoowner/sdk-for-go/id"
+	"github.com/repoowner/sdk-for-go/operator"
 	"github.com/repoowner/sdk-for-go/permission"
 	"github.com/repoowner/sdk-for-go/query"
 	"github.com/repoowner/sdk-for-go/role"
@@ -144,6 +145,9 @@ func testGeneralService(client client.Client, stringInArray []string) {
 	// Test Id Helpers
 	testIdHelpers()
 
+	// Test Operator Helpers
+	testOperatorHelpers()
+
 	// Final test
 	headersResponse, err := general.Headers()
 	if err != nil {
@@ -202,6 +206,7 @@ func testQueries() {
 	fmt.Println(query.Select([]interface{}{"name", "age"}))
 	fmt.Println(query.OrderAsc("title"))
 	fmt.Println(query.OrderDesc("title"))
+	fmt.Println(query.OrderRandom())
 	fmt.Println(query.CursorAfter("my_movie_id"))
 	fmt.Println(query.CursorBefore("my_movie_id"))
 	fmt.Println(query.Limit(50))
@@ -217,8 +222,34 @@ func testQueries() {
 	fmt.Println(query.NotEndsWith("name", "nne"))
 	fmt.Println(query.CreatedBefore("2023-01-01"))
 	fmt.Println(query.CreatedAfter("2023-01-01"))
+	fmt.Println(query.CreatedBetween("2023-01-01", "2023-12-31"))
 	fmt.Println(query.UpdatedBefore("2023-01-01"))
 	fmt.Println(query.UpdatedAfter("2023-01-01"))
+	fmt.Println(query.UpdatedBetween("2023-01-01", "2023-12-31"))
+
+	// Spatial Distance query tests
+	fmt.Println(query.DistanceEqual("location", []interface{}{[]interface{}{40.7128, -74}, []interface{}{40.7128, -74}}, 1000, true))
+	fmt.Println(query.DistanceEqual("location", []interface{}{40.7128, -74}, 1000, true))
+	fmt.Println(query.DistanceNotEqual("location", []interface{}{40.7128, -74}, 1000, true))
+	fmt.Println(query.DistanceNotEqual("location", []interface{}{40.7128, -74}, 1000, true))
+	fmt.Println(query.DistanceGreaterThan("location", []interface{}{40.7128, -74}, 1000, true))
+	fmt.Println(query.DistanceGreaterThan("location", []interface{}{40.7128, -74}, 1000, true))
+	fmt.Println(query.DistanceLessThan("location", []interface{}{40.7128, -74}, 1000, true))
+	fmt.Println(query.DistanceLessThan("location", []interface{}{40.7128, -74}, 1000, true))
+
+	// Spatial query tests
+	fmt.Println(query.Intersects("location", []interface{}{40.7128, -74}))
+	fmt.Println(query.NotIntersects("location", []interface{}{40.7128, -74}))
+	fmt.Println(query.Crosses("location", []interface{}{40.7128, -74}))
+	fmt.Println(query.NotCrosses("location", []interface{}{40.7128, -74}))
+	fmt.Println(query.Overlaps("location", []interface{}{40.7128, -74}))
+	fmt.Println(query.NotOverlaps("location", []interface{}{40.7128, -74}))
+	fmt.Println(query.Touches("location", []interface{}{40.7128, -74}))
+	fmt.Println(query.NotTouches("location", []interface{}{40.7128, -74}))
+	fmt.Println(query.Contains("location", []interface{}{[]interface{}{40.7128, -74}, []interface{}{40.7128, -74}}))
+	fmt.Println(query.NotContains("location", []interface{}{[]interface{}{40.7128, -74}, []interface{}{40.7128, -74}}))
+	fmt.Println(query.Equal("location", []interface{}{[]interface{}{40.7128, -74}, []interface{}{40.7128, -74}}))
+	fmt.Println(query.NotEqual("location", []interface{}{[]interface{}{40.7128, -74}, []interface{}{40.7128, -74}}))
 	
 	fmt.Println(query.Or([]string{
 		query.Equal("released", true),
@@ -246,4 +277,32 @@ func testPermissionHelpers() {
 func testIdHelpers() {
 	fmt.Println(id.Unique())
 	fmt.Println(id.Custom("custom_id"))
+}
+
+func testOperatorHelpers() {
+	fmt.Println(operator.Increment(1))
+	fmt.Println(operator.Increment(5, 100))
+	fmt.Println(operator.Decrement(1))
+	fmt.Println(operator.Decrement(3, 0))
+	fmt.Println(operator.Multiply(2))
+	fmt.Println(operator.Multiply(3, 1000))
+	fmt.Println(operator.Divide(2))
+	fmt.Println(operator.Divide(4, 1))
+	fmt.Println(operator.Modulo(5))
+	fmt.Println(operator.Power(2))
+	fmt.Println(operator.Power(3, 100))
+	fmt.Println(operator.ArrayAppend([]interface{}{"item1", "item2"}))
+	fmt.Println(operator.ArrayPrepend([]interface{}{"first", "second"}))
+	fmt.Println(operator.ArrayInsert(0, "newItem"))
+	fmt.Println(operator.ArrayRemove("oldItem"))
+	fmt.Println(operator.ArrayUnique())
+	fmt.Println(operator.ArrayIntersect([]interface{}{"a", "b", "c"}))
+	fmt.Println(operator.ArrayDiff([]interface{}{"x", "y"}))
+	fmt.Println(operator.ArrayFilter(operator.ConditionEqual, "test"))
+	fmt.Println(operator.StringConcat("suffix"))
+	fmt.Println(operator.StringReplace("old", "new"))
+	fmt.Println(operator.Toggle())
+	fmt.Println(operator.DateAddDays(7))
+	fmt.Println(operator.DateSubDays(3))
+	fmt.Println(operator.DateSetNow())
 }

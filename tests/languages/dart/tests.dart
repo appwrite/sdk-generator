@@ -143,6 +143,7 @@ void main() async {
   print(Query.select(["name", "age"]));
   print(Query.orderAsc("title"));
   print(Query.orderDesc("title"));
+  print(Query.orderRandom());
   print(Query.cursorAfter("my_movie_id"));
   print(Query.cursorBefore("my_movie_id"));
   print(Query.limit(50));
@@ -158,8 +159,34 @@ void main() async {
   print(Query.notEndsWith("name", "nne"));
   print(Query.createdBefore("2023-01-01"));
   print(Query.createdAfter("2023-01-01"));
+  print(Query.createdBetween("2023-01-01", "2023-12-31"));
   print(Query.updatedBefore("2023-01-01"));
   print(Query.updatedAfter("2023-01-01"));
+  print(Query.updatedBetween("2023-01-01", "2023-12-31"));
+
+  // Spatial Distance query tests
+  print(Query.distanceEqual("location", [[40.7128, -74], [40.7128, -74]], 1000));
+  print(Query.distanceEqual("location", [40.7128, -74], 1000, true));
+  print(Query.distanceNotEqual("location", [40.7128, -74], 1000));
+  print(Query.distanceNotEqual("location", [40.7128, -74], 1000, true));
+  print(Query.distanceGreaterThan("location", [40.7128, -74], 1000));
+  print(Query.distanceGreaterThan("location", [40.7128, -74], 1000, true));
+  print(Query.distanceLessThan("location", [40.7128, -74], 1000));
+  print(Query.distanceLessThan("location", [40.7128, -74], 1000, true));
+
+  // Spatial query tests
+  print(Query.intersects("location", [40.7128, -74]));
+  print(Query.notIntersects("location", [40.7128, -74]));
+  print(Query.crosses("location", [40.7128, -74]));
+  print(Query.notCrosses("location", [40.7128, -74]));
+  print(Query.overlaps("location", [40.7128, -74]));
+  print(Query.notOverlaps("location", [40.7128, -74]));
+  print(Query.touches("location", [40.7128, -74]));
+  print(Query.notTouches("location", [40.7128, -74]));
+  print(Query.contains("location", [[40.7128, -74], [40.7128, -74]]));
+  print(Query.notContains("location", [[40.7128, -74], [40.7128, -74]]));
+  print(Query.equal("location", [[40.7128, -74], [40.7128, -74]]));
+  print(Query.notEqual("location", [[40.7128, -74], [40.7128, -74]]));
   
   print(Query.or([
     Query.equal("released", true),
@@ -169,7 +196,7 @@ void main() async {
     Query.equal("released", false),
     Query.greaterThan("releasedYear", 2015)
   ]));
-
+  
   // Permission & Role helper tests
   print(Permission.read(Role.any()));
   print(Permission.write(Role.user(ID.custom('userid'))));
@@ -185,6 +212,33 @@ void main() async {
   // ID helper tests
   print(ID.unique());
   print(ID.custom('custom_id'));
+
+  // Operator helper tests
+  print(Operator.increment(1));
+  print(Operator.increment(5, 100));
+  print(Operator.decrement(1));
+  print(Operator.decrement(3, 0));
+  print(Operator.multiply(2));
+  print(Operator.multiply(3, 1000));
+  print(Operator.divide(2));
+  print(Operator.divide(4, 1));
+  print(Operator.modulo(5));
+  print(Operator.power(2));
+  print(Operator.power(3, 100));
+  print(Operator.arrayAppend(["item1", "item2"]));
+  print(Operator.arrayPrepend(["first", "second"]));
+  print(Operator.arrayInsert(0, "newItem"));
+  print(Operator.arrayRemove("oldItem"));
+  print(Operator.arrayUnique());
+  print(Operator.arrayIntersect(["a", "b", "c"]));
+  print(Operator.arrayDiff(["x", "y"]));
+  print(Operator.arrayFilter(Condition.equal, "test"));
+  print(Operator.stringConcat("suffix"));
+  print(Operator.stringReplace("old", "new"));
+  print(Operator.toggle());
+  print(Operator.dateAddDays(7));
+  print(Operator.dateSubDays(3));
+  print(Operator.dateSetNow());
 
   response = await general.headers();
   print(response.result);

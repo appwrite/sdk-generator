@@ -8,6 +8,7 @@ from appwrite.query import Query
 from appwrite.permission import Permission
 from appwrite.role import Role
 from appwrite.id import ID
+from appwrite.operator import Operator, Condition
 from appwrite.enums.mock_type import MockType
 
 import os.path
@@ -129,6 +130,7 @@ print(Query.ends_with("name", "nne"))
 print(Query.select(["name", "age"]))
 print(Query.order_asc("title"))
 print(Query.order_desc("title"))
+print(Query.order_random())
 print(Query.cursor_after("my_movie_id"))
 print(Query.cursor_before("my_movie_id"))
 print(Query.limit(50))
@@ -144,8 +146,34 @@ print(Query.not_starts_with("name", "Ann"))
 print(Query.not_ends_with("name", "nne"))
 print(Query.created_before("2023-01-01"))
 print(Query.created_after("2023-01-01"))
+print(Query.created_between('2023-01-01', '2023-12-31'))
 print(Query.updated_before("2023-01-01"))
 print(Query.updated_after("2023-01-01"))
+print(Query.updated_between('2023-01-01', '2023-12-31'))
+
+# Spatial Distance query tests
+print(Query.distance_equal("location", [[40.7128, -74], [40.7128, -74]], 1000))
+print(Query.distance_equal("location", [40.7128, -74], 1000, True))
+print(Query.distance_not_equal("location", [40.7128, -74], 1000))
+print(Query.distance_not_equal("location", [40.7128, -74], 1000, True))
+print(Query.distance_greater_than("location", [40.7128, -74], 1000))
+print(Query.distance_greater_than("location", [40.7128, -74], 1000, True))
+print(Query.distance_less_than("location", [40.7128, -74], 1000))
+print(Query.distance_less_than("location", [40.7128, -74], 1000, True))
+
+# Spatial query tests
+print(Query.intersects("location", [40.7128, -74]))
+print(Query.not_intersects("location", [40.7128, -74]))
+print(Query.crosses("location", [40.7128, -74]))
+print(Query.not_crosses("location", [40.7128, -74]))
+print(Query.overlaps("location", [40.7128, -74]))
+print(Query.not_overlaps("location", [40.7128, -74]))
+print(Query.touches("location", [40.7128, -74]))
+print(Query.not_touches("location", [40.7128, -74]))
+print(Query.contains("location", [[40.7128, -74], [40.7128, -74]]))
+print(Query.not_contains("location", [[40.7128, -74], [40.7128, -74]]))
+print(Query.equal("location", [[40.7128, -74], [40.7128, -74]]))
+print(Query.not_equal("location", [[40.7128, -74], [40.7128, -74]]))
 
 print(Query.or_queries(
     [Query.equal("released", True), Query.less_than("releasedYear", 1990)]
@@ -169,6 +197,33 @@ print(Permission.create(Role.label('admin')))
 # ID helper tests
 print(ID.unique())
 print(ID.custom('custom_id'))
+
+# Operator helper tests
+print(Operator.increment())
+print(Operator.increment(5, 100))
+print(Operator.decrement())
+print(Operator.decrement(3, 0))
+print(Operator.multiply(2))
+print(Operator.multiply(3, 1000))
+print(Operator.divide(2))
+print(Operator.divide(4, 1))
+print(Operator.modulo(5))
+print(Operator.power(2))
+print(Operator.power(3, 100))
+print(Operator.array_append(['item1', 'item2']))
+print(Operator.array_prepend(['first', 'second']))
+print(Operator.array_insert(0, 'newItem'))
+print(Operator.array_remove('oldItem'))
+print(Operator.array_unique())
+print(Operator.array_intersect(['a', 'b', 'c']))
+print(Operator.array_diff(['x', 'y']))
+print(Operator.array_filter(Condition.EQUAL, 'test'))
+print(Operator.string_concat('suffix'))
+print(Operator.string_replace('old', 'new'))
+print(Operator.toggle())
+print(Operator.date_add_days(7))
+print(Operator.date_sub_days(3))
+print(Operator.date_set_now())
 
 response = general.headers()
 print(response['result'])

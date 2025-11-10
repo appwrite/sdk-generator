@@ -99,6 +99,21 @@ class Kotlin extends Language
         return [];
     }
 
+    public function getStaticAccessOperator(): string
+    {
+        return '.';
+    }
+
+    public function getStringQuote(): string
+    {
+        return '"';
+    }
+
+    public function getArrayOf(string $elements): string
+    {
+        return 'listOf(' . $elements . ')';
+    }
+
     /**
      * @param array $parameter
      * @param array $spec
@@ -224,7 +239,32 @@ class Kotlin extends Language
         } else {
             switch ($type) {
                 case self::TYPE_OBJECT:
-                    $output .= 'mapOf( "a" to "b" )';
+                    $decoded = json_decode($example, true);
+                    if ($decoded && is_array($decoded)) {
+                        $mapEntries = [];
+                        foreach ($decoded as $key => $value) {
+                            $formattedKey = '"' . $key . '"';
+                            if (is_string($value)) {
+                                $formattedValue = '"' . $value . '"';
+                            } elseif (is_bool($value)) {
+                                $formattedValue = $value ? 'true' : 'false';
+                            } elseif (is_null($value)) {
+                                $formattedValue = 'null';
+                            } elseif (is_array($value)) {
+                                $formattedValue = 'listOf()'; // Simplified for nested arrays
+                            } else {
+                                $formattedValue = (string)$value;
+                            }
+                            $mapEntries[] = '        ' . $formattedKey . ' to ' . $formattedValue;
+                        }
+                        if (count($mapEntries) > 0) {
+                            $output .= "mapOf(\n" . implode(",\n", $mapEntries) . "\n    )";
+                        } else {
+                            $output .= 'mapOf( "a" to "b" )';
+                        }
+                    } else {
+                        $output .= 'mapOf( "a" to "b" )';
+                    }
                     break;
                 case self::TYPE_FILE:
                 case self::TYPE_NUMBER:
@@ -232,13 +272,17 @@ class Kotlin extends Language
                     $output .= $example;
                     break;
                 case self::TYPE_ARRAY:
-                    if (\str_starts_with($example, '[')) {
-                        $example = \substr($example, 1);
+                    if ($this->isPermissionString($example)) {
+                        $output .= $this->getPermissionExample($example);
+                    } else {
+                        if (\str_starts_with($example, '[')) {
+                            $example = \substr($example, 1);
+                        }
+                        if (\str_ends_with($example, ']')) {
+                            $example = \substr($example, 0, -1);
+                        }
+                        $output .= 'listOf(' . $example . ')';
                     }
-                    if (\str_ends_with($example, ']')) {
-                        $example = \substr($example, 0, -1);
-                    }
-                    $output .= 'listOf(' . $example . ')';
                     break;
                 case self::TYPE_BOOLEAN:
                     $output .= ($example) ? 'true' : 'false';
@@ -266,12 +310,12 @@ class Kotlin extends Language
             ],
             [
                 'scope'         => 'method',
-                'destination'   => 'docs/examples/kotlin/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
+                'destination'   => 'docs/examples/kotlin/{{service.name | caseLower}}/{{method.name | caseKebab}}.md',
                 'template'      => '/kotlin/docs/kotlin/example.md.twig',
             ],
             [
                 'scope'         => 'method',
-                'destination'   => 'docs/examples/java/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
+                'destination'   => 'docs/examples/java/{{service.name | caseLower}}/{{method.name | caseKebab}}.md',
                 'template'      => '/kotlin/docs/java/example.md.twig',
             ],
             [
@@ -371,6 +415,11 @@ class Kotlin extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/Operator.kt',
+                'template'      => '/kotlin/src/main/kotlin/io/appwrite/Operator.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/coroutines/Callback.kt',
                 'template'      => '/kotlin/src/main/kotlin/io/appwrite/coroutines/Callback.kt.twig',
             ],
@@ -444,6 +493,9 @@ class Kotlin extends Language
                 }
                 return $this->toUpperSnakeCase($value);
             }),
+            new TwigFilter('propertyAssignment', function (array $property, array $spec) {
+                return $this->getPropertyAssignment($property, $spec);
+            }),
         ];
     }
 
@@ -493,6 +545,9 @@ class Kotlin extends Language
             if ($property['type'] === 'array') {
                 $type = 'List<' . $type . '>';
             }
+        } elseif (isset($property['enum'])) {
+            $enumName = $property['enumName'] ?? $property['name'];
+            $type = \ucfirst($enumName);
         } else {
             $type = $this->getTypeName($property);
         }
@@ -525,5 +580,72 @@ class Kotlin extends Language
         }
 
         return false;
+    }
+
+    /**
+     * Generate property assignment logic for model deserialization
+     *
+     * @param array $property
+     * @param array $spec
+     * @return string
+     */
+    protected function getPropertyAssignment(array $property, array $spec): string
+    {
+        $propertyName = $property['name'];
+        $escapedPropertyName = str_replace('$', '\$', $propertyName);
+        $mapKey = "map[\"$escapedPropertyName\"]";
+
+        // Handle sub-schema (nested objects)
+        if (isset($property['sub_schema']) && !empty($property['sub_schema'])) {
+            $subSchemaClass = $this->toPascalCase($property['sub_schema']);
+            $hasGenericType = $this->hasGenericType($property['sub_schema'], $spec);
+            $nestedTypeParam = $hasGenericType ? ', nestedType' : '';
+
+            if ($property['type'] === 'array') {
+                return "($mapKey as List<Map<String, Any>>).map { " .
+                       "$subSchemaClass.from(map = it$nestedTypeParam) }";
+            } else {
+                return "$subSchemaClass.from(" .
+                       "map = $mapKey as Map<String, Any>$nestedTypeParam" .
+                       ")";
+            }
+        }
+
+        // Handle enum properties
+        if (isset($property['enum']) && !empty($property['enum'])) {
+            $enumName = $property['enumName'] ?? $property['name'];
+            $enumClass = $this->toPascalCase($enumName);
+            $nullCheck = $property['required'] ? '!!' : ' ?: null';
+
+            if ($property['required']) {
+                return "$enumClass.values().find { " .
+                    "it.value == $mapKey as String " .
+                    "}$nullCheck";
+            }
+
+            return "$enumClass.values().find { " .
+                   "it.value == ($mapKey as? String) " .
+                   "}$nullCheck";
+        }
+
+        // Handle primitive types
+        $nullableModifier = $property['required'] ? '' : '?';
+
+        if ($property['type'] === 'integer') {
+            return "($mapKey as$nullableModifier Number)" .
+                   ($nullableModifier ? '?' : '') . '.toLong()';
+        }
+
+        if ($property['type'] === 'number') {
+            return "($mapKey as$nullableModifier Number)" .
+                   ($nullableModifier ? '?' : '') . '.toDouble()';
+        }
+
+        // Handle other types (string, boolean, etc.)
+        $kotlinType = $this->getPropertyType($property, $spec);
+        // Remove nullable modifier from type since we handle it in the cast
+        $kotlinType = str_replace('?', '', $kotlinType);
+
+        return "$mapKey as$nullableModifier $kotlinType";
     }
 }

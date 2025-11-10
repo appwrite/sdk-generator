@@ -37,7 +37,7 @@ class Apple extends Swift
             ],
             [
                 'scope'         => 'method',
-                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
+                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseKebab}}.md',
                 'template'      => 'swift/docs/example.md.twig',
             ],
             [
@@ -74,6 +74,11 @@ class Apple extends Swift
                 'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Query.swift',
                 'template'      => 'swift/Sources/Query.swift.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Operator.swift',
+                'template'      => 'swift/Sources/Operator.swift.twig',
             ],
             [
                 'scope'         => 'default',
@@ -219,7 +224,7 @@ class Apple extends Swift
             [
                 'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Services/Realtime.swift',
-                'template'      => '/swift/Sources/Services/Realtime.swift.twig',
+                'template'      => '/apple/Sources/Services/Realtime.swift.twig',
             ],
             [
                 'scope'         => 'default',

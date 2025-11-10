@@ -30,7 +30,17 @@ class {{ service.name | caseUcfirst }} extends Service
          parent::__construct($client);
      }
 
+{% set nonDeprecatedMethodNames = [] %}
 {% for method in service.methods %}
+{% if not method.deprecated %}
+{% set nonDeprecatedMethodNames = nonDeprecatedMethodNames|merge([method.name | caseCamel | lower]) %}
+{% endif %}
+{% endfor %}
+{% for method in service.methods %}
+{% set methodNameLower = method.name | caseCamel | lower %}
+{% if method.deprecated and methodNameLower in nonDeprecatedMethodNames %}
+{# Skip deprecated methods that have namespace collisions with non-deprecated methods #}
+{% else %}
 {% set deprecated_message = '' %}
     /**
 {% if method.description %}
@@ -72,6 +82,7 @@ class {{ service.name | caseUcfirst }} extends Service
     }
         {%~ if not loop.last %}
 
+        {%~ endif %}
         {%~ endif %}
         {%~ endfor %}
 }

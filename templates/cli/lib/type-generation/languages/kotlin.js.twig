@@ -3,7 +3,7 @@ const { AttributeType } = require('../attribute');
 const { LanguageMeta } = require("./language");
 
 class Kotlin extends LanguageMeta {
-  getType(attribute, collections) {
+  getType(attribute, collections, collectionName) {
     let type = "";
     switch (attribute.type) {
       case AttributeType.STRING:
@@ -11,7 +11,7 @@ class Kotlin extends LanguageMeta {
       case AttributeType.DATETIME:
         type = "String";
         if (attribute.format === AttributeType.ENUM) {
-          type = LanguageMeta.toPascalCase(attribute.key);
+          type = LanguageMeta.toPascalCase(collectionName) + LanguageMeta.toPascalCase(attribute.key);
         }
         break;
       case AttributeType.INTEGER:
@@ -61,7 +61,7 @@ import <%- toPascalCase(collections.find(c => c.$id === attribute.relatedCollect
 
 <% for (const attribute of collection.attributes) { -%>
 <% if (attribute.format === 'enum') { -%>
-enum class <%- toPascalCase(attribute.key) %> {
+enum class <%- toPascalCase(collection.name) %><%- toPascalCase(attribute.key) %> {
 <% for (const [index, element] of Object.entries(attribute.elements)) { -%>
     <%- strict ? toUpperSnakeCase(element) : element %><%- index < attribute.elements.length - 1 ? ',' : '' %>
 <% } -%>
@@ -71,7 +71,7 @@ enum class <%- toPascalCase(attribute.key) %> {
 <% } -%>
 data class <%- toPascalCase(collection.name) %>(
 <% for (const [index, attribute] of Object.entries(collection.attributes)) { -%>
-    val <%- strict ? toCamelCase(attribute.key) : attribute.key %>: <%- getType(attribute, collections) %><% if (index < collection.attributes.length - 1) { %>,<% } %>
+    val <%- strict ? toCamelCase(attribute.key) : attribute.key %>: <%- getType(attribute, collections, collection.name) %><% if (index < collection.attributes.length - 1) { %>,<% } %>
 <% } -%>
 )
 `;

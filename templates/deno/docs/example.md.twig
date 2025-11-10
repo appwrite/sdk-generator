@@ -1,4 +1,4 @@
-import { Client, {{ service.name | caseUcfirst }}{% for parameter in method.parameters.all %}{% if parameter.enumValues | length > 0%}, {{ parameter.enumName | caseUcfirst}}{% endif %}{% endfor %} } from "https://deno.land/x/{{ spec.title | caseDash }}/mod.ts";
+import { Client, {{ service.name | caseUcfirst }}{% for parameter in method.parameters.all %}{% if parameter.enumValues | length > 0%}, {{ parameter.enumName | caseUcfirst}}{% endif %}{% endfor %}{% if method.parameters.all | hasPermissionParam %}, Permission, Role{% endif %} } from "https://deno.land/x/{{ spec.title | caseDash }}/mod.ts";
 
 const client = new Client()
     {%~ if method.auth|length > 0 %}
@@ -15,8 +15,12 @@ const {{ service.name | caseCamel }} = new {{service.name | caseUcfirst}}(client
 {% if method.type == 'location' %}const result = {% elseif method.type != 'webAuth' %}const response = await {% endif %}{{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% if method.parameters.all | length == 0 %});
 {% else %}{
 {%~ for parameter in method.parameters.all %}
+{%~ if parameter.required %}
     {{ parameter.name | caseCamel }}: {% if parameter.enumValues | length > 0 %}{{ parameter.enumName }}.{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}{% else%}{{ parameter | paramExample  }}{% endif %}{% if not loop.last %},{% endif %}
 
+{%~ else %}
+    {{ parameter.name | caseCamel }}: {% if parameter.enumValues | length > 0 %}{{ parameter.enumName }}.{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}{% else%}{{ parameter | paramExample  }}{% endif %}{% if not loop.last %},{% endif %} // optional
+{%~ endif %}
 {%~ endfor -%}
 });
 {% endif %}

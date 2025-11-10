@@ -6,8 +6,8 @@ const { globalConfig, localConfig } = require("../config");
 const { actionRunner, success, parseBool, commandDescriptions, error, parse, hint, log, drawTable, cliConfig } = require("../parser");
 const ID = require("../id");
 {% if sdk.test != "true" %}
-const { questionsLogin, questionsLogout, questionsListFactors, questionsMfaChallenge } = require("../questions");
-const { accountUpdateMfaChallenge, accountCreateMfaChallenge, accountGet, accountCreateEmailPasswordSession, accountDeleteSession } = require("./account");
+const { questionsLogin, questionsLogout, questionsListFactors, questionsMFAChallenge } = require("../questions");
+const { accountUpdateMFAChallenge, accountCreateMFAChallenge, accountGet, accountCreateEmailPasswordSession, accountDeleteSession } = require("./account");
 
 const DEFAULT_ENDPOINT = '{{ spec.endpoint }}';
 
@@ -72,15 +72,15 @@ const loginCommand = async ({ email, password, endpoint, mfa, code }) => {
         if (error.response === 'user_more_factors_required') {
             const { factor } = mfa ? { factor: mfa } : await inquirer.prompt(questionsListFactors);
 
-            const challenge = await accountCreateMfaChallenge({
+            const challenge = await accountCreateMFAChallenge({
                 factor,
                 parseOutput: false,
                 sdk: client
             });
 
-            const { otp } = code ? { otp: code } : await inquirer.prompt(questionsMfaChallenge);
+            const { otp } = code ? { otp: code } : await inquirer.prompt(questionsMFAChallenge);
 
-            await accountUpdateMfaChallenge({
+            await accountUpdateMFAChallenge({
                 challengeId: challenge.$id,
                 otp,
                 parseOutput: false,
@@ -172,12 +172,11 @@ const deleteSession = async (accountId) => {
             parseOutput: false,
             sdk: client
         })
-
-        globalConfig.removeSession(accountId);
     } catch (e) {
         error('Unable to log out, removing locally saved session information')
+    } finally {
+        globalConfig.removeSession(accountId);
     }
-    globalConfig.removeSession(accountId);
 }
 
 const logout = new Command("logout")
@@ -195,6 +194,7 @@ const logout = new Command("logout")
         }
         if (sessions.length === 1) {
             await deleteSession(current);
+            globalConfig.setCurrentSession('');
             success("Logging out");
 
             return;
@@ -216,6 +216,8 @@ const logout = new Command("logout")
             globalConfig.setCurrentSession(accountId);
 
             success(`Current account is ${accountId}`);
+        } else if (remainingSessions.length === 0) {
+            globalConfig.setCurrentSession('');
         }
 
         success("Logging out");

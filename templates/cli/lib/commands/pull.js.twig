@@ -9,14 +9,16 @@ const { projectsGet } = require("./projects");
 const { functionsList, functionsGetDeploymentDownload, functionsListDeployments } = require("./functions");
 const { sitesList, sitesGetDeploymentDownload, sitesListDeployments } = require("./sites");
 const { databasesGet, databasesListCollections, databasesList } = require("./databases");
-const { gridsListDatabases, gridsGetDatabase, gridsListTables } = require("./grids");
+const { tablesDBList, tablesDBGet, tablesDBListTables } = require("./tables-db");
 const { storageListBuckets } = require("./storage");
 const { localConfig } = require("../config");
 const { paginate } = require("../paginate");
 const { questionsPullCollection, questionsPullFunctions, questionsPullFunctionsCode, questionsPullSites, questionsPullSitesCode, questionsPullResources } = require("../questions");
 const { cliConfig, success, log, warn, actionRunner, commandDescriptions } = require("../parser");
 
-const pullResources = async () => {
+const pullResources = async ({
+    skipDeprecated = false
+} = {}) => {
     const actions = {
         settings: pullSettings,
         functions: pullFunctions,
@@ -26,6 +28,10 @@ const pullResources = async () => {
         buckets: pullBucket,
         teams: pullTeam,
         messages: pullMessagingTopic
+    }
+
+    if (skipDeprecated) {
+        delete actions.collections;
     }
 
     if (cliConfig.all) {
@@ -289,7 +295,8 @@ const pullSites = async ({ code, withVariables }) => {
 const pullCollection = async () => {
     warn("appwrite pull collection has been deprecated. Please consider using 'appwrite pull tables' instead");
     log("Fetching collections ...");
-    let total = 0;
+    let totalDatabases = 0;
+    let totalCollections = 0;
 
     const fetchResponse = await databasesList({
         queries: [JSON.stringify({ method: 'limit', values: [1] })],
@@ -297,7 +304,7 @@ const pullCollection = async () => {
     });
     if (fetchResponse["databases"].length <= 0) {
         log("No collections found.");
-        success(`Successfully pulled ${chalk.bold(total)} collections.`);
+        success(`Successfully pulled ${chalk.bold(totalCollections)} collections from ${chalk.bold(totalDatabases)} databases.`);
         return;
     }
 
@@ -317,7 +324,7 @@ const pullCollection = async () => {
             parseOutput: false
         });
 
-        total++;
+        totalDatabases++;
         log(`Pulling all collections from ${chalk.bold(database['name'])} database ...`);
 
         localConfig.addDatabase(database);
@@ -328,6 +335,7 @@ const pullCollection = async () => {
         }, 100, 'collections');
 
         for (const collection of collections) {
+            totalCollections++;
             localConfig.addCollection({
                 ...collection,
                 '$createdAt': undefined,
@@ -336,20 +344,21 @@ const pullCollection = async () => {
         }
     }
 
-    success(`Successfully pulled ${chalk.bold(total)} collections.`);
+    success(`Successfully pulled ${chalk.bold(totalCollections)} collections from ${chalk.bold(totalDatabases)} databases.`);
 }
 
 const pullTable = async () => {
     log("Fetching tables ...");
-    let total = 0;
+    let totalTablesDBs = 0;
+    let totalTables = 0;
 
-    const fetchResponse = await gridsListDatabases({
+    const fetchResponse = await tablesDBList({
         queries: [JSON.stringify({ method: 'limit', values: [1] })],
         parseOutput: false
     });
     if (fetchResponse["databases"].length <= 0) {
         log("No tables found.");
-        success(`Successfully pulled ${chalk.bold(total)} tables.`);
+        success(`Successfully pulled ${chalk.bold(totalTables)} tables from ${chalk.bold(totalTablesDBs)} tableDBs.`);
         return;
     }
 
@@ -357,29 +366,30 @@ const pullTable = async () => {
 
     if (databases.length === 0) {
         if (cliConfig.all) {
-            databases = (await paginate(gridsListDatabases, { parseOutput: false }, 100, 'databases')).databases.map(database => database.$id);
+            databases = (await paginate(tablesDBList, { parseOutput: false }, 100, 'databases')).databases.map(database => database.$id);
         } else {
             databases = (await inquirer.prompt(questionsPullCollection)).databases;
         }
     }
 
     for (const databaseId of databases) {
-        const database = await gridsGetDatabase({
+        const database = await tablesDBGet({
             databaseId,
             parseOutput: false
         });
 
-        total++;
+        totalTablesDBs++;
         log(`Pulling all tables from ${chalk.bold(database['name'])} database ...`);
 
-        localConfig.addDatabase(database);
+        localConfig.addTablesDB(database);
 
-        const { tables } = await paginate(gridsListTables, {
+        const { tables } = await paginate(tablesDBListTables, {
             databaseId,
             parseOutput: false
         }, 100, 'tables');
 
         for (const table of tables) {
+            totalTables++;
             localConfig.addTable({
                 ...table,
                 '$createdAt': undefined,
@@ -388,7 +398,7 @@ const pullTable = async () => {
         }
     }
 
-    success(`Successfully pulled ${chalk.bold(total)} tables.`);
+    success(`Successfully pulled ${chalk.bold(totalTables)} tables from ${chalk.bold(totalTablesDBs)} tableDBs.`);
 }
 
 const pullBucket = async () => {
@@ -468,14 +478,16 @@ const pullMessagingTopic = async () => {
 
 const pull = new Command("pull")
     .description(commandDescriptions['pull'])
-    .action(actionRunner(pullResources));
+    .action(actionRunner(() => pullResources({ skipDeprecated: true })));
 
 pull
     .command("all")
     .description("Pull all resource.")
     .action(actionRunner(() => {
         cliConfig.all = true;
-        return pullResources();
+        return pullResources({
+            skipDeprecated: true
+        });
     }));
 
 pull

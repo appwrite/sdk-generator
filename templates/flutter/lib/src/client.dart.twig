@@ -9,8 +9,8 @@ import 'upload_progress.dart';
 ///
 /// The [Client] is also responsible for managing user's sessions.
 abstract class Client {
-  /// The size for cunked uploads in bytes.
-  static const int CHUNK_SIZE = 5 * 1024 * 1024;
+  /// The size for chunked uploads in bytes.
+  static const int chunkSize = 5 * 1024 * 1024;
 
   /// Holds configuration such as project.
   late Map<String, String> config;
@@ -61,7 +61,7 @@ abstract class Client {
   ///
   /// {{header.description}}.
 {% endif %}
-  Client set{{header.key | caseUcfirst}}(value);
+  Client set{{header.key | caseUcfirst}}(String value);
 
 {% endfor %}
   /// Add headers that should be sent with all API calls.

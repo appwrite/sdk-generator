@@ -1,6 +1,7 @@
 from ..service import Service
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from ..exception import AppwriteException
+from appwrite.utils.deprecated import deprecated
 {% set added = [] %}
 {% for method in service.methods %}
 {% for parameter in method.parameters.all %}
@@ -27,7 +28,25 @@ class {{ service.name | caseUcfirst }}(Service):
     def __init__(self, client) -> None:
         super({{ service.name | caseUcfirst }}, self).__init__(client)
 {% for method in service.methods %}
+{% set methodNameSnake = method.name | caseSnake %}
+{# Check if this method should be skipped (is deprecated and has a non-deprecated duplicate) #}
+{% set shouldSkip = false %}
+{% if method.deprecated %}
+{% for otherMethod in service.methods %}
+{% if not otherMethod.deprecated and (otherMethod.name | caseSnake) == methodNameSnake %}
+{% set shouldSkip = true %}
+{% endif %}
+{% endfor %}
+{% endif %}
+{% if not shouldSkip %}
 
+{% if method.deprecated %}
+{% if method.since and method.replaceWith %}
+    @deprecated("This API has been deprecated since {{ method.since }}. Please use `{{ method.replaceWith | caseSnakeExceptFirstDot }}` instead.")
+{% else %}
+    @deprecated("This API has been deprecated.")
+{% endif %}
+{% endif %}
     def {{ method.name | caseSnake }}(self{% if method.parameters.all|length > 0 %}, {% endif %}{% for parameter in method.parameters.all %}{{ parameter.name | escapeKeyword | caseSnake }}: {{ parameter | getPropertyType(method) | raw }}{% if not parameter.required %} = None{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, on_progress = None{% endif %}) -> {% if method.type == 'webAuth' %}str{% elseif method.type == 'location' %}bytes{% else %}Dict[str, Any]{% endif %}:
         """
         {% autoescape false %}{{ method.description | replace({"\n": "\n        "}) }}{% endautoescape %}
@@ -75,5 +94,6 @@ class {{ service.name | caseUcfirst }}(Service):
 {{ include('python/base/requests/file.twig') }}
 {% else %}
 {{ include('python/base/requests/api.twig') }}
+{% endif %}
 {% endif %}
 {% endfor %}

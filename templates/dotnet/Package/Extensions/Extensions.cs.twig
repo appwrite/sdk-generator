@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 
 namespace {{ spec.title | caseUcfirst }}.Extensions
@@ -10,6 +11,18 @@ namespace {{ spec.title | caseUcfirst }}.Extensions
         public static string ToJson(this Dictionary<string, object?> dict)
         {
             return JsonSerializer.Serialize(dict, Client.SerializerOptions);
+        }
+
+        public static List<T> ConvertToList<T>(this object value)
+        {
+            return value switch
+            {
+                JsonElement jsonElement => jsonElement.Deserialize<List<T>>() ?? throw new InvalidCastException($"Cannot deserialize {jsonElement} to List<{typeof(T)}>."),
+                object[] objArray => objArray.Cast<T>().ToList(),
+                List<T> list => list,
+                IEnumerable<T> enumerable => enumerable.ToList(),
+                _ => throw new InvalidCastException($"Cannot convert {value.GetType()} to List<{typeof(T)}>")
+            };
         }
 
         public static string ToQueryString(this Dictionary<string, object?> parameters)

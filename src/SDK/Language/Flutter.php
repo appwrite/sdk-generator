@@ -86,6 +86,11 @@ class Flutter extends Dart
                 'template'      => 'dart/lib/query.dart.twig',
             ],
             [
+                'scope'         => 'default',
+                'destination'   => '/lib/operator.dart',
+                'template'      => 'dart/lib/operator.dart.twig',
+            ],
+            [
                 'scope'         => 'definition',
                 'destination'   => '/lib/src/models/{{definition.name | caseSnake }}.dart',
                 'template'      => 'dart/lib/src/models/model.dart.twig',
@@ -247,12 +252,12 @@ class Flutter extends Dart
             ],
             [
                 'scope'         => 'service',
-                'destination'   => '/lib/services/{{service.name | caseDash}}.dart',
+                'destination'   => '/lib/services/{{service.name | caseSnake}}.dart',
                 'template'      => 'flutter/lib/services/service.dart.twig',
             ],
             [
                 'scope'         => 'service',
-                'destination'   => '/test/services/{{service.name | caseDash}}_test.dart',
+                'destination'   => '/test/services/{{service.name | caseSnake}}_test.dart',
                 'template'      => 'flutter/test/services/service_test.dart.twig',
             ],
             [
@@ -274,6 +279,11 @@ class Flutter extends Dart
                 'scope'         => 'default',
                 'destination'   => '/test/query_test.dart',
                 'template'      => 'dart/test/query_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/test/operator_test.dart',
+                'template'      => 'dart/test/operator_test.dart.twig',
             ],
             [
                 'scope'         => 'default',
@@ -332,7 +342,7 @@ class Flutter extends Dart
             ],
             [
                 'scope'         => 'method',
-                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
+                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseKebab}}.md',
                 'template'      => 'flutter/docs/example.md.twig',
             ],
             [

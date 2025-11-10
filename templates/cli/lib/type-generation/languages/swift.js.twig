@@ -3,7 +3,7 @@ const { AttributeType } = require('../attribute');
 const { LanguageMeta } = require("./language");
 
 class Swift extends LanguageMeta {
-  getType(attribute, collections) {
+  getType(attribute, collections, collectionName) {
     let type = "";
     switch (attribute.type) {
       case AttributeType.STRING:
@@ -11,7 +11,7 @@ class Swift extends LanguageMeta {
       case AttributeType.DATETIME:
         type = "String";
         if (attribute.format === AttributeType.ENUM) {
-          type = LanguageMeta.toPascalCase(attribute.key);
+          type = LanguageMeta.toPascalCase(collectionName) + LanguageMeta.toPascalCase(attribute.key);
         }
         break;
       case AttributeType.INTEGER:
@@ -53,7 +53,7 @@ class Swift extends LanguageMeta {
 
 <% for (const attribute of collection.attributes) { -%>
 <% if (attribute.format === 'enum') { -%>
-public enum <%- toPascalCase(attribute.key) %>: String, Codable, CaseIterable {
+public enum <%- toPascalCase(collection.name) %><%- toPascalCase(attribute.key) %>: String, Codable, CaseIterable {
 <% for (const [index, element] of Object.entries(attribute.elements)) { -%>
     case <%- strict ? toCamelCase(element) : element %> = "<%- element %>"
 <% } -%>
@@ -63,7 +63,7 @@ public enum <%- toPascalCase(attribute.key) %>: String, Codable, CaseIterable {
 <% } -%>
 public class <%- toPascalCase(collection.name) %>: Codable {
 <% for (const attribute of collection.attributes) { -%>
-    public let <%- strict ? toCamelCase(attribute.key) : attribute.key %>: <%- getType(attribute, collections) %>
+    public let <%- strict ? toCamelCase(attribute.key) : attribute.key %>: <%- getType(attribute, collections, collection.name) %>
 <% } %>
     enum CodingKeys: String, CodingKey {
 <% for (const attribute of collection.attributes) { -%>
@@ -73,7 +73,7 @@ public class <%- toPascalCase(collection.name) %>: Codable {
 
     public init(
 <% for (const [index, attribute] of Object.entries(collection.attributes)) { -%>
-        <%- strict ? toCamelCase(attribute.key) : attribute.key %>: <%- getType(attribute, collections) %><% if (index < collection.attributes.length - 1) { %>,<% } %>
+        <%- strict ? toCamelCase(attribute.key) : attribute.key %>: <%- getType(attribute, collections, collection.name) %><% if (index < collection.attributes.length - 1) { %>,<% } %>
 <% } -%>
     ) {
 <% for (const attribute of collection.attributes) { -%>
@@ -86,9 +86,9 @@ public class <%- toPascalCase(collection.name) %>: Codable {
 
 <% for (const attribute of collection.attributes) { -%>
 <% if (!(!attribute.required && attribute.default === null)) { -%>
-        self.<%- strict ? toCamelCase(attribute.key) : attribute.key %> = try container.decode(<%- getType(attribute, collections).replace('?', '') %>.self, forKey: .<%- strict ? toCamelCase(attribute.key) : attribute.key %>)
+        self.<%- strict ? toCamelCase(attribute.key) : attribute.key %> = try container.decode(<%- getType(attribute, collections, collection.name).replace('?', '') %>.self, forKey: .<%- strict ? toCamelCase(attribute.key) : attribute.key %>)
 <% } else { -%>
-        self.<%- strict ? toCamelCase(attribute.key) : attribute.key %> = try container.decodeIfPresent(<%- getType(attribute, collections).replace('?', '') %>.self, forKey: .<%- strict ? toCamelCase(attribute.key) : attribute.key %>)
+        self.<%- strict ? toCamelCase(attribute.key) : attribute.key %> = try container.decodeIfPresent(<%- getType(attribute, collections, collection.name).replace('?', '') %>.self, forKey: .<%- strict ? toCamelCase(attribute.key) : attribute.key %>)
 <% } -%>
 <% } -%>
     }
@@ -144,7 +144,7 @@ public class <%- toPascalCase(collection.name) %>: Codable {
 <% if ((attribute.type === 'string' || attribute.type === 'email' || attribute.type === 'datetime') && attribute.format !== 'enum') { -%>
             <%- strict ? toCamelCase(attribute.key) : attribute.key %>: map["<%- attribute.key %>"] as<% if (!attribute.required) { %>?<% } else { %>!<% } %> String<% if (index < collection.attributes.length - 1) { %>,<% } %>
 <% } else if (attribute.type === 'string' && attribute.format === 'enum') { -%>
-            <%- strict ? toCamelCase(attribute.key) : attribute.key %>: <%- toPascalCase(attribute.key) %>(rawValue: map["<%- attribute.key %>"] as! String)!<% if (index < collection.attributes.length - 1) { %>,<% } %>
+            <%- strict ? toCamelCase(attribute.key) : attribute.key %>: <%- toPascalCase(collection.name) %><%- toPascalCase(attribute.key) %>(rawValue: map["<%- attribute.key %>"] as! String)!<% if (index < collection.attributes.length - 1) { %>,<% } %>
 <% } else if (attribute.type === 'integer') { -%>
             <%- strict ? toCamelCase(attribute.key) : attribute.key %>: map["<%- attribute.key %>"] as<% if (!attribute.required) { %>?<% } else { %>!<% } %> Int<% if (index < collection.attributes.length - 1) { %>,<% } %>
 <% } else if (attribute.type === 'float') { -%>

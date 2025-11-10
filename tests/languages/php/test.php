@@ -7,6 +7,7 @@ include __DIR__ . '/../../sdks/php/src/Appwrite/Query.php';
 include __DIR__ . '/../../sdks/php/src/Appwrite/Permission.php';
 include __DIR__ . '/../../sdks/php/src/Appwrite/Role.php';
 include __DIR__ . '/../../sdks/php/src/Appwrite/ID.php';
+include __DIR__ . '/../../sdks/php/src/Appwrite/Operator.php';
 include __DIR__ . '/../../sdks/php/src/Appwrite/AppwriteException.php';
 include __DIR__ . '/../../sdks/php/src/Appwrite/Enums/MockType.php';
 include __DIR__ . '/../../sdks/php/src/Appwrite/Services/Foo.php';
@@ -20,6 +21,8 @@ use Appwrite\Query;
 use Appwrite\Permission;
 use Appwrite\Role;
 use Appwrite\ID;
+use Appwrite\Operator;
+use Appwrite\Condition;
 use Appwrite\Enums\MockType;
 use Appwrite\Services\Bar;
 use Appwrite\Services\Foo;
@@ -144,6 +147,7 @@ echo Query::endsWith('name', 'nne') . "\n";
 echo Query::select(['name', 'age']) . "\n";
 echo Query::orderAsc('title') . "\n";
 echo Query::orderDesc('title') . "\n";
+echo Query::orderRandom() . "\n";
 echo Query::cursorAfter('my_movie_id') . "\n";
 echo Query::cursorBefore('my_movie_id') . "\n";
 echo Query::limit(50) . "\n";
@@ -159,8 +163,34 @@ echo Query::notStartsWith('name', 'Ann') . "\n";
 echo Query::notEndsWith('name', 'nne') . "\n";
 echo Query::createdBefore('2023-01-01') . "\n";
 echo Query::createdAfter('2023-01-01') . "\n";
+echo Query::createdBetween('2023-01-01', '2023-12-31') . "\n";
 echo Query::updatedBefore('2023-01-01') . "\n";
 echo Query::updatedAfter('2023-01-01') . "\n";
+echo Query::updatedBetween('2023-01-01', '2023-12-31') . "\n";
+
+// Spatial Distance query tests
+echo Query::distanceEqual('location', [[40.7128, -74], [40.7128, -74]], 1000) . "\n";
+echo Query::distanceEqual('location', [40.7128, -74], 1000, true) . "\n";
+echo Query::distanceNotEqual('location', [40.7128, -74], 1000) . "\n";
+echo Query::distanceNotEqual('location', [40.7128, -74], 1000, true) . "\n";
+echo Query::distanceGreaterThan('location', [40.7128, -74], 1000) . "\n";
+echo Query::distanceGreaterThan('location', [40.7128, -74], 1000, true) . "\n";
+echo Query::distanceLessThan('location', [40.7128, -74], 1000) . "\n";
+echo Query::distanceLessThan('location', [40.7128, -74], 1000, true) . "\n";
+
+// Spatial query tests
+echo Query::intersects('location', [40.7128, -74]) . "\n";
+echo Query::notIntersects('location', [40.7128, -74]) . "\n";
+echo Query::crosses('location', [40.7128, -74]) . "\n";
+echo Query::notCrosses('location', [40.7128, -74]) . "\n";
+echo Query::overlaps('location', [40.7128, -74]) . "\n";
+echo Query::notOverlaps('location', [40.7128, -74]) . "\n";
+echo Query::touches('location', [40.7128, -74]) . "\n";
+echo Query::notTouches('location', [40.7128, -74]) . "\n";
+echo Query::contains('location', [[40.7128, -74], [40.7128, -74]]) . "\n";
+echo Query::notContains('location', [[40.7128, -74], [40.7128, -74]]) . "\n";
+echo Query::equal('location', [[40.7128, -74], [40.7128, -74]]) . "\n";
+echo Query::notEqual('location', [[40.7128, -74], [40.7128, -74]]) . "\n";
 
 echo Query::or([
     Query::equal('released', [true]),
@@ -186,6 +216,33 @@ echo Permission::create(Role::label('admin')) . "\n";
 // ID helper tests
 echo ID::unique() . "\n";
 echo ID::custom('custom_id') . "\n";
+
+// Operator helper tests
+echo Operator::increment() . "\n";
+echo Operator::increment(5, 100) . "\n";
+echo Operator::decrement() . "\n";
+echo Operator::decrement(3, 0) . "\n";
+echo Operator::multiply(2) . "\n";
+echo Operator::multiply(3, 1000) . "\n";
+echo Operator::divide(2) . "\n";
+echo Operator::divide(4, 1) . "\n";
+echo Operator::modulo(5) . "\n";
+echo Operator::power(2) . "\n";
+echo Operator::power(3, 100) . "\n";
+echo Operator::arrayAppend(['item1', 'item2']) . "\n";
+echo Operator::arrayPrepend(['first', 'second']) . "\n";
+echo Operator::arrayInsert(0, 'newItem') . "\n";
+echo Operator::arrayRemove('oldItem') . "\n";
+echo Operator::arrayUnique() . "\n";
+echo Operator::arrayIntersect(['a', 'b', 'c']) . "\n";
+echo Operator::arrayDiff(['x', 'y']) . "\n";
+echo Operator::arrayFilter(Condition::Equal, 'test') . "\n";
+echo Operator::stringConcat('suffix') . "\n";
+echo Operator::stringReplace('old', 'new') . "\n";
+echo Operator::toggle() . "\n";
+echo Operator::dateAddDays(7) . "\n";
+echo Operator::dateSubDays(3) . "\n";
+echo Operator::dateSetNow() . "\n";
 
 $response = $general->headers();
 echo "{$response['result']}\n";

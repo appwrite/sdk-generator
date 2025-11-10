@@ -167,6 +167,7 @@ class Tests: XCTestCase {
         print(Query.select(["name", "age"]))
         print(Query.orderAsc("title"))
         print(Query.orderDesc("title"))
+        print(Query.orderRandom())
         print(Query.cursorAfter("my_movie_id"))
         print(Query.cursorBefore("my_movie_id"))
         print(Query.limit(50))
@@ -182,9 +183,35 @@ class Tests: XCTestCase {
         print(Query.notEndsWith("name", value: "nne"))
         print(Query.createdBefore("2023-01-01"))
         print(Query.createdAfter("2023-01-01"))
+        print(Query.createdBetween("2023-01-01", "2023-12-31"))
         print(Query.updatedBefore("2023-01-01"))
         print(Query.updatedAfter("2023-01-01"))
-        
+        print(Query.updatedBetween("2023-01-01", "2023-12-31"))
+
+        // Spatial Distance query tests
+        print(Query.distanceEqual("location", values: [[40.7128, -74], [40.7128, -74]], distance: 1000))
+        print(Query.distanceEqual("location", values: [40.7128, -74], distance: 1000, meters: true))
+        print(Query.distanceNotEqual("location", values: [40.7128, -74], distance: 1000))
+        print(Query.distanceNotEqual("location", values: [40.7128, -74], distance: 1000, meters: true))
+        print(Query.distanceGreaterThan("location", values: [40.7128, -74], distance: 1000))
+        print(Query.distanceGreaterThan("location", values: [40.7128, -74], distance: 1000, meters: true))
+        print(Query.distanceLessThan("location", values: [40.7128, -74], distance: 1000))
+        print(Query.distanceLessThan("location", values: [40.7128, -74], distance: 1000, meters: true))
+
+        // Spatial query tests
+        print(Query.intersects("location", values: [40.7128, -74]))
+        print(Query.notIntersects("location", values: [40.7128, -74]))
+        print(Query.crosses("location", values: [40.7128, -74]))
+        print(Query.notCrosses("location", values: [40.7128, -74]))
+        print(Query.overlaps("location", values: [40.7128, -74]))
+        print(Query.notOverlaps("location", values: [40.7128, -74]))
+        print(Query.touches("location", values: [40.7128, -74]))
+        print(Query.notTouches("location", values: [40.7128, -74]))
+        print(Query.contains("location", value: [[40.7128, -74],[40.7128, -74]]))
+        print(Query.notContains("location", value: [[40.7128, -74],[40.7128, -74]]))
+        print(Query.equal("location", value: [[40.7128, -74],[40.7128, -74]]))
+        print(Query.notEqual("location", value: [[40.7128, -74],[40.7128, -74]]))
+
         print(Query.or(
             [Query.equal("released", value: true), Query.lessThan("releasedYear", value: 1990)]
         ))
@@ -207,6 +234,33 @@ class Tests: XCTestCase {
         // ID helper tests
         print(ID.unique())
         print(ID.custom("custom_id"))
+
+        // Operator helper tests
+        print(Operator.increment(1))
+        print(Operator.increment(5, max: 100))
+        print(Operator.decrement(1))
+        print(Operator.decrement(3, min: 0))
+        print(Operator.multiply(2))
+        print(Operator.multiply(3, max: 1000))
+        print(Operator.divide(2))
+        print(Operator.divide(4, min: 1))
+        print(Operator.modulo(5))
+        print(Operator.power(2))
+        print(Operator.power(3, max: 100))
+        print(Operator.arrayAppend(["item1", "item2"]))
+        print(Operator.arrayPrepend(["first", "second"]))
+        print(Operator.arrayInsert(0, value: "newItem"))
+        print(Operator.arrayRemove("oldItem"))
+        print(Operator.arrayUnique())
+        print(Operator.arrayIntersect(["a", "b", "c"]))
+        print(Operator.arrayDiff(["x", "y"]))
+        print(Operator.arrayFilter(Condition.equal, value: "test"))
+        print(Operator.stringConcat("suffix"))
+        print(Operator.stringReplace("old", "new"))
+        print(Operator.toggle())
+        print(Operator.dateAddDays(7))
+        print(Operator.dateSubDays(3))
+        print(Operator.dateSetNow())
 
         mock = try await general.headers()
         print(mock.result)

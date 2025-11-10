@@ -14,6 +14,21 @@ class Web extends JS
         return 'Web';
     }
 
+    public function getStaticAccessOperator(): string
+    {
+        return '.';
+    }
+
+    public function getStringQuote(): string
+    {
+        return "'";
+    }
+
+    public function getArrayOf(string $elements): string
+    {
+        return '[' . $elements . ']';
+    }
+
     /**
      * @return array
      */
@@ -37,8 +52,13 @@ class Web extends JS
             ],
             [
                 'scope'         => 'service',
-                'destination'   => 'src/services/{{service.name | caseDash}}.ts',
+                'destination'   => 'src/services/{{service.name | caseKebab}}.ts',
                 'template'      => 'web/src/services/template.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'src/services/realtime.ts',
+                'template'      => 'web/src/services/realtime.ts.twig',
             ],
             [
                 'scope'         => 'default',
@@ -67,6 +87,11 @@ class Web extends JS
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'src/operator.ts',
+                'template'      => 'web/src/operator.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'README.md',
                 'template'      => 'web/README.md.twig',
             ],
@@ -87,7 +112,7 @@ class Web extends JS
             ],
             [
                 'scope'         => 'method',
-                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
+                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseKebab}}.md',
                 'template'      => 'web/docs/example.md.twig',
             ],
             [
@@ -117,7 +142,7 @@ class Web extends JS
             ],
             [
                 'scope'         => 'enum',
-                'destination'   => 'src/enums/{{ enum.name | caseDash }}.ts',
+                'destination'   => 'src/enums/{{ enum.name | caseKebab }}.ts',
                 'template'      => 'web/src/enums/enum.ts.twig',
             ],
         ];
@@ -132,49 +157,30 @@ class Web extends JS
         $type       = $param['type'] ?? '';
         $example    = $param['example'] ?? '';
 
-        $output = '';
+        $hasExample = !empty($example) || $example === 0 || $example === false;
 
-        if (empty($example) && $example !== 0 && $example !== false) {
-            switch ($type) {
-                case self::TYPE_NUMBER:
-                case self::TYPE_INTEGER:
-                case self::TYPE_BOOLEAN:
-                    $output .= 'null';
-                    break;
-                case self::TYPE_STRING:
-                    $output .= "''";
-                    break;
-                case self::TYPE_ARRAY:
-                    $output .= '[]';
-                    break;
-                case self::TYPE_OBJECT:
-                    $output .= '{}';
-                    break;
-                case self::TYPE_FILE:
-                    $output .= "document.getElementById('uploader').files[0]";
-                    break;
-            }
-        } else {
-            switch ($type) {
-                case self::TYPE_NUMBER:
-                case self::TYPE_INTEGER:
-                case self::TYPE_ARRAY:
-                case self::TYPE_OBJECT:
-                    $output .= $example;
-                    break;
-                case self::TYPE_BOOLEAN:
-                    $output .= ($example) ? 'true' : 'false';
-                    break;
-                case self::TYPE_STRING:
-                    $output .= "'{$example}'";
-                    break;
-                case self::TYPE_FILE:
-                    $output .= "document.getElementById('uploader').files[0]";
-                    break;
-            }
+        if (!$hasExample) {
+            return match ($type) {
+                self::TYPE_ARRAY => '[]',
+                self::TYPE_FILE => 'document.getElementById(\'uploader\').files[0]',
+                self::TYPE_INTEGER, self::TYPE_NUMBER, self::TYPE_BOOLEAN => 'null',
+                self::TYPE_OBJECT => '{}',
+                self::TYPE_STRING => "''",
+            };
         }
 
-        return $output;
+        return match ($type) {
+            self::TYPE_ARRAY => $this->isPermissionString($example) ? $this->getPermissionExample($example) : $example,
+            self::TYPE_INTEGER, self::TYPE_NUMBER => $example,
+            self::TYPE_FILE => 'document.getElementById(\'uploader\').files[0]',
+            self::TYPE_BOOLEAN => ($example) ? 'true' : 'false',
+            self::TYPE_OBJECT => ($example === '{}')
+            ? '{}'
+            : (($formatted = json_encode(json_decode($example, true), JSON_PRETTY_PRINT))
+                ? preg_replace('/\n/', "\n    ", $formatted)
+                : $example),
+            self::TYPE_STRING => "'{$example}'",
+        };
     }
 
     public function getReadOnlyProperties(array $parameter, string $responseModel, array $spec = []): array
@@ -230,7 +236,7 @@ class Web extends JS
                 if (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type'])) {
                     return $this->getTypeName($parameter['array']) . '[]';
                 }
-                return 'string[]';
+                return 'any[]';
             case self::TYPE_FILE:
                 return 'File';
             case self::TYPE_OBJECT:
@@ -336,7 +342,7 @@ class Web extends JS
         return 'Promise<{}>';
     }
 
-    public function getSubSchema(array $property, array $spec): string
+    public function getSubSchema(array $property, array $spec, string $methodName = ''): string
     {
         if (array_key_exists('sub_schema', $property)) {
             $ret = '';
@@ -356,20 +362,28 @@ class Web extends JS
             return $ret;
         }
 
+        if (array_key_exists('enum', $property) && !empty($methodName)) {
+            if (isset($property['enumName'])) {
+                return $this->toPascalCase($property['enumName']);
+            }
+
+            return $this->toPascalCase($methodName) . $this->toPascalCase($property['name']);
+        }
+
         return $this->getTypeName($property);
     }
 
     public function getFilters(): array
     {
-        return [
+        return \array_merge(parent::getFilters(), [
             new TwigFilter('getPropertyType', function ($value, $method = []) {
                 return $this->getTypeName($value, $method);
             }),
             new TwigFilter('getReadOnlyProperties', function ($value, $responseModel, $spec = []) {
                 return $this->getReadOnlyProperties($value, $responseModel, $spec);
             }),
-            new TwigFilter('getSubSchema', function (array $property, array $spec) {
-                return $this->getSubSchema($property, $spec);
+            new TwigFilter('getSubSchema', function (array $property, array $spec, string $methodName = '') {
+                return $this->getSubSchema($property, $spec, $methodName);
             }),
             new TwigFilter('getGenerics', function (string $model, array $spec, bool $skipAdditional = false) {
                 return $this->getGenerics($model, $spec, $skipAdditional);
@@ -391,9 +405,6 @@ class Web extends JS
                 }
                 return implode("\n", $value);
             }, ['is_safe' => ['html']]),
-            new TwigFilter('caseEnumKey', function ($value) {
-                return $this->toPascalCase($value);
-            }),
-        ];
+        ]);
     }
 }

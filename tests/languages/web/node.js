@@ -1,4 +1,4 @@
-const { Client, Foo, Bar, General, Query, Permission, Role, ID, MockType } = require('./dist/cjs/sdk.js');
+const { Client, Foo, Bar, General, Query, Permission, Role, ID, Operator, Condition, MockType } = require('./dist/cjs/sdk.js');
 
 async function start() {
     let response;
@@ -179,6 +179,7 @@ async function start() {
     console.log(Query.select(["name", "age"]));
     console.log(Query.orderAsc("title"));
     console.log(Query.orderDesc("title"));
+    console.log(Query.orderRandom());
     console.log(Query.cursorAfter("my_movie_id"));
     console.log(Query.cursorBefore("my_movie_id"));
     console.log(Query.limit(50));
@@ -194,8 +195,34 @@ async function start() {
     console.log(Query.notEndsWith("name", "nne"));
     console.log(Query.createdBefore("2023-01-01"));
     console.log(Query.createdAfter("2023-01-01"));
+    console.log(Query.createdBetween("2023-01-01", "2023-12-31"));
     console.log(Query.updatedBefore("2023-01-01"));
     console.log(Query.updatedAfter("2023-01-01"));
+    console.log(Query.updatedBetween("2023-01-01", "2023-12-31"));
+    
+    // Spatial Distance query tests
+    console.log(Query.distanceEqual("location", [[40.7128, -74], [40.7128, -74]], 1000));
+    console.log(Query.distanceEqual("location", [40.7128, -74], 1000, true));
+    console.log(Query.distanceNotEqual("location", [40.7128, -74], 1000));
+    console.log(Query.distanceNotEqual("location", [40.7128, -74], 1000, true));
+    console.log(Query.distanceGreaterThan("location", [40.7128, -74], 1000));
+    console.log(Query.distanceGreaterThan("location", [40.7128, -74], 1000, true));
+    console.log(Query.distanceLessThan("location", [40.7128, -74], 1000));
+    console.log(Query.distanceLessThan("location", [40.7128, -74], 1000, true));
+
+    // Spatial query tests
+    console.log(Query.intersects("location", [40.7128, -74]));
+    console.log(Query.notIntersects("location", [40.7128, -74]));
+    console.log(Query.crosses("location", [40.7128, -74]));
+    console.log(Query.notCrosses("location", [40.7128, -74]));
+    console.log(Query.overlaps("location", [40.7128, -74]));
+    console.log(Query.notOverlaps("location", [40.7128, -74]));
+    console.log(Query.touches("location", [40.7128, -74]));
+    console.log(Query.notTouches("location", [40.7128, -74]));
+    console.log(Query.contains("location", [[40.7128, -74], [40.7128, -74]]));
+    console.log(Query.notContains("location", [[40.7128, -74], [40.7128, -74]]));
+    console.log(Query.equal("location", [[40.7128, -74], [40.7128, -74]]));
+    console.log(Query.notEqual("location", [[40.7128, -74], [40.7128, -74]]));
     
     console.log(Query.or([
         Query.equal("released", true),
@@ -222,6 +249,33 @@ async function start() {
     // ID helper tests
     console.log(ID.unique());
     console.log(ID.custom('custom_id'));
+
+    // Operator helper tests
+    console.log(Operator.increment(1));
+    console.log(Operator.increment(5, 100));
+    console.log(Operator.decrement(1));
+    console.log(Operator.decrement(3, 0));
+    console.log(Operator.multiply(2));
+    console.log(Operator.multiply(3, 1000));
+    console.log(Operator.divide(2));
+    console.log(Operator.divide(4, 1));
+    console.log(Operator.modulo(5));
+    console.log(Operator.power(2));
+    console.log(Operator.power(3, 100));
+    console.log(Operator.arrayAppend(["item1", "item2"]));
+    console.log(Operator.arrayPrepend(["first", "second"]));
+    console.log(Operator.arrayInsert(0, "newItem"));
+    console.log(Operator.arrayRemove("oldItem"));
+    console.log(Operator.arrayUnique());
+    console.log(Operator.arrayIntersect(["a", "b", "c"]));
+    console.log(Operator.arrayDiff(["x", "y"]));
+    console.log(Operator.arrayFilter(Condition.Equal, "test"));
+    console.log(Operator.stringConcat("suffix"));
+    console.log(Operator.stringReplace("old", "new"));
+    console.log(Operator.toggle());
+    console.log(Operator.dateAddDays(7));
+    console.log(Operator.dateSubDays(3));
+    console.log(Operator.dateSetNow());
 
     response = await general.headers();
     console.log(response.result);

@@ -26,12 +26,12 @@ class Android extends Kotlin
             ],
             [
                 'scope'         => 'method',
-                'destination'   => 'docs/examples/kotlin/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
+                'destination'   => 'docs/examples/kotlin/{{service.name | caseLower}}/{{method.name | caseKebab}}.md',
                 'template'      => '/android/docs/kotlin/example.md.twig',
             ],
             [
                 'scope'         => 'method',
-                'destination'   => 'docs/examples/java/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
+                'destination'   => 'docs/examples/java/{{service.name | caseLower}}/{{method.name | caseKebab}}.md',
                 'template'      => '/android/docs/java/example.md.twig',
             ],
             [
@@ -124,6 +124,11 @@ class Android extends Kotlin
                 'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/Query.kt',
                 'template'      => '/android/library/src/main/java/io/package/Query.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/Operator.kt',
+                'template'      => '/android/library/src/main/java/io/package/Operator.kt.twig',
             ],
             [
                 'scope'         => 'default',

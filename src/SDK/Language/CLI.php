@@ -163,7 +163,7 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'method',
-                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
+                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseKebab}}.md',
                 'template'      => 'cli/docs/example.md.twig',
             ],
             [
@@ -230,6 +230,11 @@ class CLI extends Node
                 'scope'         => 'default',
                 'destination'   => 'lib/type-generation/languages/dart.js',
                 'template'      => 'cli/lib/type-generation/languages/dart.js.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/type-generation/languages/csharp.js',
+                'template'      => 'cli/lib/type-generation/languages/csharp.js.twig',
             ],
             [
                 'scope'         => 'default',
@@ -313,7 +318,7 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'service',
-                'destination'   => '/lib/commands/{{service.name | caseDash}}.js',
+                'destination'   => '/lib/commands/{{service.name | caseKebab}}.js',
                 'template'      => 'cli/lib/commands/command.js.twig',
             ],
             [
@@ -365,7 +370,7 @@ class CLI extends Node
             self::TYPE_OBJECT => 'object',
             self::TYPE_ARRAY => (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type']))
                 ? $this->getTypeName($parameter['array']) . '[]'
-                : 'string[]',
+                : 'any[]',
             default => $parameter['type'],
         };
     }
@@ -434,14 +439,6 @@ class CLI extends Node
         return $output;
     }
 
-    public function getFilters(): array
-    {
-        return array_merge(parent::getFilters(), [
-            new TwigFilter('caseKebab', function ($value) {
-                return strtolower(preg_replace('/(?<!^)([A-Z][a-z]|(?<=[a-z])[^a-z\s]|(?<=[A-Z])[0-9_])/', '-$1', $value));
-            })
-        ]);
-    }
     /**
      * Language specific filters.
      * @return array

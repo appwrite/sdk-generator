@@ -121,6 +121,21 @@ class Dart extends Language
         ];
     }
 
+    public function getStaticAccessOperator(): string
+    {
+        return '.';
+    }
+
+    public function getStringQuote(): string
+    {
+        return "'";
+    }
+
+    public function getArrayOf(string $elements): string
+    {
+        return '[' . $elements . ']';
+    }
+
     /**
      * @param array $parameter
      * @return string
@@ -226,49 +241,30 @@ class Dart extends Language
         $type       = $param['type'] ?? '';
         $example    = $param['example'] ?? '';
 
-        $output = '';
+        $hasExample = !empty($example) || $example === 0 || $example === false;
 
-        if (empty($example) && $example !== 0 && $example !== false) {
-            switch ($type) {
-                case self::TYPE_FILE:
-                    $output .= 'InputFile(path: \'./path-to-files/image.jpg\', filename: \'image.jpg\')';
-                    break;
-                case self::TYPE_NUMBER:
-                case self::TYPE_INTEGER:
-                    $output .= '0';
-                    break;
-                case self::TYPE_BOOLEAN:
-                    $output .= 'false';
-                    break;
-                case self::TYPE_STRING:
-                    $output .= "''";
-                    break;
-                case self::TYPE_OBJECT:
-                    $output .= '{}';
-                    break;
-                case self::TYPE_ARRAY:
-                    $output .= '[]';
-                    break;
-            }
-        } else {
-            switch ($type) {
-                case self::TYPE_OBJECT:
-                case self::TYPE_FILE:
-                case self::TYPE_NUMBER:
-                case self::TYPE_INTEGER:
-                case self::TYPE_ARRAY:
-                    $output .= $example;
-                    break;
-                case self::TYPE_BOOLEAN:
-                    $output .= ($example) ? 'true' : 'false';
-                    break;
-                case self::TYPE_STRING:
-                    $output .= "'{$example}'";
-                    break;
-            }
+        if (!$hasExample) {
+            return match ($type) {
+                self::TYPE_OBJECT => '{}',
+                self::TYPE_ARRAY => '[]',
+                self::TYPE_BOOLEAN => 'false',
+                self::TYPE_FILE => 'InputFile(path: \'./path-to-files/image.jpg\', filename: \'image.jpg\')',
+                self::TYPE_INTEGER, self::TYPE_NUMBER => '0',
+                self::TYPE_STRING => "''",
+            };
         }
 
-        return $output;
+        return match ($type) {
+            self::TYPE_ARRAY => $this->isPermissionString($example) ? $this->getPermissionExample($example) : $example,
+            self::TYPE_FILE, self::TYPE_INTEGER, self::TYPE_NUMBER => $example,
+            self::TYPE_BOOLEAN => ($example) ? 'true' : 'false',
+            self::TYPE_OBJECT => ($decoded = json_decode($example, true)) !== null
+            ? (empty($decoded) && $example === '{}'
+                ? '{}'
+                : preg_replace('/\n/', "\n    ", json_encode($decoded, JSON_PRETTY_PRINT)))
+            : $example,
+            self::TYPE_STRING => "'{$example}'",
+        };
     }
 
     /**
@@ -364,6 +360,11 @@ class Dart extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/lib/operator.dart',
+                'template'      => 'dart/lib/operator.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/lib/{{ language.params.packageName }}.dart',
                 'template'      => 'dart/lib/package.dart.twig',
             ],
@@ -424,7 +425,7 @@ class Dart extends Language
             ],
             [
                 'scope'         => 'method',
-                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
+                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseKebab}}.md',
                 'template'      => 'dart/docs/example.md.twig',
             ],
             [
@@ -451,6 +452,11 @@ class Dart extends Language
                 'scope'         => 'default',
                 'destination'   => '/test/query_test.dart',
                 'template'      => 'dart/test/query_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/test/operator_test.dart',
+                'template'      => 'dart/test/operator_test.dart.twig',
             ],
             [
                 'scope'         => 'default',

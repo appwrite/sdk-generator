@@ -84,6 +84,21 @@ class Python extends Language
         return [];
     }
 
+    public function getStaticAccessOperator(): string
+    {
+        return '.';
+    }
+
+    public function getStringQuote(): string
+    {
+        return '"';
+    }
+
+    public function getArrayOf(string $elements): string
+    {
+        return '[' . $elements . ']';
+    }
+
     /**
      * @return array
      */
@@ -127,6 +142,16 @@ class Python extends Language
             ],
             [
                 'scope' => 'default',
+                'destination' => '{{ spec.title | caseSnake}}/utils/deprecated.py',
+                'template' => 'python/package/utils/deprecated.py.twig',
+            ],
+            [
+                'scope' => 'default',
+                'destination' => '{{ spec.title | caseSnake}}/utils/__init__.py',
+                'template' => 'python/package/utils/__init__.py.twig',
+            ],
+            [
+                'scope' => 'default',
                 'destination' => '{{ spec.title | caseSnake}}/client.py',
                 'template' => 'python/package/client.py.twig',
             ],
@@ -149,6 +174,11 @@ class Python extends Language
                 'scope' => 'default',
                 'destination' => '{{ spec.title | caseSnake}}/query.py',
                 'template' => 'python/package/query.py.twig',
+            ],
+            [
+                'scope' => 'default',
+                'destination' => '{{ spec.title | caseSnake}}/operator.py',
+                'template' => 'python/package/operator.py.twig',
             ],
             [
                 'scope' => 'default',
@@ -197,7 +227,7 @@ class Python extends Language
             ],
             [
                 'scope' => 'method',
-                'destination' => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
+                'destination' => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseKebab}}.md',
                 'template' => 'python/docs/example.md.twig',
             ],
             [
@@ -225,32 +255,48 @@ class Python extends Language
      */
     public function getTypeName(array $parameter, array $spec = []): string
     {
+        $typeName = '';
+
         if (isset($parameter['enumName'])) {
-            return \ucfirst($parameter['enumName']);
+            $typeName = \ucfirst($parameter['enumName']);
+        } elseif (!empty($parameter['enumValues'])) {
+            $typeName = \ucfirst($parameter['name']);
+        } else {
+            switch ($parameter['type'] ?? '') {
+                case self::TYPE_FILE:
+                    $typeName = 'InputFile';
+                    break;
+                case self::TYPE_NUMBER:
+                case self::TYPE_INTEGER:
+                    $typeName = 'float';
+                    break;
+                case self::TYPE_BOOLEAN:
+                    $typeName = 'bool';
+                    break;
+                case self::TYPE_STRING:
+                    $typeName = 'str';
+                    break;
+                case self::TYPE_ARRAY:
+                    if (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type'])) {
+                        $typeName = 'List[' . $this->getTypeName($parameter['array']) . ']';
+                    } else {
+                        $typeName = 'List[Any]';
+                    }
+                    break;
+                case self::TYPE_OBJECT:
+                    $typeName = 'dict';
+                    break;
+                default:
+                    $typeName = $parameter['type'];
+                    break;
+            }
         }
-        if (!empty($parameter['enumValues'])) {
-            return \ucfirst($parameter['name']);
+
+        if (!($parameter['required'] ?? true) || ($parameter['nullable'] ?? false)) {
+            return 'Optional[' . $typeName . ']';
         }
-        switch ($parameter['type'] ?? '') {
-            case self::TYPE_FILE:
-                return 'InputFile';
-            case self::TYPE_NUMBER:
-            case self::TYPE_INTEGER:
-                return 'float';
-            case self::TYPE_BOOLEAN:
-                return 'bool';
-            case self::TYPE_STRING:
-                return 'str';
-            case self::TYPE_ARRAY:
-                if (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type'])) {
-                    return 'List[' . $this->getTypeName($parameter['array']) . ']';
-                }
-                return 'List[str]';
-            case self::TYPE_OBJECT:
-                return 'dict';
-            default:
-                return $parameter['type'];
-        }
+
+        return $typeName;
     }
 
     /**
@@ -319,49 +365,29 @@ class Python extends Language
         $type = $param['type'] ?? '';
         $example = $param['example'] ?? '';
 
-        $output = '';
+        $hasExample = !empty($example) || $example === 0 || $example === false;
 
-        if (empty($example) && $example !== 0 && $example !== false) {
-            switch ($type) {
-                case self::TYPE_NUMBER:
-                case self::TYPE_INTEGER:
-                case self::TYPE_BOOLEAN:
-                    $output .= 'None';
-                    break;
-                case self::TYPE_STRING:
-                    $output .= "''";
-                    break;
-                case self::TYPE_ARRAY:
-                    $output .= '[]';
-                    break;
-                case self::TYPE_OBJECT:
-                    $output .= '{}';
-                    break;
-                case self::TYPE_FILE:
-                    $output .= "InputFile.from_path('file.png')";
-                    break;
-            }
-        } else {
-            switch ($type) {
-                case self::TYPE_NUMBER:
-                case self::TYPE_INTEGER:
-                case self::TYPE_ARRAY:
-                case self::TYPE_OBJECT:
-                    $output .= $example;
-                    break;
-                case self::TYPE_BOOLEAN:
-                    $output .= ($example) ? 'True' : 'False';
-                    break;
-                case self::TYPE_STRING:
-                    $output .= "'{$example}'";
-                    break;
-                case self::TYPE_FILE:
-                    $output .= "InputFile.from_path('file.png')";
-                    break;
-            }
+        if (!$hasExample) {
+            return match ($type) {
+                self::TYPE_ARRAY => '[]',
+                self::TYPE_FILE => 'InputFile.from_path(\'file.png\')',
+                self::TYPE_INTEGER, self::TYPE_NUMBER , self::TYPE_BOOLEAN => 'None',
+                self::TYPE_OBJECT => '{}',
+                self::TYPE_STRING => "''",
+            };
         }
 
-        return $output;
+        return match ($type) {
+            self::TYPE_ARRAY => $this->isPermissionString($example) ? $this->getPermissionExample($example) : $example,
+            self::TYPE_FILE, self::TYPE_INTEGER, self::TYPE_NUMBER => $example,
+            self::TYPE_BOOLEAN => ($example) ? 'True' : 'False',
+            self::TYPE_OBJECT => ($example === '{}')
+            ? '{}'
+            : (($formatted = json_encode(json_decode($example, true), JSON_PRETTY_PRINT))
+                ? preg_replace('/\n/', "\n    ", str_replace(['true', 'false'], ['True', 'False'], $formatted))
+                : $example),
+            self::TYPE_STRING => "'{$example}'",
+        };
     }
 
     public function getFilters(): array
@@ -372,6 +398,12 @@ class Python extends Language
             }),
             new TwigFilter('getPropertyType', function ($value, $method = []) {
                 return $this->getTypeName($value, $method);
+            }),
+            new TwigFilter('formatParamValue', function (string $paramName, string $paramType, bool $isMultipartFormData) {
+                if ($isMultipartFormData && $paramType === self::TYPE_BOOLEAN) {
+                    return "str({$paramName}).lower() if type({$paramName}) is bool else {$paramName}";
+                }
+                return $paramName;
             }),
         ];
     }

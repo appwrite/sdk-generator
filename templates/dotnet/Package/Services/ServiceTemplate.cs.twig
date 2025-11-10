@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 {% if spec.definitions is not empty %}
 using {{ spec.title | caseUcfirst }}.Models;
 {% endif %}
-{% if spec.enums is not empty %}
+{% if spec.requestEnums is not empty %}
 using {{ spec.title | caseUcfirst }}.Enums;
 {% endif %}
 

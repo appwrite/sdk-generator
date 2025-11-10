@@ -37,7 +37,7 @@ class ReactNative extends Web
             ],
             [
                 'scope'         => 'service',
-                'destination'   => 'src/services/{{service.name | caseDash}}.ts',
+                'destination'   => 'src/services/{{service.name | caseKebab}}.ts',
                 'template'      => 'react-native/src/services/template.ts.twig',
             ],
             [
@@ -67,6 +67,11 @@ class ReactNative extends Web
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'src/operator.ts',
+                'template'      => 'react-native/src/operator.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'README.md',
                 'template'      => 'react-native/README.md.twig',
             ],
@@ -87,7 +92,7 @@ class ReactNative extends Web
             ],
             [
                 'scope'         => 'method',
-                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
+                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseKebab}}.md',
                 'template'      => 'react-native/docs/example.md.twig',
             ],
             [
@@ -117,7 +122,7 @@ class ReactNative extends Web
             ],
             [
                 'scope'         => 'enum',
-                'destination'   => 'src/enums/{{ enum.name | caseDash }}.ts',
+                'destination'   => 'src/enums/{{ enum.name | caseKebab }}.ts',
                 'template'      => 'react-native/src/enums/enum.ts.twig',
             ],
         ];
@@ -148,7 +153,7 @@ class ReactNative extends Web
                 if (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type'])) {
                     return $this->getTypeName($parameter['array']) . '[]';
                 }
-                return 'string[]';
+                return 'any[]';
             case self::TYPE_FILE:
                 return '{name: string, type: string, size: number, uri: string}';
             case self::TYPE_OBJECT:
@@ -190,49 +195,29 @@ class ReactNative extends Web
         $type       = $param['type'] ?? '';
         $example    = $param['example'] ?? '';
 
-        $output = '';
+        $hasExample = !empty($example) || $example === 0 || $example === false;
 
-        if (empty($example) && $example !== 0 && $example !== false) {
-            switch ($type) {
-                case self::TYPE_NUMBER:
-                case self::TYPE_INTEGER:
-                case self::TYPE_BOOLEAN:
-                    $output .= 'null';
-                    break;
-                case self::TYPE_STRING:
-                    $output .= "''";
-                    break;
-                case self::TYPE_ARRAY:
-                    $output .= '[]';
-                    break;
-                case self::TYPE_OBJECT:
-                    $output .= '{}';
-                    break;
-                case self::TYPE_FILE:
-                    $output .= "await pickSingle()";
-                    break;
-            }
-        } else {
-            switch ($type) {
-                case self::TYPE_NUMBER:
-                case self::TYPE_INTEGER:
-                case self::TYPE_ARRAY:
-                case self::TYPE_OBJECT:
-                    $output .= $example;
-                    break;
-                case self::TYPE_BOOLEAN:
-                    $output .= ($example) ? 'true' : 'false';
-                    break;
-                case self::TYPE_STRING:
-                    $output .= "'{$example}'";
-                    break;
-                case self::TYPE_FILE:
-                    $output .= "await pickSingle()";
-                    break;
-            }
+        if (!$hasExample) {
+            return match ($type) {
+                self::TYPE_ARRAY => '[]',
+                self::TYPE_BOOLEAN => 'false',
+                self::TYPE_FILE => 'InputFile.fromPath(\'/path/to/file\', \'filename\')',
+                self::TYPE_INTEGER, self::TYPE_NUMBER => '0',
+                self::TYPE_OBJECT => '{}',
+                self::TYPE_STRING => "''",
+            };
         }
 
-        return $output;
+        return match ($type) {
+            self::TYPE_ARRAY, self::TYPE_FILE, self::TYPE_INTEGER, self::TYPE_NUMBER => $example,
+            self::TYPE_BOOLEAN => ($example) ? 'true' : 'false',
+            self::TYPE_OBJECT => ($example === '{}')
+            ? '{}'
+            : (($formatted = json_encode(json_decode($example, true), JSON_PRETTY_PRINT))
+                ? preg_replace('/\n/', "\n    ", $formatted)
+                : $example),
+            self::TYPE_STRING => "'{$example}'",
+        };
     }
 
     public function getReturn(array $method, array $spec): string

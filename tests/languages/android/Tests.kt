@@ -8,6 +8,8 @@ import io.appwrite.Permission
 import io.appwrite.Role
 import io.appwrite.ID
 import io.appwrite.Query
+import io.appwrite.Operator
+import io.appwrite.Condition
 import io.appwrite.enums.MockType
 import io.appwrite.extensions.fromJson
 import io.appwrite.extensions.toJson
@@ -203,6 +205,7 @@ class ServiceTest {
             writeToFile(Query.select(listOf("name", "age")))
             writeToFile(Query.orderAsc("title"))
             writeToFile(Query.orderDesc("title"))
+            writeToFile(Query.orderRandom())
             writeToFile(Query.cursorAfter("my_movie_id"))
             writeToFile(Query.cursorBefore("my_movie_id"))
             writeToFile(Query.limit(50))
@@ -218,8 +221,34 @@ class ServiceTest {
             writeToFile(Query.notEndsWith("name", "nne"))
             writeToFile(Query.createdBefore("2023-01-01"))
             writeToFile(Query.createdAfter("2023-01-01"))
+            writeToFile(Query.createdBetween("2023-01-01", "2023-12-31"))
             writeToFile(Query.updatedBefore("2023-01-01"))
             writeToFile(Query.updatedAfter("2023-01-01"))
+            writeToFile(Query.updatedBetween("2023-01-01", "2023-12-31"))
+
+            // Spatial Distance query tests
+            writeToFile(Query.distanceEqual("location", listOf(listOf(40.7128, -74), listOf(40.7128, -74)), 1000))
+            writeToFile(Query.distanceEqual("location", listOf(40.7128, -74), 1000, true))
+            writeToFile(Query.distanceNotEqual("location", listOf(40.7128, -74), 1000))
+            writeToFile(Query.distanceNotEqual("location", listOf(40.7128, -74), 1000, true))
+            writeToFile(Query.distanceGreaterThan("location", listOf(40.7128, -74), 1000))
+            writeToFile(Query.distanceGreaterThan("location", listOf(40.7128, -74), 1000, true))
+            writeToFile(Query.distanceLessThan("location", listOf(40.7128, -74), 1000))
+            writeToFile(Query.distanceLessThan("location", listOf(40.7128, -74), 1000, true))
+            
+            // Spatial query tests
+            writeToFile(Query.intersects("location", listOf(40.7128, -74)))
+            writeToFile(Query.notIntersects("location", listOf(40.7128, -74)))
+            writeToFile(Query.crosses("location", listOf(40.7128, -74)))
+            writeToFile(Query.notCrosses("location", listOf(40.7128, -74)))
+            writeToFile(Query.overlaps("location", listOf(40.7128, -74)))
+            writeToFile(Query.notOverlaps("location", listOf(40.7128, -74)))
+            writeToFile(Query.touches("location", listOf(40.7128, -74)))
+            writeToFile(Query.notTouches("location", listOf(40.7128, -74)))
+            writeToFile(Query.contains("location", listOf(listOf(40.7128, -74), listOf(40.7128, -74))))
+            writeToFile(Query.notContains("location", listOf(listOf(40.7128, -74), listOf(40.7128, -74))))
+            writeToFile(Query.equal("location", listOf(listOf(40.7128, -74), listOf(40.7128, -74))))
+            writeToFile(Query.notEqual("location", listOf(listOf(40.7128, -74), listOf(40.7128, -74))))
             
             writeToFile(Query.or(listOf(Query.equal("released", listOf(true)), Query.lessThan("releasedYear", 1990))))
             writeToFile(Query.and(listOf(Query.equal("released", listOf(false)), Query.greaterThan("releasedYear", 2015))))
@@ -239,6 +268,33 @@ class ServiceTest {
             // ID helper tests
             writeToFile(ID.unique())
             writeToFile(ID.custom("custom_id"))
+
+            // Operator helper tests
+            writeToFile(Operator.increment(1))
+            writeToFile(Operator.increment(5, 100))
+            writeToFile(Operator.decrement(1))
+            writeToFile(Operator.decrement(3, 0))
+            writeToFile(Operator.multiply(2))
+            writeToFile(Operator.multiply(3, 1000))
+            writeToFile(Operator.divide(2))
+            writeToFile(Operator.divide(4, 1))
+            writeToFile(Operator.modulo(5))
+            writeToFile(Operator.power(2))
+            writeToFile(Operator.power(3, 100))
+            writeToFile(Operator.arrayAppend(listOf("item1", "item2")))
+            writeToFile(Operator.arrayPrepend(listOf("first", "second")))
+            writeToFile(Operator.arrayInsert(0, "newItem"))
+            writeToFile(Operator.arrayRemove("oldItem"))
+            writeToFile(Operator.arrayUnique())
+            writeToFile(Operator.arrayIntersect(listOf("a", "b", "c")))
+            writeToFile(Operator.arrayDiff(listOf("x", "y")))
+            writeToFile(Operator.arrayFilter(Condition.EQUAL, "test"))
+            writeToFile(Operator.stringConcat("suffix"))
+            writeToFile(Operator.stringReplace("old", "new"))
+            writeToFile(Operator.toggle())
+            writeToFile(Operator.dateAddDays(7))
+            writeToFile(Operator.dateSubDays(3))
+            writeToFile(Operator.dateSetNow())
 
             mock = general.headers()
             writeToFile(mock.result)

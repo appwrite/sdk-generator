@@ -205,7 +205,8 @@ const commandDescriptions = {
     "account": `The account command allows you to authenticate and manage a user account.`,
     "graphql": `The graphql command allows you to query and mutate any resource type on your Appwrite server.`,
     "avatars": `The avatars command aims to help you complete everyday tasks related to your app image, icons, and avatars.`,
-    "databases": `The databases command allows you to create structured collections of documents and query and filter lists of documents.`,
+    "databases": `(Legacy) The databases command allows you to create structured collections of documents and query and filter lists of documents.`,
+    'tables-db': `The tables-db command allows you to create structured tables of columns and query and filter lists of rows.`,
     "init": `The init command provides a convenient wrapper for creating and initializing projects, functions, collections, buckets, teams, and messaging-topics in  {{ spec.title|caseUcfirst }}.`,
     "push": `The push command provides a convenient wrapper for pushing your functions, collections, buckets, teams, and messaging-topics.`,
     "run": `The run command allows you to run the project locally to allow easy development and quick debugging.`,
@@ -218,6 +219,8 @@ const commandDescriptions = {
     "teams": `The teams command allows you to group users of your project to enable them to share read and write access to your project resources.`,
     "update": `The update command allows you to update the {{ spec.title|caseUcfirst }} CLI to the latest version.`,
     "users": `The users command allows you to manage your project users.`,
+    "projects": `The projects command allows you to manage your projects, add platforms, manage API keys, Dev Keys etc.`,
+    "project": `The project command allows you to manage project related resources like usage, variables, etc.`,
     "client": `The client command allows you to configure your CLI`,
     "login": `The login command allows you to authenticate and manage a user account.`,
     "logout": `The logout command allows you to log out of your {{ spec.title|caseUcfirst }} account.`,
@@ -230,7 +233,7 @@ const commandDescriptions = {
     "main": chalk.redBright(`${logo}${description}`),
 {% if sdk.test == "true" %}
 {% for service in spec.services %}
-    "{{ service.name | caseLower }}": `The {{ service.name }} command allows you to manage your {{ service.name }} service.`,
+    "{{ service.name | caseKebab }}": `The {{ service.name | caseKebab }} command allows you to manage your {{ service.name }} service.`,
 {% endfor %}
 {% endif %}
 }

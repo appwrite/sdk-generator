@@ -1,5 +1,5 @@
 type QueryTypesSingle = string | number | boolean;
-export type QueryTypesList = string[] | number[] | boolean[] | Query[];
+export type QueryTypesList = string[] | number[] | boolean[] | Query[] | any[];
 export type QueryTypes = QueryTypesSingle | QueryTypesList;
 type AttributesTypes = string | string[];
 
@@ -78,6 +78,9 @@ export class Query {
   static orderAsc = (attribute: string): string =>
     new Query("orderAsc", attribute).toString();
 
+  static orderRandom = (): string =>
+    new Query("orderRandom").toString();
+
   static cursorAfter = (documentId: string): string =>
     new Query("cursorAfter", undefined, documentId).toString();
 
@@ -97,7 +100,7 @@ export class Query {
    * @param {string | string[]} value
    * @returns {string}
    */
-  static contains = (attribute: string, value: string | string[]): string =>
+  static contains = (attribute: string, value: string | any[]): string =>
     new Query("contains", attribute, value).toString();
 
   /**
@@ -107,7 +110,7 @@ export class Query {
    * @param {string | string[]} value
    * @returns {string}
    */
-  static notContains = (attribute: string, value: string | string[]): string =>
+  static notContains = (attribute: string, value: string | any[]): string =>
     new Query("notContains", attribute, value).toString();
 
   /**
@@ -159,7 +162,7 @@ export class Query {
    * @returns {string}
    */
   static createdBefore = (value: string): string =>
-    new Query("createdBefore", undefined, value).toString();
+    Query.lessThan("$createdAt", value);
 
   /**
    * Filter resources where document was created after date.
@@ -168,7 +171,17 @@ export class Query {
    * @returns {string}
    */
   static createdAfter = (value: string): string =>
-    new Query("createdAfter", undefined, value).toString();
+    Query.greaterThan("$createdAt", value);
+
+  /**
+   * Filter resources where document was created between dates.
+   *
+   * @param {string} start
+   * @param {string} end
+   * @returns {string}
+   */
+  static createdBetween = (start: string, end: string): string =>
+    Query.between("$createdAt", start, end);
 
   /**
    * Filter resources where document was updated before date.
@@ -177,7 +190,7 @@ export class Query {
    * @returns {string}
    */
   static updatedBefore = (value: string): string =>
-    new Query("updatedBefore", undefined, value).toString();
+    Query.lessThan("$updatedAt", value);
 
   /**
    * Filter resources where document was updated after date.
@@ -186,11 +199,149 @@ export class Query {
    * @returns {string}
    */
   static updatedAfter = (value: string): string =>
-    new Query("updatedAfter", undefined, value).toString();
+    Query.greaterThan("$updatedAt", value);
+
+  /**
+   * Filter resources where document was updated between dates.
+   *
+   * @param {string} start
+   * @param {string} end
+   * @returns {string}
+   */
+  static updatedBetween = (start: string, end: string): string =>
+    Query.between("$updatedAt", start, end);
 
   static or = (queries: string[]) =>
     new Query("or", undefined, queries.map((query) => JSON.parse(query))).toString();
 
   static and = (queries: string[]) =>
     new Query("and", undefined, queries.map((query) => JSON.parse(query))).toString();
+
+  /**
+   * Filter resources where attribute is at a specific distance from the given coordinates.
+   *
+   * @param {string} attribute
+   * @param {any[]} values
+   * @param {number} distance
+   * @param {boolean} meters
+   * @returns {string}
+   */
+  static distanceEqual = (attribute: string, values: any[], distance: number, meters: boolean = true): string =>
+    new Query("distanceEqual", attribute, [[values, distance, meters]] as QueryTypesList).toString();
+
+  /**
+   * Filter resources where attribute is not at a specific distance from the given coordinates.
+   *
+   * @param {string} attribute
+   * @param {any[]} values
+   * @param {number} distance
+   * @param {boolean} meters
+   * @returns {string}
+   */
+  static distanceNotEqual = (attribute: string, values: any[], distance: number, meters: boolean = true): string =>
+    new Query("distanceNotEqual", attribute, [[values, distance, meters]] as QueryTypesList).toString();
+
+  /**
+   * Filter resources where attribute is at a distance greater than the specified value from the given coordinates.
+   *
+   * @param {string} attribute
+   * @param {any[]} values
+   * @param {number} distance
+   * @param {boolean} meters
+   * @returns {string}
+   */
+  static distanceGreaterThan = (attribute: string, values: any[], distance: number, meters: boolean = true): string =>
+    new Query("distanceGreaterThan", attribute, [[values, distance, meters]] as QueryTypesList).toString();
+
+  /**
+   * Filter resources where attribute is at a distance less than the specified value from the given coordinates.
+   *
+   * @param {string} attribute
+   * @param {any[]} values
+   * @param {number} distance
+   * @param {boolean} meters
+   * @returns {string}
+   */
+  static distanceLessThan = (attribute: string, values: any[], distance: number, meters: boolean = true): string =>
+    new Query("distanceLessThan", attribute, [[values, distance, meters]] as QueryTypesList).toString();
+
+  /**
+   * Filter resources where attribute intersects with the given geometry.
+   *
+   * @param {string} attribute
+   * @param {any[]} values
+   * @returns {string}
+   */
+  static intersects = (attribute: string, values: any[]): string =>
+    new Query("intersects", attribute, [values]).toString();
+
+  /**
+   * Filter resources where attribute does not intersect with the given geometry.
+   *
+   * @param {string} attribute
+   * @param {any[]} values
+   * @returns {string}
+   */
+  static notIntersects = (attribute: string, values: any[]): string =>
+    new Query("notIntersects", attribute, [values]).toString();
+
+  /**
+   * Filter resources where attribute crosses the given geometry.
+   *
+   * @param {string} attribute
+   * @param {any[]} values
+   * @returns {string}
+   */
+  static crosses = (attribute: string, values: any[]): string =>
+    new Query("crosses", attribute, [values]).toString();
+
+  /**
+   * Filter resources where attribute does not cross the given geometry.
+   *
+   * @param {string} attribute
+   * @param {any[]} values
+   * @returns {string}
+   */
+  static notCrosses = (attribute: string, values: any[]): string =>
+    new Query("notCrosses", attribute, [values]).toString();
+
+  /**
+   * Filter resources where attribute overlaps with the given geometry.
+   *
+   * @param {string} attribute
+   * @param {any[]} values
+   * @returns {string}
+   */
+  static overlaps = (attribute: string, values: any[]): string =>
+    new Query("overlaps", attribute, [values]).toString();
+
+  /**
+   * Filter resources where attribute does not overlap with the given geometry.
+   *
+   * @param {string} attribute
+   * @param {any[]} values
+   * @returns {string}
+   */
+  static notOverlaps = (attribute: string, values: any[]): string =>
+    new Query("notOverlaps", attribute, [values]).toString();
+
+  /**
+   * Filter resources where attribute touches the given geometry.
+   *
+   * @param {string} attribute
+   * @param {any[]} values
+   * @returns {string}
+   */
+  static touches = (attribute: string, values: any[]): string =>
+    new Query("touches", attribute, [values]).toString();
+
+  /**
+   * Filter resources where attribute does not touch the given geometry.
+   *
+   * @param {string} attribute
+   * @param {any[]} values
+   * @returns {string}
+   */
+  static notTouches = (attribute: string, values: any[]): string =>
+    new Query("notTouches", attribute, [values]).toString();
 }

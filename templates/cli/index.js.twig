@@ -24,7 +24,7 @@ const { update } = require("./lib/commands/update");
 const { migrate } = require("./lib/commands/generic");
 {% endif %}
 {% for service in spec.services %}
-const { {{ service.name | caseLower }} } = require("./lib/commands/{{ service.name | caseLower }}");
+const { {{ service.name }} } = require("./lib/commands/{{ service.name | caseKebab }}");
 {% endfor %}
 
 inquirer.registerPrompt('search-list', require('inquirer-search-list'));
@@ -113,7 +113,7 @@ program
   .addCommand(logout)
 {% endif %}
 {% for service in spec.services %}
-  .addCommand({{ service.name | caseLower }})
+  .addCommand({{ service.name }})
 {% endfor %}
   .addCommand(client)
   .parse(process.argv);
