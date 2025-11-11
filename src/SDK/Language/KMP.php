@@ -604,14 +604,14 @@ class KMP extends Kotlin
                 'template'      => '/kmp/androidApp/src/main/res/values/colors.xml',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'androidApp/src/main/res/values/strings.xml',
-                'template'      => '/kmp/androidApp/src/main/res/values/strings.xml',
+                'template'      => '/kmp/androidApp/src/main/res/values/strings.xml.twig',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'androidApp/src/main/res/values/themes.xml',
-                'template'      => '/kmp/androidApp/src/main/res/values/themes.xml',
+                'template'      => '/kmp/androidApp/src/main/res/values/themes.xml.twig',
             ],
 
 

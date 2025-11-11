@@ -15,6 +15,8 @@ import platform.Foundation.NSHTTPCookieMaximumAge
 import platform.Foundation.NSHTTPCookieName
 import platform.Foundation.NSHTTPCookiePath
 import platform.Foundation.NSHTTPCookieSecure
+import platform.Foundation.NSHTTPCookieStorage
+import platform.Foundation.NSHTTPCookieValue
 import platform.Foundation.NSRecursiveLock
 import platform.Foundation.NSTimeZone
 import platform.Foundation.NSURL
@@ -34,8 +36,7 @@ private data class StoredCookie(
     val expires: Double?,
     val isSecure: Boolean,
     val isHttpOnly: Boolean,
-    val maxAge: Int? = null,
-    val maxAge: Int? = null,
+    val maxAge: Int? = null
 )
 
 class IosCookieStorage : CookiesStorage {
@@ -113,7 +114,7 @@ class IosCookieStorage : CookiesStorage {
         val cookieDomain = if (!domain.startsWith(".") && !domain.equals("localhost", true)) {
             ".$domain"
         } else domain
-        append("; Domain=${cookieDomain}")
+        append("; Domain=$cookieDomain")
         append("; Path=${cookie.path ?: "/"}")
         cookie.expires?.let { gmtDate ->
             append("; Expires=${formatDate(gmtDate.timestamp)}")
@@ -125,7 +126,6 @@ class IosCookieStorage : CookiesStorage {
         if (cookie.httpOnly) append("; HttpOnly")
     }
 
-
     private fun createStoredCookie(cookie: Cookie, domain: String) = StoredCookie(
         name = cookie.name,
         value = cookie.value,
@@ -134,7 +134,7 @@ class IosCookieStorage : CookiesStorage {
         expires = cookie.expires?.timestamp?.toDouble(),
         isSecure = cookie.secure,
         isHttpOnly = cookie.httpOnly,
-        maxAge = cookie.maxAge,
+        maxAge = cookie.maxAge
     )
 
     private fun persistCookie(storedCookie: StoredCookie) {
@@ -162,33 +162,37 @@ class IosCookieStorage : CookiesStorage {
                 } else {
                     userDefaults.removeObjectForKey(key)
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 userDefaults.removeObjectForKey(key)
             }
         }
     }
 
-
     private fun recreateCookie(storedCookie: StoredCookie) {
-        val properties = mutableMapOf<Any?, Any?>(
-            NSHTTPCookieName to storedCookie.name,
-            NSHTTPCookieValue to storedCookie.value,
-            NSHTTPCookiePath to storedCookie.path,
-            NSHTTPCookieDomain to storedCookie.domain,
-            NSHTTPCookieSecure to storedCookie.isSecure,
-            NSHTTPCookieMaximumAge to storedCookie.maxAge,
-            NSHTTPCookieExpires to storedCookie.expires,
-            "HttpOnly" to storedCookie.isHttpOnly
-        )
-
-        NSHTTPCookie.cookieWithProperties(properties)?.let {
-            cookieStorage.setCookie(it)
+        // Build a Map<Any?, Any> using Foundation keys directly (no explicit cast to Any needed)
+        val props = buildMap<Any?, Any> {
+            put(NSHTTPCookieName, storedCookie.name)
+            put(NSHTTPCookieValue, storedCookie.value)
+            put(NSHTTPCookiePath, storedCookie.path)
+            put(NSHTTPCookieDomain, storedCookie.domain)
+            if (storedCookie.isSecure) {
+                put(NSHTTPCookieSecure, true)
+            }
+            storedCookie.maxAge?.let { put(NSHTTPCookieMaximumAge, it) }
+            storedCookie.expires?.let { ms ->
+                val date = NSDate.dateWithTimeIntervalSince1970(ms / 1000.0)
+                put(NSHTTPCookieExpires, date)
+            }
+            // HttpOnly uses raw string key
+            put("HttpOnly", storedCookie.isHttpOnly)
         }
+
+        NSHTTPCookie.cookieWithProperties(props)?.let { cookieStorage.setCookie(it) }
     }
 
     private fun cleanupExpiredCookies() {
-        cookieStorage.cookies?.forEach { cookie ->
-            cookie as NSHTTPCookie
+        cookieStorage.cookies?.forEach { c ->
+            val cookie = c as NSHTTPCookie
             if (isExpired(cookie)) {
                 cookieStorage.deleteCookie(cookie)
                 removeFromUserDefaults(cookie)
@@ -220,22 +224,16 @@ class IosCookieStorage : CookiesStorage {
             }
     }
 
+    private fun getCookieKey(domain: String, name: String, path: String): String =
+        "cookie:$domain:$name:$path"
 
-    private fun getCookieKey(domain: String, name: String, path: String): String {
-        return "cookie:$domain:$name:$path"
-    }
-
-    private fun formatDate(timestamp: Long): String {
-        val date = NSDate.dateWithTimeIntervalSince1970(timestamp.toDouble() / 1000)
+    private fun formatDate(timestampMs: Long): String {
+        val date = NSDate.dateWithTimeIntervalSince1970(timestampMs.toDouble() / 1000.0)
         val formatter = NSDateFormatter().apply {
             dateFormat = "EEE, dd MMM yyyy HH:mm:ss 'GMT'"
             timeZone = NSTimeZone.timeZoneWithAbbreviation("GMT")!!
         }
         return formatter.stringFromDate(date)
-    }
-
-    private fun NSDate.toGMTDate(): GMTDate {
-        return GMTDate((this.timeIntervalSince1970 * 1000).toLong())
     }
 
     private fun NSHTTPCookie.toKtorCookie(): Cookie = Cookie(
@@ -246,8 +244,8 @@ class IosCookieStorage : CookiesStorage {
         secure = isSecure(),
         httpOnly = isHTTPOnly(),
         maxAge = expiresDate?.let {
-            (it.timeIntervalSince1970 - NSDate().timeIntervalSince1970).toInt()
-        },
-        expires = expiresDate()?.toGMTDate(),
+            val seconds = (it.timeIntervalSince1970 - NSDate().timeIntervalSince1970).toInt()
+            if (seconds > 0) seconds else null
+        }
     )
 }

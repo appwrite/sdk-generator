@@ -77,8 +77,6 @@ suspend fun {{ sdk.namespace | caseDot }}.services.{{ service.className | caseUc
                 )
             }
         }
-    }.onFailure {
-        throw {{ spec.title | caseUcfirst }}Exception("it.message")
     }
 }
 
