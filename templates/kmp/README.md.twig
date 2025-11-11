@@ -45,7 +45,7 @@ kotlin {
    sourceSets {
       commonMain {
          dependencies {
-            implementation("io.github.camka14.appwrite:sdk-for-kmp:0.1.0")
+            implementation("{{ sdk.namespace | caseDot }}:{{ sdk.gitRepoName | caseDash }}")
          }
       }
    }

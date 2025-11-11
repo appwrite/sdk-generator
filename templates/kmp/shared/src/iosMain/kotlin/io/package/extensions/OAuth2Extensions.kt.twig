@@ -5,7 +5,8 @@ import {{ sdk.namespace | caseDot }}.exceptions.AppwriteException
 import {{ sdk.namespace | caseDot }}.webInterface.UrlParser
 import io.ktor.http.Cookie
 import io.ktor.http.Url
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 
 {% for service in spec | webAuthServices %}
 {% for method in service.methods %}
@@ -45,6 +46,7 @@ suspend fun {{ sdk.namespace | caseDot }}.services.{{ service.className | caseUc
     val fullUrl = "${client.endpoint}${apiPath}?${apiQuery.joinToString("&")}"
     val apiUrl = urlParser.parse(fullUrl)
     val callbackUrlScheme = "{{ spec.title | caseLower }}-callback-${client.config["project"]}"
+    val webAuthScope = CoroutineScope(client.coroutineContext)
 
     WebAuthComponent.setCookieStorage(client.iosCookieStorage)
     WebAuthComponent.authenticate(apiUrl.toString(), callbackUrlScheme) { result ->
@@ -53,7 +55,7 @@ suspend fun {{ sdk.namespace | caseDot }}.services.{{ service.className | caseUc
         }
 
         result.getOrNull()?.let { callbackUrl ->
-            runBlocking {
+            webAuthScope.launch {
                 val key = urlParser.getQueryParameter(callbackUrl, "key")
                 val secret = urlParser.getQueryParameter(callbackUrl, "secret")
 
@@ -76,7 +78,7 @@ suspend fun {{ sdk.namespace | caseDot }}.services.{{ service.className | caseUc
             }
         }
     }.onFailure {
-        throw {{ spec.title | caseUpper }}Exception("it.message")
+        throw {{ spec.title | caseUcfirst }}Exception("it.message")
     }
 }
 

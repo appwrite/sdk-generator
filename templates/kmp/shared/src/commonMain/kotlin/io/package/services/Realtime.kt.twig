@@ -127,7 +127,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         heartbeatJob = launch {
             while (isActive) {
                 delay(HEARTBEAT_INTERVAL)
-                webSocketSession?.send("""{"type":"ping"}""")
+                webSocketSession?.send(Frame.Text("""{"type":"ping"}"""))
             }
         }
     }
@@ -192,6 +192,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         when (message.type) {
             TYPE_ERROR -> handleResponseError(message)
             TYPE_EVENT -> handleResponseEvent(message)
+            TYPE_PONG -> {}
         }
     }
 

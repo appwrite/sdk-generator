@@ -2,6 +2,11 @@ package {{ sdk.namespace | caseDot }}.models
 
 import {{ sdk.namespace | caseDot }}.extensions.jsonCast
 import {{ sdk.namespace | caseDot }}.extensions.json
+{%~ for property in definition.properties %}
+{%~ if property.enum %}
+import {{ sdk.namespace | caseDot }}.enums.{{ property.enumName | caseUcfirst }}
+{%~ endif %}
+{%~ endfor %}
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Contextual
@@ -18,6 +23,7 @@ import kotlinx.serialization.json.encodeToJsonElement
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.long
 import kotlinx.serialization.json.put
 
 /**
@@ -64,8 +70,7 @@ class {{ definition.name | caseUcfirst }}Serializer<T>(private val dataSerialize
 
         // Extract system fields ($ prefixed)
         {%~ for property in definition.properties %}
-        val {{ property.name | escapeKeyword | removeDollarSign }} = jsonObject["{{ property.name | escapeKeyword | escapeDollarSign }}"]{% if property.type == 'array' %}?.jsonArray?.map { it.jsonPrimitive.content } ?: listOf(){% else %}?.jsonPrimitive?.content ?: ""{% endif %}
-
+        val {{ property.name | escapeKeyword | removeDollarSign }} = {{ property | propertyAssignmentKmp(spec) | raw }}
         {%~ endfor %}
 
         // Create data object from remaining fields

@@ -6,7 +6,7 @@ plugins {
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.kotlinx.serialization)
     id("org.jetbrains.kotlinx.atomicfu") version "0.29.0"
-    id("maven-publish") version "0.34.0"
+    id("maven-publish")
     id("signing")
 }
 
@@ -31,25 +31,12 @@ group = project.ext["PUBLISH_GROUP_ID"].toString()
 
 
 kotlin {
-    jvm()
-
     androidTarget {
         publishLibraryVariants("release", "debug")
         compilations.all {
             compileTaskProvider.configure {
                 compilerOptions {
                     jvmTarget.set(JvmTarget.JVM_17)
-                }
-            }
-        }
-    }
-
-    metadata {
-        compilations.all {
-            val compilationName = name
-            compileTaskProvider.configure {
-                if (this is KotlinCompileCommon) {
-                    moduleName = "${project.group}:${project.name}_$compilationName"
                 }
             }
         }
@@ -91,9 +78,6 @@ kotlin {
     }
 
     sourceSets {
-        jvmMain.dependencies {
-            implementation(libs.ktor.client.java)
-        }
         commonMain.dependencies {
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.datetime)
@@ -102,7 +86,6 @@ kotlin {
             implementation(libs.ktor.client.content.negotiation)
             implementation(libs.ktor.client.websockets)
             implementation(libs.okio)
-            implementation(libs.kotlin.metadata.jvm)
             api(libs.kotlinx.serialization.json)
             api(libs.ktor.serialization.kotlinx.json)
             api(libs.napier)

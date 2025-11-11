@@ -252,29 +252,13 @@ try {
     }
 
     // KMP
-
-    $sdk = new SDK(new KMP(), new Swagger2($spec));
-
-    $sdk
-        ->setName('KMP')
-        ->setNamespace('io appwrite')
-        ->setDescription('Appwrite is an open-source backend as a service server that abstract and simplify complex and repetitive development tasks behind a very simple to use REST API. Appwrite aims to help you develop your apps faster and in a more secure way. Use the Flutter SDK to integrate your app with the Appwrite server to easily start interacting with all of Appwrite backend APIs and tools. For full API documentation and tutorials go to https://appwrite.io/docs')
-        ->setShortDescription('Appwrite KMP SDK')
-        ->setURL('https://example.com')
-        ->setGitUserName('appwrite')
-        ->setGitRepoName('sdk-for-kmp')
-        ->setLogo('https://appwrite.io/v1/images/console.png')
-        ->setLicenseContent('test test test')
-        ->setWarning('**This SDK is compatible with Appwrite server version 0.7.x. For older versions, please check previous releases.**')
-        ->setChangelog('**CHANGELOG**')
-        ->setVersion('0.0.0-SNAPSHOT')
-        ->setTwitter('appwrite_io')
-        ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
-        ->setDefaultHeaders([
-            'x-appwrite-response-format' => '1.6.0',
-        ])
-    ;
-    $sdk->generate(__DIR__ . '/examples/kmp');
+    if (!$requestedSdk || $requestedSdk === 'kmp') {
+        $sdk = new SDK(new KMP(), new Swagger2($spec));
+        configureSDK($sdk, [
+            'namespace' => 'io.appwrite',
+        ]);
+        $sdk->generate(__DIR__ . '/examples/kmp');
+    }
 
     // Kotlin
     if (!$requestedSdk || $requestedSdk === 'kotlin') {

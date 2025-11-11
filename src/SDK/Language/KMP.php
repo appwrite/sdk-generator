@@ -31,10 +31,73 @@ class KMP extends Kotlin
         $filters[] = new TwigFilter('propertySerializerName', function (array $property) {
             return $this->getPropertySerializerName($property);
         });
+        $filters[] = new TwigFilter('propertyAssignmentKmp', function (array $property, array $spec) {
+            return $this->getJsonPropertyAssignment($property, $spec);
+        });
 
         return $filters;
     }
 
+    /**
+     * Generate property extraction expression for JsonObject-based deserialization (KMP models)
+     */
+    protected function getJsonPropertyAssignment(array $property, array $spec): string
+    {
+        $name = $property['name'];
+        $escaped = str_replace('$', '\\$', $name);
+        $key = "jsonObject[\"$escaped\"]";
+
+        // Enums
+        if (isset($property['enum']) && !empty($property['enum'])) {
+            $enumName = $property['enumName'] ?? $property['name'];
+            $enumClass = $this->toPascalCase($enumName);
+            if ($property['required']) {
+                return "$enumClass.values().find { it.value == $key!!.jsonPrimitive.content }!!";
+            }
+            return "$key?.jsonPrimitive?.content?.let { v -> $enumClass.values().find { it.value == v } }";
+        }
+
+        // Arrays of primitives
+        if (($property['type'] ?? '') === 'array') {
+            $itemType = $property['array']['type'] ?? 'string';
+            $mapper = match ($itemType) {
+                'integer' => 'it.jsonPrimitive.long',
+                'number'  => 'it.jsonPrimitive.double',
+                'boolean' => 'it.jsonPrimitive.boolean',
+                default   => 'it.jsonPrimitive.content',
+            };
+            if ($property['required']) {
+                return "$key!!.jsonArray.map { $mapper }";
+            }
+            return "$key?.jsonArray?.map { $mapper }";
+        }
+
+        // Objects (kept as JsonElement/Any via @Contextual)
+        if (($property['type'] ?? '') === 'object') {
+            return $key;
+        }
+
+        // Scalars
+        switch ($property['type'] ?? 'string') {
+            case 'integer':
+                return $property['required']
+                    ? "$key!!.jsonPrimitive.long"
+                    : "$key?.jsonPrimitive?.content?.toLongOrNull()";
+            case 'number':
+                return $property['required']
+                    ? "$key!!.jsonPrimitive.double"
+                    : "$key?.jsonPrimitive?.content?.toDoubleOrNull()";
+            case 'boolean':
+                return $property['required']
+                    ? "$key!!.jsonPrimitive.boolean"
+                    : "$key?.jsonPrimitive?.content?.toBooleanStrictOrNull()";
+            case 'string':
+            default:
+                return $property['required']
+                    ? "$key!!.jsonPrimitive.content"
+                    : "$key?.jsonPrimitive?.content";
+        }
+    }
     protected function getReturnType(array $method, array $spec, string $namespace, string $generic = 'T', bool $withGeneric = true): string
     {
         if ($method['type'] === 'webAuth') {
@@ -463,57 +526,6 @@ class KMP extends Kotlin
                 'destination'   => 'shared/src/iosMain/kotlin/{{ sdk.namespace | caseSlash }}/webInterface/UrlParser.ios.kt',
                 'template'      => '/kmp/shared/src/iosMain/kotlin/io/package/webInterface/UrlParser.ios.kt.twig',
             ],
-
-
-            // JVM Main
-            // JVM Main root files
-            [
-                'scope'         => 'default',
-                'destination'   => 'shared/src/jvmMain/kotlin/{{ sdk.namespace | caseSlash }}/AllCertsTrustManager.kt',
-                'template'      => '/kmp/shared/src/jvmMain/kotlin/io/package/AllCertsTrustManager.kt.twig',
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => 'shared/src/jvmMain/kotlin/{{ sdk.namespace | caseSlash }}/Client.jvm.kt',
-                'template'      => '/kmp/shared/src/jvmMain/kotlin/io/package/Client.jvm.kt.twig',
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => 'shared/src/jvmMain/kotlin/{{ sdk.namespace | caseSlash }}/HttpClient.kt',
-                'template'      => '/kmp/shared/src/jvmMain/kotlin/io/package/HttpClient.kt.twig',
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => 'shared/src/jvmMain/kotlin/{{ sdk.namespace | caseSlash }}/WebAuthComponent.jvm.kt',
-                'template'      => '/kmp/shared/src/jvmMain/kotlin/io/package/WebAuthComponent.jvm.kt.twig',
-            ],
-
-            // Extensions
-            [
-                'scope'         => 'default',
-                'destination'   => 'shared/src/jvmMain/kotlin/{{ sdk.namespace | caseSlash }}/extensions/OAuth2Extensions.kt',
-                'template'      => '/kmp/shared/src/jvmMain/kotlin/io/package/extensions/OAuth2Extensions.kt.twig',
-            ],
-
-            // Models
-            [
-                'scope'         => 'default',
-                'destination'   => 'shared/src/jvmMain/kotlin/{{ sdk.namespace | caseSlash }}/models/InputFile.jvm.kt',
-                'template'      => '/kmp/shared/src/jvmMain/kotlin/io/package/models/InputFile.jvm.kt.twig',
-            ],
-
-            // Web Interface
-            [
-                'scope'         => 'default',
-                'destination'   => 'shared/src/jvmMain/kotlin/{{ sdk.namespace | caseSlash }}/webInterface/JvmParsedUrl.kt',
-                'template'      => '/kmp/shared/src/jvmMain/kotlin/io/package/webInterface/JvmParsedUrl.kt.twig',
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => 'shared/src/jvmMain/kotlin/{{ sdk.namespace | caseSlash }}/webInterface/UrlParser.jvm.kt',
-                'template'      => '/kmp/shared/src/jvmMain/kotlin/io/package/webInterface/UrlParser.jvm.kt.twig',
-            ],
-
 
             // Android App
             // Android App root files
