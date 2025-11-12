@@ -13,7 +13,7 @@ data class SerializableCookie(
     val maxAge: Int? = null,
     val secure: Boolean = false,
     val httpOnly: Boolean = false,
-    val expiration: Long = System.currentTimeMillis() + (maxAge?.times(1000L) ?: 2592000000L)
+    val expiration: Long = maxAge?.let { System.currentTimeMillis() + it * 1000L } ?: (System.currentTimeMillis() + 2592000000L)
 ) {
     fun toCookie(): Cookie = Cookie(
         name = name,
@@ -47,8 +47,8 @@ data class SerializableCookie(
         return if (cd != null && host != null) {
             if (cd.startsWith(".")) {
                 host == cd.substring(1) || host.endsWith(cd)
-            } else if (requestHost.startsWith(".")) {
-                host == host.substring(1) || cd.endsWith(cd)
+            } else if (host.startsWith(".")) {
+                cd == host.substring(1) || cd.endsWith(host)
             } else {
                 host == cd
             }

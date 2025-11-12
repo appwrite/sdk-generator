@@ -8,6 +8,7 @@ import {{ sdk.namespace | caseDot }}.webInterface.UrlParser
 import io.ktor.http.Url
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import io.ktor.http.encodeURLParameter
 
 {% for service in spec | webAuthServices %}
 {% for method in service.methods %}
@@ -35,17 +36,30 @@ suspend fun {{ sdk.namespace | caseDot }}.services.{{ service.className | caseUc
         {%~ endif %}
         )
 
-        val apiQuery = mutableListOf<String>()
-        apiParams.forEach {
-            when (it.value) {
-                null -> return@forEach
-                is List<*> -> apiQuery.add("${it.key}[]=${it.value.toString()}")
-                else -> apiQuery.add("${it.key}=${it.value.toString()}")
+        val apiQuery = buildList {
+            apiParams.forEach { (key, value) ->
+                when (value) {
+                    null -> Unit
+                    is Iterable<*> -> value.forEach { item ->
+                        if (item != null) {
+                            add("${key}[]=${item.toString().encodeURLParameter()}")
+                        }
+                    }
+
+                    else -> add("$key=${value.toString().encodeURLParameter()}")
+                }
             }
         }
-
         val urlParser = UrlParser()
-        val fullUrl = "${client.endpoint}${apiPath}?${apiQuery.joinToString("&")}"
+        val queryString = apiQuery.joinToString("&")
+        val fullUrl = buildString {
+            append(client.endpoint)
+            append(apiPath)
+            if (queryString.isNotEmpty()) {
+                append('?')
+                append(queryString)
+            }
+        }
         val apiUrl = urlParser.parse(fullUrl)
         val callbackUrlScheme = "{{ spec.title | caseLower }}-callback-${client.config["project"]}"
         val webAuthScope = CoroutineScope(client.coroutineContext)

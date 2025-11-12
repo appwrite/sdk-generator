@@ -138,7 +138,8 @@ class KMP extends Kotlin
     {
         $type = parent::getPropertyType($property, $spec, $generic);
         if ($contextual && ($type === 'List<Any>' || $type === 'List<Any>?')) {
-            $type = 'List<@Contextual Any>';
+            $nullable = str_ends_with($type, '?');
+            $type = 'List<@Contextual Any>' . ($nullable ? '?' : '');
         }
         return $type;
     }
@@ -369,8 +370,8 @@ class KMP extends Kotlin
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'shared/src/commonMain/kotlin/{{ sdk.namespace | caseSlash }}/serializers/StringCollectionSeriailizer.kt',
-                'template'      => '/kmp/shared/src/commonMain/kotlin/io/package/serializers/StringCollectionSeriailizer.kt.twig',
+                'destination'   => 'shared/src/commonMain/kotlin/{{ sdk.namespace | caseSlash }}/serializers/StringCollectionSerializer.kt',
+                'template'      => '/kmp/shared/src/commonMain/kotlin/io/package/serializers/StringCollectionSerializer.kt.twig',
             ],
             
             // Services

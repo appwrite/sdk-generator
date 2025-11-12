@@ -280,7 +280,7 @@ abstract class BaseClient<This : BaseClient<This>>(
                     params = emptyMap(),
                     responseType = Map::class,
                 )
-                chunksUploaded = current["chunksUploaded"] as Long
+                chunksUploaded = (current["chunksUploaded"] as? Number)?.toLong() ?: 0L
                 offset = chunksUploaded * CHUNK_SIZE
             } catch (e: Exception) {
                 // Swallow exception

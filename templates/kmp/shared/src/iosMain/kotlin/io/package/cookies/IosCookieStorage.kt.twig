@@ -169,7 +169,6 @@ class IosCookieStorage : CookiesStorage {
     }
 
     private fun recreateCookie(storedCookie: StoredCookie) {
-        // Build a Map<Any?, Any> using Foundation keys directly (no explicit cast to Any needed)
         val props = buildMap<Any?, Any> {
             put(NSHTTPCookieName, storedCookie.name)
             put(NSHTTPCookieValue, storedCookie.value)
@@ -183,7 +182,6 @@ class IosCookieStorage : CookiesStorage {
                 val date = NSDate.dateWithTimeIntervalSince1970(ms / 1000.0)
                 put(NSHTTPCookieExpires, date)
             }
-            // HttpOnly uses raw string key
             put("HttpOnly", storedCookie.isHttpOnly)
         }
 

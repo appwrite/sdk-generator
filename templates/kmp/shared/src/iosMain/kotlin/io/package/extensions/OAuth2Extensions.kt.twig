@@ -48,7 +48,7 @@ suspend fun {{ sdk.namespace | caseDot }}.services.{{ service.className | caseUc
     val callbackUrlScheme = "{{ spec.title | caseLower }}-callback-${client.config["project"]}"
     val webAuthScope = CoroutineScope(client.coroutineContext)
 
-    WebAuthComponent.setCookieStorage(client.iosCookieStorage)
+    WebAuthComponent.setCookieStorage(client.iosCookieStorage, webAuthScope)
     WebAuthComponent.authenticate(apiUrl.toString(), callbackUrlScheme) { result ->
         if (result.isFailure) {
             throw {{ spec.title | caseUcfirst }}Exception("OAuth authentication failed: ${result.exceptionOrNull()?.message}")
@@ -59,12 +59,12 @@ suspend fun {{ sdk.namespace | caseDot }}.services.{{ service.className | caseUc
                 val key = urlParser.getQueryParameter(callbackUrl, "key")
                 val secret = urlParser.getQueryParameter(callbackUrl, "secret")
 
-                if (key == null && secret == null) {
+                if (key == null || secret == null) {
                     throw {{ spec.title | caseUcfirst }}Exception("Authentication cookie missing!")
                 }
                 val cookie = Cookie(
-                    name = key!!,
-                    value = secret!!,
+                    name = key,
+                    value = secret,
                     domain = urlParser.getHost(client.endpoint),
                     path = "/",
                     httpOnly = true,

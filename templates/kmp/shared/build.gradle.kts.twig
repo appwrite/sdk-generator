@@ -181,7 +181,7 @@ publishing {
 
 android {
     namespace = "{{ sdk.namespace | caseDot }}.kmp"
-    compileSdk = 36
+    compileSdk = 35
     defaultConfig {
         minSdk = 21
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -196,11 +196,4 @@ android {
             all { it.useJUnit() }
         }
     }
-}
-
-dependencies {
-    implementation(libs.androidx.activity.ktx)
-    implementation(libs.androidx.browser)
-    implementation(libs.androidx.espresso.core)
-    implementation(libs.firebase.crashlytics.buildtools)
 }
