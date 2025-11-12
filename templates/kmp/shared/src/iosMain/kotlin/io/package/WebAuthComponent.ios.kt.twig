@@ -34,9 +34,7 @@ actual class WebAuthComponent {
         private var cookieStorage: IosCookieStorage? = null
 
         fun setCookieStorage(storage: IosCookieStorage) {
-            if (cookieStorage != null) {
-                cookieStorage = storage
-            }
+            cookieStorage = storage
         }
 
         internal suspend fun authenticate(

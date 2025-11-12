@@ -10,22 +10,23 @@ import kotlinx.coroutines.Job
 import okio.Path.Companion.toPath
 
 actual class Client constructor(
-    private val context: Context,
+    context: Context,
     endpoint: String = "{{spec.endpoint}}",
     endpointRealtime: String? = null,
     selfSigned: Boolean = false,
 ) : BaseClient<Client>(endpoint, endpointRealtime) {
     actual override val coroutineContext = Job() + Dispatchers.Default
+    private val appContext = context.applicationContext
 
     private val dataStoreManager = DataStoreManager(
         PreferenceDataStoreFactory.createWithPath (
-            produceFile = { context.filesDir.resolve("appwriteCookies.preferences_pb").absolutePath.toPath() }
+            produceFile = { appContext.filesDir.resolve("appwriteCookies.preferences_pb").absolutePath.toPath() }
         ))
     val dataStoreCookieStorage = DataStoreCookieStorage(dataStoreManager)
 
     private val appVersion by lazy {
         try {
-            val pInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+            val pInfo = appContext.packageManager.getPackageInfo(appContext.packageName, 0)
             return@lazy pInfo.versionName
         } catch (e: PackageManager.NameNotFoundException) {
             e.printStackTrace()
@@ -37,8 +38,8 @@ actual class Client constructor(
         httpClient = createHttpClient(selfSigned, dataStoreCookieStorage)
         headers = mutableMapOf(
               "content-type" to "application/json",
-              "origin" to "{{ spec.title | caseLower }}-android://${context.packageName}",
-              "user-agent" to "${context.packageName}/${appVersion}, ${System.getProperty("http.agent")}",
+              "origin" to "{{ spec.title | caseLower }}-android://${appContext.packageName}",
+              "user-agent" to "${appContext.packageName}/${appVersion}, ${System.getProperty("http.agent")}",
               "x-sdk-name" to "{{ sdk.name }}",
               "x-sdk-platform" to "{{ sdk.platform }}",
               "x-sdk-language" to "{{ language.name | caseLower }}",
