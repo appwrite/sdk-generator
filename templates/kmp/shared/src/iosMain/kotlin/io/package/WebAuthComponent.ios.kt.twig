@@ -44,6 +44,9 @@ actual class WebAuthComponent {
             cookieStorage = storage
             scope?.let { setCookieScope(it) }
         }
+        
+        private fun createDefaultCookieScope(): CoroutineScope =
+            CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
         internal suspend fun authenticate(
             url: String,
