@@ -1,0 +1,108 @@
+using Xunit;
+using {{ spec.title | caseUcfirst }};
+
+namespace {{ spec.title | caseUcfirst }}.Tests
+{
+    public class RoleTests
+    {
+        [Fact]
+        public void Any_ReturnsCorrectRole()
+        {
+            var result = Role.Any();
+            Assert.Equal("any", result);
+        }
+
+        [Fact]
+        public void User_WithoutStatus_ReturnsCorrectRole()
+        {
+            var result = Role.User("custom");
+            Assert.Equal("user:custom", result);
+        }
+
+        [Fact]
+        public void User_WithStatus_ReturnsCorrectRole()
+        {
+            var result = Role.User("custom", "verified");
+            Assert.Equal("user:custom/verified", result);
+        }
+
+        [Fact]
+        public void User_WithUnverifiedStatus_ReturnsCorrectRole()
+        {
+            var result = Role.User("user123", "unverified");
+            Assert.Equal("user:user123/unverified", result);
+        }
+
+        [Fact]
+        public void Users_WithoutStatus_ReturnsCorrectRole()
+        {
+            var result = Role.Users();
+            Assert.Equal("users", result);
+        }
+
+        [Fact]
+        public void Users_WithStatus_ReturnsCorrectRole()
+        {
+            var result = Role.Users("verified");
+            Assert.Equal("users/verified", result);
+        }
+
+        [Fact]
+        public void Users_WithUnverifiedStatus_ReturnsCorrectRole()
+        {
+            var result = Role.Users("unverified");
+            Assert.Equal("users/unverified", result);
+        }
+
+        [Fact]
+        public void Guests_ReturnsCorrectRole()
+        {
+            var result = Role.Guests();
+            Assert.Equal("guests", result);
+        }
+
+        [Fact]
+        public void Team_WithoutRole_ReturnsCorrectRole()
+        {
+            var result = Role.Team("custom");
+            Assert.Equal("team:custom", result);
+        }
+
+        [Fact]
+        public void Team_WithRole_ReturnsCorrectRole()
+        {
+            var result = Role.Team("custom", "owner");
+            Assert.Equal("team:custom/owner", result);
+        }
+
+        [Fact]
+        public void Team_WithMemberRole_ReturnsCorrectRole()
+        {
+            var result = Role.Team("team123", "member");
+            Assert.Equal("team:team123/member", result);
+        }
+
+        [Fact]
+        public void Member_ReturnsCorrectRole()
+        {
+            var result = Role.Member("custom");
+            Assert.Equal("member:custom", result);
+        }
+
+        [Fact]
+        public void Label_ReturnsCorrectRole()
+        {
+            var result = Role.Label("admin");
+            Assert.Equal("label:admin", result);
+        }
+
+        [Fact]
+        public void Label_WithMultipleLabels_ReturnsCorrectRole()
+        {
+            var result1 = Role.Label("moderator");
+            var result2 = Role.Label("vip");
+            Assert.Equal("label:moderator", result1);
+            Assert.Equal("label:vip", result2);
+        }
+    }
+}
