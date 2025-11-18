@@ -6,17 +6,10 @@ import {{ sdk.namespace | caseDot }}.models.InputFile;
 import {{ sdk.namespace | caseDot }}.services.{{ service.name | caseUcfirst }};
 {% set added = [] %}
 {% for parameter in method.parameters.all %}
-{% if method == parameter.required %}
 {% if parameter.enumValues is not empty %}
-{% if parameter.enumName is not empty %}
-{% set name = parameter.enumName %}
-{% else %}
-{% set name = parameter.name %}
-{% endif %}
-{% if name not in added %}
-import {{ sdk.namespace | caseDot }}.enums.{{ name | caseUcfirst }};
-{% set added = added|merge([name]) %}
-{% endif %}
+{% if parameter.enumName not in added %}
+import {{ sdk.namespace | caseDot }}.enums.{{ parameter.enumName | caseUcfirst }};
+{% set added = added|merge([parameter.enumName]) %}
 {% endif %}
 {% endif %}
 {% endfor %}
@@ -47,17 +40,10 @@ Client client = new Client(context)
 }));{% endif %}
 
 {% for parameter in method.parameters.all %}
-    {%~ if parameter.enumValues is not empty -%}
-    {%~ if parameter.enumName is not empty -%}
-    {%~ set name = parameter.enumName -%}
-    {%~ else -%}
-    {%~ set name = parameter.name -%}
-    {%~ endif %}
-    {{ name }}.{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}, // {{ parameter.name }} {% if not parameter.required %}(optional){% endif %}
-    {%~ else %}
-    {{ parameter | paramExample }}, // {{ parameter.name }} {% if not parameter.required %}(optional){% endif %}
-    {%~ endif %}
-    {%~ if loop.last %}
+    {% if parameter.enumValues is not empty %}{{ parameter.enumName | caseUcfirst }}.{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}, // {{ parameter.name }} {% if not parameter.required %}(optional){% endif %}
+{% else %}{{ parameter | paramExample }}, // {{ parameter.name }} {% if not parameter.required %}(optional){% endif %}
+{% endif %}
+{%~ if loop.last %}
 
     new CoroutineCallback<>((result, error) -> {
         if (error != null) {
