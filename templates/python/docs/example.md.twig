@@ -7,14 +7,9 @@ from {{ spec.title | caseSnake }}.input_file import InputFile
 {% for parameter in method.parameters.all %}
 {% if method == parameter.required %}
 {% if parameter.enumValues is not empty %}
-{% if parameter.enumName is not empty %}
-{% set name = parameter.enumName %}
-{% else %}
-{% set name = parameter.name %}
-{% endif %}
-{% if name not in added %}
+{% if parameter.enumName not in added %}
 from {{ spec.title | caseSnake }}.enums import {{parameter.enumName | caseUcfirst}}
-{% set added = added|merge([name]) %}
+{% set added = added|merge([parameter.enumName]) %}
 {% endif %}
 {% endif %}
 {% endif %}

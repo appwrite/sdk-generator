@@ -36,14 +36,9 @@ import { Query } from '../query.ts';
 {% for method in service.methods %}
 {% for parameter in method.parameters.all %}
 {% if parameter.enumValues is not empty %}
-{% if parameter.enumName is not empty %}
-{% set name = parameter.enumName %}
-{% else %}
-{% set name = parameter.name %}
-{% endif %}
-{% if name not in added %}
-import { {{ name | caseUcfirst }} } from '../enums/{{ name | caseKebab }}.ts';
-{% set added = added|merge([name]) %}
+{% if parameter.enumName not in added %}
+import { {{ parameter.enumName | caseUcfirst }} } from '../enums/{{ parameter.enumName | caseKebab }}.ts';
+{% set added = added|merge([parameter.enumName]) %}
 {% endif %}
 {% endif %}
 {% endfor %}

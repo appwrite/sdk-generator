@@ -10,14 +10,9 @@ use {{ spec.title | caseUcfirst }}\InputFile;
 {% for method in service.methods %}
 {% for parameter in method.parameters.all %}
 {% if parameter.enumValues is not empty %}
-{% if parameter.enumName is not empty %}
-{% set name = parameter.enumName %}
-{% else %}
-{% set name = parameter.name %}
-{% endif %}
-{% if name not in added %}
-use {{ spec.title | caseUcfirst }}\Enums\{{ name | caseUcfirst }};
-{% set added = added|merge([name]) %}
+{% if parameter.enumName not in added %}
+use {{ spec.title | caseUcfirst }}\Enums\{{ parameter.enumName | caseUcfirst }};
+{% set added = added|merge([parameter.enumName]) %}
 {% endif %}
 {% endif %}
 {% endfor %}
