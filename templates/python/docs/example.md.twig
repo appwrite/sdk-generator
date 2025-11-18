@@ -5,12 +5,10 @@ from {{ spec.title | caseSnake }}.input_file import InputFile
 {% endif %}
 {% set added = [] %}
 {% for parameter in method.parameters.all %}
-{% if method == parameter.required %}
 {% if parameter.enumValues is not empty %}
 {% if parameter.enumName not in added %}
 from {{ spec.title | caseSnake }}.enums import {{parameter.enumName | caseUcfirst}}
 {% set added = added|merge([parameter.enumName]) %}
-{% endif %}
 {% endif %}
 {% endif %}
 {% endfor %}

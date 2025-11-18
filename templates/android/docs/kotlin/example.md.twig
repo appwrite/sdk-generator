@@ -6,12 +6,10 @@ import {{ sdk.namespace | caseDot }}.models.InputFile
 import {{ sdk.namespace | caseDot }}.services.{{ service.name | caseUcfirst }}
 {% set added = [] %}
 {% for parameter in method.parameters.all %}
-{% if method == parameter.required %}
 {% if parameter.enumValues is not empty %}
 {% if parameter.enumName not in added %}
 import {{ sdk.namespace | caseDot }}.enums.{{ parameter.enumName | caseUcfirst }}
 {% set added = added|merge([parameter.enumName]) %}
-{% endif %}
 {% endif %}
 {% endif %}
 {% endfor %}

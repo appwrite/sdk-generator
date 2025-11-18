@@ -4,11 +4,9 @@ include {{ spec.title | caseUcfirst }}
 {% set break = false %}
 {% for parameter in method.parameters.all %}
 {% if not break %}
-{% if method == parameter.required %}
 {% if parameter.enumValues is not empty %}
 include {{ spec.title | caseUcfirst }}::Enums
 {% set break = true %}
-{% endif %}
 {% endif %}
 {% endif %}
 {% endfor %}
