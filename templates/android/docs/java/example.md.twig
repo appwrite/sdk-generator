@@ -42,7 +42,7 @@ Client client = new Client(context)
 }));{% endif %}
 
 {% for parameter in method.parameters.all %}
-    {%~ if parameter.enumValues is not empty -%}
+    {%~ if parameter.enumValues is not empty %}
     {{ parameter.enumName }}.{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}, // {{ parameter.name }} {% if not parameter.required %}(optional){% endif %}
     {%~ else %}
     {{ parameter | paramExample }}, // {{ parameter.name }} {% if not parameter.required %}(optional){% endif %}
