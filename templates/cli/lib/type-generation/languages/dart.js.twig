@@ -70,6 +70,15 @@ class Dart extends LanguageMeta {
           type = `List<${type}>`;
         }
         break;
+      case AttributeType.POINT:
+        type = "List<double>";
+        break;
+      case AttributeType.LINESTRING:
+        type = "List<List<double>>";
+        break;
+      case AttributeType.POLYGON:
+        type = "List<List<List<double>>>";
+        break;
       default:
         throw new Error(`Unknown attribute type: ${attribute.type}`);
     }
