@@ -1,6 +1,6 @@
 {% macro sub_schema(definitions, property) %}{% if property.sub_schema %}{% if property.type == 'array' %}List<<String, dynamic>>{% else %}<String, dynamic>{
   {% if definitions[property.sub_schema] %}{% for property in definitions[property.sub_schema].properties | filter(p => p.required) %}
-  '{{property.name | escapeDollarSign}}': {% if property.type == 'object' %}{% if property.sub_schema and (property.sub_schema != 'prefs' and property.sub_schema != 'preferences') %}{{_self.sub_schema(spec.definitions, property)}}{% else %}<String, dynamic>{}{% endif %}{% elseif property.type == 'array' %}[]{% elseif property.type == 'string' %}'{{property.example | escapeDollarSign}}'{% elseif property.type == 'boolean' %}true{% else %}{{property.example}}{% endif %},
+  '{{property.name | escapeDollarSign}}': {% if property.type == 'object' %}{% if property.sub_schema and (property.sub_schema != 'prefs' and property.sub_schema != 'preferences') %}{{_self.sub_schema(spec.definitions, property)}}{% else %}<String, dynamic>{}{% endif %}{% elseif property.type == 'array' %}[]{% elseif property.type == 'string' %}{% if property.enum %}'{{property.enum[0]}}'{% else %}'{{property.example | escapeDollarSign}}'{% endif %}{% elseif property.type == 'boolean' %}true{% else %}{{property.example}}{% endif %},
   {% endfor %}{% endif %}}{% endif %}{% else %}{% if property.type == 'object' and property.additionalProperties %}Map<String, dynamic>{% else %}{{property | typeName}}{% endif %}{% endif %}{% endmacro %}
 {% import 'flutter/base/utils.twig' as utils %}
 {% if 'dart' in language.params.packageName %}
@@ -69,7 +69,7 @@ void main() {
                 {%~ if method.responseModel and method.responseModel != 'any' ~%}
             final Map<String, dynamic> data = {
                 {%- for definition in spec.definitions ~%}{%~ if definition.name == method.responseModel -%}{%~ for property in definition.properties | filter((param) => param.required) ~%}
-                '{{property.name | escapeDollarSign}}': {% if property.type == 'object' %}{% if property.sub_schema and (property.sub_schema != 'prefs' and property.sub_schema != 'preferences') %}{{_self.sub_schema(spec.definitions, property)}}{% else %}<String, dynamic>{}{% endif %}{% elseif property.type == 'array' %}[]{% elseif property.type == 'string' %}'{{property.example | escapeDollarSign}}'{% elseif property.type == 'boolean' %}true{% else %}{{property.example}}{% endif %},{%~ endfor ~%}{% set break = true %}{%- else -%}{% set continue = true %}{%- endif -%}{%~ endfor -%}
+                '{{property.name | escapeDollarSign}}': {% if property.type == 'object' %}{% if property.sub_schema and (property.sub_schema != 'prefs' and property.sub_schema != 'preferences') %}{{_self.sub_schema(spec.definitions, property)}}{% else %}<String, dynamic>{}{% endif %}{% elseif property.type == 'array' %}[]{% elseif property.type == 'string' %}{% if property.enum %}'{{property.enum[0]}}'{% else %}'{{property.example | escapeDollarSign}}'{% endif %}{% elseif property.type == 'boolean' %}true{% else %}{{property.example}}{% endif %},{%~ endfor ~%}{% set break = true %}{%- else -%}{% set continue = true %}{%- endif -%}{%~ endfor -%}
 
             };
                 {%~ else ~%}
