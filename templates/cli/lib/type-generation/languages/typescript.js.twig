@@ -6,7 +6,7 @@ const { AttributeType } = require('../attribute');
 const { LanguageMeta } = require("./language");
 
 class TypeScript extends LanguageMeta {
-  getType(attribute, collections) {
+  getType(attribute, collections, collectionName) {
     let type = ""
     switch (attribute.type) {
       case AttributeType.STRING:
@@ -16,7 +16,7 @@ class TypeScript extends LanguageMeta {
       case AttributeType.URL:
         type = "string";
         if (attribute.format === AttributeType.ENUM) {
-          type = LanguageMeta.toPascalCase(attribute.key);
+          type = LanguageMeta.toPascalCase(collectionName) + LanguageMeta.toPascalCase(attribute.key);
         }
         break;
       case AttributeType.INTEGER:
@@ -77,7 +77,7 @@ class TypeScript extends LanguageMeta {
 <% for (const collection of collections) { -%>
 <% for (const attribute of collection.attributes) { -%>
 <% if (attribute.format === 'enum') { -%>
-export enum <%- toPascalCase(attribute.key) %> {
+export enum <%- toPascalCase(collection.name) %><%- toPascalCase(attribute.key) %> {
 <% const entries = Object.entries(attribute.elements); -%>
 <% for (let i = 0; i < entries.length; i++) { -%>
     <%- toUpperSnakeCase(entries[i][1]) %> = "<%- entries[i][1] %>"<% if (i !== entries.length - 1) { %>,<% } %>
@@ -92,7 +92,7 @@ export type <%- toPascalCase(collection.name) %> = Models.Row & {
 <% for (const attribute of collection.attributes) { -%>
 <% const propertyName = strict ? toCamelCase(attribute.key) : attribute.key; -%>
 <% const isValidIdentifier = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(propertyName); -%>
-    <% if (isValidIdentifier) { %><%- propertyName %><% } else { %>"<%- propertyName %>"<% } %>: <%- getType(attribute, collections) %>;
+    <% if (isValidIdentifier) { %><%- propertyName %><% } else { %>"<%- propertyName %>"<% } %>: <%- getType(attribute, collections, collection.name) %>;
 <% } -%>
 }<% if (index < collections.length - 1) { %>
 <% } %>

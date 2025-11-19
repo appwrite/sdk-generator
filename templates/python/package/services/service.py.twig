@@ -10,14 +10,9 @@ from ..input_file import InputFile
 {% set added = added|merge(['InputFile']) %}
 {% endif %}
 {% if parameter.enumValues is not empty%}
-{% if parameter.enumName is not empty %}
-{% set name = parameter.enumName %}
-{% else %}
-{% set name = parameter.name %}
-{% endif %}
-{% if name not in added %}
-from ..enums.{{ name | caseSnake }} import {{ name | caseUcfirst }};
-{% set added = added|merge([name]) %}
+{% if parameter.enumName not in added %}
+from ..enums.{{ parameter.enumName | caseSnake }} import {{ parameter.enumName | caseUcfirst }};
+{% set added = added|merge([parameter.enumName]) %}
 {% endif %}
 {% endif %}
 {% endfor %}
