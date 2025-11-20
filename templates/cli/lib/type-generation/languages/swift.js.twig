@@ -33,6 +33,15 @@ class Swift extends LanguageMeta {
           type = `[${type}]`;
         }
         break;
+      case AttributeType.POINT:
+        type = "[Double]";
+        break;
+      case AttributeType.LINESTRING:
+        type = "[[Double]]";
+        break;
+      case AttributeType.POLYGON:
+        type = "[[[Double]]]";
+        break;
       default:
         throw new Error(`Unknown attribute type: ${attribute.type}`);
     }
