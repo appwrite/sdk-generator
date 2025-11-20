@@ -1,0 +1,449 @@
+package {{ sdk.namespace | caseDot }}
+
+import {{ sdk.namespace | caseDot }}.extensions.toJson
+import {{ sdk.namespace | caseDot }}.extensions.fromJson
+
+/**
+ * Helper class to generate query strings.
+ */
+@Serializable
+class Query(
+    val method: String,
+    val attribute: String? = null,
+    val values: List<@Contextual Any>? = null,
+) {
+    /**
+     * Convert the query object to a JSON string.
+     *
+     * @returns The JSON string representation of the query object.
+     */
+    override fun toString() = json.encodeToString(serializer(), this)
+
+    companion object {
+
+        /**
+         * Filter resources where attribute is equal to value.
+         *
+         * @param attribute The attribute to filter on.
+         * @param value The value to compare against.
+         * @returns The query string.
+         */
+        fun equal(attribute: String, value: Any) =
+            Query("equal", attribute, parseValue(value)).toString()
+
+        /**
+         * Filter resources where attribute is not equal to value.
+         *
+         * @param attribute The attribute to filter on.
+         * @param value The value to compare against.
+         * @returns The query string.
+         */
+        fun notEqual(attribute: String, value: Any) =
+            Query("notEqual", attribute, parseValue(value)).toString()
+
+        /**
+         * Filter resources where attribute is less than value.
+         *
+         * @param attribute The attribute to filter on.
+         * @param value The value to compare against.
+         * @returns The query string.
+         */
+        fun lessThan(attribute: String, value: Any) =
+            Query("lessThan", attribute, parseValue(value)).toString()
+
+        /**
+         * Filter resources where attribute is less than or equal to value.
+         *
+         * @param attribute The attribute to filter on.
+         * @param value The value to compare against.
+         * @returns The query string.
+         */
+        fun lessThanEqual(attribute: String, value: Any) =
+            Query("lessThanEqual", attribute, parseValue(value)).toString()
+
+        /**
+         * Filter resources where attribute is greater than value.
+         *
+         * @param attribute The attribute to filter on.
+         * @param value The value to compare against.
+         * @returns The query string.
+         */
+        fun greaterThan(attribute: String, value: Any) =
+            Query("greaterThan", attribute, parseValue(value)).toString()
+
+        /**
+         * Filter resources where attribute is greater than or equal to value.
+         *
+         * @param attribute The attribute to filter on.
+         * @param value The value to compare against.
+         * @returns The query string.
+         */
+        fun greaterThanEqual(attribute: String, value: Any) = Query("greaterThanEqual", attribute, parseValue(value)).toString()
+
+        /**
+         * Filter resources where attribute matches the search value.
+         *
+         * @param attribute The attribute to filter on.
+         * @param value The search value to match against.
+         * @returns The query string.
+         */
+        fun search(attribute: String, value: String) = Query("search", attribute, listOf(value)).toString()
+
+        /**
+         * Filter resources where attribute is null.
+         *
+         * @param attribute The attribute to filter on.
+         * @returns The query string.
+         */
+        fun isNull(attribute: String) = Query("isNull", attribute).toString()
+
+        /**
+         * Filter resources where attribute is not null.
+         *
+         * @param attribute The attribute to filter on.
+         * @returns The query string.
+         */
+        fun isNotNull(attribute: String) = Query("isNotNull", attribute).toString()
+
+        /**
+         * Filter resources where attribute is between start and end (inclusive).
+         *
+         * @param attribute The attribute to filter on.
+         * @param start The start value of the range.
+         * @param end The end value of the range.
+         * @returns The query string.
+         */
+        fun between(attribute: String, start: Any, end: Any) = Query("between", attribute, listOf(start, end)).toString()
+
+        /**
+         * Filter resources where attribute starts with value.
+         *
+         * @param attribute The attribute to filter on.
+         * @param value The value to compare against.
+         * @returns The query string.
+         */
+        fun startsWith(attribute: String, value: String) = Query("startsWith", attribute, listOf(value)).toString()
+
+        /**
+         * Filter resources where attribute ends with value.
+         *
+         * @param attribute The attribute to filter on.
+         * @param value The value to compare against.
+         * @returns The query string.
+         */
+        fun endsWith(attribute: String, value: String) = Query("endsWith", attribute, listOf(value)).toString()
+
+        /**
+         * Specify which attributes should be returned by the API call.
+         *
+         * @param attributes The list of attributes to select.
+         * @returns The query string.
+         */
+        fun select(attributes: List<String>) = Query("select", null, attributes).toString()
+
+        /**
+         * Sort results by attribute ascending.
+         *
+         * @param attribute The attribute to sort by.
+         * @returns The query string.
+         */
+        fun orderAsc(attribute: String) = Query("orderAsc", attribute).toString()
+
+        /**
+         * Sort results by attribute descending.
+         *
+         * @param attribute The attribute to sort by.
+         * @returns The query string.
+         */
+        fun orderDesc(attribute: String) = Query("orderDesc", attribute).toString()
+
+        /**
+         * Sort results randomly.
+         *
+         * @returns The query string.
+         */
+        fun orderRandom() = Query("orderRandom").toString()
+
+        /**
+         * Return results before documentId.
+         *
+         * @param documentId The document ID to use as cursor.
+         * @returns The query string.
+         */
+        fun cursorBefore(documentId: String) = Query("cursorBefore", null, listOf(documentId)).toString()
+
+        /**
+         * Return results after documentId.
+         *
+         * @param documentId The document ID to use as cursor.
+         * @returns The query string.
+         */
+        fun cursorAfter(documentId: String) = Query("cursorAfter", null, listOf(documentId)).toString()
+        
+        /**
+         * Return only limit results.
+         *
+         * @param limit The number of results to return.
+         * @returns The query string.
+         */
+        fun limit(limit: Int) = Query("limit", null, listOf(limit)).toString()
+
+        /**
+         * Filter resources by skipping the first offset results.
+         *
+         * @param offset The number of results to skip.
+         * @returns The query string.
+         */
+        fun offset(offset: Int) = Query("offset", null, listOf(offset)).toString()
+
+        /**
+         * Filter resources where attribute contains the specified value.
+         *
+         * @param attribute The attribute to filter on.
+         * @param value The value to compare against.
+         * @returns The query string.
+         */
+        fun contains(attribute: String, value: Any) = Query("contains", attribute, parseValue(value)).toString()
+
+        /**
+         * Filter resources where attribute does not contain the specified value.
+         *
+         * @param attribute The attribute to filter on.
+         * @param value The value to compare against.
+         * @returns The query string.
+         */
+        fun notContains(attribute: String, value: Any) = Query("notContains", attribute, parseValue(value)).toString()
+
+        /**
+         * Filter resources by searching attribute for value (inverse of search).
+         *
+         * @param attribute The attribute to filter on.
+         * @param value The search value to match against.
+         * @returns The query string.
+         */
+        fun notSearch(attribute: String, value: String) = Query("notSearch", attribute, listOf(value)).toString()
+
+        /**
+         * Filter resources where attribute is not between start and end (exclusive).
+         *
+         * @param attribute The attribute to filter on.
+         * @param start The start value of the range.
+         * @param end The end value of the range.
+         * @returns The query string.
+         */
+        fun notBetween(attribute: String, start: Any, end: Any) = Query("notBetween", attribute, listOf(start, end)).toString()
+
+        /**
+         * Filter resources where attribute does not start with value.
+         *
+         * @param attribute The attribute to filter on.
+         * @param value The value to compare against.
+         * @returns The query string.
+         */
+        fun notStartsWith(attribute: String, value: String) = Query("notStartsWith", attribute, listOf(value)).toString()
+
+        /**
+         * Filter resources where attribute does not end with value.
+         *
+         * @param attribute The attribute to filter on.
+         * @param value The value to compare against.
+         * @returns The query string.
+         */
+        fun notEndsWith(attribute: String, value: String) = Query("notEndsWith", attribute, listOf(value)).toString()
+
+        /**
+         * Filter resources where document was created before date.
+         *
+         * @param value The date value to compare against.
+         * @returns The query string.
+         */
+        fun createdBefore(value: String) = lessThan("\$createdAt", value)
+
+        /**
+         * Filter resources where document was created after date.
+         *
+         * @param value The date value to compare against.
+         * @returns The query string.
+         */
+        fun createdAfter(value: String) = greaterThan("\$createdAt", value)
+
+        /**
+         * Filter resources where document was created between start and end dates (inclusive).
+         *
+         * @param start The start date value.
+         * @param end The end date value.
+         * @returns The query string.
+         */
+        fun createdBetween(start: String, end: String) = between("\$createdAt", start, end)
+
+        /**
+         * Filter resources where document was updated before date.
+         *
+         * @param value The date value to compare against.
+         * @returns The query string.
+         */
+        fun updatedBefore(value: String) = lessThan("\$updatedAt", value)
+
+        /**
+         * Filter resources where document was updated after date.
+         *
+         * @param value The date value to compare against.
+         * @returns The query string.
+         */
+        fun updatedAfter(value: String) = greaterThan("\$updatedAt", value)
+
+        /**
+         * Filter resources where document was updated between start and end dates (inclusive).
+         *
+         * @param start The start date value.
+         * @param end The end date value.
+         * @returns The query string.
+         */
+        fun updatedBetween(start: String, end: String) = between("\$updatedAt", start, end)
+
+        /**
+         * Combine multiple queries using logical OR operator.
+         *
+         * @param queries The list of query strings to combine.
+         * @returns The query string.
+         */
+        fun or(queries: List<String>) = Query("or", null, queries.map { it.fromJson<Query>() }).toString()
+
+        /**
+         * Combine multiple queries using logical AND operator.
+         *
+         * @param queries The list of query strings to combine.
+         * @returns The query string.
+         */
+        fun and(queries: List<String>) = Query("and", null, queries.map { it.fromJson<Query>() }).toString()
+
+        /**
+         * Filter resources where attribute is at a specific distance from the given coordinates.
+         *
+         * @param attribute The attribute to filter on.
+         * @param values The coordinate values.
+         * @param distance The distance value.
+         * @param meters Whether the distance is in meters.
+         * @returns The query string.
+         */
+        fun distanceEqual(attribute: String, values: List<Any>, distance: Number, meters: Boolean = true) = Query("distanceEqual", attribute, listOf(listOf(values, distance, meters))).toString()
+
+        /**
+         * Filter resources where attribute is not at a specific distance from the given coordinates.
+         *
+         * @param attribute The attribute to filter on.
+         * @param values The coordinate values.
+         * @param distance The distance value.
+         * @param meters Whether the distance is in meters.
+         * @returns The query string.
+         */
+        fun distanceNotEqual(attribute: String, values: List<Any>, distance: Number, meters: Boolean = true) = Query("distanceNotEqual", attribute, listOf(listOf(values, distance, meters))).toString()
+
+        /**
+         * Filter resources where attribute is at a distance greater than the specified value from the given coordinates.
+         *
+         * @param attribute The attribute to filter on.
+         * @param values The coordinate values.
+         * @param distance The distance value.
+         * @param meters Whether the distance is in meters.
+         * @returns The query string.
+         */
+        fun distanceGreaterThan(attribute: String, values: List<Any>, distance: Number, meters: Boolean = true) = Query("distanceGreaterThan", attribute, listOf(listOf(values, distance, meters))).toString()
+
+        /**
+         * Filter resources where attribute is at a distance less than the specified value from the given coordinates.
+         *
+         * @param attribute The attribute to filter on.
+         * @param values The coordinate values.
+         * @param distance The distance value.
+         * @param meters Whether the distance is in meters.
+         * @returns The query string.
+         */
+        fun distanceLessThan(attribute: String, values: List<Any>, distance: Number, meters: Boolean = true) = Query("distanceLessThan", attribute, listOf(listOf(values, distance, meters))).toString()
+
+        /**
+         * Filter resources where attribute intersects with the given geometry.
+         *
+         * @param attribute The attribute to filter on.
+         * @param values The coordinate values.
+         * @returns The query string.
+         */
+        fun intersects(attribute: String, values: List<Any>) = Query("intersects", attribute, listOf(values)).toString()
+
+        /**
+         * Filter resources where attribute does not intersect with the given geometry.
+         *
+         * @param attribute The attribute to filter on.
+         * @param values The coordinate values.
+         * @returns The query string.
+         */
+        fun notIntersects(attribute: String, values: List<Any>) = Query("notIntersects", attribute, listOf(values)).toString()
+
+        /**
+         * Filter resources where attribute crosses the given geometry.
+         *
+         * @param attribute The attribute to filter on.
+         * @param values The coordinate values.
+         * @returns The query string.
+         */
+        fun crosses(attribute: String, values: List<Any>) = Query("crosses", attribute, listOf(values)).toString()
+
+        /**
+         * Filter resources where attribute does not cross the given geometry.
+         *
+         * @param attribute The attribute to filter on.
+         * @param values The coordinate values.
+         * @returns The query string.
+         */
+        fun notCrosses(attribute: String, values: List<Any>) = Query("notCrosses", attribute, listOf(values)).toString()
+
+        /**
+         * Filter resources where attribute overlaps with the given geometry.
+         *
+         * @param attribute The attribute to filter on.
+         * @param values The coordinate values.
+         * @returns The query string.
+         */
+        fun overlaps(attribute: String, values: List<Any>) = Query("overlaps", attribute, listOf(values)).toString()
+
+        /**
+         * Filter resources where attribute does not overlap with the given geometry.
+         *
+         * @param attribute The attribute to filter on.
+         * @param values The coordinate values.
+         * @returns The query string.
+         */
+        fun notOverlaps(attribute: String, values: List<Any>) = Query("notOverlaps", attribute, listOf(values)).toString()
+
+        /**
+         * Filter resources where attribute touches the given geometry.
+         *
+         * @param attribute The attribute to filter on.
+         * @param values The coordinate values.
+         * @returns The query string.
+         */
+        fun touches(attribute: String, values: List<Any>) = Query("touches", attribute, listOf(values)).toString()
+
+        /**
+         * Filter resources where attribute does not touch the given geometry.
+         *
+         * @param attribute The attribute to filter on.
+         * @param values The coordinate values.
+         * @returns The query string.
+         */
+        fun notTouches(attribute: String, values: List<Any>) = Query("notTouches", attribute, listOf(values)).toString()
+
+        /**
+         * Parse the value to a list of values.
+         *
+         * @param value The value to parse.
+         * @returns The list of parsed values.
+         */
+        private fun parseValue(value: Any): List<Any> {
+            return when (value) {
+                is List<*> -> value as List<Any>
+                else -> listOf(value)
+            }
+        }
+    }
+}

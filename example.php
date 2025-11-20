@@ -3,6 +3,7 @@
 include_once 'vendor/autoload.php';
 
 use Appwrite\SDK\Language\GraphQL;
+use Appwrite\SDK\Language\KMP;
 use Appwrite\Spec\Swagger2;
 use Appwrite\SDK\SDK;
 use Appwrite\SDK\Language\Web;
@@ -249,6 +250,15 @@ try {
             'namespace' => 'io.appwrite',
         ]);
         $sdk->generate(__DIR__ . '/examples/android');
+    }
+
+    // KMP
+    if (!$requestedSdk || $requestedSdk === 'kmp') {
+        $sdk = new SDK(new KMP(), new Swagger2($spec));
+        configureSDK($sdk, [
+            'namespace' => 'io.appwrite',
+        ]);
+        $sdk->generate(__DIR__ . '/examples/kmp');
     }
 
     // Kotlin
