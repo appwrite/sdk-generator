@@ -1,0 +1,313 @@
+using System;
+using System.Collections.Generic;
+using System.Text.Json;
+using Xunit;
+using {{ spec.title | caseUcfirst }}.Converters;
+
+namespace {{ spec.title | caseUcfirst }}.Tests.Converters
+{
+    public class ObjectToInferredTypesConverterTests
+    {
+        private readonly JsonSerializerOptions _options;
+
+        public ObjectToInferredTypesConverterTests()
+        {
+            _options = new JsonSerializerOptions();
+            _options.Converters.Add(new ObjectToInferredTypesConverter());
+        }
+
+        [Fact]
+        public void Read_WithString_ReturnsString()
+        {
+            // Arrange
+            var json = "\"test string\"";
+
+            // Act
+            var result = JsonSerializer.Deserialize<object>(json, _options);
+
+            // Assert
+            Assert.IsType<string>(result);
+            Assert.Equal("test string", result);
+        }
+
+        [Fact]
+        public void Read_WithInteger_ReturnsLong()
+        {
+            // Arrange
+            var json = "123";
+
+            // Act
+            var result = JsonSerializer.Deserialize<object>(json, _options);
+
+            // Assert
+            Assert.IsType<long>(result);
+            Assert.Equal(123L, result);
+        }
+
+        [Fact]
+        public void Read_WithDouble_ReturnsDouble()
+        {
+            // Arrange
+            var json = "123.45";
+
+            // Act
+            var result = JsonSerializer.Deserialize<object>(json, _options);
+
+            // Assert
+            Assert.IsType<double>(result);
+            Assert.Equal(123.45, result);
+        }
+
+        [Fact]
+        public void Read_WithBoolean_ReturnsBoolean()
+        {
+            // Arrange
+            var json = "true";
+
+            // Act
+            var result = JsonSerializer.Deserialize<object>(json, _options);
+
+            // Assert
+            Assert.IsType<bool>(result);
+            Assert.True((bool)result);
+        }
+
+        [Fact]
+        public void Read_WithNull_ReturnsNull()
+        {
+            // Arrange
+            var json = "null";
+
+            // Act
+            var result = JsonSerializer.Deserialize<object>(json, _options);
+
+            // Assert
+            Assert.Null(result);
+        }
+
+        [Fact]
+        public void Read_WithObject_ReturnsDictionary()
+        {
+            // Arrange
+            var json = "{\"key\":\"value\",\"number\":42}";
+
+            // Act
+            var result = JsonSerializer.Deserialize<object>(json, _options);
+
+            // Assert
+            Assert.IsType<Dictionary<string, object>>(result);
+            var dict = (Dictionary<string, object>)result;
+            Assert.Equal(2, dict.Count);
+            Assert.Equal("value", dict["key"]);
+            Assert.Equal(42L, dict["number"]);
+        }
+
+        [Fact]
+        public void Read_WithArray_ReturnsList()
+        {
+            // Arrange
+            var json = "[1,2,3,4,5]";
+
+            // Act
+            var result = JsonSerializer.Deserialize<object>(json, _options);
+
+            // Assert
+            Assert.IsType<List<object>>(result);
+            var list = (List<object>)result;
+            Assert.Equal(5, list.Count);
+            Assert.Equal(1L, list[0]);
+            Assert.Equal(5L, list[4]);
+        }
+
+        [Fact]
+        public void Read_WithNestedObject_ReturnsNestedDictionary()
+        {
+            // Arrange
+            var json = "{\"outer\":{\"inner\":\"value\"}}";
+
+            // Act
+            var result = JsonSerializer.Deserialize<object>(json, _options);
+
+            // Assert
+            Assert.IsType<Dictionary<string, object>>(result);
+            var dict = (Dictionary<string, object>)result;
+            Assert.IsType<Dictionary<string, object>>(dict["outer"]);
+            var nested = (Dictionary<string, object>)dict["outer"];
+            Assert.Equal("value", nested["inner"]);
+        }
+
+        [Fact]
+        public void Read_WithArrayOfObjects_ReturnsListOfDictionaries()
+        {
+            // Arrange
+            var json = "[{\"id\":1},{\"id\":2}]";
+
+            // Act
+            var result = JsonSerializer.Deserialize<object>(json, _options);
+
+            // Assert
+            Assert.IsType<List<object>>(result);
+            var list = (List<object>)result;
+            Assert.Equal(2, list.Count);
+            Assert.IsType<Dictionary<string, object>>(list[0]);
+        }
+
+        [Fact]
+        public void Read_WithMixedTypes_ConvertsCorrectly()
+        {
+            // Arrange
+            var json = "{\"string\":\"text\",\"number\":123,\"bool\":true,\"null\":null,\"array\":[1,2,3]}";
+
+            // Act
+            var result = JsonSerializer.Deserialize<object>(json, _options);
+
+            // Assert
+            Assert.IsType<Dictionary<string, object>>(result);
+            var dict = (Dictionary<string, object>)result;
+            Assert.Equal("text", dict["string"]);
+            Assert.Equal(123L, dict["number"]);
+            Assert.True((bool)dict["bool"]);
+            Assert.Null(dict["null"]);
+            Assert.IsType<List<object>>(dict["array"]);
+        }
+
+        [Fact]
+        public void Read_WithDateTime_ReturnsDateTime()
+        {
+            // Arrange
+            var json = "\"2023-10-16T12:00:00Z\"";
+
+            // Act
+            var result = JsonSerializer.Deserialize<object>(json, _options);
+
+            // Assert
+            Assert.IsType<DateTime>(result);
+        }
+
+        [Fact]
+        public void Read_WithEmptyObject_ReturnsEmptyDictionary()
+        {
+            // Arrange
+            var json = "{}";
+
+            // Act
+            var result = JsonSerializer.Deserialize<object>(json, _options);
+
+            // Assert
+            Assert.IsType<Dictionary<string, object>>(result);
+            var dict = (Dictionary<string, object>)result;
+            Assert.Empty(dict);
+        }
+
+        [Fact]
+        public void Read_WithEmptyArray_ReturnsEmptyList()
+        {
+            // Arrange
+            var json = "[]";
+
+            // Act
+            var result = JsonSerializer.Deserialize<object>(json, _options);
+
+            // Assert
+            Assert.IsType<List<object>>(result);
+            var list = (List<object>)result;
+            Assert.Empty(list);
+        }
+
+        [Fact]
+        public void Write_WithString_WritesString()
+        {
+            // Arrange
+            var value = "test";
+
+            // Act
+            var json = JsonSerializer.Serialize<object>(value, _options);
+
+            // Assert
+            Assert.Equal("\"test\"", json);
+        }
+
+        [Fact]
+        public void Write_WithInteger_WritesInteger()
+        {
+            // Arrange
+            var value = 123;
+
+            // Act
+            var json = JsonSerializer.Serialize<object>(value, _options);
+
+            // Assert
+            Assert.Equal("123", json);
+        }
+
+        [Fact]
+        public void Write_WithBoolean_WritesBoolean()
+        {
+            // Arrange
+            var value = true;
+
+            // Act
+            var json = JsonSerializer.Serialize<object>(value, _options);
+
+            // Assert
+            Assert.Equal("true", json);
+        }
+
+        [Fact]
+        public void Write_WithNull_WritesNull()
+        {
+            // Arrange
+            object value = null;
+
+            // Act
+            var json = JsonSerializer.Serialize(value, _options);
+
+            // Assert
+            Assert.Equal("null", json);
+        }
+
+        [Fact]
+        public void Write_WithDictionary_WritesObject()
+        {
+            // Arrange
+            var value = new Dictionary<string, object>
+            {
+                { "key", "value" },
+                { "number", 42 }
+            };
+
+            // Act
+            var json = JsonSerializer.Serialize<object>(value, _options);
+
+            // Assert
+            Assert.Contains("\"key\"", json);
+            Assert.Contains("\"value\"", json);
+            Assert.Contains("\"number\"", json);
+            Assert.Contains("42", json);
+        }
+
+        [Fact]
+        public void RoundTrip_PreservesData()
+        {
+            // Arrange
+            var original = new Dictionary<string, object>
+            {
+                { "string", "test" },
+                { "number", 123L },
+                { "bool", true },
+                { "array", new List<object> { 1L, 2L, 3L } }
+            };
+
+            // Act
+            var json = JsonSerializer.Serialize<object>(original, _options);
+            var result = JsonSerializer.Deserialize<object>(json, _options);
+
+            // Assert
+            Assert.IsType<Dictionary<string, object>>(result);
+            var dict = (Dictionary<string, object>)result;
+            Assert.Equal("test", dict["string"]);
+            Assert.Equal(123L, dict["number"]);
+            Assert.True((bool)dict["bool"]);
+        }
+    }
+}
