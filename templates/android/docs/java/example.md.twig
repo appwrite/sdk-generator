@@ -3,6 +3,10 @@ import {{ sdk.namespace | caseDot }}.coroutines.CoroutineCallback;
 {% if method.parameters.all | filter((param) => param.type == 'file') | length > 0 %}
 import {{ sdk.namespace | caseDot }}.models.InputFile;
 {% endif %}
+{% if method.parameters.all | hasPermissionParam %}
+import {{ sdk.namespace | caseDot }}.Permission;
+import {{ sdk.namespace | caseDot }}.Role;
+{% endif %}
 import {{ sdk.namespace | caseDot }}.services.{{ service.name | caseUcfirst }};
 {% set added = [] %}
 {% for parameter in method.parameters.all %}
@@ -13,10 +17,6 @@ import {{ sdk.namespace | caseDot }}.enums.{{ parameter.enumName | caseUcfirst }
 {% endif %}
 {% endif %}
 {% endfor %}
-{% if method.parameters.all | hasPermissionParam %}
-import {{ sdk.namespace | caseDot }}.Permission;
-import {{ sdk.namespace | caseDot }}.Role;
-{% endif %}
 
 Client client = new Client(context)
     {%~ if method.auth|length > 0 %}
@@ -41,7 +41,7 @@ Client client = new Client(context)
 
 {% for parameter in method.parameters.all %}
     {% if parameter.enumValues is not empty %}{{ parameter.enumName | caseUcfirst }}.{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}, // {{ parameter.name }} {% if not parameter.required %}(optional){% endif %}
-{% else %}{{ parameter | paramExample }}, // {{ parameter.name }} {% if not parameter.required %}(optional){% endif %}
+{% else %}{{ parameter | javaParamExample }}, // {{ parameter.name }} {% if not parameter.required %}(optional){% endif %}
 {% endif %}
 {%~ if loop.last %}
 
