@@ -283,21 +283,10 @@ class Kotlin extends Language
      * Generate Kotlin-style map initialization
      *
      * @param array $data
-     * @return string
-     */
-    protected function getKotlinMapExample(array $data): string
-    {
-        return $this->getKotlinMapExampleRecursive($data, 0);
-    }
-
-    /**
-     * Recursive helper for generating Kotlin mapOf() with proper indentation
-     *
-     * @param array $data
      * @param int $indentLevel Indentation level for nested maps
      * @return string
      */
-    private function getKotlinMapExampleRecursive(array $data, int $indentLevel): string
+    protected function getKotlinMapExample(array $data, int $indentLevel = 0): string
     {
         $mapEntries = [];
         $baseIndent = str_repeat('    ', $indentLevel + 2);
@@ -312,9 +301,9 @@ class Kotlin extends Language
                 $formattedValue = 'null';
             } elseif (is_array($value)) {
                 // Check if it's an associative array (object) or indexed array
-                $isObject = array_keys($value) !== range(0, count($value) - 1);
+                $isObject = !array_is_list($value);
                 if ($isObject) {
-                    $formattedValue = $this->getKotlinMapExampleRecursive($value, $indentLevel + 1);
+                    $formattedValue = $this->getKotlinMapExample($value, $indentLevel + 1);
                 } else {
                     $formattedValue = $this->getArrayExample(json_encode($value), 'kotlin');
                 }
@@ -336,21 +325,10 @@ class Kotlin extends Language
      * Generate Java-style map initialization using Map.of()
      *
      * @param array $data
-     * @return string
-     */
-    protected function getJavaMapExample(array $data): string
-    {
-        return $this->getJavaMapExampleRecursive($data, 0);
-    }
-
-    /**
-     * Recursive helper for generating Java Map.of() with proper indentation
-     *
-     * @param array $data
      * @param int $indentLevel Indentation level for nested maps
      * @return string
      */
-    private function getJavaMapExampleRecursive(array $data, int $indentLevel): string
+    protected function getJavaMapExample(array $data, int $indentLevel = 0): string
     {
         $mapEntries = [];
         $baseIndent = str_repeat('    ', $indentLevel + 2);
@@ -365,9 +343,9 @@ class Kotlin extends Language
                 $formattedValue = 'null';
             } elseif (is_array($value)) {
                 // Check if it's an associative array (object) or indexed array
-                $isObject = array_keys($value) !== range(0, count($value) - 1);
+                $isObject = !array_is_list($value);
                 if ($isObject) {
-                    $formattedValue = $this->getJavaMapExampleRecursive($value, $indentLevel + 1);
+                    $formattedValue = $this->getJavaMapExample($value, $indentLevel + 1);
                 } else {
                     $formattedValue = $this->getArrayExample(json_encode($value), 'java');
                 }
@@ -401,7 +379,7 @@ class Kotlin extends Language
             foreach ($decoded as $item) {
                 if (is_array($item)) {
                     // Check if it's an associative array (object) or indexed array (nested array)
-                    $isObject = array_keys($item) !== range(0, count($item) - 1);
+                    $isObject = !array_is_list($item);
 
                     if ($isObject) {
                         // It's an object/map, convert it
