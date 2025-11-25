@@ -39,7 +39,6 @@ Install-Package {{ spec.title | caseUcfirst }} -Version {{ sdk.version }}
 dotnet add package {{ spec.title | caseUcfirst }} --version {{ sdk.version }}
 ```
 
-
 {% if sdk.gettingStarted %}
 
 {{ sdk.gettingStarted|raw }}
