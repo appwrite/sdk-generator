@@ -1,19 +1,13 @@
 {% import 'dart/base/utils.twig' as utils %}
-    final Map<String , dynamic> apiParams = {
+    final Map<String, dynamic> apiParams = {
       {{ utils.map_parameter(method.parameters.query) }}
       {{ utils.map_parameter(method.parameters.body) }}
     };
 
-    final Map<String , String> apiHeaders = {
+    final Map<String, String> apiHeaders = {
       {{ utils.map_headers(method.headers) }}
     };
 
     final res = await client.call(HttpMethod.{{ method.method | caseLower }}, path: apiPath, params: apiParams, headers: apiHeaders);
 
-    return
-{% if method.responseModel and method.responseModel != 'any' %}
-models.{{ method.responseModel | caseUcfirst | overrideIdentifier }}.fromMap(res.data)
-{% else %}
- res.data
-{% endif %}
-;
+    return {% if method.responseModel and method.responseModel != 'any' %}models.{{method.responseModel | caseUcfirst | overrideIdentifier}}.fromMap(res.data){% else %} res.data{% endif %};

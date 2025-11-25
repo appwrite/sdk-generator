@@ -22,7 +22,7 @@ internal class WebAuthComponent {
 
     companion object : DefaultLifecycleObserver {
         private var suspended = false
-        private val callbacks = mutableMapOf<String , (((Result<String>) -> Unit)?)>()
+        private val callbacks = mutableMapOf<String, (((Result<String>) -> Unit)?)>()
 
         override fun onResume(owner: LifecycleOwner) {
             suspended = false

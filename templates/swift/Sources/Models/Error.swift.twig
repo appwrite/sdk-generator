@@ -1,6 +1,6 @@
 import Foundation
 
-open class {{ spec.title | caseUcfirst }}Error : Swift.Error, Decodable {
+open class {{ spec.title | caseUcfirst}}Error : Swift.Error, Decodable {
 
     public let message: String
     public let code: Int?
@@ -15,7 +15,7 @@ open class {{ spec.title | caseUcfirst }}Error : Swift.Error, Decodable {
     }
 }
 
-extension {{ spec.title | caseUcfirst }}Error: CustomStringConvertible {
+extension {{ spec.title | caseUcfirst}}Error: CustomStringConvertible {
     public var description: String {
         get {
             return self.message
@@ -23,7 +23,7 @@ extension {{ spec.title | caseUcfirst }}Error: CustomStringConvertible {
     }
 }
 
-extension {{ spec.title | caseUcfirst }}Error: LocalizedError {
+extension {{ spec.title | caseUcfirst}}Error: LocalizedError {
     public var errorDescription: String? {
         get {
             return self.message

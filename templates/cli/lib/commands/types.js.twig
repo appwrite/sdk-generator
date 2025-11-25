@@ -104,11 +104,11 @@ const typesCommand = actionRunner(async (rawOutputDirectory, {language, strict})
   let tables = localConfig.getTables();
   let collections = [];
   let dataSource = 'tables';
-
+  
   if (tables.length === 0) {
     collections = localConfig.getCollections();
     dataSource = 'collections';
-
+    
     if (collections.length === 0) {
       const configFileName = path.basename(localConfig.path);
       throw new Error(`No tables or collections found in configuration. Make sure ${configFileName} exists and contains tables or collections.`);
@@ -170,14 +170,14 @@ const typesCommand = actionRunner(async (rawOutputDirectory, {language, strict})
         ...templateHelpers,
         getType: meta.getType,
       });
-
+  
       const destination = path.join(outputDirectory, meta.getFileName(item));
-
+  
       fs.writeFileSync(destination, content);
       log(`Added types for ${item.name} to ${destination}`);
     }
   }
-
+  
   success(`Generated types for all the listed ${itemType}`);
 });
 

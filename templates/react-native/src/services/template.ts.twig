@@ -1,5 +1,5 @@
 import { Service } from '../service';
-import { {{ spec.title | caseUcfirst }}Exception, Client } from '../client';
+import { {{ spec.title | caseUcfirst}}Exception, Client } from '../client';
 import type { Models } from '../models';
 import type { UploadProgress, Payload } from '../client';
 import * as FileSystem from 'expo-file-system';
@@ -7,14 +7,14 @@ import { Platform } from 'react-native';
 
 {% set added = [] %}
 {% for method in service.methods %}
-    {% for parameter in method.parameters.all %}
-        {% if parameter.enumValues is not empty %}
-            {% if parameter.enumName not in added %}
+{% for parameter in method.parameters.all %}
+{% if parameter.enumValues is not empty %}
+{% if parameter.enumName not in added %}
 import { {{ parameter.enumName | caseUcfirst }} } from '../enums/{{ parameter.enumName | caseKebab }}';
 {% set added = added|merge([parameter.enumName]) %}
-            {% endif %}
-        {% endif %}
-    {% endfor %}
+{% endif %}
+{% endif %}
+{% endfor %}
 {% endfor %}
 
 export class {{ service.name | caseUcfirst }} extends Service {
@@ -23,242 +23,94 @@ export class {{ service.name | caseUcfirst }} extends Service {
      {
         super(client);
      }
-{%~ for method in service.methods %}
+    {%~ for method in service.methods %}
 
     /**
-{%~ if method.description %}
-     * {{ method.description | replace({"\n": "\n     * "}) | raw }}
-{%~ endif %}
+    {%~ if method.description %}
+     * {{ method.description | replace({'\n': '\n     * '}) | raw }}
+    {%~ endif %}
      *
-{%~ for parameter in method.parameters.all %}
+    {%~ for parameter in method.parameters.all %}
      * @param {{ '{' }}{{ parameter | getPropertyType(method) | raw }}{{ '}' }} params.{{ parameter.name | caseCamel | escapeKeyword }} - {{ parameter.description | raw }}
-{%~ endfor %}
-     * @throws {{ '{' }}{{ spec.title | caseUcfirst }}Exception}
-     * @returns
-{% if method.type == 'webAuth' %}
-{void|string}
-{% elseif method.type == 'location' %}
-{ArrayBuffer}
-{% else %}
-{Promise}
-{% endif %}
+    {%~ endfor %}
+     * @throws {{ '{' }}{{ spec.title | caseUcfirst}}Exception}
+     * @returns {% if method.type == 'webAuth' %}{void|string}{% elseif method.type == 'location' %}{ArrayBuffer}{% else %}{Promise}{% endif %}
 
-{%~ if method.deprecated %}
-{%~ if method.since and method.replaceWith %}
+    {%~ if method.deprecated %}
+    {%~ if method.since and method.replaceWith %}
      * @deprecated This API has been deprecated since {{ method.since }}. Please use `{{ method.replaceWith | capitalizeFirst }}` instead.
-{%~ else %}
+    {%~ else %}
      * @deprecated This API has been deprecated.
-{%~ endif %}
-{%~ endif %}
+    {%~ endif %}
+    {%~ endif %}
      */
-{%~ if method.parameters.all|length > 0 %}
-{% if method.type == 'upload' %}
-async
-{% endif %}
-{{ method.name | caseCamel }}{{ method.responseModel | getGenerics(spec) | raw }}(params{% set hasRequiredParams = false %}
-{% for parameter in method.parameters.all %}
-    {% if parameter.required %}
-{% set hasRequiredParams = true %}
-    {% endif %}
-{% endfor %}
-{% if not hasRequiredParams %}
-?
-{% endif %}
-: {
-{% for parameter in method.parameters.all %}
-{{ parameter.name | caseCamel | escapeKeyword }}
-    {% if not parameter.required or parameter.nullable %}
-?
-    {% endif %}
-: {{ parameter | getPropertyType(method) | raw }}
-    {% if not loop.last %}
-,
-    {% endif %}
-{% endfor %}
-
-{% if 'multipart/form-data' in method.consumes %}
-, onProgress?: (progress: UploadProgress) => void
-{% endif %}
- }): {{ method | getReturn(spec) | raw }};
+     {%~ if method.parameters.all|length > 0 %}
+    {% if method.type == 'upload'%}async {% endif %}{{ method.name | caseCamel }}{{ method.responseModel | getGenerics(spec) | raw }}(params{% set hasRequiredParams = false %}{% for parameter in method.parameters.all %}{% if parameter.required %}{% set hasRequiredParams = true %}{% endif %}{% endfor %}{% if not hasRequiredParams %}?{% endif %}: { {% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | getPropertyType(method) | raw }}{% if not loop.last %}, {% endif %}{% endfor %} {% if 'multipart/form-data' in method.consumes %}, onProgress?: (progress: UploadProgress) => void{% endif %} }): {{ method | getReturn(spec) | raw }};
     /**
-{%~ if method.description %}
-     * {{ method.description | replace({"\n": "\n     * "}) | raw }}
-{%~ endif %}
+     {%~ if method.description %}
+     * {{ method.description | replace({'\n': '\n     * '}) | raw }}
+     {%~ endif %}
      *
-{%~ for parameter in method.parameters.all %}
+     {%~ for parameter in method.parameters.all %}
      * @param {{ '{' }}{{ parameter | getPropertyType(method) | raw }}{{ '}' }} {{ parameter.name | caseCamel | escapeKeyword }} - {{ parameter.description | raw }}
-{%~ endfor %}
-     * @throws {{ '{' }}{{ spec.title | caseUcfirst }}Exception}
+     {%~ endfor %}
+     * @throws {{ '{' }}{{ spec.title | caseUcfirst}}Exception}
      * @returns {{ '{' }}{{ method | getReturn(spec) | raw }}{{ '}' }}
      * @deprecated Use the object parameter style method for a better developer experience.
      */
-{% if method.type == 'upload' %}
-async
-{% endif %}
-{{ method.name | caseCamel }}{{ method.responseModel | getGenerics(spec) | raw }}(
-{% for parameter in method.parameters.all %}
-{{ parameter.name | caseCamel | escapeKeyword }}
-    {% if not parameter.required or parameter.nullable %}
-?
-    {% endif %}
-: {{ parameter | getPropertyType(method) | raw }}
-    {% if not loop.last %}
-,
-    {% endif %}
-{% endfor %}
-{% if 'multipart/form-data' in method.consumes %}
-, onProgress?: (progress: UploadProgress) => void
-{% endif %}
-): {{ method | getReturn(spec) | raw }};
-{% if method.type == 'upload' %}
-async
-{% endif %}
-{{ method.name | caseCamel }}{{ method.responseModel | getGenerics(spec) | raw }}(
-{% if method.parameters.all|length > 0 %}
-paramsOrFirst
-    {% if not method.parameters.all[0].required or method.parameters.all[0].nullable %}
-?
-    {% endif %}
-: {
-    {% for parameter in method.parameters.all %}
-{{ parameter.name | caseCamel | escapeKeyword }}
-        {% if not parameter.required or parameter.nullable %}
-?
-        {% endif %}
-: {{ parameter | getPropertyType(method) | raw }}
-        {% if not loop.last %}
-,
-        {% endif %}
-    {% endfor %}
-    {% if 'multipart/form-data' in method.consumes %}
-, onProgress?: (progress: UploadProgress) => void
-    {% endif %}
- } | {{ method.parameters.all[0] | getPropertyType(method) | raw }}
-    {% if method.parameters.all|length > 1 %}
-,
-        ...rest: [
-        {% for parameter in method.parameters.all[1:] %}
-({{ parameter | getPropertyType(method) | raw }})?
-            {% if not loop.last %}
-,
-            {% endif %}
-        {% endfor %}
-        {% if 'multipart/form-data' in method.consumes %}
-,((progress: UploadProgress) => void)?
-        {% endif %}
-]
-    {% endif %}
-{% endif %}
-
+    {% if method.type == 'upload'%}async {% endif %}{{ method.name | caseCamel }}{{ method.responseModel | getGenerics(spec) | raw }}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | getPropertyType(method) | raw }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, onProgress?: (progress: UploadProgress) => void{% endif %}): {{ method | getReturn(spec) | raw }};
+    {% if method.type == 'upload'%}async {% endif %}{{ method.name | caseCamel }}{{ method.responseModel | getGenerics(spec) | raw }}(
+        {% if method.parameters.all|length > 0 %}paramsOrFirst{% if not method.parameters.all[0].required or method.parameters.all[0].nullable %}?{% endif %}: { {% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | getPropertyType(method) | raw }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, onProgress?: (progress: UploadProgress) => void {% endif %} } | {{ method.parameters.all[0] | getPropertyType(method) | raw }}{% if method.parameters.all|length > 1 %},
+        ...rest: [{% for parameter in method.parameters.all[1:] %}({{ parameter | getPropertyType(method) | raw }})?{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %},((progress: UploadProgress) => void)?{% endif %}]{% endif %}{% endif %}
+    
     ): {{ method | getReturn(spec) | raw }} {
-{%~ if method.parameters.all|length > 0 %}
-        let params: {
-{% for parameter in method.parameters.all %}
-{{ parameter.name | caseCamel | escapeKeyword }}
-    {% if not parameter.required or parameter.nullable %}
-?
-    {% endif %}
-: {{ parameter | getPropertyType(method) | raw }}
-    {% if not loop.last %}
-,
-    {% endif %}
-{% endfor %}
- };
-{%~ if 'multipart/form-data' in method.consumes %}
+        {%~ if method.parameters.all|length > 0 %}
+        let params: { {% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | getPropertyType(method) | raw }}{% if not loop.last %}, {% endif %}{% endfor %} };
+        {%~ if 'multipart/form-data' in method.consumes %}
         let onProgress: ((progress: UploadProgress) => void);
-{%~ endif %}
+        {%~ endif %}
 
-        if ({% set hasRequired = false %}
-{% for parameter in method.parameters.all %}
-    {% if parameter.required %}
-{% set hasRequired = true %}
-    {% endif %}
-{% endfor %}
-{% if not hasRequired %}
-!paramsOrFirst ||
-{% endif %}
-(paramsOrFirst && typeof paramsOrFirst === 'object' && !Array.isArray(paramsOrFirst){% set firstParamType = method.parameters.all[0] | getPropertyType(method) | raw %}
-{% if not (firstParamType starts with 'string' or firstParamType starts with 'number' or firstParamType starts with 'boolean') %}
- && '{{ method.parameters.all[0].name | caseCamel | escapeKeyword }}' in paramsOrFirst
-{% endif %}
-)) {
-            params = (paramsOrFirst || {}) as {
-{% for parameter in method.parameters.all %}
-{{ parameter.name | caseCamel | escapeKeyword }}
-    {% if not parameter.required or parameter.nullable %}
-?
-    {% endif %}
-: {{ parameter | getPropertyType(method) | raw }}
-    {% if not loop.last %}
-,
-    {% endif %}
-{% endfor %}
- };
-{%~ if 'multipart/form-data' in method.consumes %}
+        if ({% set hasRequired = false %}{% for parameter in method.parameters.all %}{% if parameter.required %}{% set hasRequired = true %}{% endif %}{% endfor %}{% if not hasRequired %}!paramsOrFirst || {% endif %}(paramsOrFirst && typeof paramsOrFirst === 'object' && !Array.isArray(paramsOrFirst){% set firstParamType = method.parameters.all[0] | getPropertyType(method) | raw %}{% if not (firstParamType starts with 'string' or firstParamType starts with 'number' or firstParamType starts with 'boolean') %} && '{{ method.parameters.all[0].name | caseCamel | escapeKeyword }}' in paramsOrFirst{% endif %})) {
+            params = (paramsOrFirst || {}) as { {% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | getPropertyType(method) | raw }}{% if not loop.last %}, {% endif %}{% endfor %} };
+            {%~ if 'multipart/form-data' in method.consumes %}
             onProgress = paramsOrFirst?.onProgress as ((progress: UploadProgress) => void);
-{%~ endif %}
+            {%~ endif %}
         } else {
             params = {
-{%~ for parameter in method.parameters.all %}
-                {{ parameter.name | caseCamel | escapeKeyword }}:
-{% if loop.index0 == 0 %}
-paramsOrFirst
-{% else %}
-rest[{{ loop.index0 - 1 }}]
+                {%~ for parameter in method.parameters.all %}
+                {{ parameter.name | caseCamel | escapeKeyword }}: {% if loop.index0 == 0 %}paramsOrFirst{% else %}rest[{{ loop.index0 - 1 }}]{% endif %} as {{ parameter | getPropertyType(method) | raw }}{% if not loop.last %},
 {% endif %}
- as {{ parameter | getPropertyType(method) | raw }}
-{% if not loop.last %}
-,
-{% endif %}
-{%~ endfor %}
-
+                {%~ endfor %}
+            
             };
-{%~ if 'multipart/form-data' in method.consumes %}
+            {%~ if 'multipart/form-data' in method.consumes %}
             onProgress = rest[{{ method.parameters.all|length - 1 }}] as ((progress: UploadProgress) => void);
-{%~ endif %}
+            {%~ endif %}
         }
 
-{%~ for parameter in method.parameters.all %}
+        {%~ for parameter in method.parameters.all %}
         const {{ parameter.name | caseCamel | escapeKeyword }} = params.{{ parameter.name | caseCamel | escapeKeyword }};
-{%~ endfor %}
+        {%~ endfor %}
 
-{%~ else %}
-{%~ if 'multipart/form-data' in method.consumes %}
+        {%~ else %}
+        {%~ if 'multipart/form-data' in method.consumes %}
         if (typeof paramsOrFirst === 'function') {
             onProgress = paramsOrFirst;
         }
-{%~ endif %}
-{%~ endif %}
-{%~ else %}
-    {{ method.name | caseCamel }}{{ method.responseModel | getGenerics(spec) | raw }}(
+        {%~ endif %}
+        {%~ endif %}
+    {%~ else %}
+    {{ method.name | caseCamel }}{{ method.responseModel | getGenerics(spec) | raw }}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | getPropertyType(method) | raw }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, onProgress = (progress: UploadProgress) => void{% endif %}): {{ method | getReturn(spec) | raw }} {
+    {%~ endif %}
 {% for parameter in method.parameters.all %}
-{{ parameter.name | caseCamel | escapeKeyword }}
-    {% if not parameter.required or parameter.nullable %}
-?
-    {% endif %}
-: {{ parameter | getPropertyType(method) | raw }}
-    {% if not loop.last %}
-,
-    {% endif %}
-{% endfor %}
-{% if 'multipart/form-data' in method.consumes %}
-, onProgress = (progress: UploadProgress) => void
-{% endif %}
-): {{ method | getReturn(spec) | raw }} {
-{%~ endif %}
-{% for parameter in method.parameters.all %}
-    {% if parameter.required %}
+{% if parameter.required %}
         if (typeof {{ parameter.name | caseCamel | escapeKeyword }} === 'undefined') {
-            throw new {{ spec.title | caseUcfirst }}Exception('Missing required parameter: "{{ parameter.name | caseCamel | escapeKeyword }}"');
+            throw new {{spec.title | caseUcfirst}}Exception('Missing required parameter: "{{ parameter.name | caseCamel | escapeKeyword }}"');
         }
 
-    {% endif %}
+{% endif %}
 {% endfor %}
-        const apiPath = '{{ method.path }}'
-{% for parameter in method.parameters.path %}
-.replace('{{ '{' }}{{ parameter.name | caseCamel | escapeKeyword }}{{ '}' }}', {{ parameter.name | caseCamel | escapeKeyword }})
-{% endfor %}
-;
+        const apiPath = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name | caseCamel | escapeKeyword }}{{ '}' }}', {{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
         const payload: Payload = {};
 
 {% for parameter in method.parameters.query %}
@@ -275,14 +127,14 @@ rest[{{ loop.index0 - 1 }}]
 {% endfor %}
         const uri = new URL(this.client.config.endpoint + apiPath);
 {% if method.type == 'location' or method.type == 'webAuth' %}
-    {% if method.auth|length > 0 %}
-        {% for node in method.auth %}
-            {% for key,header in node|keys %}
-        payload['{{ header|caseLower }}'] = this.client.config.{{ header|caseLower }};
+{% if method.auth|length > 0 %}
+{% for node in method.auth %}
+{% for key,header in node|keys %}
+        payload['{{header|caseLower}}'] = this.client.config.{{header|caseLower}};
 
-            {% endfor %}
-        {% endfor %}
-    {% endif %}
+{% endfor %}
+{% endfor %}
+{% endif %}
 
         for (const [key, value] of Object.entries(Service.flatten(payload))) {
             uri.searchParams.append(key, value);
@@ -291,43 +143,43 @@ rest[{{ loop.index0 - 1 }}]
 {% if method.type == 'webAuth' %}
         return uri;
 {% else %}
-    {% if 'multipart/form-data' in method.consumes %}
-        {% for parameter in method.parameters.all %}
-            {% if parameter.type == 'file' %}
+{% if 'multipart/form-data' in method.consumes %}
+{% for parameter in method.parameters.all %}
+{% if parameter.type == 'file' %}
 
         const size = {{ parameter.name | caseCamel | escapeKeyword }}.size;
 
         if (size <= Service.CHUNK_SIZE) {
             return this.client.call('{{ method.method | caseLower }}', uri, {
-                {% for parameter in method.parameters.header %}
+{% for parameter in method.parameters.header %}
                 '{{ parameter.name | caseCamel | escapeKeyword }}': this.client.${{ parameter.name | caseCamel | escapeKeyword }},
-                {% endfor %}
-                {% for key, header in method.headers %}
+{% endfor %}
+{% for key, header in method.headers %}
                 '{{ key }}': '{{ header }}',
-                {% endfor %}
+{% endfor %}
             }, payload);
         }
 
         const apiHeaders: { [header: string]: string } = {
-                {% for parameter in method.parameters.header %}
+{% for parameter in method.parameters.header %}
             '{{ parameter.name | caseCamel | escapeKeyword }}': this.client.${{ parameter.name | caseCamel | escapeKeyword }},
-                {% endfor %}
-                {% for key, header in method.headers %}
+{% endfor %}
+{% for key, header in method.headers %}
             '{{ key }}': '{{ header }}',
-                {% endfor %}
+{% endfor %}
         }
 
         let offset = 0;
         let response = undefined;
-                {% for parameter in method.parameters.all %}
-                    {% if parameter.isUploadID %}
+{% for parameter in method.parameters.all %}
+{% if parameter.isUploadID %}
         try {
             response = await this.client.call('GET', new URL(this.client.config.endpoint + apiPath + '/' + {{ parameter.name }}), apiHeaders);
             offset = response.chunksUploaded * Service.CHUNK_SIZE;
         } catch(e) {
         }
-                    {% endif %}
-                {% endfor %}
+{% endif %}
+{% endfor %}
 
         let timestamp = new Date().getTime();
         while (offset < size) {
@@ -335,7 +187,7 @@ rest[{{ loop.index0 - 1 }}]
 
             apiHeaders['content-range'] = 'bytes ' + offset + '-' + end + '/' + size;
             if (response && response.$id) {
-                apiHeaders['x-{{ spec.title | caseLower }}-id'] = response.$id;
+                apiHeaders['x-{{spec.title | caseLower }}-id'] = response.$id;
             }
 
             let chunk = await FileSystem.readAsStringAsync({{ parameter.name | caseCamel | escapeKeyword }}.uri, {
@@ -365,90 +217,68 @@ rest[{{ loop.index0 - 1 }}]
             offset += Service.CHUNK_SIZE;
         }
         return response;
-            {% endif %}
-        {% endfor %}
-    {% else %}
+{% endif %}
+{% endfor %}
+{% else %}
         return this.client.call('{{ method.method | caseLower }}', uri, {
-        {% for parameter in method.parameters.header %}
+{% for parameter in method.parameters.header %}
             '{{ parameter.name | caseCamel | escapeKeyword }}': this.client.${{ parameter.name | caseCamel | escapeKeyword }},
-        {% endfor %}
-        {% for key, header in method.headers %}
+{% endfor %}
+{% for key, header in method.headers %}
             '{{ key }}': '{{ header }}',
-        {% endfor %}
-        }, payload
-        {% if method.type == 'location' %}
-, 'arrayBuffer'
-        {% endif %}
-);
-    {% endif %}
+{% endfor %}
+        }, payload{% if method.type == 'location' %}, 'arrayBuffer'{% endif %});
+{% endif %}
 {% endif %}
     }
 {% endfor %}
 {# Extra methods for just getting the URL of 'location' type methods #}
 {% for method in service.methods %}
-    {% if method.type == 'location' %}
+{% if method.type == 'location' %}
 
     /**
-        {% if method.description %}
+{% if method.description %}
 {{ method.description|comment2 }}
-        {% endif %}
+{% endif %}
      *
-        {% for parameter in method.parameters.all %}
+{% for parameter in method.parameters.all %}
      * @param {{ '{' }}{{ parameter | getPropertyType(method) | raw }}{{ '}' }} {{ parameter.name | caseCamel | escapeKeyword }}
-        {% endfor %}
-     * @throws {{ '{' }}{{ spec.title | caseUcfirst }}Exception}
+{% endfor %}
+     * @throws {{ '{' }}{{ spec.title | caseUcfirst}}Exception}
      * @returns {{ '{' }}URL{{ '}' }}
-{%~ if method.deprecated %}
+    {%~ if method.deprecated %}
      * @deprecated This API has been deprecated since {{ method.since }}. Please use `{{ method.replaceWith | capitalizeFirst }}` instead.
-{%~ endif %}
+    {%~ endif %}
     */
-    {{ method.name | caseCamel }}URL(
-        {% for parameter in method.parameters.all %}
-{{ parameter.name | caseCamel | escapeKeyword }}
-            {% if not parameter.required or parameter.nullable %}
-?
-            {% endif %}
-: {{ parameter | getPropertyType(method) | raw }}
-            {% if not loop.last %}
-,
-            {% endif %}
-        {% endfor %}
-        {% if 'multipart/form-data' in method.consumes %}
-, onProgress = (progress: UploadProgress) => void
-        {% endif %}
-): URL {
-        const apiPath = '{{ method.path }}'
-        {% for parameter in method.parameters.path %}
-.replace('{{ '{' }}{{ parameter.name | caseCamel | escapeKeyword }}{{ '}' }}', {{ parameter.name | caseCamel | escapeKeyword }})
-        {% endfor %}
-;
+    {{ method.name | caseCamel }}URL({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | getPropertyType(method) | raw }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, onProgress = (progress: UploadProgress) => void{% endif %}): URL {
+        const apiPath = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name | caseCamel | escapeKeyword }}{{ '}' }}', {{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
         const payload: Payload = {};
 
-        {% for parameter in method.parameters.query %}
+{% for parameter in method.parameters.query %}
         if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
             payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
         }
 
-        {% endfor %}
-        {% for parameter in method.parameters.body %}
+{% endfor %}
+{% for parameter in method.parameters.body %}
         if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
             payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
         }
 
-        {% endfor %}
+{% endfor %}
         const uri = new URL(this.client.config.endpoint + apiPath);
-        {% for node in method.auth %}
-            {% for key,header in node|keys %}
-        payload['{{ header|caseLower }}'] = this.client.config.{{ header|caseLower }};
+{% for node in method.auth %}
+{% for key,header in node|keys %}
+        payload['{{header|caseLower}}'] = this.client.config.{{header|caseLower}};
 
-            {% endfor %}
-        {% endfor %}
+{% endfor %}
+{% endfor %}
         for (const [key, value] of Object.entries(Service.flatten(payload))) {
             uri.searchParams.append(key, value);
         }
 
         return uri;
     }
-    {% endif %}
+{% endif %}
 {% endfor %}
 };

@@ -1,4 +1,4 @@
-import { {{ spec.title | caseUcfirst }}Exception, Client } from '../client';
+import { {{ spec.title | caseUcfirst}}Exception, Client } from '../client';
 
 export type RealtimeSubscription = {
     close: () => Promise<void>;
@@ -50,7 +50,7 @@ export class Realtime {
     private client: Client;
     private socket?: WebSocket;
     private activeChannels = new Set<string>();
-    private activeSubscriptions = new Map<number , RealtimeCallback<any>>();
+    private activeSubscriptions = new Map<number, RealtimeCallback<any>>();
     private heartbeatTimer?: number;
 
     private subCallDepth = 0;
@@ -58,7 +58,7 @@ export class Realtime {
     private subscriptionsCounter = 0;
     private reconnect = true;
 
-    private onErrorCallbacks: Array<(error ?: Error, statusCode?: number) => void> = [];
+    private onErrorCallbacks: Array<(error?: Error, statusCode?: number) => void> = [];
     private onCloseCallbacks: Array<() => void> = [];
     private onOpenCallbacks: Array<() => void> = [];
 
@@ -121,7 +121,7 @@ export class Realtime {
 
         const projectId = this.client.config.project;
         if (!projectId) {
-            throw new {{ spec.title | caseUcfirst }}Exception('Missing project ID');
+            throw new {{spec.title | caseUcfirst}}Exception('Missing project ID');
         }
 
         let queryParams = `project=${projectId}`;
@@ -388,7 +388,7 @@ export class Realtime {
     }
 
     private handleResponseError(message: RealtimeResponse): void {
-        const error = new {{ spec.title | caseUcfirst }}Exception(
+        const error = new {{spec.title | caseUcfirst}}Exception(
             message.data?.message || 'Unknown error'
         );
         const statusCode = message.data?.code;

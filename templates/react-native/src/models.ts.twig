@@ -1,7 +1,7 @@
 {% if spec.responseEnums|length > 0 %}
-    {% for responseEnum in spec.responseEnums %}
+{% for responseEnum in spec.responseEnums %}
 import { {{ responseEnum.name }} } from "./enums/{{ responseEnum.name | caseKebab }}"
-    {% endfor %}
+{% endfor %}
 {% endif %}
 
 export namespace Models {
@@ -13,23 +13,19 @@ export namespace Models {
      * {{ definition.description }}
      */
     export type {{ definition.name | caseUcfirst }}{{ definition.name | getGenerics(spec, true) | raw }} = {
-    {% for property in definition.properties %}
+{% for property in definition.properties %}
         /**
          * {{ property.description }}
          */
-        {{ property.name }}
-        {% if not property.required %}
-?
-        {% endif %}
-: {{ property | getSubSchema(spec, definition.name) | raw }};
-    {% endfor %}
+        {{ property.name }}{% if not property.required %}?{% endif %}: {{ property | getSubSchema(spec, definition.name) | raw }};
+{% endfor %}
     }
-    {% if definition.additionalProperties %}
+{% if definition.additionalProperties %}
 
     export type Default{{ definition.name | caseUcfirst }}{{ definition.name | getGenerics(spec, true) | raw }} = {{ definition.name | caseUcfirst }}{{ definition.name | getGenerics(spec, true) | raw }} & {
         [key: string]: any;
         [__default]: true;
     };
-    {% endif %}
+{% endif %}
 {% endfor %}
 }

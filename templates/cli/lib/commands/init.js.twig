@@ -99,7 +99,7 @@ const initProject = async ({ organizationId, projectId, projectName } = {}) => {
 
     localConfig.clear(); // Clear the config to avoid any conflicts
     const url = new URL("{{ spec.endpoint }}");
-
+    
     if (answers.start === 'new') {
         response = await projectsCreate({
             projectId: answers.id,
@@ -510,7 +510,7 @@ const initSite = async () => {
             value: value
         };
     });
-
+    
     let data = {
         $id: siteId,
         name: answers.name,

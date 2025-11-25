@@ -1,20 +1,20 @@
 {% import 'flutter/base/utils.twig' as utils %}
-        final Map<String , dynamic> params = {
+        final Map<String, dynamic> params = {
             {{ utils.map_parameter(method.parameters.query) }}
             {{ utils.map_parameter(method.parameters.body) }}
 {% if method.auth|length > 0 %}
-    {% for node in method.auth %}
-        {% for key,header in node|keys %}
-            '{{ header|caseLower }}': client.config['{{ header|caseLower }}'],
-        {% endfor %}
-    {% endfor %}
+{% for node in method.auth %}
+{% for key,header in node|keys %}
+            '{{header|caseLower}}': client.config['{{header|caseLower}}'],
+{% endfor %}
+{% endfor %}
 {% endif %}
         };
 
         final List query = [];
 
         params.forEach((key, value) {
-          if (value is List) {
+          if (value is List) { 
             for (var item in value) {
               query.add(
               '${Uri.encodeComponent('$key[]')}=${Uri.encodeComponent(item)}');

@@ -201,7 +201,7 @@ class Local extends Config {
 
     constructor(path = Local.CONFIG_FILE_PATH, legacyPath = Local.CONFIG_FILE_PATH_LEGACY) {
         let absolutePath = Local.findConfigFile(path) || Local.findConfigFile(legacyPath);
-
+        
         if (!absolutePath) {
             absolutePath = `${process.cwd()}/${path}`;
         }
@@ -215,11 +215,11 @@ class Local extends Config {
 
         while (true) {
             const filePath = `${currentPath}/${filename}`;
-
+            
             if (fs.existsSync(filePath)) {
                 return filePath;
             }
-
+            
             const parentDirectory = _path.dirname(currentPath);
             if (parentDirectory === currentPath) {
                 break;
@@ -513,7 +513,7 @@ class Local extends Config {
     getTablesDB($id) {
         return this._getDBEntity("tablesDB", $id);
     }
-
+    
     addTablesDB(props) {
         this._addDBEntity("tablesDB", props, KeysDatabase);
     }
@@ -684,7 +684,7 @@ class Global extends Config {
         const current = this.getCurrentSession();
 
         const sessionMap = new Map();
-
+        
         sessions.forEach((sessionId) => {
             const email = this.data[sessionId][Global.PREFERENCE_EMAIL];
             const endpoint = this.data[sessionId][Global.PREFERENCE_ENDPOINT];

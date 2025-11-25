@@ -14,7 +14,7 @@ class Permission {
          */
         fun read(role: String): String {
             return "read(\"${role}\")"
-        }
+        }   
 
         /**
          * Generate write permission string for the provided role.
@@ -27,8 +27,8 @@ class Permission {
          */
         fun write(role: String): String {
             return "write(\"${role}\")"
-        }
-
+        }        
+        
         /**
          * Generate create permission string for the provided role.
          *
@@ -37,8 +37,8 @@ class Permission {
          */
         fun create(role: String): String {
             return "create(\"${role}\")"
-        }
-
+        }    
+        
         /**
          * Generate update permission string for the provided role.
          *
@@ -47,8 +47,8 @@ class Permission {
          */
         fun update(role: String): String {
             return "update(\"${role}\")"
-        }
-
+        }     
+        
         /**
          * Generate delete permission string for the provided role.
          *
@@ -57,6 +57,6 @@ class Permission {
          */
         fun delete(role: String): String {
             return "delete(\"${role}\")"
-        }
+        }        
     }
 }

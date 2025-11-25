@@ -4,45 +4,26 @@ const fs = require('fs');
 {% endif %}
 
 const client = new sdk.Client()
-{%~ if method.auth|length > 0 %}
+    {%~ if method.auth|length > 0 %}
     .setEndpoint('{{ spec.endpointDocs | raw }}') // Your API Endpoint
-{%~ for node in method.auth %}
-{%~ for key,header in node|keys %}
-    .set{{ header }}('{{ node[header]['x-appwrite']['demo'] | raw }}')
-{% if loop.last %}
-;{% endif %} // {{ node[header].description }}
-{%~ endfor %}
-{%~ endfor %}
-{%~ endif %}
+    {%~ for node in method.auth %}
+    {%~ for key,header in node|keys %}
+    .set{{header}}('{{node[header]['x-appwrite']['demo'] | raw }}'){% if loop.last %};{% endif%} // {{node[header].description}}
+    {%~ endfor %}
+    {%~ endfor %}
+    {%~ endif %}
 
-const {{ service.name | caseCamel }} = new sdk.{{ service.name | caseUcfirst }}(client);
+const {{ service.name | caseCamel }} = new sdk.{{service.name | caseUcfirst}}(client);
 
-const result = await {{ service.name | caseCamel }}.{{ method.name | caseCamel }}(
-    {% if method.parameters.all | length == 0 %}
-);
-    {% else %}
-{
+const result = await {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% if method.parameters.all | length == 0 %});
+{% else %}{
 {%~ for parameter in method.parameters.all %}
 {%~ if parameter.required %}
-    {{ parameter.name | caseCamel }}:
-        {% if parameter.enumValues | length > 0 %}
-sdk.{{ parameter.enumName | caseUcfirst }}.{{(parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}
-        {% else %}
-{{ parameter | paramExample }}
-        {% endif %}
-        {% if not loop.last %}
-,{% endif %}
+    {{ parameter.name | caseCamel }}: {% if parameter.enumValues | length > 0%}sdk.{{ parameter.enumName | caseUcfirst }}.{{(parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}{% else %}{{ parameter | paramExample}}{% endif %}{% if not loop.last %},{% endif%}
 
 {%~ else %}
-    {{ parameter.name | caseCamel }}:
-            {% if parameter.enumValues | length > 0 %}
-sdk.{{ parameter.enumName | caseUcfirst }}.{{(parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}
-            {% else %}
-{{ parameter | paramExample }}
-            {% endif %}
-            {% if not loop.last %}
-,{% endif %} // optional
+    {{ parameter.name | caseCamel }}: {% if parameter.enumValues | length > 0%}sdk.{{ parameter.enumName | caseUcfirst }}.{{(parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}{% else %}{{ parameter | paramExample}}{% endif %}{% if not loop.last %},{% endif%} // optional
 {%~ endif %}
 {%~ endfor -%}
 });
-            {% endif %}
+{% endif %}

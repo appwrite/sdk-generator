@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 
 class RealtimeResponseConnected {
   final List<String> channels;
-  final Map<String , dynamic> user;
+  final Map<String, dynamic> user;
   RealtimeResponseConnected({
     required this.channels,
     this.user = const {},
@@ -11,7 +11,7 @@ class RealtimeResponseConnected {
 
   RealtimeResponseConnected copyWith({
     List<String>? channels,
-    Map<String , dynamic>? user,
+    Map<String, dynamic>? user,
   }) {
     return RealtimeResponseConnected(
       channels: channels ?? this.channels,
@@ -19,17 +19,17 @@ class RealtimeResponseConnected {
     );
   }
 
-  Map<String , dynamic> toMap() {
+  Map<String, dynamic> toMap() {
     return {
       'channels': channels,
       'user': user,
     };
   }
 
-  factory RealtimeResponseConnected.fromMap(Map<String , dynamic> map) {
+  factory RealtimeResponseConnected.fromMap(Map<String, dynamic> map) {
     return RealtimeResponseConnected(
       channels: List<String>.from(map['channels']),
-      user: Map<String , dynamic>.from(map['user'] ?? {}),
+      user: Map<String, dynamic>.from(map['user'] ?? {}),
     );
   }
 

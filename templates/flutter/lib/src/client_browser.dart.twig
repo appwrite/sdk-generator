@@ -18,9 +18,9 @@ ClientBase createClient({required String endPoint, required bool selfSigned}) =>
 class ClientBrowser extends ClientBase with ClientMixin {
   static const int chunkSize = 5 * 1024 * 1024;
   String _endPoint;
-  Map<String , String>? _headers;
+  Map<String, String>? _headers;
   @override
-  late Map<String , String> config;
+  late Map<String, String> config;
   late BrowserClient _httpClient;
   String? _endPointRealtime;
 
@@ -42,7 +42,7 @@ class ClientBrowser extends ClientBase with ClientMixin {
       'x-sdk-language': '{{ language.name | caseLower }}',
       'x-sdk-version': '{{ sdk.version }}',
 {% for key,header in spec.global.defaultHeaders %}
-      '{{ key }}': '{{ header }}',
+      '{{key}}': '{{header}}',
 {% endfor %}
     };
 
@@ -59,13 +59,13 @@ class ClientBrowser extends ClientBase with ClientMixin {
   String get endPoint => _endPoint;
 
 {% for header in spec.global.headers %}
-    {% if header.description %}
-  /// {{ header.description }}
-    {% endif %}
+{% if header.description %}
+  /// {{header.description}}
+{% endif %}
   @override
-  ClientBrowser set{{ header.key | caseUcfirst }}(value) {
+  ClientBrowser set{{header.key | caseUcfirst}}(value) {
     config['{{ header.key | caseCamel }}'] = value;
-    addHeader('{{ header.name }}', value);
+    addHeader('{{header.name}}', value);
     return this;
   }
 {% endfor %}
@@ -78,7 +78,7 @@ class ClientBrowser extends ClientBase with ClientMixin {
   @override
   ClientBrowser setEndpoint(String endPoint) {
     if (!endPoint.startsWith('http://') && !endPoint.startsWith('https://')) {
-      throw {{ spec.title | caseUcfirst }}Exception('Invalid endpoint URL: $endPoint');
+      throw {{spec.title | caseUcfirst}}Exception('Invalid endpoint URL: $endPoint');
     }
 
     _endPoint = endPoint;
@@ -92,7 +92,7 @@ class ClientBrowser extends ClientBase with ClientMixin {
   @override
   ClientBrowser setEndPointRealtime(String endPoint) {
     if (!endPoint.startsWith('ws://') && !endPoint.startsWith('wss://')) {
-      throw {{ spec.title | caseUcfirst }}Exception('Invalid realtime endpoint URL: $endPoint');
+      throw {{spec.title | caseUcfirst}}Exception('Invalid realtime endpoint URL: $endPoint');
     }
 
     _endPointRealtime = endPoint;
@@ -116,15 +116,15 @@ class ClientBrowser extends ClientBase with ClientMixin {
   @override
   Future<Response> chunkedUpload({
     required String path,
-    required Map<String , dynamic> params,
+    required Map<String, dynamic> params,
     required String paramName,
     required String idParamName,
-    required Map<String , String> headers,
+    required Map<String, String> headers,
     Function(UploadProgress)? onProgress,
   }) async {
     InputFile file = params[paramName];
     if (file.bytes == null) {
-      throw {{ spec.title | caseUcfirst }}Exception("File bytes must be provided for Flutter web");
+      throw {{spec.title | caseUcfirst}}Exception("File bytes must be provided for Flutter web");
     }
 
     int size = file.bytes!.length;
@@ -155,7 +155,7 @@ class ClientBrowser extends ClientBase with ClientMixin {
         );
         final int chunksUploaded = res.data['chunksUploaded'] as int;
         offset = chunksUploaded * chunkSize;
-      } on {{ spec.title | caseUcfirst }}Exception catch (_) {}
+      } on {{spec.title | caseUcfirst}}Exception catch (_) {}
     }
 
     while (offset < size) {
@@ -177,7 +177,7 @@ class ClientBrowser extends ClientBase with ClientMixin {
       );
       offset += chunkSize;
       if (offset < size) {
-        headers['x-{{ spec.title | caseLower }}-id'] = res.data['\$id'];
+        headers['x-{{spec.title | caseLower }}-id'] = res.data['\$id'];
       }
       final progress = UploadProgress(
         $id: res.data['\$id'] ?? '',
@@ -195,8 +195,8 @@ class ClientBrowser extends ClientBase with ClientMixin {
   Future<Response> call(
     HttpMethod method, {
     String path = '',
-    Map<String , String> headers = const {},
-    Map<String , dynamic> params = const {},
+    Map<String, String> headers = const {},
+    Map<String, dynamic> params = const {},
     ResponseType? responseType,
   }) async {
     await init();
@@ -225,17 +225,17 @@ class ClientBrowser extends ClientBase with ClientMixin {
       final cookieFallback = res.headers['x-fallback-cookies'];
       if (cookieFallback != null) {
         debugPrint(
-          '{{ spec.title | caseUcfirst }} is using localStorage for session management. Increase your security by adding a custom domain as your API endpoint.',
+          '{{spec.title | caseUcfirst}} is using localStorage for session management. Increase your security by adding a custom domain as your API endpoint.',
         );
         addHeader('X-Fallback-Cookies', cookieFallback);
         web.window.localStorage.setItem('cookieFallback', cookieFallback);
       }
       return prepareResponse(res, responseType: responseType);
     } catch (e) {
-      if (e is {{ spec.title | caseUcfirst }}Exception) {
+      if (e is {{spec.title | caseUcfirst}}Exception) {
         rethrow;
       }
-      throw {{ spec.title | caseUcfirst }}Exception(e.toString());
+      throw {{spec.title | caseUcfirst}}Exception(e.toString());
     }
   }
 
@@ -243,7 +243,7 @@ class ClientBrowser extends ClientBase with ClientMixin {
   Future webAuth(Uri url, {String? callbackUrlScheme}) {
     return FlutterWebAuth2.authenticate(
       url: url.toString(),
-      callbackUrlScheme: "{{ spec.title | caseLower }}-callback-${config['project']!}",
+      callbackUrlScheme: "{{spec.title | caseLower}}-callback-${config['project']!}",
       options: const FlutterWebAuth2Options(useWebview: false),
     );
   }

@@ -1,26 +1,26 @@
 {%- set requireModelsPkg = false -%}
 {%- set requireFilesPkg = false -%}
 {%- for method in service.methods -%}
-    {%- if (method | returnType(spec, spec.title | caseLower)) starts with "models" -%}
-{%- set requireModelsPkg = true -%}
-    {%- endif -%}
-    {% for parameter in method.parameters.all %}
-        {%- if (parameter | typeName) ends with "InputFile" -%}
-{%- set requireFilesPkg = true -%}
-        {%- endif -%}
-    {% endfor %}
+{%- if (method | returnType(spec, spec.title | caseLower)) starts with "models" -%}
+		{%- set requireModelsPkg = true -%}
+{%- endif -%}
+{% for parameter in method.parameters.all %}
+	{%- if (parameter | typeName) ends with "InputFile"  -%}
+		{%- set requireFilesPkg = true -%}
+	{%- endif -%}
+{% endfor %}
 {%- endfor -%}
 package {{ service.name | caseLower }}
 
 import (
 	"encoding/json"
 	"errors"
-	"github.com/{{ sdk.gitUserName }}/sdk-for-go/client"
+	"github.com/{{sdk.gitUserName}}/sdk-for-go/client"
 {% if requireModelsPkg %}
-	"github.com/{{ sdk.gitUserName }}/sdk-for-go/models"
+	"github.com/{{sdk.gitUserName}}/sdk-for-go/models"
 {% endif %}
 {% if requireFilesPkg %}
-	"github.com/{{ sdk.gitUserName }}/sdk-for-go/file"
+	"github.com/{{sdk.gitUserName}}/sdk-for-go/file"
 {% endif %}
 	"strings"
 )
@@ -37,83 +37,76 @@ func New(clt client.Client) *{{ service.name | caseUcfirst }} {
 }
 
 {% for method in service.methods %}
-    {% if method.parameters.all|filter(v => not v.required)|length > 0 %}
+{% if method.parameters.all|filter(v => not v.required)|length > 0 %}
 type {{ (method.name ~ "Options") | caseUcfirst }} struct {
-        {% for parameter in method.parameters.all %}
-            {% if not parameter.required %}
+{% for parameter in method.parameters.all %}
+{% if not parameter.required %}
 	{{ parameter.name | caseUcfirst }} {{ (parameter | typeName) }}
-            {% endif %}
-        {% endfor %}
+{% endif %}
+{% endfor %}
 	enabledSetters map[string]bool
 }
 func (options {{ (method.name ~ "Options") | caseUcfirst }}) New() *{{ (method.name ~ "Options") | caseUcfirst }} {
 	options.enabledSetters = map[string]bool{
-        {% for parameter in method.parameters.all %}
-            {% if not parameter.required %}
+{% for parameter in method.parameters.all %}
+{% if not parameter.required %}
 		"{{ parameter.name | caseUcfirst }}": false,
-            {% endif %}
-        {% endfor %}
+{% endif %}
+{% endfor %}
 	}
 	return &options
 }
 type {{ (method.name ~ "Option" ) | caseUcfirst }} func(*{{ (method.name ~ "Options") | caseUcfirst }})
-        {% for parameter in method.parameters.all|filter(v => not v.required) %}
+{% for parameter in method.parameters.all|filter(v => not v.required) %}
 func (srv *{{ service.name | caseUcfirst }}) With{{ method.name | caseUcfirst }}{{ parameter.name | caseUcfirst }}(v {{ (parameter | typeName) }}) {{ (method.name ~ "Option") | caseUcfirst }} {
 	return func(o *{{ (method.name ~ "Options") | caseUcfirst }}) {
 		o.{{ parameter.name | caseUcfirst }} = v
 		o.enabledSetters["{{ parameter.name | caseUcfirst }}"] = true
 	}
 }
-        {% endfor %}
-    {% endif %}
-{% set params = "" %}
-    {% if method.parameters.all|filter(v => v.required)|length > 0 %}
-        {% for parameter in method.parameters.all|filter(v => v.required) %}
-{% set params = params ~ (parameter.name | caseUcfirst) ~ " " ~ (parameter | typeName) %}
-            {% if not loop.last %}
-{% set params = params ~ ", " %}
-            {% endif %}
-        {% endfor %}
-        {% if method.parameters.all|filter(v => not v.required)|length > 0 %}
-{% set params = params ~ ", " %}
-        {% endif %}
-    {% endif %}
-    {% if method.parameters.all|filter(v => not v.required)|length > 0 %}
-{% set params = params ~ "optionalSetters ..." ~ ((method.name ~ "Option") | caseUcfirst) %}
-    {% endif %}
+{% endfor %}
+{% endif %}
+{% set params="" %}
+{% if method.parameters.all|filter(v => v.required)|length > 0 %}
+{% for parameter in method.parameters.all|filter(v => v.required) %}
+	{% set params = params ~ (parameter.name | caseUcfirst) ~ " " ~ (parameter | typeName) %}
+{% if not loop.last %}
+	{% set params = params ~ ", " %}
+{% endif %}
+{% endfor %}
+{% if method.parameters.all|filter(v => not v.required)|length > 0 %}
+	{% set params = params ~ ", " %}
+{% endif %}
+{% endif %}
+{% if method.parameters.all|filter(v => not v.required)|length > 0 %}
+	{% set params = params ~ "optionalSetters ..." ~ ((method.name ~ "Option") | caseUcfirst) %}
+{% endif %}
 
-    {% if method.description %}
+{% if method.description %}
 {{ ((method.name | caseUcfirst) ~ ' ' ~ method.description | caseLcfirst) | godocComment }}
-    {% else %}
+{% else %}
 // {{ method.name | caseUcfirst }}
-    {% endif %}
-    {% if method.deprecated %}
+{% endif %}
+{% if method.deprecated %}
 //
 {%~ if method.since and method.replaceWith %}
 // Deprecated: This API has been deprecated since {{ method.since }}. Please use `{{ method.replaceWith | capitalizeFirst }}` instead.
 {%~ else %}
 // Deprecated: This API has been deprecated.
 {%~ endif %}
-    {% endif %}
+{% endif %}
 func (srv *{{ service.name | caseUcfirst }}) {{ method.name | caseUcfirst }}({{ params }})(*{{ method | returnType(spec, spec.title | caseLower) }}, error) {
-    {% if method.parameters.path|length > 0 %}
-	r := strings.NewReplacer(
-        {% for parameter in method.parameters.path %}
-"{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}", {{ parameter.name | caseUcfirst }}
-            {% if not loop.last %}
-,
-            {% endif %}
-        {% endfor %}
-)
+{% if method.parameters.path|length > 0 %}
+	r := strings.NewReplacer({% for parameter in method.parameters.path %}"{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}", {{ parameter.name | caseUcfirst }}{% if not loop.last %}, {% endif %}{% endfor %})
 	path := r.Replace("{{ method.path }}")
-    {% else %}
+{% else %}
 	path := "{{ method.path }}"
-    {% endif %}
-{{ include("go/base/params.twig") }}
-    {% if 'multipart/form-data' in method.consumes %}
-{{ include("go/base/requests/file.twig") }}
-    {% else %}
-{{ include("go/base/requests/api.twig") }}
-    {% endif %}
+{% endif %}
+{{include('go/base/params.twig')}}
+{% if 'multipart/form-data' in method.consumes %}
+{{ include('go/base/requests/file.twig') }}
+{% else %}
+{{ include('go/base/requests/api.twig') }}
+{% endif %}
 }
 {% endfor %}

@@ -5,8 +5,8 @@
     }
 {% endfor %}
 {% for parameter in method.parameters.body %}
-    {% if parameter.type == 'file' %}
-        {% if method.packaging %}
+{% if parameter.type == 'file' %}
+{% if method.packaging %}
     const folderPath = fs.realpathSync({{ parameter.name | caseCamel | escapeKeyword }});
     if (!fs.lstatSync(folderPath).isDirectory()) {
         throw new Error('The path is not a directory.');
@@ -14,13 +14,13 @@
 
     const ignorer = ignore();
 
-            {% if service.name == 'sites' %}
+{% if service.name == 'sites' %}
     const resourceId = siteId;
     const resourceConfig = localConfig.getSite(resourceId);
-            {% else %}
+{% else %}
     const resourceId = functionId;
     const resourceConfig = localConfig.getFunction(resourceId);
-            {% endif %}
+{% endif %}
 
     ignorer.add('.appwrite');
 
@@ -48,7 +48,7 @@
        {{ parameter.name | caseCamel | escapeKeyword }} = archivePath;
     }
 
-        {% endif %}
+{% endif %}
     const filePath = fs.realpathSync({{ parameter.name | caseCamel | escapeKeyword }});
     const nodeStream = fs.createReadStream(filePath);
     const stream = convertReadStreamToReadableStream(nodeStream);
@@ -57,36 +57,32 @@
         {{ parameter.name | caseCamel | escapeKeyword }} = { type: 'file', stream, filename: pathLib.basename(filePath), size: fs.statSync(filePath).size };
         payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }}
     }
-    {% elseif parameter.type == 'boolean' %}
+{% elseif parameter.type == 'boolean' %}
     if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
         payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
     }
-    {% elseif parameter.type == 'number' %}
+{% elseif parameter.type == 'number' %}
     if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
         payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
     }
-    {% elseif parameter.type == 'string' %}
+{% elseif parameter.type == 'string' %}
     if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
         payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
     }
-    {% elseif parameter.type == 'object' %}
+{% elseif parameter.type == 'object' %}
     if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
-        payload['{{ parameter.name }}'] = JSON.parse({{ parameter.name | caseCamel | escapeKeyword }});
+        payload['{{ parameter.name }}'] = JSON.parse({{ parameter.name | caseCamel | escapeKeyword}});
     }
-    {% elseif parameter.type == 'array' %}
-    {{ parameter.name | caseCamel | escapeKeyword }} = {{ parameter.name | caseCamel | escapeKeyword }} === true ? [] : {{ parameter.name | caseCamel | escapeKeyword }};
+{% elseif parameter.type == 'array' %}
+    {{ parameter.name | caseCamel | escapeKeyword}} = {{ parameter.name | caseCamel | escapeKeyword}} === true ? [] : {{ parameter.name | caseCamel | escapeKeyword}};
     if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
-        payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
+        payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword}};
     }
-    {% else %}
+{% else %}
     if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
-        payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }}
-        {% if method.consumes[0] == "multipart/form-data" %}
-.toString()
-        {% endif %}
-;
+        payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword}}{% if method.consumes[0] == "multipart/form-data" %}.toString(){% endif %};
     }
-    {% endif %}
+{% endif %}
 {% endfor %}
 {% if method.type == 'location' %}
     if (!overrideForCli) {

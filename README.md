@@ -70,15 +70,15 @@ $sdk->generate(__DIR__ . '/examples/php'); // Generate source code
 
 ```
 
-## Linting and Formatting Twig Templates
+## Linting Twig Templates
 
-This project uses [djLint](https://djlint.com/) to lint and format Twig template files.
+This project uses [djLint](https://djlint.com/) to lint Twig template files for syntax and common issues.
 
-**Available commands:**
+**Note:** Formatting is disabled as it breaks code generation syntax. Only linting is used.
+
+**Available command:**
 ```bash
-composer lint-twig         # Check for linting errors
-composer format-twig       # Auto-format all Twig files
-composer format-twig-check # Check formatting without changes
+composer lint-twig  # Check for linting errors
 ```
 
 Requires [uv](https://github.com/astral-sh/uv) to be installed. Configuration is in `pyproject.toml`. The linter runs automatically on pull requests via GitHub Actions.

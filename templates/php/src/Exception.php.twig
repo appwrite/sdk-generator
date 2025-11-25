@@ -4,7 +4,7 @@ namespace {{ spec.title | caseUcfirst }};
 
 use Exception;
 
-class {{ spec.title | caseUcfirst }}Exception extends Exception {
+class {{spec.title | caseUcfirst}}Exception extends Exception {
 
   /**
    * @var mixed
@@ -40,7 +40,7 @@ class {{ spec.title | caseUcfirst }}Exception extends Exception {
   {
       return $this->type;
   }
-
+  
   /**
    * @return ?string
    */

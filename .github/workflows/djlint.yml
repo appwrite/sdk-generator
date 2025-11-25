@@ -28,8 +28,4 @@ jobs:
 
       - name: Run djLint linter
         run: |
-          uvx djlint templates/ --check --lint
-
-      - name: Run djLint formatter check
-        run: |
-          uvx djlint templates/ --check
+          uvx djlint templates/ --lint

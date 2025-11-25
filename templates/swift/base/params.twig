@@ -1,38 +1,27 @@
         let apiPath: String = "{{ method.path }}"
-{%~ for parameter in method.parameters.path %}
-            .replacingOccurrences(of: "{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}", with: {{ parameter.name | caseCamel | escapeSwiftKeyword }}
-{% if parameter.enumValues is not empty %}
-.rawValue
-{% endif %}
-)
-{%~ endfor %}
+        {%~ for parameter in method.parameters.path %}
+            .replacingOccurrences(of: "{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}", with: {{ parameter.name | caseCamel | escapeSwiftKeyword }}{% if parameter.enumValues is not empty %}.rawValue{% endif %})
+        {%~ endfor %}
 
-{%~ if method.parameters.query | merge(method.parameters.body) | length <= 0 %}
+        {%~ if method.parameters.query | merge(method.parameters.body) | length <= 0 %}
         let apiParams: [String: Any] = [:]
-{%~ else %}
-{% if 'multipart/form-data' in method.consumes -%}
- var
-{%- else -%} let
-{%- endif %} apiParams: [String: Any?] = [
-{%~ for parameter in method.parameters.query | merge(method.parameters.body) %}
-            "{{ parameter.name }}": {{ parameter.name | caseCamel | escapeSwiftKeyword }}
-{% if not loop.last or (method.type == 'location' or method.type == 'webAuth' and method.auth | length > 0) %}
-,
-{% endif %}
+        {%~ else %}
+        {% if 'multipart/form-data' in method.consumes -%} var
+        {%- else -%} let
+        {%- endif %} apiParams: [String: Any?] = [
+        {%~ for parameter in method.parameters.query | merge(method.parameters.body) %}
+            "{{ parameter.name }}": {{ parameter.name | caseCamel | escapeSwiftKeyword }}{% if not loop.last or (method.type == 'location' or method.type == 'webAuth' and method.auth | length > 0) %},{% endif %}
 
-{%~ endfor %}
-{%~ if method.type == 'location' or method.type == 'webAuth' %}
-{%~ if method.auth | length > 0 %}
-{%~ for node in method.auth %}
-{%~ for key,header in node | keys %}
-            "{{ header | caseLower }}": client.config["{{ header | caseLower }}"]
-{% if not loop.last %}
-,
-{% endif %}
+        {%~ endfor %}
+        {%~ if method.type == 'location' or method.type == 'webAuth' %}
+        {%~ if method.auth | length > 0 %}
+        {%~ for node in method.auth %}
+        {%~ for key,header in node | keys %}
+            "{{ header | caseLower }}": client.config["{{ header | caseLower }}"]{% if not loop.last %},{% endif %}
 
-{%~ endfor %}
-{%~ endfor %}
-{%~ endif %}
-{%~ endif %}
+        {%~ endfor %}
+        {%~ endfor %}
+        {%~ endif %}
+        {%~ endif %}
         ]
-{%~ endif %}
+        {%~ endif %}

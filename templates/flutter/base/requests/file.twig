@@ -1,23 +1,23 @@
 {% import 'flutter/base/utils.twig' as utils %}
-        final Map<String , dynamic> apiParams = {
-            {{ ~ utils.map_parameter(method.parameters.query) }}
-            {{ ~ utils.map_parameter(method.parameters.body) }}
+        final Map<String, dynamic> apiParams = {
+            {{~ utils.map_parameter(method.parameters.query) }}
+            {{~ utils.map_parameter(method.parameters.body) }}
         };
 
-        final Map<String , String> apiHeaders = {
-            {{ ~ utils.map_headers(method.headers) }}
+        final Map<String, String> apiHeaders = {
+            {{~ utils.map_headers(method.headers) }}
         };
 
 {% if 'multipart/form-data' in method.consumes %}
         String idParamName = '';
-    {% for parameter in method.parameters.all %}
-        {% if parameter.type == 'file' %}
+{% for parameter in method.parameters.all %}
+{% if parameter.type == 'file' %}
         final paramName = '{{ parameter.name }}';
-        {% endif %}
-        {% if parameter.isUploadID %}
+{% endif %}
+{% if parameter.isUploadID %}
         idParamName = '{{ parameter.name }}';
-        {% endif %}
-    {% endfor %}
+{% endif %}
+{% endfor %}
         final res = await client.chunkedUpload(
             path: apiPath,
             params: apiParams,
@@ -27,11 +27,5 @@
             onProgress: onProgress,
           );
 
-        return
-    {% if method.responseModel and method.responseModel != 'any' %}
-models.{{ method.responseModel | caseUcfirst | overrideIdentifier }}.fromMap(res.data)
-    {% else %}
- res.data
-    {% endif %}
-;
+        return {% if method.responseModel and method.responseModel != 'any' %}models.{{method.responseModel | caseUcfirst | overrideIdentifier}}.fromMap(res.data){% else %} res.data{% endif %};
 {% endif %}

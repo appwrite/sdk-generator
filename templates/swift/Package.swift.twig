@@ -3,7 +3,7 @@
 import PackageDescription
 
 let package = Package(
-    name: "{{ spec.title | caseUcfirst }}",
+    name: "{{spec.title | caseUcfirst}}",
     platforms: [
         .iOS("15.0"),
         .macOS("11.0"),
@@ -12,11 +12,11 @@ let package = Package(
     ],
     products: [
         .library(
-            name: "{{ spec.title | caseUcfirst }}",
+            name: "{{spec.title | caseUcfirst}}",
             targets: [
-                "{{ spec.title | caseUcfirst }}",
-                "{{ spec.title | caseUcfirst }}Enums",
-                "{{ spec.title | caseUcfirst }}Models",
+                "{{spec.title | caseUcfirst}}",
+                "{{spec.title | caseUcfirst}}Enums",
+                "{{spec.title | caseUcfirst}}Models",
                 "JSONCodable"
             ]
         ),
@@ -27,40 +27,40 @@ let package = Package(
     ],
     targets: [
         .target(
-            name: "{{ spec.title | caseUcfirst }}",
+            name: "{{spec.title | caseUcfirst}}",
             dependencies: [
                 .product(name: "AsyncHTTPClient", package: "async-http-client"),
                 .product(name: "NIOWebSocket", package: "swift-nio"),
-{%~ if spec.definitions is not empty %}
-                "{{ spec.title | caseUcfirst }}Models",
-{%~ endif %}
-{%~ if spec.allEnums is not empty %}
-                "{{ spec.title | caseUcfirst }}Enums",
-{%~ endif %}
+                {%~ if spec.definitions is not empty %}
+                "{{spec.title | caseUcfirst}}Models",
+                {%~ endif %}
+                {%~ if spec.allEnums is not empty %}
+                "{{spec.title | caseUcfirst}}Enums",
+                {%~ endif %}
                 "JSONCodable"
             ]
         ),
-{%~ if spec.definitions is not empty %}
+        {%~ if spec.definitions is not empty %}
         .target(
-            name: "{{ spec.title | caseUcfirst }}Models",
+            name: "{{spec.title | caseUcfirst}}Models",
             dependencies: [
-{%~ if spec.allEnums is not empty %}
-                "{{ spec.title | caseUcfirst }}Enums",
-{%~ endif %}
+                {%~ if spec.allEnums is not empty %}
+                "{{spec.title | caseUcfirst}}Enums",
+                {%~ endif %}
                 "JSONCodable"
             ]
         ),
-{%~ endif %}
-{%~ if spec.allEnums is not empty %}
+        {%~ endif %}
+        {%~ if spec.allEnums is not empty %}
         .target(
-            name: "{{ spec.title | caseUcfirst }}Enums"
+            name: "{{spec.title | caseUcfirst}}Enums"
         ),
-{%~ endif %}
+        {%~ endif %}
         .target(
             name: "JSONCodable"
         ),
         .testTarget(
-            name: "{{ spec.title | caseUcfirst }}Tests",
+            name: "{{spec.title | caseUcfirst}}Tests",
             dependencies: [
                 "{{ spec.title | caseUcfirst }}"
             ]

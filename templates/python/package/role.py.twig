@@ -3,7 +3,7 @@ class Role:
     @staticmethod
     def any():
         """Grants access to anyone.
-
+        
         This includes authenticated and unauthenticated users.
         """
         return 'any'
@@ -31,7 +31,7 @@ class Role:
     @staticmethod
     def users(status = ""):
         """Grants access to any authenticated or anonymous user.
-
+        
         You can optionally pass verified or unverified for
         `status` to target specific types of users.
 
@@ -46,7 +46,7 @@ class Role:
         if status:
             return f'users/{status}'
         return 'users'
-
+    
     @staticmethod
     def guests():
         """Grants access to any guest user without a session.

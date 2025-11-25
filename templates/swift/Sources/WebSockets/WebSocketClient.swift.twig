@@ -58,9 +58,9 @@ public class WebSocketClient {
     public var isConnected: Bool {
         channel?.isActive ?? false
     }
-
+    
     // MARK: - Stored callbacks
-
+    
     private var _openCallback: (Channel) -> Void = { _ in }
     var onOpen: (Channel) -> Void {
         get {
@@ -74,7 +74,7 @@ public class WebSocketClient {
             }
         }
     }
-
+    
     private var _closeCallback: (Channel, Data) -> Void = { _,_ in }
     var onClose: (Channel, Data) -> Void {
         get {
@@ -102,7 +102,7 @@ public class WebSocketClient {
             }
         }
     }
-
+    
     private var _binaryCallback: (Data) -> Void = { _ in }
     var onBinaryMessage: (Data) -> Void {
         get {
@@ -116,7 +116,7 @@ public class WebSocketClient {
             }
         }
     }
-
+    
     private var _errorCallBack: (Swift.Error?, HTTPResponseStatus?) -> Void = { _,_ in }
     var onError: (Swift.Error?, HTTPResponseStatus?) -> Void {
         get {
@@ -130,9 +130,9 @@ public class WebSocketClient {
             }
         }
     }
-
+    
     // MARK: - Callback setters
-
+    
     /// Set a callback to be fired when a WebSocket connection is opened.
     ///
     /// - parameters:
@@ -140,7 +140,7 @@ public class WebSocketClient {
     public func onOpen(_ callback: @escaping (Channel) -> Void) {
         onOpen = callback
     }
-
+    
     /// Set a callback to be fired when a WebSocket text message is received.
     ///
     /// - parameters:
@@ -172,9 +172,9 @@ public class WebSocketClient {
     public func onError(_ callback: @escaping (Swift.Error?, HTTPResponseStatus?) -> Void) {
         onError = callback
     }
-
+    
     // MARK: - Constructors
-
+    
     /// Create a new `WebSocketClient`.
     ///
     /// - parameters:
@@ -394,7 +394,7 @@ public class WebSocketClient {
     ///     - model:        The model to encode and send
     ///     - opcode:       Websocket opcode indicating type of the frame
     ///     - finalFrame:   Whether the frame to be sent is the last one
-    public func send<T : Codable>(
+    public func send<T: Codable>(
         model: T,
         opcode: WebSocketOpcode = .text,
         finalFrame: Bool = true,

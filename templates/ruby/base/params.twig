@@ -4,19 +4,19 @@
 {% endfor %}
 
 {% for parameter in method.parameters.all %}
-    {% if parameter.required %}
+{% if parameter.required %}
             if {{ parameter.name | caseSnake | escapeKeyword }}.nil?
-              raise {{ spec.title | caseUcfirst }}::Exception.new('Missing required parameter: "{{ parameter.name | caseCamel | escapeKeyword }}"')
+              raise {{spec.title | caseUcfirst}}::Exception.new('Missing required parameter: "{{ parameter.name | caseCamel | escapeKeyword }}"')
             end
 
-    {% endif %}
+{% endif %}
 {% endfor %}
             api_params = {
-{% for parameter in method.parameters.query | merge(method.parameters.body) %}
+{% for parameter in method.parameters.query | merge(method.parameters.body)  %}
                 {{ parameter.name }}: {{ parameter.name | caseSnake | escapeKeyword }},
 {% endfor %}
             }
-
+            
             api_headers = {
 {% for parameter in method.parameters.header %}
                 "{{ parameter.name }}": {{ parameter.name | caseCamel | escapeKeyword }},

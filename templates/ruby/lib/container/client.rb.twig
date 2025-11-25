@@ -15,34 +15,28 @@ module {{ spec.title | caseUcfirst }}
                 'x-sdk-name'=> '{{ sdk.name }}',
                 'x-sdk-platform'=> '{{ sdk.platform }}',
                 'x-sdk-language'=> '{{ language.name | caseLower }}',
-                'x-sdk-version'=> '{{ sdk.version }}'
-{% if spec.global.defaultHeaders | length > 0 %}
-,
-{% endif %}
+                'x-sdk-version'=> '{{ sdk.version }}'{% if spec.global.defaultHeaders | length > 0 %},{% endif %}
 
 {% for key,header in spec.global.defaultHeaders %}
-                '{{ key }}' => '{{ header }}'
-    {% if not loop.last %}
-,
-    {% endif %}
+                '{{key}}' => '{{header}}'{% if not loop.last %},{% endif %}
 {% endfor %}
 
             }
-            @endpoint = '{{ spec.endpoint }}'
+            @endpoint = '{{spec.endpoint}}'
         end
 
 {% for header in spec.global.headers %}
-        # Set {{ header.key | caseUcfirst }}
+        # Set {{header.key | caseUcfirst}}
         #
-    {% if header.description %}
-        # {{ header.description }}
+{% if header.description %}
+        # {{header.description}}
         #
-    {% endif %}
+{% endif %}
         # @param [String] value The value to set for the {{ header.key }} header
         #
         # @return [self]
-        def set_{{ header.key | caseSnake }}(value)
-            add_header('{{ header.name | caseLower }}', value)
+        def set_{{header.key | caseSnake}}(value)
+            add_header('{{header.name | caseLower}}', value)
 
             self
         end
@@ -55,7 +49,7 @@ module {{ spec.title | caseUcfirst }}
         # @return [self]
         def set_endpoint(endpoint)
             if not endpoint.start_with?('http://') and not endpoint.start_with?('https://')
-                raise {{ spec.title | caseUcfirst }}::Exception.new('Invalid endpoint URL: ' + endpoint)
+                raise {{spec.title | caseUcfirst}}::Exception.new('Invalid endpoint URL: ' + endpoint)
             end
 
             @endpoint = endpoint
@@ -233,7 +227,7 @@ module {{ spec.title | caseUcfirst }}
             begin
                 response = @http.send_request(method, uri.request_uri, payload, headers)
             rescue => error
-                raise {{ spec.title | caseUcfirst }}::Exception.new(error.message)
+                raise {{spec.title | caseUcfirst}}::Exception.new(error.message)
             end
 
             warnings = response['x-{{ spec.title | lower }}-warning']
@@ -258,11 +252,11 @@ module {{ spec.title | caseUcfirst }}
                 begin
                     result = JSON.parse(response.body)
                 rescue JSON::ParserError => e
-                    raise {{ spec.title | caseUcfirst }}::Exception.new(response.body, response.code, nil, response.body)
+                    raise {{spec.title | caseUcfirst}}::Exception.new(response.body, response.code, nil, response.body)
                 end
 
                 if response.code.to_i >= 400
-                    raise {{ spec.title | caseUcfirst }}::Exception.new(result['message'], result['status'], result['type'], response.body)
+                    raise {{spec.title | caseUcfirst}}::Exception.new(result['message'], result['status'], result['type'], response.body)
                 end
 
                 unless response_type.respond_to?("from")
@@ -273,7 +267,7 @@ module {{ spec.title | caseUcfirst }}
             end
 
             if response.code.to_i >= 400
-                raise {{ spec.title | caseUcfirst }}::Exception.new(response.body, response.code, response, response.body)
+                raise {{spec.title | caseUcfirst}}::Exception.new(response.body, response.code, response, response.body)
             end
 
             if response.respond_to?("body_permitted?")

@@ -1,26 +1,15 @@
 {%- macro map_parameter(parameters) -%}
-    {%- for parameter in parameters ~ %}
-        {% if not parameter.nullable and not parameter.required %}
-            if ({{ parameter.name | caseCamel | overrideIdentifier }} != null) '{{ parameter.name }}': {{ parameter.name | caseCamel | overrideIdentifier }}
-            {% if parameter.enumValues | length > 0 %}
-!.value
-            {% endif %}
-,
-        {% else %}
-            '{{ parameter.name }}': {{ parameter.name | caseCamel | overrideIdentifier }}
-            {% if parameter.enumValues | length > 0 %}
-                {% if not parameter.required %}
-?
-                {% endif %}
-.value
-            {% endif %}
-,
-        {% endif %}
-    {%- endfor ~ %}
-{%- endmacro ~ %}
+{%- for parameter in parameters ~%}
+{% if not parameter.nullable and not parameter.required %}
+            if ({{ parameter.name | caseCamel | overrideIdentifier }} != null) '{{ parameter.name }}': {{ parameter.name | caseCamel | overrideIdentifier }}{% if parameter.enumValues | length > 0  %}!.value{% endif %},
+{% else %}
+            '{{ parameter.name }}': {{ parameter.name | caseCamel | overrideIdentifier }}{% if parameter.enumValues | length > 0  %}{% if not parameter.required %}?{% endif %}.value{% endif %},
+{% endif %}
+{%- endfor ~%}
+{%- endmacro ~%}
 
 {% macro map_headers(headers) -%}
-    {%- for key, header in headers %}
+{%- for key, header in headers %}
             '{{ key }}': '{{ header }}',
-    {%- endfor -%}
+{%- endfor -%}
 {%- endmacro -%}

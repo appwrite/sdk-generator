@@ -254,9 +254,9 @@ type UploadProgress = {
 }
 
 /**
- * Exception thrown by the {{ language.params.packageName }} package
+ * Exception thrown by the {{language.params.packageName}} package
  */
-class {{ spec.title | caseUcfirst }}Exception extends Error {
+class {{spec.title | caseUcfirst}}Exception extends Error {
     /**
      * The error code associated with the exception.
      */
@@ -269,12 +269,12 @@ class {{ spec.title | caseUcfirst }}Exception extends Error {
 
     /**
      * Error type.
-     * See [Error Types]({{ sdk.url }}/docs/response-codes#errorTypes) for more information.
+     * See [Error Types]({{sdk.url}}/docs/response-codes#errorTypes) for more information.
      */
     type: string;
 
     /**
-     * Initializes a {{ spec.title | caseUcfirst }} Exception.
+     * Initializes a {{spec.title | caseUcfirst}} Exception.
      *
      * @param {string} message - The error message.
      * @param {number} code - The error code. Default is 0.
@@ -283,7 +283,7 @@ class {{ spec.title | caseUcfirst }}Exception extends Error {
      */
     constructor(message: string, code: number = 0, type: string = '', response: string = '') {
         super(message);
-        this.name = '{{ spec.title | caseUcfirst }}Exception';
+        this.name = '{{spec.title | caseUcfirst}}Exception';
         this.message = message;
         this.code = code;
         this.type = type;
@@ -292,7 +292,7 @@ class {{ spec.title | caseUcfirst }}Exception extends Error {
 }
 
 /**
- * Client that handles requests to {{ spec.title | caseUcfirst }}
+ * Client that handles requests to {{spec.title | caseUcfirst}}
  */
 class Client {
     static CHUNK_SIZE = 1024 * 1024 * 5;
@@ -307,9 +307,9 @@ class Client {
     } = {
         endpoint: '{{ spec.endpoint }}',
         endpointRealtime: '',
-{%~ for header in spec.global.headers %}
+        {%~ for header in spec.global.headers %}
         {{ header.key | caseLower }}: '',
-{%~ endfor %}
+        {%~ endfor %}
     };
     /**
      * Custom headers for API requests.
@@ -319,9 +319,9 @@ class Client {
         'x-sdk-platform': '{{ sdk.platform }}',
         'x-sdk-language': '{{ language.name | caseLower }}',
         'x-sdk-version': '{{ sdk.version }}',
-{%~ for key,header in spec.global.defaultHeaders %}
-        '{{ key }}': '{{ header }}',
-{%~ endfor %}
+        {%~ for key,header in spec.global.defaultHeaders %}
+        '{{key}}': '{{header}}',
+        {%~ endfor %}
     };
 
     /**
@@ -335,7 +335,7 @@ class Client {
      */
     setEndpoint(endpoint: string): this {
         if (!endpoint.startsWith('http://') && !endpoint.startsWith('https://')) {
-            throw new {{ spec.title | caseUcfirst }}Exception('Invalid endpoint URL: ' + endpoint);
+            throw new {{spec.title | caseUcfirst}}Exception('Invalid endpoint URL: ' + endpoint);
         }
 
         this.config.endpoint = endpoint;
@@ -353,31 +353,31 @@ class Client {
      */
     setEndpointRealtime(endpointRealtime: string): this {
         if (!endpointRealtime.startsWith('ws://') && !endpointRealtime.startsWith('wss://')) {
-            throw new {{ spec.title | caseUcfirst }}Exception('Invalid realtime endpoint URL: ' + endpointRealtime);
+            throw new {{spec.title | caseUcfirst}}Exception('Invalid realtime endpoint URL: ' + endpointRealtime);
         }
 
         this.config.endpointRealtime = endpointRealtime;
         return this;
     }
 
-{%~ for header in spec.global.headers %}
+    {%~ for header in spec.global.headers %}
     /**
-     * Set {{ header.key | caseUcfirst }}
+     * Set {{header.key | caseUcfirst}}
      *
-{%~ if header.description %}
-     * {{ header.description }}
+    {%~ if header.description %}
+     * {{header.description}}
      *
-{%~ endif %}
+    {%~ endif %}
      * @param value string
      *
      * @return {this}
      */
-    set{{ header.key | caseUcfirst }}(value: string): this {
-        this.headers['{{ header.name }}'] = value;
+    set{{header.key | caseUcfirst}}(value: string): this {
+        this.headers['{{header.name}}'] = value;
         this.config.{{ header.key | caseLower }} = value;
         return this;
     }
-{%~ endfor %}
+    {%~ endfor %}
 
     private realtime: Realtime = {
         socket: undefined,
@@ -539,7 +539,7 @@ class Client {
     }
 
     /**
-     * Subscribes to {{ spec.title | caseUcfirst }} events and passes you the payload in realtime.
+     * Subscribes to {{spec.title | caseUcfirst}} events and passes you the payload in realtime.
      *
      * @deprecated Use the Realtime service instead.
      * @see Realtime
@@ -679,7 +679,7 @@ class Client {
             }
 
             if (response && response.$id) {
-                headers['x-{{ spec.title | caseLower }}-id'] = response.$id;
+                headers['x-{{spec.title | caseLower }}-id'] = response.$id;
             }
 
             start = end;
@@ -701,7 +701,7 @@ class Client {
 
         // type opaque: No-CORS, different-origin response (CORS-issue)
         if (response.type === 'opaque') {
-            throw new {{ spec.title | caseUcfirst }}Exception(
+            throw new {{spec.title | caseUcfirst}}Exception(
                 `Invalid Origin. Register your new client (${window.location.host}) as a new Web platform on your project console dashboard`,
                 403,
                 "forbidden",
@@ -731,13 +731,13 @@ class Client {
             } else {
                 responseText = data?.message;
             }
-            throw new {{ spec.title | caseUcfirst }}Exception(data?.message, response.status, data?.type, responseText);
+            throw new {{spec.title | caseUcfirst}}Exception(data?.message, response.status, data?.type, responseText);
         }
 
         const cookieFallback = response.headers.get('X-Fallback-Cookies');
 
         if (typeof window !== 'undefined' && window.localStorage && cookieFallback) {
-            window.console.warn('{{ spec.title | caseUcfirst }} is using localStorage for session management. Increase your security by adding a custom domain as your API endpoint.');
+            window.console.warn('{{spec.title | caseUcfirst}} is using localStorage for session management. Increase your security by adding a custom domain as your API endpoint.');
             window.localStorage.setItem('cookieFallback', cookieFallback);
         }
 
@@ -760,7 +760,7 @@ class Client {
     }
 }
 
-export { Client, {{ spec.title | caseUcfirst }}Exception };
+export { Client, {{spec.title | caseUcfirst}}Exception };
 export { Query } from './query';
 export type { Models, Payload, UploadProgress };
 export type { RealtimeResponseEvent };

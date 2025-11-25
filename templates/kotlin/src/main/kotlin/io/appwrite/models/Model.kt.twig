@@ -11,90 +11,66 @@ import {{ sdk.namespace | caseDot }}.enums.{{ property.enumName | caseUcfirst }}
 /**
  * {{ definition.description | replace({"\n": "\n * "}) | raw }}
  */
-{% if definition.properties | length != 0 or definition.additionalProperties %}
-data
-{% endif %}
-class {{ definition | modelType(spec) | raw }}(
-{%~ for property in definition.properties %}
+{% if definition.properties | length != 0 or definition.additionalProperties %}data {% endif %}class {{ definition | modelType(spec) | raw }}(
+    {%~ for property in definition.properties %}
     /**
      * {{ property.description | replace({"\n": "\n     * "}) | raw }}
      */
-    @SerializedName("{{ property.name | escapeKeyword | escapeDollarSign }}")
-{% if property.required -%}
- val
-{%- else -%} var
-{%- endif %} {{ property.name | escapeKeyword | removeDollarSign }}: {{ property | propertyType(spec) | raw }},
+    @SerializedName("{{ property.name | escapeKeyword | escapeDollarSign}}")
+    {% if property.required -%} val
+    {%- else -%} var
+    {%- endif %} {{ property.name | escapeKeyword | removeDollarSign }}: {{ property | propertyType(spec) | raw }},
 
-{%~ endfor %}
-{%~ if definition.additionalProperties %}
+    {%~ endfor %}
+    {%~ if definition.additionalProperties %}
     /**
      * Additional properties
      */
     @SerializedName("data")
     val data: T
-{%~ endif %}
+    {%~ endif %}
 ) {
-    fun toMap(): Map<String , Any> = mapOf(
-{%~ for property in definition.properties %}
-        "{{ property.name | escapeDollarSign }}" to
-{% if property.sub_schema %}
-    {% if property.type == 'array' %}
-{{ property.name | escapeKeyword | removeDollarSign }}.map { it.toMap() }
-    {% else %}
-{{ property.name | escapeKeyword | removeDollarSign }}.toMap()
-    {% endif %}
-{% elseif property.enum %}
-{{ property.name | escapeKeyword | removeDollarSign }}
-    {% if not property.required %}
-?
-    {% endif %}
-.value
-{% else %}
-{{ property.name | escapeKeyword | removeDollarSign }}
-{% endif %}
- as Any,
-{%~ endfor %}
-{%~ if definition.additionalProperties %}
+    fun toMap(): Map<String, Any> = mapOf(
+        {%~ for property in definition.properties %}
+        "{{ property.name | escapeDollarSign }}" to {% if property.sub_schema %}{% if property.type == 'array' %}{{property.name | escapeKeyword | removeDollarSign}}.map { it.toMap() }{% else %}{{property.name | escapeKeyword | removeDollarSign}}.toMap(){% endif %}{% elseif property.enum %}{{property.name | escapeKeyword | removeDollarSign}}{% if not property.required %}?{% endif %}.value{% else %}{{property.name | escapeKeyword | removeDollarSign}}{% endif %} as Any,
+        {%~ endfor %}
+        {%~ if definition.additionalProperties %}
         "data" to data!!.jsonCast(to = Map::class.java)
-{%~ endif %}
+        {%~ endif %}
     )
 
     companion object {
-{%~ if definition.name | hasGenericType(spec) %}
+        {%~ if definition.name | hasGenericType(spec) %}
         operator fun invoke(
-{%~ for property in definition.properties %}
-            {{ property.name | escapeKeyword | removeDollarSign }}: {{ property | propertyType(spec, 'Map<String , Any>') | raw }},
-{%~ endfor %}
-{%~ if definition.additionalProperties %}
-            data: Map<String , Any>
-{%~ endif %}
-        ) = {{ definition | modelType(spec, 'Map<String , Any>') | raw }}(
-{%~ for property in definition.properties %}
+            {%~ for property in definition.properties %}
+            {{ property.name | escapeKeyword | removeDollarSign }}: {{ property | propertyType(spec, 'Map<String, Any>') | raw }},
+            {%~ endfor %}
+            {%~ if definition.additionalProperties %}
+            data: Map<String, Any>
+            {%~ endif %}
+        ) = {{ definition | modelType(spec, 'Map<String, Any>') | raw }}(
+            {%~ for property in definition.properties %}
             {{ property.name | escapeKeyword | removeDollarSign }},
-{%~ endfor %}
-{%~ if definition.additionalProperties %}
+            {%~ endfor %}
+            {%~ if definition.additionalProperties %}
             data
-{%~ endif %}
+            {%~ endif %}
         )
-{%~ endif %}
+        {%~ endif %}
 
         @Suppress("UNCHECKED_CAST")
-        fun
-{% if definition.name | hasGenericType(spec) %}
-<T>
-{% endif %}
-from(
-            map: Map<String , Any>,
-{%~ if definition.name | hasGenericType(spec) %}
+        fun {% if definition.name | hasGenericType(spec) %}<T> {% endif %}from(
+            map: Map<String, Any>,
+            {%~ if definition.name | hasGenericType(spec) %}
             nestedType: Class<T>
-{%~ endif %}
+            {%~ endif %}
         ) = {{ definition | modelType(spec) | raw }}(
-{%~ for property in definition.properties %}
+            {%~ for property in definition.properties %}
             {{ property.name | escapeKeyword | removeDollarSign }} = {{ property | propertyAssignment(spec) | raw }},
-{%~ endfor %}
-{%~ if definition.additionalProperties %}
+            {%~ endfor %}
+            {%~ if definition.additionalProperties %}
             data = map["data"]?.jsonCast(to = nestedType) ?: map.jsonCast(to = nestedType)
-{%~ endif %}
+            {%~ endif %}
         )
     }
 }

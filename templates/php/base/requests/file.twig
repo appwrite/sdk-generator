@@ -1,5 +1,5 @@
 {% for parameter in method.parameters.all %}
-    {% if parameter.type == 'file' %}
+{% if parameter.type == 'file' %}
         $size = 0;
         $mimeType = null;
         $postedName = null;
@@ -10,12 +10,12 @@
             if ($size <= Client::CHUNK_SIZE) {
                 $apiParams['{{ parameter.name | caseCamel }}'] = new \CURLFile('data://' . $mimeType . ';base64,' . base64_encode(${{ parameter.name | caseCamel }}->getData()), $mimeType, $postedName);
                 return $this->client->call(Client::METHOD_POST, $apiPath, [
-        {% for param in method.parameters.header %}
+    {% for param in method.parameters.header %}
                     '{{ param.name }}' => ${{ param.name | caseCamel }},
-        {% endfor %}
-        {% for key, header in method.headers %}
+    {% endfor %}
+    {% for key, header in method.headers %}
                     '{{ key }}' => '{{ header }}',
-        {% endfor %}
+    {% endfor %}
                     ], $apiParams);
             }
         } else {
@@ -26,12 +26,12 @@
             if ($size <= Client::CHUNK_SIZE) {
                 $apiParams['{{ parameter.name }}'] = new \CURLFile(${{ parameter.name | caseCamel }}->getPath(), $mimeType, $postedName);
                 return $this->client->call(Client::METHOD_{{ method.method | caseUpper }}, $apiPath, [
-        {% for param in method.parameters.header %}
+    {% for param in method.parameters.header %}
                     '{{ param.name }}' => ${{ param.name | caseCamel }},
-        {% endfor %}
-        {% for key, header in method.headers %}
+    {% endfor %}
+    {% for key, header in method.headers %}
                     '{{ key }}' => '{{ header }}',
-        {% endfor %}
+    {% endfor %}
                     ], $apiParams);
             }
         }
@@ -39,21 +39,21 @@
         $id = '';
         $counter = 0;
 
-        {% for parameter in method.parameters.all %}
-            {% if parameter.isUploadID %}
+{% for parameter in method.parameters.all %}
+{% if parameter.isUploadID %}
         try {
             $response = $this->client->call(Client::METHOD_GET, $apiPath . '/' . ${{ parameter.name }});
             $counter = $response['chunksUploaded'] ?? 0;
         } catch(\Exception $e) {
         }
-            {% endif %}
-        {% endfor %}
+{% endif %}
+{% endfor %}
 
         $apiHeaders = ['content-type' => 'multipart/form-data'];
         $handle = null;
 
-        if(!empty(${{ parameter.name }}->getPath())) {
-            $handle = @fopen(${{ parameter.name }}->getPath(), "rb");
+        if(!empty(${{parameter.name}}->getPath())) {
+            $handle = @fopen(${{parameter.name}}->getPath(), "rb");
         }
 
         $start = $counter * Client::CHUNK_SIZE;
@@ -68,7 +68,7 @@
             $apiParams['{{ parameter.name }}'] = new \CURLFile('data://' . $mimeType . ';base64,' . base64_encode($chunk), $mimeType, $postedName);
             $apiHeaders['content-range'] = 'bytes ' . ($counter * Client::CHUNK_SIZE) . '-' . min(((($counter * Client::CHUNK_SIZE) + Client::CHUNK_SIZE) - 1), $size - 1) . '/' . $size;
             if(!empty($id)) {
-                $apiHeaders['x-{{ spec.title | caseLower }}-id'] = $id;
+                $apiHeaders['x-{{spec.title | caseLower }}-id'] = $id;
             }
             $response = $this->client->call(Client::METHOD_POST, $apiPath, $apiHeaders, $apiParams);
             $counter++;
@@ -90,5 +90,5 @@
             @fclose($handle);
         }
         return $response;
-    {% endif %}
+{% endif %}
 {% endfor %}

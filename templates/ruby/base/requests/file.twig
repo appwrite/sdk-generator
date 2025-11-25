@@ -1,17 +1,10 @@
-            id_param_name =
-{% if method.parameters.all | filter(p => p.isUploadID) | length > 0 %}
-    {% for parameter in method.parameters.all | filter(parameter => parameter.isUploadID) %}
-"{{ parameter.name }}"
-    {% endfor %}
-{% else %}
-nil
-{% endif %}
+            id_param_name = {% if method.parameters.all | filter(p => p.isUploadID) | length > 0 %}{% for parameter in method.parameters.all | filter(parameter => parameter.isUploadID) %}"{{ parameter.name }}"{% endfor %}{% else %}nil{% endif %}
 
 {% for parameter in method.parameters.all %}
-    {% if parameter.type == 'file' %}
+{% if parameter.type == 'file' %}
             param_name = '{{ parameter.name }}'
 
-    {% endif %}
+{% endif %}
 {% endfor %}
             @client.chunked_upload(
                 path: api_path,
@@ -21,6 +14,6 @@ nil
                 id_param_name: id_param_name,
                 on_progress: on_progress,
 {% if method.responseModel and method.responseModel != 'any' %}
-                response_type: Models::{{ method.responseModel | caseUcfirst }}
+                response_type: Models::{{method.responseModel | caseUcfirst}}
 {% endif %}
             )

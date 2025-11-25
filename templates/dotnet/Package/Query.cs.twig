@@ -11,10 +11,10 @@ namespace {{ spec.title | caseUcfirst }}
     {
         [JsonPropertyName("method")]
         public string Method { get; set; } = string.Empty;
-
+        
         [JsonPropertyName("attribute")]
         public string? Attribute { get; set; }
-
+        
         [JsonPropertyName("values")]
         public List<object>? Values { get; set; }
 

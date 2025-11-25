@@ -2,7 +2,7 @@ package {{ sdk.namespace | caseDot }}.exceptions
 
 import java.lang.Exception
 
-class {{ spec.title | caseUcfirst }}Exception(
+class {{spec.title | caseUcfirst}}Exception(
     override val message: String? = null,
     val code: Int? = null,
     val type: String? = null,

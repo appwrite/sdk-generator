@@ -2,13 +2,13 @@ import 'response.dart';
 import 'client.dart';
 import 'enums.dart';
 
-abstract class ClientBase implements Client {
+abstract class ClientBase implements Client {  
 {% for header in spec.global.headers %}
-    {% if header.description %}
-  /// {{ header.description }}
-    {% endif %}
+{% if header.description %}
+  /// {{header.description}}
+{% endif %}
   @override
-  ClientBase set{{ header.key | caseUcfirst }}(value);
+  ClientBase set{{header.key | caseUcfirst}}(value);
 {% endfor %}
 
   @override
@@ -35,8 +35,8 @@ abstract class ClientBase implements Client {
   Future<Response> call(
     HttpMethod method, {
     String path = '',
-    Map<String , String> headers = const {},
-    Map<String , dynamic> params = const {},
+    Map<String, String> headers = const {},
+    Map<String, dynamic> params = const {},
     ResponseType? responseType,
   });
 }

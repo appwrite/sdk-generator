@@ -18,7 +18,7 @@ class MessageHandler {
         self.client = client
         self.buffer = ByteBufferAllocator().buffer(capacity: 0)
     }
-
+    
     private func unmaskedData(frame: WebSocketFrame) -> ByteBuffer {
         var frameData = frame.data
         if let maskingKey = frame.maskKey {
@@ -31,7 +31,7 @@ class MessageHandler {
 extension MessageHandler: ChannelInboundHandler, RemovableChannelHandler {
 
     typealias InboundIn = WebSocketFrame
-
+    
     public func channelRead(context: ChannelHandlerContext, data: NIOAny) {
         let frame = self.unwrapInboundIn(data)
         switch frame.opcode {
@@ -125,7 +125,7 @@ extension MessageHandler: ChannelInboundHandler, RemovableChannelHandler {
             break
         }
     }
-
+    
     public func errorCaught(context: ChannelHandlerContext, error: Swift.Error) {
         if client.delegate != nil {
             try! client.delegate?.onError(error: error, status: nil)

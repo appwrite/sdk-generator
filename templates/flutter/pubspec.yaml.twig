@@ -1,8 +1,8 @@
 name: {{ language.params.packageName }}
 version: {{ sdk.version }}
-description: {{ sdk.shortDescription }}
-homepage: {{ sdk.url }}
-repository: https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName }}
+description: {{sdk.shortDescription}}
+homepage: {{sdk.url}}
+repository: https://github.com/{{sdk.gitUserName}}/{{sdk.gitRepoName}}
 issue_tracker: https://github.com/appwrite/sdk-generator/issues
 documentation: {{ spec.contactURL }}
 platforms:
@@ -13,7 +13,16 @@ platforms:
   web:
   windows:
 environment:
-  sdk: '>=2.17.0 <4.0.0 '  dependencies: flutter: sdk: flutter cookie_jar: ^4.0.8 device_info_plus: '>=11.5.0 <13.0.0 ' flutter_web_auth_2: ^5.0.0-alpha.3 http: '>=0.13.6 <2.0.0 ' package_info_plus: '>=8.0.2 <10.0.0'
+  sdk: '>=2.17.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cookie_jar: ^4.0.8
+  device_info_plus: '>=11.5.0 <13.0.0'
+  flutter_web_auth_2: ^5.0.0-alpha.3
+  http: '>=0.13.6 <2.0.0'
+  package_info_plus: '>=8.0.2 <10.0.0'
   path_provider: ^2.1.4
   web_socket_channel: ^3.0.1
   web: ^1.0.0

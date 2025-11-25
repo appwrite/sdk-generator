@@ -15,9 +15,7 @@
         "test": "vendor/bin/phpunit",
         "lint": "vendor/bin/phpcs",
         "format": "vendor/bin/phpcbf",
-        "lint-twig": "uvx djlint templates/ --check --lint",
-        "format-twig": "uvx djlint templates/ --reformat",
-        "format-twig-check": "uvx djlint templates/ --check"
+        "lint-twig": "uvx djlint templates/ --lint"
     },
     "autoload": {
         "psr-4": {

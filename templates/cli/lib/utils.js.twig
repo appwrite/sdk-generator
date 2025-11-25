@@ -28,15 +28,15 @@ async function getLatestVersion() {
 function compareVersions(current, latest) {
     const currentParts = current.split('.').map(Number);
     const latestParts = latest.split('.').map(Number);
-
+    
     for (let i = 0; i < Math.max(currentParts.length, latestParts.length); i++) {
         const currentPart = currentParts[i] || 0;
         const latestPart = latestParts[i] || 0;
-
+        
         if (latestPart > currentPart) return 1;  // Latest is newer
         if (latestPart < currentPart) return -1; // Current is newer
     }
-
+    
     return 0; // Same version
 }
 

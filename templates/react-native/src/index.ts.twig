@@ -1,6 +1,6 @@
-export { Client, {{ spec.title | caseUcfirst }}Exception } from './client';
+export { Client, {{spec.title | caseUcfirst}}Exception } from './client';
 {% for service in spec.services %}
-export { {{ service.name | caseUcfirst }} } from './services/{{ service.name | caseKebab }}';
+export { {{service.name | caseUcfirst}} } from './services/{{service.name | caseKebab}}';
 {% endfor %}
 export type { Models, Payload, RealtimeResponseEvent, UploadProgress } from './client';
 export type { QueryTypes, QueryTypesList } from './query';
@@ -10,5 +10,5 @@ export { Role } from './role';
 export { ID } from './id';
 export { Operator, Condition } from './operator';
 {% for enum in spec.allEnums %}
-export { {{ enum.name | caseUcfirst }} } from './enums/{{ enum.name | caseKebab }}';
+export { {{ enum.name | caseUcfirst  }} } from './enums/{{enum.name | caseKebab}}';
 {% endfor %}
