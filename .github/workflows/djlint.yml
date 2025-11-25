@@ -1,4 +1,4 @@
-name: Twig Linting and Formatting
+name: Twig Linting
 
 on:
   pull_request:
@@ -16,7 +16,7 @@ on:
 
 jobs:
   djlint:
-    name: djLint - Twig Linter & Formatter
+    name: djLint - Twig Linter
     runs-on: ubuntu-latest
 
     steps:

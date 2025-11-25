@@ -358,9 +358,10 @@ class Python extends Language
 
     /**
      * @param array $param
+     * @param string $lang
      * @return string
      */
-    public function getParamExample(array $param): string
+    public function getParamExample(array $param, string $lang = ''): string
     {
         $type = $param['type'] ?? '';
         $example = $param['example'] ?? '';
