@@ -5,9 +5,9 @@ from ..enums.{{ enum.name | caseSnake }} import {{ enum.name | caseUcfirst | ove
 
 class ValueClassEncoder(json.JSONEncoder):
     def default(self, o):
-        {%~ for enum in spec.allEnums %}
+{%~ for enum in spec.allEnums %}
         if isinstance(o, {{ enum.name | caseUcfirst | overrideIdentifier }}):
             return o.value
 
-        {%~ endfor %}
+{%~ endfor %}
         return super().default(o)

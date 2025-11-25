@@ -41,111 +41,168 @@ const {{ service.name }} = new Command("{{ service.name | caseKebab }}").descrip
 
 {% for method in service.methods %}
 {% set commandNameLower = (method.name | caseKebab | lower) %}
-{# Check if this method should be skipped (is deprecated and has a non-deprecated duplicate) #}
+    {# Check if this method should be skipped (is deprecated and has a non-deprecated duplicate) #}
 {% set shouldSkip = false %}
-{% if method.deprecated %}
-{% for otherMethod in service.methods %}
-{% if not otherMethod.deprecated and (otherMethod.name | caseKebab | lower) == commandNameLower %}
+    {% if method.deprecated %}
+        {% for otherMethod in service.methods %}
+            {% if not otherMethod.deprecated and (otherMethod.name | caseKebab | lower) == commandNameLower %}
 {% set shouldSkip = true %}
-{% endif %}
-{% endfor %}
-{% endif %}
-{% if not shouldSkip %}
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+    {% if not shouldSkip %}
 /**
  * @typedef {Object} {{ service.name | caseUcfirst }}{{ method.name | caseUcfirst }}RequestParams
-{% for parameter in method.parameters.all %}
+        {% for parameter in method.parameters.all %}
  * @property {{ "{" }}{{ parameter | typeName }}{{ "}" }} {{ parameter.name | caseCamel | escapeKeyword }} {{ parameter.description | replace({'`':'\''}) | replace({'\n':' '}) | replace({'\n \n':' '}) }}
-{% endfor %}
- * @property {boolean} overrideForCli
- * @property {boolean} parseOutput
- * @property {libClient | undefined} sdk
-{% if 'multipart/form-data' in method.consumes %}
- * @property {CallableFunction} onProgress
-{% endif %}
-{% if method.type == 'location' %}
- * @property {string} destination
-{% endif %}
- */
+         {% endfor %}
+  * @property {boolean} overrideForCli
+  * @property {boolean} parseOutput
+  * @property {libClient | undefined} sdk
+         {% if 'multipart/form-data' in method.consumes %}
+  * @property {CallableFunction} onProgress
+         {% endif %}
+         {% if method.type == 'location' %}
+  * @property {string} destination
+         {% endif %}
+  */
+ 
+ /**
+  * @param {{ "{" }}{{ service.name | caseUcfirst }}{{ method.name | caseUcfirst }}RequestParams{{ "}" }} params
+  */
+         {% block declaration %}
+ const {{ service.name }}{{ method.name | caseUcfirst }} = async ({
+             {%- for parameter in method.parameters.all -%}
+             {{ parameter.name | caseCamel | escapeKeyword }},
+             {%- endfor -%}
+ 
+             {%- block baseParams -%}parseOutput = true, overrideForCli = false, sdk = undefined {%- endblock -%}
+ 
+                 {%- if 'multipart/form-data' in method.consumes -%},onProgress = () => {}{%- endif -%}
+ 
+                     {%- if method.type == 'location' -%}, destination{%- endif -%}
+                         {% if hasConsolePreview(method.name,service.name) %}
+ , console{%- endif -%}
+ }) => {
+     let client = !sdk ? await
+                             {% if service.name == "projects" %}
+ sdkForConsole()
+                             {% else %}
+ sdkForProject()
+                             {% endif %}
+  :
+     sdk;
+     let apiPath = '{{ method.path }}'
+                             {% for parameter in method.parameters.path %}
+ .replace('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', {{ parameter.name | caseCamel | escapeKeyword }})
+                             {% endfor %}
+ ;
+ {{ include ('cli/base/params.twig') }}
+                             {% if 'multipart/form-data' in method.consumes %}
+ {{ include ('cli/base/requests/file.twig') }}
+                             {% else %}
+ {{ include('cli/base/requests/api.twig') }}
+                             {% endif %}
+ }
+                         {% endblock declaration %}
+                     {% endif %}
+                 {% endfor %}
+ {% set processedCommands = [] %}
+                 {% for method in service.methods %}
+ {% set commandName = method.name | caseKebab %}
+ {% set commandNameLower = commandName | lower %}
+                     {# Check if this command name (in lowercase) has already been processed by a non-deprecated method #}
+ {% set shouldSkip = false %}
+                     {% if method.deprecated %}
+                         {% for otherMethod in service.methods %}
+                             {% if not otherMethod.deprecated and (otherMethod.name | caseKebab | lower) == commandNameLower %}
+ {% set shouldSkip = true %}
+                             {% endif %}
+                         {% endfor %}
+                     {% endif %}
+                     {% if not shouldSkip %}
+ {% set processedCommands = processedCommands|merge([commandNameLower]) %}
+ {{ service.name }}
+     .command(`{{ method.name | caseKebab }}`)
+                         {% autoescape false %}
+     .description(`
+                             {% if method.deprecated %}
+ [**DEPRECATED** - This command is deprecated.
+                                 {% if method.replaceWith %}
+  Please use '{{ method.replaceWith | replace({'.': ' '}) | caseKebab }}' instead
+                                {% endif %}
+]
+                            {% endif %}
+{{ method.description | replace({'`':'\''}) | replace({'\n':' '}) | replace({'\n \n':' '}) }}`)
+                            {% for parameter in method.parameters.all %}
+    .
+                                {% if parameter.required and not parameter.nullable %}
+requiredOption
+                                {% else %}
+option
+                                {% endif %}
+(`--{{ parameter.name | escapeKeyword | caseKebab }}
+                                {% if parameter | typeName == 'boolean' %}
+ [value]
+                                {% else %}
 
-/**
- * @param {{ "{" }}{{ service.name | caseUcfirst }}{{ method.name | caseUcfirst }}RequestParams{{ "}" }} params
- */
-{% block declaration %}
-const {{ service.name }}{{ method.name | caseUcfirst }} = async ({
-        {%- for parameter in method.parameters.all -%}
-            {{ parameter.name | caseCamel | escapeKeyword }},
-        {%- endfor -%}
-
-        {%- block baseParams -%}parseOutput = true, overrideForCli = false, sdk = undefined {%- endblock -%}
-
-        {%- if 'multipart/form-data' in method.consumes -%},onProgress = () => {}{%- endif -%}
-
-        {%- if method.type == 'location' -%}, destination{%- endif -%}
-        {% if hasConsolePreview(method.name,service.name) %}, console{%- endif -%}
-}) => {
-    let client = !sdk ? await {% if service.name == "projects" %}sdkForConsole(){% else %}sdkForProject(){% endif %} :
-    sdk;
-    let apiPath = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', {{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
-{{ include ('cli/base/params.twig') }}
-{% if 'multipart/form-data' in method.consumes %}
-{{ include ('cli/base/requests/file.twig') }}{% else %}
-{{ include('cli/base/requests/api.twig') }}
-{% endif %}
-}
-{% endblock declaration %}
-{% endif %}
-{% endfor %}
-{% set processedCommands = [] %}
-{% for method in service.methods %}
-{% set commandName = method.name | caseKebab %}
-{% set commandNameLower = commandName | lower %}
-{# Check if this command name (in lowercase) has already been processed by a non-deprecated method #}
-{% set shouldSkip = false %}
-{% if method.deprecated %}
-{% for otherMethod in service.methods %}
-{% if not otherMethod.deprecated and (otherMethod.name | caseKebab | lower) == commandNameLower %}
-{% set shouldSkip = true %}
-{% endif %}
-{% endfor %}
-{% endif %}
-{% if not shouldSkip %}
-{% set processedCommands = processedCommands|merge([commandNameLower]) %}
-{{ service.name }}
-    .command(`{{ method.name | caseKebab }}`)
-{% autoescape false %}
-    .description(`{% if method.deprecated %}[**DEPRECATED** - This command is deprecated.{% if method.replaceWith %} Please use '{{ method.replaceWith | replace({'.': ' '}) | caseKebab }}' instead{% endif %}] {% endif %}{{ method.description | replace({'`':'\''}) | replace({'\n':' '}) | replace({'\n \n':' '}) }}`)
-{% for parameter in method.parameters.all %}
-    .{% if parameter.required and not parameter.nullable %}requiredOption{% else %}option{% endif %}(`--{{ parameter.name | escapeKeyword | caseKebab }}{% if parameter | typeName == 'boolean' %} [value]{% else %} {% if parameter.array.type|length > 0 %}[{% else %}<{% endif %}{{ parameter.name | escapeKeyword | caseKebab }}{% if parameter.array.type|length > 0 %}...{% endif %}{% if parameter.array.type|length > 0 %}]{% else %}>{% endif %}{% endif %}`, `{{ parameter.description | replace({'`':'\''}) | replace({'\n':' '}) | replace({'\n \n':' '}) }}`{% if parameter | typeName == 'boolean' %}, (value) => value === undefined ? true : parseBool(value){% elseif parameter | typeName == 'number' %}, parseInteger{% endif %})
-{% endfor %}
-{% if method.type == 'location' %}
-    .requiredOption(`--destination <path>`, `output file path.`)
-{% endif %}
-{% if hasConsolePreview(method.name,service.name) %}
+                                    {% if parameter.array.type|length > 0 %}
+[
+                                    {% else %}
+<
+                                    {% endif %}
+{{ parameter.name | escapeKeyword | caseKebab }}
+                                    {% if parameter.array.type|length > 0 %}
+...
+                                    {% endif %}
+                                    {% if parameter.array.type|length > 0 %}
+]
+                                    {% else %}
+>
+                                    {% endif %}
+                                {% endif %}
+`, `{{ parameter.description | replace({'`':'\''}) | replace({'\n':' '}) | replace({'\n \n':' '}) }}`
+                                {% if parameter | typeName == 'boolean' %}
+, (value) => value === undefined ? true : parseBool(value)
+                                {% elseif parameter | typeName == 'number' %}
+, parseInteger
+                                {% endif %}
+)
+                            {% endfor %}
+                            {% if method.type == 'location' %}
+    .requiredOption(`--destination
+<path>
+`, `output file path.`)
+                            {% endif %}
+                            {% if hasConsolePreview(method.name,service.name) %}
     .option(`--console`, `Get the resource console url`)
-{% endif %}
-{% endautoescape %}
+                            {% endif %}
+                        {% endautoescape %}
     .action(actionRunner({{ service.name }}{{ method.name | caseUcfirst }}))
 
-{% endif %}
-{% endfor %}
+                    {% endif %}
+                {% endfor %}
 module.exports = {
     {{ service.name }},
 {% set exportedMethods = [] %}
-{% for method in service.methods %}
+                {% for method in service.methods %}
 {% set commandNameLower = (method.name | caseKebab | lower) %}
-{# Check if this method should be skipped (is deprecated and has a non-deprecated duplicate) #}
+                    {# Check if this method should be skipped (is deprecated and has a non-deprecated duplicate) #}
 {% set shouldSkip = false %}
-{% if method.deprecated %}
-{% for otherMethod in service.methods %}
-{% if not otherMethod.deprecated and (otherMethod.name | caseKebab | lower) == commandNameLower %}
+                    {% if method.deprecated %}
+                        {% for otherMethod in service.methods %}
+                            {% if not otherMethod.deprecated and (otherMethod.name | caseKebab | lower) == commandNameLower %}
 {% set shouldSkip = true %}
-{% endif %}
-{% endfor %}
-{% endif %}
-{% if not shouldSkip %}
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+                    {% if not shouldSkip %}
 {% set exportedMethods = exportedMethods|merge([service.name ~ method.name | caseUcfirst]) %}
-    {{ service.name }}{{ method.name | caseUcfirst }}{% if not loop.last %},{% endif %}
+    {{ service.name }}{{ method.name | caseUcfirst }}
+                        {% if not loop.last %}
+,
+                        {% endif %}
 
-{% endif %}
-{% endfor %}
+                    {% endif %}
+                {% endfor %}
 };

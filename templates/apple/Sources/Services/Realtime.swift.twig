@@ -14,7 +14,7 @@ open class Realtime : Service {
     private var socketClient: WebSocketClient? = nil
     private var activeChannels = Set<String>()
     private var activeSubscriptions = [Int: RealtimeCallback]()
-    private var heartbeatTask: Task<Void, Swift.Error>? = nil
+    private var heartbeatTask: Task<Void , Swift.Error>? = nil
 
     let connectSync = DispatchQueue(label: "ConnectSync")
 
@@ -22,7 +22,7 @@ open class Realtime : Service {
     private var reconnectAttempts = 0
     private var subscriptionsCounter = 0
     private var reconnect = true
-    
+
     private var onErrorCallbacks: [((Swift.Error?, HTTPResponseStatus?) -> Void)] = []
     private var onCloseCallbacks: [(() -> Void)] = []
     private var onOpenCallbacks: [(() -> Void)] = []
@@ -30,11 +30,11 @@ open class Realtime : Service {
     public func onError(_ callback: @escaping (Swift.Error?, HTTPResponseStatus?) -> Void) {
         self.onErrorCallbacks.append(callback)
     }
-    
+
     public func onClose(_ callback: @escaping () -> Void) {
         self.onCloseCallbacks.append(callback)
     }
-    
+
     public func onOpen(_ callback: @escaping () -> Void) {
         self.onOpenCallbacks.append(callback)
     }
@@ -93,7 +93,7 @@ open class Realtime : Service {
 
     private func closeSocket() async throws {
         stopHeartbeat()
-        
+
         guard let client = socketClient,
               let group = client.threadGroup else {
             return
@@ -229,7 +229,7 @@ extension Realtime: WebSocketClientDelegate {
         stopHeartbeat()
 
         onCloseCallbacks.forEach { $0() }
-        
+
         if (!reconnect) {
             reconnect = true
             return

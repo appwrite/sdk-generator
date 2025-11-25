@@ -1,9 +1,16 @@
-        let idParamName: String? = {% if method.parameters.all | filter(p => p.isUploadID) | length > 0 %}{% for parameter in method.parameters.all | filter(parameter => parameter.isUploadID) %}"{{ parameter.name }}"{% endfor %}{% else %}nil{% endif %}
+        let idParamName: String? =
+{% if method.parameters.all | filter(p => p.isUploadID) | length > 0 %}
+    {% for parameter in method.parameters.all | filter(parameter => parameter.isUploadID) %}
+"{{ parameter.name }}"
+    {% endfor %}
+{% else %}
+nil
+{% endif %}
 
 {% for parameter in method.parameters.all %}
-{% if parameter.type == 'file' %}
+    {% if parameter.type == 'file' %}
         let paramName = "{{ parameter.name }}"
-{% endif %}
+    {% endif %}
 {% endfor %}
         return try await client.chunkedUpload(
             path: apiPath,

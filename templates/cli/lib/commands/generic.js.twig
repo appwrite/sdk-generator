@@ -322,13 +322,13 @@ const migrate = async () => {
 
 }
 module.exports = {
-    {% if sdk.test != "true" %}
+{% if sdk.test != "true" %}
     loginCommand,
     whoami,
     register,
     login,
     logout,
-    {% endif %}
+{% endif %}
     migrate,
     client
 };

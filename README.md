@@ -70,6 +70,19 @@ $sdk->generate(__DIR__ . '/examples/php'); // Generate source code
 
 ```
 
+## Linting and Formatting Twig Templates
+
+This project uses [djLint](https://djlint.com/) to lint and format Twig template files.
+
+**Available commands:**
+```bash
+composer lint-twig         # Check for linting errors
+composer format-twig       # Auto-format all Twig files
+composer format-twig-check # Check formatting without changes
+```
+
+Requires [uv](https://github.com/astral-sh/uv) to be installed. Configuration is in `pyproject.toml`. The linter runs automatically on pull requests via GitHub Actions.
+
 ## Supported Specs
 
 * [Swagger 2](https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md)

@@ -13,7 +13,7 @@ import AuthenticationServices
 @available(iOS 14.0, macOS 11.0, tvOS 14.0, watchOS 7.0, visionOS 1.0, *)
 public class WebAuthComponent {
 
-    private static var callbacks = [String: (Result<String, {{ spec.title | caseUcfirst}}Error>) -> Void]()
+    private static var callbacks = [String: (Result<String , {{ spec.title | caseUcfirst }}Error>) -> Void]()
     #if canImport(AuthenticationServices)
     private static var currentAuthSession: ASWebAuthenticationSession?
     #endif
@@ -35,7 +35,7 @@ public class WebAuthComponent {
     internal static func authenticate(
         url: URL,
         callbackScheme: String,
-        onComplete: @escaping (Result<String, {{ spec.title | caseUcfirst}}Error>) -> Void
+        onComplete: @escaping (Result<String , {{ spec.title | caseUcfirst }}Error>) -> Void
     ) {
         callbacks[callbackScheme] = onComplete
 
@@ -76,7 +76,7 @@ public class WebAuthComponent {
             let queryItems = components.queryItems else {
             return
         }
-        
+
         let cookieParts = [String: String](uniqueKeysWithValues: queryItems.compactMap { item in
             item.value.map { (item.name, $0) }
         })
@@ -86,7 +86,7 @@ public class WebAuthComponent {
               let secret = cookieParts["secret"] else {
             return
         }
-    
+
         domain.remove(at: domain.startIndex)
 
         let path: String? = cookieParts["path"]
@@ -146,7 +146,7 @@ public class WebAuthComponent {
 
     private static func cleanUp() {
         callbacks.forEach { (_, callback) in
-            callback(.failure({{ spec.title | caseUcfirst}}Error(message: "User cancelled login.")))
+            callback(.failure({{ spec.title | caseUcfirst }}Error(message: "User cancelled login.")))
         }
 
         #if canImport(AuthenticationServices)

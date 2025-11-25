@@ -22,9 +22,9 @@ ClientBase createClient({
 class ClientIO extends ClientBase with ClientMixin {
   static const int chunkSize = 5*1024*1024;
   String _endPoint;
-  Map<String, String>? _headers;
+  Map<String , String>? _headers;
   @override
-  late Map<String, String> config;
+  late Map<String , String> config;
   late http.Client _httpClient;
   late HttpClient _nativeClient;
 
@@ -43,9 +43,9 @@ class ClientIO extends ClientBase with ClientMixin {
       'x-sdk-platform': '{{ sdk.platform }}',
       'x-sdk-language': '{{ language.name | caseLower }}',
       'x-sdk-version': '{{ sdk.version }}',
-      'user-agent' : '{{spec.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} (${Platform.operatingSystem}; ${Platform.operatingSystemVersion})',
+      'user-agent' : '{{ spec.title | caseUcfirst }}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} (${Platform.operatingSystem}; ${Platform.operatingSystemVersion})',
 {% for key,header in spec.global.defaultHeaders %}
-      '{{key}}' : '{{header}}',
+      '{{ key }}' : '{{ header }}',
 {% endfor %}
     };
 
@@ -59,13 +59,13 @@ class ClientIO extends ClientBase with ClientMixin {
   String get endPoint => _endPoint;
 
 {% for header in spec.global.headers %}
-{% if header.description %}
-     /// {{header.description}}
-{% endif %}
+    {% if header.description %}
+     /// {{ header.description }}
+    {% endif %}
     @override
-    ClientIO set{{header.key | caseUcfirst}}(value) {
+    ClientIO set{{ header.key | caseUcfirst }}(value) {
         config['{{ header.key | caseCamel }}'] = value;
-        addHeader('{{header.name}}', value);
+        addHeader('{{ header.name }}', value);
         return this;
     }
 {% endfor %}
@@ -80,7 +80,7 @@ class ClientIO extends ClientBase with ClientMixin {
   @override
   ClientIO setEndpoint(String endPoint) {
     if (!endPoint.startsWith('http://') && !endPoint.startsWith('https://')) {
-      throw {{spec.title | caseUcfirst}}Exception('Invalid endpoint URL: $endPoint');
+      throw {{ spec.title | caseUcfirst }}Exception('Invalid endpoint URL: $endPoint');
     }
 
     _endPoint = endPoint;
@@ -96,15 +96,15 @@ class ClientIO extends ClientBase with ClientMixin {
   @override
   Future<Response> chunkedUpload({
     required String path,
-    required Map<String, dynamic> params,
+    required Map<String , dynamic> params,
     required String paramName,
     required String idParamName,
-    required Map<String, String> headers,
+    required Map<String , String> headers,
     Function(UploadProgress)? onProgress,
   }) async {
     InputFile file = params[paramName];
     if (file.path == null && file.bytes == null) {
-      throw {{spec.title | caseUcfirst}}Exception("File path or bytes must be provided");
+      throw {{ spec.title | caseUcfirst }}Exception("File path or bytes must be provided");
     }
 
     int size = 0;
@@ -148,7 +148,7 @@ class ClientIO extends ClientBase with ClientMixin {
         );
         final int chunksUploaded = res.data['chunksUploaded'] as int;
         offset = chunksUploaded * chunkSize;
-      } on {{spec.title | caseUcfirst}}Exception catch (_) {}
+      } on {{ spec.title | caseUcfirst }}Exception catch (_) {}
     }
 
     RandomAccessFile? raf;
@@ -174,7 +174,7 @@ class ClientIO extends ClientBase with ClientMixin {
           path: path, headers: headers, params: params);
       offset += chunkSize;
       if (offset < size) {
-        headers['x-{{spec.title | caseLower }}-id'] = res.data['\$id'];
+        headers['x-{{ spec.title | caseLower }}-id'] = res.data['\$id'];
       }
       final progress = UploadProgress(
         $id: res.data['\$id'] ?? '',
@@ -190,7 +190,7 @@ class ClientIO extends ClientBase with ClientMixin {
   }
 
   @override
-  Future<String?> webAuth(Uri url) async {
+  Future<String ?> webAuth(Uri url) async {
     final request = http.Request('GET', url);
     request.followRedirects = false;
     final response = await _httpClient.send(request);
@@ -201,8 +201,8 @@ class ClientIO extends ClientBase with ClientMixin {
   Future<Response> call(
     HttpMethod method, {
     String path = '',
-    Map<String, String> headers = const {},
-    Map<String, dynamic> params = const {},
+    Map<String , String> headers = const {},
+    Map<String , dynamic> params = const {},
     ResponseType? responseType,
   }) async {
     late http.Response res;
@@ -221,10 +221,10 @@ class ClientIO extends ClientBase with ClientMixin {
         responseType: responseType,
       );
     } catch (e) {
-      if (e is {{spec.title | caseUcfirst}}Exception) {
+      if (e is {{ spec.title | caseUcfirst }}Exception) {
         rethrow;
       }
-      throw {{spec.title | caseUcfirst}}Exception(e.toString());
+      throw {{ spec.title | caseUcfirst }}Exception(e.toString());
     }
   }
 }

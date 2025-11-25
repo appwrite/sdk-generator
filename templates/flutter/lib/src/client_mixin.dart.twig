@@ -9,8 +9,8 @@ mixin ClientMixin {
   http.BaseRequest prepareRequest(
     HttpMethod method, {
     required Uri uri,
-    required Map<String, String> headers,
-    required Map<String, dynamic> params,
+    required Map<String , String> headers,
+    required Map<String , dynamic> params,
   }) {
 
     http.BaseRequest request = http.Request(method.name(), uri);
@@ -42,7 +42,7 @@ mixin ClientMixin {
       }
     } else if (method == HttpMethod.get) {
       if (params.isNotEmpty) {
-        Map<String, dynamic> filteredParams = {};
+        Map<String , dynamic> filteredParams = {};
         params.forEach((key, value) {
           if (value != null) {
             if (value is int || value is double) {
@@ -93,14 +93,14 @@ mixin ClientMixin {
     if (res.statusCode >= 400) {
       if ((res.headers['content-type'] ?? '').contains('application/json')) {
         final response = json.decode(res.body);
-        throw {{spec.title | caseUcfirst}}Exception(
+        throw {{ spec.title | caseUcfirst }}Exception(
           response['message'],
           response['code'],
           response['type'],
           res.body,
         );
       } else {
-        throw {{spec.title | caseUcfirst}}Exception(res.body, res.statusCode, '', res.body);
+        throw {{ spec.title | caseUcfirst }}Exception(res.body, res.statusCode, '', res.body);
       }
     }
     dynamic data;

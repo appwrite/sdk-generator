@@ -16,7 +16,7 @@ typealias CookieListener = (existing: List<Cookie>, new: List<Cookie>) -> Unit
 
 class ListenableCookieJar(private val cookieHandler: CookieHandler) : CookieJar {
 
-    private val listeners: MutableMap<Int, CookieListener> = mutableMapOf()
+    private val listeners: MutableMap<Int , CookieListener> = mutableMapOf()
 
     fun onSave(key: String, listener: CookieListener) {
         listeners[key.hashCode()] = listener
@@ -44,7 +44,7 @@ class ListenableCookieJar(private val cookieHandler: CookieHandler) : CookieJar 
 
     override fun loadForRequest(url: HttpUrl): List<Cookie> {
         val cookieHeaders = try {
-            cookieHandler.get(url.toUri(), emptyMap<String, List<String>>())
+            cookieHandler.get(url.toUri(), emptyMap<String , List<String>>())
         } catch (e: IOException) {
             Platform.get().log(
                 "Loading cookies failed for " + url.resolve("/...")!!,

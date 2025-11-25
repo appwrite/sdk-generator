@@ -26,8 +26,8 @@ class UploadProgress {
     required this.chunksUploaded,
   });
 
-  /// Initializes an [UploadProgress] from a [Map<String, dynamic>]
-  factory UploadProgress.fromMap(Map<String, dynamic> map) {
+  /// Initializes an [UploadProgress] from a [Map<String , dynamic>]
+  factory UploadProgress.fromMap(Map<String , dynamic> map) {
     return UploadProgress(
       $id: map['\$id'] ?? '',
       progress: map['progress']?.toDouble() ?? 0.0,
@@ -37,8 +37,8 @@ class UploadProgress {
     );
   }
 
-  /// Converts an [UploadProgress] to a [Map<String, dynamic>]
-  Map<String, dynamic> toMap() {
+  /// Converts an [UploadProgress] to a [Map<String , dynamic>]
+  Map<String , dynamic> toMap() {
     return {
       "\$id": $id,
       "progress": progress,

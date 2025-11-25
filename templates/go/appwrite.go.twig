@@ -3,15 +3,15 @@ package appwrite
 import (
 	"time"
 
-	"github.com/{{sdk.gitUserName}}/sdk-for-go/client"
+	"github.com/{{ sdk.gitUserName }}/sdk-for-go/client"
 {% for key,service in spec.services %}
-	"github.com/{{sdk.gitUserName}}/sdk-for-go/{{ service.name | caseLower}}"
+	"github.com/{{ sdk.gitUserName }}/sdk-for-go/{{ service.name | caseLower }}"
 {% endfor %}
 )
 
 {% for key,service in spec.services %}
-func New{{ service.name | caseUcfirst }}(clt client.Client) *{{ service.name | caseLower}}.{{ service.name | caseUcfirst }} {
-	return {{ service.name | caseLower}}.New(clt)
+func New{{ service.name | caseUcfirst }}(clt client.Client) *{{ service.name | caseLower }}.{{ service.name | caseUcfirst }} {
+	return {{ service.name | caseLower }}.New(clt)
 }
 {% endfor %}
 
@@ -61,13 +61,13 @@ func WithChunkSize(size int64) client.ClientOption {
 
 {% for header in spec.global.headers %}
 // Helper method to construct NewClient()
-{% if header.description %}
-// 
-// {{header.description}}
-{% endif %}
-func With{{header.key | caseUcfirst}}(value string) client.ClientOption {
+    {% if header.description %}
+//
+// {{ header.description }}
+    {% endif %}
+func With{{ header.key | caseUcfirst }}(value string) client.ClientOption {
 	return func(clt *client.Client) error {
-		clt.Headers["{{header.name}}"] = value
+		clt.Headers["{{ header.name }}"] = value
 		return nil
 	}
 }

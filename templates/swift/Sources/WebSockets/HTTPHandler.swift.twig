@@ -8,7 +8,7 @@ import Foundation
 class HTTPHandler {
 
     unowned let client: WebSocketClient
-    
+
     let headers: HTTPHeaders
 
     init(client: WebSocketClient, headers: HTTPHeaders) {
@@ -40,13 +40,13 @@ class HTTPHandler {
 }
 
 extension HTTPHandler : ChannelInboundHandler, RemovableChannelHandler {
-    
+
     public typealias InboundIn = HTTPClientResponsePart
     public typealias OutboundOut = HTTPClientRequestPart
-    
+
     func channelActive(context: ChannelHandlerContext) {
         var headers = HTTPHeaders()
-        
+
         headers.add(name: "Host", value: "\(client.host):\(client.port)")
         headers.add(contentsOf: self.headers)
         headers.addDomainCookies(for: client.host)
@@ -56,7 +56,7 @@ extension HTTPHandler : ChannelInboundHandler, RemovableChannelHandler {
             uri: "\(client.uri)?\(client.query)",
             headers: headers
         )
-        
+
         context.write(wrapOutboundOut(.head(requestHead)), promise: nil)
         context.writeAndFlush(wrapOutboundOut(.end(nil)), promise: nil)
     }

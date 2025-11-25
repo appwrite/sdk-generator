@@ -58,7 +58,7 @@ async function dockerBuild(func, variables) {
     } else if (fs.existsSync(path.join(functionDir, '.gitignore'))) {
         ignorer.add(fs.readFileSync(path.join(functionDir, '.gitignore')).toString());
     }
-    
+
     const files = getAllFiles(functionDir).map((file) => path.relative(functionDir, file)).filter((file) => !ignorer.ignores(file));
     const tmpBuildPath = path.join(functionDir, '.appwrite/tmp-build');
     if (!fs.existsSync(tmpBuildPath)) {

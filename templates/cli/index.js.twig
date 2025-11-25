@@ -34,11 +34,11 @@ inquirer.registerPrompt('search-list', require('inquirer-search-list'));
  */
 async function checkVersion() {
     process.stdout.write(chalk.bold(`{{ language.params.executableName|caseLower }} version ${version}`) + '\n');
-    
+
     try {
         const latestVersion = await getLatestVersion();
         const comparison = compareVersions(version, latestVersion);
-        
+
         if (comparison > 0) {
             // Current version is older than latest
             process.stdout.write(chalk.yellow(`\n⚠️  A newer version is available: ${chalk.bold(latestVersion)}`) + '\n');

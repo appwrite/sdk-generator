@@ -12,7 +12,7 @@ class Query implements \JsonSerializable
     {
         $this->method = $method;
         $this->attribute = $attribute;
-        
+
         if (is_null($values) || is_array($values)) {
             $this->values = $values;
         } else {

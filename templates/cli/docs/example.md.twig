@@ -1,12 +1,18 @@
 {% set requiredParams = [] %}
 {% for parameter in method.parameters.all %}
-{% if parameter.required %}
+    {% if parameter.required %}
 {% set requiredParams = requiredParams|merge([parameter]) %}
-{% endif %}
+    {% endif %}
 {% endfor %}
-{{ language.params.executableName }} {{ service.name | caseKebab }} {{ method.name | caseKebab }}{% if requiredParams | length > 0 %} \{% endif %}
+{{ language.params.executableName }} {{ service.name | caseKebab }} {{ method.name | caseKebab }}
+{% if requiredParams | length > 0 %}
+ \
+{% endif %}
 
 {% for parameter in requiredParams %}
-    --{{ parameter.name | caseKebab }} {{ parameter | paramExample }}{% if not loop.last %} \{% endif %}
+    --{{ parameter.name | caseKebab }} {{ parameter | paramExample }}
+    {% if not loop.last %}
+ \
+    {% endif %}
 
 {% endfor %}

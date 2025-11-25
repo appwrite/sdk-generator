@@ -1,4 +1,4 @@
-import 'package:{{language.params.packageName}}/src/exception.dart';
+import 'package:{{ language.params.packageName }}/src/exception.dart';
 {% if 'dart' in language.params.packageName %}
 import 'package:test/test.dart';
 {% else %}
@@ -6,12 +6,12 @@ import 'package:flutter_test/flutter_test.dart';
 {% endif %}
 
 void main() {
-  group('{{spec.title | caseUcfirst}}Exception', () {
+  group('{{ spec.title | caseUcfirst }}Exception', () {
     test('toString should return correct string representation', () {
-      final exception1 = {{spec.title | caseUcfirst}}Exception();
-      expect(exception1.toString(), equals('{{spec.title | caseUcfirst}}Exception'));
+      final exception1 = {{ spec.title | caseUcfirst }}Exception();
+      expect(exception1.toString(), equals('{{ spec.title | caseUcfirst }}Exception'));
 
-      final exception2 = {{spec.title | caseUcfirst}}Exception('Some error message');
+      final exception2 = {{ spec.title | caseUcfirst }}Exception('Some error message');
       expect(
         exception2.toString(),
         equals('AppwriteException: , Some error message (0)'),

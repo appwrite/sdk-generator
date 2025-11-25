@@ -4,7 +4,7 @@ import NIOFoundationCompat
 import NIOSSL
 import Foundation
 import AsyncHTTPClient
-@_exported import {{spec.title | caseUcfirst}}Models
+@_exported import {{ spec.title | caseUcfirst }}Models
 @_exported import JSONCodable
 
 let DASHDASH = "--"
@@ -15,7 +15,7 @@ open class Client {
     // MARK: Properties
     public static var chunkSize = 5 * 1024 * 1024 // 5MB
 
-    open var endPoint = "{{spec.endpoint}}"
+    open var endPoint = "{{ spec.endpoint }}"
 
     open var endPointRealtime: String? = nil
 
@@ -24,12 +24,18 @@ open class Client {
         "x-sdk-name": "{{ sdk.name }}",
         "x-sdk-platform": "{{ sdk.platform }}",
         "x-sdk-language": "{{ language.name | caseLower }}",
-        "x-sdk-version": "{{ sdk.version }}"{% if spec.global.defaultHeaders | length > 0 %},{% endif %}
+        "x-sdk-version": "{{ sdk.version }}"
+{% if spec.global.defaultHeaders | length > 0 %}
+,
+{% endif %}
 
-        {%~ for key,header in spec.global.defaultHeaders %}
-        "{{key | caseLower }}": "{{header}}"{% if not loop.last %},{% endif %}
+{%~ for key,header in spec.global.defaultHeaders %}
+        "{{ key | caseLower }}": "{{ header }}"
+{% if not loop.last %}
+,
+{% endif %}
 
-        {%~ endfor %}
+{%~ endfor %}
     ]
 
     internal var config: [String: String] = [:]
@@ -94,25 +100,25 @@ open class Client {
         }
     }
 
-    {%~ for header in spec.global.headers %}
+{%~ for header in spec.global.headers %}
     ///
-    /// Set {{header.key | caseUcfirst}}
+    /// Set {{ header.key | caseUcfirst }}
     ///
-    {%~ if header.description %}
-    /// {{header.description}}
+{%~ if header.description %}
+    /// {{ header.description }}
     ///
-    {%~ endif %}
+{%~ endif %}
     /// @param String value
     ///
     /// @return Client
     ///
     open func set{{ header.key | caseUcfirst }}(_ value: String) -> Client {
         config["{{ header.key | caseLower }}"] = value
-        _ = addHeader(key: "{{header.name}}", value: value)
+        _ = addHeader(key: "{{ header.name }}", value: value)
         return self
     }
 
-    {%~ endfor %}
+{%~ endfor %}
 
     ///
     /// Set self signed
@@ -180,7 +186,7 @@ open class Client {
    ///
    /// Builds a query string from parameters
    ///
-   /// @param Dictionary<String, Any?> params
+   /// @param Dictionary<String , Any?> params
    /// @param String prefix
    ///
    /// @return String
@@ -201,8 +207,8 @@ open class Client {
            switch element.value {
            case nil:
                break
-           case is Array<Any?>:
-               let list = element.value as! Array<Any?>
+           case is Array<Any ?>:
+               let list = element.value as! Array<Any ?>
                for (nestedIndex, item) in list.enumerated() {
                    output += "\(element.key)[]=\(item!)"
                    appendWhenNotLast(nestedIndex, ofTotal: list.count, outerIndex: parameterIndex, outerCount: params.count)
@@ -244,8 +250,8 @@ open class Client {
     ///
     /// @param String method
     /// @param String path
-    /// @param Dictionary<String, Any?> params
-    /// @param Dictionary<String, String> headers
+    /// @param Dictionary<String , Any?> params
+    /// @param Dictionary<String , String> headers
     /// @return Response
     /// @throws Exception
     ///
@@ -312,8 +318,7 @@ open class Client {
         var data = try await response.body.collect(upTo: Int.max)
 
         switch response.status.code {
-        case 0..<400:
-            if response.headers["Set-Cookie"].count > 0 {
+        case 0..<400 : if response.headers["Set-Cookie"].count> 0 {
                 let domain = URL(string: request.url)!.host!
                 let new = response.headers["Set-Cookie"]
 

@@ -20,13 +20,13 @@ const isInstalledViaNpm = () => {
             return true;
         }
 
-        if (scriptPath.includes('/usr/local/lib/node_modules/') || 
+        if (scriptPath.includes('/usr/local/lib/node_modules/') ||
             scriptPath.includes('/opt/homebrew/lib/node_modules/') ||
             scriptPath.includes('/.npm-global/') ||
             scriptPath.includes('/node_modules/.bin/')) {
             return true;
         }
-        
+
         return false;
     } catch (e) {
         return false;
@@ -52,12 +52,12 @@ const isInstalledViaHomebrew = () => {
  */
 const execCommand = (command, args = [], options = {}) => {
     return new Promise((resolve, reject) => {
-        const child = spawn(command, args, { 
+        const child = spawn(command, args, {
             stdio: 'inherit',
             shell: true,
-            ...options 
+            ...options
         });
-        
+
         child.on('close', (code) => {
             if (code === 0) {
                 resolve();
@@ -65,7 +65,7 @@ const execCommand = (command, args = [], options = {}) => {
                 reject(new Error(`Command failed with exit code ${code}`));
             }
         });
-        
+
         child.on('error', (err) => {
             reject(err);
         });
@@ -122,15 +122,15 @@ const updateViaHomebrew = async () => {
 const showManualInstructions = (latestVersion) => {
     log("Manual update options:");
     console.log("");
-    
+
     log(`${chalk.bold("Option 1: NPM")}`);
     console.log(`  npm install -g {{ language.params.npmPackage|caseDash }}@latest`);
     console.log("");
-    
+
     log(`${chalk.bold("Option 2: Homebrew")}`);
     console.log(`  brew upgrade {{ language.params.executableName|caseLower }}`);
     console.log("");
-    
+
     log(`${chalk.bold("Option 3: Download Binary")}`);
     console.log(`  Visit: https://github.com/{{ language.params.npmPackage|caseDash }}/releases/tag/${latestVersion}`);
 };
@@ -173,9 +173,9 @@ const chooseUpdateMethod = async (latestVersion) => {
 const updateCli = async ({ manual } = {}) => {
     try {
         const latestVersion = await getLatestVersion();
-        
+
         const comparison = compareVersions(version, latestVersion);
-        
+
         if (comparison === 0) {
             success(`You're already running the latest version (${chalk.bold(version)})!`);
             return;
@@ -184,15 +184,15 @@ const updateCli = async ({ manual } = {}) => {
             hint("This might be a pre-release or development version.");
             return;
         }
-        
+
         log(`Updating from ${chalk.blue(version)} to ${chalk.green(latestVersion)}...`);
         console.log("");
-        
+
         if (manual) {
             showManualInstructions(latestVersion);
             return;
         }
-        
+
         if (isInstalledViaNpm()) {
             await updateViaNpm();
         } else if (isInstalledViaHomebrew()) {
@@ -200,7 +200,7 @@ const updateCli = async ({ manual } = {}) => {
         } else {
             await chooseUpdateMethod(latestVersion);
         }
-        
+
     } catch (e) {
         console.log("");
         error(`Failed to check for updates: ${e.message}`);

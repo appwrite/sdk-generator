@@ -5,12 +5,12 @@ import { Role } from "./src/role.ts";
 import { ID } from "./src/id.ts";
 import { Operator, Condition } from "./src/operator.ts";
 import { InputFile } from "./src/inputFile.ts";
-import { {{spec.title | caseUcfirst}}Exception } from "./src/exception.ts";
+import { {{ spec.title | caseUcfirst }}Exception } from "./src/exception.ts";
 {% for service in spec.services %}
-import { {{service.name | caseUcfirst}} } from "./src/services/{{service.name | caseKebab}}.ts";
+import { {{ service.name | caseUcfirst }} } from "./src/services/{{ service.name | caseKebab }}.ts";
 {% endfor %}
 {% for enum in spec.allEnums %}
-import { {{enum.name | caseUcfirst}} } from "./src/enums/{{enum.name | caseKebab}}.ts";
+import { {{ enum.name | caseUcfirst }} } from "./src/enums/{{ enum.name | caseKebab }}.ts";
 {% endfor %}
 
 export {
@@ -22,12 +22,12 @@ export {
     Operator,
     Condition,
     InputFile,
-    {{spec.title | caseUcfirst}}Exception,
+    {{ spec.title | caseUcfirst }}Exception,
 {% for service in spec.services %}
-    {{service.name | caseUcfirst}},
+    {{ service.name | caseUcfirst }},
 {% endfor %}
 {% for enum in spec.allEnums %}
-    {{enum.name | caseUcfirst}},
+    {{ enum.name | caseUcfirst }},
 {% endfor %}
 };
 

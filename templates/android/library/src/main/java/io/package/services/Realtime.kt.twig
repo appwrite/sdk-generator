@@ -36,7 +36,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
 
         private var socket: RealWebSocket? = null
         private var activeChannels = mutableSetOf<String>()
-        private var activeSubscriptions = mutableMapOf<Int, RealtimeCallback>()
+        private var activeSubscriptions = mutableMapOf<Int , RealtimeCallback>()
 
         private var subCallDepth = 0
         private var reconnectAttempts = 0

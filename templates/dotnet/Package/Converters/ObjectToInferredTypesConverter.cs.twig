@@ -28,9 +28,9 @@ namespace {{ spec.title | caseUcfirst }}.Converters
                     }
                     return reader.GetString()!;
                 case JsonTokenType.StartObject:
-                    return JsonSerializer.Deserialize<Dictionary<string, object>>(ref reader, options)!;
+                    return JsonSerializer.Deserialize<Dictionary<string , object>>(ref reader, options)!;
                 case JsonTokenType.StartArray:
-                    return JsonSerializer.Deserialize<object[]>(ref reader, options)!;
+                    return JsonSerializer.Deserialize<object []>(ref reader, options)!;
                 default:
                     return JsonDocument.ParseValue(ref reader).RootElement.Clone();
             }

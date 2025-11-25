@@ -39,7 +39,7 @@ import kotlin.coroutines.resume
 
 class Client @JvmOverloads constructor(
     context: Context,
-    var endpoint: String = "{{spec.endpoint}}",
+    var endpoint: String = "{{ spec.endpoint }}",
     var endpointRealtime: String? = null,
     private var selfSigned: Boolean = false
 ) : CoroutineScope {
@@ -60,9 +60,9 @@ class Client @JvmOverloads constructor(
 
     internal lateinit var http: OkHttpClient
 
-    internal val headers: MutableMap<String, String>
+    internal val headers: MutableMap<String , String>
 
-    val config: MutableMap<String, String>
+    val config: MutableMap<String , String>
 
     internal val cookieJar = ListenableCookieJar(CookieManager(
         SharedPreferencesCookieStore(context.getSharedPreferences(COOKIE_PREFS, Context.MODE_PRIVATE)),
@@ -87,10 +87,16 @@ class Client @JvmOverloads constructor(
             "x-sdk-name" to "{{ sdk.name }}",
             "x-sdk-platform" to "{{ sdk.platform }}",
             "x-sdk-language" to "{{ language.name | caseLower }}",
-            "x-sdk-version" to "{{ sdk.version }}"{% if spec.global.defaultHeaders | length > 0 %},{% endif %}
+            "x-sdk-version" to "{{ sdk.version }}"
+{% if spec.global.defaultHeaders | length > 0 %}
+,
+{% endif %}
 
 {% for key,header in spec.global.defaultHeaders %}
-            "{{ key | caseLower }}" to "{{ header }}"{% if not loop.last %},{% endif %}
+            "{{ key | caseLower }}" to "{{ header }}"
+    {% if not loop.last %}
+,
+    {% endif %}
 {% endfor %}
 
         )
@@ -101,17 +107,17 @@ class Client @JvmOverloads constructor(
 
 {% for header in spec.global.headers %}
     /**
-     * Set {{header.key | caseUcfirst}}
+     * Set {{ header.key | caseUcfirst }}
      *
-{% if header.description %}
-     * {{header.description}}
+    {% if header.description %}
+     * {{ header.description }}
      *
-{% endif %}
-     * @param {string} {{header.key | caseLower}}
+    {% endif %}
+     * @param {string} {{ header.key | caseLower }}
      *
      * @return this
      */
-    fun set{{header.key | caseUcfirst}}(value: String): Client {
+    fun set{{ header.key | caseUcfirst }}(value: String): Client {
         config["{{ header.key | caseCamel }}"] = value
         addHeader("{{ header.name | caseLower }}", value)
         return this
@@ -226,7 +232,7 @@ class Client @JvmOverloads constructor(
      */
     suspend fun ping(): String {
         val apiPath = "/ping"
-        val apiParams = mutableMapOf<String, Any?>()
+        val apiParams = mutableMapOf<String , Any?>()
         val apiHeaders = mutableMapOf("content-type" to "application/json")
 
         return call(
@@ -252,8 +258,8 @@ class Client @JvmOverloads constructor(
     suspend fun <T> call(
         method: String,
         path: String,
-        headers:  Map<String, String> = mapOf(),
-        params: Map<String, Any?> = mapOf(),
+        headers:  Map<String , String> = mapOf(),
+        params: Map<String , Any?> = mapOf(),
         responseType: Class<T>,
         converter: ((Any) -> T)? = null
     ): T {
@@ -344,8 +350,8 @@ class Client @JvmOverloads constructor(
     @Throws({{ spec.title | caseUcfirst }}Exception::class)
     suspend fun <T> chunkedUpload(
         path: String,
-        headers:  MutableMap<String, String>,
-        params: MutableMap<String, Any?>,
+        headers:  MutableMap<String , String>,
+        params: MutableMap<String , Any?>,
         responseType: Class<T>,
         converter: ((Any) -> T),
         paramName: String,
@@ -454,7 +460,7 @@ class Client @JvmOverloads constructor(
             )
         }
 
-        return converter(result as Map<String, Any>)
+        return converter(result as Map<String , Any>)
     }
 
     /**
@@ -489,7 +495,7 @@ class Client @JvmOverloads constructor(
                         .use(BufferedReader::readText)
 
                     val error = if (response.headers["content-type"]?.contains("application/json") == true) {
-                        val map = body.fromJson<Map<String, Any>>()
+                        val map = body.fromJson<Map<String , Any>>()
 
                         {{ spec.title | caseUcfirst }}Exception(
                             map["message"] as? String ?: "",

@@ -5,23 +5,23 @@ import platform
 import sys
 import requests
 from .input_file import InputFile
-from .exception import {{spec.title | caseUcfirst}}Exception
+from .exception import {{ spec.title | caseUcfirst }}Exception
 from .encoders.value_class_encoder import ValueClassEncoder
 
 class Client:
     def __init__(self):
         self._chunk_size = 5*1024*1024
         self._self_signed = False
-        self._endpoint = '{{spec.endpoint}}'
+        self._endpoint = '{{ spec.endpoint }}'
         self._global_headers = {
             'content-type': '',
-            'user-agent' : f'{{spec.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} ({platform.uname().system}; {platform.uname().version}; {platform.uname().machine})',
+            'user-agent' : f'{{ spec.title | caseUcfirst }}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} ({platform.uname().system}; {platform.uname().version}; {platform.uname().machine})',
             'x-sdk-name': '{{ sdk.name }}',
             'x-sdk-platform': '{{ sdk.platform }}',
             'x-sdk-language': '{{ language.name | caseLower }}',
             'x-sdk-version': '{{ sdk.version }}',
 {% for key,header in spec.global.defaultHeaders %}
-            '{{key}}' : '{{header}}',
+            '{{ key }}' : '{{ header }}',
 {% endfor %}
         }
 
@@ -31,7 +31,7 @@ class Client:
 
     def set_endpoint(self, endpoint):
         if not endpoint.startswith('http://') and not endpoint.startswith('https://'):
-            raise {{spec.title | caseUcfirst}}Exception('Invalid endpoint URL: ' + endpoint)
+            raise {{ spec.title | caseUcfirst }}Exception('Invalid endpoint URL: ' + endpoint)
 
         self._endpoint = endpoint
         return self
@@ -41,12 +41,12 @@ class Client:
         return self
 {% for header in spec.global.headers %}
 
-    def set_{{header.key | caseSnake}}(self, value):
-{% if header.description %}
-        """{{header.description}}"""
+    def set_{{ header.key | caseSnake }}(self, value):
+    {% if header.description %}
+        """{{ header.description }}"""
 
-{% endif %}
-        self._global_headers['{{header.name|lower}}'] = value
+    {% endif %}
+        self._global_headers['{{ header.name|lower }}'] = value
         return self
 {% endfor %}
 
@@ -112,11 +112,11 @@ class Client:
             if response != None:
                 content_type = response.headers['Content-Type']
                 if content_type.startswith('application/json'):
-                    raise {{spec.title | caseUcfirst}}Exception(response.json()['message'], response.status_code, response.json().get('type'), response.text)
+                    raise {{ spec.title | caseUcfirst }}Exception(response.json()['message'], response.status_code, response.json().get('type'), response.text)
                 else:
-                    raise {{spec.title | caseUcfirst}}Exception(response.text, response.status_code, None, response.text)
+                    raise {{ spec.title | caseUcfirst }}Exception(response.text, response.status_code, None, response.text)
             else:
-                raise {{spec.title | caseUcfirst}}Exception(e)
+                raise {{ spec.title | caseUcfirst }}Exception(e)
 
     def chunked_upload(
         self,

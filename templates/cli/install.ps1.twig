@@ -1,8 +1,17 @@
 ## <script src="/dist/scripts/cli-bash.js"></script>
-## <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.16.0/themes/prism-okaidia.min.css" rel="stylesheet" />
-## <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.16.0/components/prism-core.min.js" data-manual></script>
+##
+<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.16.0/themes/prism-okaidia.min.css"
+      rel="stylesheet" />
+## <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.16.0/components/prism-core.min.js"
+         data-manual></script>
 ## <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.16.0/components/prism-powershell.min.js"></script>
-## <style>body {color: #272822; background-color: #272822; font-size: 0.8em;} </style>
+## <style>
+     body {
+         color: #272822;
+         background-color: #272822;
+         font-size: 0.8em;
+     }
+ </style>
 # Love open-source, dev-tooling and passionate about code as much as we do?
 # ---
 # We're always looking for awesome hackers like you to join our 100% remote team!
@@ -32,7 +41,7 @@ function Greeting {
 {{ language.params.logoUnescaped | raw }}
 
 "@ -ForegroundColor red
-    Write-Host "Welcome to the {{ spec.title | caseUcfirst }} CLI install shield."  
+    Write-Host "Welcome to the {{ spec.title | caseUcfirst }} CLI install shield."
 }
 
 
@@ -68,7 +77,7 @@ function Install {
         Write-Host "Skipping to add {{ spec.title | caseUcfirst }} to User Path."
     } else {
         [System.Environment]::SetEnvironmentVariable("PATH", $USER_PATH_ENV_VAR + ";${{ spec.title | upper }}_INSTALL_DIR", "User")
-        $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User") 
+        $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
     }
 }
 

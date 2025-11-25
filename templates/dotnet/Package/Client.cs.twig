@@ -17,12 +17,12 @@ namespace {{ spec.title | caseUcfirst }}
     public class Client
     {
         public string Endpoint => _endpoint;
-        public Dictionary<string, string> Config => _config;
+        public Dictionary<string , string> Config => _config;
 
         private HttpClient _http;
         private HttpClient _httpForRedirect;
-        private readonly Dictionary<string, string> _headers;
-        private readonly Dictionary<string, string> _config;
+        private readonly Dictionary<string , string> _headers;
+        private readonly Dictionary<string , string> _config;
         private string _endpoint;
 
         private static readonly int ChunkSize = 5 * 1024 * 1024;
@@ -53,7 +53,7 @@ namespace {{ spec.title | caseUcfirst }}
         };
 
         public Client(
-            string endpoint = "{{spec.endpoint}}",
+            string endpoint = "{{ spec.endpoint }}",
             bool selfSigned = false,
             HttpClient? http = null,
             HttpClient? httpForRedirect = null)
@@ -66,21 +66,27 @@ namespace {{ spec.title | caseUcfirst }}
                     AllowAutoRedirect = false
                 });
 
-            _headers = new Dictionary<string, string>()
+            _headers = new Dictionary<string , string>()
             {
                 { "content-type", "application/json" },
-                { "user-agent" , $"{{spec.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} ({Environment.OSVersion.Platform}; {Environment.OSVersion.VersionString})"},
+                { "user-agent" , $"{{ spec.title | caseUcfirst }}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} ({Environment.OSVersion.Platform}; {Environment.OSVersion.VersionString})"},
                 { "x-sdk-name", "{{ sdk.name }}" },
                 { "x-sdk-platform", "{{ sdk.platform }}" },
                 { "x-sdk-language", "{{ language.name | caseLower }}" },
-                { "x-sdk-version", "{{ sdk.version }}"}{% if spec.global.defaultHeaders | length > 0 %},
-                {%~ for key,header in spec.global.defaultHeaders %}
-                { "{{key}}", "{{header}}" }{% if not loop.last %},{% endif %}
-                {%~ endfor %}{% endif %}
+                { "x-sdk-version", "{{ sdk.version }}"}
+{% if spec.global.defaultHeaders | length > 0 %}
+,
+{%~ for key,header in spec.global.defaultHeaders %}
+                { "{{ key }}", "{{ header }}" }
+    {% if not loop.last %}
+,
+    {% endif %}
+{%~ endfor %}
+{% endif %}
 
             };
 
-            _config = new Dictionary<string, string>();
+            _config = new Dictionary<string , string>();
 
             if (selfSigned)
             {
@@ -105,25 +111,28 @@ namespace {{ spec.title | caseUcfirst }}
         public Client SetEndpoint(string endpoint)
         {
             if (!endpoint.StartsWith("http://") && !endpoint.StartsWith("https://")) {
-                throw new {{spec.title | caseUcfirst}}Exception("Invalid endpoint URL: " + endpoint);
+                throw new {{ spec.title | caseUcfirst }}Exception("Invalid endpoint URL: " + endpoint);
             }
 
             _endpoint = endpoint;
             return this;
         }
 
-        {%~ for header in spec.global.headers %}
-        {%~ if header.description %}
-        /// <summary>{{header.description}}</summary>
-        {%~ endif %}
-        public Client Set{{header.key | caseUcfirst}}(string value) {
+{%~ for header in spec.global.headers %}
+{%~ if header.description %}
+        ///
+<summary>
+{{ header.description }}
+</summary>
+{%~ endif %}
+        public Client Set{{ header.key | caseUcfirst }}(string value) {
             _config.Add("{{ header.key | caseCamel }}", value);
-            AddHeader("{{header.name}}", value);
+            AddHeader("{{ header.name }}", value);
 
             return this;
         }
 
-        {%~ endfor %}
+{%~ endfor %}
         public Client AddHeader(string key, string value)
         {
             _headers.Add(key, value);
@@ -134,8 +143,8 @@ namespace {{ spec.title | caseUcfirst }}
         private HttpRequestMessage PrepareRequest(
             string method,
             string path,
-            Dictionary<string, string> headers,
-            Dictionary<string, object?> parameters)
+            Dictionary<string , string> headers,
+            Dictionary<string , object?> parameters)
         {
             var methodGet = "GET".Equals(method, StringComparison.OrdinalIgnoreCase);
 
@@ -147,7 +156,7 @@ namespace {{ spec.title | caseUcfirst }}
                 new HttpMethod(method),
                 _endpoint + path + queryString);
 
-            if (headers.TryGetValue("content-type", out var contentType) && 
+            if (headers.TryGetValue("content-type", out var contentType) &&
                 "multipart/form-data".Equals(contentType, StringComparison.OrdinalIgnoreCase))
             {
                 var form = new MultipartFormDataContent();
@@ -225,8 +234,8 @@ namespace {{ spec.title | caseUcfirst }}
         public async Task<String> Redirect(
             string method,
             string path,
-            Dictionary<string, string> headers,
-            Dictionary<string, object?> parameters)
+            Dictionary<string , string> headers,
+            Dictionary<string , object?> parameters)
         {
             var request = this.PrepareRequest(method, path, headers, parameters);
 
@@ -245,7 +254,7 @@ namespace {{ spec.title | caseUcfirst }}
                 }
 
                 if (contentType.Contains("application/json")) {
-                    try 
+                    try
                     {
                         using var errorDoc = JsonDocument.Parse(text);
                         message = errorDoc.RootElement.GetProperty("message").GetString() ?? "";
@@ -262,27 +271,27 @@ namespace {{ spec.title | caseUcfirst }}
                     message = text;
                 }
 
-                throw new {{spec.title | caseUcfirst}}Exception(message, code, type, text);
+                throw new {{ spec.title | caseUcfirst }}Exception(message, code, type, text);
             }
 
             return response.Headers.Location?.OriginalString ?? string.Empty;
         }
 
-        public Task<Dictionary<string, object?>> Call(
+        public Task<Dictionary<string , object?>> Call(
             string method,
             string path,
-            Dictionary<string, string> headers,
-            Dictionary<string, object?> parameters)
+            Dictionary<string , string> headers,
+            Dictionary<string , object?> parameters)
         {
-            return Call<Dictionary<string, object?>>(method, path, headers, parameters);
+            return Call<Dictionary<string , object?>>(method, path, headers, parameters);
         }
 
         public async Task<T> Call<T>(
             string method,
             string path,
-            Dictionary<string, string> headers,
-            Dictionary<string, object?> parameters,
-            Func<Dictionary<string, object>, T>? convert = null) where T : class
+            Dictionary<string , string> headers,
+            Dictionary<string , object?> parameters,
+            Func<Dictionary<string , object>, T>? convert = null) where T : class
         {
             var request = this.PrepareRequest(method, path, headers, parameters);
 
@@ -311,7 +320,7 @@ namespace {{ spec.title | caseUcfirst }}
                 var type = "";
 
                 if (isJson) {
-                    try 
+                    try
                     {
                         using var errorDoc = JsonDocument.Parse(text);
                         message = errorDoc.RootElement.GetProperty("message").GetString() ?? "";
@@ -328,14 +337,14 @@ namespace {{ spec.title | caseUcfirst }}
                     message = text;
                 }
 
-                throw new {{spec.title | caseUcfirst}}Exception(message, code, type, text);
+                throw new {{ spec.title | caseUcfirst }}Exception(message, code, type, text);
             }
 
             if (isJson)
             {
                 var responseString = await response.Content.ReadAsStringAsync();
 
-                var dict = JsonSerializer.Deserialize<Dictionary<string, object>>(
+                var dict = JsonSerializer.Deserialize<Dictionary<string , object>>(
                     responseString,
                     DeserializerOptions);
 
@@ -354,23 +363,23 @@ namespace {{ spec.title | caseUcfirst }}
 
         public async Task<T> ChunkedUpload<T>(
             string path,
-            Dictionary<string, string> headers,
-            Dictionary<string, object?> parameters,
-            Func<Dictionary<string, object>, T> converter,
+            Dictionary<string , string> headers,
+            Dictionary<string , object?> parameters,
+            Func<Dictionary<string , object>, T> converter,
             string paramName,
             string? idParamName = null,
             Action<UploadProgress>? onProgress = null) where T : class
         {
             if (string.IsNullOrEmpty(paramName))
                 throw new ArgumentException("Parameter name cannot be null or empty", nameof(paramName));
-                
+
             if (!parameters.ContainsKey(paramName))
                 throw new ArgumentException($"Parameter {paramName} not found", nameof(paramName));
-                
+
             var input = parameters[paramName] as InputFile;
             if (input == null)
                 throw new ArgumentException($"Parameter {paramName} must be an InputFile", nameof(paramName));
-                
+
             var size = 0L;
             switch(input.SourceType)
             {
@@ -395,7 +404,7 @@ namespace {{ spec.title | caseUcfirst }}
 
             var offset = 0L;
             var buffer = new byte[Math.Min(size, ChunkSize)];
-            var result = new Dictionary<string, object?>();
+            var result = new Dictionary<string , object?>();
 
             if (size < ChunkSize)
             {
@@ -436,11 +445,11 @@ namespace {{ spec.title | caseUcfirst }}
                 try
                 {
                 // Make a request to check if a file already exists
-                var current = await Call<Dictionary<string, object?>>(
+                var current = await Call<Dictionary<string , object?>>(
                     method: "GET",
                     path: $"{path}/{parameters[idParamName!]}",
-                    new Dictionary<string, string> { { "content-type", "application/json" } },
-                    parameters: new Dictionary<string, object?>()
+                    new Dictionary<string , string> { { "content-type", "application/json" } },
+                    parameters: new Dictionary<string , object?>()
                 );
                 if (current.TryGetValue("chunksUploaded", out var chunksUploadedValue) && chunksUploadedValue != null)
                 {
@@ -482,7 +491,7 @@ namespace {{ spec.title | caseUcfirst }}
                 headers["Content-Range"] =
                     $"bytes {offset}-{Math.Min(offset + ChunkSize - 1, size - 1)}/{size}";
 
-                result = await Call<Dictionary<string, object?>>(
+                result = await Call<Dictionary<string , object?>>(
                     method: "POST",
                     path,
                     headers,
@@ -515,7 +524,7 @@ namespace {{ spec.title | caseUcfirst }}
             // Convert to non-nullable dictionary for converter
             var nonNullableResult = result.Where(kvp => kvp.Value != null)
                 .ToDictionary(kvp => kvp.Key, kvp => kvp.Value!);
-            
+
             return converter(nonNullableResult);
         }
     }

@@ -1,12 +1,13 @@
 {% import 'flutter/base/utils.twig' as utils %}
-        final Map<String, dynamic> params = {
+        final Map<String , dynamic> params = {
             {{ utils.map_parameter(method.parameters.query) }}
             {{ utils.map_parameter(method.parameters.body) }}
-{% if method.auth|length > 0 %}{% for node in method.auth %}
-{% for key,header in node|keys %}
-            '{{header|caseLower}}': client.config['{{header|caseLower}}'],
-{% endfor %}
-{% endfor %}
+{% if method.auth|length > 0 %}
+    {% for node in method.auth %}
+        {% for key,header in node|keys %}
+            '{{ header|caseLower }}': client.config['{{ header|caseLower }}'],
+        {% endfor %}
+    {% endfor %}
 {% endif %}
         };
 

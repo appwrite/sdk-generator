@@ -10,7 +10,7 @@ import java.util.concurrent.locks.ReentrantLock
 
 open class InMemoryCookieStore : CookieStore {
 
-    internal val uriIndex = mutableMapOf<URI, MutableList<HttpCookie>>()
+    internal val uriIndex = mutableMapOf<URI , MutableList<HttpCookie>>()
     private val lock = ReentrantLock(false)
 
     override fun removeAll(): Boolean {

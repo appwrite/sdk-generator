@@ -14,7 +14,10 @@
     "scripts": {
         "test": "vendor/bin/phpunit",
         "lint": "vendor/bin/phpcs",
-        "format": "vendor/bin/phpcbf"
+        "format": "vendor/bin/phpcbf",
+        "lint-twig": "uvx djlint templates/ --check --lint",
+        "format-twig": "uvx djlint templates/ --reformat",
+        "format-twig-check": "uvx djlint templates/ --check"
     },
     "autoload": {
         "psr-4": {

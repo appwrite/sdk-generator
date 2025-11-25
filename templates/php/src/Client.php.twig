@@ -28,7 +28,7 @@ class Client
      *
      * @var string
      */
-    protected string $endpoint = '{{spec.endpoint}}';
+    protected string $endpoint = '{{ spec.endpoint }}';
 
     /**
      * Global Headers
@@ -37,7 +37,7 @@ class Client
      */
     protected array $headers = [
         'content-type' => '',
-        'user-agent' => '{{spec.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} ({{deviceInfo}})',
+        'user-agent' => '{{ spec.title | caseUcfirst }}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} ({{ deviceInfo }})',
         'x-sdk-name'=> '{{ sdk.name }}',
         'x-sdk-platform'=> '{{ sdk.platform }}',
         'x-sdk-language'=> '{{ language.name | caseLower }}',
@@ -50,25 +50,26 @@ class Client
     public function __construct()
     {
 {% for key,header in spec.global.defaultHeaders %}
-        $this->headers['{{key}}'] = '{{header}}';
-{% endfor %} 
+        $this->headers['{{ key }}'] = '{{ header }}';
+{% endfor %}
+
     }
 
 {% for header in spec.global.headers %}
     /**
-     * Set {{header.key | caseUcfirst}}
+     * Set {{ header.key | caseUcfirst }}
      *
 {% if header.description %}
-     * {{header.description}}
+     * {{ header.description }}
      *
 {% endif %}
      * @param string $value
      *
      * @return Client
      */
-    public function set{{header.key | caseUcfirst}}(string $value): Client
+    public function set{{ header.key | caseUcfirst }}(string $value): Client
     {
-        $this->addHeader('{{header.name}}', $value);
+        $this->addHeader('{{ header.name }}', $value);
 
         return $this;
     }
@@ -93,7 +94,7 @@ class Client
     public function setEndpoint(string $endpoint): Client
     {
         if (!str_starts_with($endpoint, 'http://') && !str_starts_with($endpoint, 'https://')) {
-            throw new {{spec.title | caseUcfirst}}Exception("Invalid endpoint URL: $endpoint");
+            throw new {{ spec.title | caseUcfirst }}Exception("Invalid endpoint URL: $endpoint");
         }
 
         $this->endpoint = $endpoint;
@@ -107,7 +108,7 @@ class Client
     public function addHeader(string $key, string $value): Client
     {
         $this->headers[strtolower($key)] = $value;
-        
+
         return $this;
     }
 
@@ -121,7 +122,7 @@ class Client
      * @param array $params
      * @param array $headers
      * @return array|string
-     * @throws {{spec.title | caseUcfirst}}Exception
+     * @throws {{ spec.title | caseUcfirst }}Exception
      */
     public function call(
         string $method,
@@ -186,13 +187,13 @@ class Client
         $contentType    = $responseHeaders['content-type'] ?? '';
         $responseStatus = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 
-        $warnings = $responseHeaders['x-{{spec.title | caseLower}}-warning'] ?? '';
+        $warnings = $responseHeaders['x-{{ spec.title | caseLower }}-warning'] ?? '';
         if ($warnings) {
             foreach(explode(';', $warnings) as $warning) {
                 \trigger_error($warning, E_USER_WARNING);
             }
         }
-        
+
         switch(substr($contentType, 0, strpos($contentType, ';'))) {
             case 'application/json':
                 $responseBody = json_decode($responseBody, true);
@@ -200,16 +201,16 @@ class Client
         }
 
         if (curl_errno($ch)) {
-            throw new {{spec.title | caseUcfirst}}Exception(curl_error($ch), $responseStatus, $responseBody['type'] ?? '', $responseBody);
+            throw new {{ spec.title | caseUcfirst }}Exception(curl_error($ch), $responseStatus, $responseBody['type'] ?? '', $responseBody);
         }
-        
+
         curl_close($ch);
 
         if($responseStatus >= 400) {
             if(is_array($responseBody)) {
-                throw new {{spec.title | caseUcfirst}}Exception($responseBody['message'], $responseStatus, $responseBody['type'] ?? '', json_encode($responseBody));
+                throw new {{ spec.title | caseUcfirst }}Exception($responseBody['message'], $responseStatus, $responseBody['type'] ?? '', json_encode($responseBody));
             } else {
-                throw new {{spec.title | caseUcfirst}}Exception($responseBody, $responseStatus, '', $responseBody);
+                throw new {{ spec.title | caseUcfirst }}Exception($responseBody, $responseStatus, '', $responseBody);
             }
         }
 

@@ -19,7 +19,7 @@ import (
 	"time"
 	"runtime"
 
-	"github.com/{{sdk.gitUserName}}/sdk-for-go/file"
+	"github.com/{{ sdk.gitUserName }}/sdk-for-go/file"
 )
 
 const (
@@ -74,8 +74,8 @@ type Client struct {
 func New(optionalSetters ...ClientOption) Client {
 	headers := map[string]string{
 {% for key,header in spec.global.defaultHeaders %}
-		"{{key}}" : "{{header}}",
-		"user-agent" : fmt.Sprintf("{{spec.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} (%s; %s)", runtime.GOOS, runtime.GOARCH),
+		"{{ key }}" : "{{ header }}",
+		"user-agent" : fmt.Sprintf("{{ spec.title | caseUcfirst }}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} (%s; %s)", runtime.GOOS, runtime.GOARCH),
 		"x-sdk-name": "{{ sdk.name }}",
 		"x-sdk-platform": "{{ sdk.platform }}",
 		"x-sdk-language": "{{ language.name | caseLower }}",
@@ -88,7 +88,7 @@ func New(optionalSetters ...ClientOption) Client {
 	}
 
 	client := Client{
-		Endpoint:  "{{spec.endpoint}}",
+		Endpoint:  "{{ spec.endpoint }}",
 		Client:    httpClient,
 		Timeout:   defaultTimeout,
 		Headers:   headers,

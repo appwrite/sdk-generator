@@ -18,7 +18,7 @@ enum class Condition(val value: String) {
 
 class Operator(
     val method: String,
-    val values: List<Any?>? = null,
+    val values: List<Any ?>? = null,
 ) {
     override fun toString() = this.toJson()
 
@@ -26,7 +26,7 @@ class Operator(
         fun increment(value: Number = 1, max: Number? = null): String {
             require(!value.toDouble().isNaN() && !value.toDouble().isInfinite()) { "Value cannot be NaN or Infinity" }
             max?.let { require(!it.toDouble().isNaN() && !it.toDouble().isInfinite()) { "Max cannot be NaN or Infinity" } }
-            val values = mutableListOf<Any?>(value)
+            val values = mutableListOf<Any ?>(value)
             max?.let { values.add(it) }
             return Operator("increment", values).toJson()
         }
@@ -34,7 +34,7 @@ class Operator(
         fun decrement(value: Number = 1, min: Number? = null): String {
             require(!value.toDouble().isNaN() && !value.toDouble().isInfinite()) { "Value cannot be NaN or Infinity" }
             min?.let { require(!it.toDouble().isNaN() && !it.toDouble().isInfinite()) { "Min cannot be NaN or Infinity" } }
-            val values = mutableListOf<Any?>(value)
+            val values = mutableListOf<Any ?>(value)
             min?.let { values.add(it) }
             return Operator("decrement", values).toJson()
         }
@@ -42,7 +42,7 @@ class Operator(
         fun multiply(factor: Number, max: Number? = null): String {
             require(!factor.toDouble().isNaN() && !factor.toDouble().isInfinite()) { "Factor cannot be NaN or Infinity" }
             max?.let { require(!it.toDouble().isNaN() && !it.toDouble().isInfinite()) { "Max cannot be NaN or Infinity" } }
-            val values = mutableListOf<Any?>(factor)
+            val values = mutableListOf<Any ?>(factor)
             max?.let { values.add(it) }
             return Operator("multiply", values).toJson()
         }
@@ -51,7 +51,7 @@ class Operator(
             require(!divisor.toDouble().isNaN() && !divisor.toDouble().isInfinite()) { "Divisor cannot be NaN or Infinity" }
             min?.let { require(!it.toDouble().isNaN() && !it.toDouble().isInfinite()) { "Min cannot be NaN or Infinity" } }
             require(divisor.toDouble() != 0.0) { "Divisor cannot be zero" }
-            val values = mutableListOf<Any?>(divisor)
+            val values = mutableListOf<Any ?>(divisor)
             min?.let { values.add(it) }
             return Operator("divide", values).toJson()
         }
@@ -65,16 +65,16 @@ class Operator(
         fun power(exponent: Number, max: Number? = null): String {
             require(!exponent.toDouble().isNaN() && !exponent.toDouble().isInfinite()) { "Exponent cannot be NaN or Infinity" }
             max?.let { require(!it.toDouble().isNaN() && !it.toDouble().isInfinite()) { "Max cannot be NaN or Infinity" } }
-            val values = mutableListOf<Any?>(exponent)
+            val values = mutableListOf<Any ?>(exponent)
             max?.let { values.add(it) }
             return Operator("power", values).toJson()
         }
 
-        fun arrayAppend(values: List<Any?>): String {
+        fun arrayAppend(values: List<Any ?>): String {
             return Operator("arrayAppend", values).toJson()
         }
 
-        fun arrayPrepend(values: List<Any?>): String {
+        fun arrayPrepend(values: List<Any ?>): String {
             return Operator("arrayPrepend", values).toJson()
         }
 
@@ -90,16 +90,16 @@ class Operator(
             return Operator("arrayUnique", emptyList()).toJson()
         }
 
-        fun arrayIntersect(values: List<Any?>): String {
+        fun arrayIntersect(values: List<Any ?>): String {
             return Operator("arrayIntersect", values).toJson()
         }
 
-        fun arrayDiff(values: List<Any?>): String {
+        fun arrayDiff(values: List<Any ?>): String {
             return Operator("arrayDiff", values).toJson()
         }
 
         fun arrayFilter(condition: Condition, value: Any? = null): String {
-            val values = listOf<Any?>(condition.value, value)
+            val values = listOf<Any ?>(condition.value, value)
             return Operator("arrayFilter", values).toJson()
         }
 

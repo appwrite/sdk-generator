@@ -1,7 +1,7 @@
 {%- set requireModelsPkg = false -%}
 {%- set requireFilesPkg = false -%}
 {%- if (method | returnType(spec, spec.title | caseLower)) starts with "models" -%}
-		{%- set requireModelsPkg = true -%}
+{%- set requireModelsPkg = true -%}
 {%- endif -%}
 
 package main
@@ -11,30 +11,34 @@ import (
     "github.com/{{ sdk.gitUserName|url_encode }}/{{ sdk.gitRepoName|url_encode }}/client"
     "github.com/{{ sdk.gitUserName|url_encode }}/{{ sdk.gitRepoName|url_encode }}/{{ service.name | caseLower }}"
 {% if requireFilesPkg %}
-	"github.com/{{sdk.gitUserName}}/sdk-for-go/file"
+	"github.com/{{ sdk.gitUserName }}/sdk-for-go/file"
 {% endif %}
 )
 
 client := client.New(
 {% if method.auth|length > 0 %}
     client.WithEndpoint("{{ spec.endpointDocs | raw }}")
-{% for node in method.auth %}
-{% for key,header in node|keys %}
-    client.With{{header}}("{{node[header]['x-appwrite']['demo'] | raw }}")
-{% endfor %}
-{% endfor %}
+    {% for node in method.auth %}
+        {% for key,header in node|keys %}
+    client.With{{ header }}("{{ node[header]['x-appwrite']['demo'] | raw }}")
+        {% endfor %}
+    {% endfor %}
 )
 
 {% endif %}
 service := {{ service.name | caseLower }}.New(client)
 
-response, error := service.{{ method.name | caseUcfirst }}({% if method.parameters.all | length == 0 %}){% else %}
-
-{% for parameter in method.parameters.all %}
-{% if parameter.required %}
-    {{ parameter | paramExample }},
+response, error := service.{{ method.name | caseUcfirst }}(
+{% if method.parameters.all | length == 0 %}
+)
 {% else %}
+
+    {% for parameter in method.parameters.all %}
+        {% if parameter.required %}
+    {{ parameter | paramExample }},
+        {% else %}
     {{ service.name | caseLower }}.With{{ method.name | caseUcfirst }}{{ parameter.name | caseUcfirst }}({{ parameter | paramExample }}),
+        {% endif %}
+    {% endfor %}
 {% endif %}
-{% endfor %}
-{% endif %})
+)

@@ -1,4 +1,14 @@
-{% macro sub_schema(property) %}{% if property.sub_schema %}{% if property.type == 'array' %}List<{{property.sub_schema | caseUcfirst}}>{% else %}{{property.sub_schema | caseUcfirst}}{% endif %}{% else %}{{property | typeName}}{% endif %}{% endmacro %}
+{% macro sub_schema(property) %}
+    {% if property.sub_schema %}
+        {% if property.type == 'array' %}
+List<{{ property.sub_schema | caseUcfirst }}>
+        {% else %}
+{{ property.sub_schema | caseUcfirst }}
+        {% endif %}
+    {% else %}
+{{ property | typeName }}
+    {% endif %}
+{% endmacro %}
 #frozen_string_literal: true
 
 module {{ spec.title | caseUcfirst }}
@@ -13,7 +23,13 @@ module {{ spec.title | caseUcfirst }}
 
             def initialize(
 {% for property in definition.properties %}
-                {{ property.name | caseSnake | escapeKeyword }}:{% if not property.required %} {{ property.default }}{% endif %}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
+                {{ property.name | caseSnake | escapeKeyword }}:
+    {% if not property.required %}
+ {{ property.default }}
+    {% endif %}
+    {% if not loop.last or (loop.last and definition.additionalProperties) %}
+,
+    {% endif %}
 
 {% endfor %}
 {% if definition.additionalProperties %}
@@ -21,15 +37,15 @@ module {{ spec.title | caseUcfirst }}
 {% endif %}
             )
 {% for property in definition.properties %}
-{% if property.enum %}
-{% if property.required %}
+    {% if property.enum %}
+        {% if property.required %}
                 @{{ property.name | caseSnake | escapeKeyword }} = validate_{{ property.name | caseSnake | escapeKeyword }}({{ property.name | caseSnake | escapeKeyword }})
-{% else %}
+        {% else %}
                 @{{ property.name | caseSnake | escapeKeyword }} = {{ property.name | caseSnake | escapeKeyword }}.nil? ? {{ property.name | caseSnake | escapeKeyword }} : validate_{{ property.name | caseSnake | escapeKeyword }}({{ property.name | caseSnake | escapeKeyword }})
-{% endif %}
-{% else %}
+        {% endif %}
+    {% else %}
                 @{{ property.name | caseSnake | escapeKeyword }} = {{ property.name | caseSnake | escapeKeyword }}
-{% endif %}
+    {% endif %}
 {% endfor %}
 {% if definition.additionalProperties %}
                 @data = data
@@ -39,7 +55,19 @@ module {{ spec.title | caseUcfirst }}
             def self.from(map:)
                 {{ definition.name | caseUcfirst }}.new(
 {% for property in definition.properties %}
-                    {{ property.name | caseSnake | escapeKeyword | removeDollarSign }}: {% if property.sub_schema %}{% if property.type == 'array' %}map["{{ property.name }}"].map { |it| {{ property.sub_schema | caseUcfirst }}.from(map: it) }{% else %}{{property.sub_schema | caseUcfirst}}.from(map: map["{{property.name }}"]){% endif %}{% else %}map["{{ property.name }}"]{% endif %}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
+                    {{ property.name | caseSnake | escapeKeyword | removeDollarSign }}:
+    {% if property.sub_schema %}
+        {% if property.type == 'array' %}
+map["{{ property.name }}"].map { |it| {{ property.sub_schema | caseUcfirst }}.from(map: it) }
+        {% else %}
+{{ property.sub_schema | caseUcfirst }}.from(map: map["{{ property.name }}"])
+        {% endif %}
+    {% else %}
+map["{{ property.name }}"]
+    {% endif %}
+    {% if not loop.last or (loop.last and definition.additionalProperties) %}
+,
+    {% endif %}
 
 {% endfor %}
 {% if definition.additionalProperties %}
@@ -51,7 +79,19 @@ module {{ spec.title | caseUcfirst }}
             def to_map
                 {
 {% for property in definition.properties %}
-                    "{{ property.name }}": {% if property.sub_schema %}{% if property.type == 'array' %}@{{ property.name | caseSnake | escapeKeyword | removeDollarSign }}.map { |it| it.to_map }{% else %}@{{property.name | caseSnake | escapeKeyword | removeDollarSign }}.to_map{% endif %}{% else %}@{{property.name | caseSnake | escapeKeyword }}{% endif %}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
+                    "{{ property.name }}":
+    {% if property.sub_schema %}
+        {% if property.type == 'array' %}
+@{{ property.name | caseSnake | escapeKeyword | removeDollarSign }}.map { |it| it.to_map }
+        {% else %}
+@{{ property.name | caseSnake | escapeKeyword | removeDollarSign }}.to_map
+        {% endif %}
+    {% else %}
+@{{ property.name | caseSnake | escapeKeyword }}
+    {% endif %}
+    {% if not loop.last or (loop.last and definition.additionalProperties) %}
+,
+    {% endif %}
 
 {% endfor %}
 {% if definition.additionalProperties %}
@@ -66,16 +106,16 @@ module {{ spec.title | caseUcfirst }}
             end
 {% endif %}
 {% for property in definition.properties %}
-{% if property.sub_schema %}
-{% for def in spec.definitions %}
-{% if def.name == property.sub_schema and def.additionalProperties and property.type == 'array' %}
+    {% if property.sub_schema %}
+        {% for def in spec.definitions %}
+            {% if def.name == property.sub_schema and def.additionalProperties and property.type == 'array' %}
 
             def convert_to(from_json)
                 {{ property.name | caseSnake | escapeKeyword }}.map { |it| it.convert_to(from_json) }
             end
-{% endif %}
-{% endfor %}
-{% endif %}
+            {% endif %}
+        {% endfor %}
+    {% endif %}
 {% endfor %}
 {% if definition.properties | filter(p => p.enum) | length > 0 %}
 
@@ -83,12 +123,12 @@ module {{ spec.title | caseUcfirst }}
 
 {% endif %}
 {% for property in definition.properties %}
-{% if property.enum %}
+    {% if property.enum %}
             def validate_{{ property.name | caseSnake | escapeKeyword }}({{ property.name | caseSnake | escapeKeyword }})
                 valid_{{ property.name | caseSnake }} = [
-{% for value in property.enum %}
+        {% for value in property.enum %}
                     {{ spec.title | caseUcfirst }}::Enums::{{ property.enumName | caseUcfirst }}::{{ value | caseUpper }},
-{% endfor %}
+        {% endfor %}
                 ]
 
                 unless valid_{{ property.name | caseSnake }}.include?({{ property.name | caseSnake | escapeKeyword }})
@@ -98,7 +138,7 @@ module {{ spec.title | caseUcfirst }}
                 {{ property.name | caseSnake | escapeKeyword }}
             end
 
-{% endif %}
+    {% endif %}
 {% endfor %}
         end
     end

@@ -2,10 +2,10 @@ import 'dart:async';
 import 'package:http/http.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
-import 'package:{{language.params.packageName}}/src/interceptor.dart';
+import 'package:{{ language.params.packageName }}/src/interceptor.dart';
 
 class MockRequest extends Mock implements BaseRequest {
-  final Map<String, String> headers = {};
+  final Map<String , String> headers = {};
 
   @override
   Future<StreamedResponse> send() async {

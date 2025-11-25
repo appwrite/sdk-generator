@@ -1,6 +1,6 @@
 require 'json'
 
-module {{spec.title | caseUcfirst}}
+module {{ spec.title | caseUcfirst }}
     class Query
         def initialize(method, attribute = nil, values = nil)
             @method = method
@@ -39,15 +39,15 @@ module {{spec.title | caseUcfirst}}
             def less_than(attribute, value)
                 return Query.new("lessThan", attribute, value).to_s
             end
-            
+
             def less_than_equal(attribute, value)
                 return Query.new("lessThanEqual", attribute, value).to_s
             end
-            
+
             def greater_than(attribute, value)
                 return Query.new("greaterThan", attribute, value).to_s
             end
-            
+
             def greater_than_equal(attribute, value)
                 return Query.new("greaterThanEqual", attribute, value).to_s
             end
@@ -75,7 +75,7 @@ module {{spec.title | caseUcfirst}}
             def select(attributes)
                 return Query.new("select", nil, attributes).to_s
             end
-            
+
             def search(attribute, value)
                 return Query.new("search", attribute, value).to_s
             end

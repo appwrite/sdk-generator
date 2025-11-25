@@ -2,14 +2,30 @@
 {% apply spaceless %}
     {% if property.sub_schema %}
         {% if _self.get_generics_sub(definition, spec) %}
-            {{property.sub_schema | caseUcfirst}}<{{ _self.get_generics_sub(definition, spec) }}>{% if property.type == 'array' %}[]{% endif %}
+            {{ property.sub_schema | caseUcfirst }}<{{ _self.get_generics_sub(definition, spec) }}>
+            {% if property.type == 'array' %}
+[]
+            {% endif %}
         {% else %}
-            {{property.sub_schema | caseUcfirst}}{% if property.type == 'array' %}[]{% endif %}
+            {{ property.sub_schema | caseUcfirst }}
+            {% if property.type == 'array' %}
+[]
+            {% endif %}
         {% endif %}
     {% elseif property.sub_schemas %}
-        ({% for subProperty in property.sub_schemas %}{{subProperty | caseUcfirst}}{% if loop.last == false %} | {% endif %}{% endfor %}){% if property.type == 'array' %}[]{% endif %}
+        (
+        {% for subProperty in property.sub_schemas %}
+{{ subProperty | caseUcfirst }}
+            {% if loop.last == false %}
+ |
+            {% endif %}
+        {% endfor %}
+)
+        {% if property.type == 'array' %}
+[]
+        {% endif %}
     {% else %}
-        {{property | typeName}}
+        {{ property | typeName }}
     {% endif %}
 {% endapply %}
 {% endmacro %}
@@ -17,10 +33,10 @@
 {% apply spaceless %}
     {% for property in definition.properties %}
         {% if spec.definitions[property.sub_schema].additionalProperties %}
-            {{property.sub_schema | caseUcfirst}} extends Models.{{property.sub_schema | caseUcfirst}}
+            {{ property.sub_schema | caseUcfirst }} extends Models.{{ property.sub_schema | caseUcfirst }}
         {% endif %}
         {% if spec.definitions[property.sub_schema] %}
-            {{_self.get_generics(spec.definitions[property.sub_schema], spec)}}
+            {{ _self.get_generics(spec.definitions[property.sub_schema], spec) }}
         {% endif %}
     {% endfor %}
 {% endapply %}
@@ -29,10 +45,10 @@
 {% apply spaceless %}
     {% for property in definition.properties %}
         {% if spec.definitions[property.sub_schema].additionalProperties and output %}
-            {{property.sub_schema | caseUcfirst}}
+            {{ property.sub_schema | caseUcfirst }}
         {% endif %}
         {% if spec.definitions[property.sub_schema] %}
-            {{_self.get_generics_sub(spec.definitions[property.sub_schema], spec, true)}}
+            {{ _self.get_generics_sub(spec.definitions[property.sub_schema], spec, true) }}
         {% endif %}
     {% endfor %}
 {% endapply %}
@@ -42,13 +58,21 @@ export namespace Models {
     /**
      * {{ definition.description }}
      */
-    export type {{ definition.name | caseUcfirst }}{% if _self.get_generics(definition, spec) %}<{{_self.get_generics(definition, spec)}}>{% endif %} = { 
-{% for property in definition.properties %}
+    export type {{ definition.name | caseUcfirst }}
+    {% if _self.get_generics(definition, spec) %}
+<{{ _self.get_generics(definition, spec) }}>
+    {% endif %}
+ = {
+    {% for property in definition.properties %}
         /**
          * {{ property.description }}
          */
-        {{ property.name | escapeKeyword }}{% if not property.required %}?{% endif %}: {{_self.sub_schema(property, definition, spec)}};
-{% endfor %}
+        {{ property.name | escapeKeyword }}
+        {% if not property.required %}
+?
+        {% endif %}
+: {{ _self.sub_schema(property, definition, spec) }};
+    {% endfor %}
     }
 {% endfor %}
 }

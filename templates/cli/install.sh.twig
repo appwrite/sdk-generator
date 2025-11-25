@@ -1,10 +1,19 @@
 #!/bin/bash
 
 ## <script src="/dist/scripts/cli-bash.js"></script>
-## <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.16.0/themes/prism-okaidia.min.css" rel="stylesheet" />
-## <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.16.0/components/prism-core.min.js" data-manual></script>
+##
+<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.16.0/themes/prism-okaidia.min.css"
+      rel="stylesheet" />
+## <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.16.0/components/prism-core.min.js"
+         data-manual></script>
 ## <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.16.0/components/prism-bash.min.js"></script>
-## <style>body {color: #272822; background-color: #272822; font-size: 0.8em;} </style>
+## <style>
+     body {
+         color: #272822;
+         background-color: #272822;
+         font-size: 0.8em;
+     }
+ </style>
 # Love open-source, dev-tooling and passionate about code as much as we do?
 # ---
 # We're always looking for awesome hackers like you to join our 100% remote team!
@@ -17,13 +26,13 @@
 # {{ spec.title | caseUcfirst }} CLI location
 {{ spec.title | upper }}_INSTALL_DIR="/usr/local/bin"
 
-# {{ spec.title | caseUcfirst }} CLI Executable name 
+# {{ spec.title | caseUcfirst }} CLI Executable name
 {{ spec.title | upper }}_EXECUTABLE_NAME={{ language.params.executableName }}
 
-# {{ spec.title | caseUcfirst }} executable file path 
+# {{ spec.title | caseUcfirst }} executable file path
 {{ spec.title | upper }}_EXECUTABLE_FILEPATH="${{ spec.title | upper }}_INSTALL_DIR/${{ spec.title | upper }}_EXECUTABLE_NAME"
 
-# {{ spec.title | caseUcfirst }} CLI temp name 
+# {{ spec.title | caseUcfirst }} CLI temp name
 {{ spec.title | upper }}_TEMP_NAME=temp-$(date +%s)
 
 # {{ spec.title | caseUcfirst }} CLI image name
@@ -51,7 +60,7 @@ EOF
 
 getSystemInfo() {
     echo "[1/4] Getting System Info ..."
-    
+
     ARCH=$(uname -m)
     case $ARCH in
         i386|i686) ARCH="x64" ;;
@@ -67,7 +76,7 @@ getSystemInfo() {
     if [ "$OS" == "linux" ] && [ "${{ spec.title | upper }}_INSTALL_DIR" == "/usr/local/bin" ]; then
         USE_SUDO="true"
     fi
-    
+
     # Need root access if its Apple Silicon
     if [ "$OS" == "darwin" ] && [[ "$(uname -a)" = *ARM64* ]]; then
         USE_SUDO="true"
@@ -127,7 +136,7 @@ install() {
 
 cleanup() {
     printf "${GREEN}🧹 Cleaning up mess ... ${NC}\n"
-    rm ${{ spec.title | upper }}_TEMP_NAME 
+    rm ${{ spec.title | upper }}_TEMP_NAME
     if [ $? -ne 0 ]; then
         printf "${RED}❌ Failed to remove temporary file ... ${NC}\n"
         exit 1
@@ -143,7 +152,7 @@ installCompleted() {
     echo "As first step, you can login to your {{ spec.title | caseUcfirst }} account using 'appwrite login'"
 }
 
-# Installation Starts here 
+# Installation Starts here
 greeting
 getSystemInfo
 downloadBinary

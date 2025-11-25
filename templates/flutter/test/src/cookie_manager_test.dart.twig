@@ -28,13 +28,13 @@ void main() {
     });
 
     test('without cookie', () async {
-      final request = Request('GET', Uri.parse('{{sdk.url}}'));
+      final request = Request('GET', Uri.parse('{{ sdk.url }}'));
       await cookieManager.onRequest(request);
       expect(request.headers, {});
     });
 
     test('with cookie', () async {
-      final uri = Uri.parse('{{sdk.url}}');
+      final uri = Uri.parse('{{ sdk.url }}');
       final cookies = [
         Cookie('name', 'value'),
         Cookie('name2', 'value2'),
@@ -59,7 +59,7 @@ void main() {
     });
 
     test('without cookie', () async {
-      final uri = Uri.parse('{{sdk.url}}');
+      final uri = Uri.parse('{{ sdk.url }}');
       final request = Request('POST', uri);
       final response = Response(
         'body',
@@ -76,7 +76,7 @@ void main() {
     });
 
     test('with cookie', () async {
-      final uri = Uri.parse('{{sdk.url}}');
+      final uri = Uri.parse('{{ sdk.url }}');
       final request = Request('POST', uri);
       final response = Response(
         'body',

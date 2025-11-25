@@ -2,127 +2,153 @@ import AsyncHTTPClient
 import Foundation
 import NIO
 import JSONCodable
-import {{spec.title | caseUcfirst}}Enums
-import {{spec.title | caseUcfirst}}Models
+import {{ spec.title | caseUcfirst }}Enums
+import {{ spec.title | caseUcfirst }}Models
 
 /// {{ service.description }}
 open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
 
-    {%~ for method in service.methods %}
+{%~ for method in service.methods %}
     ///
-    {%~ if method.description %}
+{%~ if method.description %}
     {{~ method.description | swiftComment }}
     ///
-    {%~ endif %}
-    {%~ if method.parameters.all | length > 0 %}
+{%~ endif %}
+{%~ if method.parameters.all | length > 0 %}
     /// - Parameters:
-    {%~ endif %}
-    {%~ for parameter in method.parameters.all %}
-    ///   - {{ parameter.name | caseCamel }}: {{ parameter | typeName(spec) | raw }}{% if not parameter.required or parameter.nullable %} (optional){% endif %}
+{%~ endif %}
+{%~ for parameter in method.parameters.all %}
+    ///   - {{ parameter.name | caseCamel }}: {{ parameter | typeName(spec) | raw }}
+{% if not parameter.required or parameter.nullable %}
+ (optional)
+{% endif %}
 
-    {%~ endfor %}
+{%~ endfor %}
     /// - Throws: Exception if the request fails
     /// - Returns: {{ method | returnType(spec) | raw }}
     ///
-    {%~ if method.deprecated %}
-    {%~ if method.since and method.replaceWith %}
+{%~ if method.deprecated %}
+{%~ if method.since and method.replaceWith %}
     @available(*, deprecated, message: "This API has been deprecated since {{ method.since }}. Please use `{{ method.replaceWith | capitalizeFirst }}` instead.")
-    {%~ else %}
+{%~ else %}
     @available(*, deprecated, message: "This API has been deprecated.")
-    {%~ endif %}
-    {%~ endif %}
-    open func {{ method.name | caseCamel | overrideIdentifier }}{% if method.responseModel | hasGenericType(spec) %}<T>{% endif %}(
-        {%~ for parameter in method.parameters.all %}
-        {{ parameter.name | caseCamel | escapeSwiftKeyword }}: {{ parameter | typeName(spec) | raw }}{% if not parameter.required or parameter.nullable %}? = nil{% endif %}{% if not loop.last or 'multipart/form-data' in method.consumes or method.responseModel | hasGenericType(spec) %},{% endif %}
+{%~ endif %}
+{%~ endif %}
+    open func {{ method.name | caseCamel | overrideIdentifier }}
+{% if method.responseModel | hasGenericType(spec) %}
+<T>
+{% endif %}
+(
+{%~ for parameter in method.parameters.all %}
+        {{ parameter.name | caseCamel | escapeSwiftKeyword }}: {{ parameter | typeName(spec) | raw }}
+{% if not parameter.required or parameter.nullable %}
+? = nil
+{% endif %}
+{% if not loop.last or 'multipart/form-data' in method.consumes or method.responseModel | hasGenericType(spec) %}
+,
+{% endif %}
 
-        {%~ endfor %}
-        {%~ if method.responseModel | hasGenericType(spec) %}
+{%~ endfor %}
+{%~ if method.responseModel | hasGenericType(spec) %}
         nestedType: T.Type
-        {%~ endif %}
-        {%~ if 'multipart/form-data' in method.consumes %}
+{%~ endif %}
+{%~ if 'multipart/form-data' in method.consumes %}
         onProgress: ((UploadProgress) -> Void)? = nil
-        {%~ endif %}
+{%~ endif %}
     ) async throws -> {{ method | returnType(spec) | raw }} {
-        {{~ include('swift/base/params.twig') }}
-        {%~ if method.headers | length <= 0 %}
+        {{ ~ include("swift/base/params.twig") }}
+{%~ if method.headers | length <= 0 %}
         let apiHeaders: [String: String] = [:]
-        {%~ else %}
-        {% if 'multipart/form-data' in method.consumes -%} var
-        {%- else -%} let
-        {%- endif %} apiHeaders: [String: String] = [
-        {%~ for key, header in method.headers %}
-            "{{ key }}": "{{ header }}"{% if not loop.last %},{% endif %}
+{%~ else %}
+{% if 'multipart/form-data' in method.consumes -%}
+ var
+{%- else -%} let
+{%- endif %} apiHeaders: [String: String] = [
+{%~ for key, header in method.headers %}
+            "{{ key }}": "{{ header }}"
+{% if not loop.last %}
+,
+{% endif %}
 
-        {%~ endfor %}
+{%~ endfor %}
         ]
-        {%~ endif %}
+{%~ endif %}
 
-        {%~ if method.type == 'webAuth' %}
-        {{~ include('swift/base/requests/oauth.twig') }}
-        {%~ elseif method.type == 'location' %}
-        {{~ include('swift/base/requests/location.twig')}}
-        {%~ else %}
-        {%~ if method.responseModel %}
+{%~ if method.type == 'webAuth' %}
+        {{ ~ include("swift/base/requests/oauth.twig") }}
+{%~ elseif method.type == 'location' %}
+        {{ ~ include("swift/base/requests/location.twig") }}
+{%~ else %}
+{%~ if method.responseModel %}
         let converter: (Any) -> {{ method | returnType(spec) | raw }} = { response in
-            {%~ if method.responseModel == 'any' %}
+{%~ if method.responseModel == 'any' %}
             return response
-            {%~ else %}
-            return {{ spec.title | caseUcfirst}}Models.{{method.responseModel | caseUcfirst}}.from(map: response as! [String: Any])
-            {%~ endif %}
+{%~ else %}
+            return {{ spec.title | caseUcfirst }}Models.{{ method.responseModel | caseUcfirst }}.from(map: response as! [String: Any])
+{%~ endif %}
         }
 
-        {%~ endif %}
-        {%~ if 'multipart/form-data' in method.consumes %}
-        {{~ include('swift/base/requests/file.twig') }}
-        {%~ else %}
-        {{~ include('swift/base/requests/api.twig') }}
-        {%~ endif %}
-        {%~ endif %}
+{%~ endif %}
+{%~ if 'multipart/form-data' in method.consumes %}
+        {{ ~ include("swift/base/requests/file.twig") }}
+{%~ else %}
+        {{ ~ include("swift/base/requests/api.twig") }}
+{%~ endif %}
+{%~ endif %}
     }
-    {%~ if method.responseModel | hasGenericType(spec) %}
+{%~ if method.responseModel | hasGenericType(spec) %}
 
     ///
-    {%~ if method.description %}
+{%~ if method.description %}
     {{~ method.description | swiftComment }}
     ///
-    {%~ endif %}
-    {%~ if method.parameters.all | length > 0 %}
+{%~ endif %}
+{%~ if method.parameters.all | length > 0 %}
     /// - Parameters:
-    {%~ endif %}
-    {%~ for parameter in method.parameters.all %}
-    ///   - {{ parameter.name | caseCamel }}: {{ parameter | typeName(spec) | raw }}{% if not parameter.required or parameter.nullable %} (optional){% endif %}
+{%~ endif %}
+{%~ for parameter in method.parameters.all %}
+    ///   - {{ parameter.name | caseCamel }}: {{ parameter | typeName(spec) | raw }}
+{% if not parameter.required or parameter.nullable %}
+ (optional)
+{% endif %}
 
-    {%~ endfor %}
+{%~ endfor %}
     /// - Throws: Exception if the request fails
     /// - Returns: {{ method | returnType(spec) | raw }}
     ///
-    {%~ if method.deprecated %}
-    {%~ if method.since and method.replaceWith %}
+{%~ if method.deprecated %}
+{%~ if method.since and method.replaceWith %}
     @available(*, deprecated, message: "This API has been deprecated since {{ method.since }}. Please use `{{ method.replaceWith | capitalizeFirst }}` instead.")
-    {%~ else %}
+{%~ else %}
     @available(*, deprecated, message: "This API has been deprecated.")
-    {%~ endif %}
-    {%~ endif %}
+{%~ endif %}
+{%~ endif %}
     open func {{ method.name | caseCamel }}(
-        {%~ for parameter in method.parameters.all %}
-        {{ parameter.name | caseCamel | escapeSwiftKeyword }}: {{ parameter | typeName(spec) | raw }}{% if not parameter.required or parameter.nullable %}? = nil{% endif %}{% if not loop.last or 'multipart/form-data' in method.consumes %},{% endif %}
+{%~ for parameter in method.parameters.all %}
+        {{ parameter.name | caseCamel | escapeSwiftKeyword }}: {{ parameter | typeName(spec) | raw }}
+{% if not parameter.required or parameter.nullable %}
+? = nil
+{% endif %}
+{% if not loop.last or 'multipart/form-data' in method.consumes %}
+,
+{% endif %}
 
-        {%~ endfor %}
-        {%~ if 'multipart/form-data' in method.consumes %}
+{%~ endfor %}
+{%~ if 'multipart/form-data' in method.consumes %}
         onProgress: ((UploadProgress) -> Void)? = nil
-        {%~ endif %}
+{%~ endif %}
     ) async throws -> {{ method | returnType(spec, '[String: AnyCodable]') | raw }} {
         return try await {{ method.name | caseCamel }}(
-            {%~ for parameter in method.parameters.all %}
+{%~ for parameter in method.parameters.all %}
             {{ parameter.name | caseCamel | escapeSwiftKeyword }}: {{ parameter.name | caseCamel | escapeSwiftKeyword }},
-            {%~ endfor %}
+{%~ endfor %}
             nestedType: [String: AnyCodable].self
-            {%~ if 'multipart/form-data' in method.consumes %}
+{%~ if 'multipart/form-data' in method.consumes %}
             onProgress: onProgress
-            {%~ endif %}
+{%~ endif %}
         )
     }
-    {%~ endif %}
+{%~ endif %}
 
 {% endfor %}
 

@@ -11,105 +11,139 @@ namespace {{ spec.title | caseUcfirst }}.Models
 {
     public class {{ definition.name | caseUcfirst | overrideIdentifier }}
     {
-        {%~ for property in definition.properties %}
+{%~ for property in definition.properties %}
         [JsonPropertyName("{{ property.name }}")]
-        public {{ sub_schema(property) | raw }} {{ property_name(definition, property) | overrideProperty(definition.name) }} { get; private set; }
+        public {{ sub_schema(<class 'property'>) | raw }} {{ property_name(definition, property) | overrideProperty(definition.name) }} { get; private set; }
 
-        {%~ endfor %}
-        {%~ if definition.additionalProperties %}
-        public Dictionary<string, object> Data { get; private set; }
+{%~ endfor %}
+{%~ if definition.additionalProperties %}
+        public Dictionary<string , object> Data { get; private set; }
 
-        {%~ endif %}
+{%~ endif %}
         public {{ definition.name | caseUcfirst | overrideIdentifier }}(
-            {%~ for property in definition.properties %}
-            {{ sub_schema(property) | raw }} {{ property.name | caseCamel | escapeKeyword }}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
+{%~ for property in definition.properties %}
+            {{ sub_schema(<class 'property'>) | raw }} {{ property.name | caseCamel | escapeKeyword }}
+{% if not loop.last or (loop.last and definition.additionalProperties) %}
+,
+{% endif %}
 
-            {%~ endfor %}
-            {%~ if definition.additionalProperties %}
-            Dictionary<string, object> data
-            {%~ endif %}
+{%~ endfor %}
+{%~ if definition.additionalProperties %}
+            Dictionary<string , object> data
+{%~ endif %}
         ) {
-            {%~ for property in definition.properties %}
+{%~ for property in definition.properties %}
             {{ property_name(definition, property) | overrideProperty(definition.name) }} = {{ property.name | caseCamel | escapeKeyword }};
-            {%~ endfor %}
-            {%~ if definition.additionalProperties %}
+{%~ endfor %}
+{%~ if definition.additionalProperties %}
             Data = data;
-            {%~ endif %}
+{%~ endif %}
         }
 
-        public static {{ definition.name | caseUcfirst | overrideIdentifier }} From(Dictionary<string, object> map) => new {{ definition.name | caseUcfirst | overrideIdentifier }}(
-            {%~ for property in definition.properties %}
+        public static {{ definition.name | caseUcfirst | overrideIdentifier }} From(Dictionary<string , object> map) => new {{ definition.name | caseUcfirst | overrideIdentifier }}(
+{%~ for property in definition.properties %}
             {{ property.name | caseCamel | escapeKeyword | removeDollarSign }}:{{' '}}
-                {%- if property.sub_schema %}
-                    {%- if property.type == 'array' -%}
-                        map["{{ property.name }}"].ConvertToList<Dictionary<string, object>>().Select(it => {{ property.sub_schema | caseUcfirst | overrideIdentifier }}.From(map: it)).ToList()
-                    {%- else -%}
-                        {{ property.sub_schema | caseUcfirst | overrideIdentifier }}.From(map: map["{{ property.name }}"] is JsonElement jsonObj{{ loop.index }} ? jsonObj{{ loop.index }}.Deserialize<Dictionary<string, object>>()! : (Dictionary<string, object>)map["{{ property.name }}"])
-                    {%- endif %}
-                {%- elseif property.enum %}
-                    {%- set enumName = property['enumName'] ?? property.name -%}
-                    {%- if not property.required -%}
+{%- if property.sub_schema %}
+    {%- if property.type == 'array' -%}
+                        map["{{ property.name }}"].ConvertToList<Dictionary<string , object>>().Select(it => {{ property.sub_schema | caseUcfirst | overrideIdentifier }}.From(map: it)).ToList()
+    {%- else -%}
+                        {{ property.sub_schema | caseUcfirst | overrideIdentifier }}.From(map: map["{{ property.name }}"] is JsonElement jsonObj{{ loop.index }} ? jsonObj{{ loop.index }}.Deserialize<Dictionary<string , object>>()! : (Dictionary<string , object>)map["{{ property.name }}"])
+    {%- endif %}
+{%- elseif property.enum %}
+{%- set enumName = property['enumName'] ?? property.name -%}
+    {%- if not property.required -%}
                         map.TryGetValue("{{ property.name }}", out var enumRaw{{ loop.index }})
                             ? enumRaw{{ loop.index }} == null
                                 ? null
                                 : new {{ enumName | caseUcfirst }}(enumRaw{{ loop.index }}.ToString()!)
                             : null
-                    {%- else -%}
+    {%- else -%}
                         new {{ enumName | caseUcfirst }}(map["{{ property.name }}"].ToString()!)
-                    {%- endif %}
-                {%- else %}
-                    {%- if property.type == 'array' -%}
-                        map["{{ property.name }}"].ConvertToList<{{ property | typeName | replace({'List<': '', '>': ''}) }}>()
-                    {%- else %}
-                        {%- if property.type == "integer" or property.type == "number" %}
-                            {%- if not property.required -%}map["{{ property.name }}"] == null ? null :{% endif %}Convert.To{% if property.type == "integer" %}Int64{% else %}Double{% endif %}(map["{{ property.name }}"])
-                        {%- else %}
-                            {%- if property.type == "boolean" -%}
-                                ({{ property | typeName }}{% if not property.required %}?{% endif %})map["{{ property.name }}"]
-                            {%- else %}
-                                {%- if not property.required -%}
+    {%- endif %}
+{%- else %}
+    {%- if property.type == 'array' -%}
+                        map["{{ property.name }}"].ConvertToList<{{ property | typeName | replace({"List<": "", ">": ""}) }}>()
+    {%- else %}
+        {%- if property.type == "integer" or property.type == "number" %}
+            {%- if not property.required -%}map["{{ property.name }}"] == null ? null :
+            {% endif %}
+Convert.To
+            {% if property.type == "integer" %}
+Int64
+            {% else %}
+Double
+            {% endif %}
+(map["{{ property.name }}"])
+        {%- else %}
+            {%- if property.type == "boolean" -%}
+                                ({{ property | typeName }}
+                {% if not property.required %}
+?
+                {% endif %}
+)map["{{ property.name }}"]
+            {%- else %}
+                {%- if not property.required -%}
                                     map.TryGetValue("{{ property.name }}", out var {{ property.name | caseCamel | escapeKeyword | removeDollarSign }}) ? {{ property.name | caseCamel | escapeKeyword | removeDollarSign }}?.ToString() : null
-                                {%- else -%}
+                {%- else -%}
                                     map["{{ property.name }}"].ToString()
-                                {%- endif %}
-                            {%- endif %}
-                        {%~ endif %}
-                    {%~ endif %}
-                {%~ endif %}
-                {%- if not loop.last or (loop.last and definition.additionalProperties) %},
-                {%~ endif %}
-            {%~ endfor %}
-            {%- if definition.additionalProperties %}
-            data: map.TryGetValue("data", out var dataValue) ? (Dictionary<string, object>)dataValue : map
-            {%- endif ~%}
+                {%- endif %}
+            {%- endif %}
+{%~ endif %}
+{%~ endif %}
+{%~ endif %}
+            {%- if not loop.last or (loop.last and definition.additionalProperties) %},
+{%~ endif %}
+{%~ endfor %}
+                {%- if definition.additionalProperties %}
+            data: map.TryGetValue("data", out var dataValue) ? (Dictionary<string , object>)dataValue : map
+                {%- endif ~ %}
         );
 
-        public Dictionary<string, object?> ToMap() => new Dictionary<string, object?>()
+        public Dictionary<string , object?> ToMap() => new Dictionary<string , object?>()
         {
-            {%~ for property in definition.properties %}
-            { "{{ property.name }}", {% if property.sub_schema %}{% if property.type == 'array' %}{{ property_name(definition, property) | overrideProperty(definition.name) }}.Select(it => it.ToMap()){% else %}{{ property_name(definition, property) | overrideProperty(definition.name) }}.ToMap(){% endif %}{% elseif property.enum %}{{ property_name(definition, property) | overrideProperty(definition.name) }}{% if not property.required %}?{% endif %}.Value{% else %}{{ property_name(definition, property) | overrideProperty(definition.name) }}{% endif %}{{ ' }' }}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
+{%~ for property in definition.properties %}
+            { "{{ property.name }}",
+                {% if property.sub_schema %}
+                    {% if property.type == 'array' %}
+{{ property_name(definition, property) | overrideProperty(definition.name) }}.Select(it => it.ToMap())
+                    {% else %}
+{{ property_name(definition, property) | overrideProperty(definition.name) }}.ToMap()
+                    {% endif %}
+                {% elseif property.enum %}
+{{ property_name(definition, property) | overrideProperty(definition.name) }}
+                    {% if not property.required %}
+?
+                    {% endif %}
+.Value
+                {% else %}
+{{ property_name(definition, property) | overrideProperty(definition.name) }}
+                {% endif %}
+{{ ' }' }}
+                {% if not loop.last or (loop.last and definition.additionalProperties) %}
+,
+                {% endif %}
 
-            {%~ endfor %}
-            {%~ if definition.additionalProperties %}
+{%~ endfor %}
+{%~ if definition.additionalProperties %}
             { "data", Data }
-            {%~ endif %}
+{%~ endif %}
         };
-        {%~ if definition.additionalProperties %}
+{%~ if definition.additionalProperties %}
 
-        public T ConvertTo<T>(Func<Dictionary<string, object>, T> fromJson) =>
+        public T ConvertTo<T>(Func<Dictionary<string , object>, T> fromJson) =>
             fromJson.Invoke(Data);
-        {%~ endif %}
-        {%~ for property in definition.properties %}
-        {%~ if property.sub_schema %}
-        {%~ for def in spec.definitions %}
-        {%~ if def.name == property.sub_schema and def.additionalProperties and property.type == 'array' %}
+{%~ endif %}
+{%~ for property in definition.properties %}
+{%~ if property.sub_schema %}
+{%~ for def in spec.definitions %}
+{%~ if def.name == property.sub_schema and def.additionalProperties and property.type == 'array' %}
 
-        public T ConvertTo<T>(Func<Dictionary<string, object>, T> fromJson) =>
+        public T ConvertTo<T>(Func<Dictionary<string , object>, T> fromJson) =>
             (T){{ property.name | caseUcfirst | escapeKeyword }}.Select(it => it.ConvertTo(fromJson));
 
-        {%~ endif %}
-        {%~ endfor %}
-        {%~ endif %}
-        {%~ endfor %}
+{%~ endif %}
+{%~ endfor %}
+{%~ endif %}
+{%~ endfor %}
     }
 }

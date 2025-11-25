@@ -3,9 +3,9 @@
                 method: "{{ method.method | caseUpper }}",
                 path: apiPath,
                 headers: apiHeaders,
-                {%~ if not method.responseModel %}
+{%~ if not method.responseModel %}
                 parameters: apiParameters.Where(it => it.Value != null).ToDictionary(it => it.Key, it => it.Value)!);
-                {%~ else %}
+{%~ else %}
                 parameters: apiParameters.Where(it => it.Value != null).ToDictionary(it => it.Key, it => it.Value)!,
                 convert: Convert);
-                {%~ endif %}
+{%~ endif %}

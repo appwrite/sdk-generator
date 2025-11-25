@@ -18,13 +18,13 @@ type Headers = {
     [key: string]: string;
 }
 
-class {{spec.title | caseUcfirst}}Exception extends Error {
+class {{ spec.title | caseUcfirst }}Exception extends Error {
     code: number;
     response: string;
     type: string;
     constructor(message: string, code: number = 0, type: string = '', response: string = '') {
         super(message);
-        this.name = '{{spec.title | caseUcfirst}}Exception';
+        this.name = '{{ spec.title | caseUcfirst }}Exception';
         this.message = message;
         this.code = code;
         this.type = type;
@@ -33,14 +33,14 @@ class {{spec.title | caseUcfirst}}Exception extends Error {
 }
 
 function getUserAgent() {
-    let ua = '{{spec.title | caseUcfirst}}{{language.name | caseUcfirst}}SDK/{{ sdk.version }}';
+    let ua = '{{ spec.title | caseUcfirst }}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }}';
 
     // `process` is a global in Node.js, but not fully available in all runtimes.
     const platform: string[] = [];
     if (typeof process !== 'undefined') {
         if (typeof process.platform === 'string') platform.push(process.platform);
         if (typeof process.arch === 'string') platform.push(process.arch);
-    } 
+    }
     if (platform.length > 0) {
         ua += ` (${platform.join('; ')})`;
     }
@@ -71,9 +71,9 @@ class Client {
     config = {
         endpoint: '{{ spec.endpoint }}',
         selfSigned: false,
-        {%~ for header in spec.global.headers %}
+{%~ for header in spec.global.headers %}
         {{ header.key | caseLower }}: '',
-        {%~ endfor %}
+{%~ endfor %}
     };
     headers: Headers = {
         'x-sdk-name': '{{ sdk.name }}',
@@ -81,9 +81,9 @@ class Client {
         'x-sdk-language': '{{ language.name | caseLower }}',
         'x-sdk-version': '{{ sdk.version }}',
         'user-agent' : getUserAgent(),
-        {%~ for key,header in spec.global.defaultHeaders %}
-        '{{key}}': '{{header}}',
-        {%~ endfor %}
+{%~ for key,header in spec.global.defaultHeaders %}
+        '{{ key }}': '{{ header }}',
+{%~ endfor %}
     };
 
     /**
@@ -97,7 +97,7 @@ class Client {
      */
     setEndpoint(endpoint: string): this {
         if (!endpoint.startsWith('http://') && !endpoint.startsWith('https://')) {
-            throw new {{spec.title | caseUcfirst}}Exception('Invalid endpoint URL: ' + endpoint);
+            throw new {{ spec.title | caseUcfirst }}Exception('Invalid endpoint URL: ' + endpoint);
         }
 
         this.config.endpoint = endpoint;
@@ -136,24 +136,24 @@ class Client {
         return this;
     }
 
-    {%~ for header in spec.global.headers %}
+{%~ for header in spec.global.headers %}
     /**
-     * Set {{header.key | caseUcfirst}}
+     * Set {{ header.key | caseUcfirst }}
      *
-    {%~ if header.description %}
-     * {{header.description}}
+{%~ if header.description %}
+     * {{ header.description }}
      *
-    {%~ endif %}
+{%~ endif %}
      * @param value string
      *
      * @return {this}
      */
-    set{{header.key | caseUcfirst}}(value: string): this {
-        this.headers['{{header.name}}'] = value;
+    set{{ header.key | caseUcfirst }}(value: string): this {
+        this.headers['{{ header.name }}'] = value;
         this.config.{{ header.key | caseLower }} = value;
         return this;
     }
-    {%~ endfor %}
+{%~ endfor %}
 
     prepareRequest(method: string, url: URL, headers: Headers = {}, params: Payload = {}): { uri: string, options: RequestInit } {
         method = method.toUpperCase();
@@ -239,7 +239,7 @@ class Client {
             }
 
             if (response && response.$id) {
-                headers['x-{{spec.title | caseLower }}-id'] = response.$id;
+                headers['x-{{ spec.title | caseLower }}-id'] = response.$id;
             }
 
             start = end;
@@ -254,14 +254,14 @@ class Client {
 
     async redirect(method: string, url: URL, headers: Headers = {}, params: Payload = {}): Promise<string> {
         const { uri, options } = this.prepareRequest(method, url, headers, params);
-        
+
         const response = await fetch(uri, {
             ...options,
             redirect: 'manual'
         });
 
         if (response.status !== 301 && response.status !== 302) {
-            throw new {{spec.title | caseUcfirst}}Exception('Invalid redirect', response.status);
+            throw new {{ spec.title | caseUcfirst }}Exception('Invalid redirect', response.status);
         }
 
         return response.headers.get('location') || '';
@@ -296,7 +296,7 @@ class Client {
             } else {
                 responseText = data?.message;
             }
-            throw new {{spec.title | caseUcfirst}}Exception(data?.message, response.status, data?.type, responseText);
+            throw new {{ spec.title | caseUcfirst }}Exception(data?.message, response.status, data?.type, responseText);
         }
 
         return data;
@@ -318,7 +318,7 @@ class Client {
     }
 }
 
-export { Client, {{spec.title | caseUcfirst}}Exception };
+export { Client, {{ spec.title | caseUcfirst }}Exception };
 export { Query } from './query';
 export type { Models, Payload, UploadProgress };
 export type { QueryTypes, QueryTypesList } from './query';

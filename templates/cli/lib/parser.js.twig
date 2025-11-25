@@ -232,9 +232,9 @@ const commandDescriptions = {
     "vcs": `The vcs command allows you to interact with VCS providers and manage your code repositories.`,
     "main": chalk.redBright(`${logo}${description}`),
 {% if sdk.test == "true" %}
-{% for service in spec.services %}
+    {% for service in spec.services %}
     "{{ service.name | caseKebab }}": `The {{ service.name | caseKebab }} command allows you to manage your {{ service.name }} service.`,
-{% endfor %}
+    {% endfor %}
 {% endif %}
 }
 

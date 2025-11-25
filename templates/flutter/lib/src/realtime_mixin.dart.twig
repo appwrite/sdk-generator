@@ -21,7 +21,7 @@ mixin RealtimeMixin {
   late WebSocketFactory getWebSocket;
   GetFallbackCookie? getFallbackCookie;
   int? get closeCode => _websok?.closeCode;
-  final Map<int, RealtimeSubscription> _subscriptions = {};
+  final Map<int , RealtimeSubscription> _subscriptions = {};
   bool _reconnect = true;
   int _retries = 0;
   StreamSubscription? _websocketSubscription;
@@ -120,7 +120,7 @@ mixin RealtimeMixin {
         _retry();
       });
     } catch (e) {
-      if (e is {{spec.title | caseUcfirst}}Exception) {
+      if (e is {{ spec.title | caseUcfirst }}Exception) {
         rethrow;
       }
       debugPrint(e.toString());
@@ -152,7 +152,7 @@ mixin RealtimeMixin {
 
   Uri _prepareUri() {
     if (client.endPointRealtime == null) {
-      throw {{spec.title | caseUcfirst}}Exception(
+      throw {{ spec.title | caseUcfirst }}Exception(
           "Please set endPointRealtime to connect to realtime server");
     }
     var uri = Uri.parse(client.endPointRealtime!);
@@ -203,7 +203,7 @@ mixin RealtimeMixin {
 
   void handleError(RealtimeResponse response) {
     if (response.data['code'] == status.policyViolation) {
-      throw {{spec.title | caseUcfirst}}Exception(response.data["message"], response.data["code"]);
+      throw {{ spec.title | caseUcfirst }}Exception(response.data["message"], response.data["code"]);
     } else {
       _retry();
     }

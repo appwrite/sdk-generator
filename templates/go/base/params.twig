@@ -6,13 +6,13 @@
 {% endif %}
 	params := map[string]interface{}{}
 {% for parameter in method.parameters.all %}
-{% if parameter.required %}
+    {% if parameter.required %}
 	params["{{ parameter.name }}"] = {{ parameter.name | caseUcfirst }}
-{% else %}
-	if options.enabledSetters["{{ parameter.name | caseUcfirst}}"] {
+    {% else %}
+	if options.enabledSetters["{{ parameter.name | caseUcfirst }}"] {
 		params["{{ parameter.name }}"] = options.{{ parameter.name | caseUcfirst }}
 	}
-{% endif %}
+    {% endif %}
 {% endfor %}
 	headers := map[string]interface{}{
 {% for key, header in method.headers %}
