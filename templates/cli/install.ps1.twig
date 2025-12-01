@@ -35,7 +35,6 @@ function Greeting {
     Write-Host "Welcome to the {{ spec.title | caseUcfirst }} CLI install shield."  
 }
 
-
 function CheckSystemInfo {
     Write-Host "[1/4] Getting System Info ..."
     if ((Get-ExecutionPolicy) -gt 'RemoteSigned' -or (Get-ExecutionPolicy) -eq 'ByPass') {
@@ -60,7 +59,6 @@ function DownloadBinary {
     Move-Item ${{ spec.title | upper }}_DOWNLOAD_DIR ${{ spec.title | upper }}_INSTALL_PATH
 }
 
-
 function Install {
     Write-Host "[3/4] Starting installation ..."
 
@@ -82,7 +80,6 @@ function InstallCompleted {
     Write-Host "To get started with {{ spec.title | caseUcfirst }} CLI, please visit {{ sdk.url }}/docs/command-line"
     Write-Host "As first step, you can login to your {{ spec.title | caseUcfirst }} account using 'appwrite login'"
 }
-
 
 Greeting
 CheckSystemInfo

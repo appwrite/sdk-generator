@@ -315,7 +315,6 @@ open class Client {
         var request = HTTPClientRequest(url: endPoint + path + queryParameters)
         request.method = .RAW(value: method)
 
-
         for (key, value) in self.headers.merging(headers, uniquingKeysWith: { $1 }) {
             request.headers.add(name: key, value: value)
         }

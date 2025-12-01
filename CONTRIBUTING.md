@@ -122,6 +122,31 @@ docker run --rm -v $(pwd):/app -w /app php:8.3-cli php example.php
 
 Check your output files at: /examples/new-lang and make sure the SDK works. When possible, add some unit tests.
 
+## Linting Twig Templates
+
+We use [djLint](https://djlint.com/) to lint Twig template files for syntax errors and common issues. The linter runs automatically on pull requests.
+
+**To lint templates locally:**
+```bash
+composer lint-twig
+```
+
+**Requirements:**
+- [uv](https://github.com/astral-sh/uv) must be installed (for running `uvx` commands)
+
+**Configuration:**
+- Located in `pyproject.toml`
+- Only linting is enabled (formatting is disabled to avoid breaking code generation)
+- Several rules are ignored as they produce false positives for code generation templates
+
+**What the linter catches:**
+- Template syntax errors
+- Missing closing tags
+- Extra blank lines
+- Basic HTML structure issues
+
+**Note:** If you encounter linting errors that seem incorrect for code generation templates, please discuss in your PR rather than disabling the linter.
+
 ## SDK Checklist
 
 It is very important for us to create a consistent structure and architecture, as well as a language-native feel for the SDKs we generate.
