@@ -10,14 +10,9 @@ use {{ spec.title | caseUcfirst }}\InputFile;
 {% for method in service.methods %}
 {% for parameter in method.parameters.all %}
 {% if parameter.enumValues is not empty %}
-{% if parameter.enumName is not empty %}
-{% set name = parameter.enumName %}
-{% else %}
-{% set name = parameter.name %}
-{% endif %}
-{% if name not in added %}
-use {{ spec.title | caseUcfirst }}\Enums\{{ name | caseUcfirst }};
-{% set added = added|merge([name]) %}
+{% if parameter.enumName not in added %}
+use {{ spec.title | caseUcfirst }}\Enums\{{ parameter.enumName | caseUcfirst }};
+{% set added = added|merge([parameter.enumName]) %}
 {% endif %}
 {% endif %}
 {% endfor %}
@@ -30,7 +25,17 @@ class {{ service.name | caseUcfirst }} extends Service
          parent::__construct($client);
      }
 
+{% set nonDeprecatedMethodNames = [] %}
 {% for method in service.methods %}
+{% if not method.deprecated %}
+{% set nonDeprecatedMethodNames = nonDeprecatedMethodNames|merge([method.name | caseCamel | lower]) %}
+{% endif %}
+{% endfor %}
+{% for method in service.methods %}
+{% set methodNameLower = method.name | caseCamel | lower %}
+{% if method.deprecated and methodNameLower in nonDeprecatedMethodNames %}
+{# Skip deprecated methods that have namespace collisions with non-deprecated methods #}
+{% else %}
 {% set deprecated_message = '' %}
     /**
 {% if method.description %}
@@ -72,6 +77,7 @@ class {{ service.name | caseUcfirst }} extends Service
     }
         {%~ if not loop.last %}
 
+        {%~ endif %}
         {%~ endif %}
         {%~ endfor %}
 }

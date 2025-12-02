@@ -2,7 +2,6 @@ import json
 import math
 from enum import Enum
 
-
 class Condition(Enum):
     EQUAL = "equal"
     NOT_EQUAL = "notEqual"
@@ -13,7 +12,6 @@ class Condition(Enum):
     CONTAINS = "contains"
     IS_NULL = "isNull"
     IS_NOT_NULL = "isNotNull"
-
 
 class Operator():
     def __init__(self, method, values=None):

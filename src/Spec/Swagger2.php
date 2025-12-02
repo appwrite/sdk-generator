@@ -229,7 +229,7 @@ class Swagger2 extends Spec
             $param['default'] = (is_array($param['default']) || $param['default'] instanceof stdClass) ? json_encode($param['default']) : $param['default'];
             if (isset($parameter['enum'])) {
                 $param['enumValues'] = $parameter['enum'];
-                $param['enumName'] = $parameter['x-enum-name'];
+                $param['enumName'] = $parameter['x-enum-name'] ?? $param['name'];
                 $param['enumKeys'] = $parameter['x-enum-keys'];
             }
 
@@ -268,7 +268,7 @@ class Swagger2 extends Spec
 
                         if (isset($value['enum'])) {
                             $temp['enumValues'] = $value['enum'];
-                            $temp['enumName'] = $value['x-enum-name'];
+                            $temp['enumName'] = $value['x-enum-name'] ?? $temp['name'];
                             $temp['enumKeys'] = $value['x-enum-keys'];
                         }
 
