@@ -1,0 +1,31 @@
+name: Twig Linting
+
+on:
+  pull_request:
+    paths:
+      - '**.twig'
+      - '.github/workflows/djlint.yml'
+      - 'pyproject.toml'
+  push:
+    branches:
+      - master
+    paths:
+      - '**.twig'
+      - '.github/workflows/djlint.yml'
+      - 'pyproject.toml'
+
+jobs:
+  djlint:
+    name: djLint - Twig Linter
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Run djLint linter
+        run: |
+          uvx djlint templates/ --lint

@@ -156,7 +156,6 @@ function getAccountPath(action) {
 function getDatabasePath(action, ids) {
     let path = '/databases';
 
-
     if (['get', 'listcollections', 'getcollection', 'listattributes', 'listdocuments', 'getdocument', 'listindexes', 'getdatabaseusage'].includes(action)) {
         path += `/database-${ids[0]}`;
     }
@@ -178,7 +177,6 @@ function getDatabasePath(action, ids) {
     if (action === 'getdocument') {
         path += `/document-${ids[2]}`;
     }
-
 
     return path;
 }

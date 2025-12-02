@@ -38,6 +38,15 @@ class TypeScript extends LanguageMeta {
           type = `${type}[]`;
         }
         break;
+      case AttributeType.POINT:
+        type = "Array<number>";
+        break;
+      case AttributeType.LINESTRING:
+        type = "Array<Array<number>>";
+        break;
+      case AttributeType.POLYGON:
+        type = "Array<Array<Array<number>>>";
+        break;
       default:
         throw new Error(`Unknown attribute type: ${attribute.type}`);
     }

@@ -36,6 +36,11 @@ class PHP extends LanguageMeta {
           type = "array";
         }
         break;
+      case AttributeType.POINT:
+      case AttributeType.LINESTRING:
+      case AttributeType.POLYGON:
+        type = "array";
+        break;
       default:
         throw new Error(`Unknown attribute type: ${attribute.type}`);
     }

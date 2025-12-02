@@ -33,6 +33,15 @@ class Java extends LanguageMeta {
           type = "List<" + type + ">";
         }
         break;
+      case AttributeType.POINT:
+        type = "List<Double>";
+        break;
+      case AttributeType.LINESTRING:
+        type = "List<List<Double>>";
+        break;
+      case AttributeType.POLYGON:
+        type = "List<List<List<Double>>>";
+        break;
       default:
         throw new Error(`Unknown attribute type: ${attribute.type}`);
     }
