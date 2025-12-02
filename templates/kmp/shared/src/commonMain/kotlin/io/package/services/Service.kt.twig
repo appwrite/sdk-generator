@@ -1,0 +1,191 @@
+package {{ sdk.namespace | caseDot }}.services
+
+import {{ sdk.namespace | caseDot }}.Client
+import {{ sdk.namespace | caseDot }}.Service
+{%~ if spec.definitions is not empty %}
+import {{ sdk.namespace | caseDot }}.models.*
+{%~ endif %}
+{%~ if spec.enums is not empty %}
+import {{ sdk.namespace | caseDot }}.enums.*
+{%~ endif %}
+import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.title | caseUcfirst }}Exception
+import {{ sdk.namespace | caseDot }}.extensions.*
+import {{ sdk.namespace | caseDot }}.serializers.*
+import {{ sdk.namespace | caseDot }}.webInterface.UrlParser
+import kotlinx.serialization.KSerializer
+import kotlin.jvm.JvmOverloads
+import kotlin.reflect.KClass
+{%~ if service.features.location %}
+import kotlinx.serialization.serializer
+import io.ktor.client.plugins.cookies.cookies
+import io.ktor.client.request.cookie
+import io.ktor.client.request.get
+import io.ktor.http.Cookie
+{%~ endif %}
+
+/**
+ * {{ service.description | raw | replace({"\n": " ", "\r": " "}) }}
+ **/
+class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
+{%~ for method in service.methods %}
+    {% if method.type != "webAuth" %}
+    /**
+     * {{ method.title }}
+     *
+     * {{ method.description | raw | replace({"\n": "", "\r": ""}) }}
+     *
+    {%~ if method.parameters.all | reduce((carry, param) => carry or not param.required) %}
+    @JvmOverloads
+    {%~ endif %}
+    @Throws(Throwable::class)
+    {%~ for parameter in method.parameters.all %}
+     * @param {{ parameter.name | caseCamel }} {{ parameter.description | raw }}
+    {%~ endfor %}
+     */
+    @Throws(Throwable::class)
+    {%~ if method.parameters.all | reduce((carry, param) => carry or not param.required) %}
+    @JvmOverloads
+    {%~ endif %}
+    {%~ if method.responseModel | hasGenericType(spec) %}
+    suspend inline fun {{ '<reified T : Any>' | raw }} {{ method.name | caseCamel }}(
+    {%~ else %}
+    suspend fun {{ method.name | caseCamel }}(
+    {%~ endif %}
+        {%~ for parameter in method.parameters.all %}
+        {{ parameter.name | caseCamel }}: {{ parameter | typeName }}{%~ if not parameter.required or parameter.nullable %}? = null{%~ endif %},
+        {%~ endfor %}
+        {%~ if method.responseModel | hasGenericType(spec) %}
+        nestedType: KClass<T>?,
+        genericSerializer: KSerializer<T>? = null,
+        {%~ endif %}
+        {%~ if 'multipart/form-data' in method.consumes %}
+        onProgress: ((UploadProgress) -> Unit)? = null
+        {%~ endif %}
+    ): {{ method | returnType(spec, sdk.namespace | caseDot) | raw }} {
+        val apiPath = "{{ method.path }}"
+        {%~ for parameter in method.parameters.path %}
+            .replace("{{ '{' ~ parameter.name | caseCamel ~ '}' }}", {{ parameter.name | caseCamel }}{%~ if parameter.enumValues is not empty %}.value{%~ endif %})
+        {%~ endfor %}
+
+        {%~ if method.responseModel | hasGenericType(spec) %}
+        val actualSerializer = genericSerializer ?: getSerializer(T::class)
+        {%~ endif %}
+
+        val apiParams = mutableMapOf<String, Any?>(
+        {%~ for parameter in method.parameters.query | merge(method.parameters.body) %}
+        {%~ if (parameter.name == "data" or parameter.name == "prefs") and method.responseModel | hasGenericType(spec) %}
+            "{{ parameter.name }}" to json.encodeToString(actualSerializer, {{ parameter.name }} as T),
+        {%~ else %}
+            "{{ parameter.name }}" to {{ parameter.name | caseCamel }},
+        {%~ endif %}
+        {%~ endfor %}
+        {%~ if method.type == 'location'%}
+        {%~ if method.auth | length > 0 %}
+        {%~ for node in method.auth %}
+        {%~ for key,header in node | keys %}
+            "{{ header | caseLower }}" to client.config["{{ header | caseLower }}"],
+        {%~ endfor %}
+        {%~ endfor %}
+        {%~ endif %}
+        {%~ endif %}
+        )
+        {%~ if method.type == 'location' %}
+        return client.call(
+            "{{ method.method | caseUpper }}",
+            apiPath,
+            params = apiParams,
+            responseType = {{ method | returnType(spec, sdk.namespace | caseDot) | raw }}::class
+        )
+        {%~ else %}
+        val apiHeaders = mutableMapOf(
+            "content-type" to "application/json",
+        {%~ for key, header in method.headers %}
+            "{{ key }}" to "{{ header }}",
+        {%~ endfor %}
+        )
+
+        {%~ if 'multipart/form-data' in method.consumes %}
+        val idParamName: String? = {%~ if method.parameters.all | filter(p => p.isUploadID) | length > 0 %}{%~ for parameter in method.parameters.all | filter(parameter => parameter.isUploadID) %}"{{ parameter.name }}"{%~ endfor %}{%~ else %}null{%~ endif %}
+
+        {%~ for parameter in method.parameters.all %}
+        {%~ if parameter.type == 'file' %}
+        val paramName = "{{ parameter.name }}"
+        {%~ endif %}
+        {%~ endfor %}
+
+        return client.chunkedUpload(
+            apiPath,
+            apiHeaders,
+            apiParams,
+            {%~ for parameter in method.parameters.all %}
+            {%~ if parameter.type == 'file' %}
+            {{ parameter.name }},
+            {%~ endif %}
+            {%~ endfor %}
+            responseType = {{ method | returnType(spec, sdk.namespace | caseDot) | raw }}::class,
+                {%~ if method.responseModel %}
+            {{ method | returnType(spec, sdk.namespace | caseDot, 'T', false) | raw }}.serializer(),
+                {%~ endif %}
+            paramName,
+            idParamName,
+            onProgress
+        )
+            {%~ else %}
+        return client.call(
+            "{{ method.method | caseUpper }}",
+            apiPath,
+            apiHeaders,
+            apiParams,
+                {%~ if method.responseModel | hasGenericType(spec) %}
+            responseType = classOf(),
+                {%~ else %}
+            responseType = {{ method | returnType(spec, sdk.namespace | caseDot) | raw }}::class,
+                {%~ endif %}
+                {%~ if method | returnType(spec, '') | raw == 'Any' %}
+            serializer = DynamicLookupSerializer
+                {%~ elseif method.responseModel | hasGenericType(spec) %}
+            serializer = {{ method | returnType(spec, sdk.namespace | caseDot, 'T', false) | raw }}.serializer(actualSerializer)
+                {%~ else %}
+            serializer = {{ method | returnType(spec, sdk.namespace | caseDot, 'T', false) | raw }}.serializer()
+                {%~ endif %}
+        )
+            {%~ endif %}
+        {%~ endif %}
+    }
+
+    {%~ if method.responseModel | hasGenericType(spec) %}
+    /**
+     * {{ method.title }}
+     *
+     * {{ method.description | raw | replace({"\n": "", "\r": ""}) }}
+     *
+        {%~ for parameter in method.parameters.all %}
+     * @param {{ parameter.name | caseCamel }} {{ parameter.description | raw }}
+        {%~ endfor %}
+     */
+    @Throws(Throwable::class)
+        {%~ if method.parameters.all | reduce((carry, param) => carry or not param.required) %}
+    @JvmOverloads
+        {%~ endif %}
+    suspend fun {{ method.name | caseCamel }}(
+        {%~ for parameter in method.parameters.all %}
+        {{ parameter.name | caseCamel }}: {{ parameter | typeName }}{%~ if not parameter.required or parameter.nullable %}? = null{%~ endif %},
+        {%~ endfor %}
+        {%~ if 'multipart/form-data' in method.consumes %}
+        onProgress: ((UploadProgress) -> Unit)? = null
+        {%~ endif %}
+    ): {{ method | returnType(spec, sdk.namespace | caseDot, 'Map<String, Any>') | raw }} = {{ method.name | caseCamel }}(
+        {%~ for parameter in method.parameters.all %}
+        {{ parameter.name | caseCamel }},
+        {%~ endfor %}
+        {%~ if method.responseModel | hasGenericType(spec) %}
+        nestedType = classOf(),
+        {%~ endif %}
+        {%~ if 'multipart/form-data' in method.consumes %}
+        onProgress = onProgress
+        {%~ endif %}
+    )
+    {%~ endif %}
+    {% endif %}
+{%~ endfor %}
+}
