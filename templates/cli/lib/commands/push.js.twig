@@ -811,7 +811,6 @@ const compareAttribute = (remote, local, reason, key) => {
     return reason
 }
 
-
 /**
  * Check if attribute non-changeable fields has been changed
  * If so return the differences as an object.
@@ -1694,7 +1693,6 @@ const pushFunction = async ({ functionId, async, code, withVariables } = { retur
                         parseOutput: false
                     });
 
-
                     const status = response['status'];
                     if (status === 'ready') {
                         successfullyDeployed++;
@@ -2181,7 +2179,6 @@ const pushCollection = async ({ returnOnZero, attempts } = { returnOnZero: false
         }
     }));
 
-
     if (!(await approveChanges(collections, databasesGetCollection, KeysCollection, 'collectionId', 'collections', ['attributes', 'indexes'], 'databaseId', 'databaseId',))) {
         return;
     }
@@ -2379,7 +2376,6 @@ const pushTeam = async ({ returnOnZero } = { returnOnZero: false }) => {
     if (!(await approveChanges(teams, teamsGet, KeysTeams, 'teamId', 'teams'))) {
         return;
     }
-
 
     log('Pushing teams ...');
 

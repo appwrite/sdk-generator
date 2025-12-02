@@ -1,6 +1,5 @@
 import json
 
-
 # Inherit from dict to allow for easy serialization
 class Query():
     def __init__(self, method, attribute=None, values=None):

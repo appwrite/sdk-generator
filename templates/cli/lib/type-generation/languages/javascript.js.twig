@@ -38,6 +38,15 @@ class JavaScript extends LanguageMeta {
           type = `${type}[]`;
         }
         break;
+      case AttributeType.POINT:
+        type = "number[]";
+        break;
+      case AttributeType.LINESTRING:
+        type = "number[][]";
+        break;
+      case AttributeType.POLYGON:
+        type = "number[][][]";
+        break;
       default:
         throw new Error(`Unknown attribute type: ${attribute.type}`);
     }

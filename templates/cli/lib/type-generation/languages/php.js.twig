@@ -3,7 +3,7 @@ const { AttributeType } = require('../attribute');
 const { LanguageMeta } = require("./language");
 
 class PHP extends LanguageMeta {
-  getType(attribute, collections) {
+  getType(attribute, collections, collectionName) {
     if (attribute.array) {
       return "array";
     }
@@ -14,7 +14,7 @@ class PHP extends LanguageMeta {
       case AttributeType.DATETIME:
         type = "string";
         if (attribute.format === AttributeType.ENUM) {
-          type = LanguageMeta.toPascalCase(attribute.key);
+          type = LanguageMeta.toPascalCase(collectionName) + LanguageMeta.toPascalCase(attribute.key);
         }
         break;
       case AttributeType.INTEGER:
@@ -35,6 +35,11 @@ class PHP extends LanguageMeta {
         if ((attribute.relationType === 'oneToMany' && attribute.side === 'parent') || (attribute.relationType === 'manyToOne' && attribute.side === 'child') || attribute.relationType === 'manyToMany') {
           type = "array";
         }
+        break;
+      case AttributeType.POINT:
+      case AttributeType.LINESTRING:
+      case AttributeType.POLYGON:
+        type = "array";
         break;
       default:
         throw new Error(`Unknown attribute type: ${attribute.type}`);
@@ -60,9 +65,9 @@ use Appwrite\\Models\\<%- toPascalCase(collections.find(c => c.$id === attribute
 <% } -%>
 <% for (const attribute of collection.attributes) { -%>
 <% if (attribute.format === 'enum') { -%>
-enum <%- toPascalCase(attribute.key) %>: string {
+enum <%- toPascalCase(collection.name) %><%- toPascalCase(attribute.key) %>: string {
 <% for (const [index, element] of Object.entries(attribute.elements)) { -%>
-    case <%- strict ? toUpperSnakeCase(element) : element %> = '<%- element %>';
+    case <%- toUpperSnakeCase(element) %> = '<%- element %>';
 <% } -%>
 }
 
@@ -70,15 +75,15 @@ enum <%- toPascalCase(attribute.key) %>: string {
 <% } -%>
 class <%- toPascalCase(collection.name) %> {
 <% for (const attribute of collection.attributes ){ -%>
-    private <%- getType(attribute, collections) %> $<%- strict ? toCamelCase(attribute.key) : attribute.key %>;
+    private <%- getType(attribute, collections, collection.name) %> $<%- strict ? toCamelCase(attribute.key) : attribute.key %>;
 <% } -%>
 
     public function __construct(
 <% for (const attribute of collection.attributes ){ -%>
 <% if (attribute.required) { -%>
-        <%- getType(attribute, collections).replace('|null', '') %> $<%- strict ? toCamelCase(attribute.key) : attribute.key %><% if (collection.attributes.indexOf(attribute) < collection.attributes.length - 1) { %>,<% } %>
+        <%- getType(attribute, collections, collection.name).replace('|null', '') %> $<%- strict ? toCamelCase(attribute.key) : attribute.key %><% if (collection.attributes.indexOf(attribute) < collection.attributes.length - 1) { %>,<% } %>
 <% } else { -%>
-        ?<%- getType(attribute, collections).replace('|null', '') %> $<%- strict ? toCamelCase(attribute.key) : attribute.key %> = null<% if (collection.attributes.indexOf(attribute) < collection.attributes.length - 1) { %>,<% } %>
+        ?<%- getType(attribute, collections, collection.name).replace('|null', '') %> $<%- strict ? toCamelCase(attribute.key) : attribute.key %> = null<% if (collection.attributes.indexOf(attribute) < collection.attributes.length - 1) { %>,<% } %>
 <% } -%>
 <% } -%>
     ) {
@@ -88,11 +93,11 @@ class <%- toPascalCase(collection.name) %> {
     }
 
 <% for (const [index, attribute] of Object.entries(collection.attributes)) { -%>
-    public function get<%- toPascalCase(attribute.key) %>(): <%- getType(attribute, collections) %> {
+    public function get<%- toPascalCase(attribute.key) %>(): <%- getType(attribute, collections, collection.name) %> {
         return $this-><%- strict ? toCamelCase(attribute.key) : attribute.key %>;
     }
 
-    public function set<%- toPascalCase(attribute.key) %>(<%- getType(attribute, collections) %> $<%- strict ? toCamelCase(attribute.key) : attribute.key %>): void {
+    public function set<%- toPascalCase(attribute.key) %>(<%- getType(attribute, collections, collection.name) %> $<%- strict ? toCamelCase(attribute.key) : attribute.key %>): void {
         $this-><%- strict ? toCamelCase(attribute.key) : attribute.key %> = $<%- strict ? toCamelCase(attribute.key) : attribute.key %>;
     }
 <% if (index < collection.attributes.length - 1) { %>

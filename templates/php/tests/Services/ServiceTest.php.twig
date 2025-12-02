@@ -16,7 +16,17 @@ final class {{service.name | caseUcfirst}}Test extends TestCase {
         $this->{{ service.name | caseCamel }} = new {{ service.name | caseUcfirst }}($this->client);
     }
 
+{% set nonDeprecatedMethodNames = [] %}
 {% for method in service.methods %}
+{% if not method.deprecated %}
+{% set nonDeprecatedMethodNames = nonDeprecatedMethodNames|merge([method.name | caseCamel | lower]) %}
+{% endif %}
+{% endfor %}
+{% for method in service.methods %}
+{% set methodNameLower = method.name | caseCamel | lower %}
+{% if method.deprecated and methodNameLower in nonDeprecatedMethodNames %}
+{# Skip deprecated methods that have namespace collisions with non-deprecated methods #}
+{% else %}
     public function testMethod{{method.name | caseUcfirst}}(): void {
         {%~ if method.responseModel and method.responseModel != 'any' ~%}
         $data = array(
@@ -40,5 +50,6 @@ final class {{service.name | caseUcfirst}}Test extends TestCase {
         $this->assertSame($data, $response);
     }
 
+{% endif %}
 {% endfor %}
 }

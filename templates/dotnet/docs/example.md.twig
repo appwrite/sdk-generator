@@ -22,7 +22,7 @@ Client client = new Client()
 {% if method.method != 'delete' and method.type != 'webAuth' %}{% if method.type == 'location' %}byte[]{% else %}{{ method.responseModel | caseUcfirst | overrideIdentifier }}{% endif %} result = {% endif %}await {{ service.name | caseCamel }}.{{ method.name | caseUcfirst }}({% if method.parameters.all | length == 0 %});{% endif %}
 	  {%~ for parameter in method.parameters.all %}
 
-    {{ parameter.name }}: {% if parameter.enumValues | length > 0%}{{ parameter.enumName }}.{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}{% else %}{{ parameter | paramExample }}{% endif %}{% if not loop.last %},{% endif %}{% if not parameter.required %} // optional{% endif %}
+    {{ parameter.name }}: {% if parameter.enumValues | length > 0%}{{ parameter.enumName | caseUcfirst }}.{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}{% else %}{{ parameter | paramExample }}{% endif %}{% if not loop.last %},{% endif %}{% if not parameter.required %} // optional{% endif %}
     {%~ endfor %}
 
 {% if method.parameters.all | length > 0 %});{% endif %}

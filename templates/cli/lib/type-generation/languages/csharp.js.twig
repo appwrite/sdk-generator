@@ -3,7 +3,7 @@ const { AttributeType } = require('../attribute');
 const { LanguageMeta } = require("./language");
 
 class CSharp extends LanguageMeta {
-  getType(attribute, collections) {
+  getType(attribute, collections, collectionName) {
     let type = "";
     switch (attribute.type) {
       case AttributeType.STRING:
@@ -11,7 +11,7 @@ class CSharp extends LanguageMeta {
       case AttributeType.DATETIME:
         type = "string";
         if (attribute.format === AttributeType.ENUM) {
-          type = LanguageMeta.toPascalCase(attribute.key);
+          type = LanguageMeta.toPascalCase(collectionName) + LanguageMeta.toPascalCase(attribute.key);
         }
         break;
       case AttributeType.INTEGER:
@@ -32,6 +32,15 @@ class CSharp extends LanguageMeta {
         if ((attribute.relationType === 'oneToMany' && attribute.side === 'parent') || (attribute.relationType === 'manyToOne' && attribute.side === 'child') || attribute.relationType === 'manyToMany') {
           type = `List<${type}>`;
         }
+        break;
+      case AttributeType.POINT:
+        type = "List<double>";
+        break;
+      case AttributeType.LINESTRING:
+        type = "List<List<double>>";
+        break;
+      case AttributeType.POLYGON:
+        type = "List<List<List<double>>>";
         break;
       default:
         throw new Error(`Unknown attribute type: ${attribute.type}`);
@@ -60,7 +69,7 @@ namespace Appwrite.Models
 <% for (const attribute of collection.attributes) { -%>
 <% if (attribute.format === 'enum') { -%>
 
-public enum <%- toPascalCase(attribute.key) %> {
+public enum <%- toPascalCase(collection.name) %><%- toPascalCase(attribute.key) %> {
 <% for (const [index, element] of Object.entries(attribute.elements) ) { -%>
     [JsonPropertyName("<%- element %>")]
     <%- toPascalCase(element) %><% if (index < attribute.elements.length - 1) { %>,<% } %>
@@ -72,13 +81,13 @@ public class <%= toPascalCase(collection.name) %>
 {
 <% for (const [index, attribute] of Object.entries(collection.attributes)) { -%>
     [JsonPropertyName("<%- attribute.key %>")]
-    public <%- getType(attribute, collections) %> <%= toPascalCase(attribute.key) %> { get; private set; }
+    public <%- getType(attribute, collections, collection.name) %> <%= toPascalCase(attribute.key) %> { get; private set; }
 
 <% } -%>
 
     public <%= toPascalCase(collection.name) %>(
 <% for (const [index, attribute] of Object.entries(collection.attributes)) { -%>
-        <%- getType(attribute, collections) %> <%= toCamelCase(attribute.key) %><% if (index < collection.attributes.length - 1) { %>,<% } %>
+        <%- getType(attribute, collections, collection.name) %> <%= toCamelCase(attribute.key) %><% if (index < collection.attributes.length - 1) { %>,<% } %>
 <% } -%>
     )
     {
@@ -93,9 +102,9 @@ public class <%= toPascalCase(collection.name) %>
             // ENUM
             if (attribute.format === 'enum') {
                 if (attribute.array) {
-                    -%>((IEnumerable<object>)map["<%- attribute.key %>"]).Select(e => Enum.Parse<Models.<%- toPascalCase(attribute.key) %>>(e.ToString()!, true)).ToList()<%
+                    -%>((IEnumerable<object>)map["<%- attribute.key %>"]).Select(e => Enum.Parse<Models.<%- toPascalCase(collection.name) %><%- toPascalCase(attribute.key) %>>(e.ToString()!, true)).ToList()<%
                 } else {
-                    -%>Enum.Parse<Models.<%- toPascalCase(attribute.key) %>>(map["<%- attribute.key %>"].ToString()!, true)<%
+                    -%>Enum.Parse<Models.<%- toPascalCase(collection.name) %><%- toPascalCase(attribute.key) %>>(map["<%- attribute.key %>"].ToString()!, true)<%
                 }
             // RELATIONSHIP
             } else if (attribute.type === 'relationship') {
@@ -122,7 +131,7 @@ public class <%= toPascalCase(collection.name) %>
             } else if (attribute.type === 'double') {
                 -%><%- !attribute.required ? 'map["' + attribute.key + '"] == null ? null : ' : '' %>Convert.ToDouble(map["<%- attribute.key %>"])<%
             } else if (attribute.type === 'boolean') {
-                -%>(<%- getType(attribute, collections) %>)map["<%- attribute.key %>"]<%
+                -%>(<%- getType(attribute, collections, collection.name) %>)map["<%- attribute.key %>"]<%
             } else if (attribute.type === 'string' || attribute.type === 'datetime' || attribute.type === 'email') {
                 -%>map["<%- attribute.key %>"]<%- !attribute.required ? '?' : '' %>.ToString()<%- attribute.required ? '!' : ''%><%
             } else {
