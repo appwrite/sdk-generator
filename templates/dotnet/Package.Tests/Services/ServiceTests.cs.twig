@@ -101,7 +101,7 @@ namespace {{ spec.title | caseUcfirst }}.Tests.Services
             {%~ if method.parameters.all | length > 0 %}
             var result = await _{{ service.name | caseCamel }}.{{ method.name | caseUcfirst }}(
                 {%~ for parameter in method.parameters.all | filter((param) => param.required) ~%}
-                {{parameter.name | caseCamel | escapeKeyword}}: {% if parameter.enumValues is not empty %}{{ spec.title | caseUcfirst }}.Enums.{{ (parameter.enumName ?? parameter.name) | caseUcfirst }}.{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}{% elseif parameter.type == 'file' %}InputFile.FromPath("./test.png"){% elseif parameter.type == 'object' %}new Dictionary<string, object>(){% elseif parameter.type == 'array' %}{% set itemType = test_item_type(parameter) %}new List<{{ itemType }}> { {% if itemType == 'string' %}"item1"{% elseif itemType == 'long' %}1{% elseif itemType == 'double' %}1.0{% elseif itemType == 'bool' %}true{% elseif itemType == 'object' %}new object(){% else %}null{% endif %} }{% elseif parameter.type == 'boolean' %}true{% elseif parameter.type == 'integer' %}{{parameter['x-example'] | default(1)}}{% elseif parameter.type == 'number' %}{{parameter['x-example'] | default(1.0)}}{% elseif parameter.type == 'string' %}"{% if parameter['x-example'] is not empty %}{{parameter['x-example']}}{% else %}test{% endif %}"{% else %}null{% endif %}{% if not loop.last %},{% endif %}
+                {{parameter.name | caseCamel | escapeKeyword}}: {% if parameter.enumValues is not empty %}{{ spec.title | caseUcfirst }}.Enums.{{ (parameter.enumName ?? parameter.name) | caseUcfirst }}.{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}{% elseif parameter.type == 'file' %}InputFile.FromPath("./test.png"){% elseif parameter.type == 'object' %}new Dictionary<string, object>(){% elseif parameter.type == 'array' %}{% set itemType = test_item_type(parameter) %}new List<{{ itemType }}> { {% if itemType == 'string' %}"item1"{% elseif itemType == 'long' %}1{% elseif itemType == 'double' %}1.0{% elseif itemType == 'bool' %}true{% elseif itemType == 'object' %}new object(){% else %}null{% endif %} }{% elseif parameter.type == 'boolean' %}true{% elseif parameter.type == 'integer' %}{{parameter['x-example'] | default(1)}}{% elseif parameter.type == 'number' %}{{parameter['x-example'] | default(1.0)}}{% elseif parameter.type == 'string' %}"{% if parameter['x-example'] is not empty %}{{parameter['x-example'] | escapeCsString}}{% else %}test{% endif %}"{% else %}null{% endif %}{% if not loop.last %},{% endif %}
 
                 {%~ endfor ~%}
             );
@@ -167,19 +167,38 @@ namespace {{ spec.title | caseUcfirst }}.Tests.Services
             };
             {%~ elseif method.type == 'location' %}
             var expectedResponse = new byte[] { 1, 2, 3 };
+            {%~ elseif method.type == 'webAuth' %}
+            var expectedResponse = "success";
             {%~ else %}
             var expectedResponse = new Dictionary<string, object>();
             {%~ endif %}
 
-            {%~ if not (method.type == 'webAuth' or 'multipart/form-data' in method.consumes) %}
-            _mockClient.Setup(c => c.Call<{{ utils.resultType(spec.title, method) }}>(
+            {%~ if method.type == 'webAuth' %}
+            _mockClient.Setup(c => c.Redirect(
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<Dictionary<string, string>>(),
-                It.IsAny<Dictionary<string, object>>(){% if method.responseModel %},
-                It.IsAny<Func<Dictionary<string, object>, {{ utils.resultType(spec.title, method) }}>>()
-                {% else %},null{% endif %}
-            )).ReturnsAsync({% if method.responseModel and method.responseModel != 'any' and method.type != 'location' %}{{ spec.title | caseUcfirst }}.Models.{{ method.responseModel | caseUcfirst | overrideIdentifier }}.From(expectedResponse){% else %}expectedResponse{% endif %});
+                It.IsAny<Dictionary<string, object>>()
+            )).ReturnsAsync(expectedResponse);
+            {%~ elseif 'multipart/form-data' in method.consumes %}
+            _mockClient.Setup(c => c.ChunkedUpload<{{ utils.resultType(spec.title, method) }}>(
+                It.IsAny<string>(),
+                It.IsAny<Dictionary<string, string>>(),
+                It.IsAny<Dictionary<string, object>>(),
+                It.IsAny<Func<Dictionary<string, object>, {{ utils.resultType(spec.title, method) }}>>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<Action<UploadProgress>>()
+            )).ReturnsAsync({% if method.responseModel and method.responseModel != 'any' %}{{ spec.title | caseUcfirst }}.Models.{{ method.responseModel | caseUcfirst | overrideIdentifier }}.From(expectedResponse){% else %}expectedResponse{% endif %});
+            {%~ else %}
+             _mockClient.Setup(c => c.Call<{{ utils.resultType(spec.title, method) }}>(
+                 It.IsAny<string>(),
+                 It.IsAny<string>(),
+                 It.IsAny<Dictionary<string, string>>(),
+                 It.IsAny<Dictionary<string, object>>(){% if method.responseModel %},
+                 It.IsAny<Func<Dictionary<string, object>, {{ utils.resultType(spec.title, method) }}>>()
+                 {% else %},null{% endif %}
+             )).ReturnsAsync({% if method.responseModel and method.responseModel != 'any' and method.type != 'location' %}{{ spec.title | caseUcfirst }}.Models.{{ method.responseModel | caseUcfirst | overrideIdentifier }}.From(expectedResponse){% else %}expectedResponse{% endif %});
             {%~ endif %}
 
             // Act
