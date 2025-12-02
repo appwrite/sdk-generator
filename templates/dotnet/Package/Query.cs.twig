@@ -40,7 +40,7 @@ namespace {{ spec.title | caseUcfirst }}
             }
         }
 
-        override public string ToString()
+        public override string ToString()
         {
             return JsonSerializer.Serialize(this, Client.SerializerOptions);
         }
