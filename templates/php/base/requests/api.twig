@@ -2,6 +2,6 @@
             Client::METHOD_{{ method.method | caseUpper }},
             $apiPath,
             $apiHeaders,
-            $apiParams{% if method.type == 'webAuth' or method.type == 'location' -%}, 'location'{% endif %}
+            $apiParams{% if method.type == 'webAuth' -%}, 'location'{% endif %}
 
         );

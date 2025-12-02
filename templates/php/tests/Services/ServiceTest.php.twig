@@ -51,7 +51,7 @@ final class {{service.name | caseUcfirst}}Test extends TestCase {
         {%~ endif ~%}
 
         $this->client
-            ->allows()->call(Mockery::any(), Mockery::any(), Mockery::any(), Mockery::any(){% if method.type == 'webAuth' or method.type == 'location' %}, Mockery::any(){% endif %})
+            ->allows()->call(Mockery::any(), Mockery::any(), Mockery::any(), Mockery::any(){% if method.type == 'webAuth' %}, Mockery::any(){% endif %})
             ->andReturn($data);
 
         $response = $this->{{service.name | caseCamel}}->{{method.name | caseCamel}}({%~ for parameter in method.parameters.all | filter((param) => param.required) ~%}
