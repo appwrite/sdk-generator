@@ -18,6 +18,7 @@ use Utopia\CLI\Console;
 use Utopia\MockServer\Utopia\Response;
 use Utopia\Swoole\Request;
 use Utopia\Swoole\Response as UtopiaSwooleResponse;
+use Utopia\Validator\JSON;
 use Utopia\Validator\Text;
 use Utopia\Validator\Integer;
 use Utopia\Validator\ArrayList;
@@ -26,8 +27,9 @@ use Utopia\Validator\Nullable;
 use Utopia\Validator\WhiteList;
 use Swoole\Process;
 use Swoole\Http\Server;
+use Utopia\MockServer\Utopia\Model\Player;
+use Utopia\MockServer\Utopia\Validator\Player as PlayerValidator;
 
-// Appwrite Init Consts
 const APP_AUTH_TYPE_SESSION = 'Session';
 const APP_AUTH_TYPE_JWT = 'JWT';
 const APP_AUTH_TYPE_KEY = 'Key';
@@ -519,6 +521,39 @@ App::post('/v1/mock/tests/general/enum')
     ->label('sdk.mock', true)
     ->param('mockType', '', new WhiteList(['first', 'second', 'third']), 'Sample enum param')
     ->action(function (string $mockType) {
+    });
+
+App::post('/v1/mock/tests/general/models')
+    ->desc('Create Player')
+    ->groups(['mock'])
+    ->label('scope', 'public')
+    ->label('sdk.auth', [APP_AUTH_TYPE_SESSION, APP_AUTH_TYPE_KEY, APP_AUTH_TYPE_JWT])
+    ->label('sdk.namespace', 'general')
+    ->label('sdk.method', 'createPlayer')
+    ->label('sdk.description', 'Create a new player using a request model.')
+    ->label('sdk.response.code', Response::STATUS_CODE_OK)
+    ->label('sdk.response.type', Response::CONTENT_TYPE_JSON)
+    ->label('sdk.response.model', Response::MODEL_MOCK)
+    ->label('sdk.mock', true)
+    ->param('player', [], new PlayerValidator(), 'Player object.', model: Player::class)
+    ->action(function (Player $player) {
+    });
+
+App::post('/v1/mock/tests/general/models/array')
+    ->desc('Create Players')
+    ->groups(['mock'])
+    ->label('scope', 'public')
+    ->label('sdk.auth', [APP_AUTH_TYPE_SESSION, APP_AUTH_TYPE_KEY, APP_AUTH_TYPE_JWT])
+    ->label('sdk.namespace', 'general')
+    ->label('sdk.method', 'createPlayers')
+    ->label('sdk.description', 'Create multiple players using an array of request models.')
+    ->label('sdk.response.code', Response::STATUS_CODE_OK)
+    ->label('sdk.response.type', Response::CONTENT_TYPE_JSON)
+    ->label('sdk.response.model', Response::MODEL_MOCK)
+    ->label('sdk.mock', true)
+    ->param('players', [], new ArrayList(new PlayerValidator(), APP_LIMIT_ARRAY_PARAMS_SIZE), 'Array of player objects.', model: Player::class)
+    ->action(function (array $players) {
+        /** @var Player[] $players */
     });
 
 App::get('/v1/mock/tests/general/400-error')

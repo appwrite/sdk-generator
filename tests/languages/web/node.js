@@ -130,6 +130,16 @@ async function start() {
     response = await general.enum(MockType.First);
     console.log(response.result);
 
+    // Request model tests
+    response = await general.createPlayer({ id: 'player1', name: 'John Doe', score: 100 });
+    console.log(response.result);
+
+    response = await general.createPlayers([
+        { id: 'player1', name: 'John Doe', score: 100 },
+        { id: 'player2', name: 'Jane Doe', score: 200 }
+    ]);
+    console.log(response.result);
+
     try {
         response = await general.empty();
     } catch (error) {

@@ -640,6 +640,7 @@ class SDK
                 'responseEnums' => $this->spec->getResponseEnums(),
                 'allEnums' => $this->spec->getAllEnums(),
                 'definitions' => $this->spec->getDefinitions(),
+                'requestModels' => $this->spec->getRequestModels(),
                 'global' => [
                     'headers' => $this->spec->getGlobalHeaders(),
                     'defaultHeaders' => $this->defaultHeaders,
@@ -695,6 +696,17 @@ class SDK
                 case 'definition':
                     foreach ($this->spec->getDefinitions() as $key => $definition) {
                         $params['definition'] = $definition;
+
+                        if ($this->exclude($file, $params)) {
+                            continue;
+                        }
+
+                        $this->render($template, $destination, $block, $params, $minify);
+                    }
+                    break;
+                case 'requestModel':
+                    foreach ($this->spec->getRequestModels() as $key => $requestModel) {
+                        $params['requestModel'] = $requestModel;
 
                         if ($this->exclude($file, $params)) {
                             continue;

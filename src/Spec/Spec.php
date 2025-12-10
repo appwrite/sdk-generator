@@ -18,9 +18,12 @@ abstract class Spec extends ArrayObject
      */
     public function __construct($input)
     {
-        if (filter_var($input, FILTER_VALIDATE_URL)) {
-            $data = file_get_contents($input, false, stream_context_create([
-                "ssl" => ['verify_peer' => false, 'allow_self_signed' => true]
+        if (\filter_var($input, FILTER_VALIDATE_URL)) {
+            $data = \file_get_contents($input, false, \stream_context_create([
+                'ssl' => [
+                    'verify_peer' => false,
+                    'allow_self_signed' => true,
+                ]
             ]));
 
             if (!$data) {
@@ -42,85 +45,92 @@ abstract class Spec extends ArrayObject
     /**
      * @return string
      */
-    abstract public function getTitle();
+    abstract public function getTitle(): string;
 
     /**
      * @return string
      */
-    abstract public function getDescription();
+    abstract public function getDescription(): string;
 
     /**
      * @return string
      */
-    abstract public function getNamespace();
+    abstract public function getNamespace(): string;
 
     /**
      * @return string
      */
-    abstract public function getVersion();
+    abstract public function getVersion(): string;
 
     /**
      * @return string
      */
-    abstract public function getEndpoint();
+    abstract public function getEndpoint(): string;
 
     /**
      * @return string
      */
-    abstract public function getEndpointDocs();
+    abstract public function getEndpointDocs(): string;
 
     /**
      * @return string
      */
-    abstract public function getLicenseName();
+    abstract public function getLicenseName(): string;
 
     /**
      * @return string
      */
-    abstract public function getLicenseURL();
+    abstract public function getLicenseURL(): string;
 
     /**
      * @return string
      */
-    abstract public function getContactName();
+    abstract public function getContactName(): string;
 
     /**
      * @return string
      */
-    abstract public function getContactURL();
+    abstract public function getContactURL(): string;
 
     /**
      * @return string
      */
-    abstract public function getContactEmail();
+    abstract public function getContactEmail(): string;
 
     /**
      * @return array
      */
-    abstract public function getServices();
+    abstract public function getServices(): array;
 
     /**
      * @param string $service
      * @return array
      */
-    abstract public function getMethods($service);
+    abstract public function getMethods($service): array;
 
     /**
      * @param array $method
      * @param string $service
      * @return string
      */
-    abstract public function getTargetNamespace(array $method, string $service);
+    abstract public function getTargetNamespace(array $method, string $service): string;
 
     /**
      * @return string
      */
-    abstract public function getGlobalHeaders();
+    abstract public function getGlobalHeaders(): array;
 
     /**
      * @return array
      */
-    abstract public function getDefinitions();
+    abstract public function getDefinitions(): array;
+
+    /**
+     * Get request model definitions
+     *
+     * @return array
+     */
+    abstract public function getRequestModels(): array;
 
     /**
      * Get Attribute
@@ -131,7 +141,7 @@ abstract class Spec extends ArrayObject
      * @param  mixed  $default
      * @return mixed
      */
-    public function getAttribute($name, $default = null)
+    public function getAttribute($name, $default = null): mixed
     {
         $name = explode('.', $name);
 
@@ -153,12 +163,12 @@ abstract class Spec extends ArrayObject
      *
      * Method for setting a specific field attribute
      *
-     * @param  string $key
-     * @param  mixed $value
+     * @param string $key
+     * @param mixed $value
      * @param array $parameter
      * @return mixed
      */
-    public function setAttribute($key, $value, $type = self::SET_TYPE_ASSIGN)
+    public function setAttribute(string $key, mixed $value, $type = self::SET_TYPE_ASSIGN): mixed
     {
         switch ($type) {
             case self::SET_TYPE_ASSIGN:
@@ -182,12 +192,12 @@ abstract class Spec extends ArrayObject
      *
      * @return array
      */
-    abstract public function getRequestEnums();
+    abstract public function getRequestEnums(): array;
 
     /**
      * Get Response Enums
      *
      * @return array
      */
-    abstract public function getResponseEnums();
+    abstract public function getResponseEnums(): array;
 }

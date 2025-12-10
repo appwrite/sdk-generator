@@ -30,6 +30,7 @@ class WebNodeTest extends Base
         ...Base::GENERAL_RESPONSES,
         ...Base::UPLOAD_RESPONSES,
         ...Base::ENUM_RESPONSES,
+        ...Base::MODEL_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
         ...Base::REALTIME_RESPONSES,
         ...Base::QUERY_HELPER_RESPONSES,

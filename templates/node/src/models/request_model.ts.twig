@@ -1,0 +1,28 @@
+{%~ for property in requestModel.properties %}
+{%~ if property.enum %}
+import { {{ property.enumName | caseUcfirst }} } from '../enums/{{ property.enumName | caseKebab }}';
+{%~ endif %}
+{%~ endfor %}
+
+/**
+ * {{ requestModel.description }}
+ */
+export interface {{ requestModel.name | caseUcfirst }} {
+    {%~ for property in requestModel.properties %}
+    /**
+     * {{ property.description }}
+     */
+    {{ property.name | escapeKeyword }}{% if not property.required %}?{% endif %}: {{ property | getPropertyType(spec) }};
+    {%~ endfor %}
+}
+
+/**
+ * Helper function to convert {{ requestModel.name | caseUcfirst }} to a plain object
+ */
+export function {{ requestModel.name | caseCamel }}ToMap(model: {{ requestModel.name | caseUcfirst }}): Record<string, unknown> {
+    return {
+        {%~ for property in requestModel.properties %}
+        '{{ property.name }}': {% if property.sub_schema %}{% if property.type == 'array' %}model.{{ property.name | escapeKeyword }}{% if not property.required %}?{% endif %}.map(item => {{ property.sub_schema | caseCamel }}ToMap(item)){% else %}model.{{ property.name | escapeKeyword }} ? {{ property.sub_schema | caseCamel }}ToMap(model.{{ property.name | escapeKeyword }}) : undefined{% endif %}{% elseif property.enum %}model.{{ property.name | escapeKeyword }}{% else %}model.{{ property.name | escapeKeyword }}{% endif %},
+        {%~ endfor %}
+    };
+}

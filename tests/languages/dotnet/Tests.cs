@@ -84,6 +84,16 @@ namespace AppwriteTests
             mock = await general.Enum(MockType.First);
             TestContext.WriteLine(mock.Result);
 
+            // Request model tests
+            mock = await general.CreatePlayer(new Player("player1", "John Doe", 100));
+            TestContext.WriteLine(mock.Result);
+
+            mock = await general.CreatePlayers(new List<Player> {
+                new Player("player1", "John Doe", 100),
+                new Player("player2", "Jane Doe", 200)
+            });
+            TestContext.WriteLine(mock.Result);
+
             try
             {
                 await general.Error400();

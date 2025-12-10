@@ -192,6 +192,13 @@ class DotNet extends Language
         if (!empty($parameter['enumValues'])) {
             return 'Appwrite.Enums.' . \ucfirst($parameter['name']);
         }
+        if (!empty($parameter['array']['model'])) {
+            return 'List<Appwrite.Models.' . $this->toPascalCase($parameter['array']['model']) . '>';
+        }
+        if (!empty($parameter['model'])) {
+            $modelType = 'Appwrite.Models.' . $this->toPascalCase($parameter['model']);
+            return $parameter['type'] === self::TYPE_ARRAY ? 'List<' . $modelType . '>' : $modelType;
+        }
         if (isset($parameter['items'])) {
             // Map definition nested type to parameter nested type
             $parameter['array'] = $parameter['items'];
@@ -463,6 +470,11 @@ class DotNet extends Language
                 'scope'         => 'definition',
                 'destination'   => '{{ spec.title | caseUcfirst }}/Models/{{ definition.name | caseUcfirst | overrideIdentifier }}.cs',
                 'template'      => 'dotnet/Package/Models/Model.cs.twig',
+            ],
+            [
+                'scope'         => 'requestModel',
+                'destination'   => '{{ spec.title | caseUcfirst }}/Models/{{ requestModel.name | caseUcfirst | overrideIdentifier }}.cs',
+                'template'      => 'dotnet/Package/Models/RequestModel.cs.twig',
             ],
             [
                 'scope'         => 'enum',

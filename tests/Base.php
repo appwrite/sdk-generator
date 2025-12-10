@@ -57,6 +57,11 @@ abstract class Base extends TestCase
         'POST:/v1/mock/tests/general/enum:passed',
     ];
 
+    protected const MODEL_RESPONSES = [
+        'POST:/v1/mock/tests/general/models:passed',
+        'POST:/v1/mock/tests/general/models/array:passed',
+    ];
+
     protected const UPLOAD_RESPONSE = [
         'POST:/v1/mock/tests/general/upload:passed',
     ];
@@ -65,6 +70,10 @@ abstract class Base extends TestCase
         'POST:/v1/mock/tests/general/upload:passed',
         'POST:/v1/mock/tests/general/upload:passed',
         'POST:/v1/mock/tests/general/upload:passed',
+        'POST:/v1/mock/tests/general/upload:passed',
+    ];
+
+    protected const LARGE_FILE_RESPONSES = [
         'POST:/v1/mock/tests/general/upload:passed',
     ];
 
