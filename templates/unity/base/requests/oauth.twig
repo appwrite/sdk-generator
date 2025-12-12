@@ -14,7 +14,7 @@
             if (string.IsNullOrEmpty(secret) || string.IsNullOrEmpty(key))
             {
                 var error = query.Get("error") ?? "Unknown error";
-                throw new AppwriteException($"Failed to get authentication credentials from callback. Error: {error}");
+                throw new {{ spec.title | caseUcfirst }}Exception($"Failed to get authentication credentials from callback. Error: {error}");
             }
 
             // Use domain from callback if available, otherwise fallback to endpoint host
@@ -27,5 +27,5 @@
             _client.CookieContainer.ParseSetCookieHeader(setCookieHeader, parsedDomain);
 
 #if UNITY_EDITOR
-            Debug.LogWarning("[Appwrite] OAuth authorization in Editor: you can open and authorize, but cookies cannot be obtained. The session will not be set.");
+            Debug.LogWarning("[{{ spec.title | caseUcfirst }}] OAuth authorization in Editor: you can open and authorize, but cookies cannot be obtained. The session will not be set.");
 #endif

@@ -137,6 +137,11 @@ class Unity extends DotNet
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'Assets/Runtime/Core/Operator.cs',
+                'template'      => 'dotnet/Package/Operator.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'Assets/Runtime/Core/CookieContainer.cs',
                 'template'      => 'unity/Assets/Runtime/Core/CookieContainer.cs.twig',
             ],

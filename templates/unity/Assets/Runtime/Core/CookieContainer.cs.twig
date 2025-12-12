@@ -61,7 +61,8 @@ namespace {{ spec.title | caseUcfirst }}
     /// </summary>
     public class CookieContainer
     {
-        private List<Cookie> _cookies = new List<Cookie>();
+        private readonly List<Cookie> _cookies = new List<Cookie>();
+        private readonly object _lock = new object();
 
         private const string CookiePrefsKey = "{{ spec.title | caseUcfirst }}_Cookies";
 #if UNITY_WEBGL && !UNITY_EDITOR
@@ -72,15 +73,19 @@ namespace {{ spec.title | caseUcfirst }}
         public CookieContainer()
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
-        try
-        {
-            EnableWebGLHttpCredentials(1);
-            Debug.Log("[CookieContainer] WebGL credentials enabled.");
-        }
-        catch
-        {
-        }
-        LoadCookies();
+            try
+            {
+                EnableWebGLHttpCredentials(1);
+                Debug.Log("[CookieContainer] WebGL credentials enabled - browser will handle cookies.");
+            }
+            catch
+            {
+                // Ignore errors - jslib may not be loaded
+            }
+            // In WebGL, the browser handles cookies automatically, so we don't load from PlayerPrefs
+#else
+            // In non-WebGL builds, load cookies from PlayerPrefs
+            LoadCookies();
 #endif
         }
 
@@ -90,18 +95,22 @@ namespace {{ spec.title | caseUcfirst }}
         private void AddCookie(Cookie cookie)
         {
             if (cookie?.Name == null) return;
-            // Remove existing cookie with the same name, domain, and path
-            Debug.Log($"[CookieContainer] Removing duplicates for {cookie.Name}");
-            _cookies.RemoveAll(c => c.Name == cookie.Name && c.Domain == cookie.Domain && c.Path == cookie.Path);
-            if (!cookie.IsExpired)
+            
+            lock (_lock)
             {
-                _cookies.Add(cookie);
-                Debug.Log($"[CookieContainer] Cookie added to container: {cookie}");
-                SaveCookies(); // Auto-save when cookie is added
-            }
-            else
-            {
-                Debug.Log($"[CookieContainer] Cookie is expired, not added: {cookie.Name}");
+                // Remove existing cookie with the same name, domain, and path
+                Debug.Log($"[CookieContainer] Removing duplicates for {cookie.Name}");
+                _cookies.RemoveAll(c => c.Name == cookie.Name && c.Domain == cookie.Domain && c.Path == cookie.Path);
+                if (!cookie.IsExpired)
+                {
+                    _cookies.Add(cookie);
+                    Debug.Log($"[CookieContainer] Cookie added to container: {cookie}");
+                    SaveCookies(); // Auto-save when cookie is added
+                }
+                else
+                {
+                    Debug.Log($"[CookieContainer] Cookie is expired, not added: {cookie.Name}");
+                }
             }
         }
 
@@ -110,13 +119,16 @@ namespace {{ spec.title | caseUcfirst }}
         /// </summary>
         public List<Cookie> GetCookies(string domain, string path = "/")
         {
-            CleanExpiredCookies();
-            var list = _cookies.Where(c =>
-                c.MatchesDomain(domain) &&
-                c.MatchesPath(path) &&
-                !c.IsExpired).ToList();
-            Debug.Log($"[CookieContainer] GetCookies for domain={domain} path={path} => {list.Count}");
-            return list;
+            lock (_lock)
+            {
+                CleanExpiredCookies();
+                var list = _cookies.Where(c =>
+                    c.MatchesDomain(domain) &&
+                    c.MatchesPath(path) &&
+                    !c.IsExpired).ToList();
+                Debug.Log($"[CookieContainer] GetCookies for domain={domain} path={path} => {list.Count}");
+                return list;
+            }
         }
 
         /// <summary>
@@ -175,8 +187,11 @@ namespace {{ spec.title | caseUcfirst }}
         /// </summary>
         public void Clear()
         {
-            _cookies.Clear();
-            SaveCookies(); // Auto-save when cookies are cleared
+            lock (_lock)
+            {
+                _cookies.Clear();
+                SaveCookies(); // Auto-save when cookies are cleared
+            }
         }
 
         /// <summary>
@@ -186,19 +201,25 @@ namespace {{ spec.title | caseUcfirst }}
         {
             get
             {
-                CleanExpiredCookies();
-                return _cookies.Count;
+                lock (_lock)
+                {
+                    CleanExpiredCookies();
+                    return _cookies.Count;
+                }
             }
         }
 
         public string GetContents()
         {
-            CleanExpiredCookies();
-            return string.Join("\n", _cookies);
+            lock (_lock)
+            {
+                CleanExpiredCookies();
+                return string.Join("\n", _cookies);
+            }
         }
 
         /// <summary>
-        /// Remove expired cookies
+        /// Remove expired cookies (must be called within lock)
         /// </summary>
         private void CleanExpiredCookies() => 
             _cookies.RemoveAll(c => c == null || c.IsExpired);
@@ -208,25 +229,36 @@ namespace {{ spec.title | caseUcfirst }}
         /// </summary>
         public void LoadCookies()
         {
-            try
+            lock (_lock)
             {
-                if (PlayerPrefs.HasKey(CookiePrefsKey))
-                    _cookies = JsonSerializer.Deserialize<List<Cookie>>(PlayerPrefs.GetString(CookiePrefsKey), Client.DeserializerOptions) ?? new();
-                Debug.Log($"[CookieContainer] Loaded cookies from prefs: {_cookies.Count}");
-                CleanExpiredCookies();
-            }
-            catch (Exception ex)
-            {
-                Debug.LogWarning($"Failed to load cookies: {ex.Message}");
-                _cookies = new List<Cookie>();
+                try
+                {
+                    if (PlayerPrefs.HasKey(CookiePrefsKey))
+                    {
+                        var loaded = JsonSerializer.Deserialize<List<Cookie>>(PlayerPrefs.GetString(CookiePrefsKey), Client.DeserializerOptions);
+                        _cookies.Clear();
+                        if (loaded != null)
+                        {
+                            _cookies.AddRange(loaded);
+                        }
+                    }
+                    Debug.Log($"[CookieContainer] Loaded cookies from prefs: {_cookies.Count}");
+                    CleanExpiredCookies();
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogWarning($"Failed to load cookies: {ex.Message}");
+                    _cookies.Clear();
+                }
             }
         }
 
         /// <summary>
-        /// Save cookies to persistent storage
+        /// Save cookies to persistent storage (must be called within lock)
         /// </summary>
         private void SaveCookies()
         {
+            // Note: This method should only be called from within a lock block
             try
             {
                 CleanExpiredCookies();
@@ -246,10 +278,14 @@ namespace {{ spec.title | caseUcfirst }}
         /// </summary>
         public void DeleteCookieStorage()
         {
-            if (PlayerPrefs.HasKey(CookiePrefsKey))
-                PlayerPrefs.DeleteKey(CookiePrefsKey);
-            PlayerPrefs.Save();
-            Debug.Log("[CookieContainer] Deleted cookie storage");
+            lock (_lock)
+            {
+                _cookies.Clear();
+                if (PlayerPrefs.HasKey(CookiePrefsKey))
+                    PlayerPrefs.DeleteKey(CookiePrefsKey);
+                PlayerPrefs.Save();
+                Debug.Log("[CookieContainer] Deleted cookie storage");
+            }
         }
     }
 }

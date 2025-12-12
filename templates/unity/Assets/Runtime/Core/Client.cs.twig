@@ -81,12 +81,9 @@ namespace {{ spec.title | caseUcfirst }}
             };
 
             _config = new Dictionary<string, string>();
-            // Load persistent data (non-WebGL only for cookies)
+            // Load persistent data (session and JWT)
             LoadSession();
-#if !(UNITY_WEBGL && !UNITY_EDITOR)
-            _cookieContainer.LoadCookies();
-#endif
-
+            // Note: CookieContainer handles its own loading in constructor based on platform
         }
 
         public Client SetSelfSigned(bool selfSigned)
