@@ -1,6 +1,10 @@
 /// {{spec.title | caseUcfirst}} Models
 library {{ language.params.packageName }}.models;
 
+{% if (spec.requestEnums | length) > 0 or (spec.responseEnums | length) > 0 %}
+import 'enums.dart' as enums;
+{% endif %}
+
 part 'src/models/model.dart';
 {% for definition in spec.definitions %}
 part 'src/models/{{definition.name | caseSnake}}.dart';

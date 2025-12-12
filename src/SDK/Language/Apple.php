@@ -77,6 +77,11 @@ class Apple extends Swift
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Operator.swift',
+                'template'      => 'swift/Sources/Operator.swift.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Models/UploadProgress.swift',
                 'template'      => 'swift/Sources/Models/UploadProgress.swift.twig',
             ],
@@ -219,7 +224,7 @@ class Apple extends Swift
             [
                 'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Services/Realtime.swift',
-                'template'      => '/swift/Sources/Services/Realtime.swift.twig',
+                'template'      => '/apple/Sources/Services/Realtime.swift.twig',
             ],
             [
                 'scope'         => 'default',

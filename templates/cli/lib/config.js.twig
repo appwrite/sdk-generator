@@ -9,7 +9,7 @@ const KeysSite = new Set(["path", "$id", "name", "enabled", "logging", "timeout"
 const KeysFunction = new Set(["path", "$id", "execute", "name", "enabled", "logging", "runtime", "specification", "scopes", "events", "schedule", "timeout", "entrypoint", "commands", "vars"]);
 const KeysDatabase = new Set(["$id", "name", "enabled"]);
 const KeysCollection = new Set(["$id", "$permissions", "databaseId", "name", "enabled", "documentSecurity", "attributes", "indexes"]);
-const KeysTable = new Set(["$id", "$permissions", "databaseId", "name", "enabled", "documentSecurity", "columns", "indexes"]);
+const KeysTable = new Set(["$id", "$permissions", "databaseId", "name", "enabled", "rowSecurity", "columns", "indexes"]);
 const KeysStorage = new Set(["$id", "$permissions", "fileSecurity", "name", "enabled", "maximumFileSize", "allowedFileExtensions", "compression", "encryption", "antivirus"]);
 const KeysTopics = new Set(["$id", "name", "subscribe"]);
 const KeysTeams = new Set(["$id", "name"]);
@@ -62,12 +62,13 @@ const KeysColumns = new Set([
     "onDelete",
     "side",
     // Indexes
-    "attributes",
+    "columns",
     "orders",
     // Strings
     "encrypt",
 ]);
 const KeyIndexes = new Set(["key", "type", "status", "attributes", "orders"]);
+const KeyIndexesColumns = new Set(["key", "type", "status", "columns", "orders"]);
 
 function whitelistKeys(value, keys, nestedKeys = {}) {
     if (Array.isArray(value)) {
@@ -404,7 +405,7 @@ class Local extends Config {
     addTable(props) {
         props = whitelistKeys(props, KeysTable, {
             columns: KeysColumns,
-            indexes: KeyIndexes
+            indexes: KeyIndexesColumns
         });
 
         if (!this.has("tables")) {
@@ -680,15 +681,25 @@ class Global extends Config {
 
     getSessions() {
         const sessions = Object.keys(this.data).filter((key) => !Global.IGNORE_ATTRIBUTES.includes(key))
+        const current = this.getCurrentSession();
 
-        return sessions.map((session) => {
+        const sessionMap = new Map();
+        
+        sessions.forEach((sessionId) => {
+            const email = this.data[sessionId][Global.PREFERENCE_EMAIL];
+            const endpoint = this.data[sessionId][Global.PREFERENCE_ENDPOINT];
+            const key = `${email}|${endpoint}`;
 
-            return {
-                id: session,
-                endpoint: this.data[session][Global.PREFERENCE_ENDPOINT],
-                email: this.data[session][Global.PREFERENCE_EMAIL]
+            if (sessionId === current || !sessionMap.has(key)) {
+                sessionMap.set(key, {
+                    id: sessionId,
+                    endpoint: this.data[sessionId][Global.PREFERENCE_ENDPOINT],
+                    email: this.data[sessionId][Global.PREFERENCE_EMAIL]
+                });
             }
-        })
+        });
+
+        return Array.from(sessionMap.values());
     }
 
     addSession(session, data) {

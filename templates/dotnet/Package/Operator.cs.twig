@@ -1,0 +1,281 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Runtime.Serialization;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
+namespace {{ spec.title | caseUcfirst }}
+{
+    public enum Condition
+    {
+        [EnumMember(Value = "equal")]
+        Equal,
+        [EnumMember(Value = "notEqual")]
+        NotEqual,
+        [EnumMember(Value = "greaterThan")]
+        GreaterThan,
+        [EnumMember(Value = "greaterThanEqual")]
+        GreaterThanEqual,
+        [EnumMember(Value = "lessThan")]
+        LessThan,
+        [EnumMember(Value = "lessThanEqual")]
+        LessThanEqual,
+        [EnumMember(Value = "contains")]
+        Contains,
+        [EnumMember(Value = "isNull")]
+        IsNull,
+        [EnumMember(Value = "isNotNull")]
+        IsNotNull
+    }
+
+    public static class ConditionExtensions
+    {
+        public static string ToValue(this Condition condition)
+        {
+            return condition switch
+            {
+                Condition.Equal => "equal",
+                Condition.NotEqual => "notEqual",
+                Condition.GreaterThan => "greaterThan",
+                Condition.GreaterThanEqual => "greaterThanEqual",
+                Condition.LessThan => "lessThan",
+                Condition.LessThanEqual => "lessThanEqual",
+                Condition.Contains => "contains",
+                Condition.IsNull => "isNull",
+                Condition.IsNotNull => "isNotNull",
+                _ => throw new ArgumentOutOfRangeException(nameof(condition), condition, null)
+            };
+        }
+    }
+
+    public class Operator
+    {
+        [JsonPropertyName("method")]
+        public string Method { get; set; } = string.Empty;
+
+        [JsonPropertyName("values")]
+        public List<object>? Values { get; set; }
+
+        public Operator()
+        {
+        }
+
+        public Operator(string method, object? values)
+        {
+            this.Method = method;
+
+            if (values is IList valuesList)
+            {
+                this.Values = new List<object>();
+                foreach (var value in valuesList)
+                {
+                    this.Values.Add(value);
+                }
+            }
+            else if (values != null)
+            {
+                this.Values = new List<object> { values };
+            }
+        }
+
+        override public string ToString()
+        {
+            return JsonSerializer.Serialize(this, Client.SerializerOptions);
+        }
+
+        public static string Increment(double value = 1, double? max = null)
+        {
+            if (Double.IsNaN(value) || Double.IsInfinity(value))
+            {
+                throw new ArgumentException("Value cannot be NaN or Infinity", nameof(value));
+            }
+            if (max.HasValue && (Double.IsNaN(max.Value) || Double.IsInfinity(max.Value)))
+            {
+                throw new ArgumentException("Max cannot be NaN or Infinity", nameof(max));
+            }
+            var values = new List<object> { value };
+            if (max.HasValue)
+            {
+                values.Add(max.Value);
+            }
+            return new Operator("increment", values).ToString();
+        }
+
+        public static string Decrement(double value = 1, double? min = null)
+        {
+            if (Double.IsNaN(value) || Double.IsInfinity(value))
+            {
+                throw new ArgumentException("Value cannot be NaN or Infinity", nameof(value));
+            }
+            if (min.HasValue && (Double.IsNaN(min.Value) || Double.IsInfinity(min.Value)))
+            {
+                throw new ArgumentException("Min cannot be NaN or Infinity", nameof(min));
+            }
+            var values = new List<object> { value };
+            if (min.HasValue)
+            {
+                values.Add(min.Value);
+            }
+            return new Operator("decrement", values).ToString();
+        }
+
+        public static string Multiply(double factor, double? max = null)
+        {
+            if (Double.IsNaN(factor) || Double.IsInfinity(factor))
+            {
+                throw new ArgumentException("Factor cannot be NaN or Infinity", nameof(factor));
+            }
+            if (max.HasValue && (Double.IsNaN(max.Value) || Double.IsInfinity(max.Value)))
+            {
+                throw new ArgumentException("Max cannot be NaN or Infinity", nameof(max));
+            }
+            var values = new List<object> { factor };
+            if (max.HasValue)
+            {
+                values.Add(max.Value);
+            }
+            return new Operator("multiply", values).ToString();
+        }
+
+        public static string Divide(double divisor, double? min = null)
+        {
+            if (Double.IsNaN(divisor) || Double.IsInfinity(divisor))
+            {
+                throw new ArgumentException("Divisor cannot be NaN or Infinity", nameof(divisor));
+            }
+            if (min.HasValue && (Double.IsNaN(min.Value) || Double.IsInfinity(min.Value)))
+            {
+                throw new ArgumentException("Min cannot be NaN or Infinity", nameof(min));
+            }
+            if (divisor == 0)
+            {
+                throw new ArgumentException("Divisor cannot be zero", nameof(divisor));
+            }
+            var values = new List<object> { divisor };
+            if (min.HasValue)
+            {
+                values.Add(min.Value);
+            }
+            return new Operator("divide", values).ToString();
+        }
+
+        public static string Modulo(double divisor)
+        {
+            if (Double.IsNaN(divisor) || Double.IsInfinity(divisor))
+            {
+                throw new ArgumentException("Divisor cannot be NaN or Infinity", nameof(divisor));
+            }
+            if (divisor == 0)
+            {
+                throw new ArgumentException("Divisor cannot be zero", nameof(divisor));
+            }
+            return new Operator("modulo", new List<object> { divisor }).ToString();
+        }
+
+        public static string Power(double exponent, double? max = null)
+        {
+            if (Double.IsNaN(exponent) || Double.IsInfinity(exponent))
+            {
+                throw new ArgumentException("Exponent cannot be NaN or Infinity", nameof(exponent));
+            }
+            if (max.HasValue && (Double.IsNaN(max.Value) || Double.IsInfinity(max.Value)))
+            {
+                throw new ArgumentException("Max cannot be NaN or Infinity", nameof(max));
+            }
+            var values = new List<object> { exponent };
+            if (max.HasValue)
+            {
+                values.Add(max.Value);
+            }
+            return new Operator("power", values).ToString();
+        }
+
+        public static string ArrayAppend(List<object> values)
+        {
+            if (values == null)
+            {
+                throw new ArgumentNullException(nameof(values));
+            }
+            return new Operator("arrayAppend", values).ToString();
+        }
+
+        public static string ArrayPrepend(List<object> values)
+        {
+            if (values == null)
+            {
+                throw new ArgumentNullException(nameof(values));
+            }
+            return new Operator("arrayPrepend", values).ToString();
+        }
+
+        public static string ArrayInsert(int index, object value)
+        {
+            return new Operator("arrayInsert", new List<object> { index, value }).ToString();
+        }
+
+        public static string ArrayRemove(object value)
+        {
+            return new Operator("arrayRemove", new List<object> { value }).ToString();
+        }
+
+        public static string ArrayUnique()
+        {
+            return new Operator("arrayUnique", new List<object>()).ToString();
+        }
+
+        public static string ArrayIntersect(List<object> values)
+        {
+            if (values == null)
+            {
+                throw new ArgumentNullException(nameof(values));
+            }
+            return new Operator("arrayIntersect", values).ToString();
+        }
+
+        public static string ArrayDiff(List<object> values)
+        {
+            if (values == null)
+            {
+                throw new ArgumentNullException(nameof(values));
+            }
+            return new Operator("arrayDiff", values).ToString();
+        }
+
+        public static string ArrayFilter(Condition condition, object? value = null)
+        {
+            var values = new List<object?> { condition.ToValue(), value };
+            return new Operator("arrayFilter", values).ToString();
+        }
+
+        public static string StringConcat(object value)
+        {
+            return new Operator("stringConcat", new List<object> { value }).ToString();
+        }
+
+        public static string StringReplace(string search, string replace)
+        {
+            return new Operator("stringReplace", new List<object> { search, replace }).ToString();
+        }
+
+        public static string Toggle()
+        {
+            return new Operator("toggle", new List<object>()).ToString();
+        }
+
+        public static string DateAddDays(int days)
+        {
+            return new Operator("dateAddDays", new List<object> { days }).ToString();
+        }
+
+        public static string DateSubDays(int days)
+        {
+            return new Operator("dateSubDays", new List<object> { days }).ToString();
+        }
+
+        public static string DateSetNow()
+        {
+            return new Operator("dateSetNow", new List<object>()).ToString();
+        }
+    }
+}

@@ -1,0 +1,200 @@
+name: Appwrite SDK Build Validation
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on: [pull_request]
+
+jobs:
+  generate-and-build:
+    name: ${{ matrix.sdk }} (${{ matrix.platform }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Client SDKs
+          - sdk: web
+            platform: client
+
+          - sdk: flutter
+            platform: client
+
+          - sdk: apple
+            platform: client
+
+          - sdk: android
+            platform: client
+
+          - sdk: react-native
+            platform: client
+
+          # Server SDKs
+          - sdk: node
+            platform: server
+
+          - sdk: php
+            platform: server
+
+          - sdk: python
+            platform: server
+
+          - sdk: ruby
+            platform: server
+
+          - sdk: dart
+            platform: server
+
+          - sdk: go
+            platform: server
+
+          - sdk: swift
+            platform: server
+
+          - sdk: dotnet
+            platform: server
+
+          - sdk: kotlin
+            platform: server
+
+          # Console SDKs
+          - sdk: cli
+            platform: console
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: curl
+
+      - name: Install Composer Dependencies
+        run: composer install
+
+      - name: Generate SDK for ${{ matrix.sdk }}
+        run: php example.php ${{ matrix.sdk }} ${{ matrix.platform }}
+
+      # Language-specific setup
+      - name: Setup Node.js
+        if: matrix.sdk == 'web' || matrix.sdk == 'node' || matrix.sdk == 'cli' || matrix.sdk == 'react-native'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Flutter
+        if: matrix.sdk == 'flutter'
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Setup Swift
+        if: matrix.sdk == 'apple' || matrix.sdk == 'swift'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget
+          wget https://download.swift.org/swift-5.9.2-release/ubuntu2204/swift-5.9.2-RELEASE/swift-5.9.2-RELEASE-ubuntu22.04.tar.gz
+          tar xzf swift-5.9.2-RELEASE-ubuntu22.04.tar.gz
+          sudo mv swift-5.9.2-RELEASE-ubuntu22.04 /usr/share/swift
+          echo "/usr/share/swift/usr/bin" >> $GITHUB_PATH
+
+      - name: Setup Java
+        if: matrix.sdk == 'android' || matrix.sdk == 'kotlin'
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Python
+        if: matrix.sdk == 'python'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Setup Ruby
+        if: matrix.sdk == 'ruby'
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.1'
+
+      - name: Setup Dart
+        if: matrix.sdk == 'dart'
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: 'stable'
+
+      - name: Setup Go
+        if: matrix.sdk == 'go'
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Setup .NET
+        if: matrix.sdk == 'dotnet'
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Build SDK
+        working-directory: examples/${{ matrix.sdk }}
+        run: |
+          case "${{ matrix.sdk }}" in
+            web|node)
+              npm install
+              npm run build
+              ;;
+            cli)
+              npm install
+              npm run linux-x64
+              ;;
+            react-native)
+              npm install
+              npm run build || echo "No build script, checking syntax only"
+              ;;
+            flutter)
+              flutter pub get
+              dart analyze --no-fatal-warnings
+              ;;
+            apple|swift)
+              swift build
+              ;;
+            android)
+              chmod +x ./gradlew || true
+              ./gradlew build -x lint
+              ;;
+            kotlin)
+              chmod +x ./gradlew || true
+              ./gradlew build
+              ;;
+            php)
+              composer install
+              find . -name "*.php" ! -path "./vendor/*" -exec php -l {} +
+              ;;
+            python)
+              pip install -e .
+              python -m compileall appwrite/
+              ;;
+            ruby)
+              bundle install
+              ;;
+            dart)
+              dart pub get
+              dart analyze --no-fatal-warnings
+              ;;
+            go)
+              go mod tidy || true
+              go build ./...
+              ;;
+            dotnet)
+              dotnet build
+              ;;
+            *)
+              echo "Unknown SDK: ${{ matrix.sdk }}"
+              exit 1
+              ;;
+          esac

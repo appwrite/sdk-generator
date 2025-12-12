@@ -297,7 +297,13 @@ public class WebSocketClient {
             self.channel = channel
         }
 
-        return channel.pipeline.addHandler(handler)
+        return channel.pipeline.addHandler(handler).map {
+            if let delegate = self.delegate {
+                delegate.onOpen(channel: channel)
+            } else {
+                self.onOpen(channel)
+            }
+        }
     }
 
     // MARK: - Close connection
@@ -380,7 +386,6 @@ public class WebSocketClient {
             promise: promise
         )
     }
-
 
     /// Sends the JSON representation of the given model to the connected server in multiple frames.
     ///

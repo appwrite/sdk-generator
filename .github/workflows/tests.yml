@@ -23,8 +23,6 @@ jobs:
           CLINode18,
           DartBeta,
           DartStable,
-          Deno1193,
-          Deno1303,
           DotNet60,
           DotNet80,
           DotNet90,
@@ -100,7 +98,7 @@ jobs:
       - name: Setup PHP with PECL extension
         uses: shivammathur/setup-php@v2
         with:
-          php-version: ${{ matrix.php-version }}
+          php-version: '8.3'
           extensions: curl
 
       - name: Install

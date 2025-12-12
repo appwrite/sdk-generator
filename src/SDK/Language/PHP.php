@@ -130,6 +130,21 @@ class PHP extends Language
         return [];
     }
 
+    public function getStaticAccessOperator(): string
+    {
+        return '::';
+    }
+
+    public function getStringQuote(): string
+    {
+        return '"';
+    }
+
+    public function getArrayOf(string $elements): string
+    {
+        return '[' . $elements . ']';
+    }
+
     /**
      * @return array
      */
@@ -156,6 +171,11 @@ class PHP extends Language
                 'scope'         => 'default',
                 'destination'   => 'composer.json',
                 'template'      => 'php/composer.json.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'phpunit.xml',
+                'template'      => 'php/phpunit.xml.twig',
             ],
             [
                 'scope'         => 'service',
@@ -211,6 +231,16 @@ class PHP extends Language
                 'scope'         => 'default',
                 'destination'   => 'tests/{{ spec.title | caseUcfirst}}/QueryTest.php',
                 'template'      => 'php/tests/QueryTest.php.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'src/{{ spec.title | caseUcfirst}}/Operator.php',
+                'template'      => 'php/src/Operator.php.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'tests/{{ spec.title | caseUcfirst}}/OperatorTest.php',
+                'template'      => 'php/tests/OperatorTest.php.twig',
             ],
             [
                 'scope'         => 'default',
@@ -325,9 +355,10 @@ class PHP extends Language
 
     /**
      * @param array $param
+     * @param string $lang
      * @return string
      */
-    public function getParamExample(array $param): string
+    public function getParamExample(array $param, string $lang = ''): string
     {
         $type       = $param['type'] ?? '';
         $example    = $param['example'] ?? '';
@@ -356,8 +387,10 @@ class PHP extends Language
             switch ($type) {
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
-                case self::TYPE_ARRAY:
                     $output .= $example;
+                    break;
+                case self::TYPE_ARRAY:
+                    $output .= $this->isPermissionString($example) ? $this->getPermissionExample($example) : $example;
                     break;
                 case self::TYPE_OBJECT:
                     $output .= $this->jsonToAssoc(json_decode($example, true));

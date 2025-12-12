@@ -44,6 +44,21 @@ class Go extends Language
         ];
     }
 
+    public function getStaticAccessOperator(): string
+    {
+        return '.';
+    }
+
+    public function getStringQuote(): string
+    {
+        return '"';
+    }
+
+    public function getArrayOf(string $elements): string
+    {
+        return '[' . $elements . ']';
+    }
+
     /**
      * @return array
      */
@@ -97,6 +112,11 @@ class Go extends Language
                 'scope'         => 'default',
                 'destination'   => 'query/query.go',
                 'template'      => 'go/query.go.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'operator/operator.go',
+                'template'      => 'go/operator.go.twig',
             ],
             [
                 'scope'         => 'default',
@@ -218,9 +238,10 @@ class Go extends Language
 
     /**
      * @param array $param
+     * @param string $lang
      * @return string
      */
-    public function getParamExample(array $param): string
+    public function getParamExample(array $param, string $lang = ''): string
     {
         $type       = $param['type'] ?? '';
         $example    = $param['example'] ?? '';

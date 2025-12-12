@@ -4,6 +4,7 @@ namespace Appwrite\SDK\Language;
 
 use Appwrite\SDK\Language;
 use Twig\TwigFilter;
+use Twig\TwigFunction;
 
 class DotNet extends Language
 {
@@ -145,6 +146,31 @@ class DotNet extends Language
         ];
     }
 
+    public function getStaticAccessOperator(): string
+    {
+        return '.';
+    }
+
+    public function getStringQuote(): string
+    {
+        return '"';
+    }
+
+    public function getArrayOf(string $elements): string
+    {
+        return 'new List<string> { ' . $elements . ' }';
+    }
+
+    protected function transformPermissionAction(string $action): string
+    {
+        return ucfirst($action);
+    }
+
+    protected function transformPermissionRole(string $role): string
+    {
+        return ucfirst($role);
+    }
+
     public function getPropertyOverrides(): array
     {
         return [
@@ -235,9 +261,10 @@ class DotNet extends Language
 
     /**
      * @param array $param
+     * @param string $lang
      * @return string
      */
-    public function getParamExample(array $param): string
+    public function getParamExample(array $param, string $lang = ''): string
     {
         $type       = $param['type'] ?? '';
         $example    = $param['example'] ?? '';
@@ -281,8 +308,10 @@ class DotNet extends Language
                 case self::TYPE_FILE:
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
-                case self::TYPE_ARRAY:
                     $output .= $example;
+                    break;
+                case self::TYPE_ARRAY:
+                    $output .= $this->isPermissionString($example) ? $this->getPermissionExample($example) : $example;
                     break;
                 case self::TYPE_OBJECT:
                     if ($example === '{}') {
@@ -382,6 +411,11 @@ class DotNet extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseUcfirst }}/Operator.cs',
+                'template'      => 'dotnet/Package/Operator.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '{{ spec.title | caseUcfirst }}/Role.cs',
                 'template'      => 'dotnet/Package/Role.cs.twig',
             ],
@@ -461,6 +495,47 @@ class DotNet extends Language
                     return $this->getPropertyOverrides()[$class][$property];
                 }
                 return $property;
+            }),
+        ];
+    }
+
+    /**
+     * get sub_scheme and property_name functions
+     * @return TwigFunction[]
+     */
+    public function getFunctions(): array
+    {
+        return [
+            new TwigFunction('sub_schema', function (array $property) {
+                $result = '';
+
+                if (isset($property['sub_schema']) && !empty($property['sub_schema'])) {
+                    if ($property['type'] === 'array') {
+                        $result = 'List<' . $this->toPascalCase($property['sub_schema']) . '>';
+                    } else {
+                        $result = $this->toPascalCase($property['sub_schema']);
+                    }
+                } elseif (isset($property['enum']) && !empty($property['enum'])) {
+                    $enumName = $property['enumName'] ?? $property['name'];
+                    $result = $this->toPascalCase($enumName);
+                } else {
+                    $result = $this->getTypeName($property);
+                }
+
+                if (!($property['required'] ?? true)) {
+                    $result .= '?';
+                }
+
+                return $result;
+            }),
+            new TwigFunction('property_name', function (array $definition, array $property) {
+                $name = $property['name'];
+                $name = \str_replace('$', '', $name);
+                $name = $this->toPascalCase($name);
+                if (\in_array($name, $this->getKeywords())) {
+                    $name = '@' . $name;
+                }
+                return $name;
             }),
         ];
     }

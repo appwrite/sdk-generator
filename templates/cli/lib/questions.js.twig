@@ -397,8 +397,6 @@ const questionsCreateFunctionSelectTemplate = (templates) => {
     ];
 };
 
-
-
 const questionsCreateBucket = [
     {
         type: "input",
@@ -496,7 +494,73 @@ const questionsCreateCollection = [
     {
         type: "list",
         name: "documentSecurity",
-        message: "Enable Document-Security for configuring permissions for individual documents",
+        message: "Enable document security for configuring permissions for individual documents",
+        choices: ["No", "Yes"]
+    }
+];
+
+const questionsCreateTable = [
+    {
+        type: "list",
+        name: "method",
+        message: "What database would you like to use for your table?",
+        choices: ["New", "Existing"],
+        when: async () => {
+            return localConfig.getTablesDBs().length !== 0;
+        }
+    },
+    {
+        type: "search-list",
+        name: "database",
+        message: "Choose the table database",
+        choices: async () => {
+            const databases = localConfig.getTablesDBs();
+
+            let choices = databases.map((database, idx) => {
+                return {
+                    name: `${database.name} (${database.$id})`,
+                    value: database.$id
+                }
+            })
+
+            if (choices.length === 0) {
+                throw new Error("No databases found. Please create one in project console.")
+            }
+
+            return choices;
+        },
+        when: (answers) => (answers.method ?? '').toLowerCase() === 'existing'
+    },
+    {
+        type: "input",
+        name: "databaseName",
+        message: "What would you like to name your database?",
+        default: "My Awesome Database",
+        when: (answers) => (answers.method ?? '').toLowerCase() !== 'existing'
+    },
+    {
+        type: "input",
+        name: "databaseId",
+        message: "What ID would you like to have for your database?",
+        default: "unique()",
+        when: (answers) => (answers.method ?? '').toLowerCase() !== 'existing'
+    },
+    {
+        type: "input",
+        name: "table",
+        message: "What would you like to name your table?",
+        default: "My Awesome Table"
+    },
+    {
+        type: "input",
+        name: "id",
+        message: "What ID would you like to have for your table?",
+        default: "unique()"
+    },
+    {
+        type: "list",
+        name: "rowSecurity",
+        message: "Enable row security for configuring permissions for individual rows",
         choices: ["No", "Yes"]
     }
 ];
@@ -1001,6 +1065,7 @@ module.exports = {
     questionsCreateFunctionSelectTemplate,
     questionsCreateBucket,
     questionsCreateCollection,
+    questionsCreateTable,
     questionsCreateMessagingTopic,
     questionsPullFunctions,
     questionsPullFunctionsCode,

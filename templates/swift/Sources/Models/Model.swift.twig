@@ -1,5 +1,8 @@
 import Foundation
 import JSONCodable
+{% if definition.properties | filter(p => p.enum) | length > 0 %}
+import {{spec.title | caseUcfirst}}Enums
+{% endif %}
 
 /// {{ definition.description }}
 {% if definition.properties | length == 0 and not definition.additionalProperties %}
@@ -19,7 +22,6 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
     {%~ for property in definition.properties %}
     /// {{ property.description }}
     public let {{ property.name | escapeSwiftKeyword | removeDollarSign }}: {{ property | propertyType(spec) | raw }}{% if not property.required %}?{% endif %}
-
 
     {%~ endfor %}
     {%~ if definition.additionalProperties %}
@@ -48,7 +50,19 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
         {%~ for property in definition.properties %}
+        {%~ if property.enum %}
+        {%~ if property.required %}
+        self.{{ property.name | escapeSwiftKeyword | removeDollarSign }} = {{ property | propertyType(spec) | raw }}(rawValue: try container.decode(String.self, forKey: .{{ property.name | escapeSwiftKeyword | removeDollarSign }}))!
+        {%~ else %}
+        if let {{ property.name | escapeSwiftKeyword | removeDollarSign }}String = try container.decodeIfPresent(String.self, forKey: .{{ property.name | escapeSwiftKeyword | removeDollarSign }}) {
+            self.{{ property.name | escapeSwiftKeyword | removeDollarSign }} = {{ property | propertyType(spec) | raw }}(rawValue: {{ property.name | escapeSwiftKeyword | removeDollarSign }}String)
+        } else {
+            self.{{ property.name | escapeSwiftKeyword | removeDollarSign }} = nil
+        }
+        {%~ endif %}
+        {%~ else %}
         self.{{ property.name | escapeSwiftKeyword | removeDollarSign }} = try container.decode{% if not property.required %}IfPresent{% endif %}({{ property | propertyType(spec) | raw }}.self, forKey: .{{ property.name | escapeSwiftKeyword | removeDollarSign }})
+        {%~ endif %}
         {%~ endfor %}
         {%~ if definition.additionalProperties %}
         self.data = try container.decode(T.self, forKey: .data)
@@ -59,7 +73,7 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
         var container = encoder.container(keyedBy: CodingKeys.self)
 
         {%~ for property in definition.properties %}
-        try container.encode{% if not property.required %}IfPresent{% endif %}({{ property.name | escapeSwiftKeyword | removeDollarSign }}, forKey: .{{ property.name | escapeSwiftKeyword | removeDollarSign }})
+        try container.encode{% if not property.required %}IfPresent{% endif %}({{ property.name | escapeSwiftKeyword | removeDollarSign }}{% if property.enum %}{% if property.required %}.rawValue{% else %}?.rawValue{% endif %}{% endif %}, forKey: .{{ property.name | escapeSwiftKeyword | removeDollarSign }})
         {%~ endfor %}
         {%~ if definition.additionalProperties %}
         try container.encode(data, forKey: .data)
@@ -69,7 +83,7 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
     public func toMap() -> [String: Any] {
         return [
             {%~ for property in definition.properties %}
-            "{{ property.name }}": {% if property.sub_schema %}{% if property.type == 'array' %}{{property.name | escapeSwiftKeyword | removeDollarSign}}.map { $0.toMap() }{% else %}{{property.name | escapeSwiftKeyword | removeDollarSign}}.toMap(){% endif %}{% else %}{{property.name | escapeSwiftKeyword | removeDollarSign}}{% endif %} as Any{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
+            "{{ property.name }}": {% if property.sub_schema %}{% if property.type == 'array' %}{{property.name | escapeSwiftKeyword | removeDollarSign}}.map { $0.toMap() }{% else %}{{property.name | escapeSwiftKeyword | removeDollarSign}}.toMap(){% endif %}{% elseif property.enum %}{{property.name | escapeSwiftKeyword | removeDollarSign}}{% if not property.required %}?{% endif %}.rawValue{% else %}{{property.name | escapeSwiftKeyword | removeDollarSign}}{% endif %} as Any{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
 
             {%~ endfor %}
             {%~ if definition.additionalProperties %}
@@ -91,6 +105,9 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
             {%- else -%}
                 {%- if property | isAnyCodableArray(spec) -%}
                     (map["{{property.name }}"] as{% if isDocument %}?{% else %}{% if property.required %}!{% else %}?{% endif %}{% endif %} [Any]{% if isDocument or not property.required %} ?? []{% endif %}).map { AnyCodable($0) }
+                {%- elseif property.enum -%}
+                    {%- set enumName = property['enumName'] ?? property.name -%}
+                    {% if property.required %}{{ enumName | caseUcfirst }}(rawValue: map["{{property.name }}"] as{% if isDocument %}?{% else %}!{% endif %} String{% if isDocument %} ?? ""{% endif %})!{% else %}map["{{property.name }}"] as? String != nil ? {{ enumName | caseUcfirst }}(rawValue: map["{{property.name }}"] as! String) : nil{% endif %}
                 {%- else -%}
                     map["{{property.name }}"] as{% if isDocument %}?{% else %}{% if property.required %}!{% else %}?{% endif %}{% endif %} {{ property | propertyType(spec) | raw }}{% if isDocument and property.required %}{% if property.type == 'string' %} ?? ""{% elseif property.type == 'integer' %} ?? 0{% elseif property.type == 'number' %} ?? 0.0{% elseif property.type == 'boolean' %} ?? false{% elseif property.type == 'array' %} ?? []{% endif %}{% endif %}
                 {%- endif -%}
@@ -98,7 +115,7 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
 
             {%~ endfor %}
             {%~ if definition.additionalProperties %}
-            data: try! JSONDecoder().decode(T.self, from: JSONSerialization.data(withJSONObject: map, options: []))
+            data: try! JSONDecoder().decode(T.self, from: JSONSerialization.data(withJSONObject: map["data"] as? [String: Any] ?? map, options: []))
             {%~ endif %}
         )
     }

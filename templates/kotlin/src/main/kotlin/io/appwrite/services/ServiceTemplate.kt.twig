@@ -4,7 +4,7 @@ import {{ sdk.namespace | caseDot }}.Client
 {% if spec.definitions is not empty %}
 import {{ sdk.namespace | caseDot }}.models.*
 {% endif %}
-{% if spec.enums is not empty %}
+{% if spec.requestEnums is not empty %}
 import {{ sdk.namespace | caseDot }}.enums.*
 {% endif %}
 import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.title | caseUcfirst }}Exception

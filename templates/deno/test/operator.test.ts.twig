@@ -1,0 +1,130 @@
+import {describe, it as test} from "https://deno.land/std@0.149.0/testing/bdd.ts";
+import {assertEquals} from "https://deno.land/std@0.204.0/assert/assert_equals.ts";
+import {Operator, Condition} from "../src/operator.ts";
+
+describe('Operator', () => {
+    test('increment', () => assertEquals(
+        Operator.increment().toString(),
+        '{"method":"increment","values":[1]}',
+    ));
+
+    test('increment with max', () => assertEquals(
+        Operator.increment(5, 100).toString(),
+        '{"method":"increment","values":[5,100]}',
+    ));
+
+    test('decrement', () => assertEquals(
+        Operator.decrement().toString(),
+        '{"method":"decrement","values":[1]}',
+    ));
+
+    test('decrement with min', () => assertEquals(
+        Operator.decrement(3, 0).toString(),
+        '{"method":"decrement","values":[3,0]}',
+    ));
+
+    test('multiply', () => assertEquals(
+        Operator.multiply(2).toString(),
+        '{"method":"multiply","values":[2]}',
+    ));
+
+    test('multiply with max', () => assertEquals(
+        Operator.multiply(3, 1000).toString(),
+        '{"method":"multiply","values":[3,1000]}',
+    ));
+
+    test('divide', () => assertEquals(
+        Operator.divide(2).toString(),
+        '{"method":"divide","values":[2]}',
+    ));
+
+    test('divide with min', () => assertEquals(
+        Operator.divide(4, 1).toString(),
+        '{"method":"divide","values":[4,1]}',
+    ));
+
+    test('modulo', () => assertEquals(
+        Operator.modulo(5).toString(),
+        '{"method":"modulo","values":[5]}',
+    ));
+
+    test('power', () => assertEquals(
+        Operator.power(2).toString(),
+        '{"method":"power","values":[2]}',
+    ));
+
+    test('power with max', () => assertEquals(
+        Operator.power(3, 100).toString(),
+        '{"method":"power","values":[3,100]}',
+    ));
+
+    test('arrayAppend', () => assertEquals(
+        Operator.arrayAppend(['item1', 'item2']).toString(),
+        '{"method":"arrayAppend","values":["item1","item2"]}',
+    ));
+
+    test('arrayPrepend', () => assertEquals(
+        Operator.arrayPrepend(['first', 'second']).toString(),
+        '{"method":"arrayPrepend","values":["first","second"]}',
+    ));
+
+    test('arrayInsert', () => assertEquals(
+        Operator.arrayInsert(0, 'newItem').toString(),
+        '{"method":"arrayInsert","values":[0,"newItem"]}',
+    ));
+
+    test('arrayRemove', () => assertEquals(
+        Operator.arrayRemove('oldItem').toString(),
+        '{"method":"arrayRemove","values":["oldItem"]}',
+    ));
+
+    test('arrayUnique', () => assertEquals(
+        Operator.arrayUnique().toString(),
+        '{"method":"arrayUnique","values":[]}',
+    ));
+
+    test('arrayIntersect', () => assertEquals(
+        Operator.arrayIntersect(['a', 'b', 'c']).toString(),
+        '{"method":"arrayIntersect","values":["a","b","c"]}',
+    ));
+
+    test('arrayDiff', () => assertEquals(
+        Operator.arrayDiff(['x', 'y']).toString(),
+        '{"method":"arrayDiff","values":["x","y"]}',
+    ));
+
+    test('arrayFilter', () => assertEquals(
+        Operator.arrayFilter(Condition.Equal, 'test').toString(),
+        '{"method":"arrayFilter","values":["equal","test"]}',
+    ));
+
+    test('stringConcat', () => assertEquals(
+        Operator.stringConcat('suffix').toString(),
+        '{"method":"stringConcat","values":["suffix"]}',
+    ));
+
+    test('stringReplace', () => assertEquals(
+        Operator.stringReplace('old', 'new').toString(),
+        '{"method":"stringReplace","values":["old","new"]}',
+    ));
+
+    test('toggle', () => assertEquals(
+        Operator.toggle().toString(),
+        '{"method":"toggle","values":[]}',
+    ));
+
+    test('dateAddDays', () => assertEquals(
+        Operator.dateAddDays(7).toString(),
+        '{"method":"dateAddDays","values":[7]}',
+    ));
+
+    test('dateSubDays', () => assertEquals(
+        Operator.dateSubDays(3).toString(),
+        '{"method":"dateSubDays","values":[3]}',
+    ));
+
+    test('dateSetNow', () => assertEquals(
+        Operator.dateSetNow().toString(),
+        '{"method":"dateSetNow","values":[]}',
+    ));
+})

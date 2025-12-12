@@ -14,6 +14,21 @@ class Web extends JS
         return 'Web';
     }
 
+    public function getStaticAccessOperator(): string
+    {
+        return '.';
+    }
+
+    public function getStringQuote(): string
+    {
+        return "'";
+    }
+
+    public function getArrayOf(string $elements): string
+    {
+        return '[' . $elements . ']';
+    }
+
     /**
      * @return array
      */
@@ -42,6 +57,11 @@ class Web extends JS
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'src/services/realtime.ts',
+                'template'      => 'web/src/services/realtime.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'src/models.ts',
                 'template'      => 'web/src/models.ts.twig',
             ],
@@ -64,6 +84,11 @@ class Web extends JS
                 'scope'         => 'default',
                 'destination'   => 'src/query.ts',
                 'template'      => 'web/src/query.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'src/operator.ts',
+                'template'      => 'web/src/operator.ts.twig',
             ],
             [
                 'scope'         => 'default',
@@ -125,9 +150,10 @@ class Web extends JS
 
     /**
      * @param array $param
+     * @param string $lang
      * @return string
      */
-    public function getParamExample(array $param): string
+    public function getParamExample(array $param, string $lang = ''): string
     {
         $type       = $param['type'] ?? '';
         $example    = $param['example'] ?? '';
@@ -145,7 +171,8 @@ class Web extends JS
         }
 
         return match ($type) {
-            self::TYPE_ARRAY, self::TYPE_INTEGER, self::TYPE_NUMBER => $example,
+            self::TYPE_ARRAY => $this->isPermissionString($example) ? $this->getPermissionExample($example) : $example,
+            self::TYPE_INTEGER, self::TYPE_NUMBER => $example,
             self::TYPE_FILE => 'document.getElementById(\'uploader\').files[0]',
             self::TYPE_BOOLEAN => ($example) ? 'true' : 'false',
             self::TYPE_OBJECT => ($example === '{}')
@@ -316,7 +343,7 @@ class Web extends JS
         return 'Promise<{}>';
     }
 
-    public function getSubSchema(array $property, array $spec): string
+    public function getSubSchema(array $property, array $spec, string $methodName = ''): string
     {
         if (array_key_exists('sub_schema', $property)) {
             $ret = '';
@@ -336,6 +363,14 @@ class Web extends JS
             return $ret;
         }
 
+        if (array_key_exists('enum', $property) && !empty($methodName)) {
+            if (isset($property['enumName'])) {
+                return $this->toPascalCase($property['enumName']);
+            }
+
+            return $this->toPascalCase($methodName) . $this->toPascalCase($property['name']);
+        }
+
         return $this->getTypeName($property);
     }
 
@@ -348,8 +383,8 @@ class Web extends JS
             new TwigFilter('getReadOnlyProperties', function ($value, $responseModel, $spec = []) {
                 return $this->getReadOnlyProperties($value, $responseModel, $spec);
             }),
-            new TwigFilter('getSubSchema', function (array $property, array $spec) {
-                return $this->getSubSchema($property, $spec);
+            new TwigFilter('getSubSchema', function (array $property, array $spec, string $methodName = '') {
+                return $this->getSubSchema($property, $spec, $methodName);
             }),
             new TwigFilter('getGenerics', function (string $model, array $spec, bool $skipAdditional = false) {
                 return $this->getGenerics($model, $spec, $skipAdditional);

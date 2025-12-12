@@ -12,6 +12,26 @@ class Node extends Web
         return 'NodeJS';
     }
 
+    public function getStaticAccessOperator(): string
+    {
+        return '.';
+    }
+
+    public function getStringQuote(): string
+    {
+        return "'";
+    }
+
+    public function getArrayOf(string $elements): string
+    {
+        return '[' . $elements . ']';
+    }
+
+    protected function getPermissionPrefix(): string
+    {
+        return 'sdk.';
+    }
+
     public function getTypeName(array $parameter, array $method = []): string
     {
         if (isset($parameter['enumName'])) {
@@ -120,9 +140,10 @@ class Node extends Web
 
         /**
      * @param array $param
+     * @param string $lang
      * @return string
      */
-    public function getParamExample(array $param): string
+    public function getParamExample(array $param, string $lang = ''): string
     {
         $type       = $param['type'] ?? '';
         $example    = $param['example'] ?? '';
@@ -140,7 +161,8 @@ class Node extends Web
         }
 
         return match ($type) {
-            self::TYPE_ARRAY, self::TYPE_FILE, self::TYPE_INTEGER, self::TYPE_NUMBER => $example,
+            self::TYPE_ARRAY => $this->isPermissionString($example) ? $this->getPermissionExample($example) : $example,
+            self::TYPE_FILE, self::TYPE_INTEGER, self::TYPE_NUMBER => $example,
             self::TYPE_BOOLEAN => ($example) ? 'true' : 'false',
             self::TYPE_OBJECT => ($example === '{}')
             ? '{}'
@@ -201,6 +223,11 @@ class Node extends Web
                 'scope'         => 'default',
                 'destination'   => 'src/query.ts',
                 'template'      => 'web/src/query.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'src/operator.ts',
+                'template'      => 'node/src/operator.ts.twig',
             ],
             [
                 'scope'         => 'default',

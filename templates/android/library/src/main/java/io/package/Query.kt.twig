@@ -251,7 +251,7 @@ class Query(
          * @param value The date value to compare against.
          * @returns The query string.
          */
-        fun createdBefore(value: String) = Query("createdBefore", null, listOf(value)).toJson()
+        fun createdBefore(value: String) = lessThan("\$createdAt", value)
 
         /**
          * Filter resources where document was created after date.
@@ -259,7 +259,7 @@ class Query(
          * @param value The date value to compare against.
          * @returns The query string.
          */
-        fun createdAfter(value: String) = Query("createdAfter", null, listOf(value)).toJson()
+        fun createdAfter(value: String) = greaterThan("\$createdAt", value)
 
         /**
          * Filter resources where document was created between start and end dates (inclusive).
@@ -268,7 +268,7 @@ class Query(
          * @param end The end date value.
          * @returns The query string.
          */
-        fun createdBetween(start: String, end: String) = Query("createdBetween", null, listOf(start, end)).toJson()
+        fun createdBetween(start: String, end: String) = between("\$createdAt", start, end)
 
         /**
          * Filter resources where document was updated before date.
@@ -276,7 +276,7 @@ class Query(
          * @param value The date value to compare against.
          * @returns The query string.
          */
-        fun updatedBefore(value: String) = Query("updatedBefore", null, listOf(value)).toJson()
+        fun updatedBefore(value: String) = lessThan("\$updatedAt", value)
 
         /**
          * Filter resources where document was updated after date.
@@ -284,7 +284,7 @@ class Query(
          * @param value The date value to compare against.
          * @returns The query string.
          */
-        fun updatedAfter(value: String) = Query("updatedAfter", null, listOf(value)).toJson()
+        fun updatedAfter(value: String) = greaterThan("\$updatedAt", value)
 
         /**
          * Filter resources where document was updated between start and end dates (inclusive).
@@ -293,7 +293,7 @@ class Query(
          * @param end The end date value.
          * @returns The query string.
          */
-        fun updatedBetween(start: String, end: String) = Query("updatedBetween", null, listOf(start, end)).toJson()
+        fun updatedBetween(start: String, end: String) = between("\$updatedAt", start, end)
 
         /**
          * Combine multiple queries using logical OR operator.

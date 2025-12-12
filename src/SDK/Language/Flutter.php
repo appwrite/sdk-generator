@@ -86,6 +86,11 @@ class Flutter extends Dart
                 'template'      => 'dart/lib/query.dart.twig',
             ],
             [
+                'scope'         => 'default',
+                'destination'   => '/lib/operator.dart',
+                'template'      => 'dart/lib/operator.dart.twig',
+            ],
+            [
                 'scope'         => 'definition',
                 'destination'   => '/lib/src/models/{{definition.name | caseSnake }}.dart',
                 'template'      => 'dart/lib/src/models/model.dart.twig',
@@ -274,6 +279,11 @@ class Flutter extends Dart
                 'scope'         => 'default',
                 'destination'   => '/test/query_test.dart',
                 'template'      => 'dart/test/query_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/test/operator_test.dart',
+                'template'      => 'dart/test/operator_test.dart.twig',
             ],
             [
                 'scope'         => 'default',

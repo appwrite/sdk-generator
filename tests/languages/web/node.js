@@ -1,4 +1,4 @@
-const { Client, Foo, Bar, General, Query, Permission, Role, ID, MockType } = require('./dist/cjs/sdk.js');
+const { Client, Foo, Bar, General, Query, Permission, Role, ID, Operator, Condition, MockType } = require('./dist/cjs/sdk.js');
 
 async function start() {
     let response;
@@ -249,6 +249,33 @@ async function start() {
     // ID helper tests
     console.log(ID.unique());
     console.log(ID.custom('custom_id'));
+
+    // Operator helper tests
+    console.log(Operator.increment(1));
+    console.log(Operator.increment(5, 100));
+    console.log(Operator.decrement(1));
+    console.log(Operator.decrement(3, 0));
+    console.log(Operator.multiply(2));
+    console.log(Operator.multiply(3, 1000));
+    console.log(Operator.divide(2));
+    console.log(Operator.divide(4, 1));
+    console.log(Operator.modulo(5));
+    console.log(Operator.power(2));
+    console.log(Operator.power(3, 100));
+    console.log(Operator.arrayAppend(["item1", "item2"]));
+    console.log(Operator.arrayPrepend(["first", "second"]));
+    console.log(Operator.arrayInsert(0, "newItem"));
+    console.log(Operator.arrayRemove("oldItem"));
+    console.log(Operator.arrayUnique());
+    console.log(Operator.arrayIntersect(["a", "b", "c"]));
+    console.log(Operator.arrayDiff(["x", "y"]));
+    console.log(Operator.arrayFilter(Condition.Equal, "test"));
+    console.log(Operator.stringConcat("suffix"));
+    console.log(Operator.stringReplace("old", "new"));
+    console.log(Operator.toggle());
+    console.log(Operator.dateAddDays(7));
+    console.log(Operator.dateSubDays(3));
+    console.log(Operator.dateSetNow());
 
     response = await general.headers();
     console.log(response.result);

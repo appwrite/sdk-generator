@@ -22,6 +22,22 @@ open class Realtime : Service {
     private var reconnectAttempts = 0
     private var subscriptionsCounter = 0
     private var reconnect = true
+    
+    private var onErrorCallbacks: [((Swift.Error?, HTTPResponseStatus?) -> Void)] = []
+    private var onCloseCallbacks: [(() -> Void)] = []
+    private var onOpenCallbacks: [(() -> Void)] = []
+
+    public func onError(_ callback: @escaping (Swift.Error?, HTTPResponseStatus?) -> Void) {
+        self.onErrorCallbacks.append(callback)
+    }
+    
+    public func onClose(_ callback: @escaping () -> Void) {
+        self.onCloseCallbacks.append(callback)
+    }
+    
+    public func onOpen(_ callback: @escaping () -> Void) {
+        self.onOpenCallbacks.append(callback)
+    }
 
     private func startHeartbeat() {
         stopHeartbeat()
@@ -191,6 +207,7 @@ extension Realtime: WebSocketClientDelegate {
 
     public func onOpen(channel: Channel) {
         self.reconnectAttempts = 0
+        onOpenCallbacks.forEach { $0() }
         startHeartbeat()
     }
 
@@ -210,6 +227,8 @@ extension Realtime: WebSocketClientDelegate {
 
     public func onClose(channel: Channel, data: Data) async throws {
         stopHeartbeat()
+
+        onCloseCallbacks.forEach { $0() }
         
         if (!reconnect) {
             reconnect = true
@@ -230,6 +249,8 @@ extension Realtime: WebSocketClientDelegate {
     public func onError(error: Swift.Error?, status: HTTPResponseStatus?) {
         stopHeartbeat()
         print(error?.localizedDescription ?? "Unknown error")
+
+        onErrorCallbacks.forEach { $0(error, status) }
     }
 
     func handleResponseError(from json: [String: Any]) throws {
