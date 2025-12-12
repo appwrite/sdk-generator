@@ -211,6 +211,7 @@ namespace AppwriteTests
             Debug.Log(Query.Select(new List<string> { "name", "age" }));
             Debug.Log(Query.OrderAsc("title"));
             Debug.Log(Query.OrderDesc("title"));
+            Debug.Log(Query.OrderRandom());
             Debug.Log(Query.CursorAfter("my_movie_id"));
             Debug.Log(Query.CursorBefore("my_movie_id"));
             Debug.Log(Query.Limit(50));
@@ -218,7 +219,7 @@ namespace AppwriteTests
             Debug.Log(Query.Contains("title", "Spider"));
             Debug.Log(Query.Contains("labels", "first"));
 
-             // New query methods
+            // New query methods
             Debug.Log(Query.NotContains("title", "Spider"));
             Debug.Log(Query.NotSearch("name", "john"));
             Debug.Log(Query.NotBetween("age", 50, 100));
@@ -226,8 +227,34 @@ namespace AppwriteTests
             Debug.Log(Query.NotEndsWith("name", "nne"));
             Debug.Log(Query.CreatedBefore("2023-01-01"));
             Debug.Log(Query.CreatedAfter("2023-01-01"));
+            Debug.Log(Query.CreatedBetween("2023-01-01", "2023-12-31"));
             Debug.Log(Query.UpdatedBefore("2023-01-01"));
             Debug.Log(Query.UpdatedAfter("2023-01-01"));
+            Debug.Log(Query.UpdatedBetween("2023-01-01", "2023-12-31"));
+            
+            // Spatial Distance query tests
+            Debug.Log(Query.DistanceEqual("location", new List<object> { new List<object> { 40.7128, -74 }, new List<object> { 40.7128, -74 } }, 1000));
+            Debug.Log(Query.DistanceEqual("location", new List<object> { 40.7128, -74 }, 1000, true));
+            Debug.Log(Query.DistanceNotEqual("location", new List<object> { 40.7128, -74 }, 1000));
+            Debug.Log(Query.DistanceNotEqual("location", new List<object> { 40.7128, -74 }, 1000, true));
+            Debug.Log(Query.DistanceGreaterThan("location", new List<object> { 40.7128, -74 }, 1000));
+            Debug.Log(Query.DistanceGreaterThan("location", new List<object> { 40.7128, -74 }, 1000, true));
+            Debug.Log(Query.DistanceLessThan("location", new List<object> { 40.7128, -74 }, 1000));
+            Debug.Log(Query.DistanceLessThan("location", new List<object> { 40.7128, -74 }, 1000, true));
+            
+            // Spatial query tests
+            Debug.Log(Query.Intersects("location", new List<object> { 40.7128, -74 }));
+            Debug.Log(Query.NotIntersects("location", new List<object> { 40.7128, -74 }));
+            Debug.Log(Query.Crosses("location", new List<object> { 40.7128, -74 }));
+            Debug.Log(Query.NotCrosses("location", new List<object> { 40.7128, -74 }));
+            Debug.Log(Query.Overlaps("location", new List<object> { 40.7128, -74 }));
+            Debug.Log(Query.NotOverlaps("location", new List<object> { 40.7128, -74 }));
+            Debug.Log(Query.Touches("location", new List<object> { 40.7128, -74 }));
+            Debug.Log(Query.NotTouches("location", new List<object> { 40.7128, -74 }));
+            Debug.Log(Query.Contains("location", new List<object> { new List<object> { 40.7128, -74 }, new List<object> { 40.7128, -74 } }));
+            Debug.Log(Query.NotContains("location", new List<object> { new List<object> { 40.7128, -74 }, new List<object> { 40.7128, -74 } }));
+            Debug.Log(Query.Equal("location", new List<object> { new List<object> { 40.7128, -74 }, new List<object> { 40.7128, -74 } }));
+            Debug.Log(Query.NotEqual("location", new List<object> { new List<object> { 40.7128, -74 }, new List<object> { 40.7128, -74 } }));
             
             Debug.Log(Query.Or(new List<string> { Query.Equal("released", true), Query.LessThan("releasedYear", 1990) }));
             Debug.Log(Query.And(new List<string> { Query.Equal("released", false), Query.GreaterThan("releasedYear", 2015) }));
@@ -247,6 +274,33 @@ namespace AppwriteTests
             // ID helper tests
             Debug.Log(ID.Unique());
             Debug.Log(ID.Custom("custom_id"));
+
+            // Operator helper tests
+            Debug.Log(Operator.Increment(1));
+            Debug.Log(Operator.Increment(5, 100));
+            Debug.Log(Operator.Decrement(1));
+            Debug.Log(Operator.Decrement(3, 0));
+            Debug.Log(Operator.Multiply(2));
+            Debug.Log(Operator.Multiply(3, 1000));
+            Debug.Log(Operator.Divide(2));
+            Debug.Log(Operator.Divide(4, 1));
+            Debug.Log(Operator.Modulo(5));
+            Debug.Log(Operator.Power(2));
+            Debug.Log(Operator.Power(3, 100));
+            Debug.Log(Operator.ArrayAppend(new List<object> { "item1", "item2" }));
+            Debug.Log(Operator.ArrayPrepend(new List<object> { "first", "second" }));
+            Debug.Log(Operator.ArrayInsert(0, "newItem"));
+            Debug.Log(Operator.ArrayRemove("oldItem"));
+            Debug.Log(Operator.ArrayUnique());
+            Debug.Log(Operator.ArrayIntersect(new List<object> { "a", "b", "c" }));
+            Debug.Log(Operator.ArrayDiff(new List<object> { "x", "y" }));
+            Debug.Log(Operator.ArrayFilter(Condition.Equal, "test"));
+            Debug.Log(Operator.StringConcat("suffix"));
+            Debug.Log(Operator.StringReplace("old", "new"));
+            Debug.Log(Operator.Toggle());
+            Debug.Log(Operator.DateAddDays(7));
+            Debug.Log(Operator.DateSubDays(3));
+            Debug.Log(Operator.DateSetNow());
 
             mock = await general.Headers();
             Debug.Log(mock.Result);
