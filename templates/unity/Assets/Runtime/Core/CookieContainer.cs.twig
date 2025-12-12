@@ -43,7 +43,6 @@ namespace {{ spec.title | caseUcfirst }}
         public bool MatchesPath(string requestPath) =>
             string.IsNullOrEmpty(Path) || requestPath.StartsWith(Path, StringComparison.OrdinalIgnoreCase);
 
-
         public override string ToString()
         {
             return $"{Name}={Value} " +
