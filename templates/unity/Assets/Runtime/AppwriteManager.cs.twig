@@ -125,6 +125,19 @@ namespace {{ spec.title | caseUcfirst }}
             }
         }
 
+        private readonly Dictionary<Type, ({{ spec.title | caseUcfirst }}Service flag, Func<Client, Service> factory)> _serviceDefinitions = new()
+        {
+            { typeof(Account), ({{ spec.title | caseUcfirst }}Service.Account, client => new Account(client)) },
+            { typeof(Databases), ({{ spec.title | caseUcfirst }}Service.Databases, client => new Databases(client)) },
+            { typeof(Functions), ({{ spec.title | caseUcfirst }}Service.Functions, client => new Functions(client)) },
+            { typeof(Storage), ({{ spec.title | caseUcfirst }}Service.Storage, client => new Storage(client)) },
+            { typeof(Avatars), ({{ spec.title | caseUcfirst }}Service.Avatars, client => new Avatars(client)) },
+            { typeof(Graphql), ({{ spec.title | caseUcfirst }}Service.Graphql, client => new Graphql(client)) },
+            { typeof(Locale), ({{ spec.title | caseUcfirst }}Service.Locale, client => new Locale(client)) },
+            { typeof(Messaging), ({{ spec.title | caseUcfirst }}Service.Messaging, client => new Messaging(client)) },
+            { typeof(Teams), ({{ spec.title | caseUcfirst }}Service.Teams, client => new Teams(client)) },
+        };
+        
         /// <summary>
         /// Initialize selected {{ spec.title | caseUcfirst }} services based on the configuration.
         /// </summary>
@@ -133,50 +146,27 @@ namespace {{ spec.title | caseUcfirst }}
             _services.Clear();
             var servicesToInit = config.ServicesToInitialize;
             
-            // Direct service instantiation - no reflection needed for known service types
-            // This is more performant and AOT-friendly than generic reflection
-            
-            if (servicesToInit.HasFlag({{ spec.title | caseUcfirst }}Service.Account))
-                TryCreateService<Account>();
-            
-            if (servicesToInit.HasFlag({{ spec.title | caseUcfirst }}Service.Databases))
-                TryCreateService<Databases>();
-            
-            if (servicesToInit.HasFlag({{ spec.title | caseUcfirst }}Service.Functions))
-                TryCreateService<Functions>();
-            
-            if (servicesToInit.HasFlag({{ spec.title | caseUcfirst }}Service.Storage))
-                TryCreateService<Storage>();
-            
-            if (servicesToInit.HasFlag({{ spec.title | caseUcfirst }}Service.Avatars))
-                TryCreateService<Avatars>();
-            
-            if (servicesToInit.HasFlag({{ spec.title | caseUcfirst }}Service.Graphql))
-                TryCreateService<Graphql>();
-            
-            if (servicesToInit.HasFlag({{ spec.title | caseUcfirst }}Service.Locale))
-                TryCreateService<Locale>();
-            
-            if (servicesToInit.HasFlag({{ spec.title | caseUcfirst }}Service.Messaging))
-                TryCreateService<Messaging>();
-            
-            if (servicesToInit.HasFlag({{ spec.title | caseUcfirst }}Service.Teams))
-                TryCreateService<Teams>();
+            foreach (var kvp in _serviceDefinitions)
+            {
+                if (servicesToInit.HasFlag(kvp.Value.flag))
+                {
+                    TryCreateService(kvp.Key, kvp.Value.factory);
+                }
+            }
         }
         
         /// <summary>
         /// Try to create and register a service instance.
         /// </summary>
-        private void TryCreateService<T>() where T : Service
+        private void TryCreateService(Type type, Func<Client, Service> factory)
         {
             try
             {
-                var service = (T)Activator.CreateInstance(typeof(T), _client);
-                _services[typeof(T)] = service;
+                _services[type] = factory(_client);
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Failed to create service {typeof(T).Name}: {ex.Message}");
+                Debug.LogError($"Failed to create service {type.Name}: {ex.Message}");
             }
         }
         

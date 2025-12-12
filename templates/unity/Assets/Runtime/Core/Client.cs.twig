@@ -355,7 +355,7 @@ namespace {{ spec.title | caseUcfirst }}
             // Handle self-signed certificates
             if (_selfSigned)
             {
-                request.certificateHandler = new AcceptAllCertificatesSignedWithASpecificKeyPublicKey();
+                request.certificateHandler = new AcceptAllCertificatesHandler();
             }
 
             return request;
@@ -719,7 +719,7 @@ namespace {{ spec.title | caseUcfirst }}
     }
 
     // Custom certificate handler for self-signed certificates
-    public class AcceptAllCertificatesSignedWithASpecificKeyPublicKey : CertificateHandler
+    public class AcceptAllCertificatesHandler : CertificateHandler
     {
         protected override bool ValidateCertificate(byte[] certificateData)
         {

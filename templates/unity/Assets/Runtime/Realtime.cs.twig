@@ -429,10 +429,34 @@ namespace {{ spec.title | caseUcfirst }}
             
             Debug.Log($"Reconnecting in {timeout} seconds.");
             
+            // Ensure we have a cancellation token source
+            if (_cancellationTokenSource == null || _cancellationTokenSource.IsCancellationRequested)
+            {
+                _cancellationTokenSource?.Dispose();
+                _cancellationTokenSource = new CancellationTokenSource();
+            }
+            
+            var token = _cancellationTokenSource.Token;
+            
             UniTask.Create(async () =>
             {
-                await UniTask.Delay(TimeSpan.FromSeconds(timeout));
-                await CreateSocket();
+                try
+                {
+                    await UniTask.Delay(TimeSpan.FromSeconds(timeout), cancellationToken: token);
+                    
+                    // Re-check _reconnect after delay in case disconnect was called during wait
+                    if (!_reconnect || token.IsCancellationRequested)
+                    {
+                        Debug.Log("[Realtime] Retry cancelled - reconnect disabled");
+                        return;
+                    }
+                    
+                    await CreateSocket();
+                }
+                catch (OperationCanceledException)
+                {
+                    Debug.Log("[Realtime] Retry cancelled");
+                }
             });
         }
 
@@ -477,7 +501,11 @@ namespace {{ spec.title | caseUcfirst }}
             var previousReconnect = _reconnect;
             _reconnect = false;
             StopHeartbeat();
+            
+            // Cancel any pending retry operations
             _cancellationTokenSource?.Cancel();
+            _cancellationTokenSource?.Dispose();
+            _cancellationTokenSource = null;
             
             if (_webSocket != null)
             {
@@ -490,6 +518,8 @@ namespace {{ spec.title | caseUcfirst }}
             if (allowReconnect)
             {
                 _reconnect = previousReconnect;
+                // Create fresh cancellation token for future retry operations
+                _cancellationTokenSource = new CancellationTokenSource();
             }
         }
 
