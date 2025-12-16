@@ -18,7 +18,6 @@ use Utopia\CLI\Console;
 use Utopia\MockServer\Utopia\Response;
 use Utopia\Swoole\Request;
 use Utopia\Swoole\Response as UtopiaSwooleResponse;
-use Utopia\Validator\JSON;
 use Utopia\Validator\Text;
 use Utopia\Validator\Integer;
 use Utopia\Validator\ArrayList;

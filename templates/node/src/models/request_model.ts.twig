@@ -2,6 +2,9 @@
 {%~ if property.enum %}
 import { {{ property.enumName | caseUcfirst }} } from '../enums/{{ property.enumName | caseKebab }}';
 {%~ endif %}
+{%~ if property.sub_schema %}
+import { {{ property.sub_schema | caseUcfirst }}, {{ property.sub_schema | caseCamel }}ToMap } from './{{ property.sub_schema | caseKebab }}';
+{%~ endif %}
 {%~ endfor %}
 
 /**

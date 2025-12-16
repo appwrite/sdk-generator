@@ -137,7 +137,7 @@ class Client
 
         switch ($headers['content-type']) {
             case 'application/json':
-                $query = json_encode($params);
+                $query = json_encode($this->prepareParams($params));
                 break;
 
             case 'multipart/form-data':
@@ -242,5 +242,24 @@ class Client
         }
 
         return $output;
+    }
+
+    /**
+     * Prepare params for JSON encoding by converting model objects to arrays
+     *
+     * @param mixed $data
+     * @return mixed
+     */
+    protected function prepareParams(mixed $data): mixed
+    {
+        if (is_array($data)) {
+            return array_map([$this, 'prepareParams'], $data);
+        }
+
+        if (is_object($data) && method_exists($data, 'toArray')) {
+            return $data->toArray();
+        }
+
+        return $data;
     }
 }

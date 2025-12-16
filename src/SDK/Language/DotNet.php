@@ -508,7 +508,36 @@ class DotNet extends Language
                 }
                 return $property;
             }),
+            new TwigFilter('propertyType', function (array $property, array $spec = []) {
+                return $this->getPropertyType($property, $spec);
+            }),
         ];
+    }
+
+    /**
+     * Get property type for request models
+     *
+     * @param array $property
+     * @param array $spec
+     * @return string
+     */
+    protected function getPropertyType(array $property, array $spec = []): string
+    {
+        if (isset($property['sub_schema']) && !empty($property['sub_schema'])) {
+            $type = $this->toPascalCase($property['sub_schema']);
+
+            if ($property['type'] === 'array') {
+                return 'List<' . $type . '>';
+            }
+            return $type;
+        }
+
+        if (isset($property['enum']) && !empty($property['enum'])) {
+            $enumName = $property['enumName'] ?? $property['name'];
+            return 'Appwrite.Enums.' . $this->toPascalCase($enumName);
+        }
+
+        return $this->getTypeName($property, $spec);
     }
 
     /**
