@@ -8,6 +8,9 @@
 	{%- if (parameter | typeName) ends with "InputFile"  -%}
 		{%- set requireFilesPkg = true -%}
 	{%- endif -%}
+	{%- if parameter.model is not empty -%}
+		{%- set requireModelsPkg = true -%}
+	{%- endif -%}
 {% endfor %}
 {%- endfor -%}
 package {{ service.name | caseLower }}

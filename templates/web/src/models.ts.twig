@@ -31,4 +31,18 @@ export namespace Models {
     };
 {% endif %}
 {% endfor %}
+{% for requestModel in spec.requestModels %}
+
+    /**
+     * {{ requestModel.description }}
+     */
+    export type {{ requestModel.name | caseUcfirst }} = {
+{% for property in requestModel.properties %}
+        /**
+         * {{ property.description | raw }}
+         */
+        {{ property.name }}{% if not property.required %}?{% endif %}: {{ property | getSubSchema(spec, requestModel.name) | raw }};
+{% endfor %}
+    }
+{% endfor %}
 }

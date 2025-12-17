@@ -167,10 +167,10 @@ class Go extends Language
             return '[]map[string]any';
         }
         if (!empty($parameter['array']['model'])) {
-            return '[]' . $this->toPascalCase($parameter['array']['model']);
+            return '[]models.' . $this->toPascalCase($parameter['array']['model']);
         }
         if (!empty($parameter['model'])) {
-            $modelType = $this->toPascalCase($parameter['model']);
+            $modelType = 'models.' . $this->toPascalCase($parameter['model']);
             return $parameter['type'] === self::TYPE_ARRAY ? '[]' . $modelType : $modelType;
         }
         if (isset($parameter['items'])) {
