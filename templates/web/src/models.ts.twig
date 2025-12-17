@@ -36,7 +36,7 @@ export namespace Models {
     /**
      * {{ requestModel.description }}
      */
-    export type {{ requestModel.name | caseUcfirst }} = {
+    export type {{ requestModel.name | caseUcfirst }}{{ requestModel.name | getGenerics(spec, true) | raw }} = {
 {% for property in requestModel.properties %}
         /**
          * {{ property.description | raw }}
@@ -44,5 +44,12 @@ export namespace Models {
         {{ property.name }}{% if not property.required %}?{% endif %}: {{ property | getSubSchema(spec, requestModel.name) | raw }};
 {% endfor %}
     }
+{% if requestModel.additionalProperties %}
+
+    export type Default{{ requestModel.name | caseUcfirst }}{{ requestModel.name | getGenerics(spec, true) | raw }} = {{ requestModel.name | caseUcfirst }}{{ requestModel.name | getGenerics(spec, true) | raw }} & {
+        [key: string]: any;
+        [__default]: true;
+    };
+{% endif %}
 {% endfor %}
 }

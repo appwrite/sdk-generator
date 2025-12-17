@@ -1,4 +1,4 @@
-#frozen_string_literal: true
+# frozen_string_literal: true
 
 module {{ spec.title | caseUcfirst }}
     module Models
@@ -53,7 +53,7 @@ module {{ spec.title | caseUcfirst }}
                 ]
 
                 unless valid_{{ property.name | caseSnake }}.include?({{ property.name | caseSnake | escapeKeyword }})
-                    raise ArgumentError, "Invalid " + {{ property.name | caseSnake | escapeKeyword }} + ". Must be one of: " + valid_{{ property.name | caseSnake }}.join(', ')
+                    raise ArgumentError, "Invalid " + {{ property.name | caseSnake | escapeKeyword }}.to_s + ". Must be one of: " + valid_{{ property.name | caseSnake }}.join(', ')
                 end
 
                 {{ property.name | caseSnake | escapeKeyword }}

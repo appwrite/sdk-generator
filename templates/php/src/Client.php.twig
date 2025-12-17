@@ -250,7 +250,7 @@ class Client
      * @param mixed $data
      * @return mixed
      */
-    protected function prepareParams(mixed $data): mixed
+    protected function prepareParams($data)
     {
         if (is_array($data)) {
             return array_map([$this, 'prepareParams'], $data);

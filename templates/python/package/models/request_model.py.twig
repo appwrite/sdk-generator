@@ -5,7 +5,6 @@ from ..enums.{{ property.enumName | caseSnake }} import {{ property.enumName | c
 {%~ endif %}
 {%~ endfor %}
 
-
 class {{ requestModel.name | caseUcfirst }}:
     """
     {{ requestModel.description }}

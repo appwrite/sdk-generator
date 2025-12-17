@@ -1,9 +1,13 @@
+{%~ set importedEnums = [] %}
+{%~ set importedSchemas = [] %}
 {%~ for property in requestModel.properties %}
-{%~ if property.enum %}
+{%~ if property.enum and property.enumName not in importedEnums %}
 import { {{ property.enumName | caseUcfirst }} } from '../enums/{{ property.enumName | caseKebab }}';
+{%~ set importedEnums = importedEnums | merge([property.enumName]) %}
 {%~ endif %}
-{%~ if property.sub_schema %}
+{%~ if property.sub_schema and property.sub_schema not in importedSchemas %}
 import { {{ property.sub_schema | caseUcfirst }}, {{ property.sub_schema | caseCamel }}ToMap } from './{{ property.sub_schema | caseKebab }}';
+{%~ set importedSchemas = importedSchemas | merge([property.sub_schema]) %}
 {%~ endif %}
 {%~ endfor %}
 
