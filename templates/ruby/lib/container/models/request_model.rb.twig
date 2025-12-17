@@ -29,7 +29,7 @@ module {{ spec.title | caseUcfirst }}
             def to_map
                 {
 {% for property in requestModel.properties %}
-                    "{{ property.name }}": {% if property.sub_schema %}{% if property.type == 'array' %}@{{ property.name | caseSnake | escapeKeyword | removeDollarSign }}.map { |it| it.to_map }{% else %}@{{property.name | caseSnake | escapeKeyword | removeDollarSign }}.to_map{% endif %}{% else %}@{{property.name | caseSnake | escapeKeyword }}{% endif %}{% if not loop.last %},{% endif %}
+                    "{{ property.name }}": {% if property.sub_schema %}{% if property.type == 'array' %}@{{ property.name | caseSnake | escapeKeyword | removeDollarSign }}&.map { |it| it.to_map }{% else %}@{{property.name | caseSnake | escapeKeyword | removeDollarSign }}&.to_map{% endif %}{% else %}@{{property.name | caseSnake | escapeKeyword }}{% endif %}{% if not loop.last %},{% endif %}
 
 {% endfor %}
                 }

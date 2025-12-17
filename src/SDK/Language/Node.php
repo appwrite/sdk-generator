@@ -284,7 +284,7 @@ class Node extends Web
             [
                 'scope'         => 'requestModel',
                 'destination'   => 'src/models/{{ requestModel.name | caseKebab }}.ts',
-                'template'      => 'node/src/models/request_model.ts.twig',
+                'template'      => 'node/src/models/requestModel.ts.twig',
             ],
         ];
     }
