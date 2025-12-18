@@ -319,6 +319,28 @@
             console.log(ID.unique());
             console.log(ID.custom('custom_id'));
 
+            // Channel helper tests
+            console.log(Channel.database());
+            console.log(Channel.database('db1', 'col1', 'doc1'));
+            console.log(Channel.database('db1', 'col1', 'doc1', 'create'));
+            console.log(Channel.tablesdb());
+            console.log(Channel.tablesdb('db1', 'table1', 'row1'));
+            console.log(Channel.tablesdb('db1', 'table1', 'row1', 'update'));
+            console.log(Channel.account());
+            console.log(Channel.account('user123'));
+            console.log(Channel.files());
+            console.log(Channel.files('bucket1', 'file1'));
+            console.log(Channel.files('bucket1', 'file1', 'delete'));
+            console.log(Channel.executions());
+            console.log(Channel.executions('func1', 'exec1'));
+            console.log(Channel.executions('func1', 'exec1', 'create'));
+            console.log(Channel.teams());
+            console.log(Channel.teams('team1'));
+            console.log(Channel.teams('team1', 'create'));
+            console.log(Channel.memberships());
+            console.log(Channel.memberships('membership1'));
+            console.log(Channel.memberships('membership1', 'update'));
+
             // Operator helper tests
             console.log(Operator.increment(1));
             console.log(Operator.increment(5, 100));

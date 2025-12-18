@@ -1,0 +1,116 @@
+package {{ sdk.namespace | caseDot }}
+
+/**
+ * Helper class to generate channel strings for realtime subscriptions.
+ */
+class Channel {
+    companion object {
+
+        /**
+         * Generate a database channel string.
+         *
+         * @param databaseId The database ID (default: "*")
+         * @param collectionId The collection ID (default: "*")
+         * @param documentId The document ID (default: "*")
+         * @param action Optional action: "create", "update", or "delete" (default: null)
+         * @returns The channel string
+         */
+        fun database(databaseId: String = "*", collectionId: String = "*", documentId: String = "*", action: String? = null): String {
+            var channel = "databases.$databaseId.collections.$collectionId.documents.$documentId"
+            if (action != null) {
+                channel += ".$action"
+            }
+            return channel
+        }
+
+        /**
+         * Generate a tables database channel string.
+         *
+         * @param databaseId The database ID (default: "*")
+         * @param tableId The table ID (default: "*")
+         * @param rowId The row ID (default: "*")
+         * @param action Optional action: "create", "update", or "delete" (default: null)
+         * @returns The channel string
+         */
+        fun tablesdb(databaseId: String = "*", tableId: String = "*", rowId: String = "*", action: String? = null): String {
+            var channel = "tablesdb.$databaseId.tables.$tableId.rows.$rowId"
+            if (action != null) {
+                channel += ".$action"
+            }
+            return channel
+        }
+
+        /**
+         * Generate an account channel string.
+         *
+         * @param userId The user ID (default: "*")
+         * @returns The channel string
+         */
+        fun account(userId: String = "*"): String {
+            return "account.$userId"
+        }
+
+        /**
+         * Generate a files channel string.
+         *
+         * @param bucketId The bucket ID (default: "*")
+         * @param fileId The file ID (default: "*")
+         * @param action Optional action: "create", "update", or "delete" (default: null)
+         * @returns The channel string
+         */
+        fun files(bucketId: String = "*", fileId: String = "*", action: String? = null): String {
+            var channel = "buckets.$bucketId.files.$fileId"
+            if (action != null) {
+                channel += ".$action"
+            }
+            return channel
+        }
+
+        /**
+         * Generate an executions channel string.
+         *
+         * @param functionId The function ID (default: "*")
+         * @param executionId The execution ID (default: "*")
+         * @param action Optional action: "create", "update", or "delete" (default: null)
+         * @returns The channel string
+         */
+        fun executions(functionId: String = "*", executionId: String = "*", action: String? = null): String {
+            var channel = "functions.$functionId.executions.$executionId"
+            if (action != null) {
+                channel += ".$action"
+            }
+            return channel
+        }
+
+        /**
+         * Generate a teams channel string.
+         *
+         * @param teamId The team ID (default: "*")
+         * @param action Optional action: "create", "update", or "delete" (default: null)
+         * @returns The channel string
+         */
+        fun teams(teamId: String = "*", action: String? = null): String {
+            var channel = "teams.$teamId"
+            if (action != null) {
+                channel += ".$action"
+            }
+            return channel
+        }
+
+        /**
+         * Generate a memberships channel string.
+         *
+         * @param membershipId The membership ID (default: "*")
+         * @param action Optional action: "create", "update", or "delete" (default: null)
+         * @returns The channel string
+         */
+        fun memberships(membershipId: String = "*", action: String? = null): String {
+            var channel = "memberships.$membershipId"
+            if (action != null) {
+                channel += ".$action"
+            }
+            return channel
+        }
+    }
+}
+

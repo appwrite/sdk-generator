@@ -1,0 +1,111 @@
+/**
+ * Helper class to generate channel strings for realtime subscriptions.
+ */
+export class Channel {
+    /**
+     * Generate a database channel string.
+     *
+     * @param {string} databaseId
+     * @param {string} collectionId
+     * @param {string} documentId
+     * @param {'create'|'update'|'delete'|null} action
+     * @returns {string}
+     */
+    static database(databaseId: string = '*', collectionId: string = '*', documentId: string = '*', action: 'create' | 'update' | 'delete' | null = null): string {
+        let channel = `databases.${databaseId}.collections.${collectionId}.documents.${documentId}`;
+        if (action) {
+            channel += `.${action}`;
+        }
+        return channel;
+    }
+
+    /**
+     * Generate a tables database channel string.
+     *
+     * @param {string} databaseId
+     * @param {string} tableId
+     * @param {string} rowId
+     * @param {'create'|'update'|'delete'|null} action
+     * @returns {string}
+     */
+    static tablesdb(databaseId: string = '*', tableId: string = '*', rowId: string = '*', action: 'create' | 'update' | 'delete' | null = null): string {
+        let channel = `tablesdb.${databaseId}.tables.${tableId}.rows.${rowId}`;
+        if (action) {
+            channel += `.${action}`;
+        }
+        return channel;
+    }
+
+    /**
+     * Generate an account channel string.
+     *
+     * @param {string} userId
+     * @returns {string}
+     */
+    static account(userId: string = '*'): string {
+        return `account.${userId}`;
+    }
+
+    /**
+     * Generate a files channel string.
+     *
+     * @param {string} bucketId
+     * @param {string} fileId
+     * @param {'create'|'update'|'delete'|null} action
+     * @returns {string}
+     */
+    static files(bucketId: string = '*', fileId: string = '*', action: 'create' | 'update' | 'delete' | null = null): string {
+        let channel = `buckets.${bucketId}.files.${fileId}`;
+        if (action) {
+            channel += `.${action}`;
+        }
+        return channel;
+    }
+
+    /**
+     * Generate an executions channel string.
+     *
+     * @param {string} functionId
+     * @param {string} executionId
+     * @param {'create'|'update'|'delete'|null} action
+     * @returns {string}
+     */
+    static executions(functionId: string = '*', executionId: string = '*', action: 'create' | 'update' | 'delete' | null = null): string {
+        let channel = `functions.${functionId}.executions.${executionId}`;
+        if (action) {
+            channel += `.${action}`;
+        }
+        return channel;
+    }
+
+    /**
+     * Generate a teams channel string.
+     *
+     * @param {string} teamId
+     * @param {'create'|'update'|'delete'|null} action
+     * @returns {string}
+     */
+    static teams(teamId: string = '*', action: 'create' | 'update' | 'delete' | null = null): string {
+        let channel = `teams.${teamId}`;
+        if (action) {
+            channel += `.${action}`;
+        }
+        return channel;
+    }
+
+    /**
+     * Generate a memberships channel string.
+     *
+     * @param {string} membershipId
+     * @param {'create'|'update'|'delete'|null} action
+     * @returns {string}
+     */
+    static memberships(membershipId: string = '*', action: 'create' | 'update' | 'delete' | null = null): string {
+        let channel = `memberships.${membershipId}`;
+        if (action) {
+            channel += `.${action}`;
+        }
+        return channel;
+    }
+}
+

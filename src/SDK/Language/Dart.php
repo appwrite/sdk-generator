@@ -466,6 +466,11 @@ class Dart extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/test/channel_test.dart',
+                'template'      => 'dart/test/channel_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/test/src/enums_test.dart',
                 'template'      => 'dart/test/src/enums_test.dart.twig',
             ],

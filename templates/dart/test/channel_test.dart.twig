@@ -1,0 +1,112 @@
+import 'package:{{ language.params.packageName }}/{{ language.params.packageName }}.dart';
+{% if 'dart' in language.params.packageName %}
+import 'package:test/test.dart';
+{% else %}
+import 'package:flutter_test/flutter_test.dart';
+{% endif %}
+
+void main() {
+  group('database()', () {
+    test('returns database channel with defaults', () {
+      expect(Channel.database(), 'databases.*.collections.*.documents.*');
+    });
+
+    test('returns database channel with specific IDs', () {
+      expect(Channel.database(databaseId: 'db1', collectionId: 'col1', documentId: 'doc1'),
+          'databases.db1.collections.col1.documents.doc1');
+    });
+
+    test('returns database channel with action', () {
+      expect(Channel.database(databaseId: 'db1', collectionId: 'col1', documentId: 'doc1', action: 'create'),
+          'databases.db1.collections.col1.documents.doc1.create');
+    });
+  });
+
+  group('tablesdb()', () {
+    test('returns tablesdb channel with defaults', () {
+      expect(Channel.tablesdb(), 'tablesdb.*.tables.*.rows.*');
+    });
+
+    test('returns tablesdb channel with specific IDs', () {
+      expect(Channel.tablesdb(databaseId: 'db1', tableId: 'table1', rowId: 'row1'),
+          'tablesdb.db1.tables.table1.rows.row1');
+    });
+
+    test('returns tablesdb channel with action', () {
+      expect(Channel.tablesdb(databaseId: 'db1', tableId: 'table1', rowId: 'row1', action: 'update'),
+          'tablesdb.db1.tables.table1.rows.row1.update');
+    });
+  });
+
+  group('account()', () {
+    test('returns account channel with default', () {
+      expect(Channel.account(), 'account.*');
+    });
+
+    test('returns account channel with specific user ID', () {
+      expect(Channel.account(userId: 'user123'), 'account.user123');
+    });
+  });
+
+  group('files()', () {
+    test('returns files channel with defaults', () {
+      expect(Channel.files(), 'buckets.*.files.*');
+    });
+
+    test('returns files channel with specific IDs', () {
+      expect(Channel.files(bucketId: 'bucket1', fileId: 'file1'),
+          'buckets.bucket1.files.file1');
+    });
+
+    test('returns files channel with action', () {
+      expect(Channel.files(bucketId: 'bucket1', fileId: 'file1', action: 'delete'),
+          'buckets.bucket1.files.file1.delete');
+    });
+  });
+
+  group('executions()', () {
+    test('returns executions channel with defaults', () {
+      expect(Channel.executions(), 'functions.*.executions.*');
+    });
+
+    test('returns executions channel with specific IDs', () {
+      expect(Channel.executions(functionId: 'func1', executionId: 'exec1'),
+          'functions.func1.executions.exec1');
+    });
+
+    test('returns executions channel with action', () {
+      expect(Channel.executions(functionId: 'func1', executionId: 'exec1', action: 'create'),
+          'functions.func1.executions.exec1.create');
+    });
+  });
+
+  group('teams()', () {
+    test('returns teams channel with default', () {
+      expect(Channel.teams(), 'teams.*');
+    });
+
+    test('returns teams channel with specific team ID', () {
+      expect(Channel.teams(teamId: 'team1'), 'teams.team1');
+    });
+
+    test('returns teams channel with action', () {
+      expect(Channel.teams(teamId: 'team1', action: 'create'), 'teams.team1.create');
+    });
+  });
+
+  group('memberships()', () {
+    test('returns memberships channel with default', () {
+      expect(Channel.memberships(), 'memberships.*');
+    });
+
+    test('returns memberships channel with specific membership ID', () {
+      expect(Channel.memberships(membershipId: 'membership1'), 'memberships.membership1');
+    });
+
+    test('returns memberships channel with action', () {
+      expect(Channel.memberships(membershipId: 'membership1', action: 'update'),
+          'memberships.membership1.update');
+    });
+  });
+}
+

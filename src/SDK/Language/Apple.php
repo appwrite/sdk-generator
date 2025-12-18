@@ -72,6 +72,11 @@ class Apple extends Swift
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Channel.swift',
+                'template'      => 'swift/Sources/Channel.swift.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Query.swift',
                 'template'      => 'swift/Sources/Query.swift.twig',
             ],

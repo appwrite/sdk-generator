@@ -82,6 +82,11 @@ class Web extends JS
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'src/channel.ts',
+                'template'      => 'web/src/channel.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'src/query.ts',
                 'template'      => 'web/src/query.ts.twig',
             ],

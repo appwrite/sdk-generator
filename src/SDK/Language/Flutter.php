@@ -82,6 +82,11 @@ class Flutter extends Dart
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/lib/channel.dart',
+                'template'      => 'dart/lib/channel.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/lib/query.dart',
                 'template'      => 'dart/lib/query.dart.twig',
             ],
@@ -289,6 +294,11 @@ class Flutter extends Dart
                 'scope'         => 'default',
                 'destination'   => '/test/role_test.dart',
                 'template'      => 'dart/test/role_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/test/channel_test.dart',
+                'template'      => 'dart/test/channel_test.dart.twig',
             ],
             [
                 'scope'         => 'default',

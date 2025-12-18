@@ -1,0 +1,116 @@
+part of '{{ language.params.packageName }}.dart';
+
+/// Helper class to generate channel strings for realtime subscriptions.
+class Channel {
+  Channel._();
+
+  /// Generate a database channel string.
+  ///
+  /// [databaseId] The database ID (default: '*')
+  /// [collectionId] The collection ID (default: '*')
+  /// [documentId] The document ID (default: '*')
+  /// [action] Optional action: 'create', 'update', or 'delete' (default: null)
+  static String database({
+    String databaseId = '*',
+    String collectionId = '*',
+    String documentId = '*',
+    String? action,
+  }) {
+    String channel = 'databases.$databaseId.collections.$collectionId.documents.$documentId';
+    if (action != null) {
+      channel += '.$action';
+    }
+    return channel;
+  }
+
+  /// Generate a tables database channel string.
+  ///
+  /// [databaseId] The database ID (default: '*')
+  /// [tableId] The table ID (default: '*')
+  /// [rowId] The row ID (default: '*')
+  /// [action] Optional action: 'create', 'update', or 'delete' (default: null)
+  static String tablesdb({
+    String databaseId = '*',
+    String tableId = '*',
+    String rowId = '*',
+    String? action,
+  }) {
+    String channel = 'tablesdb.$databaseId.tables.$tableId.rows.$rowId';
+    if (action != null) {
+      channel += '.$action';
+    }
+    return channel;
+  }
+
+  /// Generate an account channel string.
+  ///
+  /// [userId] The user ID (default: '*')
+  static String account({String userId = '*'}) {
+    return 'account.$userId';
+  }
+
+  /// Generate a files channel string.
+  ///
+  /// [bucketId] The bucket ID (default: '*')
+  /// [fileId] The file ID (default: '*')
+  /// [action] Optional action: 'create', 'update', or 'delete' (default: null)
+  static String files({
+    String bucketId = '*',
+    String fileId = '*',
+    String? action,
+  }) {
+    String channel = 'buckets.$bucketId.files.$fileId';
+    if (action != null) {
+      channel += '.$action';
+    }
+    return channel;
+  }
+
+  /// Generate an executions channel string.
+  ///
+  /// [functionId] The function ID (default: '*')
+  /// [executionId] The execution ID (default: '*')
+  /// [action] Optional action: 'create', 'update', or 'delete' (default: null)
+  static String executions({
+    String functionId = '*',
+    String executionId = '*',
+    String? action,
+  }) {
+    String channel = 'functions.$functionId.executions.$executionId';
+    if (action != null) {
+      channel += '.$action';
+    }
+    return channel;
+  }
+
+  /// Generate a teams channel string.
+  ///
+  /// [teamId] The team ID (default: '*')
+  /// [action] Optional action: 'create', 'update', or 'delete' (default: null)
+  static String teams({
+    String teamId = '*',
+    String? action,
+  }) {
+    String channel = 'teams.$teamId';
+    if (action != null) {
+      channel += '.$action';
+    }
+    return channel;
+  }
+
+  /// Generate a memberships channel string.
+  ///
+  /// [membershipId] The membership ID (default: '*')
+  /// [action] Optional action: 'create', 'update', or 'delete' (default: null)
+  static String memberships({
+    String membershipId = '*',
+    String? action,
+  }) {
+    String channel = 'memberships.$membershipId';
+    if (action != null) {
+      channel += '.$action';
+    }
+    return channel;
+  }
+}
+

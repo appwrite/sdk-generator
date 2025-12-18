@@ -248,6 +248,28 @@ class Tests: XCTestCase {
         print(ID.unique())
         print(ID.custom("custom_id"))
 
+        // Channel helper tests
+        print(Channel.database())
+        print(Channel.database(databaseId: "db1", collectionId: "col1", documentId: "doc1"))
+        print(Channel.database(databaseId: "db1", collectionId: "col1", documentId: "doc1", action: "create"))
+        print(Channel.tablesdb())
+        print(Channel.tablesdb(databaseId: "db1", tableId: "table1", rowId: "row1"))
+        print(Channel.tablesdb(databaseId: "db1", tableId: "table1", rowId: "row1", action: "update"))
+        print(Channel.account())
+        print(Channel.account(userId: "user123"))
+        print(Channel.files())
+        print(Channel.files(bucketId: "bucket1", fileId: "file1"))
+        print(Channel.files(bucketId: "bucket1", fileId: "file1", action: "delete"))
+        print(Channel.executions())
+        print(Channel.executions(functionId: "func1", executionId: "exec1"))
+        print(Channel.executions(functionId: "func1", executionId: "exec1", action: "create"))
+        print(Channel.teams())
+        print(Channel.teams(teamId: "team1"))
+        print(Channel.teams(teamId: "team1", action: "create"))
+        print(Channel.memberships())
+        print(Channel.memberships(membershipId: "membership1"))
+        print(Channel.memberships(membershipId: "membership1", action: "update"))
+
         // Operator helper tests
         print(Operator.increment(1))
         print(Operator.increment(5, max: 100))

@@ -269,6 +269,28 @@ class ServiceTest {
             writeToFile(ID.unique())
             writeToFile(ID.custom("custom_id"))
 
+            // Channel helper tests
+            writeToFile(Channel.database())
+            writeToFile(Channel.database("db1", "col1", "doc1"))
+            writeToFile(Channel.database("db1", "col1", "doc1", "create"))
+            writeToFile(Channel.tablesdb())
+            writeToFile(Channel.tablesdb("db1", "table1", "row1"))
+            writeToFile(Channel.tablesdb("db1", "table1", "row1", "update"))
+            writeToFile(Channel.account())
+            writeToFile(Channel.account("user123"))
+            writeToFile(Channel.files())
+            writeToFile(Channel.files("bucket1", "file1"))
+            writeToFile(Channel.files("bucket1", "file1", "delete"))
+            writeToFile(Channel.executions())
+            writeToFile(Channel.executions("func1", "exec1"))
+            writeToFile(Channel.executions("func1", "exec1", "create"))
+            writeToFile(Channel.teams())
+            writeToFile(Channel.teams("team1"))
+            writeToFile(Channel.teams("team1", "create"))
+            writeToFile(Channel.memberships())
+            writeToFile(Channel.memberships("membership1"))
+            writeToFile(Channel.memberships("membership1", "update"))
+
             // Operator helper tests
             writeToFile(Operator.increment(1))
             writeToFile(Operator.increment(5, 100))
