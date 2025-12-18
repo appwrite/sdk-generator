@@ -4,6 +4,7 @@ const {
     Query,
     Role,
     ID,
+    Channel,
     Operator,
     Condition,
     MockType,

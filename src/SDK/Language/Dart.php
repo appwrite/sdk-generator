@@ -356,6 +356,11 @@ class Dart extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/lib/channel.dart',
+                'template'      => 'dart/lib/channel.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/lib/query.dart',
                 'template'      => 'dart/lib/query.dart.twig',
             ],

@@ -7,6 +7,7 @@ import io.appwrite.exceptions.AppwriteException
 import io.appwrite.Permission
 import io.appwrite.Role
 import io.appwrite.ID
+import io.appwrite.Channel
 import io.appwrite.Query
 import io.appwrite.Operator
 import io.appwrite.Condition

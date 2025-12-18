@@ -163,6 +163,29 @@ abstract class Base extends TestCase
         'custom_id'
     ];
 
+    protected const CHANNEL_HELPER_RESPONSES = [
+        'databases.*.collections.*.documents.*',
+        'databases.db1.collections.col1.documents.doc1',
+        'databases.db1.collections.col1.documents.doc1.create',
+        'tablesdb.*.tables.*.rows.*',
+        'tablesdb.db1.tables.table1.rows.row1',
+        'tablesdb.db1.tables.table1.rows.row1.update',
+        'account.*',
+        'account.user123',
+        'buckets.*.files.*',
+        'buckets.bucket1.files.file1',
+        'buckets.bucket1.files.file1.delete',
+        'functions.*.executions.*',
+        'functions.func1.executions.exec1',
+        'functions.func1.executions.exec1.create',
+        'teams.*',
+        'teams.team1',
+        'teams.team1.create',
+        'memberships.*',
+        'memberships.membership1',
+        'memberships.membership1.update',
+    ];
+
     protected const OPERATOR_HELPER_RESPONSES = [
         '{"method":"increment","values":[1]}',
         '{"method":"increment","values":[5,100]}',
