@@ -272,6 +272,11 @@ class PHP extends Language
                 'destination'   => '/src/{{ spec.title | caseUcfirst}}/Enums/{{ enum.name | caseUcfirst }}.php',
                 'template'      => 'php/src/Enums/Enum.php.twig',
             ],
+            [
+                'scope'         => 'requestModel',
+                'destination'   => '/src/{{ spec.title | caseUcfirst}}/Models/{{ requestModel.name | caseUcfirst }}.php',
+                'template'      => 'php/src/Models/RequestModel.php.twig',
+            ],
         ];
     }
 
@@ -287,6 +292,13 @@ class PHP extends Language
         }
         if (!empty($parameter['enumValues'])) {
             return \ucfirst($parameter['name']);
+        }
+        if (!empty($parameter['array']['model'])) {
+            return 'array';
+        }
+        if (!empty($parameter['model'])) {
+            $modelType = $this->toPascalCase($parameter['model']);
+            return $parameter['type'] === self::TYPE_ARRAY ? 'array' : $modelType;
         }
         return match ($parameter['type']) {
             self::TYPE_STRING => 'string',

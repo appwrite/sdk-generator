@@ -196,6 +196,11 @@ class Apple extends Swift
                 'template'      => '/swift/Sources/Models/Model.swift.twig',
             ],
             [
+                'scope'         => 'requestModel',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}Models/{{ requestModel.name | caseUcfirst }}.swift',
+                'template'      => '/swift/Sources/Models/RequestModel.swift.twig',
+            ],
+            [
                 'scope' => 'enum',
                 'destination' => '/Sources/{{ spec.title | caseUcfirst}}Enums/{{ enum.name | caseUcfirst }}.swift',
                 'template' => '/swift/Sources/Enums/Enum.swift.twig',

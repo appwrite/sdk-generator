@@ -15,6 +15,12 @@ use {{ spec.title | caseUcfirst }}\Enums\{{ parameter.enumName | caseUcfirst }};
 {% set added = added|merge([parameter.enumName]) %}
 {% endif %}
 {% endif %}
+{% if parameter.model is not empty and parameter.type != 'array' %}
+{% if parameter.model not in added %}
+use {{ spec.title | caseUcfirst }}\Models\{{ parameter.model | caseUcfirst }};
+{% set added = added|merge([parameter.model]) %}
+{% endif %}
+{% endif %}
 {% endfor %}
 {% endfor %}
 

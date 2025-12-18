@@ -86,6 +86,16 @@ end
 response = general.enum(mock_type: MockType::FIRST)
 puts response.result
 
+# Request model tests
+response = general.create_player(player: {id: 'player1', name: 'John Doe', score: 100})
+puts response.result
+
+response = general.create_players(players: [
+    {id: 'player1', name: 'John Doe', score: 100},
+    {id: 'player2', name: 'Jane Doe', score: 200}
+])
+puts response.result
+
 begin
     general.error400()
 rescue Exception => error
