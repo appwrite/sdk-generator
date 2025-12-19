@@ -1,39 +1,257 @@
+
+
+export class ResolvedChannel {
+    private value: string;
+
+    constructor(value: string) {
+        this.value = value;
+    }
+
+    toString(): string {
+        return this.value;
+    }
+}
+
+abstract class ActionChannel {
+    protected base: string;
+
+    constructor(base: string) {
+        this.base = base;
+    }
+
+    create(): ResolvedChannel {
+        return new ResolvedChannel(`${this.base}.create`);
+    }
+
+    update(): ResolvedChannel {
+        return new ResolvedChannel(`${this.base}.update`);
+    }
+
+    delete(): ResolvedChannel {
+        return new ResolvedChannel(`${this.base}.delete`);
+    }
+
+    toString(): string {
+        return this.base;
+    }
+}
+
 /**
- * Helper class to generate channel strings for realtime subscriptions.
+ * ----------------------------
+ * Database → Collection → Document
+ * ----------------------------
  */
+class DocumentChannel extends ActionChannel {}
+
+class CollectionChannel {
+    private base: string;
+
+    constructor(
+        private databaseId: string,
+        private collectionId: string
+    ) {
+        this.base = `databases.${databaseId}.collections.${collectionId}`;
+    }
+
+    document(documentId: string = '*'): DocumentChannel {
+        return new DocumentChannel(
+            `${this.base}.documents.${documentId}`
+        );
+    }
+
+    toString(): string {
+        return this.base;
+    }
+}
+
+class DatabaseChannel {
+    private base: string;
+
+    constructor(private databaseId: string) {
+        this.base = `databases.${databaseId}`;
+    }
+
+    collection(collectionId: string = '*'): CollectionChannel {
+        return new CollectionChannel(this.databaseId, collectionId);
+    }
+
+    toString(): string {
+        return this.base;
+    }
+}
+
+/**
+ * ----------------------------
+ * TablesDB → Table → Row
+ * ----------------------------
+ */
+class RowChannel extends ActionChannel {}
+
+class TableChannel {
+    private base: string;
+
+    constructor(
+        private databaseId: string,
+        private tableId: string
+    ) {
+        this.base = `tablesdb.${databaseId}.tables.${tableId}`;
+    }
+
+    row(rowId: string = '*'): RowChannel {
+        return new RowChannel(
+            `${this.base}.rows.${rowId}`
+        );
+    }
+
+    toString(): string {
+        return this.base;
+    }
+}
+
+class TablesDBChannel {
+    private base: string;
+
+    constructor(private databaseId: string) {
+        this.base = `tablesdb.${databaseId}`;
+    }
+
+    table(tableId: string = '*'): TableChannel {
+        return new TableChannel(this.databaseId, tableId);
+    }
+
+    toString(): string {
+        return this.base;
+    }
+}
+
+/**
+ * ----------------------------
+ * Buckets → File
+ * ----------------------------
+ */
+class FileChannel extends ActionChannel {}
+
+class BucketChannel {
+    private base: string;
+
+    constructor(private bucketId: string) {
+        this.base = `buckets.${bucketId}`;
+    }
+
+    file(fileId: string = '*'): FileChannel {
+        return new FileChannel(
+            `${this.base}.files.${fileId}`
+        );
+    }
+
+    toString(): string {
+        return this.base;
+    }
+}
+
+/**
+ * ----------------------------
+ * Functions → Execution
+ * ----------------------------
+ */
+class ExecutionChannel extends ActionChannel {}
+
+class FunctionChannel {
+    private base: string;
+
+    constructor(private functionId: string) {
+        this.base = `functions.${functionId}`;
+    }
+
+    execution(executionId: string = '*'): ExecutionChannel {
+        return new ExecutionChannel(
+            `${this.base}.executions.${executionId}`
+        );
+    }
+
+    toString(): string {
+        return this.base;
+    }
+}
+
+class TeamChannel extends ActionChannel {
+    constructor(teamId: string = '*') {
+        super(`teams.${teamId}`);
+    }
+}
+
+class MembershipChannel extends ActionChannel {
+    constructor(membershipId: string = '*') {
+        super(`memberships.${membershipId}`);
+    }
+}
+
+/**
+ * ----------------------------
+ * Channel Type (for type checking)
+ * ----------------------------
+ */
+export type ChannelValue = string | ResolvedChannel | DatabaseChannel | CollectionChannel | DocumentChannel | TablesDBChannel | TableChannel | RowChannel | BucketChannel | FileChannel | FunctionChannel | ExecutionChannel | TeamChannel | MembershipChannel;
+
 export class Channel {
     /**
-     * Generate a database channel string.
+     * Generate a database channel builder.
      *
      * @param {string} databaseId
-     * @param {string} collectionId
-     * @param {string} documentId
-     * @param {'create'|'update'|'delete'|null} action
-     * @returns {string}
+     * @returns {DatabaseChannel}
      */
-    static database(databaseId: string = '*', collectionId: string = '*', documentId: string = '*', action: 'create' | 'update' | 'delete' | null = null): string {
-        let channel = `databases.${databaseId}.collections.${collectionId}.documents.${documentId}`;
-        if (action) {
-            channel += `.${action}`;
-        }
-        return channel;
+    static database(databaseId: string = '*'): DatabaseChannel {
+        return new DatabaseChannel(databaseId);
     }
 
     /**
-     * Generate a tables database channel string.
+     * Generate a tables database channel builder.
      *
      * @param {string} databaseId
-     * @param {string} tableId
-     * @param {string} rowId
-     * @param {'create'|'update'|'delete'|null} action
-     * @returns {string}
+     * @returns {TablesDBChannel}
      */
-    static tablesdb(databaseId: string = '*', tableId: string = '*', rowId: string = '*', action: 'create' | 'update' | 'delete' | null = null): string {
-        let channel = `tablesdb.${databaseId}.tables.${tableId}.rows.${rowId}`;
-        if (action) {
-            channel += `.${action}`;
-        }
-        return channel;
+    static tablesdb(databaseId: string = '*'): TablesDBChannel {
+        return new TablesDBChannel(databaseId);
+    }
+
+    /**
+     * Generate a buckets channel builder.
+     *
+     * @param {string} bucketId
+     * @returns {BucketChannel}
+     */
+    static buckets(bucketId: string = '*'): BucketChannel {
+        return new BucketChannel(bucketId);
+    }
+
+    /**
+     * Generate a functions channel builder.
+     *
+     * @param {string} functionId
+     * @returns {FunctionChannel}
+     */
+    static functions(functionId: string = '*'): FunctionChannel {
+        return new FunctionChannel(functionId);
+    }
+
+    /**
+     * Generate a teams channel builder.
+     *
+     * @param {string} teamId
+     * @returns {TeamChannel}
+     */
+    static teams(teamId: string = '*'): TeamChannel {
+        return new TeamChannel(teamId);
+    }
+
+    /**
+     * Generate a memberships channel builder.
+     *
+     * @param {string} membershipId
+     * @returns {MembershipChannel}
+     */
+    static memberships(membershipId: string = '*'): MembershipChannel {
+        return new MembershipChannel(membershipId);
     }
 
     /**
@@ -45,67 +263,4 @@ export class Channel {
     static account(userId: string = '*'): string {
         return `account.${userId}`;
     }
-
-    /**
-     * Generate a files channel string.
-     *
-     * @param {string} bucketId
-     * @param {string} fileId
-     * @param {'create'|'update'|'delete'|null} action
-     * @returns {string}
-     */
-    static files(bucketId: string = '*', fileId: string = '*', action: 'create' | 'update' | 'delete' | null = null): string {
-        let channel = `buckets.${bucketId}.files.${fileId}`;
-        if (action) {
-            channel += `.${action}`;
-        }
-        return channel;
-    }
-
-    /**
-     * Generate an executions channel string.
-     *
-     * @param {string} functionId
-     * @param {string} executionId
-     * @param {'create'|'update'|'delete'|null} action
-     * @returns {string}
-     */
-    static executions(functionId: string = '*', executionId: string = '*', action: 'create' | 'update' | 'delete' | null = null): string {
-        let channel = `functions.${functionId}.executions.${executionId}`;
-        if (action) {
-            channel += `.${action}`;
-        }
-        return channel;
-    }
-
-    /**
-     * Generate a teams channel string.
-     *
-     * @param {string} teamId
-     * @param {'create'|'update'|'delete'|null} action
-     * @returns {string}
-     */
-    static teams(teamId: string = '*', action: 'create' | 'update' | 'delete' | null = null): string {
-        let channel = `teams.${teamId}`;
-        if (action) {
-            channel += `.${action}`;
-        }
-        return channel;
-    }
-
-    /**
-     * Generate a memberships channel string.
-     *
-     * @param {string} membershipId
-     * @param {'create'|'update'|'delete'|null} action
-     * @returns {string}
-     */
-    static memberships(membershipId: string = '*', action: 'create' | 'update' | 'delete' | null = null): string {
-        let channel = `memberships.${membershipId}`;
-        if (action) {
-            channel += `.${action}`;
-        }
-        return channel;
-    }
 }
-

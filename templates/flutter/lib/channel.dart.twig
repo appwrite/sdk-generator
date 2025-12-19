@@ -1,0 +1,239 @@
+part of '{{ language.params.packageName }}.dart';
+
+class ResolvedChannel {
+  final String _value;
+
+  ResolvedChannel(this._value);
+
+  String toString() {
+    return _value;
+  }
+}
+
+abstract class ActionChannel {
+  final String base;
+
+  ActionChannel(this.base);
+
+  ResolvedChannel create() {
+    return ResolvedChannel('$base.create');
+  }
+
+  ResolvedChannel update() {
+    return ResolvedChannel('$base.update');
+  }
+
+  ResolvedChannel delete() {
+    return ResolvedChannel('$base.delete');
+  }
+
+  @override
+  String toString() {
+    return base;
+  }
+}
+
+/**
+ * ----------------------------
+ * Database → Collection → Document
+ * ----------------------------
+ */
+class DocumentChannel extends ActionChannel {
+  DocumentChannel(String base) : super(base);
+}
+
+class CollectionChannel {
+  final String base;
+  final String databaseId;
+  final String collectionId;
+
+  CollectionChannel(this.databaseId, this.collectionId)
+      : base = 'databases.$databaseId.collections.$collectionId';
+
+  DocumentChannel document([String documentId = '*']) {
+    return DocumentChannel('$base.documents.$documentId');
+  }
+
+  @override
+  String toString() {
+    return base;
+  }
+}
+
+class DatabaseChannel {
+  final String base;
+  final String databaseId;
+
+  DatabaseChannel(this.databaseId) : base = 'databases.$databaseId';
+
+  CollectionChannel collection([String collectionId = '*']) {
+    return CollectionChannel(databaseId, collectionId);
+  }
+
+  @override
+  String toString() {
+    return base;
+  }
+}
+
+/**
+ * ----------------------------
+ * TablesDB → Table → Row
+ * ----------------------------
+ */
+class RowChannel extends ActionChannel {
+  RowChannel(String base) : super(base);
+}
+
+class TableChannel {
+  final String base;
+  final String databaseId;
+  final String tableId;
+
+  TableChannel(this.databaseId, this.tableId)
+      : base = 'tablesdb.$databaseId.tables.$tableId';
+
+  RowChannel row([String rowId = '*']) {
+    return RowChannel('$base.rows.$rowId');
+  }
+
+  @override
+  String toString() {
+    return base;
+  }
+}
+
+class TablesDBChannel {
+  final String base;
+  final String databaseId;
+
+  TablesDBChannel(this.databaseId) : base = 'tablesdb.$databaseId';
+
+  TableChannel table([String tableId = '*']) {
+    return TableChannel(databaseId, tableId);
+  }
+
+  @override
+  String toString() {
+    return base;
+  }
+}
+
+/**
+ * ----------------------------
+ * Buckets → File
+ * ----------------------------
+ */
+class FileChannel extends ActionChannel {
+  FileChannel(String base) : super(base);
+}
+
+class BucketChannel {
+  final String base;
+  final String bucketId;
+
+  BucketChannel(this.bucketId) : base = 'buckets.$bucketId';
+
+  FileChannel file([String fileId = '*']) {
+    return FileChannel('$base.files.$fileId');
+  }
+
+  @override
+  String toString() {
+    return base;
+  }
+}
+
+/**
+ * ----------------------------
+ * Functions → Execution
+ * ----------------------------
+ */
+class ExecutionChannel extends ActionChannel {
+  ExecutionChannel(String base) : super(base);
+}
+
+class FunctionChannel {
+  final String base;
+  final String functionId;
+
+  FunctionChannel(this.functionId) : base = 'functions.$functionId';
+
+  ExecutionChannel execution([String executionId = '*']) {
+    return ExecutionChannel('$base.executions.$executionId');
+  }
+
+  @override
+  String toString() {
+    return base;
+  }
+}
+
+class TeamChannel extends ActionChannel {
+  TeamChannel([String teamId = '*']) : super('teams.$teamId');
+}
+
+class MembershipChannel extends ActionChannel {
+  MembershipChannel([String membershipId = '*'])
+      : super('memberships.$membershipId');
+}
+
+typedef ChannelValue = Object;
+
+class Channel {
+  /// Generate a database channel builder.
+  ///
+  /// [databaseId] The database ID (default: "*")
+  /// Returns [DatabaseChannel]
+  static DatabaseChannel database([String databaseId = '*']) {
+    return DatabaseChannel(databaseId);
+  }
+
+  /// Generate a tables database channel builder.
+  ///
+  /// [databaseId] The database ID (default: "*")
+  /// Returns [TablesDBChannel]
+  static TablesDBChannel tablesdb([String databaseId = '*']) {
+    return TablesDBChannel(databaseId);
+  }
+
+  /// Generate a buckets channel builder.
+  ///
+  /// [bucketId] The bucket ID (default: "*")
+  /// Returns [BucketChannel]
+  static BucketChannel buckets([String bucketId = '*']) {
+    return BucketChannel(bucketId);
+  }
+
+  /// Generate a functions channel builder.
+  ///
+  /// [functionId] The function ID (default: "*")
+  /// Returns [FunctionChannel]
+  static FunctionChannel functions([String functionId = '*']) {
+    return FunctionChannel(functionId);
+  }
+
+  /// Generate a teams channel builder.
+  ///
+  /// [teamId] The team ID (default: "*")
+  /// Returns [TeamChannel]
+  static TeamChannel teams([String teamId = '*']) {
+    return TeamChannel(teamId);
+  }
+
+  /// Generate a memberships channel builder.
+  ///
+  /// [membershipId] The membership ID (default: "*")
+  /// Returns [MembershipChannel]
+  static MembershipChannel memberships([String membershipId = '*']) {
+    return MembershipChannel(membershipId);
+  }
+
+  /// Generate an account channel string.
+  ///
+  /// [userId] The user ID (default: "*")
+  /// Returns The channel string
+  static String account([String userId = '*']) {
+    return 'account.$userId';
+  }
+}

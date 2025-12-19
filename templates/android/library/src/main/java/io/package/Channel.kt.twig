@@ -1,43 +1,179 @@
 package {{ sdk.namespace | caseDot }}
 
-/**
- * Helper class to generate channel strings for realtime subscriptions.
- */
+class ResolvedChannel(private val value: String) {
+    override fun toString(): String {
+        return value
+    }
+}
+
+abstract class ActionChannel(protected val base: String) {
+    fun create(): ResolvedChannel {
+        return ResolvedChannel("$base.create")
+    }
+
+    fun update(): ResolvedChannel {
+        return ResolvedChannel("$base.update")
+    }
+
+    fun delete(): ResolvedChannel {
+        return ResolvedChannel("$base.delete")
+    }
+
+    override fun toString(): String {
+        return base
+    }
+}
+
+class DocumentChannel(base: String) : ActionChannel(base)
+
+class CollectionChannel(
+    private val databaseId: String,
+    private val collectionId: String
+) {
+    private val base = "databases.$databaseId.collections.$collectionId"
+
+    fun document(documentId: String = "*"): DocumentChannel {
+        return DocumentChannel("$base.documents.$documentId")
+    }
+
+    override fun toString(): String {
+        return base
+    }
+}
+
+class DatabaseChannel(private val databaseId: String) {
+    private val base = "databases.$databaseId"
+
+    fun collection(collectionId: String = "*"): CollectionChannel {
+        return CollectionChannel(databaseId, collectionId)
+    }
+
+    override fun toString(): String {
+        return base
+    }
+}
+
+class RowChannel(base: String) : ActionChannel(base)
+
+class TableChannel(
+    private val databaseId: String,
+    private val tableId: String
+) {
+    private val base = "tablesdb.$databaseId.tables.$tableId"
+
+    fun row(rowId: String = "*"): RowChannel {
+        return RowChannel("$base.rows.$rowId")
+    }
+
+    override fun toString(): String {
+        return base
+    }
+}
+
+class TablesDBChannel(private val databaseId: String) {
+    private val base = "tablesdb.$databaseId"
+
+    fun table(tableId: String = "*"): TableChannel {
+        return TableChannel(databaseId, tableId)
+    }
+
+    override fun toString(): String {
+        return base
+    }
+}
+
+class FileChannel(base: String) : ActionChannel(base)
+
+class BucketChannel(private val bucketId: String) {
+    private val base = "buckets.$bucketId"
+
+    fun file(fileId: String = "*"): FileChannel {
+        return FileChannel("$base.files.$fileId")
+    }
+
+    override fun toString(): String {
+        return base
+    }
+}
+
+class ExecutionChannel(base: String) : ActionChannel(base)
+
+class FunctionChannel(private val functionId: String) {
+    private val base = "functions.$functionId"
+
+    fun execution(executionId: String = "*"): ExecutionChannel {
+        return ExecutionChannel("$base.executions.$executionId")
+    }
+
+    override fun toString(): String {
+        return base
+    }
+}
+
+class TeamChannel(teamId: String = "*") : ActionChannel("teams.$teamId")
+
+class MembershipChannel(membershipId: String = "*") : ActionChannel("memberships.$membershipId")
+
 class Channel {
     companion object {
-
         /**
-         * Generate a database channel string.
+         * Generate a database channel builder.
          *
          * @param databaseId The database ID (default: "*")
-         * @param collectionId The collection ID (default: "*")
-         * @param documentId The document ID (default: "*")
-         * @param action Optional action: "create", "update", or "delete" (default: null)
-         * @returns The channel string
+         * @returns DatabaseChannel
          */
-        fun database(databaseId: String = "*", collectionId: String = "*", documentId: String = "*", action: String? = null): String {
-            var channel = "databases.$databaseId.collections.$collectionId.documents.$documentId"
-            if (action != null) {
-                channel += ".$action"
-            }
-            return channel
+        fun database(databaseId: String = "*"): DatabaseChannel {
+            return DatabaseChannel(databaseId)
         }
 
         /**
-         * Generate a tables database channel string.
+         * Generate a tables database channel builder.
          *
          * @param databaseId The database ID (default: "*")
-         * @param tableId The table ID (default: "*")
-         * @param rowId The row ID (default: "*")
-         * @param action Optional action: "create", "update", or "delete" (default: null)
-         * @returns The channel string
+         * @returns TablesDBChannel
          */
-        fun tablesdb(databaseId: String = "*", tableId: String = "*", rowId: String = "*", action: String? = null): String {
-            var channel = "tablesdb.$databaseId.tables.$tableId.rows.$rowId"
-            if (action != null) {
-                channel += ".$action"
-            }
-            return channel
+        fun tablesdb(databaseId: String = "*"): TablesDBChannel {
+            return TablesDBChannel(databaseId)
+        }
+
+        /**
+         * Generate a buckets channel builder.
+         *
+         * @param bucketId The bucket ID (default: "*")
+         * @returns BucketChannel
+         */
+        fun buckets(bucketId: String = "*"): BucketChannel {
+            return BucketChannel(bucketId)
+        }
+
+        /**
+         * Generate a functions channel builder.
+         *
+         * @param functionId The function ID (default: "*")
+         * @returns FunctionChannel
+         */
+        fun functions(functionId: String = "*"): FunctionChannel {
+            return FunctionChannel(functionId)
+        }
+
+        /**
+         * Generate a teams channel builder.
+         *
+         * @param teamId The team ID (default: "*")
+         * @returns TeamChannel
+         */
+        fun teams(teamId: String = "*"): TeamChannel {
+            return TeamChannel(teamId)
+        }
+
+        /**
+         * Generate a memberships channel builder.
+         *
+         * @param membershipId The membership ID (default: "*")
+         * @returns MembershipChannel
+         */
+        fun memberships(membershipId: String = "*"): MembershipChannel {
+            return MembershipChannel(membershipId)
         }
 
         /**
@@ -48,68 +184,6 @@ class Channel {
          */
         fun account(userId: String = "*"): String {
             return "account.$userId"
-        }
-
-        /**
-         * Generate a files channel string.
-         *
-         * @param bucketId The bucket ID (default: "*")
-         * @param fileId The file ID (default: "*")
-         * @param action Optional action: "create", "update", or "delete" (default: null)
-         * @returns The channel string
-         */
-        fun files(bucketId: String = "*", fileId: String = "*", action: String? = null): String {
-            var channel = "buckets.$bucketId.files.$fileId"
-            if (action != null) {
-                channel += ".$action"
-            }
-            return channel
-        }
-
-        /**
-         * Generate an executions channel string.
-         *
-         * @param functionId The function ID (default: "*")
-         * @param executionId The execution ID (default: "*")
-         * @param action Optional action: "create", "update", or "delete" (default: null)
-         * @returns The channel string
-         */
-        fun executions(functionId: String = "*", executionId: String = "*", action: String? = null): String {
-            var channel = "functions.$functionId.executions.$executionId"
-            if (action != null) {
-                channel += ".$action"
-            }
-            return channel
-        }
-
-        /**
-         * Generate a teams channel string.
-         *
-         * @param teamId The team ID (default: "*")
-         * @param action Optional action: "create", "update", or "delete" (default: null)
-         * @returns The channel string
-         */
-        fun teams(teamId: String = "*", action: String? = null): String {
-            var channel = "teams.$teamId"
-            if (action != null) {
-                channel += ".$action"
-            }
-            return channel
-        }
-
-        /**
-         * Generate a memberships channel string.
-         *
-         * @param membershipId The membership ID (default: "*")
-         * @param action Optional action: "create", "update", or "delete" (default: null)
-         * @returns The channel string
-         */
-        fun memberships(membershipId: String = "*", action: String? = null): String {
-            var channel = "memberships.$membershipId"
-            if (action != null) {
-                channel += ".$action"
-            }
-            return channel
         }
     }
 }

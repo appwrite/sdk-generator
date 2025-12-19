@@ -251,26 +251,26 @@ async function start() {
     console.log(ID.custom('custom_id'));
 
     // Channel helper tests
-    console.log(Channel.database());
-    console.log(Channel.database('db1', 'col1', 'doc1'));
-    console.log(Channel.database('db1', 'col1', 'doc1', 'create'));
-    console.log(Channel.tablesdb());
-    console.log(Channel.tablesdb('db1', 'table1', 'row1'));
-    console.log(Channel.tablesdb('db1', 'table1', 'row1', 'update'));
+    console.log(Channel.database().collection().document().toString());
+    console.log(Channel.database('db1').collection('col1').document('doc1').toString());
+    console.log(Channel.database('db1').collection('col1').document('doc1').create().toString());
+    console.log(Channel.tablesdb().table().row().toString());
+    console.log(Channel.tablesdb('db1').table('table1').row('row1').toString());
+    console.log(Channel.tablesdb('db1').table('table1').row('row1').update().toString());
     console.log(Channel.account());
     console.log(Channel.account('user123'));
-    console.log(Channel.files());
-    console.log(Channel.files('bucket1', 'file1'));
-    console.log(Channel.files('bucket1', 'file1', 'delete'));
-    console.log(Channel.executions());
-    console.log(Channel.executions('func1', 'exec1'));
-    console.log(Channel.executions('func1', 'exec1', 'create'));
-    console.log(Channel.teams());
-    console.log(Channel.teams('team1'));
-    console.log(Channel.teams('team1', 'create'));
-    console.log(Channel.memberships());
-    console.log(Channel.memberships('membership1'));
-    console.log(Channel.memberships('membership1', 'update'));
+    console.log(Channel.buckets().file().toString());
+    console.log(Channel.buckets('bucket1').file('file1').toString());
+    console.log(Channel.buckets('bucket1').file('file1').delete().toString());
+    console.log(Channel.functions().execution().toString());
+    console.log(Channel.functions('func1').execution('exec1').toString());
+    console.log(Channel.functions('func1').execution('exec1').create().toString());
+    console.log(Channel.teams().toString());
+    console.log(Channel.teams('team1').toString());
+    console.log(Channel.teams('team1').create().toString());
+    console.log(Channel.memberships().toString());
+    console.log(Channel.memberships('membership1').toString());
+    console.log(Channel.memberships('membership1').update().toString());
 
     // Operator helper tests
     console.log(Operator.increment(1));

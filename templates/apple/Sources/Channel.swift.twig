@@ -1,38 +1,252 @@
 import Foundation
 
+public class ResolvedChannel {
+    private let value: String
+    
+    init(value: String) {
+        self.value = value
+    }
+    
+    public func toString() -> String {
+        return value
+    }
+}
+
+open class ActionChannel {
+    let base: String
+    
+    init(base: String) {
+        self.base = base
+    }
+    
+    public func create() -> ResolvedChannel {
+        return ResolvedChannel(value: "\(base).create")
+    }
+    
+    public func update() -> ResolvedChannel {
+        return ResolvedChannel(value: "\(base).update")
+    }
+    
+    public func delete() -> ResolvedChannel {
+        return ResolvedChannel(value: "\(base).delete")
+    }
+    
+    public func toString() -> String {
+        return base
+    }
+}
+
+/**
+ * ----------------------------
+ * Database → Collection → Document
+ * ----------------------------
+ */
+public class DocumentChannel: ActionChannel {}
+
+public class CollectionChannel {
+    private let base: String
+    private let databaseId: String
+    private let collectionId: String
+    
+    init(databaseId: String, collectionId: String) {
+        self.databaseId = databaseId
+        self.collectionId = collectionId
+        self.base = "databases.\(databaseId).collections.\(collectionId)"
+    }
+    
+    public func document(_ documentId: String = "*") -> DocumentChannel {
+        return DocumentChannel(base: "\(base).documents.\(documentId)")
+    }
+    
+    public func toString() -> String {
+        return base
+    }
+}
+
+public class DatabaseChannel {
+    private let base: String
+    private let databaseId: String
+    
+    init(databaseId: String) {
+        self.databaseId = databaseId
+        self.base = "databases.\(databaseId)"
+    }
+    
+    public func collection(_ collectionId: String = "*") -> CollectionChannel {
+        return CollectionChannel(databaseId: databaseId, collectionId: collectionId)
+    }
+    
+    public func toString() -> String {
+        return base
+    }
+}
+
+/**
+ * ----------------------------
+ * TablesDB → Table → Row
+ * ----------------------------
+ */
+public class RowChannel: ActionChannel {}
+
+public class TableChannel {
+    private let base: String
+    private let databaseId: String
+    private let tableId: String
+    
+    init(databaseId: String, tableId: String) {
+        self.databaseId = databaseId
+        self.tableId = tableId
+        self.base = "tablesdb.\(databaseId).tables.\(tableId)"
+    }
+    
+    public func row(_ rowId: String = "*") -> RowChannel {
+        return RowChannel(base: "\(base).rows.\(rowId)")
+    }
+    
+    public func toString() -> String {
+        return base
+    }
+}
+
+public class TablesDBChannel {
+    private let base: String
+    private let databaseId: String
+    
+    init(databaseId: String) {
+        self.databaseId = databaseId
+        self.base = "tablesdb.\(databaseId)"
+    }
+    
+    public func table(_ tableId: String = "*") -> TableChannel {
+        return TableChannel(databaseId: databaseId, tableId: tableId)
+    }
+    
+    public func toString() -> String {
+        return base
+    }
+}
+
+/**
+ * ----------------------------
+ * Buckets → File
+ * ----------------------------
+ */
+public class FileChannel: ActionChannel {}
+
+public class BucketChannel {
+    private let base: String
+    private let bucketId: String
+    
+    init(bucketId: String) {
+        self.bucketId = bucketId
+        self.base = "buckets.\(bucketId)"
+    }
+    
+    public func file(_ fileId: String = "*") -> FileChannel {
+        return FileChannel(base: "\(base).files.\(fileId)")
+    }
+    
+    public func toString() -> String {
+        return base
+    }
+}
+
+/**
+ * ----------------------------
+ * Functions → Execution
+ * ----------------------------
+ */
+public class ExecutionChannel: ActionChannel {}
+
+public class FunctionChannel {
+    private let base: String
+    private let functionId: String
+    
+    init(functionId: String) {
+        self.functionId = functionId
+        self.base = "functions.\(functionId)"
+    }
+    
+    public func execution(_ executionId: String = "*") -> ExecutionChannel {
+        return ExecutionChannel(base: "\(base).executions.\(executionId)")
+    }
+    
+    public func toString() -> String {
+        return base
+    }
+}
+
+public class TeamChannel: ActionChannel {
+    init(teamId: String = "*") {
+        super.init(base: "teams.\(teamId)")
+    }
+}
+
+public class MembershipChannel: ActionChannel {
+    init(membershipId: String = "*") {
+        super.init(base: "memberships.\(membershipId)")
+    }
+}
+
 public class Channel {
     /**
-     * Generate a database channel string.
+     * Generate a database channel builder.
      *
      * @param databaseId The database ID (default: "*")
-     * @param collectionId The collection ID (default: "*")
-     * @param documentId The document ID (default: "*")
-     * @param action Optional action: "create", "update", or "delete" (default: nil)
-     * @returns The channel string
+     * @returns DatabaseChannel
      */
-    public static func database(databaseId: String = "*", collectionId: String = "*", documentId: String = "*", action: String? = nil) -> String {
-        var channel = "databases.\(databaseId).collections.\(collectionId).documents.\(documentId)"
-        if let action = action {
-            channel += ".\(action)"
-        }
-        return channel
+    public static func database(_ databaseId: String = "*") -> DatabaseChannel {
+        return DatabaseChannel(databaseId: databaseId)
     }
 
     /**
-     * Generate a tables database channel string.
+     * Generate a tables database channel builder.
      *
      * @param databaseId The database ID (default: "*")
-     * @param tableId The table ID (default: "*")
-     * @param rowId The row ID (default: "*")
-     * @param action Optional action: "create", "update", or "delete" (default: nil)
-     * @returns The channel string
+     * @returns TablesDBChannel
      */
-    public static func tablesdb(databaseId: String = "*", tableId: String = "*", rowId: String = "*", action: String? = nil) -> String {
-        var channel = "tablesdb.\(databaseId).tables.\(tableId).rows.\(rowId)"
-        if let action = action {
-            channel += ".\(action)"
-        }
-        return channel
+    public static func tablesdb(_ databaseId: String = "*") -> TablesDBChannel {
+        return TablesDBChannel(databaseId: databaseId)
+    }
+
+    /**
+     * Generate a buckets channel builder.
+     *
+     * @param bucketId The bucket ID (default: "*")
+     * @returns BucketChannel
+     */
+    public static func buckets(_ bucketId: String = "*") -> BucketChannel {
+        return BucketChannel(bucketId: bucketId)
+    }
+
+    /**
+     * Generate a functions channel builder.
+     *
+     * @param functionId The function ID (default: "*")
+     * @returns FunctionChannel
+     */
+    public static func functions(_ functionId: String = "*") -> FunctionChannel {
+        return FunctionChannel(functionId: functionId)
+    }
+
+    /**
+     * Generate a teams channel builder.
+     *
+     * @param teamId The team ID (default: "*")
+     * @returns TeamChannel
+     */
+    public static func teams(_ teamId: String = "*") -> TeamChannel {
+        return TeamChannel(teamId: teamId)
+    }
+
+    /**
+     * Generate a memberships channel builder.
+     *
+     * @param membershipId The membership ID (default: "*")
+     * @returns MembershipChannel
+     */
+    public static func memberships(_ membershipId: String = "*") -> MembershipChannel {
+        return MembershipChannel(membershipId: membershipId)
     }
 
     /**
@@ -41,70 +255,7 @@ public class Channel {
      * @param userId The user ID (default: "*")
      * @returns The channel string
      */
-    public static func account(userId: String = "*") -> String {
+    public static func account(_ userId: String = "*") -> String {
         return "account.\(userId)"
     }
-
-    /**
-     * Generate a files channel string.
-     *
-     * @param bucketId The bucket ID (default: "*")
-     * @param fileId The file ID (default: "*")
-     * @param action Optional action: "create", "update", or "delete" (default: nil)
-     * @returns The channel string
-     */
-    public static func files(bucketId: String = "*", fileId: String = "*", action: String? = nil) -> String {
-        var channel = "buckets.\(bucketId).files.\(fileId)"
-        if let action = action {
-            channel += ".\(action)"
-        }
-        return channel
-    }
-
-    /**
-     * Generate an executions channel string.
-     *
-     * @param functionId The function ID (default: "*")
-     * @param executionId The execution ID (default: "*")
-     * @param action Optional action: "create", "update", or "delete" (default: nil)
-     * @returns The channel string
-     */
-    public static func executions(functionId: String = "*", executionId: String = "*", action: String? = nil) -> String {
-        var channel = "functions.\(functionId).executions.\(executionId)"
-        if let action = action {
-            channel += ".\(action)"
-        }
-        return channel
-    }
-
-    /**
-     * Generate a teams channel string.
-     *
-     * @param teamId The team ID (default: "*")
-     * @param action Optional action: "create", "update", or "delete" (default: nil)
-     * @returns The channel string
-     */
-    public static func teams(teamId: String = "*", action: String? = nil) -> String {
-        var channel = "teams.\(teamId)"
-        if let action = action {
-            channel += ".\(action)"
-        }
-        return channel
-    }
-
-    /**
-     * Generate a memberships channel string.
-     *
-     * @param membershipId The membership ID (default: "*")
-     * @param action Optional action: "create", "update", or "delete" (default: nil)
-     * @returns The channel string
-     */
-    public static func memberships(membershipId: String = "*", action: String? = nil) -> String {
-        var channel = "memberships.\(membershipId)"
-        if let action = action {
-            channel += ".\(action)"
-        }
-        return channel
-    }
 }
-

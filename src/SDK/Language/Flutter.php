@@ -83,7 +83,7 @@ class Flutter extends Dart
             [
                 'scope'         => 'default',
                 'destination'   => '/lib/channel.dart',
-                'template'      => 'dart/lib/channel.dart.twig',
+                'template'      => 'flutter/lib/channel.dart.twig',
             ],
             [
                 'scope'         => 'default',

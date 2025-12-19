@@ -109,6 +109,25 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         else -> 60000L
     }
 
+    /**
+     * Convert channel value to string
+     */
+    private fun channelToString(channel: Any): String {
+        return when (channel) {
+            is String -> channel
+            else -> channel.toString()
+        }
+    }
+
+    fun subscribe(
+        vararg channels: Any,
+        callback: (RealtimeResponseEvent<Any>) -> Unit,
+    ) = subscribe(
+        channels = channels.map { channelToString(it) }.toTypedArray(),
+        Any::class.java,
+        callback
+    )
+
     fun subscribe(
         vararg channels: String,
         callback: (RealtimeResponseEvent<Any>) -> Unit,
@@ -117,6 +136,18 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         Any::class.java,
         callback
     )
+
+    fun <T> subscribe(
+        vararg channels: Any,
+        payloadType: Class<T>,
+        callback: (RealtimeResponseEvent<T>) -> Unit,
+    ): RealtimeSubscription {
+        return subscribe(
+            channels = channels.map { channelToString(it) }.toTypedArray(),
+            payloadType = payloadType,
+            callback = callback
+        )
+    }
 
     fun <T> subscribe(
         vararg channels: String,
