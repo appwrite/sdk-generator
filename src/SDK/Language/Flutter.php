@@ -298,7 +298,7 @@ class Flutter extends Dart
             [
                 'scope'         => 'default',
                 'destination'   => '/test/channel_test.dart',
-                'template'      => 'dart/test/channel_test.dart.twig',
+                'template'      => 'flutter/test/src/channel_test.dart.twig',
             ],
             [
                 'scope'         => 'default',
