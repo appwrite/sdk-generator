@@ -14,13 +14,13 @@ export class Java extends LanguageMeta {
                 }
                 break;
             case AttributeType.INTEGER:
-                type = 'int';
+                type = 'Integer';
                 break;
             case AttributeType.FLOAT:
-                type = 'double';
+                type = 'Double';
                 break;
             case AttributeType.BOOLEAN:
-                type = 'boolean';
+                type = 'Boolean';
                 break;
             case AttributeType.RELATIONSHIP:
                 const relatedCollection = collections?.find((c) => c.$id === attribute.relatedCollection);
