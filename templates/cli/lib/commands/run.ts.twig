@@ -190,7 +190,7 @@ const runFunction = async ({ port, functionId, withVariables, reload, userId }: 
     });
 
     if(reload) {
-        const ignorer = ignore.default();
+        const ignorer = ignore();
         ignorer.add('.appwrite');
         ignorer.add('code.tar.gz');
 
