@@ -1,5 +1,5 @@
 import os = require('os');
-import { fetch, FormData, Agent } from 'undici';
+import { fetch, FormData, Agent, Blob } from 'undici';
 import JSONbig = require('json-bigint');
 import {{ spec.title | caseUcfirst }}Exception = require('./exception');
 import { globalConfig } from './config';
@@ -122,7 +122,7 @@ class Client {
             for (const [key, value] of Object.entries(flatParams)) {
                 if (value && typeof value === 'object' && 'type' in value && value.type === 'file') {
                     const fileUpload = value as FileUpload;
-                    formData.append(key, fileUpload.stream as any, fileUpload.filename);
+                    formData.append(key, fileUpload.file as Blob, fileUpload.filename);
                 } else {
                     formData.append(key, value as string);
                 }

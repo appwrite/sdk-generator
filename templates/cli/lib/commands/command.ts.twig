@@ -11,7 +11,7 @@ import { parse, actionRunner, parseInteger, parseBool, commandDescriptions, succ
 import { localConfig, globalConfig } from '../config';
 import { File } from 'undici';
 import { ReadableStream } from 'stream/web';
-import type { UploadProgress, FileUpload } from '../types';
+import type { UploadProgress, FileInput } from '../types';
 {% set addedEnums = [] %}
 {% for method in service.methods %}
 {% for parameter in method.parameters.all %}

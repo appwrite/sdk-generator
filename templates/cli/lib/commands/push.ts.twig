@@ -1022,7 +1022,7 @@ const pushResources = async (): Promise<void> => {
             await action({ returnOnZero: true });
         }
     } else {
-        const answers = await inquirer.prompt([questionsPushResources[0]]);
+        const answers = await inquirer.prompt(questionsPushResources);
 
         const action = actions[answers.resource];
         if (action !== undefined) {
@@ -1145,7 +1145,7 @@ const pushSite = async({ siteId, async: asyncDeploy, code, withVariables }: Push
     }
 
     if (siteIds.length <= 0) {
-        const answers = await inquirer.prompt([questionsPushSites[0]]);
+        const answers = await inquirer.prompt(questionsPushSites);
         if (answers.sites) {
             siteIds.push(...answers.sites);
         }
@@ -1469,7 +1469,7 @@ const pushFunction = async ({ functionId, async: asyncDeploy, code, withVariable
     }
 
     if (functionIds.length <= 0) {
-        const answers = await inquirer.prompt([questionsPushFunctions[0]]);
+        const answers = await inquirer.prompt(questionsPushFunctions);
         if (answers.functions) {
             functionIds.push(...answers.functions);
         }
@@ -2293,7 +2293,7 @@ const pushBucket = async ({ returnOnZero }: PushBucketOptions = { returnOnZero: 
     }
 
     if (bucketIds.length === 0) {
-        const answers = await inquirer.prompt([questionsPushBuckets[0]])
+        const answers = await inquirer.prompt(questionsPushBuckets)
         if (answers.buckets) {
             bucketIds.push(...answers.buckets);
         }
@@ -2382,7 +2382,7 @@ const pushTeam = async ({ returnOnZero }: PushTeamOptions = { returnOnZero: fals
     }
 
     if (teamIds.length === 0) {
-        const answers = await inquirer.prompt([questionsPushTeams[0]])
+        const answers = await inquirer.prompt(questionsPushTeams)
         if (answers.teams) {
             teamIds.push(...answers.teams);
         }
@@ -2455,7 +2455,7 @@ const pushMessagingTopic = async ({ returnOnZero }: PushMessagingTopicOptions = 
     }
 
     if (topicsIds.length === 0) {
-        const answers = await inquirer.prompt([questionsPushMessagingTopics[0]])
+        const answers = await inquirer.prompt(questionsPushMessagingTopics)
         if (answers.topics) {
             topicsIds.push(...answers.topics);
         }

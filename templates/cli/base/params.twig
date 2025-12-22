@@ -53,7 +53,7 @@
     const nodeStream = fs.createReadStream(filePath);
     const stream = convertReadStreamToReadableStream(nodeStream);
 
-    const {{ parameter.name | caseCamel | escapeKeyword }}Upload: FileUpload = { 
+    const {{ parameter.name | caseCamel | escapeKeyword }}Upload: FileInput = { 
         type: 'file', 
         stream, 
         filename: pathLib.basename(filePath), 

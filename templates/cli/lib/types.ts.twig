@@ -10,6 +10,12 @@ export interface RequestParams {
 
 export interface FileUpload {
     type: 'file';
+    file: File;
+    filename: string;
+}
+
+export interface FileInput {
+    type: 'file';
     stream: ReadableStream;
     filename: string;
     size: number;
