@@ -6,7 +6,7 @@ import chalk from 'chalk';
 import inquirer from 'inquirer';
 import { success, log, warn, error, hint, actionRunner, commandDescriptions } from '../parser';
 import { getLatestVersion, compareVersions } from '../utils';
-import { version } from '../../package.json';
+const { version } = require('../../../package.json');
 
 /**
  * Check if the CLI was installed via npm

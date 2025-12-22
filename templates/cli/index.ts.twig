@@ -7,7 +7,7 @@ process.stdout.columns = 100;
 
 import program = require('commander');
 import chalk = require('chalk');
-import { version } from './package.json';
+const { version } = require('../package.json');
 import { commandDescriptions, cliConfig } from './lib/parser';
 import { client } from './lib/commands/generic';
 import { getLatestVersion, compareVersions } from './lib/utils';
