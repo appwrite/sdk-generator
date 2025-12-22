@@ -69,7 +69,7 @@ export class JavaScript extends LanguageMeta {
         if (fs.existsSync(path.resolve(process.cwd(), 'package.json'))) {
             const packageJsonRaw = fs.readFileSync(path.resolve(process.cwd(), 'package.json'));
             const packageJson = JSON.parse(packageJsonRaw.toString('utf-8'));
-            return packageJson.dependencies['node-appwrite'] ? 'node-appwrite' : 'appwrite';
+            return packageJson.dependencies && packageJson.dependencies['node-appwrite'] ? 'node-appwrite' : 'appwrite';
         }
 
         return 'appwrite';
