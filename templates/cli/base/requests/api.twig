@@ -18,7 +18,7 @@
     {%~ endif %}
     if (parseOutput) {
     {%~ if hasConsolePreview(method.name,service.name) %}
-        if(console) {
+        if(showConsole) {
             showConsoleLink('{{service.name}}', '{{ method.name }}'
         {%- for parameter in method.parameters.path -%}{%- set param = (parameter.name | caseCamel | escapeKeyword)  -%}{%- if param  ends with 'Id' -%}, {{ param }} {%- endif -%}{%- endfor -%}
             );
