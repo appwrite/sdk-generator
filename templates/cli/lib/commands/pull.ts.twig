@@ -54,7 +54,7 @@ export const pullResources = async ({
             await action({ returnOnZero: true });
         }
     } else {
-        const answers = await inquirer.prompt(questionsPullResources[0]);
+        const answers = await inquirer.prompt([questionsPullResources[0]]);
 
         const action = actions[answers.resource];
         if (action !== undefined) {

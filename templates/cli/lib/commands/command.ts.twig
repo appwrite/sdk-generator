@@ -1,7 +1,7 @@
 import fs = require('fs');
 import pathLib = require('path');
 import tar = require('tar');
-import ignore = require('ignore');
+import ignore from 'ignore';
 import { promisify } from 'util';
 import Client from '../client';
 import { getAllFiles, showConsoleLink } from '../utils';
@@ -11,6 +11,18 @@ import { parse, actionRunner, parseInteger, parseBool, commandDescriptions, succ
 import { localConfig, globalConfig } from '../config';
 import { File } from 'undici';
 import { ReadableStream } from 'stream/web';
+import type { UploadProgress, FileUpload } from '../types';
+{% set addedEnums = [] %}
+{% for method in service.methods %}
+{% for parameter in method.parameters.all %}
+{% if parameter.enumValues is not empty %}
+{% if parameter.enumName not in addedEnums %}
+import { {{ parameter.enumName | caseUcfirst }} } from '../enums/{{ parameter.enumName | caseKebab }}';
+{% set addedEnums = addedEnums|merge([parameter.enumName]) %}
+{% endif %}
+{% endif %}
+{% endfor %}
+{% endfor %}
 
 function convertReadStreamToReadableStream(readStream: fs.ReadStream): ReadableStream {
   return new ReadableStream({
@@ -55,7 +67,7 @@ interface {{ service.name | caseUcfirst }}{{ method.name | caseUcfirst }}Request
     parseOutput?: boolean;
     sdk?: Client;
 {% if 'multipart/form-data' in method.consumes %}
-    onProgress?: (progress: number) => void;
+    onProgress?: (progress: UploadProgress) => void;
 {% endif %}
 {% if method.type == 'location' %}
     destination?: string;
@@ -73,7 +85,7 @@ export const {{ service.name }}{{ method.name | caseUcfirst }} = async ({
 
         {%- block baseParams -%}parseOutput = true, overrideForCli = false, sdk = undefined {%- endblock -%}
 
-        {%- if 'multipart/form-data' in method.consumes -%},onProgress = () => {}{%- endif -%}
+        {%- if 'multipart/form-data' in method.consumes -%},onProgress = (progress: any) => {}{%- endif -%}
 
         {%- if method.type == 'location' -%}, destination{%- endif -%}
         {% if hasConsolePreview(method.name,service.name) %}, console: showConsole{%- endif -%}

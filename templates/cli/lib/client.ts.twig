@@ -9,7 +9,7 @@ import type { Headers, RequestParams, ResponseType, FileUpload } from './types';
 const JSONBigInt = JSONbig({ storeAsString: false });
 
 class Client {
-    private readonly CHUNK_SIZE = 5 * 1024 * 1024; // 5MB
+    readonly CHUNK_SIZE = 5 * 1024 * 1024; // 5MB
     private endpoint: string;
     private headers: Headers;
     private selfSigned: boolean;
@@ -122,7 +122,7 @@ class Client {
             for (const [key, value] of Object.entries(flatParams)) {
                 if (value && typeof value === 'object' && 'type' in value && value.type === 'file') {
                     const fileUpload = value as FileUpload;
-                    formData.append(key, fileUpload.file as any, fileUpload.filename);
+                    formData.append(key, fileUpload.stream as any, fileUpload.filename);
                 } else {
                     formData.append(key, value as string);
                 }

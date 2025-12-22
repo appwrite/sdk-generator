@@ -53,7 +53,7 @@ export const loginCommand = async ({ email, password, endpoint, mfa, code }: Log
 
     const id = ID.unique();
 
-    globalConfig.addSession(id, {});
+    globalConfig.addSession(id, { endpoint: configEndpoint });
     globalConfig.setCurrentSession(id);
     globalConfig.setEndpoint(configEndpoint);
     globalConfig.setEmail(answers.email);
@@ -281,12 +281,12 @@ export const client = new Command("client")
                 if (selfSigned || globalConfig.getSelfSigned()) {
                     clientInstance.setSelfSigned(true);
                 }
-                let response = await clientInstance.call('GET', '/health/version');
+                let response = await clientInstance.call<{ version?: string }>('GET', '/health/version');
                 if (!response.version) {
                     throw new Error();
                 }
                 globalConfig.setCurrentSession(id);
-                globalConfig.addSession(id, {});
+                globalConfig.addSession(id, { endpoint });
                 globalConfig.setEndpoint(endpoint);
             } catch (_) {
                 throw new Error("Invalid endpoint or your Appwrite server is not running as expected.");
@@ -322,8 +322,8 @@ export const migrate = async (): Promise<void> => {
         return;
     }
 
-    const endpoint = globalConfig.get('endpoint');
-    const cookie = globalConfig.get('cookie');
+    const endpoint = globalConfig.get('endpoint') as string;
+    const cookie = globalConfig.get('cookie') as string;
 
     const id = ID.unique();
     const data = {

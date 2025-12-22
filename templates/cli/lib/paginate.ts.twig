@@ -2,18 +2,32 @@ interface PaginateArgs {
     [key: string]: any;
 }
 
-interface PaginateResponse<T = any> {
-    [key: string]: T;
-    total: number;
-}
+// Overload for when wrapper is empty string - returns array
+export function paginate<T = any>(
+    action: (args: PaginateArgs) => Promise<any>,
+    args: PaginateArgs,
+    limit: number,
+    wrapper: '',
+    queries?: string[]
+): Promise<T[]>;
 
-export const paginate = async <T = any>(
+// Overload for when wrapper is specified - returns object with that key
+export function paginate<T = any, K extends string = string>(
+    action: (args: PaginateArgs) => Promise<any>,
+    args: PaginateArgs,
+    limit: number,
+    wrapper: K,
+    queries?: string[]
+): Promise<Record<K, T[]> & { total: number }>;
+
+// Implementation
+export async function paginate<T = any>(
     action: (args: PaginateArgs) => Promise<any>,
     args: PaginateArgs = {},
     limit: number = 100,
     wrapper: string = '',
     queries: string[] = []
-): Promise<T[] | PaginateResponse<T[]>> => {
+): Promise<T[] | (Record<string, T[]> & { total: number })> {
     let pageNumber = 0;
     let results: T[] = [];
     let total = 0;
@@ -59,5 +73,5 @@ export const paginate = async <T = any>(
     return {
         [wrapper]: results,
         total,
-    } as PaginateResponse<T[]>;
-};
+    } as Record<string, T[]> & { total: number };
+}

@@ -41,7 +41,7 @@ const initResources = async (): Promise<void> => {
         collection: initCollection
     }
 
-    const answers = await inquirer.prompt(questionsInitResources[0]);
+    const answers = await inquirer.prompt([questionsInitResources[0]]);
 
     const action = actions[answers.resource];
     if (action !== undefined) {
@@ -85,9 +85,9 @@ const initProject = async ({ organizationId, projectId, projectName }: InitProje
         answers.project = {};
         answers.organization = {};
 
-        answers.organization = organizationId ?? (await inquirer.prompt(questionsInitProject[2])).organization;
-        answers.project.name = projectName ?? (await inquirer.prompt(questionsInitProject[3])).project;
-        answers.project = projectId ?? (await inquirer.prompt(questionsInitProject[4])).id;
+        answers.organization = organizationId ?? (await inquirer.prompt([questionsInitProject[2]])).organization;
+        answers.project.name = projectName ?? (await inquirer.prompt([questionsInitProject[3]])).project;
+        answers.project = projectId ?? (await inquirer.prompt([questionsInitProject[4]])).id;
 
         try {
             await projectsGet({ projectId, parseOutput: false });

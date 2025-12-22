@@ -1,7 +1,7 @@
 import { Tail } from 'tail';
 import { parse as parseDotenv } from 'dotenv';
 import chalk from 'chalk';
-import ignore = require('ignore');
+import ignore from 'ignore';
 import tar = require('tar');
 import fs = require('fs');
 import chokidar from 'chokidar';
@@ -28,7 +28,7 @@ interface RunFunctionOptions {
 const runFunction = async ({ port, functionId, withVariables, reload, userId }: RunFunctionOptions = {}): Promise<void> => {
     // Selection
     if(!functionId) {
-        const answers = await inquirer.prompt(questionsRunFunctions[0]);
+        const answers = await inquirer.prompt([questionsRunFunctions[0]]);
         functionId = answers.function;
     }
 
@@ -250,13 +250,12 @@ const runFunction = async ({ port, functionId, withVariables, reload, userId }: 
                 await tar
                     .extract({
                         keep: true,
-                        gzip: true,
                         sync: true,
                         cwd: hotSwapPath,
                         file: buildPath
                     });
 
-                const ignorer = ignore.default();
+                const ignorer = ignore();
                 ignorer.add('.appwrite');
                 if (func.ignore) {
                     ignorer.add(func.ignore);

@@ -1,12 +1,4 @@
-export interface CliConfig {
-    verbose: boolean;
-    json: boolean;
-    force: boolean;
-    all: boolean;
-    ids: string[];
-    report: boolean;
-    reportData: Record<string, unknown>;
-}
+export type ResponseType = 'json' | 'arraybuffer';
 
 export interface Headers {
     [key: string]: string;
@@ -18,14 +10,44 @@ export interface RequestParams {
 
 export interface FileUpload {
     type: 'file';
-    file: Buffer | ReadableStream;
+    stream: ReadableStream;
     filename: string;
+    size: number;
 }
 
-export type ResponseType = 'json' | 'arraybuffer';
+export interface UploadProgress {
+    $id: string;
+    progress: number;
+    sizeUploaded: number;
+    chunksTotal: number;
+    chunksUploaded: number;
+}
 
 export interface ConfigData {
     [key: string]: unknown;
+}
+
+export interface Entity {
+    $id: string;
+    [key: string]: unknown;
+}
+
+export interface ParsedData {
+    [key: string]: unknown;
+}
+
+export interface CommandDescription {
+    [key: string]: string;
+}
+
+export interface CliConfig {
+    verbose: boolean;
+    json: boolean;
+    force: boolean;
+    all: boolean;
+    ids: string[];
+    report: boolean;
+    reportData: Record<string, unknown>;
 }
 
 export interface SessionData {
@@ -35,7 +57,7 @@ export interface SessionData {
     cookie?: string;
 }
 
-export interface GlobalConfigData {
+export interface GlobalConfigData extends ConfigData {
     sessions: {
         [key: string]: SessionData;
     };
@@ -43,44 +65,78 @@ export interface GlobalConfigData {
     cookie?: string;
 }
 
-export interface ProjectConfigData {
-    projectId?: string;
-    projectName?: string;
-    functions?: FunctionConfig[];
-    collections?: CollectionConfig[];
-    databases?: DatabaseConfig[];
-    buckets?: BucketConfig[];
-    teams?: TeamConfig[];
-    topics?: TopicConfig[];
+export interface ProjectSettings {
+    services?: {
+        account?: boolean;
+        avatars?: boolean;
+        databases?: boolean;
+        locale?: boolean;
+        health?: boolean;
+        storage?: boolean;
+        teams?: boolean;
+        users?: boolean;
+        sites?: boolean;
+        functions?: boolean;
+        graphql?: boolean;
+        messaging?: boolean;
+    };
+    auth?: {
+        methods?: {
+            jwt?: boolean;
+            phone?: boolean;
+            invites?: boolean;
+            anonymous?: boolean;
+            'email-otp'?: boolean;
+            'magic-url'?: boolean;
+            'email-password'?: boolean;
+        };
+        security?: {
+            duration?: number;
+            limit?: number;
+            sessionsLimit?: number;
+            passwordHistory?: number;
+            passwordDictionary?: boolean;
+            personalDataCheck?: boolean;
+            sessionAlerts?: boolean;
+            mockNumbers?: string[];
+        };
+    };
 }
 
-export interface FunctionConfig {
-    $id: string;
-    name: string;
-    runtime: string;
-    path: string;
-    entrypoint: string;
-    execute?: string[];
-    enabled?: boolean;
-    logging?: boolean;
-    events?: string[];
-    schedule?: string;
-    timeout?: number;
-    vars?: Record<string, string>;
-    commands?: string;
-    scopes?: string[];
-    specification?: string;
+export interface RawProjectSettings {
+    serviceStatusForAccount?: boolean;
+    serviceStatusForAvatars?: boolean;
+    serviceStatusForDatabases?: boolean;
+    serviceStatusForLocale?: boolean;
+    serviceStatusForHealth?: boolean;
+    serviceStatusForStorage?: boolean;
+    serviceStatusForTeams?: boolean;
+    serviceStatusForUsers?: boolean;
+    serviceStatusForSites?: boolean;
+    serviceStatusForFunctions?: boolean;
+    serviceStatusForGraphql?: boolean;
+    serviceStatusForMessaging?: boolean;
+    authJWT?: boolean;
+    authPhone?: boolean;
+    authInvites?: boolean;
+    authAnonymous?: boolean;
+    authEmailOtp?: boolean;
+    authUsersAuthMagicURL?: boolean;
+    authEmailPassword?: boolean;
+    authDuration?: number;
+    authLimit?: number;
+    authSessionsLimit?: number;
+    authPasswordHistory?: number;
+    authPasswordDictionary?: boolean;
+    authPersonalDataCheck?: boolean;
+    authSessionAlerts?: boolean;
+    authMockNumbers?: string[];
 }
 
-export interface CollectionConfig {
+export interface DatabaseConfig {
     $id: string;
-    $permissions?: string[];
-    databaseId: string;
     name: string;
     enabled?: boolean;
-    documentSecurity?: boolean;
-    attributes?: AttributeConfig[];
-    indexes?: IndexConfig[];
 }
 
 export interface AttributeConfig {
@@ -111,10 +167,54 @@ export interface IndexConfig {
     orders?: string[];
 }
 
-export interface DatabaseConfig {
+export interface CollectionConfig {
     $id: string;
+    $permissions?: string[];
+    databaseId: string;
     name: string;
     enabled?: boolean;
+    documentSecurity?: boolean;
+    attributes?: AttributeConfig[];
+    indexes?: IndexConfig[];
+}
+
+export interface ColumnConfig {
+    key: string;
+    type: string;
+    required?: boolean;
+    array?: boolean;
+    size?: number;
+    default?: unknown;
+    min?: number;
+    max?: number;
+    format?: string;
+    elements?: string[];
+    relatedTable?: string;
+    relationType?: string;
+    twoWay?: boolean;
+    twoWayKey?: string;
+    onDelete?: string;
+    side?: string;
+    encrypt?: boolean;
+}
+
+export interface TableIndexConfig {
+    key: string;
+    type: string;
+    status?: string;
+    columns?: string[];
+    orders?: string[];
+}
+
+export interface TableConfig {
+    $id: string;
+    $permissions?: string[];
+    databaseId: string;
+    name: string;
+    enabled?: boolean;
+    rowSecurity?: boolean;
+    columns?: ColumnConfig[];
+    indexes?: TableIndexConfig[];
 }
 
 export interface BucketConfig {
@@ -130,6 +230,44 @@ export interface BucketConfig {
     antivirus?: boolean;
 }
 
+export interface FunctionConfig {
+    $id: string;
+    name: string;
+    runtime: string;
+    path: string;
+    entrypoint: string;
+    execute?: string[];
+    enabled?: boolean;
+    logging?: boolean;
+    events?: string[];
+    schedule?: string;
+    timeout?: number;
+    vars?: Record<string, string>;
+    commands?: string;
+    scopes?: string[];
+    specification?: string;
+    ignore?: string;
+}
+
+export interface SiteConfig {
+    $id: string;
+    name: string;
+    path: string;
+    enabled?: boolean;
+    logging?: boolean;
+    timeout?: number;
+    framework: string;
+    buildRuntime?: string;
+    adapter?: string;
+    installCommand?: string;
+    buildCommand?: string;
+    outputDirectory?: string;
+    fallbackFile?: string;
+    specification?: string;
+    vars?: Record<string, string>;
+    ignore?: string;
+}
+
 export interface TeamConfig {
     $id: string;
     name: string;
@@ -141,10 +279,16 @@ export interface TopicConfig {
     subscribe?: string[];
 }
 
-export interface CommandDescription {
-    [key: string]: string;
-}
-
-export interface ParsedData {
-    [key: string]: unknown;
+export interface ProjectConfigData extends ConfigData {
+    projectId?: string;
+    projectName?: string;
+    settings?: ProjectSettings;
+    functions?: FunctionConfig[];
+    collections?: CollectionConfig[];
+    databases?: DatabaseConfig[];
+    buckets?: BucketConfig[];
+    teams?: TeamConfig[];
+    topics?: TopicConfig[];
+    sites?: SiteConfig[];
+    tables?: TableConfig[];
 }
