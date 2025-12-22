@@ -102,8 +102,12 @@ export function detectLanguage(): string {
     if (existsFiles('build.gradle', 'pom.xml')) {
         return 'java';
     }
-    if (existsFiles('*.csproj')) {
-        return 'dotnet';
+    try {
+        if (fs.readdirSync(process.cwd()).some((file) => file.endsWith('.csproj'))) {
+            return 'dotnet';
+        }
+    } catch {
+        // Directory not readable, skip .csproj detection
     }
     if (existsFiles('Package.swift')) {
         return 'swift';
