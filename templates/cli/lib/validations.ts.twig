@@ -7,7 +7,6 @@ export const validateRequired = (resource: string, value: any): string | true =>
         if (
             value === undefined ||
             value === null ||
-            value === 0 ||
             (typeof value === 'string' && value.trim() === '')
         ) {
             return `${resource} is required`;
