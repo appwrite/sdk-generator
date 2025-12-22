@@ -54,4 +54,3 @@ class CLINode20Test extends Base
         return $language;
     }
 }
-
