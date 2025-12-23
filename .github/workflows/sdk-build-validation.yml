@@ -173,7 +173,7 @@ jobs:
               ;;
             php)
               composer install
-              find . -name "*.php" ! -path "./vendor/*" -exec php -l {} +
+              composer test
               ;;
             python)
               pip install -e .
