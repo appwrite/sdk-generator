@@ -189,11 +189,7 @@ class SDK
             return $value;
         }, ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('escapeKeyword', function ($value) use ($language) {
-            if (in_array($value, $language->getKeywords())) {
-                return 'x' . $value;
-            }
-
-            return $value;
+            return $language->escapeKeyword($value);
         }, ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('caseHTML', function ($value) {
             return $value;

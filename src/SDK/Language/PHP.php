@@ -471,11 +471,45 @@ class PHP extends Language
         return 'array';
     }
 
+    /**
+     * Generate method parameters string for PHP method signatures
+     *
+     * @param array $method
+     * @return string
+     */
+    protected function getMethodParameters(array $method): string
+    {
+        $params = [];
+
+        foreach ($method['parameters']['all'] ?? [] as $parameter) {
+            $nullable = (!($parameter['required'] ?? true)) || ($parameter['nullable'] ?? false);
+            $nullablePrefix = $nullable ? '?' : '';
+
+            $typeName = $this->getTypeName($parameter);
+            $paramName = '$' . $this->escapeKeyword($this->toCamelCase($parameter['name'] ?? ''));
+            $default = !($parameter['required'] ?? true) ? ' = null' : '';
+
+            $params[] = $nullablePrefix . $typeName . ' ' . $paramName . $default;
+        }
+
+        $result = implode(', ', $params);
+
+        // Add onProgress callback for multipart/form-data methods
+        if (in_array('multipart/form-data', $method['consumes'] ?? [])) {
+            $result .= ($result !== '' ? ', ' : '') . '?callable $onProgress = null';
+        }
+
+        return $result;
+    }
+
     public function getFilters(): array
     {
         return [
             new TwigFilter('getReturn', function ($value) {
                 return $this->getReturn($value);
+            }),
+            new TwigFilter('methodParameters', function ($value) {
+                return $this->getMethodParameters($value);
             }),
             new TwigFilter('deviceInfo', function ($value) {
                 return php_uname('s') . '; ' . php_uname('v') . '; ' . php_uname('m');
