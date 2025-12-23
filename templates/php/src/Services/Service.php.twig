@@ -65,7 +65,7 @@ class {{ service.name | caseUcfirst }} extends Service
 {% endif %}
 {% endif %}
      */
-    public function {{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{% if not parameter.required or parameter.nullable %}?{% endif %}{{ parameter | typeName }} ${{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required %} = null{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, ?callable $onProgress = null{% endif %}): {{ method | getReturn }}
+    public function {{ method.name | caseCamel }}({{ method | methodParameters }}): {{ method | getReturn }}
     {
         $apiPath = str_replace(
             [{% for parameter in method.parameters.path %}'{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}'{% if not loop.last %}, {% endif %}{% endfor %}],
