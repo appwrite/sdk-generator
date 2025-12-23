@@ -472,20 +472,6 @@ class PHP extends Language
     }
 
     /**
-     * Escape PHP reserved keywords by prefixing with 'x'
-     *
-     * @param string $name
-     * @return string
-     */
-    protected function escapeKeyword(string $name): string
-    {
-        if (in_array($name, $this->getKeywords())) {
-            return 'x' . $name;
-        }
-        return $name;
-    }
-
-    /**
      * Generate method parameters string for PHP method signatures
      *
      * @param array $method
