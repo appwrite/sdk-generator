@@ -6,7 +6,8 @@ use PHPUnit\Framework\TestCase;
 
 final class IDTest extends TestCase {
     public function testUnique(): void {
-        $this->assertSame('unique()', ID::unique());
+        $id = ID::unique();
+        $this->assertSame(20, strlen($id));
     }
 
     public function testCustom(): void {
