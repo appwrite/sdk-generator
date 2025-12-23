@@ -5,7 +5,7 @@ const oldWidth = process.stdout.columns;
 process.stdout.columns = 100;
 /** ---------------------------------------------- */
 
-import program = require('commander');
+import { program } from 'commander';
 import chalk = require('chalk');
 const { version } = require('../package.json');
 import { commandDescriptions, cliConfig } from './lib/parser';

@@ -92,6 +92,8 @@ import {
     projectsUpdateSessionAlerts,
     projectsUpdateMockNumbers,
 } from "./projects";
+import { ApiService } from '../enums/api-service';
+import { AuthMethod } from '../enums/auth-method';
 import { checkDeployConditions } from '../utils';
 
 const JSONbigNative = JSONbig({ storeAsString: false });
@@ -622,7 +624,6 @@ const updateAttribute = (databaseId: string, collectionId: string, attribute: an
                         key: attribute.key,
                         required: attribute.required,
                         xdefault: attribute.default,
-                        array: attribute.array,
                         parseOutput: false
                     })
                 case 'url':
@@ -632,7 +633,6 @@ const updateAttribute = (databaseId: string, collectionId: string, attribute: an
                         key: attribute.key,
                         required: attribute.required,
                         xdefault: attribute.default,
-                        array: attribute.array,
                         parseOutput: false
                     })
                 case 'ip':
@@ -642,7 +642,6 @@ const updateAttribute = (databaseId: string, collectionId: string, attribute: an
                         key: attribute.key,
                         required: attribute.required,
                         xdefault: attribute.default,
-                        array: attribute.array,
                         parseOutput: false
                     })
                 case 'enum':
@@ -653,7 +652,6 @@ const updateAttribute = (databaseId: string, collectionId: string, attribute: an
                         elements: attribute.elements,
                         required: attribute.required,
                         xdefault: attribute.default,
-                        array: attribute.array,
                         parseOutput: false
                     })
                 default:
@@ -661,10 +659,8 @@ const updateAttribute = (databaseId: string, collectionId: string, attribute: an
                         databaseId,
                         collectionId,
                         key: attribute.key,
-                        size: attribute.size,
                         required: attribute.required,
                         xdefault: attribute.default,
-                        array: attribute.array,
                         parseOutput: false
                     })
 
@@ -678,7 +674,6 @@ const updateAttribute = (databaseId: string, collectionId: string, attribute: an
                 min: attribute.min,
                 max: attribute.max,
                 xdefault: attribute.default,
-                array: attribute.array,
                 parseOutput: false
             })
         case 'double':
@@ -690,7 +685,6 @@ const updateAttribute = (databaseId: string, collectionId: string, attribute: an
                 min: attribute.min,
                 max: attribute.max,
                 xdefault: attribute.default,
-                array: attribute.array,
                 parseOutput: false
             })
         case 'boolean':
@@ -700,7 +694,6 @@ const updateAttribute = (databaseId: string, collectionId: string, attribute: an
                 key: attribute.key,
                 required: attribute.required,
                 xdefault: attribute.default,
-                array: attribute.array,
                 parseOutput: false
             })
         case 'datetime':
@@ -710,18 +703,13 @@ const updateAttribute = (databaseId: string, collectionId: string, attribute: an
                 key: attribute.key,
                 required: attribute.required,
                 xdefault: attribute.default,
-                array: attribute.array,
                 parseOutput: false
             })
         case 'relationship':
             return databasesUpdateRelationshipAttribute({
                 databaseId,
                 collectionId,
-                relatedCollectionId: attribute.relatedTable ?? attribute.relatedCollection,
-                type: attribute.relationType,
-                twoWay: attribute.twoWay,
                 key: attribute.key,
-                twoWayKey: attribute.twoWayKey,
                 onDelete: attribute.onDelete,
                 parseOutput: false
             })
@@ -1034,7 +1022,7 @@ const pushResources = async (): Promise<void> => {
             await action({ returnOnZero: true });
         }
     } else {
-        const answers = await inquirer.prompt(questionsPushResources[0]);
+        const answers = await inquirer.prompt(questionsPushResources);
 
         const action = actions[answers.resource];
         if (action !== undefined) {
@@ -1093,7 +1081,7 @@ const pushSettings = async (): Promise<void> => {
             for (let [service, status] of Object.entries(settings.services)) {
                 await projectsUpdateServiceStatus({
                     projectId,
-                    service,
+                    service: service as ApiService,
                     status,
                     parseOutput: false
                 });
@@ -1119,7 +1107,7 @@ const pushSettings = async (): Promise<void> => {
                 for (let [method, status] of Object.entries(settings.auth.methods)) {
                     await projectsUpdateAuthStatus({
                         projectId,
-                        method,
+                        method: method as AuthMethod,
                         status,
                         parseOutput: false
                     });
@@ -1157,7 +1145,7 @@ const pushSite = async({ siteId, async: asyncDeploy, code, withVariables }: Push
     }
 
     if (siteIds.length <= 0) {
-        const answers = await inquirer.prompt(questionsPushSites[0]);
+        const answers = await inquirer.prompt(questionsPushSites);
         if (answers.sites) {
             siteIds.push(...answers.sites);
         }
@@ -1241,8 +1229,6 @@ const pushSite = async({ siteId, async: asyncDeploy, code, withVariables }: Push
                 buildCommand: site.buildCommand,
                 installCommand: site.installCommand,
                 outputDirectory: site.outputDirectory,
-                fallbackFile: site.fallbackFile,
-                vars: JSON.stringify(response.vars),
                 parseOutput: false
             });
         } catch (e: any) {
@@ -1269,7 +1255,6 @@ const pushSite = async({ siteId, async: asyncDeploy, code, withVariables }: Push
                     buildCommand: site.buildCommand,
                     installCommand: site.installCommand,
                     outputDirectory: site.outputDirectory,
-                    fallbackFile: site.fallbackFile,
                     adapter: site.adapter,
                     timeout: site.timeout,
                     enabled: site.enabled,
@@ -1356,10 +1341,6 @@ const pushSite = async({ siteId, async: asyncDeploy, code, withVariables }: Push
             updaterRow.update({ status: 'Pushing' }).replaceSpinner(SPINNER_ARC);
             response = await sitesCreateDeployment({
                 siteId: site['$id'],
-                buildCommand: site.buildCommand,
-                installCommand: site.installCommand,
-                outputDirectory: site.outputDirectory,
-                fallbackFile: site.fallbackFile,
                 code: site.path,
                 activate: true,
                 parseOutput: false
@@ -1488,7 +1469,7 @@ const pushFunction = async ({ functionId, async: asyncDeploy, code, withVariable
     }
 
     if (functionIds.length <= 0) {
-        const answers = await inquirer.prompt(questionsPushFunctions[0]);
+        const answers = await inquirer.prompt(questionsPushFunctions);
         if (answers.functions) {
             functionIds.push(...answers.functions);
         }
@@ -1571,7 +1552,6 @@ const pushFunction = async ({ functionId, async: asyncDeploy, code, withVariable
                 entrypoint: func.entrypoint,
                 commands: func.commands,
                 scopes: func.scopes,
-                vars: JSON.stringify(response.vars),
                 parseOutput: false
             });
         } catch (e: any) {
@@ -1665,7 +1645,6 @@ const pushFunction = async ({ functionId, async: asyncDeploy, code, withVariable
             await Promise.all(envVariables.map(async (variable) => {
                 await functionsCreateVariable({
                     functionId: func['$id'],
-                    variableId: ID.unique(),
                     key: variable.key,
                     value: variable.value,
                     parseOutput: false,
@@ -2314,7 +2293,7 @@ const pushBucket = async ({ returnOnZero }: PushBucketOptions = { returnOnZero: 
     }
 
     if (bucketIds.length === 0) {
-        const answers = await inquirer.prompt(questionsPushBuckets[0])
+        const answers = await inquirer.prompt(questionsPushBuckets)
         if (answers.buckets) {
             bucketIds.push(...answers.buckets);
         }
@@ -2403,7 +2382,7 @@ const pushTeam = async ({ returnOnZero }: PushTeamOptions = { returnOnZero: fals
     }
 
     if (teamIds.length === 0) {
-        const answers = await inquirer.prompt(questionsPushTeams[0])
+        const answers = await inquirer.prompt(questionsPushTeams)
         if (answers.teams) {
             teamIds.push(...answers.teams);
         }
@@ -2476,7 +2455,7 @@ const pushMessagingTopic = async ({ returnOnZero }: PushMessagingTopicOptions = 
     }
 
     if (topicsIds.length === 0) {
-        const answers = await inquirer.prompt(questionsPushMessagingTopics[0])
+        const answers = await inquirer.prompt(questionsPushMessagingTopics)
         if (answers.topics) {
             topicsIds.push(...answers.topics);
         }

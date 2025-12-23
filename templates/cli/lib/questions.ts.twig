@@ -37,7 +37,7 @@ interface Question {
     message: string;
     default?: any;
     when?: ((answers: Answers) => boolean | Promise<boolean>) | boolean;
-    choices?: (() => Promise<Choice[]> | Choice[]) | Choice[];
+    choices?: ((answers: Answers) => Promise<Choice[]> | Choice[]) | (() => Promise<Choice[]> | Choice[]) | Choice[] | string[];
     validate?: (value: any) => boolean | string | Promise<boolean | string>;
     mask?: string;
 }
@@ -250,7 +250,7 @@ export const questionsInitProject: Question[] = [
         message: "Select your Appwrite Cloud region",
         choices: async () => {
             let client = await sdkForConsole(true);
-            let response = await client.call("GET", "/console/regions");
+            let response = await client.call<{ regions: any[] }>("GET", "/console/regions");
             let regions = response.regions || [];
             if (!regions.length) {
                 throw new Error("No regions found. Please check your network or Appwrite Cloud availability.");
@@ -711,7 +711,7 @@ export const questionGetEndpoint: Question[] = [
             }
             let client = new Client().setEndpoint(value);
             try {
-                let response = await client.call('get', '/health/version');
+                let response = await client.call<{ version?: string }>('get', '/health/version');
                 if (response.version) {
                     return true;
                 } else {

@@ -1,4 +1,4 @@
-import ignore = require('ignore');
+import ignore from 'ignore';
 import net = require('net');
 import chalk from 'chalk';
 import childProcess = require('child_process');
@@ -8,15 +8,7 @@ import fs = require('fs');
 import { log, error, success } from '../parser';
 import { openRuntimesVersion, systemTools, Queue } from './utils';
 import { getAllFiles } from '../utils';
-
-interface FunctionConfig {
-    $id: string;
-    runtime: string;
-    path: string;
-    entrypoint: string;
-    commands: string;
-    ignore?: string;
-}
+import type { FunctionConfig } from '../types';
 
 export async function dockerStop(id: string): Promise<void> {
     const stopProcess = childProcess.spawn('docker', ['rm', '--force', id], {
@@ -59,7 +51,7 @@ export async function dockerBuild(func: FunctionConfig, variables: Record<string
 
     const id = func.$id;
 
-    const ignorer = ignore.default();
+    const ignorer = ignore();
     ignorer.add('.appwrite');
     if (func.ignore) {
         ignorer.add(func.ignore);

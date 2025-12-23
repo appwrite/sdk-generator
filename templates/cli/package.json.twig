@@ -14,7 +14,7 @@
     "url": "{{ sdk.gitURL }}"
   },
   "scripts": {
-    "build": "tsc || true",
+    "build": "tsc",
     "prepublishOnly": "npm run build",
     "test": "echo \"Error: no test specified\" && exit 1",
     "linux-x64": "npm run build && pkg -t node18-linux-x64 -o build/appwrite-cli-linux-x64 package.json",

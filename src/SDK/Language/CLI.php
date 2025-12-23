@@ -297,6 +297,11 @@ class CLI extends Node
                 'template'      => 'cli/lib/types.ts.twig',
             ],
             [
+                'scope'         => 'enum',
+                'destination'   => 'lib/enums/{{ enum.name | caseKebab }}.ts',
+                'template'      => 'cli/lib/enums/enum.ts.twig',
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => 'lib/commands/init.ts',
                 'template'      => 'cli/lib/commands/init.ts.twig',
@@ -384,7 +389,7 @@ class CLI extends Node
             self::TYPE_STRING => 'string',
             self::TYPE_FILE => 'string',
             self::TYPE_BOOLEAN => 'boolean',
-            self::TYPE_OBJECT => 'object',
+            self::TYPE_OBJECT => 'string',
             self::TYPE_ARRAY => (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type']))
                 ? $this->getTypeName($parameter['array']) . '[]'
                 : 'any[]',

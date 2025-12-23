@@ -5,7 +5,7 @@ namespace Tests;
 use Appwrite\SDK\Language;
 use Appwrite\SDK\Language\CLI;
 
-class CLINode16Test extends Base
+class CLINode20Test extends Base
 {
     protected string $sdkName = 'cli';
     protected string $sdkPlatform = 'server';
@@ -15,12 +15,12 @@ class CLINode16Test extends Base
     protected string $language = 'cli';
     protected string $class = 'Appwrite\SDK\Language\CLI';
     protected array $build = [
-        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/cli node:16-alpine npm install',
-        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/cli node:16-alpine npm run build',
+        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/cli node:20-alpine npm install',
+        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/cli node:20-alpine npm run build',
         'cp tests/languages/cli/test.js tests/sdks/cli/test.js'
     ];
     protected string $command =
-        'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/sdks/cli node:16-alpine node test.js';
+        'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/sdks/cli node:20-alpine node test.js';
 
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,
@@ -37,7 +37,7 @@ class CLINode16Test extends Base
         $language->setLogo(json_encode("
        _                            _ _           ___   __   _____ 
       /_\  _ __  _ ____      ___ __(_) |_ ___    / __\ / /   \_   \
-     //_\\\| '_ \| '_ \ \ /\ / / '__| | __/ _ \  / /   / /     / /\/
+     //_\\| '_ \| '_ \ \ /\ / / '__| | __/ _ \  / /   / /     / /\/
     /  _  \ |_) | |_) \ V  V /| |  | | ||  __/ / /___/ /___/\/ /_  
     \_/ \_/ .__/| .__/ \_/\_/ |_|  |_|\__\___| \____/\____/\____/  
         |_|   |_|                                                
@@ -46,7 +46,7 @@ class CLINode16Test extends Base
         $language->setLogoUnescaped("
        _                            _ _           ___   __   _____ 
       /_\  _ __  _ ____      ___ __(_) |_ ___    / __\ / /   \_   \
-     //_\\\| '_ \| '_ \ \ /\ / / '__| | __/ _ \  / /   / /     / /\/
+     //_\\| '_ \| '_ \ \ /\ / / '__| | __/ _ \  / /   / /     / /\/
     /  _  \ |_) | |_) \ V  V /| |  | | ||  __/ / /___/ /___/\/ /_  
     \_/ \_/ .__/| .__/ \_/\_/ |_|  |_|\__\___| \____/\____/\____/  
             |_|   |_|                                                ");
