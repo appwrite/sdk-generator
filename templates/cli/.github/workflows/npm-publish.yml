@@ -1,15 +1,21 @@
 name: Publish Package to npmjs
+
 on:
   release:
     types: [published]
+
+permissions:
+id-token: write
+  contents: read
+
 jobs:
-  build-for-linux-and-windows:
+  build-and-publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: '16.x'
+          node-version: '22'
           registry-url: 'https://registry.npmjs.org'
       - name: Setup binfmt with QEMU
         run: | 
@@ -22,9 +28,9 @@ jobs:
           cd ./ldid
           sudo make
           sudo make install
-      - name: Install dependenices and build for Linux and Windows
+      - name: Install dependencies and build for Linux and Windows
         run: | 
-          npm install
+          npm ci
           npm run linux-x64
           npm run linux-arm64
           npm run windows-x64
@@ -35,13 +41,11 @@ jobs:
         run: |
           if ${{ contains(github.event.release.tag_name, '-rc') }}; then
             echo "Publishing Release Candidate ${{ github.event.release.tag_name}} to NPM"
-            npm publish --tag next
+            npm publish --provenance --access public --tag next
           else
             echo "Publishing ${{ github.event.release.tag_name}} to NPM"
-            npm publish
+            npm publish --provenance --access public
           fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN_NO_ORG }}
       - uses: fnkr/github-action-ghr@v1
         env:
           GHR_PATH: build/
