@@ -46,7 +46,8 @@ jobs:
           AppleSwift56,
           Swift56,
           WebChromium,
-          WebNode
+          WebNode,
+          WebUnionTypes
         ]
 
     steps:
