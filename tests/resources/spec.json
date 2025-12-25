@@ -1993,6 +1993,66 @@
           }
         ]
       }
+    },
+    "\/mock\/tests\/union": {
+      "get": {
+        "summary": "Get Union",
+        "operationId": "unionGet",
+        "consumes": [],
+        "produces": [
+          "application\/json"
+        ],
+        "tags": [
+          "mock"
+        ],
+        "description": "Test union response types",
+        "responses": {
+          "200": {
+            "description": "Mock or Account",
+            "schema": {
+              "x-oneOf": [
+                {
+                  "$ref": "#\/definitions\/mock"
+                },
+                {
+                  "$ref": "#\/definitions\/account"
+                }
+              ]
+            }
+          }
+        },
+        "x-appwrite": {
+          "method": "getUnion",
+          "weight": 271,
+          "cookies": false,
+          "type": "",
+          "demo": "mock\/get-union.md",
+          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/master",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "platforms": [
+            "client",
+            "server"
+          ],
+          "packaging": false,
+          "offline-model": "",
+          "offline-key": "",
+          "offline-response-key": "$id",
+          "auth": {
+            "Project": []
+          }
+        },
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
+        "parameters": []
+      }
     }
   },
   "tags": [
@@ -2164,6 +2224,33 @@
         "id",
         "name",
         "score"
+      ]
+    },
+    "account": {
+      "description": "Account",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$id": {
+          "type": "string",
+          "description": "Account ID.",
+          "x-example": "5e5ea5c16897e"
+        },
+        "name": {
+          "type": "string",
+          "description": "Account name.",
+          "x-example": "John Doe"
+        },
+        "email": {
+          "type": "string",
+          "description": "Account email address.",
+          "x-example": "john@appwrite.io"
+        }
+      },
+      "required": [
+        "$id",
+        "name",
+        "email"
       ]
     }
   },
