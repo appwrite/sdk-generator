@@ -2023,7 +2023,7 @@
         },
         "x-appwrite": {
           "method": "getUnion",
-          "weight": 271,
+          "weight": 302,
           "cookies": false,
           "type": "",
           "demo": "mock\/get-union.md",
