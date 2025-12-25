@@ -2003,7 +2003,7 @@
           "application\/json"
         ],
         "tags": [
-          "mock"
+          "general"
         ],
         "description": "Test union response types",
         "responses": {

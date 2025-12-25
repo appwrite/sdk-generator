@@ -32,8 +32,8 @@ class WebUnionTypesTest extends TestCase
     public function testUnionTypesDisabledByDefault(): void
     {
         $web = new Web();
-        $method = $this->createMethod(['mock', 'account']);
-        $spec = $this->createSpec(['mock', 'account']);
+        $method = $this->createMethod(['mock', 'stub']);
+        $spec = $this->createSpec(['mock', 'stub']);
 
         $returnType = $web->getReturn($method, $spec);
 
@@ -46,13 +46,13 @@ class WebUnionTypesTest extends TestCase
         $web = new Web();
         $web->setEnableUnionTypes(true);
 
-        $method = $this->createMethod(['mock', 'account']);
-        $spec = $this->createSpec(['mock', 'account']);
+        $method = $this->createMethod(['mock', 'stub']);
+        $spec = $this->createSpec(['mock', 'stub']);
 
         $returnType = $web->getReturn($method, $spec);
 
         // should return union type
-        $this->assertEquals('Promise<Models.Mock | Models.Account>', $returnType);
+        $this->assertEquals('Promise<Models.Mock | Models.Stub>', $returnType);
     }
 
     public function testSingleModelStillWorks(): void
