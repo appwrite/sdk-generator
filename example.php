@@ -21,6 +21,7 @@ use Appwrite\SDK\Language\Flutter;
 use Appwrite\SDK\Language\Android;
 use Appwrite\SDK\Language\Kotlin;
 use Appwrite\SDK\Language\ReactNative;
+use Appwrite\SDK\Language\Docs;
 
 try {
 
@@ -265,6 +266,13 @@ try {
         $sdk = new SDK(new GraphQL(), new Swagger2($spec));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/graphql');
+    }
+
+    // Docs
+    if (!$requestedSdk || $requestedSdk === 'docs') {
+        $sdk = new SDK(new Docs(), new Swagger2($spec));
+        configureSDK($sdk);
+        $sdk->generate(__DIR__ . '/examples/docs');
     }
 }
 catch (Exception $exception) {
