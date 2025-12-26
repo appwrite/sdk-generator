@@ -148,17 +148,33 @@ class Swagger2 extends Spec
             $methodSecurity[$i] = (array_key_exists($i, $security)) ? $security[$i] : [];
         }
 
-        $responses = $method['responses'];
         $responseModel = '';
+        $responseModels = [];
+        $responses = $method['responses'];
         $emptyResponse = true;
         foreach ($responses as $code => $desc) {
             if ($code != '204') {
                 $emptyResponse = false;
             }
+            // Check for single model reference
             if (isset($desc['schema']) && isset($desc['schema']['$ref'])) {
                 $responseModel = $desc['schema']['$ref'];
                 if (!empty($responseModel)) {
                     $responseModel = str_replace('#/definitions/', '', $responseModel);
+                }
+            }
+
+            // check for union types
+            if (isset($desc['schema']['x-oneOf'])) {
+                $responseModels = \array_map(
+                    fn($schema) => str_replace('#/definitions/', '', $schema['$ref']),
+                    $desc['schema']['x-oneOf']
+                );
+
+                // set to first model
+                // for backward compatibility
+                if (!empty($responseModels)) {
+                    $responseModel = $responseModels[0];
                 }
             }
         }
@@ -187,6 +203,7 @@ class Swagger2 extends Spec
             ],
             'emptyResponse' => $emptyResponse,
             'responseModel' => $responseModel,
+            'responseModels' => $responseModels,
         ];
 
         if ($method['x-appwrite']['deprecated'] ?? false) {

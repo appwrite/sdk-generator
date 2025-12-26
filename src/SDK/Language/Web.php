@@ -7,11 +7,27 @@ use Twig\TwigFilter;
 class Web extends JS
 {
     /**
+     * @var bool Enable union return types (Models.A | Models.B)
+     */
+    protected bool $enableUnionTypes = false;
+
+    /**
      * @return string
      */
     public function getName(): string
     {
         return 'Web';
+    }
+
+    /**
+     * Enable union return types for methods with multiple response models
+     * @param bool $enable
+     * @return $this
+     */
+    public function setEnableUnionTypes(bool $enable): self
+    {
+        $this->enableUnionTypes = $enable;
+        return $this;
     }
 
     public function getStaticAccessOperator(): string
@@ -319,6 +335,44 @@ class Web extends JS
             return 'string';
         }
 
+        // Only generate union types if the feature is enabled (e.g., for console SDK)
+        if ($this->enableUnionTypes && array_key_exists('responseModels', $method) && !empty($method['responseModels']) && count($method['responseModels']) > 1) {
+            $unionTypes = [];
+
+            foreach ($method['responseModels'] as $model) {
+                if ($model === 'any') {
+                    continue;
+                }
+
+                $modelType = '';
+
+                if (
+                    array_key_exists($model, $spec['definitions']) &&
+                    array_key_exists('additionalProperties', $spec['definitions'][$model]) &&
+                    !$spec['definitions'][$model]['additionalProperties']
+                ) {
+                    $modelType .= 'Models.';
+                }
+
+                $modelType .= $this->toPascalCase($model);
+
+                $models = [];
+                $this->populateGenerics($model, $spec, $models);
+                $models = array_unique($models);
+                $models = array_filter($models, fn ($m) => $m != $this->toPascalCase($model));
+
+                if (!empty($models)) {
+                    $modelType .= '<' . implode(', ', $models) . '>';
+                }
+
+                $unionTypes[] = $modelType;
+            }
+
+            if (!empty($unionTypes)) {
+                return 'Promise<' . implode(' | ', $unionTypes) . '>';
+            }
+        }
+
         if (array_key_exists('responseModel', $method) && !empty($method['responseModel']) && $method['responseModel'] !== 'any') {
             $ret = 'Promise<';
 
@@ -347,6 +401,7 @@ class Web extends JS
 
             return $ret;
         }
+
         return 'Promise<{}>';
     }
 
