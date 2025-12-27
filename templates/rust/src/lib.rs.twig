@@ -1,0 +1,62 @@
+//! # {{ spec.title }} SDK for Rust
+//!
+//! {{ spec.description }}
+//!
+//! ## Installation
+//!
+//! Add this to your `Cargo.toml`:
+//!
+//! ```toml
+//! [dependencies]
+//! {{ sdk.cratePackage | default('appwrite') }} = "{{ sdk.version }}"
+//! ```
+//!
+//! ## Usage
+//!
+//! ```rust
+//! use {{ sdk.cratePackage | default('appwrite') | rustCrateName }}::Client;
+//!
+//! #[tokio::main]
+//! async fn main() -> Result<(), Box<dyn std::error::Error>> {
+//!     let client = Client::new()
+//!         .set_endpoint("{{ spec.endpoint }}")
+//!         .set_project("your-project-id")
+//!         .set_key("your-api-key");
+//!
+//!     // Use the client to make API calls
+//!     Ok(())
+//! }
+//! ```
+
+pub mod client;
+pub mod enums;
+pub mod error;
+pub mod input_file;
+pub mod models;
+pub mod services;
+
+// Utility modules
+pub mod id;
+pub mod permission;
+pub mod query;
+pub mod role;
+
+// Re-export commonly used types
+pub use client::Client;
+pub use error::{{ spec.title | caseUcfirst }}Error;
+pub use input_file::InputFile;
+
+/// Result type alias for SDK operations
+pub type Result<T> = std::result::Result<T, {{ spec.title | caseUcfirst }}Error>;
+
+/// SDK version
+pub const VERSION: &str = "{{ sdk.version }}";
+
+/// SDK name
+pub const SDK_NAME: &str = "{{ sdk.name }}";
+
+/// SDK platform
+pub const SDK_PLATFORM: &str = "{{ sdk.platform }}";
+
+/// SDK language
+pub const SDK_LANGUAGE: &str = "{{ language.name | caseLower }}";

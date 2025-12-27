@@ -1,0 +1,155 @@
+//! Role handling for {{ spec.title }} SDK
+
+/// Role builder for {{ spec.title }} permissions
+#[derive(Debug, Clone)]
+pub struct Role {
+    role: String,
+}
+
+impl Role {
+    /// Create a new role
+    fn new(role: String) -> Self {
+        Self { role }
+    }
+
+    /// Any role
+    pub fn any() -> Self {
+        Self::new("any".to_string())
+    }
+
+    /// Users role (optionally filtered by status)
+    pub fn users(status: Option<&str>) -> Self {
+        if let Some(s) = status {
+            Self::new(format!("users/{}", s))
+        } else {
+            Self::new("users".to_string())
+        }
+    }
+
+    /// Guests role
+    pub fn guests() -> Self {
+        Self::new("guests".to_string())
+    }
+
+    /// User role with specific user ID and optional status
+    pub fn user<S: Into<String>>(id: S, status: Option<&str>) -> Self {
+        if let Some(s) = status {
+            Self::new(format!("user:{}/{}", id.into(), s))
+        } else {
+            Self::new(format!("user:{}", id.into()))
+        }
+    }
+
+    /// Team role with specific team ID and optional role
+    pub fn team<S: Into<String>>(id: S, role: Option<&str>) -> Self {
+        if let Some(r) = role {
+            Self::new(format!("team:{}/{}", id.into(), r))
+        } else {
+            Self::new(format!("team:{}", id.into()))
+        }
+    }
+
+    /// Member role for a team
+    pub fn member<S: Into<String>>(id: S) -> Self {
+        Self::new(format!("member:{}", id.into()))
+    }
+
+    /// Label role
+    pub fn label<S: Into<String>>(name: S) -> Self {
+        Self::new(format!("label:{}", name.into()))
+    }
+
+    /// Get the role string
+    pub fn value(&self) -> &str {
+        &self.role
+    }
+}
+
+impl std::fmt::Display for Role {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.role)
+    }
+}
+
+impl From<Role> for String {
+    fn from(role: Role) -> Self {
+        role.role
+    }
+}
+
+impl From<&str> for Role {
+    fn from(role: &str) -> Self {
+        Role::new(role.to_string())
+    }
+}
+
+impl From<String> for Role {
+    fn from(role: String) -> Self {
+        Role::new(role)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_any_role() {
+        let role = Role::any();
+        assert_eq!(role.to_string(), "any");
+    }
+
+    #[test]
+    fn test_users_role() {
+        let role = Role::users(None);
+        assert_eq!(role.to_string(), "users");
+    }
+
+    #[test]
+    fn test_users_role_with_status() {
+        let role = Role::users(Some("verified"));
+        assert_eq!(role.to_string(), "users/verified");
+    }
+
+    #[test]
+    fn test_user_role() {
+        let role = Role::user("123", None);
+        assert_eq!(role.to_string(), "user:123");
+    }
+
+    #[test]
+    fn test_user_role_with_status() {
+        let role = Role::user("123", Some("verified"));
+        assert_eq!(role.to_string(), "user:123/verified");
+    }
+
+    #[test]
+    fn test_team_role() {
+        let role = Role::team("developers", Some("admin"));
+        assert_eq!(role.to_string(), "team:developers/admin");
+    }
+
+    #[test]
+    fn test_team_role_without_specific_role() {
+        let role = Role::team("developers", None::<&str>);
+        assert_eq!(role.to_string(), "team:developers");
+    }
+
+    #[test]
+    fn test_member_role() {
+        let role = Role::member("123");
+        assert_eq!(role.to_string(), "member:123");
+    }
+
+    #[test]
+    fn test_label_role() {
+        let role = Role::label("vip");
+        assert_eq!(role.to_string(), "label:vip");
+    }
+
+    #[test]
+    fn test_from_string() {
+        let role = Role::from("custom:role");
+        assert_eq!(role.to_string(), "custom:role");
+    }
+}

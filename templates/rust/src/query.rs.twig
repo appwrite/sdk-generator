@@ -1,0 +1,377 @@
+//! Query builder for {{ spec.title }} SDK
+
+use serde_json::Value;
+
+/// Query builder for filtering and sorting database queries
+#[derive(Debug, Clone)]
+pub struct Query {
+    method: String,
+    attribute: Option<String>,
+    values: Vec<Value>,
+}
+
+impl Query {
+    fn new(method: String, attribute: Option<String>, values: Vec<Value>) -> Self {
+        Self {
+            method,
+            attribute,
+            values,
+        }
+    }
+
+    fn to_array(value: Value) -> Vec<Value> {
+        match value {
+            Value::Array(arr) => arr,
+            _ => vec![value],
+        }
+    }
+
+    pub fn equal<S: Into<String>, V: Into<Value>>(attribute: S, value: V) -> Self {
+        Self::new("equal".to_string(), Some(attribute.into()), Self::to_array(value.into()))
+    }
+
+    pub fn not_equal<S: Into<String>, V: Into<Value>>(attribute: S, value: V) -> Self {
+        Self::new("notEqual".to_string(), Some(attribute.into()), Self::to_array(value.into()))
+    }
+
+    pub fn less_than<S: Into<String>, V: Into<Value>>(attribute: S, value: V) -> Self {
+        Self::new("lessThan".to_string(), Some(attribute.into()), Self::to_array(value.into()))
+    }
+
+    pub fn less_than_equal<S: Into<String>, V: Into<Value>>(attribute: S, value: V) -> Self {
+        Self::new("lessThanEqual".to_string(), Some(attribute.into()), Self::to_array(value.into()))
+    }
+
+    pub fn greater_than<S: Into<String>, V: Into<Value>>(attribute: S, value: V) -> Self {
+        Self::new("greaterThan".to_string(), Some(attribute.into()), Self::to_array(value.into()))
+    }
+
+    pub fn greater_than_equal<S: Into<String>, V: Into<Value>>(attribute: S, value: V) -> Self {
+        Self::new("greaterThanEqual".to_string(), Some(attribute.into()), Self::to_array(value.into()))
+    }
+
+    pub fn is_null<S: Into<String>>(attribute: S) -> Self {
+        Self::new("isNull".to_string(), Some(attribute.into()), vec![])
+    }
+
+    pub fn is_not_null<S: Into<String>>(attribute: S) -> Self {
+        Self::new("isNotNull".to_string(), Some(attribute.into()), vec![])
+    }
+
+    pub fn between<S: Into<String>, V: Into<Value>>(attribute: S, start: V, end: V) -> Self {
+        Self::new("between".to_string(), Some(attribute.into()), vec![start.into(), end.into()])
+    }
+
+    pub fn starts_with<S: Into<String>>(attribute: S, value: S) -> Self {
+        Self::new("startsWith".to_string(), Some(attribute.into()), vec![Value::String(value.into())])
+    }
+
+    pub fn ends_with<S: Into<String>>(attribute: S, value: S) -> Self {
+        Self::new("endsWith".to_string(), Some(attribute.into()), vec![Value::String(value.into())])
+    }
+
+    pub fn select<I: IntoIterator<Item = S>, S: Into<String>>(attributes: I) -> Self {
+        let values: Vec<Value> = attributes.into_iter().map(|s| Value::String(s.into())).collect();
+        Self::new("select".to_string(), None, values)
+    }
+
+    pub fn search<S: Into<String>>(attribute: S, value: S) -> Self {
+        Self::new("search".to_string(), Some(attribute.into()), vec![Value::String(value.into())])
+    }
+
+    pub fn not_search<S: Into<String>>(attribute: S, value: S) -> Self {
+        Self::new("notSearch".to_string(), Some(attribute.into()), vec![Value::String(value.into())])
+    }
+
+    pub fn order_asc<S: Into<String>>(attribute: S) -> Self {
+        Self::new("orderAsc".to_string(), Some(attribute.into()), vec![])
+    }
+
+    pub fn order_desc<S: Into<String>>(attribute: S) -> Self {
+        Self::new("orderDesc".to_string(), Some(attribute.into()), vec![])
+    }
+
+    pub fn order_random() -> Self {
+        Self::new("orderRandom".to_string(), None, vec![])
+    }
+
+    pub fn cursor_after<S: Into<String>>(document_id: S) -> Self {
+        Self::new("cursorAfter".to_string(), None, vec![Value::String(document_id.into())])
+    }
+
+    pub fn cursor_before<S: Into<String>>(document_id: S) -> Self {
+        Self::new("cursorBefore".to_string(), None, vec![Value::String(document_id.into())])
+    }
+
+    pub fn limit(value: u32) -> Self {
+        Self::new("limit".to_string(), None, vec![Value::Number(value.into())])
+    }
+
+    pub fn offset(value: u32) -> Self {
+        Self::new("offset".to_string(), None, vec![Value::Number(value.into())])
+    }
+
+    pub fn contains<S: Into<String>, V: Into<Value>>(attribute: S, value: V) -> Self {
+        Self::new("contains".to_string(), Some(attribute.into()), Self::to_array(value.into()))
+    }
+
+    pub fn not_contains<S: Into<String>, V: Into<Value>>(attribute: S, value: V) -> Self {
+        Self::new("notContains".to_string(), Some(attribute.into()), Self::to_array(value.into()))
+    }
+
+    pub fn not_between<S: Into<String>, V: Into<Value>>(attribute: S, start: V, end: V) -> Self {
+        Self::new("notBetween".to_string(), Some(attribute.into()), vec![start.into(), end.into()])
+    }
+
+    pub fn not_starts_with<S: Into<String>>(attribute: S, value: S) -> Self {
+        Self::new("notStartsWith".to_string(), Some(attribute.into()), vec![Value::String(value.into())])
+    }
+
+    pub fn not_ends_with<S: Into<String>>(attribute: S, value: S) -> Self {
+        Self::new("notEndsWith".to_string(), Some(attribute.into()), vec![Value::String(value.into())])
+    }
+
+    pub fn created_before<V: Into<Value>>(value: V) -> Self {
+        Self::less_than("$createdAt", value)
+    }
+
+    pub fn created_after<V: Into<Value>>(value: V) -> Self {
+        Self::greater_than("$createdAt", value)
+    }
+
+    pub fn created_between<V: Into<Value>>(start: V, end: V) -> Self {
+        Self::between("$createdAt", start, end)
+    }
+
+    pub fn updated_before<V: Into<Value>>(value: V) -> Self {
+        Self::less_than("$updatedAt", value)
+    }
+
+    pub fn updated_after<V: Into<Value>>(value: V) -> Self {
+        Self::greater_than("$updatedAt", value)
+    }
+
+    pub fn updated_between<V: Into<Value>>(start: V, end: V) -> Self {
+        Self::between("$updatedAt", start, end)
+    }
+
+    pub fn distance_equal<S: Into<String>, V: Into<Value>>(attribute: S, values: V, distance: impl Into<Value>, meters: bool) -> Self {
+        let params = Value::Array(vec![values.into(), distance.into(), Value::Bool(meters)]);
+        Self::new("distanceEqual".to_string(), Some(attribute.into()), vec![params])
+    }
+
+    pub fn distance_not_equal<S: Into<String>, V: Into<Value>>(attribute: S, values: V, distance: impl Into<Value>, meters: bool) -> Self {
+        let params = Value::Array(vec![values.into(), distance.into(), Value::Bool(meters)]);
+        Self::new("distanceNotEqual".to_string(), Some(attribute.into()), vec![params])
+    }
+
+    pub fn distance_greater_than<S: Into<String>, V: Into<Value>>(attribute: S, values: V, distance: impl Into<Value>, meters: bool) -> Self {
+        let params = Value::Array(vec![values.into(), distance.into(), Value::Bool(meters)]);
+        Self::new("distanceGreaterThan".to_string(), Some(attribute.into()), vec![params])
+    }
+
+    pub fn distance_less_than<S: Into<String>, V: Into<Value>>(attribute: S, values: V, distance: impl Into<Value>, meters: bool) -> Self {
+        let params = Value::Array(vec![values.into(), distance.into(), Value::Bool(meters)]);
+        Self::new("distanceLessThan".to_string(), Some(attribute.into()), vec![params])
+    }
+
+    pub fn intersects<S: Into<String>, V: Into<Value>>(attribute: S, values: V) -> Self {
+        Self::new("intersects".to_string(), Some(attribute.into()), vec![values.into()])
+    }
+
+    pub fn not_intersects<S: Into<String>, V: Into<Value>>(attribute: S, values: V) -> Self {
+        Self::new("notIntersects".to_string(), Some(attribute.into()), vec![values.into()])
+    }
+
+    pub fn crosses<S: Into<String>, V: Into<Value>>(attribute: S, values: V) -> Self {
+        Self::new("crosses".to_string(), Some(attribute.into()), vec![values.into()])
+    }
+
+    pub fn not_crosses<S: Into<String>, V: Into<Value>>(attribute: S, values: V) -> Self {
+        Self::new("notCrosses".to_string(), Some(attribute.into()), vec![values.into()])
+    }
+
+    pub fn overlaps<S: Into<String>, V: Into<Value>>(attribute: S, values: V) -> Self {
+        Self::new("overlaps".to_string(), Some(attribute.into()), vec![values.into()])
+    }
+
+    pub fn not_overlaps<S: Into<String>, V: Into<Value>>(attribute: S, values: V) -> Self {
+        Self::new("notOverlaps".to_string(), Some(attribute.into()), vec![values.into()])
+    }
+
+    pub fn touches<S: Into<String>, V: Into<Value>>(attribute: S, values: V) -> Self {
+        Self::new("touches".to_string(), Some(attribute.into()), vec![values.into()])
+    }
+
+    pub fn not_touches<S: Into<String>, V: Into<Value>>(attribute: S, values: V) -> Self {
+        Self::new("notTouches".to_string(), Some(attribute.into()), vec![values.into()])
+    }
+
+    pub fn or<I, S>(queries: I) -> crate::error::Result<Self>
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<str>,
+    {
+        let values: Vec<Value> = queries
+            .into_iter()
+            .map(|query| serde_json::from_str(query.as_ref()))
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(Self::new("or".to_string(), None, values))
+    }
+
+    pub fn and<I, S>(queries: I) -> crate::error::Result<Self>
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<str>,
+    {
+        let values: Vec<Value> = queries
+            .into_iter()
+            .map(|query| serde_json::from_str(query.as_ref()))
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(Self::new("and".to_string(), None, values))
+    }
+
+    /// Convert query to JSON value (matches Go/Python SDK format)
+    pub fn to_value(self) -> Value {
+        let mut obj = serde_json::Map::new();
+        obj.insert("method".to_string(), Value::String(self.method));
+
+        if let Some(attr) = self.attribute {
+            obj.insert("attribute".to_string(), Value::String(attr));
+        }
+
+        if !self.values.is_empty() {
+            obj.insert("values".to_string(), Value::Array(self.values));
+        }
+
+        Value::Object(obj)
+    }
+}
+
+impl std::fmt::Display for Query {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let json_str = serde_json::to_string(&self.clone().to_value())
+            .unwrap_or_else(|_| String::new());
+        write!(f, "{}", json_str)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_equal_query() {
+        let query = Query::equal("name", "John");
+        let value = query.to_value();
+        assert_eq!(value["method"], "equal");
+        assert_eq!(value["attribute"], "name");
+        assert_eq!(value["values"][0], "John");
+    }
+
+    #[test]
+    fn test_greater_than_query() {
+        let query = Query::greater_than("age", 18);
+        let value = query.to_value();
+        assert_eq!(value["method"], "greaterThan");
+        assert_eq!(value["attribute"], "age");
+        assert_eq!(value["values"][0], 18);
+    }
+
+    #[test]
+    fn test_between_query() {
+        let query = Query::between("age", 18, 65);
+        let value = query.to_value();
+        assert_eq!(value["method"], "between");
+        assert_eq!(value["attribute"], "age");
+        assert_eq!(value["values"][0], 18);
+        assert_eq!(value["values"][1], 65);
+    }
+
+    #[test]
+    fn test_select_query() {
+        let query = Query::select(vec!["name", "age"]);
+        let value = query.to_value();
+        assert_eq!(value["method"], "select");
+        assert_eq!(value["values"][0], "name");
+        assert_eq!(value["values"][1], "age");
+    }
+
+    #[test]
+    fn test_order_asc_query() {
+        let query = Query::order_asc("name");
+        let value = query.to_value();
+        assert_eq!(value["method"], "orderAsc");
+        assert_eq!(value["attribute"], "name");
+    }
+
+    #[test]
+    fn test_limit_query() {
+        let query = Query::limit(10);
+        let value = query.to_value();
+        assert_eq!(value["method"], "limit");
+        assert_eq!(value["values"][0], 10);
+    }
+
+    #[test]
+    fn test_or_query() {
+        let query_strings = vec![
+            Query::equal("released", true).to_string(),
+            Query::less_than("releasedYear", 1990).to_string(),
+        ];
+        let query = Query::or(query_strings).unwrap();
+        let value = query.to_value();
+        assert_eq!(value["method"], "or");
+        assert!(value["values"].is_array());
+        assert_eq!(value["values"].as_array().unwrap().len(), 2);
+    }
+
+    #[test]
+    fn test_and_query() {
+        let query_strings = vec![
+            Query::equal("released", false).to_string(),
+            Query::greater_than("releasedYear", 2015).to_string(),
+        ];
+        let query = Query::and(query_strings).unwrap();
+        let value = query.to_value();
+        assert_eq!(value["method"], "and");
+        assert!(value["values"].is_array());
+        assert_eq!(value["values"].as_array().unwrap().len(), 2);
+    }
+
+    #[test]
+    fn test_or_invalid_json() {
+        let invalid_queries = vec!["not valid json", "also bad"];
+        let result = Query::or(invalid_queries);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_and_invalid_json() {
+        let invalid_queries = vec!["not valid json"];
+        let result = Query::and(invalid_queries);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_json_serialization() {
+        let query = Query::equal("name", "John");
+        let json_str = query.to_string();
+        let parsed: Value = serde_json::from_str(&json_str).unwrap();
+        assert_eq!(parsed["method"], "equal");
+        assert_eq!(parsed["attribute"], "name");
+        assert_eq!(parsed["values"][0], "John");
+    }
+
+    #[test]
+    fn test_equal_with_array() {
+        let arr = vec!["Movie1", "Movie2"];
+        let query = Query::equal("title", Value::Array(arr.iter().map(|s| Value::String(s.to_string())).collect()));
+        let value = query.to_value();
+        assert_eq!(value["method"], "equal");
+        assert_eq!(value["attribute"], "title");
+        assert_eq!(value["values"].as_array().unwrap().len(), 2);
+        assert_eq!(value["values"][0], "Movie1");
+        assert_eq!(value["values"][1], "Movie2");
+    }
+}

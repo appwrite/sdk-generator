@@ -1,0 +1,6 @@
+//! Enums for {{ spec.title }} SDK
+
+{% for enum in spec.allEnums %}
+pub mod {{ enum.name | caseSnake | overrideIdentifier }};
+pub use {{ enum.name | caseSnake | overrideIdentifier }}::{{ enum.name | caseUcfirst | overrideIdentifier }};
+{% endfor %}

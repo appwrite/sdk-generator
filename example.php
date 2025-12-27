@@ -21,6 +21,7 @@ use Appwrite\SDK\Language\Flutter;
 use Appwrite\SDK\Language\Android;
 use Appwrite\SDK\Language\Kotlin;
 use Appwrite\SDK\Language\ReactNative;
+use Appwrite\SDK\Language\Rust;
 
 try {
 
@@ -265,6 +266,13 @@ try {
         $sdk = new SDK(new GraphQL(), new Swagger2($spec));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/graphql');
+    }
+
+    // Rust
+    if (!$requestedSdk || $requestedSdk === 'rust') {
+        $sdk = new SDK(new Rust(), new Swagger2($spec));
+        configureSDK($sdk);
+        $sdk->generate(__DIR__ . '/examples/rust');
     }
 }
 catch (Exception $exception) {

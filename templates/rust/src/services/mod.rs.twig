@@ -1,0 +1,46 @@
+//! Service modules for {{ spec.title }} SDK
+
+{% for service in spec.services %}
+pub mod {{ service.name | caseSnake }};
+pub use {{ service.name | caseSnake }}::{{ service.name | caseUcfirst }};
+{% endfor %}
+
+use crate::client::Client;
+
+/// Base trait for all {{ spec.title }} services
+pub trait Service {
+    /// Get a reference to the client
+    fn client(&self) -> &Client;
+}
+
+// Re-export all services for convenience
+pub struct Services {
+    client: Client,
+{% for service in spec.services %}
+    {{ service.name | caseSnake }}: {{ service.name | caseUcfirst }},
+{% endfor %}
+}
+
+impl Services {
+    /// Create new services instance
+    pub fn new(client: Client) -> Self {
+        Self {
+{% for service in spec.services %}
+            {{ service.name | caseSnake }}: {{ service.name | caseUcfirst }}::new(&client),
+{% endfor %}
+            client,
+        }
+    }
+
+    /// Get client reference
+    pub fn client(&self) -> &Client {
+        &self.client
+    }
+
+{% for service in spec.services %}
+    /// Get {{ service.name | caseUcfirst }} service
+    pub fn {{ service.name | caseSnake }}(&self) -> &{{ service.name | caseUcfirst }} {
+        &self.{{ service.name | caseSnake }}
+    }
+{% endfor %}
+}

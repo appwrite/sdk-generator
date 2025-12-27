@@ -1,0 +1,91 @@
+//! Permission handling for {{ spec.title }} SDK
+
+/// Permission builder for {{ spec.title }} resources
+#[derive(Debug, Clone)]
+pub struct Permission {
+    permission: String,
+}
+
+impl Permission {
+    /// Create a new permission
+    fn new(permission: String) -> Self {
+        Self { permission }
+    }
+
+    /// Read permission for any user
+    pub fn read(role: impl std::fmt::Display) -> Self {
+        Self::new(format!("read(\"{}\")", role))
+    }
+
+    /// Write permission for any user
+    pub fn write(role: impl std::fmt::Display) -> Self {
+        Self::new(format!("write(\"{}\")", role))
+    }
+
+    /// Create permission for any user
+    pub fn create(role: impl std::fmt::Display) -> Self {
+        Self::new(format!("create(\"{}\")", role))
+    }
+
+    /// Update permission for any user
+    pub fn update(role: impl std::fmt::Display) -> Self {
+        Self::new(format!("update(\"{}\")", role))
+    }
+
+    /// Delete permission for any user
+    pub fn delete(role: impl std::fmt::Display) -> Self {
+        Self::new(format!("delete(\"{}\")", role))
+    }
+
+    /// Get the permission string
+    pub fn value(&self) -> &str {
+        &self.permission
+    }
+}
+
+impl std::fmt::Display for Permission {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.permission)
+    }
+}
+
+impl From<Permission> for String {
+    fn from(permission: Permission) -> Self {
+        permission.permission
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_read_permission() {
+        let permission = Permission::read("any");
+        assert_eq!(permission.to_string(), "read(\"any\")");
+    }
+
+    #[test]
+    fn test_write_permission() {
+        let permission = Permission::write("users");
+        assert_eq!(permission.to_string(), "write(\"users\")");
+    }
+
+    #[test]
+    fn test_create_permission() {
+        let permission = Permission::create("team:developers");
+        assert_eq!(permission.to_string(), "create(\"team:developers\")");
+    }
+
+    #[test]
+    fn test_update_permission() {
+        let permission = Permission::update("user:123");
+        assert_eq!(permission.to_string(), "update(\"user:123\")");
+    }
+
+    #[test]
+    fn test_delete_permission() {
+        let permission = Permission::delete("admin");
+        assert_eq!(permission.to_string(), "delete(\"admin\")");
+    }
+}
