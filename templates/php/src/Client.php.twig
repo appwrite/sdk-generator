@@ -1,6 +1,10 @@
 <?php
 
 namespace {{ spec.title | caseUcfirst }};
+{% if spec.global.headers | hasBearerAuth %}
+
+use Ahc\Jwt\JWT;
+{% endif %}
 
 class Client
 {
@@ -15,6 +19,9 @@ class Client
     const METHOD_TRACE = 'TRACE';
 
     const CHUNK_SIZE = 5 * 1024 * 1024;
+{% if spec.global.headers | hasBearerAuth %}
+    const JWT_MAX_AGE_SECONDS = 3600;
+{% endif %}
 
     /**
      * Is Self Signed Certificates Allowed?
@@ -68,7 +75,12 @@ class Client
      */
     public function set{{header.key | caseUcfirst}}(string $value): Client
     {
+{% if header.type is defined and header.type == 'bearer' %}
+        $jwt = new JWT($value, 'HS256', self::JWT_MAX_AGE_SECONDS);
+        $this->addHeader('{{header.name}}', 'Bearer ' . $jwt->encode([]));
+{% else %}
         $this->addHeader('{{header.name}}', $value);
+{% endif %}
 
         return $this;
     }

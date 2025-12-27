@@ -521,6 +521,14 @@ class PHP extends Language
                 $value = \preg_replace('/[^a-zA-Z0-9]/', '', $value);
                 return $this->toUpperSnakeCase($value);
             }),
+            new TwigFilter('hasBearerAuth', function (array $headers) {
+                foreach ($headers as $header) {
+                    if (isset($header['type']) && $header['type'] === 'bearer') {
+                        return true;
+                    }
+                }
+                return false;
+            }),
         ];
     }
 }
