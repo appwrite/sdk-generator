@@ -58,6 +58,9 @@ jobs:
           - sdk: kotlin
             platform: server
 
+          - sdk: rust
+            platform: server
+
           # Console SDKs
           - sdk: cli
             platform: console
@@ -140,6 +143,10 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
+      - name: Setup Rust
+        if: matrix.sdk == 'rust'
+        uses: dtolnay/rust-toolchain@1.83.0
+
       - name: Build SDK
         working-directory: examples/${{ matrix.sdk }}
         run: |
@@ -192,6 +199,10 @@ jobs:
               ;;
             dotnet)
               dotnet build
+              ;;
+            rust)
+              cargo build --release
+              cargo test --lib
               ;;
             *)
               echo "Unknown SDK: ${{ matrix.sdk }}"
