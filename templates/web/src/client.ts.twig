@@ -1,4 +1,5 @@
 import { Models } from './models';
+import { ChannelValue } from './channel';
 
 /**
  * Payload type representing a key-value pair with string keys and any values.
@@ -552,8 +553,8 @@ class Client {
      * @deprecated Use the Realtime service instead.
      * @see Realtime
      *
-     * @param {string|string[]} channels
-     * Channel to subscribe - pass a single channel as a string or multiple with an array of strings.
+     * @param {string|string[]|ChannelValue|ChannelValue[]} channels
+     * Channel to subscribe - pass a single channel as a string or Channel builder instance, or multiple with an array.
      *
      * Possible channels are:
      * - account
@@ -571,16 +572,34 @@ class Client {
      * - teams.[ID]
      * - memberships
      * - memberships.[ID]
+     * 
+     * You can also use Channel builders:
+     * - Channel.database('db').collection('col').document('doc').create()
+     * - Channel.buckets('bucket').file('file').update()
+     * - Channel.functions('func').execution('exec').delete()
+     * - Channel.teams('team').create()
+     * - Channel.memberships('membership').update()
      * @param {(payload: RealtimeMessage) => void} callback Is called on every realtime update.
      * @returns {() => void} Unsubscribes from events.
      */
-    subscribe<T extends unknown>(channels: string | string[], callback: (payload: RealtimeResponseEvent<T>) => void): () => void {
-        let channelArray = typeof channels === 'string' ? [channels] : channels;
-        channelArray.forEach(channel => this.realtime.channels.add(channel));
+    subscribe<T extends unknown>(channels: string | string[] | ChannelValue | ChannelValue[], callback: (payload: RealtimeResponseEvent<T>) => void): () => void {
+        const channelArray = Array.isArray(channels) ? channels : [channels];
+        // Convert Channel instances to strings
+        const channelStrings = channelArray.map(ch => {
+            if (typeof ch === 'string') {
+                return ch;
+            }
+            // Channel builder instances have toString() method
+            if (ch && typeof ch.toString === 'function') {
+                return ch.toString();
+            }
+            return String(ch);
+        });
+        channelStrings.forEach(channel => this.realtime.channels.add(channel));
 
         const counter = this.realtime.subscriptionsCounter++;
         this.realtime.subscriptions.set(counter, {
-            channels: channelArray,
+            channels: channelStrings,
             callback
         });
 
@@ -588,7 +607,7 @@ class Client {
 
         return () => {
             this.realtime.subscriptions.delete(counter);
-            this.realtime.cleanUp(channelArray);
+            this.realtime.cleanUp(channelStrings);
             this.realtime.connect();
         }
     }

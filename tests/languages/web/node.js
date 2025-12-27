@@ -1,4 +1,4 @@
-const { Client, Foo, Bar, General, Query, Permission, Role, ID, Operator, Condition, MockType } = require('./dist/cjs/sdk.js');
+const { Client, Foo, Bar, General, Query, Permission, Role, ID, Channel, Operator, Condition, MockType } = require('./dist/cjs/sdk.js');
 
 async function start() {
     let response;
@@ -259,6 +259,28 @@ async function start() {
     // ID helper tests
     console.log(ID.unique());
     console.log(ID.custom('custom_id'));
+
+    // Channel helper tests
+    console.log(Channel.database().collection().document().toString());
+    console.log(Channel.database('db1').collection('col1').document('doc1').toString());
+    console.log(Channel.database('db1').collection('col1').document('doc1').create().toString());
+    console.log(Channel.tablesdb().table().row().toString());
+    console.log(Channel.tablesdb('db1').table('table1').row('row1').toString());
+    console.log(Channel.tablesdb('db1').table('table1').row('row1').update().toString());
+    console.log(Channel.account());
+    console.log(Channel.account('user123'));
+    console.log(Channel.buckets().file().toString());
+    console.log(Channel.buckets('bucket1').file('file1').toString());
+    console.log(Channel.buckets('bucket1').file('file1').delete().toString());
+    console.log(Channel.functions().execution().toString());
+    console.log(Channel.functions('func1').execution('exec1').toString());
+    console.log(Channel.functions('func1').execution('exec1').create().toString());
+    console.log(Channel.teams().toString());
+    console.log(Channel.teams('team1').toString());
+    console.log(Channel.teams('team1').create().toString());
+    console.log(Channel.memberships().toString());
+    console.log(Channel.memberships('membership1').toString());
+    console.log(Channel.memberships('membership1').update().toString());
 
     // Operator helper tests
     console.log(Operator.increment(1));

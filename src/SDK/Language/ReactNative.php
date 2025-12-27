@@ -62,6 +62,11 @@ class ReactNative extends Web
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'src/channel.ts',
+                'template'      => 'react-native/src/channel.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'src/query.ts',
                 'template'      => 'react-native/src/query.ts.twig',
             ],

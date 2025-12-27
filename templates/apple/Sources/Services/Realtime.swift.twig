@@ -3,6 +3,33 @@ import AsyncHTTPClient
 import NIO
 import NIOHTTP1
 
+/**
+ * Protocol for channel values that can be converted to strings
+ */
+public protocol ChannelValue {
+    func toString() -> String
+}
+
+extension String: ChannelValue {
+    public func toString() -> String {
+        return self
+    }
+}
+
+extension ResolvedChannel: ChannelValue {}
+extension DatabaseChannel: ChannelValue {}
+extension CollectionChannel: ChannelValue {}
+extension DocumentChannel: ChannelValue {}
+extension TablesDBChannel: ChannelValue {}
+extension TableChannel: ChannelValue {}
+extension RowChannel: ChannelValue {}
+extension BucketChannel: ChannelValue {}
+extension FileChannel: ChannelValue {}
+extension FunctionChannel: ChannelValue {}
+extension ExecutionChannel: ChannelValue {}
+extension TeamChannel: ChannelValue {}
+extension MembershipChannel: ChannelValue {}
+
 open class Realtime : Service {
 
     private let TYPE_ERROR = "error"
@@ -117,8 +144,15 @@ open class Realtime : Service {
         }
     }
 
+    /**
+     * Convert channel value to string
+     */
+    private func channelToString(_ channel: ChannelValue) -> String {
+        return channel.toString()
+    }
+
     public func subscribe(
-        channel: String,
+        channel: ChannelValue,
         callback: @escaping (RealtimeResponseEvent) -> Void
     ) async throws -> RealtimeSubscription {
         return try await subscribe(
@@ -129,23 +163,35 @@ open class Realtime : Service {
     }
 
     public func subscribe(
-        channels: Set<String>,
+        channels: [ChannelValue],
         callback: @escaping (RealtimeResponseEvent) -> Void
     ) async throws -> RealtimeSubscription {
         return try await subscribe(
-            channels: channels,
+            channels: Set(channels.map { channelToString($0) }),
             payloadType: String.self,
             callback: callback
         )
     }
 
     public func subscribe<T : Codable>(
-        channel: String,
+        channel: ChannelValue,
         payloadType: T.Type,
         callback: @escaping (RealtimeResponseEvent) -> Void
     ) async throws -> RealtimeSubscription {
         return try await subscribe(
-            channels: [channel],
+            channels: Set([channelToString(channel)]),
+            payloadType: T.self,
+            callback: callback
+        )
+    }
+
+    public func subscribe<T : Codable>(
+        channels: [ChannelValue],
+        payloadType: T.Type,
+        callback: @escaping (RealtimeResponseEvent) -> Void
+    ) async throws -> RealtimeSubscription {
+        return try await subscribe(
+            channels: Set(channels.map { channelToString($0) }),
             payloadType: T.self,
             callback: callback
         )
