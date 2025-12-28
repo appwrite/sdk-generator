@@ -1,9 +1,9 @@
 <?php
 
-namespace Appwrite\Services;
+namespace {{ spec.title | caseUcfirst }}\Services;
 
-use Appwrite\Client;
-use Appwrite\InputFile;
+use {{ spec.title | caseUcfirst }}\Client;
+use {{ spec.title | caseUcfirst }}\InputFile;
 use Mockery;
 use PHPUnit\Framework\TestCase;
 {% set added = [] %}
@@ -11,7 +11,7 @@ use PHPUnit\Framework\TestCase;
 {% for parameter in method.parameters.all %}
 {% if parameter.enumName is not empty %}
 {% if parameter.enumName not in added %}
-use Appwrite\Enums\{{ parameter.enumName | caseUcfirst }};
+use {{ spec.title | caseUcfirst }}\Enums\{{ parameter.enumName | caseUcfirst }};
 {% set added = added|merge([parameter.enumName]) %}
 {% endif %}
 {% endif %}
