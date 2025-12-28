@@ -4,12 +4,16 @@
 ![Version](https://img.shields.io/badge/api%20version-{{ spec.version }}-blue.svg)
 [![Crates.io](https://img.shields.io/crates/v/{{ sdk.cratePackage | default('appwrite') }}.svg)](https://crates.io/crates/{{ sdk.cratePackage | default('appwrite') }})
 [![Documentation](https://docs.rs/{{ sdk.cratePackage | default('appwrite') }}/badge.svg)](https://docs.rs/{{ sdk.cratePackage | default('appwrite') }})
+{% if sdk.warning %}
 
-{{ spec.description }}
+{{ sdk.warning|raw }}
+{% endif %}
 
-{{ spec.title }} is an open-source backend as a service server that abstract and simplify complex and repetitive development tasks behind a very simple to use REST API. {{ spec.title }} aims to help you develop your apps faster and in a more secure way. Use the Rust SDK to integrate your app with the {{ spec.title }} server to easily start interacting with all of {{ spec.title }}'s backend APIs and tools. For full API documentation and tutorials go to [https://appwrite.io/docs](https://appwrite.io/docs)
+{{ sdk.description }}
 
-![{{ spec.title }}](https://{{ spec.contactURL | stripProtocol }}/images-appwrite/github.png)
+{% if sdk.logo %}
+![{{ spec.title }}]({{ sdk.logo }})
+{% endif %}
 
 ## Installation
 
@@ -18,6 +22,7 @@ Add this to your `Cargo.toml`:
 ```toml
 [dependencies]
 {{ sdk.cratePackage | default('appwrite') }} = "{{ sdk.version }}"
+tokio = { version = "1.0", features = ["full"] }
 ```
 
 Or using `cargo add`:
@@ -26,171 +31,15 @@ Or using `cargo add`:
 cargo add {{ sdk.cratePackage | default('appwrite') }}
 ```
 
-## Getting Started
+{% if sdk.gettingStarted %}
 
-### Initialize & Make API Request
-
-Once you add the dependencies, its extremely easy to get started with the SDK; all you need to do is import the package in your code, set your {{ spec.title }} credentials, and start making API calls. Below is a simple example:
-
-```rust
-use {{ sdk.cratePackage | default('appwrite') | rustCrateName }}::{Client, services::Users, id::ID};
-
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Create client
-    let client = Client::new()
-        .set_endpoint("{{ spec.endpoint }}") // Your API Endpoint
-        .set_project("5df5acd0d48c2") // Your project ID
-        .set_key("919c2d18fb5d4...a2ae413da83346ad2"); // Your secret API key
-
-    let users = Users::new(&client);
-
-    let user = users.create(
-        ID::unique(),
-        Some("email@example.com"),
-        Some("phone"),
-        Some("password"),
-        Some("Walter O'Brien")
-    ).await?;
-
-    println!("{:?}", user);
-
-    Ok(())
-}
-```
-
-### Error Handling
-
-The {{ spec.title }} Rust SDK uses standard Rust `Result` types for error handling. All SDK methods return `Result<T, AppwriteError>`:
-
-```rust
-use {{ sdk.cratePackage | default('appwrite') | rustCrateName }}::{Client, services::Users};
-
-#[tokio::main]
-async fn main() {
-    let client = Client::new()
-        .set_endpoint("{{ spec.endpoint }}")
-        .set_project("your-project-id")
-        .set_key("your-api-key");
-
-    let users = Users::new(&client);
-
-    match users.list(None, None, None, None, None, None).await {
-        Ok(users_list) => println!("Users: {:?}", users_list),
-        Err(e) => println!("Error {}: {}", e.code, e.message),
-    }
-}
-```
-
-### Learn more
-You can use the following resources to learn more and get help
-- 🚀 [Getting Started Tutorial](https://appwrite.io/docs/getting-started-for-server)
-- 📜 [{{ spec.title }} Docs](https://appwrite.io/docs)
-- 💬 [Discord Community](https://appwrite.io/discord)
-- 🚂 [{{ spec.title }} Railway](https://railway.app/template/appwrite)
-- 🏴󠁧󠁢󠁳󠁣󠁴󠁿 [{{ spec.title }} DigitalOcean](https://www.digitalocean.com/community/tools/appwrite-on-digitalocean-app-platform)
-- 🧑‍💻 [{{ spec.title }} Gitpod](https://gitpod.io/#https://github.com/appwrite/appwrite)
-
-{% for service in spec.services %}
-## {{ service.name | caseUcfirst }}
-
-{% for method in service.methods %}
-### {{ method.name | caseUcfirst }}
-
-{% if method.description %}
-{{ method.description }}
-
+{{ sdk.gettingStarted|raw }}
 {% endif %}
-```rust
-use {{ sdk.cratePackage | default('appwrite') | rustCrateName }}::{Client, services::{{ service.name | caseUcfirst }}};
-
-let {{ service.name | caseSnake }} = {{ service.name | caseUcfirst }}::new(client);
-let result = {{ service.name | caseSnake }}.{{ method.name | caseSnake }}(
-{% for parameter in method.parameters.all %}
-    {% if parameter.required %}
-    {{ parameter | paramExample }}, // {{ parameter.description }}
-    {% else %}
-    Some({{ parameter | paramExample }}), // {{ parameter.description }} (optional)
-    {% endif %}
-{% endfor %}
-).await?;
-```
-
-{% endfor %}
-{% endfor %}
-
-## Advanced Configuration
-
-### Self-signed Certificates
-
-If you're running {{ spec.title }} with a self-signed certificate, you can disable certificate verification:
-
-```rust
-let client = Client::new()
-    .set_endpoint("https://your-appwrite-server.com/v1")
-    .set_project("your-project-id")
-    .set_key("your-api-key")
-    .set_self_signed(true); // Disable SSL certificate verification
-```
-
-### Custom Headers
-
-You can add custom headers to your requests:
-
-```rust
-let client = Client::new()
-    .set_endpoint("{{ spec.endpoint }}")
-    .set_project("your-project-id")
-    .set_key("your-api-key")
-    .add_header("X-Custom-Header", "custom-value");
-```
-
-### File Uploads
-
-The SDK provides built-in support for file uploads with chunking:
-
-```rust
-use {{ sdk.cratePackage | default('appwrite') | rustCrateName }}::{Client, services::Storage, input_file::InputFile, id::ID};
-
-let storage = Storage::new(&client);
-
-// Upload from file path with MIME type
-let file = InputFile::from_path("./path/to/file.jpg", Some("image/jpeg")).await?;
-let result = storage.create_file(
-    "bucket-id",
-    ID::unique(),
-    file,
-    None, // permissions
-).await?;
-
-// Upload without specifying MIME type
-let file = InputFile::from_path("./path/to/file.jpg", None).await?;
-
-// Upload from bytes
-let data = std::fs::read("./path/to/file.jpg")?;
-let file = InputFile::from_bytes(data, "file.jpg", Some("image/jpeg"));
-let result = storage.create_file(
-    "bucket-id",
-    ID::unique(),
-    file,
-    None,
-).await?;
-```
-
-### Async Runtime
-
-This SDK is built with async/await and requires an async runtime. The examples above use `tokio`, but you can use any compatible runtime:
-
-```toml
-[dependencies]
-tokio = { version = "1.0", features = ["full"] }
-{{ sdk.cratePackage | default('appwrite') }} = "{{ sdk.version }}"
-```
 
 ## Contribution
 
-This library is auto-generated by Appwrite custom [SDK Generator](https://github.com/appwrite/sdk-generator). To learn more about how you can help us improve this SDK, please check the [contribution guide](https://github.com/appwrite/appwrite/blob/master/CONTRIBUTING.md) before sending a pull-request.
+This library is auto-generated by Appwrite custom [SDK Generator](https://github.com/appwrite/sdk-generator). To learn more about how you can help us improve this SDK, please check the [contribution guide](https://github.com/appwrite/sdk-generator/blob/master/CONTRIBUTING.md) before sending a pull-request.
 
 ## License
 
-Please see the [BSD-3-Clause license](https://raw.githubusercontent.com/{{ sdk.gitUserName }}/sdk-for-rust/master/LICENSE) file for more information.
+Please see the [{{ spec.licenseName }} license]({{ spec.licenseURL }}) file for more information.

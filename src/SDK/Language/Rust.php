@@ -248,6 +248,21 @@ class Rust extends Language
                 "destination" => "tests/tests.rs",
                 "template" => "rust/tests/tests.rs",
             ],
+            [
+                "scope" => "default",
+                "destination" => ".github/workflows/publish.yml",
+                "template" => "rust/.github/workflows/publish.yml.twig",
+            ],
+            [
+                "scope" => "copy",
+                "destination" => ".github/workflows/stale.yml",
+                "template" => "rust/.github/workflows/stale.yml",
+            ],
+            [
+                "scope" => "copy",
+                "destination" => ".github/workflows/autoclose.yml",
+                "template" => "rust/.github/workflows/autoclose.yml",
+            ],
         ];
     }
 
