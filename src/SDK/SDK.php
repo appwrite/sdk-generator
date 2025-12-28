@@ -623,7 +623,7 @@ class SDK
             'spec' => [
                 'title' => $this->spec->getTitle(),
                 'description' => $this->spec->getDescription(),
-                'namespace' => $this->spec->getNamespace(),
+                'namespace' => $this->getParam('namespace') ?: $this->spec->getNamespace(),
                 'version' => $this->spec->getVersion(),
                 'endpoint' => $this->spec->getEndpoint(),
                 'endpointDocs' => $this->spec->getEndpointDocs(),
