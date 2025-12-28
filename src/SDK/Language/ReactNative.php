@@ -236,6 +236,12 @@ class ReactNative extends Web
             return 'Promise<ArrayBuffer>';
         }
 
+        // check for union types i.e. multiple response models
+        $unionType = $this->getUnionReturnType($method, $spec);
+        if ($unionType !== null) {
+            return $unionType;
+        }
+
         if (array_key_exists('responseModel', $method) && !empty($method['responseModel']) && $method['responseModel'] !== 'any') {
             $ret = 'Promise<';
 

@@ -2008,14 +2008,14 @@
         "description": "Test union response types",
         "responses": {
           "200": {
-            "description": "Mock or Account",
+            "description": "Mock or Stub",
             "schema": {
               "x-oneOf": [
                 {
                   "$ref": "#\/definitions\/mock"
                 },
                 {
-                  "$ref": "#\/definitions\/account"
+                  "$ref": "#\/definitions\/stub"
                 }
               ]
             }
@@ -2051,7 +2051,17 @@
             "JWT": []
           }
         ],
-        "parameters": []
+        "parameters": [
+          {
+            "name": "type",
+            "description": "Type of model to return (mock or stub)",
+            "required": false,
+            "type": "string",
+            "x-example": "mock",
+            "default": "mock",
+            "in": "query"
+          }
+        ]
       }
     }
   },
@@ -2226,31 +2236,25 @@
         "score"
       ]
     },
-    "account": {
-      "description": "Account",
+    "stub": {
+      "description": "Stub",
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "$id": {
+        "data": {
           "type": "string",
-          "description": "Account ID.",
-          "x-example": "5e5ea5c16897e"
+          "description": "Stub data.",
+          "x-example": "test-data"
         },
-        "name": {
+        "type": {
           "type": "string",
-          "description": "Account name.",
-          "x-example": "John Doe"
-        },
-        "email": {
-          "type": "string",
-          "description": "Account email address.",
-          "x-example": "john@appwrite.io"
+          "description": "Stub type.",
+          "x-example": "testing"
         }
       },
       "required": [
-        "$id",
-        "name",
-        "email"
+        "data",
+        "type"
       ]
     }
   },
