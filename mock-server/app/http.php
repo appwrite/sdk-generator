@@ -555,6 +555,34 @@ App::post('/v1/mock/tests/general/models/array')
         /** @var Player[] $players */
     });
 
+App::get('/v1/mock/tests/union')
+    ->desc('Get Union')
+    ->groups(['mock'])
+    ->label('scope', 'public')
+    ->label('sdk.auth', [APP_AUTH_TYPE_SESSION, APP_AUTH_TYPE_KEY, APP_AUTH_TYPE_JWT])
+    ->label('sdk.namespace', 'general')
+    ->label('sdk.method', 'getUnion')
+    ->label('sdk.description', 'Test union response types')
+    ->label('sdk.response.code', Response::STATUS_CODE_OK)
+    ->label('sdk.response.type', Response::CONTENT_TYPE_JSON)
+    ->label('sdk.response.model', Response::MODEL_MOCK)
+    ->label('sdk.mock', true)
+    ->param('type', 'mock', new Text(4), 'Type of model to return (mock or stub)', true)
+    ->inject('response')
+    ->action(function (string $type, UtopiaSwooleResponse $response) {
+        if ($type === 'stub') {
+            $response->json([
+                'data' => 'test-data',
+                'type' => 'stub',
+                'result' => 'GET:/v1/mock/tests/union:passed',
+            ]);
+        } else {
+            $response->json([
+                'result' => 'GET:/v1/mock/tests/union:passed',
+            ]);
+        }
+    });
+
 App::get('/v1/mock/tests/general/400-error')
     ->desc('400 Error')
     ->groups(['mock'])

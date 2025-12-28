@@ -309,6 +309,54 @@ class Web extends JS
         return '<' . implode(', ', $generics) . '>';
     }
 
+    /**
+     * Generate union return type for methods with multiple response models.
+     */
+    protected function getUnionReturnType(array $method, array $spec): ?string
+    {
+        // check for union types i.e. multiple response models
+        if (!array_key_exists('responseModels', $method) || empty($method['responseModels']) || count($method['responseModels']) <= 1) {
+            return null;
+        }
+
+        $unionTypes = [];
+
+        foreach ($method['responseModels'] as $model) {
+            if ($model === 'any') {
+                continue;
+            }
+
+            $modelType = '';
+
+            if (
+                array_key_exists($model, $spec['definitions']) &&
+                array_key_exists('additionalProperties', $spec['definitions'][$model]) &&
+                !$spec['definitions'][$model]['additionalProperties']
+            ) {
+                $modelType .= 'Models.';
+            }
+
+            $modelType .= $this->toPascalCase($model);
+
+            $models = [];
+            $this->populateGenerics($model, $spec, $models);
+            $models = array_unique($models);
+            $models = array_filter($models, fn ($m) => $m != $this->toPascalCase($model));
+
+            if (!empty($models)) {
+                $modelType .= '<' . implode(', ', $models) . '>';
+            }
+
+            $unionTypes[] = $modelType;
+        }
+
+        if (empty($unionTypes)) {
+            return null;
+        }
+
+        return 'Promise<' . implode(' | ', $unionTypes) . '>';
+    }
+
     public function getReturn(array $method, array $spec): string
     {
         if ($method['type'] === 'webAuth') {
@@ -317,6 +365,12 @@ class Web extends JS
 
         if ($method['type'] === 'location') {
             return 'string';
+        }
+
+        // check for union types i.e. multiple response models
+        $unionType = $this->getUnionReturnType($method, $spec);
+        if ($unionType !== null) {
+            return $unionType;
         }
 
         if (array_key_exists('responseModel', $method) && !empty($method['responseModel']) && $method['responseModel'] !== 'any') {
@@ -347,6 +401,7 @@ class Web extends JS
 
             return $ret;
         }
+
         return 'Promise<{}>';
     }
 

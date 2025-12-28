@@ -62,6 +62,12 @@ abstract class Base extends TestCase
         'POST:/v1/mock/tests/general/models/array:passed',
     ];
 
+    protected const UNION_RESPONSES = [
+        'GET:/v1/mock/tests/union:passed',
+        'test-data',
+        'stub',
+    ];
+
     protected const UPLOAD_RESPONSE = [
         'POST:/v1/mock/tests/general/upload:passed',
     ];
