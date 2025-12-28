@@ -1,23 +1,23 @@
 <?php
 
-namespace {{ spec.title | caseUcfirst }}\Services;
+namespace {{ spec.namespace | caseNamespace }}\Services;
 
-use {{ spec.title | caseUcfirst }}\{{spec.title | caseUcfirst}}Exception;
-use {{ spec.title | caseUcfirst }}\Client;
-use {{ spec.title | caseUcfirst }}\Service;
-use {{ spec.title | caseUcfirst }}\InputFile;
+use {{ spec.namespace | caseNamespace }}\{{ spec.namespace | split('\\') | last | caseUcfirst}}Exception;
+use {{ spec.namespace | caseNamespace }}\Client;
+use {{ spec.namespace | caseNamespace }}\Service;
+use {{ spec.namespace | caseNamespace }}\InputFile;
 {% set added = [] %}
 {% for method in service.methods %}
 {% for parameter in method.parameters.all %}
 {% if parameter.enumValues is not empty %}
 {% if parameter.enumName not in added %}
-use {{ spec.title | caseUcfirst }}\Enums\{{ parameter.enumName | caseUcfirst }};
+use {{ spec.namespace | caseNamespace }}\Enums\{{ parameter.enumName | caseUcfirst }};
 {% set added = added|merge([parameter.enumName]) %}
 {% endif %}
 {% endif %}
 {% if parameter.model is not empty and parameter.type != 'array' %}
 {% if parameter.model not in added %}
-use {{ spec.title | caseUcfirst }}\Models\{{ parameter.model | caseUcfirst }};
+use {{ spec.namespace | caseNamespace }}\Models\{{ parameter.model | caseUcfirst }};
 {% set added = added|merge([parameter.model]) %}
 {% endif %}
 {% endif %}
@@ -51,7 +51,7 @@ class {{ service.name | caseUcfirst }} extends Service
 {% for parameter in method.parameters.all %}
      * @param {% if not parameter.required or parameter.nullable %}?{% endif %}{{ parameter | typeName }} ${{ parameter.name | caseCamel | escapeKeyword }}
 {% endfor %}
-     * @throws {{spec.title | caseUcfirst}}Exception
+     * @throws {{ spec.namespace | split('\\') | last | caseUcfirst}}Exception
      * @return {{ method | getReturn }}
 {% if method.deprecated %}
      *

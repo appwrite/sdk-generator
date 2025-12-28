@@ -179,102 +179,102 @@ class PHP extends Language
             ],
             [
                 'scope'         => 'service',
-                'destination'   => 'docs/{{service.name | caseLower}}.md',
+                'destination'   => 'docs/{{ service.name | caseLower }}.md',
                 'template'      => 'php/docs/service.md.twig',
             ],
             [
                 'scope'         => 'method',
-                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseKebab}}.md',
+                'destination'   => 'docs/examples/{{ service.name | caseLower }}/{{ method.name | caseKebab }}.md',
                 'template'      => 'php/docs/example.md.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'src/{{ spec.title | caseUcfirst}}/Client.php',
+                'destination'   => 'src/{{ spec.namespace | caseNamespacePath }}/Client.php',
                 'template'      => 'php/src/Client.php.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'src/{{ spec.title | caseUcfirst}}/Permission.php',
+                'destination'   => 'src/{{ spec.namespace | caseNamespacePath }}/Permission.php',
                 'template'      => 'php/src/Permission.php.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'tests/{{ spec.title | caseUcfirst}}/PermissionTest.php',
+                'destination'   => 'tests/{{ spec.namespace | caseNamespacePath }}/PermissionTest.php',
                 'template'      => 'php/tests/PermissionTest.php.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'src/{{ spec.title | caseUcfirst}}/Role.php',
+                'destination'   => 'src/{{ spec.namespace | caseNamespacePath }}/Role.php',
                 'template'      => 'php/src/Role.php.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'tests/{{ spec.title | caseUcfirst}}/RoleTest.php',
+                'destination'   => 'tests/{{ spec.namespace | caseNamespacePath }}/RoleTest.php',
                 'template'      => 'php/tests/RoleTest.php.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'src/{{ spec.title | caseUcfirst}}/ID.php',
+                'destination'   => 'src/{{ spec.namespace | caseNamespacePath }}/ID.php',
                 'template'      => 'php/src/ID.php.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'tests/{{ spec.title | caseUcfirst}}/IDTest.php',
+                'destination'   => 'tests/{{ spec.namespace | caseNamespacePath }}/IDTest.php',
                 'template'      => 'php/tests/IDTest.php.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'src/{{ spec.title | caseUcfirst}}/Query.php',
+                'destination'   => 'src/{{ spec.namespace | caseNamespacePath }}/Query.php',
                 'template'      => 'php/src/Query.php.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'tests/{{ spec.title | caseUcfirst}}/QueryTest.php',
+                'destination'   => 'tests/{{ spec.namespace | caseNamespacePath }}/QueryTest.php',
                 'template'      => 'php/tests/QueryTest.php.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'src/{{ spec.title | caseUcfirst}}/Operator.php',
+                'destination'   => 'src/{{ spec.namespace | caseNamespacePath }}/Operator.php',
                 'template'      => 'php/src/Operator.php.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'tests/{{ spec.title | caseUcfirst}}/OperatorTest.php',
+                'destination'   => 'tests/{{ spec.namespace | caseNamespacePath }}/OperatorTest.php',
                 'template'      => 'php/tests/OperatorTest.php.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'src/{{ spec.title | caseUcfirst}}/InputFile.php',
+                'destination'   => 'src/{{ spec.namespace | caseNamespacePath }}/InputFile.php',
                 'template'      => 'php/src/InputFile.php.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'src/{{ spec.title | caseUcfirst}}/{{ spec.title | caseUcfirst}}Exception.php',
+                'destination'   => 'src/{{ spec.namespace | caseNamespacePath }}/{{ spec.namespace | split(\'\\\\\') | last | caseUcfirst}}Exception.php',
                 'template'      => 'php/src/Exception.php.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/src/{{ spec.title | caseUcfirst}}/Service.php',
+                'destination'   => '/src/{{ spec.namespace | caseNamespacePath }}/Service.php',
                 'template'      => 'php/src/Service.php.twig',
             ],
             [
                 'scope'         => 'service',
-                'destination'   => '/src/{{ spec.title | caseUcfirst}}/Services/{{service.name | caseUcfirst}}.php',
+                'destination'   => '/src/{{ spec.namespace | caseNamespacePath }}/Services/{{service.name | caseUcfirst}}.php',
                 'template'      => 'php/src/Services/Service.php.twig',
             ],
             [
                 'scope'         => 'service',
-                'destination'   => '/tests/{{ spec.title | caseUcfirst}}/Services/{{service.name | caseUcfirst}}Test.php',
+                'destination'   => '/tests/{{ spec.namespace | caseNamespacePath }}/Services/{{service.name | caseUcfirst}}Test.php',
                 'template'      => 'php/tests/Services/ServiceTest.php.twig',
             ],
             [
                 'scope'         => 'enum',
-                'destination'   => '/src/{{ spec.title | caseUcfirst}}/Enums/{{ enum.name | caseUcfirst }}.php',
+                'destination'   => '/src/{{ spec.namespace | caseNamespacePath }}/Enums/{{ enum.name | caseUcfirst }}.php',
                 'template'      => 'php/src/Enums/Enum.php.twig',
             ],
             [
                 'scope'         => 'requestModel',
-                'destination'   => '/src/{{ spec.title | caseUcfirst}}/Models/{{ requestModel.name | caseUcfirst }}.php',
+                'destination'   => '/src/{{ spec.namespace | caseNamespacePath }}/Models/{{ requestModel.name | caseUcfirst }}.php',
                 'template'      => 'php/src/Models/RequestModel.php.twig',
             ],
         ];
@@ -528,6 +528,24 @@ class PHP extends Language
                     }
                 }
                 return false;
+            }),
+            new TwigFilter('caseNamespace', function ($value) {
+                $segments = explode('\\', $value);
+                $segments = array_map(function ($segment) {
+                    return ucfirst($this->toCamelCase($segment));
+                }, $segments);
+                return implode('\\', $segments);
+            }),
+            new TwigFilter('caseNamespacePath', function ($value) {
+                $segments = explode('\\', $value);
+                $segments = array_map(function ($segment) {
+                    return ucfirst($this->toCamelCase($segment));
+                }, $segments);
+                return implode('/', $segments);
+            }),
+            new TwigFilter('escapeJson', function ($value) {
+                // Escape backslashes for JSON strings
+                return str_replace('\\', '\\\\', $value);
             }),
         ];
     }

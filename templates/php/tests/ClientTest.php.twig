@@ -1,12 +1,12 @@
 <?php
 
-namespace {{ spec.title | caseUcfirst }};
+namespace {{ spec.namespace | caseNamespace }};
 
 use PHPUnit\Framework\TestCase;
 
 final class ClientTest extends TestCase {
     public function testSetEndpointInvalidThrowsException(): void {
-        $this->expectException({{ spec.title | caseUcfirst }}Exception::class);
+        $this->expectException({{ spec.namespace | split('\\') | last | caseUcfirst }}Exception::class);
         $this->expectExceptionMessage('Invalid endpoint URL: invalid-endpoint');
 
         $client = new Client();
@@ -14,7 +14,7 @@ final class ClientTest extends TestCase {
     }
 
     public function testSetEndpointWithoutProtocolThrowsException(): void {
-        $this->expectException({{ spec.title | caseUcfirst }}Exception::class);
+        $this->expectException({{ spec.namespace | split('\\') | last | caseUcfirst }}Exception::class);
         $this->expectExceptionMessage('Invalid endpoint URL: example.com');
 
         $client = new Client();
