@@ -1,0 +1,59 @@
+<?php
+
+namespace {{ spec.title | caseUcfirst }};
+
+use PHPUnit\Framework\TestCase;
+
+final class ClientTest extends TestCase {
+    public function testSetEndpointInvalidThrowsException(): void {
+        $this->expectException({{ spec.title | caseUcfirst }}Exception::class);
+        $this->expectExceptionMessage('Invalid endpoint URL: invalid-endpoint');
+
+        $client = new Client();
+        $client->setEndpoint('invalid-endpoint');
+    }
+
+    public function testSetEndpointWithoutProtocolThrowsException(): void {
+        $this->expectException({{ spec.title | caseUcfirst }}Exception::class);
+        $this->expectExceptionMessage('Invalid endpoint URL: example.com');
+
+        $client = new Client();
+        $client->setEndpoint('example.com');
+    }
+
+    public function testChaining(): void {
+        $client = new Client();
+        $result = $client
+            ->setEndpoint('https://example.com')
+            ->setSelfSigned(true)
+            ->addHeader('X-Test', 'test');
+
+        $this->assertInstanceOf(Client::class, $result);
+    }
+
+    public function testSetEndpointReturnsClient(): void {
+        $client = new Client();
+        $result = $client->setEndpoint('https://example.com');
+        $this->assertSame($client, $result);
+    }
+
+    public function testSetSelfSignedReturnsClient(): void {
+        $client = new Client();
+        $result = $client->setSelfSigned(true);
+        $this->assertSame($client, $result);
+    }
+
+    public function testAddHeaderReturnsClient(): void {
+        $client = new Client();
+        $result = $client->addHeader('X-Custom', 'value');
+        $this->assertSame($client, $result);
+    }
+{% for header in spec.global.headers %}
+
+    public function testSet{{header.key | caseUcfirst}}ReturnsClient(): void {
+        $client = new Client();
+        $result = $client->set{{header.key | caseUcfirst}}('test-value');
+        $this->assertSame($client, $result);
+    }
+{% endfor %}
+}

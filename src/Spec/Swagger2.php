@@ -467,6 +467,16 @@ class Swagger2 extends Spec
                     'name' => $definition['name'],
                     'description' => $definition['description'],
                 ];
+            } elseif (
+                isset($definition['type']) && $definition['type'] === 'http' &&
+                      isset($definition['scheme']) && $definition['scheme'] === 'bearer'
+            ) {
+                $list[] = [
+                    'key' => $key,
+                    'name' => 'Authorization',
+                    'description' => $definition['description'] ?? 'Bearer token authentication',
+                    'type' => 'bearer',
+                ];
             }
         }
 
