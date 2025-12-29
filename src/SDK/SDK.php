@@ -67,7 +67,9 @@ class SDK
         'readme' => '',
         'changelog' => '',
         'examples' => '',
-        'test' => 'false'
+        'test' => 'false',
+        'timeout' => 0,
+        'connectTimeout' => 0,
     ];
 
     /**
@@ -531,10 +533,10 @@ class SDK
 
     /**
      * @param string $key
-     * @param string $value
+     * @param string|int $value
      * @return SDK
      */
-    public function setParam(string $key, string $value): SDK
+    public function setParam(string $key, string|int $value): SDK
     {
         $this->params[$key] = $value;
 
@@ -543,9 +545,9 @@ class SDK
 
     /**
      * @param string $name
-     * @return string
+     * @return string|int
      */
-    public function getParam(string $name): string
+    public function getParam(string $name): string|int
     {
         return $this->params[$name] ?? '';
     }

@@ -22,6 +22,12 @@ class Client
 {% if spec.global.headers | hasBearerAuth %}
     const JWT_MAX_AGE_SECONDS = 3600;
 {% endif %}
+{% if sdk.connectTimeout %}
+    const CONNECT_TIMEOUT_MS = {{ sdk.connectTimeout }};
+{% endif %}
+{% if sdk.timeout %}
+    const TIMEOUT_MS = {{ sdk.timeout }};
+{% endif %}
 
     /**
      * Is Self Signed Certificates Allowed?
@@ -171,6 +177,12 @@ class Client
         curl_setopt($ch, CURLOPT_USERAGENT, php_uname('s') . '-' . php_uname('r') . ':{{ language.name | caseLower }}-' . phpversion());
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, $responseType !== 'location');
+{% if sdk.connectTimeout %}
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT_MS, self::CONNECT_TIMEOUT_MS);
+{% endif %}
+{% if sdk.timeout %}
+        curl_setopt($ch, CURLOPT_TIMEOUT_MS, self::TIMEOUT_MS);
+{% endif %}
         curl_setopt($ch, CURLOPT_HEADERFUNCTION, function($curl, $header) use (&$responseHeaders) {
             $len = strlen($header);
             $header = explode(':', strtolower($header), 2);
