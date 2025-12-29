@@ -628,7 +628,7 @@ class Swagger2 extends Spec
             if ($enumName && !isset($list[$enumName])) {
                 $list[$enumName] = [
                     'name' => $enumName,
-                    'enum' => $enumConfig['values'] ?? [],
+                    'enum' => $enumConfig['enum'] ?? [],
                     'keys' => $enumConfig['keys'] ?? [],
                 ];
             }

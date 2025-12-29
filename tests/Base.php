@@ -371,7 +371,7 @@ abstract class Base extends TestCase
         // x-sdk-enums are included
         $this->assertNotNull($mockPlanEnum, 'x-sdk-enums should be included in response enums');
         $this->assertArrayHasKey('enum', $mockPlanEnum);
-        $this->assertEquals(['free', 'pro', 'scale', 'enterprise'], $mockPlanEnum['enum']);
+        $this->assertEquals(['tier-0', 'tier-1', 'tier-2', 'ent-1'], $mockPlanEnum['enum']);
 
         // x-sdk-enums don't duplicate
         $mockPlanCount = count(array_filter($enums, fn($e) => $e['name'] === 'MockPlan'));

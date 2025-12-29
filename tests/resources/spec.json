@@ -2261,11 +2261,17 @@
   "x-sdk-enums": [
     {
       "name": "MockPlan",
-      "values": [
-        "free",
-        "pro",
-        "scale",
-        "enterprise"
+      "enum": [
+        "tier-0",
+        "tier-1",
+        "tier-2",
+        "ent-1"
+      ],
+      "keys": [
+        "Free",
+        "Pro",
+        "Scale",
+        "Enterprise"
       ]
     }
   ],
