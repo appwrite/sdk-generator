@@ -620,6 +620,20 @@ class Swagger2 extends Spec
     public function getResponseEnums(): array
     {
         $list = [];
+
+        // check for standalone enums list
+        $standaloneEnums = $this->getAttribute('x-sdk-enums', []);
+        foreach ($standaloneEnums as $enumConfig) {
+            $enumName = $enumConfig['name'] ?? null;
+            if ($enumName && !isset($list[$enumName])) {
+                $list[$enumName] = [
+                    'name' => $enumName,
+                    'enum' => $enumConfig['values'] ?? [],
+                    'keys' => $enumConfig['keys'] ?? [],
+                ];
+            }
+        }
+
         $definitions = $this->getDefinitions();
 
         foreach ($definitions as $modelName => $model) {

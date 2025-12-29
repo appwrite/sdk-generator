@@ -343,4 +343,41 @@ abstract class Base extends TestCase
     {
         return new $this->class();
     }
+
+    /**
+     * Test that x-sdk-enums are properly parsed and included in response enums
+     */
+    public function testSDKEnums(): void
+    {
+        $spec = file_get_contents(realpath(__DIR__ . '/resources/spec.json'));
+
+        if (empty($spec)) {
+            throw new \Exception('Failed to parse spec.');
+        }
+
+        $swagger = new Swagger2($spec);
+        $enums = $swagger->getResponseEnums();
+        $enumNames = array_column($enums, 'name');
+
+        // Find MockPlan enum from x-sdk-enums
+        $mockPlanEnum = null;
+        foreach ($enums as $enum) {
+            if ($enum['name'] === 'MockPlan') {
+                $mockPlanEnum = $enum;
+                break;
+            }
+        }
+
+        // x-sdk-enums are included
+        $this->assertNotNull($mockPlanEnum, 'x-sdk-enums should be included in response enums');
+        $this->assertArrayHasKey('enum', $mockPlanEnum);
+        $this->assertEquals(['free', 'pro', 'enterprise'], $mockPlanEnum['enum']);
+
+        // x-sdk-enums don't duplicate
+        $mockPlanCount = count(array_filter($enums, fn($e) => $e['name'] === 'MockPlan'));
+        $this->assertEquals(1, $mockPlanCount, 'x-sdk-enums should not duplicate');
+
+        // regular property-level enums still work
+        $this->assertGreaterThan(1, count($enumNames), 'Both x-sdk-enums and property-level enums should be included');
+    }
 }
