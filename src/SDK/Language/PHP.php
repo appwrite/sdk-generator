@@ -159,6 +159,11 @@ class PHP extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '.gitignore',
+                'template'      => 'php/.gitignore',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'CHANGELOG.md',
                 'template'      => 'php/CHANGELOG.md.twig',
             ],
