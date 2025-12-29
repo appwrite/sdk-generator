@@ -356,7 +356,7 @@ abstract class Base extends TestCase
         }
 
         $swagger = new Swagger2($spec);
-        $enums = $swagger->getResponseEnums();
+        $enums = $swagger->getAllEnums();
         $enumNames = array_column($enums, 'name');
 
         // Find MockPlan enum from x-sdk-enums
