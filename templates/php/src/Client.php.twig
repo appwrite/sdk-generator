@@ -52,6 +52,20 @@ class Client
     ];
 
     /**
+     * Timeout in seconds
+     *
+     * @var int|null
+     */
+    protected ?int $timeout = null;
+
+    /**
+     * Connect timeout in seconds
+     *
+     * @var int|null
+     */
+    protected ?int $connectTimeout = null;
+
+    /**
      * Client constructor.
      */
     public function __construct()
@@ -113,13 +127,37 @@ class Client
     }
 
     /**
+     * Set Timeout
+     *
+     * @param int $timeout Timeout in seconds
+     * @return Client
+     */
+    public function setTimeout(int $timeout): Client
+    {
+        $this->timeout = $timeout;
+        return $this;
+    }
+
+    /**
+     * Set Connect Timeout
+     *
+     * @param int $connectTimeout Connect timeout in seconds
+     * @return Client
+     */
+    public function setConnectTimeout(int $connectTimeout): Client
+    {
+        $this->connectTimeout = $connectTimeout;
+        return $this;
+    }
+
+    /**
      * @param $key
      * @param $value
      */
     public function addHeader(string $key, string $value): Client
     {
         $this->headers[strtolower($key)] = $value;
-        
+
         return $this;
     }
 
@@ -192,6 +230,16 @@ class Client
         if($this->selfSigned) {
             curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        }
+
+        // Set timeout if configured
+        if($this->timeout !== null) {
+            curl_setopt($ch, CURLOPT_TIMEOUT, $this->timeout);
+        }
+
+        // Set connect timeout if configured
+        if($this->connectTimeout !== null) {
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, $this->connectTimeout);
         }
 
         $responseBody   = curl_exec($ch);
