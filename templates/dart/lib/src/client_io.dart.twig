@@ -92,18 +92,14 @@ class ClientIO extends ClientBase with ClientMixin {
   /// Set connect timeout
   ClientIO setConnectTimeout(Duration timeout) {
     _connectTimeout = timeout;
-    if (_connectTimeout != null) {
-      _nativeClient.connectionTimeout = _connectTimeout;
-    }
+    _nativeClient.connectionTimeout = timeout;
     return this;
   }
 
   /// Set request timeout
   ClientIO setTimeout(Duration timeout) {
     _timeout = timeout;
-    if (_timeout != null) {
-      _nativeClient.idleTimeout = _timeout;
-    }
+    _nativeClient.idleTimeout = timeout;
     return this;
   }
 
