@@ -1,5 +1,19 @@
 import Foundation
 
+/**
+ * Protocol for channel values that can be converted to strings
+ */
+public protocol ChannelValue {
+    func toString() -> String
+}
+
+// Make String conform to ChannelValue
+extension String: ChannelValue {
+    public func toString() -> String {
+        return self
+    }
+}
+
 // The result of building the channel.
 public final class ResolvedChannel {
     private let value: String
@@ -20,7 +34,7 @@ private func normalize(_ id: String) -> String {
 }
 
 // Protocol for actionable channels
-public protocol Actionable {
+public protocol Actionable: ChannelValue {
     var channel: String { get }
     func create() -> ResolvedChannel
     func update() -> ResolvedChannel
@@ -58,6 +72,45 @@ public protocol IFunction {
 }
 
 public protocol IExecution: Actionable {}
+
+// Protocol extensions to provide default parameter overloads
+// Swift doesn't allow default parameters in protocol requirements,
+// so we provide overloaded methods without parameters
+extension IDatabase {
+    public func collection() -> ICollection {
+        return collection("*")
+    }
+}
+
+extension ICollection {
+    public func document() -> IDocument {
+        return document("*")
+    }
+}
+
+extension ITablesDB {
+    public func table() -> ITable {
+        return table("*")
+    }
+}
+
+extension ITable {
+    public func row() -> IRow {
+        return row("*")
+    }
+}
+
+extension IBucket {
+    public func file() -> IFile {
+        return file("*")
+    }
+}
+
+extension IFunction {
+    public func execution() -> IExecution {
+        return execution("*")
+    }
+}
 
 final class ChannelBuilder:
     IDatabase, ICollection, IDocument,
@@ -109,16 +162,20 @@ final class ChannelBuilder:
         segments.joined(separator: ".")
     }
 
+    func toString() -> String {
+        return channel
+    }
+
     func create() -> ResolvedChannel {
-        ResolvedChannel("\(channel).create")
+        ResolvedChannel(value: "\(channel).create")
     }
 
     func update() -> ResolvedChannel {
-        ResolvedChannel("\(channel).update")
+        ResolvedChannel(value: "\(channel).update")
     }
 
     func delete() -> ResolvedChannel {
-        ResolvedChannel("\(channel).delete")
+        ResolvedChannel(value: "\(channel).delete")
     }
 }
 

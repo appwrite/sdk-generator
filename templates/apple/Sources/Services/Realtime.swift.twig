@@ -3,22 +3,6 @@ import AsyncHTTPClient
 import NIO
 import NIOHTTP1
 
-/**
- * Protocol for channel values that can be converted to strings
- */
-public protocol ChannelValue {
-    func toString() -> String
-}
-
-extension String: ChannelValue {
-    public func toString() -> String {
-        return self
-    }
-}
-
-extension ResolvedChannel: ChannelValue {}
-extension ActionChannel: ChannelValue {}
-
 open class Realtime : Service {
 
     private let TYPE_ERROR = "error"
@@ -135,20 +119,8 @@ open class Realtime : Service {
 
     /**
      * Convert channel value to string
-     * Checks if it's an Actionable instance (use .channel), 
-     * then ResolvedChannel (use .toString()), 
-     * otherwise treats as string
      */
     private func channelToString(_ channel: ChannelValue) -> String {
-        // Check if it's an Actionable instance (has channel property)
-        if let actionable = channel as? Actionable {
-            return actionable.channel
-        }
-        // Check if it's a ResolvedChannel (has toString() method)
-        if let resolved = channel as? ResolvedChannel {
-            return resolved.toString()
-        }
-        // Otherwise use toString() (works for strings and other channel types)
         return channel.toString()
     }
 
@@ -252,7 +224,7 @@ open class Realtime : Service {
 
 extension Realtime: WebSocketClientDelegate {
 
-    public func onOpen(channel: Channel) {
+    public func onOpen(channel: NIO.Channel) {
         self.reconnectAttempts = 0
         onOpenCallbacks.forEach { $0() }
         startHeartbeat()
@@ -272,7 +244,7 @@ extension Realtime: WebSocketClientDelegate {
         }
     }
 
-    public func onClose(channel: Channel, data: Data) async throws {
+    public func onClose(channel: NIO.Channel, data: Data) async throws {
         stopHeartbeat()
 
         onCloseCallbacks.forEach { $0() }
