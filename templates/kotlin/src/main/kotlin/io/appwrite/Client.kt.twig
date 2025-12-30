@@ -105,7 +105,14 @@ class Client @JvmOverloads constructor(
      */
     fun setSelfSigned(status: Boolean): Client {
         selfSigned = status
+        recreateHttpClient()
+        return this
+    }
 
+    /**
+     * Recreate the HTTP client with current configuration
+     */
+    private fun recreateHttpClient() {
         val builder = OkHttpClient()
             .newBuilder()
 
@@ -121,7 +128,7 @@ class Client @JvmOverloads constructor(
         if (!selfSigned) {
             http = builder.build()
             httpForRedirect = builder.followRedirects(false).build()
-            return this
+            return
         }
 
         try {
@@ -153,8 +160,6 @@ class Client @JvmOverloads constructor(
         } catch (e: Exception) {
             throw RuntimeException(e)
         }
-
-        return this
     }
 
     /**
@@ -183,7 +188,7 @@ class Client @JvmOverloads constructor(
      */
     fun setConnectTimeout(timeout: Long): Client {
         this.connectTimeout = timeout
-        setSelfSigned(selfSigned)
+        recreateHttpClient()
         return this
     }
 
@@ -196,7 +201,7 @@ class Client @JvmOverloads constructor(
      */
     fun setTimeout(timeout: Long): Client {
         this.timeout = timeout
-        setSelfSigned(selfSigned)
+        recreateHttpClient()
         return this
     }
 
