@@ -31,6 +31,20 @@ class Client
     protected bool $selfSigned = false;
 
     /**
+     * Connect timeout in seconds
+     *
+     * @var int|null
+     */
+    protected ?int $connectTimeout = null;
+
+    /**
+     * Request timeout in seconds
+     *
+     * @var int|null
+     */
+    protected ?int $timeout = null;
+
+    /**
      * Service host name
      *
      * @var string
@@ -94,6 +108,32 @@ class Client
     public function setSelfSigned(bool $status = true): Client
     {
         $this->selfSigned = $status;
+
+        return $this;
+    }
+
+    /***
+     * Set connect timeout in seconds
+     *
+     * @param int $timeout
+     * @return $this
+     */
+    public function setConnectTimeout(int $timeout): Client
+    {
+        $this->connectTimeout = $timeout;
+
+        return $this;
+    }
+
+    /***
+     * Set request timeout in seconds
+     *
+     * @param int $timeout
+     * @return $this
+     */
+    public function setTimeout(int $timeout): Client
+    {
+        $this->timeout = $timeout;
 
         return $this;
     }
@@ -171,6 +211,15 @@ class Client
         curl_setopt($ch, CURLOPT_USERAGENT, php_uname('s') . '-' . php_uname('r') . ':{{ language.name | caseLower }}-' . phpversion());
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, $responseType !== 'location');
+
+        if ($this->connectTimeout !== null) {
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, $this->connectTimeout);
+        }
+
+        if ($this->timeout !== null) {
+            curl_setopt($ch, CURLOPT_TIMEOUT, $this->timeout);
+        }
+
         curl_setopt($ch, CURLOPT_HEADERFUNCTION, function($curl, $header) use (&$responseHeaders) {
             $len = strlen($header);
             $header = explode(':', strtolower($header), 2);

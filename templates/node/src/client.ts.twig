@@ -75,6 +75,8 @@ class Client {
         {{ header.key | caseLower }}: '',
         {%~ endfor %}
     };
+    private connectTimeout?: number;
+    private timeout?: number;
     headers: Headers = {
         'x-sdk-name': '{{ sdk.name }}',
         'x-sdk-platform': '{{ sdk.platform }}',
@@ -127,6 +129,32 @@ class Client {
     }
 
     /**
+     * Set connect timeout in milliseconds
+     *
+     * @param {number} timeout
+     *
+     * @returns {this}
+     */
+    setConnectTimeout(timeout: number): this {
+        this.connectTimeout = timeout;
+
+        return this;
+    }
+
+    /**
+     * Set request timeout in milliseconds
+     *
+     * @param {number} timeout
+     *
+     * @returns {this}
+     */
+    setTimeout(timeout: number): this {
+        this.timeout = timeout;
+
+        return this;
+    }
+
+    /**
      * Add header
      *
      * @param {string} header
@@ -164,11 +192,20 @@ class Client {
 
         headers = Object.assign({}, this.headers, headers);
 
+        const agentOptions: any = { rejectUnauthorized: !this.config.selfSigned };
+        if (this.connectTimeout !== undefined) {
+            agentOptions.timeout = this.connectTimeout;
+        }
+
         let options: RequestInit = {
             method,
             headers,
-            ...createAgent(this.config.endpoint, { rejectUnauthorized: !this.config.selfSigned }),
+            ...createAgent(this.config.endpoint, agentOptions),
         };
+
+        if (this.timeout !== undefined) {
+            options.signal = AbortSignal.timeout(this.timeout);
+        }
 
         if (method === 'GET') {
             for (const [key, value] of Object.entries(Client.flatten(params))) {

@@ -36,6 +36,12 @@ abstract class Client {
   /// Set the {{spec.title | caseUcfirst}} endpoint.
   Client setEndpoint(String endPoint);
 
+  /// Set connect timeout
+  Client setConnectTimeout(Duration timeout);
+
+  /// Set request timeout
+  Client setTimeout(Duration timeout);
+
 {% for header in spec.global.headers %}
   /// Set {{header.key | caseUcfirst}}
 {% if header.description %}

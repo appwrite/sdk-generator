@@ -12,6 +12,8 @@ class Client:
     def __init__(self):
         self._chunk_size = 5*1024*1024
         self._self_signed = False
+        self._connect_timeout = None
+        self._timeout = None
         self._endpoint = '{{spec.endpoint}}'
         self._global_headers = {
             'content-type': '',
@@ -27,6 +29,16 @@ class Client:
 
     def set_self_signed(self, status=True):
         self._self_signed = status
+        return self
+
+    def set_connect_timeout(self, timeout):
+        """Set connect timeout in seconds"""
+        self._connect_timeout = timeout
+        return self
+
+    def set_timeout(self, timeout):
+        """Set request timeout in seconds"""
+        self._timeout = timeout
         return self
 
     def set_endpoint(self, endpoint):
@@ -79,18 +91,32 @@ class Client:
                     del data[key]
             data = self.flatten(data, stringify=stringify)
 
+        # Build timeout tuple for requests
+        timeout_param = None
+        if self._connect_timeout is not None and self._timeout is not None:
+            timeout_param = (self._connect_timeout, self._timeout)
+        elif self._connect_timeout is not None:
+            timeout_param = (self._connect_timeout, None)
+        elif self._timeout is not None:
+            timeout_param = self._timeout
+
         response = None
         try:
-            response = requests.request(  # call method dynamically https://stackoverflow.com/a/4246075/2299554
-                method=method,
-                url=self._endpoint + path,
-                params=self.flatten(params, stringify=stringify),
-                data=data,
-                files=files,
-                headers=headers,
-                verify=(not self._self_signed),
-                allow_redirects=False if response_type == 'location' else True
-            )
+            request_params = {
+                'method': method,
+                'url': self._endpoint + path,
+                'params': self.flatten(params, stringify=stringify),
+                'data': data,
+                'files': files,
+                'headers': headers,
+                'verify': (not self._self_signed),
+                'allow_redirects': False if response_type == 'location' else True
+            }
+
+            if timeout_param is not None:
+                request_params['timeout'] = timeout_param
+
+            response = requests.request(**request_params)
 
             response.raise_for_status()
 

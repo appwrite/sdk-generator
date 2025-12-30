@@ -7,8 +7,10 @@ export interface Payload {
 export class Client {
     static CHUNK_SIZE = 5*1024*1024; // 5MB
     static DENO_READ_CHUNK_SIZE = 16384; // 16kb; refference: https://github.com/denoland/deno/discussions/9906
-    
+
     endpoint: string = '{{spec.endpoint}}';
+    private connectTimeout?: number;
+    private timeout?: number;
     headers: Payload = {
         'content-type': '',
         'user-agent' : `{{spec.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} (${Deno.build.os}; ${Deno.build.arch})`,
@@ -59,6 +61,30 @@ export class Client {
     }
 
     /**
+     * Set connect timeout in milliseconds
+     *
+     * @param timeout number
+     * @return this
+     */
+    setConnectTimeout(timeout: number): this {
+        this.connectTimeout = timeout;
+
+        return this;
+    }
+
+    /**
+     * Set request timeout in milliseconds
+     *
+     * @param timeout number
+     * @return this
+     */
+    setTimeout(timeout: number): this {
+        this.timeout = timeout;
+
+        return this;
+    }
+
+    /**
      * @param key string
      * @param value string
      */
@@ -97,12 +123,18 @@ export class Client {
 
         let response = undefined;
         try {
-            response = await fetch(url.toString(), {
+            const fetchOptions: RequestInit = {
                 redirect: responseType === "location" ? "manual" : "follow",
                 method: method.toUpperCase(),
                 headers,
                 body
-            });
+            };
+
+            if (this.timeout !== undefined) {
+                fetchOptions.signal = AbortSignal.timeout(this.timeout);
+            }
+
+            response = await fetch(url.toString(), fetchOptions);
 
             const warnings = response.headers.get('x-{{ spec.title | lower }}-warning');
             if (warnings) {

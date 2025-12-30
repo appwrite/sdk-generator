@@ -9,6 +9,7 @@ import (
 	"io"
 	"io/ioutil"
 	"mime/multipart"
+	"net"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -62,12 +63,13 @@ func (ce *{{ spec.title | caseUcfirst }}Error) GetResponse() string {
 
 // Client is the client struct to access {{ spec.title | caseUcfirst }}  services
 type Client struct {
-	Client     *http.Client
-	Headers    map[string]string
-	Endpoint   string
-	Timeout    time.Duration
-	SelfSigned bool
-	ChunkSize  int64
+	Client         *http.Client
+	Headers        map[string]string
+	Endpoint       string
+	Timeout        time.Duration
+	ConnectTimeout time.Duration
+	SelfSigned     bool
+	ChunkSize      int64
 }
 
 // Initialize a new {{ spec.title | caseUcfirst }} client with a given timeout
@@ -125,6 +127,18 @@ type ClientOption func(*Client) error
 // AddHeader add a new custom header that the Client should send on each request
 func (client *Client) AddHeader(key string, value string) {
 	client.Headers[key] = value
+}
+
+// SetConnectTimeout sets the connect timeout for HTTP requests
+func (client *Client) SetConnectTimeout(timeout time.Duration) *Client {
+	client.ConnectTimeout = timeout
+	return client
+}
+
+// SetTimeout sets the overall timeout for HTTP requests
+func (client *Client) SetTimeout(timeout time.Duration) *Client {
+	client.Timeout = timeout
+	return client
 }
 
 func isFileUpload(headers map[string]interface{}) bool {
@@ -237,16 +251,36 @@ func (client *Client) FileUpload(url string, headers map[string]interface{}, par
 // Call an API using Client
 func (client *Client) Call(method string, path string, headers map[string]interface{}, params map[string]interface{}) (*ClientResponse, error) {
 	if client.Client == nil {
-		// Create HTTP client
-		httpClient, err := GetDefaultClient(client.Timeout)
+		// Create HTTP client with custom timeouts if set
+		jar, err := cookiejar.New(nil)
 		if err != nil {
 			panic(err)
 		}
-		client.Client = httpClient
-	}
 
-	if client.SelfSigned {
-		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+		transport := &http.Transport{}
+
+		if client.ConnectTimeout > 0 {
+			transport.DialContext = (&net.Dialer{
+				Timeout: client.ConnectTimeout,
+			}).DialContext
+		}
+
+		if client.SelfSigned {
+			transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+		}
+
+		httpClient := &http.Client{
+			Jar:       jar,
+			Transport: transport,
+		}
+
+		if client.Timeout > 0 {
+			httpClient.Timeout = client.Timeout
+		} else {
+			httpClient.Timeout = defaultTimeout
+		}
+
+		client.Client = httpClient
 	}
 
 	urlPath := client.Endpoint + path

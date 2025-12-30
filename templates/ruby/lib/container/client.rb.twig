@@ -23,6 +23,8 @@ module {{ spec.title | caseUcfirst }}
 
             }
             @endpoint = '{{spec.endpoint}}'
+            @connect_timeout = nil
+            @timeout = nil
         end
 
 {% for header in spec.global.headers %}
@@ -64,6 +66,28 @@ module {{ spec.title | caseUcfirst }}
         # @return [self]
         def set_self_signed(self_signed = true)
             @self_signed = self_signed
+
+            self
+        end
+
+        # Set connect timeout in seconds
+        #
+        # @param [Integer] timeout The connect timeout in seconds
+        #
+        # @return [self]
+        def set_connect_timeout(timeout)
+            @connect_timeout = timeout
+
+            self
+        end
+
+        # Set request timeout in seconds
+        #
+        # @param [Integer] timeout The request timeout in seconds
+        #
+        # @return [self]
+        def set_timeout(timeout)
+            @timeout = timeout
 
             self
         end
@@ -204,6 +228,15 @@ module {{ spec.title | caseUcfirst }}
 
             @http = Net::HTTP.new(uri.host, uri.port) unless defined? @http
             @http.use_ssl = !@self_signed
+
+            if @connect_timeout
+                @http.open_timeout = @connect_timeout
+            end
+
+            if @timeout
+                @http.read_timeout = @timeout
+            end
+
             payload = ''
 
             headers = @headers.merge(headers)

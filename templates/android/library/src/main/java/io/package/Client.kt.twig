@@ -64,6 +64,9 @@ class Client @JvmOverloads constructor(
 
     val config: MutableMap<String, String>
 
+    private var connectTimeout: Long = 0
+    private var timeout: Long = 0
+
     internal val cookieJar = ListenableCookieJar(CookieManager(
         SharedPreferencesCookieStore(context.getSharedPreferences(COOKIE_PREFS, Context.MODE_PRIVATE)),
         CookiePolicy.ACCEPT_ALL
@@ -131,6 +134,15 @@ class Client @JvmOverloads constructor(
         val builder = OkHttpClient()
             .newBuilder()
             .cookieJar(cookieJar)
+
+        if (connectTimeout > 0) {
+            builder.connectTimeout(connectTimeout, java.util.concurrent.TimeUnit.MILLISECONDS)
+        }
+
+        if (timeout > 0) {
+            builder.readTimeout(timeout, java.util.concurrent.TimeUnit.MILLISECONDS)
+            builder.writeTimeout(timeout, java.util.concurrent.TimeUnit.MILLISECONDS)
+        }
 
         if (!selfSigned) {
             http = builder.build()
@@ -203,6 +215,32 @@ class Client @JvmOverloads constructor(
         }
 
         this.endpointRealtime = endpoint
+        return this
+    }
+
+    /**
+     * Set connect timeout in milliseconds
+     *
+     * @param timeout
+     *
+     * @return this
+     */
+    fun setConnectTimeout(timeout: Long): Client {
+        this.connectTimeout = timeout
+        setSelfSigned(selfSigned)
+        return this
+    }
+
+    /**
+     * Set request timeout in milliseconds
+     *
+     * @param timeout
+     *
+     * @return this
+     */
+    fun setTimeout(timeout: Long): Client {
+        this.timeout = timeout
+        setSelfSigned(selfSigned)
         return this
     }
 

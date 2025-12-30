@@ -24,6 +24,8 @@ namespace {{ spec.title | caseUcfirst }}
         private readonly Dictionary<string, string> _headers;
         private readonly Dictionary<string, string> _config;
         private string _endpoint;
+        private TimeSpan? _connectTimeout;
+        private TimeSpan? _timeout;
 
         private static readonly int ChunkSize = 5 * 1024 * 1024;
 
@@ -59,12 +61,22 @@ namespace {{ spec.title | caseUcfirst }}
             HttpClient? httpForRedirect = null)
         {
             _endpoint = endpoint;
-            _http = http ?? new HttpClient();
 
-            _httpForRedirect = httpForRedirect ?? new HttpClient(
-                new HttpClientHandler(){
-                    AllowAutoRedirect = false
-                });
+            var handler = new HttpClientHandler();
+            if (selfSigned)
+            {
+                handler.ServerCertificateCustomValidationCallback = (request, cert, chain, errors) => true;
+            }
+
+            _http = http ?? new HttpClient(handler);
+
+            var redirectHandler = new HttpClientHandler() { AllowAutoRedirect = false };
+            if (selfSigned)
+            {
+                redirectHandler.ServerCertificateCustomValidationCallback = (request, cert, chain, errors) => true;
+            }
+
+            _httpForRedirect = httpForRedirect ?? new HttpClient(redirectHandler);
 
             _headers = new Dictionary<string, string>()
             {
@@ -109,6 +121,25 @@ namespace {{ spec.title | caseUcfirst }}
             }
 
             _endpoint = endpoint;
+            return this;
+        }
+
+        /// <summary>Set connect timeout</summary>
+        public Client SetConnectTimeout(TimeSpan timeout)
+        {
+            _connectTimeout = timeout;
+            return this;
+        }
+
+        /// <summary>Set request timeout</summary>
+        public Client SetTimeout(TimeSpan timeout)
+        {
+            _timeout = timeout;
+            if (_timeout.HasValue)
+            {
+                _http.Timeout = _timeout.Value;
+                _httpForRedirect.Timeout = _timeout.Value;
+            }
             return this;
         }
 

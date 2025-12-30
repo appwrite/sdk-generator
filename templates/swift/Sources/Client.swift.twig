@@ -34,6 +34,10 @@ open class Client {
 
     internal var selfSigned: Bool = false
 
+    internal var connectTimeout: TimeAmount = .seconds(30)
+
+    internal var timeout: TimeAmount = .seconds(30)
+
     internal var http: HTTPClient
 
     internal var httpForRedirect: HTTPClient
@@ -47,8 +51,8 @@ open class Client {
     // MARK: Methods
 
     public init() {
-        http = Client.createHTTP()
-        httpForRedirect = Client.createHTTP(redirectConfiguration: .disallow)
+        http = Client.createHTTP(connectTimeout: connectTimeout, readTimeout: timeout)
+        httpForRedirect = Client.createHTTP(redirectConfiguration: .disallow, connectTimeout: connectTimeout, readTimeout: timeout)
         addUserAgentHeader()
         addOriginHeader()
     }
@@ -121,7 +125,39 @@ open class Client {
     open func setSelfSigned(_ status: Bool = true) -> Client {
         self.selfSigned = status
         try! http.syncShutdown()
-        http = Client.createHTTP(selfSigned: status)
+        http = Client.createHTTP(selfSigned: status, connectTimeout: connectTimeout, readTimeout: timeout)
+        return self
+    }
+
+    ///
+    /// Set connect timeout
+    ///
+    /// @param TimeAmount timeout
+    ///
+    /// @return Client
+    ///
+    open func setConnectTimeout(_ timeout: TimeAmount) -> Client {
+        self.connectTimeout = timeout
+        try! http.syncShutdown()
+        try! httpForRedirect.syncShutdown()
+        http = Client.createHTTP(selfSigned: selfSigned, connectTimeout: connectTimeout, readTimeout: self.timeout)
+        httpForRedirect = Client.createHTTP(selfSigned: selfSigned, redirectConfiguration: .disallow, connectTimeout: connectTimeout, readTimeout: self.timeout)
+        return self
+    }
+
+    ///
+    /// Set request timeout
+    ///
+    /// @param TimeAmount timeout
+    ///
+    /// @return Client
+    ///
+    open func setTimeout(_ timeout: TimeAmount) -> Client {
+        self.timeout = timeout
+        try! http.syncShutdown()
+        try! httpForRedirect.syncShutdown()
+        http = Client.createHTTP(selfSigned: selfSigned, connectTimeout: connectTimeout, readTimeout: self.timeout)
+        httpForRedirect = Client.createHTTP(selfSigned: selfSigned, redirectConfiguration: .disallow, connectTimeout: connectTimeout, readTimeout: self.timeout)
         return self
     }
 

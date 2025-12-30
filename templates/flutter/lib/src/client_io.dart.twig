@@ -35,6 +35,8 @@ class ClientIO extends ClientBase with ClientMixin {
   late HttpClient _nativeClient;
   late CookieJar _cookieJar;
   final List<Interceptor> _interceptors = [];
+  Duration? _connectTimeout;
+  Duration? _timeout;
 
   bool get initProgress => _initProgress;
   bool get initialized => _initialized;
@@ -125,6 +127,24 @@ class ClientIO extends ClientBase with ClientMixin {
     }
 
     _endPointRealtime = endPoint;
+    return this;
+  }
+
+  /// Set connect timeout
+  ClientIO setConnectTimeout(Duration timeout) {
+    _connectTimeout = timeout;
+    if (_connectTimeout != null) {
+      _nativeClient.connectionTimeout = _connectTimeout;
+    }
+    return this;
+  }
+
+  /// Set request timeout
+  ClientIO setTimeout(Duration timeout) {
+    _timeout = timeout;
+    if (_timeout != null) {
+      _nativeClient.idleTimeout = _timeout;
+    }
     return this;
   }
 

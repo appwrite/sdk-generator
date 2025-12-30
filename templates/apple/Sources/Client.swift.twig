@@ -36,6 +36,10 @@ open class Client {
 
     internal var selfSigned: Bool = false
 
+    internal var connectTimeout: TimeAmount = .seconds(30)
+
+    internal var timeout: TimeAmount = .seconds(30)
+
     internal var http: HTTPClient
 
     private static let boundaryChars = "abcdefghijklmnopqrstuvwxyz1234567890"
@@ -47,7 +51,7 @@ open class Client {
     // MARK: Methods
 
     public init() {
-        http = Client.createHTTP()
+        http = Client.createHTTP(connectTimeout: connectTimeout, readTimeout: timeout)
         addUserAgentHeader()
         addOriginHeader()
     }
@@ -123,7 +127,35 @@ open class Client {
     open func setSelfSigned(_ status: Bool = true) -> Client {
         self.selfSigned = status
         try! http.syncShutdown()
-        http = Client.createHTTP(selfSigned: status)
+        http = Client.createHTTP(selfSigned: status, connectTimeout: connectTimeout, readTimeout: timeout)
+        return self
+    }
+
+    ///
+    /// Set connect timeout
+    ///
+    /// @param TimeAmount timeout
+    ///
+    /// @return Client
+    ///
+    open func setConnectTimeout(_ timeout: TimeAmount) -> Client {
+        self.connectTimeout = timeout
+        try! http.syncShutdown()
+        http = Client.createHTTP(selfSigned: selfSigned, connectTimeout: connectTimeout, readTimeout: self.timeout)
+        return self
+    }
+
+    ///
+    /// Set request timeout
+    ///
+    /// @param TimeAmount timeout
+    ///
+    /// @return Client
+    ///
+    open func setTimeout(_ timeout: TimeAmount) -> Client {
+        self.timeout = timeout
+        try! http.syncShutdown()
+        http = Client.createHTTP(selfSigned: selfSigned, connectTimeout: connectTimeout, readTimeout: self.timeout)
         return self
     }
 
