@@ -311,7 +311,6 @@ class Client {
         {{ header.key | caseLower }}: '',
         {%~ endfor %}
     };
-    private connectTimeout?: number;
     private timeout?: number;
     /**
      * Custom headers for API requests.
@@ -367,19 +366,6 @@ class Client {
         }
 
         this.config.endpointRealtime = endpointRealtime;
-        return this;
-    }
-
-    /**
-     * Set connect timeout in milliseconds
-     *
-     * @param {number} timeout
-     *
-     * @returns {this}
-     */
-    setConnectTimeout(timeout: number): this {
-        this.connectTimeout = timeout;
-
         return this;
     }
 

@@ -9,7 +9,6 @@ export class Client {
     static DENO_READ_CHUNK_SIZE = 16384; // 16kb; refference: https://github.com/denoland/deno/discussions/9906
 
     endpoint: string = '{{spec.endpoint}}';
-    private connectTimeout?: number;
     private timeout?: number;
     headers: Payload = {
         'content-type': '',
@@ -57,18 +56,6 @@ export class Client {
         }
 
         this.endpoint = endpoint;
-        return this;
-    }
-
-    /**
-     * Set connect timeout in milliseconds
-     *
-     * @param timeout number
-     * @return this
-     */
-    setConnectTimeout(timeout: number): this {
-        this.connectTimeout = timeout;
-
         return this;
     }
 

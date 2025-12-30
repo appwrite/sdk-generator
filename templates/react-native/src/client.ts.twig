@@ -109,7 +109,6 @@ class Client {
 {% endfor %}
         platform: '',
     };
-    private connectTimeout?: number;
     private timeout?: number;
     headers: Headers = {
         'x-sdk-name': '{{ sdk.name }}',
@@ -175,19 +174,6 @@ class Client {
      */
     setPlatform(platform: string): this {
         this.config.platform = platform;
-
-        return this;
-    }
-
-    /**
-     * Set connect timeout in milliseconds
-     *
-     * @param {number} timeout
-     *
-     * @returns {this}
-     */
-    setConnectTimeout(timeout: number): this {
-        this.connectTimeout = timeout;
 
         return this;
     }
