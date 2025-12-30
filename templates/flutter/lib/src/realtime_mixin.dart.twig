@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:web_socket_channel/status.dart' as status;
-import 'package:{{ language.params.packageName }}/{{ language.params.packageName }}.dart';
 import 'exception.dart';
 import 'realtime_subscription.dart';
 import 'client.dart';
@@ -175,13 +174,18 @@ mixin RealtimeMixin {
       return channel;
     }
     // Check if it's an Actionable instance (has channel getter)
-    if (channel is Actionable) {
-      return channel.channel;
+    // Use dynamic to avoid import conflicts with part file types
+    final dynamic ch = channel;
+    try {
+      // Try to access the channel property (Actionable interface)
+      final channelValue = ch.channel;
+      if (channelValue is String) {
+        return channelValue;
+      }
+    } catch (_) {
+      // Not an Actionable, fall through to toString()
     }
-    // Check if it's a ResolvedChannel (has toString() method)
-    if (channel is ResolvedChannel) {
-      return channel.toString();
-    }
+    // Check if it's a ResolvedChannel or any other type with toString()
     return channel.toString();
   }
 
