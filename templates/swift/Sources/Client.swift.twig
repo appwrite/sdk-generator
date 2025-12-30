@@ -34,9 +34,9 @@ open class Client {
 
     internal var selfSigned: Bool = false
 
-    internal var connectTimeout: TimeAmount = .seconds(30)
+    internal var connectTimeout: TimeAmount = HTTPClient.Configuration.Timeout().connect!
 
-    internal var timeout: TimeAmount = .seconds(30)
+    internal var timeout: TimeAmount = HTTPClient.Configuration.Timeout().read!
 
     internal var http: HTTPClient
 
@@ -60,8 +60,8 @@ open class Client {
     private static func createHTTP(
         selfSigned: Bool = false,
         redirectConfiguration: HTTPClient.Configuration.RedirectConfiguration = .follow(max: 5, allowCycles: false),
-        connectTimeout: TimeAmount = .seconds(30),
-        readTimeout: TimeAmount = .seconds(30)
+        connectTimeout: TimeAmount,
+        readTimeout: TimeAmount
     ) -> HTTPClient {
         let timeout = HTTPClient.Configuration.Timeout(
             connect: connectTimeout,
