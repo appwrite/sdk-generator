@@ -100,6 +100,16 @@ class ClientBrowser extends ClientBase with ClientMixin {
   }
 
   @override
+  ClientBrowser setConnectTimeout(Duration timeout) {
+    return this;
+  }
+
+  @override
+  ClientBrowser setTimeout(Duration timeout) {
+    return this;
+  }
+
+  @override
   ClientBrowser addHeader(String key, String value) {
     _headers![key] = value;
 
