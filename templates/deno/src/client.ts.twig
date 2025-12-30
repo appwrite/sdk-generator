@@ -109,27 +109,41 @@ export class Client {
         }
 
         let response = undefined;
+        let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+        const fetchOptions: RequestInit = {
+            redirect: responseType === "location" ? "manual" : "follow",
+            method: method.toUpperCase(),
+            headers,
+            body
+        };
+
+        if (this.timeout !== undefined) {
+            const controller = new AbortController();
+            timeoutId = setTimeout(() => controller.abort(), this.timeout);
+            fetchOptions.signal = controller.signal;
+        }
+
         try {
-            const fetchOptions: RequestInit = {
-                redirect: responseType === "location" ? "manual" : "follow",
-                method: method.toUpperCase(),
-                headers,
-                body
-            };
-
-            if (this.timeout !== undefined) {
-                const controller = new AbortController();
-                setTimeout(() => controller.abort(), this.timeout);
-                fetchOptions.signal = controller.signal;
-            }
-
             response = await fetch(url.toString(), fetchOptions);
+
+            if (timeoutId !== undefined) {
+                clearTimeout(timeoutId);
+            }
 
             const warnings = response.headers.get('x-{{ spec.title | lower }}-warning');
             if (warnings) {
                 warnings.split(';').forEach((warning: string) => console.warn('Warning: ' + warning));
             }
         } catch (error) {
+            if (timeoutId !== undefined) {
+                clearTimeout(timeoutId);
+            }
+
+            if (error instanceof DOMException && error.name === 'AbortError') {
+                throw new {{spec.title | caseUcfirst}}Exception('Request timed out', 408, 'timeout', '');
+            }
+
             throw new {{spec.title | caseUcfirst}}Exception(error.message);
         }
 

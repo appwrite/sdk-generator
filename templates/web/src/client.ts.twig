@@ -624,12 +624,6 @@ class Client {
             headers,
         };
 
-        if (this.timeout !== undefined) {
-            const controller = new AbortController();
-            setTimeout(() => controller.abort(), this.timeout);
-            options.signal = controller.signal;
-        }
-
         if (headers['X-Appwrite-Dev-Key'] === undefined) {
             options.credentials = 'include';
         }
@@ -724,52 +718,80 @@ class Client {
         const { uri, options } = this.prepareRequest(method, url, headers, params);
 
         let data: any = null;
+        let timeoutId: ReturnType<typeof setTimeout> | undefined;
+        let controller: AbortController | undefined;
 
-        const response = await fetch(uri, options);
-
-        // type opaque: No-CORS, different-origin response (CORS-issue)
-        if (response.type === 'opaque') {
-            throw new {{spec.title | caseUcfirst}}Exception(
-                `Invalid Origin. Register your new client (${window.location.host}) as a new Web platform on your project console dashboard`,
-                403,
-                "forbidden",
-                ""
-            );
+        if (this.timeout !== undefined) {
+            controller = new AbortController();
+            timeoutId = setTimeout(() => controller!.abort(), this.timeout);
+            options.signal = controller.signal;
         }
 
-        const warnings = response.headers.get('x-{{ spec.title | lower }}-warning');
-        if (warnings) {
-            warnings.split(';').forEach((warning: string) => console.warn('Warning: ' + warning));
-        }
+        try {
+            const response = await fetch(uri, options);
 
-        if (response.headers.get('content-type')?.includes('application/json')) {
-            data = await response.json();
-        } else if (responseType === 'arrayBuffer') {
-            data = await response.arrayBuffer();
-        } else {
-            data = {
-                message: await response.text()
-            };
-        }
-
-        if (400 <= response.status) {
-            let responseText = '';
-            if (response.headers.get('content-type')?.includes('application/json') || responseType === 'arrayBuffer') {
-                responseText = JSON.stringify(data);
-            } else {
-                responseText = data?.message;
+            if (timeoutId !== undefined) {
+                clearTimeout(timeoutId);
             }
-            throw new {{spec.title | caseUcfirst}}Exception(data?.message, response.status, data?.type, responseText);
+
+            // type opaque: No-CORS, different-origin response (CORS-issue)
+            if (response.type === 'opaque') {
+                throw new {{spec.title | caseUcfirst}}Exception(
+                    `Invalid Origin. Register your new client (${window.location.host}) as a new Web platform on your project console dashboard`,
+                    403,
+                    "forbidden",
+                    ""
+                );
+            }
+
+            const warnings = response.headers.get('x-{{ spec.title | lower }}-warning');
+            if (warnings) {
+                warnings.split(';').forEach((warning: string) => console.warn('Warning: ' + warning));
+            }
+
+            if (response.headers.get('content-type')?.includes('application/json')) {
+                data = await response.json();
+            } else if (responseType === 'arrayBuffer') {
+                data = await response.arrayBuffer();
+            } else {
+                data = {
+                    message: await response.text()
+                };
+            }
+
+            if (400 <= response.status) {
+                let responseText = '';
+                if (response.headers.get('content-type')?.includes('application/json') || responseType === 'arrayBuffer') {
+                    responseText = JSON.stringify(data);
+                } else {
+                    responseText = data?.message;
+                }
+                throw new {{spec.title | caseUcfirst}}Exception(data?.message, response.status, data?.type, responseText);
+            }
+
+            const cookieFallback = response.headers.get('X-Fallback-Cookies');
+
+            if (typeof window !== 'undefined' && window.localStorage && cookieFallback) {
+                window.console.warn('{{spec.title | caseUcfirst}} is using localStorage for session management. Increase your security by adding a custom domain as your API endpoint.');
+                window.localStorage.setItem('cookieFallback', cookieFallback);
+            }
+
+            return data;
+        } catch (error) {
+            if (timeoutId !== undefined) {
+                clearTimeout(timeoutId);
+            }
+
+            if (error instanceof DOMException && error.name === 'AbortError') {
+                throw new {{spec.title | caseUcfirst}}Exception('Request timed out', 408, 'timeout', '');
+            }
+
+            if (error instanceof {{spec.title | caseUcfirst}}Exception) {
+                throw error;
+            }
+
+            throw new {{spec.title | caseUcfirst}}Exception((error as Error).message);
         }
-
-        const cookieFallback = response.headers.get('X-Fallback-Cookies');
-
-        if (typeof window !== 'undefined' && window.localStorage && cookieFallback) {
-            window.console.warn('{{spec.title | caseUcfirst}} is using localStorage for session management. Increase your security by adding a custom domain as your API endpoint.');
-            window.localStorage.setItem('cookieFallback', cookieFallback);
-        }
-
-        return data;
     }
 
     static flatten(data: Payload, prefix = ''): Payload {

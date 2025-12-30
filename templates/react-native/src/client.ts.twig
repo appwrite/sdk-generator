@@ -411,9 +411,11 @@ class Client {
             headers,
         };
 
+        let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
         if (this.timeout !== undefined) {
             const controller = new AbortController();
-            setTimeout(() => controller.abort(), this.timeout);
+            timeoutId = setTimeout(() => controller.abort(), this.timeout);
             options.signal = controller.signal;
         }
 
@@ -455,6 +457,10 @@ class Client {
 
             const response = await fetch(url.toString(), options);
 
+            if (timeoutId !== undefined) {
+                clearTimeout(timeoutId);
+            }
+
             const warnings = response.headers.get('x-{{ spec.title | lower }}-warning');
             if (warnings) {
                 warnings.split(';').forEach((warning: string) => console.warn('Warning: ' + warning));
@@ -489,6 +495,14 @@ class Client {
 
             return data;
         } catch (e) {
+            if (timeoutId !== undefined) {
+                clearTimeout(timeoutId);
+            }
+
+            if (e instanceof DOMException && e.name === 'AbortError') {
+                throw new {{spec.title | caseUcfirst}}Exception('Request timed out', 408, 'timeout', '');
+            }
+
             if (e instanceof {{spec.title | caseUcfirst}}Exception) {
                 throw e;
             }
