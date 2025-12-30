@@ -21,173 +21,114 @@ interface Actionable {
     fun delete(): ResolvedChannel
 }
 
-// Base actionable channel
-abstract class ActionChannel(protected val base: String) : Actionable {
+interface IDatabase {
+    fun collection(id: String = "*"): ICollection
+}
+
+interface ICollection {
+    fun document(id: String = "*"): IDocument
+}
+
+interface IDocument : Actionable
+
+interface ITablesDB {
+    fun table(id: String = "*"): ITable
+}
+
+interface ITable {
+    fun row(id: String = "*"): IRow
+}
+
+interface IRow : Actionable
+
+interface IBucket {
+    fun file(id: String = "*"): IFile
+}
+
+interface IFile : Actionable
+
+interface IFunction {
+    fun execution(id: String = "*"): IExecution
+}
+
+interface IExecution : Actionable
+
+private class ChannelBuilder(
+    private val segments: List<String>
+) : IDatabase, ICollection, IDocument,
+    ITablesDB, ITable, IRow,
+    IBucket, IFile,
+    IFunction, IExecution, Actionable {
+
+    companion object {
+        fun start(segments: List<String>) = ChannelBuilder(segments)
+    }
+
+    private fun next(segment: String, id: String): ChannelBuilder {
+        return ChannelBuilder(segments + listOf(segment, normalize(id)))
+    }
+
+    override fun collection(id: String): ICollection =
+        next("collections", id)
+
+    override fun document(id: String): IDocument =
+        next("documents", id)
+
+    override fun table(id: String): ITable =
+        next("tables", id)
+
+    override fun row(id: String): IRow =
+        next("rows", id)
+
+    override fun file(id: String): IFile =
+        next("files", id)
+
+    override fun execution(id: String): IExecution =
+        next("executions", id)
 
     override val channel: String
-        get() = base
+        get() = segments.joinToString(".")
 
-    override fun create(): ResolvedChannel {
-        return ResolvedChannel("$base.create")
-    }
+    override fun create(): ResolvedChannel =
+        ResolvedChannel("$channel.create")
 
-    override fun update(): ResolvedChannel {
-        return ResolvedChannel("$base.update")
-    }
+    override fun update(): ResolvedChannel =
+        ResolvedChannel("$channel.update")
 
-    override fun delete(): ResolvedChannel {
-        return ResolvedChannel("$base.delete")
-    }
+    override fun delete(): ResolvedChannel =
+        ResolvedChannel("$channel.delete")
 
-    override fun toString(): String {
-        return base
-    }
+    override fun toString(): String = channel
 }
 
-// Database → Collection → Document
+class Channel private constructor() {
 
-class DocumentChannel(base: String) : ActionChannel(base)
-
-class CollectionChannel(
-    databaseId: String,
-    collectionId: String
-) {
-    private val base =
-        "databases.${normalize(databaseId)}.collections.${normalize(collectionId)}"
-
-    fun document(documentId: String = "*"): DocumentChannel {
-        return DocumentChannel("$base.documents.${normalize(documentId)}")
-    }
-
-    override fun toString(): String {
-        return base
-    }
-}
-
-class DatabaseChannel(databaseId: String) {
-    private val databaseId = normalize(databaseId)
-    private val base = "databases.$databaseId"
-
-    fun collection(collectionId: String = "*"): CollectionChannel {
-        return CollectionChannel(databaseId, collectionId)
-    }
-
-    override fun toString(): String {
-        return base
-    }
-}
-
-// TablesDB → Table → Row
-
-class RowChannel(base: String) : ActionChannel(base)
-
-class TableChannel(
-    databaseId: String,
-    tableId: String
-) {
-    private val base =
-        "tablesdb.${normalize(databaseId)}.tables.${normalize(tableId)}"
-
-    fun row(rowId: String = "*"): RowChannel {
-        return RowChannel("$base.rows.${normalize(rowId)}")
-    }
-
-    override fun toString(): String {
-        return base
-    }
-}
-
-class TablesDBChannel(databaseId: String) {
-    private val databaseId = normalize(databaseId)
-    private val base = "tablesdb.$databaseId"
-
-    fun table(tableId: String = "*"): TableChannel {
-        return TableChannel(databaseId, tableId)
-    }
-
-    override fun toString(): String {
-        return base
-    }
-}
-
-// Buckets → File
-
-class FileChannel(base: String) : ActionChannel(base)
-
-class BucketChannel(bucketId: String) {
-    private val bucketId = normalize(bucketId)
-    private val base = "buckets.$bucketId"
-
-    fun file(fileId: String = "*"): FileChannel {
-        return FileChannel("$base.files.${normalize(fileId)}")
-    }
-
-    override fun toString(): String {
-        return base
-    }
-}
-
-// Functions → Execution
-
-class ExecutionChannel(base: String) : ActionChannel(base)
-
-class FunctionChannel(functionId: String) {
-    private val functionId = normalize(functionId)
-    private val base = "functions.$functionId"
-
-    fun execution(executionId: String = "*"): ExecutionChannel {
-        return ExecutionChannel("$base.executions.${normalize(executionId)}")
-    }
-
-    override fun toString(): String {
-        return base
-    }
-}
-
-// Teams & Memberships
-
-class TeamChannel(teamId: String = "*") :
-    ActionChannel("teams.${normalize(teamId)}")
-
-class MembershipChannel(membershipId: String = "*") :
-    ActionChannel("memberships.${normalize(membershipId)}")
-
-// Entry point
-
-class Channel {
     companion object {
 
-        fun database(databaseId: String = "*"): DatabaseChannel {
-            return DatabaseChannel(databaseId)
-        }
+        fun database(id: String = "*"): IDatabase =
+            ChannelBuilder.start(listOf("databases", normalize(id)))
 
-        fun tablesdb(databaseId: String = "*"): TablesDBChannel {
-            return TablesDBChannel(databaseId)
-        }
+        fun tablesdb(id: String = "*"): ITablesDB =
+            ChannelBuilder.start(listOf("tablesdb", normalize(id)))
 
-        fun buckets(bucketId: String = "*"): BucketChannel {
-            return BucketChannel(bucketId)
-        }
+        fun buckets(id: String = "*"): IBucket =
+            ChannelBuilder.start(listOf("buckets", normalize(id)))
 
-        fun functions(functionId: String = "*"): FunctionChannel {
-            return FunctionChannel(functionId)
-        }
+        fun functions(id: String = "*"): IFunction =
+            ChannelBuilder.start(listOf("functions", normalize(id)))
 
-        fun teams(teamId: String = "*"): TeamChannel {
-            return TeamChannel(teamId)
-        }
+        fun teams(id: String = "*"): Actionable =
+            ChannelBuilder.start(listOf("teams", normalize(id)))
 
-        fun memberships(membershipId: String = "*"): MembershipChannel {
-            return MembershipChannel(membershipId)
-        }
+        fun memberships(id: String = "*"): Actionable =
+            ChannelBuilder.start(listOf("memberships", normalize(id)))
 
         fun account(userId: String = ""): String {
-            val normalized = normalize(userId)
-            return if (normalized == "*") "account" else "account.$normalized"
+            val id = normalize(userId)
+            return if (id == "*") "account" else "account.$id"
         }
 
         // Global events
-
         const val documents = "documents"
         const val rows = "rows"
         const val files = "files"

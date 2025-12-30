@@ -27,212 +27,133 @@ public protocol Actionable {
     func delete() -> ResolvedChannel
 }
 
-// Base actionable channel
-open class ActionChannel: Actionable {
-    let base: String
-    
-    public var channel: String {
-        return base
+public protocol IDatabase {
+    func collection(_ id: String) -> ICollection
+}
+
+public protocol ICollection {
+    func document(_ id: String) -> IDocument
+}
+
+public protocol IDocument: Actionable {}
+
+public protocol ITablesDB {
+    func table(_ id: String) -> ITable
+}
+
+public protocol ITable {
+    func row(_ id: String) -> IRow
+}
+
+public protocol IRow: Actionable {}
+
+public protocol IBucket {
+    func file(_ id: String) -> IFile
+}
+
+public protocol IFile: Actionable {}
+
+public protocol IFunction {
+    func execution(_ id: String) -> IExecution
+}
+
+public protocol IExecution: Actionable {}
+
+final class ChannelBuilder:
+    IDatabase, ICollection, IDocument,
+    ITablesDB, ITable, IRow,
+    IBucket, IFile,
+    IFunction, IExecution, Actionable
+{
+    private let segments: [String]
+
+    private init(_ segments: [String]) {
+        self.segments = segments
     }
 
-    init(base: String) {
-        self.base = base
+    static func start(_ segments: [String]) -> ChannelBuilder {
+        ChannelBuilder(segments)
     }
 
-    public func create() -> ResolvedChannel {
-        ResolvedChannel(value: "\(base).create")
+    private func next(_ segment: String, _ id: String) -> ChannelBuilder {
+        ChannelBuilder(segments + [segment, normalize(id)])
     }
 
-    public func update() -> ResolvedChannel {
-        ResolvedChannel(value: "\(base).update")
+    // MARK: hierarchy
+
+    func collection(_ id: String = "*") -> ICollection {
+        next("collections", id)
     }
 
-    public func delete() -> ResolvedChannel {
-        ResolvedChannel(value: "\(base).delete")
+    func document(_ id: String = "*") -> IDocument {
+        next("documents", id)
     }
 
-    public func toString() -> String {
-        base
+    func table(_ id: String = "*") -> ITable {
+        next("tables", id)
+    }
+
+    func row(_ id: String = "*") -> IRow {
+        next("rows", id)
+    }
+
+    func file(_ id: String = "*") -> IFile {
+        next("files", id)
+    }
+
+    func execution(_ id: String = "*") -> IExecution {
+        next("executions", id)
+    }
+
+    var channel: String {
+        segments.joined(separator: ".")
+    }
+
+    func create() -> ResolvedChannel {
+        ResolvedChannel("\(channel).create")
+    }
+
+    func update() -> ResolvedChannel {
+        ResolvedChannel("\(channel).update")
+    }
+
+    func delete() -> ResolvedChannel {
+        ResolvedChannel("\(channel).delete")
     }
 }
 
-// Database → Collection → Document
+public enum Channel {
 
-public final class DocumentChannel: ActionChannel {}
-
-public final class CollectionChannel {
-    private let base: String
-    private let databaseId: String
-    private let collectionId: String
-
-    init(databaseId: String, collectionId: String) {
-        self.databaseId = normalize(databaseId)
-        self.collectionId = normalize(collectionId)
-        self.base = "databases.\(self.databaseId).collections.\(self.collectionId)"
+    public static func database(_ id: String = "*") -> IDatabase {
+        ChannelBuilder.start(["databases", normalize(id)])
     }
 
-    public func document(_ documentId: String = "*") -> DocumentChannel {
-        DocumentChannel(base: "\(base).documents.\(normalize(documentId))")
+    public static func tablesdb(_ id: String = "*") -> ITablesDB {
+        ChannelBuilder.start(["tablesdb", normalize(id)])
     }
 
-    public func toString() -> String {
-        base
-    }
-}
-
-public final class DatabaseChannel {
-    private let base: String
-    private let databaseId: String
-
-    init(databaseId: String) {
-        self.databaseId = normalize(databaseId)
-        self.base = "databases.\(self.databaseId)"
+    public static func buckets(_ id: String = "*") -> IBucket {
+        ChannelBuilder.start(["buckets", normalize(id)])
     }
 
-    public func collection(_ collectionId: String = "*") -> CollectionChannel {
-        CollectionChannel(databaseId: databaseId, collectionId: collectionId)
+    public static func functions(_ id: String = "*") -> IFunction {
+        ChannelBuilder.start(["functions", normalize(id)])
     }
 
-    public func toString() -> String {
-        base
-    }
-}
-
-// TablesDB → Table → Row
-
-public final class RowChannel: ActionChannel {}
-
-public final class TableChannel {
-    private let base: String
-    private let databaseId: String
-    private let tableId: String
-
-    init(databaseId: String, tableId: String) {
-        self.databaseId = normalize(databaseId)
-        self.tableId = normalize(tableId)
-        self.base = "tablesdb.\(self.databaseId).tables.\(self.tableId)"
+    public static func teams(_ id: String = "*") -> Actionable {
+        ChannelBuilder.start(["teams", normalize(id)])
     }
 
-    public func row(_ rowId: String = "*") -> RowChannel {
-        RowChannel(base: "\(base).rows.\(normalize(rowId))")
-    }
-
-    public func toString() -> String {
-        base
-    }
-}
-
-public final class TablesDBChannel {
-    private let base: String
-    private let databaseId: String
-
-    init(databaseId: String) {
-        self.databaseId = normalize(databaseId)
-        self.base = "tablesdb.\(self.databaseId)"
-    }
-
-    public func table(_ tableId: String = "*") -> TableChannel {
-        TableChannel(databaseId: databaseId, tableId: tableId)
-    }
-
-    public func toString() -> String {
-        base
-    }
-}
-
-// Buckets → File
-
-public final class FileChannel: ActionChannel {}
-
-public final class BucketChannel {
-    private let base: String
-    private let bucketId: String
-
-    init(bucketId: String) {
-        self.bucketId = normalize(bucketId)
-        self.base = "buckets.\(self.bucketId)"
-    }
-
-    public func file(_ fileId: String = "*") -> FileChannel {
-        FileChannel(base: "\(base).files.\(normalize(fileId))")
-    }
-
-    public func toString() -> String {
-        base
-    }
-}
-
-// Functions → Execution
-
-public final class ExecutionChannel: ActionChannel {}
-
-public final class FunctionChannel {
-    private let base: String
-    private let functionId: String
-
-    init(functionId: String) {
-        self.functionId = normalize(functionId)
-        self.base = "functions.\(self.functionId)"
-    }
-
-    public func execution(_ executionId: String = "*") -> ExecutionChannel {
-        ExecutionChannel(base: "\(base).executions.\(normalize(executionId))")
-    }
-
-    public func toString() -> String {
-        base
-    }
-}
-
-// Teams & Memberships
-
-public final class TeamChannel: ActionChannel {
-    init(teamId: String = "*") {
-        super.init(base: "teams.\(normalize(teamId))")
-    }
-}
-
-public final class MembershipChannel: ActionChannel {
-    init(membershipId: String = "*") {
-        super.init(base: "memberships.\(normalize(membershipId))")
-    }
-}
-
-// Entry point
-
-public final class Channel {
-
-    public static func database(_ databaseId: String = "*") -> DatabaseChannel {
-        DatabaseChannel(databaseId: databaseId)
-    }
-
-    public static func tablesdb(_ databaseId: String = "*") -> TablesDBChannel {
-        TablesDBChannel(databaseId: databaseId)
-    }
-
-    public static func buckets(_ bucketId: String = "*") -> BucketChannel {
-        BucketChannel(bucketId: bucketId)
-    }
-
-    public static func functions(_ functionId: String = "*") -> FunctionChannel {
-        FunctionChannel(functionId: functionId)
-    }
-
-    public static func teams(_ teamId: String = "*") -> TeamChannel {
-        TeamChannel(teamId: teamId)
-    }
-
-    public static func memberships(_ membershipId: String = "*") -> MembershipChannel {
-        MembershipChannel(membershipId: membershipId)
+    public static func memberships(_ id: String = "*") -> Actionable {
+        ChannelBuilder.start(["memberships", normalize(id)])
     }
 
     public static func account(_ userId: String = "") -> String {
-        let normalized = normalize(userId)
-        return normalized == "*" ? "account" : "account.\(normalized)"
+        let id = normalize(userId)
+        return id == "*" ? "account" : "account.\(id)"
     }
 
     // Global events
-
     public static let documents = "documents"
     public static let rows = "rows"
     public static let files = "files"
