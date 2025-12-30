@@ -36,9 +36,9 @@ open class Client {
 
     internal var selfSigned: Bool = false
 
-    internal var connectTimeout: TimeAmount = HTTPClient.Configuration.Timeout().connect!
+    internal var connectTimeout: TimeAmount?
 
-    internal var timeout: TimeAmount = HTTPClient.Configuration.Timeout().read!
+    internal var timeout: TimeAmount?
 
     internal var http: HTTPClient
 
@@ -60,13 +60,16 @@ open class Client {
         selfSigned: Bool = false,
         maxRedirects: Int = 5,
         alloweRedirectCycles: Bool = false,
-        connectTimeout: TimeAmount,
-        readTimeout: TimeAmount
+        connectTimeout: TimeAmount? = nil,
+        readTimeout: TimeAmount? = nil
     ) -> HTTPClient {
-        let timeout = HTTPClient.Configuration.Timeout(
-            connect: connectTimeout,
-            read: readTimeout
-        )
+        var timeout = HTTPClient.Configuration.Timeout()
+        if let connectTimeout = connectTimeout {
+            timeout.connect = connectTimeout
+        }
+        if let readTimeout = readTimeout {
+            timeout.read = readTimeout
+        }
         let redirect = HTTPClient.Configuration.RedirectConfiguration.follow(
             max: 5,
             allowCycles: false
