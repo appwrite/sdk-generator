@@ -131,7 +131,9 @@ export class Client {
             };
 
             if (this.timeout !== undefined) {
-                fetchOptions.signal = AbortSignal.timeout(this.timeout);
+                const controller = new AbortController();
+                setTimeout(() => controller.abort(), this.timeout);
+                fetchOptions.signal = controller.signal;
             }
 
             response = await fetch(url.toString(), fetchOptions);

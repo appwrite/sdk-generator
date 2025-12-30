@@ -639,7 +639,9 @@ class Client {
         };
 
         if (this.timeout !== undefined) {
-            options.signal = AbortSignal.timeout(this.timeout);
+            const controller = new AbortController();
+            setTimeout(() => controller.abort(), this.timeout);
+            options.signal = controller.signal;
         }
 
         if (headers['X-Appwrite-Dev-Key'] === undefined) {
