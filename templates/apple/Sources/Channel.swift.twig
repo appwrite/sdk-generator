@@ -1,261 +1,240 @@
 import Foundation
 
-public class ResolvedChannel {
+// The result of building the channel.
+public final class ResolvedChannel {
     private let value: String
-    
+
     init(value: String) {
         self.value = value
     }
-    
+
     public func toString() -> String {
-        return value
+        value
     }
 }
 
-open class ActionChannel {
+// Helper for normalizing IDs
+private func normalize(_ id: String) -> String {
+    let trimmed = id.trimmingCharacters(in: .whitespacesAndNewlines)
+    return trimmed.isEmpty ? "*" : trimmed
+}
+
+// Protocol for actionable channels
+public protocol Actionable {
+    var channel: String { get }
+    func create() -> ResolvedChannel
+    func update() -> ResolvedChannel
+    func delete() -> ResolvedChannel
+}
+
+// Base actionable channel
+open class ActionChannel: Actionable {
     let base: String
     
+    public var channel: String {
+        return base
+    }
+
     init(base: String) {
         self.base = base
     }
-    
+
     public func create() -> ResolvedChannel {
-        return ResolvedChannel(value: "\(base).create")
+        ResolvedChannel(value: "\(base).create")
     }
-    
+
     public func update() -> ResolvedChannel {
-        return ResolvedChannel(value: "\(base).update")
+        ResolvedChannel(value: "\(base).update")
     }
-    
+
     public func delete() -> ResolvedChannel {
-        return ResolvedChannel(value: "\(base).delete")
+        ResolvedChannel(value: "\(base).delete")
     }
-    
+
     public func toString() -> String {
-        return base
+        base
     }
 }
 
-/**
- * ----------------------------
- * Database → Collection → Document
- * ----------------------------
- */
-public class DocumentChannel: ActionChannel {}
+// Database → Collection → Document
 
-public class CollectionChannel {
+public final class DocumentChannel: ActionChannel {}
+
+public final class CollectionChannel {
     private let base: String
     private let databaseId: String
     private let collectionId: String
-    
+
     init(databaseId: String, collectionId: String) {
-        self.databaseId = databaseId
-        self.collectionId = collectionId
-        self.base = "databases.\(databaseId).collections.\(collectionId)"
+        self.databaseId = normalize(databaseId)
+        self.collectionId = normalize(collectionId)
+        self.base = "databases.\(self.databaseId).collections.\(self.collectionId)"
     }
-    
+
     public func document(_ documentId: String = "*") -> DocumentChannel {
-        return DocumentChannel(base: "\(base).documents.\(documentId)")
+        DocumentChannel(base: "\(base).documents.\(normalize(documentId))")
     }
-    
+
     public func toString() -> String {
-        return base
+        base
     }
 }
 
-public class DatabaseChannel {
+public final class DatabaseChannel {
     private let base: String
     private let databaseId: String
-    
+
     init(databaseId: String) {
-        self.databaseId = databaseId
-        self.base = "databases.\(databaseId)"
+        self.databaseId = normalize(databaseId)
+        self.base = "databases.\(self.databaseId)"
     }
-    
+
     public func collection(_ collectionId: String = "*") -> CollectionChannel {
-        return CollectionChannel(databaseId: databaseId, collectionId: collectionId)
+        CollectionChannel(databaseId: databaseId, collectionId: collectionId)
     }
-    
+
     public func toString() -> String {
-        return base
+        base
     }
 }
 
-/**
- * ----------------------------
- * TablesDB → Table → Row
- * ----------------------------
- */
-public class RowChannel: ActionChannel {}
+// TablesDB → Table → Row
 
-public class TableChannel {
+public final class RowChannel: ActionChannel {}
+
+public final class TableChannel {
     private let base: String
     private let databaseId: String
     private let tableId: String
-    
+
     init(databaseId: String, tableId: String) {
-        self.databaseId = databaseId
-        self.tableId = tableId
-        self.base = "tablesdb.\(databaseId).tables.\(tableId)"
+        self.databaseId = normalize(databaseId)
+        self.tableId = normalize(tableId)
+        self.base = "tablesdb.\(self.databaseId).tables.\(self.tableId)"
     }
-    
+
     public func row(_ rowId: String = "*") -> RowChannel {
-        return RowChannel(base: "\(base).rows.\(rowId)")
+        RowChannel(base: "\(base).rows.\(normalize(rowId))")
     }
-    
+
     public func toString() -> String {
-        return base
+        base
     }
 }
 
-public class TablesDBChannel {
+public final class TablesDBChannel {
     private let base: String
     private let databaseId: String
-    
+
     init(databaseId: String) {
-        self.databaseId = databaseId
-        self.base = "tablesdb.\(databaseId)"
+        self.databaseId = normalize(databaseId)
+        self.base = "tablesdb.\(self.databaseId)"
     }
-    
+
     public func table(_ tableId: String = "*") -> TableChannel {
-        return TableChannel(databaseId: databaseId, tableId: tableId)
+        TableChannel(databaseId: databaseId, tableId: tableId)
     }
-    
+
     public func toString() -> String {
-        return base
+        base
     }
 }
 
-/**
- * ----------------------------
- * Buckets → File
- * ----------------------------
- */
-public class FileChannel: ActionChannel {}
+// Buckets → File
 
-public class BucketChannel {
+public final class FileChannel: ActionChannel {}
+
+public final class BucketChannel {
     private let base: String
     private let bucketId: String
-    
+
     init(bucketId: String) {
-        self.bucketId = bucketId
-        self.base = "buckets.\(bucketId)"
+        self.bucketId = normalize(bucketId)
+        self.base = "buckets.\(self.bucketId)"
     }
-    
+
     public func file(_ fileId: String = "*") -> FileChannel {
-        return FileChannel(base: "\(base).files.\(fileId)")
+        FileChannel(base: "\(base).files.\(normalize(fileId))")
     }
-    
+
     public func toString() -> String {
-        return base
+        base
     }
 }
 
-/**
- * ----------------------------
- * Functions → Execution
- * ----------------------------
- */
-public class ExecutionChannel: ActionChannel {}
+// Functions → Execution
 
-public class FunctionChannel {
+public final class ExecutionChannel: ActionChannel {}
+
+public final class FunctionChannel {
     private let base: String
     private let functionId: String
-    
+
     init(functionId: String) {
-        self.functionId = functionId
-        self.base = "functions.\(functionId)"
+        self.functionId = normalize(functionId)
+        self.base = "functions.\(self.functionId)"
     }
-    
+
     public func execution(_ executionId: String = "*") -> ExecutionChannel {
-        return ExecutionChannel(base: "\(base).executions.\(executionId)")
+        ExecutionChannel(base: "\(base).executions.\(normalize(executionId))")
     }
-    
+
     public func toString() -> String {
-        return base
+        base
     }
 }
 
-public class TeamChannel: ActionChannel {
+// Teams & Memberships
+
+public final class TeamChannel: ActionChannel {
     init(teamId: String = "*") {
-        super.init(base: "teams.\(teamId)")
+        super.init(base: "teams.\(normalize(teamId))")
     }
 }
 
-public class MembershipChannel: ActionChannel {
+public final class MembershipChannel: ActionChannel {
     init(membershipId: String = "*") {
-        super.init(base: "memberships.\(membershipId)")
+        super.init(base: "memberships.\(normalize(membershipId))")
     }
 }
 
-public class Channel {
-    /**
-     * Generate a database channel builder.
-     *
-     * @param databaseId The database ID (default: "*")
-     * @returns DatabaseChannel
-     */
+// Entry point
+
+public final class Channel {
+
     public static func database(_ databaseId: String = "*") -> DatabaseChannel {
-        return DatabaseChannel(databaseId: databaseId)
+        DatabaseChannel(databaseId: databaseId)
     }
 
-    /**
-     * Generate a tables database channel builder.
-     *
-     * @param databaseId The database ID (default: "*")
-     * @returns TablesDBChannel
-     */
     public static func tablesdb(_ databaseId: String = "*") -> TablesDBChannel {
-        return TablesDBChannel(databaseId: databaseId)
+        TablesDBChannel(databaseId: databaseId)
     }
 
-    /**
-     * Generate a buckets channel builder.
-     *
-     * @param bucketId The bucket ID (default: "*")
-     * @returns BucketChannel
-     */
     public static func buckets(_ bucketId: String = "*") -> BucketChannel {
-        return BucketChannel(bucketId: bucketId)
+        BucketChannel(bucketId: bucketId)
     }
 
-    /**
-     * Generate a functions channel builder.
-     *
-     * @param functionId The function ID (default: "*")
-     * @returns FunctionChannel
-     */
     public static func functions(_ functionId: String = "*") -> FunctionChannel {
-        return FunctionChannel(functionId: functionId)
+        FunctionChannel(functionId: functionId)
     }
 
-    /**
-     * Generate a teams channel builder.
-     *
-     * @param teamId The team ID (default: "*")
-     * @returns TeamChannel
-     */
     public static func teams(_ teamId: String = "*") -> TeamChannel {
-        return TeamChannel(teamId: teamId)
+        TeamChannel(teamId: teamId)
     }
 
-    /**
-     * Generate a memberships channel builder.
-     *
-     * @param membershipId The membership ID (default: "*")
-     * @returns MembershipChannel
-     */
     public static func memberships(_ membershipId: String = "*") -> MembershipChannel {
-        return MembershipChannel(membershipId: membershipId)
+        MembershipChannel(membershipId: membershipId)
     }
 
-    /**
-     * Generate an account channel string.
-     *
-     * @param userId The user ID (default: "*")
-     * @returns The channel string
-     */
-    public static func account(_ userId: String = "*") -> String {
-        return "account.\(userId)"
+    public static func account(_ userId: String = "") -> String {
+        let normalized = normalize(userId)
+        return normalized == "*" ? "account" : "account.\(normalized)"
     }
+
+    // Global events
+
+    public static let documents = "documents"
+    public static let rows = "rows"
+    public static let files = "files"
+    public static let executions = "executions"
 }

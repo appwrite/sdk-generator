@@ -1,266 +1,195 @@
-
-
+// The result of building the channel.
 export class ResolvedChannel {
-    private value: string;
-
-    constructor(value: string) {
-        this.value = value;
+    constructor(private value: string) {}
+    toString() {
+      return this.value;
     }
-
+  }
+  
+  // Helper function for normalizing ID
+  function normalize(id: string): string {
+    const trimmed = id.trim();
+    return trimmed === "" ? "*" : trimmed;
+  }
+  
+  // State interfaces
+  
+  export interface Actionable {
+    create(): ResolvedChannel;
+    update(): ResolvedChannel;
+    delete(): ResolvedChannel;
+    channel(): string;
+  }
+  
+  interface IDatabase {
+    collection(id?: string): ICollection;
+  }
+  
+  interface ICollection {
+    document(id?: string): IDocument;
+  }
+  
+  interface IDocument extends Actionable {}
+  
+  interface ITablesDB {
+    table(id?: string): ITable;
+  }
+  
+  interface ITable {
+    row(id?: string): IRow;
+  }
+  
+  interface IRow extends Actionable {}
+  
+  interface IBucket {
+    file(id?: string): IFile;
+  }
+  
+  interface IFile extends Actionable {}
+  
+  interface IFunction {
+    execution(id?: string): IExecution;
+  }
+  
+  interface IExecution extends Actionable {}
+  
+  // Builder implementation
+  
+  class ChannelBuilder
+    implements
+      IDatabase,
+      ICollection,
+      IDocument,
+      ITablesDB,
+      ITable,
+      IRow,
+      IBucket,
+      IFile,
+      IFunction,
+      IExecution,
+      Actionable
+  {
+    constructor(private segments: string[]) {}
+  
+    static start(segments: string[]): ChannelBuilder {
+      return new ChannelBuilder(segments);
+    }
+  
+    channel(): string {
+      return this.segments.join(".");
+    }
+  
     toString(): string {
-        return this.value;
+      return this.channel();
     }
-}
-
-abstract class ActionChannel {
-    protected base: string;
-
-    constructor(base: string) {
-        this.base = base;
+  
+    private next(segment: string, id: string = "*"): ChannelBuilder {
+      return new ChannelBuilder([
+        ...this.segments,
+        segment,
+        normalize(id),
+      ]);
     }
-
+  
+    private resolve(action: string): ResolvedChannel {
+      return new ResolvedChannel(`${this.channel()}.${action}`);
+    }
+  
+    // Database
+  
+    collection(id: string = "*"): ICollection {
+      return this.next("collections", id);
+    }
+  
+    document(id: string = "*"): IDocument {
+      return this.next("documents", id);
+    }
+  
+    // TablesDB
+  
+    table(id: string = "*"): ITable {
+      return this.next("tables", id);
+    }
+  
+    row(id: string = "*"): IRow {
+      return this.next("rows", id);
+    }
+  
+    // Buckets
+  
+    file(id: string = "*"): IFile {
+      return this.next("files", id);
+    }
+  
+    // Functions
+  
+    execution(id: string = "*"): IExecution {
+      return this.next("executions", id);
+    }
+  
+    // Actions
+  
     create(): ResolvedChannel {
-        return new ResolvedChannel(`${this.base}.create`);
+      return this.resolve("create");
     }
-
+  
     update(): ResolvedChannel {
-        return new ResolvedChannel(`${this.base}.update`);
+      return this.resolve("update");
     }
-
+  
     delete(): ResolvedChannel {
-        return new ResolvedChannel(`${this.base}.delete`);
+      return this.resolve("delete");
     }
-
-    toString(): string {
-        return this.base;
+  }
+  
+  // Entry point
+  
+  export class Channel {
+    static database(id: string = "*"): IDatabase {
+      return ChannelBuilder.start(["databases", normalize(id)]);
     }
-}
-
-/**
- * ----------------------------
- * Database → Collection → Document
- * ----------------------------
- */
-class DocumentChannel extends ActionChannel {}
-
-class CollectionChannel {
-    private base: string;
-
-    constructor(
-        private databaseId: string,
-        private collectionId: string
-    ) {
-        this.base = `databases.${databaseId}.collections.${collectionId}`;
+  
+    static tablesdb(id: string = "*"): ITablesDB {
+      return ChannelBuilder.start(["tablesdb", normalize(id)]);
     }
-
-    document(documentId: string = '*'): DocumentChannel {
-        return new DocumentChannel(
-            `${this.base}.documents.${documentId}`
-        );
+  
+    static buckets(id: string = "*"): IBucket {
+      return ChannelBuilder.start(["buckets", normalize(id)]);
     }
-
-    toString(): string {
-        return this.base;
+  
+    static functions(id: string = "*"): IFunction {
+      return ChannelBuilder.start(["functions", normalize(id)]);
     }
-}
-
-class DatabaseChannel {
-    private base: string;
-
-    constructor(private databaseId: string) {
-        this.base = `databases.${databaseId}`;
+  
+    static teams(id: string = "*"): Actionable {
+      return ChannelBuilder.start(["teams", normalize(id)]);
     }
-
-    collection(collectionId: string = '*'): CollectionChannel {
-        return new CollectionChannel(this.databaseId, collectionId);
+  
+    static memberships(id: string = "*"): Actionable {
+      return ChannelBuilder.start(["memberships", normalize(id)]);
     }
-
-    toString(): string {
-        return this.base;
+  
+    static account(userId: string = ""): string {
+      return userId.trim()
+        ? `account.${normalize(userId)}`
+        : "account";
     }
-}
-
-/**
- * ----------------------------
- * TablesDB → Table → Row
- * ----------------------------
- */
-class RowChannel extends ActionChannel {}
-
-class TableChannel {
-    private base: string;
-
-    constructor(
-        private databaseId: string,
-        private tableId: string
-    ) {
-        this.base = `tablesdb.${databaseId}.tables.${tableId}`;
+  
+    // Global events
+  
+    static get documents(): string {
+      return "documents";
     }
-
-    row(rowId: string = '*'): RowChannel {
-        return new RowChannel(
-            `${this.base}.rows.${rowId}`
-        );
+  
+    static get rows(): string {
+      return "rows";
     }
-
-    toString(): string {
-        return this.base;
+  
+    static get files(): string {
+      return "files";
     }
-}
-
-class TablesDBChannel {
-    private base: string;
-
-    constructor(private databaseId: string) {
-        this.base = `tablesdb.${databaseId}`;
+  
+    static get executions(): string {
+      return "executions";
     }
-
-    table(tableId: string = '*'): TableChannel {
-        return new TableChannel(this.databaseId, tableId);
-    }
-
-    toString(): string {
-        return this.base;
-    }
-}
-
-/**
- * ----------------------------
- * Buckets → File
- * ----------------------------
- */
-class FileChannel extends ActionChannel {}
-
-class BucketChannel {
-    private base: string;
-
-    constructor(private bucketId: string) {
-        this.base = `buckets.${bucketId}`;
-    }
-
-    file(fileId: string = '*'): FileChannel {
-        return new FileChannel(
-            `${this.base}.files.${fileId}`
-        );
-    }
-
-    toString(): string {
-        return this.base;
-    }
-}
-
-/**
- * ----------------------------
- * Functions → Execution
- * ----------------------------
- */
-class ExecutionChannel extends ActionChannel {}
-
-class FunctionChannel {
-    private base: string;
-
-    constructor(private functionId: string) {
-        this.base = `functions.${functionId}`;
-    }
-
-    execution(executionId: string = '*'): ExecutionChannel {
-        return new ExecutionChannel(
-            `${this.base}.executions.${executionId}`
-        );
-    }
-
-    toString(): string {
-        return this.base;
-    }
-}
-
-class TeamChannel extends ActionChannel {
-    constructor(teamId: string = '*') {
-        super(`teams.${teamId}`);
-    }
-}
-
-class MembershipChannel extends ActionChannel {
-    constructor(membershipId: string = '*') {
-        super(`memberships.${membershipId}`);
-    }
-}
-
-/**
- * ----------------------------
- * Channel Type (for type checking)
- * ----------------------------
- */
-export type ChannelValue = string | ResolvedChannel | DatabaseChannel | CollectionChannel | DocumentChannel | TablesDBChannel | TableChannel | RowChannel | BucketChannel | FileChannel | FunctionChannel | ExecutionChannel | TeamChannel | MembershipChannel;
-
-export class Channel {
-    /**
-     * Generate a database channel builder.
-     *
-     * @param {string} databaseId
-     * @returns {DatabaseChannel}
-     */
-    static database(databaseId: string = '*'): DatabaseChannel {
-        return new DatabaseChannel(databaseId);
-    }
-
-    /**
-     * Generate a tables database channel builder.
-     *
-     * @param {string} databaseId
-     * @returns {TablesDBChannel}
-     */
-    static tablesdb(databaseId: string = '*'): TablesDBChannel {
-        return new TablesDBChannel(databaseId);
-    }
-
-    /**
-     * Generate a buckets channel builder.
-     *
-     * @param {string} bucketId
-     * @returns {BucketChannel}
-     */
-    static buckets(bucketId: string = '*'): BucketChannel {
-        return new BucketChannel(bucketId);
-    }
-
-    /**
-     * Generate a functions channel builder.
-     *
-     * @param {string} functionId
-     * @returns {FunctionChannel}
-     */
-    static functions(functionId: string = '*'): FunctionChannel {
-        return new FunctionChannel(functionId);
-    }
-
-    /**
-     * Generate a teams channel builder.
-     *
-     * @param {string} teamId
-     * @returns {TeamChannel}
-     */
-    static teams(teamId: string = '*'): TeamChannel {
-        return new TeamChannel(teamId);
-    }
-
-    /**
-     * Generate a memberships channel builder.
-     *
-     * @param {string} membershipId
-     * @returns {MembershipChannel}
-     */
-    static memberships(membershipId: string = '*'): MembershipChannel {
-        return new MembershipChannel(membershipId);
-    }
-
-    /**
-     * Generate an account channel string.
-     *
-     * @param {string} userId
-     * @returns {string}
-     */
-    static account(userId: string = '*'): string {
-        return `account.${userId}`;
-    }
-}
+  }

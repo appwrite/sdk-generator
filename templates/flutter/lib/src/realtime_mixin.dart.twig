@@ -173,6 +173,14 @@ mixin RealtimeMixin {
     if (channel is String) {
       return channel;
     }
+    // Check if it's an Actionable instance (has channel getter)
+    if (channel is Actionable) {
+      return channel.channel;
+    }
+    // Check if it's a ResolvedChannel (has toString() method)
+    if (channel is ResolvedChannel) {
+      return channel.toString();
+    }
     return channel.toString();
   }
 

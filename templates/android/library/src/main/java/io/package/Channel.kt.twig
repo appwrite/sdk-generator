@@ -1,21 +1,41 @@
 package {{ sdk.namespace | caseDot }}
 
+// The result of building the channel.
 class ResolvedChannel(private val value: String) {
     override fun toString(): String {
         return value
     }
 }
 
-abstract class ActionChannel(protected val base: String) {
-    fun create(): ResolvedChannel {
+// Helper for normalizing IDs
+private fun normalize(id: String): String {
+    val trimmed = id.trim()
+    return if (trimmed.isEmpty()) "*" else trimmed
+}
+
+// Interface for actionable channels
+interface Actionable {
+    val channel: String
+    fun create(): ResolvedChannel
+    fun update(): ResolvedChannel
+    fun delete(): ResolvedChannel
+}
+
+// Base actionable channel
+abstract class ActionChannel(protected val base: String) : Actionable {
+
+    override val channel: String
+        get() = base
+
+    override fun create(): ResolvedChannel {
         return ResolvedChannel("$base.create")
     }
 
-    fun update(): ResolvedChannel {
+    override fun update(): ResolvedChannel {
         return ResolvedChannel("$base.update")
     }
 
-    fun delete(): ResolvedChannel {
+    override fun delete(): ResolvedChannel {
         return ResolvedChannel("$base.delete")
     }
 
@@ -24,16 +44,19 @@ abstract class ActionChannel(protected val base: String) {
     }
 }
 
+// Database → Collection → Document
+
 class DocumentChannel(base: String) : ActionChannel(base)
 
 class CollectionChannel(
-    private val databaseId: String,
-    private val collectionId: String
+    databaseId: String,
+    collectionId: String
 ) {
-    private val base = "databases.$databaseId.collections.$collectionId"
+    private val base =
+        "databases.${normalize(databaseId)}.collections.${normalize(collectionId)}"
 
     fun document(documentId: String = "*"): DocumentChannel {
-        return DocumentChannel("$base.documents.$documentId")
+        return DocumentChannel("$base.documents.${normalize(documentId)}")
     }
 
     override fun toString(): String {
@@ -41,7 +64,8 @@ class CollectionChannel(
     }
 }
 
-class DatabaseChannel(private val databaseId: String) {
+class DatabaseChannel(databaseId: String) {
+    private val databaseId = normalize(databaseId)
     private val base = "databases.$databaseId"
 
     fun collection(collectionId: String = "*"): CollectionChannel {
@@ -53,16 +77,19 @@ class DatabaseChannel(private val databaseId: String) {
     }
 }
 
+// TablesDB → Table → Row
+
 class RowChannel(base: String) : ActionChannel(base)
 
 class TableChannel(
-    private val databaseId: String,
-    private val tableId: String
+    databaseId: String,
+    tableId: String
 ) {
-    private val base = "tablesdb.$databaseId.tables.$tableId"
+    private val base =
+        "tablesdb.${normalize(databaseId)}.tables.${normalize(tableId)}"
 
     fun row(rowId: String = "*"): RowChannel {
-        return RowChannel("$base.rows.$rowId")
+        return RowChannel("$base.rows.${normalize(rowId)}")
     }
 
     override fun toString(): String {
@@ -70,7 +97,8 @@ class TableChannel(
     }
 }
 
-class TablesDBChannel(private val databaseId: String) {
+class TablesDBChannel(databaseId: String) {
+    private val databaseId = normalize(databaseId)
     private val base = "tablesdb.$databaseId"
 
     fun table(tableId: String = "*"): TableChannel {
@@ -82,27 +110,33 @@ class TablesDBChannel(private val databaseId: String) {
     }
 }
 
+// Buckets → File
+
 class FileChannel(base: String) : ActionChannel(base)
 
-class BucketChannel(private val bucketId: String) {
+class BucketChannel(bucketId: String) {
+    private val bucketId = normalize(bucketId)
     private val base = "buckets.$bucketId"
 
     fun file(fileId: String = "*"): FileChannel {
-        return FileChannel("$base.files.$fileId")
+        return FileChannel("$base.files.${normalize(fileId)}")
     }
 
     override fun toString(): String {
         return base
     }
 }
+
+// Functions → Execution
 
 class ExecutionChannel(base: String) : ActionChannel(base)
 
-class FunctionChannel(private val functionId: String) {
+class FunctionChannel(functionId: String) {
+    private val functionId = normalize(functionId)
     private val base = "functions.$functionId"
 
     fun execution(executionId: String = "*"): ExecutionChannel {
-        return ExecutionChannel("$base.executions.$executionId")
+        return ExecutionChannel("$base.executions.${normalize(executionId)}")
     }
 
     override fun toString(): String {
@@ -110,81 +144,53 @@ class FunctionChannel(private val functionId: String) {
     }
 }
 
-class TeamChannel(teamId: String = "*") : ActionChannel("teams.$teamId")
+// Teams & Memberships
 
-class MembershipChannel(membershipId: String = "*") : ActionChannel("memberships.$membershipId")
+class TeamChannel(teamId: String = "*") :
+    ActionChannel("teams.${normalize(teamId)}")
+
+class MembershipChannel(membershipId: String = "*") :
+    ActionChannel("memberships.${normalize(membershipId)}")
+
+// Entry point
 
 class Channel {
     companion object {
-        /**
-         * Generate a database channel builder.
-         *
-         * @param databaseId The database ID (default: "*")
-         * @returns DatabaseChannel
-         */
+
         fun database(databaseId: String = "*"): DatabaseChannel {
             return DatabaseChannel(databaseId)
         }
 
-        /**
-         * Generate a tables database channel builder.
-         *
-         * @param databaseId The database ID (default: "*")
-         * @returns TablesDBChannel
-         */
         fun tablesdb(databaseId: String = "*"): TablesDBChannel {
             return TablesDBChannel(databaseId)
         }
 
-        /**
-         * Generate a buckets channel builder.
-         *
-         * @param bucketId The bucket ID (default: "*")
-         * @returns BucketChannel
-         */
         fun buckets(bucketId: String = "*"): BucketChannel {
             return BucketChannel(bucketId)
         }
 
-        /**
-         * Generate a functions channel builder.
-         *
-         * @param functionId The function ID (default: "*")
-         * @returns FunctionChannel
-         */
         fun functions(functionId: String = "*"): FunctionChannel {
             return FunctionChannel(functionId)
         }
 
-        /**
-         * Generate a teams channel builder.
-         *
-         * @param teamId The team ID (default: "*")
-         * @returns TeamChannel
-         */
         fun teams(teamId: String = "*"): TeamChannel {
             return TeamChannel(teamId)
         }
 
-        /**
-         * Generate a memberships channel builder.
-         *
-         * @param membershipId The membership ID (default: "*")
-         * @returns MembershipChannel
-         */
         fun memberships(membershipId: String = "*"): MembershipChannel {
             return MembershipChannel(membershipId)
         }
 
-        /**
-         * Generate an account channel string.
-         *
-         * @param userId The user ID (default: "*")
-         * @returns The channel string
-         */
-        fun account(userId: String = "*"): String {
-            return "account.$userId"
+        fun account(userId: String = ""): String {
+            val normalized = normalize(userId)
+            return if (normalized == "*") "account" else "account.$normalized"
         }
+
+        // Global events
+
+        const val documents = "documents"
+        const val rows = "rows"
+        const val files = "files"
+        const val executions = "executions"
     }
 }
-

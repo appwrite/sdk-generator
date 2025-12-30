@@ -2,6 +2,8 @@ package {{ sdk.namespace | caseDot }}.services
 
 import {{ sdk.namespace | caseDot }}.Service
 import {{ sdk.namespace | caseDot }}.Client
+import {{ sdk.namespace | caseDot }}.Actionable
+import {{ sdk.namespace | caseDot }}.ResolvedChannel
 import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.title | caseUcfirst }}Exception
 import {{ sdk.namespace | caseDot }}.extensions.forEachAsync
 import {{ sdk.namespace | caseDot }}.extensions.fromJson
@@ -111,10 +113,15 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
 
     /**
      * Convert channel value to string
+     * Checks if it's an Actionable instance (use .channel),
+     * then ResolvedChannel (use .toString()),
+     * otherwise treats as string
      */
     private fun channelToString(channel: Any): String {
-        return when (channel) {
-            is String -> channel
+        return when {
+            channel is String -> channel
+            channel is Actionable -> channel.channel
+            channel is ResolvedChannel -> channel.toString()
             else -> channel.toString()
         }
     }

@@ -7,105 +7,152 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('database()', () {
-    test('returns database channel with defaults', () {
-      expect(Channel.database(), 'databases.*.collections.*.documents.*');
+    test('returns database channel builder', () {
+      final builder = Channel.database();
+      expect(builder.channel, 'databases.*');
     });
 
-    test('returns database channel with specific IDs', () {
-      expect(Channel.database(databaseId: 'db1', collectionId: 'col1', documentId: 'doc1'),
-          'databases.db1.collections.col1.documents.doc1');
+    test('returns database channel with specific ID', () {
+      final builder = Channel.database('db1');
+      expect(builder.channel, 'databases.db1');
+    });
+
+    test('returns database channel with collection and document', () {
+      final channel = Channel.database('db1').collection('col1').document('doc1');
+      expect(channel.channel, 'databases.db1.collections.col1.documents.doc1');
     });
 
     test('returns database channel with action', () {
-      expect(Channel.database(databaseId: 'db1', collectionId: 'col1', documentId: 'doc1', action: 'create'),
-          'databases.db1.collections.col1.documents.doc1.create');
+      final channel = Channel.database('db1').collection('col1').document('doc1').create();
+      expect(channel.toString(), 'databases.db1.collections.col1.documents.doc1.create');
     });
   });
 
   group('tablesdb()', () {
-    test('returns tablesdb channel with defaults', () {
-      expect(Channel.tablesdb(), 'tablesdb.*.tables.*.rows.*');
+    test('returns tablesdb channel builder', () {
+      final builder = Channel.tablesdb();
+      expect(builder.channel, 'tablesdb.*');
     });
 
-    test('returns tablesdb channel with specific IDs', () {
-      expect(Channel.tablesdb(databaseId: 'db1', tableId: 'table1', rowId: 'row1'),
-          'tablesdb.db1.tables.table1.rows.row1');
+    test('returns tablesdb channel with specific ID', () {
+      final builder = Channel.tablesdb('db1');
+      expect(builder.channel, 'tablesdb.db1');
+    });
+
+    test('returns tablesdb channel with table and row', () {
+      final channel = Channel.tablesdb('db1').table('table1').row('row1');
+      expect(channel.channel, 'tablesdb.db1.tables.table1.rows.row1');
     });
 
     test('returns tablesdb channel with action', () {
-      expect(Channel.tablesdb(databaseId: 'db1', tableId: 'table1', rowId: 'row1', action: 'update'),
-          'tablesdb.db1.tables.table1.rows.row1.update');
+      final channel = Channel.tablesdb('db1').table('table1').row('row1').update();
+      expect(channel.toString(), 'tablesdb.db1.tables.table1.rows.row1.update');
     });
   });
 
   group('account()', () {
     test('returns account channel with default', () {
-      expect(Channel.account(), 'account.*');
+      expect(Channel.account(), 'account');
     });
 
     test('returns account channel with specific user ID', () {
-      expect(Channel.account(userId: 'user123'), 'account.user123');
+      expect(Channel.account('user123'), 'account.user123');
     });
   });
 
-  group('files()', () {
-    test('returns files channel with defaults', () {
-      expect(Channel.files(), 'buckets.*.files.*');
+  group('buckets()', () {
+    test('returns buckets channel builder', () {
+      final builder = Channel.buckets();
+      expect(builder.channel, 'buckets.*');
     });
 
-    test('returns files channel with specific IDs', () {
-      expect(Channel.files(bucketId: 'bucket1', fileId: 'file1'),
-          'buckets.bucket1.files.file1');
+    test('returns buckets channel with specific ID', () {
+      final builder = Channel.buckets('bucket1');
+      expect(builder.channel, 'buckets.bucket1');
     });
 
-    test('returns files channel with action', () {
-      expect(Channel.files(bucketId: 'bucket1', fileId: 'file1', action: 'delete'),
-          'buckets.bucket1.files.file1.delete');
+    test('returns buckets channel with file', () {
+      final channel = Channel.buckets('bucket1').file('file1');
+      expect(channel.channel, 'buckets.bucket1.files.file1');
+    });
+
+    test('returns buckets channel with action', () {
+      final channel = Channel.buckets('bucket1').file('file1').delete();
+      expect(channel.toString(), 'buckets.bucket1.files.file1.delete');
     });
   });
 
-  group('executions()', () {
-    test('returns executions channel with defaults', () {
-      expect(Channel.executions(), 'functions.*.executions.*');
+  group('functions()', () {
+    test('returns functions channel builder', () {
+      final builder = Channel.functions();
+      expect(builder.channel, 'functions.*');
     });
 
-    test('returns executions channel with specific IDs', () {
-      expect(Channel.executions(functionId: 'func1', executionId: 'exec1'),
-          'functions.func1.executions.exec1');
+    test('returns functions channel with specific ID', () {
+      final builder = Channel.functions('func1');
+      expect(builder.channel, 'functions.func1');
     });
 
-    test('returns executions channel with action', () {
-      expect(Channel.executions(functionId: 'func1', executionId: 'exec1', action: 'create'),
-          'functions.func1.executions.exec1.create');
+    test('returns functions channel with execution', () {
+      final channel = Channel.functions('func1').execution('exec1');
+      expect(channel.channel, 'functions.func1.executions.exec1');
+    });
+
+    test('returns functions channel with action', () {
+      final channel = Channel.functions('func1').execution('exec1').create();
+      expect(channel.toString(), 'functions.func1.executions.exec1.create');
     });
   });
 
   group('teams()', () {
-    test('returns teams channel with default', () {
-      expect(Channel.teams(), 'teams.*');
+    test('returns teams channel builder', () {
+      final builder = Channel.teams();
+      expect(builder.channel, 'teams.*');
     });
 
     test('returns teams channel with specific team ID', () {
-      expect(Channel.teams(teamId: 'team1'), 'teams.team1');
+      final builder = Channel.teams('team1');
+      expect(builder.channel, 'teams.team1');
     });
 
     test('returns teams channel with action', () {
-      expect(Channel.teams(teamId: 'team1', action: 'create'), 'teams.team1.create');
+      final channel = Channel.teams('team1').create();
+      expect(channel.toString(), 'teams.team1.create');
     });
   });
 
   group('memberships()', () {
-    test('returns memberships channel with default', () {
-      expect(Channel.memberships(), 'memberships.*');
+    test('returns memberships channel builder', () {
+      final builder = Channel.memberships();
+      expect(builder.channel, 'memberships.*');
     });
 
     test('returns memberships channel with specific membership ID', () {
-      expect(Channel.memberships(membershipId: 'membership1'), 'memberships.membership1');
+      final builder = Channel.memberships('membership1');
+      expect(builder.channel, 'memberships.membership1');
     });
 
     test('returns memberships channel with action', () {
-      expect(Channel.memberships(membershipId: 'membership1', action: 'update'),
-          'memberships.membership1.update');
+      final channel = Channel.memberships('membership1').update();
+      expect(channel.toString(), 'memberships.membership1.update');
+    });
+  });
+
+  group('global events', () {
+    test('returns documents channel', () {
+      expect(Channel.documents, 'documents');
+    });
+
+    test('returns rows channel', () {
+      expect(Channel.rows, 'rows');
+    });
+
+    test('returns files channel', () {
+      expect(Channel.files, 'files');
+    });
+
+    test('returns executions channel', () {
+      expect(Channel.executions, 'executions');
     });
   });
 }

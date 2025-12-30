@@ -17,18 +17,7 @@ extension String: ChannelValue {
 }
 
 extension ResolvedChannel: ChannelValue {}
-extension DatabaseChannel: ChannelValue {}
-extension CollectionChannel: ChannelValue {}
-extension DocumentChannel: ChannelValue {}
-extension TablesDBChannel: ChannelValue {}
-extension TableChannel: ChannelValue {}
-extension RowChannel: ChannelValue {}
-extension BucketChannel: ChannelValue {}
-extension FileChannel: ChannelValue {}
-extension FunctionChannel: ChannelValue {}
-extension ExecutionChannel: ChannelValue {}
-extension TeamChannel: ChannelValue {}
-extension MembershipChannel: ChannelValue {}
+extension ActionChannel: ChannelValue {}
 
 open class Realtime : Service {
 
@@ -146,8 +135,20 @@ open class Realtime : Service {
 
     /**
      * Convert channel value to string
+     * Checks if it's an Actionable instance (use .channel), 
+     * then ResolvedChannel (use .toString()), 
+     * otherwise treats as string
      */
     private func channelToString(_ channel: ChannelValue) -> String {
+        // Check if it's an Actionable instance (has channel property)
+        if let actionable = channel as? Actionable {
+            return actionable.channel
+        }
+        // Check if it's a ResolvedChannel (has toString() method)
+        if let resolved = channel as? ResolvedChannel {
+            return resolved.toString()
+        }
+        // Otherwise use toString() (works for strings and other channel types)
         return channel.toString()
     }
 
