@@ -124,7 +124,7 @@ open class Client {
     ///
     open func setSelfSigned(_ status: Bool = true) -> Client {
         self.selfSigned = status
-        try! http.syncShutdown()
+        try? http.syncShutdown()
         http = Client.createHTTP(selfSigned: status, connectTimeout: connectTimeout, readTimeout: timeout)
         return self
     }
@@ -138,8 +138,8 @@ open class Client {
     ///
     open func setConnectTimeout(_ timeout: TimeAmount) -> Client {
         self.connectTimeout = timeout
-        try! http.syncShutdown()
-        try! httpForRedirect.syncShutdown()
+        try? http.syncShutdown()
+        try? httpForRedirect.syncShutdown()
         http = Client.createHTTP(selfSigned: selfSigned, connectTimeout: connectTimeout, readTimeout: self.timeout)
         httpForRedirect = Client.createHTTP(selfSigned: selfSigned, redirectConfiguration: .disallow, connectTimeout: connectTimeout, readTimeout: self.timeout)
         return self
@@ -154,8 +154,8 @@ open class Client {
     ///
     open func setTimeout(_ timeout: TimeAmount) -> Client {
         self.timeout = timeout
-        try! http.syncShutdown()
-        try! httpForRedirect.syncShutdown()
+        try? http.syncShutdown()
+        try? httpForRedirect.syncShutdown()
         http = Client.createHTTP(selfSigned: selfSigned, connectTimeout: connectTimeout, readTimeout: self.timeout)
         httpForRedirect = Client.createHTTP(selfSigned: selfSigned, redirectConfiguration: .disallow, connectTimeout: connectTimeout, readTimeout: self.timeout)
         return self
