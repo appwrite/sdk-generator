@@ -1,7 +1,7 @@
-part of appwrite_channel;
+part of {{ language.params.packageName }};
 
 // The result of building the channel.
-final class ResolvedChannel {
+class ResolvedChannel {
   final String value;
   const ResolvedChannel(this.value);
 
@@ -14,44 +14,44 @@ String _normalize(String id) => id.trim().isEmpty ? '*' : id;
 
 // State interfaces
 
-abstract interface class Actionable {
+abstract class Actionable {
   ResolvedChannel create();
   ResolvedChannel update();
   ResolvedChannel delete();
   String get channel;
 }
 
-abstract interface class IDatabase {
+abstract class IDatabase {
   ICollection collection([String id = '*']);
 }
 
-abstract interface class ICollection {
+abstract class ICollection {
   IDocument document([String id = '*']);
 }
 
-abstract interface class IDocument implements Actionable {}
+abstract class IDocument implements Actionable {}
 
-abstract interface class ITablesDB {
+abstract class ITablesDB {
   ITable table([String id = '*']);
 }
 
-abstract interface class ITable {
+abstract class ITable {
   IRow row([String id = '*']);
 }
 
-abstract interface class IRow implements Actionable {}
+abstract class IRow implements Actionable {}
 
-abstract interface class IBucket {
+abstract class IBucket {
   IFile file([String id = '*']);
 }
 
-abstract interface class IFile implements Actionable {}
+abstract class IFile implements Actionable {}
 
-abstract interface class IFunction {
+abstract class IFunction {
   IExecution execution([String id = '*']);
 }
 
-abstract interface class IExecution implements Actionable {}
+abstract class IExecution implements Actionable {}
 
 // Builder implementation
 
@@ -109,7 +109,7 @@ class _ChannelBuilder implements
 
 // Entry point
 
-abstract final class Channel {
+abstract class Channel {
   static IDatabase database([String id = '*']) => 
       _ChannelBuilder._(['databases', _normalize(id)]);
       
