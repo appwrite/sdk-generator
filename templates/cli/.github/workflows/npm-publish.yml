@@ -30,7 +30,7 @@ jobs:
           sudo make install
       - name: Install dependencies and build for Linux and Windows
         run: | 
-          npm ci
+          npm install
           npm run linux-x64
           npm run linux-arm64
           npm run windows-x64
