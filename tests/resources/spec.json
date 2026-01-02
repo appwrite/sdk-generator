@@ -2258,6 +2258,23 @@
       ]
     }
   },
+  "x-sdk-enums": [
+    {
+      "name": "MockPlan",
+      "enum": [
+        "tier-0",
+        "tier-1",
+        "tier-2",
+        "ent-1"
+      ],
+      "keys": [
+        "Free",
+        "Pro",
+        "Scale",
+        "Enterprise"
+      ]
+    }
+  ],
   "externalDocs": {
     "description": "Full API docs, specs and tutorials",
     "url": "https:\/\/appwrite.io\/docs"
