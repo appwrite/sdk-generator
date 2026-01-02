@@ -2,6 +2,8 @@ package {{ sdk.namespace | caseDot }}.services
 
 import {{ sdk.namespace | caseDot }}.Service
 import {{ sdk.namespace | caseDot }}.Client
+import {{ sdk.namespace | caseDot }}.Actionable
+import {{ sdk.namespace | caseDot }}.ResolvedChannel
 import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.title | caseUcfirst }}Exception
 import {{ sdk.namespace | caseDot }}.extensions.forEachAsync
 import {{ sdk.namespace | caseDot }}.extensions.fromJson
@@ -109,6 +111,30 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         else -> 60000L
     }
 
+    /**
+     * Convert channel value to string
+     * Checks if it's an Actionable instance (use .channel),
+     * then ResolvedChannel (use .toString()),
+     * otherwise treats as string
+     */
+    private fun channelToString(channel: Any): String {
+        return when {
+            channel is String -> channel
+            channel is Actionable -> channel.channel
+            channel is ResolvedChannel -> channel.toString()
+            else -> channel.toString()
+        }
+    }
+
+    fun subscribe(
+        vararg channels: Any,
+        callback: (RealtimeResponseEvent<Any>) -> Unit,
+    ) = subscribe(
+        channels = channels.map { channelToString(it) }.toTypedArray(),
+        Any::class.java,
+        callback
+    )
+
     fun subscribe(
         vararg channels: String,
         callback: (RealtimeResponseEvent<Any>) -> Unit,
@@ -117,6 +143,18 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         Any::class.java,
         callback
     )
+
+    fun <T> subscribe(
+        vararg channels: Any,
+        payloadType: Class<T>,
+        callback: (RealtimeResponseEvent<T>) -> Unit,
+    ): RealtimeSubscription {
+        return subscribe(
+            channels = channels.map { channelToString(it) }.toTypedArray(),
+            payloadType = payloadType,
+            callback = callback
+        )
+    }
 
     fun <T> subscribe(
         vararg channels: String,

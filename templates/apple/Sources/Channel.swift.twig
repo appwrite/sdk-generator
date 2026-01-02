@@ -1,0 +1,218 @@
+import Foundation
+
+/**
+ * Protocol for channel values that can be converted to strings
+ */
+public protocol ChannelValue {
+    func toString() -> String
+}
+
+// Make String conform to ChannelValue
+extension String: ChannelValue {
+    public func toString() -> String {
+        return self
+    }
+}
+
+// The result of building the channel.
+public final class ResolvedChannel {
+    private let value: String
+
+    init(value: String) {
+        self.value = value
+    }
+
+    public func toString() -> String {
+        value
+    }
+}
+
+// Helper for normalizing IDs
+private func normalize(_ id: String) -> String {
+    let trimmed = id.trimmingCharacters(in: .whitespacesAndNewlines)
+    return trimmed.isEmpty ? "*" : trimmed
+}
+
+// Protocol for actionable channels
+public protocol Actionable: ChannelValue {
+    var channel: String { get }
+    func create() -> ResolvedChannel
+    func update() -> ResolvedChannel
+    func delete() -> ResolvedChannel
+}
+
+public protocol IDatabase {
+    func collection(_ id: String) -> ICollection
+}
+
+public protocol ICollection {
+    func document(_ id: String) -> IDocument
+}
+
+public protocol IDocument: Actionable {}
+
+public protocol ITablesDB {
+    func table(_ id: String) -> ITable
+}
+
+public protocol ITable {
+    func row(_ id: String) -> IRow
+}
+
+public protocol IRow: Actionable {}
+
+public protocol IBucket {
+    func file(_ id: String) -> IFile
+}
+
+public protocol IFile: Actionable {}
+
+public protocol IFunction {
+    func execution(_ id: String) -> IExecution
+}
+
+public protocol IExecution: Actionable {}
+
+// Protocol extensions to provide default parameter overloads
+// Swift doesn't allow default parameters in protocol requirements,
+// so we provide overloaded methods without parameters
+extension IDatabase {
+    public func collection() -> ICollection {
+        return collection("*")
+    }
+}
+
+extension ICollection {
+    public func document() -> IDocument {
+        return document("*")
+    }
+}
+
+extension ITablesDB {
+    public func table() -> ITable {
+        return table("*")
+    }
+}
+
+extension ITable {
+    public func row() -> IRow {
+        return row("*")
+    }
+}
+
+extension IBucket {
+    public func file() -> IFile {
+        return file("*")
+    }
+}
+
+extension IFunction {
+    public func execution() -> IExecution {
+        return execution("*")
+    }
+}
+
+final class ChannelBuilder:
+    IDatabase, ICollection, IDocument,
+    ITablesDB, ITable, IRow,
+    IBucket, IFile,
+    IFunction, IExecution, Actionable
+{
+    private let segments: [String]
+
+    private init(_ segments: [String]) {
+        self.segments = segments
+    }
+
+    static func start(_ segments: [String]) -> ChannelBuilder {
+        ChannelBuilder(segments)
+    }
+
+    private func next(_ segment: String, _ id: String) -> ChannelBuilder {
+        ChannelBuilder(segments + [segment, normalize(id)])
+    }
+
+    // MARK: hierarchy
+
+    func collection(_ id: String = "*") -> ICollection {
+        next("collections", id)
+    }
+
+    func document(_ id: String = "*") -> IDocument {
+        next("documents", id)
+    }
+
+    func table(_ id: String = "*") -> ITable {
+        next("tables", id)
+    }
+
+    func row(_ id: String = "*") -> IRow {
+        next("rows", id)
+    }
+
+    func file(_ id: String = "*") -> IFile {
+        next("files", id)
+    }
+
+    func execution(_ id: String = "*") -> IExecution {
+        next("executions", id)
+    }
+
+    var channel: String {
+        segments.joined(separator: ".")
+    }
+
+    func toString() -> String {
+        return channel
+    }
+
+    func create() -> ResolvedChannel {
+        ResolvedChannel(value: "\(channel).create")
+    }
+
+    func update() -> ResolvedChannel {
+        ResolvedChannel(value: "\(channel).update")
+    }
+
+    func delete() -> ResolvedChannel {
+        ResolvedChannel(value: "\(channel).delete")
+    }
+}
+
+public enum Channel {
+
+    public static func database(_ id: String = "*") -> IDatabase {
+        ChannelBuilder.start(["databases", normalize(id)])
+    }
+
+    public static func tablesdb(_ id: String = "*") -> ITablesDB {
+        ChannelBuilder.start(["tablesdb", normalize(id)])
+    }
+
+    public static func buckets(_ id: String = "*") -> IBucket {
+        ChannelBuilder.start(["buckets", normalize(id)])
+    }
+
+    public static func functions(_ id: String = "*") -> IFunction {
+        ChannelBuilder.start(["functions", normalize(id)])
+    }
+
+    public static func teams(_ id: String = "*") -> Actionable {
+        ChannelBuilder.start(["teams", normalize(id)])
+    }
+
+    public static func memberships(_ id: String = "*") -> Actionable {
+        ChannelBuilder.start(["memberships", normalize(id)])
+    }
+
+    public static func account(_ userId: String = "") -> String {
+        let id = normalize(userId)
+        return id == "*" ? "account" : "account.\(id)"
+    }
+
+    // Global events
+    public static let documents = "documents"
+    public static let rows = "rows"
+    public static let files = "files"
+    public static let executions = "executions"
+}

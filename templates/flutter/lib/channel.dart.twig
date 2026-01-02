@@ -1,0 +1,138 @@
+part of {{ language.params.packageName }};
+
+// The result of building the channel.
+class ResolvedChannel {
+  final String value;
+  const ResolvedChannel(this.value);
+
+  @override
+  String toString() => value;
+}
+
+// Helper function for normalizing ID
+String _normalize(String id) => id.trim().isEmpty ? '*' : id;
+
+// State interfaces
+
+abstract class Actionable {
+  ResolvedChannel create();
+  ResolvedChannel update();
+  ResolvedChannel delete();
+  String get channel;
+}
+
+abstract class IDatabase {
+  ICollection collection([String id = '*']);
+}
+
+abstract class ICollection {
+  IDocument document([String id = '*']);
+}
+
+abstract class IDocument implements Actionable {}
+
+abstract class ITablesDB {
+  ITable table([String id = '*']);
+}
+
+abstract class ITable {
+  IRow row([String id = '*']);
+}
+
+abstract class IRow implements Actionable {}
+
+abstract class IBucket {
+  IFile file([String id = '*']);
+}
+
+abstract class IFile implements Actionable {}
+
+abstract class IFunction {
+  IExecution execution([String id = '*']);
+}
+
+abstract class IExecution implements Actionable {}
+
+// Builder implementation
+
+class _ChannelBuilder implements 
+    IDatabase, ICollection, IDocument, 
+    ITablesDB, ITable, IRow,
+    IBucket, IFile, 
+    IFunction, IExecution, Actionable {
+  
+  final List<String> _segments;
+
+  _ChannelBuilder._(this._segments);
+
+  _ChannelBuilder _next(String segment, String id) {
+    return _ChannelBuilder._([
+      ..._segments,
+      segment,
+      _normalize(id),
+    ]);
+  }
+
+  @override
+  ICollection collection([String id = '*']) => _next('collections', id);
+  
+  @override
+  IDocument document([String id = '*']) => _next('documents', id);
+
+  @override
+  ITable table([String id = '*']) => _next('tables', id);
+
+  @override
+  IRow row([String id = '*']) => _next('rows', id);
+
+  @override
+  IFile file([String id = '*']) => _next('files', id);
+
+  @override
+  IExecution execution([String id = '*']) => _next('executions', id);
+
+  @override
+  ResolvedChannel create() => _resolve('create');
+  @override
+  ResolvedChannel update() => _resolve('update');
+  @override
+  ResolvedChannel delete() => _resolve('delete');
+
+  @override
+  String get channel => _segments.join('.');
+
+  @override
+  String toString() => channel;
+
+  ResolvedChannel _resolve(String action) => ResolvedChannel('$channel.$action');
+}
+
+// Entry point
+
+abstract class Channel {
+  static IDatabase database([String id = '*']) => 
+      _ChannelBuilder._(['databases', _normalize(id)]);
+      
+  static ITablesDB tablesdb([String id = '*']) => 
+      _ChannelBuilder._(['tablesdb', _normalize(id)]);
+      
+  static IBucket buckets([String id = '*']) => 
+      _ChannelBuilder._(['buckets', _normalize(id)]);
+      
+  static IFunction functions([String id = '*']) => 
+      _ChannelBuilder._(['functions', _normalize(id)]);
+  
+  static Actionable teams([String id = '*']) => 
+      _ChannelBuilder._(['teams', _normalize(id)]);
+      
+  static Actionable memberships([String id = '*']) => 
+      _ChannelBuilder._(['memberships', _normalize(id)]);
+
+  static String account([String userId = '']) => 
+      userId.isEmpty ? 'account' : 'account.${_normalize(userId)}';
+  // Global events (without ID)
+  static String get documents => 'documents';
+  static String get rows => 'rows';
+  static String get files => 'files';
+  static String get executions => 'executions';
+}
