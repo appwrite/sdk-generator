@@ -30,20 +30,6 @@ class Client {
         };
     }
 
-    /**
-     * Set Cookie
-     *
-     * Your cookie
-     *
-     * @param {string} cookie
-     *
-     * @return self
-     */
-    setCookie(cookie: string): this {
-        this.addHeader('cookie', cookie);
-        return this;
-    }
-
 {% for header in spec.global.headers %}
     /**
      * Set {{header.key | caseUcfirst}}
