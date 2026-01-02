@@ -17,17 +17,23 @@ jobs:
         with:
           node-version: '22'
           registry-url: 'https://registry.npmjs.org'
+
+      - name: Update npm to latest version for OIDC support
+        run: npm install -g npm@latest
+
       - name: Setup binfmt with QEMU
         run: | 
           sudo apt update
           sudo apt install qemu-system binfmt-support qemu-user-static
           update-binfmts --display
+
       - name: Setup ldid
         run: |
           git clone https://github.com/tpoechtrager/ldid
           cd ./ldid
           sudo make
           sudo make install
+
       - name: Install dependencies and build for Linux and Windows
         run: | 
           npm install
@@ -37,6 +43,7 @@ jobs:
           npm run windows-arm64
           npm run mac-x64
           npm run mac-arm64
+
       - name: Publish NPM library
         run: |
           if ${{ contains(github.event.release.tag_name, '-rc') }}; then
@@ -46,6 +53,7 @@ jobs:
             echo "Publishing ${{ github.event.release.tag_name}} to NPM"
             npm publish --provenance --access public
           fi
+
       - uses: fnkr/github-action-ghr@v1
         env:
           GHR_PATH: build/

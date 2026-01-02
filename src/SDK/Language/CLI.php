@@ -183,8 +183,8 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'copy',
-                'destination'   => '.github/workflows/npm-publish.yml',
-                'template'      => 'cli/.github/workflows/npm-publish.yml',
+                'destination'   => '.github/workflows/publish.yml',
+                'template'      => 'cli/.github/workflows/publish.yml',
             ],
             [
                 'scope'         => 'default',
