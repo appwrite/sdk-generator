@@ -1,0 +1,58 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [{{ sdk.version }}] - TBD
+
+### Added
+- Initial release of {{ spec.title }} Rust SDK
+- Full support for {{ spec.title }} API {{ spec.version }}
+- Async/await support with tokio runtime
+- Built-in error handling with custom error types
+- File upload support with automatic chunking
+- Query builder for database operations
+- Permission and role management utilities
+- ID generation utilities
+- Comprehensive documentation and examples
+- Support for self-signed certificates
+- Custom header support
+- Automatic JSON serialization/deserialization
+
+### Features
+{% for service in spec.services %}
+- {{ service.name | caseUcfirst }} service with {{ service.methods | length }} methods
+{% endfor %}
+
+### Services
+{% for service in spec.services %}
+#### {{ service.name | caseUcfirst }}
+{{ service.description }}
+{% for method in service.methods %}
+- `{{ method.name | caseSnake }}()` - {{ method.description }}
+{% endfor %}
+
+{% endfor %}
+
+### Models
+{% for definition in spec.definitions %}
+- `{{ definition.name | caseUcfirst }}` - {{ definition.description }}
+{% endfor %}
+
+### Dependencies
+- reqwest 0.12+ for HTTP client
+- serde 1.0+ for JSON serialization
+- tokio 1.0+ for async runtime
+- fastrand 2.0+ for ID generation
+- thiserror 1.0+ for error handling
+
+### Documentation
+- Complete API documentation
+- Usage examples for all methods
+- Error handling guide
+- File upload examples
+- Query builder documentation
+
+[{{ sdk.version }}]: https://github.com/{{ sdk.gitUserName }}/sdk-for-rust/releases/tag/{{ sdk.version }}
