@@ -79,6 +79,9 @@ try {
         if (isset($config['exclude'])) {
             $sdk->setExclude($config['exclude']);
         }
+        if (isset($config['platform'])) {
+            $sdk->setPlatform($config['platform']);
+        }
 
         return $sdk;
     }
@@ -120,7 +123,7 @@ try {
     // Web
     if (!$requestedSdk || $requestedSdk === 'web') {
         $sdk  = new SDK(new Web(), new Swagger2($spec));
-        configureSDK($sdk);
+        configureSDK($sdk, ['platform' => $platform]);
         $sdk->generate(__DIR__ . '/examples/web');
     }
 
