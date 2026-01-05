@@ -44,6 +44,7 @@ abstract class Model
     /**
      * Filter Document Structure
      *
+     * @param Document $document
      * @return Document
      */
     public function filter(Document $document): Document
@@ -85,7 +86,7 @@ abstract class Model
      */
     protected function addRule(string $key, array $options): self
     {
-        $this->rules[$key] = array_merge([
+        $this->rules[$key] = \array_merge([
             'required' => true,
             'array' => false,
             'description' => '',

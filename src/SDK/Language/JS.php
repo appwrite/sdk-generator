@@ -131,6 +131,13 @@ abstract class JS extends Language
         if (!empty($parameter['enumValues'])) {
             return \ucfirst($parameter['name']);
         }
+        if (!empty($parameter['array']['model'])) {
+            return $this->toPascalCase($parameter['array']['model']) . '[]';
+        }
+        if (!empty($parameter['model'])) {
+            $modelType = $this->toPascalCase($parameter['model']);
+            return $parameter['type'] === self::TYPE_ARRAY ? $modelType . '[]' : $modelType;
+        }
         if (isset($parameter['items'])) {
             // Map definition nested type to parameter nested type
             $parameter['array'] = $parameter['items'];

@@ -40,6 +40,13 @@ class Node extends Web
         if (!empty($parameter['enumValues'])) {
             return \ucfirst($parameter['name']);
         }
+        if (!empty($parameter['array']['model'])) {
+            return 'Models.' . $this->toPascalCase($parameter['array']['model']) . '[]';
+        }
+        if (!empty($parameter['model'])) {
+            $modelType = 'Models.' . $this->toPascalCase($parameter['model']);
+            return $parameter['type'] === self::TYPE_ARRAY ? $modelType . '[]' : $modelType;
+        }
         if (isset($parameter['items'])) {
             // Map definition nested type to parameter nested type
             $parameter['array'] = $parameter['items'];
@@ -105,6 +112,12 @@ class Node extends Web
 
         if ($method['type'] === 'location') {
             return 'Promise<ArrayBuffer>';
+        }
+
+        // check for union types i.e. multiple response models
+        $unionType = $this->getUnionReturnType($method, $spec);
+        if ($unionType !== null) {
+            return $unionType;
         }
 
         if (array_key_exists('responseModel', $method) && !empty($method['responseModel']) && $method['responseModel'] !== 'any') {
@@ -273,6 +286,11 @@ class Node extends Web
                 'scope'         => 'enum',
                 'destination'   => 'src/enums/{{ enum.name | caseKebab }}.ts',
                 'template'      => 'web/src/enums/enum.ts.twig',
+            ],
+            [
+                'scope'         => 'requestModel',
+                'destination'   => 'src/models/{{ requestModel.name | caseKebab }}.ts',
+                'template'      => 'node/src/models/requestModel.ts.twig',
             ],
         ];
     }

@@ -1,0 +1,199 @@
+import os = require('os');
+import { fetch, FormData, Agent, File } from 'undici';
+import JSONbig = require('json-bigint');
+import {{ spec.title | caseUcfirst }}Exception = require('./exception');
+import { globalConfig } from './config';
+import chalk = require('chalk');
+import type { Headers, RequestParams, ResponseType, FileUpload } from './types';
+
+const JSONBigInt = JSONbig({ storeAsString: false });
+
+class Client {
+    readonly CHUNK_SIZE = 5 * 1024 * 1024; // 5MB
+    private endpoint: string;
+    private headers: Headers;
+    private selfSigned: boolean;
+
+    constructor() {
+        this.endpoint = '{{spec.endpoint}}';
+        this.selfSigned = false;
+        this.headers = {
+            'content-type': '',
+            'x-sdk-name': '{{ sdk.name }}',
+            'x-sdk-platform': '{{ sdk.platform }}',
+            'x-sdk-language': '{{ language.name | caseLower }}',
+            'x-sdk-version': '{{ sdk.version }}',
+            'user-agent': `{{spec.title | caseUcfirst}}CLI/{{ sdk.version }} (${os.type()} ${os.version()}; ${os.arch()})`,
+{% for key,header in spec.global.defaultHeaders %}
+            '{{key}}': '{{header}}',
+{% endfor %}
+        };
+    }
+
+{% for header in spec.global.headers %}
+    /**
+     * Set {{header.key | caseUcfirst}}
+     *
+{% if header.description %}
+     * {{header.description}}
+     *
+{% endif %}
+     * @param {string} {{header.key | caseLower}}
+     *
+     * @return self
+     */
+    set{{header.key | caseUcfirst}}({{header.key | caseLower}}: string): this {
+        this.addHeader('{{header.name}}', {{header.key | caseLower}});
+        return this;
+    }
+
+{% endfor %}
+    /**
+     * Set self signed.
+     *
+     * @param {bool} status
+     *
+     * @return this
+     */
+    setSelfSigned(status: boolean): this {
+        this.selfSigned = status;
+        return this;
+    }
+
+    /**
+     * Set endpoint.
+     *
+     * @param {string} endpoint
+     *
+     * @return this
+     */
+    setEndpoint(endpoint: string): this {
+        if (!endpoint.startsWith('http://') && !endpoint.startsWith('https://')) {
+            throw new {{spec.title | caseUcfirst}}Exception('Invalid endpoint URL: ' + endpoint);
+        }
+
+        this.endpoint = endpoint;
+        return this;
+    }
+
+    /**
+     * @param {string} key
+     * @param {string} value
+     */
+    addHeader(key: string, value: string): this {
+        this.headers[key.toLowerCase()] = value;
+        return this;
+    }
+
+    async call<T = unknown>(
+        method: string,
+        path: string = '',
+        headers: Headers = {},
+        params: RequestParams = {},
+        responseType: ResponseType = 'json'
+    ): Promise<T> {
+        const mergedHeaders: Headers = { ...this.headers, ...headers };
+        const url = new URL(this.endpoint + path);
+
+        let body: FormData | string | undefined = undefined;
+
+        if (method.toUpperCase() === 'GET') {
+            url.search = new URLSearchParams(Client.flatten(params) as Record<string, string>).toString();
+        } else if (mergedHeaders['content-type']?.toLowerCase().startsWith('multipart/form-data')) {
+            delete mergedHeaders['content-type'];
+            const formData = new FormData();
+
+            const flatParams = Client.flatten(params);
+
+            for (const [key, value] of Object.entries(flatParams)) {
+                if (value && typeof value === 'object' && 'type' in value && value.type === 'file') {
+                    const fileUpload = value as FileUpload;
+                    formData.append(key, fileUpload.file, fileUpload.filename);
+                } else {
+                    formData.append(key, value as string);
+                }
+            }
+
+            body = formData;
+        } else {
+            body = JSONBigInt.stringify(params);
+        }
+
+        let response: Awaited<ReturnType<typeof fetch>> | undefined = undefined;
+        try {
+            response = await fetch(url.toString(), {
+                method: method.toUpperCase(),
+                headers: mergedHeaders,
+                body,
+                dispatcher: new Agent({
+                    connect: {
+                        rejectUnauthorized: !this.selfSigned,
+                    },
+                }),
+            });
+        } catch (error) {
+            throw new {{spec.title | caseUcfirst}}Exception((error as Error).message);
+        }
+
+        if (response.status >= 400) {
+            const text = await response.text();
+            let json: { message?: string; code?: number; type?: string } | undefined = undefined;
+            try {
+                json = JSON.parse(text);
+            } catch (error) {
+                throw new {{spec.title | caseUcfirst}}Exception(text, response.status, '', text);
+            }
+
+            if (path !== '/account' && json.code === 401 && json.type === 'user_more_factors_required') {
+                console.log(`${chalk.cyan.bold('ℹ Info')} ${chalk.cyan('Unusable account found, removing...')}`);
+
+                const current = globalConfig.getCurrentSession();
+                globalConfig.setCurrentSession('');
+                globalConfig.removeSession(current);
+            }
+            throw new {{spec.title | caseUcfirst}}Exception(json.message || text, json.code, json.type, text);
+        }
+
+        if (responseType === 'arraybuffer') {
+            const data = await response.arrayBuffer();
+            return data as T;
+        }
+
+        const cookies = response.headers.getSetCookie();
+        if (cookies && cookies.length > 0) {
+            for (const cookie of cookies) {
+                if (cookie.startsWith('a_session_console=')) {
+                    globalConfig.setCookie(cookie);
+                }
+            }
+        }
+
+        const text = await response.text();
+        let json: T | undefined = undefined;
+        try {
+            json = JSONBigInt.parse(text);
+        } catch (error) {
+            return text as T;
+        }
+        return json as T;
+    }
+
+    static flatten(data: RequestParams, prefix: string = ''): Record<string, unknown> {
+        let output: Record<string, unknown> = {};
+
+        for (const key in data) {
+            const value = data[key];
+            const finalKey = prefix ? prefix + '[' + key + ']' : key;
+
+            if (Array.isArray(value)) {
+                output = { ...output, ...Client.flatten(value as unknown as RequestParams, finalKey) };
+            } else {
+                output[finalKey] = value;
+            }
+        }
+
+        return output;
+    }
+}
+
+export = Client;

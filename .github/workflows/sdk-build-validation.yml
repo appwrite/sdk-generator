@@ -61,6 +61,9 @@ jobs:
           # Console SDKs
           - sdk: cli
             platform: console
+          
+          - sdk: web
+            platform: console
 
     steps:
       - name: Checkout repository
@@ -173,7 +176,7 @@ jobs:
               ;;
             php)
               composer install
-              find . -name "*.php" ! -path "./vendor/*" -exec php -l {} +
+              composer test
               ;;
             python)
               pip install -e .

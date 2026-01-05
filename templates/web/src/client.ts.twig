@@ -303,10 +303,16 @@ class Client {
     config: {
         endpoint: string;
         endpointRealtime: string;
-        [key: string]: string | undefined;
+{%~ if sdk.platform == 'console' %}
+        selfSigned: boolean;
+{%~ endif %}
+        [key: string]: string | {% if sdk.platform == 'console' %}boolean | {% endif %}undefined;
     } = {
         endpoint: '{{ spec.endpoint }}',
         endpointRealtime: '',
+{%~ if sdk.platform == 'console' %}
+        selfSigned: false,
+{%~ endif %}
         {%~ for header in spec.global.headers %}
         {{ header.key | caseLower }}: '',
         {%~ endfor %}
@@ -368,6 +374,20 @@ class Client {
         return this;
     }
 
+{%~ if sdk.platform == 'console' %}
+    /**
+     * Set self-signed
+     *
+     * @param {boolean} selfSigned
+     *
+     * @returns {this}
+     */
+    setSelfSigned(selfSigned: boolean): this {
+        this.config.selfSigned = selfSigned;
+        return this;
+    }
+
+{%~ endif %}
     {%~ for header in spec.global.headers %}
     /**
      * Set {{header.key | caseUcfirst}}
@@ -436,7 +456,7 @@ class Client {
 
             const channels = new URLSearchParams();
             if (this.config.project) {
-                channels.set('project', this.config.project);
+                channels.set('project', this.config.project as string);
             }
             this.realtime.channels.forEach(channel => {
                 channels.append('channels[]', channel);

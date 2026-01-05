@@ -1,6 +1,6 @@
 {% for parameter in method.parameters.all %}
 {% if parameter.type == 'file' %}
-    const size = {{ parameter.name | caseCamel | escapeKeyword }}.size;
+    const size = {{ parameter.name | caseCamel | escapeKeyword }}Upload.size;
 
     const apiHeaders = {
 {% for parameter in method.parameters.header %}
@@ -59,7 +59,7 @@
             apiHeaders['x-{{spec.title | caseLower }}-id'] = id;
         }
 
-        payload['{{ parameter.name }}'] = { type: 'file', file: new File([uploadableChunkTrimmed], {{ parameter.name | caseCamel | escapeKeyword }}.filename), filename: {{ parameter.name | caseCamel | escapeKeyword }}.filename };
+        payload['{{ parameter.name }}'] = { type: 'file', file: new File([uploadableChunkTrimmed], {{ parameter.name | caseCamel | escapeKeyword }}Upload.filename), filename: {{ parameter.name | caseCamel | escapeKeyword }}Upload.filename };
 
         response = await client.call('{{ method.method | caseLower }}', apiPath, apiHeaders, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
 
@@ -82,7 +82,7 @@
         currentPosition = 0;
     }
 
-    for await (const chunk of {{ parameter.name | caseCamel | escapeKeyword }}.stream) {
+    for await (const chunk of {{ parameter.name | caseCamel | escapeKeyword }}Upload.stream) {
         for(const b of chunk) {
             uploadableChunk[currentPosition] = b;
 

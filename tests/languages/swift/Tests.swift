@@ -116,6 +116,16 @@ class Tests: XCTestCase {
         mock = try await general.xenum(mockType: .first)
         print(mock.result)
 
+        // Request model tests
+        mock = try await general.createPlayer(player: Player(id: "player1", name: "John Doe", score: 100))
+        print(mock.result)
+
+        mock = try await general.createPlayers(players: [
+            Player(id: "player1", name: "John Doe", score: 100),
+            Player(id: "player2", name: "Jane Doe", score: 200)
+        ])
+        print(mock.result)
+
         do {
             try await general.error400()
         } catch let error as AppwriteError {

@@ -137,6 +137,11 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'tsconfig.json',
+                'template'      => 'cli/tsconfig.json.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'scoop/appwrite.config.json',
                 'template'      => 'cli/scoop/appwrite.config.json.twig',
                 'minify'        => false,
@@ -158,8 +163,8 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'index.js',
-                'template'      => 'cli/index.js.twig',
+                'destination'   => 'index.ts',
+                'template'      => 'cli/index.ts.twig',
             ],
             [
                 'scope'         => 'method',
@@ -178,168 +183,178 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'copy',
-                'destination'   => '.github/workflows/npm-publish.yml',
-                'template'      => 'cli/.github/workflows/npm-publish.yml',
+                'destination'   => '.github/workflows/publish.yml',
+                'template'      => 'cli/.github/workflows/publish.yml',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/sdks.js',
-                'template'      => 'cli/lib/sdks.js.twig',
+                'destination'   => 'lib/sdks.ts',
+                'template'      => 'cli/lib/sdks.ts.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/type-generation/attribute.js',
-                'template'      => 'cli/lib/type-generation/attribute.js.twig',
+                'destination'   => 'lib/type-generation/attribute.ts',
+                'template'      => 'cli/lib/type-generation/attribute.ts.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/type-generation/languages/language.js',
-                'template'      => 'cli/lib/type-generation/languages/language.js.twig',
+                'destination'   => 'lib/type-generation/languages/language.ts',
+                'template'      => 'cli/lib/type-generation/languages/language.ts.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/type-generation/languages/php.js',
-                'template'      => 'cli/lib/type-generation/languages/php.js.twig',
+                'destination'   => 'lib/type-generation/languages/php.ts',
+                'template'      => 'cli/lib/type-generation/languages/php.ts.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/type-generation/languages/typescript.js',
-                'template'      => 'cli/lib/type-generation/languages/typescript.js.twig',
+                'destination'   => 'lib/type-generation/languages/typescript.ts',
+                'template'      => 'cli/lib/type-generation/languages/typescript.ts.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/type-generation/languages/javascript.js',
-                'template'      => 'cli/lib/type-generation/languages/javascript.js.twig',
+                'destination'   => 'lib/type-generation/languages/javascript.ts',
+                'template'      => 'cli/lib/type-generation/languages/javascript.ts.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/type-generation/languages/kotlin.js',
-                'template'      => 'cli/lib/type-generation/languages/kotlin.js.twig',
+                'destination'   => 'lib/type-generation/languages/kotlin.ts',
+                'template'      => 'cli/lib/type-generation/languages/kotlin.ts.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/type-generation/languages/swift.js',
-                'template'      => 'cli/lib/type-generation/languages/swift.js.twig',
+                'destination'   => 'lib/type-generation/languages/swift.ts',
+                'template'      => 'cli/lib/type-generation/languages/swift.ts.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/type-generation/languages/java.js',
-                'template'      => 'cli/lib/type-generation/languages/java.js.twig',
+                'destination'   => 'lib/type-generation/languages/java.ts',
+                'template'      => 'cli/lib/type-generation/languages/java.ts.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/type-generation/languages/dart.js',
-                'template'      => 'cli/lib/type-generation/languages/dart.js.twig',
+                'destination'   => 'lib/type-generation/languages/dart.ts',
+                'template'      => 'cli/lib/type-generation/languages/dart.ts.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/type-generation/languages/csharp.js',
-                'template'      => 'cli/lib/type-generation/languages/csharp.js.twig',
+                'destination'   => 'lib/type-generation/languages/csharp.ts',
+                'template'      => 'cli/lib/type-generation/languages/csharp.ts.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/questions.js',
-                'template'      => 'cli/lib/questions.js.twig',
+                'destination'   => 'lib/questions.ts',
+                'template'      => 'cli/lib/questions.ts.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/validations.js',
-                'template'      => 'cli/lib/validations.js.twig',
+                'destination'   => 'lib/validations.ts',
+                'template'      => 'cli/lib/validations.ts.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/spinner.js',
-                'template'      => 'cli/lib/spinner.js.twig',
+                'destination'   => 'lib/spinner.ts',
+                'template'      => 'cli/lib/spinner.ts.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/parser.js',
-                'template'      => 'cli/lib/parser.js.twig',
+                'destination'   => 'lib/parser.ts',
+                'template'      => 'cli/lib/parser.ts.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/exception.js',
-                'template'      => 'cli/lib/exception.js.twig',
+                'destination'   => 'lib/exception.ts',
+                'template'      => 'cli/lib/exception.ts.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/config.js',
-                'template'      => 'cli/lib/config.js.twig',
+                'destination'   => 'lib/config.ts',
+                'template'      => 'cli/lib/config.ts.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/paginate.js',
-                'template'      => 'cli/lib/paginate.js.twig',
+                'destination'   => 'lib/paginate.ts',
+                'template'      => 'cli/lib/paginate.ts.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/client.js',
-                'template'      => 'cli/lib/client.js.twig',
+                'destination'   => 'lib/client.ts',
+                'template'      => 'cli/lib/client.ts.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/id.js',
-                'template'      => 'cli/lib/id.js.twig',
+                'destination'   => 'lib/id.ts',
+                'template'      => 'cli/lib/id.ts.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/utils.js',
-                'template'      => 'cli/lib/utils.js.twig',
+                'destination'   => 'lib/utils.ts',
+                'template'      => 'cli/lib/utils.ts.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/commands/init.js',
-                'template'      => 'cli/lib/commands/init.js.twig',
+                'destination'   => 'lib/types.ts',
+                'template'      => 'cli/lib/types.ts.twig',
+            ],
+            [
+                'scope'         => 'enum',
+                'destination'   => 'lib/enums/{{ enum.name | caseKebab }}.ts',
+                'template'      => 'cli/lib/enums/enum.ts.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/commands/pull.js',
-                'template'      => 'cli/lib/commands/pull.js.twig',
+                'destination'   => 'lib/commands/init.ts',
+                'template'      => 'cli/lib/commands/init.ts.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/commands/push.js',
-                'template'      => 'cli/lib/commands/push.js.twig',
+                'destination'   => 'lib/commands/pull.ts',
+                'template'      => 'cli/lib/commands/pull.ts.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/commands/run.js',
-                'template'      => 'cli/lib/commands/run.js.twig',
+                'destination'   => 'lib/commands/push.ts',
+                'template'      => 'cli/lib/commands/push.ts.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/emulation/docker.js',
-                'template'      => 'cli/lib/emulation/docker.js.twig',
+                'destination'   => 'lib/commands/run.ts',
+                'template'      => 'cli/lib/commands/run.ts.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/emulation/utils.js',
-                'template'      => 'cli/lib/emulation/utils.js.twig',
+                'destination'   => 'lib/emulation/docker.ts',
+                'template'      => 'cli/lib/emulation/docker.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/emulation/utils.ts',
+                'template'      => 'cli/lib/emulation/utils.ts.twig',
             ],
             [
                 'scope'         => 'service',
-                'destination'   => '/lib/commands/{{service.name | caseKebab}}.js',
-                'template'      => 'cli/lib/commands/command.js.twig',
+                'destination'   => '/lib/commands/{{service.name | caseKebab}}.ts',
+                'template'      => 'cli/lib/commands/command.ts.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/commands/generic.js',
-                'template'      => 'cli/lib/commands/generic.js.twig',
+                'destination'   => 'lib/commands/generic.ts',
+                'template'      => 'cli/lib/commands/generic.ts.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/commands/organizations.js',
-                'template'      => 'cli/lib/commands/organizations.js.twig',
+                'destination'   => 'lib/commands/organizations.ts',
+                'template'      => 'cli/lib/commands/organizations.ts.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/commands/types.js',
-                'template'      => 'cli/lib/commands/types.js.twig',
+                'destination'   => 'lib/commands/types.ts',
+                'template'      => 'cli/lib/commands/types.ts.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/commands/update.js',
-                'template'      => 'cli/lib/commands/update.js.twig',
+                'destination'   => 'lib/commands/update.ts',
+                'template'      => 'cli/lib/commands/update.ts.twig',
             ]
         ];
     }
@@ -357,6 +372,13 @@ class CLI extends Node
         if (!empty($parameter['enumValues'])) {
             return \ucfirst($parameter['name']);
         }
+        if (!empty($parameter['array']['model'])) {
+            return $this->toPascalCase($parameter['array']['model']) . '[]';
+        }
+        if (!empty($parameter['model'])) {
+            $modelType = $this->toPascalCase($parameter['model']);
+            return $parameter['type'] === self::TYPE_ARRAY ? $modelType . '[]' : $modelType;
+        }
         if (isset($parameter['items'])) {
             // Map definition nested type to parameter nested type
             $parameter['array'] = $parameter['items'];
@@ -367,7 +389,7 @@ class CLI extends Node
             self::TYPE_STRING => 'string',
             self::TYPE_FILE => 'string',
             self::TYPE_BOOLEAN => 'boolean',
-            self::TYPE_OBJECT => 'object',
+            self::TYPE_OBJECT => 'string',
             self::TYPE_ARRAY => (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type']))
                 ? $this->getTypeName($parameter['array']) . '[]'
                 : 'any[]',
