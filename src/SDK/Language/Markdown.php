@@ -203,6 +203,20 @@ class Markdown extends Language
                 }
                 return null;
             }),
+            new TwigFilter('needsPermissionImport', function (array $parameters) {
+                foreach ($parameters as $param) {
+                    if (($param['type'] ?? '') === self::TYPE_ARRAY) {
+                        $example = $param['example'] ?? '';
+                        if ($this->isPermissionString($example)) {
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            }),
+            new TwigFilter('decodeHtmlEntities', function (string $value) {
+                return html_entity_decode($value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            }),
         ];
     }
 }

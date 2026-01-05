@@ -5,7 +5,7 @@
 
 {% endif %}
 
-Description: {{ method.description | raw | trim }}
+Description: {{ method.description | decodeHtmlEntities | trim }}
 
 ## Parameters
 {% if method.parameters.all | length > 0 %}
@@ -13,7 +13,7 @@ Description: {{ method.description | raw | trim }}
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 {% for parameter in method.parameters.all -%}
-| `{{ parameter.name | caseCamel }}` | `{{ parameter | getPropertyType }}` | {% if parameter.required %}✅{% else %}❌{% endif %} | {{ parameter.description | raw }}{% if parameter.default %} (Default: `{{ parameter.default }}`){% endif %}{% if parameter.enumValues | length > 0 %}<br>**Allowed:** {% for value in parameter.enumValues %}`{{ value }}`{% if not loop.last %}, {% endif %}{% endfor %}{% endif %} |
+| `{{ parameter.name | caseCamel }}` | `{{ parameter | getPropertyType }}` | {% if parameter.required %}✅{% else %}❌{% endif %} | {{ parameter.description | decodeHtmlEntities }}{% if parameter.default %} (Default: `{{ parameter.default }}`){% endif %}{% if parameter.enumValues | length > 0 %}<br>**Allowed:** {% for value in parameter.enumValues %}`{{ value }}`{% if not loop.last %}, {% endif %}{% endfor %}{% endif %} |
 {% endfor %}
 {%- else %}
 
@@ -23,7 +23,7 @@ This method does not accept any parameters.
 ## Usage
 
 ```typescript
-import { Client, {{ service.name | caseUcfirst }}{% for parameter in method.parameters.all %}{% if parameter.enumValues | length > 0 %}, {{ parameter.enumName | caseUcfirst }}{% endif %}{% endfor %}{% if method | getResponseModel %}, Models{% endif %} } from '{{ spec.title | caseLower }}';
+import { Client, {{ service.name | caseUcfirst }}{% for parameter in method.parameters.all %}{% if parameter.enumValues | length > 0 %}, {{ parameter.enumName | caseUcfirst }}{% endif %}{% endfor %}{% if method | getResponseModel %}, Models{% endif %}{% if method.parameters.all | needsPermissionImport %}, Permission, Role{% endif %} } from '{{ spec.title | caseLower }}';
 
 const client = new Client()
     .setEndpoint('{{ spec.endpointDocs | raw }}')
@@ -76,7 +76,7 @@ Returns a `{{ method | getResponseModel }}` object with the following properties
 | Property | Type | Description |
 |----------|------|-------------|
 {% for property in spec.definitions[method.responseModel].properties -%}
-| `{{ property.name | caseCamel }}` | `{{ property | getPropertyType }}` | {{ property.description | raw }} |
+| `{{ property.name | caseCamel }}` | `{{ property | getPropertyType }}` | {{ property.description | decodeHtmlEntities }} |
 {% endfor %}
 {%- endif %}
 {% endif %}
