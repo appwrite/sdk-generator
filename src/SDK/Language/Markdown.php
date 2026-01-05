@@ -7,8 +7,6 @@ use Twig\TwigFilter;
 
 class Markdown extends Language
 {
-    protected $params = [];
-
     /**
      * @return string
      */
@@ -65,9 +63,10 @@ class Markdown extends Language
 
     /**
      * @param array $parameter
+     * @param array $method
      * @return string
      */
-    public function getTypeName(array $parameter, array $spec = []): string
+    public function getTypeName(array $parameter, array $method = []): string
     {
         // For TypeScript/JavaScript-like languages
         if (isset($parameter['enumName'])) {
