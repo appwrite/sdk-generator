@@ -5,7 +5,7 @@ namespace Appwrite\SDK\Language;
 use Appwrite\SDK\Language;
 use Twig\TwigFilter;
 
-class Docs extends Language
+class Markdown extends Language
 {
     protected $params = [];
 
@@ -14,7 +14,7 @@ class Docs extends Language
      */
     public function getName(): string
     {
-        return 'Docs';
+        return 'Markdown';
     }
 
     /**
@@ -22,7 +22,7 @@ class Docs extends Language
      */
     public function getKeywords(): array
     {
-        // Docs don't need keyword escaping
+        // Markdown doesn't need keyword escaping
         return [];
     }
 
@@ -58,7 +58,7 @@ class Docs extends Language
             [
                 'scope'       => 'method',
                 'destination' => 'typescript/{{ service.name | caseLower }}/{{ method.name | caseKebab }}.md',
-                'template'    => 'docs/typescript/method.md.twig',
+                'template'    => 'markdown/typescript/method.md.twig',
             ]
         ];
     }
