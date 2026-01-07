@@ -308,6 +308,7 @@ class Client {
 {%~ endfor %}
 {%~ if sdk.platform == 'console' %}
         selfSigned: boolean;
+        session?: string;
 {%~ endif %}
     } = {
         endpoint: '{{ spec.endpoint }}',
@@ -317,6 +318,7 @@ class Client {
 {%~ endfor %}
 {%~ if sdk.platform == 'console' %}
         selfSigned: false,
+        session: undefined,
 {%~ endif %}
     };
     /**
