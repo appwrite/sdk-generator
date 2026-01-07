@@ -306,7 +306,6 @@ class Client {
 {%~ for header in spec.global.headers %}
         {{ header.key | caseLower }}: string;
 {%~ endfor %}
-        session?: string;
 {%~ if sdk.platform == 'console' %}
         selfSigned: boolean;
 {%~ endif %}
@@ -316,7 +315,6 @@ class Client {
 {%~ for header in spec.global.headers %}
         {{ header.key | caseLower }}: '',
 {%~ endfor %}
-        session: undefined,
 {%~ if sdk.platform == 'console' %}
         selfSigned: false,
 {%~ endif %}
