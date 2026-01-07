@@ -303,19 +303,23 @@ class Client {
     config: {
         endpoint: string;
         endpointRealtime: string;
+{%~ for header in spec.global.headers %}
+        {{ header.key | caseLower }}: string;
+{%~ endfor %}
 {%~ if sdk.platform == 'console' %}
         selfSigned: boolean;
+        session?: string;
 {%~ endif %}
-        [key: string]: string | {% if sdk.platform == 'console' %}boolean | {% endif %}undefined;
     } = {
         endpoint: '{{ spec.endpoint }}',
         endpointRealtime: '',
+{%~ for header in spec.global.headers %}
+        {{ header.key | caseLower }}: '',
+{%~ endfor %}
 {%~ if sdk.platform == 'console' %}
         selfSigned: false,
+        session: undefined,
 {%~ endif %}
-        {%~ for header in spec.global.headers %}
-        {{ header.key | caseLower }}: '',
-        {%~ endfor %}
     };
     /**
      * Custom headers for API requests.
