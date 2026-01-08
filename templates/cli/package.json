@@ -1,18 +1,18 @@
 {
-  "name": "{{ language.params.npmPackage|caseDash }}",
+  "name": "sdk-for-cli",
   "type": "module",
-  "homepage": "{{ spec.contactURL }}",
-  "description": "{{ sdk.shortDescription }}",
-  "version": "{{ sdk.version }}",
-  "license": "{{ sdk.license }}",
+  "homepage": "https://github.com/appwrite/sdk-for-cli",
+  "description": "SDK for CLI",
+  "version": "1.0.0",
+  "license": "MIT",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "{{ language.params.executableName|caseLower }}": "dist/cli.js"
+    "cli": "dist/cli.js"
   },
   "repository": {
     "type": "git",
-    "url": "{{ sdk.gitURL }}"
+    "url": "https://github.com/appwrite/sdk-for-cli"
   },
   "scripts": {
     "build": "tsc",

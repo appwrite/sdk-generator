@@ -157,6 +157,7 @@ try {
         |_|   |_|                                                ");
 
         $sdk  = new SDK($language, new Swagger2($spec));
+        $sdk->setTest(false);
         configureSDK($sdk, [
             'exclude' => [
                 'services' => [

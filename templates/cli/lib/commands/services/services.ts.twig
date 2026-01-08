@@ -1,0 +1,117 @@
+import { Command } from "commander";
+{% set hasLocationMethod = false %}
+{% set enumNames = [] %}
+{% for method in service.methods %}
+{% if method.type == 'location' %}
+{% set hasLocationMethod = true %}
+{% endif %}
+{% for parameter in method.parameters.all %}
+{% if parameter.enumName is defined and parameter.enumName not in enumNames %}
+{% set enumNames = enumNames|merge([parameter.enumName]) %}
+{% endif %}
+{% endfor %}
+{% endfor %}
+{% if hasLocationMethod %}
+import fs from "fs";
+{% endif %}
+import { sdkForProject } from "../../sdks.js";
+import {
+  actionRunner,
+  commandDescriptions,
+  success,
+  parse,
+  parseBool,
+  parseInteger,
+} from "../../parser.js";
+{% if sdk.test %}
+{{ include('cli/base/mock.twig') }}
+{% else %}
+{% if enumNames | length > 0 %}
+import {
+  {{ service.name | caseUcfirst }},
+{% for enumName in enumNames %}
+  {{ enumName | caseUcfirst }},
+{% endfor %}
+} from "@appwrite.io/console";
+{% else %}
+import { {{ service.name | caseUcfirst }} } from "@appwrite.io/console";
+{% endif %}
+{% endif %}
+
+let {{ service.name | caseCamel }}Client: {{ service.name | caseUcfirst }} | null = null;
+
+const get{{ service.name | caseUcfirst }}Client = async (): Promise<{{ service.name | caseUcfirst }}> => {
+  if (!{{ service.name | caseCamel }}Client) {
+    const sdkClient = await sdkForProject();
+    {{ service.name | caseCamel }}Client = new {{ service.name | caseUcfirst }}(sdkClient);
+  }
+  return {{ service.name | caseCamel }}Client;
+};
+
+export const {{ service.name | caseCamel }} = new Command("{{ service.name | caseKebab }}")
+  .description(commandDescriptions["{{ service.name | caseCamel }}"] ?? "")
+  .configureHelp({
+    helpWidth: process.stdout.columns || 80,
+  });
+
+{% set seenCommands = [] %}
+{% for method in service.methods %}
+{% set commandName = method.name | caseKebab %}
+{% if commandName not in seenCommands %}
+{% set seenCommands = seenCommands|merge([commandName]) %}
+{{ service.name | caseCamel }}
+  .command(`{{ commandName }}`)
+  .description(`{{ method.description | replace({'`': '\\`'}) | raw }}`)
+{% for parameter in method.parameters.all %}
+{% set opt = getCliOption(parameter) %}
+{% if opt.customParserCode is defined %}
+  .{{ opt.method }}(
+    `{{ opt.syntax | raw }}`,
+    `{{ parameter.description | replace({'`': '\\`'}) | raw }}`,
+    {{ opt.customParserCode | raw }},
+  )
+{% elseif opt.parser %}
+  .{{ opt.method }}(`{{ opt.syntax | raw }}`, `{{ parameter.description | replace({'`': '\\`'}) | raw }}`, {{ opt.parser }})
+{% else %}
+  .{{ opt.method }}(`{{ opt.syntax | raw }}`, `{{ parameter.description | replace({'`': '\\`'}) | raw }}`)
+{% endif %}
+{% endfor %}
+{% if method.type == 'location' %}
+  .requiredOption(`--destination <destination>`, `Path to save the file to.`)
+{% endif %}
+  .action(
+    actionRunner(
+{% set params = [] %}
+{% for parameter in method.parameters.all %}
+{% set params = params|merge([parameter.name | caseCamel | escapeKeyword]) %}
+{% endfor %}
+{% set hasParams = params | length > 0 %}
+{% set actionParams = hasParams ? '{ ' ~ params | join(', ') ~ (method.type == 'location' ? ', destination' : '') ~ ' }' : (method.type == 'location' ? '{ destination }' : '') %}
+{% set argExpressions = [] %}
+{% for parameter in method.parameters.all %}
+{% set argExpressions = argExpressions|merge([getCliArgExpression(parameter)]) %}
+{% endfor %}
+{% if method.type == 'location' %}
+      async ({{ actionParams }}) => {
+        const url = await (await get{{ service.name | caseUcfirst }}Client()).{{ method.name | caseCamel }}({{ argExpressions | join(', ') }});
+        const response = await fetch(url);
+        const buffer = Buffer.from(await response.arrayBuffer());
+        fs.writeFileSync(destination, buffer);
+        success(`File saved to ${destination}`);
+      },
+{% elseif method.type == 'webAuth' %}
+      async ({{ actionParams }}) => {
+        const url = (await get{{ service.name | caseUcfirst }}Client()).{{ method.name | caseCamel }}({{ argExpressions | join(', ') }});
+        if (url) console.log(url);
+      },
+{% elseif hasParams %}
+      async ({{ actionParams }}) =>
+        parse(await (await get{{ service.name | caseUcfirst }}Client()).{{ method.name | caseCamel }}({{ argExpressions | join(', ') }})),
+{% else %}
+      async () => parse(await (await get{{ service.name | caseUcfirst }}Client()).{{ method.name | caseCamel }}()),
+{% endif %}
+    ),
+  );
+
+{% endif %}
+{% endfor %}
