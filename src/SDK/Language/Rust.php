@@ -93,6 +93,9 @@ class Rust extends Language
             "await",
             "dyn",
             "union",
+            "gen",
+            "try",
+            "Self",
         ];
     }
 
@@ -122,6 +125,9 @@ class Rust extends Language
             "self" => "r#self",
             "where" => "r#where",
             "async" => "r#async",
+            "gen" => "r#gen",
+            "try" => "r#try",
+            "Self" => "r#Self",
             "await" => "r#await",
             "loop" => "r#loop",
             "while" => "r#while",
@@ -281,8 +287,10 @@ class Rust extends Language
         }
 
         if (
-            str_contains($parameter["description"] ?? "", "Collection attributes") ||
-            str_contains($parameter["description"] ?? "", "List of attributes")
+            isset($parameter["type"]) && $parameter["type"] === "array" &&
+            isset($parameter["items"]["type"]) && $parameter["items"]["type"] === "object" &&
+            !isset($parameter["items"]["model"]) &&
+            !isset($parameter["items"]['$ref'])
         ) {
             return "Vec<serde_json::Value>";
         }
@@ -652,17 +660,32 @@ class Rust extends Language
             return "crate::error::Result<Vec<u8>>";
         }
 
+        $isEmpty = empty($method["produces"]) || (isset($method["responses"]) && $this->isEmptyResponse($method["responses"]));
+
         if (
             !\array_key_exists("responseModel", $method) ||
             empty($method["responseModel"]) ||
             $method["responseModel"] === "any"
         ) {
+            if ($isEmpty) {
+                return "crate::error::Result<()>";
+            }
             return "crate::error::Result<serde_json::Value>";
         }
 
         $ret = ucfirst($method["responseModel"]);
 
         return "crate::error::Result<crate::models::" . $ret . ">";
+    }
+
+    protected function isEmptyResponse(array $responses): bool
+    {
+        foreach ($responses as $code => $response) {
+            if (!in_array((int)$code, [204, 205])) {
+                return false;
+            }
+        }
+        return !empty($responses);
     }
 
     /**

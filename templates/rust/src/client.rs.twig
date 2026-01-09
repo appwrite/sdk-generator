@@ -258,7 +258,6 @@ impl Client {
         for (key, value) in params {
             match value {
                 Value::Array(arr) => {
-                    // For arrays, use key[] for each element
                     for item in arr {
                         match item {
                             Value::String(s) => result.push((format!("{}[]", key), s.clone())),
@@ -266,15 +265,12 @@ impl Client {
                             Value::Bool(b) => result.push((format!("{}[]", key), b.to_string())),
                             Value::Null => result.push((format!("{}[]", key), String::new())),
                             _ => {
-                                // Nested objects/arrays in query params are uncommon
-                                // Fall back to JSON serialization for complex types
                                 result.push((format!("{}[]", key), serde_json::to_string(item).unwrap_or_default()));
                             }
                         }
                     }
                 }
                 Value::Object(_) => {
-                    // Nested objects in GET params are rare, serialize as JSON
                     result.push((key.clone(), serde_json::to_string(value).unwrap_or_default()));
                 }
                 _ => {
@@ -329,7 +325,6 @@ impl Client {
         result
     }
 
-    /// Make an API call
     pub async fn call<T: DeserializeOwned>(
         &self,
         method: Method,
@@ -337,7 +332,6 @@ impl Client {
         headers: Option<HashMap<String, String>>,
         params: Option<HashMap<String, Value>>,
     ) -> Result<T> {
-        // Take snapshot once
         let state = self.state.load_full();
         let url = format!("{}{}", state.config.endpoint, path);
         let mut request_builder;
@@ -380,7 +374,6 @@ impl Client {
         headers: Option<HashMap<String, String>>,
         params: Option<HashMap<String, Value>>,
     ) -> Result<String> {
-        // Take snapshot once
         let state = self.state.load_full();
         let url = format!("{}{}", state.config.endpoint, path);
 
@@ -426,7 +419,6 @@ impl Client {
 
         let status = response.status();
 
-        // For location responses, extract the Location header from redirect responses
         if status.is_redirection() {
             response
                 .headers()
@@ -440,7 +432,6 @@ impl Client {
                     String::new(),
                 ))
         } else {
-            // Extract content-type before consuming response
             let content_type = response
                 .headers()
                 .get("content-type")
@@ -486,7 +477,6 @@ impl Client {
         headers: Option<HashMap<String, String>>,
         params: Option<HashMap<String, Value>>,
     ) -> Result<Vec<u8>> {
-        // Take snapshot once
         let state = self.state.load_full();
         let url = format!("{}{}", state.config.endpoint, path);
         let mut request_builder;
@@ -524,7 +514,6 @@ impl Client {
             let bytes = response.bytes().await?;
             Ok(bytes.to_vec())
         } else {
-            // Extract content-type before consuming response
             let content_type = response
                 .headers()
                 .get("content-type")
@@ -703,8 +692,6 @@ impl Client {
         };
         let total_chunks = file_size.div_ceil(chunk_size as u64);
         let mut current_upload_id = options.upload_id;
-
-        // Check existing upload progress if upload_id is provided
         let mut start_chunk = 0u64;
         if let Some(ref id) = current_upload_id {
             if let Ok(response) = self.call::<Value>(
@@ -791,7 +778,6 @@ impl Client {
 
             let result: Value = self.handle_response(response).await?;
 
-            // Extract upload ID from response if we don't have one
             if current_upload_id.is_none() {
                 if let Some(id) = result.get("$id").and_then(|v| v.as_str()) {
                     current_upload_id = Some(id.to_string());
@@ -826,21 +812,21 @@ impl Client {
         let content_type = content_type.as_str();
 
         if status.is_success() {
-            let text = response.text().await?;
+            let bytes = response.bytes().await?;
 
-            if !content_type.is_empty() && !content_type.starts_with("application/json") {
+            if !content_type.is_empty() && !content_type.starts_with("application/json") && !bytes.is_empty() {
                 return Err({{ spec.title | caseUcfirst }}Error::new(
                     status.as_u16(),
                     format!("Expected JSON response but received content-type: {}", content_type),
                     None,
-                    text,
+                    String::from_utf8_lossy(&bytes).to_string(),
                 ));
             }
 
-            Ok(if text.is_empty() {
-                serde_json::from_str("{}")?
+            Ok(if bytes.is_empty() {
+                serde_json::from_slice(b"null")?
             } else {
-                serde_json::from_str(&text)?
+                serde_json::from_slice(&bytes)?
             })
         } else {
             let error_text = response.text().await?;

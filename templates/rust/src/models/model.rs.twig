@@ -1,6 +1,9 @@
 //! {{ definition.name | caseUcfirst }} model for {{ spec.title }} SDK
 
 use serde::{Deserialize, Serialize};
+{% if definition.additionalProperties %}
+use std::collections::HashMap;
+{% endif %}
 {% set fieldNames = {} %}
 
 {{ definition.description | rustdocComment }}
@@ -20,6 +23,11 @@ pub struct {{ definition.name | caseUcfirst | overrideIdentifier }} {
     pub {{ fieldName }}: Option<{{ property | propertyType(spec) | rustType }}>,
 {% endif %}
 {% endfor %}
+{% if definition.additionalProperties %}
+
+    #[serde(flatten)]
+    pub data: HashMap<String, serde_json::Value>,
+{% endif %}
 }
 
 impl {{ definition.name | caseUcfirst | overrideIdentifier }} {
@@ -46,6 +54,17 @@ impl {{ definition.name | caseUcfirst | overrideIdentifier }} {
 {% endif %}
 
 {% endfor %}
+{% if definition.additionalProperties %}
+
+    pub fn get<T: serde::de::DeserializeOwned>(&self, key: &str) -> Option<T> {
+        self.data.get(key)
+            .and_then(|v| serde_json::from_value(v.clone()).ok())
+    }
+
+    pub fn data(&self) -> &HashMap<String, serde_json::Value> {
+        &self.data
+    }
+{% endif %}
 }
 
 #[cfg(test)]
