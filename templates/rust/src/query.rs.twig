@@ -62,12 +62,12 @@ impl Query {
         Self::new("between".to_string(), Some(attribute.into()), vec![start.into(), end.into()])
     }
 
-    pub fn starts_with<S: Into<String>>(attribute: S, value: S) -> Self {
-        Self::new("startsWith".to_string(), Some(attribute.into()), vec![Value::String(value.into())])
+    pub fn starts_with<S: Into<String>, V: Into<Value>>(attribute: S, value: V) -> Self {
+        Self::new("startsWith".to_string(), Some(attribute.into()), Self::to_array(value.into()))
     }
 
-    pub fn ends_with<S: Into<String>>(attribute: S, value: S) -> Self {
-        Self::new("endsWith".to_string(), Some(attribute.into()), vec![Value::String(value.into())])
+    pub fn ends_with<S: Into<String>, V: Into<Value>>(attribute: S, value: V) -> Self {
+        Self::new("endsWith".to_string(), Some(attribute.into()), Self::to_array(value.into()))
     }
 
     pub fn select<I: IntoIterator<Item = S>, S: Into<String>>(attributes: I) -> Self {
@@ -75,12 +75,12 @@ impl Query {
         Self::new("select".to_string(), None, values)
     }
 
-    pub fn search<S: Into<String>>(attribute: S, value: S) -> Self {
-        Self::new("search".to_string(), Some(attribute.into()), vec![Value::String(value.into())])
+    pub fn search<S: Into<String>, V: Into<Value>>(attribute: S, value: V) -> Self {
+        Self::new("search".to_string(), Some(attribute.into()), Self::to_array(value.into()))
     }
 
-    pub fn not_search<S: Into<String>>(attribute: S, value: S) -> Self {
-        Self::new("notSearch".to_string(), Some(attribute.into()), vec![Value::String(value.into())])
+    pub fn not_search<S: Into<String>, V: Into<Value>>(attribute: S, value: V) -> Self {
+        Self::new("notSearch".to_string(), Some(attribute.into()), Self::to_array(value.into()))
     }
 
     pub fn order_asc<S: Into<String>>(attribute: S) -> Self {
@@ -123,12 +123,12 @@ impl Query {
         Self::new("notBetween".to_string(), Some(attribute.into()), vec![start.into(), end.into()])
     }
 
-    pub fn not_starts_with<S: Into<String>>(attribute: S, value: S) -> Self {
-        Self::new("notStartsWith".to_string(), Some(attribute.into()), vec![Value::String(value.into())])
+    pub fn not_starts_with<S: Into<String>, V: Into<Value>>(attribute: S, value: V) -> Self {
+        Self::new("notStartsWith".to_string(), Some(attribute.into()), Self::to_array(value.into()))
     }
 
-    pub fn not_ends_with<S: Into<String>>(attribute: S, value: S) -> Self {
-        Self::new("notEndsWith".to_string(), Some(attribute.into()), vec![Value::String(value.into())])
+    pub fn not_ends_with<S: Into<String>, V: Into<Value>>(attribute: S, value: V) -> Self {
+        Self::new("notEndsWith".to_string(), Some(attribute.into()), Self::to_array(value.into()))
     }
 
     pub fn created_before<V: Into<Value>>(value: V) -> Self {
