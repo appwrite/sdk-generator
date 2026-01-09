@@ -59,16 +59,35 @@ impl {{ service.name | caseUcfirst }} {
 {% set inputTypeRaw = parameter | inputType %}
 {% if inputTypeRaw == 'impl Into<String>' %}
         {{ parameter.name | caseSnake | overrideIdentifier }}: Option<&str>,
+{% elseif inputTypeRaw starts with 'impl IntoIterator' %}
+        {{ parameter.name | caseSnake | overrideIdentifier }}: Option<Vec<String>>,
 {% else %}
         {{ parameter.name | caseSnake | overrideIdentifier }}: Option<{{ inputTypeRaw | rustType }}>,
 {% endif %}
 {% endif %}
 {% endfor %}
     ) -> {{ method | returnType(spec, 'crate') | rustType }} {
+{% set hasUploadID = false %}
+{% set uploadIDRequired = false %}
+{% for parameter in method.parameters.all %}
+{% if parameter.isUploadID %}
+{% set hasUploadID = true %}
+{% if parameter.required and not parameter.nullable %}
+{% set uploadIDRequired = true %}
+        let {{ parameter.name | caseSnake | overrideIdentifier }}_str = {{ parameter.name | caseSnake | overrideIdentifier }}.into();
+{% else %}
+        let {{ parameter.name | caseSnake | overrideIdentifier }}_str = {{ parameter.name | caseSnake | overrideIdentifier }}.map(|v| v.into());
+{% endif %}
+{% endif %}
+{% endfor %}
         let {% if method.parameters.query is not empty or method.parameters.body is not empty %}mut {% endif %}params = HashMap::new();
 {% for parameter in method.parameters.query %}
 {% if parameter.required and not parameter.nullable %}
+{% if parameter.isUploadID %}
+        params.insert("{{ parameter.name }}".to_string(), json!({{ parameter.name | caseSnake | overrideIdentifier }}_str));
+{% else %}
         params.insert("{{ parameter.name }}".to_string(), json!({{ parameter | paramValue(parameter.name | caseSnake | overrideIdentifier) }}));
+{% endif %}
 {% else %}
 {% set inputTypeRaw = parameter | inputType %}
         if let Some(value) = {{ parameter.name | caseSnake | overrideIdentifier }} {
@@ -83,7 +102,11 @@ impl {{ service.name | caseUcfirst }} {
 {% for parameter in method.parameters.body %}
 {% if parameter.type != 'file' %}
 {% if parameter.required and not parameter.nullable %}
+{% if parameter.isUploadID %}
+        params.insert("{{ parameter.name }}".to_string(), json!({{ parameter.name | caseSnake | overrideIdentifier }}_str));
+{% else %}
         params.insert("{{ parameter.name }}".to_string(), json!({{ parameter | paramValue(parameter.name | caseSnake | overrideIdentifier) }}));
+{% endif %}
 {% else %}
 {% set inputTypeRaw = parameter | inputType %}
         if let Some(value) = {{ parameter.name | caseSnake | overrideIdentifier }} {
@@ -118,15 +141,19 @@ impl {{ service.name | caseUcfirst }} {
 {% set hasFileParam = false %}
 {% set fileParamName = '' %}
 {% set fileParamKey = '' %}
+{% set uploadIdParam = '' %}
 {% for parameter in method.parameters.all %}
 {% if parameter.type == 'file' %}
 {% set hasFileParam = true %}
 {% set fileParamName = parameter.name | caseSnake | overrideIdentifier %}
 {% set fileParamKey = parameter.name %}
 {% endif %}
+{% if parameter.isUploadID %}
+{% set uploadIdParam = parameter.name | caseSnake | overrideIdentifier %}
+{% endif %}
 {% endfor %}
 {% if hasFileParam %}
-        self.client.file_upload(&path, {% if hasHeaders %}Some(api_headers){% else %}None{% endif %}, params, "{{ fileParamKey }}", {{ fileParamName }}, None).await
+        self.client.file_upload(&path, {% if hasHeaders %}Some(api_headers){% else %}None{% endif %}, params, "{{ fileParamKey }}", {{ fileParamName }}, {% if uploadIdParam %}{% if uploadIDRequired %}Some({{ uploadIdParam }}_str){% else %}{{ uploadIdParam }}_str{% endif %}{% else %}None{% endif %}).await
 {% elseif method.type == 'webAuth' %}
         self.client.call_location(Method::{{ method.method | upper }}, &path, {% if hasHeaders %}Some(api_headers){% else %}None{% endif %}, Some(params)).await
 {% elseif method.type == 'location' %}

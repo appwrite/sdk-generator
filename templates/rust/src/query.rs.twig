@@ -374,4 +374,281 @@ mod tests {
         assert_eq!(value["values"][0], "Movie1");
         assert_eq!(value["values"][1], "Movie2");
     }
+
+    #[test]
+    fn test_not_equal() {
+        let query = Query::not_equal("status", "draft");
+        let value = query.to_value();
+        assert_eq!(value["method"], "notEqual");
+        assert_eq!(value["attribute"], "status");
+        assert_eq!(value["values"][0], "draft");
+    }
+
+    #[test]
+    fn test_less_than() {
+        let query = Query::less_than("age", 18);
+        let value = query.to_value();
+        assert_eq!(value["method"], "lessThan");
+        assert_eq!(value["attribute"], "age");
+        assert_eq!(value["values"][0], 18);
+    }
+
+    #[test]
+    fn test_less_than_equal() {
+        let query = Query::less_than_equal("score", 100);
+        let value = query.to_value();
+        assert_eq!(value["method"], "lessThanEqual");
+        assert_eq!(value["attribute"], "score");
+        assert_eq!(value["values"][0], 100);
+    }
+
+    #[test]
+    fn test_greater_than_equal() {
+        let query = Query::greater_than_equal("age", 21);
+        let value = query.to_value();
+        assert_eq!(value["method"], "greaterThanEqual");
+        assert_eq!(value["attribute"], "age");
+        assert_eq!(value["values"][0], 21);
+    }
+
+    #[test]
+    fn test_search() {
+        let query = Query::search("content", "keyword1 keyword2");
+        let value = query.to_value();
+        assert_eq!(value["method"], "search");
+        assert_eq!(value["attribute"], "content");
+        assert_eq!(value["values"][0], "keyword1 keyword2");
+    }
+
+    #[test]
+    fn test_is_null() {
+        let query = Query::is_null("deletedAt");
+        let value = query.to_value();
+        assert_eq!(value["method"], "isNull");
+        assert_eq!(value["attribute"], "deletedAt");
+    }
+
+    #[test]
+    fn test_is_not_null() {
+        let query = Query::is_not_null("publishedAt");
+        let value = query.to_value();
+        assert_eq!(value["method"], "isNotNull");
+        assert_eq!(value["attribute"], "publishedAt");
+    }
+
+    #[test]
+    fn test_contains() {
+        let query = Query::contains("tags", "rust");
+        let value = query.to_value();
+        assert_eq!(value["method"], "contains");
+        assert_eq!(value["attribute"], "tags");
+        assert_eq!(value["values"][0], "rust");
+    }
+
+    #[test]
+    fn test_starts_with() {
+        let query = Query::starts_with("name", "John");
+        let value = query.to_value();
+        assert_eq!(value["method"], "startsWith");
+        assert_eq!(value["attribute"], "name");
+        assert_eq!(value["values"][0], "John");
+    }
+
+    #[test]
+    fn test_ends_with() {
+        let query = Query::ends_with("email", "@example.com");
+        let value = query.to_value();
+        assert_eq!(value["method"], "endsWith");
+        assert_eq!(value["attribute"], "email");
+        assert_eq!(value["values"][0], "@example.com");
+    }
+
+    #[test]
+    fn test_order_desc() {
+        let query = Query::order_desc("createdAt");
+        let value = query.to_value();
+        assert_eq!(value["method"], "orderDesc");
+        assert_eq!(value["attribute"], "createdAt");
+    }
+
+    #[test]
+    fn test_order_random() {
+        let query = Query::order_random();
+        let value = query.to_value();
+        assert_eq!(value["method"], "orderRandom");
+    }
+
+    #[test]
+    fn test_cursor_before() {
+        let query = Query::cursor_before("doc123");
+        let value = query.to_value();
+        assert_eq!(value["method"], "cursorBefore");
+        assert_eq!(value["values"][0], "doc123");
+    }
+
+    #[test]
+    fn test_cursor_after() {
+        let query = Query::cursor_after("doc456");
+        let value = query.to_value();
+        assert_eq!(value["method"], "cursorAfter");
+        assert_eq!(value["values"][0], "doc456");
+    }
+
+    #[test]
+    fn test_offset() {
+        let query = Query::offset(50);
+        let value = query.to_value();
+        assert_eq!(value["method"], "offset");
+        assert_eq!(value["values"][0], 50);
+    }
+
+    #[test]
+    fn test_distance_equal() {
+        let query = Query::distance_equal("location", Value::Array(vec![Value::from(40.7128), Value::from(-74.0060)]), 5000, true);
+        let value = query.to_value();
+        assert_eq!(value["method"], "distanceEqual");
+        assert_eq!(value["attribute"], "location");
+    }
+
+    #[test]
+    fn test_distance_not_equal() {
+        let query = Query::distance_not_equal("location", Value::Array(vec![Value::from(40.7128), Value::from(-74.0060)]), 5000, false);
+        let value = query.to_value();
+        assert_eq!(value["method"], "distanceNotEqual");
+        assert_eq!(value["attribute"], "location");
+    }
+
+    #[test]
+    fn test_distance_less_than() {
+        let query = Query::distance_less_than("location", Value::Array(vec![Value::from(51.5074), Value::from(-0.1278)]), 10000, true);
+        let value = query.to_value();
+        assert_eq!(value["method"], "distanceLessThan");
+        assert_eq!(value["attribute"], "location");
+    }
+
+    #[test]
+    fn test_distance_greater_than() {
+        let query = Query::distance_greater_than("location", Value::Array(vec![Value::from(48.8566), Value::from(2.3522)]), 2000, false);
+        let value = query.to_value();
+        assert_eq!(value["method"], "distanceGreaterThan");
+        assert_eq!(value["attribute"], "location");
+    }
+
+    #[test]
+    fn test_not_contains() {
+        let query = Query::not_contains("tags", "deprecated");
+        let value = query.to_value();
+        assert_eq!(value["method"], "notContains");
+        assert_eq!(value["attribute"], "tags");
+        assert_eq!(value["values"][0], "deprecated");
+    }
+
+    #[test]
+    fn test_not_search() {
+        let query = Query::not_search("content", "spam keyword");
+        let value = query.to_value();
+        assert_eq!(value["method"], "notSearch");
+        assert_eq!(value["attribute"], "content");
+        assert_eq!(value["values"][0], "spam keyword");
+    }
+
+    #[test]
+    fn test_not_between() {
+        let query = Query::not_between("age", 18, 65);
+        let value = query.to_value();
+        assert_eq!(value["method"], "notBetween");
+        assert_eq!(value["attribute"], "age");
+        assert_eq!(value["values"][0], 18);
+        assert_eq!(value["values"][1], 65);
+    }
+
+    #[test]
+    fn test_not_starts_with() {
+        let query = Query::not_starts_with("name", "Test");
+        let value = query.to_value();
+        assert_eq!(value["method"], "notStartsWith");
+        assert_eq!(value["attribute"], "name");
+        assert_eq!(value["values"][0], "Test");
+    }
+
+    #[test]
+    fn test_not_ends_with() {
+        let query = Query::not_ends_with("email", "@spam.com");
+        let value = query.to_value();
+        assert_eq!(value["method"], "notEndsWith");
+        assert_eq!(value["attribute"], "email");
+        assert_eq!(value["values"][0], "@spam.com");
+    }
+
+    #[test]
+    fn test_created_before() {
+        let query = Query::created_before("2023-01-01");
+        let value = query.to_value();
+        assert_eq!(value["method"], "lessThan");
+        assert_eq!(value["attribute"], "$createdAt");
+        assert_eq!(value["values"][0], "2023-01-01");
+    }
+
+    #[test]
+    fn test_created_after() {
+        let query = Query::created_after("2023-01-01");
+        let value = query.to_value();
+        assert_eq!(value["method"], "greaterThan");
+        assert_eq!(value["attribute"], "$createdAt");
+        assert_eq!(value["values"][0], "2023-01-01");
+    }
+
+    #[test]
+    fn test_created_between() {
+        let query = Query::created_between("2023-01-01", "2023-12-31");
+        let value = query.to_value();
+        assert_eq!(value["method"], "between");
+        assert_eq!(value["attribute"], "$createdAt");
+        assert_eq!(value["values"][0], "2023-01-01");
+        assert_eq!(value["values"][1], "2023-12-31");
+    }
+
+    #[test]
+    fn test_updated_before() {
+        let query = Query::updated_before("2023-01-01");
+        let value = query.to_value();
+        assert_eq!(value["method"], "lessThan");
+        assert_eq!(value["attribute"], "$updatedAt");
+        assert_eq!(value["values"][0], "2023-01-01");
+    }
+
+    #[test]
+    fn test_updated_after() {
+        let query = Query::updated_after("2023-01-01");
+        let value = query.to_value();
+        assert_eq!(value["method"], "greaterThan");
+        assert_eq!(value["attribute"], "$updatedAt");
+        assert_eq!(value["values"][0], "2023-01-01");
+    }
+
+    #[test]
+    fn test_updated_between() {
+        let query = Query::updated_between("2023-01-01", "2023-12-31");
+        let value = query.to_value();
+        assert_eq!(value["method"], "between");
+        assert_eq!(value["attribute"], "$updatedAt");
+        assert_eq!(value["values"][0], "2023-01-01");
+        assert_eq!(value["values"][1], "2023-12-31");
+    }
+
+    #[test]
+    fn test_intersects() {
+        let query = Query::intersects("polygon", Value::Array(vec![Value::from(1), Value::from(2)]));
+        let value = query.to_value();
+        assert_eq!(value["method"], "intersects");
+        assert_eq!(value["attribute"], "polygon");
+    }
+
+    #[test]
+    fn test_not_intersects() {
+        let query = Query::not_intersects("polygon", Value::Array(vec![Value::from(3), Value::from(4)]));
+        let value = query.to_value();
+        assert_eq!(value["method"], "notIntersects");
+        assert_eq!(value["attribute"], "polygon");
+    }
 }
