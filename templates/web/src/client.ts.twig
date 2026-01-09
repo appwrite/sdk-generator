@@ -589,14 +589,15 @@ class Client {
             if (typeof ch === 'string') {
                 return ch;
             }
-            // Check if it's an Actionable instance (has channel() method)
+            // Check if it's a ResolvedChannel instance first
+            if (ch && ch instanceof ResolvedChannel) {
+                return (ch as ResolvedChannel).toString();
+            }
+            // Then check if it's an Actionable instance (has channel() method)
             if (ch && typeof (ch as Actionable).channel === 'function') {
                 return (ch as Actionable).channel();
             }
-            // Check if it's a ResolvedChannel (has toString() method)
-            if (ch && typeof (ch as ResolvedChannel).toString === 'function') {
-                return (ch as ResolvedChannel).toString();
-            }
+            // Fallback to generic string conversion
             return String(ch);
         });
         channelStrings.forEach(channel => this.realtime.channels.add(channel));
