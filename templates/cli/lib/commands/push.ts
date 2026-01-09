@@ -708,21 +708,21 @@ export class Push {
             let domain = "";
             try {
               const consoleService = await getConsoleService(
-                this.projectClient,
+                this.consoleClient,
               );
               const variables = await consoleService.variables();
               domain = ID.unique() + "." + variables["_APP_DOMAIN_FUNCTIONS"];
-            } catch (error) {
-              console.error("Error fetching console variables.");
-              throw error;
+            } catch (err) {
+              this.error("Error fetching console variables.");
+              throw err;
             }
 
             try {
               const proxyService = await getProxyService(this.projectClient);
               await proxyService.createFunctionRule(domain, func.$id);
-            } catch (error) {
-              console.error("Error creating function rule.");
-              throw error;
+            } catch (err) {
+              this.error("Error creating function rule.");
+              throw err;
             }
 
             updaterRow.update({ status: "Created" });
@@ -1050,21 +1050,21 @@ export class Push {
             let domain = "";
             try {
               const consoleService = await getConsoleService(
-                this.projectClient,
+                this.consoleClient,
               );
               const variables = await consoleService.variables();
               domain = ID.unique() + "." + variables["_APP_DOMAIN_SITES"];
-            } catch (error) {
-              console.error("Error fetching console variables.");
-              throw error;
+            } catch (err) {
+              this.error("Error fetching console variables.");
+              throw err;
             }
 
             try {
               const proxyService = await getProxyService(this.projectClient);
               await proxyService.createSiteRule(domain, site.$id);
-            } catch (error) {
-              console.error("Error creating site rule.");
-              throw error;
+            } catch (err) {
+              this.error("Error creating site rule.");
+              throw err;
             }
 
             updaterRow.update({ status: "Created" });

@@ -608,10 +608,9 @@ export class Attributes {
         this.deleteAttribute(collection, attribute, isIndex),
       ),
     );
-    const attributeKeys = [
-      ...remoteAttributes.map((attribute: any) => attribute.key),
-      ...deletingAttributes.map((attribute: any) => attribute.key),
-    ];
+    const attributeKeys = deletingAttributes.map(
+      (attribute: any) => attribute.key,
+    );
 
     if (attributeKeys.length) {
       const deleteAttributesPoolStatus =
@@ -679,7 +678,7 @@ export class Attributes {
     const result = await this.pools.expectAttributes(
       collection["databaseId"],
       collection["$id"],
-      (collection.attributes || [])
+      attributes
         .filter((attribute: any) => attribute.side !== "child")
         .map((attribute: any) => attribute.key),
     );
@@ -705,7 +704,7 @@ export class Attributes {
     const result = await this.pools.expectAttributes(
       table["databaseId"],
       table["$id"],
-      (table.columns || [])
+      columns
         .filter((column: any) => column.side !== "child")
         .map((column: any) => column.key),
     );
