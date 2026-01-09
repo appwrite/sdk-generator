@@ -127,7 +127,16 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
     }
 
     fun subscribe(
-        vararg channels: Any,
+        vararg channels: Actionable,
+        callback: (RealtimeResponseEvent<Any>) -> Unit,
+    ) = subscribe(
+        channels = channels.map { channelToString(it) }.toTypedArray(),
+        Any::class.java,
+        callback
+    )
+
+    fun subscribe(
+        vararg channels: ResolvedChannel,
         callback: (RealtimeResponseEvent<Any>) -> Unit,
     ) = subscribe(
         channels = channels.map { channelToString(it) }.toTypedArray(),
@@ -145,7 +154,19 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
     )
 
     fun <T> subscribe(
-        vararg channels: Any,
+        vararg channels: Actionable,
+        payloadType: Class<T>,
+        callback: (RealtimeResponseEvent<T>) -> Unit,
+    ): RealtimeSubscription {
+        return subscribe(
+            channels = channels.map { channelToString(it) }.toTypedArray(),
+            payloadType = payloadType,
+            callback = callback
+        )
+    }
+
+    fun <T> subscribe(
+        vararg channels: ResolvedChannel,
         payloadType: Class<T>,
         callback: (RealtimeResponseEvent<T>) -> Unit,
     ): RealtimeSubscription {
