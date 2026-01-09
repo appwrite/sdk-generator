@@ -1,4 +1,5 @@
 import fs from "fs";
+import path from "path";
 import chalk from "chalk";
 import { Command } from "commander";
 import inquirer from "inquirer";
@@ -227,104 +228,96 @@ export class Pull {
   ): Promise<FunctionType[]> {
     this.log("Fetching functions ...");
 
-    const originalCwd = process.cwd();
-    process.chdir(this.configDirectoryPath);
+    const functionsService = new Functions(this.projectClient);
+    let functions: Models.Function[];
 
-    try {
-      const functionsService = new Functions(this.projectClient);
-      let functions: Models.Function[];
-
-      if (options.functionIds && options.functionIds.length > 0) {
-        functions = await Promise.all(
-          options.functionIds.map((id) =>
-            functionsService.get({
-              functionId: id,
-            }),
-          ),
-        );
-      } else {
-        const fetchResponse = await functionsService.list({
-          queries: [Query.limit(1)],
-        });
-
-        if (fetchResponse["functions"].length <= 0) {
-          this.log("No functions found.");
-          this.success(`Successfully pulled ${chalk.bold(0)} functions.`);
-          return [];
-        }
-
-        const { functions: allFunctions } = await paginate(
-          async () => new Functions(this.projectClient).list(),
-          {},
-          100,
-          "functions",
-        );
-        functions = allFunctions;
-      }
-
-      const result: FunctionType[] = [];
-
-      for (const func of functions) {
-        this.log(`Pulling function ${chalk.bold(func.name)} ...`);
-
-        const funcPath = `functions/${func.name}`;
-        const holdingVars = func.vars || [];
-
-        const functionConfig: FunctionType = {
-          $id: func.$id,
-          name: func.name,
-          runtime: func.runtime,
-          path: funcPath,
-          entrypoint: func.entrypoint,
-          execute: func.execute,
-          enabled: func.enabled,
-          logging: func.logging,
-          events: func.events,
-          schedule: func.schedule,
-          timeout: func.timeout,
-          commands: func.commands,
-          scopes: func.scopes,
-          specification: func.specification,
-        };
-
-        result.push(functionConfig);
-
-        if (!fs.existsSync(funcPath)) {
-          fs.mkdirSync(funcPath, { recursive: true });
-        }
-
-        if (options.code !== false) {
-          await downloadDeploymentCode({
-            resourceId: func["$id"],
-            resourcePath: funcPath,
-            holdingVars,
-            withVariables: options.withVariables,
-            listDeployments: () =>
-              functionsService.listDeployments({
-                functionId: func["$id"],
-                queries: [Query.limit(1), Query.orderDesc("$id")],
-              }),
-            getDownloadUrl: (deploymentId) =>
-              functionsService.getDeploymentDownload({
-                functionId: func["$id"],
-                deploymentId,
-              }),
-            projectClient: this.projectClient,
-          });
-        }
-      }
-
-      if (options.code === false) {
-        this.warn("Source code download skipped.");
-      }
-
-      this.success(
-        `Successfully pulled ${chalk.bold(result.length)} functions.`,
+    if (options.functionIds && options.functionIds.length > 0) {
+      functions = await Promise.all(
+        options.functionIds.map((id) =>
+          functionsService.get({
+            functionId: id,
+          }),
+        ),
       );
-      return result;
-    } finally {
-      process.chdir(originalCwd);
+    } else {
+      const fetchResponse = await functionsService.list({
+        queries: [Query.limit(1)],
+      });
+
+      if (fetchResponse["functions"].length <= 0) {
+        this.log("No functions found.");
+        this.success(`Successfully pulled ${chalk.bold(0)} functions.`);
+        return [];
+      }
+
+      const { functions: allFunctions } = await paginate(
+        async () => new Functions(this.projectClient).list(),
+        {},
+        100,
+        "functions",
+      );
+      functions = allFunctions;
     }
+
+    const result: FunctionType[] = [];
+
+    for (const func of functions) {
+      this.log(`Pulling function ${chalk.bold(func.name)} ...`);
+
+      const funcPath = `functions/${func.name}`;
+      const absoluteFuncPath = path.resolve(this.configDirectoryPath, funcPath);
+      const holdingVars = func.vars || [];
+
+      const functionConfig: FunctionType = {
+        $id: func.$id,
+        name: func.name,
+        runtime: func.runtime,
+        path: funcPath,
+        entrypoint: func.entrypoint,
+        execute: func.execute,
+        enabled: func.enabled,
+        logging: func.logging,
+        events: func.events,
+        schedule: func.schedule,
+        timeout: func.timeout,
+        commands: func.commands,
+        scopes: func.scopes,
+        specification: func.specification,
+      };
+
+      result.push(functionConfig);
+
+      if (!fs.existsSync(absoluteFuncPath)) {
+        fs.mkdirSync(absoluteFuncPath, { recursive: true });
+      }
+
+      if (options.code !== false) {
+        await downloadDeploymentCode({
+          resourceId: func["$id"],
+          resourcePath: absoluteFuncPath,
+          holdingVars,
+          withVariables: options.withVariables,
+          listDeployments: () =>
+            functionsService.listDeployments({
+              functionId: func["$id"],
+              queries: [Query.limit(1), Query.orderDesc("$id")],
+            }),
+          getDownloadUrl: (deploymentId) =>
+            functionsService.getDeploymentDownload({
+              functionId: func["$id"],
+              deploymentId,
+            }),
+          projectClient: this.projectClient,
+        });
+      }
+    }
+
+    if (options.code === false) {
+      this.warn("Source code download skipped.");
+    }
+
+    this.success(`Successfully pulled ${chalk.bold(result.length)} functions.`);
+    return result;
   }
 
   /**
@@ -333,102 +326,96 @@ export class Pull {
   public async pullSites(options: PullSitesOptions = {}): Promise<SiteType[]> {
     this.log("Fetching sites ...");
 
-    const originalCwd = process.cwd();
-    process.chdir(this.configDirectoryPath);
+    const sitesService = new Sites(this.projectClient);
+    let sites: Models.Site[];
 
-    try {
-      const sitesService = new Sites(this.projectClient);
-      let sites: Models.Site[];
+    if (options.siteIds && options.siteIds.length > 0) {
+      sites = await Promise.all(
+        options.siteIds.map((id) =>
+          sitesService.get({
+            siteId: id,
+          }),
+        ),
+      );
+    } else {
+      const fetchResponse = await sitesService.list({
+        queries: [Query.limit(1)],
+      });
 
-      if (options.siteIds && options.siteIds.length > 0) {
-        sites = await Promise.all(
-          options.siteIds.map((id) =>
-            sitesService.get({
-              siteId: id,
-            }),
-          ),
-        );
-      } else {
-        const fetchResponse = await sitesService.list({
-          queries: [Query.limit(1)],
-        });
-
-        if (fetchResponse["sites"].length <= 0) {
-          this.log("No sites found.");
-          this.success(`Successfully pulled ${chalk.bold(0)} sites.`);
-          return [];
-        }
-
-        const { sites: fetchedSites } = await paginate(
-          async () => new Sites(this.projectClient).list(),
-          {},
-          100,
-          "sites",
-        );
-        sites = fetchedSites;
+      if (fetchResponse["sites"].length <= 0) {
+        this.log("No sites found.");
+        this.success(`Successfully pulled ${chalk.bold(0)} sites.`);
+        return [];
       }
 
-      const result: SiteType[] = [];
-
-      for (const site of sites) {
-        this.log(`Pulling site ${chalk.bold(site.name)} ...`);
-
-        const sitePath = `sites/${site.name}`;
-        const holdingVars = site.vars || [];
-
-        const siteConfig: SiteType = {
-          $id: site.$id,
-          name: site.name,
-          path: sitePath,
-          framework: site.framework,
-          enabled: site.enabled,
-          logging: site.logging,
-          timeout: site.timeout,
-          buildRuntime: site.buildRuntime,
-          adapter: site.adapter,
-          installCommand: site.installCommand,
-          buildCommand: site.buildCommand,
-          outputDirectory: site.outputDirectory,
-          fallbackFile: site.fallbackFile,
-          specification: site.specification,
-        };
-
-        result.push(siteConfig);
-
-        if (!fs.existsSync(sitePath)) {
-          fs.mkdirSync(sitePath, { recursive: true });
-        }
-
-        if (options.code !== false) {
-          await downloadDeploymentCode({
-            resourceId: site["$id"],
-            resourcePath: sitePath,
-            holdingVars,
-            withVariables: options.withVariables,
-            listDeployments: () =>
-              sitesService.listDeployments({
-                siteId: site["$id"],
-                queries: [Query.limit(1), Query.orderDesc("$id")],
-              }),
-            getDownloadUrl: (deploymentId) =>
-              sitesService.getDeploymentDownload({
-                siteId: site["$id"],
-                deploymentId,
-              }),
-            projectClient: this.projectClient,
-          });
-        }
-      }
-
-      if (options.code === false) {
-        this.warn("Source code download skipped.");
-      }
-
-      this.success(`Successfully pulled ${chalk.bold(result.length)} sites.`);
-      return result;
-    } finally {
-      process.chdir(originalCwd);
+      const { sites: fetchedSites } = await paginate(
+        async () => new Sites(this.projectClient).list(),
+        {},
+        100,
+        "sites",
+      );
+      sites = fetchedSites;
     }
+
+    const result: SiteType[] = [];
+
+    for (const site of sites) {
+      this.log(`Pulling site ${chalk.bold(site.name)} ...`);
+
+      const sitePath = `sites/${site.name}`;
+      const absoluteSitePath = path.resolve(this.configDirectoryPath, sitePath);
+      const holdingVars = site.vars || [];
+
+      const siteConfig: SiteType = {
+        $id: site.$id,
+        name: site.name,
+        path: sitePath,
+        framework: site.framework,
+        enabled: site.enabled,
+        logging: site.logging,
+        timeout: site.timeout,
+        buildRuntime: site.buildRuntime,
+        adapter: site.adapter,
+        installCommand: site.installCommand,
+        buildCommand: site.buildCommand,
+        outputDirectory: site.outputDirectory,
+        fallbackFile: site.fallbackFile,
+        specification: site.specification,
+      };
+
+      result.push(siteConfig);
+
+      if (!fs.existsSync(absoluteSitePath)) {
+        fs.mkdirSync(absoluteSitePath, { recursive: true });
+      }
+
+      if (options.code !== false) {
+        await downloadDeploymentCode({
+          resourceId: site["$id"],
+          resourcePath: absoluteSitePath,
+          holdingVars,
+          withVariables: options.withVariables,
+          listDeployments: () =>
+            sitesService.listDeployments({
+              siteId: site["$id"],
+              queries: [Query.limit(1), Query.orderDesc("$id")],
+            }),
+          getDownloadUrl: (deploymentId) =>
+            sitesService.getDeploymentDownload({
+              siteId: site["$id"],
+              deploymentId,
+            }),
+          projectClient: this.projectClient,
+        });
+      }
+    }
+
+    if (options.code === false) {
+      this.warn("Source code download skipped.");
+    }
+
+    this.success(`Successfully pulled ${chalk.bold(result.length)} sites.`);
+    return result;
   }
 
   /**

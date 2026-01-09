@@ -74,6 +74,7 @@ import { checkAndApplyTablesDBChanges } from "./utils/database-sync.js";
 
 const POLL_DEBOUNCE = 2000; // Milliseconds
 const POLL_DEFAULT_VALUE = 30;
+const DEPLOYMENT_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
 
 export interface PushOptions {
   all?: boolean;
@@ -855,7 +856,21 @@ export class Push {
               end: "Checking deployment status...",
             });
 
+            const timeoutDeadline = Date.now() + DEPLOYMENT_TIMEOUT_MS;
+
             while (true) {
+              if (Date.now() > timeoutDeadline) {
+                failedDeployments.push({
+                  name: func["name"],
+                  $id: func["$id"],
+                  deployment: deploymentId,
+                });
+                updaterRow.fail({
+                  errorMessage: "Deployment timed out after 10 minutes",
+                });
+                break;
+              }
+
               const functionsServicePoll = await getFunctionsService(
                 this.projectClient,
               );
@@ -905,7 +920,7 @@ export class Push {
               }
 
               await new Promise((resolve) =>
-                setTimeout(resolve, POLL_DEBOUNCE * 1.5),
+                setTimeout(resolve, POLL_DEBOUNCE),
               );
             }
           } catch (e: any) {
@@ -1177,7 +1192,21 @@ export class Push {
               end: "Checking deployment status...",
             });
 
+            const timeoutDeadline = Date.now() + DEPLOYMENT_TIMEOUT_MS;
+
             while (true) {
+              if (Date.now() > timeoutDeadline) {
+                failedDeployments.push({
+                  name: site["name"],
+                  $id: site["$id"],
+                  deployment: deploymentId,
+                });
+                updaterRow.fail({
+                  errorMessage: "Deployment timed out after 10 minutes",
+                });
+                break;
+              }
+
               const sitesServicePoll = await getSitesService(
                 this.projectClient,
               );
@@ -1227,7 +1256,7 @@ export class Push {
               }
 
               await new Promise((resolve) =>
-                setTimeout(resolve, POLL_DEBOUNCE * 1.5),
+                setTimeout(resolve, POLL_DEBOUNCE),
               );
             }
           } catch (e: any) {
@@ -1290,13 +1319,13 @@ export class Push {
             changes.push("permissions");
 
           if (changes.length > 0) {
-            await tablesService.updateTable(
-              table["databaseId"],
-              table["$id"],
-              table.name,
-              table.rowSecurity,
-              table["$permissions"],
-            );
+            await tablesService.updateTable({
+              databaseId: table["databaseId"],
+              tableId: table["$id"],
+              name: table.name,
+              rowSecurity: table.rowSecurity,
+              permissions: table["$permissions"],
+            });
 
             this.success(
               `Updated ${table.name} ( ${table["$id"]} ) - ${changes.join(", ")}`,
@@ -1928,7 +1957,7 @@ const pushTable = async ({
     const validTablesDBs = localTablesDBs.filter((db: any) =>
       remoteDatabaseIds.has(db.$id),
     );
-    localConfig.set("tables", validTablesDBs);
+    localConfig.set("tablesDB", validTablesDBs);
 
     success("Configuration resynced successfully.");
     console.log();

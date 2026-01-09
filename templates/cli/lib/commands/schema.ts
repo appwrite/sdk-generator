@@ -61,7 +61,7 @@ export class Schema {
   public async pull(
     config: ConfigType,
     options: PullOptions,
-    configPath?: string
+    configPath?: string,
   ): Promise<ConfigType> {
     const updatedConfig = await this.pullCommand.pullResources(config, options);
     if (configPath) {

@@ -71,7 +71,10 @@ export async function downloadDeploymentCode(params: {
     return;
   }
 
-  const compressedFileName = `${resourceId}-${+new Date()}.tar.gz`;
+  const compressedFileName = path.resolve(
+    path.dirname(resourcePath),
+    `${resourceId}-${+new Date()}.tar.gz`,
+  );
   const downloadUrl = getDownloadUrl(deploymentId);
 
   const downloadBuffer = await projectClient.call(

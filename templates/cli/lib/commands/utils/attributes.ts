@@ -680,7 +680,8 @@ export class Attributes {
       throw new Error(`Attribute creation timed out.`);
     }
 
-    success(`Created ${attributes.length} attributes`);
+    const createdCount = attributes.filter((a) => a.side !== "child").length;
+    success(`Created ${createdCount} attributes`);
   };
 
   public createColumns = async (
@@ -705,6 +706,7 @@ export class Attributes {
       throw new Error(`Column creation timed out.`);
     }
 
-    success(`Created ${columns.length} columns`);
+    const createdCount = columns.filter((c) => c.side !== "child").length;
+    success(`Created ${createdCount} columns`);
   };
 }

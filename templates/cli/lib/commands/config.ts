@@ -79,6 +79,7 @@ const ConfigSchema = z
     sites: z.array(z.lazy(() => SiteSchema)).optional(),
     databases: z.array(z.lazy(() => DatabaseSchema)).optional(),
     collections: z.array(z.lazy(() => CollectionSchema)).optional(),
+    tablesDB: z.array(z.lazy(() => DatabaseSchema)).optional(),
     tables: z.array(z.lazy(() => TablesDBSchema)).optional(),
     topics: z.array(z.lazy(() => TopicSchema)).optional(),
     teams: z.array(z.lazy(() => TeamSchema)).optional(),
