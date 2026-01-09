@@ -631,14 +631,14 @@ export class Attributes {
 
     const databasesService = await getDatabasesService();
     for (let index of indexes) {
-      await databasesService.createIndex(
-        collection["databaseId"],
-        collection["$id"],
-        index.key,
-        index.type,
-        index.columns ?? index.attributes,
-        index.orders,
-      );
+      await databasesService.createIndex({
+        databaseId: collection["databaseId"],
+        collectionId: collection["$id"],
+        key: index.key,
+        type: index.type,
+        attributes: index.columns ?? index.attributes,
+        orders: index.orders,
+      });
     }
 
     const result = await this.pools.expectIndexes(

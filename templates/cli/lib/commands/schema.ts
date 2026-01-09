@@ -80,7 +80,10 @@ export class Schema {
     configPath?: string,
   ): Promise<ConfigType> {
     await this.pushCommand.pushResources(config, options);
-    const updatedConfig = await this.pullCommandSilent.pullResources(config, options);
+    const updatedConfig = await this.pullCommandSilent.pullResources(
+      config,
+      options,
+    );
 
     if (configPath) {
       this.write(updatedConfig, configPath);

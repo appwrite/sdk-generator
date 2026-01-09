@@ -1317,7 +1317,9 @@ export class Push {
               tableId: table["$id"],
               name: table.name,
               rowSecurity: table.rowSecurity,
-              permissions: table["$permissions"] ? [...table["$permissions"]] : undefined,
+              permissions: table["$permissions"]
+                ? [...table["$permissions"]]
+                : undefined,
             });
 
             this.success(`Created ${table.name} ( ${table["$id"]} )`);
