@@ -41,6 +41,13 @@ public protocol Actionable: ChannelValue {
     func delete() -> ResolvedChannel
 }
 
+// Provide default toString() implementation for Actionable
+extension Actionable {
+    public func toString() -> String {
+        return channel
+    }
+}
+
 public protocol IDatabase {
     func collection(_ id: String) -> ICollection
 }
