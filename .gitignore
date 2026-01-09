@@ -24,3 +24,5 @@ templates/swift/example/Example.xcodeproj/xcuserdata
 **/xcuserdata
 # exclude go checksum files
 go.sum
+
+demos

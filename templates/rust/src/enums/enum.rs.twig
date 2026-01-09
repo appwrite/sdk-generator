@@ -1,0 +1,30 @@
+use serde::{Deserialize, Serialize};
+
+{% if enum.description %}/// {{ enum.description }}
+{% endif %}#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
+pub enum {{ enum.name | caseUcfirst | overrideIdentifier }} {
+{% for value in enum.enum %}
+{% set key = enum.keys is empty ? value : enum.keys[loop.index0] %}
+    #[serde(rename = "{{ value }}")]
+    {% if loop.first %}#[default]
+    {% endif %}{{ key | caseEnumKey | overrideIdentifier }},
+{% endfor %}
+}
+
+impl {{ enum.name | caseUcfirst | overrideIdentifier }} {
+    /// Get the string value of the enum
+    pub fn as_str(&self) -> &str {
+        match self {
+{% for value in enum.enum %}
+{% set key = enum.keys is empty ? value : enum.keys[loop.index0] %}
+            {{ enum.name | caseUcfirst | overrideIdentifier }}::{{ key | caseEnumKey | overrideIdentifier }} => "{{ value }}",
+{% endfor %}
+        }
+    }
+}
+
+impl std::fmt::Display for {{ enum.name | caseUcfirst | overrideIdentifier }} {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.as_str())
+    }
+}

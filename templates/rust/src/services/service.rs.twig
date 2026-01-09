@@ -1,0 +1,186 @@
+//! {{ service.name | caseUcfirst }} service for {{ spec.title }} SDK
+
+use crate::client::Client;
+{% set hasFileUpload = false %}
+{% set hasParams = false %}
+{% for method in service.methods %}
+{% if method.type == 'upload' %}{% set hasFileUpload = true %}{% endif %}
+{% for parameter in method.parameters.all %}
+{% if parameter.type == 'file' %}{% set hasFileUpload = true %}{% endif %}
+{% endfor %}
+{% if method.parameters.all | length > 0 %}{% set hasParams = true %}{% endif %}
+{% endfor %}
+{% if hasFileUpload %}use crate::input_file::InputFile;{% endif %}
+
+use reqwest::Method;
+{% if hasParams %}use serde_json::json;{% endif %}
+
+use std::collections::HashMap;
+
+{% if service.description %}{{ service.description | rustdocComment }}
+{% endif %}#[derive(Debug, Clone)]
+pub struct {{ service.name | caseUcfirst }} {
+    client: Client,
+}
+
+impl {{ service.name | caseUcfirst }} {
+    pub fn new(client: &Client) -> Self {
+        Self { client: client.clone() }
+    }
+
+    pub fn client(&self) -> &Client {
+        &self.client
+    }
+
+{% for method in service.methods %}
+{% set methodNameSnake = method.name | caseSnake %}
+{% set shouldSkip = false %}
+{% if method.deprecated %}
+{% for otherMethod in service.methods %}
+{% if not otherMethod.deprecated and (otherMethod.name | caseSnake) == methodNameSnake %}
+{% set shouldSkip = true %}
+{% endif %}
+{% endfor %}
+{% endif %}
+{% if not shouldSkip %}
+    {{ method.description | rustdocComment(4) }}
+{% if method.parameters.all | length > 6 %}
+    #[allow(clippy::too_many_arguments)]
+{% endif %}
+    pub async fn {{ method.name | caseSnake | overrideIdentifier }}(
+        &self,
+{% for parameter in method.parameters.all %}
+{% if parameter.required and not parameter.nullable %}
+        {{ parameter.name | caseSnake | overrideIdentifier }}: {{ parameter | inputType | rustType }},
+{% endif %}
+{% endfor %}
+{% for parameter in method.parameters.all %}
+{% if not parameter.required or parameter.nullable %}
+{% set inputTypeRaw = parameter | inputType %}
+{% if inputTypeRaw == 'impl Into<String>' %}
+        {{ parameter.name | caseSnake | overrideIdentifier }}: Option<&str>,
+{% elseif inputTypeRaw starts with 'impl IntoIterator' %}
+        {{ parameter.name | caseSnake | overrideIdentifier }}: Option<Vec<String>>,
+{% else %}
+        {{ parameter.name | caseSnake | overrideIdentifier }}: Option<{{ inputTypeRaw | rustType }}>,
+{% endif %}
+{% endif %}
+{% endfor %}
+    ) -> {{ method | returnType(spec, 'crate') | rustType }} {
+{% set hasUploadID = false %}
+{% set uploadIDRequired = false %}
+{% for parameter in method.parameters.all %}
+{% if parameter.isUploadID %}
+{% set hasUploadID = true %}
+{% if parameter.required and not parameter.nullable %}
+{% set uploadIDRequired = true %}
+        let {{ parameter.name | caseSnake | overrideIdentifier }}_str = {{ parameter.name | caseSnake | overrideIdentifier }}.into();
+{% else %}
+        let {{ parameter.name | caseSnake | overrideIdentifier }}_str = {{ parameter.name | caseSnake | overrideIdentifier }}.map(|v| v.into());
+{% endif %}
+{% endif %}
+{% endfor %}
+        let {% if method.parameters.query is not empty or method.parameters.body is not empty %}mut {% endif %}params = HashMap::new();
+{% for parameter in method.parameters.query %}
+{% if parameter.required and not parameter.nullable %}
+{% if parameter.isUploadID %}
+        params.insert("{{ parameter.name }}".to_string(), json!({{ parameter.name | caseSnake | overrideIdentifier }}_str));
+{% else %}
+        params.insert("{{ parameter.name }}".to_string(), json!({{ parameter | paramValue(parameter.name | caseSnake | overrideIdentifier) }}));
+{% endif %}
+{% else %}
+{% set inputTypeRaw = parameter | inputType %}
+        if let Some(value) = {{ parameter.name | caseSnake | overrideIdentifier }} {
+{% if inputTypeRaw == 'impl Into<String>' %}
+            params.insert("{{ parameter.name }}".to_string(), json!(value));
+{% else %}
+            params.insert("{{ parameter.name }}".to_string(), json!({{ parameter | paramValue('value') }}));
+{% endif %}
+        }
+{% endif %}
+{% endfor %}
+{% for parameter in method.parameters.body %}
+{% if parameter.type != 'file' %}
+{% if parameter.required and not parameter.nullable %}
+{% if parameter.isUploadID %}
+        params.insert("{{ parameter.name }}".to_string(), json!({{ parameter.name | caseSnake | overrideIdentifier }}_str));
+{% else %}
+        params.insert("{{ parameter.name }}".to_string(), json!({{ parameter | paramValue(parameter.name | caseSnake | overrideIdentifier) }}));
+{% endif %}
+{% else %}
+{% set inputTypeRaw = parameter | inputType %}
+        if let Some(value) = {{ parameter.name | caseSnake | overrideIdentifier }} {
+{% if inputTypeRaw == 'impl Into<String>' %}
+            params.insert("{{ parameter.name }}".to_string(), json!(value));
+{% else %}
+            params.insert("{{ parameter.name }}".to_string(), json!({{ parameter | paramValue('value') }}));
+{% endif %}
+        }
+{% endif %}
+{% endif %}
+{% endfor %}
+{% set hasHeaders = method.parameters.header or method.headers %}
+{% if hasHeaders %}
+        let mut api_headers = HashMap::new();
+{% for parameter in method.parameters.header %}
+{% if parameter.required %}
+        api_headers.insert("{{ parameter.name }}".to_string(), {{ parameter | paramValue(parameter.name | caseSnake | overrideIdentifier) }}.to_string());
+{% else %}
+        if let Some(value) = {{ parameter.name | caseSnake | overrideIdentifier }} {
+            api_headers.insert("{{ parameter.name }}".to_string(), {{ parameter | paramValue('value') }}.to_string());
+        }
+{% endif %}
+{% endfor %}
+{% for key, header in method.headers %}
+        api_headers.insert("{{ key }}".to_string(), "{{ header }}".to_string());
+{% endfor %}
+{% endif %}
+
+        let path = "{{ method.path }}".to_string(){% for parameter in method.parameters.path %}.replace("{{ '{' }}{{ parameter.name }}{{ '}' }}", &{{ parameter | paramValue(parameter.name | caseSnake | overrideIdentifier) }}.to_string()){% endfor %};
+
+{% set hasFileParam = false %}
+{% set fileParamName = '' %}
+{% set fileParamKey = '' %}
+{% set uploadIdParam = '' %}
+{% for parameter in method.parameters.all %}
+{% if parameter.type == 'file' %}
+{% set hasFileParam = true %}
+{% set fileParamName = parameter.name | caseSnake | overrideIdentifier %}
+{% set fileParamKey = parameter.name %}
+{% endif %}
+{% if parameter.isUploadID %}
+{% set uploadIdParam = parameter.name | caseSnake | overrideIdentifier %}
+{% endif %}
+{% endfor %}
+{% if hasFileParam %}
+        self.client.file_upload(&path, {% if hasHeaders %}Some(api_headers){% else %}None{% endif %}, params, "{{ fileParamKey }}", {{ fileParamName }}, {% if uploadIdParam %}{% if uploadIDRequired %}Some({{ uploadIdParam }}_str){% else %}{{ uploadIdParam }}_str{% endif %}{% else %}None{% endif %}).await
+{% elseif method.type == 'webAuth' %}
+        self.client.call_location(Method::{{ method.method | upper }}, &path, {% if hasHeaders %}Some(api_headers){% else %}None{% endif %}, Some(params)).await
+{% elseif method.type == 'location' %}
+        self.client.call_bytes(Method::{{ method.method | upper }}, &path, {% if hasHeaders %}Some(api_headers){% else %}None{% endif %}, Some(params)).await
+{% else %}
+        self.client.call(Method::{{ method.method | upper }}, &path, {% if hasHeaders %}Some(api_headers){% else %}None{% endif %}, Some(params)).await
+{% endif %}
+    }
+
+{% endif %}
+{% endfor %}
+}
+
+impl crate::services::Service for {{ service.name | caseUcfirst }} {
+    fn client(&self) -> &Client {
+        &self.client
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_{{ service.name | caseSnake }}_creation() {
+        let client = Client::new();
+        let service = {{ service.name | caseUcfirst }}::new(&client);
+        assert!(service.client().endpoint().contains("{{ spec.endpoint | stripProtocol }}"));
+    }
+}
