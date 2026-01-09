@@ -88,14 +88,11 @@ async fn test_bar_service(client: &Client, string_in_array: &[String]) -> Result
 async fn test_general_service(client: &Client, string_in_array: &[String]) -> Result<(), Box<dyn std::error::Error>> {
     let general = General::new(&client);
 
-    // General Service
-    match general.redirect().await {
-        Ok(response) => {
-            if let Some(result) = response.get("result") {
-                println!("{}", result.as_str().unwrap_or(""));
-            }
-        },
-        Err(e) => eprintln!("general.redirect => error {}", e),
+    // redirect returns ()
+    // and client follows redirect automatically
+    match general.redirected().await {
+        Ok(response) => println!("{}", response.result),
+        Err(e) => eprintln!("general.redirected => error {}", e),
     }
 
     test_general_upload(client, string_in_array).await?;
