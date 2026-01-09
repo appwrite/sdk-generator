@@ -502,7 +502,7 @@ export const questionsCreateBucket: Question[] = [
 export const questionsCreateTeam: Question[] = [
   {
     type: "input",
-    name: "bucket",
+    name: "team",
     message: "What would you like to name your team?",
     default: "My Awesome Team",
   },
@@ -1014,7 +1014,6 @@ export const questionsGetEntrypoint: Question[] = [
     type: "input",
     name: "entrypoint",
     message: "Enter the entrypoint",
-    default: null,
     validate(value: string) {
       if (!value) {
         return "Please enter your entrypoint";
