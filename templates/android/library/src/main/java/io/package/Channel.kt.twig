@@ -32,10 +32,10 @@ interface Database {
 }
 
 interface Collection {
-    fun document(id: String = "*"): IDocument
+    fun document(id: String = "*"): Document
 }
 
-interface IDocument : Actionable
+interface Document : Actionable
 
 interface TablesDB {
     fun table(id: String = "*"): Table
@@ -61,7 +61,7 @@ interface Execution : Actionable
 
 private class ChannelBuilder(
     private val segments: List<String>
-) : Database, Collection, IDocument,
+) : Database, Collection, Document,
     TablesDB, Table, Row,
     Bucket, File,
     Function, Execution, Actionable {
@@ -77,7 +77,7 @@ private class ChannelBuilder(
     override fun collection(id: String): Collection =
         next("collections", id)
 
-    override fun document(id: String): IDocument =
+    override fun document(id: String): Document =
         next("documents", id)
 
     override fun table(id: String): Table =
