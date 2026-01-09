@@ -46,7 +46,7 @@ abstract class Realtime extends Service {
   /// ```dart
   /// final subscription = realtime.subscribe([
   ///   Channel.database('db').collection('col').document('doc').create(),
-  ///   Channel.buckets('bucket').file('file').update(),
+  ///   Channel.bucket('bucket').file('file').update(),
   ///   'account.*'
   /// ]);
   /// ```

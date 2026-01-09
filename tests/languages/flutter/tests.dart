@@ -256,9 +256,9 @@ void main() async {
   print(Channel.tablesdb('db1').table('table1').row('row1').update().toString());
   print(Channel.account());
   print(Channel.account('user123'));
-  print(Channel.buckets().file().toString());
-  print(Channel.buckets('bucket1').file('file1').toString());
-  print(Channel.buckets('bucket1').file('file1').delete().toString());
+  print(Channel.bucket().file().toString());
+  print(Channel.bucket('bucket1').file('file1').toString());
+  print(Channel.bucket('bucket1').file('file1').delete().toString());
   print(Channel.function().execution().toString());
   print(Channel.function('func1').execution('exec1').toString());
   print(Channel.function('func1').execution('exec1').create().toString());

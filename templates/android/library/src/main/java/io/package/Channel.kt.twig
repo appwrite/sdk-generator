@@ -117,7 +117,7 @@ class Channel private constructor() {
         fun tablesdb(id: String = "*"): TablesDB =
             ChannelBuilder.start(listOf("tablesdb", normalize(id)))
 
-        fun buckets(id: String = "*"): Bucket =
+        fun bucket(id: String = "*"): Bucket =
             ChannelBuilder.start(listOf("buckets", normalize(id)))
 
         fun function(id: String = "*"): Function =

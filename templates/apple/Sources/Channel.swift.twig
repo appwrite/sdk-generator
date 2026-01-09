@@ -189,7 +189,7 @@ public enum Channel {
         ChannelBuilder.start(["tablesdb", normalize(id)])
     }
 
-    public static func buckets(_ id: String = "*") -> IBucket {
+    public static func bucket(_ id: String = "*") -> IBucket {
         ChannelBuilder.start(["buckets", normalize(id)])
     }
 

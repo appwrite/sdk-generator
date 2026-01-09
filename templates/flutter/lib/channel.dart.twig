@@ -116,7 +116,7 @@ abstract class Channel {
   static ITablesDB tablesdb([String id = '*']) => 
       _ChannelBuilder._(['tablesdb', _normalize(id)]);
       
-  static IBucket buckets([String id = '*']) => 
+  static IBucket bucket([String id = '*']) => 
       _ChannelBuilder._(['buckets', _normalize(id)]);
       
   static IFunction function([String id = '*']) => 

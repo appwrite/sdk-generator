@@ -60,24 +60,24 @@ void main() {
     });
   });
 
-  group('buckets()', () {
+  group('bucket()', () {
     test('returns buckets channel builder', () {
-      final builder = Channel.buckets();
+      final builder = Channel.bucket();
       expect(builder.channel, 'buckets.*');
     });
 
     test('returns buckets channel with specific ID', () {
-      final builder = Channel.buckets('bucket1');
+      final builder = Channel.bucket('bucket1');
       expect(builder.channel, 'buckets.bucket1');
     });
 
     test('returns buckets channel with file', () {
-      final channel = Channel.buckets('bucket1').file('file1');
+      final channel = Channel.bucket('bucket1').file('file1');
       expect(channel.channel, 'buckets.bucket1.files.file1');
     });
 
     test('returns buckets channel with action', () {
-      final channel = Channel.buckets('bucket1').file('file1').delete();
+      final channel = Channel.bucket('bucket1').file('file1').delete();
       expect(channel.toString(), 'buckets.bucket1.files.file1.delete');
     });
   });

@@ -44,18 +44,18 @@ void main() {
     });
   });
 
-  group('buckets()', () {
+  group('bucket()', () {
     test('returns buckets channel with defaults', () {
-      expect(Channel.buckets().file().toString(), 'buckets.*.files.*');
+    expect(Channel.bucket().file().toString(), 'buckets.*.files.*');
     });
 
     test('returns buckets channel with specific IDs', () {
-      expect(Channel.buckets('bucket1').file('file1').toString(),
+    expect(Channel.bucket('bucket1').file('file1').toString(),
           'buckets.bucket1.files.file1');
     });
 
     test('returns buckets channel with action', () {
-      expect(Channel.buckets('bucket1').file('file1').delete().toString(),
+    expect(Channel.bucket('bucket1').file('file1').delete().toString(),
           'buckets.bucket1.files.file1.delete');
     });
   });
