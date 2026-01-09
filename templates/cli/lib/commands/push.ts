@@ -4,6 +4,7 @@ import chalk from "chalk";
 import inquirer from "inquirer";
 import { Command } from "commander";
 import ID from "../id.js";
+import { EXECUTABLE_NAME } from "../constants.js";
 import {
   localConfig,
   globalConfig,
@@ -1719,7 +1720,7 @@ const pushSite = async ({
   if (siteIds.length === 0) {
     log("No sites found.");
     hint(
-      "Use 'appwrite pull sites' to synchronize existing one, or use 'appwrite init site' to create a new one.",
+      `Use '${EXECUTABLE_NAME} pull sites' to synchronize existing one, or use '${EXECUTABLE_NAME} init site' to create a new one.`,
     );
     return;
   }
@@ -1840,7 +1841,7 @@ const pushFunction = async ({
   if (functionIds.length === 0) {
     log("No functions found.");
     hint(
-      "Use 'appwrite pull functions' to synchronize existing one, or use 'appwrite init function' to create a new one.",
+      `Use '${EXECUTABLE_NAME} pull functions' to synchronize existing one, or use '${EXECUTABLE_NAME} init function' to create a new one.`,
     );
     return;
   }
@@ -2056,7 +2057,7 @@ const pushTable = async ({
   if (tables.length === 0) {
     log("No tables found.");
     hint(
-      "Use 'appwrite pull tables' to synchronize existing one, or use 'appwrite init table' to create a new one.",
+      `Use '${EXECUTABLE_NAME} pull tables' to synchronize existing one, or use '${EXECUTABLE_NAME} init table' to create a new one.`,
     );
     return;
   }
@@ -2097,9 +2098,9 @@ const pushTable = async ({
   }
 };
 
-const pushCollection = async ({}: PushTableOptions = {}): Promise<void> => {
+const pushCollection = async (): Promise<void> => {
   warn(
-    "appwrite push collection has been deprecated. Please consider using 'appwrite push tables' instead",
+    `${EXECUTABLE_NAME} push collection has been deprecated. Please consider using '${EXECUTABLE_NAME} push tables' instead`,
   );
   const collections: any[] = [];
 
@@ -2123,7 +2124,7 @@ const pushCollection = async ({}: PushTableOptions = {}): Promise<void> => {
   if (collections.length === 0) {
     log("No collections found.");
     hint(
-      "Use 'appwrite pull collections' to synchronize existing one, or use 'appwrite init collection' to create a new one.",
+      `Use '${EXECUTABLE_NAME} pull collections' to synchronize existing one, or use '${EXECUTABLE_NAME} init collection' to create a new one.`,
     );
     return;
   }
@@ -2192,7 +2193,7 @@ const pushBucket = async (): Promise<void> => {
   if (bucketIds.length === 0) {
     log("No buckets found.");
     hint(
-      "Use 'appwrite pull buckets' to synchronize existing one, or use 'appwrite init bucket' to create a new one.",
+      `Use '${EXECUTABLE_NAME} pull buckets' to synchronize existing one, or use '${EXECUTABLE_NAME} init bucket' to create a new one.`,
     );
     return;
   }
@@ -2256,7 +2257,7 @@ const pushTeam = async (): Promise<void> => {
   if (teamIds.length === 0) {
     log("No teams found.");
     hint(
-      "Use 'appwrite pull teams' to synchronize existing one, or use 'appwrite init team' to create a new one.",
+      `Use '${EXECUTABLE_NAME} pull teams' to synchronize existing one, or use '${EXECUTABLE_NAME} init team' to create a new one.`,
     );
     return;
   }
@@ -2320,7 +2321,7 @@ const pushMessagingTopic = async (): Promise<void> => {
   if (topicsIds.length === 0) {
     log("No topics found.");
     hint(
-      "Use 'appwrite pull topics' to synchronize existing one, or use 'appwrite init topic' to create a new one.",
+      `Use '${EXECUTABLE_NAME} pull topics' to synchronize existing one, or use '${EXECUTABLE_NAME} init topic' to create a new one.`,
     );
     return;
   }
@@ -2445,11 +2446,11 @@ push
   .action(actionRunner(pushMessagingTopic));
 
 export const deploy = new Command("deploy")
-  .description("Removed. Use appwrite push instead")
+  .description(`Removed. Use ${EXECUTABLE_NAME} push instead`)
   .action(
     actionRunner(async () => {
       warn(
-        "appwrite deploy has been removed. Please use 'appwrite push' instead",
+        `${EXECUTABLE_NAME} deploy has been removed. Please use '${EXECUTABLE_NAME} push' instead`,
       );
     }),
   );
