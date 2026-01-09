@@ -52,13 +52,15 @@ const questionPushChangesConfirmation = [
 
 export class Attributes {
   private pools: Pools;
+  private skipConfirmation: boolean;
 
-  constructor(pools?: Pools) {
+  constructor(pools?: Pools, skipConfirmation = false) {
     this.pools = pools || new Pools();
+    this.skipConfirmation = skipConfirmation;
   }
 
   private getConfirmation = async (): Promise<boolean> => {
-    if (cliConfig.force) {
+    if (cliConfig.force || this.skipConfirmation) {
       return true;
     }
 

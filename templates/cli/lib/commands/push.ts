@@ -86,6 +86,7 @@ export interface PushOptions {
   teams?: boolean;
   topics?: boolean;
   skipDeprecated?: boolean;
+  skipConfirmation?: boolean;
   functionOptions?: {
     async?: boolean;
     code?: boolean;
@@ -95,6 +96,9 @@ export interface PushOptions {
     async?: boolean;
     code?: boolean;
     withVariables?: boolean;
+  };
+  tableOptions?: {
+    attempts?: number;
   };
 }
 
@@ -114,15 +118,54 @@ interface PushFunctionOptions {
 
 interface PushTableOptions {
   attempts?: number;
+  skipConfirmation?: boolean;
 }
 
 export class Push {
   private projectClient: Client;
   private consoleClient: Client;
+  private silent: boolean;
 
-  constructor(projectClient: Client, consoleClient: Client) {
+  constructor(projectClient: Client, consoleClient: Client, silent = false) {
     this.projectClient = projectClient;
     this.consoleClient = consoleClient;
+    this.silent = silent;
+  }
+
+  /**
+   * Log a message (respects silent mode)
+   */
+  private log(message: string): void {
+    if (!this.silent) {
+      log(message);
+    }
+  }
+
+  /**
+   * Log a success message (respects silent mode)
+   */
+  private success(message: string): void {
+    if (!this.silent) {
+      success(message);
+    }
+  }
+
+  /**
+   * Log a warning message (respects silent mode)
+   */
+  private warn(message: string): void {
+    if (!this.silent) {
+      warn(message);
+    }
+  }
+
+  /**
+   * Log an error message (respects silent mode)
+   */
+  private error(message: string): void {
+    if (!this.silent) {
+      error(message);
+    }
   }
 
   public async pushResources(
@@ -143,12 +186,15 @@ export class Push {
       (config.projectName || config.settings)
     ) {
       try {
-        log("Pushing settings ...");
+        this.log("Pushing settings ...");
         await this.pushSettings({
           projectId: config.projectId,
           projectName: config.projectName,
           settings: config.settings,
         });
+        this.success(
+          `Successfully pushed ${chalk.bold("all")} project settings.`,
+        );
         results.settings = { success: true };
       } catch (e: any) {
         allErrors.push(e);
@@ -163,8 +209,11 @@ export class Push {
       config.buckets.length > 0
     ) {
       try {
-        log("Pushing buckets ...");
+        this.log("Pushing buckets ...");
         const result = await this.pushBuckets(config.buckets);
+        this.success(
+          `Successfully pushed ${chalk.bold(result.successfullyPushed)} buckets.`,
+        );
         results.buckets = result;
         allErrors.push(...result.errors);
       } catch (e: any) {
@@ -180,8 +229,11 @@ export class Push {
       config.teams.length > 0
     ) {
       try {
-        log("Pushing teams ...");
+        this.log("Pushing teams ...");
         const result = await this.pushTeams(config.teams);
+        this.success(
+          `Successfully pushed ${chalk.bold(result.successfullyPushed)} teams.`,
+        );
         results.teams = result;
         allErrors.push(...result.errors);
       } catch (e: any) {
@@ -197,8 +249,11 @@ export class Push {
       config.topics.length > 0
     ) {
       try {
-        log("Pushing topics ...");
+        this.log("Pushing topics ...");
         const result = await this.pushMessagingTopics(config.topics);
+        this.success(
+          `Successfully pushed ${chalk.bold(result.successfullyPushed)} topics.`,
+        );
         results.topics = result;
         allErrors.push(...result.errors);
       } catch (e: any) {
@@ -214,10 +269,13 @@ export class Push {
       config.functions.length > 0
     ) {
       try {
-        log("Pushing functions ...");
+        this.log("Pushing functions ...");
         const result = await this.pushFunctions(
           config.functions,
           options.functionOptions,
+        );
+        this.success(
+          `Successfully pushed ${chalk.bold(result.successfullyPushed)} functions.`,
         );
         results.functions = result;
         allErrors.push(...result.errors);
@@ -239,8 +297,11 @@ export class Push {
       config.sites.length > 0
     ) {
       try {
-        log("Pushing sites ...");
+        this.log("Pushing sites ...");
         const result = await this.pushSites(config.sites, options.siteOptions);
+        this.success(
+          `Successfully pushed ${chalk.bold(result.successfullyPushed)} sites.`,
+        );
         results.sites = result;
         allErrors.push(...result.errors);
       } catch (e: any) {
@@ -261,8 +322,14 @@ export class Push {
       config.tables.length > 0
     ) {
       try {
-        log("Pushing tables ...");
-        const result = await this.pushTables(config.tables);
+        this.log("Pushing tables ...");
+        const result = await this.pushTables(config.tables, {
+          attempts: options.tableOptions?.attempts,
+          skipConfirmation: options.skipConfirmation,
+        });
+        this.success(
+          `Successfully pushed ${chalk.bold(result.successfullyPushed)} tables.`,
+        );
         results.tables = result;
         allErrors.push(...result.errors);
       } catch (e: any) {
@@ -271,15 +338,14 @@ export class Push {
       }
     }
 
-    // Push collections (unless skipDeprecated is true)
+    // Push collections (skipDeprecated only applies when pushing all, explicit collections option takes precedence)
     if (
-      !skipDeprecated &&
-      (shouldPushAll || options.collections) &&
+      (options.collections || (shouldPushAll && !skipDeprecated)) &&
       config.collections &&
       config.collections.length > 0
     ) {
       try {
-        log("Pushing collections ...");
+        this.log("Pushing collections ...");
         // Add database names to collections
         const collectionsWithDbNames = config.collections.map(
           (collection: any) => {
@@ -292,7 +358,12 @@ export class Push {
             };
           },
         );
-        const result = await this.pushCollections(collectionsWithDbNames);
+        const result = await this.pushCollections(collectionsWithDbNames, {
+          skipConfirmation: options.skipConfirmation,
+        });
+        this.success(
+          `Successfully pushed ${chalk.bold(result.successfullyPushed)} collections.`,
+        );
         results.collections = result;
         allErrors.push(...result.errors);
       } catch (e: any) {
@@ -318,6 +389,7 @@ export class Push {
     const settings = config.settings ?? {};
 
     if (projectName) {
+      this.log("Applying project name ...");
       await projectsService.update({
         projectId: projectId,
         name: projectName,
@@ -325,6 +397,7 @@ export class Push {
     }
 
     if (settings.services) {
+      this.log("Applying service statuses ...");
       for (let [service, status] of Object.entries(settings.services)) {
         await projectsService.updateServiceStatus({
           projectId: projectId,
@@ -336,6 +409,7 @@ export class Push {
 
     if (settings.auth) {
       if (settings.auth.security) {
+        this.log("Applying auth security settings ...");
         await projectsService.updateAuthDuration({
           projectId,
           duration: settings.auth.security.duration,
@@ -371,6 +445,7 @@ export class Push {
       }
 
       if (settings.auth.methods) {
+        this.log("Applying auth methods statuses ...");
         for (let [method, status] of Object.entries(settings.auth.methods)) {
           await projectsService.updateAuthStatus({
             projectId,
@@ -391,7 +466,7 @@ export class Push {
 
     for (const bucket of buckets) {
       try {
-        log(`Pushing bucket ${chalk.bold(bucket["name"])} ...`);
+        this.log(`Pushing bucket ${chalk.bold(bucket["name"])} ...`);
         const storageService = await getStorageService(this.projectClient);
 
         try {
@@ -430,7 +505,7 @@ export class Push {
         successfullyPushed++;
       } catch (e: any) {
         errors.push(e);
-        error(`Failed to push bucket ${bucket["name"]}: ${e.message}`);
+        this.error(`Failed to push bucket ${bucket["name"]}: ${e.message}`);
       }
     }
 
@@ -449,7 +524,7 @@ export class Push {
 
     for (const team of teams) {
       try {
-        log(`Pushing team ${chalk.bold(team["name"])} ...`);
+        this.log(`Pushing team ${chalk.bold(team["name"])} ...`);
         const teamsService = await getTeamsService(this.projectClient);
 
         try {
@@ -472,7 +547,7 @@ export class Push {
         successfullyPushed++;
       } catch (e: any) {
         errors.push(e);
-        error(`Failed to push team ${team["name"]}: ${e.message}`);
+        this.error(`Failed to push team ${team["name"]}: ${e.message}`);
       }
     }
 
@@ -491,7 +566,7 @@ export class Push {
 
     for (const topic of topics) {
       try {
-        log(`Pushing topic ${chalk.bold(topic["name"])} ...`);
+        this.log(`Pushing topic ${chalk.bold(topic["name"])} ...`);
         const messagingService = await getMessagingService(this.projectClient);
 
         try {
@@ -513,11 +588,11 @@ export class Push {
           }
         }
 
-        success(`Created ${topic.name} ( ${topic["$id"]} )`);
+        this.success(`Pushed ${topic.name} ( ${topic["$id"]} )`);
         successfullyPushed++;
       } catch (e: any) {
         errors.push(e);
-        error(`Failed to push topic ${topic["name"]}: ${e.message}`);
+        this.error(`Failed to push topic ${topic["name"]}: ${e.message}`);
       }
     }
 
@@ -1180,14 +1255,15 @@ export class Push {
 
   public async pushTables(
     tables: any[],
-    attempts?: number,
+    options: PushTableOptions = {},
   ): Promise<{
     successfullyPushed: number;
     errors: any[];
   }> {
+    const { attempts, skipConfirmation = false } = options;
     const pollMaxDebounces = attempts ?? POLL_DEFAULT_VALUE;
     const pools = new Pools(pollMaxDebounces);
-    const attributes = new Attributes(pools);
+    const attributes = new Attributes(pools, skipConfirmation);
 
     let tablesChanged = new Set();
     const errors: any[] = [];
@@ -1222,7 +1298,7 @@ export class Push {
               table["$permissions"],
             );
 
-            success(
+            this.success(
               `Updated ${table.name} ( ${table["$id"]} ) - ${changes.join(", ")}`,
             );
             tablesChanged.add(table["$id"]);
@@ -1232,7 +1308,7 @@ export class Push {
           table.isExisted = true;
         } catch (e: any) {
           if (Number(e.code) === 404) {
-            log(
+            this.log(
               `Table ${table.name} does not exist in the project. Creating ... `,
             );
             const tablesService = await getTablesDBService(this.projectClient);
@@ -1244,7 +1320,7 @@ export class Push {
               table["$permissions"],
             );
 
-            success(`Created ${table.name} ( ${table["$id"]} )`);
+            this.success(`Created ${table.name} ( ${table["$id"]} )`);
             tablesChanged.add(table["$id"]);
           } else {
             errors.push(e);
@@ -1282,7 +1358,7 @@ export class Push {
         }
       }
 
-      log(
+      this.log(
         `Pushing table ${table.name} ( ${table["databaseId"]} - ${table["$id"]} ) attributes`,
       );
 
@@ -1300,7 +1376,7 @@ export class Push {
         throw e;
       }
       tablesChanged.add(table["$id"]);
-      success(`Successfully pushed ${table.name} ( ${table["$id"]} )`);
+      this.success(`Successfully pushed ${table.name} ( ${table["$id"]} )`);
     }
 
     return {
@@ -1309,12 +1385,16 @@ export class Push {
     };
   }
 
-  public async pushCollections(collections: any[]): Promise<{
+  public async pushCollections(
+    collections: any[],
+    options: { skipConfirmation?: boolean } = {},
+  ): Promise<{
     successfullyPushed: number;
     errors: any[];
   }> {
+    const { skipConfirmation = false } = options;
     const pools = new Pools(POLL_DEFAULT_VALUE);
-    const attributes = new Attributes(pools);
+    const attributes = new Attributes(pools, skipConfirmation);
 
     const errors: any[] = [];
 
@@ -1338,10 +1418,10 @@ export class Push {
           if (database.name !== localDatabaseName) {
             await databasesService.update(databaseId, localDatabaseName);
 
-            success(`Updated ${localDatabaseName} ( ${databaseId} ) name`);
+            this.success(`Updated ${localDatabaseName} ( ${databaseId} ) name`);
           }
         } catch (err) {
-          log(`Database ${databaseId} not found. Creating it now ...`);
+          this.log(`Database ${databaseId} not found. Creating it now ...`);
 
           const localDatabaseName =
             collections.find((c: any) => c.databaseId === databaseId)
@@ -1371,14 +1451,16 @@ export class Push {
               collection.name,
             );
 
-            success(`Updated ${collection.name} ( ${collection["$id"]} ) name`);
+            this.success(
+              `Updated ${collection.name} ( ${collection["$id"]} ) name`,
+            );
           }
           collection.remoteVersion = remoteCollection;
 
           collection.isExisted = true;
         } catch (e: any) {
           if (Number(e.code) === 404) {
-            log(
+            this.log(
               `Collection ${collection.name} does not exist in the project. Creating ... `,
             );
             const databasesService = await getDatabasesService(
@@ -1428,7 +1510,7 @@ export class Push {
         }
       }
 
-      log(
+      this.log(
         `Pushing collection ${collection.name} ( ${collection["databaseId"]} - ${collection["$id"]} ) attributes`,
       );
 
@@ -1449,7 +1531,7 @@ export class Push {
         throw e;
       }
       numberOfCollections++;
-      success(
+      this.success(
         `Successfully pushed ${collection.name} ( ${collection["$id"]} )`,
       );
     }
@@ -1461,10 +1543,10 @@ export class Push {
   }
 }
 
-async function createPushInstance(): Promise<Push> {
+async function createPushInstance(silent = false): Promise<Push> {
   const projectClient = await sdkForProject();
   const consoleClient = await sdkForConsole();
-  return new Push(projectClient, consoleClient);
+  return new Push(projectClient, consoleClient, silent);
 }
 
 const pushResources = async ({
@@ -1557,25 +1639,6 @@ const pushSettings = async (): Promise<void> => {
 
     const pushInstance = await createPushInstance();
     const config = localConfig.getProject();
-    const settings = config.projectSettings ?? {};
-
-    if (config.projectName) {
-      log("Applying project name ...");
-    }
-
-    if (settings.services) {
-      log("Applying service statuses ...");
-    }
-
-    if (settings.auth) {
-      if (settings.auth.security) {
-        log("Applying auth security settings ...");
-      }
-
-      if (settings.auth.methods) {
-        log("Applying auth methods statuses ...");
-      }
-    }
 
     await pushInstance.pushSettings({
       projectId: config.projectId,
@@ -1984,7 +2047,7 @@ const pushTable = async ({
   log("Pushing tables ...");
 
   const pushInstance = await createPushInstance();
-  const result = await pushInstance.pushTables(tables, attempts);
+  const result = await pushInstance.pushTables(tables, { attempts });
 
   const { successfullyPushed, errors } = result;
 
