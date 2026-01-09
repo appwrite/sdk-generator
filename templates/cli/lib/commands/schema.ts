@@ -56,12 +56,18 @@ export class Schema {
    * @param config - The local configuration object.
    * @param options - Optional settings for the pull operation.
    * @returns A Promise that resolves to the updated configuration object reflecting the remote state.
+   * @param configPath - Optional path to the config file. If provided, the config will be synced after pull.
    */
   public async pull(
     config: ConfigType,
-    options: PullOptions = { all: true },
+    options: PullOptions,
+    configPath?: string
   ): Promise<ConfigType> {
-    return await this.pullCommand.pullResources(config, options);
+    const updatedConfig = await this.pullCommand.pullResources(config, options);
+    if (configPath) {
+      this.write(updatedConfig, configPath);
+    }
+    return updatedConfig;
   }
 
   /**
