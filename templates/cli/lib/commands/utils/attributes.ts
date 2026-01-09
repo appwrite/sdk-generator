@@ -94,6 +94,14 @@ export class Attributes {
 
   private isEqual = (a: any, b: any): boolean => {
     if (a === b) return true;
+    if (
+      typeof a === "object" &&
+      typeof b === "object" &&
+      a !== null &&
+      b !== null
+    ) {
+      return JSON.stringify(a) === JSON.stringify(b);
+    }
     return String(a) === String(b);
   };
 

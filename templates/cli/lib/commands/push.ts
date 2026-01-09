@@ -1451,14 +1451,18 @@ export class Push {
 
             this.success(`Updated ${localDatabaseName} ( ${databaseId} ) name`);
           }
-        } catch (err) {
-          this.log(`Database ${databaseId} not found. Creating it now ...`);
+        } catch (err: any) {
+          if (Number(err.code) === 404) {
+            this.log(`Database ${databaseId} not found. Creating it now ...`);
 
-          const localDatabaseName =
-            collections.find((c: any) => c.databaseId === databaseId)
-              ?.databaseName ?? databaseId;
+            const localDatabaseName =
+              collections.find((c: any) => c.databaseId === databaseId)
+                ?.databaseName ?? databaseId;
 
-          await databasesService.create(databaseId, localDatabaseName);
+            await databasesService.create(databaseId, localDatabaseName);
+          } else {
+            throw err;
+          }
         }
       }),
     );
