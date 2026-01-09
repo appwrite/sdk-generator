@@ -83,7 +83,7 @@ export const {{ service.name | caseCamel }} = new Command("{{ service.name | cas
     actionRunner(
 {% set params = [] %}
 {% for parameter in method.parameters.all %}
-{% set params = params|merge([parameter.name | caseCamel | escapeKeyword]) %}
+{% set params = params|merge([getCliVarName(parameter)]) %}
 {% endfor %}
 {% set hasParams = params | length > 0 %}
 {% set actionParams = hasParams ? '{ ' ~ params | join(', ') ~ (method.type == 'location' ? ', destination' : '') ~ ' }' : (method.type == 'location' ? '{ destination }' : '') %}

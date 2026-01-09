@@ -617,7 +617,9 @@ class CLI extends Node
              * Returns array with: method, syntax, parser, customParserCode
              */
             new TwigFunction('getCliOption', function (array $parameter): array {
-                $optionName = strtolower($this->escapeKeyword($parameter['name']));
+                $name = $parameter['name'];
+                $kebabName = strtolower(preg_replace('/(?<!^)([A-Z][a-z]|(?<=[a-z])[^a-z\s]|(?<=[A-Z])[0-9_])/', '-$1', $name));
+                $optionName = in_array(strtolower($name), $this->reservedKeywords) ? 'x' . $kebabName : $kebabName;
                 $type = $parameter['type'] ?? 'string';
                 $required = $parameter['required'] ?? false;
 
@@ -678,11 +680,25 @@ class CLI extends Node
             }),
 
             /**
+             * Get the variable name that commander.js will provide for a parameter.
+             * This matches the option name converted to camelCase.
+             */
+            new TwigFunction('getCliVarName', function (array $parameter): string {
+                $name = $parameter['name'];
+                $kebabName = strtolower(preg_replace('/(?<!^)([A-Z][a-z]|(?<=[a-z])[^a-z\s]|(?<=[A-Z])[0-9_])/', '-$1', $name));
+                $optionName = in_array(strtolower($name), $this->reservedKeywords) ? 'x' . $kebabName : $kebabName;
+                return lcfirst(str_replace(' ', '', ucwords(str_replace('-', ' ', $optionName))));
+            }),
+
+            /**
              * Get CLI argument expression for a parameter when calling the SDK method.
              * Handles enum casting, JSON parsing for objects, or plain variable.
              */
             new TwigFunction('getCliArgExpression', function (array $parameter): string {
-                $varName = $this->toCamelCase($this->escapeKeyword($parameter['name']));
+                $name = $parameter['name'];
+                $kebabName = strtolower(preg_replace('/(?<!^)([A-Z][a-z]|(?<=[a-z])[^a-z\s]|(?<=[A-Z])[0-9_])/', '-$1', $name));
+                $optionName = in_array(strtolower($name), $this->reservedKeywords) ? 'x' . $kebabName : $kebabName;
+                $varName = lcfirst(str_replace(' ', '', ucwords(str_replace('-', ' ', $optionName))));
                 $type = $parameter['type'] ?? 'string';
 
                 if (isset($parameter['enumName'])) {
