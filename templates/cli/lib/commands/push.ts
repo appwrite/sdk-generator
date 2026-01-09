@@ -1312,13 +1312,13 @@ export class Push {
               `Table ${table.name} does not exist in the project. Creating ... `,
             );
             const tablesService = await getTablesDBService(this.projectClient);
-            await tablesService.createTable(
-              table["databaseId"],
-              table["$id"],
-              table.name,
-              table.rowSecurity,
-              table["$permissions"],
-            );
+            await tablesService.createTable({
+              databaseId: table["databaseId"],
+              tableId: table["$id"],
+              name: table.name,
+              rowSecurity: table.rowSecurity,
+              permissions: table["$permissions"] ? [...table["$permissions"]] : undefined,
+            });
 
             this.success(`Created ${table.name} ( ${table["$id"]} )`);
             tablesChanged.add(table["$id"]);
@@ -1466,13 +1466,13 @@ export class Push {
             const databasesService = await getDatabasesService(
               this.projectClient,
             );
-            await databasesService.createCollection(
-              collection["databaseId"],
-              collection["$id"],
-              collection.name,
-              collection.documentSecurity,
-              collection["$permissions"],
-            );
+            await databasesService.createCollection({
+              databaseId: collection["databaseId"],
+              collectionId: collection["$id"],
+              name: collection.name,
+              documentSecurity: collection.documentSecurity,
+              permissions: collection["$permissions"],
+            });
           } else {
             errors.push(e);
             throw e;
