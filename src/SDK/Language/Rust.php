@@ -103,7 +103,6 @@ class Rust extends Language
     {
         return [
             "type" => "r#type",
-            "match" => "r#match",
             "ref" => "r#ref",
             "move" => "r#move",
             "static" => "r#static",

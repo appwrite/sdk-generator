@@ -22,7 +22,7 @@ Add this to your `Cargo.toml`:
 ```toml
 [dependencies]
 {{ sdk.cratePackage | default('appwrite') }} = "{{ sdk.version }}"
-tokio = { version = "1.0", features = ["full"] }
+tokio = { version = "1.48", features = ["full"] }
 ```
 
 Or using `cargo add`:
