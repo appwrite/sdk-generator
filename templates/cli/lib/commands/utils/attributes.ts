@@ -94,33 +94,7 @@ export class Attributes {
 
   private isEqual = (a: any, b: any): boolean => {
     if (a === b) return true;
-
-    if (a && b && typeof a === "object" && typeof b === "object") {
-      if (
-        a.constructor &&
-        a.constructor.name === "BigNumber" &&
-        b.constructor &&
-        b.constructor.name === "BigNumber"
-      ) {
-        return a.eq(b);
-      }
-
-      if (typeof a.equals === "function") {
-        return a.equals(b);
-      }
-
-      if (typeof a.eq === "function") {
-        return a.eq(b);
-      }
-    }
-
-    if (typeof a === "number" && typeof b === "number") {
-      if (isNaN(a) && isNaN(b)) return true;
-      if (!isFinite(a) && !isFinite(b)) return a === b;
-      return Math.abs(a - b) < Number.EPSILON;
-    }
-
-    return false;
+    return String(a) === String(b);
   };
 
   private compareAttribute = (

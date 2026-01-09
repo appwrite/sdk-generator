@@ -177,7 +177,7 @@ export class Pull {
       updatedConfig.tables = tables;
     }
 
-    if (!skipDeprecated && (shouldPullAll || options.collections)) {
+    if (options.collections || (shouldPullAll && !skipDeprecated)) {
       const { databases, collections } = await this.pullCollections();
       updatedConfig.databases = databases;
       updatedConfig.collections = collections;
