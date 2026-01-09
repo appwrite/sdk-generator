@@ -157,15 +157,15 @@ class ResolvedChannel {
       return ChannelBuilder.start(["buckets", normalize(id)]);
     }
   
-    static functions(id: string = "*"): IFunction {
+    static function(id: string = "*"): IFunction {
       return ChannelBuilder.start(["functions", normalize(id)]);
     }
   
-    static teams(id: string = "*"): Actionable {
+    static team(id: string = "*"): Actionable {
       return ChannelBuilder.start(["teams", normalize(id)]);
     }
   
-    static memberships(id: string = "*"): Actionable {
+    static membership(id: string = "*"): Actionable {
       return ChannelBuilder.start(["memberships", normalize(id)]);
     }
   

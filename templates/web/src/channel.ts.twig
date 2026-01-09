@@ -157,7 +157,7 @@ export class ResolvedChannel {
       return ChannelBuilder.start(["buckets", normalize(id)]);
     }
   
-  static function(id: string = "*"): IFunction {
+    static function(id: string = "*"): IFunction {
       return ChannelBuilder.start(["functions", normalize(id)]);
     }
   
