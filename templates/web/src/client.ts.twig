@@ -576,9 +576,9 @@ class Client {
      * You can also use Channel builders:
      * - Channel.database('db').collection('col').document('doc').create()
      * - Channel.buckets('bucket').file('file').update()
-     * - Channel.functions('func').execution('exec').delete()
-     * - Channel.teams('team').create()
-     * - Channel.memberships('membership').update()
+     * - Channel.function('func').execution('exec').delete()
+     * - Channel.team('team').create()
+     * - Channel.membership('membership').update()
      * @param {(payload: RealtimeMessage) => void} callback Is called on every realtime update.
      * @returns {() => void} Unsubscribes from events.
      */

@@ -193,15 +193,15 @@ public enum Channel {
         ChannelBuilder.start(["buckets", normalize(id)])
     }
 
-    public static func functions(_ id: String = "*") -> IFunction {
+    public static func function(_ id: String = "*") -> IFunction {
         ChannelBuilder.start(["functions", normalize(id)])
     }
 
-    public static func teams(_ id: String = "*") -> Actionable {
+    public static func team(_ id: String = "*") -> Actionable {
         ChannelBuilder.start(["teams", normalize(id)])
     }
 
-    public static func memberships(_ id: String = "*") -> Actionable {
+    public static func membership(_ id: String = "*") -> Actionable {
         ChannelBuilder.start(["memberships", normalize(id)])
     }
 

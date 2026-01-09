@@ -1,19 +1,25 @@
 package {{ sdk.namespace | caseDot }}
 
-// The result of building the channel.
+/**
+ * The result of building the channel.
+ */
 class ResolvedChannel(private val value: String) {
     override fun toString(): String {
         return value
     }
 }
 
-// Helper for normalizing IDs
+/**
+ * Helper for normalizing IDs
+ */
 private fun normalize(id: String): String {
     val trimmed = id.trim()
     return if (trimmed.isEmpty()) "*" else trimmed
 }
 
-// Interface for actionable channels
+/**
+ * Interface for actionable channels
+ */
 interface Actionable {
     val channel: String
     fun create(): ResolvedChannel
@@ -21,44 +27,44 @@ interface Actionable {
     fun delete(): ResolvedChannel
 }
 
-interface IDatabase {
-    fun collection(id: String = "*"): ICollection
+interface Database {
+    fun collection(id: String = "*"): Collection
 }
 
-interface ICollection {
+interface Collection {
     fun document(id: String = "*"): IDocument
 }
 
 interface IDocument : Actionable
 
-interface ITablesDB {
-    fun table(id: String = "*"): ITable
+interface TablesDB {
+    fun table(id: String = "*"): Table
 }
 
-interface ITable {
-    fun row(id: String = "*"): IRow
+interface Table {
+    fun row(id: String = "*"): Row
 }
 
-interface IRow : Actionable
+interface Row : Actionable
 
-interface IBucket {
-    fun file(id: String = "*"): IFile
+interface Bucket {
+    fun file(id: String = "*"): File
 }
 
-interface IFile : Actionable
+interface File : Actionable
 
-interface IFunction {
-    fun execution(id: String = "*"): IExecution
+interface Function {
+    fun execution(id: String = "*"): Execution
 }
 
-interface IExecution : Actionable
+interface Execution : Actionable
 
 private class ChannelBuilder(
     private val segments: List<String>
-) : IDatabase, ICollection, IDocument,
-    ITablesDB, ITable, IRow,
-    IBucket, IFile,
-    IFunction, IExecution, Actionable {
+) : Database, Collection, IDocument,
+    TablesDB, Table, Row,
+    Bucket, File,
+    Function, Execution, Actionable {
 
     companion object {
         fun start(segments: List<String>) = ChannelBuilder(segments)
@@ -68,22 +74,22 @@ private class ChannelBuilder(
         return ChannelBuilder(segments + listOf(segment, normalize(id)))
     }
 
-    override fun collection(id: String): ICollection =
+    override fun collection(id: String): Collection =
         next("collections", id)
 
     override fun document(id: String): IDocument =
         next("documents", id)
 
-    override fun table(id: String): ITable =
+    override fun table(id: String): Table =
         next("tables", id)
 
-    override fun row(id: String): IRow =
+    override fun row(id: String): Row =
         next("rows", id)
 
-    override fun file(id: String): IFile =
+    override fun file(id: String): File =
         next("files", id)
 
-    override fun execution(id: String): IExecution =
+    override fun execution(id: String): Execution =
         next("executions", id)
 
     override val channel: String
@@ -105,22 +111,22 @@ class Channel private constructor() {
 
     companion object {
 
-        fun database(id: String = "*"): IDatabase =
+        fun database(id: String = "*"): Database =
             ChannelBuilder.start(listOf("databases", normalize(id)))
 
-        fun tablesdb(id: String = "*"): ITablesDB =
+        fun tablesdb(id: String = "*"): TablesDB =
             ChannelBuilder.start(listOf("tablesdb", normalize(id)))
 
-        fun buckets(id: String = "*"): IBucket =
+        fun buckets(id: String = "*"): Bucket =
             ChannelBuilder.start(listOf("buckets", normalize(id)))
 
-        fun functions(id: String = "*"): IFunction =
+        fun function(id: String = "*"): Function =
             ChannelBuilder.start(listOf("functions", normalize(id)))
 
-        fun teams(id: String = "*"): Actionable =
+        fun team(id: String = "*"): Actionable =
             ChannelBuilder.start(listOf("teams", normalize(id)))
 
-        fun memberships(id: String = "*"): Actionable =
+        fun membership(id: String = "*"): Actionable =
             ChannelBuilder.start(listOf("memberships", normalize(id)))
 
         fun account(userId: String = ""): String {

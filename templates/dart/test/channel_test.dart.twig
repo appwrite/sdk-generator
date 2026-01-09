@@ -84,56 +84,56 @@ void main() {
 
   group('functions()', () {
     test('returns functions channel builder', () {
-      final builder = Channel.functions();
+      final builder = Channel.function();
       expect(builder.channel, 'functions.*');
     });
 
     test('returns functions channel with specific ID', () {
-      final builder = Channel.functions('func1');
+      final builder = Channel.function('func1');
       expect(builder.channel, 'functions.func1');
     });
 
     test('returns functions channel with execution', () {
-      final channel = Channel.functions('func1').execution('exec1');
+      final channel = Channel.function('func1').execution('exec1');
       expect(channel.channel, 'functions.func1.executions.exec1');
     });
 
     test('returns functions channel with action', () {
-      final channel = Channel.functions('func1').execution('exec1').create();
+      final channel = Channel.function('func1').execution('exec1').create();
       expect(channel.toString(), 'functions.func1.executions.exec1.create');
     });
   });
 
   group('teams()', () {
     test('returns teams channel builder', () {
-      final builder = Channel.teams();
+      final builder = Channel.team();
       expect(builder.channel, 'teams.*');
     });
 
     test('returns teams channel with specific team ID', () {
-      final builder = Channel.teams('team1');
+      final builder = Channel.team('team1');
       expect(builder.channel, 'teams.team1');
     });
 
     test('returns teams channel with action', () {
-      final channel = Channel.teams('team1').create();
+      final channel = Channel.team('team1').create();
       expect(channel.toString(), 'teams.team1.create');
     });
   });
 
   group('memberships()', () {
     test('returns memberships channel builder', () {
-      final builder = Channel.memberships();
+      final builder = Channel.membership();
       expect(builder.channel, 'memberships.*');
     });
 
     test('returns memberships channel with specific membership ID', () {
-      final builder = Channel.memberships('membership1');
+      final builder = Channel.membership('membership1');
       expect(builder.channel, 'memberships.membership1');
     });
 
     test('returns memberships channel with action', () {
-      final channel = Channel.memberships('membership1').update();
+      final channel = Channel.membership('membership1').update();
       expect(channel.toString(), 'memberships.membership1.update');
     });
   });

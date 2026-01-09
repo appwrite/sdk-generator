@@ -262,15 +262,15 @@ async function start() {
     console.log(Channel.buckets().file().toString());
     console.log(Channel.buckets('bucket1').file('file1').toString());
     console.log(Channel.buckets('bucket1').file('file1').delete().toString());
-    console.log(Channel.functions().execution().toString());
-    console.log(Channel.functions('func1').execution('exec1').toString());
-    console.log(Channel.functions('func1').execution('exec1').create().toString());
-    console.log(Channel.teams().toString());
-    console.log(Channel.teams('team1').toString());
-    console.log(Channel.teams('team1').create().toString());
-    console.log(Channel.memberships().toString());
-    console.log(Channel.memberships('membership1').toString());
-    console.log(Channel.memberships('membership1').update().toString());
+    console.log(Channel.function().execution().toString());
+    console.log(Channel.function('func1').execution('exec1').toString());
+    console.log(Channel.function('func1').execution('exec1').create().toString());
+    console.log(Channel.team().toString());
+    console.log(Channel.team('team1').toString());
+    console.log(Channel.team('team1').create().toString());
+    console.log(Channel.membership().toString());
+    console.log(Channel.membership('membership1').toString());
+    console.log(Channel.membership('membership1').update().toString());
 
     // Operator helper tests
     console.log(Operator.increment(1));

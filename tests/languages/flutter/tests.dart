@@ -259,15 +259,15 @@ void main() async {
   print(Channel.buckets().file().toString());
   print(Channel.buckets('bucket1').file('file1').toString());
   print(Channel.buckets('bucket1').file('file1').delete().toString());
-  print(Channel.functions().execution().toString());
-  print(Channel.functions('func1').execution('exec1').toString());
-  print(Channel.functions('func1').execution('exec1').create().toString());
-  print(Channel.teams().toString());
-  print(Channel.teams('team1').toString());
-  print(Channel.teams('team1').create().toString());
-  print(Channel.memberships().toString());
-  print(Channel.memberships('membership1').toString());
-  print(Channel.memberships('membership1').update().toString());
+  print(Channel.function().execution().toString());
+  print(Channel.function('func1').execution('exec1').toString());
+  print(Channel.function('func1').execution('exec1').create().toString());
+  print(Channel.team().toString());
+  print(Channel.team('team1').toString());
+  print(Channel.team('team1').create().toString());
+  print(Channel.membership().toString());
+  print(Channel.membership('membership1').toString());
+  print(Channel.membership('membership1').update().toString());
 
   // Operator helper tests
   print(Operator.increment(1));

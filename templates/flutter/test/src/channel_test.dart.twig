@@ -62,45 +62,45 @@ void main() {
 
   group('functions()', () {
     test('returns functions channel with defaults', () {
-      expect(Channel.functions().execution().toString(), 'functions.*.executions.*');
+    expect(Channel.function().execution().toString(), 'functions.*.executions.*');
     });
 
     test('returns functions channel with specific IDs', () {
-      expect(Channel.functions('func1').execution('exec1').toString(),
+    expect(Channel.function('func1').execution('exec1').toString(),
           'functions.func1.executions.exec1');
     });
 
     test('returns functions channel with action', () {
-      expect(Channel.functions('func1').execution('exec1').create().toString(),
+    expect(Channel.function('func1').execution('exec1').create().toString(),
           'functions.func1.executions.exec1.create');
     });
   });
 
   group('teams()', () {
     test('returns teams channel with default', () {
-      expect(Channel.teams().toString(), 'teams.*');
+    expect(Channel.team().toString(), 'teams.*');
     });
 
     test('returns teams channel with specific team ID', () {
-      expect(Channel.teams('team1').toString(), 'teams.team1');
+    expect(Channel.team('team1').toString(), 'teams.team1');
     });
 
     test('returns teams channel with action', () {
-      expect(Channel.teams('team1').create().toString(), 'teams.team1.create');
+    expect(Channel.team('team1').create().toString(), 'teams.team1.create');
     });
   });
 
   group('memberships()', () {
     test('returns memberships channel with default', () {
-      expect(Channel.memberships().toString(), 'memberships.*');
+    expect(Channel.membership().toString(), 'memberships.*');
     });
 
     test('returns memberships channel with specific membership ID', () {
-      expect(Channel.memberships('membership1').toString(), 'memberships.membership1');
+    expect(Channel.membership('membership1').toString(), 'memberships.membership1');
     });
 
     test('returns memberships channel with action', () {
-      expect(Channel.memberships('membership1').update().toString(),
+    expect(Channel.membership('membership1').update().toString(),
           'memberships.membership1.update');
     });
   });

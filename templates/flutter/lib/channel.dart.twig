@@ -119,13 +119,13 @@ abstract class Channel {
   static IBucket buckets([String id = '*']) => 
       _ChannelBuilder._(['buckets', _normalize(id)]);
       
-  static IFunction functions([String id = '*']) => 
+  static IFunction function([String id = '*']) => 
       _ChannelBuilder._(['functions', _normalize(id)]);
   
-  static Actionable teams([String id = '*']) => 
+  static Actionable team([String id = '*']) => 
       _ChannelBuilder._(['teams', _normalize(id)]);
       
-  static Actionable memberships([String id = '*']) => 
+  static Actionable membership([String id = '*']) => 
       _ChannelBuilder._(['memberships', _normalize(id)]);
 
   static String account([String userId = '']) => 
