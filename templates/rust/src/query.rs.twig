@@ -421,6 +421,15 @@ mod tests {
     }
 
     #[test]
+    fn test_search_with_number() {
+        let query = Query::search("age", 42);
+        let value = query.to_value();
+        assert_eq!(value["method"], "search");
+        assert_eq!(value["attribute"], "age");
+        assert_eq!(value["values"][0], 42);
+    }
+
+    #[test]
     fn test_is_null() {
         let query = Query::is_null("deletedAt");
         let value = query.to_value();
@@ -446,6 +455,35 @@ mod tests {
     }
 
     #[test]
+    fn test_not_contains() {
+        let query = Query::not_contains("tags", "rust");
+        let value = query.to_value();
+        assert_eq!(value["method"], "notContains");
+        assert_eq!(value["attribute"], "tags");
+        assert_eq!(value["values"][0], "rust");
+    }
+
+    #[test]
+    fn test_not_search_with_number() {
+        let query = Query::not_search("age", 7);
+        let value = query.to_value();
+        assert_eq!(value["method"], "notSearch");
+        assert_eq!(value["attribute"], "age");
+        assert_eq!(value["values"][0], 7);
+    }
+
+    #[test]
+    fn test_not_search_with_array() {
+        let values = Value::Array(vec![Value::from("x"), Value::from("y")]);
+        let query = Query::not_search("tags", values);
+        let value = query.to_value();
+        assert_eq!(value["method"], "notSearch");
+        assert_eq!(value["attribute"], "tags");
+        assert_eq!(value["values"][0], "x");
+        assert_eq!(value["values"][1], "y");
+    }
+
+    #[test]
     fn test_starts_with() {
         let query = Query::starts_with("name", "John");
         let value = query.to_value();
@@ -455,12 +493,52 @@ mod tests {
     }
 
     #[test]
+    fn test_starts_with_with_bool() {
+        let query = Query::starts_with("active", true);
+        let value = query.to_value();
+        assert_eq!(value["method"], "startsWith");
+        assert_eq!(value["attribute"], "active");
+        assert_eq!(value["values"][0], true);
+    }
+
+    #[test]
+    fn test_not_starts_with_with_bool() {
+        let query = Query::not_starts_with("active", false);
+        let value = query.to_value();
+        assert_eq!(value["method"], "notStartsWith");
+        assert_eq!(value["attribute"], "active");
+        assert_eq!(value["values"][0], false);
+    }
+
+    #[test]
     fn test_ends_with() {
         let query = Query::ends_with("email", "@example.com");
         let value = query.to_value();
         assert_eq!(value["method"], "endsWith");
         assert_eq!(value["attribute"], "email");
         assert_eq!(value["values"][0], "@example.com");
+    }
+
+    #[test]
+    fn test_ends_with_with_array() {
+        let values = Value::Array(vec![Value::from("a"), Value::from("b")]);
+        let query = Query::ends_with("tags", values);
+        let value = query.to_value();
+        assert_eq!(value["method"], "endsWith");
+        assert_eq!(value["attribute"], "tags");
+        assert_eq!(value["values"][0], "a");
+        assert_eq!(value["values"][1], "b");
+    }
+
+    #[test]
+    fn test_not_ends_with_with_array() {
+        let values = Value::Array(vec![Value::from("x"), Value::from("y")]);
+        let query = Query::not_ends_with("tags", values);
+        let value = query.to_value();
+        assert_eq!(value["method"], "notEndsWith");
+        assert_eq!(value["attribute"], "tags");
+        assert_eq!(value["values"][0], "x");
+        assert_eq!(value["values"][1], "y");
     }
 
     #[test]
@@ -508,6 +586,9 @@ mod tests {
         let value = query.to_value();
         assert_eq!(value["method"], "distanceEqual");
         assert_eq!(value["attribute"], "location");
+        let params = value["values"][0].as_array().unwrap();
+        assert_eq!(params[1], 5000);
+        assert_eq!(params[2], true);
     }
 
     #[test]
@@ -516,68 +597,139 @@ mod tests {
         let value = query.to_value();
         assert_eq!(value["method"], "distanceNotEqual");
         assert_eq!(value["attribute"], "location");
-    }
-
-    #[test]
-    fn test_distance_less_than() {
-        let query = Query::distance_less_than("location", Value::Array(vec![Value::from(51.5074), Value::from(-0.1278)]), 10000, true);
-        let value = query.to_value();
-        assert_eq!(value["method"], "distanceLessThan");
-        assert_eq!(value["attribute"], "location");
+        let params = value["values"][0].as_array().unwrap();
+        assert_eq!(params[1], 5000);
+        assert_eq!(params[2], false);
     }
 
     #[test]
     fn test_distance_greater_than() {
-        let query = Query::distance_greater_than("location", Value::Array(vec![Value::from(48.8566), Value::from(2.3522)]), 2000, false);
+        let query = Query::distance_greater_than("location", Value::Array(vec![Value::from(1.0), Value::from(2.0)]), 123, true);
         let value = query.to_value();
         assert_eq!(value["method"], "distanceGreaterThan");
         assert_eq!(value["attribute"], "location");
+        let params = value["values"][0].as_array().unwrap();
+        assert_eq!(params[1], 123);
+        assert_eq!(params[2], true);
     }
 
     #[test]
-    fn test_not_contains() {
-        let query = Query::not_contains("tags", "deprecated");
+    fn test_distance_less_than() {
+        let query = Query::distance_less_than("location", Value::Array(vec![Value::from(1.0), Value::from(2.0)]), 321, false);
         let value = query.to_value();
-        assert_eq!(value["method"], "notContains");
-        assert_eq!(value["attribute"], "tags");
-        assert_eq!(value["values"][0], "deprecated");
+        assert_eq!(value["method"], "distanceLessThan");
+        assert_eq!(value["attribute"], "location");
+        let params = value["values"][0].as_array().unwrap();
+        assert_eq!(params[1], 321);
+        assert_eq!(params[2], false);
     }
 
     #[test]
-    fn test_not_search() {
-        let query = Query::not_search("content", "spam keyword");
+    fn test_intersects() {
+        let query = Query::intersects("geo", Value::Array(vec![Value::from(1), Value::from(2)]));
         let value = query.to_value();
-        assert_eq!(value["method"], "notSearch");
-        assert_eq!(value["attribute"], "content");
-        assert_eq!(value["values"][0], "spam keyword");
+        assert_eq!(value["method"], "intersects");
+        assert_eq!(value["attribute"], "geo");
+        assert_eq!(value["values"][0][0], 1);
+        assert_eq!(value["values"][0][1], 2);
+    }
+
+    #[test]
+    fn test_not_intersects() {
+        let query = Query::not_intersects("geo", Value::Array(vec![Value::from(1), Value::from(2)]));
+        let value = query.to_value();
+        assert_eq!(value["method"], "notIntersects");
+        assert_eq!(value["attribute"], "geo");
+        assert_eq!(value["values"][0][0], 1);
+        assert_eq!(value["values"][0][1], 2);
+    }
+
+    #[test]
+    fn test_crosses() {
+        let query = Query::crosses("geo", Value::Array(vec![Value::from(1), Value::from(2)]));
+        let value = query.to_value();
+        assert_eq!(value["method"], "crosses");
+        assert_eq!(value["attribute"], "geo");
+        assert_eq!(value["values"][0][0], 1);
+        assert_eq!(value["values"][0][1], 2);
+    }
+
+    #[test]
+    fn test_not_crosses() {
+        let query = Query::not_crosses("geo", Value::Array(vec![Value::from(1), Value::from(2)]));
+        let value = query.to_value();
+        assert_eq!(value["method"], "notCrosses");
+        assert_eq!(value["attribute"], "geo");
+        assert_eq!(value["values"][0][0], 1);
+        assert_eq!(value["values"][0][1], 2);
+    }
+
+    #[test]
+    fn test_overlaps() {
+        let query = Query::overlaps("geo", Value::Array(vec![Value::from(1), Value::from(2)]));
+        let value = query.to_value();
+        assert_eq!(value["method"], "overlaps");
+        assert_eq!(value["attribute"], "geo");
+        assert_eq!(value["values"][0][0], 1);
+        assert_eq!(value["values"][0][1], 2);
+    }
+
+    #[test]
+    fn test_not_overlaps() {
+        let query = Query::not_overlaps("geo", Value::Array(vec![Value::from(1), Value::from(2)]));
+        let value = query.to_value();
+        assert_eq!(value["method"], "notOverlaps");
+        assert_eq!(value["attribute"], "geo");
+        assert_eq!(value["values"][0][0], 1);
+        assert_eq!(value["values"][0][1], 2);
+    }
+
+    #[test]
+    fn test_touches() {
+        let query = Query::touches("geo", Value::Array(vec![Value::from(1), Value::from(2)]));
+        let value = query.to_value();
+        assert_eq!(value["method"], "touches");
+        assert_eq!(value["attribute"], "geo");
+        assert_eq!(value["values"][0][0], 1);
+        assert_eq!(value["values"][0][1], 2);
+    }
+
+    #[test]
+    fn test_not_touches() {
+        let query = Query::not_touches("geo", Value::Array(vec![Value::from(1), Value::from(2)]));
+        let value = query.to_value();
+        assert_eq!(value["method"], "notTouches");
+        assert_eq!(value["attribute"], "geo");
+        assert_eq!(value["values"][0][0], 1);
+        assert_eq!(value["values"][0][1], 2);
     }
 
     #[test]
     fn test_not_between() {
-        let query = Query::not_between("age", 18, 65);
+        let query = Query::not_between("age", 18, 30);
         let value = query.to_value();
         assert_eq!(value["method"], "notBetween");
         assert_eq!(value["attribute"], "age");
         assert_eq!(value["values"][0], 18);
-        assert_eq!(value["values"][1], 65);
+        assert_eq!(value["values"][1], 30);
     }
 
     #[test]
     fn test_not_starts_with() {
-        let query = Query::not_starts_with("name", "Test");
+        let query = Query::not_starts_with("name", "Ann");
         let value = query.to_value();
         assert_eq!(value["method"], "notStartsWith");
         assert_eq!(value["attribute"], "name");
-        assert_eq!(value["values"][0], "Test");
+        assert_eq!(value["values"][0], "Ann");
     }
 
     #[test]
     fn test_not_ends_with() {
-        let query = Query::not_ends_with("email", "@spam.com");
+        let query = Query::not_ends_with("name", "nne");
         let value = query.to_value();
         assert_eq!(value["method"], "notEndsWith");
-        assert_eq!(value["attribute"], "email");
-        assert_eq!(value["values"][0], "@spam.com");
+        assert_eq!(value["attribute"], "name");
+        assert_eq!(value["values"][0], "nne");
     }
 
     #[test]
@@ -637,18 +789,11 @@ mod tests {
     }
 
     #[test]
-    fn test_intersects() {
-        let query = Query::intersects("polygon", Value::Array(vec![Value::from(1), Value::from(2)]));
+    fn test_not_search() {
+        let query = Query::not_search("content", "spam keyword");
         let value = query.to_value();
-        assert_eq!(value["method"], "intersects");
-        assert_eq!(value["attribute"], "polygon");
-    }
-
-    #[test]
-    fn test_not_intersects() {
-        let query = Query::not_intersects("polygon", Value::Array(vec![Value::from(3), Value::from(4)]));
-        let value = query.to_value();
-        assert_eq!(value["method"], "notIntersects");
-        assert_eq!(value["attribute"], "polygon");
+        assert_eq!(value["method"], "notSearch");
+        assert_eq!(value["attribute"], "content");
+        assert_eq!(value["values"][0], "spam keyword");
     }
 }
