@@ -1,0 +1,195 @@
+// The result of building the channel.
+class ResolvedChannel {
+    constructor(private value: string) {}
+    toString() {
+      return this.value;
+    }
+  }
+  
+  // Helper function for normalizing ID
+  function normalize(id: string): string {
+    const trimmed = id.trim();
+    return trimmed === "" ? "*" : trimmed;
+  }
+  
+  // State interfaces
+  
+  interface Actionable {
+    create(): ResolvedChannel;
+    update(): ResolvedChannel;
+    delete(): ResolvedChannel;
+    channel(): string;
+  }
+  
+  interface IDatabase {
+    collection(id?: string): ICollection;
+  }
+  
+  interface ICollection {
+    document(id?: string): IDocument;
+  }
+  
+  interface IDocument extends Actionable {}
+  
+  interface ITablesDB {
+    table(id?: string): ITable;
+  }
+  
+  interface ITable {
+    row(id?: string): IRow;
+  }
+  
+  interface IRow extends Actionable {}
+  
+  interface IBucket {
+    file(id?: string): IFile;
+  }
+  
+  interface IFile extends Actionable {}
+  
+  interface IFunction {
+    execution(id?: string): IExecution;
+  }
+  
+  interface IExecution extends Actionable {}
+  
+  // Builder implementation
+  
+  class ChannelBuilder
+    implements
+      IDatabase,
+      ICollection,
+      IDocument,
+      ITablesDB,
+      ITable,
+      IRow,
+      IBucket,
+      IFile,
+      IFunction,
+      IExecution,
+      Actionable
+  {
+    constructor(private segments: string[]) {}
+  
+    static start(segments: string[]): ChannelBuilder {
+      return new ChannelBuilder(segments);
+    }
+  
+    channel(): string {
+      return this.segments.join(".");
+    }
+  
+    toString(): string {
+      return this.channel();
+    }
+  
+    private next(segment: string, id: string = "*"): ChannelBuilder {
+      return new ChannelBuilder([
+        ...this.segments,
+        segment,
+        normalize(id),
+      ]);
+    }
+  
+    private resolve(action: string): ResolvedChannel {
+      return new ResolvedChannel(`${this.channel()}.${action}`);
+    }
+  
+    // Database
+  
+    collection(id: string = "*"): ICollection {
+      return this.next("collections", id);
+    }
+  
+    document(id: string = "*"): IDocument {
+      return this.next("documents", id);
+    }
+  
+    // TablesDB
+  
+    table(id: string = "*"): ITable {
+      return this.next("tables", id);
+    }
+  
+    row(id: string = "*"): IRow {
+      return this.next("rows", id);
+    }
+  
+    // Buckets
+  
+    file(id: string = "*"): IFile {
+      return this.next("files", id);
+    }
+  
+    // Functions
+  
+    execution(id: string = "*"): IExecution {
+      return this.next("executions", id);
+    }
+  
+    // Actions
+  
+    create(): ResolvedChannel {
+      return this.resolve("create");
+    }
+  
+    update(): ResolvedChannel {
+      return this.resolve("update");
+    }
+  
+    delete(): ResolvedChannel {
+      return this.resolve("delete");
+    }
+  }
+  
+  // Entry point
+  
+  export class Channel {
+    static database(id: string = "*"): IDatabase {
+      return ChannelBuilder.start(["databases", normalize(id)]);
+    }
+  
+    static tablesdb(id: string = "*"): ITablesDB {
+      return ChannelBuilder.start(["tablesdb", normalize(id)]);
+    }
+  
+    static bucket(id: string = "*"): IBucket {
+      return ChannelBuilder.start(["buckets", normalize(id)]);
+    }
+  
+    static function(id: string = "*"): IFunction {
+      return ChannelBuilder.start(["functions", normalize(id)]);
+    }
+  
+    static team(id: string = "*"): Actionable {
+      return ChannelBuilder.start(["teams", normalize(id)]);
+    }
+  
+    static membership(id: string = "*"): Actionable {
+      return ChannelBuilder.start(["memberships", normalize(id)]);
+    }
+  
+    static account(userId: string = ""): string {
+      return userId.trim()
+        ? `account.${normalize(userId)}`
+        : "account";
+    }
+  
+    // Global events
+  
+    static get documents(): string {
+      return "documents";
+    }
+  
+    static get rows(): string {
+      return "rows";
+    }
+  
+    static get files(): string {
+      return "files";
+    }
+  
+    static get executions(): string {
+      return "executions";
+    }
+  }
