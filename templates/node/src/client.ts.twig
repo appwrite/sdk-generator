@@ -1,6 +1,7 @@
 import { fetch, FormData, File } from 'node-fetch-native-with-agent';
 import { createAgent } from 'node-fetch-native-with-agent/agent';
 import { Models } from './models';
+import { InputFile } from './inputFile';
 
 type Payload = {
     [key: string]: any;
@@ -205,10 +206,58 @@ class Client {
     }
 
     async chunkedUpload(method: string, url: URL, headers: Headers = {}, originalPayload: Payload = {}, onProgress: (progress: UploadProgress) => void) {
-        const [fileParam, file] = Object.entries(originalPayload).find(([_, value]) => value instanceof File) ?? [];
+        const [fileParam, file] = Object.entries(originalPayload).find(
+            ([_, value]) => value instanceof File || value instanceof InputFile
+        ) ?? [];
 
         if (!file || !fileParam) {
             throw new Error('File not found in payload');
+        }
+
+        if (file instanceof InputFile) {
+            const size = await file.size();
+
+            if (size <= Client.CHUNK_SIZE) {
+                const payload = { ...originalPayload };
+                payload[fileParam] = await file.toFile();
+                return await this.call(method, url, headers, payload);
+            }
+
+            let start = 0;
+            let response = null;
+
+            while (start < size) {
+                let end = start + Client.CHUNK_SIZE;
+                if (end >= size) {
+                    end = size;
+                }
+
+                headers['content-range'] = `bytes ${start}-${end - 1}/${size}`;
+                const chunk = await file.slice(start, end);
+
+                const payload = { ...originalPayload };
+                payload[fileParam] = new File([chunk], file.filename);
+
+                response = await this.call(method, url, headers, payload);
+
+                if (onProgress && typeof onProgress === 'function') {
+                    onProgress({
+                        $id: response.$id,
+                        progress: Math.round((end / size) * 100),
+                        sizeUploaded: end,
+                        chunksTotal: Math.ceil(size / Client.CHUNK_SIZE),
+                        chunksUploaded: Math.ceil(end / Client.CHUNK_SIZE)
+                    });
+                }
+
+                if (response && response.$id) {
+                    headers['x-{{spec.title | caseLower }}-id'] = response.$id;
+                }
+
+                start = end;
+            }
+
+            return response;
         }
 
         if (file.size <= Client.CHUNK_SIZE) {

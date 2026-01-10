@@ -74,7 +74,7 @@ class Node extends Web
                 }
                 return 'any[]';
             case self::TYPE_FILE:
-                return "File";
+                return "File | InputFile";
             case self::TYPE_OBJECT:
                 if (empty($method)) {
                     return $parameter['type'];
