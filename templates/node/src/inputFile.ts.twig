@@ -1,23 +1,93 @@
 import { File } from "node-fetch-native-with-agent";
-import { realpathSync, readFileSync } from "fs";
+import { basename } from "path";
+import { realpathSync } from "fs";
+import { promises as fs } from "fs";
 import type { BinaryLike } from "crypto";
 
+type BlobLike = {
+  size: number;
+  slice: (start: number, end: number) => BlobLike;
+  arrayBuffer: () => Promise<ArrayBuffer>;
+};
+
+type InputFileSource =
+  | { type: 'path'; path: string }
+  | { type: 'buffer'; data: Buffer }
+  | { type: 'blob'; data: BlobLike };
+
 export class InputFile {
-  static fromBuffer(
-    parts: Blob | BinaryLike,
-    name: string
-  ): File {
-    return new File([parts], name);
+  private source: InputFileSource;
+  filename: string;
+
+  private constructor(source: InputFileSource, filename: string) {
+    this.source = source;
+    this.filename = filename;
   }
 
-  static fromPath(path: string, name: string): File {
+  static fromBuffer(parts: BlobLike | BinaryLike, name: string): InputFile {
+    if (parts && typeof (parts as BlobLike).arrayBuffer === 'function') {
+      return new InputFile({ type: 'blob', data: parts as BlobLike }, name);
+    }
+
+    return new InputFile({ type: 'buffer', data: Buffer.from(parts as BinaryLike) }, name);
+  }
+
+  static fromPath(path: string, name?: string): InputFile {
     const realPath = realpathSync(path);
-    const contents = readFileSync(realPath);
-    return this.fromBuffer(contents, name);
+    return new InputFile({ type: 'path', path: realPath }, name ?? basename(realPath));
   }
 
-  static fromPlainText(content: string, name: string): File {
-    const arrayBytes = new TextEncoder().encode(content);
-    return this.fromBuffer(arrayBytes, name);
+  static fromPlainText(content: string, name: string): InputFile {
+    return new InputFile({ type: 'buffer', data: Buffer.from(content) }, name);
+  }
+
+  async size(): Promise<number> {
+    switch (this.source.type) {
+      case 'path':
+        return (await fs.stat(this.source.path)).size;
+      case 'buffer':
+        return this.source.data.length;
+      case 'blob':
+        return this.source.data.size;
+    }
+  }
+
+  async slice(start: number, end: number): Promise<Buffer> {
+    const length = end - start;
+
+    switch (this.source.type) {
+      case 'path': {
+        const handle = await fs.open(this.source.path, 'r');
+        try {
+          const buffer = Buffer.alloc(length);
+          const result = await handle.read(buffer, 0, length, start);
+          return result.bytesRead === buffer.length ? buffer : buffer.subarray(0, result.bytesRead);
+        } finally {
+          await handle.close();
+        }
+      }
+      case 'buffer':
+        return this.source.data.subarray(start, end);
+      case 'blob': {
+        const arrayBuffer = await this.source.data.slice(start, end).arrayBuffer();
+        return Buffer.from(arrayBuffer);
+      }
+    }
+  }
+
+  async toFile(): Promise<File> {
+    const buffer = await this.toBuffer();
+    return new File([buffer], this.filename);
+  }
+
+  private async toBuffer(): Promise<Buffer> {
+    switch (this.source.type) {
+      case 'path':
+        return await fs.readFile(this.source.path);
+      case 'buffer':
+        return this.source.data;
+      case 'blob':
+        return Buffer.from(await this.source.data.arrayBuffer());
+    }
   }
 }
