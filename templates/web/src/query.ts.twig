@@ -1,505 +1,305 @@
-type QueryTypesSingle = string | number | boolean;
+type QueryValue = string | number | boolean;
+export type QueryTypesSingle = string | number | boolean;
 export type QueryTypesList = string[] | number[] | boolean[] | Query[] | any[];
 export type QueryTypes = QueryTypesSingle | QueryTypesList;
-type AttributesTypes = string | string[];
 
-/**
- * Helper class to generate query strings.
- */
-export class Query {
-  method: string;
-  attribute: AttributesTypes | undefined;
-  values: QueryTypesList | undefined;
+export type Query = {
+    method: string;
+    attribute?: string | string[];
+    values?: QueryValue[];
+};
 
-  /**
-   * Constructor for Query class.
-   *
-   * @param {string} method
-   * @param {AttributesTypes} attribute
-   * @param {QueryTypes} values
-   */
-  constructor(
-    method: string,
-    attribute?: AttributesTypes,
-    values?: QueryTypes
-  ) {
-    this.method = method;
-    this.attribute = attribute;
-
-    if (values !== undefined) {
-      if (Array.isArray(values)) {
-        this.values = values;
-      } else {
-        this.values = [values] as QueryTypesList;
-      }
-    }
-  }
-
-  /**
-   * Convert the query object to a JSON string.
-   *
-   * @returns {string}
-   */
-  toString(): string {
-    return JSON.stringify({
-      method: this.method,
-      attribute: this.attribute,
-      values: this.values,
-    });
-  }
-
-  /**
-   * Filter resources where attribute is equal to value.
-   *
-   * @param {string} attribute
-   * @param {QueryTypes} value
-   * @returns {string}
-   */
-  static equal = (attribute: string, value: QueryTypes): string =>
-    new Query("equal", attribute, value).toString();
-
-  /**
-   * Filter resources where attribute is not equal to value.
-   *
-   * @param {string} attribute
-   * @param {QueryTypes} value
-   * @returns {string}
-   */
-  static notEqual = (attribute: string, value: QueryTypes): string =>
-    new Query("notEqual", attribute, value).toString();
-
-  /**
-   * Filter resources where attribute is less than value.
-   *
-   * @param {string} attribute
-   * @param {QueryTypes} value
-   * @returns {string}
-   */
-  static lessThan = (attribute: string, value: QueryTypes): string =>
-    new Query("lessThan", attribute, value).toString();
-
-  /**
-   * Filter resources where attribute is less than or equal to value.
-   *
-   * @param {string} attribute
-   * @param {QueryTypes} value
-   * @returns {string}
-   */
-  static lessThanEqual = (attribute: string, value: QueryTypes): string =>
-    new Query("lessThanEqual", attribute, value).toString();
-
-  /**
-   * Filter resources where attribute is greater than value.
-   *
-   * @param {string} attribute
-   * @param {QueryTypes} value
-   * @returns {string}
-   */
-  static greaterThan = (attribute: string, value: QueryTypes): string =>
-    new Query("greaterThan", attribute, value).toString();
-
-  /**
-   * Filter resources where attribute is greater than or equal to value.
-   *
-   * @param {string} attribute
-   * @param {QueryTypes} value
-   * @returns {string}
-   */
-  static greaterThanEqual = (attribute: string, value: QueryTypes): string =>
-    new Query("greaterThanEqual", attribute, value).toString();
-
-  /**
-   * Filter resources where attribute is null.
-   *
-   * @param {string} attribute
-   * @returns {string}
-   */
-  static isNull = (attribute: string): string =>
-    new Query("isNull", attribute).toString();
-
-  /**
-   * Filter resources where attribute is not null.
-   *
-   * @param {string} attribute
-   * @returns {string}
-   */
-  static isNotNull = (attribute: string): string =>
-    new Query("isNotNull", attribute).toString();
-
-  /**
-   * Filter resources where attribute is between start and end (inclusive).
-   *
-   * @param {string} attribute
-   * @param {string | number} start
-   * @param {string | number} end
-   * @returns {string}
-   */
-  static between = (attribute: string, start: string | number, end: string | number): string =>
-    new Query("between", attribute, [start, end] as QueryTypesList).toString();
-
-  /**
-   * Filter resources where attribute starts with value.
-   *
-   * @param {string} attribute
-   * @param {string} value
-   * @returns {string}
-   */
-  static startsWith = (attribute: string, value: string): string =>
-    new Query("startsWith", attribute, value).toString();
-
-  /**
-   * Filter resources where attribute ends with value.
-   *
-   * @param {string} attribute
-   * @param {string} value
-   * @returns {string}
-   */
-  static endsWith = (attribute: string, value: string): string =>
-    new Query("endsWith", attribute, value).toString();
-
-  /**
-   * Specify which attributes should be returned by the API call.
-   *
-   * @param {string[]} attributes
-   * @returns {string}
-   */
-  static select = (attributes: string[]): string =>
-    new Query("select", undefined, attributes).toString();
-
-  /**
-   * Filter resources by searching attribute for value.
-   * A fulltext index on attribute is required for this query to work.
-   *
-   * @param {string} attribute
-   * @param {string} value
-   * @returns {string}
-   */
-  static search = (attribute: string, value: string): string =>
-    new Query("search", attribute, value).toString();
-
-  /**
-   * Sort results by attribute descending.
-   *
-   * @param {string} attribute
-   * @returns {string}
-   */
-  static orderDesc = (attribute: string): string =>
-    new Query("orderDesc", attribute).toString();
-
-  /**
-   * Sort results by attribute ascending.
-   *
-   * @param {string} attribute
-   * @returns {string}
-   */
-  static orderAsc = (attribute: string): string =>
-    new Query("orderAsc", attribute).toString();
-
-  /**
-   * Sort results randomly.
-   *
-   * @returns {string}
-   */
-  static orderRandom = (): string =>
-    new Query("orderRandom").toString();
-
-  /**
-   * Return results after documentId.
-   *
-   * @param {string} documentId
-   * @returns {string}
-   */
-  static cursorAfter = (documentId: string): string =>
-    new Query("cursorAfter", undefined, documentId).toString();
-
-  /**
-   * Return results before documentId.
-   *
-   * @param {string} documentId
-   * @returns {string}
-   */
-  static cursorBefore = (documentId: string): string =>
-    new Query("cursorBefore", undefined, documentId).toString();
-
-  /**
-   * Return only limit results.
-   *
-   * @param {number} limit
-   * @returns {string}
-   */
-  static limit = (limit: number): string =>
-    new Query("limit", undefined, limit).toString();
-
-  /**
-   * Filter resources by skipping the first offset results.
-   *
-   * @param {number} offset
-   * @returns {string}
-   */
-  static offset = (offset: number): string =>
-    new Query("offset", undefined, offset).toString();
-
-  /**
-   * Filter resources where attribute contains the specified value.
-   *
-   * @param {string} attribute
-   * @param {string | string[]} value
-   * @returns {string}
-   */
-  static contains = (attribute: string, value: string | any[]): string =>
-    new Query("contains", attribute, value).toString();
-
-  /**
-   * Filter resources where attribute does not contain the specified value.
-   *
-   * @param {string} attribute
-   * @param {string | any[]} value
-   * @returns {string}
-   */
-  static notContains = (attribute: string, value: string | any[]): string =>
-    new Query("notContains", attribute, value).toString();
-
-  /**
-   * Filter resources by searching attribute for value (inverse of search).
-   * A fulltext index on attribute is required for this query to work.
-   *
-   * @param {string} attribute
-   * @param {string} value
-   * @returns {string}
-   */
-  static notSearch = (attribute: string, value: string): string =>
-    new Query("notSearch", attribute, value).toString();
-
-  /**
-   * Filter resources where attribute is not between start and end (exclusive).
-   *
-   * @param {string} attribute
-   * @param {string | number} start
-   * @param {string | number} end
-   * @returns {string}
-   */
-  static notBetween = (attribute: string, start: string | number, end: string | number): string =>
-    new Query("notBetween", attribute, [start, end] as QueryTypesList).toString();
-
-  /**
-   * Filter resources where attribute does not start with value.
-   *
-   * @param {string} attribute
-   * @param {string} value
-   * @returns {string}
-   */
-  static notStartsWith = (attribute: string, value: string): string =>
-    new Query("notStartsWith", attribute, value).toString();
-
-  /**
-   * Filter resources where attribute does not end with value.
-   *
-   * @param {string} attribute
-   * @param {string} value
-   * @returns {string}
-   */
-  static notEndsWith = (attribute: string, value: string): string =>
-    new Query("notEndsWith", attribute, value).toString();
-
-  /**
-   * Filter resources where document was created before date.
-   *
-   * @param {string} value
-   * @returns {string}
-   */
-  static createdBefore = (value: string): string =>
-    Query.lessThan("$createdAt", value);
-
-  /**
-   * Filter resources where document was created after date.
-   *
-   * @param {string} value
-   * @returns {string}
-   */
-  static createdAfter = (value: string): string =>
-    Query.greaterThan("$createdAt", value);
-
-  /**
-   * Filter resources where document was created between dates.
-   *
-   * @param {string} start
-   * @param {string} end
-   * @returns {string}
-   */
-  static createdBetween = (start: string, end: string): string =>
-    Query.between("$createdAt", start, end);
-
-  /**
-   * Filter resources where document was updated before date.
-   *
-   * @param {string} value
-   * @returns {string}
-   */
-  static updatedBefore = (value: string): string =>
-    Query.lessThan("$updatedAt", value);
-
-  /**
-   * Filter resources where document was updated after date.
-   *
-   * @param {string} value
-   * @returns {string}
-   */
-  static updatedAfter = (value: string): string =>
-    Query.greaterThan("$updatedAt", value);
-
-  /**
-   * Filter resources where document was updated between dates.
-   *
-   * @param {string} start
-   * @param {string} end
-   * @returns {string}
-   */
-  static updatedBetween = (start: string, end: string): string =>
-    Query.between("$updatedAt", start, end);
-
-  /**
-   * Combine multiple queries using logical OR operator.
-   *
-   * @param {string[]} queries
-   * @returns {string}
-   */
-  static or = (queries: string[]) =>
-    new Query("or", undefined, queries.map((query) => JSON.parse(query))).toString();
-
-  /**
-   * Combine multiple queries using logical AND operator.
-   *
-   * @param {string[]} queries
-   * @returns {string}
-   */
-  static and = (queries: string[]) =>
-    new Query("and", undefined, queries.map((query) => JSON.parse(query))).toString();
-
-  /**
-   * Filter resources where attribute is at a specific distance from the given coordinates.
-   *
-   * @param {string} attribute
-   * @param {any[]} values
-   * @param {number} distance
-   * @param {boolean} meters
-   * @returns {string}
-   */
-  static distanceEqual = (attribute: string, values: any[], distance: number, meters: boolean = true): string =>
-    new Query("distanceEqual", attribute, [[values, distance, meters]] as QueryTypesList).toString();
-
-  /**
-   * Filter resources where attribute is not at a specific distance from the given coordinates.
-   *
-   * @param {string} attribute
-   * @param {any[]} values
-   * @param {number} distance
-   * @param {boolean} meters
-   * @returns {string}
-   */
-  static distanceNotEqual = (attribute: string, values: any[], distance: number, meters: boolean = true): string =>
-    new Query("distanceNotEqual", attribute, [[values, distance, meters]] as QueryTypesList).toString();
-
-  /**
-   * Filter resources where attribute is at a distance greater than the specified value from the given coordinates.
-   *
-   * @param {string} attribute
-   * @param {any[]} values
-   * @param {number} distance
-   * @param {boolean} meters
-   * @returns {string}
-   */
-  static distanceGreaterThan = (attribute: string, values: any[], distance: number, meters: boolean = true): string =>
-    new Query("distanceGreaterThan", attribute, [[values, distance, meters]] as QueryTypesList).toString();
-
-  /**
-   * Filter resources where attribute is at a distance less than the specified value from the given coordinates.
-   *
-   * @param {string} attribute
-   * @param {any[]} values
-   * @param {number} distance
-   * @param {boolean} meters
-   * @returns {string}
-   */
-  static distanceLessThan = (attribute: string, values: any[], distance: number, meters: boolean = true): string =>
-    new Query("distanceLessThan", attribute, [[values, distance, meters]] as QueryTypesList).toString();
-
-  /**
-   * Filter resources where attribute intersects with the given geometry.
-   *
-   * @param {string} attribute
-   * @param {any[]} values
-   * @returns {string}
-   */
-  static intersects = (attribute: string, values: any[]): string =>
-    new Query("intersects", attribute, [values]).toString();
-
-  /**
-   * Filter resources where attribute does not intersect with the given geometry.
-   *
-   * @param {string} attribute
-   * @param {any[]} values
-   * @returns {string}
-   */
-  static notIntersects = (attribute: string, values: any[]): string =>
-    new Query("notIntersects", attribute, [values]).toString();
-
-  /**
-   * Filter resources where attribute crosses the given geometry.
-   *
-   * @param {string} attribute
-   * @param {any[]} values
-   * @returns {string}
-   */
-  static crosses = (attribute: string, values: any[]): string =>
-    new Query("crosses", attribute, [values]).toString();
-
-  /**
-   * Filter resources where attribute does not cross the given geometry.
-   *
-   * @param {string} attribute
-   * @param {any[]} values
-   * @returns {string}
-   */
-  static notCrosses = (attribute: string, values: any[]): string =>
-    new Query("notCrosses", attribute, [values]).toString();
-
-  /**
-   * Filter resources where attribute overlaps with the given geometry.
-   *
-   * @param {string} attribute
-   * @param {any[]} values
-   * @returns {string}
-   */
-  static overlaps = (attribute: string, values: any[]): string =>
-    new Query("overlaps", attribute, [values]).toString();
-
-  /**
-   * Filter resources where attribute does not overlap with the given geometry.
-   *
-   * @param {string} attribute
-   * @param {any[]} values
-   * @returns {string}
-   */
-  static notOverlaps = (attribute: string, values: any[]): string =>
-    new Query("notOverlaps", attribute, [values]).toString();
-
-  /**
-   * Filter resources where attribute touches the given geometry.
-   *
-   * @param {string} attribute
-   * @param {any[]} values
-   * @returns {string}
-   */
-  static touches = (attribute: string, values: any[]): string =>
-    new Query("touches", attribute, [values]).toString();
-
-  /**
-   * Filter resources where attribute does not touch the given geometry.
-   *
-   * @param {string} attribute
-   * @param {any[]} values
-   * @returns {string}
-   */
-  static notTouches = (attribute: string, values: any[]): string =>
-    new Query("notTouches", attribute, [values]).toString();
+export function equal<K extends string>(attribute: K, value: QueryValue): Query & { attribute: K } {
+    return { method: 'equal', attribute, values: [value] };
 }
+
+export function notEqual<K extends string>(attribute: K, value: QueryValue): Query & { attribute: K } {
+    return { method: 'notEqual', attribute, values: [value] };
+}
+
+export function lessThan<K extends string>(attribute: K, value: QueryValue): Query & { attribute: K } {
+    return { method: 'lessThan', attribute, values: [value] };
+}
+
+export function lessThanEqual<K extends string>(attribute: K, value: QueryValue): Query & { attribute: K } {
+    return { method: 'lessThanEqual', attribute, values: [value] };
+}
+
+export function greaterThan<K extends string>(attribute: K, value: QueryValue): Query & { attribute: K } {
+    return { method: 'greaterThan', attribute, values: [value] };
+}
+
+export function greaterThanEqual<K extends string>(attribute: K, value: QueryValue): Query & { attribute: K } {
+    return { method: 'greaterThanEqual', attribute, values: [value] };
+}
+
+export function isNull<K extends string>(attribute: K): Query & { attribute: K } {
+    return { method: 'isNull', attribute };
+}
+
+export function isNotNull<K extends string>(attribute: K): Query & { attribute: K } {
+    return { method: 'isNotNull', attribute };
+}
+
+export function between<K extends string>(attribute: K, start: QueryValue, end: QueryValue): Query & { attribute: K } {
+    return { method: 'between', attribute, values: [start, end] };
+}
+
+export function startsWith<K extends string>(attribute: K, value: string): Query & { attribute: K } {
+    return { method: 'startsWith', attribute, values: [value] };
+}
+
+export function endsWith<K extends string>(attribute: K, value: string): Query & { attribute: K } {
+    return { method: 'endsWith', attribute, values: [value] };
+}
+
+export function select(attributes: string[]): Query {
+    return { method: 'select', values: attributes };
+}
+
+export function search<K extends string>(attribute: K, value: string): Query & { attribute: K } {
+    return { method: 'search', attribute, values: [value] };
+}
+
+export function orderDesc<K extends string>(attribute: K): Query & { attribute: K } {
+    return { method: 'orderDesc', attribute };
+}
+
+export function orderAsc<K extends string>(attribute: K): Query & { attribute: K } {
+    return { method: 'orderAsc', attribute };
+}
+
+export function orderRandom(): Query {
+    return { method: 'orderRandom' };
+}
+
+export function cursorAfter(documentId: string): Query {
+    return { method: 'cursorAfter', values: [documentId] };
+}
+
+export function cursorBefore(documentId: string): Query {
+    return { method: 'cursorBefore', values: [documentId] };
+}
+
+export function limit(limit: number): Query {
+    return { method: 'limit', values: [limit] };
+}
+
+export function offset(offset: number): Query {
+    return { method: 'offset', values: [offset] };
+}
+
+export function contains<K extends string>(attribute: K, value: string | string[]): Query & { attribute: K } {
+    return { method: 'contains', attribute, values: Array.isArray(value) ? value : [value] };
+}
+
+export function notContains<K extends string>(attribute: K, value: string | string[]): Query & { attribute: K } {
+    return { method: 'notContains', attribute, values: Array.isArray(value) ? value : [value] };
+}
+
+export function notSearch<K extends string>(attribute: K, value: string): Query & { attribute: K } {
+    return { method: 'notSearch', attribute, values: [value] };
+}
+
+export function notBetween<K extends string>(attribute: K, start: QueryValue, end: QueryValue): Query & { attribute: K } {
+    return { method: 'notBetween', attribute, values: [start, end] };
+}
+
+export function notStartsWith<K extends string>(attribute: K, value: string): Query & { attribute: K } {
+    return { method: 'notStartsWith', attribute, values: [value] };
+}
+
+export function notEndsWith<K extends string>(attribute: K, value: string): Query & { attribute: K } {
+    return { method: 'notEndsWith', attribute, values: [value] };
+}
+
+export function createdBefore(value: string): Query {
+    return lessThan('$createdAt', value);
+}
+
+export function createdAfter(value: string): Query {
+    return greaterThan('$createdAt', value);
+}
+
+export function createdBetween(start: string, end: string): Query {
+    return between('$createdAt', start, end);
+}
+
+export function updatedBefore(value: string): Query {
+    return lessThan('$updatedAt', value);
+}
+
+export function updatedAfter(value: string): Query {
+    return greaterThan('$updatedAt', value);
+}
+
+export function updatedBetween(start: string, end: string): Query {
+    return between('$updatedAt', start, end);
+}
+
+export function or(...queries: Query[]): Query {
+    return { method: 'or', values: queries as unknown as QueryValue[] };
+}
+
+export function and(...queries: Query[]): Query {
+    return { method: 'and', values: queries as unknown as QueryValue[] };
+}
+
+export function distanceEqual(attribute: string, values: any[], distance: number, meters: boolean = true): Query {
+    return { method: 'distanceEqual', attribute, values: [[values, distance, meters]] as unknown as QueryValue[] };
+}
+
+export function distanceNotEqual(attribute: string, values: any[], distance: number, meters: boolean = true): Query {
+    return { method: 'distanceNotEqual', attribute, values: [[values, distance, meters]] as unknown as QueryValue[] };
+}
+
+export function distanceGreaterThan(attribute: string, values: any[], distance: number, meters: boolean = true): Query {
+    return { method: 'distanceGreaterThan', attribute, values: [[values, distance, meters]] as unknown as QueryValue[] };
+}
+
+export function distanceLessThan(attribute: string, values: any[], distance: number, meters: boolean = true): Query {
+    return { method: 'distanceLessThan', attribute, values: [[values, distance, meters]] as unknown as QueryValue[] };
+}
+
+export function intersects(attribute: string, values: any[]): Query {
+    return { method: 'intersects', attribute, values: [values] as unknown as QueryValue[] };
+}
+
+export function notIntersects(attribute: string, values: any[]): Query {
+    return { method: 'notIntersects', attribute, values: [values] as unknown as QueryValue[] };
+}
+
+export function crosses(attribute: string, values: any[]): Query {
+    return { method: 'crosses', attribute, values: [values] as unknown as QueryValue[] };
+}
+
+export function notCrosses(attribute: string, values: any[]): Query {
+    return { method: 'notCrosses', attribute, values: [values] as unknown as QueryValue[] };
+}
+
+export function overlaps(attribute: string, values: any[]): Query {
+    return { method: 'overlaps', attribute, values: [values] as unknown as QueryValue[] };
+}
+
+export function notOverlaps(attribute: string, values: any[]): Query {
+    return { method: 'notOverlaps', attribute, values: [values] as unknown as QueryValue[] };
+}
+
+export function touches(attribute: string, values: any[]): Query {
+    return { method: 'touches', attribute, values: [values] as unknown as QueryValue[] };
+}
+
+export function notTouches(attribute: string, values: any[]): Query {
+    return { method: 'notTouches', attribute, values: [values] as unknown as QueryValue[] };
+}
+
+function queryToString(query: Query): string {
+    return JSON.stringify(query);
+}
+
+export function serializeQueries(queries: Query[] | undefined): string[] | undefined {
+    if (!queries) return undefined;
+    return queries.map(queryToString);
+}
+
+export const ops = {
+    equal,
+    notEqual,
+    lessThan,
+    lessThanEqual,
+    greaterThan,
+    greaterThanEqual,
+    isNull,
+    isNotNull,
+    between,
+    startsWith,
+    endsWith,
+    select,
+    search,
+    orderDesc,
+    orderAsc,
+    orderRandom,
+    cursorAfter,
+    cursorBefore,
+    limit,
+    offset,
+    contains,
+    notContains,
+    notSearch,
+    notBetween,
+    notStartsWith,
+    notEndsWith,
+    createdBefore,
+    createdAfter,
+    createdBetween,
+    updatedBefore,
+    updatedAfter,
+    updatedBetween,
+    or,
+    and,
+    distanceEqual,
+    distanceNotEqual,
+    distanceGreaterThan,
+    distanceLessThan,
+    intersects,
+    notIntersects,
+    crosses,
+    notCrosses,
+    overlaps,
+    notOverlaps,
+    touches,
+    notTouches,
+};
+
+type ExtractModel<T> = T extends { [key: string]: any } ? T : never;
+
+type QueryForModel<T> = {
+    equal<K extends keyof T & string>(attribute: K, value: T[K] extends QueryValue ? T[K] : QueryValue): Query & { attribute: K };
+    notEqual<K extends keyof T & string>(attribute: K, value: T[K] extends QueryValue ? T[K] : QueryValue): Query & { attribute: K };
+    lessThan<K extends keyof T & string>(attribute: K, value: T[K] extends QueryValue ? T[K] : QueryValue): Query & { attribute: K };
+    lessThanEqual<K extends keyof T & string>(attribute: K, value: T[K] extends QueryValue ? T[K] : QueryValue): Query & { attribute: K };
+    greaterThan<K extends keyof T & string>(attribute: K, value: T[K] extends QueryValue ? T[K] : QueryValue): Query & { attribute: K };
+    greaterThanEqual<K extends keyof T & string>(attribute: K, value: T[K] extends QueryValue ? T[K] : QueryValue): Query & { attribute: K };
+    isNull<K extends keyof T & string>(attribute: K): Query & { attribute: K };
+    isNotNull<K extends keyof T & string>(attribute: K): Query & { attribute: K };
+    between<K extends keyof T & string>(attribute: K, start: T[K] extends QueryValue ? T[K] : QueryValue, end: T[K] extends QueryValue ? T[K] : QueryValue): Query & { attribute: K };
+    startsWith<K extends keyof T & string>(attribute: K, value: string): Query & { attribute: K };
+    endsWith<K extends keyof T & string>(attribute: K, value: string): Query & { attribute: K };
+    select(attributes: (keyof T & string)[]): Query;
+    search<K extends keyof T & string>(attribute: K, value: string): Query & { attribute: K };
+    orderDesc<K extends keyof T & string>(attribute: K): Query & { attribute: K };
+    orderAsc<K extends keyof T & string>(attribute: K): Query & { attribute: K };
+    orderRandom(): Query;
+    cursorAfter(documentId: string): Query;
+    cursorBefore(documentId: string): Query;
+    limit(limit: number): Query;
+    offset(offset: number): Query;
+    contains<K extends keyof T & string>(attribute: K, value: string | string[]): Query & { attribute: K };
+    notContains<K extends keyof T & string>(attribute: K, value: string | string[]): Query & { attribute: K };
+    notSearch<K extends keyof T & string>(attribute: K, value: string): Query & { attribute: K };
+    notBetween<K extends keyof T & string>(attribute: K, start: T[K] extends QueryValue ? T[K] : QueryValue, end: T[K] extends QueryValue ? T[K] : QueryValue): Query & { attribute: K };
+    notStartsWith<K extends keyof T & string>(attribute: K, value: string): Query & { attribute: K };
+    notEndsWith<K extends keyof T & string>(attribute: K, value: string): Query & { attribute: K };
+    createdBefore(value: string): Query;
+    createdAfter(value: string): Query;
+    createdBetween(start: string, end: string): Query;
+    updatedBefore(value: string): Query;
+    updatedAfter(value: string): Query;
+    updatedBetween(start: string, end: string): Query;
+    or(...queries: Query[]): Query;
+    and(...queries: Query[]): Query;
+    distanceEqual(attribute: string, values: any[], distance: number, meters?: boolean): Query;
+    distanceNotEqual(attribute: string, values: any[], distance: number, meters?: boolean): Query;
+    distanceGreaterThan(attribute: string, values: any[], distance: number, meters?: boolean): Query;
+    distanceLessThan(attribute: string, values: any[], distance: number, meters?: boolean): Query;
+    intersects(attribute: string, values: any[]): Query;
+    notIntersects(attribute: string, values: any[]): Query;
+    crosses(attribute: string, values: any[]): Query;
+    notCrosses(attribute: string, values: any[]): Query;
+    overlaps(attribute: string, values: any[]): Query;
+    notOverlaps(attribute: string, values: any[]): Query;
+    touches(attribute: string, values: any[]): Query;
+    notTouches(attribute: string, values: any[]): Query;
+};
+
+export type ModelOps<T> = QueryForModel<ExtractModel<T>>;

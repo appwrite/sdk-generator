@@ -204,7 +204,7 @@ class Web extends JS
         return $properties;
     }
 
-    public function getTypeName(array $parameter, array $method = []): string
+    public function getTypeName(array $parameter, array $method = [], array $spec = []): string
     {
         if (isset($parameter['enumName'])) {
             return \ucfirst($parameter['enumName']);
@@ -220,8 +220,34 @@ class Web extends JS
             return $parameter['type'] === self::TYPE_ARRAY ? $modelType . '[]' : $modelType;
         }
         if (isset($parameter['items'])) {
-            // Map definition nested type to parameter nested type
             $parameter['array'] = $parameter['items'];
+        }
+        if (isset($parameter['name']) && $parameter['name'] === 'queries' && $parameter['type'] === self::TYPE_ARRAY) {
+            $modelName = !empty($method['responseModel']) ? ucfirst($method['responseModel']) : 'unknown';
+            // Find the array property name (buckets, documents, files, etc.)
+            $arrayProperty = 'items';
+            if (!empty($spec['definitions'][$method['responseModel']]['properties'])) {
+                $props = $spec['definitions'][$method['responseModel']]['properties'];
+                $propCount = count($props);
+                foreach ($props as $propName => $prop) {
+                    if (($prop['type'] ?? '') === self::TYPE_ARRAY) {
+                        $arrayProperty = $propName;
+                        break;
+                    }
+                    // If there's a total property and only 2 properties, the other one is the array
+                    if ($propName === 'total' && $propCount === 2) {
+                        // Find the other property
+                        $otherProps = array_keys($props);
+                        foreach ($otherProps as $otherProp) {
+                            if ($otherProp !== 'total') {
+                                $arrayProperty = $otherProp;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            return '(q: ModelOps<Models.' . $modelName . '["' . $arrayProperty . '"][number]>) => Query[]';
         }
         switch ($parameter['type']) {
             case self::TYPE_INTEGER:
@@ -439,8 +465,8 @@ class Web extends JS
     public function getFilters(): array
     {
         return \array_merge(parent::getFilters(), [
-            new TwigFilter('getPropertyType', function ($value, $method = []) {
-                return $this->getTypeName($value, $method);
+            new TwigFilter('getPropertyType', function ($value, $method = [], $spec = []) {
+                return $this->getTypeName($value, $method, $spec);
             }),
             new TwigFilter('getReadOnlyProperties', function ($value, $responseModel, $spec = []) {
                 return $this->getReadOnlyProperties($value, $responseModel, $spec);
