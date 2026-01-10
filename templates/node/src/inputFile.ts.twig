@@ -2,8 +2,6 @@ import { File } from "node-fetch-native-with-agent";
 import { basename } from "path";
 import { realpathSync } from "fs";
 import { promises as fs } from "fs";
-import type { BinaryLike } from "crypto";
-
 type BlobLike = {
   size: number;
   slice: (start: number, end: number) => BlobLike;
@@ -24,12 +22,31 @@ export class InputFile {
     this.filename = filename;
   }
 
-  static fromBuffer(parts: BlobLike | BinaryLike, name: string): InputFile {
+  static fromBuffer(parts: BlobLike | Buffer | Uint8Array | ArrayBuffer | string, name: string): InputFile {
     if (parts && typeof (parts as BlobLike).arrayBuffer === 'function') {
       return new InputFile({ type: 'blob', data: parts as BlobLike }, name);
     }
 
-    return new InputFile({ type: 'buffer', data: Buffer.from(parts as BinaryLike) }, name);
+    if (Buffer.isBuffer(parts)) {
+      return new InputFile({ type: 'buffer', data: parts }, name);
+    }
+
+    if (typeof parts === 'string') {
+      return new InputFile({ type: 'buffer', data: Buffer.from(parts) }, name);
+    }
+
+    if (parts instanceof ArrayBuffer) {
+      return new InputFile({ type: 'buffer', data: Buffer.from(parts) }, name);
+    }
+
+    if (ArrayBuffer.isView(parts)) {
+      return new InputFile({
+        type: 'buffer',
+        data: Buffer.from(parts.buffer, parts.byteOffset, parts.byteLength),
+      }, name);
+    }
+
+    throw new Error('Unsupported input type for InputFile.fromBuffer');
   }
 
   static fromPath(path: string, name?: string): InputFile {
