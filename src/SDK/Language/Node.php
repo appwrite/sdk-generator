@@ -187,6 +187,36 @@ class Node extends Web
     }
 
     /**
+     * Check if service has any file parameters
+     *
+     * @param array $service
+     * @return bool
+     */
+    public function hasFileParam(array $service): bool
+    {
+        foreach ($service['methods'] as $method) {
+            foreach ($method['parameters']['all'] as $parameter) {
+                if ($parameter['type'] === self::TYPE_FILE) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * @return array
+     */
+    public function getFilters(): array
+    {
+        return \array_merge(parent::getFilters(), [
+            new \Twig\TwigFilter('hasFileParam', function ($service) {
+                return $this->hasFileParam($service);
+            }),
+        ]);
+    }
+
+    /**
      * @return array
      */
     public function getFiles(): array

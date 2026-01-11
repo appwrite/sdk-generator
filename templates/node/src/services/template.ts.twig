@@ -1,16 +1,7 @@
 import { {{ spec.title | caseUcfirst}}Exception, Client, type Payload, UploadProgress } from '../client';
 import type { Models } from '../models';
 
-{% set hasFileParam = false %}
-{% for method in service.methods %}
-{% for parameter in method.parameters.all %}
-{% if parameter.type == 'file' %}
-{% set hasFileParam = true %}
-{% endif %}
-{% endfor %}
-{% endfor %}
-
-{% if hasFileParam %}
+{% if service | hasFileParam %}
 import { InputFile } from '../inputFile';
 {% endif %}
 
