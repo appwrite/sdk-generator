@@ -1,7 +1,7 @@
 import chalk from "chalk";
 import { getDatabasesService } from "../../services.js";
 import { KeysAttributes } from "../../config.js";
-import { log, success, cliConfig, drawTable } from "../../parser.js";
+import { log, success, error, cliConfig, drawTable } from "../../parser.js";
 import { Pools } from "./pools.js";
 import inquirer from "inquirer";
 
@@ -591,15 +591,19 @@ export class Attributes {
 
     if (changes.length > 0) {
       changedAttributes = changes.map((change) => change.attribute);
-      await Promise.all(
-        changedAttributes.map((changed) =>
-          this.updateAttribute(
-            collection["databaseId"],
-            collection["$id"],
-            changed,
+      try {
+        await Promise.all(
+          changedAttributes.map((changed) =>
+            this.updateAttribute(
+              collection["databaseId"],
+              collection["$id"],
+              changed,
+            ),
           ),
-        ),
-      );
+        );
+      } catch (err) {
+        error(`Error updating attribute for ${collection["$id"]}: ${String(err)}`);
+      }
     }
 
     const deletingAttributes = deleting.map((change) => change.attribute);
