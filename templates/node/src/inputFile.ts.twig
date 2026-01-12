@@ -17,6 +17,8 @@ const isEdgeRuntime = typeof globalThis !== 'undefined' && typeof (globalThis as
 
 // Only import fs modules if not in edge runtime
 // Using dynamic import() for ES modules with Promise.all for efficiency
+// Modules load asynchronously at initialization; undefined checks in methods
+// handle cases where modules haven't loaded or are unavailable
 const fsModulesPromise = !isEdgeRuntime
   ? Promise.all([
       import("path"),
