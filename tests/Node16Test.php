@@ -27,7 +27,10 @@ class Node16Test extends Base
         ...Base::BAR_RESPONSES, // Object params
         ...Base::GENERAL_RESPONSES,
         ...Base::UPLOAD_RESPONSES,
-        ...Base::UPLOAD_RESPONSES, // Object params
+        ...Base::LARGE_FILE_RESPONSES,
+        ...Base::LARGE_FILE_RESPONSES,
+        ...Base::LARGE_FILE_RESPONSES,
+        ...Base::LARGE_FILE_RESPONSES, // Large file uploads
         ...Base::ENUM_RESPONSES,
         ...Base::MODEL_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,

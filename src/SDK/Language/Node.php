@@ -74,7 +74,7 @@ class Node extends Web
                 }
                 return 'any[]';
             case self::TYPE_FILE:
-                return "File";
+                return "File | InputFile";
             case self::TYPE_OBJECT:
                 if (empty($method)) {
                     return $parameter['type'];
@@ -184,6 +184,36 @@ class Node extends Web
                 : $example),
             self::TYPE_STRING => "'{$example}'",
         };
+    }
+
+    /**
+     * Check if service has any file parameters
+     *
+     * @param array $service
+     * @return bool
+     */
+    public function hasFileParam(array $service): bool
+    {
+        foreach ($service['methods'] as $method) {
+            foreach ($method['parameters']['all'] as $parameter) {
+                if ($parameter['type'] === self::TYPE_FILE) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * @return array
+     */
+    public function getFilters(): array
+    {
+        return \array_merge(parent::getFilters(), [
+            new \Twig\TwigFilter('hasFileParam', function ($service) {
+                return $this->hasFileParam($service);
+            }),
+        ]);
     }
 
     /**
