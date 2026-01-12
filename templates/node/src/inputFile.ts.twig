@@ -6,7 +6,7 @@ let realpathSync: ((path: string) => string) | undefined;
 let fs: typeof import('fs').promises | undefined;
 
 // Detect if we're in an edge runtime
-const isEdgeRuntime = typeof globalThis !== 'undefined' && typeof (globalThis as any).EdgeRuntime === 'string';
+const isEdgeRuntime = typeof globalThis !== 'undefined' && typeof (globalThis as any).EdgeRuntime !== 'undefined';
 
 // Only import fs modules if not in edge runtime
 if (!isEdgeRuntime) {
