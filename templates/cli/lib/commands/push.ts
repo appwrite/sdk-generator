@@ -1594,9 +1594,24 @@ const pushResources = async ({
     checkDeployConditions(localConfig);
 
     const pushInstance = await createPushInstance();
-    const config = localConfig.getProject() as ConfigType;
+    const project = localConfig.getProject();
+    const config: ConfigType = {
+      projectId: project.projectId ?? "",
+      projectName: project.projectName,
+      settings: project.projectSettings,
+      functions: localConfig.getFunctions(),
+      sites: localConfig.getSites(),
+      collections: localConfig.getCollections(),
+      databases: localConfig.getDatabases(),
+      tables: localConfig.getTables(),
+      tablesDB: localConfig.getTablesDBs(),
+      buckets: localConfig.getBuckets(),
+      teams: localConfig.getTeams(),
+      topics: localConfig.getMessagingTopics(),
+    };
 
     await pushInstance.pushResources(config, {
+      all: cliConfig.all,
       skipDeprecated,
       functionOptions: { code: true, withVariables: false },
       siteOptions: { code: true, withVariables: false },
