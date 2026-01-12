@@ -1,0 +1,26 @@
+{% macro sub_schema(property) %}{% if property.sub_schema %}{% if property.type == 'array' %}List<{{property.sub_schema | caseUcfirst | overrideIdentifier}}>{% else %}{{property.sub_schema | caseUcfirst | overrideIdentifier }}{% endif %}{% else %}{% if property.type == 'object' and property.additionalProperties %}Map<String, dynamic>{% else %}{{property | typeName}}{% endif %}{% endif %}{% endmacro %}
+part of '../../models.dart';
+
+/// {{ requestModel.description }}
+class {{ requestModel.name | caseUcfirst | overrideIdentifier }} implements Model {
+{% for property in requestModel.properties %}
+    /// {{ property.description }}
+    final {% if not property.required %}{{_self.sub_schema(property)}}? {{ property.name | escapeKeyword }}{% else %}{{_self.sub_schema(property)}} {{ property.name | escapeKeyword }}{% endif %};
+
+{% endfor %}
+    {{ requestModel.name | caseUcfirst | overrideIdentifier}}({% if requestModel.properties | length %}{{ '{' }}{% endif %}
+
+{% for property in requestModel.properties %}
+        {% if property.required %}required {% endif %}this.{{ property.name | escapeKeyword }},
+{% endfor %}
+    {% if requestModel.properties | length %}{{ '}' }}{% endif %});
+
+    @override
+    Map<String, dynamic> toMap() {
+        return {
+{% for property in requestModel.properties %}
+            "{{ property.name | escapeDollarSign }}": {% if property.sub_schema %}{% if property.type == 'array' %}{{property.name | escapeKeyword}}{% if not property.required %}?{% endif %}.map((p) => p.toMap()).toList(){% else %}{{property.name | escapeKeyword}}{% if not property.required %}?{% endif %}.toMap(){% endif %}{% elseif property.enum %}{{property.name | escapeKeyword}}{% if not property.required %}?{% endif %}.value{% else %}{{property.name | escapeKeyword }}{% endif %},
+{% endfor %}
+        };
+    }
+}

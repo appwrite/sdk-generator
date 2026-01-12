@@ -1,5 +1,8 @@
-type QueryTypesSingle = string | number | boolean;
-export type QueryTypesList = string[] | number[] | boolean[] | Query[] | any[];
+import JSONbigModule from 'json-bigint';
+const JSONbig = JSONbigModule({ useNativeBigInt: true });
+
+type QueryTypesSingle = string | number | bigint | boolean;
+export type QueryTypesList = string[] | number[] | bigint[] | boolean[] | Query[] | any[];
 export type QueryTypes = QueryTypesSingle | QueryTypesList;
 type AttributesTypes = string | string[];
 
@@ -41,7 +44,7 @@ export class Query {
    * @returns {string}
    */
   toString(): string {
-    return JSON.stringify({
+    return JSONbig.stringify({
       method: this.method,
       attribute: this.attribute,
       values: this.values,
@@ -130,11 +133,11 @@ export class Query {
    * Filter resources where attribute is between start and end (inclusive).
    *
    * @param {string} attribute
-   * @param {string | number} start
-   * @param {string | number} end
+   * @param {string | number | bigint} start
+   * @param {string | number | bigint} end
    * @returns {string}
    */
-  static between = (attribute: string, start: string | number, end: string | number): string =>
+  static between = (attribute: string, start: string | number | bigint, end: string | number | bigint): string =>
     new Query("between", attribute, [start, end] as QueryTypesList).toString();
 
   /**
@@ -274,11 +277,11 @@ export class Query {
    * Filter resources where attribute is not between start and end (exclusive).
    *
    * @param {string} attribute
-   * @param {string | number} start
-   * @param {string | number} end
+   * @param {string | number | bigint} start
+   * @param {string | number | bigint} end
    * @returns {string}
    */
-  static notBetween = (attribute: string, start: string | number, end: string | number): string =>
+  static notBetween = (attribute: string, start: string | number | bigint, end: string | number | bigint): string =>
     new Query("notBetween", attribute, [start, end] as QueryTypesList).toString();
 
   /**
@@ -364,7 +367,7 @@ export class Query {
    * @returns {string}
    */
   static or = (queries: string[]) =>
-    new Query("or", undefined, queries.map((query) => JSON.parse(query))).toString();
+    new Query("or", undefined, queries.map((query) => JSONbig.parse(query))).toString();
 
   /**
    * Combine multiple queries using logical AND operator.
@@ -373,7 +376,7 @@ export class Query {
    * @returns {string}
    */
   static and = (queries: string[]) =>
-    new Query("and", undefined, queries.map((query) => JSON.parse(query))).toString();
+    new Query("and", undefined, queries.map((query) => JSONbig.parse(query))).toString();
 
   /**
    * Filter resources where attribute is at a specific distance from the given coordinates.

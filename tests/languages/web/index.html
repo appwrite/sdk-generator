@@ -194,6 +194,31 @@
             response = await general.enum(MockType.First);
             console.log(response.result);
 
+            // Request model tests
+            response = await general.createPlayer({ id: 'player1', name: 'John Doe', score: 100 });
+            console.log(response.result);
+
+            response = await general.createPlayers([
+                { id: 'player1', name: 'John Doe', score: 100 },
+                { id: 'player2', name: 'Jane Doe', score: 200 }
+            ]);
+            console.log(response.result);
+
+            // Union types test - returns `mock` type
+            response = await general.getUnion({ type: 'mock' });
+            console.log(response.result);
+            if (!response.result) {
+                throw new Error('Mock model should have "result" property');
+            }
+
+            // Union types test - returns `stub` type
+            response = await general.getUnion({ type: 'stub' });
+            console.log(response.data);
+            console.log(response.type);
+            if (!response.data || !response.type) {
+                throw new Error('Stub model should have "data" and "type" properties');
+            }
+
             try {
                 response = await general.empty();
             } catch (error) {

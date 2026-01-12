@@ -146,6 +146,13 @@ class ReactNative extends Web
         if (!empty($parameter['enumValues'])) {
             return \ucfirst($parameter['name']);
         }
+        if (!empty($parameter['array']['model'])) {
+            return 'Models.' . $this->toPascalCase($parameter['array']['model']) . '[]';
+        }
+        if (!empty($parameter['model'])) {
+            $modelType = 'Models.' . $this->toPascalCase($parameter['model']);
+            return $parameter['type'] === self::TYPE_ARRAY ? $modelType . '[]' : $modelType;
+        }
         if (isset($parameter['items'])) {
             // Map definition nested type to parameter nested type
             $parameter['array'] = $parameter['items'];
@@ -153,7 +160,7 @@ class ReactNative extends Web
         switch ($parameter['type']) {
             case self::TYPE_INTEGER:
             case self::TYPE_NUMBER:
-                return 'number';
+                return 'number | bigint';
             case self::TYPE_ARRAY:
                 if (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type'])) {
                     return $this->getTypeName($parameter['array']) . '[]';
@@ -232,6 +239,12 @@ class ReactNative extends Web
             return 'void | URL';
         } elseif ($method['type'] === 'location') {
             return 'Promise<ArrayBuffer>';
+        }
+
+        // check for union types i.e. multiple response models
+        $unionType = $this->getUnionReturnType($method, $spec);
+        if ($unionType !== null) {
+            return $unionType;
         }
 
         if (array_key_exists('responseModel', $method) && !empty($method['responseModel']) && $method['responseModel'] !== 'any') {

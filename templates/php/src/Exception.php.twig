@@ -1,10 +1,10 @@
 <?php
 
-namespace {{ spec.title | caseUcfirst }};
+namespace {{ spec.namespace | caseNamespace }};
 
 use Exception;
 
-class {{spec.title | caseUcfirst}}Exception extends Exception {
+class {{ spec.namespace | split('\\') | last | caseUcfirst }}Exception extends Exception {
 
   /**
    * @var mixed

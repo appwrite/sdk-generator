@@ -101,6 +101,11 @@ class Flutter extends Dart
                 'template'      => 'dart/lib/src/models/model.dart.twig',
             ],
             [
+                'scope'         => 'requestModel',
+                'destination'   => '/lib/src/models/{{requestModel.name | caseSnake }}.dart',
+                'template'      => 'dart/lib/src/models/request_model.dart.twig',
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => 'lib/src/input_file.dart',
                 'template'      => 'dart/lib/src/input_file.dart.twig',

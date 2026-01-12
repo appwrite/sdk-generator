@@ -251,6 +251,11 @@ class Android extends Kotlin
                 'template'      => '/android/library/src/main/java/io/package/models/Model.kt.twig',
             ],
             [
+                'scope'         => 'requestModel',
+                'destination'   => 'library/src/main/java/{{ sdk.namespace | caseSlash }}/models/{{ requestModel.name | caseUcfirst }}.kt',
+                'template'      => '/android/library/src/main/java/io/package/models/RequestModel.kt.twig',
+            ],
+            [
                 'scope'         => 'enum',
                 'destination'   => 'library/src/main/java/{{ sdk.namespace | caseSlash }}/enums/{{ enum.name | caseUcfirst }}.kt',
                 'template'      => '/android/library/src/main/java/io/package/enums/Enum.kt.twig',

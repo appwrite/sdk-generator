@@ -79,6 +79,16 @@ print(response['result'])
 response = general.enum(MockType.FIRST)
 print(response['result'])
 
+# Request model tests
+response = general.create_player({'id': 'player1', 'name': 'John Doe', 'score': 100})
+print(response['result'])
+
+response = general.create_players([
+    {'id': 'player1', 'name': 'John Doe', 'score': 100},
+    {'id': 'player2', 'name': 'Jane Doe', 'score': 200}
+])
+print(response['result'])
+
 try:
     response = general.error400()
 except AppwriteException as e:

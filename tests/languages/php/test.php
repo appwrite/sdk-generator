@@ -13,8 +13,10 @@ include __DIR__ . '/../../sdks/php/src/Appwrite/Enums/MockType.php';
 include __DIR__ . '/../../sdks/php/src/Appwrite/Services/Foo.php';
 include __DIR__ . '/../../sdks/php/src/Appwrite/Services/Bar.php';
 include __DIR__ . '/../../sdks/php/src/Appwrite/Services/General.php';
+include __DIR__ . '/../../sdks/php/src/Appwrite/Models/Player.php';
 
 use Appwrite\AppwriteException;
+use Appwrite\Models\Player;
 use Appwrite\Client;
 use Appwrite\InputFile;
 use Appwrite\Query;
@@ -90,6 +92,18 @@ $response = $general->upload('string', 123, ['string in array'], InputFile::with
 echo "{$response['result']}\n";
 
 $response = $general->enum(MockType::FIRST());
+echo "{$response['result']}\n";
+
+// Request model tests
+$player = new Player('player1', 'John Doe', 100);
+$response = $general->createPlayer($player);
+echo "{$response['result']}\n";
+
+$players = [
+    new Player('player1', 'John Doe', 100),
+    new Player('player2', 'Jane Doe', 200),
+];
+$response = $general->createPlayers($players);
 echo "{$response['result']}\n";
 
 try {

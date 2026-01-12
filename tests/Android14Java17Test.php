@@ -26,6 +26,7 @@ class Android14Java17Test extends Base
         ...Base::GENERAL_RESPONSES,
         ...Base::UPLOAD_RESPONSES,
         ...Base::ENUM_RESPONSES,
+        ...Base::MODEL_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
         ...Base::REALTIME_RESPONSES,
         // ...Base::COOKIE_RESPONSES,

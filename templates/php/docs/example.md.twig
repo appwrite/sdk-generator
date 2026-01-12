@@ -1,22 +1,22 @@
 <?php
 
-use {{ spec.title | caseUcfirst }}\Client;
+use {{ spec.namespace | caseNamespace }}\Client;
 {% if method.parameters.all | filter((param) => param.type == 'file') | length > 0 %}
-use {{ spec.title | caseUcfirst }}\InputFile;
+use {{ spec.namespace | caseNamespace }}\InputFile;
 {% endif %}
-use {{ spec.title | caseUcfirst }}\Services\{{ service.name | caseUcfirst }};
+use {{ spec.namespace | caseNamespace }}\Services\{{ service.name | caseUcfirst }};
 {% set added = [] %}
 {% for parameter in method.parameters.all %}
 {% if parameter.enumValues is not empty %}
 {% if parameter.enumName not in added %}
-use {{ spec.title | caseUcfirst }}\Enums\{{ parameter.enumName | caseUcfirst }};
+use {{ spec.namespace | caseNamespace }}\Enums\{{ parameter.enumName | caseUcfirst }};
 {% set added = added|merge([parameter.enumName]) %}
 {% endif %}
 {% endif %}
 {% endfor %}
 {% if method.parameters.all | hasPermissionParam %}
-use {{ spec.title | caseUcfirst }}\Permission;
-use {{ spec.title | caseUcfirst }}\Role;
+use {{ spec.namespace | caseNamespace }}\Permission;
+use {{ spec.namespace | caseNamespace }}\Role;
 {% endif %}
 
 $client = (new Client())

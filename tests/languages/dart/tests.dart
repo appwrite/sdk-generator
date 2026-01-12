@@ -88,6 +88,16 @@ void main() async {
   response = await general.xenum(mockType: MockType.first);
   print(response.result);
 
+  // Request model tests
+  response = await general.createPlayer(player: Player(id: 'player1', name: 'John Doe', score: 100));
+  print(response.result);
+
+  response = await general.createPlayers(players: [
+    Player(id: 'player1', name: 'John Doe', score: 100),
+    Player(id: 'player2', name: 'Jane Doe', score: 200)
+  ]);
+  print(response.result);
+
   try {
     await general.error400();
   } on AppwriteException catch (e) {

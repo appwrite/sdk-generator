@@ -148,6 +148,13 @@ class Dart extends Language
         if (!empty($parameter['enumValues'])) {
             return 'enums.' . \ucfirst($parameter['name']);
         }
+        if (!empty($parameter['array']['model'])) {
+            return 'List<models.' . $this->toPascalCase($parameter['array']['model']) . '>';
+        }
+        if (!empty($parameter['model'])) {
+            $modelType = 'models.' . $this->toPascalCase($parameter['model']);
+            return $parameter['type'] === self::TYPE_ARRAY ? 'List<' . $modelType . '>' : $modelType;
+        }
         if (isset($parameter['items'])) {
             // Map definition nested type to parameter nested type
             $parameter['array'] = $parameter['items'];
@@ -423,6 +430,11 @@ class Dart extends Language
                 'scope'         => 'definition',
                 'destination'   => '/lib/src/models/{{definition.name | caseSnake }}.dart',
                 'template'      => 'dart/lib/src/models/model.dart.twig',
+            ],
+            [
+                'scope'         => 'requestModel',
+                'destination'   => '/lib/src/models/{{requestModel.name | caseSnake }}.dart',
+                'template'      => 'dart/lib/src/models/request_model.dart.twig',
             ],
             [
                 'scope'         => 'method',

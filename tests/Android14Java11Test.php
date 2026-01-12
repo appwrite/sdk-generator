@@ -27,6 +27,7 @@ class Android14Java11Test extends Base
         ...Base::LARGE_FILE_RESPONSES,
         ...Base::LARGE_FILE_RESPONSES,
         ...Base::LARGE_FILE_RESPONSES,
+        ...Base::MODEL_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
         ...Base::REALTIME_RESPONSES,
         // ...Base::COOKIE_RESPONSES,

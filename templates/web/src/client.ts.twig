@@ -1,5 +1,7 @@
 import { Models } from './models';
 import { Channel, ActionableChannel, ResolvedChannel } from './channel';
+import JSONbigModule from 'json-bigint';
+const JSONbig = JSONbigModule({ useNativeBigInt: true });
 
 /**
  * Payload type representing a key-value pair with string keys and any values.
@@ -304,13 +306,23 @@ class Client {
     config: {
         endpoint: string;
         endpointRealtime: string;
-        [key: string]: string | undefined;
+{%~ for header in spec.global.headers %}
+        {{ header.key | caseLower }}: string;
+{%~ endfor %}
+{%~ if sdk.platform == 'console' %}
+        selfSigned: boolean;
+        session?: string;
+{%~ endif %}
     } = {
         endpoint: '{{ spec.endpoint }}',
         endpointRealtime: '',
-        {%~ for header in spec.global.headers %}
+{%~ for header in spec.global.headers %}
         {{ header.key | caseLower }}: '',
-        {%~ endfor %}
+{%~ endfor %}
+{%~ if sdk.platform == 'console' %}
+        selfSigned: false,
+        session: undefined,
+{%~ endif %}
     };
     /**
      * Custom headers for API requests.
@@ -369,6 +381,20 @@ class Client {
         return this;
     }
 
+{%~ if sdk.platform == 'console' %}
+    /**
+     * Set self-signed
+     *
+     * @param {boolean} selfSigned
+     *
+     * @returns {this}
+     */
+    setSelfSigned(selfSigned: boolean): this {
+        this.config.selfSigned = selfSigned;
+        return this;
+    }
+
+{%~ endif %}
     {%~ for header in spec.global.headers %}
     /**
      * Set {{header.key | caseUcfirst}}
@@ -423,7 +449,7 @@ class Client {
             }
 
             this.realtime.heartbeat = window?.setInterval(() => {
-                this.realtime.socket?.send(JSON.stringify({
+                this.realtime.socket?.send(JSONbig.stringify({
                     type: 'ping'
                 }));
             }, 20_000);
@@ -437,7 +463,7 @@ class Client {
 
             const channels = new URLSearchParams();
             if (this.config.project) {
-                channels.set('project', this.config.project);
+                channels.set('project', this.config.project as string);
             }
             this.realtime.channels.forEach(channel => {
                 channels.append('channels[]', channel);
@@ -489,19 +515,19 @@ class Client {
         },
         onMessage: (event) => {
             try {
-                const message: RealtimeResponse = JSON.parse(event.data);
+                const message: RealtimeResponse = JSONbig.parse(event.data);
                 this.realtime.lastMessage = message;
                 switch (message.type) {
                     case 'connected':
                         let session = this.config.session;
                         if (!session) {
-                            const cookie = JSON.parse(window.localStorage.getItem('cookieFallback') ?? '{}');
+                            const cookie = JSONbig.parse(window.localStorage.getItem('cookieFallback') ?? '{}');
                             session = cookie?.[`a_session_${this.config.project}`];
                         }
 
                         const messageData = <RealtimeResponseConnected>message.data;
                         if (session && !messageData.user) {
-                            this.realtime.socket?.send(JSON.stringify(<RealtimeRequest>{
+                            this.realtime.socket?.send(JSONbig.stringify(<RealtimeRequest>{
                                 type: 'authentication',
                                 data: {
                                     session
@@ -641,7 +667,7 @@ class Client {
         } else {
             switch (headers['content-type']) {
                 case 'application/json':
-                    options.body = JSON.stringify(params);
+                    options.body = JSONbig.stringify(params);
                     break;
 
                 case 'multipart/form-data':
@@ -743,7 +769,7 @@ class Client {
         }
 
         if (response.headers.get('content-type')?.includes('application/json')) {
-            data = await response.json();
+            data = JSONbig.parse(await response.text());
         } else if (responseType === 'arrayBuffer') {
             data = await response.arrayBuffer();
         } else {
@@ -755,7 +781,7 @@ class Client {
         if (400 <= response.status) {
             let responseText = '';
             if (response.headers.get('content-type')?.includes('application/json') || responseType === 'arrayBuffer') {
-                responseText = JSON.stringify(data);
+                responseText = JSONbig.stringify(data);
             } else {
                 responseText = data?.message;
             }
