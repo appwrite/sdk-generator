@@ -1,195 +1,134 @@
-// The result of building the channel.
-class ResolvedChannel {
-    constructor(private value: string) {}
-    toString() {
-      return this.value;
-    }
+interface Root {}
+interface Database { _db: any }
+interface Collection { _coll: any }
+interface Document { _doc: any }
+interface TablesDB { _tdb: any }
+interface Table { _tbl: any }
+interface Row { _row: any }
+interface Bucket { _bkt: any }
+interface File { _file: any }
+interface Func { _fn: any }
+interface Execution { _exec: any }
+interface Team { _team: any }
+interface Membership { _mem: any }
+interface Resolved { _res: any }
+
+type Actionable = Document | Row | File | Execution | Team | Membership;
+
+function normalize(id: string): string {
+  const trimmed = id.trim();
+  return trimmed === "" ? "*" : trimmed;
+}
+
+export class Channel<T> {
+  declare _type: T;
+
+  private constructor(private readonly segments: string[]) {}
+
+  private next<N>(segment: string, id: string = "*"): Channel<N> {
+    return new Channel<N>([...this.segments, segment, normalize(id)]) as any;
   }
-  
-  // Helper function for normalizing ID
-  function normalize(id: string): string {
-    const trimmed = id.trim();
-    return trimmed === "" ? "*" : trimmed;
+
+  private resolve(action: string): Channel<Resolved> {
+    return new Channel<Resolved>([...this.segments, action]) as any;
   }
-  
-  // State interfaces
-  
-  interface Actionable {
-    create(): ResolvedChannel;
-    update(): ResolvedChannel;
-    delete(): ResolvedChannel;
-    channel(): string;
+
+  toString(): string {
+    return this.segments.join(".");
   }
-  
-  interface IDatabase {
-    collection(id?: string): ICollection;
+
+  // --- DATABASE ROUTE ---
+  // Only available on Channel<Database>
+  collection(this: Channel<Database>, id: string = "*"): Channel<Collection> {
+    return this.next<Collection>("collections", id);
   }
-  
-  interface ICollection {
-    document(id?: string): IDocument;
+
+  // Only available on Channel<Collection>
+  document(this: Channel<Collection>, id: string = "*"): Channel<Document> {
+    return this.next<Document>("documents", id);
   }
-  
-  interface IDocument extends Actionable {}
-  
-  interface ITablesDB {
-    table(id?: string): ITable;
+
+  // --- TABLESDB ROUTE ---
+  table(this: Channel<TablesDB>, id: string = "*"): Channel<Table> {
+    return this.next<Table>("tables", id);
   }
-  
-  interface ITable {
-    row(id?: string): IRow;
+
+  row(this: Channel<Table>, id: string = "*"): Channel<Row> {
+    return this.next<Row>("rows", id);
   }
-  
-  interface IRow extends Actionable {}
-  
-  interface IBucket {
-    file(id?: string): IFile;
+
+  // --- BUCKET ROUTE ---
+  file(this: Channel<Bucket>, id: string = "*"): Channel<File> {
+    return this.next<File>("files", id);
   }
-  
-  interface IFile extends Actionable {}
-  
-  interface IFunction {
-    execution(id?: string): IExecution;
+
+  // --- FUNCTION ROUTE ---
+  execution(this: Channel<Func>, id: string = "*"): Channel<Execution> {
+    return this.next<Execution>("executions", id);
   }
-  
-  interface IExecution extends Actionable {}
-  
-  // Builder implementation
-  
-  class ChannelBuilder
-    implements
-      IDatabase,
-      ICollection,
-      IDocument,
-      ITablesDB,
-      ITable,
-      IRow,
-      IBucket,
-      IFile,
-      IFunction,
-      IExecution,
-      Actionable
-  {
-    constructor(private segments: string[]) {}
-  
-    static start(segments: string[]): ChannelBuilder {
-      return new ChannelBuilder(segments);
-    }
-  
-    channel(): string {
-      return this.segments.join(".");
-    }
-  
-    toString(): string {
-      return this.channel();
-    }
-  
-    private next(segment: string, id: string = "*"): ChannelBuilder {
-      return new ChannelBuilder([
-        ...this.segments,
-        segment,
-        normalize(id),
-      ]);
-    }
-  
-    private resolve(action: string): ResolvedChannel {
-      return new ResolvedChannel(`${this.channel()}.${action}`);
-    }
-  
-    // Database
-  
-    collection(id: string = "*"): ICollection {
-      return this.next("collections", id);
-    }
-  
-    document(id: string = "*"): IDocument {
-      return this.next("documents", id);
-    }
-  
-    // TablesDB
-  
-    table(id: string = "*"): ITable {
-      return this.next("tables", id);
-    }
-  
-    row(id: string = "*"): IRow {
-      return this.next("rows", id);
-    }
-  
-    // Buckets
-  
-    file(id: string = "*"): IFile {
-      return this.next("files", id);
-    }
-  
-    // Functions
-  
-    execution(id: string = "*"): IExecution {
-      return this.next("executions", id);
-    }
-  
-    // Actions
-  
-    create(): ResolvedChannel {
-      return this.resolve("create");
-    }
-  
-    update(): ResolvedChannel {
-      return this.resolve("update");
-    }
-  
-    delete(): ResolvedChannel {
-      return this.resolve("delete");
-    }
+
+  // --- TERMINAL ACTIONS ---
+  // Restricted to the Actionable union
+  create(this: Channel<Actionable>): Channel<Resolved> {
+    return this.resolve("create");
   }
-  
-  // Entry point
-  
-  export class Channel {
-    static database(id: string = "*"): IDatabase {
-      return ChannelBuilder.start(["databases", normalize(id)]);
-    }
-  
-    static tablesdb(id: string = "*"): ITablesDB {
-      return ChannelBuilder.start(["tablesdb", normalize(id)]);
-    }
-  
-    static bucket(id: string = "*"): IBucket {
-      return ChannelBuilder.start(["buckets", normalize(id)]);
-    }
-  
-    static function(id: string = "*"): IFunction {
-      return ChannelBuilder.start(["functions", normalize(id)]);
-    }
-  
-    static team(id: string = "*"): Actionable {
-      return ChannelBuilder.start(["teams", normalize(id)]);
-    }
-  
-    static membership(id: string = "*"): Actionable {
-      return ChannelBuilder.start(["memberships", normalize(id)]);
-    }
-  
-    static account(userId: string = ""): string {
-      return userId.trim()
-        ? `account.${normalize(userId)}`
-        : "account";
-    }
-  
-    // Global events
-  
-    static get documents(): string {
-      return "documents";
-    }
-  
-    static get rows(): string {
-      return "rows";
-    }
-  
-    static get files(): string {
-      return "files";
-    }
-  
-    static get executions(): string {
-      return "executions";
-    }
+
+  update(this: Channel<Actionable>): Channel<Resolved> {
+    return this.resolve("update");
   }
+
+  delete(this: Channel<Actionable>): Channel<Resolved> {
+    return this.resolve("delete");
+  }
+
+  // --- ROOT FACTORIES ---
+  static database(id: string = "*") {
+    return new Channel<Database>(["databases", normalize(id)]);
+  }
+
+  static tablesdb(id: string = "*") {
+    return new Channel<TablesDB>(["tablesdb", normalize(id)]);
+  }
+
+  static bucket(id: string = "*") {
+    return new Channel<Bucket>(["buckets", normalize(id)]);
+  }
+
+  static function(id: string = "*") {
+    return new Channel<Func>(["functions", normalize(id)]);
+  }
+
+  static team(id: string = "*") {
+    return new Channel<Team>(["teams", normalize(id)]);
+  }
+
+  static membership(id: string = "*") {
+    return new Channel<Membership>(["memberships", normalize(id)]);
+  }
+
+  static account(userId: string = ""): string {
+    const id = normalize(userId);
+    return id === "*" ? "account" : `account.${id}`;
+  }
+
+  // Global events
+  static get documents(): string {
+    return "documents";
+  }
+
+  static get rows(): string {
+    return "rows";
+  }
+
+  static get files(): string {
+    return "files";
+  }
+
+  static get executions(): string {
+    return "executions";
+  }
+}
+
+// Export types for backward compatibility with realtime
+export type ActionableChannel = Channel<Document> | Channel<Row> | Channel<File> | Channel<Execution> | Channel<Team> | Channel<Membership>;
+export type ResolvedChannel = Channel<Resolved>;

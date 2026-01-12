@@ -1,5 +1,5 @@
 import { {{ spec.title | caseUcfirst}}Exception, Client } from '../client';
-import { Actionable, ResolvedChannel } from '../channel';
+import { Channel, ActionableChannel, ResolvedChannel } from '../channel';
 
 export type RealtimeSubscription = {
     close: () => Promise<void>;
@@ -242,20 +242,16 @@ export class Realtime {
      * Convert a channel value to a string
      *
      * @private
-     * @param {string | Actionable | ResolvedChannel} channel - Channel value (string or Channel builder instance)
+     * @param {string | Channel<any> | ActionableChannel | ResolvedChannel} channel - Channel value (string or Channel builder instance)
      * @returns {string} Channel string representation
      */
-    private channelToString(channel: string | Actionable | ResolvedChannel): string {
+    private channelToString(channel: string | Channel<any> | ActionableChannel | ResolvedChannel): string {
         if (typeof channel === 'string') {
             return channel;
         }
-        // Check if it's an Actionable instance (has channel() method)
-        if (channel && typeof (channel as Actionable).channel === 'function') {
-            return (channel as Actionable).channel();
-        }
-        // Check if it's a ResolvedChannel (has toString() method)
-        if (channel && typeof (channel as ResolvedChannel).toString === 'function') {
-            return (channel as ResolvedChannel).toString();
+        // All Channel instances have toString() method
+        if (channel && typeof (channel as Channel<any>).toString === 'function') {
+            return (channel as Channel<any>).toString();
         }
         return String(channel);
     }
@@ -263,53 +259,53 @@ export class Realtime {
     /**
      * Subscribe to a single channel
      *
-     * @param {string | Actionable | ResolvedChannel} channel - Channel name to subscribe to (string or Channel builder instance)
+     * @param {string | Channel<any> | ActionableChannel | ResolvedChannel} channel - Channel name to subscribe to (string or Channel builder instance)
      * @param {Function} callback - Callback function to handle events
      * @returns {Promise<RealtimeSubscription>} Subscription object with close method
      */
     public async subscribe(
-        channel: string | Actionable | ResolvedChannel,
+        channel: string | Channel<any> | ActionableChannel | ResolvedChannel,
         callback: (event: RealtimeResponseEvent<any>) => void
     ): Promise<RealtimeSubscription>;
 
     /**
      * Subscribe to multiple channels
      *
-     * @param {(string | Actionable | ResolvedChannel)[]} channels - Array of channel names to subscribe to (strings or Channel builder instances)
+     * @param {(string | Channel<any> | ActionableChannel | ResolvedChannel)[]} channels - Array of channel names to subscribe to (strings or Channel builder instances)
      * @param {Function} callback - Callback function to handle events
      * @returns {Promise<RealtimeSubscription>} Subscription object with close method
      */
     public async subscribe(
-        channels: (string | Actionable | ResolvedChannel)[],
+        channels: (string | Channel<any> | ActionableChannel | ResolvedChannel)[],
         callback: (event: RealtimeResponseEvent<any>) => void
     ): Promise<RealtimeSubscription>;
 
     /**
      * Subscribe to a single channel with typed payload
      *
-     * @param {string | Actionable | ResolvedChannel} channel - Channel name to subscribe to (string or Channel builder instance)
+     * @param {string | Channel<any> | ActionableChannel | ResolvedChannel} channel - Channel name to subscribe to (string or Channel builder instance)
      * @param {Function} callback - Callback function to handle events with typed payload
      * @returns {Promise<RealtimeSubscription>} Subscription object with close method
      */
     public async subscribe<T>(
-        channel: string | Actionable | ResolvedChannel,
+        channel: string | Channel<any> | ActionableChannel | ResolvedChannel,
         callback: (event: RealtimeResponseEvent<T>) => void
     ): Promise<RealtimeSubscription>;
 
     /**
      * Subscribe to multiple channels with typed payload
      *
-     * @param {(string | Actionable | ResolvedChannel)[]} channels - Array of channel names to subscribe to (strings or Channel builder instances)
+     * @param {(string | Channel<any> | ActionableChannel | ResolvedChannel)[]} channels - Array of channel names to subscribe to (strings or Channel builder instances)
      * @param {Function} callback - Callback function to handle events with typed payload
      * @returns {Promise<RealtimeSubscription>} Subscription object with close method
      */
     public async subscribe<T>(
-        channels: (string | Actionable | ResolvedChannel)[],
+        channels: (string | Channel<any> | ActionableChannel | ResolvedChannel)[],
         callback: (event: RealtimeResponseEvent<T>) => void
     ): Promise<RealtimeSubscription>;
 
     public async subscribe<T = any>(
-        channelsOrChannel: string | Actionable | ResolvedChannel | (string | Actionable | ResolvedChannel)[],
+        channelsOrChannel: string | Channel<any> | ActionableChannel | ResolvedChannel | (string | Channel<any> | ActionableChannel | ResolvedChannel)[],
         callback: (event: RealtimeResponseEvent<T>) => void
     ): Promise<RealtimeSubscription> {
         const channelArray = Array.isArray(channelsOrChannel)

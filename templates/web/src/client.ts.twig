@@ -1,5 +1,5 @@
 import { Models } from './models';
-import { Actionable, ResolvedChannel } from './channel';
+import { Channel, ActionableChannel, ResolvedChannel } from './channel';
 
 /**
  * Payload type representing a key-value pair with string keys and any values.
@@ -553,7 +553,7 @@ class Client {
      * @deprecated Use the Realtime service instead.
      * @see Realtime
      *
-     * @param {string|string[]|Actionable|ResolvedChannel|(Actionable|ResolvedChannel)[]} channels
+     * @param {string|string[]|Channel<any>|ActionableChannel|ResolvedChannel|(Channel<any>|ActionableChannel|ResolvedChannel)[]} channels
      * Channel to subscribe - pass a single channel as a string or Channel builder instance, or multiple with an array.
      *
      * Possible channels are:
@@ -582,20 +582,16 @@ class Client {
      * @param {(payload: RealtimeMessage) => void} callback Is called on every realtime update.
      * @returns {() => void} Unsubscribes from events.
      */
-    subscribe<T extends unknown>(channels: string | string[] | Actionable | ResolvedChannel | (Actionable | ResolvedChannel)[], callback: (payload: RealtimeResponseEvent<T>) => void): () => void {
+    subscribe<T extends unknown>(channels: string | string[] | Channel<any> | ActionableChannel | ResolvedChannel | (Channel<any> | ActionableChannel | ResolvedChannel)[], callback: (payload: RealtimeResponseEvent<T>) => void): () => void {
         const channelArray = Array.isArray(channels) ? channels : [channels];
         // Convert Channel instances to strings
         const channelStrings = channelArray.map(ch => {
             if (typeof ch === 'string') {
                 return ch;
             }
-            // Check if it's a ResolvedChannel instance first
-            if (ch && ch instanceof ResolvedChannel) {
-                return (ch as ResolvedChannel).toString();
-            }
-            // Then check if it's an Actionable instance (has channel() method)
-            if (ch && typeof (ch as Actionable).channel === 'function') {
-                return (ch as Actionable).channel();
+            // All Channel instances have toString() method
+            if (ch && typeof (ch as Channel<any>).toString === 'function') {
+                return (ch as Channel<any>).toString();
             }
             // Fallback to generic string conversion
             return String(ch);
