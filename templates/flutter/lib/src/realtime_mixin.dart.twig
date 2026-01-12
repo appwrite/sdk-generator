@@ -169,24 +169,9 @@ mixin RealtimeMixin {
   }
 
   /// Convert channel value to string
+  /// Handles String and Channel instances (which have toString())
   String _channelToString(Object channel) {
-    if (channel is String) {
-      return channel;
-    }
-    // Check if it's an Actionable instance (has channel getter)
-    // Use dynamic to avoid import conflicts with part file types
-    final dynamic ch = channel;
-    try {
-      // Try to access the channel property (Actionable interface)
-      final channelValue = ch.channel;
-      if (channelValue is String) {
-        return channelValue;
-      }
-    } catch (_) {
-      // Not an Actionable, fall through to toString()
-    }
-    // Check if it's a ResolvedChannel or any other type with toString()
-    return channel.toString();
+    return channel is String ? channel : channel.toString();
   }
 
   RealtimeSubscription subscribeTo(List<Object> channels) {

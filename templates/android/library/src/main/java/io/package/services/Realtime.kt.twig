@@ -2,8 +2,7 @@ package {{ sdk.namespace | caseDot }}.services
 
 import {{ sdk.namespace | caseDot }}.Service
 import {{ sdk.namespace | caseDot }}.Client
-import {{ sdk.namespace | caseDot }}.Actionable
-import {{ sdk.namespace | caseDot }}.ResolvedChannel
+import {{ sdk.namespace | caseDot }}.Channel
 import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.title | caseUcfirst }}Exception
 import {{ sdk.namespace | caseDot }}.extensions.forEachAsync
 import {{ sdk.namespace | caseDot }}.extensions.fromJson
@@ -113,30 +112,18 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
 
     /**
      * Convert channel value to string
-     * Checks if it's an Actionable instance (use .channel),
-     * then ResolvedChannel (use .toString()),
-     * otherwise treats as string
+     * All Channel instances have toString() method
      */
     private fun channelToString(channel: Any): String {
         return when {
             channel is String -> channel
-            channel is Actionable -> channel.channel
-            channel is ResolvedChannel -> channel.toString()
+            channel is Channel<*> -> channel.toString()
             else -> channel.toString()
         }
     }
 
     fun subscribe(
-        vararg channels: Actionable,
-        callback: (RealtimeResponseEvent<Any>) -> Unit,
-    ) = subscribe(
-        channels = channels.map { channelToString(it) }.toTypedArray(),
-        Any::class.java,
-        callback
-    )
-
-    fun subscribe(
-        vararg channels: ResolvedChannel,
+        vararg channels: Channel<*>,
         callback: (RealtimeResponseEvent<Any>) -> Unit,
     ) = subscribe(
         channels = channels.map { channelToString(it) }.toTypedArray(),
@@ -154,19 +141,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
     )
 
     fun <T> subscribe(
-        vararg channels: Actionable,
-        payloadType: Class<T>,
-        callback: (RealtimeResponseEvent<T>) -> Unit,
-    ): RealtimeSubscription {
-        return subscribe(
-            channels = channels.map { channelToString(it) }.toTypedArray(),
-            payloadType = payloadType,
-            callback = callback
-        )
-    }
-
-    fun <T> subscribe(
-        vararg channels: ResolvedChannel,
+        vararg channels: Channel<*>,
         payloadType: Class<T>,
         callback: (RealtimeResponseEvent<T>) -> Unit,
     ): RealtimeSubscription {

@@ -1,13 +1,23 @@
 package {{ sdk.namespace | caseDot }}
 
-/**
- * The result of building the channel.
- */
-class ResolvedChannel(private val value: String) {
-    override fun toString(): String {
-        return value
-    }
-}
+// Marker interfaces for type safety
+interface Root
+interface Database
+interface Collection
+interface Document
+interface TablesDB
+interface Table
+interface Row
+interface Bucket
+interface File
+interface Func
+interface Execution
+interface Team
+interface Membership
+interface Resolved
+
+// Union type for actionable channels
+typealias Actionable = Document
 
 /**
  * Helper for normalizing IDs
@@ -18,116 +28,50 @@ private fun normalize(id: String): String {
 }
 
 /**
- * Interface for actionable channels
+ * Channel class with generic type parameter for type-safe method chaining
  */
-interface Actionable {
-    val channel: String
-    fun create(): ResolvedChannel
-    fun update(): ResolvedChannel
-    fun delete(): ResolvedChannel
-}
-
-interface Database {
-    fun collection(id: String = "*"): Collection
-}
-
-interface Collection {
-    fun document(id: String = "*"): Document
-}
-
-interface Document : Actionable
-
-interface TablesDB {
-    fun table(id: String = "*"): Table
-}
-
-interface Table {
-    fun row(id: String = "*"): Row
-}
-
-interface Row : Actionable
-
-interface Bucket {
-    fun file(id: String = "*"): File
-}
-
-interface File : Actionable
-
-interface Function {
-    fun execution(id: String = "*"): Execution
-}
-
-interface Execution : Actionable
-
-private class ChannelBuilder(
+class Channel<out T> private constructor(
     private val segments: List<String>
-) : Database, Collection, Document,
-    TablesDB, Table, Row,
-    Bucket, File,
-    Function, Execution, Actionable {
-
-    companion object {
-        fun start(segments: List<String>) = ChannelBuilder(segments)
+) {
+    /**
+     * Internal helper to transition to next state with segment and ID
+     * Public for extension function access
+     */
+    fun <N> next(segment: String, id: String = "*"): Channel<N> {
+        return Channel(segments + listOf(segment, normalize(id)))
     }
 
-    private fun next(segment: String, id: String): ChannelBuilder {
-        return ChannelBuilder(segments + listOf(segment, normalize(id)))
+    /**
+     * Internal helper for terminal actions (no ID segment)
+     * Public for extension function access
+     */
+    fun resolve(action: String): Channel<Resolved> {
+        return Channel(segments + listOf(action))
     }
 
-    override fun collection(id: String): Collection =
-        next("collections", id)
-
-    override fun document(id: String): Document =
-        next("documents", id)
-
-    override fun table(id: String): Table =
-        next("tables", id)
-
-    override fun row(id: String): Row =
-        next("rows", id)
-
-    override fun file(id: String): File =
-        next("files", id)
-
-    override fun execution(id: String): Execution =
-        next("executions", id)
-
-    override val channel: String
-        get() = segments.joinToString(".")
-
-    override fun create(): ResolvedChannel =
-        ResolvedChannel("$channel.create")
-
-    override fun update(): ResolvedChannel =
-        ResolvedChannel("$channel.update")
-
-    override fun delete(): ResolvedChannel =
-        ResolvedChannel("$channel.delete")
-
-    override fun toString(): String = channel
-}
-
-class Channel private constructor() {
+    /**
+     * Convert channel to string representation
+     */
+    override fun toString(): String = segments.joinToString(".")
 
     companion object {
+        fun database(id: String = "*"): Channel<Database> =
+            Channel(listOf("databases", normalize(id)))
 
-        fun database(id: String = "*"): Database =
-            ChannelBuilder.start(listOf("databases", normalize(id)))
+        fun tablesdb(id: String = "*"): Channel<TablesDB> =
+            Channel(listOf("tablesdb", normalize(id)))
 
-        fun tablesdb(id: String = "*"): TablesDB =
-            ChannelBuilder.start(listOf("tablesdb", normalize(id)))
+        fun bucket(id: String = "*"): Channel<Bucket> =
+            Channel(listOf("buckets", normalize(id)))
 
-        fun bucket(id: String = "*"): Bucket =
-            ChannelBuilder.start(listOf("buckets", normalize(id)))
+        fun function(id: String = "*"): Channel<Func> =
+            Channel(listOf("functions", normalize(id)))
 
-        fun function(id: String = "*"): Function =
-            ChannelBuilder.start(listOf("functions", normalize(id)))
+        fun team(id: String = "*"): Channel<Team> =
+            Channel(listOf("teams", normalize(id)))
 
-        fun team(id: String = "*"): Actionable =
-            ChannelBuilder.start(listOf("teams", normalize(id)))
-
-        fun membership(id: String = "*"): Actionable =
-            ChannelBuilder.start(listOf("memberships", normalize(id)))
+        fun membership(id: String = "*"): Channel<Membership> =
+            Channel(listOf("memberships", normalize(id)))
 
         fun account(userId: String = ""): String {
             val id = normalize(userId)
@@ -141,3 +85,159 @@ class Channel private constructor() {
         const val executions = "executions"
     }
 }
+
+// --- DATABASE ROUTE ---
+// Extension functions restricted by receiver type
+
+/**
+ * Only available on Channel<Database>
+ */
+fun Channel<Database>.collection(id: String = "*"): Channel<Collection> =
+    this.next("collections", id)
+
+/**
+ * Only available on Channel<Collection>
+ */
+fun Channel<Collection>.document(id: String = "*"): Channel<Document> =
+    this.next("documents", id)
+
+// --- TABLESDB ROUTE ---
+
+/**
+ * Only available on Channel<TablesDB>
+ */
+fun Channel<TablesDB>.table(id: String = "*"): Channel<Table> =
+    this.next("tables", id)
+
+/**
+ * Only available on Channel<Table>
+ */
+fun Channel<Table>.row(id: String = "*"): Channel<Row> =
+    this.next("rows", id)
+
+// --- BUCKET ROUTE ---
+
+/**
+ * Only available on Channel<Bucket>
+ */
+fun Channel<Bucket>.file(id: String = "*"): Channel<File> =
+    this.next("files", id)
+
+// --- FUNCTION ROUTE ---
+
+/**
+ * Only available on Channel<Func>
+ */
+fun Channel<Func>.execution(id: String = "*"): Channel<Execution> =
+    this.next("executions", id)
+
+// --- TERMINAL ACTIONS ---
+// Restricted to Actionable types (Document, Row, File, Execution, Team, Membership)
+
+/**
+ * Only available on Channel<Document>
+ */
+fun Channel<Document>.create(): Channel<Resolved> =
+    this.resolve("create")
+
+/**
+ * Only available on Channel<Document>
+ */
+fun Channel<Document>.update(): Channel<Resolved> =
+    this.resolve("update")
+
+/**
+ * Only available on Channel<Document>
+ */
+fun Channel<Document>.delete(): Channel<Resolved> =
+    this.resolve("delete")
+
+/**
+ * Only available on Channel<Row>
+ */
+fun Channel<Row>.create(): Channel<Resolved> =
+    this.resolve("create")
+
+/**
+ * Only available on Channel<Row>
+ */
+fun Channel<Row>.update(): Channel<Resolved> =
+    this.resolve("update")
+
+/**
+ * Only available on Channel<Row>
+ */
+fun Channel<Row>.delete(): Channel<Resolved> =
+    this.resolve("delete")
+
+/**
+ * Only available on Channel<File>
+ */
+fun Channel<File>.create(): Channel<Resolved> =
+    this.resolve("create")
+
+/**
+ * Only available on Channel<File>
+ */
+fun Channel<File>.update(): Channel<Resolved> =
+    this.resolve("update")
+
+/**
+ * Only available on Channel<File>
+ */
+fun Channel<File>.delete(): Channel<Resolved> =
+    this.resolve("delete")
+
+/**
+ * Only available on Channel<Execution>
+ */
+fun Channel<Execution>.create(): Channel<Resolved> =
+    this.resolve("create")
+
+/**
+ * Only available on Channel<Execution>
+ */
+fun Channel<Execution>.update(): Channel<Resolved> =
+    this.resolve("update")
+
+/**
+ * Only available on Channel<Execution>
+ */
+fun Channel<Execution>.delete(): Channel<Resolved> =
+    this.resolve("delete")
+
+/**
+ * Only available on Channel<Team>
+ */
+fun Channel<Team>.create(): Channel<Resolved> =
+    this.resolve("create")
+
+/**
+ * Only available on Channel<Team>
+ */
+fun Channel<Team>.update(): Channel<Resolved> =
+    this.resolve("update")
+
+/**
+ * Only available on Channel<Team>
+ */
+fun Channel<Team>.delete(): Channel<Resolved> =
+    this.resolve("delete")
+
+/**
+ * Only available on Channel<Membership>
+ */
+fun Channel<Membership>.create(): Channel<Resolved> =
+    this.resolve("create")
+
+/**
+ * Only available on Channel<Membership>
+ */
+fun Channel<Membership>.update(): Channel<Resolved> =
+    this.resolve("update")
+
+/**
+ * Only available on Channel<Membership>
+ */
+fun Channel<Membership>.delete(): Channel<Resolved> =
+    this.resolve("delete")

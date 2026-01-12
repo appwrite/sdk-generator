@@ -119,6 +119,7 @@ open class Realtime : Service {
 
     /**
      * Convert channel value to string
+     * All Channel instances and String conform to ChannelValue
      */
     private func channelToString(_ channel: ChannelValue) -> String {
         return channel.toString()

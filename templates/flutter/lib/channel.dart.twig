@@ -1,138 +1,154 @@
 part of {{ language.params.packageName }};
 
-// The result of building the channel.
-class ResolvedChannel {
-  final String value;
-  const ResolvedChannel(this.value);
-
-  @override
-  String toString() => value;
-}
+// Marker classes for type safety
+class Root {}
+class Database {}
+class Collection {}
+class Document {}
+class TablesDB {}
+class Table {}
+class Row {}
+class Bucket {}
+class File {}
+class Func {}
+class Execution {}
+class Team {}
+class Membership {}
+class Resolved {}
 
 // Helper function for normalizing ID
-String _normalize(String id) => id.trim().isEmpty ? '*' : id;
+String _normalize(String id) => id.trim().isEmpty ? '*' : id.trim();
 
-// State interfaces
-
-abstract class Actionable {
-  ResolvedChannel create();
-  ResolvedChannel update();
-  ResolvedChannel delete();
-  String get channel;
-}
-
-abstract class IDatabase {
-  ICollection collection([String id = '*']);
-}
-
-abstract class ICollection {
-  IDocument document([String id = '*']);
-}
-
-abstract class IDocument implements Actionable {}
-
-abstract class ITablesDB {
-  ITable table([String id = '*']);
-}
-
-abstract class ITable {
-  IRow row([String id = '*']);
-}
-
-abstract class IRow implements Actionable {}
-
-abstract class IBucket {
-  IFile file([String id = '*']);
-}
-
-abstract class IFile implements Actionable {}
-
-abstract class IFunction {
-  IExecution execution([String id = '*']);
-}
-
-abstract class IExecution implements Actionable {}
-
-// Builder implementation
-
-class _ChannelBuilder implements 
-    IDatabase, ICollection, IDocument, 
-    ITablesDB, ITable, IRow,
-    IBucket, IFile, 
-    IFunction, IExecution, Actionable {
-  
+/// Channel class with generic type parameter for type-safe method chaining
+class Channel<T> {
   final List<String> _segments;
 
-  _ChannelBuilder._(this._segments);
+  Channel._(this._segments);
 
-  _ChannelBuilder _next(String segment, String id) {
-    return _ChannelBuilder._([
-      ..._segments,
-      segment,
-      _normalize(id),
-    ]);
+  /// Internal helper to transition to next state with segment and ID
+  Channel<N> _next<N>(String segment, [String id = '*']) {
+    return Channel<N>._([..._segments, segment, _normalize(id)]);
+  }
+
+  /// Internal helper for terminal actions (no ID segment)
+  Channel<Resolved> _resolve(String action) {
+    return Channel<Resolved>._([..._segments, action]);
   }
 
   @override
-  ICollection collection([String id = '*']) => _next('collections', id);
-  
-  @override
-  IDocument document([String id = '*']) => _next('documents', id);
+  String toString() => _segments.join('.');
 
-  @override
-  ITable table([String id = '*']) => _next('tables', id);
+  // --- ROOT FACTORIES ---
+  static Channel<Database> database([String id = '*']) =>
+      Channel<Database>._(['databases', _normalize(id)]);
 
-  @override
-  IRow row([String id = '*']) => _next('rows', id);
+  static Channel<TablesDB> tablesdb([String id = '*']) =>
+      Channel<TablesDB>._(['tablesdb', _normalize(id)]);
 
-  @override
-  IFile file([String id = '*']) => _next('files', id);
+  static Channel<Bucket> bucket([String id = '*']) =>
+      Channel<Bucket>._(['buckets', _normalize(id)]);
 
-  @override
-  IExecution execution([String id = '*']) => _next('executions', id);
+  static Channel<Func> function([String id = '*']) =>
+      Channel<Func>._(['functions', _normalize(id)]);
 
-  @override
-  ResolvedChannel create() => _resolve('create');
-  @override
-  ResolvedChannel update() => _resolve('update');
-  @override
-  ResolvedChannel delete() => _resolve('delete');
+  static Channel<Team> team([String id = '*']) =>
+      Channel<Team>._(['teams', _normalize(id)]);
 
-  @override
-  String get channel => _segments.join('.');
+  static Channel<Membership> membership([String id = '*']) =>
+      Channel<Membership>._(['memberships', _normalize(id)]);
 
-  @override
-  String toString() => channel;
+  static String account([String userId = '']) {
+    final id = _normalize(userId);
+    return id == '*' ? 'account' : 'account.$id';
+  }
 
-  ResolvedChannel _resolve(String action) => ResolvedChannel('$channel.$action');
-}
-
-// Entry point
-
-abstract class Channel {
-  static IDatabase database([String id = '*']) => 
-      _ChannelBuilder._(['databases', _normalize(id)]);
-      
-  static ITablesDB tablesdb([String id = '*']) => 
-      _ChannelBuilder._(['tablesdb', _normalize(id)]);
-      
-  static IBucket bucket([String id = '*']) => 
-      _ChannelBuilder._(['buckets', _normalize(id)]);
-      
-  static IFunction function([String id = '*']) => 
-      _ChannelBuilder._(['functions', _normalize(id)]);
-  
-  static Actionable team([String id = '*']) => 
-      _ChannelBuilder._(['teams', _normalize(id)]);
-      
-  static Actionable membership([String id = '*']) => 
-      _ChannelBuilder._(['memberships', _normalize(id)]);
-
-  static String account([String userId = '']) => 
-      userId.isEmpty ? 'account' : 'account.${_normalize(userId)}';
-  // Global events (without ID)
+  // Global events
   static String get documents => 'documents';
   static String get rows => 'rows';
   static String get files => 'files';
   static String get executions => 'executions';
+}
+
+// --- DATABASE ROUTE ---
+// Extension methods restricted by receiver type
+
+/// Only available on Channel<Database>
+extension DatabaseChannel on Channel<Database> {
+  Channel<Collection> collection([String id = '*']) => _next<Collection>('collections', id);
+}
+
+/// Only available on Channel<Collection>
+extension CollectionChannel on Channel<Collection> {
+  Channel<Document> document([String id = '*']) => _next<Document>('documents', id);
+}
+
+// --- TABLESDB ROUTE ---
+
+/// Only available on Channel<TablesDB>
+extension TablesDBChannel on Channel<TablesDB> {
+  Channel<Table> table([String id = '*']) => _next<Table>('tables', id);
+}
+
+/// Only available on Channel<Table>
+extension TableChannel on Channel<Table> {
+  Channel<Row> row([String id = '*']) => _next<Row>('rows', id);
+}
+
+// --- BUCKET ROUTE ---
+
+/// Only available on Channel<Bucket>
+extension BucketChannel on Channel<Bucket> {
+  Channel<File> file([String id = '*']) => _next<File>('files', id);
+}
+
+// --- FUNCTION ROUTE ---
+
+/// Only available on Channel<Func>
+extension FuncChannel on Channel<Func> {
+  Channel<Execution> execution([String id = '*']) => _next<Execution>('executions', id);
+}
+
+// --- TERMINAL ACTIONS ---
+// Restricted to actionable types (Document, Row, File, Execution, Team, Membership)
+
+/// Only available on Channel<Document>
+extension DocumentChannel on Channel<Document> {
+  Channel<Resolved> create() => _resolve('create');
+  Channel<Resolved> update() => _resolve('update');
+  Channel<Resolved> delete() => _resolve('delete');
+}
+
+/// Only available on Channel<Row>
+extension RowChannel on Channel<Row> {
+  Channel<Resolved> create() => _resolve('create');
+  Channel<Resolved> update() => _resolve('update');
+  Channel<Resolved> delete() => _resolve('delete');
+}
+
+/// Only available on Channel<File>
+extension FileChannel on Channel<File> {
+  Channel<Resolved> create() => _resolve('create');
+  Channel<Resolved> update() => _resolve('update');
+  Channel<Resolved> delete() => _resolve('delete');
+}
+
+/// Only available on Channel<Execution>
+extension ExecutionChannel on Channel<Execution> {
+  Channel<Resolved> create() => _resolve('create');
+  Channel<Resolved> update() => _resolve('update');
+  Channel<Resolved> delete() => _resolve('delete');
+}
+
+/// Only available on Channel<Team>
+extension TeamChannel on Channel<Team> {
+  Channel<Resolved> create() => _resolve('create');
+  Channel<Resolved> update() => _resolve('update');
+  Channel<Resolved> delete() => _resolve('delete');
+}
+
+/// Only available on Channel<Membership>
+extension MembershipChannel on Channel<Membership> {
+  Channel<Resolved> create() => _resolve('create');
+  Channel<Resolved> update() => _resolve('update');
+  Channel<Resolved> delete() => _resolve('delete');
 }
