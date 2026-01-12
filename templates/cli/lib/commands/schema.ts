@@ -9,7 +9,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { Db } from "./db.js";
 
-const JSONBig = JSONbig({ storeAsString: false });
+const JSONBig = JSONbig({ useNativeBigInt: true });
 
 export class Schema {
   private pullCommand: Pull;

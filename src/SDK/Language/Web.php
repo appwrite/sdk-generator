@@ -226,7 +226,7 @@ class Web extends JS
         switch ($parameter['type']) {
             case self::TYPE_INTEGER:
             case self::TYPE_NUMBER:
-                return 'number';
+                return 'number | bigint';
             case self::TYPE_ARRAY:
                 if (!empty($parameter['array']['x-anyOf'] ?? [])) {
                     $unionTypes = [];

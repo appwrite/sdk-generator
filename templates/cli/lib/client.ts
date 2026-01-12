@@ -19,7 +19,7 @@ import {
   SDK_TITLE,
 } from "./constants.js";
 
-const JSONBigInt = JSONbig({ storeAsString: false });
+const JSONBigInt = JSONbig({ useNativeBigInt: true });
 
 class Client {
   private endpoint: string;

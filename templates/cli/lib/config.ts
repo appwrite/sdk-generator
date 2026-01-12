@@ -24,7 +24,7 @@ import type {
 import { createSettingsObject } from "./utils.js";
 import { SDK_TITLE_LOWER } from "./constants.js";
 
-const JSONBigInt = JSONbig({ storeAsString: false });
+const JSONBigInt = JSONbig({ useNativeBigInt: true });
 
 const KeysVars = new Set(["key", "value"]);
 const KeysSite = new Set([
