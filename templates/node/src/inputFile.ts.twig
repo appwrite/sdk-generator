@@ -3,7 +3,11 @@ import { File } from "node-fetch-native-with-agent";
 // Conditionally import fs modules to support edge runtimes
 let basename: ((path: string) => string) | undefined;
 let realpathSync: ((path: string) => string) | undefined;
-let fs: typeof import('fs').promises | undefined;
+let fs: {
+  stat: (path: string) => Promise<{ size: number }>;
+  open: (path: string, flags: string) => Promise<any>;
+  readFile: (path: string) => Promise<Buffer>;
+} | undefined;
 
 // Detect if we're in an edge runtime
 const isEdgeRuntime = typeof globalThis !== 'undefined' && typeof (globalThis as any).EdgeRuntime !== 'undefined';
@@ -11,9 +15,13 @@ const isEdgeRuntime = typeof globalThis !== 'undefined' && typeof (globalThis as
 // Only import fs modules if not in edge runtime
 if (!isEdgeRuntime) {
   try {
-    basename = require("path").basename;
-    realpathSync = require("fs").realpathSync;
-    fs = require("fs").promises;
+    const [pathModule, fsModule] = await Promise.all([
+      import("path"),
+      import("fs")
+    ]);
+    basename = pathModule.basename;
+    realpathSync = fsModule.realpathSync;
+    fs = fsModule.promises;
   } catch (e) {
     // If imports fail, fs will remain undefined
   }
