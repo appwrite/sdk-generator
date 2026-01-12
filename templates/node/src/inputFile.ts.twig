@@ -5,7 +5,10 @@ let basename: ((path: string) => string) | undefined;
 let realpathSync: ((path: string) => string) | undefined;
 let fs: {
   stat: (path: string) => Promise<{ size: number }>;
-  open: (path: string, flags: string) => Promise<any>;
+  open: (path: string, flags: string) => Promise<{
+    read: (buffer: Buffer, offset: number, length: number, position: number) => Promise<{ bytesRead: number }>;
+    close: () => Promise<void>;
+  }>;
   readFile: (path: string) => Promise<Buffer>;
 } | undefined;
 
@@ -13,19 +16,19 @@ let fs: {
 const isEdgeRuntime = typeof globalThis !== 'undefined' && typeof (globalThis as any).EdgeRuntime !== 'undefined';
 
 // Only import fs modules if not in edge runtime
-if (!isEdgeRuntime) {
-  try {
-    const [pathModule, fsModule] = await Promise.all([
+// Using dynamic import() for ES modules with Promise.all for efficiency
+const fsModulesPromise = !isEdgeRuntime
+  ? Promise.all([
       import("path"),
       import("fs")
-    ]);
-    basename = pathModule.basename;
-    realpathSync = fsModule.realpathSync;
-    fs = fsModule.promises;
-  } catch (e) {
-    // If imports fail, fs will remain undefined
-  }
-}
+    ]).then(([pathModule, fsModule]) => {
+      basename = pathModule.basename;
+      realpathSync = fsModule.realpathSync;
+      fs = fsModule.promises;
+    }).catch(() => {
+      // If imports fail, fs will remain undefined
+    })
+  : Promise.resolve();
 type BlobLike = {
   size: number;
   slice: (start: number, end: number) => BlobLike;
