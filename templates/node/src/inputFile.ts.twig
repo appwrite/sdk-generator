@@ -1,7 +1,36 @@
 import { File } from "node-fetch-native-with-agent";
-import { basename } from "path";
-import { realpathSync } from "fs";
-import { promises as fs } from "fs";
+
+// Conditionally import fs modules to support edge runtimes
+let basename: ((path: string) => string) | undefined;
+let realpathSync: ((path: string) => string) | undefined;
+let fs: {
+  stat: (path: string) => Promise<{ size: number }>;
+  open: (path: string, flags: string) => Promise<{
+    read: (buffer: Buffer, offset: number, length: number, position: number) => Promise<{ bytesRead: number }>;
+    close: () => Promise<void>;
+  }>;
+  readFile: (path: string) => Promise<Buffer>;
+} | undefined;
+
+// Detect if we're in an edge runtime
+const isEdgeRuntime = typeof globalThis !== 'undefined' && typeof (globalThis as any).EdgeRuntime !== 'undefined';
+
+// Only import fs modules if not in edge runtime
+// Using dynamic import() for ES modules with Promise.all for efficiency
+// Modules load asynchronously at initialization; undefined checks in methods
+// handle cases where modules haven't loaded or are unavailable
+const fsModulesPromise = !isEdgeRuntime
+  ? Promise.all([
+      import("path"),
+      import("fs")
+    ]).then(([pathModule, fsModule]) => {
+      basename = pathModule.basename;
+      realpathSync = fsModule.realpathSync;
+      fs = fsModule.promises;
+    }).catch(() => {
+      // If imports fail, fs will remain undefined
+    })
+  : Promise.resolve();
 type BlobLike = {
   size: number;
   slice: (start: number, end: number) => BlobLike;
@@ -50,6 +79,9 @@ export class InputFile {
   }
 
   static fromPath(path: string, name?: string): InputFile {
+    if (!realpathSync || !basename) {
+      throw new Error('InputFile.fromPath is not supported in edge runtimes. Please use InputFile.fromBuffer instead.');
+    }
     const realPath = realpathSync(path);
     return new InputFile({ type: 'path', path: realPath }, name ?? basename(realPath));
   }
@@ -61,6 +93,9 @@ export class InputFile {
   async size(): Promise<number> {
     switch (this.source.type) {
       case 'path':
+        if (!fs) {
+          throw new Error('File system operations are not supported in edge runtimes.');
+        }
         return (await fs.stat(this.source.path)).size;
       case 'buffer':
         return this.source.data.length;
@@ -74,6 +109,9 @@ export class InputFile {
 
     switch (this.source.type) {
       case 'path': {
+        if (!fs) {
+          throw new Error('File system operations are not supported in edge runtimes.');
+        }
         const handle = await fs.open(this.source.path, 'r');
         try {
           const buffer = Buffer.alloc(length);
@@ -100,6 +138,9 @@ export class InputFile {
   private async toBuffer(): Promise<Buffer> {
     switch (this.source.type) {
       case 'path':
+        if (!fs) {
+          throw new Error('File system operations are not supported in edge runtimes.');
+        }
         return await fs.readFile(this.source.path);
       case 'buffer':
         return this.source.data;
