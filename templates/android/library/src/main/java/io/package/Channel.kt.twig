@@ -1,23 +1,23 @@
 package {{ sdk.namespace | caseDot }}
 
 // Marker interfaces for type safety
-interface Root
-interface Database
-interface Collection
-interface Document
-interface TablesDB
-interface Table
-interface Row
-interface Bucket
-interface File
-interface Func
-interface Execution
-interface Team
-interface Membership
-interface Resolved
+internal interface _Root
+internal interface _Database
+internal interface _Collection
+internal interface _Document
+internal interface _TablesDB
+internal interface _Table
+internal interface _Row
+internal interface _Bucket
+internal interface _File
+internal interface _Func
+internal interface _Execution
+internal interface _Team
+internal interface _Membership
+internal interface _Resolved
 
 // Union type for actionable channels
-typealias Actionable = Document
+typealias Actionable = _Document
 
 /**
  * Helper for normalizing IDs
@@ -45,7 +45,7 @@ class Channel<out T> private constructor(
      * Internal helper for terminal actions (no ID segment)
      * Public for extension function access
      */
-    fun resolve(action: String): Channel<Resolved> {
+    fun resolve(action: String): Channel<_Resolved> {
         return Channel(segments + listOf(action))
     }
 
@@ -55,22 +55,22 @@ class Channel<out T> private constructor(
     override fun toString(): String = segments.joinToString(".")
 
     companion object {
-        fun database(id: String = "*"): Channel<Database> =
+        fun database(id: String = "*"): Channel<_Database> =
             Channel(listOf("databases", normalize(id)))
 
-        fun tablesdb(id: String = "*"): Channel<TablesDB> =
+        fun tablesdb(id: String = "*"): Channel<_TablesDB> =
             Channel(listOf("tablesdb", normalize(id)))
 
-        fun bucket(id: String = "*"): Channel<Bucket> =
+        fun bucket(id: String = "*"): Channel<_Bucket> =
             Channel(listOf("buckets", normalize(id)))
 
-        fun function(id: String = "*"): Channel<Func> =
+        fun function(id: String = "*"): Channel<_Func> =
             Channel(listOf("functions", normalize(id)))
 
-        fun team(id: String = "*"): Channel<Team> =
+        fun team(id: String = "*"): Channel<_Team> =
             Channel(listOf("teams", normalize(id)))
 
-        fun membership(id: String = "*"): Channel<Membership> =
+        fun membership(id: String = "*"): Channel<_Membership> =
             Channel(listOf("memberships", normalize(id)))
 
         fun account(userId: String = ""): String {
@@ -90,154 +90,154 @@ class Channel<out T> private constructor(
 // Extension functions restricted by receiver type
 
 /**
- * Only available on Channel<Database>
+ * Only available on Channel<_Database>
  */
-fun Channel<Database>.collection(id: String = "*"): Channel<Collection> =
+fun Channel<_Database>.collection(id: String = "*"): Channel<_Collection> =
     this.next("collections", id)
 
 /**
- * Only available on Channel<Collection>
+ * Only available on Channel<_Collection>
  */
-fun Channel<Collection>.document(id: String = "*"): Channel<Document> =
+fun Channel<_Collection>.document(id: String = "*"): Channel<_Document> =
     this.next("documents", id)
 
 // --- TABLESDB ROUTE ---
 
 /**
- * Only available on Channel<TablesDB>
+ * Only available on Channel<_TablesDB>
  */
-fun Channel<TablesDB>.table(id: String = "*"): Channel<Table> =
+fun Channel<_TablesDB>.table(id: String = "*"): Channel<_Table> =
     this.next("tables", id)
 
 /**
- * Only available on Channel<Table>
+ * Only available on Channel<_Table>
  */
-fun Channel<Table>.row(id: String = "*"): Channel<Row> =
+fun Channel<_Table>.row(id: String = "*"): Channel<_Row> =
     this.next("rows", id)
 
 // --- BUCKET ROUTE ---
 
 /**
- * Only available on Channel<Bucket>
+ * Only available on Channel<_Bucket>
  */
-fun Channel<Bucket>.file(id: String = "*"): Channel<File> =
+fun Channel<_Bucket>.file(id: String = "*"): Channel<_File> =
     this.next("files", id)
 
 // --- FUNCTION ROUTE ---
 
 /**
- * Only available on Channel<Func>
+ * Only available on Channel<_Func>
  */
-fun Channel<Func>.execution(id: String = "*"): Channel<Execution> =
+fun Channel<_Func>.execution(id: String = "*"): Channel<_Execution> =
     this.next("executions", id)
 
 // --- TERMINAL ACTIONS ---
-// Restricted to Actionable types (Document, Row, File, Execution, Team, Membership)
+// Restricted to Actionable types (_Document, _Row, _File, _Execution, _Team, _Membership)
 
 /**
- * Only available on Channel<Document>
+ * Only available on Channel<_Document>
  */
-fun Channel<Document>.create(): Channel<Resolved> =
+fun Channel<_Document>.create(): Channel<_Resolved> =
     this.resolve("create")
 
 /**
- * Only available on Channel<Document>
+ * Only available on Channel<_Document>
  */
-fun Channel<Document>.update(): Channel<Resolved> =
+fun Channel<_Document>.update(): Channel<_Resolved> =
     this.resolve("update")
 
 /**
- * Only available on Channel<Document>
+ * Only available on Channel<_Document>
  */
-fun Channel<Document>.delete(): Channel<Resolved> =
+fun Channel<_Document>.delete(): Channel<_Resolved> =
     this.resolve("delete")
 
 /**
- * Only available on Channel<Row>
+ * Only available on Channel<_Row>
  */
-fun Channel<Row>.create(): Channel<Resolved> =
+fun Channel<_Row>.create(): Channel<_Resolved> =
     this.resolve("create")
 
 /**
- * Only available on Channel<Row>
+ * Only available on Channel<_Row>
  */
-fun Channel<Row>.update(): Channel<Resolved> =
+fun Channel<_Row>.update(): Channel<_Resolved> =
     this.resolve("update")
 
 /**
- * Only available on Channel<Row>
+ * Only available on Channel<_Row>
  */
-fun Channel<Row>.delete(): Channel<Resolved> =
+fun Channel<_Row>.delete(): Channel<_Resolved> =
     this.resolve("delete")
 
 /**
- * Only available on Channel<File>
+ * Only available on Channel<_File>
  */
-fun Channel<File>.create(): Channel<Resolved> =
+fun Channel<_File>.create(): Channel<_Resolved> =
     this.resolve("create")
 
 /**
- * Only available on Channel<File>
+ * Only available on Channel<_File>
  */
-fun Channel<File>.update(): Channel<Resolved> =
+fun Channel<_File>.update(): Channel<_Resolved> =
     this.resolve("update")
 
 /**
- * Only available on Channel<File>
+ * Only available on Channel<_File>
  */
-fun Channel<File>.delete(): Channel<Resolved> =
+fun Channel<_File>.delete(): Channel<_Resolved> =
     this.resolve("delete")
 
 /**
- * Only available on Channel<Execution>
+ * Only available on Channel<_Execution>
  */
-fun Channel<Execution>.create(): Channel<Resolved> =
+fun Channel<_Execution>.create(): Channel<_Resolved> =
     this.resolve("create")
 
 /**
- * Only available on Channel<Execution>
+ * Only available on Channel<_Execution>
  */
-fun Channel<Execution>.update(): Channel<Resolved> =
+fun Channel<_Execution>.update(): Channel<_Resolved> =
     this.resolve("update")
 
 /**
- * Only available on Channel<Execution>
+ * Only available on Channel<_Execution>
  */
-fun Channel<Execution>.delete(): Channel<Resolved> =
+fun Channel<_Execution>.delete(): Channel<_Resolved> =
     this.resolve("delete")
 
 /**
- * Only available on Channel<Team>
+ * Only available on Channel<_Team>
  */
-fun Channel<Team>.create(): Channel<Resolved> =
+fun Channel<_Team>.create(): Channel<_Resolved> =
     this.resolve("create")
 
 /**
- * Only available on Channel<Team>
+ * Only available on Channel<_Team>
  */
-fun Channel<Team>.update(): Channel<Resolved> =
+fun Channel<_Team>.update(): Channel<_Resolved> =
     this.resolve("update")
 
 /**
- * Only available on Channel<Team>
+ * Only available on Channel<_Team>
  */
-fun Channel<Team>.delete(): Channel<Resolved> =
+fun Channel<_Team>.delete(): Channel<_Resolved> =
     this.resolve("delete")
 
 /**
- * Only available on Channel<Membership>
+ * Only available on Channel<_Membership>
  */
-fun Channel<Membership>.create(): Channel<Resolved> =
+fun Channel<_Membership>.create(): Channel<_Resolved> =
     this.resolve("create")
 
 /**
- * Only available on Channel<Membership>
+ * Only available on Channel<_Membership>
  */
-fun Channel<Membership>.update(): Channel<Resolved> =
+fun Channel<_Membership>.update(): Channel<_Resolved> =
     this.resolve("update")
 
 /**
- * Only available on Channel<Membership>
+ * Only available on Channel<_Membership>
  */
-fun Channel<Membership>.delete(): Channel<Resolved> =
+fun Channel<_Membership>.delete(): Channel<_Resolved> =
     this.resolve("delete")
