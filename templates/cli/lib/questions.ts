@@ -368,6 +368,14 @@ export const questionsPullFunctionsCode: Question[] = [
   },
 ];
 
+export const questionsPushFunctionsCode: Question[] = [
+  {
+    type: "confirm",
+    name: "override",
+    message: "Do you want to create a deployment for your functions?",
+  },
+];
+
 export const questionsPullSites: Question[] = [
   {
     type: "checkbox",
@@ -400,6 +408,14 @@ export const questionsPullSitesCode: Question[] = [
     type: "confirm",
     name: "override",
     message: "Do you want to pull source code of the latest deployment?",
+  },
+];
+
+export const questionsPushSitesCode: Question[] = [
+  {
+    type: "confirm",
+    name: "override",
+    message: "Do you want to create a deployment for your sites?",
   },
 ];
 

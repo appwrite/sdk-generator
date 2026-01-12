@@ -1,4 +1,5 @@
 import fs from "fs";
+import path from "path";
 import { parse as parseDotenv } from "dotenv";
 import chalk from "chalk";
 import inquirer from "inquirer";
@@ -25,7 +26,9 @@ import {
   questionsPushBuckets,
   questionsPushTeams,
   questionsPushFunctions,
+  questionsPushFunctionsCode,
   questionsPushSites,
+  questionsPushSitesCode,
   questionsGetEntrypoint,
   questionsPushCollections,
   questionsPushTables,
@@ -414,15 +417,15 @@ export class Push {
         this.log("Applying auth security settings ...");
         await projectsService.updateAuthDuration({
           projectId,
-          duration: settings.auth.security.duration,
+          duration: Number(settings.auth.security.duration),
         });
         await projectsService.updateAuthLimit({
           projectId,
-          limit: settings.auth.security.limit,
+          limit: Number(settings.auth.security.limit),
         });
         await projectsService.updateAuthSessionsLimit({
           projectId,
-          limit: settings.auth.security.sessionsLimit,
+          limit: Number(settings.auth.security.sessionsLimit),
         });
         await projectsService.updateAuthPasswordDictionary({
           projectId,
@@ -430,7 +433,7 @@ export class Push {
         });
         await projectsService.updateAuthPasswordHistory({
           projectId,
-          limit: settings.auth.security.passwordHistory,
+          limit: Number(settings.auth.security.passwordHistory),
         });
         await projectsService.updatePersonalDataCheck({
           projectId,
@@ -807,6 +810,27 @@ export class Push {
           return;
         }
 
+        if (!func.path) {
+          errors.push(new Error(`Function '${func.name}' has no path configured`));
+          updaterRow.fail({
+            errorMessage: `No path configured for function`,
+          });
+          return;
+        }
+
+        if (
+          !fs.existsSync(func.path) ||
+          fs.readdirSync(func.path).length === 0
+        ) {
+          errors.push(
+            new Error(`Deployment not found or empty at path: ${func.path}`),
+          );
+          updaterRow.fail({
+            errorMessage: `path not found or empty: ${path.relative(process.cwd(), path.resolve(func.path))}`,
+          });
+          return;
+        }
+
         try {
           updaterRow.update({ status: "Pushing" }).replaceSpinner(SPINNER_DOTS);
           const functionsServiceDeploy = await getFunctionsService(
@@ -838,7 +862,7 @@ export class Push {
           switch (e.code) {
             case "ENOENT":
               updaterRow.fail({
-                errorMessage: "Not found in the current directory. Skipping...",
+                errorMessage: `Deployment not found at path: ${path.resolve(func.path)}`,
               });
               break;
             default:
@@ -1145,6 +1169,27 @@ export class Push {
           return;
         }
 
+        if (!site.path) {
+          errors.push(new Error(`Site '${site.name}' has no path configured`));
+          updaterRow.fail({
+            errorMessage: `No path configured for site`,
+          });
+          return;
+        }
+
+        if (
+          !fs.existsSync(site.path) ||
+          fs.readdirSync(site.path).length === 0
+        ) {
+          errors.push(
+            new Error(`Deployment not found or empty at path: ${site.path}`),
+          );
+          updaterRow.fail({
+            errorMessage: `path not found or empty: ${path.relative(process.cwd(), path.resolve(site.path))}`,
+          });
+          return;
+        }
+
         try {
           updaterRow.update({ status: "Pushing" }).replaceSpinner(SPINNER_DOTS);
           const sitesServiceDeploy = await getSitesService(this.projectClient);
@@ -1174,7 +1219,7 @@ export class Push {
           switch (e.code) {
             case "ENOENT":
               updaterRow.fail({
-                errorMessage: "Not found in the current directory. Skipping...",
+                errorMessage: `Deployment not found at path: ${path.resolve(site.path)}`,
               });
               break;
             default:
@@ -1593,14 +1638,30 @@ const pushResources = async ({
   if (cliConfig.all) {
     checkDeployConditions(localConfig);
 
+    const functions = localConfig.getFunctions();
+    let allowFunctionsCodePush: boolean | null =
+      cliConfig.force === true ? true : null;
+    if (functions.length > 0 && allowFunctionsCodePush === null) {
+      const codeAnswer = await inquirer.prompt(questionsPushFunctionsCode);
+      allowFunctionsCodePush = codeAnswer.override;
+    }
+
+    const sites = localConfig.getSites();
+    let allowSitesCodePush: boolean | null =
+      cliConfig.force === true ? true : null;
+    if (sites.length > 0 && allowSitesCodePush === null) {
+      const codeAnswer = await inquirer.prompt(questionsPushSitesCode);
+      allowSitesCodePush = codeAnswer.override;
+    }
+
     const pushInstance = await createPushInstance();
     const project = localConfig.getProject();
     const config: ConfigType = {
       projectId: project.projectId ?? "",
       projectName: project.projectName,
       settings: project.projectSettings,
-      functions: localConfig.getFunctions(),
-      sites: localConfig.getSites(),
+      functions,
+      sites,
       collections: localConfig.getCollections(),
       databases: localConfig.getDatabases(),
       tables: localConfig.getTables(),
@@ -1613,8 +1674,11 @@ const pushResources = async ({
     await pushInstance.pushResources(config, {
       all: cliConfig.all,
       skipDeprecated,
-      functionOptions: { code: true, withVariables: false },
-      siteOptions: { code: true, withVariables: false },
+      functionOptions: {
+        code: allowFunctionsCodePush === true,
+        withVariables: false,
+      },
+      siteOptions: { code: allowSitesCodePush === true, withVariables: false },
     });
   } else {
     const actions: Record<string, (options?: any) => Promise<void>> = {
@@ -1778,12 +1842,20 @@ const pushSite = async ({
     return;
   }
 
+  let allowCodePush: boolean | null = cliConfig.force === true ? true : null;
+  if (code !== false && allowCodePush === null) {
+    const codeAnswer = await inquirer.prompt(questionsPushSitesCode);
+    allowCodePush = codeAnswer.override;
+  }
+
+  const shouldPushCode = code !== false && allowCodePush === true;
+
   log("Pushing sites ...");
 
   const pushInstance = await createPushInstance();
   const result = await pushInstance.pushSites(sites, {
     async: asyncDeploy,
-    code,
+    code: shouldPushCode,
     withVariables,
   });
 
@@ -1898,12 +1970,20 @@ const pushFunction = async ({
     return;
   }
 
+  let allowCodePush: boolean | null = cliConfig.force === true ? true : null;
+  if (code !== false && allowCodePush === null) {
+    const codeAnswer = await inquirer.prompt(questionsPushFunctionsCode);
+    allowCodePush = codeAnswer.override;
+  }
+
+  const shouldPushCode = code !== false && allowCodePush === true;
+
   log("Pushing functions ...");
 
   const pushInstance = await createPushInstance();
   const result = await pushInstance.pushFunctions(functions, {
     async: asyncDeploy,
-    code,
+    code: shouldPushCode,
     withVariables,
   });
 
