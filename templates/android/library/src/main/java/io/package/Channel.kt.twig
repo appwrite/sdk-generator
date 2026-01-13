@@ -137,107 +137,125 @@ fun Channel<_Func>.execution(id: String = "*"): Channel<_Execution> =
 /**
  * Only available on Channel<_Document>
  */
+@JvmName("createDocument")
 fun Channel<_Document>.create(): Channel<_Resolved> =
     this.resolve("create")
 
 /**
  * Only available on Channel<_Document>
  */
+@JvmName("updateDocument")
 fun Channel<_Document>.update(): Channel<_Resolved> =
     this.resolve("update")
 
 /**
  * Only available on Channel<_Document>
  */
+@JvmName("deleteDocument")
 fun Channel<_Document>.delete(): Channel<_Resolved> =
     this.resolve("delete")
 
 /**
  * Only available on Channel<_Row>
  */
+@JvmName("createRow")
 fun Channel<_Row>.create(): Channel<_Resolved> =
     this.resolve("create")
 
 /**
  * Only available on Channel<_Row>
  */
+@JvmName("updateRow")
 fun Channel<_Row>.update(): Channel<_Resolved> =
     this.resolve("update")
 
 /**
  * Only available on Channel<_Row>
  */
+@JvmName("deleteRow")
 fun Channel<_Row>.delete(): Channel<_Resolved> =
     this.resolve("delete")
 
 /**
  * Only available on Channel<_File>
  */
+@JvmName("createFile")
 fun Channel<_File>.create(): Channel<_Resolved> =
     this.resolve("create")
 
 /**
  * Only available on Channel<_File>
  */
+@JvmName("updateFile")
 fun Channel<_File>.update(): Channel<_Resolved> =
     this.resolve("update")
 
 /**
  * Only available on Channel<_File>
  */
+@JvmName("deleteFile")
 fun Channel<_File>.delete(): Channel<_Resolved> =
     this.resolve("delete")
 
 /**
  * Only available on Channel<_Execution>
  */
+@JvmName("createExecution")
 fun Channel<_Execution>.create(): Channel<_Resolved> =
     this.resolve("create")
 
 /**
  * Only available on Channel<_Execution>
  */
+@JvmName("updateExecution")
 fun Channel<_Execution>.update(): Channel<_Resolved> =
     this.resolve("update")
 
 /**
  * Only available on Channel<_Execution>
  */
+@JvmName("deleteExecution")
 fun Channel<_Execution>.delete(): Channel<_Resolved> =
     this.resolve("delete")
 
 /**
  * Only available on Channel<_Team>
  */
+@JvmName("createTeam")
 fun Channel<_Team>.create(): Channel<_Resolved> =
     this.resolve("create")
 
 /**
  * Only available on Channel<_Team>
  */
+@JvmName("updateTeam")
 fun Channel<_Team>.update(): Channel<_Resolved> =
     this.resolve("update")
 
 /**
  * Only available on Channel<_Team>
  */
+@JvmName("deleteTeam")
 fun Channel<_Team>.delete(): Channel<_Resolved> =
     this.resolve("delete")
 
 /**
  * Only available on Channel<_Membership>
  */
+@JvmName("createMembership")
 fun Channel<_Membership>.create(): Channel<_Resolved> =
     this.resolve("create")
 
 /**
  * Only available on Channel<_Membership>
  */
+@JvmName("updateMembership")
 fun Channel<_Membership>.update(): Channel<_Resolved> =
     this.resolve("update")
 
 /**
  * Only available on Channel<_Membership>
  */
+@JvmName("deleteMembership")
 fun Channel<_Membership>.delete(): Channel<_Resolved> =
     this.resolve("delete")
