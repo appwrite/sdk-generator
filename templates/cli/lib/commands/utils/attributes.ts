@@ -602,7 +602,9 @@ export class Attributes {
           ),
         );
       } catch (err) {
-        error(`Error updating attribute for ${collection["$id"]}: ${String(err)}`);
+        error(
+          `Error updating attribute for ${collection["$id"]}: ${String(err)}`,
+        );
       }
     }
 
