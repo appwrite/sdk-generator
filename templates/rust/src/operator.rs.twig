@@ -45,9 +45,26 @@ fn parse_operator(method: &str, values: Vec<Value>) -> String {
 }
 
 fn validate_numeric(value: &Value, param_name: &str) {
+     if !value.is_number() {
+        panic!("{} must be a number", param_name);
+    }
     if let Some(num) = value.as_f64() {
         if num.is_nan() || num.is_infinite() {
             panic!("{} cannot be NaN or Infinity", param_name);
+        }
+    }
+}
+
+fn validate_nonzero_divisor(value: &Value, param_name: &str) {
+    validate_numeric(value, param_name);
+
+    if let Some(num) = value.as_f64() {
+        if num == 0.0 {
+            panic!("{} cannot be zero", param_name);
+        }
+    } else if let Some(num) = value.as_i64() {
+        if num == 0 {
+            panic!("{} cannot be zero", param_name);
         }
     }
 }
@@ -104,54 +121,21 @@ pub fn multiply_with_max<T: Into<Value>, M: Into<Value>>(factor: T, max: M) -> S
 
 pub fn divide<T: Into<Value>>(divisor: T) -> String {
     let val = divisor.into();
-    validate_numeric(&val, "divisor");
-
-    if let Some(num) = val.as_f64() {
-        if num == 0.0 {
-            panic!("divisor cannot be zero");
-        }
-    } else if let Some(num) = val.as_i64() {
-        if num == 0 {
-            panic!("divisor cannot be zero");
-        }
-    }
-
+    validate_nonzero_divisor(&val, "divisor");
     parse_operator("divide", vec![val])
 }
 
 pub fn divide_with_min<T: Into<Value>, M: Into<Value>>(divisor: T, min: M) -> String {
     let val = divisor.into();
     let min_val = min.into();
-    validate_numeric(&val, "divisor");
+    validate_nonzero_divisor(&val, "divisor");
     validate_numeric(&min_val, "min");
-
-    if let Some(num) = val.as_f64() {
-        if num == 0.0 {
-            panic!("divisor cannot be zero");
-        }
-    } else if let Some(num) = val.as_i64() {
-        if num == 0 {
-            panic!("divisor cannot be zero");
-        }
-    }
-
     parse_operator("divide", vec![val, min_val])
 }
 
 pub fn modulo<T: Into<Value>>(divisor: T) -> String {
     let val = divisor.into();
-    validate_numeric(&val, "divisor");
-
-    if let Some(num) = val.as_f64() {
-        if num == 0.0 {
-            panic!("divisor cannot be zero");
-        }
-    } else if let Some(num) = val.as_i64() {
-        if num == 0 {
-            panic!("divisor cannot be zero");
-        }
-    }
-
+    validate_nonzero_divisor(&val, "divisor");
     parse_operator("modulo", vec![val])
 }
 

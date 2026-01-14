@@ -457,11 +457,8 @@ class Rust extends Language
                     $output .= "serde_json::json!({})";
                     break;
                 case self::TYPE_ARRAY:
-                    if (\str_starts_with($example, "[")) {
-                        $example = \substr($example, 1);
-                    }
-                    if (\str_ends_with($example, "]")) {
-                        $example = \substr($example, 0, -1);
+                    if (preg_match('/^\[(.*)]$/s', $example, $match)) {
+                        $example = $match[1];
                     }
                     $output .= "vec![" . $example . "]";
                     break;

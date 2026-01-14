@@ -12,27 +12,27 @@ impl Permission {
         Self { permission }
     }
 
-    /// Read permission for any user
+    /// Read permission for the specified role
     pub fn read(role: impl std::fmt::Display) -> Self {
         Self::new(format!("read(\"{}\")", role))
     }
 
-    /// Write permission for any user
+    /// Write permission for the specified role
     pub fn write(role: impl std::fmt::Display) -> Self {
         Self::new(format!("write(\"{}\")", role))
     }
 
-    /// Create permission for any user
+    /// Create permission for the specified role
     pub fn create(role: impl std::fmt::Display) -> Self {
         Self::new(format!("create(\"{}\")", role))
     }
 
-    /// Update permission for any user
+    /// Update permission for the specified role
     pub fn update(role: impl std::fmt::Display) -> Self {
         Self::new(format!("update(\"{}\")", role))
     }
 
-    /// Delete permission for any user
+    /// Delete permission for the specified role
     pub fn delete(role: impl std::fmt::Display) -> Self {
         Self::new(format!("delete(\"{}\")", role))
     }

@@ -1,12 +1,15 @@
 //! Query builder for {{ spec.title }} SDK
 
+use serde::Serialize;
 use serde_json::Value;
 
 /// Query builder for filtering and sorting database queries
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Query {
     method: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     attribute: Option<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     values: Vec<Value>,
 }
 
@@ -207,28 +210,28 @@ impl Query {
         Self::new("notTouches".to_string(), Some(attribute.into()), vec![values.into()])
     }
 
-    pub fn or<I, S>(queries: I) -> crate::error::Result<Self>
+    pub fn or<I, S>(queries: I) -> Self
     where
         I: IntoIterator<Item = S>,
         S: AsRef<str>,
     {
         let values: Vec<Value> = queries
             .into_iter()
-            .map(|query| serde_json::from_str(query.as_ref()))
-            .collect::<Result<Vec<_>, _>>()?;
-        Ok(Self::new("or".to_string(), None, values))
+            .filter_map(|query| serde_json::from_str(query.as_ref()).ok())
+            .collect();
+        Self::new("or".to_string(), None, values)
     }
 
-    pub fn and<I, S>(queries: I) -> crate::error::Result<Self>
+    pub fn and<I, S>(queries: I) -> Self
     where
         I: IntoIterator<Item = S>,
         S: AsRef<str>,
     {
         let values: Vec<Value> = queries
             .into_iter()
-            .map(|query| serde_json::from_str(query.as_ref()))
-            .collect::<Result<Vec<_>, _>>()?;
-        Ok(Self::new("and".to_string(), None, values))
+            .filter_map(|query| serde_json::from_str(query.as_ref()).ok())
+            .collect();
+        Self::new("and".to_string(), None, values)
     }
 
     /// Convert query to JSON value (matches Go/Python SDK format)
@@ -250,7 +253,7 @@ impl Query {
 
 impl std::fmt::Display for Query {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let json_str = serde_json::to_string(&self.clone().to_value())
+        let json_str = serde_json::to_string(self)
             .unwrap_or_else(|_| String::new());
         write!(f, "{}", json_str)
     }
@@ -319,7 +322,7 @@ mod tests {
             Query::equal("released", true).to_string(),
             Query::less_than("releasedYear", 1990).to_string(),
         ];
-        let query = Query::or(query_strings).unwrap();
+        let query = Query::or(query_strings);
         let value = query.to_value();
         assert_eq!(value["method"], "or");
         assert!(value["values"].is_array());
@@ -332,7 +335,7 @@ mod tests {
             Query::equal("released", false).to_string(),
             Query::greater_than("releasedYear", 2015).to_string(),
         ];
-        let query = Query::and(query_strings).unwrap();
+        let query = Query::and(query_strings);
         let value = query.to_value();
         assert_eq!(value["method"], "and");
         assert!(value["values"].is_array());
@@ -340,17 +343,28 @@ mod tests {
     }
 
     #[test]
-    fn test_or_invalid_json() {
-        let invalid_queries = vec!["not valid json", "also bad"];
-        let result = Query::or(invalid_queries);
-        assert!(result.is_err());
+    fn test_or_invalid_json_skipped() {
+        let mixed_queries = vec![
+            Query::equal("released", true).to_string(),
+            "not valid json".to_string(),
+            Query::less_than("releasedYear", 1990).to_string(),
+        ];
+        let query = Query::or(mixed_queries);
+        let value = query.to_value();
+        assert_eq!(value["method"], "or");
+        assert_eq!(value["values"].as_array().unwrap().len(), 2);
     }
 
     #[test]
-    fn test_and_invalid_json() {
-        let invalid_queries = vec!["not valid json"];
-        let result = Query::and(invalid_queries);
-        assert!(result.is_err());
+    fn test_and_invalid_json_skipped() {
+        let mixed_queries = vec![
+            "not valid json".to_string(),
+            Query::greater_than("releasedYear", 2015).to_string(),
+        ];
+        let query = Query::and(mixed_queries);
+        let value = query.to_value();
+        assert_eq!(value["method"], "and");
+        assert_eq!(value["values"].as_array().unwrap().len(), 1);
     }
 
     #[test]

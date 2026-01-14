@@ -66,6 +66,7 @@ pub struct Client {
 struct ClientState {
     config: Config,
     http: HttpClient,
+    http_no_redirect: HttpClient,
 }
 
 #[derive(Debug, Clone)]
@@ -105,8 +106,9 @@ impl Client {
         };
 
         let http = Self::build_http_client(&config);
+        let http_no_redirect = Self::build_http_client_no_redirect(&config);
 
-        let state = ClientState { config, http };
+        let state = ClientState { config, http, http_no_redirect };
 
         Self {
             state: Arc::new(ArcSwap::from_pointee(state)),
@@ -121,6 +123,18 @@ impl Client {
         }
 
         builder.build().expect("Failed to create HTTP client")
+    }
+
+    fn build_http_client_no_redirect(config: &Config) -> HttpClient {
+        let mut builder = HttpClient::builder()
+            .redirect(reqwest::redirect::Policy::none())
+            .timeout(Duration::from_secs(config.timeout_secs));
+
+        if config.self_signed {
+            builder = builder.danger_accept_invalid_certs(true);
+        }
+
+        builder.build().expect("Failed to create no-redirect HTTP client")
     }
 
     /// Set the API endpoint
@@ -199,6 +213,7 @@ impl Client {
             if next.config.self_signed != self_signed {
                 next.config.self_signed = self_signed;
                 next.http = Self::build_http_client(&next.config);
+                next.http_no_redirect = Self::build_http_client_no_redirect(&next.config);
             }
             Arc::new(next)
         });
@@ -222,6 +237,7 @@ impl Client {
             if next.config.timeout_secs != timeout_secs {
                 next.config.timeout_secs = timeout_secs;
                 next.http = Self::build_http_client(&next.config);
+                next.http_no_redirect = Self::build_http_client_no_redirect(&next.config);
             }
             Arc::new(next)
         });
@@ -392,14 +408,7 @@ impl Client {
         let state = self.state.load_full();
         let url = format!("{}{}", state.config.endpoint, path);
 
-        let client_with_no_redirect = reqwest::Client::builder()
-            .redirect(reqwest::redirect::Policy::none())
-            .timeout(Duration::from_secs(state.config.timeout_secs))
-            .danger_accept_invalid_certs(state.config.self_signed)
-            .build()
-            ?;
-
-        let mut request_builder = client_with_no_redirect.request(method.clone(), &url);
+        let mut request_builder = state.http_no_redirect.request(method.clone(), &url);
 
         request_builder = request_builder.headers(state.config.headers.clone());
 
@@ -418,7 +427,7 @@ impl Client {
                         query_pairs.append_pair(&key, &value);
                     }
                 }
-                request_builder = client_with_no_redirect.request(method, url_with_params);
+                request_builder = state.http_no_redirect.request(method, url_with_params);
                 request_builder = request_builder.headers(state.config.headers.clone());
                 if let Some(ref custom_headers) = headers {
                     for (key, value) in custom_headers {

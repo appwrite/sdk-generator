@@ -163,7 +163,11 @@ impl InputFile {
     pub fn is_empty(&self) -> bool {
         match &self.source {
             InputFileSource::Bytes { data } => data.is_empty(),
-            InputFileSource::Path { .. } => false,
+            InputFileSource::Path { path } => {
+                std::fs::metadata(path)
+                    .map(|m| m.len() == 0)
+                    .unwrap_or(true)
+            }
         }
     }
 }

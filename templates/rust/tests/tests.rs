@@ -96,8 +96,6 @@ async fn test_general_service(client: &Client, string_in_array: &[String]) -> Re
     }
 
     test_general_upload(client, string_in_array).await?;
-    test_general_upload(client, string_in_array).await?;
-    test_large_upload(client, string_in_array).await?;
     test_large_upload(client, string_in_array).await?;
 
     // Extended General Responses
@@ -258,11 +256,11 @@ fn test_queries() {
     println!("{}", Query::or(vec![
         Query::equal("released", true).to_string(),
         Query::less_than("releasedYear", 1990).to_string(),
-    ]).unwrap());
+    ]));
     println!("{}", Query::and(vec![
         Query::equal("released", false).to_string(),
         Query::greater_than("releasedYear", 2015).to_string(),
-    ]).unwrap());
+    ]));
 }
 
 fn test_permission_helpers() {
