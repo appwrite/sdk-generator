@@ -74,6 +74,7 @@ struct Config {
     headers: HeaderMap,
     self_signed: bool,
     chunk_size: usize,
+    timeout_secs: u64,
 }
 
 impl Default for Client {
@@ -100,6 +101,7 @@ impl Client {
             headers,
             self_signed: false,
             chunk_size: DEFAULT_CHUNK_SIZE,
+            timeout_secs: DEFAULT_TIMEOUT,
         };
 
         let http = Self::build_http_client(&config);
@@ -112,7 +114,7 @@ impl Client {
     }
 
     fn build_http_client(config: &Config) -> HttpClient {
-        let mut builder = HttpClient::builder().timeout(Duration::from_secs(DEFAULT_TIMEOUT));
+        let mut builder = HttpClient::builder().timeout(Duration::from_secs(config.timeout_secs));
 
         if config.self_signed {
             builder = builder.danger_accept_invalid_certs(true);
@@ -208,6 +210,19 @@ impl Client {
         self.state.rcu(|state| {
             let mut next = (**state).clone();
             next.config.chunk_size = chunk_size.max(1);
+            Arc::new(next)
+        });
+        self.clone()
+    }
+
+    /// Set request timeout in seconds
+    pub fn set_timeout(&self, timeout_secs: u64) -> Self {
+        self.state.rcu(|state| {
+            let mut next = (**state).clone();
+            if next.config.timeout_secs != timeout_secs {
+                next.config.timeout_secs = timeout_secs;
+                next.http = Self::build_http_client(&next.config);
+            }
             Arc::new(next)
         });
         self.clone()
@@ -379,7 +394,7 @@ impl Client {
 
         let client_with_no_redirect = reqwest::Client::builder()
             .redirect(reqwest::redirect::Policy::none())
-            .timeout(Duration::from_secs(DEFAULT_TIMEOUT))
+            .timeout(Duration::from_secs(state.config.timeout_secs))
             .danger_accept_invalid_certs(state.config.self_signed)
             .build()
             ?;
