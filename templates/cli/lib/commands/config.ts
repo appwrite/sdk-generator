@@ -256,6 +256,20 @@ const AttributeSchema = AttributeSchemaBase.refine(
     message: "When 'required' is true, 'default' must be null",
     path: ["default"],
   },
+).refine(
+  (data) => {
+    if (
+      data.type === "string" &&
+      (data.size === undefined || data.size === null)
+    ) {
+      return false;
+    }
+    return true;
+  },
+  {
+    message: "When 'type' is 'string', 'size' must be defined",
+    path: ["size"],
+  },
 );
 
 const IndexSchema = z
