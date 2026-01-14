@@ -39,7 +39,6 @@ class Rust extends Language
     {
         return [
             "abstract",
-            "alignof",
             "as",
             "become",
             "box",
@@ -65,16 +64,12 @@ class Rust extends Language
             "mod",
             "move",
             "mut",
-            "offsetof",
             "override",
             "priv",
-            "proc",
             "pub",
-            "pure",
             "ref",
             "return",
             "self",
-            "sizeof",
             "static",
             "struct",
             "super",
@@ -713,7 +708,7 @@ class Rust extends Language
 
         $model = $spec["definitions"][$model];
 
-        if ($model["additionalProperties"]) {
+        if ($model["additionalProperties"] ?? false) {
             return true;
         }
 
