@@ -1993,6 +1993,76 @@
           }
         ]
       }
+    },
+    "\/mock\/tests\/union": {
+      "get": {
+        "summary": "Get Union",
+        "operationId": "unionGet",
+        "consumes": [],
+        "produces": [
+          "application\/json"
+        ],
+        "tags": [
+          "general"
+        ],
+        "description": "Test union response types",
+        "responses": {
+          "200": {
+            "description": "Mock or Stub",
+            "schema": {
+              "x-oneOf": [
+                {
+                  "$ref": "#\/definitions\/mock"
+                },
+                {
+                  "$ref": "#\/definitions\/stub"
+                }
+              ]
+            }
+          }
+        },
+        "x-appwrite": {
+          "method": "getUnion",
+          "weight": 302,
+          "cookies": false,
+          "type": "",
+          "demo": "mock\/get-union.md",
+          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/master",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "platforms": [
+            "client",
+            "server"
+          ],
+          "packaging": false,
+          "offline-model": "",
+          "offline-key": "",
+          "offline-response-key": "$id",
+          "auth": {
+            "Project": []
+          }
+        },
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "type",
+            "description": "Type of model to return (mock or stub)",
+            "required": false,
+            "type": "string",
+            "x-example": "mock",
+            "default": "mock",
+            "in": "query"
+          }
+        ]
+      }
     }
   },
   "tags": [
@@ -2164,6 +2234,27 @@
         "id",
         "name",
         "score"
+      ]
+    },
+    "stub": {
+      "description": "Stub",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "type": "string",
+          "description": "Stub data.",
+          "x-example": "test-data"
+        },
+        "type": {
+          "type": "string",
+          "description": "Stub type.",
+          "x-example": "testing"
+        }
+      },
+      "required": [
+        "data",
+        "type"
       ]
     }
   },

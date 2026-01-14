@@ -130,67 +130,16 @@ class ReactNative extends Web
 
     /**
      * @param array $parameter
-     * @param array $nestedTypes
+     * @param array $method
      * @return string
      */
     public function getTypeName(array $parameter, array $method = []): string
     {
-        if (isset($parameter['enumName'])) {
-            return \ucfirst($parameter['enumName']);
-        }
-        if (!empty($parameter['enumValues'])) {
-            return \ucfirst($parameter['name']);
-        }
-        if (!empty($parameter['array']['model'])) {
-            return 'Models.' . $this->toPascalCase($parameter['array']['model']) . '[]';
-        }
-        if (!empty($parameter['model'])) {
-            $modelType = 'Models.' . $this->toPascalCase($parameter['model']);
-            return $parameter['type'] === self::TYPE_ARRAY ? $modelType . '[]' : $modelType;
-        }
-        if (isset($parameter['items'])) {
-            // Map definition nested type to parameter nested type
-            $parameter['array'] = $parameter['items'];
-        }
-        switch ($parameter['type']) {
-            case self::TYPE_INTEGER:
-            case self::TYPE_NUMBER:
-                return 'number';
-            case self::TYPE_ARRAY:
-                if (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type'])) {
-                    return $this->getTypeName($parameter['array']) . '[]';
-                }
-                return 'any[]';
-            case self::TYPE_FILE:
-                return '{name: string, type: string, size: number, uri: string}';
-            case self::TYPE_OBJECT:
-                if (empty($method)) {
-                    return $parameter['type'];
-                }
-                switch ($method['responseModel']) {
-                    case 'user':
-                        return "Partial<Preferences>";
-                    case 'document':
-                        if ($method['method'] === 'post') {
-                            return "Document extends Models.DefaultDocument ? Partial<Models.Document> & Record<string, any> : Partial<Models.Document> & Omit<Document, keyof Models.Document>";
-                        }
-                        if ($method['method'] === 'patch' || $method['method'] === 'put') {
-                            return "Document extends Models.DefaultDocument ? Partial<Models.Document> & Record<string, any> : Partial<Models.Document> & Partial<Omit<Document, keyof Models.Document>>";
-                        }
-                        break;
-                    case 'row':
-                        if ($method['method'] === 'post') {
-                            return "Row extends Models.DefaultRow ? Partial<Models.Row> & Record<string, any> : Partial<Models.Row> & Omit<Row, keyof Models.Row>";
-                        }
-                        if ($method['method'] === 'patch' || $method['method'] === 'put') {
-                            return "Row extends Models.DefaultRow ? Partial<Models.Row> & Record<string, any> : Partial<Models.Row> & Partial<Omit<Row, keyof Models.Row>>";
-                        }
-                        break;
-                }
-                break;
+        if (($parameter['type'] ?? '') === self::TYPE_FILE) {
+            return '{name: string, type: string, size: number, uri: string}';
         }
 
-        return $parameter['type'];
+        return parent::getTypeName($parameter, $method);
     }
 
     /**
@@ -234,6 +183,12 @@ class ReactNative extends Web
             return 'void | URL';
         } elseif ($method['type'] === 'location') {
             return 'Promise<ArrayBuffer>';
+        }
+
+        // check for union types i.e. multiple response models
+        $unionType = $this->getUnionReturnType($method, $spec);
+        if ($unionType !== null) {
+            return $unionType;
         }
 
         if (array_key_exists('responseModel', $method) && !empty($method['responseModel']) && $method['responseModel'] !== 'any') {

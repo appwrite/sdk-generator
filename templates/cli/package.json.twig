@@ -1,5 +1,6 @@
 {
   "name": "{{ language.params.npmPackage|caseDash }}",
+  "type": "module",
   "homepage": "{{ spec.contactURL }}",
   "description": "{{ sdk.shortDescription }}",
   "version": "{{ sdk.version }}",
@@ -7,7 +8,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "{{ language.params.executableName|caseLower }}": "dist/index.js"
+    "{{ language.params.executableName|caseLower }}": "dist/cli.js"
   },
   "repository": {
     "type": "git",
@@ -15,44 +16,52 @@
   },
   "scripts": {
     "build": "tsc",
+    "format": "prettier --write \"**/*.{js,ts,json,md}\"",
+    "generate": "tsx scripts/generate-commands.ts",
     "prepublishOnly": "npm run build",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "linux-x64": "npm run build && pkg -t node18-linux-x64 -o build/appwrite-cli-linux-x64 package.json",
-    "linux-arm64": "npm run build && pkg -t node18-linux-arm64 -o build/appwrite-cli-linux-arm64 package.json",
-    "mac-x64": "npm run build && pkg -t node18-macos-x64 -o build/appwrite-cli-darwin-x64 package.json",
-    "mac-arm64": "npm run build && pkg -t node18-macos-arm64 -o build/appwrite-cli-darwin-arm64 package.json",
-    "windows-x64": "npm run build && pkg -t node18-win-x64 -o build/appwrite-cli-win-x64.exe package.json",
-    "windows-arm64": "npm run build && pkg -t node18-win-arm64 -o build/appwrite-cli-win-arm64.exe package.json"
+    "linux-x64": "bun run build && bun build ./dist/cli.js --compile --sourcemap=inline --target=bun-linux-x64 --outfile build/appwrite-cli-linux-x64",
+    "linux-arm64": "bun run build && bun build ./dist/cli.js --compile --sourcemap=inline --target=bun-linux-arm64 --outfile build/appwrite-cli-linux-arm64",
+    "mac-x64": "bun run build && bun build ./dist/cli.js --compile --sourcemap=inline --target=bun-darwin-x64 --outfile build/appwrite-cli-darwin-x64",
+    "mac-arm64": "bun run build && bun build ./dist/cli.js --compile --sourcemap=inline --target=bun-darwin-arm64 --outfile build/appwrite-cli-darwin-arm64",
+    "windows-x64": "bun run build && bun build ./dist/cli.js --compile --sourcemap=inline --target=bun-windows-x64 --outfile build/appwrite-cli-win-x64.exe",
+    "windows-arm64": "bun run build && esbuild dist/cli.js --bundle --platform=node --format=cjs --outfile=dist/bundle.cjs --external:@appwrite.io/console --external:fsevents && pkg dist/bundle.cjs -t node18-win-arm64 -o build/appwrite-cli-win-arm64.exe"
   },
   "dependencies": {
-    "undici": "^5.28.2",
-    "ejs": "^3.1.9",
+    "@appwrite.io/console": "^2.1.0",
     "chalk": "4.1.2",
+    "chokidar": "^3.6.0",
     "cli-progress": "^3.12.0",
     "cli-table3": "^0.6.2",
     "commander": "^9.2.0",
+    "dotenv": "^16.4.5",
+    "ejs": "^3.1.9",
     "form-data": "^4.0.0",
-    "json-bigint": "^1.0.0",
+    "ignore": "^7.0.5",
     "inquirer": "^8.2.4",
     "inquirer-search-list": "^1.2.6",
-    "tar": "^6.1.11",
-    "ignore": "^5.2.0",
-    "chokidar": "^3.6.0",
+    "json-bigint": "^1.0.0",
     "tail": "^2.2.6",
-    "dotenv": "^16.4.5"
+    "tar": "^6.1.11",
+    "undici": "^5.28.2",
+    "zod": "^4.3.5"
   },
   "devDependencies": {
-    "@yao-pkg/pkg": "^6.9.0",
-    "@types/node": "^18.19.0",
-    "@types/inquirer": "^8.2.10",
+    "@types/bun": "^1.3.5",
     "@types/cli-progress": "^3.11.5",
-    "@types/tar": "^6.1.11",
+    "@types/inquirer": "^8.2.10",
     "@types/json-bigint": "^1.0.4",
+    "@types/node": "^18.19.0",
+    "@types/tar": "^6.1.11",
+    "@yao-pkg/pkg": "^6.11.0",
+    "esbuild": "^0.27.2",
+    "prettier": "^3.7.4",
+    "tsx": "^4.21.0",
     "typescript": "^5.3.3"
   },
   "pkg": {
     "scripts": [
-      "dist/index.js",
+      "dist/cli.js",
       "dist/lib/**/*.js"
     ]
   }

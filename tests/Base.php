@@ -62,6 +62,12 @@ abstract class Base extends TestCase
         'POST:/v1/mock/tests/general/models/array:passed',
     ];
 
+    protected const UNION_RESPONSES = [
+        'GET:/v1/mock/tests/union:passed',
+        'test-data',
+        'stub',
+    ];
+
     protected const UPLOAD_RESPONSE = [
         'POST:/v1/mock/tests/general/upload:passed',
     ];
@@ -252,7 +258,6 @@ abstract class Base extends TestCase
             ->setLogo('https://appwrite.io/v1/images/console.png')
             ->setWarning('**WORK IN PROGRESS - THIS IS JUST A TEST SDK**')
             ->setExamples('**EXAMPLES** <HTML>')
-            ->setNamespace("io appwrite")
             ->setGitUserName('repoowner')
             ->setGitRepoName('reponame')
             ->setLicense('BSD-3-Clause')
@@ -262,6 +267,12 @@ abstract class Base extends TestCase
                 'X-Appwrite-Response-Format' => '0.8.0',
             ])
             ->setTest("true");
+
+        if ($this->language === 'android' || $this->language === 'kotlin') {
+            $sdk->setNamespace("io.appwrite");
+        } else {
+            $sdk->setNamespace("appwrite");
+        }
 
         $dir = __DIR__ . '/sdks/' . $this->language;
 

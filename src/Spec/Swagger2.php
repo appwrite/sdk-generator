@@ -27,7 +27,8 @@ class Swagger2 extends Spec
      */
     public function getNamespace(): string
     {
-        return $this->getAttribute('info.namespace', '');
+        $namespace = $this->getAttribute('info.namespace', '');
+        return $namespace !== '' ? $namespace : $this->getTitle();
     }
 
     /**
@@ -148,17 +149,33 @@ class Swagger2 extends Spec
             $methodSecurity[$i] = (array_key_exists($i, $security)) ? $security[$i] : [];
         }
 
-        $responses = $method['responses'];
         $responseModel = '';
+        $responseModels = [];
+        $responses = $method['responses'];
         $emptyResponse = true;
         foreach ($responses as $code => $desc) {
             if ($code != '204') {
                 $emptyResponse = false;
             }
+            // Check for single model reference
             if (isset($desc['schema']) && isset($desc['schema']['$ref'])) {
                 $responseModel = $desc['schema']['$ref'];
                 if (!empty($responseModel)) {
                     $responseModel = str_replace('#/definitions/', '', $responseModel);
+                }
+            }
+
+            // check for union types
+            if (isset($desc['schema']['x-oneOf'])) {
+                $responseModels = \array_map(
+                    fn($schema) => str_replace('#/definitions/', '', $schema['$ref']),
+                    $desc['schema']['x-oneOf']
+                );
+
+                // set to first model
+                // for backward compatibility
+                if (!empty($responseModels)) {
+                    $responseModel = $responseModels[0];
                 }
             }
         }
@@ -187,6 +204,7 @@ class Swagger2 extends Spec
             ],
             'emptyResponse' => $emptyResponse,
             'responseModel' => $responseModel,
+            'responseModels' => $responseModels,
         ];
 
         if ($method['x-appwrite']['deprecated'] ?? false) {
@@ -217,6 +235,7 @@ class Swagger2 extends Spec
                 'default' => $parameter['default'] ?? null,
                 'example' => $parameter['x-example'] ?? null,
                 'isUploadID' => $parameter['x-upload-id'] ?? false,
+                'format' => $parameter['format'] ?? null,
                 'array' => [
                     'type' => $parameter['items']['type'] ?? '',
                 ],
@@ -260,6 +279,7 @@ class Swagger2 extends Spec
                         $temp['isUploadID'] = $value['x-upload-id'] ?? false;
                         $temp['nullable'] = $value['x-nullable'] ?? false;
                         $temp['model'] = $value['x-model'] ?? null;
+                        $temp['format'] = $value['format'] ?? null;
                         $temp['array'] = [
                             'type' => $value['items']['type'] ?? '',
                             'model' => isset($value['items']['$ref']) ? str_replace('#/definitions/', '', $value['items']['$ref']) : null,
@@ -449,6 +469,16 @@ class Swagger2 extends Spec
                     'key' => $key,
                     'name' => $definition['name'],
                     'description' => $definition['description'],
+                ];
+            } elseif (
+                isset($definition['type']) && $definition['type'] === 'http' &&
+                      isset($definition['scheme']) && $definition['scheme'] === 'bearer'
+            ) {
+                $list[] = [
+                    'key' => $key,
+                    'name' => 'Authorization',
+                    'description' => $definition['description'] ?? 'Bearer token authentication',
+                    'type' => 'bearer',
                 ];
             }
         }
