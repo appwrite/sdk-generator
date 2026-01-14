@@ -395,7 +395,7 @@ class Rust extends Language
                     $output .= $default ? "true" : "false";
                     break;
                 case self::TYPE_STRING:
-                    $output .= "String::from(\"$default\")";
+                    $output .= "String::from(\"" . addslashes($default) . "\")";
                     break;
                 case self::TYPE_OBJECT:
                     $output .= "serde_json::Value::Null";
@@ -456,7 +456,7 @@ class Rust extends Language
                     $output .= $example ? "true" : "false";
                     break;
                 case self::TYPE_STRING:
-                    $output .= "\"{$example}\"";
+                    $output .= "\"" . addslashes($example) . "\"";
                     break;
                 case self::TYPE_OBJECT:
                     $output .= "serde_json::json!({})";
@@ -663,6 +663,13 @@ class Rust extends Language
         }
         if ($method["type"] === "location") {
             return "crate::error::Result<Vec<u8>>";
+        }
+
+        if (
+            \array_key_exists("responseModels", $method)
+            && \count($method["responseModels"]) > 1
+        ) {
+            return "crate::error::Result<serde_json::Value>";
         }
 
         $isEmpty = empty($method["produces"]) || (isset($method["responses"]) && $this->isEmptyResponse($method["responses"]));
