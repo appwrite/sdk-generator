@@ -159,6 +159,41 @@ const KeyIndexesColumns = new Set([
   "orders",
 ]);
 
+const CONFIG_KEY_ORDER = [
+  "projectId",
+  "projectName",
+  "endpoint",
+  "settings",
+  "functions",
+  "sites",
+  "databases",
+  "collections",
+  "tablesDB",
+  "tables",
+  "buckets",
+  "teams",
+  "topics",
+  "messages",
+];
+
+function orderConfigKeys<T extends Record<string, any>>(data: T): T {
+  const ordered: Record<string, any> = {};
+
+  for (const key of CONFIG_KEY_ORDER) {
+    if (key in data) {
+      ordered[key] = data[key];
+    }
+  }
+
+  for (const key of Object.keys(data)) {
+    if (!(key in ordered)) {
+      ordered[key] = data[key];
+    }
+  }
+
+  return ordered as T;
+}
+
 function whitelistKeys<T = any>(
   value: T,
   keys: Set<string>,
@@ -324,6 +359,17 @@ class Local extends Config<ConfigType> {
 
     super(absolutePath);
     this.configDirectoryPath = _path.dirname(absolutePath);
+  }
+
+  write(): void {
+    const dir = _path.dirname(this.path);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    const orderedData = orderConfigKeys(this.data);
+    fs.writeFileSync(this.path, JSONBigInt.stringify(orderedData, null, 4), {
+      mode: 0o600,
+    });
   }
 
   static findConfigFile(filename: string): string | null {

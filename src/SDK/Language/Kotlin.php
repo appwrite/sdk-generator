@@ -691,6 +691,14 @@ class Kotlin extends Language
         }
 
         if (
+            \array_key_exists('responseModels', $method)
+            && \count($method['responseModels']) > 1
+        ) {
+            return 'Any';
+        }
+
+        // Check for missing or generic response model
+        if (
             !\array_key_exists('responseModel', $method)
             || empty($method['responseModel'])
             || $method['responseModel'] === 'any'

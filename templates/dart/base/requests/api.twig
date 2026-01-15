@@ -10,4 +10,4 @@
 
     final res = await client.call(HttpMethod.{{ method.method | caseLower }}, path: apiPath, params: apiParams, headers: apiHeaders);
 
-    return {% if method.responseModel and method.responseModel != 'any' %}models.{{method.responseModel | caseUcfirst | overrideIdentifier}}.fromMap(res.data){% else %} res.data{% endif %};
+    return {% if method.responseModel and method.responseModel != 'any' and not (method.responseModels|length > 1) %}models.{{method.responseModel | caseUcfirst | overrideIdentifier}}.fromMap(res.data){% else %}res.data{% endif %};

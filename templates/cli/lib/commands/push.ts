@@ -17,7 +17,8 @@ import {
   KeysCollection,
   KeysTable,
 } from "../config.js";
-import type { SettingsType, ConfigType } from "./config.js";
+import { ConfigSchema, type SettingsType, type ConfigType } from "./config.js";
+import { parseWithBetterErrors } from "./utils/error-formatter.js";
 import { createSettingsObject } from "../utils.js";
 import { Spinner, SPINNER_DOTS } from "../spinner.js";
 import { paginate } from "../paginate.js";
@@ -811,7 +812,9 @@ export class Push {
         }
 
         if (!func.path) {
-          errors.push(new Error(`Function '${func.name}' has no path configured`));
+          errors.push(
+            new Error(`Function '${func.name}' has no path configured`),
+          );
           updaterRow.fail({
             errorMessage: `No path configured for function`,
           });
@@ -1670,6 +1673,13 @@ const pushResources = async ({
       teams: localConfig.getTeams(),
       topics: localConfig.getMessagingTopics(),
     };
+
+    parseWithBetterErrors<ConfigType>(
+      ConfigSchema,
+      config,
+      "Configuration validation failed",
+      config,
+    );
 
     await pushInstance.pushResources(config, {
       all: cliConfig.all,

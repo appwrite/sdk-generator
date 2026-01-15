@@ -41,6 +41,7 @@ import { createSettingsObject } from "../utils.js";
 import { ProjectNotInitializedError } from "./errors.js";
 import type { SettingsType, FunctionType, SiteType } from "./config.js";
 import { downloadDeploymentCode } from "./utils/deployment.js";
+import { getConfirmation } from "./utils/change-approval.js";
 
 export interface PullOptions {
   all?: boolean;
@@ -804,53 +805,117 @@ const pullCollection = async (): Promise<void> => {
   const pullInstance = await createPullInstance();
   const { databases, collections } = await pullInstance.pullCollections();
 
-  for (const database of databases) {
-    localConfig.addDatabase(database);
+  const localCollections = localConfig.getCollections();
+  const remoteCollectionIds = new Set(collections.map((c: any) => c.$id));
+  const collectionsToRemove = localCollections.filter(
+    (c: any) => !remoteCollectionIds.has(c.$id),
+  );
+
+  if (collectionsToRemove.length > 0) {
+    warn(
+      `The following collections exist locally but not remotely and will be removed: ${collectionsToRemove.map((c: any) => c.name || c.$id).join(", ")}`,
+    );
+    if ((await getConfirmation()) !== true) {
+      log("Pull cancelled.");
+      return;
+    }
   }
 
-  for (const collection of collections) {
-    localConfig.addCollection(collection);
-  }
+  localConfig.set("databases", databases);
+  localConfig.set("collections", collections);
 };
 
 const pullTable = async (): Promise<void> => {
   const pullInstance = await createPullInstance();
   const { databases, tables } = await pullInstance.pullTables();
 
-  for (const database of databases) {
-    localConfig.addTablesDB(database);
+  const localTables = localConfig.getTables();
+  const remoteTableIds = new Set(tables.map((t: any) => t.$id));
+  const tablesToRemove = localTables.filter(
+    (t: any) => !remoteTableIds.has(t.$id),
+  );
+
+  if (tablesToRemove.length > 0) {
+    warn(
+      `The following tables exist locally but not remotely and will be removed: ${tablesToRemove.map((t: any) => t.name || t.$id).join(", ")}`,
+    );
+    if ((await getConfirmation()) !== true) {
+      log("Pull cancelled.");
+      return;
+    }
   }
 
-  for (const table of tables) {
-    localConfig.addTable(table);
-  }
+  localConfig.set("tablesDB", databases);
+  localConfig.set("tables", tables);
 };
 
 const pullBucket = async (): Promise<void> => {
   const pullInstance = await createPullInstance();
   const buckets = await pullInstance.pullBuckets();
 
-  for (const bucket of buckets) {
-    localConfig.addBucket(bucket);
+  const localBuckets = localConfig.getBuckets();
+  const remoteBucketIds = new Set(buckets.map((b: any) => b.$id));
+  const bucketsToRemove = localBuckets.filter(
+    (b: any) => !remoteBucketIds.has(b.$id),
+  );
+
+  if (bucketsToRemove.length > 0) {
+    warn(
+      `The following buckets exist locally but not remotely and will be removed: ${bucketsToRemove.map((b: any) => b.name || b.$id).join(", ")}`,
+    );
+    if ((await getConfirmation()) !== true) {
+      log("Pull cancelled.");
+      return;
+    }
   }
+
+  localConfig.set("buckets", buckets);
 };
 
 const pullTeam = async (): Promise<void> => {
   const pullInstance = await createPullInstance();
   const teams = await pullInstance.pullTeams();
 
-  for (const team of teams) {
-    localConfig.addTeam(team);
+  const localTeams = localConfig.getTeams();
+  const remoteTeamIds = new Set(teams.map((t: any) => t.$id));
+  const teamsToRemove = localTeams.filter(
+    (t: any) => !remoteTeamIds.has(t.$id),
+  );
+
+  if (teamsToRemove.length > 0) {
+    warn(
+      `The following teams exist locally but not remotely and will be removed: ${teamsToRemove.map((t: any) => t.name || t.$id).join(", ")}`,
+    );
+    if ((await getConfirmation()) !== true) {
+      log("Pull cancelled.");
+      return;
+    }
   }
+
+  localConfig.set("teams", teams);
 };
 
 const pullMessagingTopic = async (): Promise<void> => {
   const pullInstance = await createPullInstance();
   const topics = await pullInstance.pullMessagingTopics();
 
-  for (const topic of topics) {
-    localConfig.addMessagingTopic(topic);
+  const localTopics = localConfig.getMessagingTopics();
+  const remoteTopicIds = new Set(topics.map((t: any) => t.$id));
+  const topicsToRemove = localTopics.filter(
+    (t: any) => !remoteTopicIds.has(t.$id),
+  );
+
+  if (topicsToRemove.length > 0) {
+    warn(
+      `The following topics exist locally but not remotely and will be removed: ${topicsToRemove.map((t: any) => t.name || t.$id).join(", ")}`,
+    );
+    if ((await getConfirmation()) !== true) {
+      log("Pull cancelled.");
+      return;
+    }
   }
+
+  localConfig.set("topics", topics);
 };
 
 /** Commander.js exports */
