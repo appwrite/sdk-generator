@@ -207,6 +207,15 @@ void main() async {
     Query.greaterThan("releasedYear", 2015)
   ]));
   
+  // New query methods: regex, exists, notExists, elemMatch
+  print(Query.regex("name", "pattern.*"));
+  print(Query.exists(["attr1", "attr2"]));
+  print(Query.notExists(["attr1", "attr2"]));
+  print(Query.elemMatch("friends", [
+    Query.equal("name", "Alice"),
+    Query.greaterThan("age", 18)
+  ]));
+  
   // Permission & Role helper tests
   print(Permission.read(Role.any()));
   print(Permission.write(Role.user(ID.custom('userid'))));

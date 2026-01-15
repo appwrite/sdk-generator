@@ -339,6 +339,40 @@ class Query implements \JsonSerializable
     }
 
     /**
+     * Regex
+     *
+     * @param string $attribute
+     * @param string $pattern
+     * @return string
+     */
+    public static function regex(string $attribute, string $pattern): string
+    {
+        return (new Query('regex', $attribute, $pattern))->__toString();
+    }
+
+    /**
+     * Exists
+     *
+     * @param array<string> $attributes
+     * @return string
+     */
+    public static function exists(array $attributes): string
+    {
+        return (new Query('exists', null, $attributes))->__toString();
+    }
+
+    /**
+     * Not Exists
+     *
+     * @param array<string> $attributes
+     * @return string
+     */
+    public static function notExists(array $attributes): string
+    {
+        return (new Query('notExists', null, $attributes))->__toString();
+    }
+
+    /**
      * Created Before
      *
      * @param string $value
@@ -432,6 +466,22 @@ class Query implements \JsonSerializable
             $query = \json_decode($query, true);
         }
         return (new Query('and', null, $queries))->__toString();
+    }
+
+    /**
+     * Elem Match
+     *
+     * @param string $attribute
+     * @param array<string> $queries
+     * @return string
+     */
+    public static function elemMatch(string $attribute, array $queries): string
+    {
+        foreach ($queries as &$query) {
+            $query = \json_decode($query, true);
+        }
+
+        return (new Query('elemMatch', $attribute, $queries))->__toString();
     }
 
     /**

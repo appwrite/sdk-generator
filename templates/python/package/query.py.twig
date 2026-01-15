@@ -27,6 +27,10 @@ class Query():
         return str(Query("notEqual", attribute, value))
 
     @staticmethod
+    def regex(attribute, pattern):
+        return str(Query("regex", attribute, pattern))
+
+    @staticmethod
     def less_than(attribute, value):
         return str(Query("lessThan", attribute, value))
 
@@ -49,6 +53,14 @@ class Query():
     @staticmethod
     def is_not_null(attribute):
         return str(Query("isNotNull", attribute, None))
+
+    @staticmethod
+    def exists(attributes):
+        return str(Query("exists", None, attributes))
+
+    @staticmethod
+    def not_exists(attributes):
+        return str(Query("notExists", None, attributes))
 
     @staticmethod
     def between(attribute, start, end):
@@ -153,6 +165,10 @@ class Query():
     @staticmethod
     def and_queries(queries):
         return str(Query("and", None, [json.loads(query) for query in queries]))
+
+    @staticmethod
+    def elem_match(attribute, queries):
+        return str(Query("elemMatch", attribute, [json.loads(query) for query in queries]))
 
     @staticmethod
     def distance_equal(attribute, values, distance, meters=True):

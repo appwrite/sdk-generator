@@ -264,6 +264,15 @@ class ServiceTest {
             writeToFile(Query.or(listOf(Query.equal("released", listOf(true)), Query.lessThan("releasedYear", 1990))))
             writeToFile(Query.and(listOf(Query.equal("released", listOf(false)), Query.greaterThan("releasedYear", 2015))))
 
+            // New query methods: regex, exists, notExists, elemMatch
+            writeToFile(Query.regex("name", "pattern.*"))
+            writeToFile(Query.exists(listOf("attr1", "attr2")))
+            writeToFile(Query.notExists(listOf("attr1", "attr2")))
+            writeToFile(Query.elemMatch("friends", listOf(
+                Query.equal("name", "Alice"),
+                Query.greaterThan("age", 18)
+            )))
+
             // Permission & Roles helper tests
             writeToFile(Permission.read(Role.any()))
             writeToFile(Permission.write(Role.user(ID.custom("userid"))))

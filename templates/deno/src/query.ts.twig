@@ -39,6 +39,9 @@ export class Query {
   static notEqual = (attribute: string, value: QueryTypes): string =>
     new Query("notEqual", attribute, value).toString();
 
+  static regex = (attribute: string, pattern: string): string =>
+    new Query("regex", attribute, pattern).toString();
+
   static lessThan = (attribute: string, value: QueryTypes): string =>
     new Query("lessThan", attribute, value).toString();
 
@@ -56,6 +59,12 @@ export class Query {
 
   static isNotNull = (attribute: string): string =>
     new Query("isNotNull", attribute).toString();
+
+  static exists = (attributes: string[]): string =>
+    new Query("exists", undefined, attributes).toString();
+
+  static notExists = (attributes: string[]): string =>
+    new Query("notExists", undefined, attributes).toString();
 
   static between = (
     attribute: string,
@@ -219,6 +228,13 @@ export class Query {
 
   static and = (queries: string[]) =>
       new Query("and", undefined, queries.map((query) => JSON.parse(query))).toString();
+
+  static elemMatch = (attribute: string, queries: string[]): string =>
+    new Query(
+      "elemMatch",
+      attribute,
+      queries.map((query) => JSON.parse(query))
+    ).toString();
 
   /**
    * Filter resources where attribute is at a specific distance from the given coordinates.

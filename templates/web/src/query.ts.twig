@@ -72,6 +72,16 @@ export class Query {
     new Query("notEqual", attribute, value).toString();
 
   /**
+   * Filter resources where attribute matches the given regular expression pattern.
+   *
+   * @param {string} attribute
+   * @param {string} pattern
+   * @returns {string}
+   */
+  static regex = (attribute: string, pattern: string): string =>
+    new Query("regex", attribute, pattern).toString();
+
+  /**
    * Filter resources where attribute is less than value.
    *
    * @param {string} attribute
@@ -128,6 +138,24 @@ export class Query {
    */
   static isNotNull = (attribute: string): string =>
     new Query("isNotNull", attribute).toString();
+
+  /**
+   * Filter resources where the given attributes exist.
+   *
+   * @param {string[]} attributes
+   * @returns {string}
+   */
+  static exists = (attributes: string[]): string =>
+    new Query("exists", undefined, attributes).toString();
+
+  /**
+   * Filter resources where the given attributes do not exist.
+   *
+   * @param {string[]} attributes
+   * @returns {string}
+   */
+  static notExists = (attributes: string[]): string =>
+    new Query("notExists", undefined, attributes).toString();
 
   /**
    * Filter resources where attribute is between start and end (inclusive).
@@ -377,6 +405,20 @@ export class Query {
    */
   static and = (queries: string[]) =>
     new Query("and", undefined, queries.map((query) => JSONbig.parse(query))).toString();
+
+  /**
+   * Filter array attributes where at least one element matches all of the provided queries.
+   *
+   * @param {string} attribute
+   * @param {string[]} queries
+   * @returns {string}
+   */
+  static elemMatch = (attribute: string, queries: string[]): string =>
+    new Query(
+      "elemMatch",
+      attribute,
+      queries.map((query) => JSONbig.parse(query))
+    ).toString();
 
   /**
    * Filter resources where attribute is at a specific distance from the given coordinates.

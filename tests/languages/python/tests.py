@@ -192,6 +192,15 @@ print(Query.and_queries(
     [Query.equal("released", False), Query.greater_than("releasedYear", 2015)]
 ))
 
+# New query methods: regex, exists, notExists, elemMatch
+print(Query.regex("name", "pattern.*"))
+print(Query.exists(["attr1", "attr2"]))
+print(Query.not_exists(["attr1", "attr2"]))
+print(Query.elem_match("friends", [
+    Query.equal("name", "Alice"),
+    Query.greater_than("age", 18)
+]))
+
 # Permission & Role helper tests
 print(Permission.read(Role.any()))
 print(Permission.write(Role.user(ID.custom('userid'))))

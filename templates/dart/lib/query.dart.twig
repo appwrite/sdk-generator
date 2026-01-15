@@ -39,6 +39,10 @@ class Query {
   static String notEqual(String attribute, dynamic value) =>
       Query._('notEqual', attribute, value).toString();
 
+  /// Filter resources where [attribute] matches the given regular expression [pattern].
+  static String regex(String attribute, String pattern) =>
+      Query._('regex', attribute, pattern).toString();
+
   /// Filter resources where [attribute] is less than [value].
   static String lessThan(String attribute, dynamic value) =>
       Query._('lessThan', attribute, value).toString();
@@ -66,6 +70,14 @@ class Query {
   /// Filter resources where [attribute] is not null.
   static String isNotNull(String attribute) =>
       Query._('isNotNull', attribute).toString();
+
+  /// Filter resources where the given [attributes] exist.
+  static String exists(List<String> attributes) =>
+      Query._('exists', null, attributes).toString();
+
+  /// Filter resources where the given [attributes] do not exist.
+  static String notExists(List<String> attributes) =>
+      Query._('notExists', null, attributes).toString();
 
   /// Filter resources where [attribute] is between [start] and [end] (inclusive).
   static String between(String attribute, dynamic start, dynamic end) =>
@@ -138,6 +150,13 @@ class Query {
   static String and(List<String> queries) => Query._(
     'and',
     null,
+    queries.map((query) => jsonDecode(query)).toList(),
+  ).toString();
+
+  /// Filter array attributes where at least one element matches all of the provided [queries].
+  static String elemMatch(String attribute, List<String> queries) => Query._(
+    'elemMatch',
+    attribute,
     queries.map((query) => jsonDecode(query)).toList(),
   ).toString();
 

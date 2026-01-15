@@ -36,6 +36,10 @@ module {{spec.title | caseUcfirst}}
                 return Query.new("notEqual", attribute, value).to_s
             end
 
+            def regex(attribute, pattern)
+                return Query.new("regex", attribute, pattern).to_s
+            end
+
             def less_than(attribute, value)
                 return Query.new("lessThan", attribute, value).to_s
             end
@@ -58,6 +62,14 @@ module {{spec.title | caseUcfirst}}
 
             def is_not_null(attribute)
                 return Query.new("isNotNull", attribute, nil).to_s
+            end
+
+            def exists(attributes)
+                return Query.new("exists", nil, attributes).to_s
+            end
+
+            def not_exists(attributes)
+                return Query.new("notExists", nil, attributes).to_s
             end
 
             def between(attribute, start, ending)
@@ -162,6 +174,10 @@ module {{spec.title | caseUcfirst}}
 
             def and(queries)
                 return Query.new("and", nil, queries.map { |query| JSON.parse(query) }).to_s
+            end
+
+            def elem_match(attribute, queries)
+                return Query.new("elemMatch", attribute, queries.map { |query| JSON.parse(query) }).to_s
             end
 
             def distance_equal(attribute, values, distance, meters = true)

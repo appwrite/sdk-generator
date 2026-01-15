@@ -15,6 +15,8 @@ class Query(
 
         fun notEqual(attribute: String, value: Any) = Query("notEqual", attribute, parseValue(value)).toJson()
 
+        fun regex(attribute: String, pattern: String) = Query("regex", attribute, parseValue(pattern)).toJson()
+
         fun lessThan(attribute: String, value: Any) = Query("lessThan", attribute, parseValue(value)).toJson()
 
         fun lessThanEqual(attribute: String, value: Any) = Query("lessThanEqual", attribute, parseValue(value)).toJson()
@@ -28,6 +30,10 @@ class Query(
         fun isNull(attribute: String) = Query("isNull", attribute).toJson()
 
         fun isNotNull(attribute: String) = Query("isNotNull", attribute).toJson()
+
+        fun exists(attributes: List<String>) = Query("exists", null, attributes).toJson()
+
+        fun notExists(attributes: List<String>) = Query("notExists", null, attributes).toJson()
 
         fun between(attribute: String, start: Any, end: Any) = Query("between", attribute, listOf(start, end)).toJson()
 
@@ -78,6 +84,8 @@ class Query(
         fun or(queries: List<String>) = Query("or", null, queries.map { it.fromJson<Query>() }).toJson()
 
         fun and(queries: List<String>) = Query("and", null, queries.map { it.fromJson<Query>() }).toJson()
+
+        fun elemMatch(attribute: String, queries: List<String>) = Query("elemMatch", attribute, queries.map { it.fromJson<Query>() }).toJson()
 
         /**
          * Filter resources where attribute is at a specific distance from the given coordinates.

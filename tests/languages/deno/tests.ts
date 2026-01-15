@@ -237,6 +237,15 @@ async function start() {
     Query.greaterThan("releasedYear", 2015)
   ]));
 
+  // New query methods: regex, exists, notExists, elemMatch
+  console.log(Query.regex("name", "pattern.*"));
+  console.log(Query.exists(["attr1", "attr2"]));
+  console.log(Query.notExists(["attr1", "attr2"]));
+  console.log(Query.elemMatch("friends", [
+    Query.equal("name", "Alice"),
+    Query.greaterThan("age", 18)
+  ]));
+
   // Permission & Role helper tests
   console.log(Permission.read(Role.any()));
   console.log(Permission.write(Role.user(ID.custom("userid"))));
