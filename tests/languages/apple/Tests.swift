@@ -242,7 +242,7 @@ class Tests: XCTestCase {
             Query.greaterThan("releasedYear", value: 2015)
         ]))
 
-        // New query methods: regex, exists, notExists, elemMatch
+        // regex, exists, notExists, elemMatch
         print(Query.regex("name", pattern: "pattern.*"))
         print(Query.exists(["attr1", "attr2"]))
         print(Query.notExists(["attr1", "attr2"]))

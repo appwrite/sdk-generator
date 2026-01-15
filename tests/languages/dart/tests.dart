@@ -207,7 +207,7 @@ void main() async {
     Query.greaterThan("releasedYear", 2015)
   ]));
   
-  // New query methods: regex, exists, notExists, elemMatch
+  // regex, exists, notExists, elemMatch
   print(Query.regex("name", "pattern.*"));
   print(Query.exists(["attr1", "attr2"]));
   print(Query.notExists(["attr1", "attr2"]));

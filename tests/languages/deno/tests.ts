@@ -237,7 +237,7 @@ async function start() {
     Query.greaterThan("releasedYear", 2015)
   ]));
 
-  // New query methods: regex, exists, notExists, elemMatch
+  // regex, exists, notExists, elemMatch
   console.log(Query.regex("name", "pattern.*"));
   console.log(Query.exists(["attr1", "attr2"]));
   console.log(Query.notExists(["attr1", "attr2"]));

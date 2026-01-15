@@ -264,7 +264,7 @@ class ServiceTest {
             writeToFile(Query.or(listOf(Query.equal("released", listOf(true)), Query.lessThan("releasedYear", 1990))))
             writeToFile(Query.and(listOf(Query.equal("released", listOf(false)), Query.greaterThan("releasedYear", 2015))))
 
-            // New query methods: regex, exists, notExists, elemMatch
+            // regex, exists, notExists, elemMatch
             writeToFile(Query.regex("name", "pattern.*"))
             writeToFile(Query.exists(listOf("attr1", "attr2")))
             writeToFile(Query.notExists(listOf("attr1", "attr2")))

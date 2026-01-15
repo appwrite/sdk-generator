@@ -157,7 +157,11 @@ abstract class Base extends TestCase
         '{"method":"equal","attribute":"location","values":[[40.7128,-74],[40.7128,-74]]}',
         '{"method":"notEqual","attribute":"location","values":[[40.7128,-74],[40.7128,-74]]}',
         '{"method":"or","values":[{"method":"equal","attribute":"released","values":[true]},{"method":"lessThan","attribute":"releasedYear","values":[1990]}]}',
-        '{"method":"and","values":[{"method":"equal","attribute":"released","values":[false]},{"method":"greaterThan","attribute":"releasedYear","values":[2015]}]}'
+        '{"method":"and","values":[{"method":"equal","attribute":"released","values":[false]},{"method":"greaterThan","attribute":"releasedYear","values":[2015]}]}',
+        '{"method":"regex","attribute":"name","values":["pattern.*"]}',
+        '{"method":"exists","values":["attr1","attr2"]}',
+        '{"method":"notExists","values":["attr1","attr2"]}',
+        '{"method":"elemMatch","attribute":"friends","values":[{"method":"equal","attribute":"name","values":["Alice"]},{"method":"greaterThan","attribute":"age","values":[18]}]}',
     ];
 
     protected const PERMISSION_HELPER_RESPONSES = [

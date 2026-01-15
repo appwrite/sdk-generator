@@ -219,7 +219,7 @@ namespace AppwriteTests
                 }
             ));
 
-            // New query methods: regex, exists, notExists, elemMatch
+            // regex, exists, notExists, elemMatch
             TestContext.WriteLine(Query.Regex("name", "pattern.*"));
             TestContext.WriteLine(Query.Exists(new List<string> { "attr1", "attr2" }));
             TestContext.WriteLine(Query.NotExists(new List<string> { "attr1", "attr2" }));
