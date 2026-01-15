@@ -135,7 +135,7 @@ class SDK
             return strtolower(preg_replace('/(?<!^)([A-Z][a-z]|(?<=[a-z])[^a-z\s]|(?<=[A-Z])[0-9_])/', '-$1', $value));
         }));
         $this->twig->addFilter(new TwigFilter('caseSlash', function ($value) {
-            return str_replace([' ', '_'], '/', strtolower(preg_replace('/([a-zA-Z])(?=[A-Z])/', '$1/', $value)));
+            return str_replace([' ', '_', '.'], '/', strtolower(preg_replace('/([a-zA-Z])(?=[A-Z])/', '$1/', $value)));
         }));
         $this->twig->addFilter(new TwigFilter('caseDot', function ($value) {
             return str_replace([' ', '_'], '.', strtolower(preg_replace('/([a-zA-Z])(?=[A-Z])/', '$1.', $value)));
