@@ -412,3 +412,48 @@ func NotTouches(attribute string, values []interface{}) string {
 		Values:    &[]interface{}{values},
 	})
 }
+
+func Regex(attribute string, pattern string) string {
+	values := toArray(pattern)
+	return parseQuery(queryOptions{
+		Method:    "regex",
+		Attribute: &attribute,
+		Values:    &values,
+	})
+}
+
+func Exists(attributes []interface{}) string {
+	return parseQuery(queryOptions{
+		Method: "exists",
+		Values: &attributes,
+	})
+}
+
+func NotExists(attributes []interface{}) string {
+	return parseQuery(queryOptions{
+		Method: "notExists",
+		Values: &attributes,
+	})
+}
+
+func ElemMatch(attribute string, queries []interface{}) string {
+	var parsedQueries []interface{}
+	for _, query := range queries {
+		var q interface{}
+		if queryStr, ok := query.(string); ok {
+			if err := json.Unmarshal([]byte(queryStr), &q); err != nil {
+				// Handle error, possibly log it or return an empty result
+				continue
+			}
+			parsedQueries = append(parsedQueries, q)
+		} else {
+			// Already a parsed query object
+			parsedQueries = append(parsedQueries, query)
+		}
+	}
+	return parseQuery(queryOptions{
+		Method:    "elemMatch",
+		Attribute: &attribute,
+		Values:    &parsedQueries,
+	})
+}
