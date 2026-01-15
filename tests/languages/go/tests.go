@@ -259,6 +259,15 @@ func testQueries() {
 		query.Equal("released", false),
 		query.GreaterThan("releasedYear", 2015),
 	}))
+
+	// regex, exists, notExists, elemMatch
+	fmt.Println(query.Regex("name", "pattern.*"))
+	fmt.Println(query.Exists([]interface{}{"attr1", "attr2"}))
+	fmt.Println(query.NotExists([]interface{}{"attr1", "attr2"}))
+	fmt.Println(query.ElemMatch("friends", []interface{}{
+		query.Equal("name", "Alice"),
+		query.GreaterThan("age", 18),
+	}))
 }
 
 func testPermissionHelpers() {
