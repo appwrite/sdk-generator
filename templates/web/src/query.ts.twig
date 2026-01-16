@@ -72,6 +72,16 @@ export class Query {
     new Query("notEqual", attribute, value).toString();
 
   /**
+   * Filter resources where attribute matches a regular expression pattern.
+   *
+   * @param {string} attribute The attribute to filter on.
+   * @param {string} pattern The regular expression pattern to match.
+   * @returns {string}
+   */
+  static regex = (attribute: string, pattern: string): string =>
+    new Query("regex", attribute, pattern).toString();
+
+  /**
    * Filter resources where attribute is less than value.
    *
    * @param {string} attribute
@@ -128,6 +138,24 @@ export class Query {
    */
   static isNotNull = (attribute: string): string =>
     new Query("isNotNull", attribute).toString();
+
+  /**
+   * Filter resources where the specified attributes exist.
+   *
+   * @param {string[]} attributes The list of attributes that must exist.
+   * @returns {string}
+   */
+  static exists = (attributes: string[]): string =>
+    new Query("exists", undefined, attributes).toString();
+
+  /**
+   * Filter resources where the specified attributes do not exist.
+   *
+   * @param {string[]} attributes The list of attributes that must not exist.
+   * @returns {string}
+   */
+  static notExists = (attributes: string[]): string =>
+    new Query("notExists", undefined, attributes).toString();
 
   /**
    * Filter resources where attribute is between start and end (inclusive).
@@ -377,6 +405,20 @@ export class Query {
    */
   static and = (queries: string[]) =>
     new Query("and", undefined, queries.map((query) => JSONbig.parse(query))).toString();
+
+  /**
+   * Filter array elements where at least one element matches all the specified queries.
+   *
+   * @param {string} attribute The attribute containing the array to filter on.
+   * @param {string[]} queries The list of query strings to match against array elements.
+   * @returns {string}
+   */
+  static elemMatch = (attribute: string, queries: string[]): string =>
+    new Query(
+      "elemMatch",
+      attribute,
+      queries.map((query) => JSONbig.parse(query))
+    ).toString();
 
   /**
    * Filter resources where attribute is at a specific distance from the given coordinates.

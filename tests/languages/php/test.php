@@ -215,6 +215,15 @@ echo Query::and([
     Query::greaterThan('releasedYear', 2015)
 ]) . "\n";
 
+// regex, exists, notExists, elemMatch
+echo Query::regex('name', 'pattern.*') . "\n";
+echo Query::exists(['attr1', 'attr2']) . "\n";
+echo Query::notExists(['attr1', 'attr2']) . "\n";
+echo Query::elemMatch('friends', [
+    Query::equal('name', ['Alice']),
+    Query::greaterThan('age', 18)
+]) . "\n";
+
 // Permission & Role helper tests
 echo Permission::read(Role::any()) . "\n";
 echo Permission::write(Role::user(ID::custom('userid'))) . "\n";

@@ -165,6 +165,20 @@ public struct Query : Codable, CustomStringConvertible {
         ).description
     }
 
+    /// Filter resources where attribute matches a regular expression pattern.
+    ///
+    /// - Parameters:
+    ///   - attribute: The attribute to filter on.
+    ///   - pattern: The regular expression pattern to match.
+    /// - Returns: The query string.
+    public static func regex(_ attribute: String, pattern: String) -> String {
+        return Query(
+            method: "regex",
+            attribute: attribute,
+            values: [pattern]
+        ).description
+    }
+
     public static func lessThan(_ attribute: String, value: Any) -> String {
         return Query(
             method: "lessThan",
@@ -208,6 +222,28 @@ public struct Query : Codable, CustomStringConvertible {
         return Query(
             method: "isNotNull",
             attribute: attribute
+        ).description
+    }
+
+    /// Filter resources where the specified attributes exist.
+    ///
+    /// - Parameter attributes: The list of attributes that must exist.
+    /// - Returns: The query string.
+    public static func exists(_ attributes: [String]) -> String {
+        return Query(
+            method: "exists",
+            values: attributes
+        ).description
+    }
+
+    /// Filter resources where the specified attributes do not exist.
+    ///
+    /// - Parameter attributes: The list of attributes that must not exist.
+    /// - Returns: The query string.
+    public static func notExists(_ attributes: [String]) -> String {
+        return Query(
+            method: "notExists",
+            values: attributes
         ).description
     }
 
@@ -428,6 +464,28 @@ public struct Query : Codable, CustomStringConvertible {
 
         return Query(
             method: "and",
+            values: decodedQueries
+        ).description
+    }
+
+    /// Filter array elements where at least one element matches all the specified queries.
+    ///
+    /// - Parameters:
+    ///   - attribute: The attribute containing the array to filter on.
+    ///   - queries: The list of query strings to match against array elements.
+    /// - Returns: The query string.
+    public static func elemMatch(_ attribute: String, queries: [String]) -> String {
+        let decoder = JSONDecoder()
+        let decodedQueries = queries.compactMap { queryStr -> Query? in
+            guard let data = queryStr.data(using: .utf8) else {
+                return nil
+            }
+            return try? decoder.decode(Query.self, from: data)
+        }
+
+        return Query(
+            method: "elemMatch",
+            attribute: attribute,
             values: decodedQueries
         ).description
     }

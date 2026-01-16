@@ -242,6 +242,15 @@ class Tests: XCTestCase {
             Query.greaterThan("releasedYear", value: 2015)
         ]))
 
+        // regex, exists, notExists, elemMatch
+        print(Query.regex("name", pattern: "pattern.*"))
+        print(Query.exists(["attr1", "attr2"]))
+        print(Query.notExists(["attr1", "attr2"]))
+        print(Query.elemMatch("friends", queries: [
+            Query.equal("name", value: "Alice"),
+            Query.greaterThan("age", value: 18)
+        ]))
+
         // Permission & Role helper tests
         print(Permission.read(Role.any()))
         print(Permission.write(Role.user(ID.custom("userid"))))

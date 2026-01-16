@@ -242,6 +242,46 @@ final class QueryTest extends TestCase {
         $this->assertSame('notEndsWith', $query['method']);
     }
 
+    public function testRegex(): void {
+        $query = json_decode(Query::regex('attr', 'pattern.*'), true);
+        $this->assertSame('attr', $query['attribute']);
+        $this->assertSame(['pattern.*'], $query['values']);
+        $this->assertSame('regex', $query['method']);
+    }
+
+    public function testExists(): void {
+        $query = json_decode(Query::exists(['attr1', 'attr2']), true);
+        $this->assertNull($query['attribute'] ?? null);
+        $this->assertSame(['attr1', 'attr2'], $query['values']);
+        $this->assertSame('exists', $query['method']);
+    }
+
+    public function testNotExists(): void {
+        $query = json_decode(Query::notExists(['attr1', 'attr2']), true);
+        $this->assertNull($query['attribute'] ?? null);
+        $this->assertSame(['attr1', 'attr2'], $query['values']);
+        $this->assertSame('notExists', $query['method']);
+    }
+
+    public function testElemMatch(): void {
+        $inner1 = Query::equal('name', 'Alice');
+        $inner2 = Query::greaterThan('age', 18);
+
+        $query = json_decode(Query::elemMatch('friends', [$inner1, $inner2]), true);
+
+        $this->assertSame('friends', $query['attribute']);
+        $this->assertSame('elemMatch', $query['method']);
+        $this->assertCount(2, $query['values']);
+
+        $this->assertSame('equal', $query['values'][0]['method']);
+        $this->assertSame('name', $query['values'][0]['attribute']);
+        $this->assertSame(['Alice'], $query['values'][0]['values']);
+
+        $this->assertSame('greaterThan', $query['values'][1]['method']);
+        $this->assertSame('age', $query['values'][1]['attribute']);
+        $this->assertSame([18], $query['values'][1]['values']);
+    }
+
     public function testCreatedBefore(): void {
         $query = json_decode(Query::createdBefore('2023-01-01'), true);
         $this->assertSame('$createdAt', $query['attribute']);
