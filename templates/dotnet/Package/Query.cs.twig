@@ -55,6 +55,12 @@ namespace {{ spec.title | caseUcfirst }}
             return new Query("notEqual", attribute, value).ToString();
         }
 
+        /// <summary>
+        /// Filter resources where attribute matches a regular expression pattern.
+        /// </summary>
+        /// <param name="attribute">The attribute to filter on.</param>
+        /// <param name="pattern">The regular expression pattern to match.</param>
+        /// <returns>The query string.</returns>
         public static string Regex(string attribute, string pattern)
         {
             return new Query("regex", attribute, pattern).ToString();
@@ -95,11 +101,21 @@ namespace {{ spec.title | caseUcfirst }}
             return new Query("isNotNull", attribute, null).ToString();
         }
 
+        /// <summary>
+        /// Filter resources where the specified attributes exist.
+        /// </summary>
+        /// <param name="attributes">The list of attributes that must exist.</param>
+        /// <returns>The query string.</returns>
         public static string Exists(List<string> attributes)
         {
             return new Query("exists", null, attributes).ToString();
         }
 
+        /// <summary>
+        /// Filter resources where the specified attributes do not exist.
+        /// </summary>
+        /// <param name="attributes">The list of attributes that must not exist.</param>
+        /// <returns>The query string.</returns>
         public static string NotExists(List<string> attributes)
         {
             return new Query("notExists", null, attributes).ToString();
@@ -228,6 +244,12 @@ namespace {{ spec.title | caseUcfirst }}
             return new Query("and", null, queries.Select(q => JsonSerializer.Deserialize<Query>(q, Client.DeserializerOptions)).ToList()).ToString();
         }
 
+        /// <summary>
+        /// Filter array elements where at least one element matches all the specified queries.
+        /// </summary>
+        /// <param name="attribute">The attribute containing the array to filter on.</param>
+        /// <param name="queries">The list of query strings to match against array elements.</param>
+        /// <returns>The query string.</returns>
         public static string ElemMatch(string attribute, List<string> queries) {
             var parsed = queries
                 .Select(q => JsonSerializer.Deserialize<Query>(q, Client.DeserializerOptions) as object)
