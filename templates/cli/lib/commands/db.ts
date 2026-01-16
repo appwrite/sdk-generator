@@ -2,10 +2,9 @@ import { ConfigType, AttributeSchema } from "./config.js";
 import * as fs from "fs";
 import * as path from "path";
 import { z } from "zod";
-
-export interface GenerateOptions {
-  strict?: boolean;
-}
+import { Command } from "commander";
+import { localConfig } from "../config.js";
+import { success, error, log, actionRunner } from "../parser.js";
 
 export interface GenerateResult {
   dbContent: string;
@@ -77,12 +76,6 @@ export class Db {
       .replace(/^(.)/, (char) => char.toUpperCase());
   }
 
-  private toCamelCase(str: string): string {
-    return str
-      .replace(/[-_\s]+(.)?/g, (_, char) => (char ? char.toUpperCase() : ""))
-      .replace(/^(.)/, (char) => char.toLowerCase());
-  }
-
   private toUpperSnakeCase(str: string): string {
     return str
       .replace(/([a-z])([A-Z])/g, "$1_$2")
@@ -90,21 +83,23 @@ export class Db {
       .toUpperCase();
   }
 
-  private generateCollectionType(
-    collection: NonNullable<ConfigType["collections"]>[number],
-    collections: NonNullable<ConfigType["collections"]>,
-    options: GenerateOptions = {},
+  private generateTableType(
+    entity: NonNullable<ConfigType["tables"]>[number] | NonNullable<ConfigType["collections"]>[number],
+    entities: NonNullable<ConfigType["tables"]> | NonNullable<ConfigType["collections"]>,
   ): string {
-    if (!collection.attributes) {
+    // Handle both tables (columns) and collections (attributes)
+    const fields = "columns" in entity
+      ? (entity as NonNullable<ConfigType["tables"]>[number]).columns
+      : (entity as NonNullable<ConfigType["collections"]>[number]).attributes;
+
+    if (!fields) {
       return "";
     }
 
-    const { strict = false } = options;
-    const typeName = this.toPascalCase(collection.name);
-    const attributes = collection.attributes
+    const typeName = this.toPascalCase(entity.name);
+    const attributes = fields
       .map((attr: z.infer<typeof AttributeSchema>) => {
-        const key = strict ? this.toCamelCase(attr.key) : attr.key;
-        return `    ${key}: ${this.getType(attr, collections)};`;
+        return `    ${attr.key}: ${this.getType(attr, entities as any)};`;
       })
       .join("\n");
 
@@ -112,20 +107,24 @@ export class Db {
   }
 
   private generateEnums(
-    collections: NonNullable<ConfigType["collections"]>,
+    entities: NonNullable<ConfigType["tables"]> | NonNullable<ConfigType["collections"]>,
   ): string {
     const enumTypes: string[] = [];
 
-    for (const collection of collections) {
-      if (!collection.attributes) continue;
+    for (const entity of entities) {
+      // Handle both tables (columns) and collections (attributes)
+      const fields = "columns" in entity
+        ? (entity as NonNullable<ConfigType["tables"]>[number]).columns
+        : (entity as NonNullable<ConfigType["collections"]>[number]).attributes;
+      if (!fields) continue;
 
-      for (const attribute of collection.attributes) {
-        if (attribute.format === "enum" && attribute.elements) {
-          const enumName = this.toPascalCase(attribute.key);
-          const enumValues = attribute.elements
-            .map((element, index) => {
+      for (const field of fields) {
+        if (field.format === "enum" && field.elements) {
+          const enumName = this.toPascalCase(field.key);
+          const enumValues = field.elements
+            .map((element: string, index: number) => {
               const key = this.toUpperSnakeCase(element);
-              const isLast = index === attribute.elements!.length - 1;
+              const isLast = index === field.elements!.length - 1;
               return `    ${key} = "${element}"${isLast ? "" : ","}`;
             })
             .join("\n");
@@ -138,23 +137,54 @@ export class Db {
     return enumTypes.join("\n\n");
   }
 
-  private generateTypesFile(
-    config: ConfigType,
-    options: GenerateOptions = {},
-  ): string {
-    if (!config.collections || config.collections.length === 0) {
-      return "// No collections found in configuration\n";
+  private generateTypesFile(config: ConfigType): string {
+    // Use tables if available, fall back to collections
+    const entities = config.tables?.length ? config.tables : config.collections;
+
+    if (!entities || entities.length === 0) {
+      return "// No tables or collections found in configuration\n";
     }
 
     const appwriteDep = this.getAppwriteDependency();
-    const enums = this.generateEnums(config.collections);
-    const types = config.collections
-      .map((collection) =>
-        this.generateCollectionType(collection, config.collections!, options),
-      )
+    const enums = this.generateEnums(entities);
+    const types = entities
+      .map((entity) => this.generateTableType(entity, entities))
       .join("\n\n");
 
-    const parts = [`import { type Models } from '${appwriteDep}';`, ""];
+    // Group entities by databaseId for DatabaseTables type
+    const entitiesByDb = new Map<string, Array<(typeof entities)[number]>>();
+    for (const entity of entities) {
+      const dbId = entity.databaseId;
+      if (!entitiesByDb.has(dbId)) {
+        entitiesByDb.set(dbId, []);
+      }
+      entitiesByDb.get(dbId)!.push(entity);
+    }
+
+    // Generate DatabaseId type
+    const dbIds = Array.from(entitiesByDb.keys());
+    const dbIdType = dbIds.map((id) => `'${id}'`).join(" | ");
+
+    // Generate DatabaseTables type
+    const dbReturnTypes = Array.from(entitiesByDb.entries())
+      .map(([dbId, dbEntities]) => {
+        const tableTypes = dbEntities
+          .map((entity) => {
+            const typeName = this.toPascalCase(entity.name);
+            return `    ${entity.name}: {
+      create: (data: Omit<${typeName}, keyof Models.Row>, options?: { rowId?: string; permissions?: Permission[] }) => Promise<${typeName}>;
+      get: (id: string) => Promise<${typeName}>;
+      update: (id: string, data: Partial<Omit<${typeName}, keyof Models.Row>>, options?: { permissions?: Permission[] }) => Promise<${typeName}>;
+      delete: (id: string) => Promise<void>;
+      list: (queries?: string[]) => Promise<{ total: number; rows: ${typeName}[] }>;
+    }`;
+          })
+          .join(";\n");
+        return `  '${dbId}': {\n${tableTypes}\n  }`;
+      })
+      .join(";\n");
+
+    const parts = [`import { type Models, Permission } from '${appwriteDep}';`, ""];
 
     if (enums) {
       parts.push(enums);
@@ -162,6 +192,12 @@ export class Db {
     }
 
     parts.push(types);
+    parts.push("");
+
+    // Add database types
+    parts.push(`export type DatabaseId = ${dbIdType};`);
+    parts.push("");
+    parts.push(`export type DatabaseTables = {\n${dbReturnTypes}\n};`);
     parts.push("");
 
     return parts.join("\n");
@@ -192,76 +228,84 @@ export class Db {
     return "appwrite";
   }
 
-  private generateDbFile(
-    config: ConfigType,
-    options: GenerateOptions = {},
-  ): string {
-    const { strict = false } = options;
-    const typesFileName = "appwrite.types.ts";
+  private generateDbFile(config: ConfigType): string {
+    // Use tables if available, fall back to collections
+    const entities = config.tables?.length ? config.tables : config.collections;
 
-    if (!config.collections || config.collections.length === 0) {
-      return "// No collections found in configuration\n";
+    if (!entities || entities.length === 0) {
+      return "// No tables or collections found in configuration\n";
     }
 
-    const typeNames = config.collections.map((c) => this.toPascalCase(c.name));
-    const importPath = typesFileName
-      .replace(/\.d\.ts$/, "")
-      .replace(/\.ts$/, "");
+    // Group entities by databaseId
+    const entitiesByDb = new Map<string, Array<(typeof entities)[number]>>();
+    for (const entity of entities) {
+      const dbId = entity.databaseId;
+      if (!entitiesByDb.has(dbId)) {
+        entitiesByDb.set(dbId, []);
+      }
+      entitiesByDb.get(dbId)!.push(entity);
+    }
+
+    const typeNames = entities.map((e) => this.toPascalCase(e.name));
     const appwriteDep = this.getAppwriteDependency();
 
-    const collectionsCode = config.collections
-      .map((collection) => {
-        const collectionName = strict
-          ? this.toCamelCase(collection.name)
-          : collection.name;
-        const typeName = this.toPascalCase(collection.name);
+    // Generate table helpers for each database
+    const generateTableHelpers = (dbId: string, dbEntities: Array<(typeof entities)[number]>) => {
+      return dbEntities
+        .map((entity) => {
+          const entityName = entity.name;
+          const typeName = this.toPascalCase(entity.name);
 
-        return `  ${collectionName}: {
-    create: (data: Omit<${typeName}, keyof Models.Row>, options?: { rowId?: string; permissions?: string[] }) =>
-      tablesDB.createRow<${typeName}>({
-        databaseId: process.env.APPWRITE_DB_ID!,
-        tableId: '${collection.$id}',
-        rowId: options?.rowId ?? ID.unique(),
-        data,
-        permissions: [
-            Permission.write(Role.user(data.createdBy)),
-            Permission.read(Role.user(data.createdBy)),
-            Permission.update(Role.user(data.createdBy)),
-            Permission.delete(Role.user(data.createdBy))
-        ]
-      }),
-    get: (id: string) =>
-      tablesDB.getRow<${typeName}>({
-        databaseId: process.env.APPWRITE_DB_ID!,
-        tableId: '${collection.$id}',
-        rowId: id,
-      }),
-    update: (id: string, data: Partial<Omit<${typeName}, keyof Models.Row>>, options?: { permissions?: string[] }) =>
-      tablesDB.updateRow<${typeName}>({
-        databaseId: process.env.APPWRITE_DB_ID!,
-        tableId: '${collection.$id}',
-        rowId: id,
-        data,
-        ...(options?.permissions ? { permissions: options.permissions } : {}),
-      }),
-    delete: (id: string) =>
-      tablesDB.deleteRow({
-        databaseId: process.env.APPWRITE_DB_ID!,
-        tableId: '${collection.$id}',
-        rowId: id,
-      }),
-    list: (queries?: string[]) =>
-      tablesDB.listRows<${typeName}>({
-        databaseId: process.env.APPWRITE_DB_ID!,
-        tableId: '${collection.$id}',
-        queries,
-      }),
-  }`;
+          return `    ${entityName}: {
+      create: (data: Omit<${typeName}, keyof Models.Row>, options?: { rowId?: string; permissions?: Permission[] }) =>
+        tablesDB.createRow<${typeName}>({
+          databaseId: '${dbId}',
+          tableId: '${entity.$id}',
+          rowId: options?.rowId ?? ID.unique(),
+          data,
+          permissions: options?.permissions?.map((p) => p.toString()),
+        }),
+      get: (id: string) =>
+        tablesDB.getRow<${typeName}>({
+          databaseId: '${dbId}',
+          tableId: '${entity.$id}',
+          rowId: id,
+        }),
+      update: (id: string, data: Partial<Omit<${typeName}, keyof Models.Row>>, options?: { permissions?: Permission[] }) =>
+        tablesDB.updateRow<${typeName}>({
+          databaseId: '${dbId}',
+          tableId: '${entity.$id}',
+          rowId: id,
+          data,
+          ...(options?.permissions ? { permissions: options.permissions.map((p) => p.toString()) } : {}),
+        }),
+      delete: async (id: string) => {
+        await tablesDB.deleteRow({
+          databaseId: '${dbId}',
+          tableId: '${entity.$id}',
+          rowId: id,
+        });
+      },
+      list: (queries?: string[]) =>
+        tablesDB.listRows<${typeName}>({
+          databaseId: '${dbId}',
+          tableId: '${entity.$id}',
+          queries,
+        }),
+    }`;
+        })
+        .join(",\n");
+    };
+
+    // Generate the database map
+    const databasesMap = Array.from(entitiesByDb.entries())
+      .map(([dbId, dbEntities]) => {
+        return `  '${dbId}': {\n${generateTableHelpers(dbId, dbEntities)}\n  }`;
       })
       .join(",\n");
 
-    return `import { Client, TablesDB, ID, type Models, Permission, Role } from '${appwriteDep}';
-import type { ${typeNames.join(", ")} } from './${importPath}';
+    return `import { Client, TablesDB, ID, type Models, Permission } from '${appwriteDep}';
+import type { ${typeNames.join(", ")}, DatabaseId, DatabaseTables } from './types.js';
 
 const client = new Client()
   .setEndpoint(process.env.APPWRITE_ENDPOINT!)
@@ -270,9 +314,12 @@ const client = new Client()
 
 const tablesDB = new TablesDB(client);
 
+const _databases: { [K in DatabaseId]: DatabaseTables[K] } = {
+${databasesMap}
+};
 
-export const db = {
-${collectionsCode}
+export const databases = {
+  from: <T extends DatabaseId>(databaseId: T): DatabaseTables[T] => _databases[databaseId],
 };
 `;
   }
@@ -282,43 +329,142 @@ ${collectionsCode}
    *
    * This method returns generated content as strings:
    *   1. A types string containing TypeScript interfaces for each collection.
-   *   2. A database client string with helper methods for CRUD operations on each collection.
+   *   2. A database client string with helper methods for CRUD operations on each table/collection.
    *
-   * @param config - The Appwrite project configuration, including collections and project details.
-   * @param options - Optional settings for code generation:
-   *   - strict: Whether to use strict naming conventions for collections (default: false).
+   * @param config - The Appwrite project configuration, including tables/collections and project details.
    * @returns A Promise that resolves with an object containing dbContent and typesContent strings.
-   * @throws If the configuration is missing a projectId or contains no collections.
+   * @throws If the configuration is missing a projectId or contains no tables/collections.
    */
-  public async generate(
-    config: ConfigType,
-    options: GenerateOptions = {},
-  ): Promise<GenerateResult> {
-    const { strict = false } = options;
-
+  public async generate(config: ConfigType): Promise<GenerateResult> {
     if (!config.projectId) {
       throw new Error("Project ID is required in configuration");
     }
 
-    if (!config.collections || config.collections.length === 0) {
+    // Use tables if available, fall back to collections
+    const hasEntities =
+      (config.tables && config.tables.length > 0) ||
+      (config.collections && config.collections.length > 0);
+
+    if (!hasEntities) {
       console.log(
-        "No collections found in configuration. Skipping database generation.",
+        "No tables or collections found in configuration. Skipping database generation.",
       );
       return {
-        dbContent: "// No collections found in configuration\n",
-        typesContent: "// No collections found in configuration\n",
+        dbContent: "// No tables or collections found in configuration\n",
+        typesContent: "// No tables or collections found in configuration\n",
       };
     }
 
     // Generate types content
-    const typesContent = this.generateTypesFile(config, { strict });
+    const typesContent = this.generateTypesFile(config);
 
     // Generate database client content
-    const dbContent = this.generateDbFile(config, { strict });
+    const dbContent = this.generateDbFile(config);
 
     return {
       dbContent,
       typesContent,
     };
   }
+
+  /**
+   * Writes generated files to the specified output directory.
+   *
+   * @param outputDir - The directory to write the generated files to.
+   * @param result - The generated content from the generate method.
+   */
+  public async writeFiles(
+    outputDir: string,
+    result: GenerateResult,
+  ): Promise<void> {
+    // Create appwrite subdirectory
+    const appwriteDir = path.join(outputDir, "appwrite");
+    if (!fs.existsSync(appwriteDir)) {
+      fs.mkdirSync(appwriteDir, { recursive: true });
+    }
+
+    // Write db.ts
+    const dbFilePath = path.join(appwriteDir, "db.ts");
+    fs.writeFileSync(dbFilePath, result.dbContent, "utf-8");
+
+    // Write types.ts
+    const typesFilePath = path.join(appwriteDir, "types.ts");
+    fs.writeFileSync(typesFilePath, result.typesContent, "utf-8");
+
+    // Write index.ts (main entry point)
+    const mainContent = this.generateMainEntryFile();
+    const mainFilePath = path.join(appwriteDir, "index.ts");
+    fs.writeFileSync(mainFilePath, mainContent, "utf-8");
+  }
+
+  /**
+   * Generates the main entry file that exports the db module.
+   */
+  private generateMainEntryFile(): string {
+    return `/**
+ * Appwrite Generated SDK
+ *
+ * This file is auto-generated. Do not edit manually.
+ * Re-run \`appwrite generate\` to regenerate.
+ */
+
+export { databases } from "./db.js";
+export * from "./types.js";
+`;
+  }
 }
+
+export interface GenerateCommandOptions {
+  output: string;
+}
+
+const generateAction = async (options: GenerateCommandOptions): Promise<void> => {
+  const db = new Db();
+  const project = localConfig.getProject();
+
+  if (!project.projectId) {
+    error("No project found. Please run 'appwrite init project' first.");
+    process.exit(1);
+  }
+
+  const config: ConfigType = {
+    projectId: project.projectId,
+    projectName: project.projectName,
+    tablesDB: localConfig.getTablesDBs(),
+    tables: localConfig.getTables(),
+    databases: localConfig.getDatabases(),
+    collections: localConfig.getCollections(),
+  };
+
+  const outputDir = options.output;
+  const absoluteOutputDir = path.isAbsolute(outputDir)
+    ? outputDir
+    : path.join(process.cwd(), outputDir);
+
+  log(`Generating type-safe SDK to ${absoluteOutputDir}...`);
+
+  try {
+    const result = await db.generate(config);
+    await db.writeFiles(absoluteOutputDir, result);
+
+    success(`Generated files:`);
+    console.log(`  - ${path.join(outputDir, "appwrite.ts")}`);
+    console.log(`  - ${path.join(outputDir, "appwrite.db.ts")}`);
+    console.log(`  - ${path.join(outputDir, "appwrite.types.ts")}`);
+    console.log("");
+    log(`Import the generated SDK in your project:`);
+    console.log(`  import { databases } from "./${outputDir}/appwrite.js";`);
+    console.log("");
+    log(`Usage:`);
+    console.log(`  const db = databases.from('your-database-id');`);
+    console.log(`  await db.tableName.create({ ... });`);
+  } catch (err: any) {
+    error(`Failed to generate SDK: ${err.message}`);
+    process.exit(1);
+  }
+};
+
+export const generate = new Command("generate")
+  .description("Generate a type-safe SDK from your Appwrite project configuration")
+  .option("-o, --output <directory>", "Output directory for generated files (default: generated)", "generated")
+  .action(actionRunner(generateAction));
