@@ -339,10 +339,10 @@ class Query implements \JsonSerializable
     }
 
     /**
-     * Regex
+     * Filter resources where attribute matches a regular expression pattern.
      *
-     * @param string $attribute
-     * @param string $pattern
+     * @param string $attribute The attribute to filter on.
+     * @param string $pattern The regular expression pattern to match.
      * @return string
      */
     public static function regex(string $attribute, string $pattern): string
@@ -351,9 +351,9 @@ class Query implements \JsonSerializable
     }
 
     /**
-     * Exists
+     * Filter resources where the specified attributes exist.
      *
-     * @param array<string> $attributes
+     * @param array<string> $attributes The list of attributes that must exist.
      * @return string
      */
     public static function exists(array $attributes): string
@@ -362,9 +362,9 @@ class Query implements \JsonSerializable
     }
 
     /**
-     * Not Exists
+     * Filter resources where the specified attributes do not exist.
      *
-     * @param array<string> $attributes
+     * @param array<string> $attributes The list of attributes that must not exist.
      * @return string
      */
     public static function notExists(array $attributes): string
@@ -469,10 +469,10 @@ class Query implements \JsonSerializable
     }
 
     /**
-     * Elem Match
+     * Filter array elements where at least one element matches all the specified queries.
      *
-     * @param string $attribute
-     * @param array<string> $queries
+     * @param string $attribute The attribute containing the array to filter on.
+     * @param array<string> $queries The list of query strings to match against array elements.
      * @return string
      */
     public static function elemMatch(string $attribute, array $queries): string

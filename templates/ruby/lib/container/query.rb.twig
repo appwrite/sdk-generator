@@ -36,6 +36,11 @@ module {{spec.title | caseUcfirst}}
                 return Query.new("notEqual", attribute, value).to_s
             end
 
+            # Filter resources where attribute matches a regular expression pattern.
+            #
+            # @param attribute [String] The attribute to filter on.
+            # @param pattern [String] The regular expression pattern to match.
+            # @return [String] The query string.
             def regex(attribute, pattern)
                 return Query.new("regex", attribute, pattern).to_s
             end
@@ -64,10 +69,18 @@ module {{spec.title | caseUcfirst}}
                 return Query.new("isNotNull", attribute, nil).to_s
             end
 
+            # Filter resources where the specified attributes exist.
+            #
+            # @param attributes [Array<String>] The list of attributes that must exist.
+            # @return [String] The query string.
             def exists(attributes)
                 return Query.new("exists", nil, attributes).to_s
             end
 
+            # Filter resources where the specified attributes do not exist.
+            #
+            # @param attributes [Array<String>] The list of attributes that must not exist.
+            # @return [String] The query string.
             def not_exists(attributes)
                 return Query.new("notExists", nil, attributes).to_s
             end
@@ -176,6 +189,11 @@ module {{spec.title | caseUcfirst}}
                 return Query.new("and", nil, queries.map { |query| JSON.parse(query) }).to_s
             end
 
+            # Filter array elements where at least one element matches all the specified queries.
+            #
+            # @param attribute [String] The attribute containing the array to filter on.
+            # @param queries [Array<String>] The list of query strings to match against array elements.
+            # @return [String] The query string.
             def elem_match(attribute, queries)
                 return Query.new("elemMatch", attribute, queries.map { |query| JSON.parse(query) }).to_s
             end

@@ -28,6 +28,16 @@ class Query():
 
     @staticmethod
     def regex(attribute, pattern):
+        """
+        Filter resources where attribute matches a regular expression pattern.
+
+        Args:
+            attribute: The attribute to filter on.
+            pattern: The regular expression pattern to match.
+
+        Returns:
+            The query string.
+        """
         return str(Query("regex", attribute, pattern))
 
     @staticmethod
@@ -56,10 +66,28 @@ class Query():
 
     @staticmethod
     def exists(attributes):
+        """
+        Filter resources where the specified attributes exist.
+
+        Args:
+            attributes: The list of attributes that must exist.
+
+        Returns:
+            The query string.
+        """
         return str(Query("exists", None, attributes))
 
     @staticmethod
     def not_exists(attributes):
+        """
+        Filter resources where the specified attributes do not exist.
+
+        Args:
+            attributes: The list of attributes that must not exist.
+
+        Returns:
+            The query string.
+        """
         return str(Query("notExists", None, attributes))
 
     @staticmethod
@@ -168,6 +196,16 @@ class Query():
 
     @staticmethod
     def elem_match(attribute, queries):
+        """
+        Filter array elements where at least one element matches all the specified queries.
+
+        Args:
+            attribute: The attribute containing the array to filter on.
+            queries: The list of query strings to match against array elements.
+
+        Returns:
+            The query string.
+        """
         return str(Query("elemMatch", attribute, [json.loads(query) for query in queries]))
 
     @staticmethod
