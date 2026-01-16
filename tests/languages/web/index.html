@@ -252,23 +252,6 @@
                 console.log(error.message);
             }
 
-            // OAuth test
-            const url = await general.oauth2(
-                'clientId',
-                ['test'],
-                '123456',
-                'https://localhost',
-                'https://localhost'
-            );
-            console.log(url);
-
-            // Cookie tests
-            response = await general.setCookie();
-            console.log(response.result);
-
-            response = await general.getCookie();
-            console.log(response.result);
-
             const delay = ms => new Promise(res => setTimeout(res, ms));
             await delay(5000);
             console.log(responseRealtime)
