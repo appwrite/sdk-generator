@@ -264,7 +264,7 @@ func testQueries() {
 	fmt.Println(query.Regex("name", "pattern.*"))
 	fmt.Println(query.Exists([]interface{}{"attr1", "attr2"}))
 	fmt.Println(query.NotExists([]interface{}{"attr1", "attr2"}))
-	fmt.Println(query.ElemMatch("friends", []interface{}{
+	fmt.Println(query.ElemMatch("friends", []string{
 		query.Equal("name", "Alice"),
 		query.GreaterThan("age", 18),
 	}))
