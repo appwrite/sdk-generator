@@ -454,20 +454,15 @@ func NotExists(attributes []interface{}) string {
 // attribute: The attribute containing the array to filter on.
 // queries: The list of query strings to match against array elements.
 // Returns the query string.
-func ElemMatch(attribute string, queries []interface{}) string {
+func ElemMatch(attribute string, queries []string) string {
 	var parsedQueries []interface{}
 	for _, query := range queries {
 		var q interface{}
-		if queryStr, ok := query.(string); ok {
-			if err := json.Unmarshal([]byte(queryStr), &q); err != nil {
-				// Handle error, possibly log it or return an empty result
-				continue
-			}
-			parsedQueries = append(parsedQueries, q)
-		} else {
-			// Already a parsed query object
-			parsedQueries = append(parsedQueries, query)
+		if err := json.Unmarshal([]byte(query), &q); err != nil {
+			// Handle error, possibly log it or return an empty result
+			continue
 		}
+		parsedQueries = append(parsedQueries, q)
 	}
 	return parseQuery(queryOptions{
 		Method:    "elemMatch",
