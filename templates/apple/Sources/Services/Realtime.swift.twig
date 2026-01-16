@@ -117,8 +117,16 @@ open class Realtime : Service {
         }
     }
 
+    /**
+     * Convert channel value to string
+     * All Channel instances and String conform to ChannelValue
+     */
+    private func channelToString(_ channel: ChannelValue) -> String {
+        return channel.toString()
+    }
+
     public func subscribe(
-        channel: String,
+        channel: ChannelValue,
         callback: @escaping (RealtimeResponseEvent) -> Void
     ) async throws -> RealtimeSubscription {
         return try await subscribe(
@@ -129,23 +137,35 @@ open class Realtime : Service {
     }
 
     public func subscribe(
-        channels: Set<String>,
+        channels: [ChannelValue],
         callback: @escaping (RealtimeResponseEvent) -> Void
     ) async throws -> RealtimeSubscription {
         return try await subscribe(
-            channels: channels,
+            channels: Set(channels.map { channelToString($0) }),
             payloadType: String.self,
             callback: callback
         )
     }
 
     public func subscribe<T : Codable>(
-        channel: String,
+        channel: ChannelValue,
         payloadType: T.Type,
         callback: @escaping (RealtimeResponseEvent) -> Void
     ) async throws -> RealtimeSubscription {
         return try await subscribe(
-            channels: [channel],
+            channels: Set([channelToString(channel)]),
+            payloadType: T.self,
+            callback: callback
+        )
+    }
+
+    public func subscribe<T : Codable>(
+        channels: [ChannelValue],
+        payloadType: T.Type,
+        callback: @escaping (RealtimeResponseEvent) -> Void
+    ) async throws -> RealtimeSubscription {
+        return try await subscribe(
+            channels: Set(channels.map { channelToString($0) }),
             payloadType: T.self,
             callback: callback
         )
@@ -205,7 +225,7 @@ open class Realtime : Service {
 
 extension Realtime: WebSocketClientDelegate {
 
-    public func onOpen(channel: Channel) {
+    public func onOpen(channel: NIO.Channel) {
         self.reconnectAttempts = 0
         onOpenCallbacks.forEach { $0() }
         startHeartbeat()
@@ -225,7 +245,7 @@ extension Realtime: WebSocketClientDelegate {
         }
     }
 
-    public func onClose(channel: Channel, data: Data) async throws {
+    public func onClose(channel: NIO.Channel, data: Data) async throws {
         stopHeartbeat()
 
         onCloseCallbacks.forEach { $0() }
