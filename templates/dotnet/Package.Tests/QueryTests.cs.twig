@@ -576,5 +576,98 @@ namespace {{ spec.title | caseUcfirst }}.Tests
             Assert.NotNull(query);
             Assert.Equal("orderRandom", query.Method);
         }
+
+        [Fact]
+        public void Regex_ReturnsCorrectQuery()
+        {
+            var result = Query.Regex("attr", "^[a-z]+$");
+            var query = JsonSerializer.Deserialize<Query>(result);
+            
+            Assert.NotNull(query);
+            Assert.Equal("regex", query.Method);
+            Assert.Equal("attr", query.Attribute);
+            Assert.NotNull(query.Values);
+            Assert.Single(query.Values);
+            Assert.Equal("^[a-z]+$", query.Values[0].ToString());
+        }
+
+        [Fact]
+        public void Exists_WithSingleAttribute_ReturnsCorrectQuery()
+        {
+            var result = Query.Exists(new List<string>() { "attr1" });
+            var query = JsonSerializer.Deserialize<Query>(result);
+            
+            Assert.NotNull(query);
+            Assert.Equal("exists", query.Method);
+            Assert.NotNull(query.Values);
+            Assert.Single(query.Values);
+        }
+
+        [Fact]
+        public void Exists_WithMultipleAttributes_ReturnsCorrectQuery()
+        {
+            var result = Query.Exists(new List<string>() { "attr1", "attr2", "attr3" });
+            var query = JsonSerializer.Deserialize<Query>(result);
+            
+            Assert.NotNull(query);
+            Assert.Equal("exists", query.Method);
+            Assert.NotNull(query.Values);
+            Assert.Equal(3, query.Values.Count);
+        }
+
+        [Fact]
+        public void NotExists_WithSingleAttribute_ReturnsCorrectQuery()
+        {
+            var result = Query.NotExists(new List<string>() { "attr1" });
+            var query = JsonSerializer.Deserialize<Query>(result);
+            
+            Assert.NotNull(query);
+            Assert.Equal("notExists", query.Method);
+            Assert.NotNull(query.Values);
+            Assert.Single(query.Values);
+        }
+
+        [Fact]
+        public void NotExists_WithMultipleAttributes_ReturnsCorrectQuery()
+        {
+            var result = Query.NotExists(new List<string>() { "attr1", "attr2", "attr3" });
+            var query = JsonSerializer.Deserialize<Query>(result);
+            
+            Assert.NotNull(query);
+            Assert.Equal("notExists", query.Method);
+            Assert.NotNull(query.Values);
+            Assert.Equal(3, query.Values.Count);
+        }
+
+        [Fact]
+        public void ElemMatch_WithSingleQuery_ReturnsCorrectQuery()
+        {
+            var result = Query.ElemMatch("attr", new List<string>() { 
+                Query.Equal("subAttr", "value") 
+            });
+            var query = JsonSerializer.Deserialize<Query>(result);
+            
+            Assert.NotNull(query);
+            Assert.Equal("elemMatch", query.Method);
+            Assert.Equal("attr", query.Attribute);
+            Assert.NotNull(query.Values);
+            Assert.Single(query.Values);
+        }
+
+        [Fact]
+        public void ElemMatch_WithMultipleQueries_ReturnsCorrectQuery()
+        {
+            var result = Query.ElemMatch("attr", new List<string>() {
+                Query.Equal("subAttr1", "value1"),
+                Query.GreaterThan("subAttr2", 10)
+            });
+            var query = JsonSerializer.Deserialize<Query>(result);
+            
+            Assert.NotNull(query);
+            Assert.Equal("elemMatch", query.Method);
+            Assert.Equal("attr", query.Attribute);
+            Assert.NotNull(query.Values);
+            Assert.Equal(2, query.Values.Count);
+        }
     }
 }
