@@ -39,6 +39,15 @@ class Query(
         fun notEqual(attribute: String, value: Any) = Query("notEqual", attribute, parseValue(value)).toJson()
 
         /**
+         * Filter resources where attribute matches a regular expression pattern.
+         *
+         * @param attribute The attribute to filter on.
+         * @param pattern The regular expression pattern to match.
+         * @returns The query string.
+         */
+        fun regex(attribute: String, pattern: String) = Query("regex", attribute, parseValue(pattern)).toJson()
+
+        /**
          * Filter resources where attribute is less than value.
          *
          * @param attribute The attribute to filter on.
@@ -98,6 +107,22 @@ class Query(
          * @returns The query string.
          */
         fun isNotNull(attribute: String) = Query("isNotNull", attribute).toJson()
+
+        /**
+         * Filter resources where the specified attributes exist.
+         *
+         * @param attributes The list of attributes that must exist.
+         * @returns The query string.
+         */
+        fun exists(attributes: List<String>) = Query("exists", null, attributes).toJson()
+
+        /**
+         * Filter resources where the specified attributes do not exist.
+         *
+         * @param attributes The list of attributes that must not exist.
+         * @returns The query string.
+         */
+        fun notExists(attributes: List<String>) = Query("notExists", null, attributes).toJson()
 
         /**
          * Filter resources where attribute is between start and end (inclusive).
@@ -310,6 +335,15 @@ class Query(
          * @returns The query string.
          */
         fun and(queries: List<String>) = Query("and", null, queries.map { it.fromJson<Query>() }).toJson()
+
+        /**
+         * Filter array elements where at least one element matches all the specified queries.
+         *
+         * @param attribute The attribute containing the array to filter on.
+         * @param queries The list of query strings to match against array elements.
+         * @returns The query string.
+         */
+        fun elemMatch(attribute: String, queries: List<String>) = Query("elemMatch", attribute, queries.map { it.fromJson<Query>() }).toJson()
 
         /**
          * Filter resources where attribute is at a specific distance from the given coordinates.

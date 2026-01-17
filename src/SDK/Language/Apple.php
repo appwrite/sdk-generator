@@ -72,6 +72,11 @@ class Apple extends Swift
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Channel.swift',
+                'template'      => 'apple/Sources/Channel.swift.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Query.swift',
                 'template'      => 'swift/Sources/Query.swift.twig',
             ],
@@ -194,6 +199,11 @@ class Apple extends Swift
                 'scope'         => 'definition',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}Models/{{ definition.name | caseUcfirst }}.swift',
                 'template'      => '/swift/Sources/Models/Model.swift.twig',
+            ],
+            [
+                'scope'         => 'requestModel',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}Models/{{ requestModel.name | caseUcfirst }}.swift',
+                'template'      => '/swift/Sources/Models/RequestModel.swift.twig',
             ],
             [
                 'scope' => 'enum',

@@ -61,6 +61,9 @@ jobs:
           # Console SDKs
           - sdk: cli
             platform: console
+          
+          - sdk: web
+            platform: console
 
     steps:
       - name: Checkout repository
@@ -82,10 +85,16 @@ jobs:
 
       # Language-specific setup
       - name: Setup Node.js
-        if: matrix.sdk == 'web' || matrix.sdk == 'node' || matrix.sdk == 'cli' || matrix.sdk == 'react-native'
+        if: matrix.sdk == 'web' || matrix.sdk == 'node' || matrix.sdk == 'react-native'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+
+      - name: Setup Bun
+        if: matrix.sdk == 'cli'
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 'latest'
 
       - name: Setup Flutter
         if: matrix.sdk == 'flutter'
@@ -149,8 +158,13 @@ jobs:
               npm run build
               ;;
             cli)
-              npm install
-              npm run linux-x64
+              bun install
+              bun run linux-x64
+              bun run linux-arm64
+              bun run mac-x64
+              bun run mac-arm64
+              bun run windows-x64
+              bun run windows-arm64
               ;;
             react-native)
               npm install
@@ -173,7 +187,7 @@ jobs:
               ;;
             php)
               composer install
-              find . -name "*.php" ! -path "./vendor/*" -exec php -l {} +
+              composer test
               ;;
             python)
               pip install -e .

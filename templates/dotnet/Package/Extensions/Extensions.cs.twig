@@ -13,15 +13,14 @@ namespace {{ spec.title | caseUcfirst }}.Extensions
             return JsonSerializer.Serialize(dict, Client.SerializerOptions);
         }
 
-        public static List<T> ConvertToList<T>(this object value)
+        public static IEnumerable<object> ToEnumerable(this object value)
         {
             return value switch
             {
-                JsonElement jsonElement => jsonElement.Deserialize<List<T>>() ?? throw new InvalidCastException($"Cannot deserialize {jsonElement} to List<{typeof(T)}>."),
-                object[] objArray => objArray.Cast<T>().ToList(),
-                List<T> list => list,
-                IEnumerable<T> enumerable => enumerable.ToList(),
-                _ => throw new InvalidCastException($"Cannot convert {value.GetType()} to List<{typeof(T)}>")
+                object[] array => array,
+                IEnumerable<object> enumerable => enumerable,
+                IEnumerable nonGeneric => nonGeneric.Cast<object>(),
+                _ => throw new InvalidCastException($"Cannot convert {value?.GetType().Name ?? "null"} to IEnumerable<object>")
             };
         }
 

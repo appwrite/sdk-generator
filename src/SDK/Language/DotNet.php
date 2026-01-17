@@ -192,6 +192,13 @@ class DotNet extends Language
         if (!empty($parameter['enumValues'])) {
             return 'Appwrite.Enums.' . \ucfirst($parameter['name']);
         }
+        if (!empty($parameter['array']['model'])) {
+            return 'List<Appwrite.Models.' . $this->toPascalCase($parameter['array']['model']) . '>';
+        }
+        if (!empty($parameter['model'])) {
+            $modelType = 'Appwrite.Models.' . $this->toPascalCase($parameter['model']);
+            return $parameter['type'] === self::TYPE_ARRAY ? 'List<' . $modelType . '>' : $modelType;
+        }
         if (isset($parameter['items'])) {
             // Map definition nested type to parameter nested type
             $parameter['array'] = $parameter['items'];
@@ -465,6 +472,11 @@ class DotNet extends Language
                 'template'      => 'dotnet/Package/Models/Model.cs.twig',
             ],
             [
+                'scope'         => 'requestModel',
+                'destination'   => '{{ spec.title | caseUcfirst }}/Models/{{ requestModel.name | caseUcfirst | overrideIdentifier }}.cs',
+                'template'      => 'dotnet/Package/Models/RequestModel.cs.twig',
+            ],
+            [
                 'scope'         => 'enum',
                 'destination'   => '{{ spec.title | caseUcfirst }}/Enums/{{ enum.name | caseUcfirst | overrideIdentifier }}.cs',
                 'template'      => 'dotnet/Package/Enums/Enum.cs.twig',
@@ -496,11 +508,40 @@ class DotNet extends Language
                 }
                 return $property;
             }),
+            new TwigFilter('propertyType', function (array $property, array $spec = []) {
+                return $this->getPropertyType($property, $spec);
+            }),
         ];
     }
 
     /**
-     * get sub_scheme and property_name functions
+     * Get property type for request models
+     *
+     * @param array $property
+     * @param array $spec
+     * @return string
+     */
+    protected function getPropertyType(array $property, array $spec = []): string
+    {
+        if (isset($property['sub_schema']) && !empty($property['sub_schema'])) {
+            $type = $this->toPascalCase($property['sub_schema']);
+
+            if ($property['type'] === 'array') {
+                return 'List<' . $type . '>';
+            }
+            return $type;
+        }
+
+        if (isset($property['enum']) && !empty($property['enum'])) {
+            $enumName = $property['enumName'] ?? $property['name'];
+            return 'Appwrite.Enums.' . $this->toPascalCase($enumName);
+        }
+
+        return $this->getTypeName($property, $spec);
+    }
+
+    /**
+     * get sub_scheme, property_name and parse_value functions
      * @return TwigFunction[]
      */
     public function getFunctions(): array
@@ -527,7 +568,7 @@ class DotNet extends Language
                 }
 
                 return $result;
-            }),
+            }, ['is_safe' => ['html']]),
             new TwigFunction('property_name', function (array $definition, array $property) {
                 $name = $property['name'];
                 $name = \str_replace('$', '', $name);
@@ -537,6 +578,77 @@ class DotNet extends Language
                 }
                 return $name;
             }),
+            new TwigFunction('parse_value', function (array $property, string $mapAccess, string $v) {
+                $required = $property['required'] ?? false;
+
+                // Handle sub_schema
+                if (isset($property['sub_schema']) && !empty($property['sub_schema'])) {
+                    $subSchema = \ucfirst($property['sub_schema']);
+
+                    if ($property['type'] === 'array') {
+                        $src = $required ? $mapAccess : $v;
+                        return "{$src}.ToEnumerable().Select(it => {$subSchema}.From(map: (Dictionary<string, object>)it)).ToList()";
+                    } else {
+                        if ($required) {
+                            return "{$subSchema}.From(map: (Dictionary<string, object>){$mapAccess})";
+                        }
+                        return "({$v} as Dictionary<string, object>) is { } obj ? {$subSchema}.From(map: obj) : null";
+                    }
+                }
+
+                // Handle enum
+                if (isset($property['enum']) && !empty($property['enum'])) {
+                    $enumName = $property['enumName'] ?? $property['name'];
+                    $enumClass = \ucfirst($enumName);
+
+                    if ($required) {
+                        return "new {$enumClass}({$mapAccess}.ToString())";
+                    }
+                    return "{$v} == null ? null : new {$enumClass}({$v}.ToString())";
+                }
+
+                // Handle arrays
+                if ($property['type'] === 'array') {
+                    $itemsType = $property['items']['type'] ?? 'object';
+                    $src = $required ? $mapAccess : $v;
+
+                    $selectExpression = match ($itemsType) {
+                        'string' => 'x.ToString()',
+                        'integer' => 'Convert.ToInt64(x)',
+                        'number' => 'Convert.ToDouble(x)',
+                        'boolean' => '(bool)x',
+                        default => 'x'
+                    };
+
+                    return "{$src}.ToEnumerable().Select(x => {$selectExpression}).ToList()";
+                }
+
+                // Handle integer/number
+                if ($property['type'] === 'integer' || $property['type'] === 'number') {
+                    $convertMethod = $property['type'] === 'integer' ? 'Int64' : 'Double';
+
+                    if ($required) {
+                        return "Convert.To{$convertMethod}({$mapAccess})";
+                    }
+                    return "{$v} == null ? null : Convert.To{$convertMethod}({$v})";
+                }
+
+                // Handle boolean
+                if ($property['type'] === 'boolean') {
+                    $typeName = $this->getTypeName($property);
+
+                    if ($required) {
+                        return "({$typeName}){$mapAccess}";
+                    }
+                    return "({$typeName}?){$v}";
+                }
+
+                // Handle string type
+                if ($required) {
+                    return "{$mapAccess}.ToString()";
+                }
+                return "{$v}?.ToString()";
+            }, ['is_safe' => ['html']]),
         ];
     }
 

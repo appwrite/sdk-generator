@@ -245,6 +245,11 @@ class Python extends Language
                 'destination' => '{{ spec.title | caseSnake}}/enums/__init__.py',
                 'template' => 'python/package/enums/__init__.py.twig',
             ],
+            [
+                'scope' => 'requestModel',
+                'destination' => '{{ spec.title | caseSnake}}/models/{{ requestModel.name | caseSnake }}.py',
+                'template' => 'python/package/models/request_model.py.twig',
+            ],
         ];
     }
 
@@ -261,6 +266,11 @@ class Python extends Language
             $typeName = \ucfirst($parameter['enumName']);
         } elseif (!empty($parameter['enumValues'])) {
             $typeName = \ucfirst($parameter['name']);
+        } elseif (!empty($parameter['array']['model'])) {
+            $typeName = 'List[' . $this->toPascalCase($parameter['array']['model']) . ']';
+        } elseif (!empty($parameter['model'])) {
+            $modelType = $this->toPascalCase($parameter['model']);
+            $typeName = $parameter['type'] === self::TYPE_ARRAY ? 'List[' . $modelType . ']' : $modelType;
         } else {
             switch ($parameter['type'] ?? '') {
                 case self::TYPE_FILE:

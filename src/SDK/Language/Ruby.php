@@ -203,6 +203,11 @@ class Ruby extends Language
                 'template'      => 'ruby/lib/container/models/model.rb.twig',
             ],
             [
+                'scope'         => 'requestModel',
+                'destination'   => '/lib/{{ spec.title | caseDash }}/models/{{ requestModel.name | caseSnake }}.rb',
+                'template'      => 'ruby/lib/container/models/request_model.rb.twig',
+            ],
+            [
                 'scope'         => 'enum',
                 'destination'   => 'lib/{{ spec.title | caseSnake}}/enums/{{ enum.name | caseSnake }}.rb',
                 'template'      => 'ruby/lib/container/enums/enum.rb.twig',
@@ -222,6 +227,12 @@ class Ruby extends Language
         }
         if (!empty($parameter['enumValues'])) {
             return \ucfirst($parameter['name']);
+        }
+        if (!empty($parameter['array']['model'])) {
+            return 'Array';
+        }
+        if (!empty($parameter['model'])) {
+            return $parameter['type'] === self::TYPE_ARRAY ? 'Array' : $this->toPascalCase($parameter['model']);
         }
         return match ($parameter['type']) {
             self::TYPE_INTEGER => 'Integer',

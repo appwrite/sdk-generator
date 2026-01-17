@@ -1,0 +1,45 @@
+import Foundation
+import JSONCodable
+{% if requestModel.properties | filter(p => p.enum) | length > 0 %}
+import {{spec.title | caseUcfirst}}Enums
+{% endif %}
+
+/// {{ requestModel.description }}
+{% if requestModel.properties | length == 0 %}
+open class {{ requestModel.name | caseUcfirst }}: Codable {}
+{% else %}
+open class {{ requestModel.name | caseUcfirst }}: Codable {
+
+    enum CodingKeys: String, CodingKey {
+        {%~ for property in requestModel.properties %}
+        case {{ property.name | escapeSwiftKeyword | removeDollarSign }} = "{{ property.name }}"
+        {%~ endfor %}
+    }
+
+    {%~ for property in requestModel.properties %}
+    /// {{ property.description }}
+    public {% if property.required %}let{% else %}var{% endif %} {{ property.name | escapeSwiftKeyword | removeDollarSign }}: {{ property | propertyType(spec) | raw }}{% if not property.required %}?{% endif %}
+
+    {%~ endfor %}
+
+    public init(
+        {%~ for property in requestModel.properties %}
+        {{ property.name | escapeSwiftKeyword | removeDollarSign }}: {{ property | propertyType(spec) | raw  }}{% if not property.required %}? = nil{% endif %}{% if not loop.last %},{% endif %}
+
+        {%~ endfor %}
+    ) {
+        {%~ for property in requestModel.properties %}
+        self.{{ property.name | escapeSwiftKeyword | removeDollarSign }} = {{ property.name | escapeSwiftKeyword | removeDollarSign }}
+        {%~ endfor %}
+    }
+
+    public func toMap() -> [String: Any?] {
+        return [
+            {%~ for property in requestModel.properties %}
+            "{{ property.name }}": {% if property.sub_schema %}{% if property.type == 'array' %}{{property.name | escapeSwiftKeyword | removeDollarSign}}{% if not property.required %}?{% endif %}.map { $0.toMap() }{% else %}{{property.name | escapeSwiftKeyword | removeDollarSign}}{% if not property.required %}?{% endif %}.toMap(){% endif %}{% elseif property.enum %}{{property.name | escapeSwiftKeyword | removeDollarSign}}{% if not property.required %}?{% endif %}.rawValue{% else %}{{property.name | escapeSwiftKeyword | removeDollarSign}}{% endif %}{% if not loop.last %},{% endif %}
+
+            {%~ endfor %}
+        ]
+    }
+}
+{% endif %}

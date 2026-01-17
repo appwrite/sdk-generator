@@ -116,6 +116,18 @@ async function start() {
   // @ts-ignore
   console.log(response.result);
 
+  // Request model tests
+  response = await general.createPlayer({ id: 'player1', name: 'John Doe', score: 100 });
+  // @ts-ignore
+  console.log(response.result);
+
+  response = await general.createPlayers([
+    { id: 'player1', name: 'John Doe', score: 100 },
+    { id: 'player2', name: 'Jane Doe', score: 200 }
+  ]);
+  // @ts-ignore
+  console.log(response.result);
+
   try {
     response = await general.error400();
   } catch (error) {
@@ -223,6 +235,15 @@ async function start() {
   console.log(Query.and([
     Query.equal("released", false),
     Query.greaterThan("releasedYear", 2015)
+  ]));
+
+  // regex, exists, notExists, elemMatch
+  console.log(Query.regex("name", "pattern.*"));
+  console.log(Query.exists(["attr1", "attr2"]));
+  console.log(Query.notExists(["attr1", "attr2"]));
+  console.log(Query.elemMatch("friends", [
+    Query.equal("name", "Alice"),
+    Query.greaterThan("age", 18)
   ]));
 
   // Permission & Role helper tests

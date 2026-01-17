@@ -1,5 +1,4 @@
 {% import 'dotnet/base/utils.twig' as utils %}
-
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -41,7 +40,7 @@ namespace {{ spec.title | caseUcfirst }}.Services
 
             {%~ if method.responseModel %}
             static {{ utils.resultType(spec.title, method) }} Convert(Dictionary<string, object> it) =>
-            {%~ if method.responseModel == 'any' %}
+            {%~ if method.responseModel == 'any' or method.responseModels|length > 1 %}
                 it;
             {%~ else %}
                 {{ utils.resultType(spec.title, method) }}.From(map: it);

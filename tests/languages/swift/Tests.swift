@@ -116,6 +116,16 @@ class Tests: XCTestCase {
         mock = try await general.xenum(mockType: .first)
         print(mock.result)
 
+        // Request model tests
+        mock = try await general.createPlayer(player: Player(id: "player1", name: "John Doe", score: 100))
+        print(mock.result)
+
+        mock = try await general.createPlayers(players: [
+            Player(id: "player1", name: "John Doe", score: 100),
+            Player(id: "player2", name: "Jane Doe", score: 200)
+        ])
+        print(mock.result)
+
         do {
             try await general.error400()
         } catch let error as AppwriteError {
@@ -218,6 +228,15 @@ class Tests: XCTestCase {
         print(Query.and(
             [Query.equal("released", value: false), Query.greaterThan("releasedYear", value: 2015)]
         ))
+
+        // regex, exists, notExists, elemMatch
+        print(Query.regex("name", pattern: "pattern.*"))
+        print(Query.exists(["attr1", "attr2"]))
+        print(Query.notExists(["attr1", "attr2"]))
+        print(Query.elemMatch("friends", queries: [
+            Query.equal("name", value: "Alice"),
+            Query.greaterThan("age", value: 18)
+        ]))
 
         // Permission & Role helper tests
         print(Permission.read(Role.any()))
