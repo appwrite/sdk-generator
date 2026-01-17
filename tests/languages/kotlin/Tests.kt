@@ -14,6 +14,7 @@ import io.appwrite.extensions.toJson
 import io.appwrite.models.Error
 import io.appwrite.models.InputFile
 import io.appwrite.models.Mock
+import io.appwrite.models.Player
 import io.appwrite.services.Bar
 import io.appwrite.services.Foo
 import io.appwrite.services.General
@@ -115,6 +116,16 @@ class ServiceTest {
             }
 
             mock = general.enum(MockType.FIRST)
+            writeToFile(mock.result)
+
+            // Request model tests
+            mock = general.createPlayer(Player(id = "player1", name = "John Doe", score = 100))
+            writeToFile(mock.result)
+
+            mock = general.createPlayers(listOf(
+                Player(id = "player1", name = "John Doe", score = 100),
+                Player(id = "player2", name = "Jane Doe", score = 200)
+            ))
             writeToFile(mock.result)
 
             try {
@@ -219,6 +230,15 @@ class ServiceTest {
             
             writeToFile(Query.or(listOf(Query.equal("released", listOf(true)), Query.lessThan("releasedYear", 1990))))
             writeToFile(Query.and(listOf(Query.equal("released", listOf(false)), Query.greaterThan("releasedYear", 2015))))
+
+            // regex, exists, notExists, elemMatch
+            writeToFile(Query.regex("name", "pattern.*"))
+            writeToFile(Query.exists(listOf("attr1", "attr2")))
+            writeToFile(Query.notExists(listOf("attr1", "attr2")))
+            writeToFile(Query.elemMatch("friends", listOf(
+                Query.equal("name", "Alice"),
+                Query.greaterThan("age", 18)
+            )))
 
             // Permission & Roles helper tests
             writeToFile(Permission.read(Role.any()))

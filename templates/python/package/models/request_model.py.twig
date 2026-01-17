@@ -1,0 +1,38 @@
+from typing import Optional, List, Dict, Any
+{%~ for property in requestModel.properties %}
+{%~ if property.enum %}
+from ..enums.{{ property.enumName | caseSnake }} import {{ property.enumName | caseUcfirst }}
+{%~ endif %}
+{%~ endfor %}
+
+class {{ requestModel.name | caseUcfirst }}:
+    """
+    {{ requestModel.description }}
+    """
+
+    def __init__(
+        self,
+        {%~ for property in requestModel.properties %}
+        {{ property.name | caseSnake | escapeKeyword }}: {% if not property.required %}Optional[{% endif %}{{ property | typeName }}{% if not property.required %}] = None{% endif %}{% if not loop.last %},{% endif %}
+
+        {%~ endfor %}
+    ):
+        {%~ for property in requestModel.properties %}
+        self.{{ property.name | caseSnake | escapeKeyword }} = {{ property.name | caseSnake | escapeKeyword }}
+        {%~ endfor %}
+
+    def to_map(self) -> Dict[str, Any]:
+        """Convert the model to a dictionary."""
+        return {
+            {%~ for property in requestModel.properties %}
+            '{{ property.name }}': {% if property.sub_schema %}{% if property.type == 'array' %}[item.to_map() for item in self.{{ property.name | caseSnake | escapeKeyword }}] if self.{{ property.name | caseSnake | escapeKeyword }} else []{% else %}self.{{ property.name | caseSnake | escapeKeyword }}.to_map() if self.{{ property.name | caseSnake | escapeKeyword }} else None{% endif %}{% elseif property.enum %}self.{{ property.name | caseSnake | escapeKeyword }}.value if self.{{ property.name | caseSnake | escapeKeyword }} else None{% else %}self.{{ property.name | caseSnake | escapeKeyword }}{% endif %},
+            {%~ endfor %}
+        }
+
+    def to_json(self) -> str:
+        """Convert the model to a JSON string."""
+        import json
+        return json.dumps(self.to_map())
+
+    def __repr__(self) -> str:
+        return f"{{ requestModel.name | caseUcfirst }}({', '.join(f'{k}={v!r}' for k, v in self.to_map().items())})"

@@ -148,6 +148,11 @@ class Go extends Language
                 'destination'   => 'models/{{ definition.name | caseSnake }}.go',
                 'template'      => 'go/models/model.go.twig',
             ],
+            [
+                'scope'         => 'requestModel',
+                'destination'   => 'models/{{ requestModel.name | caseSnake }}.go',
+                'template'      => 'go/models/request_model.go.twig',
+            ],
         ];
     }
 
@@ -160,6 +165,13 @@ class Go extends Language
     {
         if (str_contains($parameter['description'] ?? '', 'Collection attributes') || str_contains($parameter['description'] ?? '', 'List of attributes')) {
             return '[]map[string]any';
+        }
+        if (!empty($parameter['array']['model'])) {
+            return '[]models.' . $this->toPascalCase($parameter['array']['model']);
+        }
+        if (!empty($parameter['model'])) {
+            $modelType = 'models.' . $this->toPascalCase($parameter['model']);
+            return $parameter['type'] === self::TYPE_ARRAY ? '[]' . $modelType : $modelType;
         }
         if (isset($parameter['items'])) {
             // Map definition nested type to parameter nested type
@@ -355,6 +367,14 @@ class Go extends Language
             return '[]byte';
         }
 
+        if (
+            \array_key_exists('responseModels', $method)
+            && \count($method['responseModels']) > 1
+        ) {
+            return 'interface{}';
+        }
+
+        // Check for missing or generic response model
         if (
             !\array_key_exists('responseModel', $method)
             || empty($method['responseModel'])

@@ -1,0 +1,66 @@
+# frozen_string_literal: true
+
+module {{ spec.title | caseUcfirst }}
+    module Models
+        class {{ requestModel.name | caseUcfirst }}
+{% for property in requestModel.properties %}
+            attr_reader :{{ property.name | caseSnake | escapeKeyword }}
+{% endfor %}
+
+            def initialize(
+{% for property in requestModel.properties %}
+                {{ property.name | caseSnake | escapeKeyword }}:{% if not property.required %} nil{% endif %}{% if not loop.last %},{% endif %}
+
+{% endfor %}
+            )
+{% for property in requestModel.properties %}
+{% if property.enum %}
+{% if property.required %}
+                @{{ property.name | caseSnake | escapeKeyword }} = validate_{{ property.name | caseSnake | escapeKeyword }}({{ property.name | caseSnake | escapeKeyword }})
+{% else %}
+                @{{ property.name | caseSnake | escapeKeyword }} = {{ property.name | caseSnake | escapeKeyword }}.nil? ? {{ property.name | caseSnake | escapeKeyword }} : validate_{{ property.name | caseSnake | escapeKeyword }}({{ property.name | caseSnake | escapeKeyword }})
+{% endif %}
+{% else %}
+                @{{ property.name | caseSnake | escapeKeyword }} = {{ property.name | caseSnake | escapeKeyword }}
+{% endif %}
+{% endfor %}
+            end
+
+            def to_map
+                {
+{% for property in requestModel.properties %}
+                    "{{ property.name }}": {% if property.sub_schema %}{% if property.type == 'array' %}@{{ property.name | caseSnake | escapeKeyword | removeDollarSign }}&.map { |it| it.to_map }{% else %}@{{property.name | caseSnake | escapeKeyword | removeDollarSign }}&.to_map{% endif %}{% else %}@{{property.name | caseSnake | escapeKeyword }}{% endif %}{% if not loop.last %},{% endif %}
+
+{% endfor %}
+                }
+            end
+
+            def to_json(*args)
+                to_map.to_json(*args)
+            end
+{% if requestModel.properties | filter(p => p.enum) | length > 0 %}
+
+            private
+
+{% endif %}
+{% for property in requestModel.properties %}
+{% if property.enum %}
+            def validate_{{ property.name | caseSnake | escapeKeyword }}({{ property.name | caseSnake | escapeKeyword }})
+                valid_{{ property.name | caseSnake }} = [
+{% for value in property.enum %}
+                    {{ spec.title | caseUcfirst }}::Enums::{{ property.enumName | caseUcfirst }}::{{ value | caseUpper }},
+{% endfor %}
+                ]
+
+                unless valid_{{ property.name | caseSnake }}.include?({{ property.name | caseSnake | escapeKeyword }})
+                    raise ArgumentError, "Invalid " + {{ property.name | caseSnake | escapeKeyword }}.to_s + ". Must be one of: " + valid_{{ property.name | caseSnake }}.join(', ')
+                end
+
+                {{ property.name | caseSnake | escapeKeyword }}
+            end
+
+{% endif %}
+{% endfor %}
+        end
+    end
+end

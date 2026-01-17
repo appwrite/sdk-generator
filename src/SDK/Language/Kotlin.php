@@ -127,6 +127,13 @@ class Kotlin extends Language
         if (!empty($parameter['enumValues'])) {
             return 'io.appwrite.enums.' . \ucfirst($parameter['name']);
         }
+        if (!empty($parameter['array']['model'])) {
+            return 'List<io.appwrite.models.' . $this->toPascalCase($parameter['array']['model']) . '>';
+        }
+        if (!empty($parameter['model'])) {
+            $modelType = 'io.appwrite.models.' . $this->toPascalCase($parameter['model']);
+            return $parameter['type'] === self::TYPE_ARRAY ? 'List<' . $modelType . '>' : $modelType;
+        }
         if (isset($parameter['items'])) {
             $parameter['array'] = $parameter['items'];
         }
@@ -632,6 +639,11 @@ class Kotlin extends Language
                 'template'      => '/kotlin/src/main/kotlin/io/appwrite/models/Model.kt.twig',
             ],
             [
+                'scope'         => 'requestModel',
+                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/models/{{ requestModel.name | caseUcfirst }}.kt',
+                'template'      => '/kotlin/src/main/kotlin/io/appwrite/models/RequestModel.kt.twig',
+            ],
+            [
                 'scope'         => 'enum',
                 'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/enums/{{ enum.name | caseUcfirst }}.kt',
                 'template'      => '/kotlin/src/main/kotlin/io/appwrite/enums/Enum.kt.twig',
@@ -678,6 +690,14 @@ class Kotlin extends Language
             return 'ByteArray';
         }
 
+        if (
+            \array_key_exists('responseModels', $method)
+            && \count($method['responseModels']) > 1
+        ) {
+            return 'Any';
+        }
+
+        // Check for missing or generic response model
         if (
             !\array_key_exists('responseModel', $method)
             || empty($method['responseModel'])
