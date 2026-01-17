@@ -154,6 +154,9 @@ namespace {{ spec.title | caseUcfirst }}
             #endif
         }
 
+        /// <summary>
+        /// Subscribe to one or more channels using string array
+        /// </summary>
         public RealtimeSubscription Subscribe(string[] channels, Action<RealtimeResponseEvent<Dictionary<string, object>>> callback)
         {
             Debug.Log($"[Realtime] Subscribe called for channels: [{string.Join(", ", channels)}]");
@@ -179,6 +182,48 @@ namespace {{ spec.title | caseUcfirst }}
             CreateSocket().Forget();
 
             return subscription;
+        }
+
+        /// <summary>
+        /// Subscribe to a single channel using string
+        /// </summary>
+        public RealtimeSubscription Subscribe(string channel, Action<RealtimeResponseEvent<Dictionary<string, object>>> callback)
+        {
+            return Subscribe(new[] { channel }, callback);
+        }
+
+        /// <summary>
+        /// Subscribe to a single channel using ResolvedChannel
+        /// </summary>
+        public RealtimeSubscription Subscribe(ResolvedChannel channel, Action<RealtimeResponseEvent<Dictionary<string, object>>> callback)
+        {
+            return Subscribe(new[] { channel.ToString() }, callback);
+        }
+
+        /// <summary>
+        /// Subscribe to multiple channels using ResolvedChannel array
+        /// </summary>
+        public RealtimeSubscription Subscribe(ResolvedChannel[] channels, Action<RealtimeResponseEvent<Dictionary<string, object>>> callback)
+        {
+            var channelStrings = channels.Select(c => c.ToString()).ToArray();
+            return Subscribe(channelStrings, callback);
+        }
+
+        /// <summary>
+        /// Subscribe to an actionable channel (without requiring terminal action)
+        /// </summary>
+        public RealtimeSubscription Subscribe(IActionable actionable, Action<RealtimeResponseEvent<Dictionary<string, object>>> callback)
+        {
+            return Subscribe(new[] { actionable.Channel }, callback);
+        }
+
+        /// <summary>
+        /// Subscribe to multiple actionable channels
+        /// </summary>
+        public RealtimeSubscription Subscribe(IActionable[] actionables, Action<RealtimeResponseEvent<Dictionary<string, object>>> callback)
+        {
+            var channelStrings = actionables.Select(a => a.Channel).ToArray();
+            return Subscribe(channelStrings, callback);
         }
 
         private void CloseSubscription(int subscriptionId, string[] channels)
