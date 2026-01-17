@@ -541,7 +541,7 @@ class DotNet extends Language
     }
 
     /**
-     * get sub_scheme and property_name functions
+     * get sub_scheme, property_name and parse_value functions
      * @return TwigFunction[]
      */
     public function getFunctions(): array
