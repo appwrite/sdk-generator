@@ -176,7 +176,7 @@ export class Db {
       get: (id: string) => Promise<${typeName}>;
       update: (id: string, data: Partial<Omit<${typeName}, keyof Models.Row>>, options?: { permissions?: Permission[] }) => Promise<${typeName}>;
       delete: (id: string) => Promise<void>;
-      list: (queries?: string[]) => Promise<{ total: number; rows: ${typeName}[] }>;
+      list: (options?: { queries?: (q: QueryBuilder<${typeName}>) => string[] }) => Promise<{ total: number; rows: ${typeName}[] }>;
     }`;
           })
           .join(";\n");
@@ -192,6 +192,33 @@ export class Db {
     }
 
     parts.push(types);
+    parts.push("");
+
+    // Add QueryBuilder type
+    parts.push(`export type QueryBuilder<T> = {
+  equal: <K extends keyof T>(field: K, value: T[K]) => string;
+  notEqual: <K extends keyof T>(field: K, value: T[K]) => string;
+  lessThan: <K extends keyof T>(field: K, value: T[K]) => string;
+  lessThanEqual: <K extends keyof T>(field: K, value: T[K]) => string;
+  greaterThan: <K extends keyof T>(field: K, value: T[K]) => string;
+  greaterThanEqual: <K extends keyof T>(field: K, value: T[K]) => string;
+  contains: <K extends keyof T>(field: K, value: T[K] extends (infer U)[] ? U : T[K]) => string;
+  search: <K extends keyof T>(field: K, value: string) => string;
+  isNull: <K extends keyof T>(field: K) => string;
+  isNotNull: <K extends keyof T>(field: K) => string;
+  startsWith: <K extends keyof T>(field: K, value: string) => string;
+  endsWith: <K extends keyof T>(field: K, value: string) => string;
+  between: <K extends keyof T>(field: K, start: T[K], end: T[K]) => string;
+  select: <K extends keyof T>(fields: K[]) => string;
+  orderAsc: <K extends keyof T>(field: K) => string;
+  orderDesc: <K extends keyof T>(field: K) => string;
+  limit: (value: number) => string;
+  offset: (value: number) => string;
+  cursorAfter: (documentId: string) => string;
+  cursorBefore: (documentId: string) => string;
+  or: (...queries: string[]) => string;
+  and: (...queries: string[]) => string;
+};`);
     parts.push("");
 
     // Add database types
@@ -286,11 +313,11 @@ export class Db {
           rowId: id,
         });
       },
-      list: (queries?: string[]) =>
+      list: (options?: { queries?: (q: QueryBuilder<${typeName}>) => string[] }) =>
         tablesDB.listRows<${typeName}>({
           databaseId: '${dbId}',
           tableId: '${entity.$id}',
-          queries,
+          queries: options?.queries?.(createQueryBuilder<${typeName}>()),
         }),
     }`;
         })
@@ -304,8 +331,33 @@ export class Db {
       })
       .join(",\n");
 
-    return `import { Client, TablesDB, ID, type Models, Permission } from '${appwriteDep}';
-import type { ${typeNames.join(", ")}, DatabaseId, DatabaseTables } from './types.js';
+    return `import { Client, TablesDB, ID, Query, type Models, Permission } from '${appwriteDep}';
+import type { ${typeNames.join(", ")}, DatabaseId, DatabaseTables, QueryBuilder } from './types.js';
+
+const createQueryBuilder = <T>(): QueryBuilder<T> => ({
+  equal: (field, value) => Query.equal(String(field), value as any),
+  notEqual: (field, value) => Query.notEqual(String(field), value as any),
+  lessThan: (field, value) => Query.lessThan(String(field), value as any),
+  lessThanEqual: (field, value) => Query.lessThanEqual(String(field), value as any),
+  greaterThan: (field, value) => Query.greaterThan(String(field), value as any),
+  greaterThanEqual: (field, value) => Query.greaterThanEqual(String(field), value as any),
+  contains: (field, value) => Query.contains(String(field), value as any),
+  search: (field, value) => Query.search(String(field), value),
+  isNull: (field) => Query.isNull(String(field)),
+  isNotNull: (field) => Query.isNotNull(String(field)),
+  startsWith: (field, value) => Query.startsWith(String(field), value),
+  endsWith: (field, value) => Query.endsWith(String(field), value),
+  between: (field, start, end) => Query.between(String(field), start as any, end as any),
+  select: (fields) => Query.select(fields.map(String)),
+  orderAsc: (field) => Query.orderAsc(String(field)),
+  orderDesc: (field) => Query.orderDesc(String(field)),
+  limit: (value) => Query.limit(value),
+  offset: (value) => Query.offset(value),
+  cursorAfter: (documentId) => Query.cursorAfter(documentId),
+  cursorBefore: (documentId) => Query.cursorBefore(documentId),
+  or: (...queries) => Query.or(queries),
+  and: (...queries) => Query.and(queries),
+});
 
 export const createDatabases = (client: Client) => {
   const tablesDB = new TablesDB(client);
