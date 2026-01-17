@@ -143,6 +143,16 @@ namespace AppwriteTests
             mock = await general.Enum(MockType.First);
             Debug.Log(mock.Result);
 
+            // Request model tests
+            mock = await general.CreatePlayer(new Player("player1", "John Doe", 100));
+            Debug.Log(mock.Result);
+
+            mock = await general.CreatePlayers(new List<Player> {
+                new Player("player1", "John Doe", 100),
+                new Player("player2", "Jane Doe", 200)
+            });
+            Debug.Log(mock.Result);
+
             try
             {
                 await general.Error400();
@@ -259,6 +269,14 @@ namespace AppwriteTests
             Debug.Log(Query.Or(new List<string> { Query.Equal("released", true), Query.LessThan("releasedYear", 1990) }));
             Debug.Log(Query.And(new List<string> { Query.Equal("released", false), Query.GreaterThan("releasedYear", 2015) }));
 
+            // regex, exists, notExists, elemMatch
+            Debug.Log(Query.Regex("name", "pattern.*"));
+            Debug.Log(Query.Exists(new List<string> { "attr1", "attr2" }));
+            Debug.Log(Query.NotExists(new List<string> { "attr1", "attr2" }));
+            Debug.Log(Query.ElemMatch("friends", new List<string> {
+                Query.Equal("name", "Alice"),
+                Query.GreaterThan("age", 18)
+            }));
             // Permission & Roles helper tests
             Debug.Log(Permission.Read(Role.Any()));
             Debug.Log(Permission.Write(Role.User(ID.Custom("userid"))));
