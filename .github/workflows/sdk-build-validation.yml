@@ -217,8 +217,11 @@ jobs:
         working-directory: examples/${{ matrix.sdk }}
         run: |
           case "${{ matrix.sdk }}" in
-            web|node|cli|react-native)
+            web|node|react-native)
               npm test || echo "No tests available"
+              ;;
+            cli)
+              bun test || echo "No tests available"
               ;;
             flutter)
               flutter test || echo "No tests available"
