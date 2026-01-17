@@ -91,6 +91,11 @@ class Unity extends DotNet
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'Assets/Runtime/Channel.cs',
+                'template'      => 'unity/Assets/Runtime/Channel.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'Assets/Runtime/Utilities/{{ spec.title | caseUcfirst }}Utilities.cs',
                 'template'      => 'unity/Assets/Runtime/Utilities/AppwriteUtilities.cs.twig',
             ],
