@@ -118,6 +118,16 @@ void main() async {
   response = await general.xenum(mockType: MockType.first);
   print(response.result);
 
+  // Request model tests
+  response = await general.createPlayer(player: Player(id: 'player1', name: 'John Doe', score: 100));
+  print(response.result);
+
+  response = await general.createPlayers(players: [
+    Player(id: 'player1', name: 'John Doe', score: 100),
+    Player(id: 'player2', name: 'Jane Doe', score: 200)
+  ]);
+  print(response.result);
+
   try {
     await general.error400();
   } on AppwriteException catch (e) {
@@ -230,6 +240,15 @@ void main() async {
     Query.equal("released", false),
     Query.greaterThan("releasedYear", 2015)
   ]));
+  
+  // regex, exists, notExists, elemMatch
+  print(Query.regex("name", "pattern.*"));
+  print(Query.exists(["attr1", "attr2"]));
+  print(Query.notExists(["attr1", "attr2"]));
+  print(Query.elemMatch("friends", [
+    Query.equal("name", "Alice"),
+    Query.greaterThan("age", 18)
+  ]));
 
   // Permission & Role helper tests
   print(Permission.read(Role.any()));
@@ -246,6 +265,55 @@ void main() async {
   // ID helper tests
   print(ID.unique());
   print(ID.custom('custom_id'));
+
+  // Channel helper tests
+  print(Channel.database().collection().document().toString());
+  print(Channel.database('db1').collection('col1').document('doc1').toString());
+  print(Channel.database('db1').collection('col1').document('doc1').create().toString());
+  print(Channel.tablesdb().table().row().toString());
+  print(Channel.tablesdb('db1').table('table1').row('row1').toString());
+  print(Channel.tablesdb('db1').table('table1').row('row1').update().toString());
+  print(Channel.account());
+  print(Channel.account('user123'));
+  print(Channel.bucket().file().toString());
+  print(Channel.bucket('bucket1').file('file1').toString());
+  print(Channel.bucket('bucket1').file('file1').delete().toString());
+  print(Channel.function().execution().toString());
+  print(Channel.function('func1').execution('exec1').toString());
+  print(Channel.function('func1').execution('exec1').create().toString());
+  print(Channel.team().toString());
+  print(Channel.team('team1').toString());
+  print(Channel.team('team1').create().toString());
+  print(Channel.membership().toString());
+  print(Channel.membership('membership1').toString());
+  print(Channel.membership('membership1').update().toString());
+
+  // Operator helper tests
+  print(Operator.increment(1));
+  print(Operator.increment(5, 100));
+  print(Operator.decrement(1));
+  print(Operator.decrement(3, 0));
+  print(Operator.multiply(2));
+  print(Operator.multiply(3, 1000));
+  print(Operator.divide(2));
+  print(Operator.divide(4, 1));
+  print(Operator.modulo(5));
+  print(Operator.power(2));
+  print(Operator.power(3, 100));
+  print(Operator.arrayAppend(["item1", "item2"]));
+  print(Operator.arrayPrepend(["first", "second"]));
+  print(Operator.arrayInsert(0, "newItem"));
+  print(Operator.arrayRemove("oldItem"));
+  print(Operator.arrayUnique());
+  print(Operator.arrayIntersect(["a", "b", "c"]));
+  print(Operator.arrayDiff(["x", "y"]));
+  print(Operator.arrayFilter(Condition.equal, "test"));
+  print(Operator.stringConcat("suffix"));
+  print(Operator.stringReplace("old", "new"));
+  print(Operator.toggle());
+  print(Operator.dateAddDays(7));
+  print(Operator.dateSubDays(3));
+  print(Operator.dateSetNow());
 
   response = await general.headers();
   print(response.result);

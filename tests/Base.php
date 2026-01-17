@@ -57,6 +57,17 @@ abstract class Base extends TestCase
         'POST:/v1/mock/tests/general/enum:passed',
     ];
 
+    protected const MODEL_RESPONSES = [
+        'POST:/v1/mock/tests/general/models:passed',
+        'POST:/v1/mock/tests/general/models/array:passed',
+    ];
+
+    protected const UNION_RESPONSES = [
+        'GET:/v1/mock/tests/union:passed',
+        'test-data',
+        'stub',
+    ];
+
     protected const UPLOAD_RESPONSE = [
         'POST:/v1/mock/tests/general/upload:passed',
     ];
@@ -65,6 +76,10 @@ abstract class Base extends TestCase
         'POST:/v1/mock/tests/general/upload:passed',
         'POST:/v1/mock/tests/general/upload:passed',
         'POST:/v1/mock/tests/general/upload:passed',
+        'POST:/v1/mock/tests/general/upload:passed',
+    ];
+
+    protected const LARGE_FILE_RESPONSES = [
         'POST:/v1/mock/tests/general/upload:passed',
     ];
 
@@ -115,12 +130,12 @@ abstract class Base extends TestCase
         '{"method":"notBetween","attribute":"age","values":[50,100]}',
         '{"method":"notStartsWith","attribute":"name","values":["Ann"]}',
         '{"method":"notEndsWith","attribute":"name","values":["nne"]}',
-        '{"method":"createdBefore","values":["2023-01-01"]}',
-        '{"method":"createdAfter","values":["2023-01-01"]}',
-        '{"method":"createdBetween","values":["2023-01-01","2023-12-31"]}',
-        '{"method":"updatedBefore","values":["2023-01-01"]}',
-        '{"method":"updatedAfter","values":["2023-01-01"]}',
-        '{"method":"updatedBetween","values":["2023-01-01","2023-12-31"]}',
+        '{"method":"lessThan","attribute":"$createdAt","values":["2023-01-01"]}',
+        '{"method":"greaterThan","attribute":"$createdAt","values":["2023-01-01"]}',
+        '{"method":"between","attribute":"$createdAt","values":["2023-01-01","2023-12-31"]}',
+        '{"method":"lessThan","attribute":"$updatedAt","values":["2023-01-01"]}',
+        '{"method":"greaterThan","attribute":"$updatedAt","values":["2023-01-01"]}',
+        '{"method":"between","attribute":"$updatedAt","values":["2023-01-01","2023-12-31"]}',
         '{"method":"distanceEqual","attribute":"location","values":[[[[40.7128,-74],[40.7128,-74]],1000,true]]}',
         '{"method":"distanceEqual","attribute":"location","values":[[[40.7128,-74],1000,true]]}',
         '{"method":"distanceNotEqual","attribute":"location","values":[[[40.7128,-74],1000,true]]}',
@@ -142,7 +157,11 @@ abstract class Base extends TestCase
         '{"method":"equal","attribute":"location","values":[[40.7128,-74],[40.7128,-74]]}',
         '{"method":"notEqual","attribute":"location","values":[[40.7128,-74],[40.7128,-74]]}',
         '{"method":"or","values":[{"method":"equal","attribute":"released","values":[true]},{"method":"lessThan","attribute":"releasedYear","values":[1990]}]}',
-        '{"method":"and","values":[{"method":"equal","attribute":"released","values":[false]},{"method":"greaterThan","attribute":"releasedYear","values":[2015]}]}'
+        '{"method":"and","values":[{"method":"equal","attribute":"released","values":[false]},{"method":"greaterThan","attribute":"releasedYear","values":[2015]}]}',
+        '{"method":"regex","attribute":"name","values":["pattern.*"]}',
+        '{"method":"exists","values":["attr1","attr2"]}',
+        '{"method":"notExists","values":["attr1","attr2"]}',
+        '{"method":"elemMatch","attribute":"friends","values":[{"method":"equal","attribute":"name","values":["Alice"]},{"method":"greaterThan","attribute":"age","values":[18]}]}',
     ];
 
     protected const PERMISSION_HELPER_RESPONSES = [
@@ -161,6 +180,57 @@ abstract class Base extends TestCase
     protected const ID_HELPER_RESPONSES = [
         'unique()',
         'custom_id'
+    ];
+
+    protected const CHANNEL_HELPER_RESPONSES = [
+        'databases.*.collections.*.documents.*',
+        'databases.db1.collections.col1.documents.doc1',
+        'databases.db1.collections.col1.documents.doc1.create',
+        'tablesdb.*.tables.*.rows.*',
+        'tablesdb.db1.tables.table1.rows.row1',
+        'tablesdb.db1.tables.table1.rows.row1.update',
+        'account',
+        'account.user123',
+        'buckets.*.files.*',
+        'buckets.bucket1.files.file1',
+        'buckets.bucket1.files.file1.delete',
+        'functions.*.executions.*',
+        'functions.func1.executions.exec1',
+        'functions.func1.executions.exec1.create',
+        'teams.*',
+        'teams.team1',
+        'teams.team1.create',
+        'memberships.*',
+        'memberships.membership1',
+        'memberships.membership1.update',
+    ];
+
+    protected const OPERATOR_HELPER_RESPONSES = [
+        '{"method":"increment","values":[1]}',
+        '{"method":"increment","values":[5,100]}',
+        '{"method":"decrement","values":[1]}',
+        '{"method":"decrement","values":[3,0]}',
+        '{"method":"multiply","values":[2]}',
+        '{"method":"multiply","values":[3,1000]}',
+        '{"method":"divide","values":[2]}',
+        '{"method":"divide","values":[4,1]}',
+        '{"method":"modulo","values":[5]}',
+        '{"method":"power","values":[2]}',
+        '{"method":"power","values":[3,100]}',
+        '{"method":"arrayAppend","values":["item1","item2"]}',
+        '{"method":"arrayPrepend","values":["first","second"]}',
+        '{"method":"arrayInsert","values":[0,"newItem"]}',
+        '{"method":"arrayRemove","values":["oldItem"]}',
+        '{"method":"arrayUnique","values":[]}',
+        '{"method":"arrayIntersect","values":["a","b","c"]}',
+        '{"method":"arrayDiff","values":["x","y"]}',
+        '{"method":"arrayFilter","values":["equal","test"]}',
+        '{"method":"stringConcat","values":["suffix"]}',
+        '{"method":"stringReplace","values":["old","new"]}',
+        '{"method":"toggle","values":[]}',
+        '{"method":"dateAddDays","values":[7]}',
+        '{"method":"dateSubDays","values":[3]}',
+        '{"method":"dateSetNow","values":[]}',
     ];
 
     protected string $class = '';
@@ -215,7 +285,6 @@ abstract class Base extends TestCase
             ->setLogo('https://appwrite.io/v1/images/console.png')
             ->setWarning('**WORK IN PROGRESS - THIS IS JUST A TEST SDK**')
             ->setExamples('**EXAMPLES** <HTML>')
-            ->setNamespace("io appwrite")
             ->setGitUserName('repoowner')
             ->setGitRepoName('reponame')
             ->setLicense('BSD-3-Clause')
@@ -225,6 +294,12 @@ abstract class Base extends TestCase
                 'X-Appwrite-Response-Format' => '0.8.0',
             ])
             ->setTest("true");
+
+        if ($this->language === 'android' || $this->language === 'kotlin') {
+            $sdk->setNamespace("io.appwrite");
+        } else {
+            $sdk->setNamespace("appwrite");
+        }
 
         $dir = __DIR__ . '/sdks/' . $this->language;
 

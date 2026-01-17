@@ -12,6 +12,21 @@ class REST extends HTTP
         return 'REST';
     }
 
+    public function getStaticAccessOperator(): string
+    {
+        return '.';
+    }
+
+    public function getStringQuote(): string
+    {
+        return '"';
+    }
+
+    public function getArrayOf(string $elements): string
+    {
+        return '[' . $elements . ']';
+    }
+
     /**
      * @param array $param
      * @return string
@@ -69,9 +84,10 @@ class REST extends HTTP
 
     /**
      * @param array $param
+     * @param string $lang
      * @return string
      */
-    public function getParamExample(array $param): string
+    public function getParamExample(array $param, string $lang = ''): string
     {
         $type       = $param['type'] ?? '';
         $example    = $param['example'] ?? '';

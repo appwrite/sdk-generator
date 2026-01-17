@@ -5,6 +5,8 @@ import io.appwrite.Permission
 import io.appwrite.Role
 import io.appwrite.ID
 import io.appwrite.Query
+import io.appwrite.Operator
+import io.appwrite.Condition
 import io.appwrite.enums.MockType
 import io.appwrite.exceptions.AppwriteException
 import io.appwrite.extensions.fromJson
@@ -12,6 +14,7 @@ import io.appwrite.extensions.toJson
 import io.appwrite.models.Error
 import io.appwrite.models.InputFile
 import io.appwrite.models.Mock
+import io.appwrite.models.Player
 import io.appwrite.services.Bar
 import io.appwrite.services.Foo
 import io.appwrite.services.General
@@ -113,6 +116,16 @@ class ServiceTest {
             }
 
             mock = general.enum(MockType.FIRST)
+            writeToFile(mock.result)
+
+            // Request model tests
+            mock = general.createPlayer(Player(id = "player1", name = "John Doe", score = 100))
+            writeToFile(mock.result)
+
+            mock = general.createPlayers(listOf(
+                Player(id = "player1", name = "John Doe", score = 100),
+                Player(id = "player2", name = "Jane Doe", score = 200)
+            ))
             writeToFile(mock.result)
 
             try {
@@ -218,6 +231,15 @@ class ServiceTest {
             writeToFile(Query.or(listOf(Query.equal("released", listOf(true)), Query.lessThan("releasedYear", 1990))))
             writeToFile(Query.and(listOf(Query.equal("released", listOf(false)), Query.greaterThan("releasedYear", 2015))))
 
+            // regex, exists, notExists, elemMatch
+            writeToFile(Query.regex("name", "pattern.*"))
+            writeToFile(Query.exists(listOf("attr1", "attr2")))
+            writeToFile(Query.notExists(listOf("attr1", "attr2")))
+            writeToFile(Query.elemMatch("friends", listOf(
+                Query.equal("name", "Alice"),
+                Query.greaterThan("age", 18)
+            )))
+
             // Permission & Roles helper tests
             writeToFile(Permission.read(Role.any()))
             writeToFile(Permission.write(Role.user(ID.custom("userid"))))
@@ -233,6 +255,33 @@ class ServiceTest {
             // ID helper tests
             writeToFile(ID.unique())
             writeToFile(ID.custom("custom_id"))
+
+            // Operator helper tests
+            writeToFile(Operator.increment(1))
+            writeToFile(Operator.increment(5, 100))
+            writeToFile(Operator.decrement(1))
+            writeToFile(Operator.decrement(3, 0))
+            writeToFile(Operator.multiply(2))
+            writeToFile(Operator.multiply(3, 1000))
+            writeToFile(Operator.divide(2))
+            writeToFile(Operator.divide(4, 1))
+            writeToFile(Operator.modulo(5))
+            writeToFile(Operator.power(2))
+            writeToFile(Operator.power(3, 100))
+            writeToFile(Operator.arrayAppend(listOf("item1", "item2")))
+            writeToFile(Operator.arrayPrepend(listOf("first", "second")))
+            writeToFile(Operator.arrayInsert(0, "newItem"))
+            writeToFile(Operator.arrayRemove("oldItem"))
+            writeToFile(Operator.arrayUnique())
+            writeToFile(Operator.arrayIntersect(listOf("a", "b", "c")))
+            writeToFile(Operator.arrayDiff(listOf("x", "y")))
+            writeToFile(Operator.arrayFilter(Condition.EQUAL, "test"))
+            writeToFile(Operator.stringConcat("suffix"))
+            writeToFile(Operator.stringReplace("old", "new"))
+            writeToFile(Operator.toggle())
+            writeToFile(Operator.dateAddDays(7))
+            writeToFile(Operator.dateSubDays(3))
+            writeToFile(Operator.dateSetNow())
 
             mock = general.headers()
             writeToFile(mock.result)

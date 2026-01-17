@@ -8,6 +8,8 @@ export { Query } from './query';
 export { Permission } from './permission';
 export { Role } from './role';
 export { ID } from './id';
-{% for enum in spec.requestEnums %}
+export { Channel } from './channel';
+export { Operator, Condition } from './operator';
+{% for enum in spec.allEnums %}
 export { {{ enum.name | caseUcfirst  }} } from './enums/{{enum.name | caseKebab}}';
 {% endfor %}

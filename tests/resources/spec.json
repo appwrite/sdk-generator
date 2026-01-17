@@ -53,6 +53,12 @@
         "demo": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ..."
       }
     },
+    "Session": {
+      "type": "apiKey",
+      "name": "X-Appwrite-Session",
+      "description": "The user session to authenticate with",
+      "in": "header"
+    },
     "Locale": {
       "type": "apiKey",
       "name": "X-Appwrite-Locale",
@@ -509,6 +515,159 @@
                 "required",
                 "default",
                 "z"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "\/mock\/tests\/general\/models": {
+      "post": {
+        "summary": "Create Player",
+        "operationId": "generalCreatePlayer",
+        "consumes": [
+          "application\/json"
+        ],
+        "produces": [
+          "application\/json"
+        ],
+        "tags": [
+          "general"
+        ],
+        "description": "Create a new player using a request model.",
+        "responses": {
+          "200": {
+            "description": "Mock",
+            "schema": {
+              "$ref": "#\/definitions\/mock"
+            }
+          }
+        },
+        "x-appwrite": {
+          "method": "createPlayer",
+          "weight": 300,
+          "cookies": false,
+          "type": "",
+          "demo": "general\/create-player.md",
+          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterCreate a player with request model.",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "platforms": [
+            "client",
+            "server",
+            "server"
+          ],
+          "packaging": false,
+          "offline-model": "",
+          "offline-key": "",
+          "offline-response-key": "$id",
+          "auth": {
+            "Project": []
+          }
+        },
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "payload",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "player": {
+                  "type": "object",
+                  "description": "Player object.",
+                  "x-model": "player",
+                  "default": null
+                }
+              },
+              "required": [
+                "player"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "\/mock\/tests\/general\/models\/array": {
+      "post": {
+        "summary": "Create Players",
+        "operationId": "generalCreatePlayers",
+        "consumes": [
+          "application\/json"
+        ],
+        "produces": [
+          "application\/json"
+        ],
+        "tags": [
+          "general"
+        ],
+        "description": "Create multiple players using an array of request models.",
+        "responses": {
+          "200": {
+            "description": "Mock",
+            "schema": {
+              "$ref": "#\/definitions\/mock"
+            }
+          }
+        },
+        "x-appwrite": {
+          "method": "createPlayers",
+          "weight": 301,
+          "cookies": false,
+          "type": "",
+          "demo": "general\/create-players.md",
+          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterCreate players with array of request models.",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "platforms": [
+            "client",
+            "server",
+            "server"
+          ],
+          "packaging": false,
+          "offline-model": "",
+          "offline-key": "",
+          "offline-response-key": "$id",
+          "auth": {
+            "Project": []
+          }
+        },
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "payload",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "players": {
+                  "type": "array",
+                  "description": "Array of player objects.",
+                  "x-model": "player",
+                  "default": null,
+                  "items": {
+                    "$ref": "#\/definitions\/player"
+                  }
+                }
+              },
+              "required": [
+                "players"
               ]
             }
           }
@@ -1834,6 +1993,76 @@
           }
         ]
       }
+    },
+    "\/mock\/tests\/union": {
+      "get": {
+        "summary": "Get Union",
+        "operationId": "unionGet",
+        "consumes": [],
+        "produces": [
+          "application\/json"
+        ],
+        "tags": [
+          "general"
+        ],
+        "description": "Test union response types",
+        "responses": {
+          "200": {
+            "description": "Mock or Stub",
+            "schema": {
+              "x-oneOf": [
+                {
+                  "$ref": "#\/definitions\/mock"
+                },
+                {
+                  "$ref": "#\/definitions\/stub"
+                }
+              ]
+            }
+          }
+        },
+        "x-appwrite": {
+          "method": "getUnion",
+          "weight": 302,
+          "cookies": false,
+          "type": "",
+          "demo": "mock\/get-union.md",
+          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/master",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "platforms": [
+            "client",
+            "server"
+          ],
+          "packaging": false,
+          "offline-model": "",
+          "offline-key": "",
+          "offline-response-key": "$id",
+          "auth": {
+            "Project": []
+          }
+        },
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "type",
+            "description": "Type of model to return (mock or stub)",
+            "required": false,
+            "type": "string",
+            "x-example": "mock",
+            "default": "mock",
+            "in": "query"
+          }
+        ]
+      }
     }
   },
   "tags": [
@@ -1978,6 +2207,54 @@
       },
       "required": [
         "result"
+      ]
+    },
+    "player": {
+      "description": "Player",
+      "type": "object",
+      "x-request-model": true,
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Player ID.",
+          "x-example": "player123"
+        },
+        "name": {
+          "type": "string",
+          "description": "Player name.",
+          "x-example": "John Doe"
+        },
+        "score": {
+          "type": "integer",
+          "description": "Player score.",
+          "x-example": 100
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "score"
+      ]
+    },
+    "stub": {
+      "description": "Stub",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "type": "string",
+          "description": "Stub data.",
+          "x-example": "test-data"
+        },
+        "type": {
+          "type": "string",
+          "description": "Stub type.",
+          "x-example": "testing"
+        }
+      },
+      "required": [
+        "data",
+        "type"
       ]
     }
   },

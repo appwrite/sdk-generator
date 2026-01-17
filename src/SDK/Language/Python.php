@@ -84,6 +84,21 @@ class Python extends Language
         return [];
     }
 
+    public function getStaticAccessOperator(): string
+    {
+        return '.';
+    }
+
+    public function getStringQuote(): string
+    {
+        return '"';
+    }
+
+    public function getArrayOf(string $elements): string
+    {
+        return '[' . $elements . ']';
+    }
+
     /**
      * @return array
      */
@@ -162,6 +177,11 @@ class Python extends Language
             ],
             [
                 'scope' => 'default',
+                'destination' => '{{ spec.title | caseSnake}}/operator.py',
+                'template' => 'python/package/operator.py.twig',
+            ],
+            [
+                'scope' => 'default',
                 'destination' => '{{ spec.title | caseSnake}}/exception.py',
                 'template' => 'python/package/exception.py.twig',
             ],
@@ -225,6 +245,11 @@ class Python extends Language
                 'destination' => '{{ spec.title | caseSnake}}/enums/__init__.py',
                 'template' => 'python/package/enums/__init__.py.twig',
             ],
+            [
+                'scope' => 'requestModel',
+                'destination' => '{{ spec.title | caseSnake}}/models/{{ requestModel.name | caseSnake }}.py',
+                'template' => 'python/package/models/request_model.py.twig',
+            ],
         ];
     }
 
@@ -235,32 +260,53 @@ class Python extends Language
      */
     public function getTypeName(array $parameter, array $spec = []): string
     {
+        $typeName = '';
+
         if (isset($parameter['enumName'])) {
-            return \ucfirst($parameter['enumName']);
+            $typeName = \ucfirst($parameter['enumName']);
+        } elseif (!empty($parameter['enumValues'])) {
+            $typeName = \ucfirst($parameter['name']);
+        } elseif (!empty($parameter['array']['model'])) {
+            $typeName = 'List[' . $this->toPascalCase($parameter['array']['model']) . ']';
+        } elseif (!empty($parameter['model'])) {
+            $modelType = $this->toPascalCase($parameter['model']);
+            $typeName = $parameter['type'] === self::TYPE_ARRAY ? 'List[' . $modelType . ']' : $modelType;
+        } else {
+            switch ($parameter['type'] ?? '') {
+                case self::TYPE_FILE:
+                    $typeName = 'InputFile';
+                    break;
+                case self::TYPE_NUMBER:
+                case self::TYPE_INTEGER:
+                    $typeName = 'float';
+                    break;
+                case self::TYPE_BOOLEAN:
+                    $typeName = 'bool';
+                    break;
+                case self::TYPE_STRING:
+                    $typeName = 'str';
+                    break;
+                case self::TYPE_ARRAY:
+                    if (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type'])) {
+                        $typeName = 'List[' . $this->getTypeName($parameter['array']) . ']';
+                    } else {
+                        $typeName = 'List[Any]';
+                    }
+                    break;
+                case self::TYPE_OBJECT:
+                    $typeName = 'dict';
+                    break;
+                default:
+                    $typeName = $parameter['type'];
+                    break;
+            }
         }
-        if (!empty($parameter['enumValues'])) {
-            return \ucfirst($parameter['name']);
+
+        if (!($parameter['required'] ?? true) || ($parameter['nullable'] ?? false)) {
+            return 'Optional[' . $typeName . ']';
         }
-        switch ($parameter['type'] ?? '') {
-            case self::TYPE_FILE:
-                return 'InputFile';
-            case self::TYPE_NUMBER:
-            case self::TYPE_INTEGER:
-                return 'float';
-            case self::TYPE_BOOLEAN:
-                return 'bool';
-            case self::TYPE_STRING:
-                return 'str';
-            case self::TYPE_ARRAY:
-                if (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type'])) {
-                    return 'List[' . $this->getTypeName($parameter['array']) . ']';
-                }
-                return 'List[Any]';
-            case self::TYPE_OBJECT:
-                return 'dict';
-            default:
-                return $parameter['type'];
-        }
+
+        return $typeName;
     }
 
     /**
@@ -322,9 +368,10 @@ class Python extends Language
 
     /**
      * @param array $param
+     * @param string $lang
      * @return string
      */
-    public function getParamExample(array $param): string
+    public function getParamExample(array $param, string $lang = ''): string
     {
         $type = $param['type'] ?? '';
         $example = $param['example'] ?? '';
@@ -342,7 +389,8 @@ class Python extends Language
         }
 
         return match ($type) {
-            self::TYPE_ARRAY, self::TYPE_FILE, self::TYPE_INTEGER, self::TYPE_NUMBER => $example,
+            self::TYPE_ARRAY => $this->isPermissionString($example) ? $this->getPermissionExample($example) : $example,
+            self::TYPE_FILE, self::TYPE_INTEGER, self::TYPE_NUMBER => $example,
             self::TYPE_BOOLEAN => ($example) ? 'True' : 'False',
             self::TYPE_OBJECT => ($example === '{}')
             ? '{}'
@@ -361,6 +409,12 @@ class Python extends Language
             }),
             new TwigFilter('getPropertyType', function ($value, $method = []) {
                 return $this->getTypeName($value, $method);
+            }),
+            new TwigFilter('formatParamValue', function (string $paramName, string $paramType, bool $isMultipartFormData) {
+                if ($isMultipartFormData && $paramType === self::TYPE_BOOLEAN) {
+                    return "str({$paramName}).lower() if type({$paramName}) is bool else {$paramName}";
+                }
+                return $paramName;
             }),
         ];
     }

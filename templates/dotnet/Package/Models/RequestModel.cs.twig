@@ -1,0 +1,50 @@
+using System;
+using System.Collections.Generic;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
+namespace {{ spec.title | caseUcfirst }}.Models
+{
+    /// <summary>
+    /// {{ requestModel.description }}
+    /// </summary>
+    public class {{ requestModel.name | caseUcfirst | overrideIdentifier }}
+    {
+        {%~ for property in requestModel.properties %}
+        /// <summary>
+        /// {{ property.description }}
+        /// </summary>
+        [JsonPropertyName("{{ property.name }}")]
+        public {{ property | propertyType(spec) | raw }}{% if not property.required %}?{% endif %} {{ property.name | caseUcfirst | overrideIdentifier }} { get; set; }
+
+        {%~ endfor %}
+
+        public {{ requestModel.name | caseUcfirst | overrideIdentifier }}(
+            {%~ for property in requestModel.properties %}
+            {{ property | propertyType(spec) | raw }}{% if not property.required %}?{% endif %} {{ property.name | caseCamel | overrideIdentifier }}{% if not property.required %} = null{% endif %}{% if not loop.last %},{% endif %}
+
+            {%~ endfor %}
+        )
+        {
+            {%~ for property in requestModel.properties %}
+            {{ property.name | caseUcfirst | overrideIdentifier }} = {{ property.name | caseCamel | overrideIdentifier }};
+            {%~ endfor %}
+        }
+
+        public Dictionary<string, object?> ToMap()
+        {
+            return new Dictionary<string, object?>
+            {
+                {%~ for property in requestModel.properties %}
+                { "{{ property.name }}", {% if property.sub_schema %}{% if property.type == 'array' %}{{ property.name | caseUcfirst | overrideIdentifier }}?.ConvertAll(p => p.ToMap()){% else %}{{ property.name | caseUcfirst | overrideIdentifier }}?.ToMap(){% endif %}{% elseif property.enum %}{{ property.name | caseUcfirst | overrideIdentifier }}{% if not property.required %}?{% endif %}.Value{% else %}{{ property.name | caseUcfirst | overrideIdentifier }}{% endif %} }{% if not loop.last %},{% endif %}
+
+                {%~ endfor %}
+            };
+        }
+
+        public string ToJson()
+        {
+            return JsonSerializer.Serialize(ToMap());
+        }
+    }
+}

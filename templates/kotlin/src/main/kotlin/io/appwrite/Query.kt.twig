@@ -15,6 +15,15 @@ class Query(
 
         fun notEqual(attribute: String, value: Any) = Query("notEqual", attribute, parseValue(value)).toJson()
 
+        /**
+         * Filter resources where attribute matches a regular expression pattern.
+         *
+         * @param attribute The attribute to filter on.
+         * @param pattern The regular expression pattern to match.
+         * @returns The query string.
+         */
+        fun regex(attribute: String, pattern: String) = Query("regex", attribute, parseValue(pattern)).toJson()
+
         fun lessThan(attribute: String, value: Any) = Query("lessThan", attribute, parseValue(value)).toJson()
 
         fun lessThanEqual(attribute: String, value: Any) = Query("lessThanEqual", attribute, parseValue(value)).toJson()
@@ -28,6 +37,22 @@ class Query(
         fun isNull(attribute: String) = Query("isNull", attribute).toJson()
 
         fun isNotNull(attribute: String) = Query("isNotNull", attribute).toJson()
+
+        /**
+         * Filter resources where the specified attributes exist.
+         *
+         * @param attributes The list of attributes that must exist.
+         * @returns The query string.
+         */
+        fun exists(attributes: List<String>) = Query("exists", null, attributes).toJson()
+
+        /**
+         * Filter resources where the specified attributes do not exist.
+         *
+         * @param attributes The list of attributes that must not exist.
+         * @returns The query string.
+         */
+        fun notExists(attributes: List<String>) = Query("notExists", null, attributes).toJson()
 
         fun between(attribute: String, start: Any, end: Any) = Query("between", attribute, listOf(start, end)).toJson()
 
@@ -63,21 +88,30 @@ class Query(
 
         fun notEndsWith(attribute: String, value: String) = Query("notEndsWith", attribute, listOf(value)).toJson()
 
-        fun createdBefore(value: String) = Query("createdBefore", null, listOf(value)).toJson()
+        fun createdBefore(value: String) = lessThan("\$createdAt", value)
 
-        fun createdAfter(value: String) = Query("createdAfter", null, listOf(value)).toJson()
+        fun createdAfter(value: String) = greaterThan("\$createdAt", value)
 
-        fun createdBetween(start: String, end: String) = Query("createdBetween", null, listOf(start, end)).toJson()
+        fun createdBetween(start: String, end: String) = between("\$createdAt", start, end)
 
-        fun updatedBefore(value: String) = Query("updatedBefore", null, listOf(value)).toJson()
+        fun updatedBefore(value: String) = lessThan("\$updatedAt", value)
 
-        fun updatedAfter(value: String) = Query("updatedAfter", null, listOf(value)).toJson()
+        fun updatedAfter(value: String) = greaterThan("\$updatedAt", value)
 
-        fun updatedBetween(start: String, end: String) = Query("updatedBetween", null, listOf(start, end)).toJson()
+        fun updatedBetween(start: String, end: String) = between("\$updatedAt", start, end)
 
         fun or(queries: List<String>) = Query("or", null, queries.map { it.fromJson<Query>() }).toJson()
 
         fun and(queries: List<String>) = Query("and", null, queries.map { it.fromJson<Query>() }).toJson()
+
+        /**
+         * Filter array elements where at least one element matches all the specified queries.
+         *
+         * @param attribute The attribute containing the array to filter on.
+         * @param queries The list of query strings to match against array elements.
+         * @returns The query string.
+         */
+        fun elemMatch(attribute: String, queries: List<String>) = Query("elemMatch", attribute, queries.map { it.fromJson<Query>() }).toJson()
 
         /**
          * Filter resources where attribute is at a specific distance from the given coordinates.

@@ -1,9 +1,11 @@
-const { 
-    Client, 
+const {
+    Client,
     Permission,
     Query,
     Role,
     ID,
+    Operator,
+    Condition,
     MockType,
     Foo,
     Bar,
@@ -199,6 +201,16 @@ async function start() {
     response = await general.enum(MockType.First);
     console.log(response.result);
 
+    // Request model tests
+    response = await general.createPlayer({ id: 'player1', name: 'John Doe', score: 100 });
+    console.log(response.result);
+
+    response = await general.createPlayers([
+        { id: 'player1', name: 'John Doe', score: 100 },
+        { id: 'player2', name: 'Jane Doe', score: 200 }
+    ]);
+    console.log(response.result);
+
     try {
         response = await general.error400();
     } catch(error) {
@@ -308,6 +320,15 @@ async function start() {
         Query.greaterThan("releasedYear", 2015)
     ]));
 
+    // regex, exists, notExists, elemMatch
+    console.log(Query.regex("name", "pattern.*"));
+    console.log(Query.exists(["attr1", "attr2"]));
+    console.log(Query.notExists(["attr1", "attr2"]));
+    console.log(Query.elemMatch("friends", [
+        Query.equal("name", "Alice"),
+        Query.greaterThan("age", 18)
+    ]));
+
     // Permission & Role helper tests
     console.log(Permission.read(Role.any()));
     console.log(Permission.write(Role.user(ID.custom('userid'))));
@@ -323,6 +344,33 @@ async function start() {
     // ID helper tests
     console.log(ID.unique());
     console.log(ID.custom('custom_id'));
+
+    // Operator helper tests
+    console.log(Operator.increment(1));
+    console.log(Operator.increment(5, 100));
+    console.log(Operator.decrement(1));
+    console.log(Operator.decrement(3, 0));
+    console.log(Operator.multiply(2));
+    console.log(Operator.multiply(3, 1000));
+    console.log(Operator.divide(2));
+    console.log(Operator.divide(4, 1));
+    console.log(Operator.modulo(5));
+    console.log(Operator.power(2));
+    console.log(Operator.power(3, 100));
+    console.log(Operator.arrayAppend(["item1", "item2"]));
+    console.log(Operator.arrayPrepend(["first", "second"]));
+    console.log(Operator.arrayInsert(0, "newItem"));
+    console.log(Operator.arrayRemove("oldItem"));
+    console.log(Operator.arrayUnique());
+    console.log(Operator.arrayIntersect(["a", "b", "c"]));
+    console.log(Operator.arrayDiff(["x", "y"]));
+    console.log(Operator.arrayFilter(Condition.Equal, "test"));
+    console.log(Operator.stringConcat("suffix"));
+    console.log(Operator.stringReplace("old", "new"));
+    console.log(Operator.toggle());
+    console.log(Operator.dateAddDays(7));
+    console.log(Operator.dateSubDays(3));
+    console.log(Operator.dateSetNow());
 
     response = await general.headers();
     console.log(response.result);

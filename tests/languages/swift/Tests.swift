@@ -116,6 +116,16 @@ class Tests: XCTestCase {
         mock = try await general.xenum(mockType: .first)
         print(mock.result)
 
+        // Request model tests
+        mock = try await general.createPlayer(player: Player(id: "player1", name: "John Doe", score: 100))
+        print(mock.result)
+
+        mock = try await general.createPlayers(players: [
+            Player(id: "player1", name: "John Doe", score: 100),
+            Player(id: "player2", name: "Jane Doe", score: 200)
+        ])
+        print(mock.result)
+
         do {
             try await general.error400()
         } catch let error as AppwriteError {
@@ -219,6 +229,15 @@ class Tests: XCTestCase {
             [Query.equal("released", value: false), Query.greaterThan("releasedYear", value: 2015)]
         ))
 
+        // regex, exists, notExists, elemMatch
+        print(Query.regex("name", pattern: "pattern.*"))
+        print(Query.exists(["attr1", "attr2"]))
+        print(Query.notExists(["attr1", "attr2"]))
+        print(Query.elemMatch("friends", queries: [
+            Query.equal("name", value: "Alice"),
+            Query.greaterThan("age", value: 18)
+        ]))
+
         // Permission & Role helper tests
         print(Permission.read(Role.any()))
         print(Permission.write(Role.user(ID.custom("userid"))))
@@ -234,6 +253,33 @@ class Tests: XCTestCase {
         // ID helper tests
         print(ID.unique())
         print(ID.custom("custom_id"))
+
+        // Operator helper tests
+        print(Operator.increment(1))
+        print(Operator.increment(5, max: 100))
+        print(Operator.decrement(1))
+        print(Operator.decrement(3, min: 0))
+        print(Operator.multiply(2))
+        print(Operator.multiply(3, max: 1000))
+        print(Operator.divide(2))
+        print(Operator.divide(4, min: 1))
+        print(Operator.modulo(5))
+        print(Operator.power(2))
+        print(Operator.power(3, max: 100))
+        print(Operator.arrayAppend(["item1", "item2"]))
+        print(Operator.arrayPrepend(["first", "second"]))
+        print(Operator.arrayInsert(0, value: "newItem"))
+        print(Operator.arrayRemove("oldItem"))
+        print(Operator.arrayUnique())
+        print(Operator.arrayIntersect(["a", "b", "c"]))
+        print(Operator.arrayDiff(["x", "y"]))
+        print(Operator.arrayFilter(Condition.equal, value: "test"))
+        print(Operator.stringConcat("suffix"))
+        print(Operator.stringReplace("old", "new"))
+        print(Operator.toggle())
+        print(Operator.dateAddDays(7))
+        print(Operator.dateSubDays(3))
+        print(Operator.dateSetNow())
 
         mock = try await general.headers()
         print(mock.result)

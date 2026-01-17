@@ -135,7 +135,7 @@ class SDK
             return strtolower(preg_replace('/(?<!^)([A-Z][a-z]|(?<=[a-z])[^a-z\s]|(?<=[A-Z])[0-9_])/', '-$1', $value));
         }));
         $this->twig->addFilter(new TwigFilter('caseSlash', function ($value) {
-            return str_replace([' ', '_'], '/', strtolower(preg_replace('/([a-zA-Z])(?=[A-Z])/', '$1/', $value)));
+            return str_replace([' ', '_', '.'], '/', strtolower(preg_replace('/([a-zA-Z])(?=[A-Z])/', '$1/', $value)));
         }));
         $this->twig->addFilter(new TwigFilter('caseDot', function ($value) {
             return str_replace([' ', '_'], '.', strtolower(preg_replace('/([a-zA-Z])(?=[A-Z])/', '$1.', $value)));
@@ -173,7 +173,10 @@ class SDK
             return implode("\n", $value);
         }, ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('escapeDollarSign', function ($value) {
-            return str_replace('$', '\$', $value);
+            $value = str_replace('\\', '\\\\', $value); // Escape backslashes first
+            $value = str_replace('"', '\\"', $value);   // Escape double quotes
+            $value = str_replace('$', '\\$', $value);   // Escape dollar signs
+            return $value;
         }, ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('paramsQuery', function ($value) {
             $query = '';
@@ -189,11 +192,7 @@ class SDK
             return $value;
         }, ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('escapeKeyword', function ($value) use ($language) {
-            if (in_array($value, $language->getKeywords())) {
-                return 'x' . $value;
-            }
-
-            return $value;
+            return $language->escapeKeyword($value);
         }, ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('caseHTML', function ($value) {
             return $value;
@@ -225,6 +224,9 @@ class SDK
                 return $toSnake($value);
             }
             return $parts[0] . '.' . $toSnake($parts[1]);
+        }));
+        $this->twig->addFilter(new TwigFilter('hasPermissionParam', function ($value) {
+            return $this->language->hasPermissionParam($value);
         }));
     }
 
@@ -621,7 +623,7 @@ class SDK
             'spec' => [
                 'title' => $this->spec->getTitle(),
                 'description' => $this->spec->getDescription(),
-                'namespace' => $this->spec->getNamespace(),
+                'namespace' => $this->getParam('namespace') ?: $this->spec->getNamespace(),
                 'version' => $this->spec->getVersion(),
                 'endpoint' => $this->spec->getEndpoint(),
                 'endpointDocs' => $this->spec->getEndpointDocs(),
@@ -637,6 +639,7 @@ class SDK
                 'responseEnums' => $this->spec->getResponseEnums(),
                 'allEnums' => $this->spec->getAllEnums(),
                 'definitions' => $this->spec->getDefinitions(),
+                'requestModels' => $this->spec->getRequestModels(),
                 'global' => [
                     'headers' => $this->spec->getGlobalHeaders(),
                     'defaultHeaders' => $this->defaultHeaders,
@@ -692,6 +695,17 @@ class SDK
                 case 'definition':
                     foreach ($this->spec->getDefinitions() as $key => $definition) {
                         $params['definition'] = $definition;
+
+                        if ($this->exclude($file, $params)) {
+                            continue;
+                        }
+
+                        $this->render($template, $destination, $block, $params, $minify);
+                    }
+                    break;
+                case 'requestModel':
+                    foreach ($this->spec->getRequestModels() as $key => $requestModel) {
+                        $params['requestModel'] = $requestModel;
 
                         if ($this->exclude($file, $params)) {
                             continue;

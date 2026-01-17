@@ -122,8 +122,18 @@ class Android extends Kotlin
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/Channel.kt',
+                'template'      => '/android/library/src/main/java/io/package/Channel.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/Query.kt',
                 'template'      => '/android/library/src/main/java/io/package/Query.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/Operator.kt',
+                'template'      => '/android/library/src/main/java/io/package/Operator.kt.twig',
             ],
             [
                 'scope'         => 'default',
@@ -239,6 +249,11 @@ class Android extends Kotlin
                 'scope'         => 'definition',
                 'destination'   => 'library/src/main/java/{{ sdk.namespace | caseSlash }}/models/{{ definition.name | caseUcfirst }}.kt',
                 'template'      => '/android/library/src/main/java/io/package/models/Model.kt.twig',
+            ],
+            [
+                'scope'         => 'requestModel',
+                'destination'   => 'library/src/main/java/{{ sdk.namespace | caseSlash }}/models/{{ requestModel.name | caseUcfirst }}.kt',
+                'template'      => '/android/library/src/main/java/io/package/models/RequestModel.kt.twig',
             ],
             [
                 'scope'         => 'enum',

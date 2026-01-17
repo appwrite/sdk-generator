@@ -32,7 +32,7 @@ public class WebSocketClient {
     private let channelQueue = DispatchQueue(label: WEBSOCKET_CHANNEL_QUEUE)
     private let threadGroupQueue = DispatchQueue(label: WEBSOCKET_THREAD_QUEUE)
 
-    var channel: Channel? {
+    var channel: NIOCore.Channel? {
         get {
             return channelQueue.sync { _channel }
         }
@@ -40,7 +40,7 @@ public class WebSocketClient {
             channelQueue.sync { _channel = newValue }
         }
     }
-    private var _channel: Channel? = nil
+    private var _channel: NIOCore.Channel? = nil
 
     var threadGroup: MultiThreadedEventLoopGroup? {
         get {
@@ -61,8 +61,8 @@ public class WebSocketClient {
     
     // MARK: - Stored callbacks
     
-    private var _openCallback: (Channel) -> Void = { _ in }
-    var onOpen: (Channel) -> Void {
+    private var _openCallback: (NIOCore.Channel) -> Void = { _ in }
+    var onOpen: (NIOCore.Channel) -> Void {
         get {
             return locker.sync {
                 return _openCallback
@@ -75,8 +75,8 @@ public class WebSocketClient {
         }
     }
     
-    private var _closeCallback: (Channel, Data) -> Void = { _,_ in }
-    var onClose: (Channel, Data) -> Void {
+    private var _closeCallback: (NIOCore.Channel, Data) -> Void = { _,_ in }
+    var onClose: (NIOCore.Channel, Data) -> Void {
         get {
             return locker.sync {
                 return _closeCallback
@@ -137,7 +137,7 @@ public class WebSocketClient {
     ///
     /// - parameters:
     ///     - callback: Callback to fie when a WebSocket connection is opened
-    public func onOpen(_ callback: @escaping (Channel) -> Void) {
+    public func onOpen(_ callback: @escaping (NIOCore.Channel) -> Void) {
         onOpen = callback
     }
     
@@ -161,7 +161,7 @@ public class WebSocketClient {
     ///
     /// - parameters:
     ///     - callback: Callback to fie when a WebSocket close message is received
-    public func onClose(_ callback: @escaping (Channel, Data) -> Void) {
+    public func onClose(_ callback: @escaping (NIOCore.Channel, Data) -> Void) {
         onClose = callback
     }
 
@@ -262,7 +262,7 @@ public class WebSocketClient {
             .get()
     }
 
-    private func openChannel(channel: Channel) -> EventLoopFuture<Void> {
+    private func openChannel(channel: NIOCore.Channel) -> EventLoopFuture<Void> {
         let httpHandler = HTTPHandler(client: self, headers: headers)
 
         let basicUpgrader = NIOWebSocketClientUpgrader(
@@ -290,14 +290,20 @@ public class WebSocketClient {
         }
     }
 
-    private func upgradePipelineHandler(channel: Channel, response: HTTPResponseHead) -> EventLoopFuture<Void> {
+    private func upgradePipelineHandler(channel: NIOCore.Channel, response: HTTPResponseHead) -> EventLoopFuture<Void> {
         let handler = MessageHandler(client: self)
 
         if response.status == .switchingProtocols {
             self.channel = channel
         }
 
-        return channel.pipeline.addHandler(handler)
+        return channel.pipeline.addHandler(handler).map {
+            if let delegate = self.delegate {
+                delegate.onOpen(channel: channel)
+            } else {
+                self.onOpen(channel)
+            }
+        }
     }
 
     // MARK: - Close connection
@@ -380,7 +386,6 @@ public class WebSocketClient {
             promise: promise
         )
     }
-
 
     /// Sends the JSON representation of the given model to the connected server in multiple frames.
     ///

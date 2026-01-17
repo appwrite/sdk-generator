@@ -146,6 +146,31 @@ class DotNet extends Language
         ];
     }
 
+    public function getStaticAccessOperator(): string
+    {
+        return '.';
+    }
+
+    public function getStringQuote(): string
+    {
+        return '"';
+    }
+
+    public function getArrayOf(string $elements): string
+    {
+        return 'new List<string> { ' . $elements . ' }';
+    }
+
+    protected function transformPermissionAction(string $action): string
+    {
+        return ucfirst($action);
+    }
+
+    protected function transformPermissionRole(string $role): string
+    {
+        return ucfirst($role);
+    }
+
     public function getPropertyOverrides(): array
     {
         return [
@@ -166,6 +191,13 @@ class DotNet extends Language
         }
         if (!empty($parameter['enumValues'])) {
             return 'Appwrite.Enums.' . \ucfirst($parameter['name']);
+        }
+        if (!empty($parameter['array']['model'])) {
+            return 'List<Appwrite.Models.' . $this->toPascalCase($parameter['array']['model']) . '>';
+        }
+        if (!empty($parameter['model'])) {
+            $modelType = 'Appwrite.Models.' . $this->toPascalCase($parameter['model']);
+            return $parameter['type'] === self::TYPE_ARRAY ? 'List<' . $modelType . '>' : $modelType;
         }
         if (isset($parameter['items'])) {
             // Map definition nested type to parameter nested type
@@ -236,9 +268,10 @@ class DotNet extends Language
 
     /**
      * @param array $param
+     * @param string $lang
      * @return string
      */
-    public function getParamExample(array $param): string
+    public function getParamExample(array $param, string $lang = ''): string
     {
         $type       = $param['type'] ?? '';
         $example    = $param['example'] ?? '';
@@ -282,8 +315,10 @@ class DotNet extends Language
                 case self::TYPE_FILE:
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
-                case self::TYPE_ARRAY:
                     $output .= $example;
+                    break;
+                case self::TYPE_ARRAY:
+                    $output .= $this->isPermissionString($example) ? $this->getPermissionExample($example) : $example;
                     break;
                 case self::TYPE_OBJECT:
                     if ($example === '{}') {
@@ -383,6 +418,11 @@ class DotNet extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseUcfirst }}/Operator.cs',
+                'template'      => 'dotnet/Package/Operator.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '{{ spec.title | caseUcfirst }}/Role.cs',
                 'template'      => 'dotnet/Package/Role.cs.twig',
             ],
@@ -432,6 +472,11 @@ class DotNet extends Language
                 'template'      => 'dotnet/Package/Models/Model.cs.twig',
             ],
             [
+                'scope'         => 'requestModel',
+                'destination'   => '{{ spec.title | caseUcfirst }}/Models/{{ requestModel.name | caseUcfirst | overrideIdentifier }}.cs',
+                'template'      => 'dotnet/Package/Models/RequestModel.cs.twig',
+            ],
+            [
                 'scope'         => 'enum',
                 'destination'   => '{{ spec.title | caseUcfirst }}/Enums/{{ enum.name | caseUcfirst | overrideIdentifier }}.cs',
                 'template'      => 'dotnet/Package/Enums/Enum.cs.twig',
@@ -463,11 +508,40 @@ class DotNet extends Language
                 }
                 return $property;
             }),
+            new TwigFilter('propertyType', function (array $property, array $spec = []) {
+                return $this->getPropertyType($property, $spec);
+            }),
         ];
     }
 
     /**
-     * get sub_scheme, property_name and parse_value functions
+     * Get property type for request models
+     *
+     * @param array $property
+     * @param array $spec
+     * @return string
+     */
+    protected function getPropertyType(array $property, array $spec = []): string
+    {
+        if (isset($property['sub_schema']) && !empty($property['sub_schema'])) {
+            $type = $this->toPascalCase($property['sub_schema']);
+
+            if ($property['type'] === 'array') {
+                return 'List<' . $type . '>';
+            }
+            return $type;
+        }
+
+        if (isset($property['enum']) && !empty($property['enum'])) {
+            $enumName = $property['enumName'] ?? $property['name'];
+            return 'Appwrite.Enums.' . $this->toPascalCase($enumName);
+        }
+
+        return $this->getTypeName($property, $spec);
+    }
+
+    /**
+     * get sub_scheme and property_name functions
      * @return TwigFunction[]
      */
     public function getFunctions(): array

@@ -86,6 +86,21 @@ class Ruby extends Language
         return [];
     }
 
+    public function getStaticAccessOperator(): string
+    {
+        return '.';
+    }
+
+    public function getStringQuote(): string
+    {
+        return "'";
+    }
+
+    public function getArrayOf(string $elements): string
+    {
+        return '[' . $elements . ']';
+    }
+
     /**
      * @return array
      */
@@ -149,6 +164,11 @@ class Ruby extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'lib/{{ spec.title | caseDash }}/operator.rb',
+                'template'      => 'ruby/lib/container/operator.rb.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'lib/{{ spec.title | caseDash }}/service.rb',
                 'template'      => 'ruby/lib/container/service.rb.twig',
             ],
@@ -183,6 +203,11 @@ class Ruby extends Language
                 'template'      => 'ruby/lib/container/models/model.rb.twig',
             ],
             [
+                'scope'         => 'requestModel',
+                'destination'   => '/lib/{{ spec.title | caseDash }}/models/{{ requestModel.name | caseSnake }}.rb',
+                'template'      => 'ruby/lib/container/models/request_model.rb.twig',
+            ],
+            [
                 'scope'         => 'enum',
                 'destination'   => 'lib/{{ spec.title | caseSnake}}/enums/{{ enum.name | caseSnake }}.rb',
                 'template'      => 'ruby/lib/container/enums/enum.rb.twig',
@@ -202,6 +227,12 @@ class Ruby extends Language
         }
         if (!empty($parameter['enumValues'])) {
             return \ucfirst($parameter['name']);
+        }
+        if (!empty($parameter['array']['model'])) {
+            return 'Array';
+        }
+        if (!empty($parameter['model'])) {
+            return $parameter['type'] === self::TYPE_ARRAY ? 'Array' : $this->toPascalCase($parameter['model']);
         }
         return match ($parameter['type']) {
             self::TYPE_INTEGER => 'Integer',
@@ -269,9 +300,10 @@ class Ruby extends Language
 
     /**
      * @param array $param
+     * @param string $lang
      * @return string
      */
-    public function getParamExample(array $param): string
+    public function getParamExample(array $param, string $lang = ''): string
     {
         $type       = $param['type'] ?? '';
         $example    = $param['example'] ?? '';
@@ -302,8 +334,10 @@ class Ruby extends Language
             switch ($type) {
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
-                case self::TYPE_ARRAY:
                     $output .= $example;
+                    break;
+                case self::TYPE_ARRAY:
+                    $output .= $this->isPermissionString($example) ? $this->getPermissionExample($example) : $example;
                     break;
                 case self::TYPE_OBJECT:
                     $output .= $this->jsonToHash(json_decode($example, true));

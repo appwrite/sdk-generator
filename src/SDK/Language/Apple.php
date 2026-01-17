@@ -72,8 +72,18 @@ class Apple extends Swift
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Channel.swift',
+                'template'      => 'apple/Sources/Channel.swift.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Query.swift',
                 'template'      => 'swift/Sources/Query.swift.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Operator.swift',
+                'template'      => 'swift/Sources/Operator.swift.twig',
             ],
             [
                 'scope'         => 'default',
@@ -191,6 +201,11 @@ class Apple extends Swift
                 'template'      => '/swift/Sources/Models/Model.swift.twig',
             ],
             [
+                'scope'         => 'requestModel',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}Models/{{ requestModel.name | caseUcfirst }}.swift',
+                'template'      => '/swift/Sources/Models/RequestModel.swift.twig',
+            ],
+            [
                 'scope' => 'enum',
                 'destination' => '/Sources/{{ spec.title | caseUcfirst}}Enums/{{ enum.name | caseUcfirst }}.swift',
                 'template' => '/swift/Sources/Enums/Enum.swift.twig',
@@ -219,7 +234,7 @@ class Apple extends Swift
             [
                 'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Services/Realtime.swift',
-                'template'      => '/swift/Sources/Services/Realtime.swift.twig',
+                'template'      => '/apple/Sources/Services/Realtime.swift.twig',
             ],
             [
                 'scope'         => 'default',

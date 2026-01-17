@@ -12,6 +12,21 @@ class Deno extends JS
         return 'Deno';
     }
 
+    public function getStaticAccessOperator(): string
+    {
+        return '.';
+    }
+
+    public function getStringQuote(): string
+    {
+        return "'";
+    }
+
+    public function getArrayOf(string $elements): string
+    {
+        return '[' . $elements . ']';
+    }
+
     /**
      * @return array
      */
@@ -65,8 +80,18 @@ class Deno extends JS
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'src/operator.ts',
+                'template'      => 'deno/src/operator.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'test/query.test.ts',
                 'template'      => 'deno/test/query.test.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'test/operator.test.ts',
+                'template'      => 'deno/test/operator.test.ts.twig',
             ],
             [
                 'scope'         => 'default',
@@ -138,6 +163,13 @@ class Deno extends JS
         if (!empty($parameter['enumValues'])) {
             return \ucfirst($parameter['name']);
         }
+        if (!empty($parameter['array']['model'])) {
+            return $this->toPascalCase($parameter['array']['model']) . '[]';
+        }
+        if (!empty($parameter['model'])) {
+            $modelType = $this->toPascalCase($parameter['model']);
+            return $parameter['type'] === self::TYPE_ARRAY ? $modelType . '[]' : $modelType;
+        }
         if (isset($parameter['items'])) {
             $parameter['array'] = $parameter['items'];
         }
@@ -156,9 +188,10 @@ class Deno extends JS
 
     /**
      * @param array $param
+     * @param string $lang
      * @return string
      */
-    public function getParamExample(array $param): string
+    public function getParamExample(array $param, string $lang = ''): string
     {
         $type       = $param['type'] ?? '';
         $example    = $param['example'] ?? '';
@@ -176,7 +209,8 @@ class Deno extends JS
         }
 
         return match ($type) {
-            self::TYPE_ARRAY, self::TYPE_INTEGER, self::TYPE_NUMBER => $example,
+            self::TYPE_ARRAY => $this->isPermissionString($example) ? $this->getPermissionExample($example) : $example,
+            self::TYPE_INTEGER, self::TYPE_NUMBER => $example,
             self::TYPE_FILE => 'InputFile.fromPath(\'/path/to/file.png\', \'file.png\')',
             self::TYPE_BOOLEAN => ($example) ? 'true' : 'false',
             self::TYPE_OBJECT => ($example === '{}')

@@ -8,6 +8,7 @@ from appwrite.query import Query
 from appwrite.permission import Permission
 from appwrite.role import Role
 from appwrite.id import ID
+from appwrite.operator import Operator, Condition
 from appwrite.enums.mock_type import MockType
 
 import os.path
@@ -76,6 +77,16 @@ response = general.upload('string', 123, ['string in array'], InputFile.from_byt
 print(response['result'])
 
 response = general.enum(MockType.FIRST)
+print(response['result'])
+
+# Request model tests
+response = general.create_player({'id': 'player1', 'name': 'John Doe', 'score': 100})
+print(response['result'])
+
+response = general.create_players([
+    {'id': 'player1', 'name': 'John Doe', 'score': 100},
+    {'id': 'player2', 'name': 'Jane Doe', 'score': 200}
+])
 print(response['result'])
 
 try:
@@ -181,6 +192,15 @@ print(Query.and_queries(
     [Query.equal("released", False), Query.greater_than("releasedYear", 2015)]
 ))
 
+# New query methods: regex, exists, notExists, elemMatch
+print(Query.regex("name", "pattern.*"))
+print(Query.exists(["attr1", "attr2"]))
+print(Query.not_exists(["attr1", "attr2"]))
+print(Query.elem_match("friends", [
+    Query.equal("name", "Alice"),
+    Query.greater_than("age", 18)
+]))
+
 # Permission & Role helper tests
 print(Permission.read(Role.any()))
 print(Permission.write(Role.user(ID.custom('userid'))))
@@ -196,6 +216,33 @@ print(Permission.create(Role.label('admin')))
 # ID helper tests
 print(ID.unique())
 print(ID.custom('custom_id'))
+
+# Operator helper tests
+print(Operator.increment())
+print(Operator.increment(5, 100))
+print(Operator.decrement())
+print(Operator.decrement(3, 0))
+print(Operator.multiply(2))
+print(Operator.multiply(3, 1000))
+print(Operator.divide(2))
+print(Operator.divide(4, 1))
+print(Operator.modulo(5))
+print(Operator.power(2))
+print(Operator.power(3, 100))
+print(Operator.array_append(['item1', 'item2']))
+print(Operator.array_prepend(['first', 'second']))
+print(Operator.array_insert(0, 'newItem'))
+print(Operator.array_remove('oldItem'))
+print(Operator.array_unique())
+print(Operator.array_intersect(['a', 'b', 'c']))
+print(Operator.array_diff(['x', 'y']))
+print(Operator.array_filter(Condition.EQUAL, 'test'))
+print(Operator.string_concat('suffix'))
+print(Operator.string_replace('old', 'new'))
+print(Operator.toggle())
+print(Operator.date_add_days(7))
+print(Operator.date_sub_days(3))
+print(Operator.date_set_now())
 
 response = general.headers()
 print(response['result'])

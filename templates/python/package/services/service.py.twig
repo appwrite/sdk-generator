@@ -1,5 +1,5 @@
 from ..service import Service
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from ..exception import AppwriteException
 from appwrite.utils.deprecated import deprecated
 {% set added = [] %}
@@ -10,14 +10,15 @@ from ..input_file import InputFile
 {% set added = added|merge(['InputFile']) %}
 {% endif %}
 {% if parameter.enumValues is not empty%}
-{% if parameter.enumName is not empty %}
-{% set name = parameter.enumName %}
-{% else %}
-{% set name = parameter.name %}
+{% if parameter.enumName not in added %}
+from ..enums.{{ parameter.enumName | caseSnake }} import {{ parameter.enumName | caseUcfirst }};
+{% set added = added|merge([parameter.enumName]) %}
 {% endif %}
-{% if name not in added %}
-from ..enums.{{ name | caseSnake }} import {{ name | caseUcfirst }};
-{% set added = added|merge([name]) %}
+{% endif %}
+{% if parameter.model is not empty %}
+{% if parameter.model not in added %}
+from ..models.{{ parameter.model | caseSnake }} import {{ parameter.model | caseUcfirst }};
+{% set added = added|merge([parameter.model]) %}
 {% endif %}
 {% endif %}
 {% endfor %}

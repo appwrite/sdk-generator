@@ -7,19 +7,24 @@ include __DIR__ . '/../../sdks/php/src/Appwrite/Query.php';
 include __DIR__ . '/../../sdks/php/src/Appwrite/Permission.php';
 include __DIR__ . '/../../sdks/php/src/Appwrite/Role.php';
 include __DIR__ . '/../../sdks/php/src/Appwrite/ID.php';
+include __DIR__ . '/../../sdks/php/src/Appwrite/Operator.php';
 include __DIR__ . '/../../sdks/php/src/Appwrite/AppwriteException.php';
 include __DIR__ . '/../../sdks/php/src/Appwrite/Enums/MockType.php';
 include __DIR__ . '/../../sdks/php/src/Appwrite/Services/Foo.php';
 include __DIR__ . '/../../sdks/php/src/Appwrite/Services/Bar.php';
 include __DIR__ . '/../../sdks/php/src/Appwrite/Services/General.php';
+include __DIR__ . '/../../sdks/php/src/Appwrite/Models/Player.php';
 
 use Appwrite\AppwriteException;
+use Appwrite\Models\Player;
 use Appwrite\Client;
 use Appwrite\InputFile;
 use Appwrite\Query;
 use Appwrite\Permission;
 use Appwrite\Role;
 use Appwrite\ID;
+use Appwrite\Operator;
+use Appwrite\Condition;
 use Appwrite\Enums\MockType;
 use Appwrite\Services\Bar;
 use Appwrite\Services\Foo;
@@ -87,6 +92,18 @@ $response = $general->upload('string', 123, ['string in array'], InputFile::with
 echo "{$response['result']}\n";
 
 $response = $general->enum(MockType::FIRST());
+echo "{$response['result']}\n";
+
+// Request model tests
+$player = new Player('player1', 'John Doe', 100);
+$response = $general->createPlayer($player);
+echo "{$response['result']}\n";
+
+$players = [
+    new Player('player1', 'John Doe', 100),
+    new Player('player2', 'Jane Doe', 200),
+];
+$response = $general->createPlayers($players);
 echo "{$response['result']}\n";
 
 try {
@@ -198,6 +215,15 @@ echo Query::and([
     Query::greaterThan('releasedYear', 2015)
 ]) . "\n";
 
+// regex, exists, notExists, elemMatch
+echo Query::regex('name', 'pattern.*') . "\n";
+echo Query::exists(['attr1', 'attr2']) . "\n";
+echo Query::notExists(['attr1', 'attr2']) . "\n";
+echo Query::elemMatch('friends', [
+    Query::equal('name', ['Alice']),
+    Query::greaterThan('age', 18)
+]) . "\n";
+
 // Permission & Role helper tests
 echo Permission::read(Role::any()) . "\n";
 echo Permission::write(Role::user(ID::custom('userid'))) . "\n";
@@ -213,6 +239,33 @@ echo Permission::create(Role::label('admin')) . "\n";
 // ID helper tests
 echo ID::unique() . "\n";
 echo ID::custom('custom_id') . "\n";
+
+// Operator helper tests
+echo Operator::increment() . "\n";
+echo Operator::increment(5, 100) . "\n";
+echo Operator::decrement() . "\n";
+echo Operator::decrement(3, 0) . "\n";
+echo Operator::multiply(2) . "\n";
+echo Operator::multiply(3, 1000) . "\n";
+echo Operator::divide(2) . "\n";
+echo Operator::divide(4, 1) . "\n";
+echo Operator::modulo(5) . "\n";
+echo Operator::power(2) . "\n";
+echo Operator::power(3, 100) . "\n";
+echo Operator::arrayAppend(['item1', 'item2']) . "\n";
+echo Operator::arrayPrepend(['first', 'second']) . "\n";
+echo Operator::arrayInsert(0, 'newItem') . "\n";
+echo Operator::arrayRemove('oldItem') . "\n";
+echo Operator::arrayUnique() . "\n";
+echo Operator::arrayIntersect(['a', 'b', 'c']) . "\n";
+echo Operator::arrayDiff(['x', 'y']) . "\n";
+echo Operator::arrayFilter(Condition::Equal, 'test') . "\n";
+echo Operator::stringConcat('suffix') . "\n";
+echo Operator::stringReplace('old', 'new') . "\n";
+echo Operator::toggle() . "\n";
+echo Operator::dateAddDays(7) . "\n";
+echo Operator::dateSubDays(3) . "\n";
+echo Operator::dateSetNow() . "\n";
 
 $response = $general->headers();
 echo "{$response['result']}\n";

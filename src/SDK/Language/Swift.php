@@ -101,6 +101,21 @@ class Swift extends Language
         ];
     }
 
+    public function getStaticAccessOperator(): string
+    {
+        return '.';
+    }
+
+    public function getStringQuote(): string
+    {
+        return '"';
+    }
+
+    public function getArrayOf(string $elements): string
+    {
+        return '[' . $elements . ']';
+    }
+
     /**
      * @return array
      */
@@ -171,6 +186,11 @@ class Swift extends Language
                 'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Query.swift',
                 'template'      => 'swift/Sources/Query.swift.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Operator.swift',
+                'template'      => 'swift/Sources/Operator.swift.twig',
             ],
             [
                 'scope'         => 'default',
@@ -288,6 +308,11 @@ class Swift extends Language
                 'template'      => '/swift/Sources/Models/Model.swift.twig',
             ],
             [
+                'scope'         => 'requestModel',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}Models/{{ requestModel.name | caseUcfirst }}.swift',
+                'template'      => '/swift/Sources/Models/RequestModel.swift.twig',
+            ],
+            [
                 'scope' => 'enum',
                 'destination' => '/Sources/{{ spec.title | caseUcfirst}}Enums/{{ enum.name | caseUcfirst }}.swift',
                 'template' => '/swift/Sources/Enums/Enum.swift.twig',
@@ -306,6 +331,13 @@ class Swift extends Language
         }
         if (!empty($parameter['enumValues'])) {
             return ($spec['title'] ?? '') . 'Enums.' . \ucfirst($parameter['name']);
+        }
+        if (!empty($parameter['array']['model'])) {
+            return '[' . ($spec['title'] ?? '') . 'Models.' . $this->toPascalCase($parameter['array']['model']) . ']';
+        }
+        if (!empty($parameter['model'])) {
+            $modelType = ($spec['title'] ?? '') . 'Models.' . $this->toPascalCase($parameter['model']);
+            return $parameter['type'] === self::TYPE_ARRAY ? '[' . $modelType . ']' : $modelType;
         }
         if (isset($parameter['items'])) {
             // Map definition nested type to parameter nested type
@@ -389,9 +421,10 @@ class Swift extends Language
 
     /**
      * @param array $param
+     * @param string $lang
      * @return string
      */
-    public function getParamExample(array $param): string
+    public function getParamExample(array $param, string $lang = ''): string
     {
         $type       = $param['type'] ?? '';
         $example    = $param['example'] ?? '';
@@ -425,8 +458,10 @@ class Swift extends Language
                 case self::TYPE_FILE:
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
-                case self::TYPE_ARRAY:
                     $output .= $example;
+                    break;
+                case self::TYPE_ARRAY:
+                    $output .= $this->isPermissionString($example) ? $this->getPermissionExample($example) : $example;
                     break;
                 case self::TYPE_BOOLEAN:
                     $output .= ($example) ? 'true' : 'false';
@@ -539,6 +574,14 @@ class Swift extends Language
             return 'ByteBuffer';
         }
 
+        if (
+            \array_key_exists('responseModels', $method)
+            && \count($method['responseModels']) > 1
+        ) {
+            return 'Any';
+        }
+
+        // Check for missing or generic response model
         if (
             !\array_key_exists('responseModel', $method)
             || empty($method['responseModel'])

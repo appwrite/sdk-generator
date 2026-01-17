@@ -86,6 +86,16 @@ end
 response = general.enum(mock_type: MockType::FIRST)
 puts response.result
 
+# Request model tests
+response = general.create_player(player: {id: 'player1', name: 'John Doe', score: 100})
+puts response.result
+
+response = general.create_players(players: [
+    {id: 'player1', name: 'John Doe', score: 100},
+    {id: 'player2', name: 'Jane Doe', score: 200}
+])
+puts response.result
+
 begin
     general.error400()
 rescue Exception => error
@@ -189,6 +199,15 @@ puts Query.not_equal("location", [[40.7128, -74], [40.7128, -74]])
 puts Query.or([Query.equal("released", true), Query.less_than("releasedYear", 1990)])
 puts Query.and([Query.equal("released", false), Query.greater_than("releasedYear", 2015)])
 
+# New query methods: regex, exists, notExists, elemMatch
+puts Query.regex("name", "pattern.*")
+puts Query.exists(["attr1", "attr2"])
+puts Query.not_exists(["attr1", "attr2"])
+puts Query.elem_match("friends", [
+  Query.equal("name", "Alice"),
+  Query.greater_than("age", 18)
+])
+
 # Permission & Role helper tests
 puts Permission.read(Role.any())
 puts Permission.write(Role.user(ID.custom('userid')))
@@ -204,6 +223,33 @@ puts Permission.create(Role.label('admin'))
 # ID helper tests
 puts ID.unique()
 puts ID.custom('custom_id')
+
+# Operator helper tests
+puts Operator.increment(1)
+puts Operator.increment(5, 100)
+puts Operator.decrement(1)
+puts Operator.decrement(3, 0)
+puts Operator.multiply(2)
+puts Operator.multiply(3, 1000)
+puts Operator.divide(2)
+puts Operator.divide(4, 1)
+puts Operator.modulo(5)
+puts Operator.power(2)
+puts Operator.power(3, 100)
+puts Operator.array_append(["item1", "item2"])
+puts Operator.array_prepend(["first", "second"])
+puts Operator.array_insert(0, "newItem")
+puts Operator.array_remove("oldItem")
+puts Operator.array_unique()
+puts Operator.array_intersect(["a", "b", "c"])
+puts Operator.array_diff(["x", "y"])
+puts Operator.array_filter(Condition::EQUAL, "test")
+puts Operator.string_concat("suffix")
+puts Operator.string_replace("old", "new")
+puts Operator.toggle()
+puts Operator.date_add_days(7)
+puts Operator.date_sub_days(3)
+puts Operator.date_set_now()
 
 response = general.headers()
 puts response.result

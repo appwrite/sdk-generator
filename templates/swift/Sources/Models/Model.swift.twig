@@ -23,7 +23,6 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
     /// {{ property.description }}
     public let {{ property.name | escapeSwiftKeyword | removeDollarSign }}: {{ property | propertyType(spec) | raw }}{% if not property.required %}?{% endif %}
 
-
     {%~ endfor %}
     {%~ if definition.additionalProperties %}
     /// Additional properties

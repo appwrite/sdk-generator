@@ -82,13 +82,28 @@ class Flutter extends Dart
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/lib/channel.dart',
+                'template'      => 'flutter/lib/channel.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/lib/query.dart',
                 'template'      => 'dart/lib/query.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/operator.dart',
+                'template'      => 'dart/lib/operator.dart.twig',
             ],
             [
                 'scope'         => 'definition',
                 'destination'   => '/lib/src/models/{{definition.name | caseSnake }}.dart',
                 'template'      => 'dart/lib/src/models/model.dart.twig',
+            ],
+            [
+                'scope'         => 'requestModel',
+                'destination'   => '/lib/src/models/{{requestModel.name | caseSnake }}.dart',
+                'template'      => 'dart/lib/src/models/request_model.dart.twig',
             ],
             [
                 'scope'         => 'default',
@@ -277,8 +292,18 @@ class Flutter extends Dart
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/test/operator_test.dart',
+                'template'      => 'dart/test/operator_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/test/role_test.dart',
                 'template'      => 'dart/test/role_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/test/channel_test.dart',
+                'template'      => 'flutter/test/src/channel_test.dart.twig',
             ],
             [
                 'scope'         => 'default',

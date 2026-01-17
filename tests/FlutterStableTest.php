@@ -25,11 +25,14 @@ class FlutterStableTest extends Base
         ...Base::GENERAL_RESPONSES,
         ...Base::UPLOAD_RESPONSES,
         ...Base::ENUM_RESPONSES,
+        ...Base::MODEL_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
         ...Base::REALTIME_RESPONSES,
         ...Base::COOKIE_RESPONSES,
         ...Base::QUERY_HELPER_RESPONSES,
         ...Base::PERMISSION_HELPER_RESPONSES,
-        ...Base::ID_HELPER_RESPONSES
+        ...Base::ID_HELPER_RESPONSES,
+        ...Base::CHANNEL_HELPER_RESPONSES,
+        ...Base::OPERATOR_HELPER_RESPONSES
     ];
 }

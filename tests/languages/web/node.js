@@ -1,4 +1,4 @@
-const { Client, Foo, Bar, General, Query, Permission, Role, ID, MockType } = require('./dist/cjs/sdk.js');
+const { Client, Foo, Bar, General, Query, Permission, Role, ID, Channel, Operator, Condition, MockType } = require('./dist/cjs/sdk.js');
 
 async function start() {
     let response;
@@ -130,6 +130,31 @@ async function start() {
     response = await general.enum(MockType.First);
     console.log(response.result);
 
+    // Request model tests
+    response = await general.createPlayer({ id: 'player1', name: 'John Doe', score: 100 });
+    console.log(response.result);
+
+    response = await general.createPlayers([
+        { id: 'player1', name: 'John Doe', score: 100 },
+        { id: 'player2', name: 'Jane Doe', score: 200 }
+    ]);
+    console.log(response.result);
+
+    // Union types test - returns `mock` type
+    response = await general.getUnion({ type: 'mock' });
+    console.log(response.result);
+    if (!response.result) {
+        throw new Error('Mock model should have "result" property');
+    }
+
+    // Union types test - returns `stub` type
+    response = await general.getUnion({ type: 'stub' });
+    console.log(response.data);
+    console.log(response.type);
+    if (!response.data || !response.type) {
+        throw new Error('Stub model should have "data" and "type" properties');
+    }
+
     try {
         response = await general.empty();
     } catch (error) {
@@ -233,6 +258,15 @@ async function start() {
         Query.greaterThan("releasedYear", 2015)
     ]));
 
+    // regex, exists, notExists, elemMatch
+    console.log(Query.regex("name", "pattern.*"));
+    console.log(Query.exists(["attr1", "attr2"]));
+    console.log(Query.notExists(["attr1", "attr2"]));
+    console.log(Query.elemMatch("friends", [
+        Query.equal("name", "Alice"),
+        Query.greaterThan("age", 18)
+    ]));
+
     // Permission & Role helper tests
     console.log(Permission.read(Role.any()));
     console.log(Permission.write(Role.user(ID.custom('userid'))));
@@ -249,6 +283,55 @@ async function start() {
     // ID helper tests
     console.log(ID.unique());
     console.log(ID.custom('custom_id'));
+
+    // Channel helper tests
+    console.log(Channel.database().collection().document().toString());
+    console.log(Channel.database('db1').collection('col1').document('doc1').toString());
+    console.log(Channel.database('db1').collection('col1').document('doc1').create().toString());
+    console.log(Channel.tablesdb().table().row().toString());
+    console.log(Channel.tablesdb('db1').table('table1').row('row1').toString());
+    console.log(Channel.tablesdb('db1').table('table1').row('row1').update().toString());
+    console.log(Channel.account());
+    console.log(Channel.account('user123'));
+    console.log(Channel.bucket().file().toString());
+    console.log(Channel.bucket('bucket1').file('file1').toString());
+    console.log(Channel.bucket('bucket1').file('file1').delete().toString());
+    console.log(Channel.function().execution().toString());
+    console.log(Channel.function('func1').execution('exec1').toString());
+    console.log(Channel.function('func1').execution('exec1').create().toString());
+    console.log(Channel.team().toString());
+    console.log(Channel.team('team1').toString());
+    console.log(Channel.team('team1').create().toString());
+    console.log(Channel.membership().toString());
+    console.log(Channel.membership('membership1').toString());
+    console.log(Channel.membership('membership1').update().toString());
+
+    // Operator helper tests
+    console.log(Operator.increment(1));
+    console.log(Operator.increment(5, 100));
+    console.log(Operator.decrement(1));
+    console.log(Operator.decrement(3, 0));
+    console.log(Operator.multiply(2));
+    console.log(Operator.multiply(3, 1000));
+    console.log(Operator.divide(2));
+    console.log(Operator.divide(4, 1));
+    console.log(Operator.modulo(5));
+    console.log(Operator.power(2));
+    console.log(Operator.power(3, 100));
+    console.log(Operator.arrayAppend(["item1", "item2"]));
+    console.log(Operator.arrayPrepend(["first", "second"]));
+    console.log(Operator.arrayInsert(0, "newItem"));
+    console.log(Operator.arrayRemove("oldItem"));
+    console.log(Operator.arrayUnique());
+    console.log(Operator.arrayIntersect(["a", "b", "c"]));
+    console.log(Operator.arrayDiff(["x", "y"]));
+    console.log(Operator.arrayFilter(Condition.Equal, "test"));
+    console.log(Operator.stringConcat("suffix"));
+    console.log(Operator.stringReplace("old", "new"));
+    console.log(Operator.toggle());
+    console.log(Operator.dateAddDays(7));
+    console.log(Operator.dateSubDays(3));
+    console.log(Operator.dateSetNow());
 
     response = await general.headers();
     console.log(response.result);

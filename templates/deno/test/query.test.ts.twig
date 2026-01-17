@@ -213,33 +213,65 @@ describe('Query', () => {
         `{"method":"notEndsWith","attribute":"attr","values":["suffix"]}`,
     ));
 
+    test('regex', () => assertEquals(
+        Query.regex('attr', 'pattern.*').toString(),
+        `{"method":"regex","attribute":"attr","values":["pattern.*"]}`,
+    ));
+
+    test('exists', () => assertEquals(
+        Query.exists(['attr1', 'attr2']).toString(),
+        `{"method":"exists","values":["attr1","attr2"]}`,
+    ));
+
+    test('notExists', () => assertEquals(
+        Query.notExists(['attr1', 'attr2']).toString(),
+        `{"method":"notExists","values":["attr1","attr2"]}`,
+    ));
+
+    test('elemMatch', () => {
+        const inner1 = Query.equal('name', 'Alice');
+        const inner2 = Query.greaterThan('age', 18);
+        const result = Query.elemMatch('friends', [inner1, inner2]);
+        const parsed = JSON.parse(result);
+        
+        assertEquals(parsed.method, 'elemMatch');
+        assertEquals(parsed.attribute, 'friends');
+        assertEquals(parsed.values.length, 2);
+        assertEquals(parsed.values[0].method, 'equal');
+        assertEquals(parsed.values[0].attribute, 'name');
+        assertEquals(parsed.values[0].values, ['Alice']);
+        assertEquals(parsed.values[1].method, 'greaterThan');
+        assertEquals(parsed.values[1].attribute, 'age');
+        assertEquals(parsed.values[1].values, [18]);
+    });
+
     test('createdBefore', () => assertEquals(
         Query.createdBefore('2023-01-01').toString(),
-        `{"method":"createdBefore","values":["2023-01-01"]}`,
+        `{"method":"lessThan","attribute":"$createdAt","values":["2023-01-01"]}`,
     ));
 
     test('createdAfter', () => assertEquals(
         Query.createdAfter('2023-01-01').toString(),
-        `{"method":"createdAfter","values":["2023-01-01"]}`,
+        `{"method":"greaterThan","attribute":"$createdAt","values":["2023-01-01"]}`,
     ));
 
     test('createdBetween', () => assertEquals(
         Query.createdBetween('2023-01-01', '2023-12-31').toString(),
-        `{"method":"createdBetween","values":["2023-01-01","2023-12-31"]}`,
+        `{"method":"between","attribute":"$createdAt","values":["2023-01-01","2023-12-31"]}`,
     ));
 
     test('updatedBefore', () => assertEquals(
         Query.updatedBefore('2023-01-01').toString(),
-        `{"method":"updatedBefore","values":["2023-01-01"]}`,
+        `{"method":"lessThan","attribute":"$updatedAt","values":["2023-01-01"]}`,
     ));
 
     test('updatedAfter', () => assertEquals(
         Query.updatedAfter('2023-01-01').toString(),
-        `{"method":"updatedAfter","values":["2023-01-01"]}`,
+        `{"method":"greaterThan","attribute":"$updatedAt","values":["2023-01-01"]}`,
     ));
 
     test('updatedBetween', () => assertEquals(
         Query.updatedBetween('2023-01-01', '2023-12-31').toString(),
-        `{"method":"updatedBetween","values":["2023-01-01","2023-12-31"]}`,
+        `{"method":"between","attribute":"$updatedAt","values":["2023-01-01","2023-12-31"]}`,
     ));
 })

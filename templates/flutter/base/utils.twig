@@ -1,6 +1,10 @@
 {%- macro map_parameter(parameters) -%}
 {%- for parameter in parameters ~%}
-            '{{ parameter.name }}': {{ parameter.name | caseCamel | overrideIdentifier }}{% if parameter.enumValues | length > 0  %}{% if not parameter.required %}?{% endif %}.value{% endif %},
+{% if not parameter.nullable and not parameter.required %}
+            if ({{ parameter.name | caseCamel | overrideIdentifier }} != null) '{{ parameter.name }}': {{ parameter.name | caseCamel | overrideIdentifier }}{% if parameter.enumValues | length > 0  %}!.value{% elseif parameter.array.model is not empty %}!.map((p) => p.toMap()).toList(){% elseif parameter.model is not empty %}!.toMap(){% endif %},
+{% else %}
+            '{{ parameter.name }}': {{ parameter.name | caseCamel | overrideIdentifier }}{% if parameter.enumValues | length > 0  %}{% if not parameter.required %}?{% endif %}.value{% elseif parameter.array.model is not empty %}{% if not parameter.required %}?{% endif %}.map((p) => p.toMap()).toList(){% elseif parameter.model is not empty %}{% if not parameter.required %}?{% endif %}.toMap(){% endif %},
+{% endif %}
 {%- endfor ~%}
 {%- endmacro ~%}
 
