@@ -343,8 +343,13 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'copy',
-                'destination'   => 'lib/commands/db.ts',
-                'template'      => 'cli/lib/commands/db.ts',
+                'destination'   => 'lib/commands/generate.ts',
+                'template'      => 'cli/lib/commands/generate.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'lib/commands/generators/databases.ts',
+                'template'      => 'cli/lib/commands/generators/databases.ts',
             ],
             [
                 'scope'         => 'copy',

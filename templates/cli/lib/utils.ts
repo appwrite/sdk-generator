@@ -391,3 +391,16 @@ export function isCloud(): boolean {
   const hostname = new URL(endpoint).hostname;
   return hostname.endsWith("appwrite.io");
 }
+
+export function toPascalCase(str: string): string {
+  return str
+    .replace(/[-_\s]+(.)?/g, (_, char) => (char ? char.toUpperCase() : ""))
+    .replace(/^(.)/, (char) => char.toUpperCase());
+}
+
+export function toUpperSnakeCase(str: string): string {
+  return str
+    .replace(/([a-z])([A-Z])/g, "$1_$2")
+    .replace(/[-\s]+/g, "_")
+    .toUpperCase();
+}
