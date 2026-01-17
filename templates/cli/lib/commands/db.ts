@@ -307,19 +307,16 @@ export class Db {
     return `import { Client, TablesDB, ID, type Models, Permission } from '${appwriteDep}';
 import type { ${typeNames.join(", ")}, DatabaseId, DatabaseTables } from './types.js';
 
-const client = new Client()
-  .setEndpoint(process.env.APPWRITE_ENDPOINT!)
-  .setProject(process.env.APPWRITE_PROJECT_ID!)
-  .setKey(process.env.APPWRITE_API_KEY!);
+export const createDatabases = (client: Client) => {
+  const tablesDB = new TablesDB(client);
 
-const tablesDB = new TablesDB(client);
-
-const _databases: { [K in DatabaseId]: DatabaseTables[K] } = {
+  const _databases: { [K in DatabaseId]: DatabaseTables[K] } = {
 ${databasesMap}
-};
+  };
 
-export const databases = {
-  from: <T extends DatabaseId>(databaseId: T): DatabaseTables[T] => _databases[databaseId],
+  return {
+    from: <T extends DatabaseId>(databaseId: T): DatabaseTables[T] => _databases[databaseId],
+  };
 };
 `;
   }
@@ -408,7 +405,7 @@ export const databases = {
  * Re-run \`appwrite generate\` to regenerate.
  */
 
-export { databases } from "./db.js";
+export { createDatabases } from "./db.js";
 export * from "./types.js";
 `;
   }
@@ -448,14 +445,17 @@ const generateAction = async (options: GenerateCommandOptions): Promise<void> =>
     await db.writeFiles(absoluteOutputDir, result);
 
     success(`Generated files:`);
-    console.log(`  - ${path.join(outputDir, "appwrite.ts")}`);
-    console.log(`  - ${path.join(outputDir, "appwrite.db.ts")}`);
-    console.log(`  - ${path.join(outputDir, "appwrite.types.ts")}`);
+    console.log(`  - ${path.join(outputDir, "appwrite/index.ts")}`);
+    console.log(`  - ${path.join(outputDir, "appwrite/db.ts")}`);
+    console.log(`  - ${path.join(outputDir, "appwrite/types.ts")}`);
     console.log("");
     log(`Import the generated SDK in your project:`);
-    console.log(`  import { databases } from "./${outputDir}/appwrite.js";`);
+    console.log(`  import { createDatabases } from "./${outputDir}/appwrite/index.js";`);
     console.log("");
     log(`Usage:`);
+    console.log(`  import { Client } from 'node-appwrite';`);
+    console.log(`  const client = new Client().setEndpoint('...').setProject('...').setKey('...');`);
+    console.log(`  const databases = createDatabases(client);`);
     console.log(`  const db = databases.from('your-database-id');`);
     console.log(`  await db.tableName.create({ ... });`);
   } catch (err: any) {
