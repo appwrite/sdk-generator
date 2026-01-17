@@ -36,15 +36,17 @@ export class DatabasesGenerator {
         type = "boolean";
         break;
       case "relationship":
-        const relatedCollection = collections.find(
-          (c) => c.$id === attribute.relatedCollection,
+        // Handle both collections (relatedCollection) and tables (relatedTable)
+        const relatedId = attribute.relatedCollection ?? attribute.relatedTable;
+        const relatedEntity = collections.find(
+          (c) => c.$id === relatedId || c.name === relatedId,
         );
-        if (!relatedCollection) {
+        if (!relatedEntity) {
           throw new Error(
-            `Related collection with ID '${attribute.relatedCollection}' not found.`,
+            `Related entity with ID '${relatedId}' not found.`,
           );
         }
-        type = toPascalCase(relatedCollection.name);
+        type = toPascalCase(relatedEntity.name);
         if (
           (attribute.relationType === "oneToMany" &&
             attribute.side === "parent") ||

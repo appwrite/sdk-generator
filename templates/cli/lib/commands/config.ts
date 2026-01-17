@@ -234,6 +234,7 @@ const AttributeSchemaBase = z
       .optional(),
     elements: z.array(z.string()).optional(),
     relatedCollection: z.string().optional(),
+    relatedTable: z.string().optional(),
     relationType: z.string().optional(),
     twoWay: z.boolean().optional(),
     twoWayKey: z.string().optional(),
