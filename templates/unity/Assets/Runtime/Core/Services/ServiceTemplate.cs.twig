@@ -26,11 +26,12 @@ namespace {{ spec.title | caseUcfirst }}.Services
 
         {%~ for method in service.methods %}
         {%~ if method.description %}
+        /// <summary>
         /// <para>
         {{~ method.description | dotnetComment }}
         /// </para>
-        {%~ endif %}
         /// </summary>
+        {%~ endif %}
         {%~ if method.deprecated %}
         {%~ if method.since and method.replaceWith %}
         [Obsolete("This API has been deprecated since {{ method.since }}. Please use `{{ method.replaceWith | capitalizeFirst }}` instead.")]
