@@ -36,7 +36,7 @@ export class DatabasesGenerator {
       case "boolean":
         type = "boolean";
         break;
-      case "relationship":
+      case "relationship": {
         // Handle both collections (relatedCollection) and tables (relatedTable)
         const relatedId = attribute.relatedCollection ?? attribute.relatedTable;
         const relatedEntity = collections.find(
@@ -58,6 +58,7 @@ export class DatabasesGenerator {
           type = `${type}[]`;
         }
         break;
+      }
       default:
         throw new Error(`Unknown attribute type: ${attribute.type}`);
     }
@@ -224,7 +225,7 @@ export type QueryBuilder<T> = {
       updateMany: (rows: Array<{ rowId: string; data: Partial<Omit<${typeName}, keyof Models.Row>>; permissions?: Permission[] }>, options?: { transactionId?: string }) => Promise<{ total: number; rows: ${typeName}[] }>;
       deleteMany: (rowIds: string[], options?: { transactionId?: string }) => Promise<void>;` : '';
 
-            return `    ${entity.name}: {\n${baseMethods}${bulkMethods}\n    }`;
+            return `    '${entity.name}': {\n${baseMethods}${bulkMethods}\n    }`;
           })
           .join(";\n");
         return `  '${dbId}': {\n${tableTypes}\n  }`;
@@ -375,7 +376,7 @@ export type QueryBuilder<T> = {
         });
       },` : '';
 
-        return `    ${entityName}: {\n${baseMethods}${bulkMethods}\n    }`;
+        return `    '${entityName}': {\n${baseMethods}${bulkMethods}\n    }`;
       })
       .join(",\n");
   }
