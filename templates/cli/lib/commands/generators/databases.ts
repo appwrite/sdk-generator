@@ -154,20 +154,30 @@ export class DatabasesGenerator {
   }
 
   private generateQueryBuilderType(): string {
-    return `export type QueryBuilder<T> = {
-  equal: <K extends keyof T>(field: K, value: T[K]) => string;
-  notEqual: <K extends keyof T>(field: K, value: T[K]) => string;
-  lessThan: <K extends keyof T>(field: K, value: T[K]) => string;
-  lessThanEqual: <K extends keyof T>(field: K, value: T[K]) => string;
-  greaterThan: <K extends keyof T>(field: K, value: T[K]) => string;
-  greaterThanEqual: <K extends keyof T>(field: K, value: T[K]) => string;
-  contains: <K extends keyof T>(field: K, value: T[K] extends (infer U)[] ? U : T[K]) => string;
-  search: <K extends keyof T>(field: K, value: string) => string;
-  isNull: <K extends keyof T>(field: K) => string;
-  isNotNull: <K extends keyof T>(field: K) => string;
-  startsWith: <K extends keyof T>(field: K, value: string) => string;
-  endsWith: <K extends keyof T>(field: K, value: string) => string;
-  between: <K extends keyof T>(field: K, start: T[K], end: T[K]) => string;
+    return `export type QueryValue = string | number | boolean;
+
+export type ExtractQueryValue<T> = T extends (infer U)[]
+  ? U extends QueryValue ? U : never
+  : T extends QueryValue | null ? NonNullable<T> : never;
+
+export type QueryableKeys<T> = {
+  [K in keyof T]: ExtractQueryValue<T[K]> extends never ? never : K;
+}[keyof T];
+
+export type QueryBuilder<T> = {
+  equal: <K extends QueryableKeys<T>>(field: K, value: ExtractQueryValue<T[K]>) => string;
+  notEqual: <K extends QueryableKeys<T>>(field: K, value: ExtractQueryValue<T[K]>) => string;
+  lessThan: <K extends QueryableKeys<T>>(field: K, value: ExtractQueryValue<T[K]>) => string;
+  lessThanEqual: <K extends QueryableKeys<T>>(field: K, value: ExtractQueryValue<T[K]>) => string;
+  greaterThan: <K extends QueryableKeys<T>>(field: K, value: ExtractQueryValue<T[K]>) => string;
+  greaterThanEqual: <K extends QueryableKeys<T>>(field: K, value: ExtractQueryValue<T[K]>) => string;
+  contains: <K extends QueryableKeys<T>>(field: K, value: ExtractQueryValue<T[K]>) => string;
+  search: <K extends QueryableKeys<T>>(field: K, value: string) => string;
+  isNull: <K extends QueryableKeys<T>>(field: K) => string;
+  isNotNull: <K extends QueryableKeys<T>>(field: K) => string;
+  startsWith: <K extends QueryableKeys<T>>(field: K, value: string) => string;
+  endsWith: <K extends QueryableKeys<T>>(field: K, value: string) => string;
+  between: <K extends QueryableKeys<T>>(field: K, start: ExtractQueryValue<T[K]>, end: ExtractQueryValue<T[K]>) => string;
   select: <K extends keyof T>(fields: K[]) => string;
   orderAsc: <K extends keyof T>(field: K) => string;
   orderDesc: <K extends keyof T>(field: K) => string;
@@ -245,19 +255,19 @@ export class DatabasesGenerator {
 
   private generateQueryBuilder(): string {
     return `const createQueryBuilder = <T>(): QueryBuilder<T> => ({
-  equal: (field, value) => Query.equal(String(field), value as any),
-  notEqual: (field, value) => Query.notEqual(String(field), value as any),
-  lessThan: (field, value) => Query.lessThan(String(field), value as any),
-  lessThanEqual: (field, value) => Query.lessThanEqual(String(field), value as any),
-  greaterThan: (field, value) => Query.greaterThan(String(field), value as any),
-  greaterThanEqual: (field, value) => Query.greaterThanEqual(String(field), value as any),
-  contains: (field, value) => Query.contains(String(field), value as any),
+  equal: (field, value) => Query.equal(String(field), value),
+  notEqual: (field, value) => Query.notEqual(String(field), value),
+  lessThan: (field, value) => Query.lessThan(String(field), value),
+  lessThanEqual: (field, value) => Query.lessThanEqual(String(field), value),
+  greaterThan: (field, value) => Query.greaterThan(String(field), value),
+  greaterThanEqual: (field, value) => Query.greaterThanEqual(String(field), value),
+  contains: (field, value) => Query.contains(String(field), value),
   search: (field, value) => Query.search(String(field), value),
   isNull: (field) => Query.isNull(String(field)),
   isNotNull: (field) => Query.isNotNull(String(field)),
   startsWith: (field, value) => Query.startsWith(String(field), value),
   endsWith: (field, value) => Query.endsWith(String(field), value),
-  between: (field, start, end) => Query.between(String(field), start as any, end as any),
+  between: (field, start, end) => Query.between(String(field), start, end),
   select: (fields) => Query.select(fields.map(String)),
   orderAsc: (field) => Query.orderAsc(String(field)),
   orderDesc: (field) => Query.orderDesc(String(field)),
