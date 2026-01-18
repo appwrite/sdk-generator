@@ -17,6 +17,7 @@ export class DatabasesGenerator {
   private getType(
     attribute: z.infer<typeof AttributeSchema>,
     collections: NonNullable<ConfigType["collections"]>,
+    entityName: string,
   ): string {
     let type = "";
 
@@ -25,7 +26,7 @@ export class DatabasesGenerator {
       case "datetime":
         type = "string";
         if (attribute.format === "enum") {
-          type = toPascalCase(attribute.key);
+          type = toPascalCase(entityName) + toPascalCase(attribute.key);
         }
         break;
       case "integer":
@@ -84,7 +85,7 @@ export class DatabasesGenerator {
 
     const typeName = toPascalCase(entity.name);
     const attributes = fields
-      .map((attr) => `    ${attr.key}: ${this.getType(attr, entities as any)};`)
+      .map((attr) => `    ${attr.key}${attr.required ? '' : '?'}: ${this.getType(attr, entities as any, entity.name)};`)
       .join("\n");
 
     return `export type ${typeName} = Models.Row & {\n${attributes}\n}`;
@@ -99,7 +100,7 @@ export class DatabasesGenerator {
 
       for (const field of fields) {
         if (field.format === "enum" && field.elements) {
-          const enumName = toPascalCase(field.key);
+          const enumName = toPascalCase(entity.name) + toPascalCase(field.key);
           const enumValues = field.elements
             .map((element: string, index: number) => {
               const key = toUpperSnakeCase(element);
