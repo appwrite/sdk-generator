@@ -3,7 +3,11 @@ import * as path from "path";
 import { z } from "zod";
 import { ConfigType, AttributeSchema } from "../config.js";
 import { toPascalCase, sanitizeEnumKey } from "../../utils.js";
-import { SDK_TITLE, SDK_TITLE_LOWER, EXECUTABLE_NAME } from "../../constants.js";
+import {
+  SDK_TITLE,
+  SDK_TITLE_LOWER,
+  EXECUTABLE_NAME,
+} from "../../constants.js";
 
 export interface GenerateResult {
   databasesContent: string;
