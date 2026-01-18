@@ -252,9 +252,9 @@ export type QueryBuilder<T> = {
             const canUseBulkMethods = supportsBulk && !this.hasRelationshipColumns(entity);
             const bulkMethods = canUseBulkMethods
               ? `
-      createMany: (rows: Array<{ data: Omit<${typeName}, keyof Models.Row>; rowId?: string; permissions?: Permission[] }>, options?: { transactionId?: string }) => Promise<{ total: number; rows: ${typeName}[] }>;
-      updateMany: (rows: Array<{ rowId: string; data: Partial<Omit<${typeName}, keyof Models.Row>>; permissions?: Permission[] }>, options?: { transactionId?: string }) => Promise<{ total: number; rows: ${typeName}[] }>;
-      deleteMany: (rowIds: string[], options?: { transactionId?: string }) => Promise<void>;`
+      createMany: (rows: Array<Omit<${typeName}, keyof Models.Row> & { $id?: string; $permissions?: string[] }>, options?: { transactionId?: string }) => Promise<{ total: number; rows: ${typeName}[] }>;
+      updateMany: (data: Partial<Omit<${typeName}, keyof Models.Row>>, options?: { queries?: (q: QueryBuilder<${typeName}>) => string[]; transactionId?: string }) => Promise<{ total: number; rows: ${typeName}[] }>;
+      deleteMany: (options?: { queries?: (q: QueryBuilder<${typeName}>) => string[]; transactionId?: string }) => Promise<{ total: number; rows: ${typeName}[] }>;`
               : "";
 
             return `    '${entity.name}': {\n${baseMethods}${bulkMethods}\n    }`;
@@ -307,19 +307,19 @@ export type QueryBuilder<T> = {
 
   private generateQueryBuilder(): string {
     return `const createQueryBuilder = <T>(): QueryBuilder<T> => ({
-  equal: (field, value) => Query.equal(String(field), value),
-  notEqual: (field, value) => Query.notEqual(String(field), value),
-  lessThan: (field, value) => Query.lessThan(String(field), value),
-  lessThanEqual: (field, value) => Query.lessThanEqual(String(field), value),
-  greaterThan: (field, value) => Query.greaterThan(String(field), value),
-  greaterThanEqual: (field, value) => Query.greaterThanEqual(String(field), value),
-  contains: (field, value) => Query.contains(String(field), value),
+  equal: (field, value) => Query.equal(String(field), value as any),
+  notEqual: (field, value) => Query.notEqual(String(field), value as any),
+  lessThan: (field, value) => Query.lessThan(String(field), value as any),
+  lessThanEqual: (field, value) => Query.lessThanEqual(String(field), value as any),
+  greaterThan: (field, value) => Query.greaterThan(String(field), value as any),
+  greaterThanEqual: (field, value) => Query.greaterThanEqual(String(field), value as any),
+  contains: (field, value) => Query.contains(String(field), value as any),
   search: (field, value) => Query.search(String(field), value),
   isNull: (field) => Query.isNull(String(field)),
   isNotNull: (field) => Query.isNotNull(String(field)),
   startsWith: (field, value) => Query.startsWith(String(field), value),
   endsWith: (field, value) => Query.endsWith(String(field), value),
-  between: (field, start, end) => Query.between(String(field), start, end),
+  between: (field, start, end) => Query.between(String(field), start as any, end as any),
   select: (fields) => Query.select(fields.map(String)),
   orderAsc: (field) => Query.orderAsc(String(field)),
   orderDesc: (field) => Query.orderDesc(String(field)),
@@ -387,36 +387,28 @@ export type QueryBuilder<T> = {
 
         const bulkMethods = canUseBulkMethods
           ? `
-      createMany: (rows: Array<{ data: Omit<${typeName}, keyof Models.Row>; rowId?: string; permissions?: Permission[] }>, options?: { transactionId?: string }) =>
+      createMany: (rows: Array<Omit<${typeName}, keyof Models.Row> & { $id?: string; $permissions?: string[] }>, options?: { transactionId?: string }) =>
         tablesDB.createRows<${typeName}>({
           databaseId: '${dbId}',
           tableId: '${entity.$id}',
-          rows: rows.map((row) => ({
-            rowId: row.rowId ?? ID.unique(),
-            data: row.data,
-            permissions: row.permissions?.map((p) => p.toString()),
-          })),
+          rows,
           transactionId: options?.transactionId,
         }),
-      updateMany: (rows: Array<{ rowId: string; data: Partial<Omit<${typeName}, keyof Models.Row>>; permissions?: Permission[] }>, options?: { transactionId?: string }) =>
+      updateMany: (data: Partial<Omit<${typeName}, keyof Models.Row>>, options?: { queries?: (q: QueryBuilder<${typeName}>) => string[]; transactionId?: string }) =>
         tablesDB.updateRows<${typeName}>({
           databaseId: '${dbId}',
           tableId: '${entity.$id}',
-          rows: rows.map((row) => ({
-            rowId: row.rowId,
-            data: row.data,
-            permissions: row.permissions?.map((p) => p.toString()),
-          })),
+          data,
+          queries: options?.queries?.(createQueryBuilder<${typeName}>()),
           transactionId: options?.transactionId,
         }),
-      deleteMany: async (rowIds: string[], options?: { transactionId?: string }) => {
-        await tablesDB.deleteRows({
+      deleteMany: (options?: { queries?: (q: QueryBuilder<${typeName}>) => string[]; transactionId?: string }) =>
+        tablesDB.deleteRows<${typeName}>({
           databaseId: '${dbId}',
           tableId: '${entity.$id}',
-          rows: rowIds.map((rowId) => ({ rowId })),
+          queries: options?.queries?.(createQueryBuilder<${typeName}>()),
           transactionId: options?.transactionId,
-        });
-      },`
+        }),`
           : "";
 
         return `    '${entityName}': {\n${baseMethods}${bulkMethods}\n    }`;
