@@ -332,88 +332,35 @@ export type QueryBuilder<T> = {
 })`;
   }
 
-  private generateTableHelpers(
-    dbId: string,
-    dbEntities: Entity[],
-    appwriteDep: string,
-  ): string {
-    const supportsBulk = this.supportsBulkMethods(appwriteDep);
-
-    return dbEntities
-      .map((entity) => {
-        const entityName = entity.name;
-        const typeName = toPascalCase(entity.name);
-        // Bulk methods not supported for tables with relationship columns (see hasRelationshipColumns)
-        const canUseBulkMethods = supportsBulk && !this.hasRelationshipColumns(entity);
-
-        const baseMethods = `      create: (data: Omit<${typeName}, keyof Models.Row>, options?: { rowId?: string; permissions?: Permission[]; transactionId?: string }) =>
-        tablesDB.createRow<${typeName}>({
-          databaseId: '${dbId}',
-          tableId: '${entity.$id}',
-          rowId: options?.rowId ?? ID.unique(),
-          data,
-          permissions: options?.permissions?.map((p) => p.toString()),
-          transactionId: options?.transactionId,
-        }),
-      get: (id: string) =>
-        tablesDB.getRow<${typeName}>({
-          databaseId: '${dbId}',
-          tableId: '${entity.$id}',
-          rowId: id,
-        }),
-      update: (id: string, data: Partial<Omit<${typeName}, keyof Models.Row>>, options?: { permissions?: Permission[]; transactionId?: string }) =>
-        tablesDB.updateRow<${typeName}>({
-          databaseId: '${dbId}',
-          tableId: '${entity.$id}',
-          rowId: id,
-          data,
-          ...(options?.permissions ? { permissions: options.permissions.map((p) => p.toString()) } : {}),
-          transactionId: options?.transactionId,
-        }),
-      delete: async (id: string, options?: { transactionId?: string }) => {
-        await tablesDB.deleteRow({
-          databaseId: '${dbId}',
-          tableId: '${entity.$id}',
-          rowId: id,
-          transactionId: options?.transactionId,
-        });
-      },
-      list: (options?: { queries?: (q: QueryBuilder<${typeName}>) => string[] }) =>
-        tablesDB.listRows<${typeName}>({
-          databaseId: '${dbId}',
-          tableId: '${entity.$id}',
-          queries: options?.queries?.(createQueryBuilder<${typeName}>()),
-        }),`;
-
-        const bulkMethods = canUseBulkMethods
-          ? `
-      createMany: (rows: Array<Omit<${typeName}, keyof Models.Row> & { $id?: string; $permissions?: string[] }>, options?: { transactionId?: string }) =>
-        tablesDB.createRows<${typeName}>({
-          databaseId: '${dbId}',
-          tableId: '${entity.$id}',
-          rows,
-          transactionId: options?.transactionId,
-        }),
-      updateMany: (data: Partial<Omit<${typeName}, keyof Models.Row>>, options?: { queries?: (q: QueryBuilder<${typeName}>) => string[]; transactionId?: string }) =>
-        tablesDB.updateRows<${typeName}>({
-          databaseId: '${dbId}',
-          tableId: '${entity.$id}',
-          data,
-          queries: options?.queries?.(createQueryBuilder<${typeName}>()),
-          transactionId: options?.transactionId,
-        }),
-      deleteMany: (options?: { queries?: (q: QueryBuilder<${typeName}>) => string[]; transactionId?: string }) =>
-        tablesDB.deleteRows<${typeName}>({
-          databaseId: '${dbId}',
-          tableId: '${entity.$id}',
-          queries: options?.queries?.(createQueryBuilder<${typeName}>()),
-          transactionId: options?.transactionId,
-        }),`
-          : "";
-
-        return `    '${entityName}': {\n${baseMethods}${bulkMethods}\n    }`;
+  private generateTableIdMap(entitiesByDb: Map<string, Entity[]>): string {
+    const dbMappings = Array.from(entitiesByDb.entries())
+      .map(([dbId, dbEntities]) => {
+        const tableMappings = dbEntities
+          .map((entity) => `    '${entity.name}': '${entity.$id}'`)
+          .join(",\n");
+        return `  '${dbId}': {\n${tableMappings}\n  }`;
       })
       .join(",\n");
+
+    return `const tableIdMap: Record<string, Record<string, string>> = {\n${dbMappings}\n}`;
+  }
+
+  private generateTablesWithRelationships(entitiesByDb: Map<string, Entity[]>): string {
+    const tablesWithRelationships: string[] = [];
+
+    for (const [dbId, dbEntities] of entitiesByDb.entries()) {
+      for (const entity of dbEntities) {
+        if (this.hasRelationshipColumns(entity)) {
+          tablesWithRelationships.push(`'${dbId}:${entity.name}'`);
+        }
+      }
+    }
+
+    if (tablesWithRelationships.length === 0) {
+      return `const tablesWithRelationships = new Set<string>()`;
+    }
+
+    return `const tablesWithRelationships = new Set<string>([${tablesWithRelationships.join(", ")}])`;
   }
 
   generateDatabasesFile(config: ConfigType): string {
@@ -424,29 +371,140 @@ export type QueryBuilder<T> = {
     }
 
     const entitiesByDb = this.groupEntitiesByDb(entities);
-    const typeNames = entities.map((e) => toPascalCase(e.name));
     const appwriteDep = this.getAppwriteDependency();
+    const supportsBulk = this.supportsBulkMethods(appwriteDep);
 
-    const databasesMap = Array.from(entitiesByDb.entries())
-      .map(([dbId, dbEntities]) => {
-        return `  '${dbId}': {\n${this.generateTableHelpers(dbId, dbEntities, appwriteDep)}\n  }`;
-      })
-      .join(",\n");
+    const bulkMethodsCode = supportsBulk
+      ? `
+    createMany: (rows: any[], options?: { transactionId?: string }) =>
+      tablesDB.createRows({
+        databaseId,
+        tableId,
+        rows,
+        transactionId: options?.transactionId,
+      }),
+    updateMany: (data: any, options?: { queries?: (q: any) => string[]; transactionId?: string }) =>
+      tablesDB.updateRows({
+        databaseId,
+        tableId,
+        data,
+        queries: options?.queries?.(createQueryBuilder()),
+        transactionId: options?.transactionId,
+      }),
+    deleteMany: (options?: { queries?: (q: any) => string[]; transactionId?: string }) =>
+      tablesDB.deleteRows({
+        databaseId,
+        tableId,
+        queries: options?.queries?.(createQueryBuilder()),
+        transactionId: options?.transactionId,
+      }),`
+      : "";
+
+    const hasBulkCheck = supportsBulk
+      ? `const hasBulkMethods = (dbId: string, tableName: string) => !tablesWithRelationships.has(\`\${dbId}:\${tableName}\`);`
+      : "";
 
     return `import { Client, TablesDB, ID, Query, type Models, Permission } from '${appwriteDep}';
-import type { ${typeNames.join(", ")}, DatabaseId, DatabaseTables, QueryBuilder } from './types.js';
+import type { DatabaseId, DatabaseTables, QueryBuilder } from './types.js';
 
 ${this.generateQueryBuilder()};
 
+${this.generateTableIdMap(entitiesByDb)};
+
+${this.generateTablesWithRelationships(entitiesByDb)};
+
+function createTableApi<T extends Models.Row>(
+  tablesDB: TablesDB,
+  databaseId: string,
+  tableId: string,
+) {
+  return {
+    create: (data: any, options?: { rowId?: string; permissions?: Permission[]; transactionId?: string }) =>
+      tablesDB.createRow<T>({
+        databaseId,
+        tableId,
+        rowId: options?.rowId ?? ID.unique(),
+        data,
+        permissions: options?.permissions?.map((p) => p.toString()),
+        transactionId: options?.transactionId,
+      }),
+    get: (id: string) =>
+      tablesDB.getRow<T>({
+        databaseId,
+        tableId,
+        rowId: id,
+      }),
+    update: (id: string, data: any, options?: { permissions?: Permission[]; transactionId?: string }) =>
+      tablesDB.updateRow<T>({
+        databaseId,
+        tableId,
+        rowId: id,
+        data,
+        ...(options?.permissions ? { permissions: options.permissions.map((p) => p.toString()) } : {}),
+        transactionId: options?.transactionId,
+      }),
+    delete: async (id: string, options?: { transactionId?: string }) => {
+      await tablesDB.deleteRow({
+        databaseId,
+        tableId,
+        rowId: id,
+        transactionId: options?.transactionId,
+      });
+    },
+    list: (options?: { queries?: (q: any) => string[] }) =>
+      tablesDB.listRows<T>({
+        databaseId,
+        tableId,
+        queries: options?.queries?.(createQueryBuilder<T>()),
+      }),${bulkMethodsCode}
+  };
+}
+
+${hasBulkCheck}
+
+function createDatabaseProxy<D extends DatabaseId>(
+  tablesDB: TablesDB,
+  databaseId: D,
+): DatabaseTables[D] {
+  const tableApiCache = new Map<string, ReturnType<typeof createTableApi>>();
+
+  return new Proxy({} as DatabaseTables[D], {
+    get(_target, tableName: string) {
+      if (typeof tableName === 'symbol') return undefined;
+
+      if (!tableApiCache.has(tableName)) {
+        const tableId = tableIdMap[databaseId]?.[tableName];
+        if (!tableId) return undefined;
+
+        const api = createTableApi(tablesDB, databaseId, tableId);
+        ${supportsBulk ? `
+        // Remove bulk methods for tables with relationships
+        if (!hasBulkMethods(databaseId, tableName)) {
+          delete (api as any).createMany;
+          delete (api as any).updateMany;
+          delete (api as any).deleteMany;
+        }` : ""}
+        tableApiCache.set(tableName, api);
+      }
+      return tableApiCache.get(tableName);
+    },
+    has(_target, tableName: string) {
+      return typeof tableName === 'string' && tableName in (tableIdMap[databaseId] ?? {});
+    },
+  });
+}
+
 export const createDatabases = (client: Client) => {
   const tablesDB = new TablesDB(client);
-
-  const _databases: { [K in DatabaseId]: DatabaseTables[K] } = {
-${databasesMap}
-  };
+  const dbCache = new Map<DatabaseId, DatabaseTables[DatabaseId]>();
 
   return {
-    from: <T extends DatabaseId>(databaseId: T): DatabaseTables[T] => _databases[databaseId],
+    from: <T extends DatabaseId>(databaseId: T): DatabaseTables[T] => {
+      if (!dbCache.has(databaseId)) {
+        dbCache.set(databaseId, createDatabaseProxy(tablesDB, databaseId));
+      }
+      return dbCache.get(databaseId) as DatabaseTables[T];
+    },
   };
 };
 `;
