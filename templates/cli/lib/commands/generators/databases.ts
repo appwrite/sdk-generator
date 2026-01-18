@@ -123,9 +123,18 @@ export class DatabasesGenerator {
       for (const field of fields) {
         if (field.format === "enum" && field.elements) {
           const enumName = toPascalCase(entity.name) + toPascalCase(field.key);
+          const usedKeys = new Set<string>();
           const enumValues = field.elements
             .map((element: string, index: number) => {
-              const key = sanitizeEnumKey(element);
+              let key = sanitizeEnumKey(element);
+              if (usedKeys.has(key)) {
+                let disambiguator = 1;
+                while (usedKeys.has(`${key}_${disambiguator}`)) {
+                  disambiguator++;
+                }
+                key = `${key}_${disambiguator}`;
+              }
+              usedKeys.add(key);
               const isLast = index === field.elements!.length - 1;
               return `    ${key} = "${element}"${isLast ? "" : ","}`;
             })
