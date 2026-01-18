@@ -138,9 +138,20 @@ export class DatabasesGenerator {
           "utf-8",
         );
         const packageJson = JSON.parse(packageJsonRaw);
-        return packageJson.dependencies?.["appwrite"]
-          ? "appwrite"
-          : "node-appwrite";
+        const deps = packageJson.dependencies ?? {};
+
+        if (deps["@appwrite.io/console"]) {
+          return "@appwrite.io/console";
+        }
+        if (deps["react-native-appwrite"]) {
+          return "react-native-appwrite";
+        }
+        if (deps["appwrite"]) {
+          return "appwrite";
+        }
+        if (deps["node-appwrite"]) {
+          return "node-appwrite";
+        }
       } catch {
         // Fallback if package.json is invalid
       }
@@ -151,6 +162,10 @@ export class DatabasesGenerator {
     }
 
     return "appwrite";
+  }
+
+  private supportsBulkMethods(appwriteDep: string): boolean {
+    return appwriteDep === "node-appwrite" || appwriteDep === "@appwrite.io/console";
   }
 
   private generateQueryBuilderType(): string {
@@ -191,7 +206,7 @@ export type QueryBuilder<T> = {
   }
 
   private generateDatabaseTablesType(entitiesByDb: Map<string, Entity[]>, appwriteDep: string): string {
-    const isNodeAppwrite = appwriteDep === 'node-appwrite';
+    const hasBulkMethods = this.supportsBulkMethods(appwriteDep);
     const dbReturnTypes = Array.from(entitiesByDb.entries())
       .map(([dbId, dbEntities]) => {
         const tableTypes = dbEntities
@@ -203,7 +218,7 @@ export type QueryBuilder<T> = {
       delete: (id: string, options?: { transactionId?: string }) => Promise<void>;
       list: (options?: { queries?: (q: QueryBuilder<${typeName}>) => string[] }) => Promise<{ total: number; rows: ${typeName}[] }>;`;
 
-            const bulkMethods = isNodeAppwrite ? `
+            const bulkMethods = hasBulkMethods ? `
       createMany: (rows: Array<{ data: Omit<${typeName}, keyof Models.Row>; rowId?: string; permissions?: Permission[] }>, options?: { transactionId?: string }) => Promise<{ total: number; rows: ${typeName}[] }>;
       updateMany: (rows: Array<{ rowId: string; data: Partial<Omit<${typeName}, keyof Models.Row>>; permissions?: Permission[] }>, options?: { transactionId?: string }) => Promise<{ total: number; rows: ${typeName}[] }>;
       deleteMany: (rowIds: string[], options?: { transactionId?: string }) => Promise<void>;` : '';
@@ -281,7 +296,7 @@ export type QueryBuilder<T> = {
   }
 
   private generateTableHelpers(dbId: string, dbEntities: Entity[], appwriteDep: string): string {
-    const isNodeAppwrite = appwriteDep === 'node-appwrite';
+    const hasBulkMethods = this.supportsBulkMethods(appwriteDep);
 
     return dbEntities
       .map((entity) => {
@@ -327,7 +342,7 @@ export type QueryBuilder<T> = {
           queries: options?.queries?.(createQueryBuilder<${typeName}>()),
         }),`;
 
-        const bulkMethods = isNodeAppwrite ? `
+        const bulkMethods = hasBulkMethods ? `
       createMany: (rows: Array<{ data: Omit<${typeName}, keyof Models.Row>; rowId?: string; permissions?: Permission[] }>, options?: { transactionId?: string }) =>
         tablesDB.createRows<${typeName}>({
           databaseId: '${dbId}',
