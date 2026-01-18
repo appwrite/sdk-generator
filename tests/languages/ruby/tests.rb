@@ -86,6 +86,16 @@ end
 response = general.enum(mock_type: MockType::FIRST)
 puts response.result
 
+# Request model tests
+response = general.create_player(player: {id: 'player1', name: 'John Doe', score: 100})
+puts response.result
+
+response = general.create_players(players: [
+    {id: 'player1', name: 'John Doe', score: 100},
+    {id: 'player2', name: 'Jane Doe', score: 200}
+])
+puts response.result
+
 begin
     general.error400()
 rescue Exception => error
@@ -188,6 +198,15 @@ puts Query.not_equal("location", [[40.7128, -74], [40.7128, -74]])
 
 puts Query.or([Query.equal("released", true), Query.less_than("releasedYear", 1990)])
 puts Query.and([Query.equal("released", false), Query.greater_than("releasedYear", 2015)])
+
+# New query methods: regex, exists, notExists, elemMatch
+puts Query.regex("name", "pattern.*")
+puts Query.exists(["attr1", "attr2"])
+puts Query.not_exists(["attr1", "attr2"])
+puts Query.elem_match("friends", [
+  Query.equal("name", "Alice"),
+  Query.greater_than("age", 18)
+])
 
 # Permission & Role helper tests
 puts Permission.read(Role.any())

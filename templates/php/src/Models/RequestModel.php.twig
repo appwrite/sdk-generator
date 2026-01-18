@@ -1,0 +1,88 @@
+<?php
+
+namespace {{ spec.namespace | caseNamespace }}\Models;
+
+/**
+ * {{ requestModel.description }}
+ */
+class {{ requestModel.name | caseUcfirst }}
+{
+    {%~ for property in requestModel.properties %}
+    /**
+     * {{ property.description }}
+     *
+     * @var {{ property | typeName }}{% if not property.required %}|null{% endif %}
+
+     */
+    protected {% if not property.required %}?{% endif %}{{ property | typeName }} ${{ property.name | caseCamel | escapeKeyword }};
+
+    {%~ endfor %}
+
+    /**
+     * {{ requestModel.name | caseUcfirst }} constructor.
+     *
+     {%~ for property in requestModel.properties %}
+     * @param {{ property | typeName }}{% if not property.required %}|null{% endif %} ${{ property.name | caseCamel | escapeKeyword }}
+     {%~ endfor %}
+     */
+    public function __construct(
+        {%~ for property in requestModel.properties %}
+        {% if not property.required %}?{% endif %}{{ property | typeName }} ${{ property.name | caseCamel | escapeKeyword }}{% if not property.required %} = null{% endif %}{% if not loop.last %},{% endif %}
+
+        {%~ endfor %}
+    ) {
+        {%~ for property in requestModel.properties %}
+        $this->{{ property.name | caseCamel | escapeKeyword }} = ${{ property.name | caseCamel | escapeKeyword }};
+        {%~ endfor %}
+    }
+
+    {%~ for property in requestModel.properties %}
+    /**
+     * Get {{ property.description | lower }}
+     *
+     * @return {{ property | typeName }}{% if not property.required %}|null{% endif %}
+
+     */
+    public function get{{ property.name | caseUcfirst }}(): {% if not property.required %}?{% endif %}{{ property | typeName }}
+
+    {
+        return $this->{{ property.name | caseCamel | escapeKeyword }};
+    }
+
+    /**
+     * Set {{ property.description | lower }}
+     *
+     * @param {{ property | typeName }}{% if not property.required %}|null{% endif %} ${{ property.name | caseCamel | escapeKeyword }}
+     * @return self
+     */
+    public function set{{ property.name | caseUcfirst }}({% if not property.required %}?{% endif %}{{ property | typeName }} ${{ property.name | caseCamel | escapeKeyword }}): self
+    {
+        $this->{{ property.name | caseCamel | escapeKeyword }} = ${{ property.name | caseCamel | escapeKeyword }};
+        return $this;
+    }
+
+    {%~ endfor %}
+    /**
+     * Convert the model to an array.
+     *
+     * @return array<string, mixed>
+     */
+    public function toArray(): array
+    {
+        return [
+            {%~ for property in requestModel.properties %}
+            '{{ property.name }}' => {% if property.sub_schema %}{% if property.type == 'array' %}array_map(fn($item) => $item->toArray(), $this->{{ property.name | caseCamel | escapeKeyword }} ?? []){% else %}$this->{{ property.name | caseCamel | escapeKeyword }}?->toArray(){% endif %}{% elseif property.enum %}$this->{{ property.name | caseCamel | escapeKeyword }}{% if not property.required %}?{% endif %}->value{% else %}$this->{{ property.name | caseCamel | escapeKeyword }}{% endif %},
+            {%~ endfor %}
+        ];
+    }
+
+    /**
+     * Convert the model to JSON.
+     *
+     * @return string
+     */
+    public function toJson(): string
+    {
+        return json_encode($this->toArray());
+    }
+}

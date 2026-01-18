@@ -1,6 +1,8 @@
 import { Models } from './models';
 import { Service } from './service';
 import { Platform } from 'react-native';
+import JSONbigModule from 'json-bigint';
+const JSONbig = JSONbigModule({ useNativeBigInt: true });
 
 type Payload = {
     [key: string]: any;
@@ -232,7 +234,7 @@ class Client {
             }
 
             this.realtime.heartbeat = window?.setInterval(() => {
-                this.realtime.socket?.send(JSON.stringify({
+                this.realtime.socket?.send(JSONbig.stringify({
                     type: 'ping'
                 }));
             }, 20_000);
@@ -301,7 +303,7 @@ class Client {
         },
         onMessage: (event) => {
             try {
-                const message: RealtimeResponse = JSON.parse(event.data);
+                const message: RealtimeResponse = JSONbig.parse(event.data);
                 this.realtime.lastMessage = message;
                 switch (message.type) {
                     case 'event':
@@ -408,7 +410,7 @@ class Client {
         } else {
             switch (headers['content-type']) {
                 case 'application/json':
-                    options.body = JSON.stringify(params);
+                    options.body = JSONbig.stringify(params);
                     break;
 
                 case 'multipart/form-data':
@@ -441,7 +443,7 @@ class Client {
             }
 
             if (response.headers.get('content-type')?.includes('application/json')) {
-                data = await response.json();
+                data = JSONbig.parse(await response.text());
             } else if (responseType === 'arrayBuffer') {
                 data = await response.arrayBuffer();
             } else {
@@ -453,7 +455,7 @@ class Client {
             if (400 <= response.status) {
                 let responseText = '';
                 if (response.headers.get('content-type')?.includes('application/json')) {
-                    responseText = JSON.stringify(data);
+                    responseText = JSONbig.stringify(data);
                 } else {
                     responseText = data?.message;
                 }

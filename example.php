@@ -51,7 +51,7 @@ try {
             'gitRepoName' => 'reponame',
             'twitter' => 'appwrite',
             'discord' => ['564160730845151244', 'https://appwrite.io/discord'],
-            'defaultHeaders' => ['X-Appwrite-Response-Format' => '1.6.0'],
+            'defaultHeaders' => ['X-Appwrite-Response-Format' => '1.8.0'],
             'readme' => '**README**',
         ];
 
@@ -78,6 +78,9 @@ try {
         }
         if (isset($config['exclude'])) {
             $sdk->setExclude($config['exclude']);
+        }
+        if (isset($config['platform'])) {
+            $sdk->setPlatform($config['platform']);
         }
 
         return $sdk;
@@ -120,7 +123,7 @@ try {
     // Web
     if (!$requestedSdk || $requestedSdk === 'web') {
         $sdk  = new SDK(new Web(), new Swagger2($spec));
-        configureSDK($sdk);
+        configureSDK($sdk, ['platform' => $platform]);
         $sdk->generate(__DIR__ . '/examples/web');
     }
 
@@ -154,6 +157,7 @@ try {
         |_|   |_|                                                ");
 
         $sdk  = new SDK($language, new Swagger2($spec));
+        $sdk->setTest(false);
         configureSDK($sdk, [
             'exclude' => [
                 'services' => [

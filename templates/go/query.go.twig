@@ -412,3 +412,61 @@ func NotTouches(attribute string, values []interface{}) string {
 		Values:    &[]interface{}{values},
 	})
 }
+
+// Regex filters resources where attribute matches a regular expression pattern.
+//
+// attribute: The attribute to filter on.
+// pattern: The regular expression pattern to match.
+// Returns the query string.
+func Regex(attribute string, pattern string) string {
+	values := toArray(pattern)
+	return parseQuery(queryOptions{
+		Method:    "regex",
+		Attribute: &attribute,
+		Values:    &values,
+	})
+}
+
+// Exists filters resources where the specified attributes exist.
+//
+// attributes: The list of attributes that must exist.
+// Returns the query string.
+func Exists(attributes []interface{}) string {
+	return parseQuery(queryOptions{
+		Method: "exists",
+		Values: &attributes,
+	})
+}
+
+// NotExists filters resources where the specified attributes do not exist.
+//
+// attributes: The list of attributes that must not exist.
+// Returns the query string.
+func NotExists(attributes []interface{}) string {
+	return parseQuery(queryOptions{
+		Method: "notExists",
+		Values: &attributes,
+	})
+}
+
+// ElemMatch filters array elements where at least one element matches all the specified queries.
+//
+// attribute: The attribute containing the array to filter on.
+// queries: The list of query strings to match against array elements.
+// Returns the query string.
+func ElemMatch(attribute string, queries []string) string {
+	var parsedQueries []interface{}
+	for _, query := range queries {
+		var q interface{}
+		if err := json.Unmarshal([]byte(query), &q); err != nil {
+			// Handle error, possibly log it or return an empty result
+			continue
+		}
+		parsedQueries = append(parsedQueries, q)
+	}
+	return parseQuery(queryOptions{
+		Method:    "elemMatch",
+		Attribute: &attribute,
+		Values:    &parsedQueries,
+	})
+}

@@ -1,6 +1,10 @@
 <?php
 
-namespace {{ spec.title | caseUcfirst }};
+namespace {{ spec.namespace | caseNamespace }};
+{% if spec.global.headers | hasBearerAuth %}
+
+use Ahc\Jwt\JWT;
+{% endif %}
 
 class Client
 {
@@ -15,6 +19,9 @@ class Client
     const METHOD_TRACE = 'TRACE';
 
     const CHUNK_SIZE = 5 * 1024 * 1024;
+{% if spec.global.headers | hasBearerAuth %}
+    const JWT_MAX_AGE_SECONDS = 3600;
+{% endif %}
 
     /**
      * Is Self Signed Certificates Allowed?
@@ -45,6 +52,20 @@ class Client
     ];
 
     /**
+     * Timeout in seconds
+     *
+     * @var int|null
+     */
+    protected ?int $timeout = null;
+
+    /**
+     * Connect timeout in seconds
+     *
+     * @var int|null
+     */
+    protected ?int $connectTimeout = null;
+
+    /**
      * Client constructor.
      */
     public function __construct()
@@ -68,7 +89,12 @@ class Client
      */
     public function set{{header.key | caseUcfirst}}(string $value): Client
     {
+{% if header.type is defined and header.type == 'bearer' %}
+        $jwt = new JWT($value, 'HS256', self::JWT_MAX_AGE_SECONDS);
+        $this->addHeader('{{header.name}}', 'Bearer ' . $jwt->encode([]));
+{% else %}
         $this->addHeader('{{header.name}}', $value);
+{% endif %}
 
         return $this;
     }
@@ -93,10 +119,34 @@ class Client
     public function setEndpoint(string $endpoint): Client
     {
         if (!str_starts_with($endpoint, 'http://') && !str_starts_with($endpoint, 'https://')) {
-            throw new {{spec.title | caseUcfirst}}Exception("Invalid endpoint URL: $endpoint");
+            throw new {{ spec.namespace | split('\\') | last | caseUcfirst }}Exception("Invalid endpoint URL: $endpoint");
         }
 
         $this->endpoint = $endpoint;
+        return $this;
+    }
+
+    /**
+     * Set Timeout
+     *
+     * @param int $timeout Timeout in seconds
+     * @return Client
+     */
+    public function setTimeout(int $timeout): Client
+    {
+        $this->timeout = $timeout;
+        return $this;
+    }
+
+    /**
+     * Set Connect Timeout
+     *
+     * @param int $connectTimeout Connect timeout in seconds
+     * @return Client
+     */
+    public function setConnectTimeout(int $connectTimeout): Client
+    {
+        $this->connectTimeout = $connectTimeout;
         return $this;
     }
 
@@ -107,7 +157,7 @@ class Client
     public function addHeader(string $key, string $value): Client
     {
         $this->headers[strtolower($key)] = $value;
-        
+
         return $this;
     }
 
@@ -121,7 +171,7 @@ class Client
      * @param array $params
      * @param array $headers
      * @return array|string
-     * @throws {{spec.title | caseUcfirst}}Exception
+     * @throws {{ spec.namespace | split('\\') | last | caseUcfirst}}Exception
      */
     public function call(
         string $method,
@@ -137,7 +187,7 @@ class Client
 
         switch ($headers['content-type']) {
             case 'application/json':
-                $query = json_encode($params);
+                $query = json_encode($this->prepareParams($params));
                 break;
 
             case 'multipart/form-data':
@@ -182,6 +232,16 @@ class Client
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
         }
 
+        // Set timeout if configured
+        if($this->timeout !== null) {
+            curl_setopt($ch, CURLOPT_TIMEOUT, $this->timeout);
+        }
+
+        // Set connect timeout if configured
+        if($this->connectTimeout !== null) {
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, $this->connectTimeout);
+        }
+
         $responseBody   = curl_exec($ch);
         $contentType    = $responseHeaders['content-type'] ?? '';
         $responseStatus = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -200,16 +260,16 @@ class Client
         }
 
         if (curl_errno($ch)) {
-            throw new {{spec.title | caseUcfirst}}Exception(curl_error($ch), $responseStatus, $responseBody['type'] ?? '', $responseBody);
+            throw new {{ spec.namespace | split('\\') | last | caseUcfirst}}Exception(curl_error($ch), $responseStatus, $responseBody['type'] ?? '', $responseBody);
         }
         
         curl_close($ch);
 
         if($responseStatus >= 400) {
             if(is_array($responseBody)) {
-                throw new {{spec.title | caseUcfirst}}Exception($responseBody['message'], $responseStatus, $responseBody['type'] ?? '', json_encode($responseBody));
+                throw new {{ spec.namespace | split('\\') | last | caseUcfirst}}Exception($responseBody['message'], $responseStatus, $responseBody['type'] ?? '', json_encode($responseBody));
             } else {
-                throw new {{spec.title | caseUcfirst}}Exception($responseBody, $responseStatus, '', $responseBody);
+                throw new {{ spec.namespace | split('\\') | last | caseUcfirst}}Exception($responseBody, $responseStatus, '', $responseBody);
             }
         }
 
@@ -242,5 +302,24 @@ class Client
         }
 
         return $output;
+    }
+
+    /**
+     * Prepare params for JSON encoding by converting model objects to arrays
+     *
+     * @param mixed $data
+     * @return mixed
+     */
+    protected function prepareParams($data)
+    {
+        if (is_array($data)) {
+            return array_map([$this, 'prepareParams'], $data);
+        }
+
+        if (is_object($data) && method_exists($data, 'toArray')) {
+            return $data->toArray();
+        }
+
+        return $data;
     }
 }

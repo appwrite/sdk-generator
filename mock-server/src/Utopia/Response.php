@@ -12,20 +12,14 @@ use Utopia\Database\Document;
 class Response extends SwooleResponse
 {
     // General
-    public const MODEL_NONE = 'none';
-    public const MODEL_ANY = 'any';
-    public const MODEL_LOG = 'log';
-    public const MODEL_LOG_LIST = 'logList';
-    public const MODEL_ERROR = 'error';
-    public const MODEL_METRIC = 'metric';
-    public const MODEL_METRIC_LIST = 'metricList';
-    public const MODEL_ERROR_DEV = 'errorDev';
-    public const MODEL_BASE_LIST = 'baseList';
+    public const string MODEL_NONE = 'none';
+    public const string MODEL_ANY = 'any';
+    public const string MODEL_ERROR = 'error';
 
     // Mock
-    public const MODEL_MOCK = 'mock';
+    public const string MODEL_MOCK = 'mock';
 
-    private static $filter = null;
+    private static ?Filter $filter = null;
 
     /**
      * @var array
@@ -35,7 +29,7 @@ class Response extends SwooleResponse
     /**
      * Response constructor.
      *
-     * @param float $time
+     * @param SwooleResponse $response
      */
     public function __construct(SwooleResponse $response)
     {
@@ -44,21 +38,21 @@ class Response extends SwooleResponse
     /**
      * HTTP content types
      */
-    public const CONTENT_TYPE_YAML = 'application/x-yaml';
-    public const CONTENT_TYPE_NULL = 'null';
+    public const string CONTENT_TYPE_YAML = 'application/x-yaml';
+    public const string CONTENT_TYPE_NULL = 'null';
 
     /**
      * List of defined output objects
      */
-    protected $models = [];
-
+    protected array $models = [];
 
     /**
      * Set Model Object
      *
+     * @param Model $instance
      * @return self
      */
-    public function setModel(Model $instance)
+    public function setModel(Model $instance): static
     {
         $this->models[$instance->getType()] = $instance;
 
@@ -70,7 +64,7 @@ class Response extends SwooleResponse
      *
      * @param string $key
      * @return Model
-     * @throws Exception
+     * @throws \Exception
      */
     public function getModel(string $key): Model
     {
@@ -99,7 +93,7 @@ class Response extends SwooleResponse
      * @param string $model
      *
      * return void
-     * @throws Exception
+     * @throws \Exception
      */
     public function dynamic(Document $document, string $model): void
     {
@@ -240,7 +234,7 @@ class Response extends SwooleResponse
      *
      * @return void
      */
-    public static function setFilter(?Filter $filter)
+    public static function setFilter(?Filter $filter): void
     {
         self::$filter = $filter;
     }

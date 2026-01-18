@@ -32,71 +32,6 @@ class Node extends Web
         return 'sdk.';
     }
 
-    public function getTypeName(array $parameter, array $method = []): string
-    {
-        if (isset($parameter['enumName'])) {
-            return \ucfirst($parameter['enumName']);
-        }
-        if (!empty($parameter['enumValues'])) {
-            return \ucfirst($parameter['name']);
-        }
-        if (isset($parameter['items'])) {
-            // Map definition nested type to parameter nested type
-            $parameter['array'] = $parameter['items'];
-        }
-        switch ($parameter['type']) {
-            case self::TYPE_INTEGER:
-            case self::TYPE_NUMBER:
-                return 'number';
-            case self::TYPE_ARRAY:
-                if (!empty($parameter['array']['x-anyOf'] ?? [])) {
-                    $unionTypes = [];
-                    foreach ($parameter['array']['x-anyOf'] as $refType) {
-                        if (isset($refType['$ref'])) {
-                            $refParts = explode('/', $refType['$ref']);
-                            $modelName = end($refParts);
-                            $unionTypes[] = 'Models.' . $this->toPascalCase($modelName);
-                        }
-                    }
-                    if (!empty($unionTypes)) {
-                        return '(' . implode(' | ', $unionTypes) . ')[]';
-                    }
-                }
-                if (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type'])) {
-                    return $this->getTypeName($parameter['array']) . '[]';
-                }
-                return 'any[]';
-            case self::TYPE_FILE:
-                return "File";
-            case self::TYPE_OBJECT:
-                if (empty($method)) {
-                    return $parameter['type'];
-                }
-                switch ($method['responseModel']) {
-                    case 'user':
-                        return "Partial<Preferences>";
-                    case 'document':
-                        if ($method['method'] === 'post') {
-                            return "Document extends Models.DefaultDocument ? Partial<Models.Document> & Record<string, any> : Partial<Models.Document> & Omit<Document, keyof Models.Document>";
-                        }
-                        if ($method['method'] === 'patch' || $method['method'] === 'put') {
-                            return "Document extends Models.DefaultDocument ? Partial<Models.Document> & Record<string, any> : Partial<Models.Document> & Partial<Omit<Document, keyof Models.Document>>";
-                        }
-                        break;
-                    case 'row':
-                        if ($method['method'] === 'post') {
-                            return "Row extends Models.DefaultRow ? Partial<Models.Row> & Record<string, any> : Partial<Models.Row> & Omit<Row, keyof Models.Row>";
-                        }
-                        if ($method['method'] === 'patch' || $method['method'] === 'put') {
-                            return "Row extends Models.DefaultRow ? Partial<Models.Row> & Record<string, any> : Partial<Models.Row> & Partial<Omit<Row, keyof Models.Row>>";
-                        }
-                        break;
-                }
-                break;
-        }
-        return $parameter['type'];
-    }
-
     public function getReturn(array $method, array $spec): string
     {
         if ($method['type'] === 'webAuth') {
@@ -105,6 +40,12 @@ class Node extends Web
 
         if ($method['type'] === 'location') {
             return 'Promise<ArrayBuffer>';
+        }
+
+        // check for union types i.e. multiple response models
+        $unionType = $this->getUnionReturnType($method, $spec);
+        if ($unionType !== null) {
+            return $unionType;
         }
 
         if (array_key_exists('responseModel', $method) && !empty($method['responseModel']) && $method['responseModel'] !== 'any') {
@@ -273,6 +214,11 @@ class Node extends Web
                 'scope'         => 'enum',
                 'destination'   => 'src/enums/{{ enum.name | caseKebab }}.ts',
                 'template'      => 'web/src/enums/enum.ts.twig',
+            ],
+            [
+                'scope'         => 'requestModel',
+                'destination'   => 'src/models/{{ requestModel.name | caseKebab }}.ts',
+                'template'      => 'node/src/models/requestModel.ts.twig',
             ],
         ];
     }

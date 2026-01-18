@@ -308,6 +308,11 @@ class Swift extends Language
                 'template'      => '/swift/Sources/Models/Model.swift.twig',
             ],
             [
+                'scope'         => 'requestModel',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}Models/{{ requestModel.name | caseUcfirst }}.swift',
+                'template'      => '/swift/Sources/Models/RequestModel.swift.twig',
+            ],
+            [
                 'scope' => 'enum',
                 'destination' => '/Sources/{{ spec.title | caseUcfirst}}Enums/{{ enum.name | caseUcfirst }}.swift',
                 'template' => '/swift/Sources/Enums/Enum.swift.twig',
@@ -326,6 +331,13 @@ class Swift extends Language
         }
         if (!empty($parameter['enumValues'])) {
             return ($spec['title'] ?? '') . 'Enums.' . \ucfirst($parameter['name']);
+        }
+        if (!empty($parameter['array']['model'])) {
+            return '[' . ($spec['title'] ?? '') . 'Models.' . $this->toPascalCase($parameter['array']['model']) . ']';
+        }
+        if (!empty($parameter['model'])) {
+            $modelType = ($spec['title'] ?? '') . 'Models.' . $this->toPascalCase($parameter['model']);
+            return $parameter['type'] === self::TYPE_ARRAY ? '[' . $modelType . ']' : $modelType;
         }
         if (isset($parameter['items'])) {
             // Map definition nested type to parameter nested type
@@ -562,6 +574,14 @@ class Swift extends Language
             return 'ByteBuffer';
         }
 
+        if (
+            \array_key_exists('responseModels', $method)
+            && \count($method['responseModels']) > 1
+        ) {
+            return 'Any';
+        }
+
+        // Check for missing or generic response model
         if (
             !\array_key_exists('responseModel', $method)
             || empty($method['responseModel'])

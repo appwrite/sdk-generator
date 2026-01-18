@@ -79,6 +79,16 @@ print(response['result'])
 response = general.enum(MockType.FIRST)
 print(response['result'])
 
+# Request model tests
+response = general.create_player({'id': 'player1', 'name': 'John Doe', 'score': 100})
+print(response['result'])
+
+response = general.create_players([
+    {'id': 'player1', 'name': 'John Doe', 'score': 100},
+    {'id': 'player2', 'name': 'Jane Doe', 'score': 200}
+])
+print(response['result'])
+
 try:
     response = general.error400()
 except AppwriteException as e:
@@ -181,6 +191,15 @@ print(Query.or_queries(
 print(Query.and_queries(
     [Query.equal("released", False), Query.greater_than("releasedYear", 2015)]
 ))
+
+# New query methods: regex, exists, notExists, elemMatch
+print(Query.regex("name", "pattern.*"))
+print(Query.exists(["attr1", "attr2"]))
+print(Query.not_exists(["attr1", "attr2"]))
+print(Query.elem_match("friends", [
+    Query.equal("name", "Alice"),
+    Query.greater_than("age", 18)
+]))
 
 # Permission & Role helper tests
 print(Permission.read(Role.any()))

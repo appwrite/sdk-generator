@@ -1,0 +1,22 @@
+// SDK
+export const SDK_TITLE = '{{ spec.title|caseUcfirst }}';
+export const SDK_TITLE_LOWER = '{{ spec.title|caseLower }}';
+export const SDK_VERSION = '{{ sdk.version }}';
+export const SDK_NAME = '{{ sdk.name }}';
+export const SDK_PLATFORM = '{{ sdk.platform }}';
+export const SDK_LANGUAGE = '{{ language.name | caseLower }}';
+export const SDK_LOGO = {{ language.params.logo | raw }};
+
+// CLI
+export const EXECUTABLE_NAME = '{{ language.params.executableName }}';
+
+// NPM
+export const NPM_PACKAGE_NAME = '{{ language.params.npmPackage|caseDash }}';
+export const NPM_REGISTRY_URL = `https://registry.npmjs.org/${NPM_PACKAGE_NAME}/latest`;
+
+// GitHub
+export const GITHUB_REPO = 'appwrite/{{ language.params.npmPackage|caseDash }}';
+export const GITHUB_RELEASES_URL = `https://github.com/${GITHUB_REPO}/releases`;
+
+// API
+export const DEFAULT_ENDPOINT = '{{ spec.endpoint }}';
