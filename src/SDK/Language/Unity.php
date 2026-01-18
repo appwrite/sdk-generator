@@ -196,7 +196,7 @@ class Unity extends DotNet
                 'template'      => 'dotnet/Package/Models/Model.cs.twig',
             ],
             [
-                'scope'         => 'definition',
+                'scope'         => 'requestModel',
                 'destination'   => 'Assets/Runtime/Core/Models/{{ requestModel.name | caseUcfirst | overrideIdentifier }}.cs',
                 'template'      => 'dotnet/Package/Models/RequestModel.cs.twig',
             ],
