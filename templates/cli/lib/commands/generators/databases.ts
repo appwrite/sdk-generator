@@ -2,7 +2,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { z } from "zod";
 import { ConfigType, AttributeSchema } from "../config.js";
-import { toPascalCase, toUpperSnakeCase } from "../../utils.js";
+import { toPascalCase, sanitizeEnumKey } from "../../utils.js";
 
 export interface GenerateResult {
   databasesContent: string;
@@ -10,8 +10,12 @@ export interface GenerateResult {
   indexContent: string;
 }
 
-type Entity = NonNullable<ConfigType["tables"]>[number] | NonNullable<ConfigType["collections"]>[number];
-type Entities = NonNullable<ConfigType["tables"]> | NonNullable<ConfigType["collections"]>;
+type Entity =
+  | NonNullable<ConfigType["tables"]>[number]
+  | NonNullable<ConfigType["collections"]>[number];
+type Entities =
+  | NonNullable<ConfigType["tables"]>
+  | NonNullable<ConfigType["collections"]>;
 
 export class DatabasesGenerator {
   private getType(
@@ -43,9 +47,7 @@ export class DatabasesGenerator {
           (c) => c.$id === relatedId || c.name === relatedId,
         );
         if (!relatedEntity) {
-          throw new Error(
-            `Related entity with ID '${relatedId}' not found.`,
-          );
+          throw new Error(`Related entity with ID '${relatedId}' not found.`);
         }
         type = toPascalCase(relatedEntity.name);
         if (
@@ -74,7 +76,9 @@ export class DatabasesGenerator {
     return type;
   }
 
-  private getFields(entity: Entity): z.infer<typeof AttributeSchema>[] | undefined {
+  private getFields(
+    entity: Entity,
+  ): z.infer<typeof AttributeSchema>[] | undefined {
     return "columns" in entity
       ? (entity as NonNullable<ConfigType["tables"]>[number]).columns
       : (entity as NonNullable<ConfigType["collections"]>[number]).attributes;
@@ -86,7 +90,10 @@ export class DatabasesGenerator {
 
     const typeName = toPascalCase(entity.name);
     const attributes = fields
-      .map((attr) => `    ${attr.key}${attr.required ? '' : '?'}: ${this.getType(attr, entities as any, entity.name)};`)
+      .map(
+        (attr) =>
+          `    ${attr.key}${attr.required ? "" : "?"}: ${this.getType(attr, entities as any, entity.name)};`,
+      )
       .join("\n");
 
     return `export type ${typeName} = Models.Row & {\n${attributes}\n}`;
@@ -104,7 +111,7 @@ export class DatabasesGenerator {
           const enumName = toPascalCase(entity.name) + toPascalCase(field.key);
           const enumValues = field.elements
             .map((element: string, index: number) => {
-              const key = toUpperSnakeCase(element);
+              const key = sanitizeEnumKey(element);
               const isLast = index === field.elements!.length - 1;
               return `    ${key} = "${element}"${isLast ? "" : ","}`;
             })
@@ -167,7 +174,11 @@ export class DatabasesGenerator {
   }
 
   private supportsBulkMethods(appwriteDep: string): boolean {
-    return appwriteDep === "node-appwrite" || appwriteDep === "npm:node-appwrite" || appwriteDep === "@appwrite.io/console";
+    return (
+      appwriteDep === "node-appwrite" ||
+      appwriteDep === "npm:node-appwrite" ||
+      appwriteDep === "@appwrite.io/console"
+    );
   }
 
   private generateQueryBuilderType(): string {
@@ -207,7 +218,10 @@ export type QueryBuilder<T> = {
 }`;
   }
 
-  private generateDatabaseTablesType(entitiesByDb: Map<string, Entity[]>, appwriteDep: string): string {
+  private generateDatabaseTablesType(
+    entitiesByDb: Map<string, Entity[]>,
+    appwriteDep: string,
+  ): string {
     const hasBulkMethods = this.supportsBulkMethods(appwriteDep);
     const dbReturnTypes = Array.from(entitiesByDb.entries())
       .map(([dbId, dbEntities]) => {
@@ -220,10 +234,12 @@ export type QueryBuilder<T> = {
       delete: (id: string, options?: { transactionId?: string }) => Promise<void>;
       list: (options?: { queries?: (q: QueryBuilder<${typeName}>) => string[] }) => Promise<{ total: number; rows: ${typeName}[] }>;`;
 
-            const bulkMethods = hasBulkMethods ? `
+            const bulkMethods = hasBulkMethods
+              ? `
       createMany: (rows: Array<{ data: Omit<${typeName}, keyof Models.Row>; rowId?: string; permissions?: Permission[] }>, options?: { transactionId?: string }) => Promise<{ total: number; rows: ${typeName}[] }>;
       updateMany: (rows: Array<{ rowId: string; data: Partial<Omit<${typeName}, keyof Models.Row>>; permissions?: Permission[] }>, options?: { transactionId?: string }) => Promise<{ total: number; rows: ${typeName}[] }>;
-      deleteMany: (rowIds: string[], options?: { transactionId?: string }) => Promise<void>;` : '';
+      deleteMany: (rowIds: string[], options?: { transactionId?: string }) => Promise<void>;`
+              : "";
 
             return `    '${entity.name}': {\n${baseMethods}${bulkMethods}\n    }`;
           })
@@ -251,7 +267,10 @@ export type QueryBuilder<T> = {
     const dbIds = Array.from(entitiesByDb.keys());
     const dbIdType = dbIds.map((id) => `'${id}'`).join(" | ");
 
-    const parts = [`import { type Models, Permission } from '${appwriteDep}';`, ""];
+    const parts = [
+      `import { type Models, Permission } from '${appwriteDep}';`,
+      "",
+    ];
 
     if (enums) {
       parts.push(enums);
@@ -297,7 +316,11 @@ export type QueryBuilder<T> = {
 })`;
   }
 
-  private generateTableHelpers(dbId: string, dbEntities: Entity[], appwriteDep: string): string {
+  private generateTableHelpers(
+    dbId: string,
+    dbEntities: Entity[],
+    appwriteDep: string,
+  ): string {
     const hasBulkMethods = this.supportsBulkMethods(appwriteDep);
 
     return dbEntities
@@ -344,7 +367,8 @@ export type QueryBuilder<T> = {
           queries: options?.queries?.(createQueryBuilder<${typeName}>()),
         }),`;
 
-        const bulkMethods = hasBulkMethods ? `
+        const bulkMethods = hasBulkMethods
+          ? `
       createMany: (rows: Array<{ data: Omit<${typeName}, keyof Models.Row>; rowId?: string; permissions?: Permission[] }>, options?: { transactionId?: string }) =>
         tablesDB.createRows<${typeName}>({
           databaseId: '${dbId}',
@@ -374,7 +398,8 @@ export type QueryBuilder<T> = {
           rows: rowIds.map((rowId) => ({ rowId })),
           transactionId: options?.transactionId,
         });
-      },` : '';
+      },`
+          : "";
 
         return `    '${entityName}': {\n${baseMethods}${bulkMethods}\n    }`;
       })
@@ -444,7 +469,8 @@ export * from "./types.js";
         "No tables or collections found in configuration. Skipping database generation.",
       );
       return {
-        databasesContent: "// No tables or collections found in configuration\n",
+        databasesContent:
+          "// No tables or collections found in configuration\n",
         typesContent: "// No tables or collections found in configuration\n",
         indexContent: this.generateIndexFile(),
       };
@@ -463,8 +489,20 @@ export * from "./types.js";
       fs.mkdirSync(appwriteDir, { recursive: true });
     }
 
-    fs.writeFileSync(path.join(appwriteDir, "databases.ts"), result.databasesContent, "utf-8");
-    fs.writeFileSync(path.join(appwriteDir, "types.ts"), result.typesContent, "utf-8");
-    fs.writeFileSync(path.join(appwriteDir, "index.ts"), result.indexContent, "utf-8");
+    fs.writeFileSync(
+      path.join(appwriteDir, "databases.ts"),
+      result.databasesContent,
+      "utf-8",
+    );
+    fs.writeFileSync(
+      path.join(appwriteDir, "types.ts"),
+      result.typesContent,
+      "utf-8",
+    );
+    fs.writeFileSync(
+      path.join(appwriteDir, "index.ts"),
+      result.indexContent,
+      "utf-8",
+    );
   }
 }

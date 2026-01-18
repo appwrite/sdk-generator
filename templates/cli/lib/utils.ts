@@ -404,3 +404,22 @@ export function toUpperSnakeCase(str: string): string {
     .replace(/[-\s]+/g, "_")
     .toUpperCase();
 }
+
+export function sanitizeEnumKey(key: string): string {
+  let sanitized = toUpperSnakeCase(key)
+    .replace(/[^A-Z0-9_]/gi, "_") // Replace non-alphanumeric with underscores
+    .replace(/_+/g, "_") // Collapse consecutive underscores
+    .replace(/^_+|_+$/g, ""); // Trim leading/trailing underscores
+
+  // Prefix with underscore if starts with a digit
+  if (/^[0-9]/.test(sanitized)) {
+    sanitized = "_" + sanitized;
+  }
+
+  // Fallback if empty after sanitization
+  if (!sanitized) {
+    sanitized = "_VALUE";
+  }
+
+  return sanitized;
+}

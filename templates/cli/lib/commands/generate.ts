@@ -9,7 +9,9 @@ export interface GenerateCommandOptions {
   output: string;
 }
 
-const generateAction = async (options: GenerateCommandOptions): Promise<void> => {
+const generateAction = async (
+  options: GenerateCommandOptions,
+): Promise<void> => {
   const generator = new DatabasesGenerator();
   const project = localConfig.getProject();
 
@@ -44,11 +46,15 @@ const generateAction = async (options: GenerateCommandOptions): Promise<void> =>
     console.log(`  - ${path.join(outputDir, "appwrite/types.ts")}`);
     console.log("");
     log(`Import the generated SDK in your project:`);
-    console.log(`  import { createDatabases } from "./${outputDir}/appwrite/index.js";`);
+    console.log(
+      `  import { createDatabases } from "./${outputDir}/appwrite/index.js";`,
+    );
     console.log("");
     log(`Usage:`);
     console.log(`  import { Client } from 'node-appwrite';`);
-    console.log(`  const client = new Client().setEndpoint('...').setProject('...').setKey('...');`);
+    console.log(
+      `  const client = new Client().setEndpoint('...').setProject('...').setKey('...');`,
+    );
     console.log(`  const databases = createDatabases(client);`);
     console.log(`  const db = databases.from('your-database-id');`);
     console.log(`  await db.tableName.create({ ... });`);
@@ -59,6 +65,12 @@ const generateAction = async (options: GenerateCommandOptions): Promise<void> =>
 };
 
 export const generate = new Command("generate")
-  .description("Generate a type-safe SDK from your Appwrite project configuration")
-  .option("-o, --output <directory>", "Output directory for generated files (default: generated)", "generated")
+  .description(
+    "Generate a type-safe SDK from your Appwrite project configuration",
+  )
+  .option(
+    "-o, --output <directory>",
+    "Output directory for generated files (default: generated)",
+    "generated",
+  )
   .action(actionRunner(generateAction));
