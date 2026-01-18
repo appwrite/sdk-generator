@@ -107,7 +107,7 @@ export class DatabasesGenerator {
     const attributes = fields
       .map(
         (attr) =>
-          `    ${attr.key}${attr.required ? "" : "?"}: ${this.getType(attr, entities as any, entity.name)};`,
+          `    ${JSON.stringify(attr.key)}${attr.required ? "" : "?"}: ${this.getType(attr, entities as any, entity.name)};`,
       )
       .join("\n");
 
@@ -137,7 +137,7 @@ export class DatabasesGenerator {
               }
               usedKeys.add(key);
               const isLast = index === field.elements!.length - 1;
-              return `    ${key} = "${element}"${isLast ? "" : ","}`;
+              return `    ${key} = ${JSON.stringify(element)}${isLast ? "" : ","}`;
             })
             .join("\n");
 
@@ -344,16 +344,20 @@ export type QueryBuilder<T> = {
   }
 
   private generateTableIdMap(entitiesByDb: Map<string, Entity[]>): string {
-    const dbMappings = Array.from(entitiesByDb.entries())
-      .map(([dbId, dbEntities]) => {
-        const tableMappings = dbEntities
-          .map((entity) => `    '${entity.name}': '${entity.$id}'`)
-          .join(",\n");
-        return `  '${dbId}': {\n${tableMappings}\n  }`;
-      })
-      .join(",\n");
+    const lines: string[] = [
+      "const tableIdMap: Record<string, Record<string, string>> = Object.create(null);",
+    ];
 
-    return `const tableIdMap: Record<string, Record<string, string>> = {\n${dbMappings}\n}`;
+    for (const [dbId, dbEntities] of entitiesByDb.entries()) {
+      lines.push(`tableIdMap[${JSON.stringify(dbId)}] = Object.create(null);`);
+      for (const entity of dbEntities) {
+        lines.push(
+          `tableIdMap[${JSON.stringify(dbId)}][${JSON.stringify(entity.name)}] = ${JSON.stringify(entity.$id)};`,
+        );
+      }
+    }
+
+    return lines.join("\n");
   }
 
   private generateTablesWithRelationships(
@@ -475,19 +479,23 @@ function createTableApi<T extends Models.Row>(
 
 ${hasBulkCheck}
 
+const hasOwn = (obj: unknown, key: string): boolean =>
+  obj != null && Object.prototype.hasOwnProperty.call(obj, key);
+
 function createDatabaseProxy<D extends DatabaseId>(
   tablesDB: TablesDB,
   databaseId: D,
 ): DatabaseTables[D] {
   const tableApiCache = new Map<string, ReturnType<typeof createTableApi>>();
+  const dbMap = tableIdMap[databaseId];
 
   return new Proxy({} as DatabaseTables[D], {
     get(_target, tableName: string) {
       if (typeof tableName === 'symbol') return undefined;
 
       if (!tableApiCache.has(tableName)) {
-        const tableId = tableIdMap[databaseId]?.[tableName];
-        if (!tableId) return undefined;
+        if (!hasOwn(dbMap, tableName)) return undefined;
+        const tableId = dbMap[tableName];
 
         const api = createTableApi(tablesDB, databaseId, tableId);
         ${
@@ -506,7 +514,7 @@ function createDatabaseProxy<D extends DatabaseId>(
       return tableApiCache.get(tableName);
     },
     has(_target, tableName: string) {
-      return typeof tableName === 'string' && tableName in (tableIdMap[databaseId] ?? {});
+      return typeof tableName === 'string' && hasOwn(dbMap, tableName);
     },
   });
 }
