@@ -180,19 +180,25 @@ export class DatabasesGenerator {
 }`;
   }
 
-  private generateDatabaseTablesType(entitiesByDb: Map<string, Entity[]>): string {
+  private generateDatabaseTablesType(entitiesByDb: Map<string, Entity[]>, appwriteDep: string): string {
+    const isNodeAppwrite = appwriteDep === 'node-appwrite';
     const dbReturnTypes = Array.from(entitiesByDb.entries())
       .map(([dbId, dbEntities]) => {
         const tableTypes = dbEntities
           .map((entity) => {
             const typeName = toPascalCase(entity.name);
-            return `    ${entity.name}: {
-      create: (data: Omit<${typeName}, keyof Models.Row>, options?: { rowId?: string; permissions?: Permission[]; transactionId?: string }) => Promise<${typeName}>;
+            const baseMethods = `      create: (data: Omit<${typeName}, keyof Models.Row>, options?: { rowId?: string; permissions?: Permission[]; transactionId?: string }) => Promise<${typeName}>;
       get: (id: string) => Promise<${typeName}>;
       update: (id: string, data: Partial<Omit<${typeName}, keyof Models.Row>>, options?: { permissions?: Permission[]; transactionId?: string }) => Promise<${typeName}>;
       delete: (id: string, options?: { transactionId?: string }) => Promise<void>;
-      list: (options?: { queries?: (q: QueryBuilder<${typeName}>) => string[] }) => Promise<{ total: number; rows: ${typeName}[] }>;
-    }`;
+      list: (options?: { queries?: (q: QueryBuilder<${typeName}>) => string[] }) => Promise<{ total: number; rows: ${typeName}[] }>;`;
+
+            const bulkMethods = isNodeAppwrite ? `
+      createMany: (rows: Array<{ data: Omit<${typeName}, keyof Models.Row>; rowId?: string; permissions?: Permission[] }>, options?: { transactionId?: string }) => Promise<{ total: number; rows: ${typeName}[] }>;
+      updateMany: (rows: Array<{ rowId: string; data: Partial<Omit<${typeName}, keyof Models.Row>>; permissions?: Permission[] }>, options?: { transactionId?: string }) => Promise<{ total: number; rows: ${typeName}[] }>;
+      deleteMany: (rowIds: string[], options?: { transactionId?: string }) => Promise<void>;` : '';
+
+            return `    ${entity.name}: {\n${baseMethods}${bulkMethods}\n    }`;
           })
           .join(";\n");
         return `  '${dbId}': {\n${tableTypes}\n  }`;
@@ -231,7 +237,7 @@ export class DatabasesGenerator {
     parts.push("");
     parts.push(`export type DatabaseId = ${dbIdType};`);
     parts.push("");
-    parts.push(this.generateDatabaseTablesType(entitiesByDb));
+    parts.push(this.generateDatabaseTablesType(entitiesByDb, appwriteDep));
     parts.push("");
 
     return parts.join("\n");
@@ -264,14 +270,15 @@ export class DatabasesGenerator {
 })`;
   }
 
-  private generateTableHelpers(dbId: string, dbEntities: Entity[]): string {
+  private generateTableHelpers(dbId: string, dbEntities: Entity[], appwriteDep: string): string {
+    const isNodeAppwrite = appwriteDep === 'node-appwrite';
+
     return dbEntities
       .map((entity) => {
         const entityName = entity.name;
         const typeName = toPascalCase(entity.name);
 
-        return `    ${entityName}: {
-      create: (data: Omit<${typeName}, keyof Models.Row>, options?: { rowId?: string; permissions?: Permission[]; transactionId?: string }) =>
+        const baseMethods = `      create: (data: Omit<${typeName}, keyof Models.Row>, options?: { rowId?: string; permissions?: Permission[]; transactionId?: string }) =>
         tablesDB.createRow<${typeName}>({
           databaseId: '${dbId}',
           tableId: '${entity.$id}',
@@ -308,8 +315,41 @@ export class DatabasesGenerator {
           databaseId: '${dbId}',
           tableId: '${entity.$id}',
           queries: options?.queries?.(createQueryBuilder<${typeName}>()),
+        }),`;
+
+        const bulkMethods = isNodeAppwrite ? `
+      createMany: (rows: Array<{ data: Omit<${typeName}, keyof Models.Row>; rowId?: string; permissions?: Permission[] }>, options?: { transactionId?: string }) =>
+        tablesDB.createRows<${typeName}>({
+          databaseId: '${dbId}',
+          tableId: '${entity.$id}',
+          rows: rows.map((row) => ({
+            rowId: row.rowId ?? ID.unique(),
+            data: row.data,
+            permissions: row.permissions?.map((p) => p.toString()),
+          })),
+          transactionId: options?.transactionId,
         }),
-    }`;
+      updateMany: (rows: Array<{ rowId: string; data: Partial<Omit<${typeName}, keyof Models.Row>>; permissions?: Permission[] }>, options?: { transactionId?: string }) =>
+        tablesDB.updateRows<${typeName}>({
+          databaseId: '${dbId}',
+          tableId: '${entity.$id}',
+          rows: rows.map((row) => ({
+            rowId: row.rowId,
+            data: row.data,
+            permissions: row.permissions?.map((p) => p.toString()),
+          })),
+          transactionId: options?.transactionId,
+        }),
+      deleteMany: async (rowIds: string[], options?: { transactionId?: string }) => {
+        await tablesDB.deleteRows({
+          databaseId: '${dbId}',
+          tableId: '${entity.$id}',
+          rows: rowIds.map((rowId) => ({ rowId })),
+          transactionId: options?.transactionId,
+        });
+      },` : '';
+
+        return `    ${entityName}: {\n${baseMethods}${bulkMethods}\n    }`;
       })
       .join(",\n");
   }
@@ -327,7 +367,7 @@ export class DatabasesGenerator {
 
     const databasesMap = Array.from(entitiesByDb.entries())
       .map(([dbId, dbEntities]) => {
-        return `  '${dbId}': {\n${this.generateTableHelpers(dbId, dbEntities)}\n  }`;
+        return `  '${dbId}': {\n${this.generateTableHelpers(dbId, dbEntities, appwriteDep)}\n  }`;
       })
       .join(",\n");
 
