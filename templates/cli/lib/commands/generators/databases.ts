@@ -160,14 +160,14 @@ export class DatabasesGenerator {
     }
 
     if (fs.existsSync(path.resolve(cwd, "deno.json"))) {
-      return "https://deno.land/x/appwrite/mod.ts";
+      return "npm:node-appwrite";
     }
 
     return "appwrite";
   }
 
   private supportsBulkMethods(appwriteDep: string): boolean {
-    return appwriteDep === "node-appwrite" || appwriteDep === "@appwrite.io/console";
+    return appwriteDep === "node-appwrite" || appwriteDep === "npm:node-appwrite" || appwriteDep === "@appwrite.io/console";
   }
 
   private generateQueryBuilderType(): string {
