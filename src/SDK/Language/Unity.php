@@ -196,6 +196,11 @@ class Unity extends DotNet
                 'template'      => 'dotnet/Package/Models/Model.cs.twig',
             ],
             [
+                'scope'         => 'definition',
+                'destination'   => 'Assets/Runtime/Core/Models/{{ requestModel.name | caseUcfirst | overrideIdentifier }}.cs',
+                'template'      => 'dotnet/Package/Models/RequestModel.cs.twig',
+            ],
+            [
                 'scope'         => 'enum',
                 'destination'   => 'Assets/Runtime/Core/Enums/{{ enum.name | caseUcfirst | overrideIdentifier }}.cs',
                 'template'      => 'dotnet/Package/Enums/Enum.cs.twig',
