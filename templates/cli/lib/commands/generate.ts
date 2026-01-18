@@ -4,6 +4,7 @@ import { ConfigType } from "./config.js";
 import { localConfig } from "../config.js";
 import { success, error, log, actionRunner } from "../parser.js";
 import { DatabasesGenerator } from "./generators/databases.js";
+import { SDK_TITLE, SDK_TITLE_LOWER, EXECUTABLE_NAME, NPM_PACKAGE_NAME } from "../constants.js";
 
 export interface GenerateCommandOptions {
   output: string;
@@ -16,7 +17,7 @@ const generateAction = async (
   const project = localConfig.getProject();
 
   if (!project.projectId) {
-    error("No project found. Please run 'appwrite init project' first.");
+    error(`No project found. Please run '${EXECUTABLE_NAME} init project' first.`);
     process.exit(1);
   }
 
@@ -41,17 +42,17 @@ const generateAction = async (
     await generator.writeFiles(absoluteOutputDir, result);
 
     success(`Generated files:`);
-    console.log(`  - ${path.join(outputDir, "appwrite/index.ts")}`);
-    console.log(`  - ${path.join(outputDir, "appwrite/databases.ts")}`);
-    console.log(`  - ${path.join(outputDir, "appwrite/types.ts")}`);
+    console.log(`  - ${path.join(outputDir, `${SDK_TITLE_LOWER}/index.ts`)}`);
+    console.log(`  - ${path.join(outputDir, `${SDK_TITLE_LOWER}/databases.ts`)}`);
+    console.log(`  - ${path.join(outputDir, `${SDK_TITLE_LOWER}/types.ts`)}`);
     console.log("");
     log(`Import the generated SDK in your project:`);
     console.log(
-      `  import { createDatabases } from "./${outputDir}/appwrite/index.js";`,
+      `  import { createDatabases } from "./${outputDir}/${SDK_TITLE_LOWER}/index.js";`,
     );
     console.log("");
     log(`Usage:`);
-    console.log(`  import { Client } from 'node-appwrite';`);
+    console.log(`  import { Client } from '${NPM_PACKAGE_NAME}';`);
     console.log(
       `  const client = new Client().setEndpoint('...').setProject('...').setKey('...');`,
     );
@@ -66,7 +67,7 @@ const generateAction = async (
 
 export const generate = new Command("generate")
   .description(
-    "Generate a type-safe SDK from your Appwrite project configuration",
+    `Generate a type-safe SDK from your ${SDK_TITLE} project configuration`,
   )
   .option(
     "-o, --output <directory>",

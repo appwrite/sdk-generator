@@ -3,6 +3,7 @@ import * as path from "path";
 import { z } from "zod";
 import { ConfigType, AttributeSchema } from "../config.js";
 import { toPascalCase, sanitizeEnumKey } from "../../utils.js";
+import { SDK_TITLE, SDK_TITLE_LOWER, EXECUTABLE_NAME } from "../../constants.js";
 
 export interface GenerateResult {
   databasesContent: string;
@@ -528,10 +529,10 @@ export const createDatabases = (client: Client) => {
 
   generateIndexFile(): string {
     return `/**
- * Appwrite Generated SDK
+ * ${SDK_TITLE} Generated SDK
  *
  * This file is auto-generated. Do not edit manually.
- * Re-run \`appwrite generate\` to regenerate.
+ * Re-run \`${EXECUTABLE_NAME} generate\` to regenerate.
  */
 
 export { createDatabases } from "./databases.js";
@@ -568,23 +569,23 @@ export * from "./types.js";
   }
 
   async writeFiles(outputDir: string, result: GenerateResult): Promise<void> {
-    const appwriteDir = path.join(outputDir, "appwrite");
-    if (!fs.existsSync(appwriteDir)) {
-      fs.mkdirSync(appwriteDir, { recursive: true });
+    const sdkDir = path.join(outputDir, SDK_TITLE_LOWER);
+    if (!fs.existsSync(sdkDir)) {
+      fs.mkdirSync(sdkDir, { recursive: true });
     }
 
     fs.writeFileSync(
-      path.join(appwriteDir, "databases.ts"),
+      path.join(sdkDir, "databases.ts"),
       result.databasesContent,
       "utf-8",
     );
     fs.writeFileSync(
-      path.join(appwriteDir, "types.ts"),
+      path.join(sdkDir, "types.ts"),
       result.typesContent,
       "utf-8",
     );
     fs.writeFileSync(
-      path.join(appwriteDir, "index.ts"),
+      path.join(sdkDir, "index.ts"),
       result.indexContent,
       "utf-8",
     );
