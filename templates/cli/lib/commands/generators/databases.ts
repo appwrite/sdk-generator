@@ -258,7 +258,8 @@ export type QueryBuilder<T> = {
       list: (options?: { queries?: (q: QueryBuilder<${typeName}>) => string[] }) => Promise<{ total: number; rows: ${typeName}[] }>;`;
 
             // Bulk methods not supported for tables with relationship columns (see hasRelationshipColumns)
-            const canUseBulkMethods = supportsBulk && !this.hasRelationshipColumns(entity);
+            const canUseBulkMethods =
+              supportsBulk && !this.hasRelationshipColumns(entity);
             const bulkMethods = canUseBulkMethods
               ? `
       createMany: (rows: Array<Omit<${typeName}, keyof Models.Row> & { $id?: string; $permissions?: string[] }>, options?: { transactionId?: string }) => Promise<{ total: number; rows: ${typeName}[] }>;
@@ -354,7 +355,9 @@ export type QueryBuilder<T> = {
     return `const tableIdMap: Record<string, Record<string, string>> = {\n${dbMappings}\n}`;
   }
 
-  private generateTablesWithRelationships(entitiesByDb: Map<string, Entity[]>): string {
+  private generateTablesWithRelationships(
+    entitiesByDb: Map<string, Entity[]>,
+  ): string {
     const tablesWithRelationships: string[] = [];
 
     for (const [dbId, dbEntities] of entitiesByDb.entries()) {
@@ -486,13 +489,17 @@ function createDatabaseProxy<D extends DatabaseId>(
         if (!tableId) return undefined;
 
         const api = createTableApi(tablesDB, databaseId, tableId);
-        ${supportsBulk ? `
+        ${
+          supportsBulk
+            ? `
         // Remove bulk methods for tables with relationships
         if (!hasBulkMethods(databaseId, tableName)) {
           delete (api as any).createMany;
           delete (api as any).updateMany;
           delete (api as any).deleteMany;
-        }` : ""}
+        }`
+            : ""
+        }
         tableApiCache.set(tableName, api);
       }
       return tableApiCache.get(tableName);
