@@ -84,6 +84,20 @@ export class DatabasesGenerator {
       : (entity as NonNullable<ConfigType["collections"]>[number]).attributes;
   }
 
+  /**
+   * Checks if an entity has relationship columns.
+   * Used to disable bulk methods for tables with relationships.
+   *
+   * TODO: Remove this restriction when bulk operations support relationships.
+   * To enable bulk methods for all tables, simply return false here:
+   *   return false;
+   */
+  private hasRelationshipColumns(entity: Entity): boolean {
+    const fields = this.getFields(entity);
+    if (!fields) return false;
+    return fields.some((field) => field.type === "relationship");
+  }
+
   private generateTableType(entity: Entity, entities: Entities): string {
     const fields = this.getFields(entity);
     if (!fields) return "";
@@ -222,7 +236,7 @@ export type QueryBuilder<T> = {
     entitiesByDb: Map<string, Entity[]>,
     appwriteDep: string,
   ): string {
-    const hasBulkMethods = this.supportsBulkMethods(appwriteDep);
+    const supportsBulk = this.supportsBulkMethods(appwriteDep);
     const dbReturnTypes = Array.from(entitiesByDb.entries())
       .map(([dbId, dbEntities]) => {
         const tableTypes = dbEntities
@@ -234,7 +248,9 @@ export type QueryBuilder<T> = {
       delete: (id: string, options?: { transactionId?: string }) => Promise<void>;
       list: (options?: { queries?: (q: QueryBuilder<${typeName}>) => string[] }) => Promise<{ total: number; rows: ${typeName}[] }>;`;
 
-            const bulkMethods = hasBulkMethods
+            // Bulk methods not supported for tables with relationship columns (see hasRelationshipColumns)
+            const canUseBulkMethods = supportsBulk && !this.hasRelationshipColumns(entity);
+            const bulkMethods = canUseBulkMethods
               ? `
       createMany: (rows: Array<{ data: Omit<${typeName}, keyof Models.Row>; rowId?: string; permissions?: Permission[] }>, options?: { transactionId?: string }) => Promise<{ total: number; rows: ${typeName}[] }>;
       updateMany: (rows: Array<{ rowId: string; data: Partial<Omit<${typeName}, keyof Models.Row>>; permissions?: Permission[] }>, options?: { transactionId?: string }) => Promise<{ total: number; rows: ${typeName}[] }>;
@@ -321,12 +337,14 @@ export type QueryBuilder<T> = {
     dbEntities: Entity[],
     appwriteDep: string,
   ): string {
-    const hasBulkMethods = this.supportsBulkMethods(appwriteDep);
+    const supportsBulk = this.supportsBulkMethods(appwriteDep);
 
     return dbEntities
       .map((entity) => {
         const entityName = entity.name;
         const typeName = toPascalCase(entity.name);
+        // Bulk methods not supported for tables with relationship columns (see hasRelationshipColumns)
+        const canUseBulkMethods = supportsBulk && !this.hasRelationshipColumns(entity);
 
         const baseMethods = `      create: (data: Omit<${typeName}, keyof Models.Row>, options?: { rowId?: string; permissions?: Permission[]; transactionId?: string }) =>
         tablesDB.createRow<${typeName}>({
@@ -367,7 +385,7 @@ export type QueryBuilder<T> = {
           queries: options?.queries?.(createQueryBuilder<${typeName}>()),
         }),`;
 
-        const bulkMethods = hasBulkMethods
+        const bulkMethods = canUseBulkMethods
           ? `
       createMany: (rows: Array<{ data: Omit<${typeName}, keyof Models.Row>; rowId?: string; permissions?: Permission[] }>, options?: { transactionId?: string }) =>
         tablesDB.createRows<${typeName}>({
