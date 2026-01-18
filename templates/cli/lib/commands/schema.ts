@@ -17,7 +17,7 @@ export class Schema {
 
   private pullCommandSilent: Pull;
 
-  public databasesGenerator: DatabasesGenerator;
+  public db: DatabasesGenerator;
 
   constructor({
     projectClient,
@@ -31,7 +31,7 @@ export class Schema {
 
     this.pullCommandSilent = new Pull(projectClient, consoleClient, true);
 
-    this.databasesGenerator = new DatabasesGenerator();
+    this.db = new DatabasesGenerator();
   }
 
   /**
