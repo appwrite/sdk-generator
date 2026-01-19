@@ -482,14 +482,14 @@ export class Attributes {
 
   /**
    * Filter deleted and recreated attributes,
-   * return list of attributes to create
+   * return list of attributes to create and whether any changes were made
    */
   public attributesToCreate = async (
     remoteAttributes: any[],
     localAttributes: any[],
     collection: Collection,
     isIndex: boolean = false,
-  ): Promise<any[]> => {
+  ): Promise<{ attributes: any[]; hasChanges: boolean }> => {
     const deleting = remoteAttributes
       .filter(
         (attribute) => !this.attributesContains(attribute, localAttributes),
@@ -527,7 +527,7 @@ export class Attributes {
     let changedAttributes: any[] = [];
     const changing = [...deleting, ...adding, ...conflicts, ...changes];
     if (changing.length === 0) {
-      return changedAttributes;
+      return { attributes: changedAttributes, hasChanges: false };
     }
 
     log(
@@ -573,7 +573,7 @@ export class Attributes {
       }
 
       if ((await this.getConfirmation()) !== true) {
-        return changedAttributes;
+        return { attributes: changedAttributes, hasChanges: false };
       }
     }
 
@@ -631,9 +631,10 @@ export class Attributes {
       }
     }
 
-    return localAttributes.filter(
+    const newAttributes = localAttributes.filter(
       (attribute) => !this.attributesContains(attribute, remoteAttributes),
     );
+    return { attributes: newAttributes, hasChanges: true };
   };
 
   public createIndexes = async (
@@ -664,13 +665,17 @@ export class Attributes {
       throw new Error("Index creation timed out.");
     }
 
-    success(`Created ${indexes.length} indexes`);
+    if (indexes.length > 0) {
+      success(`Created ${indexes.length} indexes`);
+    }
   };
 
   public createAttributes = async (
     attributes: any[],
     collection: Collection,
   ): Promise<void> => {
+    log(`Creating attributes ...`);
+
     for (let attribute of attributes) {
       if (attribute.side !== "child") {
         await this.createAttribute(
@@ -694,13 +699,17 @@ export class Attributes {
     }
 
     const createdCount = attributes.filter((a) => a.side !== "child").length;
-    success(`Created ${createdCount} attributes`);
+    if (createdCount > 0) {
+      success(`Created ${createdCount} attributes`);
+    }
   };
 
   public createColumns = async (
     columns: any[],
     table: Collection,
   ): Promise<void> => {
+    log(`Creating columns ...`);
+
     for (let column of columns) {
       if (column.side !== "child") {
         await this.createAttribute(table["databaseId"], table["$id"], column);
@@ -720,6 +729,8 @@ export class Attributes {
     }
 
     const createdCount = columns.filter((c) => c.side !== "child").length;
-    success(`Created ${createdCount} columns`);
+    if (createdCount > 0) {
+      success(`Created ${createdCount} columns`);
+    }
   };
 }
