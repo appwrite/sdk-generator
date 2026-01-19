@@ -1,6 +1,7 @@
 import os from "os";
 import { fetch, FormData, Agent } from "undici";
-import JSONbig from "json-bigint";
+import JSONbigModule from 'json-bigint';
+import BigNumber from 'bignumber.js';
 import { AppwriteException } from "@appwrite.io/console";
 import { globalConfig } from "./config.js";
 import chalk from "chalk";
@@ -19,7 +20,56 @@ import {
   SDK_TITLE,
 } from "./constants.js";
 
-const JSONBigInt = JSONbig({ useNativeBigInt: true });
+const JSONbigParser = JSONbigModule({ storeAsString: false });
+const JSONbigSerializer = JSONbigModule({ useNativeBigInt: true });
+
+const MAX_SAFE = BigInt(Number.MAX_SAFE_INTEGER);
+const MIN_SAFE = BigInt(Number.MIN_SAFE_INTEGER);
+
+/**
+ * Converts BigNumber objects from json-bigint to native types.
+ * - Integer BigNumbers → BigInt (if unsafe) or number (if safe)
+ * - Float BigNumbers → number
+ * - Strings remain strings (never converted to BigNumber by json-bigint)
+ */
+function convertBigNumbers(value: any): any {
+  if (value === null || value === undefined) return value;
+
+  if (Array.isArray(value)) {
+      return value.map(convertBigNumbers);
+  }
+
+  if (BigNumber.isBigNumber(value)) {
+      if (value.isInteger()) {
+          const str = value.toFixed();
+          const bi = BigInt(str);
+
+          if (bi >= MIN_SAFE && bi <= MAX_SAFE) {
+              return Number(str);
+          }
+
+          return bi;
+      }
+
+      // float
+      return value.toNumber();
+  }
+
+  if (typeof value === 'object') {
+      const result: any = {};
+      for (const [k, v] of Object.entries(value)) {
+          result[k] = convertBigNumbers(v);
+      }
+      return result;
+  }
+
+  return value;
+}
+
+const JSONbig = {
+  parse: (text: string) => convertBigNumbers(JSONbigParser.parse(text)),
+  stringify: JSONbigSerializer.stringify
+};
 
 class Client {
   private endpoint: string;
@@ -199,7 +249,7 @@ class Client {
 
       body = formData;
     } else {
-      body = JSONBigInt.stringify(params);
+      body = JSONbig.stringify(params);
     }
 
     let response: Awaited<ReturnType<typeof fetch>> | undefined = undefined;
@@ -266,7 +316,7 @@ class Client {
     const text = await response.text();
     let json: T | undefined = undefined;
     try {
-      json = JSONBigInt.parse(text);
+      json = JSONbig.parse(text);
     } catch (error) {
       return text as T;
     }

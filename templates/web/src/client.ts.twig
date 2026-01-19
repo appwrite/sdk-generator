@@ -5,15 +5,15 @@ import BigNumber from 'bignumber.js';
 const JSONbigParser = JSONbigModule({ storeAsString: false });
 const JSONbigSerializer = JSONbigModule({ useNativeBigInt: true });
 
+const MAX_SAFE = BigInt(Number.MAX_SAFE_INTEGER);
+const MIN_SAFE = BigInt(Number.MIN_SAFE_INTEGER);
+
 /**
  * Converts BigNumber objects from json-bigint to native types.
  * - Integer BigNumbers → BigInt (if unsafe) or number (if safe)
  * - Float BigNumbers → number
  * - Strings remain strings (never converted to BigNumber by json-bigint)
  */
-const MAX_SAFE = BigInt(Number.MAX_SAFE_INTEGER);
-const MIN_SAFE = BigInt(Number.MIN_SAFE_INTEGER);
-
 function convertBigNumbers(value: any): any {
     if (value === null || value === undefined) return value;
 
