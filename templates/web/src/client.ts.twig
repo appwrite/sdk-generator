@@ -21,14 +21,9 @@ function convertBigIntStrings(obj: any): any {
         return result;
     }
     // json-bigint stores numbers > 15 digits as strings
-    if (typeof obj === 'string' && obj.length > 15) {
-        // Check if it's a numeric string (doesn't start with 0 unless it's "0" or "0.x")
+    if (typeof obj === 'string' && /^-?\d+$/.test(obj)) {
         const num = Number(obj);
-        if (!Number.isNaN(num)) {
-            // Has decimal point → float, keep as number
-            // No decimal point → large integer, convert to BigInt
-            return obj.includes('.') ? num : BigInt(obj);
-        }
+        return Number.isSafeInteger(num) ? num : BigInt(obj);
     }
     return obj;
 }

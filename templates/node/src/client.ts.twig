@@ -22,12 +22,9 @@ function convertBigIntStrings(obj: any): any {
         return result;
     }
     // json-bigint stores numbers > 15 digits as strings
-    if (typeof obj === 'string' && obj.length > 15) {
+    if (typeof obj === 'string' && /^-?\d+$/.test(obj)) {
         const num = Number(obj);
-        if (!Number.isNaN(num)) {
-            // Has decimal point → float, No decimal → BigInt
-            return obj.includes('.') ? num : BigInt(obj);
-        }
+        return Number.isSafeInteger(num) ? num : BigInt(obj);
     }
     return obj;
 }
