@@ -333,6 +333,7 @@ const CollectionSchema = z
 // ============================================================================
 
 const ColumnSchema = AttributeSchema;
+const ColumnSchemaBase = AttributeSchemaBase;
 
 const IndexTableSchema = z
   .object({
@@ -344,7 +345,7 @@ const IndexTableSchema = z
   })
   .strict();
 
-const TablesDBSchema = z
+const TablesDBSchemaBase = z
   .object({
     $id: z.string(),
     $permissions: z.array(z.string()).optional(),
@@ -355,40 +356,41 @@ const TablesDBSchema = z
     columns: z.array(ColumnSchema).optional(),
     indexes: z.array(IndexTableSchema).optional(),
   })
-  .strict()
-  .superRefine((data, ctx) => {
-    if (data.columns && data.columns.length > 0) {
-      const seenKeys = new Set<string>();
+  .strict();
 
-      data.columns.forEach((col, index) => {
-        if (seenKeys.has(col.key)) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: `Column with the key '${col.key}' already exists. Column keys must be unique, try again with a different key.`,
-            path: ["columns", index, "key"],
-          });
-        } else {
-          seenKeys.add(col.key);
-        }
-      });
-    }
+const TablesDBSchema = TablesDBSchemaBase.superRefine((data, ctx) => {
+  if (data.columns && data.columns.length > 0) {
+    const seenKeys = new Set<string>();
 
-    if (data.indexes && data.indexes.length > 0) {
-      const seenKeys = new Set<string>();
+    data.columns.forEach((col, index) => {
+      if (seenKeys.has(col.key)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Column with the key '${col.key}' already exists. Column keys must be unique, try again with a different key.`,
+          path: ["columns", index, "key"],
+        });
+      } else {
+        seenKeys.add(col.key);
+      }
+    });
+  }
 
-      data.indexes.forEach((index, indexPos) => {
-        if (seenKeys.has(index.key)) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: `Index with the key '${index.key}' already exists. Index keys must be unique, try again with a different key.`,
-            path: ["indexes", indexPos, "key"],
-          });
-        } else {
-          seenKeys.add(index.key);
-        }
-      });
-    }
-  });
+  if (data.indexes && data.indexes.length > 0) {
+    const seenKeys = new Set<string>();
+
+    data.indexes.forEach((index, indexPos) => {
+      if (seenKeys.has(index.key)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Index with the key '${index.key}' already exists. Index keys must be unique, try again with a different key.`,
+          path: ["indexes", indexPos, "key"],
+        });
+      } else {
+        seenKeys.add(index.key);
+      }
+    });
+  }
+});
 
 // ============================================================================
 // Topics
@@ -491,7 +493,9 @@ export {
 
   /** Tables */
   TablesDBSchema,
+  TablesDBSchemaBase,
   ColumnSchema,
+  ColumnSchemaBase,
   IndexTableSchema,
 
   /** Topics */

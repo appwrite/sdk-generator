@@ -37,7 +37,14 @@ import {
   commandDescriptions,
 } from "../parser.js";
 import type { ConfigType } from "./config.js";
-import { createSettingsObject } from "../utils.js";
+import {
+  DatabaseSchema,
+  TablesDBSchemaBase,
+  ColumnSchemaBase,
+  BucketSchema,
+  TopicSchema,
+} from "./config.js";
+import { createSettingsObject, filterBySchema } from "../utils.js";
 import { ProjectNotInitializedError } from "./errors.js";
 import type { SettingsType, FunctionType, SiteType } from "./config.js";
 import { downloadDeploymentCode } from "./utils/deployment.js";
@@ -523,7 +530,7 @@ export class Pull {
       this.log(
         `Pulling all tables from ${chalk.bold(database.name)} database ...`,
       );
-      allDatabases.push(database);
+      allDatabases.push(filterBySchema(database, DatabaseSchema));
 
       const { tables } = await paginate(
         async () => new TablesDB(this.projectClient).listTables(database.$id),
@@ -533,10 +540,14 @@ export class Pull {
       );
 
       for (const table of tables) {
+        // Filter columns to only include schema-defined fields
+        const filteredColumns = table.columns?.map((col: any) =>
+          filterBySchema(col, ColumnSchemaBase),
+        );
+
         allTables.push({
-          ...table,
-          $createdAt: undefined,
-          $updatedAt: undefined,
+          ...filterBySchema(table, TablesDBSchemaBase),
+          columns: filteredColumns || [],
         });
       }
     }
@@ -576,13 +587,18 @@ export class Pull {
       "buckets",
     );
 
+    const filteredBuckets: any[] = [];
+
     for (const bucket of buckets) {
       this.log(`Pulling bucket ${chalk.bold(bucket.name)} ...`);
+      filteredBuckets.push(filterBySchema(bucket, BucketSchema));
     }
 
-    this.success(`Successfully pulled ${chalk.bold(buckets.length)} buckets.`);
+    this.success(
+      `Successfully pulled ${chalk.bold(filteredBuckets.length)} buckets.`,
+    );
 
-    return buckets;
+    return filteredBuckets;
   }
 
   /**
@@ -644,13 +660,18 @@ export class Pull {
       "topics",
     );
 
+    const filteredTopics: any[] = [];
+
     for (const topic of topics) {
       this.log(`Pulling topic ${chalk.bold(topic.name)} ...`);
+      filteredTopics.push(filterBySchema(topic, TopicSchema));
     }
 
-    this.success(`Successfully pulled ${chalk.bold(topics.length)} topics.`);
+    this.success(
+      `Successfully pulled ${chalk.bold(filteredTopics.length)} topics.`,
+    );
 
-    return topics;
+    return filteredTopics;
   }
 }
 

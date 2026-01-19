@@ -5,6 +5,7 @@ import childProcess from "child_process";
 import chalk from "chalk";
 import { fetch } from "undici";
 import type { Models } from "@appwrite.io/console";
+import { z } from "zod";
 import { localConfig, globalConfig } from "./config.js";
 import type { SettingsType } from "./commands/config.js";
 import { NPM_REGISTRY_URL, DEFAULT_ENDPOINT } from "./constants.js";
@@ -390,4 +391,28 @@ export function isCloud(): boolean {
   const endpoint = globalConfig.getEndpoint() || DEFAULT_ENDPOINT;
   const hostname = new URL(endpoint).hostname;
   return hostname.endsWith("appwrite.io");
+}
+
+/**
+ * Filters an object to only include fields defined in a Zod object schema.
+ * Uses the schema's shape to determine allowed keys.
+ *
+ * @param data - The data to filter
+ * @param schema - A Zod object schema with a shape property
+ * @returns The filtered data with only schema-defined fields
+ */
+export function filterBySchema<T extends z.ZodObject<z.ZodRawShape>>(
+  data: Record<string, unknown>,
+  schema: T,
+): z.infer<T> {
+  const allowedKeys = Object.keys(schema.shape);
+  const result: Record<string, unknown> = {};
+
+  for (const key of allowedKeys) {
+    if (key in data) {
+      result[key] = data[key];
+    }
+  }
+
+  return result as z.infer<T>;
 }
