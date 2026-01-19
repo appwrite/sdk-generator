@@ -2,7 +2,6 @@ import os from "os";
 import fs from "fs";
 import _path from "path";
 import process from "process";
-import JSONbig from "json-bigint";
 import type { Models } from "@appwrite.io/console";
 import type {
   BucketType,
@@ -23,33 +22,7 @@ import type {
 } from "./types.js";
 import { createSettingsObject } from "./utils.js";
 import { EXECUTABLE_NAME } from "./constants.js";
-import { BigNumber } from "bignumber.js";
-
-const JSONbigParser = JSONbig({ storeAsString: false });
-const JSONbigSerializer = JSONbig({ useNativeBigInt: true });
-
-const MAX_SAFE = BigInt(Number.MAX_SAFE_INTEGER);
-const MIN_SAFE = BigInt(Number.MIN_SAFE_INTEGER);
-
-function reviver(_key: string, value: any): any {
-  if (BigNumber.isBigNumber(value)) {
-    if (value.isInteger()) {
-      const str = value.toFixed();
-      const bi = BigInt(str);
-      if (bi >= MIN_SAFE && bi <= MAX_SAFE) {
-        return Number(str);
-      }
-      return bi;
-    }
-    return value.toNumber();
-  }
-  return value;
-}
-
-const JSONBigInt = {
-  parse: (text: string) => JSONbigParser.parse(text, reviver),
-  stringify: JSONbigSerializer.stringify,
-};
+import { JSONBig } from "./json.js";
 
 const KeysVars = new Set(["key", "value"]);
 const KeysSite = new Set([
@@ -260,7 +233,7 @@ class Config<T extends ConfigData = ConfigData> {
   read(): void {
     try {
       const file = fs.readFileSync(this.path).toString();
-      this.data = JSONBigInt.parse(file);
+      this.data = JSONBig.parse(file);
     } catch (e) {
       this.data = {} as T;
     }
@@ -271,7 +244,7 @@ class Config<T extends ConfigData = ConfigData> {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
-    fs.writeFileSync(this.path, JSONBigInt.stringify(this.data, null, 4), {
+    fs.writeFileSync(this.path, JSONBig.stringify(this.data, null, 4), {
       mode: 0o600,
     });
   }
@@ -310,7 +283,7 @@ class Config<T extends ConfigData = ConfigData> {
   }
 
   toString(): string {
-    return JSONBigInt.stringify(this.data, null, 4);
+    return JSONBig.stringify(this.data, null, 4);
   }
 
   protected _getDBEntities(entityType: string): Entity[] {
@@ -392,7 +365,7 @@ class Local extends Config<ConfigType> {
       fs.mkdirSync(dir, { recursive: true });
     }
     const orderedData = orderConfigKeys(this.data);
-    fs.writeFileSync(this.path, JSONBigInt.stringify(orderedData, null, 4), {
+    fs.writeFileSync(this.path, JSONBig.stringify(orderedData, null, 4), {
       mode: 0o600,
     });
   }
