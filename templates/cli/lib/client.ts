@@ -1,6 +1,7 @@
 import os from "os";
 import { fetch, FormData, Agent } from "undici";
-import JSONbig from "json-bigint";
+import JSONbigModule from 'json-bigint';
+import { BigNumber } from 'bignumber.js';
 import { AppwriteException } from "@appwrite.io/console";
 import { globalConfig } from "./config.js";
 import chalk from "chalk";
@@ -19,7 +20,31 @@ import {
   SDK_TITLE,
 } from "./constants.js";
 
-const JSONBigInt = JSONbig({ useNativeBigInt: true });
+const JSONbigParser = JSONbigModule({ storeAsString: false });
+const JSONbigSerializer = JSONbigModule({ useNativeBigInt: true });
+
+const MAX_SAFE = BigInt(Number.MAX_SAFE_INTEGER);
+const MIN_SAFE = BigInt(Number.MIN_SAFE_INTEGER);
+
+function reviver(_key: string, value: any): any {
+  if (BigNumber.isBigNumber(value)) {
+    if (value.isInteger()) {
+      const str = value.toFixed();
+      const bi = BigInt(str);
+      if (bi >= MIN_SAFE && bi <= MAX_SAFE) {
+        return Number(str);
+      }
+      return bi;
+    }
+    return value.toNumber();
+  }
+  return value;
+}
+
+const JSONbig = {
+  parse: (text: string) => JSONbigParser.parse(text, reviver),
+  stringify: JSONbigSerializer.stringify
+};
 
 class Client {
   private endpoint: string;
@@ -199,7 +224,7 @@ class Client {
 
       body = formData;
     } else {
-      body = JSONBigInt.stringify(params);
+      body = JSONbig.stringify(params);
     }
 
     let response: Awaited<ReturnType<typeof fetch>> | undefined = undefined;
@@ -266,7 +291,7 @@ class Client {
     const text = await response.text();
     let json: T | undefined = undefined;
     try {
-      json = JSONBigInt.parse(text);
+      json = JSONbig.parse(text);
     } catch (error) {
       return text as T;
     }
