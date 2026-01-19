@@ -2193,7 +2193,7 @@ const pushTable = async ({
   const { successfullyPushed, errors } = result;
 
   if (successfullyPushed === 0) {
-    error("No tables were pushed.");
+    warn("No tables were pushed.");
   } else {
     success(`Successfully pushed ${successfullyPushed} tables.`);
   }
