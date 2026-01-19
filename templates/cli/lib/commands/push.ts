@@ -1414,24 +1414,28 @@ export class Push {
     for (let table of tables) {
       let columns = table.columns;
       let indexes = table.indexes;
+      let hadChanges = false;
 
       if (table.isExisted) {
-        columns = await attributes.attributesToCreate(
+        const columnsResult = await attributes.attributesToCreate(
           table.remoteVersion.columns,
           table.columns,
           table as Collection,
         );
-        indexes = await attributes.attributesToCreate(
+        const indexesResult = await attributes.attributesToCreate(
           table.remoteVersion.indexes,
           table.indexes,
           table as Collection,
           true,
         );
 
+        columns = columnsResult.attributes;
+        indexes = indexesResult.attributes;
+        hadChanges = columnsResult.hasChanges || indexesResult.hasChanges;
+
         if (
-          Array.isArray(columns) &&
+          !hadChanges &&
           columns.length <= 0 &&
-          Array.isArray(indexes) &&
           indexes.length <= 0
         ) {
           continue;
@@ -2193,7 +2197,7 @@ const pushTable = async ({
   const { successfullyPushed, errors } = result;
 
   if (successfullyPushed === 0) {
-    error("No tables were pushed.");
+    warn("No tables were pushed.");
   } else {
     success(`Successfully pushed ${successfullyPushed} tables.`);
   }

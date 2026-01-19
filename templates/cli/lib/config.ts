@@ -2,7 +2,6 @@ import os from "os";
 import fs from "fs";
 import _path from "path";
 import process from "process";
-import JSONbig from "json-bigint";
 import type { Models } from "@appwrite.io/console";
 import type {
   BucketType,
@@ -22,9 +21,8 @@ import type {
   GlobalConfigData,
 } from "./types.js";
 import { createSettingsObject } from "./utils.js";
-import { SDK_TITLE_LOWER } from "./constants.js";
-
-const JSONBigInt = JSONbig({ useNativeBigInt: true });
+import { EXECUTABLE_NAME } from "./constants.js";
+import { JSONBig } from "./json.js";
 
 const KeysVars = new Set(["key", "value"]);
 const KeysSite = new Set([
@@ -235,7 +233,7 @@ class Config<T extends ConfigData = ConfigData> {
   read(): void {
     try {
       const file = fs.readFileSync(this.path).toString();
-      this.data = JSONBigInt.parse(file);
+      this.data = JSONBig.parse(file);
     } catch (e) {
       this.data = {} as T;
     }
@@ -246,7 +244,7 @@ class Config<T extends ConfigData = ConfigData> {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
-    fs.writeFileSync(this.path, JSONBigInt.stringify(this.data, null, 4), {
+    fs.writeFileSync(this.path, JSONBig.stringify(this.data, null, 4), {
       mode: 0o600,
     });
   }
@@ -285,7 +283,7 @@ class Config<T extends ConfigData = ConfigData> {
   }
 
   toString(): string {
-    return JSONBigInt.stringify(this.data, null, 4);
+    return JSONBig.stringify(this.data, null, 4);
   }
 
   protected _getDBEntities(entityType: string): Entity[] {
@@ -342,8 +340,8 @@ class Config<T extends ConfigData = ConfigData> {
 }
 
 class Local extends Config<ConfigType> {
-  static CONFIG_FILE_PATH = `${SDK_TITLE_LOWER}.config.json`;
-  static CONFIG_FILE_PATH_LEGACY = `${SDK_TITLE_LOWER}.json`;
+  static CONFIG_FILE_PATH = `${EXECUTABLE_NAME}.config.json`;
+  static CONFIG_FILE_PATH_LEGACY = `${EXECUTABLE_NAME}.json`;
   configDirectoryPath = "";
 
   constructor(
@@ -367,7 +365,7 @@ class Local extends Config<ConfigType> {
       fs.mkdirSync(dir, { recursive: true });
     }
     const orderedData = orderConfigKeys(this.data);
-    fs.writeFileSync(this.path, JSONBigInt.stringify(orderedData, null, 4), {
+    fs.writeFileSync(this.path, JSONBig.stringify(orderedData, null, 4), {
       mode: 0o600,
     });
   }
@@ -774,7 +772,7 @@ class Local extends Config<ConfigType> {
 }
 
 class Global extends Config<GlobalConfigData> {
-  static CONFIG_FILE_PATH = `.${SDK_TITLE_LOWER}/prefs.json`;
+  static CONFIG_FILE_PATH = `.${EXECUTABLE_NAME}/prefs.json`;
 
   static PREFERENCE_CURRENT = "current" as const;
   static PREFERENCE_ENDPOINT = "endpoint" as const;
