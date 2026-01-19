@@ -1,6 +1,7 @@
 import { Models } from './models';
 import { Channel, ActionableChannel, ResolvedChannel } from './channel';
 import JSONbigModule from 'json-bigint';
+import BigNumber from 'bignumber.js';
 const JSONbigParser = JSONbigModule({ storeAsString: false });
 const JSONbigSerializer = JSONbigModule({ useNativeBigInt: true });
 
@@ -10,33 +11,41 @@ const JSONbigSerializer = JSONbigModule({ useNativeBigInt: true });
  * - Float BigNumbers → number
  * - Strings remain strings (never converted to BigNumber by json-bigint)
  */
-function convertBigNumbers(obj: any): any {
-    if (obj === null || obj === undefined) return obj;
-    if (Array.isArray(obj)) return obj.map(convertBigNumbers);
+const MAX_SAFE = BigInt(Number.MAX_SAFE_INTEGER);
+const MIN_SAFE = BigInt(Number.MIN_SAFE_INTEGER);
 
-    // Check if it's a BigNumber (has specific BigNumber methods)
-    if (typeof obj === 'object' && obj.constructor?.name === 'BigNumber') {
-        const str = obj.toString();
-        // Check if it's an integer (no decimal point)
-        if (obj.isInteger()) {
-            const num = obj.toNumber();
-            return Number.isSafeInteger(num) ? num : BigInt(str);
-        }
-        // It's a float
-        return obj.toNumber();
+function convertBigNumbers(value: any): any {
+    if (value === null || value === undefined) return value;
+
+    if (Array.isArray(value)) {
+        return value.map(convertBigNumbers);
     }
 
-    if (typeof obj === 'object') {
-        const result: any = {};
-        for (const key in obj) {
-            if (Object.prototype.hasOwnProperty.call(obj, key)) {
-                result[key] = convertBigNumbers(obj[key]);
+    if (BigNumber.isBigNumber(value)) {
+        if (value.isInteger()) {
+            const str = value.toFixed();
+            const bi = BigInt(str);
+
+            if (bi >= MIN_SAFE && bi <= MAX_SAFE) {
+                return Number(str);
             }
+
+            return bi;
+        }
+
+        // float
+        return value.toNumber();
+    }
+
+    if (typeof value === 'object') {
+        const result: any = {};
+        for (const [k, v] of Object.entries(value)) {
+            result[k] = convertBigNumbers(v);
         }
         return result;
     }
 
-    return obj;
+    return value;
 }
 
 const JSONbig = {
