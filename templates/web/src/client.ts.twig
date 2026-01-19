@@ -1,7 +1,42 @@
 import { Models } from './models';
 import { Channel, ActionableChannel, ResolvedChannel } from './channel';
 import JSONbigModule from 'json-bigint';
-const JSONbig = JSONbigModule({ useNativeBigInt: true });
+const JSONbigParser = JSONbigModule({ storeAsString: true });
+const JSONbigSerializer = JSONbigModule({ useNativeBigInt: true });
+
+/**
+ * Converts numeric strings from json-bigint (storeAsString: true) to native types.
+ * Large integers (16+ digits) become BigInt, large floats become number.
+ */
+function convertBigIntStrings(obj: any): any {
+    if (obj === null || obj === undefined) return obj;
+    if (Array.isArray(obj)) return obj.map(convertBigIntStrings);
+    if (typeof obj === 'object') {
+        const result: any = {};
+        for (const key in obj) {
+            if (Object.prototype.hasOwnProperty.call(obj, key)) {
+                result[key] = convertBigIntStrings(obj[key]);
+            }
+        }
+        return result;
+    }
+    // json-bigint stores numbers > 15 digits as strings
+    if (typeof obj === 'string' && obj.length > 15) {
+        // Check if it's a numeric string (doesn't start with 0 unless it's "0" or "0.x")
+        const num = Number(obj);
+        if (!Number.isNaN(num)) {
+            // Has decimal point → float, keep as number
+            // No decimal point → large integer, convert to BigInt
+            return obj.includes('.') ? num : BigInt(obj);
+        }
+    }
+    return obj;
+}
+
+const JSONbig = {
+    parse: (text: string) => convertBigIntStrings(JSONbigParser.parse(text)),
+    stringify: JSONbigSerializer.stringify
+};
 
 /**
  * Payload type representing a key-value pair with string keys and any values.

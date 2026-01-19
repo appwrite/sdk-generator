@@ -2,7 +2,40 @@ import { Models } from './models';
 import { Service } from './service';
 import { Platform } from 'react-native';
 import JSONbigModule from 'json-bigint';
-const JSONbig = JSONbigModule({ useNativeBigInt: true });
+const JSONbigParser = JSONbigModule({ storeAsString: true });
+const JSONbigSerializer = JSONbigModule({ useNativeBigInt: true });
+
+/**
+ * Converts numeric strings from json-bigint (storeAsString: true) to native types.
+ * Large integers (16+ digits) become BigInt, large floats become number.
+ */
+function convertBigIntStrings(obj: any): any {
+    if (obj === null || obj === undefined) return obj;
+    if (Array.isArray(obj)) return obj.map(convertBigIntStrings);
+    if (typeof obj === 'object') {
+        const result: any = {};
+        for (const key in obj) {
+            if (Object.prototype.hasOwnProperty.call(obj, key)) {
+                result[key] = convertBigIntStrings(obj[key]);
+            }
+        }
+        return result;
+    }
+    // json-bigint stores numbers > 15 digits as strings
+    if (typeof obj === 'string' && obj.length > 15) {
+        const num = Number(obj);
+        if (!Number.isNaN(num)) {
+            // Has decimal point → float, No decimal → BigInt
+            return obj.includes('.') ? num : BigInt(obj);
+        }
+    }
+    return obj;
+}
+
+const JSONbig = {
+    parse: (text: string) => convertBigIntStrings(JSONbigParser.parse(text)),
+    stringify: JSONbigSerializer.stringify
+};
 
 type Payload = {
     [key: string]: any;
