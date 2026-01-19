@@ -2,35 +2,46 @@ import { Models } from './models';
 import { Service } from './service';
 import { Platform } from 'react-native';
 import JSONbigModule from 'json-bigint';
-const JSONbigParser = JSONbigModule({ storeAsString: true });
+const JSONbigParser = JSONbigModule({ storeAsString: false });
 const JSONbigSerializer = JSONbigModule({ useNativeBigInt: true });
 
 /**
- * Converts numeric strings from json-bigint (storeAsString: true) to native types.
- * Large integers (16+ digits) become BigInt, large floats become number.
+ * Converts BigNumber objects from json-bigint to native types.
+ * - Integer BigNumbers → BigInt (if unsafe) or number (if safe)
+ * - Float BigNumbers → number
+ * - Strings remain strings (never converted to BigNumber by json-bigint)
  */
-function convertBigIntStrings(obj: any): any {
+function convertBigNumbers(obj: any): any {
     if (obj === null || obj === undefined) return obj;
-    if (Array.isArray(obj)) return obj.map(convertBigIntStrings);
+    if (Array.isArray(obj)) return obj.map(convertBigNumbers);
+
+    // Check if it's a BigNumber (has specific BigNumber methods)
+    if (typeof obj === 'object' && obj.constructor?.name === 'BigNumber') {
+        const str = obj.toString();
+        // Check if it's an integer (no decimal point)
+        if (obj.isInteger()) {
+            const num = obj.toNumber();
+            return Number.isSafeInteger(num) ? num : BigInt(str);
+        }
+        // It's a float
+        return obj.toNumber();
+    }
+
     if (typeof obj === 'object') {
         const result: any = {};
         for (const key in obj) {
             if (Object.prototype.hasOwnProperty.call(obj, key)) {
-                result[key] = convertBigIntStrings(obj[key]);
+                result[key] = convertBigNumbers(obj[key]);
             }
         }
         return result;
     }
-    // json-bigint stores numbers > 15 digits as strings
-    if (typeof obj === 'string' && /^-?\d+$/.test(obj)) {
-        const num = Number(obj);
-        return Number.isSafeInteger(num) ? num : BigInt(obj);
-    }
+
     return obj;
 }
 
 const JSONbig = {
-    parse: (text: string) => convertBigIntStrings(JSONbigParser.parse(text)),
+    parse: (text: string) => convertBigNumbers(JSONbigParser.parse(text)),
     stringify: JSONbigSerializer.stringify
 };
 
