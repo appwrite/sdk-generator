@@ -26,7 +26,6 @@ export default [
     },
     {
         input: "src/index.ts",
-        external,
         plugins: [
             resolve({ browser: true }),
             commonjs(),
@@ -38,10 +37,6 @@ export default [
                 file: pkg.jsdelivr,
                 name: "Appwrite",
                 extend: true,
-                globals: {
-                    "json-bigint": "JSONbig",
-                    "bignumber.js": "BigNumber",
-                },
             },
         ],
     }
