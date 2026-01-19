@@ -1,7 +1,8 @@
 #if (UNITY_EDITOR || UNITY_IOS || UNITY_ANDROID || UNITY_WEBGL) && UNI_TASK
 using System;
 using System.Collections.Concurrent;
-using System.Web;
+using System.Collections.Generic;
+using Appwrite.Extensions;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 
@@ -34,7 +35,8 @@ namespace {{ spec.title | caseUcfirst }}
         public static async UniTask<Uri> Authenticate(string authUrl)
         {
             var authUri = new Uri(authUrl);
-            var projectId = HttpUtility.ParseQueryString(authUri.Query).Get("project");
+            var queryDict = authUri.Query.FromQueryString();
+            var projectId = queryDict.GetValueOrDefault("project");
             if (string.IsNullOrEmpty(projectId))
             {
                 throw new {{ spec.title | caseUcfirst }}Exception("Project ID not found in authentication URL.");

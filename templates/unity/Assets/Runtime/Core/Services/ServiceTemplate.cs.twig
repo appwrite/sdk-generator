@@ -12,7 +12,6 @@ using {{ spec.title | caseUcfirst }}.Enums;
 {% endif %}
 {% if service.name|lower == 'account' or service.name|lower == 'general' %}
 using {{ spec.title | caseUcfirst }}.Extensions;
-using System.Web;
 using UnityEngine;
 {% endif %}
 

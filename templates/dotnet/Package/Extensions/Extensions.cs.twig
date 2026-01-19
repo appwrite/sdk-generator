@@ -49,6 +49,25 @@ namespace {{ spec.title | caseUcfirst }}.Extensions
             return Uri.EscapeUriString(string.Join("&", query));
         }
 
+        public static Dictionary<string, string> FromQueryString(this string query)
+        {
+            var dict = new Dictionary<string, string>();
+            if (string.IsNullOrEmpty(query)) return dict;
+            if (query.StartsWith("?")) query = query.Substring(1);
+            var pairs = query.Split('&');
+            foreach (var pair in pairs)
+            {
+                var kv = pair.Split(new char[] { '=' }, 2);
+                if (kv.Length >= 1)
+                {
+                    var key = Uri.UnescapeDataString(kv[0]);
+                    var value = kv.Length > 1 ? Uri.UnescapeDataString(kv[1]) : "";
+                    dict[key] = value;
+                }
+            }
+            return dict;
+        }
+
         private static IDictionary<string, string> _mappings = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase) {
 
                 #region Mime Types
