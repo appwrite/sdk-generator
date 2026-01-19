@@ -22,9 +22,34 @@ import type {
   GlobalConfigData,
 } from "./types.js";
 import { createSettingsObject } from "./utils.js";
-import { SDK_TITLE_LOWER } from "./constants.js";
+import { EXECUTABLE_NAME } from "./constants.js";
+import { BigNumber } from "bignumber.js";
 
-const JSONBigInt = JSONbig({ useNativeBigInt: true });
+const JSONbigParser = JSONbig({ storeAsString: false });
+const JSONbigSerializer = JSONbig({ useNativeBigInt: true });
+
+const MAX_SAFE = BigInt(Number.MAX_SAFE_INTEGER);
+const MIN_SAFE = BigInt(Number.MIN_SAFE_INTEGER);
+
+function reviver(_key: string, value: any): any {
+  if (BigNumber.isBigNumber(value)) {
+    if (value.isInteger()) {
+      const str = value.toFixed();
+      const bi = BigInt(str);
+      if (bi >= MIN_SAFE && bi <= MAX_SAFE) {
+        return Number(str);
+      }
+      return bi;
+    }
+    return value.toNumber();
+  }
+  return value;
+}
+
+const JSONBigInt = {
+  parse: (text: string) => JSONbigParser.parse(text, reviver),
+  stringify: JSONbigSerializer.stringify,
+};
 
 const KeysVars = new Set(["key", "value"]);
 const KeysSite = new Set([
@@ -342,8 +367,8 @@ class Config<T extends ConfigData = ConfigData> {
 }
 
 class Local extends Config<ConfigType> {
-  static CONFIG_FILE_PATH = `${SDK_TITLE_LOWER}.config.json`;
-  static CONFIG_FILE_PATH_LEGACY = `${SDK_TITLE_LOWER}.json`;
+  static CONFIG_FILE_PATH = `${EXECUTABLE_NAME}.config.json`;
+  static CONFIG_FILE_PATH_LEGACY = `${EXECUTABLE_NAME}.json`;
   configDirectoryPath = "";
 
   constructor(
@@ -774,7 +799,7 @@ class Local extends Config<ConfigType> {
 }
 
 class Global extends Config<GlobalConfigData> {
-  static CONFIG_FILE_PATH = `.${SDK_TITLE_LOWER}/prefs.json`;
+  static CONFIG_FILE_PATH = `.${EXECUTABLE_NAME}/prefs.json`;
 
   static PREFERENCE_CURRENT = "current" as const;
   static PREFERENCE_ENDPOINT = "endpoint" as const;
