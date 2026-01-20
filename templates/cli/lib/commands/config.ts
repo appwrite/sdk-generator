@@ -332,8 +332,73 @@ const CollectionSchema = z
 // Tables
 // ============================================================================
 
-const ColumnSchema = AttributeSchema;
-const ColumnSchemaBase = AttributeSchemaBase;
+const ColumnSchemaBase = z
+  .object({
+    key: z.string(),
+    type: z.enum([
+      "string",
+      "integer",
+      "double",
+      "boolean",
+      "datetime",
+      "relationship",
+      "linestring",
+      "point",
+      "polygon",
+    ]),
+    required: z.boolean().optional(),
+    array: z.boolean().optional(),
+    size: z.number().optional(),
+    default: z.any().optional(),
+    min: int64Schema,
+    max: int64Schema,
+    format: z
+      .union([
+        z.enum(["email", "enum", "url", "ip", "datetime"]),
+        z.literal(""),
+      ])
+      .optional(),
+    elements: z.array(z.string()).optional(),
+    // For tables, relationship uses relatedTable instead of relatedCollection
+    relatedTable: z.string().optional(),
+    relationType: z.string().optional(),
+    twoWay: z.boolean().optional(),
+    twoWayKey: z.string().optional(),
+    onDelete: z.string().optional(),
+    side: z.string().optional(),
+    // For table indexes, uses columns instead of attributes
+    columns: z.array(z.string()).optional(),
+    orders: z.array(z.string()).optional(),
+    encrypt: z.boolean().optional(),
+  })
+  .strict();
+
+const ColumnSchema = ColumnSchemaBase.refine(
+  (data) => {
+    if (data.required === true && data.default !== null) {
+      return false;
+    }
+    return true;
+  },
+  {
+    message: "When 'required' is true, 'default' must be null",
+    path: ["default"],
+  },
+).refine(
+  (data) => {
+    if (
+      data.type === "string" &&
+      (data.size === undefined || data.size === null)
+    ) {
+      return false;
+    }
+    return true;
+  },
+  {
+    message: "When 'type' is 'string', 'size' must be defined",
+    path: ["size"],
+  },
+);
 
 const IndexTableSchema = z
   .object({

@@ -3,6 +3,7 @@ import fs from "fs";
 import _path from "path";
 import process from "process";
 import type { Models } from "@appwrite.io/console";
+import type { z } from "zod";
 import type {
   BucketType,
   CollectionType,
@@ -14,6 +15,20 @@ import type {
   TeamType,
   TopicType,
 } from "./commands/config.js";
+import {
+  SiteSchema,
+  FunctionSchema,
+  DatabaseSchema,
+  CollectionSchema,
+  AttributeSchema,
+  IndexSchema,
+  TablesDBSchemaBase,
+  ColumnSchemaBase,
+  IndexTableSchema,
+  TopicSchema,
+  TeamSchema,
+  BucketSchema,
+} from "./commands/config.js";
 import type {
   SessionData,
   ConfigData,
@@ -24,138 +39,35 @@ import { createSettingsObject } from "./utils.js";
 import { EXECUTABLE_NAME } from "./constants.js";
 import { JSONBig } from "./json.js";
 
+/**
+ * Extract keys from a Zod object schema.
+ * Handles both plain ZodObject and ZodEffects (schemas with refinements).
+ */
+function getSchemaKeys(schema: z.ZodTypeAny): Set<string> {
+  // For ZodEffects (created by .refine(), .superRefine(), .transform())
+  if ("def" in schema && "schema" in (schema.def as any)) {
+    return getSchemaKeys((schema.def as any).schema);
+  }
+  // For ZodObject
+  if ("shape" in schema) {
+    return new Set(Object.keys((schema as any).shape));
+  }
+  return new Set();
+}
+
 const KeysVars = new Set(["key", "value"]);
-const KeysSite = new Set([
-  "path",
-  "$id",
-  "name",
-  "enabled",
-  "logging",
-  "timeout",
-  "framework",
-  "buildRuntime",
-  "adapter",
-  "installCommand",
-  "buildCommand",
-  "outputDirectory",
-  "fallbackFile",
-  "specification",
-  "vars",
-]);
-const KeysFunction = new Set([
-  "path",
-  "$id",
-  "execute",
-  "name",
-  "enabled",
-  "logging",
-  "runtime",
-  "specification",
-  "scopes",
-  "events",
-  "schedule",
-  "timeout",
-  "entrypoint",
-  "commands",
-  "vars",
-]);
-const KeysDatabase = new Set(["$id", "name", "enabled"]);
-const KeysCollection = new Set([
-  "$id",
-  "$permissions",
-  "databaseId",
-  "name",
-  "enabled",
-  "documentSecurity",
-  "attributes",
-  "indexes",
-]);
-const KeysTable = new Set([
-  "$id",
-  "$permissions",
-  "databaseId",
-  "name",
-  "enabled",
-  "rowSecurity",
-  "columns",
-  "indexes",
-]);
-const KeysStorage = new Set([
-  "$id",
-  "$permissions",
-  "fileSecurity",
-  "name",
-  "enabled",
-  "maximumFileSize",
-  "allowedFileExtensions",
-  "compression",
-  "encryption",
-  "antivirus",
-]);
-const KeysTopics = new Set(["$id", "name", "subscribe"]);
-const KeysTeams = new Set(["$id", "name"]);
-const KeysAttributes = new Set([
-  "key",
-  "type",
-  "required",
-  "array",
-  "size",
-  "default",
-  // integer and float
-  "min",
-  "max",
-  // email, enum, URL, IP, and datetime
-  "format",
-  // enum
-  "elements",
-  // relationship
-  "relatedCollection",
-  "relationType",
-  "twoWay",
-  "twoWayKey",
-  "onDelete",
-  "side",
-  // Indexes
-  "attributes",
-  "orders",
-  // Strings
-  "encrypt",
-]);
-const KeysColumns = new Set([
-  "key",
-  "type",
-  "required",
-  "array",
-  "size",
-  "default",
-  // integer and float
-  "min",
-  "max",
-  // email, enum, URL, IP, and datetime
-  "format",
-  // enum
-  "elements",
-  // relationship
-  "relatedTable",
-  "relationType",
-  "twoWay",
-  "twoWayKey",
-  "onDelete",
-  "side",
-  // Indexes
-  "columns",
-  "orders",
-  // Strings
-  "encrypt",
-]);
-const KeyIndexes = new Set(["key", "type", "status", "attributes", "orders"]);
-const KeyIndexesColumns = new Set([
-  "key",
-  "type",
-  "status",
-  "columns",
-  "orders",
-]);
+const KeysSite = getSchemaKeys(SiteSchema);
+const KeysFunction = getSchemaKeys(FunctionSchema);
+const KeysDatabase = getSchemaKeys(DatabaseSchema);
+const KeysCollection = getSchemaKeys(CollectionSchema);
+const KeysTable = getSchemaKeys(TablesDBSchemaBase);
+const KeysStorage = getSchemaKeys(BucketSchema);
+const KeysTopics = getSchemaKeys(TopicSchema);
+const KeysTeams = getSchemaKeys(TeamSchema);
+const KeysAttributes = getSchemaKeys(AttributeSchema);
+const KeysColumns = getSchemaKeys(ColumnSchemaBase);
+const KeyIndexes = getSchemaKeys(IndexSchema);
+const KeyIndexesColumns = getSchemaKeys(IndexTableSchema);
 
 const CONFIG_KEY_ORDER = [
   "projectId",
