@@ -276,6 +276,11 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'lib/json.ts',
+                'template'      => 'cli/lib/json.ts',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'lib/config.ts',
                 'template'      => 'cli/lib/config.ts',
             ],
