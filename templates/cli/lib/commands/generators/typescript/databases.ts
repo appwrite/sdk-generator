@@ -1,19 +1,14 @@
 import * as fs from "fs";
 import * as path from "path";
 import { z } from "zod";
-import { ConfigType, AttributeSchema } from "../config.js";
-import { toPascalCase, sanitizeEnumKey } from "../../utils.js";
+import { ConfigType, AttributeSchema } from "../../config.js";
+import { toPascalCase, sanitizeEnumKey } from "../../../utils.js";
+import { SDK_TITLE, EXECUTABLE_NAME } from "../../../constants.js";
 import {
-  SDK_TITLE,
-  SDK_TITLE_LOWER,
-  EXECUTABLE_NAME,
-} from "../../constants.js";
-
-export interface GenerateResult {
-  databasesContent: string;
-  typesContent: string;
-  indexContent: string;
-}
+  BaseDatabasesGenerator,
+  GenerateResult,
+  SupportedLanguage,
+} from "../base.js";
 
 type Entity =
   | NonNullable<ConfigType["tables"]>[number]
@@ -22,7 +17,14 @@ type Entities =
   | NonNullable<ConfigType["tables"]>
   | NonNullable<ConfigType["collections"]>;
 
-export class DatabasesGenerator {
+/**
+ * TypeScript-specific database generator.
+ * Generates type-safe SDK files for TypeScript/JavaScript projects.
+ */
+export class TypeScriptDatabasesGenerator extends BaseDatabasesGenerator {
+  readonly language: SupportedLanguage = "typescript";
+  readonly fileExtension = "ts";
+
   private getType(
     attribute: z.infer<typeof AttributeSchema>,
     collections: NonNullable<ConfigType["collections"]>,
@@ -282,7 +284,7 @@ export type QueryBuilder<T> = {
     return `export type DatabaseTables = {\n${dbReturnTypes}\n}`;
   }
 
-  generateTypesFile(config: ConfigType): string {
+  private generateTypesFile(config: ConfigType): string {
     const entities = config.tables?.length ? config.tables : config.collections;
 
     if (!entities || entities.length === 0) {
@@ -292,7 +294,7 @@ export type QueryBuilder<T> = {
     const appwriteDep = this.getAppwriteDependency();
     const enums = this.generateEnums(entities);
     const types = entities
-      .map((entity) => this.generateTableType(entity, entities))
+      .map((entity: Entity) => this.generateTableType(entity, entities))
       .join("\n\n");
     const entitiesByDb = this.groupEntitiesByDb(entities);
     const dbIds = Array.from(entitiesByDb.keys());
@@ -384,7 +386,7 @@ export type QueryBuilder<T> = {
     return `const tablesWithRelationships = new Set<string>([${tablesWithRelationships.join(", ")}])`;
   }
 
-  generateDatabasesFile(config: ConfigType): string {
+  private generateDatabasesFile(config: ConfigType): string {
     const entities = config.tables?.length ? config.tables : config.collections;
 
     if (!entities || entities.length === 0) {
@@ -539,7 +541,7 @@ export const createDatabases = (client: Client) => {
 `;
   }
 
-  generateIndexFile(): string {
+  private generateIndexFile(): string {
     return `/**
  * ${SDK_TITLE} Generated SDK
  *
@@ -557,6 +559,8 @@ export * from "./types.js";
       throw new Error("Project ID is required in configuration");
     }
 
+    const files = new Map<string, string>();
+
     const hasEntities =
       (config.tables && config.tables.length > 0) ||
       (config.collections && config.collections.length > 0);
@@ -565,41 +569,22 @@ export * from "./types.js";
       console.log(
         "No tables or collections found in configuration. Skipping database generation.",
       );
-      return {
-        databasesContent:
-          "// No tables or collections found in configuration\n",
-        typesContent: "// No tables or collections found in configuration\n",
-        indexContent: this.generateIndexFile(),
-      };
+      files.set(
+        "databases.ts",
+        "// No tables or collections found in configuration\n",
+      );
+      files.set(
+        "types.ts",
+        "// No tables or collections found in configuration\n",
+      );
+      files.set("index.ts", this.generateIndexFile());
+      return { files };
     }
 
-    return {
-      typesContent: this.generateTypesFile(config),
-      databasesContent: this.generateDatabasesFile(config),
-      indexContent: this.generateIndexFile(),
-    };
-  }
+    files.set("types.ts", this.generateTypesFile(config));
+    files.set("databases.ts", this.generateDatabasesFile(config));
+    files.set("index.ts", this.generateIndexFile());
 
-  async writeFiles(outputDir: string, result: GenerateResult): Promise<void> {
-    const sdkDir = path.join(outputDir, SDK_TITLE_LOWER);
-    if (!fs.existsSync(sdkDir)) {
-      fs.mkdirSync(sdkDir, { recursive: true });
-    }
-
-    fs.writeFileSync(
-      path.join(sdkDir, "databases.ts"),
-      result.databasesContent,
-      "utf-8",
-    );
-    fs.writeFileSync(
-      path.join(sdkDir, "types.ts"),
-      result.typesContent,
-      "utf-8",
-    );
-    fs.writeFileSync(
-      path.join(sdkDir, "index.ts"),
-      result.indexContent,
-      "utf-8",
-    );
+    return { files };
   }
 }

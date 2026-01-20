@@ -7,7 +7,7 @@ import { parseWithBetterErrors } from "./utils/error-formatter.js";
 import JSONbig from "json-bigint";
 import * as fs from "fs";
 import * as path from "path";
-import { DatabasesGenerator } from "./generators/databases.js";
+import { TypeScriptDatabasesGenerator } from "./generators/typescript/databases.js";
 
 const JSONBig = JSONbig({ useNativeBigInt: true });
 
@@ -17,7 +17,7 @@ export class Schema {
 
   private pullCommandSilent: Pull;
 
-  public db: DatabasesGenerator;
+  public db: TypeScriptDatabasesGenerator;
 
   constructor({
     projectClient,
@@ -31,7 +31,7 @@ export class Schema {
 
     this.pullCommandSilent = new Pull(projectClient, consoleClient, true);
 
-    this.db = new DatabasesGenerator();
+    this.db = new TypeScriptDatabasesGenerator();
   }
 
   /**

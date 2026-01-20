@@ -353,8 +353,23 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'copy',
-                'destination'   => 'lib/commands/generators/databases.ts',
-                'template'      => 'cli/lib/commands/generators/databases.ts',
+                'destination'   => 'lib/commands/generators/base.ts',
+                'template'      => 'cli/lib/commands/generators/base.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'lib/commands/generators/index.ts',
+                'template'      => 'cli/lib/commands/generators/index.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'lib/commands/generators/language-detector.ts',
+                'template'      => 'cli/lib/commands/generators/language-detector.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'lib/commands/generators/typescript/databases.ts',
+                'template'      => 'cli/lib/commands/generators/typescript/databases.ts',
             ],
             [
                 'scope'         => 'copy',
