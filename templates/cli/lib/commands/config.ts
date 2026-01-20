@@ -304,7 +304,15 @@ const ColumnSchema = z
     orders: z.array(z.string()).optional(),
     encrypt: z.boolean().optional(),
   })
-  .strict();
+  .strict()
+  .refine(validateRequiredDefault, {
+    message: "When 'required' is true, 'default' must be null",
+    path: ["default"],
+  })
+  .refine(validateStringSize, {
+    message: "When 'type' is 'string', 'size' must be defined",
+    path: ["size"],
+  });
 
 const IndexTableSchema = z
   .object({
