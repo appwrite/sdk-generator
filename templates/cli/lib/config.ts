@@ -22,8 +22,8 @@ import {
   CollectionSchema,
   AttributeSchema,
   IndexSchema,
-  TablesDBSchemaBase,
-  ColumnSchemaBase,
+  TableSchema,
+  ColumnSchema,
   IndexTableSchema,
   TopicSchema,
   TeamSchema,
@@ -60,12 +60,12 @@ const KeysSite = getSchemaKeys(SiteSchema);
 const KeysFunction = getSchemaKeys(FunctionSchema);
 const KeysDatabase = getSchemaKeys(DatabaseSchema);
 const KeysCollection = getSchemaKeys(CollectionSchema);
-const KeysTable = getSchemaKeys(TablesDBSchemaBase);
+const KeysTable = getSchemaKeys(TableSchema);
 const KeysStorage = getSchemaKeys(BucketSchema);
 const KeysTopics = getSchemaKeys(TopicSchema);
 const KeysTeams = getSchemaKeys(TeamSchema);
 const KeysAttributes = getSchemaKeys(AttributeSchema);
-const KeysColumns = getSchemaKeys(ColumnSchemaBase);
+const KeysColumns = getSchemaKeys(ColumnSchema);
 const KeyIndexes = getSchemaKeys(IndexSchema);
 const KeyIndexesColumns = getSchemaKeys(IndexTableSchema);
 

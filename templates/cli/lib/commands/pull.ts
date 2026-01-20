@@ -39,8 +39,8 @@ import {
 import type { ConfigType } from "./config.js";
 import {
   DatabaseSchema,
-  TablesDBSchemaBase,
-  ColumnSchemaBase,
+  TableSchema,
+  ColumnSchema,
   BucketSchema,
   TopicSchema,
 } from "./config.js";
@@ -542,11 +542,11 @@ export class Pull {
       for (const table of tables) {
         // Filter columns to only include schema-defined fields
         const filteredColumns = table.columns?.map((col: any) =>
-          filterBySchema(col, ColumnSchemaBase),
+          filterBySchema(col, ColumnSchema),
         );
 
         allTables.push({
-          ...filterBySchema(table, TablesDBSchemaBase),
+          ...filterBySchema(table, TableSchema),
           columns: filteredColumns || [],
         });
       }
