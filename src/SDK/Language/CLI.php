@@ -348,6 +348,11 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'lib/commands/config-validations.ts',
+                'template'      => 'cli/lib/commands/config-validations.ts',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'lib/commands/generate.ts',
                 'template'      => 'cli/lib/commands/generate.ts',
             ],
