@@ -274,7 +274,9 @@ try {
 
     // Markdown
     if (!$requestedSdk || $requestedSdk === 'markdown') {
-        $sdk = new SDK(new Markdown(), new Swagger2($spec));
+        $markdown = new Markdown();
+        $markdown->setNPMPackage('@appwrite.io/docs');
+        $sdk = new SDK($markdown, new Swagger2($spec));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/markdown');
     }

@@ -2,10 +2,10 @@
 
 namespace Appwrite\SDK\Language;
 
-use Appwrite\SDK\Language;
+use Appwrite\SDK\Language\JS;
 use Twig\TwigFilter;
 
-class Markdown extends Language
+class Markdown extends JS
 {
     /**
      * @return string
@@ -53,11 +53,46 @@ class Markdown extends Language
     public function getFiles(): array
     {
         return [
+            // Package configuration
+            [
+                'scope'       => 'default',
+                'destination' => 'package.json',
+                'template'    => 'markdown/package.json.twig',
+            ],
+            [
+                'scope'       => 'copy',
+                'destination' => 'tsconfig.json',
+                'template'    => 'markdown/tsconfig.json',
+            ],
+            // Source files (static - just copy)
+            [
+                'scope'       => 'copy',
+                'destination' => 'src/types.ts',
+                'template'    => 'markdown/src/types.ts',
+            ],
+            [
+                'scope'       => 'copy',
+                'destination' => 'src/index.ts',
+                'template'    => 'markdown/src/index.ts',
+            ],
+            // Manifest - needs templating for TOC generation
+            [
+                'scope'       => 'copy',
+                'destination' => 'src/manifest.ts',
+                'template'    => 'markdown/src/manifest.ts',
+            ],
+            // Build scripts (static - just copy)
+            [
+                'scope'       => 'copy',
+                'destination' => 'scripts/build-manifest.ts',
+                'template'    => 'markdown/scripts/build-manifest.ts',
+            ],
+            // Documentation markdown files
             [
                 'scope'       => 'method',
-                'destination' => 'typescript/{{ service.name | caseLower }}/{{ method.name | caseKebab }}.md',
+                'destination' => 'docs/typescript/{{ service.name | caseLower }}/{{ method.name | caseKebab }}.md',
                 'template'    => 'markdown/typescript/method.md.twig',
-            ]
+            ],
         ];
     }
 
