@@ -1,11 +1,34 @@
 import { Client, TablesDB, ID, Query, type Models, Permission } from '{{appwriteDep}}';
 import type { DatabaseId, DatabaseTables, QueryBuilder } from './types.js';
 
-{{QUERY_BUILDER_IMPL}};
+const createQueryBuilder = <T>(): QueryBuilder<T> => ({
+  equal: (field, value) => Query.equal(String(field), value as any),
+  notEqual: (field, value) => Query.notEqual(String(field), value as any),
+  lessThan: (field, value) => Query.lessThan(String(field), value as any),
+  lessThanEqual: (field, value) => Query.lessThanEqual(String(field), value as any),
+  greaterThan: (field, value) => Query.greaterThan(String(field), value as any),
+  greaterThanEqual: (field, value) => Query.greaterThanEqual(String(field), value as any),
+  contains: (field, value) => Query.contains(String(field), value as any),
+  search: (field, value) => Query.search(String(field), value),
+  isNull: (field) => Query.isNull(String(field)),
+  isNotNull: (field) => Query.isNotNull(String(field)),
+  startsWith: (field, value) => Query.startsWith(String(field), value),
+  endsWith: (field, value) => Query.endsWith(String(field), value),
+  between: (field, start, end) => Query.between(String(field), start as any, end as any),
+  select: (fields) => Query.select(fields.map(String)),
+  orderAsc: (field) => Query.orderAsc(String(field)),
+  orderDesc: (field) => Query.orderDesc(String(field)),
+  limit: (value) => Query.limit(value),
+  offset: (value) => Query.offset(value),
+  cursorAfter: (documentId) => Query.cursorAfter(documentId),
+  cursorBefore: (documentId) => Query.cursorBefore(documentId),
+  or: (...queries) => Query.or(queries),
+  and: (...queries) => Query.and(queries),
+});
 
-{{TABLE_ID_MAP}};
+{{TABLE_ID_MAP}}
 
-{{TABLES_WITH_RELATIONSHIPS}};
+{{TABLES_WITH_RELATIONSHIPS}}
 
 function createTableApi<T extends Models.Row>(
   tablesDB: TablesDB,
@@ -55,7 +78,6 @@ function createTableApi<T extends Models.Row>(
 }
 
 {{BULK_CHECK}}
-
 const hasOwn = (obj: unknown, key: string): boolean =>
   obj != null && Object.prototype.hasOwnProperty.call(obj, key);
 

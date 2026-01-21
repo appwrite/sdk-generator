@@ -43,10 +43,6 @@ export class TypeScriptDatabasesGenerator extends BaseDatabasesGenerator {
   /**
    * Checks if an entity has relationship columns.
    * Used to disable bulk methods for tables with relationships.
-   *
-   * TODO: Remove this restriction when bulk operations support relationships.
-   * To enable bulk methods for all tables, simply return false here:
-   *   return false;
    */
   private hasRelationshipColumns(entity: Entity): boolean {
     const fields = this.getFields(entity);
@@ -117,43 +113,6 @@ export class TypeScriptDatabasesGenerator extends BaseDatabasesGenerator {
     return entitiesByDb;
   }
 
-  private generateQueryBuilderType(): string {
-    return `export type QueryValue = string | number | boolean;
-
-export type ExtractQueryValue<T> = T extends (infer U)[]
-  ? U extends QueryValue ? U : never
-  : T extends QueryValue | null ? NonNullable<T> : never;
-
-export type QueryableKeys<T> = {
-  [K in keyof T]: ExtractQueryValue<T[K]> extends never ? never : K;
-}[keyof T];
-
-export type QueryBuilder<T> = {
-  equal: <K extends QueryableKeys<T>>(field: K, value: ExtractQueryValue<T[K]>) => string;
-  notEqual: <K extends QueryableKeys<T>>(field: K, value: ExtractQueryValue<T[K]>) => string;
-  lessThan: <K extends QueryableKeys<T>>(field: K, value: ExtractQueryValue<T[K]>) => string;
-  lessThanEqual: <K extends QueryableKeys<T>>(field: K, value: ExtractQueryValue<T[K]>) => string;
-  greaterThan: <K extends QueryableKeys<T>>(field: K, value: ExtractQueryValue<T[K]>) => string;
-  greaterThanEqual: <K extends QueryableKeys<T>>(field: K, value: ExtractQueryValue<T[K]>) => string;
-  contains: <K extends QueryableKeys<T>>(field: K, value: ExtractQueryValue<T[K]>) => string;
-  search: <K extends QueryableKeys<T>>(field: K, value: string) => string;
-  isNull: <K extends QueryableKeys<T>>(field: K) => string;
-  isNotNull: <K extends QueryableKeys<T>>(field: K) => string;
-  startsWith: <K extends QueryableKeys<T>>(field: K, value: string) => string;
-  endsWith: <K extends QueryableKeys<T>>(field: K, value: string) => string;
-  between: <K extends QueryableKeys<T>>(field: K, start: ExtractQueryValue<T[K]>, end: ExtractQueryValue<T[K]>) => string;
-  select: <K extends keyof T>(fields: K[]) => string;
-  orderAsc: <K extends keyof T>(field: K) => string;
-  orderDesc: <K extends keyof T>(field: K) => string;
-  limit: (value: number) => string;
-  offset: (value: number) => string;
-  cursorAfter: (documentId: string) => string;
-  cursorBefore: (documentId: string) => string;
-  or: (...queries: string[]) => string;
-  and: (...queries: string[]) => string;
-}`;
-  }
-
   private generateDatabaseTablesType(
     entitiesByDb: Map<string, Entity[]>,
     appwriteDep: string,
@@ -170,7 +129,6 @@ export type QueryBuilder<T> = {
       delete: (id: string, options?: { transactionId?: string }) => Promise<void>;
       list: (options?: { queries?: (q: QueryBuilder<${typeName}>) => string[] }) => Promise<{ total: number; rows: ${typeName}[] }>;`;
 
-            // Bulk methods not supported for tables with relationship columns (see hasRelationshipColumns)
             const canUseBulkMethods =
               supportsBulk && !this.hasRelationshipColumns(entity);
             const bulkMethods = canUseBulkMethods
@@ -212,40 +170,12 @@ export type QueryBuilder<T> = {
       appwriteDep,
       ENUMS: enums ? enums + "\n" : "",
       TYPES: types + "\n",
-      QUERY_BUILDER_TYPE: this.generateQueryBuilderType(),
       databaseIdType,
       DATABASE_TABLES_TYPE: this.generateDatabaseTablesType(
         entitiesByDb,
         appwriteDep,
       ),
     });
-  }
-
-  private generateQueryBuilder(): string {
-    return `const createQueryBuilder = <T>(): QueryBuilder<T> => ({
-  equal: (field, value) => Query.equal(String(field), value as any),
-  notEqual: (field, value) => Query.notEqual(String(field), value as any),
-  lessThan: (field, value) => Query.lessThan(String(field), value as any),
-  lessThanEqual: (field, value) => Query.lessThanEqual(String(field), value as any),
-  greaterThan: (field, value) => Query.greaterThan(String(field), value as any),
-  greaterThanEqual: (field, value) => Query.greaterThanEqual(String(field), value as any),
-  contains: (field, value) => Query.contains(String(field), value as any),
-  search: (field, value) => Query.search(String(field), value),
-  isNull: (field) => Query.isNull(String(field)),
-  isNotNull: (field) => Query.isNotNull(String(field)),
-  startsWith: (field, value) => Query.startsWith(String(field), value),
-  endsWith: (field, value) => Query.endsWith(String(field), value),
-  between: (field, start, end) => Query.between(String(field), start as any, end as any),
-  select: (fields) => Query.select(fields.map(String)),
-  orderAsc: (field) => Query.orderAsc(String(field)),
-  orderDesc: (field) => Query.orderDesc(String(field)),
-  limit: (value) => Query.limit(value),
-  offset: (value) => Query.offset(value),
-  cursorAfter: (documentId) => Query.cursorAfter(documentId),
-  cursorBefore: (documentId) => Query.cursorBefore(documentId),
-  or: (...queries) => Query.or(queries),
-  and: (...queries) => Query.and(queries),
-})`;
   }
 
   private generateTableIdMap(entitiesByDb: Map<string, Entity[]>): string {
@@ -279,25 +209,16 @@ export type QueryBuilder<T> = {
     }
 
     if (tablesWithRelationships.length === 0) {
-      return `const tablesWithRelationships = new Set<string>()`;
+      return `const tablesWithRelationships = new Set<string>();`;
     }
 
-    return `const tablesWithRelationships = new Set<string>([${tablesWithRelationships.join(", ")}])`;
+    return `const tablesWithRelationships = new Set<string>([${tablesWithRelationships.join(", ")}]);`;
   }
 
-  private generateDatabasesFile(config: ConfigType): string {
-    const entities = config.tables?.length ? config.tables : config.collections;
+  private generateBulkMethods(supportsBulk: boolean): string {
+    if (!supportsBulk) return "";
 
-    if (!entities || entities.length === 0) {
-      return "// No tables or collections found in configuration\n";
-    }
-
-    const entitiesByDb = this.groupEntitiesByDb(entities);
-    const appwriteDep = getAppwriteDependency();
-    const supportsBulk = supportsBulkMethods(appwriteDep);
-
-    const bulkMethodsCode = supportsBulk
-      ? `
+    return `
     createMany: (rows: any[], options?: { transactionId?: string }) =>
       tablesDB.createRows({
         databaseId,
@@ -319,35 +240,47 @@ export type QueryBuilder<T> = {
         tableId,
         queries: options?.queries?.(createQueryBuilder()),
         transactionId: options?.transactionId,
-      }),`
-      : "";
+      }),`;
+  }
 
-    const bulkCheck = supportsBulk
-      ? `const hasBulkMethods = (dbId: string, tableName: string) => !tablesWithRelationships.has(\`\${dbId}:\${tableName}\`);`
-      : "";
+  private generateBulkCheck(supportsBulk: boolean): string {
+    if (!supportsBulk) return "";
+    return `const hasBulkMethods = (dbId: string, tableName: string) => !tablesWithRelationships.has(\`\${dbId}:\${tableName}\`);\n`;
+  }
 
-    const bulkRemoval = supportsBulk
-      ? `
+  private generateBulkRemoval(supportsBulk: boolean): string {
+    if (!supportsBulk) return "";
+    return `
         // Remove bulk methods for tables with relationships
         if (!hasBulkMethods(databaseId, tableName)) {
           delete (api as any).createMany;
           delete (api as any).updateMany;
           delete (api as any).deleteMany;
-        }`
-      : "";
+        }`;
+  }
+
+  private generateDatabasesFile(config: ConfigType): string {
+    const entities = config.tables?.length ? config.tables : config.collections;
+
+    if (!entities || entities.length === 0) {
+      return "// No tables or collections found in configuration\n";
+    }
+
+    const entitiesByDb = this.groupEntitiesByDb(entities);
+    const appwriteDep = getAppwriteDependency();
+    const supportsBulk = supportsBulkMethods(appwriteDep);
 
     const template = loadTemplate("databases.ts.tpl");
 
     return renderTemplate(template, {
       appwriteDep,
-      QUERY_BUILDER_IMPL: this.generateQueryBuilder(),
       TABLE_ID_MAP: this.generateTableIdMap(entitiesByDb),
       TABLES_WITH_RELATIONSHIPS: this.generateTablesWithRelationships(
         entitiesByDb,
       ),
-      BULK_METHODS: bulkMethodsCode,
-      BULK_CHECK: bulkCheck,
-      BULK_REMOVAL: bulkRemoval,
+      BULK_METHODS: this.generateBulkMethods(supportsBulk),
+      BULK_CHECK: this.generateBulkCheck(supportsBulk),
+      BULK_REMOVAL: this.generateBulkRemoval(supportsBulk),
     });
   }
 
