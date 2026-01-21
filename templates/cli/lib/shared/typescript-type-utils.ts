@@ -1,69 +1,31 @@
 import * as fs from "fs";
 import * as path from "path";
+import {
+  LanguageMeta,
+  type Attribute,
+  type Collection,
+} from "../type-generation/languages/language.js";
 
 /**
- * Common attribute interface that works with both type-generation and databases generator.
+ * Attribute type extended with table-specific fields.
+ * Combines the base Attribute interface with relatedTable for tables support.
  */
-export interface TypeAttribute {
-  key: string;
-  type: string;
-  required?: boolean;
-  array?: boolean;
-  default?: unknown;
-  format?: string;
-  elements?: string[];
-  relatedCollection?: string;
+export type TypeAttribute = Attribute & {
   relatedTable?: string;
-  relationType?: string;
-  side?: string;
-}
+};
 
 /**
  * Common entity interface (collection or table).
+ * Reuses the Collection interface structure.
  */
-export interface TypeEntity {
-  $id: string;
-  name: string;
-}
-
-/**
- * Converts a string to PascalCase.
- */
-export function toPascalCase(str: string): string {
-  return str
-    .replace(/[^a-zA-Z0-9\s-_]/g, "")
-    .replace(/([a-z])([A-Z])/g, "$1-$2")
-    .replace(/([A-Z])([A-Z][a-z])/g, "$1-$2")
-    .replace(/[_\s]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .replace(/--+/g, "-")
-    .toLowerCase()
-    .replace(/-([a-z0-9])/g, (g) => g[1].toUpperCase())
-    .replace(/^./, (g) => g.toUpperCase());
-}
-
-/**
- * Converts a string to UPPER_SNAKE_CASE.
- */
-export function toUpperSnakeCase(str: string): string {
-  return str
-    .replace(/[^a-zA-Z0-9\s-_]/g, "")
-    .replace(/([a-z])([A-Z])/g, "$1-$2")
-    .replace(/([A-Z])([A-Z][a-z])/g, "$1-$2")
-    .replace(/[_\s]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .replace(/--+/g, "-")
-    .toLowerCase()
-    .replace(/-/g, "_")
-    .toUpperCase();
-}
+export type TypeEntity = Pick<Collection, "$id" | "name">;
 
 /**
  * Sanitizes a string for use as an enum key.
  * Handles edge cases like strings starting with numbers or containing invalid characters.
  */
 export function sanitizeEnumKey(value: string): string {
-  let key = toUpperSnakeCase(value);
+  let key = LanguageMeta.toUpperSnakeCase(value);
 
   if (!key || /^\d/.test(key)) {
     key = `_${key}`;
@@ -95,7 +57,7 @@ export function getTypeScriptType(
     case "url":
       type = "string";
       if (attribute.format === "enum") {
-        type = toPascalCase(entityName) + toPascalCase(attribute.key);
+        type = LanguageMeta.toPascalCase(entityName) + LanguageMeta.toPascalCase(attribute.key);
       }
       break;
     case "integer":
@@ -113,7 +75,7 @@ export function getTypeScriptType(
       if (!relatedEntity) {
         throw new Error(`Related entity with ID '${relatedId}' not found.`);
       }
-      type = toPascalCase(relatedEntity.name);
+      type = LanguageMeta.toPascalCase(relatedEntity.name);
       if (
         (attribute.relationType === "oneToMany" &&
           attribute.side === "parent") ||
@@ -162,7 +124,7 @@ export function generateEnumCode(
   attributeKey: string,
   elements: string[],
 ): string {
-  const enumName = toPascalCase(entityName) + toPascalCase(attributeKey);
+  const enumName = LanguageMeta.toPascalCase(entityName) + LanguageMeta.toPascalCase(attributeKey);
   const usedKeys = new Set<string>();
 
   const enumValues = elements
