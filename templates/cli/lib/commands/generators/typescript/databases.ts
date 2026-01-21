@@ -9,6 +9,7 @@ import {
   GenerateResult,
   SupportedLanguage,
 } from "../base.js";
+import { loadTemplate, renderTemplate } from "./template-loader.js";
 
 type Entity =
   | NonNullable<ConfigType["tables"]>[number]
@@ -298,28 +299,21 @@ export type QueryBuilder<T> = {
       .join("\n\n");
     const entitiesByDb = this.groupEntitiesByDb(entities);
     const dbIds = Array.from(entitiesByDb.keys());
-    const dbIdType = dbIds.map((id) => `'${id}'`).join(" | ");
+    const databaseIdType = dbIds.map((id) => `'${id}'`).join(" | ");
 
-    const parts = [
-      `import { type Models, Permission } from '${appwriteDep}';`,
-      "",
-    ];
+    const template = loadTemplate("types.ts.tpl");
 
-    if (enums) {
-      parts.push(enums);
-      parts.push("");
-    }
-
-    parts.push(types);
-    parts.push("");
-    parts.push(this.generateQueryBuilderType());
-    parts.push("");
-    parts.push(`export type DatabaseId = ${dbIdType};`);
-    parts.push("");
-    parts.push(this.generateDatabaseTablesType(entitiesByDb, appwriteDep));
-    parts.push("");
-
-    return parts.join("\n");
+    return renderTemplate(template, {
+      appwriteDep,
+      ENUMS: enums ? enums + "\n" : "",
+      TYPES: types + "\n",
+      QUERY_BUILDER_TYPE: this.generateQueryBuilderType(),
+      databaseIdType,
+      DATABASE_TABLES_TYPE: this.generateDatabaseTablesType(
+        entitiesByDb,
+        appwriteDep,
+      ),
+    });
   }
 
   private generateQueryBuilder(): string {
@@ -423,135 +417,42 @@ export type QueryBuilder<T> = {
       }),`
       : "";
 
-    const hasBulkCheck = supportsBulk
+    const bulkCheck = supportsBulk
       ? `const hasBulkMethods = (dbId: string, tableName: string) => !tablesWithRelationships.has(\`\${dbId}:\${tableName}\`);`
       : "";
 
-    return `import { Client, TablesDB, ID, Query, type Models, Permission } from '${appwriteDep}';
-import type { DatabaseId, DatabaseTables, QueryBuilder } from './types.js';
-
-${this.generateQueryBuilder()};
-
-${this.generateTableIdMap(entitiesByDb)};
-
-${this.generateTablesWithRelationships(entitiesByDb)};
-
-function createTableApi<T extends Models.Row>(
-  tablesDB: TablesDB,
-  databaseId: string,
-  tableId: string,
-) {
-  return {
-    create: (data: any, options?: { rowId?: string; permissions?: Permission[]; transactionId?: string }) =>
-      tablesDB.createRow<T>({
-        databaseId,
-        tableId,
-        rowId: options?.rowId ?? ID.unique(),
-        data,
-        permissions: options?.permissions?.map((p) => p.toString()),
-        transactionId: options?.transactionId,
-      }),
-    get: (id: string) =>
-      tablesDB.getRow<T>({
-        databaseId,
-        tableId,
-        rowId: id,
-      }),
-    update: (id: string, data: any, options?: { permissions?: Permission[]; transactionId?: string }) =>
-      tablesDB.updateRow<T>({
-        databaseId,
-        tableId,
-        rowId: id,
-        data,
-        ...(options?.permissions ? { permissions: options.permissions.map((p) => p.toString()) } : {}),
-        transactionId: options?.transactionId,
-      }),
-    delete: async (id: string, options?: { transactionId?: string }) => {
-      await tablesDB.deleteRow({
-        databaseId,
-        tableId,
-        rowId: id,
-        transactionId: options?.transactionId,
-      });
-    },
-    list: (options?: { queries?: (q: any) => string[] }) =>
-      tablesDB.listRows<T>({
-        databaseId,
-        tableId,
-        queries: options?.queries?.(createQueryBuilder<T>()),
-      }),${bulkMethodsCode}
-  };
-}
-
-${hasBulkCheck}
-
-const hasOwn = (obj: unknown, key: string): boolean =>
-  obj != null && Object.prototype.hasOwnProperty.call(obj, key);
-
-function createDatabaseProxy<D extends DatabaseId>(
-  tablesDB: TablesDB,
-  databaseId: D,
-): DatabaseTables[D] {
-  const tableApiCache = new Map<string, ReturnType<typeof createTableApi>>();
-  const dbMap = tableIdMap[databaseId];
-
-  return new Proxy({} as DatabaseTables[D], {
-    get(_target, tableName: string) {
-      if (typeof tableName === 'symbol') return undefined;
-
-      if (!tableApiCache.has(tableName)) {
-        if (!hasOwn(dbMap, tableName)) return undefined;
-        const tableId = dbMap[tableName];
-
-        const api = createTableApi(tablesDB, databaseId, tableId);
-        ${
-          supportsBulk
-            ? `
+    const bulkRemoval = supportsBulk
+      ? `
         // Remove bulk methods for tables with relationships
         if (!hasBulkMethods(databaseId, tableName)) {
           delete (api as any).createMany;
           delete (api as any).updateMany;
           delete (api as any).deleteMany;
         }`
-            : ""
-        }
-        tableApiCache.set(tableName, api);
-      }
-      return tableApiCache.get(tableName);
-    },
-    has(_target, tableName: string) {
-      return typeof tableName === 'string' && hasOwn(dbMap, tableName);
-    },
-  });
-}
+      : "";
 
-export const createDatabases = (client: Client) => {
-  const tablesDB = new TablesDB(client);
-  const dbCache = new Map<DatabaseId, DatabaseTables[DatabaseId]>();
+    const template = loadTemplate("databases.ts.tpl");
 
-  return {
-    from: <T extends DatabaseId>(databaseId: T): DatabaseTables[T] => {
-      if (!dbCache.has(databaseId)) {
-        dbCache.set(databaseId, createDatabaseProxy(tablesDB, databaseId));
-      }
-      return dbCache.get(databaseId) as DatabaseTables[T];
-    },
-  };
-};
-`;
+    return renderTemplate(template, {
+      appwriteDep,
+      QUERY_BUILDER_IMPL: this.generateQueryBuilder(),
+      TABLE_ID_MAP: this.generateTableIdMap(entitiesByDb),
+      TABLES_WITH_RELATIONSHIPS: this.generateTablesWithRelationships(
+        entitiesByDb,
+      ),
+      BULK_METHODS: bulkMethodsCode,
+      BULK_CHECK: bulkCheck,
+      BULK_REMOVAL: bulkRemoval,
+    });
   }
 
   private generateIndexFile(): string {
-    return `/**
- * ${SDK_TITLE} Generated SDK
- *
- * This file is auto-generated. Do not edit manually.
- * Re-run \`${EXECUTABLE_NAME} generate\` to regenerate.
- */
+    const template = loadTemplate("index.ts.tpl");
 
-export { createDatabases } from "./databases.js";
-export * from "./types.js";
-`;
+    return renderTemplate(template, {
+      sdkTitle: SDK_TITLE,
+      executableName: EXECUTABLE_NAME,
+    });
   }
 
   async generate(config: ConfigType): Promise<GenerateResult> {
