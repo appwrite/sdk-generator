@@ -194,6 +194,16 @@ class CLI extends Node
                 'template'      => 'cli/CHANGELOG.md.twig',
             ],
             [
+                'scope'         => 'copy',
+                'destination'   => 'bun-types.d.ts',
+                'template'      => 'cli/bun-types.d.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'bunfig.toml',
+                'template'      => 'cli/bunfig.toml',
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => 'LICENSE.md',
                 'template'      => 'cli/LICENSE.md.twig',
@@ -384,23 +394,18 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'copy',
-                'destination'   => 'lib/commands/generators/typescript/template-loader.ts',
-                'template'      => 'cli/lib/commands/generators/typescript/template-loader.ts',
+                'destination'   => 'lib/commands/generators/typescript/templates/types.ts.hbs',
+                'template'      => 'cli/lib/commands/generators/typescript/templates/types.ts.hbs',
             ],
             [
                 'scope'         => 'copy',
-                'destination'   => 'lib/commands/generators/typescript/templates/types.ts.tpl',
-                'template'      => 'cli/lib/commands/generators/typescript/templates/types.ts.tpl',
+                'destination'   => 'lib/commands/generators/typescript/templates/databases.ts.hbs',
+                'template'      => 'cli/lib/commands/generators/typescript/templates/databases.ts.hbs',
             ],
             [
                 'scope'         => 'copy',
-                'destination'   => 'lib/commands/generators/typescript/templates/databases.ts.tpl',
-                'template'      => 'cli/lib/commands/generators/typescript/templates/databases.ts.tpl',
-            ],
-            [
-                'scope'         => 'copy',
-                'destination'   => 'lib/commands/generators/typescript/templates/index.ts.tpl',
-                'template'      => 'cli/lib/commands/generators/typescript/templates/index.ts.tpl',
+                'destination'   => 'lib/commands/generators/typescript/templates/index.ts.hbs',
+                'template'      => 'cli/lib/commands/generators/typescript/templates/index.ts.hbs',
             ],
             [
                 'scope'         => 'copy',

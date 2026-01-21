@@ -1,4 +1,5 @@
 import { z } from "zod";
+import Handlebars from "handlebars";
 import { ConfigType, AttributeSchema } from "../../config.js";
 import { LanguageMeta } from "../../../type-generation/languages/language.js";
 import { SDK_TITLE, EXECUTABLE_NAME } from "../../../constants.js";
@@ -7,7 +8,6 @@ import {
   GenerateResult,
   SupportedLanguage,
 } from "../base.js";
-import { loadTemplate, renderTemplate } from "./template-loader.js";
 import {
   getTypeScriptType,
   getAppwriteDependency,
@@ -16,6 +16,9 @@ import {
   TypeAttribute,
   TypeEntity,
 } from "../../../shared/typescript-type-utils.js";
+import typesTemplateSource from "./templates/types.ts.hbs";
+import databasesTemplateSource from "./templates/databases.ts.hbs";
+import indexTemplateSource from "./templates/index.ts.hbs";
 
 type Entity =
   | NonNullable<ConfigType["tables"]>[number]
@@ -23,6 +26,10 @@ type Entity =
 type Entities =
   | NonNullable<ConfigType["tables"]>
   | NonNullable<ConfigType["collections"]>;
+
+const typesTemplate = Handlebars.compile(String(typesTemplateSource));
+const databasesTemplate = Handlebars.compile(String(databasesTemplateSource));
+const indexTemplate = Handlebars.compile(String(indexTemplateSource));  
 
 /**
  * TypeScript-specific database generator.
@@ -164,9 +171,7 @@ export class TypeScriptDatabasesGenerator extends BaseDatabasesGenerator {
     const dbIds = Array.from(entitiesByDb.keys());
     const databaseIdType = dbIds.map((id) => `'${id}'`).join(" | ");
 
-    const template = loadTemplate("types.ts.tpl");
-
-    return renderTemplate(template, {
+    return typesTemplate({
       appwriteDep,
       ENUMS: enums ? enums + "\n" : "",
       TYPES: types + "\n",
@@ -270,14 +275,11 @@ export class TypeScriptDatabasesGenerator extends BaseDatabasesGenerator {
     const appwriteDep = getAppwriteDependency();
     const supportsBulk = supportsBulkMethods(appwriteDep);
 
-    const template = loadTemplate("databases.ts.tpl");
-
-    return renderTemplate(template, {
+    return databasesTemplate({
       appwriteDep,
       TABLE_ID_MAP: this.generateTableIdMap(entitiesByDb),
-      TABLES_WITH_RELATIONSHIPS: this.generateTablesWithRelationships(
-        entitiesByDb,
-      ),
+      TABLES_WITH_RELATIONSHIPS:
+        this.generateTablesWithRelationships(entitiesByDb),
       BULK_METHODS: this.generateBulkMethods(supportsBulk),
       BULK_CHECK: this.generateBulkCheck(supportsBulk),
       BULK_REMOVAL: this.generateBulkRemoval(supportsBulk),
@@ -285,9 +287,7 @@ export class TypeScriptDatabasesGenerator extends BaseDatabasesGenerator {
   }
 
   private generateIndexFile(): string {
-    const template = loadTemplate("index.ts.tpl");
-
-    return renderTemplate(template, {
+    return indexTemplate({
       sdkTitle: SDK_TITLE,
       executableName: EXECUTABLE_NAME,
     });

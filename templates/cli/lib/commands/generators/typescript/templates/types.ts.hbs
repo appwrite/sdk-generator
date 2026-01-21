@@ -1,6 +1,6 @@
 import { type Models, Permission } from '{{appwriteDep}}';
 
-{{ENUMS}}{{TYPES}}
+{{{ENUMS}}}{{{TYPES}}}
 export type QueryValue = string | number | boolean;
 
 export type ExtractQueryValue<T> = T extends (infer U)[]
@@ -36,6 +36,6 @@ export type QueryBuilder<T> = {
   and: (...queries: string[]) => string;
 }
 
-export type DatabaseId = {{databaseIdType}};
+export type DatabaseId = {{{databaseIdType}}};
 
-{{DATABASE_TABLES_TYPE}}
+{{{DATABASE_TABLES_TYPE}}}

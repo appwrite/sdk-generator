@@ -52,7 +52,9 @@ export function getTypeScriptType(
     case "datetime":
       type = "string";
       if (attribute.format === "enum") {
-        type = LanguageMeta.toPascalCase(entityName) + LanguageMeta.toPascalCase(attribute.key);
+        type =
+          LanguageMeta.toPascalCase(entityName) +
+          LanguageMeta.toPascalCase(attribute.key);
       }
       break;
     case "integer":
@@ -65,8 +67,9 @@ export function getTypeScriptType(
     case "relationship": {
       // AttributeType has relatedCollection, ColumnType has relatedTable
       const relatedId =
-        ("relatedCollection" in attribute ? attribute.relatedCollection : undefined) ??
-        attribute.relatedTable;
+        ("relatedCollection" in attribute
+          ? attribute.relatedCollection
+          : undefined) ?? attribute.relatedTable;
       const relatedEntity = entities.find(
         (e) => e.$id === relatedId || e.name === relatedId,
       );
@@ -122,7 +125,9 @@ export function generateEnumCode(
   attributeKey: string,
   elements: string[],
 ): string {
-  const enumName = LanguageMeta.toPascalCase(entityName) + LanguageMeta.toPascalCase(attributeKey);
+  const enumName =
+    LanguageMeta.toPascalCase(entityName) +
+    LanguageMeta.toPascalCase(attributeKey);
   const usedKeys = new Set<string>();
 
   const enumValues = elements

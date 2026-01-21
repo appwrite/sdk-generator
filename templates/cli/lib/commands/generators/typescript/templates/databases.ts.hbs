@@ -26,9 +26,9 @@ const createQueryBuilder = <T>(): QueryBuilder<T> => ({
   and: (...queries) => Query.and(queries),
 });
 
-{{TABLE_ID_MAP}}
+{{{TABLE_ID_MAP}}}
 
-{{TABLES_WITH_RELATIONSHIPS}}
+{{{TABLES_WITH_RELATIONSHIPS}}}
 
 function createTableApi<T extends Models.Row>(
   tablesDB: TablesDB,
@@ -73,11 +73,11 @@ function createTableApi<T extends Models.Row>(
         databaseId,
         tableId,
         queries: options?.queries?.(createQueryBuilder<T>()),
-      }),{{BULK_METHODS}}
+      }),{{{BULK_METHODS}}}
   };
 }
 
-{{BULK_CHECK}}
+{{{BULK_CHECK}}}
 const hasOwn = (obj: unknown, key: string): boolean =>
   obj != null && Object.prototype.hasOwnProperty.call(obj, key);
 
@@ -97,7 +97,7 @@ function createDatabaseProxy<D extends DatabaseId>(
         const tableId = dbMap[tableName];
 
         const api = createTableApi(tablesDB, databaseId, tableId);
-        {{BULK_REMOVAL}}
+        {{{BULK_REMOVAL}}}
         tableApiCache.set(tableName, api);
       }
       return tableApiCache.get(tableName);
