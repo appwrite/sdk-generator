@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { ConfigType, AttributeSchema } from "../../config.js";
-import { toPascalCase } from "../../../shared/typescript-type-utils.js";
+import { LanguageMeta } from "../../../type-generation/languages/language.js";
 import { SDK_TITLE, EXECUTABLE_NAME } from "../../../constants.js";
 import {
   BaseDatabasesGenerator,
@@ -54,7 +54,7 @@ export class TypeScriptDatabasesGenerator extends BaseDatabasesGenerator {
     const fields = this.getFields(entity);
     if (!fields) return "";
 
-    const typeName = toPascalCase(entity.name);
+    const typeName = LanguageMeta.toPascalCase(entity.name);
     const typeEntities: TypeEntity[] = entities.map((e) => ({
       $id: e.$id,
       name: e.name,
@@ -122,7 +122,7 @@ export class TypeScriptDatabasesGenerator extends BaseDatabasesGenerator {
       .map(([dbId, dbEntities]) => {
         const tableTypes = dbEntities
           .map((entity) => {
-            const typeName = toPascalCase(entity.name);
+            const typeName = LanguageMeta.toPascalCase(entity.name);
             const baseMethods = `      create: (data: Omit<${typeName}, keyof Models.Row>, options?: { rowId?: string; permissions?: Permission[]; transactionId?: string }) => Promise<${typeName}>;
       get: (id: string) => Promise<${typeName}>;
       update: (id: string, data: Partial<Omit<${typeName}, keyof Models.Row>>, options?: { permissions?: Permission[]; transactionId?: string }) => Promise<${typeName}>;
