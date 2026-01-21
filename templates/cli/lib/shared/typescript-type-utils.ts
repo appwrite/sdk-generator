@@ -67,9 +67,9 @@ export function getTypeScriptType(
     case "relationship": {
       // AttributeType has relatedCollection, ColumnType has relatedTable
       const relatedId =
-        ("relatedCollection" in attribute
+        "relatedCollection" in attribute
           ? attribute.relatedCollection
-          : undefined) ?? attribute.relatedTable;
+          : attribute.relatedTable;
       const relatedEntity = entities.find(
         (e) => e.$id === relatedId || e.name === relatedId,
       );

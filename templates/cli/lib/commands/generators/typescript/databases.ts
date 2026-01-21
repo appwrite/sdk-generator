@@ -29,7 +29,7 @@ type Entities =
 
 const typesTemplate = Handlebars.compile(String(typesTemplateSource));
 const databasesTemplate = Handlebars.compile(String(databasesTemplateSource));
-const indexTemplate = Handlebars.compile(String(indexTemplateSource));  
+const indexTemplate = Handlebars.compile(String(indexTemplateSource));
 
 /**
  * TypeScript-specific database generator.
