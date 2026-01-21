@@ -1,8 +1,6 @@
-import * as fs from "fs";
-import * as path from "path";
 import { z } from "zod";
 import { ConfigType, AttributeSchema } from "../../config.js";
-import { toPascalCase, sanitizeEnumKey } from "../../../utils.js";
+import { toPascalCase } from "../../../utils.js";
 import { SDK_TITLE, EXECUTABLE_NAME } from "../../../constants.js";
 import {
   BaseDatabasesGenerator,
@@ -10,6 +8,14 @@ import {
   SupportedLanguage,
 } from "../base.js";
 import { loadTemplate, renderTemplate } from "./template-loader.js";
+import {
+  getTypeScriptType,
+  getAppwriteDependency,
+  supportsBulkMethods,
+  generateEnumCode,
+  TypeAttribute,
+  TypeEntity,
+} from "../../../shared/typescript-type-utils.js";
 
 type Entity =
   | NonNullable<ConfigType["tables"]>[number]
@@ -25,64 +31,6 @@ type Entities =
 export class TypeScriptDatabasesGenerator extends BaseDatabasesGenerator {
   readonly language: SupportedLanguage = "typescript";
   readonly fileExtension = "ts";
-
-  private getType(
-    attribute: z.infer<typeof AttributeSchema>,
-    collections: NonNullable<ConfigType["collections"]>,
-    entityName: string,
-  ): string {
-    let type = "";
-
-    switch (attribute.type) {
-      case "string":
-      case "datetime":
-        type = "string";
-        if (attribute.format === "enum") {
-          type = toPascalCase(entityName) + toPascalCase(attribute.key);
-        }
-        break;
-      case "integer":
-      case "double":
-        type = "number";
-        break;
-      case "boolean":
-        type = "boolean";
-        break;
-      case "relationship": {
-        // Handle both collections (relatedCollection) and tables (relatedTable)
-        const relatedId = attribute.relatedCollection ?? attribute.relatedTable;
-        const relatedEntity = collections.find(
-          (c) => c.$id === relatedId || c.name === relatedId,
-        );
-        if (!relatedEntity) {
-          throw new Error(`Related entity with ID '${relatedId}' not found.`);
-        }
-        type = toPascalCase(relatedEntity.name);
-        if (
-          (attribute.relationType === "oneToMany" &&
-            attribute.side === "parent") ||
-          (attribute.relationType === "manyToOne" &&
-            attribute.side === "child") ||
-          attribute.relationType === "manyToMany"
-        ) {
-          type = `${type}[]`;
-        }
-        break;
-      }
-      default:
-        throw new Error(`Unknown attribute type: ${attribute.type}`);
-    }
-
-    if (attribute.array) {
-      type += "[]";
-    }
-
-    if (!attribute.required && attribute.default === null) {
-      type += " | null";
-    }
-
-    return type;
-  }
 
   private getFields(
     entity: Entity,
@@ -111,11 +59,28 @@ export class TypeScriptDatabasesGenerator extends BaseDatabasesGenerator {
     if (!fields) return "";
 
     const typeName = toPascalCase(entity.name);
+    const typeEntities: TypeEntity[] = entities.map((e) => ({
+      $id: e.$id,
+      name: e.name,
+    }));
+
     const attributes = fields
-      .map(
-        (attr) =>
-          `    ${JSON.stringify(attr.key)}${attr.required ? "" : "?"}: ${this.getType(attr, entities as any, entity.name)};`,
-      )
+      .map((attr) => {
+        const typeAttr: TypeAttribute = {
+          key: attr.key,
+          type: attr.type,
+          required: attr.required,
+          array: attr.array,
+          default: attr.default,
+          format: attr.format,
+          elements: attr.elements,
+          relatedCollection: attr.relatedCollection,
+          relatedTable: attr.relatedTable,
+          relationType: attr.relationType,
+          side: attr.side,
+        };
+        return `    ${JSON.stringify(attr.key)}${attr.required ? "" : "?"}: ${getTypeScriptType(typeAttr, typeEntities, entity.name)};`;
+      })
       .join("\n");
 
     return `export type ${typeName} = Models.Row & {\n${attributes}\n}`;
@@ -130,25 +95,9 @@ export class TypeScriptDatabasesGenerator extends BaseDatabasesGenerator {
 
       for (const field of fields) {
         if (field.format === "enum" && field.elements) {
-          const enumName = toPascalCase(entity.name) + toPascalCase(field.key);
-          const usedKeys = new Set<string>();
-          const enumValues = field.elements
-            .map((element: string, index: number) => {
-              let key = sanitizeEnumKey(element);
-              if (usedKeys.has(key)) {
-                let disambiguator = 1;
-                while (usedKeys.has(`${key}_${disambiguator}`)) {
-                  disambiguator++;
-                }
-                key = `${key}_${disambiguator}`;
-              }
-              usedKeys.add(key);
-              const isLast = index === field.elements!.length - 1;
-              return `    ${key} = ${JSON.stringify(element)}${isLast ? "" : ","}`;
-            })
-            .join("\n");
-
-          enumTypes.push(`export enum ${enumName} {\n${enumValues}\n}`);
+          enumTypes.push(
+            generateEnumCode(entity.name, field.key, field.elements),
+          );
         }
       }
     }
@@ -166,50 +115,6 @@ export class TypeScriptDatabasesGenerator extends BaseDatabasesGenerator {
       entitiesByDb.get(dbId)!.push(entity);
     }
     return entitiesByDb;
-  }
-
-  private getAppwriteDependency(): string {
-    const cwd = process.cwd();
-
-    if (fs.existsSync(path.resolve(cwd, "package.json"))) {
-      try {
-        const packageJsonRaw = fs.readFileSync(
-          path.resolve(cwd, "package.json"),
-          "utf-8",
-        );
-        const packageJson = JSON.parse(packageJsonRaw);
-        const deps = packageJson.dependencies ?? {};
-
-        if (deps["@appwrite.io/console"]) {
-          return "@appwrite.io/console";
-        }
-        if (deps["react-native-appwrite"]) {
-          return "react-native-appwrite";
-        }
-        if (deps["appwrite"]) {
-          return "appwrite";
-        }
-        if (deps["node-appwrite"]) {
-          return "node-appwrite";
-        }
-      } catch {
-        // Fallback if package.json is invalid
-      }
-    }
-
-    if (fs.existsSync(path.resolve(cwd, "deno.json"))) {
-      return "npm:node-appwrite";
-    }
-
-    return "appwrite";
-  }
-
-  private supportsBulkMethods(appwriteDep: string): boolean {
-    return (
-      appwriteDep === "node-appwrite" ||
-      appwriteDep === "npm:node-appwrite" ||
-      appwriteDep === "@appwrite.io/console"
-    );
   }
 
   private generateQueryBuilderType(): string {
@@ -253,7 +158,7 @@ export type QueryBuilder<T> = {
     entitiesByDb: Map<string, Entity[]>,
     appwriteDep: string,
   ): string {
-    const supportsBulk = this.supportsBulkMethods(appwriteDep);
+    const supportsBulk = supportsBulkMethods(appwriteDep);
     const dbReturnTypes = Array.from(entitiesByDb.entries())
       .map(([dbId, dbEntities]) => {
         const tableTypes = dbEntities
@@ -292,7 +197,7 @@ export type QueryBuilder<T> = {
       return "// No tables or collections found in configuration\n";
     }
 
-    const appwriteDep = this.getAppwriteDependency();
+    const appwriteDep = getAppwriteDependency();
     const enums = this.generateEnums(entities);
     const types = entities
       .map((entity: Entity) => this.generateTableType(entity, entities))
@@ -388,8 +293,8 @@ export type QueryBuilder<T> = {
     }
 
     const entitiesByDb = this.groupEntitiesByDb(entities);
-    const appwriteDep = this.getAppwriteDependency();
-    const supportsBulk = this.supportsBulkMethods(appwriteDep);
+    const appwriteDep = getAppwriteDependency();
+    const supportsBulk = supportsBulkMethods(appwriteDep);
 
     const bulkMethodsCode = supportsBulk
       ? `
