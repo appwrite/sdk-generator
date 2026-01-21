@@ -53,6 +53,12 @@ class Markdown extends JS
     public function getFiles(): array
     {
         return [
+            // GitHub workflows
+            [
+                'scope'       => 'default',
+                'destination' => '.github/workflows/publish.yml',
+                'template'    => 'markdown/.github/workflows/publish.yml.twig',
+            ],
             // Package configuration
             [
                 'scope'       => 'default',
