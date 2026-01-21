@@ -75,7 +75,7 @@ class Markdown extends JS
                 'destination' => 'tsconfig.json',
                 'template'    => 'markdown/tsconfig.json',
             ],
-            // Source files (static - just copy)
+            // Source files
             [
                 'scope'       => 'copy',
                 'destination' => 'src/types.ts',
@@ -86,13 +86,13 @@ class Markdown extends JS
                 'destination' => 'src/index.ts',
                 'template'    => 'markdown/src/index.ts',
             ],
-            // Manifest - needs templating for TOC generation
+            // Manifest
             [
                 'scope'       => 'copy',
                 'destination' => 'src/manifest.ts',
                 'template'    => 'markdown/src/manifest.ts',
             ],
-            // Build scripts (static - just copy)
+            // Build scripts
             [
                 'scope'       => 'copy',
                 'destination' => 'scripts/build-manifest.ts',
@@ -155,7 +155,7 @@ class Markdown extends JS
             return '';
         }
 
-        if (!empty($default)) {
+        if (array_key_exists('default', $param)) {
             return ' = ' . $default;
         }
 
