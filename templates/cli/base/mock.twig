@@ -1,0 +1,38 @@
+// Mock enums
+{% for enumName in enumNames %}
+export enum {{ enumName | caseUcfirst }} {
+  // Mock enum values
+}
+{% endfor %}
+
+// Mock {{ service.name | caseUcfirst }} class
+class {{ service.name | caseUcfirst }} {
+  constructor(sdkClient: any) {}
+{% for method in service.methods %}
+{% set params = [] %}
+{% for parameter in method.parameters.all %}
+{% set paramType = 'any' %}
+{% if parameter.type == 'string' %}{% set paramType = 'string' %}
+{% elseif parameter.type == 'integer' or parameter.type == 'number' %}{% set paramType = 'number' %}
+{% elseif parameter.type == 'boolean' %}{% set paramType = 'boolean' %}
+{% elseif parameter.type == 'array' %}{% set paramType = 'any[]' %}
+{% elseif parameter.type == 'object' %}{% set paramType = 'any' %}
+{% endif %}
+{% if parameter.required %}
+{% set params = params|merge([parameter.name | caseCamel | escapeKeyword ~ ': ' ~ paramType]) %}
+{% else %}
+{% set params = params|merge([parameter.name | caseCamel | escapeKeyword ~ '?: ' ~ paramType]) %}
+{% endif %}
+{% endfor %}
+
+  async {{ method.name | caseCamel }}({{ params | join(', ') }}): Promise<any> {
+{% if method.name == 'redirect' %}
+    return { result: '{{ method.method | upper }}:/v1{{ method.path }}/done:passed' };
+{% elseif method.name == 'headers' %}
+    return { result: 'x-sdk-name: {{ sdk.name }}; x-sdk-platform: {{ sdk.platform }}; x-sdk-language: {{ language.name | caseLower }}; x-sdk-version: {{ sdk.version }}' };
+{% else %}
+    return { result: '{{ method.method | upper }}:/v1{{ method.path }}:passed' };
+{% endif %}
+  }
+{% endfor %}
+}

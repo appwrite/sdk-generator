@@ -235,6 +235,7 @@ class Swagger2 extends Spec
                 'default' => $parameter['default'] ?? null,
                 'example' => $parameter['x-example'] ?? null,
                 'isUploadID' => $parameter['x-upload-id'] ?? false,
+                'format' => $parameter['format'] ?? null,
                 'array' => [
                     'type' => $parameter['items']['type'] ?? '',
                 ],
@@ -278,6 +279,7 @@ class Swagger2 extends Spec
                         $temp['isUploadID'] = $value['x-upload-id'] ?? false;
                         $temp['nullable'] = $value['x-nullable'] ?? false;
                         $temp['model'] = $value['x-model'] ?? null;
+                        $temp['format'] = $value['format'] ?? null;
                         $temp['array'] = [
                             'type' => $value['items']['type'] ?? '',
                             'model' => isset($value['items']['$ref']) ? str_replace('#/definitions/', '', $value['items']['$ref']) : null,

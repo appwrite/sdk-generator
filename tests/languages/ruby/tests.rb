@@ -199,6 +199,15 @@ puts Query.not_equal("location", [[40.7128, -74], [40.7128, -74]])
 puts Query.or([Query.equal("released", true), Query.less_than("releasedYear", 1990)])
 puts Query.and([Query.equal("released", false), Query.greater_than("releasedYear", 2015)])
 
+# New query methods: regex, exists, notExists, elemMatch
+puts Query.regex("name", "pattern.*")
+puts Query.exists(["attr1", "attr2"])
+puts Query.not_exists(["attr1", "attr2"])
+puts Query.elem_match("friends", [
+  Query.equal("name", "Alice"),
+  Query.greater_than("age", 18)
+])
+
 # Permission & Role helper tests
 puts Permission.read(Role.any())
 puts Permission.write(Role.user(ID.custom('userid')))

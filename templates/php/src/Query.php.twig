@@ -339,6 +339,40 @@ class Query implements \JsonSerializable
     }
 
     /**
+     * Filter resources where attribute matches a regular expression pattern.
+     *
+     * @param string $attribute The attribute to filter on.
+     * @param string $pattern The regular expression pattern to match.
+     * @return string
+     */
+    public static function regex(string $attribute, string $pattern): string
+    {
+        return (new Query('regex', $attribute, $pattern))->__toString();
+    }
+
+    /**
+     * Filter resources where the specified attributes exist.
+     *
+     * @param array<string> $attributes The list of attributes that must exist.
+     * @return string
+     */
+    public static function exists(array $attributes): string
+    {
+        return (new Query('exists', null, $attributes))->__toString();
+    }
+
+    /**
+     * Filter resources where the specified attributes do not exist.
+     *
+     * @param array<string> $attributes The list of attributes that must not exist.
+     * @return string
+     */
+    public static function notExists(array $attributes): string
+    {
+        return (new Query('notExists', null, $attributes))->__toString();
+    }
+
+    /**
      * Created Before
      *
      * @param string $value
@@ -432,6 +466,22 @@ class Query implements \JsonSerializable
             $query = \json_decode($query, true);
         }
         return (new Query('and', null, $queries))->__toString();
+    }
+
+    /**
+     * Filter array elements where at least one element matches all the specified queries.
+     *
+     * @param string $attribute The attribute containing the array to filter on.
+     * @param array<string> $queries The list of query strings to match against array elements.
+     * @return string
+     */
+    public static function elemMatch(string $attribute, array $queries): string
+    {
+        foreach ($queries as &$query) {
+            $query = \json_decode($query, true);
+        }
+
+        return (new Query('elemMatch', $attribute, $queries))->__toString();
     }
 
     /**

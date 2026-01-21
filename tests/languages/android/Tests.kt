@@ -7,6 +7,7 @@ import io.appwrite.exceptions.AppwriteException
 import io.appwrite.Permission
 import io.appwrite.Role
 import io.appwrite.ID
+import io.appwrite.Channel
 import io.appwrite.Query
 import io.appwrite.Operator
 import io.appwrite.Condition
@@ -264,6 +265,15 @@ class ServiceTest {
             writeToFile(Query.or(listOf(Query.equal("released", listOf(true)), Query.lessThan("releasedYear", 1990))))
             writeToFile(Query.and(listOf(Query.equal("released", listOf(false)), Query.greaterThan("releasedYear", 2015))))
 
+            // regex, exists, notExists, elemMatch
+            writeToFile(Query.regex("name", "pattern.*"))
+            writeToFile(Query.exists(listOf("attr1", "attr2")))
+            writeToFile(Query.notExists(listOf("attr1", "attr2")))
+            writeToFile(Query.elemMatch("friends", listOf(
+                Query.equal("name", "Alice"),
+                Query.greaterThan("age", 18)
+            )))
+
             // Permission & Roles helper tests
             writeToFile(Permission.read(Role.any()))
             writeToFile(Permission.write(Role.user(ID.custom("userid"))))
@@ -279,6 +289,28 @@ class ServiceTest {
             // ID helper tests
             writeToFile(ID.unique())
             writeToFile(ID.custom("custom_id"))
+
+            // Channel helper tests
+            writeToFile(Channel.database().collection().document().toString())
+            writeToFile(Channel.database("db1").collection("col1").document("doc1").toString())
+            writeToFile(Channel.database("db1").collection("col1").document("doc1").create().toString())
+            writeToFile(Channel.tablesdb().table().row().toString())
+            writeToFile(Channel.tablesdb("db1").table("table1").row("row1").toString())
+            writeToFile(Channel.tablesdb("db1").table("table1").row("row1").update().toString())
+            writeToFile(Channel.account())
+            writeToFile(Channel.account("user123"))
+            writeToFile(Channel.bucket().file().toString())
+            writeToFile(Channel.bucket("bucket1").file("file1").toString())
+            writeToFile(Channel.bucket("bucket1").file("file1").delete().toString())
+            writeToFile(Channel.function().execution().toString())
+            writeToFile(Channel.function("func1").execution("exec1").toString())
+            writeToFile(Channel.function("func1").execution("exec1").create().toString())
+            writeToFile(Channel.team().toString())
+            writeToFile(Channel.team("team1").toString())
+            writeToFile(Channel.team("team1").create().toString())
+            writeToFile(Channel.membership().toString())
+            writeToFile(Channel.membership("membership1").toString())
+            writeToFile(Channel.membership("membership1").update().toString())
 
             // Operator helper tests
             writeToFile(Operator.increment(1))

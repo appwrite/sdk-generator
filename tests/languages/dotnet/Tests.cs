@@ -219,6 +219,15 @@ namespace AppwriteTests
                 }
             ));
 
+            // regex, exists, notExists, elemMatch
+            TestContext.WriteLine(Query.Regex("name", "pattern.*"));
+            TestContext.WriteLine(Query.Exists(new List<string> { "attr1", "attr2" }));
+            TestContext.WriteLine(Query.NotExists(new List<string> { "attr1", "attr2" }));
+            TestContext.WriteLine(Query.ElemMatch("friends", new List<string> {
+                Query.Equal("name", "Alice"),
+                Query.GreaterThan("age", 18)
+            }));
+
             // Permission & Roles helper tests
             TestContext.WriteLine(Permission.Read(Role.Any()));
             TestContext.WriteLine(Permission.Write(Role.User(ID.Custom("userid"))));

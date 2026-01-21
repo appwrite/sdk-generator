@@ -242,6 +242,15 @@ class Tests: XCTestCase {
             Query.greaterThan("releasedYear", value: 2015)
         ]))
 
+        // regex, exists, notExists, elemMatch
+        print(Query.regex("name", pattern: "pattern.*"))
+        print(Query.exists(["attr1", "attr2"]))
+        print(Query.notExists(["attr1", "attr2"]))
+        print(Query.elemMatch("friends", queries: [
+            Query.equal("name", value: "Alice"),
+            Query.greaterThan("age", value: 18)
+        ]))
+
         // Permission & Role helper tests
         print(Permission.read(Role.any()))
         print(Permission.write(Role.user(ID.custom("userid"))))
@@ -257,6 +266,28 @@ class Tests: XCTestCase {
         // ID helper tests
         print(ID.unique())
         print(ID.custom("custom_id"))
+
+        // Channel helper tests
+        print(Channel.database().collection().document().toString())
+        print(Channel.database("db1").collection("col1").document("doc1").toString())
+        print(Channel.database("db1").collection("col1").document("doc1").create().toString())
+        print(Channel.tablesdb().table().row().toString())
+        print(Channel.tablesdb("db1").table("table1").row("row1").toString())
+        print(Channel.tablesdb("db1").table("table1").row("row1").update().toString())
+        print(Channel.account())
+        print(Channel.account("user123"))
+        print(Channel.bucket().file().toString())
+        print(Channel.bucket("bucket1").file("file1").toString())
+        print(Channel.bucket("bucket1").file("file1").delete().toString())
+        print(Channel.function().execution().toString())
+        print(Channel.function("func1").execution("exec1").toString())
+        print(Channel.function("func1").execution("exec1").create().toString())
+        print(Channel.team().toString())
+        print(Channel.team("team1").toString())
+        print(Channel.team("team1").create().toString())
+        print(Channel.membership().toString())
+        print(Channel.membership("membership1").toString())
+        print(Channel.membership("membership1").update().toString())
 
         // Operator helper tests
         print(Operator.increment(1))

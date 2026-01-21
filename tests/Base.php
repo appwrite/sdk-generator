@@ -157,7 +157,11 @@ abstract class Base extends TestCase
         '{"method":"equal","attribute":"location","values":[[40.7128,-74],[40.7128,-74]]}',
         '{"method":"notEqual","attribute":"location","values":[[40.7128,-74],[40.7128,-74]]}',
         '{"method":"or","values":[{"method":"equal","attribute":"released","values":[true]},{"method":"lessThan","attribute":"releasedYear","values":[1990]}]}',
-        '{"method":"and","values":[{"method":"equal","attribute":"released","values":[false]},{"method":"greaterThan","attribute":"releasedYear","values":[2015]}]}'
+        '{"method":"and","values":[{"method":"equal","attribute":"released","values":[false]},{"method":"greaterThan","attribute":"releasedYear","values":[2015]}]}',
+        '{"method":"regex","attribute":"name","values":["pattern.*"]}',
+        '{"method":"exists","values":["attr1","attr2"]}',
+        '{"method":"notExists","values":["attr1","attr2"]}',
+        '{"method":"elemMatch","attribute":"friends","values":[{"method":"equal","attribute":"name","values":["Alice"]},{"method":"greaterThan","attribute":"age","values":[18]}]}',
     ];
 
     protected const PERMISSION_HELPER_RESPONSES = [
@@ -176,6 +180,29 @@ abstract class Base extends TestCase
     protected const ID_HELPER_RESPONSES = [
         'unique()',
         'custom_id'
+    ];
+
+    protected const CHANNEL_HELPER_RESPONSES = [
+        'databases.*.collections.*.documents.*',
+        'databases.db1.collections.col1.documents.doc1',
+        'databases.db1.collections.col1.documents.doc1.create',
+        'tablesdb.*.tables.*.rows.*',
+        'tablesdb.db1.tables.table1.rows.row1',
+        'tablesdb.db1.tables.table1.rows.row1.update',
+        'account',
+        'account.user123',
+        'buckets.*.files.*',
+        'buckets.bucket1.files.file1',
+        'buckets.bucket1.files.file1.delete',
+        'functions.*.executions.*',
+        'functions.func1.executions.exec1',
+        'functions.func1.executions.exec1.create',
+        'teams.*',
+        'teams.team1',
+        'teams.team1.create',
+        'memberships.*',
+        'memberships.membership1',
+        'memberships.membership1.update',
     ];
 
     protected const OPERATOR_HELPER_RESPONSES = [
