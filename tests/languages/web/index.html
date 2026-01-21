@@ -19,6 +19,7 @@
         document.getElementById("start").addEventListener("click", async () => {
             let response;
             let responseRealtime = 'Realtime failed!';
+            let responseRealtimeWithQueries = 'Realtime failed!';
 
             // Init SDK
             const { Client, Foo, Bar, General, Realtime, Query, Permission, Role, ID, Channel, Operator, Condition, MockType } = Appwrite;
@@ -39,9 +40,22 @@
 
             const realtime = new Realtime(client);
 
+            // Subscribe without queries
             await realtime.subscribe(['tests'], message => {
                 responseRealtime = message.payload.response;
             });
+
+            // Subscribe with queries to ensure query array support works
+            await realtime.subscribe(
+                ['tests'],
+                message => {
+                    responseRealtimeWithQueries = message.payload.response;
+                },
+                [
+                    Query.equal('title', ['Spiderman']),
+                    Query.greaterThan('releasedYear', 1990),
+                ],
+            );
 
             // Foo
             response = await foo.get('string', 123, ["string in array"]);
@@ -255,6 +269,7 @@
             const delay = ms => new Promise(res => setTimeout(res, ms));
             await delay(5000);
             console.log(responseRealtime)
+            console.log(responseRealtimeWithQueries)
 
             // Query helper tests
             console.log(Query.equal("released", [true]));

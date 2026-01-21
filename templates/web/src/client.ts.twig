@@ -1,5 +1,6 @@
 import { Models } from './models';
 import { Channel, ActionableChannel, ResolvedChannel } from './channel';
+import { Query } from './query';
 import JSONbigModule from 'json-bigint';
 import BigNumber from 'bignumber.js';
 const JSONbigParser = JSONbigModule({ storeAsString: false });
@@ -194,10 +195,16 @@ type Realtime = {
     channels: Set<string>;
 
     /**
+     * Set of query strings the client is subscribed to.
+     */
+    queries: Set<string>;
+
+    /**
      * Map of subscriptions containing channel names and corresponding callback functions.
      */
     subscriptions: Map<number, {
         channels: string[];
+        queries: string[];
         callback: (payload: RealtimeResponseEvent<any>) => void
     }>;
 
@@ -241,7 +248,7 @@ type Realtime = {
      *
      * @param {string[]} channels - List of channel names to clean up.
      */
-    cleanUp: (channels: string[]) => void;
+    cleanUp: (channels: string[], queries: string[]) => void;
 
     /**
      * Function to handle incoming messages from the WebSocket connection.
@@ -445,6 +452,7 @@ class Client {
         heartbeat: undefined,
         url: '',
         channels: new Set(),
+        queries: new Set(),
         subscriptions: new Map(),
         subscriptionsCounter: 0,
         reconnect: true,
@@ -492,6 +500,9 @@ class Client {
             }
             this.realtime.channels.forEach(channel => {
                 channels.append('channels[]', channel);
+            });
+            this.realtime.queries.forEach(query => {
+                channels.append('queries[]', query);
             });
 
             const url = this.config.endpointRealtime + '/realtime?' + channels.toString();
@@ -583,7 +594,7 @@ class Client {
                 console.error(e);
             }
         },
-        cleanUp: channels => {
+        cleanUp: (channels, queries) => {
             this.realtime.channels.forEach(channel => {
                 if (channels.includes(channel)) {
                     let found = Array.from(this.realtime.subscriptions).some(([_key, subscription] )=> {
@@ -592,6 +603,18 @@ class Client {
 
                     if (!found) {
                         this.realtime.channels.delete(channel);
+                    }
+                }
+            })
+
+            this.realtime.queries.forEach(query => {
+                if (queries.includes(query)) {
+                    let found = Array.from(this.realtime.subscriptions).some(([_key, subscription]) => {
+                        return subscription.queries?.includes(query);
+                    });
+
+                    if (!found) {
+                        this.realtime.queries.delete(query);
                     }
                 }
             })
@@ -633,7 +656,11 @@ class Client {
      * @param {(payload: RealtimeMessage) => void} callback Is called on every realtime update.
      * @returns {() => void} Unsubscribes from events.
      */
-    subscribe<T extends unknown>(channels: string | string[] | Channel<any> | ActionableChannel | ResolvedChannel | (Channel<any> | ActionableChannel | ResolvedChannel)[], callback: (payload: RealtimeResponseEvent<T>) => void): () => void {
+    subscribe<T extends unknown>(
+        channels: string | string[] | Channel<any> | ActionableChannel | ResolvedChannel | (Channel<any> | ActionableChannel | ResolvedChannel)[],
+        callback: (payload: RealtimeResponseEvent<T>) => void,
+        queries: (string | Query)[] = []
+    ): () => void {
         const channelArray = Array.isArray(channels) ? channels : [channels];
         // Convert Channel instances to strings
         const channelStrings = channelArray.map(ch => {
@@ -649,9 +676,13 @@ class Client {
         });
         channelStrings.forEach(channel => this.realtime.channels.add(channel));
 
+        const queryStrings = (queries ?? []).map(q => typeof q === 'string' ? q : q.toString());
+        queryStrings.forEach(query => this.realtime.queries.add(query));
+
         const counter = this.realtime.subscriptionsCounter++;
         this.realtime.subscriptions.set(counter, {
             channels: channelStrings,
+            queries: queryStrings,
             callback
         });
 
@@ -659,7 +690,7 @@ class Client {
 
         return () => {
             this.realtime.subscriptions.delete(counter);
-            this.realtime.cleanUp(channelStrings);
+            this.realtime.cleanUp(channelStrings, queryStrings);
             this.realtime.connect();
         }
     }

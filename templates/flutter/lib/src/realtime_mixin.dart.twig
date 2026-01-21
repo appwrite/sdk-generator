@@ -16,6 +16,7 @@ typedef GetFallbackCookie = String? Function();
 mixin RealtimeMixin {
   late Client client;
   final Set<String> _channels = {};
+  final Set<String> _queries = {};
   WebSocketChannel? _websok;
   String? _lastUrl;
   late WebSocketFactory getWebSocket;
@@ -156,14 +157,18 @@ mixin RealtimeMixin {
           "Please set endPointRealtime to connect to realtime server");
     }
     var uri = Uri.parse(client.endPointRealtime!);
+    final params = <String, dynamic>{
+      "project": client.config['project'],
+      "channels[]": _channels.toList(),
+    };
+    if (_queries.isNotEmpty) {
+      params["queries[]"] = _queries.toList();
+    }
     return Uri(
       host: uri.host,
       scheme: uri.scheme,
       port: uri.port,
-      queryParameters: {
-        "project": client.config['project'],
-        "channels[]": _channels.toList(),
-      },
+      queryParameters: params,
       path: "${uri.path}/realtime",
     );
   }
@@ -174,19 +179,22 @@ mixin RealtimeMixin {
     return channel is String ? channel : channel.toString();
   }
 
-  RealtimeSubscription subscribeTo(List<Object> channels) {
+  RealtimeSubscription subscribeTo(List<Object> channels, [List<String> queries = const []]) {
     StreamController<RealtimeMessage> controller = StreamController.broadcast();
     final channelStrings = channels.map((ch) => _channelToString(ch)).toList().cast<String>();
     _channels.addAll(channelStrings);
+    final queryStrings = List<String>.from(queries);
+    _queries.addAll(queryStrings);
     Future.delayed(Duration.zero, () => _createSocket());
     int id = DateTime.now().microsecondsSinceEpoch;
     RealtimeSubscription subscription = RealtimeSubscription(
         controller: controller,
         channels: channelStrings,
+        queries: queryStrings,
         close: () async {
           _subscriptions.remove(id);
           controller.close();
-          _cleanup(channelStrings);
+          _cleanup(channelStrings, queryStrings);
 
           if (_channels.isNotEmpty) {
             await Future.delayed(Duration.zero, () => _createSocket());
@@ -198,12 +206,20 @@ mixin RealtimeMixin {
     return subscription;
   }
 
-  void _cleanup(List<String> channels) {
+  void _cleanup(List<String> channels, List<String> queries) {
     for (var channel in channels) {
       bool found = _subscriptions.values
           .any((subscription) => subscription.channels.contains(channel));
       if (!found) {
         _channels.remove(channel);
+      }
+    }
+
+    for (var query in queries) {
+      bool found = _subscriptions.values
+          .any((subscription) => subscription.queries.contains(query));
+      if (!found) {
+        _queries.remove(query);
       }
     }
   }

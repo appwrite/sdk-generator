@@ -13,7 +13,9 @@ open class Realtime : Service {
 
     private var socketClient: WebSocketClient? = nil
     private var activeChannels = Set<String>()
+    private var activeQueries = Set<String>()
     private var activeSubscriptions = [Int: RealtimeCallback]()
+    private var activeSubscriptionQueries = [Int: Set<String>]()
     private var heartbeatTask: Task<Void, Swift.Error>? = nil
 
     let connectSync = DispatchQueue(label: "ConnectSync")
@@ -74,6 +76,9 @@ open class Realtime : Service {
         for channel in activeChannels {
             queryParams += "&channels[]=\(channel)"
         }
+        for query in activeQueries {
+            queryParams += "&queries[]=\(query)"
+        }
 
         let url = "\(client.endPointRealtime!)/realtime?\(queryParams)"
 
@@ -127,22 +132,26 @@ open class Realtime : Service {
 
     public func subscribe(
         channel: ChannelValue,
-        callback: @escaping (RealtimeResponseEvent) -> Void
+        callback: @escaping (RealtimeResponseEvent) -> Void,
+        queries: [String] = []
     ) async throws -> RealtimeSubscription {
         return try await subscribe(
             channels: [channel],
             payloadType: String.self,
+            queries: queries,
             callback: callback
         )
     }
 
     public func subscribe(
         channels: [ChannelValue],
-        callback: @escaping (RealtimeResponseEvent) -> Void
+        callback: @escaping (RealtimeResponseEvent) -> Void,
+        queries: [String] = []
     ) async throws -> RealtimeSubscription {
         return try await subscribe(
             channels: Set(channels.map { channelToString($0) }),
             payloadType: String.self,
+            queries: queries,
             callback: callback
         )
     }
@@ -150,11 +159,13 @@ open class Realtime : Service {
     public func subscribe<T : Codable>(
         channel: ChannelValue,
         payloadType: T.Type,
-        callback: @escaping (RealtimeResponseEvent) -> Void
+        callback: @escaping (RealtimeResponseEvent) -> Void,
+        queries: [String] = []
     ) async throws -> RealtimeSubscription {
         return try await subscribe(
             channels: Set([channelToString(channel)]),
             payloadType: T.self,
+            queries: queries,
             callback: callback
         )
     }
@@ -162,11 +173,13 @@ open class Realtime : Service {
     public func subscribe<T : Codable>(
         channels: [ChannelValue],
         payloadType: T.Type,
-        callback: @escaping (RealtimeResponseEvent) -> Void
+        callback: @escaping (RealtimeResponseEvent) -> Void,
+        queries: [String] = []
     ) async throws -> RealtimeSubscription {
         return try await subscribe(
             channels: Set(channels.map { channelToString($0) }),
             payloadType: T.self,
+            queries: queries,
             callback: callback
         )
     }
@@ -174,6 +187,7 @@ open class Realtime : Service {
     public func subscribe<T : Codable>(
         channels: Set<String>,
         payloadType: T.Type,
+        queries: [String] = [],
         callback: @escaping (RealtimeResponseEvent) -> Void
     ) async throws -> RealtimeSubscription {
         subscriptionsCounter += 1
@@ -183,11 +197,15 @@ open class Realtime : Service {
         channels.forEach {
             activeChannels.insert($0)
         }
+        queries.forEach {
+            activeQueries.insert($0)
+        }
 
         activeSubscriptions[count] = RealtimeCallback(
             for: Set(channels),
             with: callback
         )
+        activeSubscriptionQueries[count] = Set(queries)
 
         connectSync.sync {
             subCallDepth+=1
@@ -205,12 +223,13 @@ open class Realtime : Service {
 
         return RealtimeSubscription {
             self.activeSubscriptions[count] = nil
-            self.cleanUp(channels: channels)
+            self.activeSubscriptionQueries[count] = nil
+            self.cleanUp(channels: channels, queries: Set(queries))
             try await self.createSocket()
         }
     }
 
-    func cleanUp(channels: Set<String>) {
+    func cleanUp(channels: Set<String>, queries: Set<String>) {
         activeChannels = activeChannels.filter { channel in
             guard channels.contains(channel) else {
                 return true
@@ -219,6 +238,16 @@ open class Realtime : Service {
                 return callback.value.channels.contains(channel)
             }
             return !subsWithChannel.isEmpty
+        }
+
+        activeQueries = activeQueries.filter { query in
+            guard queries.contains(query) else {
+                return true
+            }
+            let subsWithQuery = activeSubscriptionQueries.filter { entry in
+                return entry.value.contains(query)
+            }
+            return !subsWithQuery.isEmpty
         }
     }
 }

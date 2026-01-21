@@ -36,7 +36,17 @@ void main() async {
       "wss://cloud.appwrite.io/v1");
 
   Realtime realtime = Realtime(client);
+  // Subscribe without queries
   final rtsub = realtime.subscribe(["tests"]);
+
+  // Subscribe with queries to ensure query array support works
+  final rtsubWithQueries = realtime.subscribe(
+    ["tests"],
+    queries: [
+      Query.equal('title', ['Spiderman']),
+      Query.greaterThan('releasedYear', 1990),
+    ],
+  );
 
   await Future.delayed(Duration(seconds: 5));
   client.addHeader('Origin', 'http://localhost');
@@ -155,10 +165,14 @@ void main() async {
     print(e.message);
   }
 
-  rtsub.stream.listen((message) {
-    print(message.payload["response"]);
-    rtsub.close();
-  });
+  // Assert realtime outputs in a deterministic order (no-query then with-query)
+  final message1 = await rtsub.stream.first.timeout(Duration(seconds: 10));
+  print(message1.payload["response"]);
+  await rtsub.close();
+
+  final message2 = await rtsubWithQueries.stream.first.timeout(Duration(seconds: 10));
+  print(message2.payload["response"]);
+  await rtsubWithQueries.close();
 
   await Future.delayed(Duration(seconds: 5));
 

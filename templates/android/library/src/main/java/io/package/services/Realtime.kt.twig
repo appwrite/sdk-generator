@@ -37,6 +37,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
 
         private var socket: RealWebSocket? = null
         private var activeChannels = mutableSetOf<String>()
+        private var activeQueries = mutableSetOf<String>()
         private var activeSubscriptions = mutableMapOf<Int, RealtimeCallback>()
 
         private var subCallDepth = 0
@@ -59,6 +60,11 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         activeChannels.forEach {
             queryParamBuilder
                 .append("&channels[]=$it")
+        }
+
+        activeQueries.forEach {
+            queryParamBuilder
+                .append("&queries[]=$it")
         }
 
         val request = Request.Builder()
@@ -127,8 +133,8 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         callback: (RealtimeResponseEvent<Any>) -> Unit,
     ) = subscribe(
         channels = channels.map { channelToString(it) }.toTypedArray(),
-        Any::class.java,
-        callback
+        payloadType = Any::class.java,
+        callback = callback
     )
 
     fun subscribe(
@@ -136,18 +142,20 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         callback: (RealtimeResponseEvent<Any>) -> Unit,
     ) = subscribe(
         channels = channels,
-        Any::class.java,
-        callback
+        payloadType = Any::class.java,
+        callback = callback
     )
 
     fun <T> subscribe(
         vararg channels: Channel<*>,
         payloadType: Class<T>,
+        queries: List<String> = emptyList(),
         callback: (RealtimeResponseEvent<T>) -> Unit,
     ): RealtimeSubscription {
         return subscribe(
             channels = channels.map { channelToString(it) }.toTypedArray(),
             payloadType = payloadType,
+            queries = queries,
             callback = callback
         )
     }
@@ -155,13 +163,16 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
     fun <T> subscribe(
         vararg channels: String,
         payloadType: Class<T>,
+        queries: List<String> = emptyList(),
         callback: (RealtimeResponseEvent<T>) -> Unit,
     ): RealtimeSubscription {
         val counter = subscriptionsCounter++
 
         activeChannels.addAll(channels)
+        activeQueries.addAll(queries)
         activeSubscriptions[counter] = RealtimeCallback(
             channels.toList(),
+            queries,
             payloadType,
             callback as (RealtimeResponseEvent<*>) -> Unit
         )
@@ -177,18 +188,27 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
 
         return RealtimeSubscription {
             activeSubscriptions.remove(counter)
-            cleanUp(*channels)
+            cleanUp(channels = channels.toList(), queries = queries)
             createSocket()
         }
     }
 
-    private fun cleanUp(vararg channels: String) {
+    private fun cleanUp(channels: Collection<String>, queries: Collection<String>) {
         activeChannels.removeAll { channel ->
             if (!channels.contains(channel)) {
                 return@removeAll false
             }
-            activeSubscriptions.values.none { callback ->
-                callback.channels.contains(channel)
+            activeSubscriptions.values.none { subscription ->
+                subscription.channels.contains(channel)
+            }
+        }
+
+        activeQueries.removeAll { query ->
+            if (!queries.contains(query)) {
+                return@removeAll false
+            }
+            activeSubscriptions.values.none { subscription ->
+                subscription.queries.contains(query)
             }
         }
     }
