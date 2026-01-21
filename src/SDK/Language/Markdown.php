@@ -55,9 +55,9 @@ class Markdown extends JS
         return [
             // GitHub workflows
             [
-                'scope'       => 'default',
+                'scope'       => 'copy',
                 'destination' => '.github/workflows/publish.yml',
-                'template'    => 'markdown/.github/workflows/publish.yml.twig',
+                'template'    => 'markdown/.github/workflows/publish.yml',
             ],
             // Package configuration
             [
