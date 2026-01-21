@@ -1,24 +1,22 @@
 import * as fs from "fs";
 import * as path from "path";
-import {
-  LanguageMeta,
-  type Attribute,
-  type Collection,
-} from "../type-generation/languages/language.js";
+import { LanguageMeta } from "../type-generation/languages/language.js";
+import type {
+  AttributeType,
+  ColumnType,
+  CollectionType,
+  TableType,
+} from "../commands/config.js";
 
 /**
- * Attribute type extended with table-specific fields.
- * Combines the base Attribute interface with relatedTable for tables support.
+ * Union type for attributes from both collections and tables.
  */
-export type TypeAttribute = Attribute & {
-  relatedTable?: string;
-};
+export type TypeAttribute = AttributeType | ColumnType;
 
 /**
  * Common entity interface (collection or table).
- * Reuses the Collection interface structure.
  */
-export type TypeEntity = Pick<Collection, "$id" | "name">;
+export type TypeEntity = Pick<CollectionType | TableType, "$id" | "name">;
 
 /**
  * Sanitizes a string for use as an enum key.
@@ -52,9 +50,6 @@ export function getTypeScriptType(
   switch (attribute.type) {
     case "string":
     case "datetime":
-    case "email":
-    case "ip":
-    case "url":
       type = "string";
       if (attribute.format === "enum") {
         type = LanguageMeta.toPascalCase(entityName) + LanguageMeta.toPascalCase(attribute.key);
@@ -68,7 +63,10 @@ export function getTypeScriptType(
       type = "boolean";
       break;
     case "relationship": {
-      const relatedId = attribute.relatedCollection ?? attribute.relatedTable;
+      // AttributeType has relatedCollection, ColumnType has relatedTable
+      const relatedId =
+        ("relatedCollection" in attribute ? attribute.relatedCollection : undefined) ??
+        attribute.relatedTable;
       const relatedEntity = entities.find(
         (e) => e.$id === relatedId || e.name === relatedId,
       );

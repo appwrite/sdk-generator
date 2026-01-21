@@ -12,7 +12,9 @@ export class TypeScript extends LanguageMeta {
     collections?: Collection[],
     collectionName?: string,
   ): string {
-    const typeAttribute: TypeAttribute = {
+    // Cast to TypeAttribute since Attribute from language.ts uses loose string types
+    // while TypeAttribute uses strict enums from config.ts
+    const typeAttribute = {
       key: attribute.key,
       type: attribute.type,
       required: attribute.required,
@@ -23,7 +25,7 @@ export class TypeScript extends LanguageMeta {
       relatedCollection: attribute.relatedCollection,
       relationType: attribute.relationType,
       side: attribute.side,
-    };
+    } as TypeAttribute;
 
     const entities: TypeEntity[] = (collections ?? []).map((c) => ({
       $id: c.$id,
