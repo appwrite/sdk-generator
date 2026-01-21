@@ -60,6 +60,11 @@ class Markdown extends JS
                 'template'    => 'markdown/package.json.twig',
             ],
             [
+                'scope'       => 'default',
+                'destination' => 'README.md',
+                'template'    => 'markdown/README.md.twig',
+            ],
+            [
                 'scope'       => 'copy',
                 'destination' => 'tsconfig.json',
                 'template'    => 'markdown/tsconfig.json',
