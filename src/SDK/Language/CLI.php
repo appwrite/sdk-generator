@@ -2,7 +2,6 @@
 
 namespace Appwrite\SDK\Language;
 
-use Twig\TwigFilter;
 use Twig\TwigFunction;
 
 class CLI extends Node
@@ -340,6 +339,13 @@ class CLI extends Node
                 'template'      => 'cli/lib/validations.ts',
             ],
 
+            // Shared utilities (lib/shared/)
+            [
+                'scope'         => 'copy',
+                'destination'   => 'lib/shared/typescript-type-utils.ts',
+                'template'      => 'cli/lib/shared/typescript-type-utils.ts',
+            ],
+
             // Commands (lib/commands/)
             [
                 'scope'         => 'copy',
@@ -375,6 +381,26 @@ class CLI extends Node
                 'scope'         => 'copy',
                 'destination'   => 'lib/commands/generators/typescript/databases.ts',
                 'template'      => 'cli/lib/commands/generators/typescript/databases.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'lib/commands/generators/typescript/template-loader.ts',
+                'template'      => 'cli/lib/commands/generators/typescript/template-loader.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'lib/commands/generators/typescript/templates/types.ts.tpl',
+                'template'      => 'cli/lib/commands/generators/typescript/templates/types.ts.tpl',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'lib/commands/generators/typescript/templates/databases.ts.tpl',
+                'template'      => 'cli/lib/commands/generators/typescript/templates/databases.ts.tpl',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'lib/commands/generators/typescript/templates/index.ts.tpl',
+                'template'      => 'cli/lib/commands/generators/typescript/templates/index.ts.tpl',
             ],
             [
                 'scope'         => 'copy',

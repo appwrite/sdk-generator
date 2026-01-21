@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { ConfigType, AttributeSchema } from "../../config.js";
-import { toPascalCase } from "../../../utils.js";
+import { toPascalCase } from "../../../shared/typescript-type-utils.js";
 import { SDK_TITLE, EXECUTABLE_NAME } from "../../../constants.js";
 import {
   BaseDatabasesGenerator,
