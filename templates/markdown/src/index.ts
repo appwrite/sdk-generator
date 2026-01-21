@@ -7,8 +7,8 @@ import type {
   SearchResult,
   SearchOptions,
   SDKOptions,
-  Manifest,
 } from './types.js';
+import type { Language, MethodPaths, ServiceNames } from './generated-types.js';
 
 export type {
   TableOfContents,
@@ -19,6 +19,8 @@ export type {
   MethodEntry,
   ServiceEntry,
 } from './types.js';
+
+export type { Language, MethodPaths, ServiceNames } from './generated-types.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -37,8 +39,8 @@ export class DocsSDK {
   /**
    * Get the list of available SDK languages
    */
-  getLanguages(): string[] {
-    return Object.keys(manifest);
+  getLanguages(): Language[] {
+    return Object.keys(manifest) as Language[];
   }
 
   /**
@@ -46,16 +48,51 @@ export class DocsSDK {
    * This is lightweight and doesn't load any markdown content.
    *
    * @param language - SDK language (e.g., "typescript")
+   * @param options - Optional filter options
+   * @param options.service - Filter to a specific service
+   * @param options.skipDeprecated - Exclude deprecated methods from results
    * @returns Table of contents with services and methods
    *
    * @example
    * ```ts
    * const toc = sdk.getTableOfContents("typescript");
    * // → { language: "typescript", services: [{ name: "account", methods: [...] }] }
+   *
+   * const accountToc = sdk.getTableOfContents("typescript", { service: "account" });
+   * // → { language: "typescript", services: [{ name: "account", methods: [...] }] }
+   *
+   * const nonDeprecated = sdk.getTableOfContents("typescript", { skipDeprecated: true });
+   * // → excludes deprecated methods
    * ```
    */
-  getTableOfContents(language: string): TableOfContents | null {
-    return manifest[language] ?? null;
+  getTableOfContents<L extends Language>(
+    language: L,
+    options?: { service?: ServiceNames[L]; skipDeprecated?: boolean }
+  ): TableOfContents | null {
+    const toc = manifest[language];
+    if (!toc) return null;
+
+    const { service, skipDeprecated } = options ?? {};
+
+    let services = toc.services;
+
+    if (service) {
+      const filteredService = services.find((s) => s.name === service);
+      if (!filteredService) return null;
+      services = [filteredService];
+    }
+
+    if (skipDeprecated) {
+      services = services.map((s) => ({
+        ...s,
+        methods: s.methods.filter((m) => !m.deprecated),
+      }));
+    }
+
+    return {
+      ...toc,
+      services,
+    };
   }
 
   /**
@@ -72,7 +109,10 @@ export class DocsSDK {
    * // → "# Create Session\n\nDescription: ..."
    * ```
    */
-  async getMarkdown(language: string, path: string): Promise<string | null> {
+  async getMarkdown<L extends Language>(
+    language: L,
+    path: MethodPaths[L]
+  ): Promise<string | null> {
     const cacheKey = `${language}/${path}`;
 
     if (this.contentCache.has(cacheKey)) {
@@ -102,9 +142,9 @@ export class DocsSDK {
    * // → Map { "create-session" => "# Create Session\n...", ... }
    * ```
    */
-  async getServiceDocs(
-    language: string,
-    service: string
+  async getServiceDocs<L extends Language>(
+    language: L,
+    service: ServiceNames[L]
   ): Promise<Map<string, string>> {
     const toc = this.getTableOfContents(language);
     const result = new Map<string, string>();
@@ -116,10 +156,8 @@ export class DocsSDK {
 
     await Promise.all(
       serviceEntry.methods.map(async (method) => {
-        const content = await this.getMarkdown(
-          language,
-          `${service}/${method.name}`
-        );
+        const path = `${service}/${method.name}` as MethodPaths[L];
+        const content = await this.getMarkdown(language, path);
         if (content) {
           result.set(method.name, content);
         }
@@ -144,8 +182,8 @@ export class DocsSDK {
    * // → [{ path: "account/create-mfa-...", title: "...", snippet: "..." }]
    * ```
    */
-  async searchDocs(
-    language: string,
+  async searchDocs<L extends Language>(
+    language: L,
     query: string,
     options: SearchOptions = {}
   ): Promise<SearchResult[]> {
@@ -164,7 +202,7 @@ export class DocsSDK {
     await Promise.all(
       servicesToSearch.flatMap((service) =>
         service.methods.map(async (method) => {
-          const path = `${service.name}/${method.name}`;
+          const path = `${service.name}/${method.name}` as MethodPaths[L];
           const content = await this.getMarkdown(language, path);
 
           if (!content) return;
@@ -313,16 +351,19 @@ function getDefaultInstance(): DocsSDK {
 /**
  * Get the table of contents for a specific language
  */
-export function getTableOfContents(language: string): TableOfContents | null {
-  return getDefaultInstance().getTableOfContents(language);
+export function getTableOfContents<L extends Language>(
+  language: L,
+  options?: { service?: ServiceNames[L]; skipDeprecated?: boolean }
+): TableOfContents | null {
+  return getDefaultInstance().getTableOfContents(language, options);
 }
 
 /**
  * Get a specific markdown document
  */
-export function getMarkdown(
-  language: string,
-  path: string
+export function getMarkdown<L extends Language>(
+  language: L,
+  path: MethodPaths[L]
 ): Promise<string | null> {
   return getDefaultInstance().getMarkdown(language, path);
 }
@@ -330,8 +371,8 @@ export function getMarkdown(
 /**
  * Search documentation by keywords
  */
-export function searchDocs(
-  language: string,
+export function searchDocs<L extends Language>(
+  language: L,
   query: string,
   options?: SearchOptions
 ): Promise<SearchResult[]> {
@@ -341,7 +382,7 @@ export function searchDocs(
 /**
  * Get list of available languages
  */
-export function getLanguages(): string[] {
+export function getLanguages(): Language[] {
   return getDefaultInstance().getLanguages();
 }
 
