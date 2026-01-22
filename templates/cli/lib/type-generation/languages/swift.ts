@@ -33,9 +33,7 @@ export class Swift extends LanguageMeta {
             ? attribute.relatedCollection
             : undefined) ??
           ("relatedTable" in attribute ? attribute.relatedTable : undefined);
-        const relatedCollection = collections?.find(
-          (c) => c.$id === relatedId || c.name === relatedId,
-        );
+        const relatedCollection = collections?.find((c) => c.$id === relatedId);
         if (!relatedCollection) {
           throw new Error(
             `Related collection with ID '${relatedId}' not found.`,
@@ -152,9 +150,9 @@ public class <%- toPascalCase(collection.name) %>: Codable {
 <% for (const [index, attribute] of Object.entries(collection.attributes)) { -%>
 <% if (attribute.type === 'relationship') { -%>
 <% if ((attribute.relationType === 'oneToMany' && attribute.side === 'parent') || (attribute.relationType === 'manyToOne' && attribute.side === 'child') || attribute.relationType === 'manyToMany') { -%>
-            <%- strict ? toCamelCase(attribute.key) : attribute.key %>: map["<%- attribute.key %>"] as<% if (!attribute.required) { %>?<% } else { %>!<% } %> [<%- toPascalCase(collections.find(c => c.$id === (attribute.relatedCollection || attribute.relatedTable) || c.name === (attribute.relatedCollection || attribute.relatedTable)).name) %>]<% if (index < collection.attributes.length - 1) { %>,<% } %>
+            <%- strict ? toCamelCase(attribute.key) : attribute.key %>: map["<%- attribute.key %>"] as<% if (!attribute.required) { %>?<% } else { %>!<% } %> [<%- toPascalCase(collections.find(c => c.$id === (attribute.relatedCollection || attribute.relatedTable)).name) %>]<% if (index < collection.attributes.length - 1) { %>,<% } %>
 <% } else { -%>
-            <%- strict ? toCamelCase(attribute.key) : attribute.key %>: map["<%- attribute.key %>"] as<% if (!attribute.required) { %>?<% } else { %>!<% } %> <%- toPascalCase(collections.find(c => c.$id === (attribute.relatedCollection || attribute.relatedTable) || c.name === (attribute.relatedCollection || attribute.relatedTable)).name) %><% if (index < collection.attributes.length - 1) { %>,<% } %>
+            <%- strict ? toCamelCase(attribute.key) : attribute.key %>: map["<%- attribute.key %>"] as<% if (!attribute.required) { %>?<% } else { %>!<% } %> <%- toPascalCase(collections.find(c => c.$id === (attribute.relatedCollection || attribute.relatedTable)).name) %><% if (index < collection.attributes.length - 1) { %>,<% } %>
 <% } -%>
 <% } else if (attribute.array) { -%>
 <% if (attribute.type === 'string') { -%>

@@ -29,9 +29,7 @@ export class JavaScript extends LanguageMeta {
             ? attribute.relatedCollection
             : undefined) ??
           ("relatedTable" in attribute ? attribute.relatedTable : undefined);
-        const relatedCollection = collections?.find(
-          (c) => c.$id === relatedId || c.name === relatedId,
-        );
+        const relatedCollection = collections?.find((c) => c.$id === relatedId);
         if (!relatedCollection) {
           throw new Error(
             `Related collection with ID '${relatedId}' not found.`,

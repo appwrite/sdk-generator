@@ -33,9 +33,7 @@ export class CSharp extends LanguageMeta {
             ? attribute.relatedCollection
             : undefined) ??
           ("relatedTable" in attribute ? attribute.relatedTable : undefined);
-        const relatedCollection = collections?.find(
-          (c) => c.$id === relatedId || c.name === relatedId,
-        );
+        const relatedCollection = collections?.find((c) => c.$id === relatedId);
         if (!relatedCollection) {
           throw new Error(
             `Related collection with ID '${relatedId}' not found.`,
@@ -127,7 +125,7 @@ public class <%= toPascalCase(collection.name) %>
                 }
             // RELATIONSHIP
             } else if (attribute.type === 'relationship') {
-                const relatedClass = toPascalCase(collections.find(c => c.$id === (attribute.relatedCollection || attribute.relatedTable) || c.name === (attribute.relatedCollection || attribute.relatedTable)).name);
+                const relatedClass = toPascalCase(collections.find(c => c.$id === (attribute.relatedCollection || attribute.relatedTable)).name);
                 if ((attribute.relationType === 'oneToMany' && attribute.side === 'parent') || (attribute.relationType === 'manyToOne' && attribute.side === 'child') || attribute.relationType === 'manyToMany' || attribute.array) {
                     -%>((IEnumerable<object>)map["<%- attribute.key %>"]).Select(it => Models.<%- relatedClass %>.From((Dictionary<string, object>)it)).ToList()<%
                 } else {

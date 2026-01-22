@@ -36,9 +36,7 @@ export class PHP extends LanguageMeta {
             ? attribute.relatedCollection
             : undefined) ??
           ("relatedTable" in attribute ? attribute.relatedTable : undefined);
-        const relatedCollection = collections?.find(
-          (c) => c.$id === relatedId || c.name === relatedId,
-        );
+        const relatedCollection = collections?.find((c) => c.$id === relatedId);
         if (!relatedCollection) {
           throw new Error(
             `Related collection with ID '${relatedId}' not found.`,
@@ -79,7 +77,7 @@ namespace Appwrite\\Models;
 <% for (const attribute of collection.attributes) { -%>
 <% if (attribute.type === 'relationship' && !(attribute.relationType === 'manyToMany') && !(attribute.relationType === 'oneToMany' && attribute.side === 'parent')) { -%>
 <% const relatedId = attribute.relatedCollection || attribute.relatedTable; -%>
-use Appwrite\\Models\\<%- toPascalCase(collections.find(c => c.$id === relatedId || c.name === relatedId).name) %>;
+use Appwrite\\Models\\<%- toPascalCase(collections.find(c => c.$id === relatedId).name) %>;
 
 <% } -%>
 <% } -%>
