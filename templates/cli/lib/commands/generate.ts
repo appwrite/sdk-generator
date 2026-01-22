@@ -101,6 +101,17 @@ const generateAction = async (
 
     // Show language-specific usage instructions
     if (detectedLanguage === "typescript") {
+      const entities = config.tables?.length ? config.tables : config.collections;
+      const firstEntity = entities?.[0];
+      const dbId = firstEntity?.databaseId ?? "databaseId";
+      const tableName = firstEntity?.name ?? "tableName";
+      const formatAccessor = (value: string): string =>
+        /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(value)
+          ? `.${value}`
+          : `[${JSON.stringify(value)}]`;
+      const dbAccessor = formatAccessor(dbId);
+      const tableAccessor = formatAccessor(tableName);
+
       console.log("");
       log(`Import the generated SDK in your project:`);
       console.log(
@@ -113,8 +124,8 @@ const generateAction = async (
       );
       console.log("");
       log(`Usage:`);
-      console.log(`  const mydb = databases.tableDBName;`);
-      console.log(`  await mydb.tableName.create({ ... });`);
+      console.log(`  const mydb = databases${dbAccessor};`);
+      console.log(`  await mydb${tableAccessor}.create({ ... });`);
     }
   } catch (err: any) {
     error(`Failed to generate SDK: ${err.message}`);
