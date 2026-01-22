@@ -13,7 +13,6 @@ export class PHP extends LanguageMeta {
     let type = "";
     switch (attribute.type) {
       case AttributeType.STRING:
-      case AttributeType.EMAIL:
       case AttributeType.DATETIME:
         type = "string";
         if (attribute.format === AttributeType.ENUM) {
@@ -32,12 +31,17 @@ export class PHP extends LanguageMeta {
         type = "bool";
         break;
       case AttributeType.RELATIONSHIP:
+        const relatedId =
+          ("relatedCollection" in attribute
+            ? attribute.relatedCollection
+            : undefined) ??
+          ("relatedTable" in attribute ? attribute.relatedTable : undefined);
         const relatedCollection = collections?.find(
-          (c) => c.$id === attribute.relatedCollection,
+          (c) => c.$id === relatedId || c.name === relatedId,
         );
         if (!relatedCollection) {
           throw new Error(
-            `Related collection with ID '${attribute.relatedCollection}' not found.`,
+            `Related collection with ID '${relatedId}' not found.`,
           );
         }
         type = LanguageMeta.toPascalCase(relatedCollection.name);
@@ -74,7 +78,8 @@ namespace Appwrite\\Models;
 
 <% for (const attribute of collection.attributes) { -%>
 <% if (attribute.type === 'relationship' && !(attribute.relationType === 'manyToMany') && !(attribute.relationType === 'oneToMany' && attribute.side === 'parent')) { -%>
-use Appwrite\\Models\\<%- toPascalCase(collections.find(c => c.$id === attribute.relatedCollection).name) %>;
+<% const relatedId = attribute.relatedCollection || attribute.relatedTable; -%>
+use Appwrite\\Models\\<%- toPascalCase(collections.find(c => c.$id === relatedId || c.name === relatedId).name) %>;
 
 <% } -%>
 <% } -%>

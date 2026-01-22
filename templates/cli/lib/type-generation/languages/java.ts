@@ -10,7 +10,6 @@ export class Java extends LanguageMeta {
     let type = "";
     switch (attribute.type) {
       case AttributeType.STRING:
-      case AttributeType.EMAIL:
       case AttributeType.DATETIME:
         type = "String";
         if (attribute.format === AttributeType.ENUM) {
@@ -29,12 +28,17 @@ export class Java extends LanguageMeta {
         type = "Boolean";
         break;
       case AttributeType.RELATIONSHIP:
+        const relatedId =
+          ("relatedCollection" in attribute
+            ? attribute.relatedCollection
+            : undefined) ??
+          ("relatedTable" in attribute ? attribute.relatedTable : undefined);
         const relatedCollection = collections?.find(
-          (c) => c.$id === attribute.relatedCollection,
+          (c) => c.$id === relatedId || c.name === relatedId,
         );
         if (!relatedCollection) {
           throw new Error(
-            `Related collection with ID '${attribute.relatedCollection}' not found.`,
+            `Related collection with ID '${relatedId}' not found.`,
           );
         }
         type = LanguageMeta.toPascalCase(relatedCollection.name);
@@ -77,7 +81,8 @@ export class Java extends LanguageMeta {
 import java.util.Objects;
 <% for (const attribute of collection.attributes) { -%>
 <% if (attribute.type === 'relationship') { -%>
-import io.appwrite.models.<%- toPascalCase(collections.find(c => c.$id === attribute.relatedCollection).name) %>;
+<% const relatedId = attribute.relatedCollection || attribute.relatedTable; -%>
+import io.appwrite.models.<%- toPascalCase(collections.find(c => c.$id === relatedId || c.name === relatedId).name) %>;
 <% } -%>
 <% } -%>
 

@@ -1,24 +1,17 @@
 import fs from "fs";
 import path from "path";
+import type {
+  AttributeType,
+  ColumnType,
+  CollectionType,
+  TableType,
+} from "../../commands/config.js";
 
-export interface Attribute {
-  key: string;
-  type: string;
-  required?: boolean;
-  array?: boolean;
-  default?: any;
-  format?: string;
-  elements?: string[];
-  relatedCollection?: string;
-  relationType?: string;
-  side?: string;
-}
+export type Attribute = AttributeType | ColumnType;
 
-export interface Collection {
-  $id: string;
-  name: string;
+export type Collection = (CollectionType | TableType) & {
   attributes: Attribute[];
-}
+};
 
 export abstract class LanguageMeta {
   constructor() {

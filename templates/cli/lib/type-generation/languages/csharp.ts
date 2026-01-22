@@ -10,7 +10,6 @@ export class CSharp extends LanguageMeta {
     let type = "";
     switch (attribute.type) {
       case AttributeType.STRING:
-      case AttributeType.EMAIL:
       case AttributeType.DATETIME:
         type = "string";
         if (attribute.format === AttributeType.ENUM) {
@@ -29,12 +28,17 @@ export class CSharp extends LanguageMeta {
         type = "bool";
         break;
       case AttributeType.RELATIONSHIP:
+        const relatedId =
+          ("relatedCollection" in attribute
+            ? attribute.relatedCollection
+            : undefined) ??
+          ("relatedTable" in attribute ? attribute.relatedTable : undefined);
         const relatedCollection = collections?.find(
-          (c) => c.$id === attribute.relatedCollection,
+          (c) => c.$id === relatedId || c.name === relatedId,
         );
         if (!relatedCollection) {
           throw new Error(
-            `Related collection with ID '${attribute.relatedCollection}' not found.`,
+            `Related collection with ID '${relatedId}' not found.`,
           );
         }
         type = LanguageMeta.toPascalCase(relatedCollection.name);
@@ -123,7 +127,7 @@ public class <%= toPascalCase(collection.name) %>
                 }
             // RELATIONSHIP
             } else if (attribute.type === 'relationship') {
-                const relatedClass = toPascalCase(collections.find(c => c.$id === attribute.relatedCollection).name);
+                const relatedClass = toPascalCase(collections.find(c => c.$id === (attribute.relatedCollection || attribute.relatedTable) || c.name === (attribute.relatedCollection || attribute.relatedTable)).name);
                 if ((attribute.relationType === 'oneToMany' && attribute.side === 'parent') || (attribute.relationType === 'manyToOne' && attribute.side === 'child') || attribute.relationType === 'manyToMany' || attribute.array) {
                     -%>((IEnumerable<object>)map["<%- attribute.key %>"]).Select(it => Models.<%- relatedClass %>.From((Dictionary<string, object>)it)).ToList()<%
                 } else {

@@ -12,8 +12,7 @@ export class TypeScript extends LanguageMeta {
     collections?: Collection[],
     collectionName?: string,
   ): string {
-    // Cast to TypeAttribute since Attribute from language.ts uses loose string types
-    // while TypeAttribute uses strict enums from config.ts
+    // Normalize relationship keys for shared TypeAttribute handling.
     const typeAttribute = {
       key: attribute.key,
       type: attribute.type,
@@ -22,7 +21,11 @@ export class TypeScript extends LanguageMeta {
       default: attribute.default,
       format: attribute.format,
       elements: attribute.elements,
-      relatedCollection: attribute.relatedCollection,
+      relatedCollection:
+        ("relatedCollection" in attribute
+          ? attribute.relatedCollection
+          : undefined) ??
+        ("relatedTable" in attribute ? attribute.relatedTable : undefined),
       relationType: attribute.relationType,
       side: attribute.side,
     } as TypeAttribute;
