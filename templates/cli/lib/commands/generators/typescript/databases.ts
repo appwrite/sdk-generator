@@ -212,7 +212,9 @@ export class TypeScriptDatabasesGenerator extends BaseDatabasesGenerator {
     for (const [dbId, dbEntities] of entitiesByDb.entries()) {
       for (const entity of dbEntities) {
         if (this.hasRelationshipColumns(entity)) {
-          tablesWithRelationships.push(JSON.stringify(`${dbId}:${entity.name}`));
+          tablesWithRelationships.push(
+            JSON.stringify(`${dbId}:${entity.name}`),
+          );
         }
       }
     }

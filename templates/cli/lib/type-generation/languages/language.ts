@@ -1,24 +1,17 @@
 import fs from "fs";
 import path from "path";
+import type {
+  AttributeType,
+  ColumnType,
+  CollectionType,
+  TableType,
+} from "../../commands/config.js";
 
-export interface Attribute {
-  key: string;
-  type: string;
-  required?: boolean;
-  array?: boolean;
-  default?: any;
-  format?: string;
-  elements?: string[];
-  relatedCollection?: string;
-  relationType?: string;
-  side?: string;
-}
+export type Attribute = AttributeType | ColumnType;
 
-export interface Collection {
-  $id: string;
-  name: string;
+export type Collection = (CollectionType | TableType) & {
   attributes: Attribute[];
-}
+};
 
 export abstract class LanguageMeta {
   constructor() {
@@ -54,6 +47,28 @@ export abstract class LanguageMeta {
 
   static toPascalCase(string: string): string {
     return this.toCamelCase(string).replace(/^./, (g) => g.toUpperCase());
+  }
+
+  static getRelatedCollectionId(attribute: Attribute): string | undefined {
+    if ("relatedCollection" in attribute && attribute.relatedCollection) {
+      return attribute.relatedCollection;
+    }
+    if ("relatedTable" in attribute && attribute.relatedTable) {
+      return attribute.relatedTable;
+    }
+    return undefined;
+  }
+
+  static getRelatedCollection(
+    attribute: Attribute,
+    collections?: Collection[],
+  ): Collection {
+    const relatedId = this.getRelatedCollectionId(attribute);
+    const relatedCollection = collections?.find((c) => c.$id === relatedId);
+    if (!relatedCollection) {
+      throw new Error(`Related collection with ID '${relatedId}' not found.`);
+    }
+    return relatedCollection;
   }
 
   /**

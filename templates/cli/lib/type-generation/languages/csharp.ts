@@ -10,7 +10,6 @@ export class CSharp extends LanguageMeta {
     let type = "";
     switch (attribute.type) {
       case AttributeType.STRING:
-      case AttributeType.EMAIL:
       case AttributeType.DATETIME:
         type = "string";
         if (attribute.format === AttributeType.ENUM) {
@@ -29,14 +28,10 @@ export class CSharp extends LanguageMeta {
         type = "bool";
         break;
       case AttributeType.RELATIONSHIP:
-        const relatedCollection = collections?.find(
-          (c) => c.$id === attribute.relatedCollection,
+        const relatedCollection = LanguageMeta.getRelatedCollection(
+          attribute,
+          collections,
         );
-        if (!relatedCollection) {
-          throw new Error(
-            `Related collection with ID '${attribute.relatedCollection}' not found.`,
-          );
-        }
         type = LanguageMeta.toPascalCase(relatedCollection.name);
         if (
           (attribute.relationType === "oneToMany" &&
@@ -123,7 +118,7 @@ public class <%= toPascalCase(collection.name) %>
                 }
             // RELATIONSHIP
             } else if (attribute.type === 'relationship') {
-                const relatedClass = toPascalCase(collections.find(c => c.$id === attribute.relatedCollection).name);
+                const relatedClass = toPascalCase(getRelatedCollection(attribute, collections).name);
                 if ((attribute.relationType === 'oneToMany' && attribute.side === 'parent') || (attribute.relationType === 'manyToOne' && attribute.side === 'child') || attribute.relationType === 'manyToMany' || attribute.array) {
                     -%>((IEnumerable<object>)map["<%- attribute.key %>"]).Select(it => Models.<%- relatedClass %>.From((Dictionary<string, object>)it)).ToList()<%
                 } else {

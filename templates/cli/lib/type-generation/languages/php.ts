@@ -13,7 +13,6 @@ export class PHP extends LanguageMeta {
     let type = "";
     switch (attribute.type) {
       case AttributeType.STRING:
-      case AttributeType.EMAIL:
       case AttributeType.DATETIME:
         type = "string";
         if (attribute.format === AttributeType.ENUM) {
@@ -32,14 +31,10 @@ export class PHP extends LanguageMeta {
         type = "bool";
         break;
       case AttributeType.RELATIONSHIP:
-        const relatedCollection = collections?.find(
-          (c) => c.$id === attribute.relatedCollection,
+        const relatedCollection = LanguageMeta.getRelatedCollection(
+          attribute,
+          collections,
         );
-        if (!relatedCollection) {
-          throw new Error(
-            `Related collection with ID '${attribute.relatedCollection}' not found.`,
-          );
-        }
         type = LanguageMeta.toPascalCase(relatedCollection.name);
         if (
           (attribute.relationType === "oneToMany" &&
@@ -74,7 +69,8 @@ namespace Appwrite\\Models;
 
 <% for (const attribute of collection.attributes) { -%>
 <% if (attribute.type === 'relationship' && !(attribute.relationType === 'manyToMany') && !(attribute.relationType === 'oneToMany' && attribute.side === 'parent')) { -%>
-use Appwrite\\Models\\<%- toPascalCase(collections.find(c => c.$id === attribute.relatedCollection).name) %>;
+<% const related = getRelatedCollection(attribute, collections); -%>
+use Appwrite\\Models\\<%- toPascalCase(related.name) %>;
 
 <% } -%>
 <% } -%>

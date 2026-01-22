@@ -10,7 +10,13 @@ import {
   LanguageDetector,
   SupportedLanguage,
 } from "./generators/index.js";
-import { SDK_TITLE, SDK_TITLE_LOWER, EXECUTABLE_NAME } from "../constants.js";
+import { globalConfig } from "../config.js";
+import {
+  SDK_TITLE,
+  SDK_TITLE_LOWER,
+  EXECUTABLE_NAME,
+  DEFAULT_ENDPOINT,
+} from "../constants.js";
 
 export interface GenerateCommandOptions {
   output: string;
@@ -73,7 +79,10 @@ const generateAction = async (
   const config: ConfigType = {
     projectId: project.projectId,
     projectName: project.projectName,
-    endpoint: localConfig.getEndpoint(),
+    endpoint:
+      localConfig.getEndpoint() ||
+      globalConfig.getEndpoint() ||
+      DEFAULT_ENDPOINT,
     tablesDB: localConfig.getTablesDBs(),
     tables: localConfig.getTables(),
     databases: localConfig.getDatabases(),
@@ -101,7 +110,9 @@ const generateAction = async (
 
     // Show language-specific usage instructions
     if (detectedLanguage === "typescript") {
-      const entities = config.tables?.length ? config.tables : config.collections;
+      const entities = config.tables?.length
+        ? config.tables
+        : config.collections;
       const firstEntity = entities?.[0];
       const dbId = firstEntity?.databaseId ?? "databaseId";
       const tableName = firstEntity?.name ?? "tableName";
