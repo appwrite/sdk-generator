@@ -57,6 +57,8 @@ const templateHelpers = {
   toSnakeCase: LanguageMeta.toSnakeCase,
   toKebabCase: LanguageMeta.toKebabCase,
   toUpperSnakeCase: LanguageMeta.toUpperSnakeCase,
+  getRelatedCollection: LanguageMeta.getRelatedCollection,
+  getRelatedCollectionId: LanguageMeta.getRelatedCollectionId,
 };
 
 const typesOutputArgument = new Argument(

@@ -67,17 +67,10 @@ export class Dart extends LanguageMeta {
         type = "bool";
         break;
       case AttributeType.RELATIONSHIP:
-        const relatedId =
-          ("relatedCollection" in attribute
-            ? attribute.relatedCollection
-            : undefined) ??
-          ("relatedTable" in attribute ? attribute.relatedTable : undefined);
-        const relatedCollection = collections?.find((c) => c.$id === relatedId);
-        if (!relatedCollection) {
-          throw new Error(
-            `Related collection with ID '${relatedId}' not found.`,
-          );
-        }
+        const relatedCollection = LanguageMeta.getRelatedCollection(
+          attribute,
+          collections,
+        );
         type = LanguageMeta.toPascalCase(relatedCollection.name);
         if (
           (attribute.relationType === "oneToMany" &&
@@ -121,9 +114,8 @@ export class Dart extends LanguageMeta {
 <% const __attrs = sortedAttributes; -%>
 <% for (const attribute of __attrs) { -%>
 <%   if (attribute.type === '${AttributeType.RELATIONSHIP}') { -%>
-<%     const relatedId = attribute.relatedCollection || attribute.relatedTable; -%>
-<%     const related = collections.find(c => c.$id === relatedId); -%>
-<%     if (related && !__relatedImportsSeen.has(toSnakeCase(related.name))) { -%>
+<%     const related = getRelatedCollection(attribute, collections); -%>
+<%     if (!__relatedImportsSeen.has(toSnakeCase(related.name))) { -%>
 import '<%- toSnakeCase(related.name) %>.dart';
 <%       __relatedImportsSeen.add(toSnakeCase(related.name)); -%>
 <%     } -%>
@@ -180,13 +172,13 @@ map['<%= attribute.key %>']<% } -%>
 List<bool>.from(map['<%= attribute.key %>'] ?? [])<% } else { -%>
 map['<%= attribute.key %>']<% } -%>
 <% } else if (attribute.type === '${AttributeType.RELATIONSHIP}') { -%>
-<% const relatedId = attribute.relatedCollection || attribute.relatedTable; -%>
+<% const relatedClass = toPascalCase(getRelatedCollection(attribute, collections).name); -%>
 <% if ((attribute.relationType === 'oneToMany' && attribute.side === 'parent') || (attribute.relationType === 'manyToOne' && attribute.side === 'child') || attribute.relationType === 'manyToMany') { -%>
-(map['<%= attribute.key %>'] as List<dynamic>?)?.map((e) => <%- toPascalCase(collections.find(c => c.$id === relatedId).name) %>.fromMap(e)).toList()
+(map['<%= attribute.key %>'] as List<dynamic>?)?.map((e) => <%- relatedClass %>.fromMap(e)).toList()
 <% } else { -%>
 <% if (!attribute.required) { -%>
-map['<%= attribute.key %>'] != null ? <%- toPascalCase(collections.find(c => c.$id === relatedId).name) %>.fromMap(map['<%= attribute.key %>']) : null<% } else { -%>
-<%- toPascalCase(collections.find(c => c.$id === relatedId).name) %>.fromMap(map['<%= attribute.key %>'])<% } -%>
+map['<%= attribute.key %>'] != null ? <%- relatedClass %>.fromMap(map['<%= attribute.key %>']) : null<% } else { -%>
+<%- relatedClass %>.fromMap(map['<%= attribute.key %>'])<% } -%>
 <% } -%>
 <% } -%><% if (index < __attrs.length - 1) { -%>,<% } %>
 <% } -%>

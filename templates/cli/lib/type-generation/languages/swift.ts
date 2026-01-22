@@ -28,17 +28,10 @@ export class Swift extends LanguageMeta {
         type = "Bool";
         break;
       case AttributeType.RELATIONSHIP:
-        const relatedId =
-          ("relatedCollection" in attribute
-            ? attribute.relatedCollection
-            : undefined) ??
-          ("relatedTable" in attribute ? attribute.relatedTable : undefined);
-        const relatedCollection = collections?.find((c) => c.$id === relatedId);
-        if (!relatedCollection) {
-          throw new Error(
-            `Related collection with ID '${relatedId}' not found.`,
-          );
-        }
+        const relatedCollection = LanguageMeta.getRelatedCollection(
+          attribute,
+          collections,
+        );
         type = LanguageMeta.toPascalCase(relatedCollection.name);
         if (
           (attribute.relationType === "oneToMany" &&
@@ -149,12 +142,8 @@ public class <%- toPascalCase(collection.name) %>: Codable {
         return <%- toPascalCase(collection.name) %>(
 <% for (const [index, attribute] of Object.entries(collection.attributes)) { -%>
 <% if (attribute.type === 'relationship') { -%>
-<% const relatedId = attribute.relatedCollection || attribute.relatedTable; -%>
-<% if ((attribute.relationType === 'oneToMany' && attribute.side === 'parent') || (attribute.relationType === 'manyToOne' && attribute.side === 'child') || attribute.relationType === 'manyToMany') { -%>
-            <%- strict ? toCamelCase(attribute.key) : attribute.key %>: map["<%- attribute.key %>"] as<% if (!attribute.required) { %>?<% } else { %>!<% } %> [<%- toPascalCase(collections.find(c => c.$id === relatedId).name) %>]<% if (index < collection.attributes.length - 1) { %>,<% } %>
-<% } else { -%>
-            <%- strict ? toCamelCase(attribute.key) : attribute.key %>: map["<%- attribute.key %>"] as<% if (!attribute.required) { %>?<% } else { %>!<% } %> <%- toPascalCase(collections.find(c => c.$id === relatedId).name) %><% if (index < collection.attributes.length - 1) { %>,<% } %>
-<% } -%>
+<% const relationshipType = getType(attribute, collections, collection.name).replace('?', ''); -%>
+            <%- strict ? toCamelCase(attribute.key) : attribute.key %>: map["<%- attribute.key %>"] as<% if (!attribute.required) { %>?<% } else { %>!<% } %> <%- relationshipType %><% if (index < collection.attributes.length - 1) { %>,<% } %>
 <% } else if (attribute.array) { -%>
 <% if (attribute.type === 'string') { -%>
             <%- strict ? toCamelCase(attribute.key) : attribute.key %>: map["<%- attribute.key %>"] as<% if (!attribute.required) { %>?<% } else { %>!<% } %> [String]<% if (index < collection.attributes.length - 1) { %>,<% } %>

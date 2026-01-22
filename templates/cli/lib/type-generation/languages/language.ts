@@ -49,6 +49,28 @@ export abstract class LanguageMeta {
     return this.toCamelCase(string).replace(/^./, (g) => g.toUpperCase());
   }
 
+  static getRelatedCollectionId(attribute: Attribute): string | undefined {
+    if ("relatedCollection" in attribute && attribute.relatedCollection) {
+      return attribute.relatedCollection;
+    }
+    if ("relatedTable" in attribute && attribute.relatedTable) {
+      return attribute.relatedTable;
+    }
+    return undefined;
+  }
+
+  static getRelatedCollection(
+    attribute: Attribute,
+    collections?: Collection[],
+  ): Collection {
+    const relatedId = this.getRelatedCollectionId(attribute);
+    const relatedCollection = collections?.find((c) => c.$id === relatedId);
+    if (!relatedCollection) {
+      throw new Error(`Related collection with ID '${relatedId}' not found.`);
+    }
+    return relatedCollection;
+  }
+
   /**
    * Get the type literal of the given attribute.
    */

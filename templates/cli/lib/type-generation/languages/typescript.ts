@@ -21,11 +21,7 @@ export class TypeScript extends LanguageMeta {
       default: attribute.default,
       format: attribute.format,
       elements: attribute.elements,
-      relatedCollection:
-        ("relatedCollection" in attribute
-          ? attribute.relatedCollection
-          : undefined) ??
-        ("relatedTable" in attribute ? attribute.relatedTable : undefined),
+      relatedCollection: LanguageMeta.getRelatedCollectionId(attribute),
       relationType: attribute.relationType,
       side: attribute.side,
     } as TypeAttribute;

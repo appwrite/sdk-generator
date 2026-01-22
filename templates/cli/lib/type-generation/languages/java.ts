@@ -28,17 +28,10 @@ export class Java extends LanguageMeta {
         type = "Boolean";
         break;
       case AttributeType.RELATIONSHIP:
-        const relatedId =
-          ("relatedCollection" in attribute
-            ? attribute.relatedCollection
-            : undefined) ??
-          ("relatedTable" in attribute ? attribute.relatedTable : undefined);
-        const relatedCollection = collections?.find((c) => c.$id === relatedId);
-        if (!relatedCollection) {
-          throw new Error(
-            `Related collection with ID '${relatedId}' not found.`,
-          );
-        }
+        const relatedCollection = LanguageMeta.getRelatedCollection(
+          attribute,
+          collections,
+        );
         type = LanguageMeta.toPascalCase(relatedCollection.name);
         if (
           (attribute.relationType === "oneToMany" &&
@@ -79,8 +72,8 @@ export class Java extends LanguageMeta {
 import java.util.Objects;
 <% for (const attribute of collection.attributes) { -%>
 <% if (attribute.type === 'relationship') { -%>
-<% const relatedId = attribute.relatedCollection || attribute.relatedTable; -%>
-import io.appwrite.models.<%- toPascalCase(collections.find(c => c.$id === relatedId).name) %>;
+<% const related = getRelatedCollection(attribute, collections); -%>
+import io.appwrite.models.<%- toPascalCase(related.name) %>;
 <% } -%>
 <% } -%>
 
