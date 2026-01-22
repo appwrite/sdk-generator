@@ -14,8 +14,8 @@ import {
   SDK_TITLE,
   SDK_TITLE_LOWER,
   EXECUTABLE_NAME,
-  NPM_PACKAGE_NAME,
 } from "../constants.js";
+import { getAppwriteDependency } from "../shared/typescript-type-utils.js";
 
 export interface GenerateCommandOptions {
   output: string;
@@ -105,6 +105,7 @@ const generateAction = async (
 
     // Show language-specific usage instructions
     if (detectedLanguage === "typescript") {
+      const appwriteDep = getAppwriteDependency();
       console.log("");
       log(`Import the generated SDK in your project:`);
       console.log(
@@ -112,13 +113,12 @@ const generateAction = async (
       );
       console.log("");
       log(`Usage:`);
-      console.log(`  import { Client } from '${NPM_PACKAGE_NAME}';`);
+      console.log(`  import { Client } from '${appwriteDep}';`);
       console.log(
         `  const client = new Client().setEndpoint('...').setProject('...').setKey('...');`,
       );
-      console.log(`  const databases = createDatabases(client);`);
-      console.log(`  const db = databases.from('your-database-id');`);
-      console.log(`  await db.tableName.create({ ... });`);
+      console.log(`  const db = createDatabases(client);`);
+      console.log(`  await db.databaseName.tableName.create({ ... });`);
     }
   } catch (err: any) {
     error(`Failed to generate SDK: ${err.message}`);

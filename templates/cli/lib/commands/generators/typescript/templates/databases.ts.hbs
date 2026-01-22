@@ -108,16 +108,22 @@ function createDatabaseProxy<D extends DatabaseId>(
   });
 }
 
-export const createDatabases = (client: Client) => {
+export const createDatabases = (client: Client): DatabaseTables => {
   const tablesDB = new TablesDB(client);
   const dbCache = new Map<DatabaseId, DatabaseTables[DatabaseId]>();
 
-  return {
-    from: <T extends DatabaseId>(databaseId: T): DatabaseTables[T] => {
-      if (!dbCache.has(databaseId)) {
-        dbCache.set(databaseId, createDatabaseProxy(tablesDB, databaseId));
+  return new Proxy({} as DatabaseTables, {
+    get(_target, databaseId: string) {
+      if (typeof databaseId === 'symbol') return undefined;
+      if (!hasOwn(tableIdMap, databaseId)) return undefined;
+
+      if (!dbCache.has(databaseId as DatabaseId)) {
+        dbCache.set(databaseId as DatabaseId, createDatabaseProxy(tablesDB, databaseId as DatabaseId));
       }
-      return dbCache.get(databaseId) as DatabaseTables[T];
+      return dbCache.get(databaseId as DatabaseId);
     },
-  };
+    has(_target, databaseId: string) {
+      return typeof databaseId === 'string' && hasOwn(tableIdMap, databaseId);
+    },
+  });
 };
