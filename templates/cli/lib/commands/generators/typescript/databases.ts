@@ -2,6 +2,7 @@ import { z } from "zod";
 import Handlebars from "handlebars";
 import { ConfigType, AttributeSchema } from "../../config.js";
 import { LanguageMeta } from "../../../type-generation/languages/language.js";
+import { TypeScript } from "../../../type-generation/languages/typescript.js";
 import { SDK_TITLE, EXECUTABLE_NAME } from "../../../constants.js";
 import {
   BaseDatabasesGenerator,
@@ -15,7 +16,6 @@ import {
   TypeAttribute,
   TypeEntity,
 } from "../../../shared/typescript-type-utils.js";
-import { generateTypeScriptEnumCode } from "../../../shared/enum-utils.js";
 import typesTemplateSource from "./templates/types.ts.hbs";
 import databasesTemplateSource from "./templates/databases.ts.hbs";
 import indexTemplateSource from "./templates/index.ts.hbs";
@@ -40,6 +40,7 @@ const constantsTemplate = Handlebars.compile(String(constantsTemplateSource));
 export class TypeScriptDatabasesGenerator extends BaseDatabasesGenerator {
   readonly language: SupportedLanguage = "typescript";
   readonly fileExtension = "ts";
+  private readonly meta = new TypeScript();
 
   private getFields(
     entity: Entity,
@@ -102,9 +103,18 @@ export class TypeScriptDatabasesGenerator extends BaseDatabasesGenerator {
 
       for (const field of fields) {
         if (field.format === "enum" && field.elements) {
-          enumTypes.push(
-            generateTypeScriptEnumCode(entity.name, field.key, field.elements),
+          const enumDef = this.meta.generateEnum(
+            entity.name,
+            field.key,
+            field.elements,
           );
+          const enumValues = enumDef.members
+            .map((member, index) => {
+              const isLast = index === enumDef.members.length - 1;
+              return `    ${member.key} = ${JSON.stringify(member.value)}${isLast ? "" : ","}`;
+            })
+            .join("\n");
+          enumTypes.push(`export enum ${enumDef.name} {\n${enumValues}\n}`);
         }
       }
     }

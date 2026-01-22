@@ -17,10 +17,6 @@ import { Java } from "../type-generation/languages/java.js";
 import { Dart } from "../type-generation/languages/dart.js";
 import { JavaScript } from "../type-generation/languages/javascript.js";
 import { CSharp } from "../type-generation/languages/csharp.js";
-import {
-  generateTypeScriptEnumCode,
-  generateDartEnumMembers,
-} from "../shared/enum-utils.js";
 
 type SupportedLanguage =
   | "ts"
@@ -63,8 +59,6 @@ const templateHelpers = {
   toUpperSnakeCase: LanguageMeta.toUpperSnakeCase,
   getRelatedCollection: LanguageMeta.getRelatedCollection,
   getRelatedCollectionId: LanguageMeta.getRelatedCollectionId,
-  generateTypeScriptEnumCode,
-  generateDartEnumMembers,
 };
 
 const typesOutputArgument = new Argument(
@@ -103,6 +97,10 @@ const typesCommand = actionRunner(
     }
 
     const meta = createLanguageMeta(language as SupportedLanguage);
+    const templatingHelpers = {
+      ...templateHelpers,
+      generateEnum: meta.generateEnum.bind(meta),
+    };
 
     const rawOutputPath = rawOutputDirectory;
     const outputExt = path.extname(rawOutputPath);
@@ -187,7 +185,7 @@ const typesCommand = actionRunner(
       const content = templater({
         collections: dataItems,
         strict,
-        ...templateHelpers,
+        ...templatingHelpers,
         getType: meta.getType.bind(meta),
       });
 
@@ -202,7 +200,7 @@ const typesCommand = actionRunner(
           collections: dataItems,
           collection: item,
           strict,
-          ...templateHelpers,
+          ...templatingHelpers,
           getType: meta.getType.bind(meta),
         });
 

@@ -355,11 +355,6 @@ class CLI extends Node
                 'destination'   => 'lib/shared/typescript-type-utils.ts',
                 'template'      => 'cli/lib/shared/typescript-type-utils.ts',
             ],
-            [
-                'scope'         => 'copy',
-                'destination'   => 'lib/shared/enum-utils.ts',
-                'template'      => 'cli/lib/shared/enum-utils.ts',
-            ],
 
             // Commands (lib/commands/)
             [
