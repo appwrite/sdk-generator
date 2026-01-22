@@ -10,6 +10,7 @@ import {{ sdk.namespace | caseDot }}.extensions.jsonCast
 import {{ sdk.namespace | caseDot }}.models.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.Dispatchers.IO
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
 import okhttp3.Response
 import okhttp3.WebSocket
@@ -54,21 +55,16 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
             return
         }
 
-        val queryParamBuilder = StringBuilder()
-            .append("project=${client.config["project"]}")
+        val httpUrl = "${client.endpointRealtime}/realtime"
+            .toHttpUrl()
+            .newBuilder()
+            .addQueryParameter("project", client.config["project"].toString())
 
-        activeChannels.forEach {
-            queryParamBuilder
-                .append("&channels[]=$it")
-        }
-
-        activeQueries.forEach {
-            queryParamBuilder
-                .append("&queries[]=$it")
-        }
+        activeChannels.forEach { httpUrl.addQueryParameter("channels[]", it) }
+        activeQueries.forEach { httpUrl.addQueryParameter("queries[]", it) }
 
         val request = Request.Builder()
-            .url("${client.endpointRealtime}/realtime?$queryParamBuilder")
+            .url(httpUrl.build())
             .build()
 
         if (socket != null) {
