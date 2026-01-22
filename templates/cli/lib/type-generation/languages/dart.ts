@@ -49,7 +49,6 @@ export class Dart extends LanguageMeta {
     let type = "";
     switch (attribute.type) {
       case AttributeType.STRING:
-      case AttributeType.EMAIL:
       case AttributeType.DATETIME:
         type = "String";
         if (attribute.format === AttributeType.ENUM) {
@@ -181,12 +180,13 @@ map['<%= attribute.key %>']<% } -%>
 List<bool>.from(map['<%= attribute.key %>'] ?? [])<% } else { -%>
 map['<%= attribute.key %>']<% } -%>
 <% } else if (attribute.type === '${AttributeType.RELATIONSHIP}') { -%>
+<% const relatedId = attribute.relatedCollection || attribute.relatedTable; -%>
 <% if ((attribute.relationType === 'oneToMany' && attribute.side === 'parent') || (attribute.relationType === 'manyToOne' && attribute.side === 'child') || attribute.relationType === 'manyToMany') { -%>
-(map['<%= attribute.key %>'] as List<dynamic>?)?.map((e) => <%- toPascalCase(collections.find(c => c.$id === (attribute.relatedCollection || attribute.relatedTable)).name) %>.fromMap(e)).toList()
+(map['<%= attribute.key %>'] as List<dynamic>?)?.map((e) => <%- toPascalCase(collections.find(c => c.$id === relatedId).name) %>.fromMap(e)).toList()
 <% } else { -%>
 <% if (!attribute.required) { -%>
-map['<%= attribute.key %>'] != null ? <%- toPascalCase(collections.find(c => c.$id === (attribute.relatedCollection || attribute.relatedTable)).name) %>.fromMap(map['<%= attribute.key %>']) : null<% } else { -%>
-<%- toPascalCase(collections.find(c => c.$id === (attribute.relatedCollection || attribute.relatedTable)).name) %>.fromMap(map['<%= attribute.key %>'])<% } -%>
+map['<%= attribute.key %>'] != null ? <%- toPascalCase(collections.find(c => c.$id === relatedId).name) %>.fromMap(map['<%= attribute.key %>']) : null<% } else { -%>
+<%- toPascalCase(collections.find(c => c.$id === relatedId).name) %>.fromMap(map['<%= attribute.key %>'])<% } -%>
 <% } -%>
 <% } -%><% if (index < __attrs.length - 1) { -%>,<% } %>
 <% } -%>

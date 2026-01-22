@@ -125,7 +125,8 @@ public class <%= toPascalCase(collection.name) %>
                 }
             // RELATIONSHIP
             } else if (attribute.type === 'relationship') {
-                const relatedClass = toPascalCase(collections.find(c => c.$id === (attribute.relatedCollection || attribute.relatedTable)).name);
+                const relatedId = attribute.relatedCollection || attribute.relatedTable;
+                const relatedClass = toPascalCase(collections.find(c => c.$id === relatedId).name);
                 if ((attribute.relationType === 'oneToMany' && attribute.side === 'parent') || (attribute.relationType === 'manyToOne' && attribute.side === 'child') || attribute.relationType === 'manyToMany' || attribute.array) {
                     -%>((IEnumerable<object>)map["<%- attribute.key %>"]).Select(it => Models.<%- relatedClass %>.From((Dictionary<string, object>)it)).ToList()<%
                 } else {

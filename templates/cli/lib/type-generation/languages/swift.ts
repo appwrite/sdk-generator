@@ -149,10 +149,11 @@ public class <%- toPascalCase(collection.name) %>: Codable {
         return <%- toPascalCase(collection.name) %>(
 <% for (const [index, attribute] of Object.entries(collection.attributes)) { -%>
 <% if (attribute.type === 'relationship') { -%>
+<% const relatedId = attribute.relatedCollection || attribute.relatedTable; -%>
 <% if ((attribute.relationType === 'oneToMany' && attribute.side === 'parent') || (attribute.relationType === 'manyToOne' && attribute.side === 'child') || attribute.relationType === 'manyToMany') { -%>
-            <%- strict ? toCamelCase(attribute.key) : attribute.key %>: map["<%- attribute.key %>"] as<% if (!attribute.required) { %>?<% } else { %>!<% } %> [<%- toPascalCase(collections.find(c => c.$id === (attribute.relatedCollection || attribute.relatedTable)).name) %>]<% if (index < collection.attributes.length - 1) { %>,<% } %>
+            <%- strict ? toCamelCase(attribute.key) : attribute.key %>: map["<%- attribute.key %>"] as<% if (!attribute.required) { %>?<% } else { %>!<% } %> [<%- toPascalCase(collections.find(c => c.$id === relatedId).name) %>]<% if (index < collection.attributes.length - 1) { %>,<% } %>
 <% } else { -%>
-            <%- strict ? toCamelCase(attribute.key) : attribute.key %>: map["<%- attribute.key %>"] as<% if (!attribute.required) { %>?<% } else { %>!<% } %> <%- toPascalCase(collections.find(c => c.$id === (attribute.relatedCollection || attribute.relatedTable)).name) %><% if (index < collection.attributes.length - 1) { %>,<% } %>
+            <%- strict ? toCamelCase(attribute.key) : attribute.key %>: map["<%- attribute.key %>"] as<% if (!attribute.required) { %>?<% } else { %>!<% } %> <%- toPascalCase(collections.find(c => c.$id === relatedId).name) %><% if (index < collection.attributes.length - 1) { %>,<% } %>
 <% } -%>
 <% } else if (attribute.array) { -%>
 <% if (attribute.type === 'string') { -%>
