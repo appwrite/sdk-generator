@@ -17,6 +17,10 @@ import { Java } from "../type-generation/languages/java.js";
 import { Dart } from "../type-generation/languages/dart.js";
 import { JavaScript } from "../type-generation/languages/javascript.js";
 import { CSharp } from "../type-generation/languages/csharp.js";
+import {
+  generateTypeScriptEnumCode,
+  generateDartEnumMembers,
+} from "../shared/enum-utils.js";
 
 type SupportedLanguage =
   | "ts"
@@ -59,6 +63,8 @@ const templateHelpers = {
   toUpperSnakeCase: LanguageMeta.toUpperSnakeCase,
   getRelatedCollection: LanguageMeta.getRelatedCollection,
   getRelatedCollectionId: LanguageMeta.getRelatedCollectionId,
+  generateTypeScriptEnumCode,
+  generateDartEnumMembers,
 };
 
 const typesOutputArgument = new Argument(

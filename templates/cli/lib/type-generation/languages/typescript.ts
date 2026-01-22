@@ -50,10 +50,7 @@ export class TypeScript extends LanguageMeta {
 <% for (const attribute of collection.attributes) { -%>
 <% if (attribute.format === 'enum') { -%>
 export enum <%- toPascalCase(collection.name) %><%- toPascalCase(attribute.key) %> {
-<% const entries = Object.entries(attribute.elements); -%>
-<% for (let i = 0; i < entries.length; i++) { -%>
-    <%- toUpperSnakeCase(entries[i][1]) %> = "<%- entries[i][1] %>"<% if (i !== entries.length - 1) { %>,<% } %>
-<% } -%>
+<%- generateTypeScriptEnumCode(collection.name, attribute.key, Object.values(attribute.elements))\n      .split(\"\\n\").slice(1, -1).join(\"\\n\") %>
 }
 
 <% } -%>

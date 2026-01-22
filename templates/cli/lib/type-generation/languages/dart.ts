@@ -124,10 +124,21 @@ import '<%- toSnakeCase(related.name) %>.dart';
 
 <% for (const attribute of __attrs) { -%>
 <% if (attribute.format === '${AttributeType.ENUM}') { -%>
-enum <%- toPascalCase(collection.name) %><%- toPascalCase(attribute.key) %> {
-<% for (const [index, element] of Object.entries(attribute.elements)) { -%>
-  <%- strict ? toCamelCase(element) : element %><% if (index < attribute.elements.length - 1) { -%>,<% } %>
+<% const enumName = toPascalCase(collection.name) + toPascalCase(attribute.key); -%>
+<% const enumMembers = generateDartEnumMembers(Object.values(attribute.elements)); -%>
+enum <%- enumName %> {
+<% for (let i = 0; i < enumMembers.length; i++) { -%>
+  <%- enumMembers[i].key %>("<%- enumMembers[i].value %>")<% if (i < enumMembers.length - 1) { -%>,<% } %>
 <% } -%>
+  ;
+
+  const <%- enumName %>(this.value);
+  final String value;
+
+  static <%- enumName %>? fromValue(String? value) {
+    if (value == null) return null;
+    return <%- enumName %>.values.firstWhere((element) => element.value == value);
+  }
 }
 
 <% } -%>
@@ -137,22 +148,22 @@ class <%= toPascalCase(collection.name) %> {
   <%- getType(attribute, collections, collection.name) %> <%= strict ? toCamelCase(attribute.key) : attribute.key %>;
 <% } -%>
 
-  <%= toPascalCase(collection.name) %>({
+  <%= toPascalCase(collection.name) %>(<% if (__attrs.length > 0) { %>{
   <% for (const [index, attribute] of Object.entries(__attrs)) { -%>
   <% if (attribute.required) { %>required <% } %>this.<%= strict ? toCamelCase(attribute.key) : attribute.key %><% if (index < __attrs.length - 1) { -%>,<% } %>
   <% } -%>
-});
+}<% } %>);
 
   factory <%= toPascalCase(collection.name) %>.fromMap(Map<String, dynamic> map) {
-    return <%= toPascalCase(collection.name) %>(
+    return <%= toPascalCase(collection.name) %>(<% if (__attrs.length > 0) { %>
 <% for (const [index, attribute] of Object.entries(__attrs)) { -%>
-  <%= strict ? toCamelCase(attribute.key) : attribute.key %>: <% if (attribute.type === '${AttributeType.STRING}' || attribute.type === '${AttributeType.EMAIL}' || attribute.type === '${AttributeType.DATETIME}') { -%>
+      <%= strict ? toCamelCase(attribute.key) : attribute.key %>: <% if (attribute.type === '${AttributeType.STRING}' || attribute.type === '${AttributeType.EMAIL}' || attribute.type === '${AttributeType.DATETIME}') { -%>
 <% if (attribute.format === '${AttributeType.ENUM}') { -%>
 <% if (attribute.array) { -%>
-(map['<%= attribute.key %>'] as List<dynamic>?)?.map((e) => <%- toPascalCase(collection.name) %><%- toPascalCase(attribute.key) %>.values.firstWhere((element) => element.name == e)).toList()<% } else { -%>
+(map['<%= attribute.key %>'] as List<dynamic>?)?.map((e) => <%- toPascalCase(collection.name) %><%- toPascalCase(attribute.key) %>.values.firstWhere((element) => element.value == e)).toList()<% } else { -%>
 <% if (!attribute.required) { -%>
-map['<%= attribute.key %>'] != null ? <%- toPascalCase(collection.name) %><%- toPascalCase(attribute.key) %>.values.where((e) => e.name == map['<%= attribute.key %>']).firstOrNull : null<% } else { -%>
-<%- toPascalCase(collection.name) %><%- toPascalCase(attribute.key) %>.values.firstWhere((e) => e.name == map['<%= attribute.key %>'])<% } -%>
+<%- toPascalCase(collection.name) %><%- toPascalCase(attribute.key) %>.fromValue(map['<%= attribute.key %>'])<% } else { -%>
+<%- toPascalCase(collection.name) %><%- toPascalCase(attribute.key) %>.values.firstWhere((e) => e.value == map['<%= attribute.key %>'])<% } -%>
 <% } -%>
 <% } else { -%>
 <% if (attribute.array) { -%>
@@ -174,29 +185,27 @@ map['<%= attribute.key %>']<% } -%>
 <% } else if (attribute.type === '${AttributeType.RELATIONSHIP}') { -%>
 <% const relatedClass = toPascalCase(getRelatedCollection(attribute, collections).name); -%>
 <% if ((attribute.relationType === 'oneToMany' && attribute.side === 'parent') || (attribute.relationType === 'manyToOne' && attribute.side === 'child') || attribute.relationType === 'manyToMany') { -%>
-(map['<%= attribute.key %>'] as List<dynamic>?)?.map((e) => <%- relatedClass %>.fromMap(e)).toList()
-<% } else { -%>
+(map['<%= attribute.key %>'] as List<dynamic>?)?.map((e) => <%- relatedClass %>.fromMap(e)).toList()<% } else { -%>
 <% if (!attribute.required) { -%>
 map['<%= attribute.key %>'] != null ? <%- relatedClass %>.fromMap(map['<%= attribute.key %>']) : null<% } else { -%>
 <%- relatedClass %>.fromMap(map['<%= attribute.key %>'])<% } -%>
 <% } -%>
 <% } -%><% if (index < __attrs.length - 1) { -%>,<% } %>
 <% } -%>
-    );
+    <% } %>);
   }
 
   Map<String, dynamic> toMap() {
     return {
 <% for (const [index, attribute] of Object.entries(__attrs)) { -%>
-  '<%= attribute.key %>': <% if (attribute.type === '${AttributeType.RELATIONSHIP}') { -%>
+      '<%= attribute.key %>': <% if (attribute.type === '${AttributeType.RELATIONSHIP}') { -%>
 <% if ((attribute.relationType === 'oneToMany' && attribute.side === 'parent') || (attribute.relationType === 'manyToOne' && attribute.side === 'child') || attribute.relationType === 'manyToMany') { -%>
-<%= strict ? toCamelCase(attribute.key) : attribute.key %><% if (!attribute.required) { %>?<% } %>.map((e) => e.toMap()).toList()
-<% } else { -%>
+<%= strict ? toCamelCase(attribute.key) : attribute.key %><% if (!attribute.required) { %>?<% } %>.map((e) => e.toMap()).toList()<% } else { -%>
 <%= strict ? toCamelCase(attribute.key) : attribute.key %><% if (!attribute.required) { %>?<% } %>.toMap()<% } -%>
 <% } else if (attribute.format === '${AttributeType.ENUM}') { -%>
 <% if (attribute.array) { -%>
-<%= strict ? toCamelCase(attribute.key) : attribute.key %><% if (!attribute.required) { %>?<% } %>.map((e) => e.name).toList()<% } else { -%>
-<%= strict ? toCamelCase(attribute.key) : attribute.key %><% if (!attribute.required) { %>?<% } %>.name<% } -%>
+<%= strict ? toCamelCase(attribute.key) : attribute.key %><% if (!attribute.required) { %>?<% } %>.map((e) => e.value).toList()<% } else { -%>
+<%= strict ? toCamelCase(attribute.key) : attribute.key %><% if (!attribute.required) { %>?<% } %>.value<% } -%>
 <% } else { -%>
 <%= strict ? toCamelCase(attribute.key) : attribute.key -%>
 <% } -%><% if (index < __attrs.length - 1) { -%>,<% } %>

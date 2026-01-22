@@ -12,10 +12,10 @@ import {
   getTypeScriptType,
   getAppwriteDependency,
   supportsBulkMethods,
-  generateEnumCode,
   TypeAttribute,
   TypeEntity,
 } from "../../../shared/typescript-type-utils.js";
+import { generateTypeScriptEnumCode } from "../../../shared/enum-utils.js";
 import typesTemplateSource from "./templates/types.ts.hbs";
 import databasesTemplateSource from "./templates/databases.ts.hbs";
 import indexTemplateSource from "./templates/index.ts.hbs";
@@ -103,7 +103,7 @@ export class TypeScriptDatabasesGenerator extends BaseDatabasesGenerator {
       for (const field of fields) {
         if (field.format === "enum" && field.elements) {
           enumTypes.push(
-            generateEnumCode(entity.name, field.key, field.elements),
+            generateTypeScriptEnumCode(entity.name, field.key, field.elements),
           );
         }
       }
