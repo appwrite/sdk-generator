@@ -64,10 +64,12 @@ export class TypeScriptDatabasesGenerator extends BaseDatabasesGenerator {
     if (!fields) return "";
 
     const typeName = LanguageMeta.toPascalCase(entity.name);
-    const typeEntities: TypeEntity[] = entities.map((e) => ({
-      $id: e.$id,
-      name: e.name,
-    }));
+    const typeEntities: TypeEntity[] = entities
+      .filter((e) => e.databaseId === entity.databaseId)
+      .map((e) => ({
+        $id: e.$id,
+        name: e.name,
+      }));
 
     const attributes = fields
       .map((attr) => {
@@ -147,10 +149,10 @@ export class TypeScriptDatabasesGenerator extends BaseDatabasesGenerator {
       deleteMany: (options?: { queries?: (q: QueryBuilder<${typeName}>) => string[]; transactionId?: string }) => Promise<{ total: number; rows: ${typeName}[] }>;`
               : "";
 
-            return `    '${entity.name}': {\n${baseMethods}${bulkMethods}\n    }`;
+            return `    ${JSON.stringify(entity.name)}: {\n${baseMethods}${bulkMethods}\n    }`;
           })
           .join(";\n");
-        return `  '${dbId}': {\n${tableTypes}\n  }`;
+        return `  ${JSON.stringify(dbId)}: {\n${tableTypes}\n  }`;
       })
       .join(";\n");
 
@@ -171,7 +173,7 @@ export class TypeScriptDatabasesGenerator extends BaseDatabasesGenerator {
       .join("\n\n");
     const entitiesByDb = this.groupEntitiesByDb(entities);
     const dbIds = Array.from(entitiesByDb.keys());
-    const databaseIdType = dbIds.map((id) => `'${id}'`).join(" | ");
+    const databaseIdType = dbIds.map((id) => JSON.stringify(id)).join(" | ");
 
     return typesTemplate({
       appwriteDep,
@@ -210,7 +212,7 @@ export class TypeScriptDatabasesGenerator extends BaseDatabasesGenerator {
     for (const [dbId, dbEntities] of entitiesByDb.entries()) {
       for (const entity of dbEntities) {
         if (this.hasRelationshipColumns(entity)) {
-          tablesWithRelationships.push(`'${dbId}:${entity.name}'`);
+          tablesWithRelationships.push(JSON.stringify(`${dbId}:${entity.name}`));
         }
       }
     }
