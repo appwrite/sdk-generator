@@ -184,35 +184,3 @@ export function filterBySchema<T extends z.ZodObject<z.ZodRawShape>>(
 
   return result as z.infer<T>;
 }
-
-export function toPascalCase(str: string): string {
-  return str
-    .replace(/[-_\s]+(.)?/g, (_, char) => (char ? char.toUpperCase() : ""))
-    .replace(/^(.)/, (char) => char.toUpperCase());
-}
-
-export function toUpperSnakeCase(str: string): string {
-  return str
-    .replace(/([a-z])([A-Z])/g, "$1_$2")
-    .replace(/[-\s]+/g, "_")
-    .toUpperCase();
-}
-
-export function sanitizeEnumKey(key: string): string {
-  let sanitized = toUpperSnakeCase(key)
-    .replace(/[^A-Z0-9_]/gi, "_") // Replace non-alphanumeric with underscores
-    .replace(/_+/g, "_") // Collapse consecutive underscores
-    .replace(/^_+|_+$/g, ""); // Trim leading/trailing underscores
-
-  // Prefix with underscore if starts with a digit
-  if (/^[0-9]/.test(sanitized)) {
-    sanitized = "_" + sanitized;
-  }
-
-  // Fallback if empty after sanitization
-  if (!sanitized) {
-    sanitized = "_VALUE";
-  }
-
-  return sanitized;
-}

@@ -1,0 +1,143 @@
+import { Client, TablesDB, ID, Query, type Models, Permission } from '{{appwriteDep}}';
+import type { DatabaseId, DatabaseTables, QueryBuilder } from './types.js';
+{{#if requiresApiKey}}
+import { PROJECT_ID, ENDPOINT, API_KEY } from './constants.js';
+{{else}}
+import { PROJECT_ID, ENDPOINT } from './constants.js';
+{{/if}}
+
+const createQueryBuilder = <T>(): QueryBuilder<T> => ({
+  equal: (field, value) => Query.equal(String(field), value as any),
+  notEqual: (field, value) => Query.notEqual(String(field), value as any),
+  lessThan: (field, value) => Query.lessThan(String(field), value as any),
+  lessThanEqual: (field, value) => Query.lessThanEqual(String(field), value as any),
+  greaterThan: (field, value) => Query.greaterThan(String(field), value as any),
+  greaterThanEqual: (field, value) => Query.greaterThanEqual(String(field), value as any),
+  contains: (field, value) => Query.contains(String(field), value as any),
+  search: (field, value) => Query.search(String(field), value),
+  isNull: (field) => Query.isNull(String(field)),
+  isNotNull: (field) => Query.isNotNull(String(field)),
+  startsWith: (field, value) => Query.startsWith(String(field), value),
+  endsWith: (field, value) => Query.endsWith(String(field), value),
+  between: (field, start, end) => Query.between(String(field), start as any, end as any),
+  select: (fields) => Query.select(fields.map(String)),
+  orderAsc: (field) => Query.orderAsc(String(field)),
+  orderDesc: (field) => Query.orderDesc(String(field)),
+  limit: (value) => Query.limit(value),
+  offset: (value) => Query.offset(value),
+  cursorAfter: (documentId) => Query.cursorAfter(documentId),
+  cursorBefore: (documentId) => Query.cursorBefore(documentId),
+  or: (...queries) => Query.or(queries),
+  and: (...queries) => Query.and(queries),
+});
+
+{{{TABLE_ID_MAP}}}
+
+{{{TABLES_WITH_RELATIONSHIPS}}}
+
+function createTableApi<T extends Models.Row>(
+  tablesDB: TablesDB,
+  databaseId: string,
+  tableId: string,
+) {
+  return {
+    create: (data: any, options?: { rowId?: string; permissions?: Permission[]; transactionId?: string }) =>
+      tablesDB.createRow<T>({
+        databaseId,
+        tableId,
+        rowId: options?.rowId ?? ID.unique(),
+        data,
+        permissions: options?.permissions?.map((p) => p.toString()),
+        transactionId: options?.transactionId,
+      }),
+    get: (id: string) =>
+      tablesDB.getRow<T>({
+        databaseId,
+        tableId,
+        rowId: id,
+      }),
+    update: (id: string, data: any, options?: { permissions?: Permission[]; transactionId?: string }) =>
+      tablesDB.updateRow<T>({
+        databaseId,
+        tableId,
+        rowId: id,
+        data,
+        ...(options?.permissions ? { permissions: options.permissions.map((p) => p.toString()) } : {}),
+        transactionId: options?.transactionId,
+      }),
+    delete: async (id: string, options?: { transactionId?: string }) => {
+      await tablesDB.deleteRow({
+        databaseId,
+        tableId,
+        rowId: id,
+        transactionId: options?.transactionId,
+      });
+    },
+    list: (options?: { queries?: (q: any) => string[] }) =>
+      tablesDB.listRows<T>({
+        databaseId,
+        tableId,
+        queries: options?.queries?.(createQueryBuilder<T>()),
+      }),{{{BULK_METHODS}}}
+  };
+}
+
+{{{BULK_CHECK}}}
+const hasOwn = (obj: unknown, key: string): boolean =>
+  obj != null && Object.prototype.hasOwnProperty.call(obj, key);
+
+function createDatabaseProxy<D extends DatabaseId>(
+  tablesDB: TablesDB,
+  databaseId: D,
+): DatabaseTables[D] {
+  const tableApiCache = new Map<string, ReturnType<typeof createTableApi>>();
+  const dbMap = tableIdMap[databaseId];
+
+  return new Proxy({} as DatabaseTables[D], {
+    get(_target, tableName: string) {
+      if (typeof tableName === 'symbol') return undefined;
+
+      if (!tableApiCache.has(tableName)) {
+        if (!hasOwn(dbMap, tableName)) return undefined;
+        const tableId = dbMap[tableName];
+
+        const api = createTableApi(tablesDB, databaseId, tableId);
+        {{{BULK_REMOVAL}}}
+        tableApiCache.set(tableName, api);
+      }
+      return tableApiCache.get(tableName);
+    },
+    has(_target, tableName: string) {
+      return typeof tableName === 'string' && hasOwn(dbMap, tableName);
+    },
+  });
+}
+
+function createDatabasesProxy(tablesDB: TablesDB): DatabaseTables {
+  const dbCache = new Map<DatabaseId, DatabaseTables[DatabaseId]>();
+
+  return new Proxy({} as DatabaseTables, {
+    get(_target, databaseId: string) {
+      if (typeof databaseId === 'symbol') return undefined;
+      if (!hasOwn(tableIdMap, databaseId)) return undefined;
+
+      if (!dbCache.has(databaseId as DatabaseId)) {
+        dbCache.set(databaseId as DatabaseId, createDatabaseProxy(tablesDB, databaseId as DatabaseId));
+      }
+      return dbCache.get(databaseId as DatabaseId);
+    },
+    has(_target, databaseId: string) {
+      return typeof databaseId === 'string' && hasOwn(tableIdMap, databaseId);
+    },
+  });
+}
+
+// Initialize client
+const client = new Client()
+  .setEndpoint(ENDPOINT)
+  .setProject(PROJECT_ID){{#if requiresApiKey}}
+  .setKey(API_KEY){{/if}};
+
+const tablesDB = new TablesDB(client);
+
+export const databases: DatabaseTables = createDatabasesProxy(tablesDB);

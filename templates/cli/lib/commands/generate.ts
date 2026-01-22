@@ -10,12 +10,7 @@ import {
   LanguageDetector,
   SupportedLanguage,
 } from "./generators/index.js";
-import {
-  SDK_TITLE,
-  SDK_TITLE_LOWER,
-  EXECUTABLE_NAME,
-  NPM_PACKAGE_NAME,
-} from "../constants.js";
+import { SDK_TITLE, SDK_TITLE_LOWER, EXECUTABLE_NAME } from "../constants.js";
 
 export interface GenerateCommandOptions {
   output: string;
@@ -78,6 +73,7 @@ const generateAction = async (
   const config: ConfigType = {
     projectId: project.projectId,
     projectName: project.projectName,
+    endpoint: localConfig.getEndpoint(),
     tablesDB: localConfig.getTablesDBs(),
     tables: localConfig.getTables(),
     databases: localConfig.getDatabases(),
@@ -105,20 +101,31 @@ const generateAction = async (
 
     // Show language-specific usage instructions
     if (detectedLanguage === "typescript") {
+      const entities = config.tables?.length ? config.tables : config.collections;
+      const firstEntity = entities?.[0];
+      const dbId = firstEntity?.databaseId ?? "databaseId";
+      const tableName = firstEntity?.name ?? "tableName";
+      const formatAccessor = (value: string): string =>
+        /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(value)
+          ? `.${value}`
+          : `[${JSON.stringify(value)}]`;
+      const dbAccessor = formatAccessor(dbId);
+      const tableAccessor = formatAccessor(tableName);
+
       console.log("");
       log(`Import the generated SDK in your project:`);
       console.log(
-        `  import { createDatabases } from "./${outputDir}/${SDK_TITLE_LOWER}/index.js";`,
+        `  import { databases } from "./${outputDir}/${SDK_TITLE_LOWER}/index.js";`,
+      );
+      console.log("");
+      log(`Configure your client constants:`);
+      console.log(
+        `  set values in ./${outputDir}/${SDK_TITLE_LOWER}/constants.ts`,
       );
       console.log("");
       log(`Usage:`);
-      console.log(`  import { Client } from '${NPM_PACKAGE_NAME}';`);
-      console.log(
-        `  const client = new Client().setEndpoint('...').setProject('...').setKey('...');`,
-      );
-      console.log(`  const databases = createDatabases(client);`);
-      console.log(`  const db = databases.from('your-database-id');`);
-      console.log(`  await db.tableName.create({ ... });`);
+      console.log(`  const mydb = databases${dbAccessor};`);
+      console.log(`  await mydb${tableAccessor}.create({ ... });`);
     }
   } catch (err: any) {
     error(`Failed to generate SDK: ${err.message}`);
