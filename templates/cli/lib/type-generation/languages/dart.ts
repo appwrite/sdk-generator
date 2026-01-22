@@ -165,9 +165,8 @@ import '<%- toSnakeCase(related.name) %>.dart';
 <% const enumDef = generateEnum(collection.name, attribute.key, Object.values(attribute.elements)); -%>
 enum <%- enumDef.name %> {
 <% for (let i = 0; i < enumDef.members.length; i++) { -%>
-  <%- enumDef.members[i].key %>("<%- enumDef.members[i].value %>")<% if (i < enumDef.members.length - 1) { -%>,<% } %>
+  <%- enumDef.members[i].key %>("<%- enumDef.members[i].value %>")<% if (i < enumDef.members.length - 1) { -%>,<% } else { -%>;<% } %>
 <% } -%>
-  ;
 
   const <%- enumDef.name %>(this.value);
   final String value;
