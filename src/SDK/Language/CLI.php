@@ -409,6 +409,11 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'lib/commands/generators/typescript/templates/constants.ts.hbs',
+                'template'      => 'cli/lib/commands/generators/typescript/templates/constants.ts.hbs',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'lib/commands/errors.ts',
                 'template'      => 'cli/lib/commands/errors.ts',
             ],

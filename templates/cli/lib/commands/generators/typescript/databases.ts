@@ -19,6 +19,7 @@ import {
 import typesTemplateSource from "./templates/types.ts.hbs";
 import databasesTemplateSource from "./templates/databases.ts.hbs";
 import indexTemplateSource from "./templates/index.ts.hbs";
+import constantsTemplateSource from "./templates/constants.ts.hbs";
 
 type Entity =
   | NonNullable<ConfigType["tables"]>[number]
@@ -30,6 +31,7 @@ type Entities =
 const typesTemplate = Handlebars.compile(String(typesTemplateSource));
 const databasesTemplate = Handlebars.compile(String(databasesTemplateSource));
 const indexTemplate = Handlebars.compile(String(indexTemplateSource));
+const constantsTemplate = Handlebars.compile(String(constantsTemplateSource));
 
 /**
  * TypeScript-specific database generator.
@@ -277,6 +279,7 @@ export class TypeScriptDatabasesGenerator extends BaseDatabasesGenerator {
 
     return databasesTemplate({
       appwriteDep,
+      requiresApiKey: supportsBulk,
       TABLE_ID_MAP: this.generateTableIdMap(entitiesByDb),
       TABLES_WITH_RELATIONSHIPS:
         this.generateTablesWithRelationships(entitiesByDb),
@@ -290,6 +293,18 @@ export class TypeScriptDatabasesGenerator extends BaseDatabasesGenerator {
     return indexTemplate({
       sdkTitle: SDK_TITLE,
       executableName: EXECUTABLE_NAME,
+    });
+  }
+
+  private generateConstantsFile(config: ConfigType): string {
+    const appwriteDep = getAppwriteDependency();
+    const supportsBulk = supportsBulkMethods(appwriteDep);
+
+    return constantsTemplate({
+      sdkTitle: SDK_TITLE,
+      projectId: config.projectId,
+      endpoint: config.endpoint ?? "",
+      requiresApiKey: supportsBulk,
     });
   }
 
@@ -317,12 +332,14 @@ export class TypeScriptDatabasesGenerator extends BaseDatabasesGenerator {
         "// No tables or collections found in configuration\n",
       );
       files.set("index.ts", this.generateIndexFile());
+      files.set("constants.ts", this.generateConstantsFile(config));
       return { files };
     }
 
     files.set("types.ts", this.generateTypesFile(config));
     files.set("databases.ts", this.generateDatabasesFile(config));
     files.set("index.ts", this.generateIndexFile());
+    files.set("constants.ts", this.generateConstantsFile(config));
 
     return { files };
   }

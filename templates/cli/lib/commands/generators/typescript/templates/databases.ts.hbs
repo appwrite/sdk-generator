@@ -1,5 +1,10 @@
 import { Client, TablesDB, ID, Query, type Models, Permission } from '{{appwriteDep}}';
 import type { DatabaseId, DatabaseTables, QueryBuilder } from './types.js';
+{{#if requiresApiKey}}
+import { PROJECT_ID, ENDPOINT, API_KEY } from './constants.js';
+{{else}}
+import { PROJECT_ID, ENDPOINT } from './constants.js';
+{{/if}}
 
 const createQueryBuilder = <T>(): QueryBuilder<T> => ({
   equal: (field, value) => Query.equal(String(field), value as any),
@@ -108,8 +113,7 @@ function createDatabaseProxy<D extends DatabaseId>(
   });
 }
 
-export const createDatabases = (client: Client): DatabaseTables => {
-  const tablesDB = new TablesDB(client);
+function createDatabasesProxy(tablesDB: TablesDB): DatabaseTables {
   const dbCache = new Map<DatabaseId, DatabaseTables[DatabaseId]>();
 
   return new Proxy({} as DatabaseTables, {
@@ -126,4 +130,14 @@ export const createDatabases = (client: Client): DatabaseTables => {
       return typeof databaseId === 'string' && hasOwn(tableIdMap, databaseId);
     },
   });
-};
+}
+
+// Initialize client
+const client = new Client()
+  .setEndpoint(ENDPOINT)
+  .setProject(PROJECT_ID){{#if requiresApiKey}}
+  .setKey(API_KEY){{/if}};
+
+const tablesDB = new TablesDB(client);
+
+export const databases: DatabaseTables = createDatabasesProxy(tablesDB);

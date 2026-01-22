@@ -10,12 +10,7 @@ import {
   LanguageDetector,
   SupportedLanguage,
 } from "./generators/index.js";
-import {
-  SDK_TITLE,
-  SDK_TITLE_LOWER,
-  EXECUTABLE_NAME,
-} from "../constants.js";
-import { getAppwriteDependency } from "../shared/typescript-type-utils.js";
+import { SDK_TITLE, SDK_TITLE_LOWER, EXECUTABLE_NAME } from "../constants.js";
 
 export interface GenerateCommandOptions {
   output: string;
@@ -78,6 +73,7 @@ const generateAction = async (
   const config: ConfigType = {
     projectId: project.projectId,
     projectName: project.projectName,
+    endpoint: localConfig.getEndpoint(),
     tablesDB: localConfig.getTablesDBs(),
     tables: localConfig.getTables(),
     databases: localConfig.getDatabases(),
@@ -105,20 +101,20 @@ const generateAction = async (
 
     // Show language-specific usage instructions
     if (detectedLanguage === "typescript") {
-      const appwriteDep = getAppwriteDependency();
       console.log("");
       log(`Import the generated SDK in your project:`);
       console.log(
-        `  import { createDatabases } from "./${outputDir}/${SDK_TITLE_LOWER}/index.js";`,
+        `  import { databases } from "./${outputDir}/${SDK_TITLE_LOWER}/index.js";`,
+      );
+      console.log("");
+      log(`Configure your client constants:`);
+      console.log(
+        `  set values in ./${outputDir}/${SDK_TITLE_LOWER}/constants.ts`,
       );
       console.log("");
       log(`Usage:`);
-      console.log(`  import { Client } from '${appwriteDep}';`);
-      console.log(
-        `  const client = new Client().setEndpoint('...').setProject('...').setKey('...');`,
-      );
-      console.log(`  const db = createDatabases(client);`);
-      console.log(`  await db.databaseName.tableName.create({ ... });`);
+      console.log(`  const mydb = databases.tableDBName;`);
+      console.log(`  await mydb.tableName.create({ ... });`);
     }
   } catch (err: any) {
     error(`Failed to generate SDK: ${err.message}`);
