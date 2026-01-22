@@ -43,8 +43,7 @@ void main() async {
   final rtsubWithQueries = realtime.subscribe(
     ["tests"],
     queries: [
-      Query.equal('title', ['Spiderman']),
-      Query.greaterThan('releasedYear', 1990),
+      Query.equal('type', ['tests'])
     ],
   );
 

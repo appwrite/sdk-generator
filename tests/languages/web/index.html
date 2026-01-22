@@ -52,8 +52,7 @@
                     responseRealtimeWithQueries = message.payload.response;
                 },
                 [
-                    Query.equal('title', ['Spiderman']),
-                    Query.greaterThan('releasedYear', 1990),
+                    Query.equal('type', ['tests'])
                 ],
             );
 

@@ -96,8 +96,7 @@ class ServiceTest {
             "tests",
             payloadType = TestPayload::class.java,
             queries = listOf(
-                Query.equal("title", listOf("Spiderman")),
-                Query.greaterThan("releasedYear", 1990),
+                Query.equal("type", listOf("tests"))
             )
         ) {
             realtimeResponseWithQueries = it.payload.response

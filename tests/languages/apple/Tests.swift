@@ -55,8 +55,7 @@ class Tests: XCTestCase {
         try await realtime.subscribe(
             channels: ["tests"],
             queries: [
-                Query.equal("title", value: ["Spiderman"]),
-                Query.greaterThan("releasedYear", value: 1990),
+                Query.equal("type", value: ["tests"])
             ]
         ) { message in
             realtimeResponseWithQueries = message.payload?["response"] as? String ?? realtimeResponseWithQueries
