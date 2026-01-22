@@ -97,6 +97,10 @@ const typesCommand = actionRunner(
     }
 
     const meta = createLanguageMeta(language as SupportedLanguage);
+    const templatingHelpers = {
+      ...templateHelpers,
+      generateEnum: meta.generateEnum.bind(meta),
+    };
 
     const rawOutputPath = rawOutputDirectory;
     const outputExt = path.extname(rawOutputPath);
@@ -181,7 +185,7 @@ const typesCommand = actionRunner(
       const content = templater({
         collections: dataItems,
         strict,
-        ...templateHelpers,
+        ...templatingHelpers,
         getType: meta.getType.bind(meta),
       });
 
@@ -196,7 +200,7 @@ const typesCommand = actionRunner(
           collections: dataItems,
           collection: item,
           strict,
-          ...templateHelpers,
+          ...templatingHelpers,
           getType: meta.getType.bind(meta),
         });
 

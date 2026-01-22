@@ -1,10 +1,33 @@
-import { LanguageMeta, Attribute, Collection } from "./language.js";
+import {
+  LanguageMeta,
+  Attribute,
+  Collection,
+  EnumDefinition,
+  EnumMember,
+} from "./language.js";
 import {
   getTypeScriptType,
   getAppwriteDependency,
   TypeAttribute,
   TypeEntity,
 } from "../../shared/typescript-type-utils.js";
+
+function generateEnumMembers(elements: string[]): EnumMember[] {
+  const usedKeys = new Set<string>();
+
+  return elements.map((element) => {
+    let key = LanguageMeta.sanitizeEnumKey(element);
+    if (usedKeys.has(key)) {
+      let disambiguator = 1;
+      while (usedKeys.has(`${key}_${disambiguator}`)) {
+        disambiguator++;
+      }
+      key = `${key}_${disambiguator}`;
+    }
+    usedKeys.add(key);
+    return { key, value: element };
+  });
+}
 
 export class TypeScript extends LanguageMeta {
   getType(
@@ -38,6 +61,21 @@ export class TypeScript extends LanguageMeta {
     return true;
   }
 
+  generateEnum(
+    entityName: string,
+    attributeKey: string,
+    elements: string[],
+  ): EnumDefinition {
+    const name =
+      LanguageMeta.toPascalCase(entityName) +
+      LanguageMeta.toPascalCase(attributeKey);
+
+    return {
+      name,
+      members: generateEnumMembers(elements),
+    };
+  }
+
   getTemplate(): string {
     const appwriteDep = getAppwriteDependency();
 
@@ -49,10 +87,10 @@ export class TypeScript extends LanguageMeta {
 <% for (const collection of collections) { -%>
 <% for (const attribute of collection.attributes) { -%>
 <% if (attribute.format === 'enum') { -%>
-export enum <%- toPascalCase(collection.name) %><%- toPascalCase(attribute.key) %> {
-<% const entries = Object.entries(attribute.elements); -%>
-<% for (let i = 0; i < entries.length; i++) { -%>
-    <%- toUpperSnakeCase(entries[i][1]) %> = "<%- entries[i][1] %>"<% if (i !== entries.length - 1) { %>,<% } %>
+<% const enumDef = generateEnum(collection.name, attribute.key, Object.values(attribute.elements)); -%>
+export enum <%- enumDef.name %> {
+<% for (let i = 0; i < enumDef.members.length; i++) { -%>
+    <%- enumDef.members[i].key %> = <%- JSON.stringify(enumDef.members[i].value) %><% if (i < enumDef.members.length - 1) { -%>,<% } %>
 <% } -%>
 }
 

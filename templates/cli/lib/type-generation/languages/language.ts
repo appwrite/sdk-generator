@@ -13,6 +13,13 @@ export type Collection = (CollectionType | TableType) & {
   attributes: Attribute[];
 };
 
+export type EnumMember = { key: string; value: string };
+
+export type EnumDefinition = {
+  name: string;
+  members: EnumMember[];
+};
+
 export abstract class LanguageMeta {
   constructor() {
     if (new.target === LanguageMeta) {
@@ -37,6 +44,16 @@ export abstract class LanguageMeta {
 
   static toUpperSnakeCase(string: string): string {
     return this.toSnakeCase(string).toUpperCase();
+  }
+
+  static sanitizeEnumKey(value: string): string {
+    let key = this.toUpperSnakeCase(value);
+
+    if (!key || /^\d/.test(key)) {
+      key = `_${key}`;
+    }
+
+    return key;
   }
 
   static toCamelCase(string: string): string {
@@ -79,6 +96,14 @@ export abstract class LanguageMeta {
     collections?: Collection[],
     collectionName?: string,
   ): string;
+
+  generateEnum(
+    _entityName: string,
+    _attributeKey: string,
+    _elements: string[],
+  ): EnumDefinition {
+    throw new Error("Enum generation is not supported for this language.");
+  }
 
   /**
    * Returns true if the language uses a single file for all types.
