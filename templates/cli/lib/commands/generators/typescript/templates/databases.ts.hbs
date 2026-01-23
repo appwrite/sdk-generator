@@ -1,9 +1,5 @@
 import { Client, TablesDB, ID, Query, type Models, Permission } from '{{appwriteDep}}';
-{{#if supportsServerSide}}
-import type { DatabaseHandle, DatabaseId, DatabaseTables, QueryBuilder } from './types.js';
-{{else}}
-import type { DatabaseId, DatabaseTables, QueryBuilder } from './types.js';
-{{/if}}
+import type { DatabaseHandle, DatabaseId, DatabaseTableMap, DatabaseTables, QueryBuilder } from './types.js';
 {{#if supportsServerSide}}
 import { PROJECT_ID, ENDPOINT, API_KEY } from './constants.js';
 {{else}}
@@ -93,16 +89,15 @@ function createTableApi<T extends Models.Row>(
 const hasOwn = (obj: unknown, key: string): boolean =>
   obj != null && Object.prototype.hasOwnProperty.call(obj, key);
 
-{{#if supportsServerSide}}
 function createDatabaseHandle<D extends DatabaseId>(
   tablesDB: TablesDB,
   databaseId: D,
 ): DatabaseHandle<D> {
-  const tableApiCache = new Map<string, ReturnType<typeof createTableApi>>();
+  const tableApiCache = new Map<string, unknown>();
   const dbMap = tableIdMap[databaseId];
 
   return {
-    use: (tableName: string) => {
+    use: <T extends keyof DatabaseTableMap[D] & string>(tableName: T): DatabaseTableMap[D][T] => {
       if (!hasOwn(dbMap, tableName)) {
         throw new Error(`Unknown table "${tableName}" in database "${databaseId}"`);
       }
@@ -113,8 +108,9 @@ function createDatabaseHandle<D extends DatabaseId>(
         {{{BULK_REMOVAL}}}
         tableApiCache.set(tableName, api);
       }
-      return tableApiCache.get(tableName);
+      return tableApiCache.get(tableName) as DatabaseTableMap[D][T];
     },
+{{#if supportsServerSide}}
     create: (tableId: string, name: string, options?: { permissions?: Permission[]; rowSecurity?: boolean; enabled?: boolean; columns?: any[]; indexes?: any[] }) =>
       tablesDB.createTable({
         databaseId,
@@ -150,6 +146,7 @@ function createDatabaseHandle<D extends DatabaseId>(
         tableId,
       });
     },
+{{/if}}
   };
 }
 
@@ -167,6 +164,7 @@ function createDatabasesApi(tablesDB: TablesDB): DatabaseTables {
       }
       return dbCache.get(databaseId);
     },
+{{#if supportsServerSide}}
     create: (databaseId: string, name: string, options?: { enabled?: boolean }) =>
       tablesDB.create({
         databaseId,
@@ -184,55 +182,9 @@ function createDatabasesApi(tablesDB: TablesDB): DatabaseTables {
         databaseId,
       });
     },
+{{/if}}
   } as DatabaseTables;
 }
-{{else}}
-function createDatabaseProxy<D extends DatabaseId>(
-  tablesDB: TablesDB,
-  databaseId: D,
-): DatabaseTables[D] {
-  const tableApiCache = new Map<string, ReturnType<typeof createTableApi>>();
-  const dbMap = tableIdMap[databaseId];
-
-  return new Proxy({} as DatabaseTables[D], {
-    get(_target, tableName: string) {
-      if (typeof tableName === 'symbol') return undefined;
-
-      if (!tableApiCache.has(tableName)) {
-        if (!hasOwn(dbMap, tableName)) return undefined;
-        const tableId = dbMap[tableName];
-
-        const api = createTableApi(tablesDB, databaseId, tableId);
-        {{{BULK_REMOVAL}}}
-        tableApiCache.set(tableName, api);
-      }
-      return tableApiCache.get(tableName);
-    },
-    has(_target, tableName: string) {
-      return typeof tableName === 'string' && hasOwn(dbMap, tableName);
-    },
-  });
-}
-
-function createDatabasesProxy(tablesDB: TablesDB): DatabaseTables {
-  const dbCache = new Map<DatabaseId, DatabaseTables[DatabaseId]>();
-
-  return new Proxy({} as DatabaseTables, {
-    get(_target, databaseId: string) {
-      if (typeof databaseId === 'symbol') return undefined;
-      if (!hasOwn(tableIdMap, databaseId)) return undefined;
-
-      if (!dbCache.has(databaseId as DatabaseId)) {
-        dbCache.set(databaseId as DatabaseId, createDatabaseProxy(tablesDB, databaseId as DatabaseId));
-      }
-      return dbCache.get(databaseId as DatabaseId);
-    },
-    has(_target, databaseId: string) {
-      return typeof databaseId === 'string' && hasOwn(tableIdMap, databaseId);
-    },
-  });
-}
-{{/if}}
 
 // Initialize client
 const client = new Client()
@@ -242,8 +194,4 @@ const client = new Client()
 
 const tablesDB = new TablesDB(client);
 
-{{#if supportsServerSide}}
 export const databases: DatabaseTables = createDatabasesApi(tablesDB);
-{{else}}
-export const databases: DatabaseTables = createDatabasesProxy(tablesDB);
-{{/if}}

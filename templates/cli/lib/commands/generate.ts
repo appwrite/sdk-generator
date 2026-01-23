@@ -17,10 +17,6 @@ import {
   EXECUTABLE_NAME,
   DEFAULT_ENDPOINT,
 } from "../constants.js";
-import {
-  getAppwriteDependency,
-  supportsServerSideMethods,
-} from "../shared/typescript-type-utils.js";
 
 type ServerSideOverride = "auto" | "true" | "false";
 
@@ -146,27 +142,16 @@ const generateAction = async (
         `  import { databases } from "./${outputDir}/${SDK_TITLE_LOWER}/index.js";`,
       );
       console.log("");
-      log(`Configure your client constants:`);
+      log(`Configure your SDK constants:`);
       console.log(
         `  set values in ./${outputDir}/${SDK_TITLE_LOWER}/constants.ts`,
       );
       console.log("");
-      const appwriteDep = getAppwriteDependency();
-      const supportsServerSide = supportsServerSideMethods(
-        appwriteDep,
-        serverSideOverride,
-      );
-
       log(`Usage:`);
-      if (supportsServerSide) {
-        console.log(`  const mydb = databases.use(${JSON.stringify(dbId)});`);
-        console.log(
-          `  await mydb.use(${JSON.stringify(tableName)}).create({ ... });`,
-        );
-      } else {
-        console.log(`  const mydb = databases${dbAccessor};`);
-        console.log(`  await mydb${tableAccessor}.create({ ... });`);
-      }
+      console.log(`  const mydb = databases.use(${JSON.stringify(dbId)});`);
+      console.log(
+        `  await mydb.use(${JSON.stringify(tableName)}).create({ ... });`,
+      );
     }
   } catch (err: any) {
     error(`Failed to generate SDK: ${err.message}`);

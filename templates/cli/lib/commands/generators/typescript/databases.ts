@@ -79,7 +79,10 @@ export class TypeScriptDatabasesGenerator extends BaseDatabasesGenerator {
 
     const attributes = this.buildAttributes(entity, typeEntities, "    ");
 
-    const createType = `export type ${typeName}Create = {\n${attributes}\n}`;
+    const createType =
+      attributes.trim().length === 0
+        ? `export type ${typeName}Create = Record<string, never>`
+        : `export type ${typeName}Create = {\n${attributes}\n}`;
     const rowType = `export type ${typeName} = Models.Row & ${typeName}Create`;
 
     return `${createType}\n\n${rowType}`;
@@ -177,7 +180,10 @@ export class TypeScriptDatabasesGenerator extends BaseDatabasesGenerator {
               typeEntities,
               "        ",
             );
-            const createInline = `{\n${createFields}\n      }`;
+            const createInline =
+              createFields.trim().length === 0
+                ? "Record<string, never>"
+                : `{\n${createFields}\n      }`;
             const baseMethods = `      create: (data: ${createInline}, options?: { rowId?: string; permissions?: Permission[]; transactionId?: string }) => Promise<${typeName}>;
       get: (id: string) => Promise<${typeName}>;
       update: (id: string, data: Partial<${createInline}>, options?: { permissions?: Permission[]; transactionId?: string }) => Promise<${typeName}>;
@@ -199,10 +205,6 @@ export class TypeScriptDatabasesGenerator extends BaseDatabasesGenerator {
         return `  ${JSON.stringify(dbId)}: {\n${tableTypes}\n  }`;
       })
       .join(";\n");
-
-    if (!supportsServerSide) {
-      return `export type DatabaseTables = {\n${dbReturnTypes}\n}`;
-    }
 
     return `export type DatabaseTableMap = {\n${dbReturnTypes}\n};
 
@@ -230,16 +232,16 @@ export type TableUpdateOptions = {
 
 export type DatabaseHandle<D extends DatabaseId> = {
   use: <T extends keyof DatabaseTableMap[D] & string>(tableName: T) => DatabaseTableMap[D][T];
-  create: (tableId: string, name: string, options?: TableCreateOptions) => Promise<Models.Table>;
+${supportsServerSide ? `  create: (tableId: string, name: string, options?: TableCreateOptions) => Promise<Models.Table>;
   update: <T extends keyof DatabaseTableMap[D] & string>(tableName: T, name: string, options?: TableUpdateOptions) => Promise<Models.Table>;
-  delete: <T extends keyof DatabaseTableMap[D] & string>(tableName: T) => Promise<void>;
+  delete: <T extends keyof DatabaseTableMap[D] & string>(tableName: T) => Promise<void>;` : ""}
 };
 
 export type DatabaseTables = {
   use: <D extends DatabaseId>(databaseId: D) => DatabaseHandle<D>;
-  create: (databaseId: string, name: string, options?: DatabaseCreateOptions) => Promise<Models.Database>;
+${supportsServerSide ? `  create: (databaseId: string, name: string, options?: DatabaseCreateOptions) => Promise<Models.Database>;
   update: (databaseId: DatabaseId, name: string, options?: DatabaseUpdateOptions) => Promise<Models.Database>;
-  delete: (databaseId: DatabaseId) => Promise<void>;
+  delete: (databaseId: DatabaseId) => Promise<void>;` : ""}
 };`;
   }
 
