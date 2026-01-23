@@ -150,7 +150,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
     fun <T> subscribe(
         vararg channels: Channel<*>,
         payloadType: Class<T>,
-        queries: List<String> = emptyList(),
+        queries: Set<String> = emptySet(),
         callback: (RealtimeResponseEvent<T>) -> Unit,
     ): RealtimeSubscription {
         return subscribe(
@@ -164,7 +164,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
     fun <T> subscribe(
         vararg channels: String,
         payloadType: Class<T>,
-        queries: List<String> = emptyList(),
+        queries: Set<String> = emptySet(),
         callback: (RealtimeResponseEvent<T>) -> Unit,
     ): RealtimeSubscription {
         val counter = subscriptionsCounter++
@@ -172,7 +172,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         activeChannels.addAll(channels)
         activeQueries.addAll(queries)
         activeSubscriptions[counter] = RealtimeCallback(
-            channels.toList(),
+            channels.toSet(),
             queries,
             payloadType,
             callback as (RealtimeResponseEvent<*>) -> Unit
@@ -194,7 +194,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         }
     }
 
-    private fun cleanUp(channels: Collection<String>, queries: Collection<String>) {
+    private fun cleanUp(channels: Collection<String>, queries: Set<String>) {
         activeChannels.removeAll { channel ->
             if (!channels.contains(channel)) {
                 return@removeAll false

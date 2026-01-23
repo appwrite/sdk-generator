@@ -91,11 +91,11 @@ class ServiceTest {
             realtimeResponse = it.payload.response
         }
 
-        // Subscribe with queries to ensure query list support works
+        // Subscribe with queries to ensure query set support works
         realtime.subscribe(
             "tests",
             payloadType = TestPayload::class.java,
-            queries = listOf(
+            queries = setOf(
                 Query.equal("response", listOf("WS:/v1/realtime:passed"))
             )
         ) {
