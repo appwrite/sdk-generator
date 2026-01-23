@@ -40,6 +40,7 @@
             client.setEndpointRealtime('wss://cloud.appwrite.io/v1');
 
             const realtime = new Realtime(client);
+            const realtimeWithFailure = new Realtime(client);
 
             // Subscribe without queries
             await realtime.subscribe(['tests'], message => {
@@ -57,7 +58,7 @@
                 ],
             );
 
-            await realtime.subscribe(
+            await realtimeWithFailure.subscribe(
                 ['tests'],
                 message => {
                     responseRealtimeWithQueriesFailure = message.payload.response;

@@ -83,6 +83,7 @@ class ServiceTest {
         val bar = Bar(client)
         val general = General(client)
         val realtime = Realtime(client)
+        val realtimeWithFailure = Realtime(client)
         var realtimeResponse = "Realtime failed!"
         var realtimeResponseWithQueries = "Realtime failed!"
         var realtimeResponseWithQueriesFailure = "Realtime failed!"
@@ -103,7 +104,7 @@ class ServiceTest {
             realtimeResponseWithQueries = it.payload.response
         }
 
-        realtime.subscribe(
+        realtimeWithFailure.subscribe(
             "tests",
             payloadType = TestPayload::class.java,
             queries = setOf(
