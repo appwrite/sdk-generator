@@ -17,10 +17,17 @@ import {
   EXECUTABLE_NAME,
   DEFAULT_ENDPOINT,
 } from "../constants.js";
+import {
+  getAppwriteDependency,
+  supportsServerSideMethods,
+} from "../shared/typescript-type-utils.js";
+
+type ServerSideOverride = "auto" | "true" | "false";
 
 export interface GenerateCommandOptions {
   output: string;
   language?: string;
+  serverSide?: ServerSideOverride;
 }
 
 const generateAction = async (
@@ -38,6 +45,12 @@ const generateAction = async (
   // Determine the generator to use
   let generator;
   let detectedLanguage: string;
+
+  const serverSideOverride: ServerSideOverride = options.serverSide ?? "auto";
+  if (!["auto", "true", "false"].includes(serverSideOverride)) {
+    error(`Invalid --server-side value: ${serverSideOverride}`);
+    process.exit(1);
+  }
 
   if (options.language) {
     // User explicitly specified a language
@@ -74,6 +87,10 @@ const generateAction = async (
       );
       process.exit(1);
     }
+  }
+
+  if (typeof (generator as any).setServerSideOverride === "function") {
+    (generator as any).setServerSideOverride(serverSideOverride);
   }
 
   const config: ConfigType = {
@@ -134,9 +151,22 @@ const generateAction = async (
         `  set values in ./${outputDir}/${SDK_TITLE_LOWER}/constants.ts`,
       );
       console.log("");
+      const appwriteDep = getAppwriteDependency();
+      const supportsServerSide = supportsServerSideMethods(
+        appwriteDep,
+        serverSideOverride,
+      );
+
       log(`Usage:`);
-      console.log(`  const mydb = databases${dbAccessor};`);
-      console.log(`  await mydb${tableAccessor}.create({ ... });`);
+      if (supportsServerSide) {
+        console.log(`  const mydb = databases.use(${JSON.stringify(dbId)});`);
+        console.log(
+          `  await mydb.use(${JSON.stringify(tableName)}).create({ ... });`,
+        );
+      } else {
+        console.log(`  const mydb = databases${dbAccessor};`);
+        console.log(`  await mydb${tableAccessor}.create({ ... });`);
+      }
     }
   } catch (err: any) {
     error(`Failed to generate SDK: ${err.message}`);
@@ -156,5 +186,10 @@ export const generate = new Command("generate")
   .option(
     "-l, --language <language>",
     `Target language for SDK generation (supported: ${getSupportedLanguages().join(", ")})`,
+  )
+  .option(
+    "--server-side <mode>",
+    "Override server-side generation (auto|true|false)",
+    "auto",
   )
   .action(actionRunner(generateAction));

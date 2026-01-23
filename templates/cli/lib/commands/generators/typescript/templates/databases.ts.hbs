@@ -1,6 +1,10 @@
 import { Client, TablesDB, ID, Query, type Models, Permission } from '{{appwriteDep}}';
+{{#if supportsServerSide}}
+import type { DatabaseHandle, DatabaseId, DatabaseTables, QueryBuilder } from './types.js';
+{{else}}
 import type { DatabaseId, DatabaseTables, QueryBuilder } from './types.js';
-{{#if requiresApiKey}}
+{{/if}}
+{{#if supportsServerSide}}
 import { PROJECT_ID, ENDPOINT, API_KEY } from './constants.js';
 {{else}}
 import { PROJECT_ID, ENDPOINT } from './constants.js';
@@ -35,6 +39,9 @@ const createQueryBuilder = <T>(): QueryBuilder<T> => ({
 
 {{{TABLES_WITH_RELATIONSHIPS}}}
 
+const serializePermissions = (permissions?: Permission[]): string[] | undefined =>
+  permissions?.map((permission) => permission.toString());
+
 function createTableApi<T extends Models.Row>(
   tablesDB: TablesDB,
   databaseId: string,
@@ -47,7 +54,7 @@ function createTableApi<T extends Models.Row>(
         tableId,
         rowId: options?.rowId ?? ID.unique(),
         data,
-        permissions: options?.permissions?.map((p) => p.toString()),
+        permissions: serializePermissions(options?.permissions),
         transactionId: options?.transactionId,
       }),
     get: (id: string) =>
@@ -62,7 +69,7 @@ function createTableApi<T extends Models.Row>(
         tableId,
         rowId: id,
         data,
-        ...(options?.permissions ? { permissions: options.permissions.map((p) => p.toString()) } : {}),
+        ...(options?.permissions ? { permissions: serializePermissions(options.permissions) } : {}),
         transactionId: options?.transactionId,
       }),
     delete: async (id: string, options?: { transactionId?: string }) => {
@@ -86,6 +93,100 @@ function createTableApi<T extends Models.Row>(
 const hasOwn = (obj: unknown, key: string): boolean =>
   obj != null && Object.prototype.hasOwnProperty.call(obj, key);
 
+{{#if supportsServerSide}}
+function createDatabaseHandle<D extends DatabaseId>(
+  tablesDB: TablesDB,
+  databaseId: D,
+): DatabaseHandle<D> {
+  const tableApiCache = new Map<string, ReturnType<typeof createTableApi>>();
+  const dbMap = tableIdMap[databaseId];
+
+  return {
+    use: (tableName: string) => {
+      if (!hasOwn(dbMap, tableName)) {
+        throw new Error(`Unknown table "${tableName}" in database "${databaseId}"`);
+      }
+
+      if (!tableApiCache.has(tableName)) {
+        const tableId = dbMap[tableName];
+        const api = createTableApi(tablesDB, databaseId, tableId);
+        {{{BULK_REMOVAL}}}
+        tableApiCache.set(tableName, api);
+      }
+      return tableApiCache.get(tableName);
+    },
+    create: (tableId: string, name: string, options?: { permissions?: Permission[]; rowSecurity?: boolean; enabled?: boolean; columns?: any[]; indexes?: any[] }) =>
+      tablesDB.createTable({
+        databaseId,
+        tableId,
+        name,
+        permissions: serializePermissions(options?.permissions),
+        rowSecurity: options?.rowSecurity,
+        enabled: options?.enabled,
+        columns: options?.columns,
+        indexes: options?.indexes,
+      }),
+    update: (tableName: string, name: string, options?: { permissions?: Permission[]; rowSecurity?: boolean; enabled?: boolean }) => {
+      if (!hasOwn(dbMap, tableName)) {
+        throw new Error(`Unknown table "${tableName}" in database "${databaseId}"`);
+      }
+      const tableId = dbMap[tableName];
+      return tablesDB.updateTable({
+        databaseId,
+        tableId,
+        name,
+        permissions: serializePermissions(options?.permissions),
+        rowSecurity: options?.rowSecurity,
+        enabled: options?.enabled,
+      });
+    },
+    delete: async (tableName: string) => {
+      if (!hasOwn(dbMap, tableName)) {
+        throw new Error(`Unknown table "${tableName}" in database "${databaseId}"`);
+      }
+      const tableId = dbMap[tableName];
+      await tablesDB.deleteTable({
+        databaseId,
+        tableId,
+      });
+    },
+  };
+}
+
+function createDatabasesApi(tablesDB: TablesDB): DatabaseTables {
+  const dbCache = new Map<DatabaseId, ReturnType<typeof createDatabaseHandle>>();
+
+  return {
+    use: (databaseId: DatabaseId) => {
+      if (!hasOwn(tableIdMap, databaseId)) {
+        throw new Error(`Unknown database "${databaseId}"`);
+      }
+
+      if (!dbCache.has(databaseId)) {
+        dbCache.set(databaseId, createDatabaseHandle(tablesDB, databaseId));
+      }
+      return dbCache.get(databaseId);
+    },
+    create: (databaseId: string, name: string, options?: { enabled?: boolean }) =>
+      tablesDB.create({
+        databaseId,
+        name,
+        enabled: options?.enabled,
+      }),
+    update: (databaseId: DatabaseId, name: string, options?: { enabled?: boolean }) =>
+      tablesDB.update({
+        databaseId,
+        name,
+        enabled: options?.enabled,
+      }),
+    delete: async (databaseId: DatabaseId) => {
+      await tablesDB.delete({
+        databaseId,
+      });
+    },
+  } as DatabaseTables;
+}
+{{else}}
 function createDatabaseProxy<D extends DatabaseId>(
   tablesDB: TablesDB,
   databaseId: D,
@@ -131,13 +232,18 @@ function createDatabasesProxy(tablesDB: TablesDB): DatabaseTables {
     },
   });
 }
+{{/if}}
 
 // Initialize client
 const client = new Client()
   .setEndpoint(ENDPOINT)
-  .setProject(PROJECT_ID){{#if requiresApiKey}}
+  .setProject(PROJECT_ID){{#if supportsServerSide}}
   .setKey(API_KEY){{/if}};
 
 const tablesDB = new TablesDB(client);
 
+{{#if supportsServerSide}}
+export const databases: DatabaseTables = createDatabasesApi(tablesDB);
+{{else}}
 export const databases: DatabaseTables = createDatabasesProxy(tablesDB);
+{{/if}}
