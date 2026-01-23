@@ -74,10 +74,12 @@ open class Realtime : Service {
         var queryParams = "project=\(client.config["project"]!)"
 
         for channel in activeChannels {
-            queryParams += "&channels[]=\(channel)"
+            let encodedChannel = channel.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? channel
+            queryParams += "&channels[]=\(encodedChannel)"
         }
         for query in activeQueries {
-            queryParams += "&queries[]=\(query)"
+            let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
+            queryParams += "&queries[]=\(encodedQuery)"
         }
 
         let url = "\(client.endPointRealtime!)/realtime?\(queryParams)"
