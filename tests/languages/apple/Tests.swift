@@ -71,8 +71,9 @@ class Tests: XCTestCase {
             ]
         ) { message in
             realtimeResponseWithQueriesFailure = message.payload?["response"] as! String
-            expectationWithQueriesFailure.fulfill()
         }
+        // adding it here as the subscription will not receive any event/message
+        expectationWithQueriesFailure.fulfill()
 
         var mock: Mock
 

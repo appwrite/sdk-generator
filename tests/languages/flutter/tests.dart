@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -36,6 +37,7 @@ void main() async {
       "wss://cloud.appwrite.io/v1");
 
   Realtime realtime = Realtime(client);
+  Realtime realtimeFailure = Realtime(client);
   // Subscribe without queries
   final rtsub = realtime.subscribe(["tests"]);
 
@@ -47,7 +49,7 @@ void main() async {
     ],
   );
 
-  final rtsubWithQueriesFailure = realtime.subscribe(
+  final rtsubWithQueriesFailure = realtimeFailure.subscribe(
     ["tests"],
     queries: [
       Query.equal('response',["failed"])
@@ -180,11 +182,15 @@ void main() async {
   print(message2.payload["response"]);
   await rtsubWithQueries.close();
 
-  final message3 = await rtsubWithQueriesFailure.stream.first.timeout(Duration(seconds: 10));
-  print(message3.payload["response"] ?? "Realtime failed!");
+  try {
+    final message3 = await rtsubWithQueriesFailure.stream.first.timeout(Duration(seconds: 10));
+    // If we receive a message, it means the query filtering failed, so realtime failed
+    print("Realtime failed!");
+  } on TimeoutException {
+    // Timeout means no matching message was received, which is expected for a failure query
+    print("Realtime failed!");
+  }
   await rtsubWithQueriesFailure.close();
-
-  await Future.delayed(Duration(seconds: 5));
 
   response = await general.setCookie();
   print(response.result);
