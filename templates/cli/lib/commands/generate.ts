@@ -23,7 +23,7 @@ type ServerSideOverride = "auto" | "true" | "false";
 export interface GenerateCommandOptions {
   output: string;
   language?: string;
-  serverSide?: ServerSideOverride;
+  server?: ServerSideOverride;
 }
 
 const generateAction = async (
@@ -42,7 +42,7 @@ const generateAction = async (
   let generator;
   let detectedLanguage: string;
 
-  const serverSideOverride: ServerSideOverride = options.serverSide ?? "auto";
+  const serverSideOverride: ServerSideOverride = options.server ?? "auto";
   if (!["auto", "true", "false"].includes(serverSideOverride)) {
     error(`Invalid --server-side value: ${serverSideOverride}`);
     process.exit(1);
@@ -173,7 +173,7 @@ export const generate = new Command("generate")
     `Target language for SDK generation (supported: ${getSupportedLanguages().join(", ")})`,
   )
   .option(
-    "--server-side <mode>",
+    "--server <mode>",
     "Override server-side generation (auto|true|false)",
     "auto",
   )
