@@ -1670,9 +1670,16 @@ export class Push {
   }
 }
 
-async function createPushInstance(silent = false): Promise<Push> {
+async function createPushInstance(
+  options: { silent?: boolean; requiresConsoleAuth?: boolean } = {
+    silent: false,
+    requiresConsoleAuth: false,
+  },
+): Promise<Push> {
+  const { silent, requiresConsoleAuth } = options;
   const projectClient = await sdkForProject();
-  const consoleClient = await sdkForConsole();
+  const consoleClient = await sdkForConsole(requiresConsoleAuth);
+
   return new Push(projectClient, consoleClient, silent);
 }
 
@@ -1700,7 +1707,9 @@ const pushResources = async ({
       allowSitesCodePush = codeAnswer.override;
     }
 
-    const pushInstance = await createPushInstance();
+    const pushInstance = await createPushInstance({
+      requiresConsoleAuth: true,
+    });
     const project = localConfig.getProject();
     const config: ConfigType = {
       projectId: project.projectId ?? "",
@@ -1805,7 +1814,9 @@ const pushSettings = async (): Promise<void> => {
   try {
     log("Pushing project settings ...");
 
-    const pushInstance = await createPushInstance();
+    const pushInstance = await createPushInstance({
+      requiresConsoleAuth: true,
+    });
     const config = localConfig.getProject();
 
     await pushInstance.pushSettings({

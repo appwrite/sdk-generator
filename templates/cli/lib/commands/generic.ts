@@ -3,6 +3,7 @@ import { Command } from "commander";
 import { Client } from "@appwrite.io/console";
 import { sdkForConsole } from "../sdks.js";
 import { globalConfig, localConfig } from "../config.js";
+import { EXECUTABLE_NAME } from "../constants.js";
 import {
   actionRunner,
   success,
@@ -352,12 +353,33 @@ export const client = new Command("client")
         }
 
         if (debug) {
+          const key = globalConfig.getKey();
+          const maskedKey =
+            key && key.length > 16
+              ? `${key.slice(0, 8)}...${key.slice(-8)}`
+              : key
+                ? "********"
+                : "";
+          const project = localConfig.getProject();
+          const cookie = globalConfig.getCookie();
+          let maskedCookie = "";
+          if (cookie) {
+            const [cookieName, cookieValueAndRest = ""] =
+              cookie.split("=", 2);
+            const cookieValue = cookieValueAndRest.split(";")[0] ?? "";
+            const tail =
+              cookieValue.length > 8
+                ? cookieValue.slice(-8)
+                : cookieValue || "********";
+            maskedCookie = `${cookieName}=...${tail}`;
+          }
           let config = {
             endpoint: globalConfig.getEndpoint(),
-            key: globalConfig.getKey(),
-            cookie: globalConfig.getCookie(),
+            key: maskedKey,
+            cookie: maskedCookie,
             selfSigned: globalConfig.getSelfSigned(),
-            project: localConfig.getProject(),
+            projectId: project.projectId ?? "",
+            projectName: project.projectName ?? "",
           };
           parse(config);
         }
@@ -393,6 +415,11 @@ export const client = new Command("client")
         }
 
         if (key !== undefined) {
+          if (!globalConfig.getCurrentSession()) {
+            throw new Error(
+              `Session not found. Please run \`${EXECUTABLE_NAME} client --endpoint <endpoint>\` first.`,
+            );
+          }
           globalConfig.setKey(key);
         }
 
@@ -401,6 +428,11 @@ export const client = new Command("client")
         }
 
         if (selfSigned == true || selfSigned == false) {
+          if (!globalConfig.getCurrentSession()) {
+            throw new Error(
+              `Session not found. Please run \`${EXECUTABLE_NAME} client --endpoint <endpoint>\` first.`,
+            );
+          }
           globalConfig.setSelfSigned(selfSigned);
         }
 
@@ -413,7 +445,9 @@ export const client = new Command("client")
           }
         }
 
-        success("Setting client");
+        if (!debug) {
+          success("Setting client");
+        }
       },
     ),
   );

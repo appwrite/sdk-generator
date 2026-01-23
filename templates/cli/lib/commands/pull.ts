@@ -83,11 +83,17 @@ export interface PullSettingsResult {
   project: Models.Project;
 }
 
-async function createPullInstance(): Promise<Pull> {
+async function createPullInstance(
+  options: { silent?: boolean; requiresConsoleAuth?: boolean } = {
+    silent: false,
+    requiresConsoleAuth: false,
+  },
+): Promise<Pull> {
+  const { silent, requiresConsoleAuth } = options;
   const projectClient = await sdkForProject();
-  const consoleClient = await sdkForConsole();
-  const pullInstance = new Pull(projectClient, consoleClient);
+  const consoleClient = await sdkForConsole(requiresConsoleAuth);
 
+  const pullInstance = new Pull(projectClient, consoleClient, silent);
   pullInstance.setConfigDirectoryPath(localConfig.configDirectoryPath);
   return pullInstance;
 }
@@ -721,7 +727,9 @@ export const pullResources = async ({
 };
 
 const pullSettings = async (): Promise<void> => {
-  const pullInstance = await createPullInstance();
+  const pullInstance = await createPullInstance({
+    requiresConsoleAuth: true,
+  });
   const projectId = localConfig.getProject().projectId;
   const settings = await pullInstance.pullSettings(projectId);
 
