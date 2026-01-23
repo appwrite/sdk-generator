@@ -77,7 +77,23 @@ export class TypeScriptDatabasesGenerator extends BaseDatabasesGenerator {
         name: e.name,
       }));
 
-    const attributes = fields
+    const attributes = this.buildAttributes(entity, typeEntities, "    ");
+
+    const createType = `export type ${typeName}Create = {\n${attributes}\n}`;
+    const rowType = `export type ${typeName} = Models.Row & ${typeName}Create`;
+
+    return `${createType}\n\n${rowType}`;
+  }
+
+  private buildAttributes(
+    entity: Entity,
+    typeEntities: TypeEntity[],
+    indent: string,
+  ): string {
+    const fields = this.getFields(entity);
+    if (!fields) return "";
+
+    return fields
       .map((attr) => {
         const typeAttr: TypeAttribute = {
           key: attr.key,
@@ -92,11 +108,9 @@ export class TypeScriptDatabasesGenerator extends BaseDatabasesGenerator {
           relationType: attr.relationType,
           side: attr.side,
         };
-        return `    ${JSON.stringify(attr.key)}${attr.required ? "" : "?"}: ${getTypeScriptType(typeAttr, typeEntities, entity.name)};`;
+        return `${indent}${JSON.stringify(attr.key)}${attr.required ? "" : "?"}: ${getTypeScriptType(typeAttr, typeEntities, entity.name)};`;
       })
       .join("\n");
-
-    return `export type ${typeName} = Models.Row & {\n${attributes}\n}`;
   }
 
   private generateEnums(entities: Entities): string {
@@ -152,9 +166,21 @@ export class TypeScriptDatabasesGenerator extends BaseDatabasesGenerator {
         const tableTypes = dbEntities
           .map((entity) => {
             const typeName = LanguageMeta.toPascalCase(entity.name);
-            const baseMethods = `      create: (data: Omit<${typeName}, keyof Models.Row>, options?: { rowId?: string; permissions?: Permission[]; transactionId?: string }) => Promise<${typeName}>;
+            const typeEntities: TypeEntity[] = entitiesByDb
+              .get(entity.databaseId)!
+              .map((e) => ({
+                $id: e.$id,
+                name: e.name,
+              }));
+            const createFields = this.buildAttributes(
+              entity,
+              typeEntities,
+              "        ",
+            );
+            const createInline = `{\n${createFields}\n      }`;
+            const baseMethods = `      create: (data: ${createInline}, options?: { rowId?: string; permissions?: Permission[]; transactionId?: string }) => Promise<${typeName}>;
       get: (id: string) => Promise<${typeName}>;
-      update: (id: string, data: Partial<Omit<${typeName}, keyof Models.Row>>, options?: { permissions?: Permission[]; transactionId?: string }) => Promise<${typeName}>;
+      update: (id: string, data: Partial<${createInline}>, options?: { permissions?: Permission[]; transactionId?: string }) => Promise<${typeName}>;
       delete: (id: string, options?: { transactionId?: string }) => Promise<void>;
       list: (options?: { queries?: (q: QueryBuilder<${typeName}>) => string[] }) => Promise<{ total: number; rows: ${typeName}[] }>;`;
 
@@ -162,8 +188,8 @@ export class TypeScriptDatabasesGenerator extends BaseDatabasesGenerator {
               supportsServerSide && !this.hasRelationshipColumns(entity);
             const bulkMethods = canUseBulkMethods
               ? `
-      createMany: (rows: Array<Omit<${typeName}, keyof Models.Row> & { $id?: string; $permissions?: string[] }>, options?: { transactionId?: string }) => Promise<{ total: number; rows: ${typeName}[] }>;
-      updateMany: (data: Partial<Omit<${typeName}, keyof Models.Row>>, options?: { queries?: (q: QueryBuilder<${typeName}>) => string[]; transactionId?: string }) => Promise<{ total: number; rows: ${typeName}[] }>;
+      createMany: (rows: Array<${createInline} & { $id?: string; $permissions?: string[] }>, options?: { transactionId?: string }) => Promise<{ total: number; rows: ${typeName}[] }>;
+      updateMany: (data: Partial<${createInline}>, options?: { queries?: (q: QueryBuilder<${typeName}>) => string[]; transactionId?: string }) => Promise<{ total: number; rows: ${typeName}[] }>;
       deleteMany: (options?: { queries?: (q: QueryBuilder<${typeName}>) => string[]; transactionId?: string }) => Promise<{ total: number; rows: ${typeName}[] }>;`
               : "";
 
