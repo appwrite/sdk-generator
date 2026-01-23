@@ -44,7 +44,7 @@ const generateAction = async (
 
   const serverSideOverride: ServerSideOverride = options.server ?? "auto";
   if (!["auto", "true", "false"].includes(serverSideOverride)) {
-    error(`Invalid --server-side value: ${serverSideOverride}`);
+    error(`Invalid --server value: ${serverSideOverride}`);
     process.exit(1);
   }
 
