@@ -208,40 +208,18 @@ export class TypeScriptDatabasesGenerator extends BaseDatabasesGenerator {
 
     return `export type DatabaseTableMap = {\n${dbReturnTypes}\n};
 
-export type DatabaseCreateOptions = {
-  enabled?: boolean;
-};
-
-export type DatabaseUpdateOptions = {
-  enabled?: boolean;
-};
-
-export type TableCreateOptions = {
-  permissions?: Permission[];
-  rowSecurity?: boolean;
-  enabled?: boolean;
-  columns?: any[];
-  indexes?: any[];
-};
-
-export type TableUpdateOptions = {
-  permissions?: Permission[];
-  rowSecurity?: boolean;
-  enabled?: boolean;
-};
-
 export type DatabaseHandle<D extends DatabaseId> = {
-  use: <T extends keyof DatabaseTableMap[D] & string>(tableName: T) => DatabaseTableMap[D][T];
-${supportsServerSide ? `  create: (tableId: string, name: string, options?: TableCreateOptions) => Promise<Models.Table>;
-  update: <T extends keyof DatabaseTableMap[D] & string>(tableName: T, name: string, options?: TableUpdateOptions) => Promise<Models.Table>;
-  delete: <T extends keyof DatabaseTableMap[D] & string>(tableName: T) => Promise<void>;` : ""}
+  use: <T extends keyof DatabaseTableMap[D] & string>(tableId: T) => DatabaseTableMap[D][T];
+${supportsServerSide ? `  create: (tableId: string, name: string, options?: { permissions?: Permission[]; rowSecurity?: boolean; enabled?: boolean; columns?: any[]; indexes?: any[] }) => Promise<Models.Table>;
+  update: <T extends keyof DatabaseTableMap[D] & string>(tableId: T, options?: { name?: string; permissions?: Permission[]; rowSecurity?: boolean; enabled?: boolean }) => Promise<Models.Table>;
+  delete: <T extends keyof DatabaseTableMap[D] & string>(tableId: T) => Promise<void>;` : ""}
 };
 
 export type DatabaseTables = {
   use: <D extends DatabaseId>(databaseId: D) => DatabaseHandle<D>;
-${supportsServerSide ? `  create: (databaseId: string, name: string, options?: DatabaseCreateOptions) => Promise<Models.Database>;
-  update: (databaseId: DatabaseId, name: string, options?: DatabaseUpdateOptions) => Promise<Models.Database>;
-  delete: (databaseId: DatabaseId) => Promise<void>;` : ""}
+${supportsServerSide ? `  create: (databaseId: string, name: string, options?: { enabled?: boolean }) => Promise<Models.Database>;
+  update: <D extends DatabaseId>(databaseId: D, options?: { name?: string; enabled?: boolean }) => Promise<Models.Database>;
+  delete: <D extends DatabaseId>(databaseId: D) => Promise<void>;` : ""}
 };`;
   }
 
@@ -342,14 +320,14 @@ ${supportsServerSide ? `  create: (databaseId: string, name: string, options?: D
 
   private generateBulkCheck(supportsBulk: boolean): string {
     if (!supportsBulk) return "";
-    return `const hasBulkMethods = (dbId: string, tableName: string) => !tablesWithRelationships.has(\`\${dbId}:\${tableName}\`);\n`;
+    return `const hasBulkMethods = (dbId: string, tableId: string) => !tablesWithRelationships.has(\`\${dbId}:\${tableId}\`);\n`;
   }
 
   private generateBulkRemoval(supportsBulk: boolean): string {
     if (!supportsBulk) return "";
     return `
         // Remove bulk methods for tables with relationships
-        if (!hasBulkMethods(databaseId, tableName)) {
+        if (!hasBulkMethods(databaseId, tableId)) {
           delete (api as any).createMany;
           delete (api as any).updateMany;
           delete (api as any).deleteMany;

@@ -79,6 +79,10 @@ export abstract class BaseDatabasesGenerator implements IDatabasesGenerator {
         fs.mkdirSync(fileDir, { recursive: true });
       }
 
+      if (relativePath === "constants.ts" && fs.existsSync(filePath)) {
+        continue;
+      }
+
       fs.writeFileSync(filePath, content, "utf-8");
     }
   }
