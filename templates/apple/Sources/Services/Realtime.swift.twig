@@ -136,7 +136,7 @@ open class Realtime : Service {
         queries: [String] = []
     ) async throws -> RealtimeSubscription {
         return try await subscribe(
-            channels: [channel],
+            channels: Set([channelToString(channel)]),
             payloadType: String.self,
             queries: queries,
             callback: callback
