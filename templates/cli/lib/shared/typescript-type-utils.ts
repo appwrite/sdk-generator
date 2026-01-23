@@ -140,12 +140,18 @@ export function getAppwriteDependency(): string {
 }
 
 /**
- * Checks if the Appwrite dependency supports bulk methods.
+ * Checks if the Appwrite dependency supports server-side methods.
  *
  * @param appwriteDep - The Appwrite dependency string
- * @returns True if bulk methods are supported
+ * @param override - Optional override (auto|true|false)
+ * @returns True if server-side methods are supported
  */
-export function supportsBulkMethods(appwriteDep: string): boolean {
+export function supportsServerSideMethods(
+  appwriteDep: string,
+  override: "auto" | "true" | "false" = "auto",
+): boolean {
+  if (override === "true") return true;
+  if (override === "false") return false;
   return (
     appwriteDep === "node-appwrite" ||
     appwriteDep === "npm:node-appwrite" ||

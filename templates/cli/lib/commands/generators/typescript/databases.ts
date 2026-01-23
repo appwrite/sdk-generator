@@ -12,7 +12,7 @@ import {
 import {
   getTypeScriptType,
   getAppwriteDependency,
-  supportsBulkMethods,
+  supportsServerSideMethods,
   TypeAttribute,
   TypeEntity,
 } from "../../../shared/typescript-type-utils.js";
@@ -41,6 +41,11 @@ export class TypeScriptDatabasesGenerator extends BaseDatabasesGenerator {
   readonly language: SupportedLanguage = "typescript";
   readonly fileExtension = "ts";
   private readonly meta = new TypeScript();
+  private serverSideOverride: "auto" | "true" | "false" = "auto";
+
+  setServerSideOverride(override: "auto" | "true" | "false"): void {
+    this.serverSideOverride = override;
+  }
 
   private getFields(
     entity: Entity,
@@ -72,7 +77,26 @@ export class TypeScriptDatabasesGenerator extends BaseDatabasesGenerator {
         name: e.name,
       }));
 
-    const attributes = fields
+    const attributes = this.buildAttributes(entity, typeEntities, "    ");
+
+    const createType =
+      attributes.trim().length === 0
+        ? `export type ${typeName}Create = Record<string, never>`
+        : `export type ${typeName}Create = {\n${attributes}\n}`;
+    const rowType = `export type ${typeName} = Models.Row & ${typeName}Create`;
+
+    return `${createType}\n\n${rowType}`;
+  }
+
+  private buildAttributes(
+    entity: Entity,
+    typeEntities: TypeEntity[],
+    indent: string,
+  ): string {
+    const fields = this.getFields(entity);
+    if (!fields) return "";
+
+    return fields
       .map((attr) => {
         const typeAttr: TypeAttribute = {
           key: attr.key,
@@ -87,11 +111,9 @@ export class TypeScriptDatabasesGenerator extends BaseDatabasesGenerator {
           relationType: attr.relationType,
           side: attr.side,
         };
-        return `    ${JSON.stringify(attr.key)}${attr.required ? "" : "?"}: ${getTypeScriptType(typeAttr, typeEntities, entity.name)};`;
+        return `${indent}${JSON.stringify(attr.key)}${attr.required ? "" : "?"}: ${getTypeScriptType(typeAttr, typeEntities, entity.name)};`;
       })
       .join("\n");
-
-    return `export type ${typeName} = Models.Row & {\n${attributes}\n}`;
   }
 
   private generateEnums(entities: Entities): string {
@@ -138,24 +160,42 @@ export class TypeScriptDatabasesGenerator extends BaseDatabasesGenerator {
     entitiesByDb: Map<string, Entity[]>,
     appwriteDep: string,
   ): string {
-    const supportsBulk = supportsBulkMethods(appwriteDep);
+    const supportsServerSide = supportsServerSideMethods(
+      appwriteDep,
+      this.serverSideOverride,
+    );
     const dbReturnTypes = Array.from(entitiesByDb.entries())
       .map(([dbId, dbEntities]) => {
         const tableTypes = dbEntities
           .map((entity) => {
             const typeName = LanguageMeta.toPascalCase(entity.name);
-            const baseMethods = `      create: (data: Omit<${typeName}, keyof Models.Row>, options?: { rowId?: string; permissions?: Permission[]; transactionId?: string }) => Promise<${typeName}>;
+            const typeEntities: TypeEntity[] = entitiesByDb
+              .get(entity.databaseId)!
+              .map((e) => ({
+                $id: e.$id,
+                name: e.name,
+              }));
+            const createFields = this.buildAttributes(
+              entity,
+              typeEntities,
+              "        ",
+            );
+            const createInline =
+              createFields.trim().length === 0
+                ? "Record<string, never>"
+                : `{\n${createFields}\n      }`;
+            const baseMethods = `      create: (data: ${createInline}, options?: { rowId?: string; permissions?: Permission[]; transactionId?: string }) => Promise<${typeName}>;
       get: (id: string) => Promise<${typeName}>;
-      update: (id: string, data: Partial<Omit<${typeName}, keyof Models.Row>>, options?: { permissions?: Permission[]; transactionId?: string }) => Promise<${typeName}>;
+      update: (id: string, data: Partial<${createInline}>, options?: { permissions?: Permission[]; transactionId?: string }) => Promise<${typeName}>;
       delete: (id: string, options?: { transactionId?: string }) => Promise<void>;
       list: (options?: { queries?: (q: QueryBuilder<${typeName}>) => string[] }) => Promise<{ total: number; rows: ${typeName}[] }>;`;
 
             const canUseBulkMethods =
-              supportsBulk && !this.hasRelationshipColumns(entity);
+              supportsServerSide && !this.hasRelationshipColumns(entity);
             const bulkMethods = canUseBulkMethods
               ? `
-      createMany: (rows: Array<Omit<${typeName}, keyof Models.Row> & { $id?: string; $permissions?: string[] }>, options?: { transactionId?: string }) => Promise<{ total: number; rows: ${typeName}[] }>;
-      updateMany: (data: Partial<Omit<${typeName}, keyof Models.Row>>, options?: { queries?: (q: QueryBuilder<${typeName}>) => string[]; transactionId?: string }) => Promise<{ total: number; rows: ${typeName}[] }>;
+      createMany: (rows: Array<${createInline} & { $id?: string; $permissions?: string[] }>, options?: { transactionId?: string }) => Promise<{ total: number; rows: ${typeName}[] }>;
+      updateMany: (data: Partial<${createInline}>, options?: { queries?: (q: QueryBuilder<${typeName}>) => string[]; transactionId?: string }) => Promise<{ total: number; rows: ${typeName}[] }>;
       deleteMany: (options?: { queries?: (q: QueryBuilder<${typeName}>) => string[]; transactionId?: string }) => Promise<{ total: number; rows: ${typeName}[] }>;`
               : "";
 
@@ -166,7 +206,43 @@ export class TypeScriptDatabasesGenerator extends BaseDatabasesGenerator {
       })
       .join(";\n");
 
-    return `export type DatabaseTables = {\n${dbReturnTypes}\n}`;
+    return `export type DatabaseTableMap = {\n${dbReturnTypes}\n};
+
+export type DatabaseCreateOptions = {
+  enabled?: boolean;
+};
+
+export type DatabaseUpdateOptions = {
+  enabled?: boolean;
+};
+
+export type TableCreateOptions = {
+  permissions?: Permission[];
+  rowSecurity?: boolean;
+  enabled?: boolean;
+  columns?: any[];
+  indexes?: any[];
+};
+
+export type TableUpdateOptions = {
+  permissions?: Permission[];
+  rowSecurity?: boolean;
+  enabled?: boolean;
+};
+
+export type DatabaseHandle<D extends DatabaseId> = {
+  use: <T extends keyof DatabaseTableMap[D] & string>(tableName: T) => DatabaseTableMap[D][T];
+${supportsServerSide ? `  create: (tableId: string, name: string, options?: TableCreateOptions) => Promise<Models.Table>;
+  update: <T extends keyof DatabaseTableMap[D] & string>(tableName: T, name: string, options?: TableUpdateOptions) => Promise<Models.Table>;
+  delete: <T extends keyof DatabaseTableMap[D] & string>(tableName: T) => Promise<void>;` : ""}
+};
+
+export type DatabaseTables = {
+  use: <D extends DatabaseId>(databaseId: D) => DatabaseHandle<D>;
+${supportsServerSide ? `  create: (databaseId: string, name: string, options?: DatabaseCreateOptions) => Promise<Models.Database>;
+  update: (databaseId: DatabaseId, name: string, options?: DatabaseUpdateOptions) => Promise<Models.Database>;
+  delete: (databaseId: DatabaseId) => Promise<void>;` : ""}
+};`;
   }
 
   private generateTypesFile(config: ConfigType): string {
@@ -289,17 +365,20 @@ export class TypeScriptDatabasesGenerator extends BaseDatabasesGenerator {
 
     const entitiesByDb = this.groupEntitiesByDb(entities);
     const appwriteDep = getAppwriteDependency();
-    const supportsBulk = supportsBulkMethods(appwriteDep);
+    const supportsServerSide = supportsServerSideMethods(
+      appwriteDep,
+      this.serverSideOverride,
+    );
 
     return databasesTemplate({
       appwriteDep,
-      requiresApiKey: supportsBulk,
+      supportsServerSide,
       TABLE_ID_MAP: this.generateTableIdMap(entitiesByDb),
       TABLES_WITH_RELATIONSHIPS:
         this.generateTablesWithRelationships(entitiesByDb),
-      BULK_METHODS: this.generateBulkMethods(supportsBulk),
-      BULK_CHECK: this.generateBulkCheck(supportsBulk),
-      BULK_REMOVAL: this.generateBulkRemoval(supportsBulk),
+      BULK_METHODS: this.generateBulkMethods(supportsServerSide),
+      BULK_CHECK: this.generateBulkCheck(supportsServerSide),
+      BULK_REMOVAL: this.generateBulkRemoval(supportsServerSide),
     });
   }
 
@@ -312,13 +391,16 @@ export class TypeScriptDatabasesGenerator extends BaseDatabasesGenerator {
 
   private generateConstantsFile(config: ConfigType): string {
     const appwriteDep = getAppwriteDependency();
-    const supportsBulk = supportsBulkMethods(appwriteDep);
+    const supportsServerSide = supportsServerSideMethods(
+      appwriteDep,
+      this.serverSideOverride,
+    );
 
     return constantsTemplate({
       sdkTitle: SDK_TITLE,
       projectId: config.projectId,
       endpoint: config.endpoint ?? "",
-      requiresApiKey: supportsBulk,
+      requiresApiKey: supportsServerSide,
     });
   }
 

@@ -10,7 +10,7 @@ export const ENDPOINT = '{{endpoint}}';
 {{#if requiresApiKey}}
 
 /**
- * API Key is required for bulk operations (createMany, updateMany, deleteMany).
+ * API Key is required for server-side operations
  * Set the APPWRITE_API_KEY environment variable or replace this value directly.
  */
 export const API_KEY = process.env.APPWRITE_API_KEY ?? '';
