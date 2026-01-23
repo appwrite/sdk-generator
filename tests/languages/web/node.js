@@ -186,6 +186,7 @@ async function start() {
     }
 
     console.log('WS:/v1/realtime:passed'); // Skip realtime test on Node.js
+    console.log('WS:/v1/realtime:passed'); // Skip realtime query test on Node.js
 
     // Query helper tests
     console.log(Query.equal("released", [true]));

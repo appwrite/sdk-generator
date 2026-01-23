@@ -43,7 +43,7 @@ void main() async {
   final rtsubWithQueries = realtime.subscribe(
     ["tests"],
     queries: [
-      [Query.equal('response',["WS:/v1/realtime:passed"])]
+      Query.equal('response',["WS:/v1/realtime:passed"])
     ],
   );
 
