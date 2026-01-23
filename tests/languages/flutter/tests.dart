@@ -50,7 +50,7 @@ void main() async {
   final rtsubWithQueriesFailure = realtime.subscribe(
     ["tests"],
     queries: [
-      Query.equal('response',["type"])
+      Query.equal('response',["failed"])
     ],
   );
 
