@@ -97,18 +97,18 @@ function createDatabaseHandle<D extends DatabaseId>(
   const dbMap = tableIdMap[databaseId];
 
   return {
-    use: <T extends keyof DatabaseTableMap[D] & string>(tableName: T): DatabaseTableMap[D][T] => {
-      if (!hasOwn(dbMap, tableName)) {
-        throw new Error(`Unknown table "${tableName}" in database "${databaseId}"`);
+    use: <T extends keyof DatabaseTableMap[D] & string>(tableId: T): DatabaseTableMap[D][T] => {
+      if (!hasOwn(dbMap, tableId)) {
+        throw new Error(`Unknown table "${tableId}" in database "${databaseId}"`);
       }
 
-      if (!tableApiCache.has(tableName)) {
-        const tableId = dbMap[tableName];
-        const api = createTableApi(tablesDB, databaseId, tableId);
+      if (!tableApiCache.has(tableId)) {
+        const resolvedTableId = dbMap[tableId];
+        const api = createTableApi(tablesDB, databaseId, resolvedTableId);
         {{{BULK_REMOVAL}}}
-        tableApiCache.set(tableName, api);
+        tableApiCache.set(tableId, api);
       }
-      return tableApiCache.get(tableName) as DatabaseTableMap[D][T];
+      return tableApiCache.get(tableId) as DatabaseTableMap[D][T];
     },
 {{#if supportsServerSide}}
     create: (tableId: string, name: string, options?: { permissions?: Permission[]; rowSecurity?: boolean; enabled?: boolean; columns?: any[]; indexes?: any[] }) =>
@@ -122,28 +122,28 @@ function createDatabaseHandle<D extends DatabaseId>(
         columns: options?.columns,
         indexes: options?.indexes,
       }),
-    update: (tableName: string, name: string, options?: { permissions?: Permission[]; rowSecurity?: boolean; enabled?: boolean }) => {
-      if (!hasOwn(dbMap, tableName)) {
-        throw new Error(`Unknown table "${tableName}" in database "${databaseId}"`);
+    update: (tableId: string, options?: { name?: string; permissions?: Permission[]; rowSecurity?: boolean; enabled?: boolean }) => {
+      if (!hasOwn(dbMap, tableId)) {
+        throw new Error(`Unknown table "${tableId}" in database "${databaseId}"`);
       }
-      const tableId = dbMap[tableName];
+      const resolvedTableId = dbMap[tableId];
       return tablesDB.updateTable({
         databaseId,
-        tableId,
-        name,
+        tableId: resolvedTableId,
+        name: options?.name ?? tableId, // TODO: remove this fallback once fixed in other SDKs
         permissions: serializePermissions(options?.permissions),
         rowSecurity: options?.rowSecurity,
         enabled: options?.enabled,
       });
     },
-    delete: async (tableName: string) => {
-      if (!hasOwn(dbMap, tableName)) {
-        throw new Error(`Unknown table "${tableName}" in database "${databaseId}"`);
+    delete: async (tableId: string) => {
+      if (!hasOwn(dbMap, tableId)) {
+        throw new Error(`Unknown table "${tableId}" in database "${databaseId}"`);
       }
-      const tableId = dbMap[tableName];
+      const resolvedTableId = dbMap[tableId];
       await tablesDB.deleteTable({
         databaseId,
-        tableId,
+        tableId: resolvedTableId,
       });
     },
 {{/if}}
@@ -171,12 +171,13 @@ function createDatabasesApi(tablesDB: TablesDB): DatabaseTables {
         name,
         enabled: options?.enabled,
       }),
-    update: (databaseId: DatabaseId, name: string, options?: { enabled?: boolean }) =>
-      tablesDB.update({
+    update: (databaseId: DatabaseId, options?: { name?: string; enabled?: boolean }) => {
+      return tablesDB.update({
         databaseId,
-        name,
+        name: options?.name ?? databaseId,
         enabled: options?.enabled,
-      }),
+      });
+    },
     delete: async (databaseId: DatabaseId) => {
       await tablesDB.delete({
         databaseId,
