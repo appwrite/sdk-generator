@@ -85,6 +85,7 @@ class ServiceTest {
         val realtime = Realtime(client)
         var realtimeResponse = "Realtime failed!"
         var realtimeResponseWithQueries = "Realtime failed!"
+        var realtimeResponseWithQueriesFailure = "Realtime failed!"
 
         // Subscribe without queries
         realtime.subscribe("tests", payloadType = TestPayload::class.java) {
@@ -100,6 +101,16 @@ class ServiceTest {
             )
         ) {
             realtimeResponseWithQueries = it.payload.response
+        }
+
+        realtime.subscribe(
+            "tests",
+            payloadType = TestPayload::class.java,
+            queries = setOf(
+                Query.equal("response", listOf("type"))
+            )
+        ) {
+            realtimeResponseWithQueriesFailure = "WS:/v1/realtime:passed"
         }
 
         runBlocking {
@@ -205,6 +216,7 @@ class ServiceTest {
             delay(5000)
             writeToFile(realtimeResponse)
             writeToFile(realtimeResponseWithQueries)
+            writeToFile(realtimeResponseWithQueriesFailure)
 
             // mock = general.setCookie()
             // writeToFile(mock.result)

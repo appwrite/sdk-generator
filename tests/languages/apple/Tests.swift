@@ -41,9 +41,11 @@ class Tests: XCTestCase {
         let realtime = Realtime(client)
         var realtimeResponse = "Realtime failed!"
         var realtimeResponseWithQueries = "Realtime failed!"
+        var realtimeResponseWithQueriesFailure = "Realtime failed!"
 
         let expectation = XCTestExpectation(description: "realtime server")
         let expectationWithQueries = XCTestExpectation(description: "realtime server (with queries)")
+        let expectationWithQueriesFailure = XCTestExpectation(description: "realtime server (with queries failure)")
 
         // Subscribe without queries
         try await realtime.subscribe(channels: ["tests"]) { message in
@@ -60,6 +62,16 @@ class Tests: XCTestCase {
         ) { message in
             realtimeResponseWithQueries = message.payload?["response"] as! String
             expectationWithQueries.fulfill()
+        }
+
+        try await realtime.subscribe(
+            channels: ["tests"],
+            queries: [
+                Query.equal("response", value: ["WS:/v1/realtime:passed"])
+            ]
+        ) { message in
+            realtimeResponseWithQueriesFailure = message.payload?["response"] as! String
+            expectationWithQueriesFailure.fulfill()
         }
 
         var mock: Mock
@@ -174,9 +186,10 @@ class Tests: XCTestCase {
 
         print("Invalid endpoint URL: htp://cloud.appwrite.io/v1") // Indicates fatalError by client.setEndpoint
 
-        wait(for: [expectation, expectationWithQueries], timeout: 10.0)
+        wait(for: [expectation, expectationWithQueries, expectationWithQueriesFailure], timeout: 10.0)
         print(realtimeResponse)
         print(realtimeResponseWithQueries)
+        print(realtimeResponseWithQueriesFailure)
 
         mock = try await general.setCookie()
         print(mock.result)

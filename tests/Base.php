@@ -100,6 +100,7 @@ abstract class Base extends TestCase
     protected const REALTIME_RESPONSES = [
         'WS:/v1/realtime:passed',
         'WS:/v1/realtime:passed',
+        'Realtime failed!'
     ];
 
     protected const QUERY_HELPER_RESPONSES = [

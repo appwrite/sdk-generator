@@ -47,6 +47,13 @@ void main() async {
     ],
   );
 
+  final rtsubWithQueriesFailure = realtime.subscribe(
+    ["tests"],
+    queries: [
+      Query.equal('response',["type"])
+    ],
+  );
+
   await Future.delayed(Duration(seconds: 5));
   client.addHeader('Origin', 'http://localhost');
   print('\nTest Started');
@@ -172,6 +179,10 @@ void main() async {
   final message2 = await rtsubWithQueries.stream.first.timeout(Duration(seconds: 10));
   print(message2.payload["response"]);
   await rtsubWithQueries.close();
+
+  final message3 = await rtsubWithQueriesFailure.stream.first.timeout(Duration(seconds: 10));
+  print(message3.payload["response"] ?? "Realtime failed!");
+  await rtsubWithQueriesFailure.close();
 
   await Future.delayed(Duration(seconds: 5));
 

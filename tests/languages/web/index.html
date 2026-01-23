@@ -20,6 +20,7 @@
             let response;
             let responseRealtime = 'Realtime failed!';
             let responseRealtimeWithQueries = 'Realtime failed!';
+            let responseRealtimeWithQueriesFailure = 'Realtime failed!';
 
             // Init SDK
             const { Client, Foo, Bar, General, Realtime, Query, Permission, Role, ID, Channel, Operator, Condition, MockType } = Appwrite;
@@ -50,6 +51,16 @@
                 ['tests'],
                 message => {
                     responseRealtimeWithQueries = message.payload.response;
+                },
+                [
+                    [Query.equal('response',["WS:/v1/realtime:passed"])]
+                ],
+            );
+
+            await realtime.subscribe(
+                ['tests'],
+                message => {
+                    responseRealtimeWithQueriesFailure = message.payload.response;
                 },
                 [
                     [Query.equal('response',["WS:/v1/realtime:passed"])]
@@ -269,6 +280,7 @@
             await delay(5000);
             console.log(responseRealtime)
             console.log(responseRealtimeWithQueries)
+            console.log(responseRealtimeWithQueriesFailure)
 
             // Query helper tests
             console.log(Query.equal("released", [true]));
