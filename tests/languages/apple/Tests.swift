@@ -39,6 +39,7 @@ class Tests: XCTestCase {
         let bar = Bar(client)
         let general = General(client)
         let realtime = Realtime(client)
+        let realtimeWithFailure = Realtime(client)
         var realtimeResponse = "Realtime failed!"
         var realtimeResponseWithQueries = "Realtime failed!"
         var realtimeResponseWithQueriesFailure = "Realtime failed!"
@@ -46,6 +47,7 @@ class Tests: XCTestCase {
         let expectation = XCTestExpectation(description: "realtime server")
         let expectationWithQueries = XCTestExpectation(description: "realtime server (with queries)")
         let expectationWithQueriesFailure = XCTestExpectation(description: "realtime server (with queries failure)")
+        expectationWithQueriesFailure.isInverted = true
 
         // Subscribe without queries
         try await realtime.subscribe(channels: ["tests"]) { message in
@@ -64,16 +66,15 @@ class Tests: XCTestCase {
             expectationWithQueries.fulfill()
         }
 
-        try await realtime.subscribe(
+        try await realtimeWithFailure.subscribe(
             channels: ["tests"],
             queries: [
                 Query.equal("response", value: ["failed"])
             ]
         ) { message in
             realtimeResponseWithQueriesFailure = message.payload?["response"] as! String
+            expectationWithQueriesFailure.fulfill()
         }
-        // adding it here as the subscription will not receive any event/message
-        expectationWithQueriesFailure.fulfill()
 
         var mock: Mock
 
@@ -187,10 +188,16 @@ class Tests: XCTestCase {
 
         print("Invalid endpoint URL: htp://cloud.appwrite.io/v1") // Indicates fatalError by client.setEndpoint
 
-        wait(for: [expectation, expectationWithQueries, expectationWithQueriesFailure], timeout: 10.0)
+        wait(for: [expectation, expectationWithQueries], timeout: 10.0)
         print(realtimeResponse)
         print(realtimeResponseWithQueries)
-        print(realtimeResponseWithQueriesFailure)
+        
+        wait(for: [expectationWithQueriesFailure], timeout: 10.0)
+        if expectationWithQueriesFailure.isInverted {
+            print(realtimeResponseWithQueriesFailure)
+        } else {
+            print("Realtime failed")
+        }
 
         mock = try await general.setCookie()
         print(mock.result)
