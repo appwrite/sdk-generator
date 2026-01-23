@@ -509,8 +509,6 @@ const initSite = async (): Promise<void> => {
 
   if (selected.template === "./") {
     gitCloneCommands = `
-            mkdir -p .
-            cd .
             git init
             git remote add origin ${repo}
             git config --global init.defaultBranch main
@@ -519,8 +517,6 @@ const initSite = async (): Promise<void> => {
         `.trim();
   } else {
     gitCloneCommands = `
-            mkdir -p .
-            cd .
             git init
             git remote add origin ${repo}
             git config --global init.defaultBranch main
