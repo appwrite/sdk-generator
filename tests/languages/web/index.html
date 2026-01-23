@@ -52,7 +52,7 @@
                     responseRealtimeWithQueries = message.payload.response;
                 },
                 [
-                    Query.equal('type', ['tests'])
+                    [Query.equal('response',["WS:/v1/realtime:passed"])]
                 ],
             );
 

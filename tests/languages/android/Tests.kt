@@ -96,7 +96,7 @@ class ServiceTest {
             "tests",
             payloadType = TestPayload::class.java,
             queries = listOf(
-                Query.equal("type", listOf("tests"))
+                Query.equal("type", listOf("WS:/v1/realtime:passed"))
             )
         ) {
             realtimeResponseWithQueries = it.payload.response

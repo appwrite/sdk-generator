@@ -55,7 +55,7 @@ class Tests: XCTestCase {
         try await realtime.subscribe(
             channels: ["tests"],
             queries: [
-                Query.equal("type", value: ["tests"])
+                [Query.equal('response',value: ["WS:/v1/realtime:passed"])]
             ]
         ) { message in
             realtimeResponseWithQueries = message.payload?["response"] as? String ?? realtimeResponseWithQueries
