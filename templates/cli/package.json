@@ -8,14 +8,18 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "cli": "dist/cli.js"
+    "cli": "dist/cli.cjs"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/appwrite/sdk-for-cli"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "npm run build:types && npm run build:runtime",
+    "build:types": "tsc -p tsconfig.json --emitDeclarationOnly",
+    "build:runtime": "npm run build:lib:runtime && npm run build:cli",
+    "build:lib:runtime": "esbuild index.ts --bundle --platform=node --target=node18 --format=esm --loader:.hbs=text --outfile=dist/index.js",
+    "build:cli": "esbuild cli.ts --bundle --platform=node --target=node18 --format=cjs --loader:.hbs=text --external:fsevents --outfile=dist/cli.cjs",
     "format": "prettier --write \"**/*.{js,ts,json,md}\"",
     "generate": "tsx scripts/generate-commands.ts",
     "prepublishOnly": "npm run build",
