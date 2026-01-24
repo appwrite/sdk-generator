@@ -1,0 +1,96 @@
+//! {{ definition.name | caseUcfirst }} model for {{ spec.title }} SDK
+
+use serde::{Deserialize, Serialize};
+{% if definition.additionalProperties %}
+use std::collections::HashMap;
+{% endif %}
+{% set fieldNames = {} %}
+
+{{ definition.description | rustdocComment }}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(test, derive(Default))]
+pub struct {{ definition.name | caseUcfirst | overrideIdentifier }} {
+{% for property in definition.properties %}
+{% set propertyName = property.name %}
+{% set fieldName = propertyName matches '/^_?[A-Z_]+$/' ? propertyName | lower | trim('_') : propertyName | caseSnake %}
+{% set fieldName = fieldName | overrideIdentifier %}
+    {{ property.description | rustdocComment(4) }}
+    #[serde(rename = "{{ property.name }}")]
+{% if property.required %}
+    pub {{ fieldName }}: {{ property | propertyType(spec) | rustType }},
+{% else %}
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub {{ fieldName }}: Option<{{ property | propertyType(spec) | rustType }}>,
+{% endif %}
+{% endfor %}
+{% if definition.additionalProperties %}
+
+    #[serde(flatten)]
+    pub data: HashMap<String, serde_json::Value>,
+{% endif %}
+}
+
+impl {{ definition.name | caseUcfirst | overrideIdentifier }} {
+{% for property in definition.properties %}
+{% set propertyName = property.name %}
+{% set fieldName = propertyName matches '/^_?[A-Z_]+$/' ? propertyName | lower | trim('_') : propertyName | caseSnake %}
+{% set fieldName = fieldName | overrideIdentifier %}
+{% if not property.required %}
+    /// Set {{ fieldName }}
+    pub fn set_{{ fieldName }}(mut self, {{ fieldName }}: {{ property | propertyType(spec) | rustType }}) -> Self {
+        self.{{ fieldName }} = Some({{ fieldName }});
+        self
+    }
+
+    /// Get {{ fieldName }}
+    pub fn {{ fieldName }}(&self) -> Option<&{{ property | propertyType(spec) | rustType }}> {
+        self.{{ fieldName }}.as_ref()
+    }
+{% else %}
+    /// Get {{ fieldName }}
+    pub fn {{ fieldName }}(&self) -> &{{ property | propertyType(spec) | rustType }} {
+        &self.{{ fieldName }}
+    }
+{% endif %}
+
+{% endfor %}
+{% if definition.additionalProperties %}
+
+    pub fn get<T: serde::de::DeserializeOwned>(&self, key: &str) -> Option<T> {
+        self.data.get(key)
+            .and_then(|v| serde_json::from_value(v.clone()).ok())
+    }
+
+    pub fn data(&self) -> &HashMap<String, serde_json::Value> {
+        &self.data
+    }
+{% endif %}
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_{{ definition.name | caseSnake }}_creation() {
+        let _model = <{{ definition.name | caseUcfirst | overrideIdentifier }} as Default>::default();
+{% for property in definition.properties %}
+{% if property.required %}
+{% set propertyName = property.name %}
+{% set fieldName = propertyName matches '/^_?[A-Z_]+$/' ? propertyName | lower | trim('_') : propertyName | caseSnake %}
+{% set fieldName = fieldName | overrideIdentifier %}
+        let _ = _model.{{ fieldName }}();
+{% endif %}
+{% endfor %}
+    }
+
+    #[test]
+    fn test_{{ definition.name | caseSnake }}_serialization() {
+        let model = <{{ definition.name | caseUcfirst | overrideIdentifier }} as Default>::default();
+        let json = serde_json::to_string(&model);
+        assert!(json.is_ok());
+
+        let deserialized: Result<{{ definition.name | caseUcfirst | overrideIdentifier }}, _> = serde_json::from_str(&json.unwrap());
+        assert!(deserialized.is_ok());
+    }
+}

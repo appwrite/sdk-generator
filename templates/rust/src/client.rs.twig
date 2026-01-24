@@ -1,0 +1,906 @@
+//! HTTP client for {{ spec.title }} API
+
+use crate::error::{{ spec.title | caseUcfirst }}Error;
+use crate::error::Result;
+use crate::input_file::InputFile;
+use arc_swap::ArcSwap;
+use reqwest::{header::HeaderMap, multipart, Client as HttpClient, Method, Response};
+use serde::de::DeserializeOwned;
+use serde_json::Value;
+use std::collections::HashMap;
+use std::sync::Arc;
+use std::time::Duration;
+use url::Url;
+
+/// Default request timeout in seconds
+const DEFAULT_TIMEOUT: u64 = 10;
+
+/// Default chunk size for file uploads (5MB)
+const DEFAULT_CHUNK_SIZE: usize = 5 * 1024 * 1024;
+
+/// Upload progress information
+#[derive(Debug, Clone, Copy)]
+pub struct UploadProgress {
+    /// Number of bytes uploaded so far
+    pub bytes_uploaded: u64,
+    /// Total number of bytes to upload
+    pub total_bytes: u64,
+    /// Number of chunks uploaded so far
+    pub chunks_uploaded: u64,
+    /// Total number of chunks
+    pub total_chunks: u64,
+}
+
+impl UploadProgress {
+    /// Get the upload progress as a percentage (0.0 to 100.0)
+    pub fn percentage(&self) -> f64 {
+        if self.total_bytes == 0 {
+            return 0.0;
+        }
+        (self.bytes_uploaded as f64 / self.total_bytes as f64) * 100.0
+    }
+}
+
+/// Options for file upload operations
+pub struct UploadOptions<F> {
+    pub upload_id: Option<String>,
+    pub on_progress: Option<F>,
+}
+
+impl<F> Default for UploadOptions<F> {
+    fn default() -> Self {
+        Self {
+            upload_id: None,
+            on_progress: None,
+        }
+    }
+}
+
+/// {{ spec.title }} client for making API requests
+#[derive(Debug, Clone)]
+pub struct Client {
+    state: Arc<ArcSwap<ClientState>>,
+}
+
+#[derive(Debug, Clone)]
+struct ClientState {
+    config: Config,
+    http: HttpClient,
+    http_no_redirect: HttpClient,
+}
+
+#[derive(Debug, Clone)]
+struct Config {
+    endpoint: String,
+    headers: HeaderMap,
+    self_signed: bool,
+    chunk_size: usize,
+    timeout_secs: u64,
+}
+
+impl Default for Client {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Client {
+    /// Create a new {{ spec.title }} client
+    pub fn new() -> Self {
+        let mut headers = HeaderMap::new();
+{% for key, header in spec.global.defaultHeaders %}
+        headers.insert("{{ key }}", "{{ header }}".parse().unwrap());
+{% endfor %}
+        headers.insert("user-agent", format!("{{ spec.title }}RustSDK/{{ sdk.version }} ({}; {})", std::env::consts::OS, std::env::consts::ARCH).parse().unwrap());
+        headers.insert("x-sdk-name", "{{ sdk.name }}".parse().unwrap());
+        headers.insert("x-sdk-platform", "{{ sdk.platform }}".parse().unwrap());
+        headers.insert("x-sdk-language", "{{ language.name | caseLower }}".parse().unwrap());
+        headers.insert("x-sdk-version", "{{ sdk.version }}".parse().unwrap());
+
+        let config = Config {
+            endpoint: "{{ spec.endpoint }}".to_string(),
+            headers,
+            self_signed: false,
+            chunk_size: DEFAULT_CHUNK_SIZE,
+            timeout_secs: DEFAULT_TIMEOUT,
+        };
+
+        let http = Self::build_http_client(&config);
+        let http_no_redirect = Self::build_http_client_no_redirect(&config);
+
+        let state = ClientState { config, http, http_no_redirect };
+
+        Self {
+            state: Arc::new(ArcSwap::from_pointee(state)),
+        }
+    }
+
+    fn build_http_client(config: &Config) -> HttpClient {
+        let mut builder = HttpClient::builder().timeout(Duration::from_secs(config.timeout_secs));
+
+        if config.self_signed {
+            builder = builder.danger_accept_invalid_certs(true);
+        }
+
+        builder.build().expect("Failed to create HTTP client")
+    }
+
+    fn build_http_client_no_redirect(config: &Config) -> HttpClient {
+        let mut builder = HttpClient::builder()
+            .redirect(reqwest::redirect::Policy::none())
+            .timeout(Duration::from_secs(config.timeout_secs));
+
+        if config.self_signed {
+            builder = builder.danger_accept_invalid_certs(true);
+        }
+
+        builder.build().expect("Failed to create no-redirect HTTP client")
+    }
+
+    /// Set the API endpoint
+    pub fn set_endpoint<S: Into<String>>(&self, endpoint: S) -> Self {
+        let endpoint = endpoint.into();
+        if !endpoint.starts_with("http://") && !endpoint.starts_with("https://") {
+            panic!("Invalid endpoint URL: {}. Endpoint must start with http:// or https://", endpoint);
+        }
+        self.state.rcu(|state| {
+            let mut next = (**state).clone();
+            next.config.endpoint = endpoint.clone();
+            Arc::new(next)
+        });
+        self.clone()
+    }
+
+    /// Set the project ID
+    pub fn set_project<S: Into<String>>(&self, project: S) -> Self {
+        let project = project.into();
+        self.state.rcu(|state| {
+            let mut next = (**state).clone();
+            next.config.headers.insert("x-appwrite-project", project.clone().parse().unwrap());
+            Arc::new(next)
+        });
+        self.clone()
+    }
+
+    /// Set the API key
+    pub fn set_key<S: Into<String>>(&self, key: S) -> Self {
+        let key = key.into();
+        self.state.rcu(|state| {
+            let mut next = (**state).clone();
+            next.config.headers.insert("x-appwrite-key", key.clone().parse().unwrap());
+            Arc::new(next)
+        });
+        self.clone()
+    }
+
+    /// Set the JWT token
+    pub fn set_jwt<S: Into<String>>(&self, jwt: S) -> Self {
+        let jwt = jwt.into();
+        self.state.rcu(|state| {
+            let mut next = (**state).clone();
+            next.config.headers.insert("x-appwrite-jwt", jwt.clone().parse().unwrap());
+            Arc::new(next)
+        });
+        self.clone()
+    }
+
+    /// Set the locale
+    pub fn set_locale<S: Into<String>>(&self, locale: S) -> Self {
+        let locale = locale.into();
+        self.state.rcu(|state| {
+            let mut next = (**state).clone();
+            next.config.headers.insert("x-appwrite-locale", locale.clone().parse().unwrap());
+            Arc::new(next)
+        });
+        self.clone()
+    }
+
+    /// Set the session
+    pub fn set_session<S: Into<String>>(&self, session: S) -> Self {
+        let session = session.into();
+        self.state.rcu(|state| {
+            let mut next = (**state).clone();
+            next.config.headers.insert("x-appwrite-session", session.clone().parse().unwrap());
+            Arc::new(next)
+        });
+        self.clone()
+    }
+
+    /// Enable or disable self-signed certificates
+    pub fn set_self_signed(&self, self_signed: bool) -> Self {
+        self.state.rcu(|state| {
+            let mut next = (**state).clone();
+            if next.config.self_signed != self_signed {
+                next.config.self_signed = self_signed;
+                next.http = Self::build_http_client(&next.config);
+                next.http_no_redirect = Self::build_http_client_no_redirect(&next.config);
+            }
+            Arc::new(next)
+        });
+        self.clone()
+    }
+
+    /// Set chunk size for file uploads (minimum 1 byte)
+    pub fn set_chunk_size(&self, chunk_size: usize) -> Self {
+        self.state.rcu(|state| {
+            let mut next = (**state).clone();
+            next.config.chunk_size = chunk_size.max(1);
+            Arc::new(next)
+        });
+        self.clone()
+    }
+
+    /// Set request timeout in seconds
+    pub fn set_timeout(&self, timeout_secs: u64) -> Self {
+        self.state.rcu(|state| {
+            let mut next = (**state).clone();
+            if next.config.timeout_secs != timeout_secs {
+                next.config.timeout_secs = timeout_secs;
+                next.http = Self::build_http_client(&next.config);
+                next.http_no_redirect = Self::build_http_client_no_redirect(&next.config);
+            }
+            Arc::new(next)
+        });
+        self.clone()
+    }
+
+    /// Add a custom header
+    pub fn add_header<K: AsRef<str>, V: AsRef<str>>(&self, key: K, value: V) -> Self {
+        use reqwest::header::{HeaderName, HeaderValue};
+
+        let key = key.as_ref().to_string();
+        let value = value.as_ref().to_string();
+
+        self.state.rcu(|state| {
+            let mut next = (**state).clone();
+            if let (Ok(header_name), Ok(header_value)) = (
+                key.parse::<HeaderName>(),
+                value.parse::<HeaderValue>(),
+            ) {
+                next.config.headers.insert(header_name, header_value);
+            }
+            Arc::new(next)
+        });
+        self.clone()
+    }
+
+    /// Get the current endpoint
+    pub fn endpoint(&self) -> String {
+        let state = self.state.load();
+        state.config.endpoint.clone()
+    }
+
+    /// Serialize primitive parameter value to string
+    fn serialize_param_value(value: &Value) -> String {
+        match value {
+            Value::String(s) => s.clone(),
+            Value::Number(n) => n.to_string(),
+            Value::Bool(b) => b.to_string(),
+            Value::Null => String::new(),
+            _ => value.to_string(),
+        }
+    }
+
+    /// Flatten parameters for GET query strings
+    /// Converts nested arrays/objects to bracket notation: key[0], key[subkey], etc.
+    fn flatten_query_params(params: &HashMap<String, Value>) -> Vec<(String, String)> {
+        let mut result = Vec::new();
+
+        for (key, value) in params {
+            match value {
+                Value::Array(arr) => {
+                    for item in arr {
+                        match item {
+                            Value::String(s) => result.push((format!("{}[]", key), s.clone())),
+                            Value::Number(n) => result.push((format!("{}[]", key), n.to_string())),
+                            Value::Bool(b) => result.push((format!("{}[]", key), b.to_string())),
+                            Value::Null => result.push((format!("{}[]", key), String::new())),
+                            _ => {
+                                result.push((format!("{}[]", key), serde_json::to_string(item).unwrap_or_default()));
+                            }
+                        }
+                    }
+                }
+                Value::Object(_) => {
+                    result.push((key.clone(), serde_json::to_string(value).unwrap_or_default()));
+                }
+                _ => {
+                    result.push((key.clone(), Self::serialize_param_value(value)));
+                }
+            }
+        }
+
+        result
+    }
+
+    /// Flatten nested parameters for multipart form data
+    /// Converts nested arrays/objects to bracket notation: key[0], key[subkey], etc.
+    fn flatten_multipart_params(params: &HashMap<String, Value>, prefix: &str) -> Vec<(String, String)> {
+        let mut result = Vec::new();
+
+        for (key, value) in params {
+            let final_key = if prefix.is_empty() {
+                key.clone()
+            } else {
+                format!("{}[{}]", prefix, key)
+            };
+
+            match value {
+                Value::Array(arr) => {
+                    for (i, item) in arr.iter().enumerate() {
+                        let array_key = format!("{}[{}]", final_key, i);
+                        if item.is_object() || item.is_array() {
+                            let mut nested = HashMap::new();
+                            nested.insert(String::new(), item.clone());
+                            let flattened = Self::flatten_multipart_params(&nested, &array_key);
+                            result.extend(flattened);
+                        } else {
+                            result.push((array_key, Self::serialize_param_value(item)));
+                        }
+                    }
+                }
+                Value::Object(obj) => {
+                    let mut nested_map = HashMap::new();
+                    for (nested_key, nested_value) in obj {
+                        nested_map.insert(nested_key.clone(), nested_value.clone());
+                    }
+                    let flattened = Self::flatten_multipart_params(&nested_map, &final_key);
+                    result.extend(flattened);
+                }
+                _ => {
+                    result.push((final_key, Self::serialize_param_value(value)));
+                }
+            }
+        }
+
+        result
+    }
+
+    pub async fn call<T: DeserializeOwned>(
+        &self,
+        method: Method,
+        path: &str,
+        headers: Option<HashMap<String, String>>,
+        params: Option<HashMap<String, Value>>,
+    ) -> Result<T> {
+        let state = self.state.load_full();
+        let url = format!("{}{}", state.config.endpoint, path);
+        let mut request_builder;
+
+        if let Some(params) = params {
+            if method == Method::GET {
+                let mut url_with_params = Url::parse(&url).map_err(|e| {{ spec.title | caseUcfirst }}Error::new(0, format!("Invalid URL: {}", e), None, String::new()))?;
+                {
+                    let mut query_pairs = url_with_params.query_pairs_mut();
+                    for (key, value) in Self::flatten_query_params(&params) {
+                        query_pairs.append_pair(&key, &value);
+                    }
+                }
+                request_builder = state.http.request(method.clone(), url_with_params);
+            } else {
+                request_builder = state.http.request(method.clone(), &url);
+                request_builder = request_builder.json(&params);
+            }
+        } else {
+            request_builder = state.http.request(method.clone(), &url);
+        }
+
+        request_builder = request_builder.headers(state.config.headers.clone());
+
+        if let Some(custom_headers) = headers {
+            for (key, value) in custom_headers {
+                request_builder = request_builder.header(key, value);
+            }
+        }
+
+        let response = request_builder.send().await?;
+        self.handle_response(response).await
+    }
+
+    /// Make an API call that returns a location/redirect URL (for webAuth endpoints)
+    pub async fn call_location(
+        &self,
+        method: Method,
+        path: &str,
+        headers: Option<HashMap<String, String>>,
+        params: Option<HashMap<String, Value>>,
+    ) -> Result<String> {
+        let state = self.state.load_full();
+        let url = format!("{}{}", state.config.endpoint, path);
+
+        let mut request_builder = state.http_no_redirect.request(method.clone(), &url);
+
+        request_builder = request_builder.headers(state.config.headers.clone());
+
+        if let Some(ref custom_headers) = headers {
+            for (key, value) in custom_headers {
+                request_builder = request_builder.header(key, value);
+            }
+        }
+
+        if let Some(params) = params {
+            if method == Method::GET {
+                let mut url_with_params = Url::parse(&url).map_err(|e| {{ spec.title | caseUcfirst }}Error::new(0, format!("Invalid URL: {}", e), None, String::new()))?;
+                {
+                    let mut query_pairs = url_with_params.query_pairs_mut();
+                    for (key, value) in Self::flatten_query_params(&params) {
+                        query_pairs.append_pair(&key, &value);
+                    }
+                }
+                request_builder = state.http_no_redirect.request(method, url_with_params);
+                request_builder = request_builder.headers(state.config.headers.clone());
+                if let Some(ref custom_headers) = headers {
+                    for (key, value) in custom_headers {
+                        request_builder = request_builder.header(key, value);
+                    }
+                }
+            } else {
+                request_builder = request_builder.json(&params);
+            }
+        }
+
+        let response = request_builder.send().await?;
+
+        let status = response.status();
+
+        if status.is_redirection() {
+            response
+                .headers()
+                .get("location")
+                .and_then(|v| v.to_str().ok())
+                .map(|s| s.to_string())
+                .ok_or_else(|| {{ spec.title | caseUcfirst }}Error::new(
+                    status.as_u16(),
+                    "Location header not found in redirect response",
+                    None,
+                    String::new(),
+                ))
+        } else {
+            let content_type = response
+                .headers()
+                .get("content-type")
+                .and_then(|v| v.to_str().ok())
+                .unwrap_or("")
+                .to_string();
+
+            let error_text = response.text().await?;
+
+            if content_type.starts_with("application/json") {
+                if let Ok(error_json) = serde_json::from_str::<Value>(&error_text) {
+                    let message = error_json
+                        .get("message")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("Unknown error");
+                    let error_type = error_json
+                        .get("type")
+                        .and_then(|v| v.as_str())
+                        .map(|v| v.to_string());
+                    return Err({{ spec.title | caseUcfirst }}Error::new(
+                        status.as_u16(),
+                        message,
+                        error_type,
+                        error_text,
+                    ));
+                }
+            }
+
+            Err({{ spec.title | caseUcfirst }}Error::new(
+                status.as_u16(),
+                error_text.clone(),
+                None,
+                error_text,
+            ))
+        }
+    }
+
+    /// Make an API call that returns raw bytes (for downloads/location endpoints)
+    pub async fn call_bytes(
+        &self,
+        method: Method,
+        path: &str,
+        headers: Option<HashMap<String, String>>,
+        params: Option<HashMap<String, Value>>,
+    ) -> Result<Vec<u8>> {
+        let state = self.state.load_full();
+        let url = format!("{}{}", state.config.endpoint, path);
+        let mut request_builder;
+
+        if let Some(params) = params {
+            if method == Method::GET {
+                let mut url_with_params = Url::parse(&url).map_err(|e| {{ spec.title | caseUcfirst }}Error::new(0, format!("Invalid URL: {}", e), None, String::new()))?;
+                {
+                    let mut query_pairs = url_with_params.query_pairs_mut();
+                    for (key, value) in Self::flatten_query_params(&params) {
+                        query_pairs.append_pair(&key, &value);
+                    }
+                }
+                request_builder = state.http.request(method.clone(), url_with_params);
+            } else {
+                request_builder = state.http.request(method.clone(), &url);
+                request_builder = request_builder.json(&params);
+            }
+        } else {
+            request_builder = state.http.request(method.clone(), &url);
+        }
+
+        request_builder = request_builder.headers(state.config.headers.clone());
+
+        if let Some(custom_headers) = headers {
+            for (key, value) in custom_headers {
+                request_builder = request_builder.header(key, value);
+            }
+        }
+
+        let response = request_builder.send().await?;
+
+        let status = response.status();
+        if status.is_success() {
+            let bytes = response.bytes().await?;
+            Ok(bytes.to_vec())
+        } else {
+            let content_type = response
+                .headers()
+                .get("content-type")
+                .and_then(|v| v.to_str().ok())
+                .unwrap_or("")
+                .to_string();
+
+            let error_text = response.text().await?;
+
+            if content_type.starts_with("application/json") {
+                if let Ok(error_json) = serde_json::from_str::<Value>(&error_text) {
+                    let message = error_json
+                        .get("message")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("Unknown error");
+                    let error_type = error_json
+                        .get("type")
+                        .and_then(|v| v.as_str())
+                        .map(|v| v.to_string());
+                    return Err({{ spec.title | caseUcfirst }}Error::new(
+                        status.as_u16(),
+                        message,
+                        error_type,
+                        error_text,
+                    ));
+                }
+            }
+
+            Err({{ spec.title | caseUcfirst }}Error::new(
+                status.as_u16(),
+                error_text.clone(),
+                None,
+                error_text,
+            ))
+        }
+    }
+
+    /// Upload a file
+    pub async fn file_upload<T: DeserializeOwned>(
+        &self,
+        path: &str,
+        headers: Option<HashMap<String, String>>,
+        params: HashMap<String, Value>,
+        param_name: &str,
+        input_file: InputFile,
+        upload_id: Option<String>,
+    ) -> Result<T> {
+        self.file_upload_with_progress(
+            path,
+            headers,
+            params,
+            param_name,
+            input_file,
+            UploadOptions {
+                upload_id,
+                on_progress: None::<fn(UploadProgress)>,
+            },
+        )
+        .await
+    }
+
+    /// Upload a file with progress callback
+    pub async fn file_upload_with_progress<T: DeserializeOwned, F>(
+        &self,
+        path: &str,
+        headers: Option<HashMap<String, String>>,
+        params: HashMap<String, Value>,
+        param_name: &str,
+        input_file: InputFile,
+        options: UploadOptions<F>,
+    ) -> Result<T>
+    where
+        F: Fn(UploadProgress),
+    {
+        let file_size = input_file.size().await?;
+        let chunk_size = {
+            let state = self.state.load();
+            state.config.chunk_size.max(1)
+        };
+
+        if file_size <= chunk_size as u64 {
+            let state = self.state.load_full();
+            let url = if let Some(id) = &options.upload_id {
+                format!("{}{}/{}", state.config.endpoint, path, id)
+            } else {
+                format!("{}{}", state.config.endpoint, path)
+            };
+
+            let result = self.single_file_upload(&url, headers, params, param_name, &input_file).await?;
+
+            if let Some(callback) = &options.on_progress {
+                callback(UploadProgress {
+                    bytes_uploaded: file_size,
+                    total_bytes: file_size,
+                    chunks_uploaded: 1,
+                    total_chunks: 1,
+                });
+            }
+
+            return Ok(result);
+        }
+
+        self.chunked_file_upload_with_progress(path, headers, params, param_name, &input_file, options).await
+    }
+
+    async fn single_file_upload<T: DeserializeOwned>(
+        &self,
+        url: &str,
+        headers: Option<HashMap<String, String>>,
+        params: HashMap<String, Value>,
+        param_name: &str,
+        input_file: &InputFile,
+    ) -> Result<T> {
+        let state = self.state.load_full();
+        let mut form = multipart::Form::new();
+
+        let file_data = input_file.read_all().await?;
+        let file_size = file_data.len() as u64;
+        let mut file_part = multipart::Part::stream_with_length(file_data, file_size)
+            .file_name(input_file.filename().to_string());
+
+        if let Some(mime_type) = input_file.mime_type() {
+            file_part = file_part.mime_str(mime_type)
+                .map_err(|e| {{ spec.title | caseUcfirst }}Error::new(0, format!("Invalid MIME type: {}", e), None, String::new()))?;
+        }
+
+        form = form.part(param_name.to_string(), file_part);
+
+        let mut params_to_flatten = HashMap::new();
+        for (key, value) in params {
+            if key != param_name {
+                params_to_flatten.insert(key, value);
+            }
+        }
+
+        for (key, value_str) in Self::flatten_multipart_params(&params_to_flatten, "") {
+            form = form.text(key, value_str);
+        }
+
+        let mut request_builder = state.http.post(url).headers(state.config.headers.clone());
+
+        if let Some(custom_headers) = headers {
+            for (key, value) in custom_headers {
+                // Skip content-type for multipart - reqwest sets it automatically with boundary
+                if key.to_lowercase() != "content-type" {
+                    request_builder = request_builder.header(key, value);
+                }
+            }
+        }
+
+        let response = request_builder
+            .multipart(form)
+            .send()
+            .await
+            ?;
+
+        self.handle_response(response).await
+    }
+
+    async fn chunked_file_upload_with_progress<T: DeserializeOwned, F>(
+        &self,
+        path: &str,
+        headers: Option<HashMap<String, String>>,
+        params: HashMap<String, Value>,
+        param_name: &str,
+        input_file: &InputFile,
+        options: UploadOptions<F>,
+    ) -> Result<T>
+    where
+        F: Fn(UploadProgress),
+    {
+        let file_size = input_file.size().await?;
+        let chunk_size = {
+            let state = self.state.load();
+            state.config.chunk_size.max(1)
+        };
+        let total_chunks = file_size.div_ceil(chunk_size as u64);
+        let mut current_upload_id = options.upload_id;
+        let mut start_chunk = 0u64;
+        if let Some(ref id) = current_upload_id {
+            if let Ok(response) = self.call::<Value>(
+                Method::GET,
+                &format!("{}/{}", path, id),
+                None,
+                None,
+            ).await {
+                if let Some(chunks_uploaded) = response.get("chunksUploaded").and_then(|v| v.as_u64()) {
+                    start_chunk = chunks_uploaded;
+                }
+            }
+        }
+
+        let mut reader = input_file.chunked_reader().await?;
+
+        if start_chunk > 0 {
+            let resume_offset = start_chunk * chunk_size as u64;
+            reader.seek(resume_offset).await?;
+        }
+
+        let mut last_response = None;
+
+        for chunk_index in start_chunk..total_chunks {
+            let chunk_data = match reader.read_next(chunk_size).await? {
+                Some(data) => data,
+                None => break,
+            };
+            let actual_chunk_size = chunk_data.len();
+            let start = reader.position() - actual_chunk_size as u64;
+
+            if actual_chunk_size == 0 {
+                break;
+            }
+
+            let state = self.state.load_full();
+            let mut form = multipart::Form::new();
+            let mut file_part = multipart::Part::stream_with_length(chunk_data, actual_chunk_size as u64)
+                .file_name(input_file.filename().to_string());
+
+            if let Some(mime_type) = input_file.mime_type() {
+                file_part = file_part.mime_str(mime_type)
+                    .map_err(|e| {{ spec.title | caseUcfirst }}Error::new(0, format!("Invalid MIME type: {}", e), None, String::new()))?;
+            }
+
+            form = form.part(param_name.to_string(), file_part);
+
+            let mut params_to_flatten = HashMap::new();
+            for (key, value) in &params {
+                if key != param_name {
+                    params_to_flatten.insert(key.clone(), value.clone());
+                }
+            }
+
+            for (key, value_str) in Self::flatten_multipart_params(&params_to_flatten, "") {
+                form = form.text(key, value_str);
+            }
+
+            let url = format!("{}{}", state.config.endpoint, path);
+            let mut request_builder = state.http.post(url).headers(state.config.headers.clone());
+
+            if let Some(ref custom_headers) = headers {
+                for (key, value) in custom_headers {
+                    // Skip content-type for multipart - reqwest sets it automatically with boundary
+                    if key.to_lowercase() != "content-type" {
+                        request_builder = request_builder.header(key, value);
+                    }
+                }
+            }
+
+            if let Some(ref id) = current_upload_id {
+                request_builder = request_builder.header("x-appwrite-id", id);
+            }
+
+            let chunk_end = start + actual_chunk_size as u64 - 1;
+            let content_range = format!("bytes {}-{}/{}", start, chunk_end, file_size);
+            request_builder = request_builder.header("content-range", content_range);
+
+            let response = request_builder
+                .multipart(form)
+                .send()
+                .await
+                ?;
+
+            let result: Value = self.handle_response(response).await?;
+
+            if current_upload_id.is_none() {
+                if let Some(id) = result.get("$id").and_then(|v| v.as_str()) {
+                    current_upload_id = Some(id.to_string());
+                }
+            }
+
+            last_response = Some(result);
+
+            if let Some(ref callback) = options.on_progress {
+                callback(UploadProgress {
+                    bytes_uploaded: start + actual_chunk_size as u64,
+                    total_bytes: file_size,
+                    chunks_uploaded: chunk_index + 1,
+                    total_chunks,
+                });
+            }
+        }
+
+        last_response
+            .ok_or_else(|| {{ spec.title | caseUcfirst }}Error::new(0, "No chunks uploaded", None, String::new()))
+            .and_then(|v| serde_json::from_value(v).map_err(Into::into))
+    }
+
+    async fn handle_response<T: DeserializeOwned>(&self, response: Response) -> Result<T> {
+        let status = response.status();
+        let content_type = response
+            .headers()
+            .get("content-type")
+            .and_then(|v| v.to_str().ok())
+            .map(|s| s.to_string())
+            .unwrap_or_default();
+        let content_type = content_type.as_str();
+
+        if status.is_success() {
+            let bytes = response.bytes().await?;
+
+            if !content_type.is_empty() && !content_type.starts_with("application/json") && !bytes.is_empty() {
+                return Err({{ spec.title | caseUcfirst }}Error::new(
+                    status.as_u16(),
+                    format!("Expected JSON response but received content-type: {}", content_type),
+                    None,
+                    String::from_utf8_lossy(&bytes).to_string(),
+                ));
+            }
+
+            Ok(if bytes.is_empty() {
+                serde_json::from_slice(b"null")?
+            } else {
+                serde_json::from_slice(&bytes)?
+            })
+        } else {
+            let error_text = response.text().await?;
+
+            if content_type.starts_with("application/json") {
+                if let Ok(error_json) = serde_json::from_str::<Value>(&error_text) {
+                    let message = error_json
+                        .get("message")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("Unknown error");
+                    let error_type = error_json
+                        .get("type")
+                        .and_then(|v| v.as_str())
+                        .map(|v| v.to_string());
+                    return Err({{ spec.title | caseUcfirst }}Error::new(
+                        status.as_u16(),
+                        message,
+                        error_type,
+                        error_text,
+                    ));
+                }
+            }
+
+            Err({{ spec.title | caseUcfirst }}Error::new(
+                status.as_u16(),
+                error_text.clone(),
+                None,
+                error_text,
+            ))
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_client_creation() {
+        let client = Client::new();
+        assert_eq!(client.endpoint(), "{{ spec.endpoint }}");
+    }
+
+    #[test]
+    fn test_client_builder_pattern() {
+        let client = Client::new()
+            .set_endpoint("https://custom.example.com/v1")
+            .set_project("test-project")
+            .set_key("test-key");
+
+        assert_eq!(client.endpoint(), "https://custom.example.com/v1");
+    }
+}

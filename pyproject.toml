@@ -3,8 +3,10 @@
 profile="jinja"
 extension="twig"
 
-ignore="H012,H025,H030,H031,T001,T002,T027,T032"
+ignore="H009,H012,H023,H025,H030,H031,T001,T002,T027,T032"
+# H009: lowercase tag names - false positive for Rust generics like <P: AsRef<Path>>
 # H012: spaces around = - false positive for TypeScript generics like <T = Models.Document>
+# H023: entity references - false positive for Rust references like &Client, &str
 # H025: orphan tags - false positive for code generics like <T>, <String>, <Exception>
 # H030/H031: meta description/keywords (not applicable to SDK code templates)
 # T001: whitespace in tags - {%~ is intentional Twig whitespace control
