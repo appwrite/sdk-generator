@@ -33,6 +33,13 @@ const databasesTemplate = Handlebars.compile(String(databasesTemplateSource));
 const indexTemplate = Handlebars.compile(String(indexTemplateSource));
 const constantsTemplate = Handlebars.compile(String(constantsTemplateSource));
 
+// Inline permission callback type for better IntelliSense
+const PERMISSION_CALLBACK_INLINE = `(permission: { read: (role: RoleString) => string; write: (role: RoleString) => string; create: (role: RoleString) => string; update: (role: RoleString) => string; delete: (role: RoleString) => string }, role: { any: () => RoleString; user: (userId: string, status?: string) => RoleString; users: (status?: string) => RoleString; guests: () => RoleString; team: (teamId: string, role?: string) => RoleString; member: (memberId: string) => RoleString; label: (label: string) => RoleString }) => string[]`;
+
+// Inline query callback type for better IntelliSense (with type parameter for field safety)
+const getQueryCallbackInline = (typeName: string) =>
+  `(q: { equal: <K extends QueryableKeys<${typeName}>>(field: K, value: ExtractQueryValue<${typeName}[K]>) => string; notEqual: <K extends QueryableKeys<${typeName}>>(field: K, value: ExtractQueryValue<${typeName}[K]>) => string; lessThan: <K extends QueryableKeys<${typeName}>>(field: K, value: ExtractQueryValue<${typeName}[K]>) => string; lessThanEqual: <K extends QueryableKeys<${typeName}>>(field: K, value: ExtractQueryValue<${typeName}[K]>) => string; greaterThan: <K extends QueryableKeys<${typeName}>>(field: K, value: ExtractQueryValue<${typeName}[K]>) => string; greaterThanEqual: <K extends QueryableKeys<${typeName}>>(field: K, value: ExtractQueryValue<${typeName}[K]>) => string; contains: <K extends QueryableKeys<${typeName}>>(field: K, value: ExtractQueryValue<${typeName}[K]>) => string; search: <K extends QueryableKeys<${typeName}>>(field: K, value: string) => string; isNull: <K extends QueryableKeys<${typeName}>>(field: K) => string; isNotNull: <K extends QueryableKeys<${typeName}>>(field: K) => string; startsWith: <K extends QueryableKeys<${typeName}>>(field: K, value: string) => string; endsWith: <K extends QueryableKeys<${typeName}>>(field: K, value: string) => string; between: <K extends QueryableKeys<${typeName}>>(field: K, start: ExtractQueryValue<${typeName}[K]>, end: ExtractQueryValue<${typeName}[K]>) => string; select: <K extends keyof ${typeName}>(fields: K[]) => string; orderAsc: <K extends keyof ${typeName}>(field: K) => string; orderDesc: <K extends keyof ${typeName}>(field: K) => string; limit: (value: number) => string; offset: (value: number) => string; cursorAfter: (documentId: string) => string; cursorBefore: (documentId: string) => string; or: (...queries: string[]) => string; and: (...queries: string[]) => string }) => string[]`;
+
 /**
  * TypeScript-specific database generator.
  * Generates type-safe SDK files for TypeScript/JavaScript projects.
@@ -77,13 +84,20 @@ export class TypeScriptDatabasesGenerator extends BaseDatabasesGenerator {
         name: e.name,
       }));
 
-    const attributes = this.buildAttributes(entity, typeEntities, "    ");
+    // Build attributes for Create type (input) - relationships use Create suffix
+    const createAttributes = this.buildAttributes(entity, typeEntities, "    ", true);
+    // Build attributes for Row type (output) - relationships use full type
+    const rowAttributes = this.buildAttributes(entity, typeEntities, "    ", false);
 
     const createType =
-      attributes.trim().length === 0
+      createAttributes.trim().length === 0
         ? `export type ${typeName}Create = Record<string, never>`
-        : `export type ${typeName}Create = {\n${attributes}\n}`;
-    const rowType = `export type ${typeName} = Models.Row & ${typeName}Create`;
+        : `export type ${typeName}Create = {\n${createAttributes}\n}`;
+
+    const rowType =
+      rowAttributes.trim().length === 0
+        ? `export type ${typeName} = Models.Row`
+        : `export type ${typeName} = Models.Row & {\n${rowAttributes}\n}`;
 
     return `${createType}\n\n${rowType}`;
   }
@@ -92,6 +106,7 @@ export class TypeScriptDatabasesGenerator extends BaseDatabasesGenerator {
     entity: Entity,
     typeEntities: TypeEntity[],
     indent: string,
+    forCreate: boolean = false,
   ): string {
     const fields = this.getFields(entity);
     if (!fields) return "";
@@ -111,7 +126,7 @@ export class TypeScriptDatabasesGenerator extends BaseDatabasesGenerator {
           relationType: attr.relationType,
           side: attr.side,
         };
-        return `${indent}${JSON.stringify(attr.key)}${attr.required ? "" : "?"}: ${getTypeScriptType(typeAttr, typeEntities, entity.name)};`;
+        return `${indent}${JSON.stringify(attr.key)}${attr.required ? "" : "?"}: ${getTypeScriptType(typeAttr, typeEntities, entity.name, forCreate)};`;
       })
       .join("\n");
   }
@@ -179,24 +194,26 @@ export class TypeScriptDatabasesGenerator extends BaseDatabasesGenerator {
               entity,
               typeEntities,
               "        ",
+              true, // forCreate - relationships use Create suffix
             );
             const createInline =
               createFields.trim().length === 0
                 ? "Record<string, never>"
                 : `{\n${createFields}\n      }`;
-            const baseMethods = `      create: (data: ${createInline}, options?: { rowId?: string; permissions?: Permission[]; transactionId?: string }) => Promise<${typeName}>;
+            const queryCallback = getQueryCallbackInline(typeName);
+            const baseMethods = `      create: (data: ${createInline}, options?: { rowId?: string; permissions?: ${PERMISSION_CALLBACK_INLINE}; transactionId?: string }) => Promise<${typeName}>;
       get: (id: string) => Promise<${typeName}>;
-      update: (id: string, data: Partial<${createInline}>, options?: { permissions?: Permission[]; transactionId?: string }) => Promise<${typeName}>;
+      update: (id: string, data: Partial<${createInline}>, options?: { permissions?: ${PERMISSION_CALLBACK_INLINE}; transactionId?: string }) => Promise<${typeName}>;
       delete: (id: string, options?: { transactionId?: string }) => Promise<void>;
-      list: (options?: { queries?: (q: QueryBuilder<${typeName}>) => string[] }) => Promise<{ total: number; rows: ${typeName}[] }>;`;
+      list: (options?: { queries?: ${queryCallback} }) => Promise<{ total: number; rows: ${typeName}[] }>;`;
 
             const canUseBulkMethods =
               supportsServerSide && !this.hasRelationshipColumns(entity);
             const bulkMethods = canUseBulkMethods
               ? `
       createMany: (rows: Array<${createInline} & { $id?: string; $permissions?: string[] }>, options?: { transactionId?: string }) => Promise<{ total: number; rows: ${typeName}[] }>;
-      updateMany: (data: Partial<${createInline}>, options?: { queries?: (q: QueryBuilder<${typeName}>) => string[]; transactionId?: string }) => Promise<{ total: number; rows: ${typeName}[] }>;
-      deleteMany: (options?: { queries?: (q: QueryBuilder<${typeName}>) => string[]; transactionId?: string }) => Promise<{ total: number; rows: ${typeName}[] }>;`
+      updateMany: (data: Partial<${createInline}>, options?: { queries?: ${queryCallback}; transactionId?: string }) => Promise<{ total: number; rows: ${typeName}[] }>;
+      deleteMany: (options?: { queries?: ${queryCallback}; transactionId?: string }) => Promise<{ total: number; rows: ${typeName}[] }>;`
               : "";
 
             return `    ${JSON.stringify(entity.name)}: {\n${baseMethods}${bulkMethods}\n    }`;
@@ -210,8 +227,8 @@ export class TypeScriptDatabasesGenerator extends BaseDatabasesGenerator {
 
 export type DatabaseHandle<D extends DatabaseId> = {
   use: <T extends keyof DatabaseTableMap[D] & string>(tableId: T) => DatabaseTableMap[D][T];
-${supportsServerSide ? `  create: (tableId: string, name: string, options?: { permissions?: Permission[]; rowSecurity?: boolean; enabled?: boolean; columns?: any[]; indexes?: any[] }) => Promise<Models.Table>;
-  update: <T extends keyof DatabaseTableMap[D] & string>(tableId: T, options?: { name?: string; permissions?: Permission[]; rowSecurity?: boolean; enabled?: boolean }) => Promise<Models.Table>;
+${supportsServerSide ? `  create: (tableId: string, name: string, options?: { permissions?: ${PERMISSION_CALLBACK_INLINE}; rowSecurity?: boolean; enabled?: boolean; columns?: any[]; indexes?: any[] }) => Promise<Models.Table>;
+  update: <T extends keyof DatabaseTableMap[D] & string>(tableId: T, options?: { name?: string; permissions?: ${PERMISSION_CALLBACK_INLINE}; rowSecurity?: boolean; enabled?: boolean }) => Promise<Models.Table>;
   delete: <T extends keyof DatabaseTableMap[D] & string>(tableId: T) => Promise<void>;` : ""}
 };
 

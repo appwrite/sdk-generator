@@ -24,12 +24,14 @@ export type TypeEntity = Pick<CollectionType | TableType, "$id" | "name">;
  * @param attribute - The attribute to convert
  * @param entities - List of all entities for resolving relationships
  * @param entityName - Name of the entity containing this attribute (for enum naming)
+ * @param forCreate - If true, use Create suffix for relationship types (for input types)
  * @returns The TypeScript type string
  */
 export function getTypeScriptType(
   attribute: TypeAttribute,
   entities: TypeEntity[],
   entityName: string,
+  forCreate: boolean = false,
 ): string {
   let type = "";
 
@@ -62,7 +64,11 @@ export function getTypeScriptType(
       if (!relatedEntity) {
         throw new Error(`Related entity with ID '${relatedId}' not found.`);
       }
-      type = LanguageMeta.toPascalCase(relatedEntity.name);
+      const baseName = LanguageMeta.toPascalCase(relatedEntity.name);
+      // For create context: allow full create object OR just an ID string to link existing row
+      type = forCreate
+        ? `((${baseName}Create & { $id?: string; $permissions?: string[] }) | string)`
+        : baseName;
       if (
         (attribute.relationType === "oneToMany" &&
           attribute.side === "parent") ||
