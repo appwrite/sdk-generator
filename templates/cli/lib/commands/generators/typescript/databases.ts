@@ -84,13 +84,20 @@ export class TypeScriptDatabasesGenerator extends BaseDatabasesGenerator {
         name: e.name,
       }));
 
-    const attributes = this.buildAttributes(entity, typeEntities, "    ");
+    // Build attributes for Create type (input) - relationships use Create suffix
+    const createAttributes = this.buildAttributes(entity, typeEntities, "    ", true);
+    // Build attributes for Row type (output) - relationships use full type
+    const rowAttributes = this.buildAttributes(entity, typeEntities, "    ", false);
 
     const createType =
-      attributes.trim().length === 0
+      createAttributes.trim().length === 0
         ? `export type ${typeName}Create = Record<string, never>`
-        : `export type ${typeName}Create = {\n${attributes}\n}`;
-    const rowType = `export type ${typeName} = Models.Row & ${typeName}Create`;
+        : `export type ${typeName}Create = {\n${createAttributes}\n}`;
+
+    const rowType =
+      rowAttributes.trim().length === 0
+        ? `export type ${typeName} = Models.Row`
+        : `export type ${typeName} = Models.Row & {\n${rowAttributes}\n}`;
 
     return `${createType}\n\n${rowType}`;
   }
@@ -99,6 +106,7 @@ export class TypeScriptDatabasesGenerator extends BaseDatabasesGenerator {
     entity: Entity,
     typeEntities: TypeEntity[],
     indent: string,
+    forCreate: boolean = false,
   ): string {
     const fields = this.getFields(entity);
     if (!fields) return "";
@@ -118,7 +126,7 @@ export class TypeScriptDatabasesGenerator extends BaseDatabasesGenerator {
           relationType: attr.relationType,
           side: attr.side,
         };
-        return `${indent}${JSON.stringify(attr.key)}${attr.required ? "" : "?"}: ${getTypeScriptType(typeAttr, typeEntities, entity.name)};`;
+        return `${indent}${JSON.stringify(attr.key)}${attr.required ? "" : "?"}: ${getTypeScriptType(typeAttr, typeEntities, entity.name, forCreate)};`;
       })
       .join("\n");
   }
@@ -186,6 +194,7 @@ export class TypeScriptDatabasesGenerator extends BaseDatabasesGenerator {
               entity,
               typeEntities,
               "        ",
+              true, // forCreate - relationships use Create suffix
             );
             const createInline =
               createFields.trim().length === 0
