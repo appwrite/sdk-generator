@@ -1,6 +1,29 @@
-import { type Models, Permission } from '{{appwriteDep}}';
+import { type Models } from '{{appwriteDep}}';
 
 {{{ENUMS}}}{{{TYPES}}}
+declare const __roleStringBrand: unique symbol;
+export type RoleString = string & { readonly [__roleStringBrand]: never };
+
+export type RoleBuilder = {
+  any: () => RoleString;
+  user: (userId: string, status?: string) => RoleString;
+  users: (status?: string) => RoleString;
+  guests: () => RoleString;
+  team: (teamId: string, role?: string) => RoleString;
+  member: (memberId: string) => RoleString;
+  label: (label: string) => RoleString;
+}
+
+export type PermissionBuilder = {
+  read: (role: RoleString) => string;
+  write: (role: RoleString) => string;
+  create: (role: RoleString) => string;
+  update: (role: RoleString) => string;
+  delete: (role: RoleString) => string;
+}
+
+export type PermissionCallback = (permission: PermissionBuilder, role: RoleBuilder) => string[];
+
 export type QueryValue = string | number | boolean;
 
 export type ExtractQueryValue<T> = T extends (infer U)[]
