@@ -1,0 +1,223 @@
+using System;
+using System.Text.Json;
+using Xunit;
+using {{ spec.title | caseUcfirst }}.Converters;
+using {{ spec.title | caseUcfirst }}.Enums;
+
+namespace {{ spec.title | caseUcfirst }}.Tests.Converters
+{
+    public class ValueClassConverterTests
+    {
+        private readonly JsonSerializerOptions _options;
+
+        public ValueClassConverterTests()
+        {
+            _options = new JsonSerializerOptions();
+            _options.Converters.Add(new ValueClassConverter());
+            _options.PropertyNameCaseInsensitive = true;
+        }
+
+        [Fact]
+        public void CanConvert_WithIEnumType_ReturnsTrue()
+        {
+            // Arrange
+            var converter = new ValueClassConverter();
+            
+            // Act
+            var result = converter.CanConvert(typeof(IEnum));
+
+            // Assert
+            Assert.True(result);
+        }
+
+        [Fact]
+        public void CanConvert_WithStringType_ReturnsFalse()
+        {
+            // Arrange
+            var converter = new ValueClassConverter();
+            
+            // Act
+            var result = converter.CanConvert(typeof(string));
+
+            // Assert
+            Assert.False(result);
+        }
+
+        [Fact]
+        public void CanConvert_WithIntType_ReturnsFalse()
+        {
+            // Arrange
+            var converter = new ValueClassConverter();
+            
+            // Act
+            var result = converter.CanConvert(typeof(int));
+
+            // Assert
+            Assert.False(result);
+        }
+
+        [Fact]
+        public void Write_WithValidEnum_WritesStringValue()
+        {
+            // Arrange
+            var testEnum = new TestEnum("testValue");
+
+            // Act
+            var json = JsonSerializer.Serialize<object>(testEnum, _options);
+
+            // Assert
+            Assert.Equal("\"testValue\"", json);
+        }
+
+        [Fact]
+        public void Write_WithNull_WritesNull()
+        {
+            // Arrange
+            TestEnum testEnum = null;
+
+            // Act
+            var json = JsonSerializer.Serialize(testEnum, _options);
+
+            // Assert
+            Assert.Equal("null", json);
+        }
+
+        [Fact]
+        public void Write_WithEmptyValue_WritesEmptyString()
+        {
+            // Arrange
+            var testEnum = new TestEnum("");
+
+            // Act
+            var json = JsonSerializer.Serialize<object>(testEnum, _options);
+
+            // Assert
+            Assert.Equal("\"\"", json);
+        }
+
+        [Fact]
+        public void Write_WithSpecialCharacters_EscapesCorrectly()
+        {
+            // Arrange
+            var testEnum = new TestEnum("test\"value");
+
+            // Act
+            var json = JsonSerializer.Serialize<object>(testEnum, _options);
+
+            // Assert
+            Assert.Contains("\\u0022", json);
+        }
+
+        [Fact]
+        public void Read_WithValidString_CreatesEnum()
+        {
+            // Arrange
+            var json = "\"testValue\"";
+
+            // Act
+            var result = JsonSerializer.Deserialize<TestEnum>(json, _options);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Equal("testValue", result.Value);
+        }
+
+        [Fact]
+        public void Read_WithEmptyString_CreatesEnumWithEmptyValue()
+        {
+            // Arrange
+            var json = "\"\"";
+
+            // Act
+            var result = JsonSerializer.Deserialize<TestEnum>(json, _options);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Equal("", result.Value);
+        }
+
+        [Fact]
+        public void RoundTrip_PreservesValue()
+        {
+            // Arrange
+            var original = new TestEnum("originalValue");
+
+            // Act
+            var json = JsonSerializer.Serialize<object>(original, _options);
+            var result = JsonSerializer.Deserialize<TestEnum>(json, _options);
+
+            // Assert
+            Assert.Equal(original.Value, result.Value);
+        }
+
+        [Fact]
+        public void RoundTrip_WithMultipleValues_PreservesAllValues()
+        {
+            // Arrange
+            var values = new[] { "value1", "value2", "value3" };
+
+            foreach (var value in values)
+            {
+                var original = new TestEnum(value);
+
+                // Act
+                var json = JsonSerializer.Serialize<object>(original, _options);
+                var result = JsonSerializer.Deserialize<TestEnum>(json, _options);
+
+                // Assert
+                Assert.Equal(original.Value, result.Value);
+            }
+        }
+
+        [Fact]
+        public void Write_InComplexObject_SerializesCorrectly()
+        {
+            // Arrange
+            var obj = new
+            {
+                EnumValue = new TestEnum("test"),
+                StringValue = "string"
+            };
+
+            // Act
+            var json = JsonSerializer.Serialize(obj, _options);
+
+            // Assert
+            Assert.Contains("\"test\"", json);
+            Assert.Contains("\"string\"", json);
+        }
+
+        [Fact]
+        public void Read_FromComplexObject_DeserializesCorrectly()
+        {
+            // Arrange
+            var json = "{\"enumValue\":\"testValue\",\"stringValue\":\"string\"}";
+
+            // Act
+            var result = JsonSerializer.Deserialize<ComplexObject>(json, _options);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.NotNull(result.EnumValue);
+            Assert.Equal("testValue", result.EnumValue.Value);
+            Assert.Equal("string", result.StringValue);
+        }
+
+        // Test helper classes
+        private class TestEnum : IEnum
+        {
+            public string Value { get; private set; }
+
+            public TestEnum(string value)
+            {
+                Value = value;
+            }
+        }
+
+        private class ComplexObject
+        {
+            public TestEnum EnumValue { get; set; }
+            public string StringValue { get; set; }
+        }
+    }
+}

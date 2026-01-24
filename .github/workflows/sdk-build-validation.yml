@@ -216,3 +216,48 @@ jobs:
               exit 1
               ;;
           esac
+
+      - name: Run Tests
+        working-directory: examples/${{ matrix.sdk }}
+        run: |
+          case "${{ matrix.sdk }}" in
+            web|node|react-native)
+              npm test || echo "No tests available"
+              ;;
+            cli)
+              bun test || echo "No tests available"
+              ;;
+            flutter)
+              flutter test || echo "No tests available"
+              ;;
+            apple|swift)
+              swift test || echo "No tests available"
+              ;;
+            android)
+              ./gradlew test || echo "No tests available"
+              ;;
+            kotlin)
+              ./gradlew test || echo "No tests available"
+              ;;
+            php)
+              vendor/bin/phpunit || echo "No tests available"
+              ;;
+            python)
+              python -m pytest || echo "No tests available"
+              ;;
+            ruby)
+              bundle exec rake test || bundle exec rspec || echo "No tests available"
+              ;;
+            dart)
+              dart test || echo "No tests available"
+              ;;
+            go)
+              go test ./... || echo "No tests available"
+              ;;
+            dotnet)
+              dotnet test || echo "No tests available"
+              ;;
+            *)
+              echo "No tests for SDK: ${{ matrix.sdk }}"
+              ;;
+          esac

@@ -1,0 +1,216 @@
+using System;
+using System.Collections.Generic;
+using System.Net.Http;
+using System.Threading.Tasks;
+using Xunit;
+using {{ spec.title | caseUcfirst }};
+
+namespace {{ spec.title | caseUcfirst }}.Tests
+{
+    public class ClientTests
+    {
+        [Fact]
+        public void Constructor_Default_CreatesClient()
+        {
+            // Act
+            var client = new Client();
+
+            // Assert
+            Assert.NotNull(client);
+            Assert.Equal("{{spec.endpoint}}", client.Endpoint);
+            Assert.NotNull(client.Config);
+        }
+
+        [Fact]
+        public void Constructor_WithCustomEndpoint_SetsEndpoint()
+        {
+            // Arrange
+            var customEndpoint = "https://custom.example.com/v1";
+
+            // Act
+            var client = new Client(endpoint: customEndpoint);
+
+            // Assert
+            Assert.Equal(customEndpoint, client.Endpoint);
+        }
+
+        [Fact]
+        public void Constructor_WithSelfSigned_EnablesSelfSigned()
+        {
+            // Act
+            var client = new Client(selfSigned: true);
+
+            // Assert
+            Assert.NotNull(client);
+        }
+
+        [Fact]
+        public void Constructor_WithHttpClient_UsesProvidedClient()
+        {
+            // Arrange
+            var httpClient = new HttpClient();
+
+            // Act
+            var client = new Client(http: httpClient);
+
+            // Assert
+            Assert.NotNull(client);
+        }
+
+        [Fact]
+        public void SetEndpoint_UpdatesEndpoint()
+        {
+            // Arrange
+            var client = new Client();
+            var newEndpoint = "https://new.example.com/v1";
+
+            // Act
+            var result = client.SetEndpoint(newEndpoint);
+
+            // Assert
+            Assert.Equal(newEndpoint, client.Endpoint);
+            Assert.Same(client, result);
+        }
+
+        [Theory]
+        {%~ for header in spec.global.headers %}
+        [InlineData("{{header.key}}", "test-{{header.key}}")]
+        {%~ endfor %}
+        public void SetHeader_SetsCustomHeader(string key, string value)
+        {
+            // Arrange
+            var client = new Client();
+
+            // Act
+            var result = client.AddHeader(key, value);
+
+            // Assert
+            Assert.Same(client, result);
+        }
+
+        [Fact]
+        public void Config_IsNotNull()
+        {
+            // Arrange & Act
+            var client = new Client();
+
+            // Assert
+            Assert.NotNull(client.Config);
+        }
+
+        [Fact]
+        public void SetProject_UpdatesConfig()
+        {
+            // Arrange
+            var client = new Client();
+            var projectId = "test-project-id";
+
+            // Act
+            var result = client.SetProject(projectId);
+
+            // Assert
+            Assert.True(client.Config.ContainsKey("project"));
+            Assert.Equal(projectId, client.Config["project"]);
+            Assert.Same(client, result);
+        }        
+
+        [Fact]
+        public void SetSelfSigned_EnablesSelfSignedCertificates()
+        {
+            // Arrange
+            var client = new Client();
+
+            // Act
+            var result = client.SetSelfSigned(true);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Same(client, result);
+        }
+
+        [Fact]
+        public void SetSelfSigned_DisablesSelfSignedCertificates()
+        {
+            // Arrange
+            var client = new Client(selfSigned: true);
+
+            // Act
+            var result = client.SetSelfSigned(false);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Same(client, result);
+        }
+
+        [Fact]
+        public void DeserializerOptions_IsNotNull()
+        {
+            // Assert
+            Assert.NotNull(Client.DeserializerOptions);
+        }
+
+        [Fact]
+        public void SerializerOptions_IsNotNull()
+        {
+            // Assert
+            Assert.NotNull(Client.SerializerOptions);
+        }
+
+        [Fact]
+        public void DeserializerOptions_HasConverters()
+        {
+            // Assert
+            Assert.NotEmpty(Client.DeserializerOptions.Converters);
+        }
+
+        [Fact]
+        public void SerializerOptions_HasConverters()
+        {
+            // Assert
+            Assert.NotEmpty(Client.SerializerOptions.Converters);
+        }
+
+        [Fact]
+        public void Endpoint_CanBeRetrieved()
+        {
+            // Arrange
+            var endpoint = "https://test.example.com/v1";
+            var client = new Client(endpoint: endpoint);
+
+            // Act
+            var result = client.Endpoint;
+
+            // Assert
+            Assert.Equal(endpoint, result);
+        }
+
+        [Fact]
+        public void Config_CanBeRetrieved()
+        {
+            // Arrange
+            var client = new Client();
+
+            // Act
+            var config = client.Config;
+
+            // Assert
+            Assert.NotNull(config);
+            Assert.IsType<Dictionary<string, string>>(config);
+        }
+
+        [Fact]
+        public void ChainedCalls_Work()
+        {
+            // Arrange & Act
+            var client = new Client()
+                .SetEndpoint("https://example.com/v1")
+                .SetProject("test-project")
+                .SetSelfSigned(false);
+
+            // Assert
+            Assert.NotNull(client);
+            Assert.Equal("https://example.com/v1", client.Endpoint);
+            Assert.Equal("test-project", client.Config["project"]);
+        }
+    }
+}
