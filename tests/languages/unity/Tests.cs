@@ -293,6 +293,28 @@ namespace AppwriteTests
             Debug.Log(ID.Unique());
             Debug.Log(ID.Custom("custom_id"));
 
+            // Channel helper tests
+            Debug.Log(Channel.Database().Collection().Document().ToString());
+            Debug.Log(Channel.Database("db1").Collection("col1").Document("doc1").ToString());
+            Debug.Log(Channel.Database("db1").Collection("col1").Document("doc1").Create().ToString());
+            Debug.Log(Channel.TablesDB().Table().Row().ToString());
+            Debug.Log(Channel.TablesDB("db1").Table("table1").Row("row1").ToString());
+            Debug.Log(Channel.TablesDB("db1").Table("table1").Row("row1").Update().ToString());
+            Debug.Log(Channel.Account());
+            Debug.Log(Channel.Account("user123"));
+            Debug.Log(Channel.Bucket().File().ToString());
+            Debug.Log(Channel.Bucket("bucket1").File("file1").ToString());
+            Debug.Log(Channel.Bucket("bucket1").File("file1").Delete().ToString());
+            Debug.Log(Channel.Function().Execution().ToString());
+            Debug.Log(Channel.Function("func1").Execution("exec1").ToString());
+            Debug.Log(Channel.Function("func1").Execution("exec1").Create().ToString());
+            Debug.Log(Channel.Team().ToString());
+            Debug.Log(Channel.Team("team1").ToString());
+            Debug.Log(Channel.Team("team1").Create().ToString());
+            Debug.Log(Channel.Membership().ToString());
+            Debug.Log(Channel.Membership("membership1").ToString());
+            Debug.Log(Channel.Membership("membership1").Update().ToString());
+
             // Operator helper tests
             Debug.Log(Operator.Increment(1));
             Debug.Log(Operator.Increment(5, 100));
