@@ -65,9 +65,9 @@ export function getTypeScriptType(
         throw new Error(`Related entity with ID '${relatedId}' not found.`);
       }
       const baseName = LanguageMeta.toPascalCase(relatedEntity.name);
-      // For create context, use Create type with optional $id and $permissions
+      // For create context: allow full create object OR just an ID string to link existing row
       type = forCreate
-        ? `(${baseName}Create & { $id?: string; $permissions?: string[] })`
+        ? `((${baseName}Create & { $id?: string; $permissions?: string[] }) | string)`
         : baseName;
       if (
         (attribute.relationType === "oneToMany" &&
