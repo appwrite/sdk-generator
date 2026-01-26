@@ -1,5 +1,6 @@
 import { {{ spec.title | caseUcfirst}}Exception, Client } from '../client';
 import { Channel, ActionableChannel, ResolvedChannel } from '../channel';
+import { Query } from '../query';
 
 export type RealtimeSubscription = {
     close: () => Promise<void>;
@@ -7,6 +8,7 @@ export type RealtimeSubscription = {
 
 export type RealtimeCallback<T = any> = {
     channels: Set<string>;
+    queries: Set<string>;
     callback: (event: RealtimeResponseEvent<T>) => void;
 }
 
@@ -51,6 +53,7 @@ export class Realtime {
     private client: Client;
     private socket?: WebSocket;
     private activeChannels = new Set<string>();
+    private activeQueries = new Set<string>();
     private activeSubscriptions = new Map<number, RealtimeCallback<any>>();
     private heartbeatTimer?: number;
 
@@ -128,6 +131,9 @@ export class Realtime {
         let queryParams = `project=${projectId}`;
         for (const channel of this.activeChannels) {
             queryParams += `&channels[]=${encodeURIComponent(channel)}`;
+        }
+        for (const query of this.activeQueries) {
+            queryParams += `&queries[]=${encodeURIComponent(query)}`;
         }
 
         const endpoint =
@@ -265,7 +271,8 @@ export class Realtime {
      */
     public async subscribe(
         channel: string | Channel<any> | ActionableChannel | ResolvedChannel,
-        callback: (event: RealtimeResponseEvent<any>) => void
+        callback: (event: RealtimeResponseEvent<any>) => void,
+        queries?: (string | Query)[]
     ): Promise<RealtimeSubscription>;
 
     /**
@@ -277,7 +284,8 @@ export class Realtime {
      */
     public async subscribe(
         channels: (string | Channel<any> | ActionableChannel | ResolvedChannel)[],
-        callback: (event: RealtimeResponseEvent<any>) => void
+        callback: (event: RealtimeResponseEvent<any>) => void,
+        queries?: (string | Query)[]
     ): Promise<RealtimeSubscription>;
 
     /**
@@ -289,7 +297,8 @@ export class Realtime {
      */
     public async subscribe<T>(
         channel: string | Channel<any> | ActionableChannel | ResolvedChannel,
-        callback: (event: RealtimeResponseEvent<T>) => void
+        callback: (event: RealtimeResponseEvent<T>) => void,
+        queries?: (string | Query)[]
     ): Promise<RealtimeSubscription>;
 
     /**
@@ -301,12 +310,14 @@ export class Realtime {
      */
     public async subscribe<T>(
         channels: (string | Channel<any> | ActionableChannel | ResolvedChannel)[],
-        callback: (event: RealtimeResponseEvent<T>) => void
+        callback: (event: RealtimeResponseEvent<T>) => void,
+        queries?: (string | Query)[]
     ): Promise<RealtimeSubscription>;
 
     public async subscribe<T = any>(
         channelsOrChannel: string | Channel<any> | ActionableChannel | ResolvedChannel | (string | Channel<any> | ActionableChannel | ResolvedChannel)[],
-        callback: (event: RealtimeResponseEvent<T>) => void
+        callback: (event: RealtimeResponseEvent<T>) => void,
+        queries: (string | Query)[] = []
     ): Promise<RealtimeSubscription> {
         const channelArray = Array.isArray(channelsOrChannel)
             ? channelsOrChannel
@@ -316,15 +327,22 @@ export class Realtime {
         const channelStrings = channelArray.map(ch => this.channelToString(ch));
         const channels = new Set(channelStrings);
 
+        const queryStrings = (queries ?? []).map(q => typeof q === 'string' ? q : q.toString());
+        const queriesSet = new Set(queryStrings);
+
         this.subscriptionsCounter++;
         const count = this.subscriptionsCounter;
 
         for (const channel of channels) {
             this.activeChannels.add(channel);
         }
+        for (const query of queriesSet) {
+            this.activeQueries.add(query);
+        }
 
         this.activeSubscriptions.set(count, {
             channels,
+            queries: queriesSet,
             callback
         });
 
@@ -341,13 +359,13 @@ export class Realtime {
         return {
             close: async () => {
                 this.activeSubscriptions.delete(count);
-                this.cleanUp(channels);
+                this.cleanUp(channels, queriesSet);
                 await this.createSocket();
             }
         };
     }
 
-    private cleanUp(channels: Set<string>): void {
+    private cleanUp(channels: Set<string>, queries: Set<string>): void {
         this.activeChannels = new Set(
             Array.from(this.activeChannels).filter(channel => {
                 if (!channels.has(channel)) {
@@ -358,6 +376,19 @@ export class Realtime {
                     .filter(sub => sub.channels.has(channel));
 
                 return subsWithChannel.length > 0;
+            })
+        );
+
+        this.activeQueries = new Set(
+            Array.from(this.activeQueries).filter(query => {
+                if (!queries.has(query)) {
+                    return true;
+                }
+
+                const subsWithQuery = Array.from(this.activeSubscriptions.values())
+                    .filter(sub => sub.queries.has(query));
+
+                return subsWithQuery.length > 0;
             })
         );
     }
