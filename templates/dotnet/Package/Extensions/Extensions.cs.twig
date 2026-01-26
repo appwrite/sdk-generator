@@ -13,15 +13,14 @@ namespace {{ spec.title | caseUcfirst }}.Extensions
             return JsonSerializer.Serialize(dict, Client.SerializerOptions);
         }
 
-        public static List<T> ConvertToList<T>(this object value)
+        public static IEnumerable<object> ToEnumerable(this object value)
         {
             return value switch
             {
-                JsonElement jsonElement => jsonElement.Deserialize<List<T>>() ?? throw new InvalidCastException($"Cannot deserialize {jsonElement} to List<{typeof(T)}>."),
-                object[] objArray => objArray.Cast<T>().ToList(),
-                List<T> list => list,
-                IEnumerable<T> enumerable => enumerable.ToList(),
-                _ => throw new InvalidCastException($"Cannot convert {value.GetType()} to List<{typeof(T)}>")
+                object[] array => array,
+                IEnumerable<object> enumerable => enumerable,
+                IEnumerable nonGeneric => nonGeneric.Cast<object>(),
+                _ => throw new InvalidCastException($"Cannot convert {value?.GetType().Name ?? "null"} to IEnumerable<object>")
             };
         }
 
@@ -48,6 +47,25 @@ namespace {{ spec.title | caseUcfirst }}.Extensions
             }
 
             return Uri.EscapeUriString(string.Join("&", query));
+        }
+
+        public static Dictionary<string, string> FromQueryString(this string query)
+        {
+            var dict = new Dictionary<string, string>();
+            if (string.IsNullOrEmpty(query)) return dict;
+            if (query.StartsWith("?")) query = query.Substring(1);
+            var pairs = query.Split('&');
+            foreach (var pair in pairs)
+            {
+                var kv = pair.Split(new char[] { '=' }, 2);
+                if (kv.Length >= 1)
+                {
+                    var key = Uri.UnescapeDataString(kv[0]);
+                    var value = kv.Length > 1 ? Uri.UnescapeDataString(kv[1]) : "";
+                    dict[key] = value;
+                }
+            }
+            return dict;
         }
 
         private static IDictionary<string, string> _mappings = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase) {
