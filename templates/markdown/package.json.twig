@@ -1,0 +1,42 @@
+{
+  "name": "{{ language.params.npmPackage | caseDash }}",
+  "version": "{{ sdk.version }}",
+  "description": "{{ sdk.shortDescription }}",
+  "homepage": "{{ spec.contactURL }}",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "docs"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "build:manifest": "tsx scripts/build-manifest.ts",
+    "prepublishOnly": "npm run build:manifest && npm run build"
+  },
+  "keywords": [
+    "{{ spec.title | caseLower }}",
+    "sdk",
+    "documentation",
+    "markdown",
+    "ai"
+  ],
+  "license": "{{ sdk.license }}",
+  "repository": {
+    "type": "git",
+    "url": "{{ sdk.gitURL }}"
+  },
+  "devDependencies": {
+    "@types/node": "20.11.25",
+    "tsx": "4.19.2",
+    "typescript": "5.4.2"
+  }
+}
