@@ -129,12 +129,6 @@ const generateAction = async (
       const firstEntity = entities?.[0];
       const dbId = firstEntity?.databaseId ?? "databaseId";
       const tableName = firstEntity?.name ?? "tableName";
-      const formatAccessor = (value: string): string =>
-        /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(value)
-          ? `.${value}`
-          : `[${JSON.stringify(value)}]`;
-      const dbAccessor = formatAccessor(dbId);
-      const tableAccessor = formatAccessor(tableName);
 
       console.log("");
       log(`Import the generated SDK in your project:`);
@@ -165,7 +159,7 @@ export const generate = new Command("generate")
   )
   .option(
     "-o, --output <directory>",
-    "Output directory for generated files (default: generated)",
+    "Output directory for generated files",
     "generated",
   )
   .option(
@@ -176,5 +170,19 @@ export const generate = new Command("generate")
     "--server <mode>",
     "Override server-side generation (auto|true|false)",
     "auto",
+  )
+  .addHelpText(
+    "after",
+    `
+Example:
+  Import the generated SDK in your project:
+    import { databases } from "./generated/${SDK_TITLE_LOWER}/index.js";
+
+  Configure your SDK constants:
+    set values in ./generated/${SDK_TITLE_LOWER}/constants.ts
+
+  Usage:
+    const mydb = databases.use("databaseId");
+    await mydb.use("tableName").create({ ... });`,
   )
   .action(actionRunner(generateAction));
