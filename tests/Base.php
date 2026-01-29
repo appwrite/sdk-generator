@@ -197,6 +197,7 @@ abstract class Base extends TestCase
         'functions.*.executions.*',
         'functions.func1.executions.exec1',
         'functions.func1.executions.exec1.create',
+        'teams',
         'teams.*',
         'teams.team1',
         'teams.team1.create',

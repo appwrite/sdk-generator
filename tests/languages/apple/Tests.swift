@@ -282,6 +282,7 @@ class Tests: XCTestCase {
         print(Channel.function().execution().toString())
         print(Channel.function("func1").execution("exec1").toString())
         print(Channel.function("func1").execution("exec1").create().toString())
+        print(Channel.teams)
         print(Channel.team().toString())
         print(Channel.team("team1").toString())
         print(Channel.team("team1").create().toString())

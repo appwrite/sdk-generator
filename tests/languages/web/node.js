@@ -299,6 +299,7 @@ async function start() {
     console.log(Channel.function().execution().toString());
     console.log(Channel.function('func1').execution('exec1').toString());
     console.log(Channel.function('func1').execution('exec1').create().toString());
+    console.log(Channel.teams);
     console.log(Channel.team().toString());
     console.log(Channel.team('team1').toString());
     console.log(Channel.team('team1').create().toString());

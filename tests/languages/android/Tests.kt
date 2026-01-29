@@ -305,6 +305,7 @@ class ServiceTest {
             writeToFile(Channel.function().execution().toString())
             writeToFile(Channel.function("func1").execution("exec1").toString())
             writeToFile(Channel.function("func1").execution("exec1").create().toString())
+            writeToFile(Channel.teams)
             writeToFile(Channel.team().toString())
             writeToFile(Channel.team("team1").toString())
             writeToFile(Channel.team("team1").create().toString())
