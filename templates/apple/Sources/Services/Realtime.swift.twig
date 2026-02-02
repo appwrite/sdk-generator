@@ -12,10 +12,13 @@ open class Realtime : Service {
     private let HEARTBEAT_INTERVAL: UInt64 = 20_000_000_000 // 20 seconds in nanoseconds
 
     private var socketClient: WebSocketClient? = nil
-    private var activeChannels = Set<String>()
-    private var channelQueries = [String: [Set<String>]]() // Map channel -> array of query sets (one per subscription)
+    // Slot-centric state: Map<slot, { channels: Set<String>, queries: [String], callback: Function }>
     private var activeSubscriptions = [Int: RealtimeCallback]()
-    private var activeSubscriptionQueries = [Int: Set<String>]()
+    private var activeSubscriptionQueries = [Int: [String]]() // Map slot -> queries array
+    // Map slot index -> subscriptionId (from backend)
+    private var slotToSubscriptionId = [Int: String]()
+    // Inverse map: subscriptionId -> slot index (for O(1) lookup)
+    private var subscriptionIdToSlot = [String: Int]()
     private var heartbeatTask: Task<Void, Swift.Error>? = nil
 
     let connectSync = DispatchQueue(label: "ConnectSync")
@@ -65,7 +68,13 @@ open class Realtime : Service {
     }
 
     private func createSocket() async throws {
-        guard activeChannels.count > 0 else {
+        // Rebuild activeChannels from all slots
+        var allChannels = Set<String>()
+        for subscription in activeSubscriptions.values {
+            allChannels.formUnion(subscription.channels)
+        }
+
+        guard allChannels.count > 0 else {
             reconnect = false
             try await closeSocket()
             return
@@ -73,36 +82,30 @@ open class Realtime : Service {
 
         var queryParams = "project=\(client.config["project"]!)"
 
-        for channel in activeChannels {
+        for channel in allChannels {
             let encodedChannel = channel.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? channel
             queryParams += "&channels[]=\(encodedChannel)"
         }
 
-        // Add queries associated with each channel using indexed array notation
-        // Format: ch1[0][]=select("*")&ch1[1][]=q1&ch1[1][]=q2&ch2[0][]=select("*")
-        // Each subscription gets its own index, queries within a subscription are grouped
-        // Query.select(['*']) represents "no query filter" (listen to all events)
+        // Build query string from slots → channels → queries
+        // Format: channel[slot][]=query (each query sent as separate parameter)
+        // For each slot, repeat its queries under each channel it subscribes to
+        // Example: slot 1 → channels [tests, prod], queries [q1, q2]
+        //   Produces: tests[1][]=q1&tests[1][]=q2&prod[1][]=q1&prod[1][]=q2
         let selectAllQuery = Query.select(["*"])
-        for channel in activeChannels {
-            let encodedChannel = channel.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? channel
-            if let querySets = channelQueries[channel], querySets.count > 0 {
-                for (index, querySet) in querySets.enumerated() {
-                    if querySet.isEmpty {
-                        // Subscription without queries - send select('*') to receive all events
-                        let encodedQuery = selectAllQuery.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? selectAllQuery
-                        queryParams += "&\(encodedChannel)[\(index)][]=\(encodedQuery)"
-                    } else {
-                        // Subscription with queries - group them under the same index
-                        for query in querySet {
-                            let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
-                            queryParams += "&\(encodedChannel)[\(index)][]=\(encodedQuery)"
-                        }
-                    }
+        for (slot, subscription) in activeSubscriptions {
+            // Get queries array - each query is a separate string
+            let queries = activeSubscriptionQueries[slot] ?? []
+            let queryArray = queries.isEmpty ? [selectAllQuery] : queries
+            
+            // Repeat this slot's queries under each channel it subscribes to
+            // Each query is sent as a separate parameter: channel[slot][]=q1&channel[slot][]=q2
+            for channel in subscription.channels {
+                let encodedChannel = channel.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? channel
+                for query in queryArray {
+                    let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
+                    queryParams += "&\(encodedChannel)[\(slot)][]=\(encodedQuery)"
                 }
-            } else {
-                // No subscriptions, send select('*') at index 0
-                let encodedQuery = selectAllQuery.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? selectAllQuery
-                queryParams += "&\(encodedChannel)[0][]=\(encodedQuery)"
             }
         }
 
@@ -216,30 +219,25 @@ open class Realtime : Service {
         queries: [String] = [],
         callback: @escaping (RealtimeResponseEvent) -> Void
     ) async throws -> RealtimeSubscription {
+        // Allocate a new slot index
         subscriptionsCounter += 1
+        let slot = subscriptionsCounter
 
-        let count = subscriptionsCounter
+        // Convert queries to array of strings
+        // queries is already [String], store as-is
+        let queryStrings = queries
 
-        let queriesSet = Set(queries)
-
-        for channel in channels {
-            activeChannels.insert(channel)
-            // Associate this subscription's query set with the channel
-            if channelQueries[channel] == nil {
-                channelQueries[channel] = []
-            }
-            // Add this subscription's query set as a separate entry
-            channelQueries[channel]!.append(queriesSet)
-        }
-
-        activeSubscriptions[count] = RealtimeCallback(
-            for: Set(channels),
+        // Store slot-centric data: channels, queries, and callback belong to the slot
+        // queries is stored as [String] (array of query strings)
+        // No channel mutation occurs here - channels are derived from slots in createSocket()
+        activeSubscriptions[slot] = RealtimeCallback(
+            for: channels,
             with: callback
         )
-        activeSubscriptionQueries[count] = queriesSet
+        activeSubscriptionQueries[slot] = queryStrings
 
         connectSync.sync {
-            subCallDepth+=1
+            subCallDepth += 1
         }
 
         try await Task.sleep(nanoseconds: UInt64(DEBOUNCE_NANOS))
@@ -253,49 +251,19 @@ open class Realtime : Service {
         }
 
         return RealtimeSubscription {
-            self.activeSubscriptions[count] = nil
-            self.activeSubscriptionQueries[count] = nil
-            self.cleanUp(channels: channels, queries: Set(queries))
+            let subscriptionId = self.slotToSubscriptionId[slot]
+            self.activeSubscriptions[slot] = nil
+            self.activeSubscriptionQueries[slot] = nil
+            self.slotToSubscriptionId[slot] = nil
+            if let sid = subscriptionId {
+                self.subscriptionIdToSlot[sid] = nil
+            }
             try await self.createSocket()
         }
     }
 
-    func cleanUp(channels: Set<String>, queries: Set<String>) {
-        activeChannels = activeChannels.filter { channel in
-            if !channels.contains(channel) {
-                return true
-            }
-
-            let subsWithChannel = activeSubscriptions.values.filter { sub in
-                return sub.channels.contains(channel)
-            }
-
-            return !subsWithChannel.isEmpty
-        }
-
-        // Clean up channel-query associations
-        for channel in channels {
-            let subsWithChannel = activeSubscriptions.values.filter { sub in
-                return sub.channels.contains(channel)
-            }
-
-            if subsWithChannel.isEmpty {
-                // No more subscriptions for this channel, remove it
-                channelQueries.removeValue(forKey: channel)
-            } else {
-                // Rebuild query sets for this channel from remaining subscriptions
-                // Each subscription gets its own query set entry
-                var querySets: [Set<String>] = []
-                // Rebuild from all active subscriptions that include this channel
-                for (subId, sub) in activeSubscriptions {
-                    if sub.channels.contains(channel), let subQueries = activeSubscriptionQueries[subId] {
-                        querySets.append(subQueries)
-                    }
-                }
-                channelQueries[channel] = querySets
-            }
-        }
-    }
+    // cleanUp is no longer needed - slots are removed directly in subscribe().close()
+    // Channels are automatically rebuilt from remaining slots in createSocket()
 }
 
 extension Realtime: WebSocketClientDelegate {
@@ -305,18 +273,47 @@ extension Realtime: WebSocketClientDelegate {
         onOpenCallbacks.forEach { $0() }
         startHeartbeat()
     }
+    
+    private func handleResponseConnected(from json: [String: Any]) {
+        guard let data = json["data"] as? [String: Any],
+              let subscriptions = data["subscriptions"] as? [String: String] else {
+            return
+        }
+        
+        // Store subscription ID mappings from backend
+        // Format: { "0": "sub_a1f9", "1": "sub_b83c", ... }
+        slotToSubscriptionId.removeAll()
+        subscriptionIdToSlot.removeAll()
+        for (slotStr, subscriptionId) in subscriptions {
+            if let slot = Int(slotStr) {
+                slotToSubscriptionId[slot] = subscriptionId
+                subscriptionIdToSlot[subscriptionId] = slot
+            }
+        }
+    }
 
     public func onMessage(text: String) {
         let data = Data(text.utf8)
-        if let json = try! JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] {
-            if let type = json["type"] as? String {
-                switch type {
-                case TYPE_ERROR: try! handleResponseError(from: json)
-                case TYPE_EVENT: handleResponseEvent(from: json)
-                case TYPE_PONG: break  // Handle pong response if needed
-                default: break
-                }
+        guard let json = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
+              let type = json["type"] as? String else {
+            return
+        }
+        
+        switch type {
+        case TYPE_ERROR:
+            do {
+                try handleResponseError(from: json)
+            } catch {
+                onErrorCallbacks.forEach { $0(error, nil) }
             }
+        case "connected":
+            handleResponseConnected(from: json)
+        case TYPE_EVENT:
+            handleResponseEvent(from: json)
+        case TYPE_PONG:
+            break  // Handle pong response if needed
+        default:
+            break
         }
     }
 
@@ -356,93 +353,29 @@ extension Realtime: WebSocketClientDelegate {
         guard let data = json["data"] as? [String: Any],
               let channels = data["channels"] as? [String],
               let events = data["events"] as? [String],
-              let payload = data["payload"] as? [String: Any] else {
-            return
-        }
-        guard channels.contains(where: { channel in
-            activeChannels.contains(channel)
-        }) else {
+              let payload = data["payload"] as? [String: Any],
+              let subscriptions = data["subscriptions"] as? [String] else {
             return
         }
 
-        // Queries structure: [[[q1, q2], [q3]], [[q4]]] - per channel, per subscription, queries
-        let queriesData = data["queries"] as? [[[String]]] ?? []
+        guard subscriptions.count > 0 else {
+            return
+        }
 
-        for (subId, subscription) in activeSubscriptions {
-            // Check if subscription matches channels
-            let hasSubscribedChannel = channels.contains(where: { channel in
-                subscription.channels.contains(channel)
-            })
-
-            if !hasSubscribedChannel {
-                continue
-            }
-
-            // Check if subscription matches any query set from the response
-            var matchesQueries = false
-
-            guard let subQueries = activeSubscriptionQueries[subId] else {
-                continue
-            }
-
-            if subQueries.isEmpty {
-                // Subscription has no queries - it listens to all events
-                matchesQueries = true
-            } else if !queriesData.isEmpty {
-                // Flatten to get all query sets: [[q1, q2], [q3], [q4]]
-                let allQuerySets = queriesData.flatMap { $0 }
-
-                // Normalize subscription queries for comparison (parse and re-stringify)
-                var normalizedSubQueries = Set<String>()
-                for q in subQueries {
-                    if let data = q.data(using: .utf8),
-                       let json = try? JSONSerialization.jsonObject(with: data),
-                       let normalized = try? JSONSerialization.data(withJSONObject: json),
-                       let normalizedString = String(data: normalized, encoding: .utf8) {
-                        normalizedSubQueries.insert(normalizedString)
-                    } else {
-                        normalizedSubQueries.insert(q)
-                    }
+        // Iterate over all matching subscriptionIds and call callback for each
+        for subscriptionId in subscriptions {
+            // O(1) lookup using subscriptionId
+            if let slot = subscriptionIdToSlot[subscriptionId] {
+                if let subscription = activeSubscriptions[slot] {
+                    let response = RealtimeResponseEvent(
+                        events: events,
+                        channels: channels,
+                        timestamp: data["timestamp"] as! String,
+                        payload: payload
+                    )
+                    subscription.callback(response)
                 }
-
-                // Check if any query set from response matches the subscription's query set
-                for querySet in allQuerySets {
-                    // Check if this query set matches the subscription's queries
-                    // A match means all queries in the response query set are in the subscription
-                    let querySetMatches = !querySet.isEmpty && querySet.allSatisfy { query in
-                        // Normalize the query string from response
-                        var normalizedQuery = query
-                        if let data = query.data(using: .utf8),
-                           let json = try? JSONSerialization.jsonObject(with: data),
-                           let normalized = try? JSONSerialization.data(withJSONObject: json),
-                           let normalizedString = String(data: normalized, encoding: .utf8) {
-                            normalizedQuery = normalizedString
-                        }
-                        return normalizedSubQueries.contains(normalizedQuery)
-                    }
-
-                    if querySetMatches {
-                        matchesQueries = true
-                        break
-                    }
-                }
-            } else {
-                // No queries in response, match all subscriptions
-                matchesQueries = true
             }
-
-            if !matchesQueries {
-                continue
-            }
-
-            // Both channel and queries match, call the callback
-            let response = RealtimeResponseEvent(
-                events: events,
-                channels: channels,
-                timestamp: data["timestamp"] as! String,
-                payload: payload
-            )
-            subscription.callback(response)
         }
     }
 }

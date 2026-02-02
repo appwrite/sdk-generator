@@ -77,13 +77,12 @@ class ServiceTest {
 
         // reset configs
         client.setProject("console")
-            .setEndpointRealtime("wss://cloud.appwrite.io/v1")
+            .setEndpointRealtime("ws://192.168.31.172:8080/v1")
 
         val foo = Foo(client)
         val bar = Bar(client)
         val general = General(client)
         val realtime = Realtime(client)
-        val realtimeWithFailure = Realtime(client)
         var realtimeResponse = "Realtime failed!"
         var realtimeResponseWithQueries = "Realtime failed!"
         var realtimeResponseWithQueriesFailure = "Realtime failed!"
@@ -104,7 +103,7 @@ class ServiceTest {
             realtimeResponseWithQueries = it.payload.response
         }
 
-        realtimeWithFailure.subscribe(
+        realtime.subscribe(
             "tests",
             payloadType = TestPayload::class.java,
             queries = setOf(

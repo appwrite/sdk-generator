@@ -7,6 +7,7 @@ import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.title | caseUcfirst }}Ex
 import {{ sdk.namespace | caseDot }}.extensions.forEachAsync
 import {{ sdk.namespace | caseDot }}.extensions.fromJson
 import {{ sdk.namespace | caseDot }}.extensions.jsonCast
+import {{ sdk.namespace | caseDot }}.extensions.gson
 import {{ sdk.namespace | caseDot }}.models.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.Dispatchers.IO
@@ -36,9 +37,12 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         private const val DEBOUNCE_MILLIS = 1L
 
         private var socket: RealWebSocket? = null
-        private var activeChannels = mutableSetOf<String>()
-        private var activeQueries = mutableSetOf<String>()
+        // Slot-centric state: Map<slot, RealtimeCallback>
         private var activeSubscriptions = mutableMapOf<Int, RealtimeCallback>()
+        // Map slot index -> subscriptionId (from backend)
+        private var slotToSubscriptionId = mutableMapOf<Int, String>()
+        // Inverse map: subscriptionId -> slot index (for O(1) lookup)
+        private var subscriptionIdToSlot = mutableMapOf<String, Int>()
 
         private var subCallDepth = 0
         private var reconnectAttempts = 0
@@ -48,7 +52,13 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
     }
 
     private fun createSocket() {
-        if (activeChannels.isEmpty()) {
+        // Rebuild activeChannels from all slots
+        val allChannels = mutableSetOf<String>()
+        activeSubscriptions.values.forEach { subscription ->
+            allChannels.addAll(subscription.channels)
+        }
+
+        if (allChannels.isEmpty()) {
             reconnect = false
             closeSocket()
             return
@@ -56,14 +66,34 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
 
         var queryParams = "project=${client.config["project"]}"
         
-        activeChannels.forEach { channel ->
+        allChannels.forEach { channel ->
             val encodedChannel = java.net.URLEncoder.encode(channel, "UTF-8")
             queryParams += "&channels[]=$encodedChannel"
         }
-        
-        activeQueries.forEach { query ->
-            val encodedQuery = java.net.URLEncoder.encode(query, "UTF-8")
-            queryParams += "&queries[]=$encodedQuery"
+
+        // Build query string from slots → channels → queries
+        // Format: channel[slot][]=query (each query sent as separate parameter)
+        // For each slot, repeat its queries under each channel it subscribes to
+        // Example: slot 1 → channels [tests, prod], queries [q1, q2]
+        //   Produces: tests[1][]=q1&tests[1][]=q2&prod[1][]=q1&prod[1][]=q2
+        val selectAllQuery = """{"method":"select","values":["*"]}"""
+        activeSubscriptions.forEach { (slot, subscription) ->
+            // Get queries array - each query is a separate string
+            val queries = if (subscription.queries.isEmpty()) {
+                listOf(selectAllQuery)
+            } else {
+                subscription.queries.toList()
+            }
+            
+            // Repeat this slot's queries under each channel it subscribes to
+            // Each query is sent as a separate parameter: channel[slot][]=q1&channel[slot][]=q2
+            subscription.channels.forEach { channel ->
+                val encodedChannel = java.net.URLEncoder.encode(channel, "UTF-8")
+                queries.forEach { query ->
+                    val encodedQuery = java.net.URLEncoder.encode(query, "UTF-8")
+                    queryParams += "&$encodedChannel[$slot][]=$encodedQuery"
+                }
+            }
         }
 
         val url = "${client.endpointRealtime}/realtime?$queryParams"
@@ -167,11 +197,17 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         queries: Set<String> = emptySet(),
         callback: (RealtimeResponseEvent<T>) -> Unit,
     ): RealtimeSubscription {
-        val counter = subscriptionsCounter++
+        // Allocate a new slot index
+        subscriptionsCounter++
+        val slot = subscriptionsCounter
 
-        activeChannels.addAll(channels)
-        activeQueries.addAll(queries)
-        activeSubscriptions[counter] = RealtimeCallback(
+        // Convert queries to list of strings
+        val queryList = queries.toList()
+
+        // Store slot-centric data: channels, queries, and callback belong to the slot
+        // queries is stored as List<String> (array of query strings)
+        // No channel mutation occurs here - channels are derived from slots in createSocket()
+        activeSubscriptions[slot] = RealtimeCallback(
             channels.toSet(),
             queries,
             payloadType,
@@ -188,31 +224,16 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         }
 
         return RealtimeSubscription {
-            activeSubscriptions.remove(counter)
-            cleanUp(channels = channels.toList(), queries = queries)
+            val subscriptionId = slotToSubscriptionId[slot]
+            activeSubscriptions.remove(slot)
+            slotToSubscriptionId.remove(slot)
+            subscriptionId?.let { subscriptionIdToSlot.remove(it) }
             createSocket()
         }
     }
 
-    private fun cleanUp(channels: Collection<String>, queries: Set<String>) {
-        activeChannels.removeAll { channel ->
-            if (!channels.contains(channel)) {
-                return@removeAll false
-            }
-            activeSubscriptions.values.none { subscription ->
-                subscription.channels.contains(channel)
-            }
-        }
-
-        activeQueries.removeAll { query ->
-            if (!queries.contains(query)) {
-                return@removeAll false
-            }
-            activeSubscriptions.values.none { subscription ->
-                subscription.queries.contains(query)
-            }
-        }
-    }
+    // cleanUp is no longer needed - slots are removed directly in subscribe().close()
+    // Channels are automatically rebuilt from remaining slots in createSocket()
 
     private inner class {{ spec.title | caseUcfirst }}WebSocketListener : WebSocketListener() {
 
@@ -229,8 +250,26 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
                 val message = text.fromJson<RealtimeResponse>()
                 when (message.type) {
                     TYPE_ERROR -> handleResponseError(message)
+                    "connected" -> handleResponseConnected(message)
                     TYPE_EVENT -> handleResponseEvent(message)
                     TYPE_PONG -> {}
+                }
+            }
+        }
+        
+        private fun handleResponseConnected(message: RealtimeResponse) {
+            val messageData = message.data?.jsonCast<Map<String, Any>>() ?: return
+            val subscriptions = messageData["subscriptions"] as? Map<*, *> ?: return
+            
+            // Store subscription ID mappings from backend
+            // Format: { "0": "sub_a1f9", "1": "sub_b83c", ... }
+            slotToSubscriptionId.clear()
+            subscriptionIdToSlot.clear()
+            subscriptions.forEach { (slotStr, subscriptionId) ->
+                val slot = (slotStr as? String)?.toIntOrNull()
+                if (slot != null && subscriptionId is String) {
+                    slotToSubscriptionId[slot] = subscriptionId
+                    subscriptionIdToSlot[subscriptionId] = slot
                 }
             }
         }
@@ -240,17 +279,30 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         }
 
         private suspend fun handleResponseEvent(message: RealtimeResponse) {
-            val event = message.data?.jsonCast<RealtimeResponseEvent<Any>>() ?: return
+            val messageData = message.data?.jsonCast<Map<String, Any>>() ?: return
+            val event = messageData.jsonCast<RealtimeResponseEvent<Any>>()
+            
             if (event.channels.isEmpty()) {
                 return
             }
-            if (!event.channels.any { activeChannels.contains(it) }) {
+            
+            @Suppress("UNCHECKED_CAST")
+            val subscriptions = (messageData["subscriptions"] as? List<*>)?.mapNotNull { it as? String } ?: return
+            
+            if (subscriptions.isEmpty()) {
                 return
             }
-            activeSubscriptions.values.forEachAsync { subscription ->
-                if (event.channels.any { subscription.channels.contains(it) }) {
-                    event.payload = event.payload.jsonCast(subscription.payloadClass)
-                    subscription.callback(event)
+
+            // Iterate over all matching subscriptionIds and call callback for each
+            subscriptions.forEach { subscriptionId ->
+                // O(1) lookup using subscriptionId
+                val slot = subscriptionIdToSlot[subscriptionId]
+                if (slot != null) {
+                    val subscription = activeSubscriptions[slot]
+                    if (subscription != null) {
+                        event.payload = event.payload.jsonCast(subscription.payloadClass)
+                        subscription.callback(event)
+                    }
                 }
             }
         }
