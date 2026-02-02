@@ -758,7 +758,7 @@ class CLI extends Node
 
             /**
              * Get CLI argument expression for a parameter when calling the SDK method.
-             * Handles enum casting, JSON parsing for objects, or plain variable.
+             * Handles JSON parsing for objects, or plain variable.
              */
             new TwigFunction('getCliArgExpression', function (array $parameter): string {
                 $name = $parameter['name'];
@@ -767,10 +767,7 @@ class CLI extends Node
                 $varName = lcfirst(str_replace(' ', '', ucwords(str_replace('-', ' ', $optionName))));
                 $type = $parameter['type'] ?? 'string';
 
-                if (isset($parameter['enumName'])) {
-                    $enumName = ucfirst($parameter['enumName']);
-                    return "{$varName} as {$enumName}";
-                } elseif ($type === 'object') {
+                if ($type === 'object') {
                     return "JSON.parse({$varName})";
                 } else {
                     return $varName;
