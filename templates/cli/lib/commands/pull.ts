@@ -41,6 +41,7 @@ import {
   DatabaseSchema,
   TableSchema,
   ColumnSchema,
+  IndexTableSchema,
   BucketSchema,
   TopicSchema,
 } from "./config.js";
@@ -551,9 +552,15 @@ export class Pull {
           filterBySchema(col, ColumnSchema),
         );
 
+        // Filter indexes to only include schema-defined fields
+        const filteredIndexes = table.indexes?.map((idx: any) =>
+          filterBySchema(idx, IndexTableSchema),
+        );
+
         allTables.push({
           ...filterBySchema(table, TableSchema),
           columns: filteredColumns || [],
+          indexes: filteredIndexes || [],
         });
       }
     }
