@@ -592,14 +592,14 @@ class Dart extends Language
                     }
 
                     $items = array_map(function ($value) use ($enumName, $resolveKey) {
-                        return \ucfirst($enumName) . '.' . $resolveKey($value);
+                        return 'enums.' . \ucfirst($enumName) . '.' . $resolveKey($value);
                     }, $values);
 
                     return '[' . implode(', ', $items) . ']';
                 }
 
                 $value = ($example !== null && $example !== '') ? $example : $enumValues[0];
-                return \ucfirst($enumName) . '.' . $resolveKey($value);
+                return 'enums.' . \ucfirst($enumName) . '.' . $resolveKey($value);
             }),
         ];
     }
