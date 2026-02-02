@@ -2,6 +2,15 @@
 import 'dart:io';
 {% endif %}
 import 'package:{{ language.params.packageName }}/{{ language.params.packageName }}.dart';
+{% set hasEnumParam = false %}
+{% for parameter in method.parameters.all %}
+{% if parameter.enumValues | length > 0 %}
+{% set hasEnumParam = true %}
+{% endif %}
+{% endfor %}
+{% if hasEnumParam %}
+import 'package:{{ language.params.packageName }}/enums.dart' as enums;
+{% endif %}
 {% if method.parameters.all | hasPermissionParam %}
 import 'package:{{ language.params.packageName }}/permission.dart';
 import 'package:{{ language.params.packageName }}/role.dart';
@@ -22,7 +31,7 @@ Client client = Client()
 {% if method.method != 'delete' and method.type != 'webAuth' %}{% if method.type == 'location' %}Uint8List{% else %}{{ method.responseModel | caseUcfirst | overrideIdentifier }}{% endif %} result = {% endif %}await {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% if method.parameters.all | length == 0 %});{% endif %}
 
     {%~ for parameter in method.parameters.all %}
-    {{ parameter.name | caseCamel | overrideIdentifier }}: {% if parameter.enumValues | length > 0 %}{{ parameter.enumName | caseUcfirst | overrideIdentifier }}.{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}{% else %}{{ parameter | paramExample | replace({'<field-name>': (parameter.name | caseCamel) }) | raw }}{% endif %},{% if not parameter.required %} // (optional){% endif %}
+    {{ parameter.name | caseCamel | overrideIdentifier }}: {% if parameter.enumValues | length > 0 %}{{ parameter | enumExample }}{% else %}{{ parameter | paramExample | replace({'<field-name>': (parameter.name | caseCamel) }) | raw }}{% endif %},{% if not parameter.required %} // (optional){% endif %}
 
     {%~ endfor %}
 {% if method.parameters.all | length > 0 %});
