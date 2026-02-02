@@ -2,6 +2,15 @@
 import 'dart:io';
 {% endif %}
 import 'package:{{ language.params.packageName }}/{{ language.params.packageName }}.dart';
+{% set hasEnumParam = false %}
+{% for parameter in method.parameters.all %}
+{% if parameter.enumValues | length > 0 %}
+{% set hasEnumParam = true %}
+{% endif %}
+{% endfor %}
+{% if hasEnumParam %}
+import 'package:{{ language.params.packageName }}/enums.dart' as enums;
+{% endif %}
 {% if method.parameters.all | hasPermissionParam %}
 import 'package:{{ language.params.packageName }}/permission.dart';
 import 'package:{{ language.params.packageName }}/role.dart';
