@@ -22,6 +22,7 @@ export type RealtimeResponseEvent<T = any> = {
     channels: string[];
     timestamp: string;
     payload: T;
+    queries?: string[][][];
 }
 
 export type RealtimeResponseConnected = {
@@ -53,7 +54,7 @@ export class Realtime {
     private client: Client;
     private socket?: WebSocket;
     private activeChannels = new Set<string>();
-    private activeQueries = new Set<string>();
+    private channelQueries = new Map<string, Set<string>[]>(); // Map channel -> array of query sets (one per subscription)
     private activeSubscriptions = new Map<number, RealtimeCallback<any>>();
     private heartbeatTimer?: number;
 
@@ -132,8 +133,30 @@ export class Realtime {
         for (const channel of this.activeChannels) {
             queryParams += `&channels[]=${encodeURIComponent(channel)}`;
         }
-        for (const query of this.activeQueries) {
-            queryParams += `&queries[]=${encodeURIComponent(query)}`;
+
+        // Add queries associated with each channel using indexed array notation
+        // Format: ch1[0][]=select("*")&ch1[1][]=q1&ch1[1][]=q2&ch2[0][]=select("*")
+        // Each subscription gets its own index, queries within a subscription are grouped
+        // Query.select('*') represents "no query filter" (listen to all events)
+        const selectAllQuery = Query.select(['*']).toString();
+        for (const channel of this.activeChannels) {
+            const querySets = this.channelQueries.get(channel);
+            if (querySets && querySets.length > 0) {
+                querySets.forEach((querySet, index) => {
+                    if (querySet.size === 0) {
+                        // Subscription without queries - send select('*') to receive all events
+                        queryParams += `&${encodeURIComponent(channel)}[${index}][]=${encodeURIComponent(selectAllQuery)}`;
+                    } else {
+                        // Subscription with queries - group them under the same index
+                        for (const query of querySet) {
+                            queryParams += `&${encodeURIComponent(channel)}[${index}][]=${encodeURIComponent(query)}`;
+                        }
+                    }
+                });
+            } else {
+                // No subscriptions, send select('*') at index 0
+                queryParams += `&${encodeURIComponent(channel)}[0][]=${encodeURIComponent(selectAllQuery)}`;
+            }
         }
 
         const endpoint =
@@ -335,9 +358,12 @@ export class Realtime {
 
         for (const channel of channels) {
             this.activeChannels.add(channel);
-        }
-        for (const query of queriesSet) {
-            this.activeQueries.add(query);
+            // Associate this subscription's query set with the channel
+            if (!this.channelQueries.has(channel)) {
+                this.channelQueries.set(channel, []);
+            }
+            // Add this subscription's query set as a separate entry
+            this.channelQueries.get(channel)!.push(new Set(queriesSet));
         }
 
         this.activeSubscriptions.set(count, {
@@ -379,18 +405,24 @@ export class Realtime {
             })
         );
 
-        this.activeQueries = new Set(
-            Array.from(this.activeQueries).filter(query => {
-                if (!queries.has(query)) {
-                    return true;
+        // Clean up channel-query associations
+        for (const channel of channels) {
+            const subsWithChannel = Array.from(this.activeSubscriptions.values())
+                .filter(sub => sub.channels.has(channel));
+
+            if (subsWithChannel.length === 0) {
+                // No more subscriptions for this channel, remove it
+                this.channelQueries.delete(channel);
+            } else {
+                // Rebuild query sets for this channel from remaining subscriptions
+                // Each subscription gets its own query set entry
+                const querySets: Set<string>[] = [];
+                for (const sub of subsWithChannel) {
+                    querySets.push(new Set(sub.queries));
                 }
-
-                const subsWithQuery = Array.from(this.activeSubscriptions.values())
-                    .filter(sub => sub.queries.has(query));
-
-                return subsWithQuery.length > 0;
-            })
-        );
+                this.channelQueries.set(channel, querySets);
+            }
+        }
     }
 
     private handleMessage(message: RealtimeResponse): void {
@@ -459,6 +491,8 @@ export class Realtime {
         const events = data.events as string[];
         const payload = data.payload;
         const timestamp = data.timestamp as string;
+        // Queries structure: [[[q1, q2], [q3]], [[q4]]] - per channel, per subscription, queries
+        const queriesData = data?.queries as string[][][] | [];
 
         if (!channels || !events || !payload) {
             return;
@@ -473,19 +507,75 @@ export class Realtime {
         }
 
         for (const [_, subscription] of this.activeSubscriptions) {
+            // Check if subscription matches channels
             const hasSubscribedChannel = channels.some(channel =>
                 subscription.channels.has(channel)
             );
 
-            if (hasSubscribedChannel) {
-                const response: RealtimeResponseEvent<any> = {
-                    events,
-                    channels,
-                    timestamp,
-                    payload
-                };
-                subscription.callback(response);
+            if (!hasSubscribedChannel) {
+                continue;
             }
+
+            // Check if subscription matches any query set from the response
+            let matchesQueries = false;
+
+            if (subscription.queries.size === 0) {
+                // Subscription has no queries - it listens to all events
+                matchesQueries = true;
+            } else if (queriesData && queriesData.length > 0) {
+                // Flatten to get all query sets: [[q1, q2], [q3], [q4]]
+                const allQuerySets = queriesData.flat();
+
+                // Normalize subscription queries for comparison (parse and re-stringify)
+                const normalizedSubQueries = new Set<string>();
+                for (const q of subscription.queries) {
+                    try {
+                        normalizedSubQueries.add(JSON.stringify(JSON.parse(q)));
+                    } catch {
+                        normalizedSubQueries.add(q);
+                    }
+                }
+
+                // Check if any query set from response matches the subscription's query set
+                for (const querySet of allQuerySets) {
+                    if (!Array.isArray(querySet)) continue;
+
+                    // Check if this query set matches the subscription's queries
+                    // A match means all queries in the response query set are in the subscription
+                    const querySetMatches = querySet.length > 0 && querySet.every(query => {
+                        // Normalize the query string from response
+                        let normalizedQuery = query;
+                        try {
+                            normalizedQuery = JSON.stringify(JSON.parse(query));
+                        } catch {
+                            // If parsing fails, use original
+                        }
+                        return normalizedSubQueries.has(normalizedQuery);
+                    });
+
+                    if (querySetMatches) {
+                        matchesQueries = true;
+                        break;
+                    }
+                }
+            } else {
+                // No queries in response, match all subscriptions
+                matchesQueries = true;
+            }
+
+            if (!matchesQueries) {
+                continue;
+            }
+
+            // Both channel and queries match, call the callback
+            const response: RealtimeResponseEvent<any> = {
+                events,
+                channels,
+                timestamp,
+                payload,
+                queries: queriesData
+            };
+            subscription.callback(response);
         }
     }
 }

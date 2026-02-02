@@ -34,10 +34,9 @@ void main() async {
   client.setSelfSigned();
   client.setProject('console');
   client.setEndPointRealtime(
-      "wss://cloud.appwrite.io/v1");
+      "ws://192.168.31.172:8080/v1");
 
   Realtime realtime = Realtime(client);
-  Realtime realtimeFailure = Realtime(client);
   // Subscribe without queries
   final rtsub = realtime.subscribe(["tests"]);
 
@@ -49,7 +48,7 @@ void main() async {
     ],
   );
 
-  final rtsubWithQueriesFailure = realtimeFailure.subscribe(
+  final rtsubWithQueriesFailure = realtime.subscribe(
     ["tests"],
     queries: [
       Query.equal('response',["failed"])

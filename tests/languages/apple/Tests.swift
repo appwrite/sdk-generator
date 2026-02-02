@@ -32,14 +32,13 @@ class Tests: XCTestCase {
 
         // reset configs
         client.setProject("console")
-        client.setEndpointRealtime("wss://cloud.appwrite.io/v1")
-        client.setSelfSigned(false)
+        client.setEndpointRealtime("ws://192.168.31.172:8080/v1")
+        client.setSelfSigned(true)
 
         let foo = Foo(client)
         let bar = Bar(client)
         let general = General(client)
         let realtime = Realtime(client)
-        let realtimeWithFailure = Realtime(client)
         var realtimeResponse = "Realtime failed!"
         var realtimeResponseWithQueries = "Realtime failed!"
         var realtimeResponseWithQueriesFailure = "Realtime failed!"
@@ -66,7 +65,7 @@ class Tests: XCTestCase {
             expectationWithQueries.fulfill()
         }
 
-        try await realtimeWithFailure.subscribe(
+        try await realtime.subscribe(
             channels: ["tests"],
             queries: [
                 Query.equal("response", value: ["failed"])

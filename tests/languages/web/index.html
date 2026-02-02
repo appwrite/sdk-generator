@@ -37,7 +37,7 @@
 
             // Realtime setup
             client.setProject('console');
-            client.setEndpointRealtime('wss://cloud.appwrite.io/v1');
+            client.setEndpointRealtime('ws://192.168.31.172:8080/v1');
 
             const realtime = new Realtime(client);
             const realtimeWithFailure = new Realtime(client);
@@ -58,7 +58,7 @@
                 ],
             );
 
-            await realtimeWithFailure.subscribe(
+            await realtime.subscribe(
                 ['tests'],
                 message => {
                     responseRealtimeWithQueriesFailure = message.payload.response;
