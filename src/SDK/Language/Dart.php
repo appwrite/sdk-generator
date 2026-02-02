@@ -142,6 +142,17 @@ class Dart extends Language
      */
     public function getTypeName(array $parameter, array $spec = []): string
     {
+        if (
+            ($parameter['type'] ?? null) === self::TYPE_ARRAY
+            && (isset($parameter['enumName']) || !empty($parameter['enumValues']))
+        ) {
+            $enumType = isset($parameter['enumName'])
+                ? \ucfirst($parameter['enumName'])
+                : \ucfirst($parameter['name']);
+
+            return 'List<enums.' . $enumType . '>';
+        }
+
         if (isset($parameter['enumName'])) {
             return 'enums.' . \ucfirst($parameter['enumName']);
         }
@@ -541,6 +552,54 @@ class Dart extends Language
             }, ['is_safe' => ['html']]),
             new TwigFilter('caseEnumKey', function (string $value) {
                 return $this->toCamelCase($value);
+            }),
+            new TwigFilter('enumExample', function (array $param) {
+                $enumValues = $param['enumValues'] ?? [];
+                if (empty($enumValues)) {
+                    return '';
+                }
+
+                $enumKeys = $param['enumKeys'] ?? [];
+                $enumName = $this->toCamelCase($param['enumName'] ?? $param['name'] ?? '');
+                $example = $param['example'] ?? null;
+                $isArray = ($param['type'] ?? '') === self::TYPE_ARRAY;
+
+                $resolveKey = function ($value) use ($enumValues, $enumKeys) {
+                    $index = array_search($value, $enumValues, true);
+                    if ($index !== false && isset($enumKeys[$index]) && $enumKeys[$index] !== '') {
+                        return $this->toCamelCase($enumKeys[$index]);
+                    }
+                    if ($index !== false && isset($enumValues[$index])) {
+                        return $this->toCamelCase($enumValues[$index]);
+                    }
+                    $fallback = $enumKeys[0] ?? $enumValues[0] ?? $value;
+                    return $this->toCamelCase((string)$fallback);
+                };
+
+                if ($isArray) {
+                    $values = [];
+                    if (is_string($example) && $example !== '') {
+                        $decoded = json_decode($example, true);
+                        if (is_array($decoded)) {
+                            $values = $decoded;
+                        }
+                    } elseif (is_array($example)) {
+                        $values = $example;
+                    }
+
+                    if (empty($values)) {
+                        $values = [$enumValues[0]];
+                    }
+
+                    $items = array_map(function ($value) use ($enumName, $resolveKey) {
+                        return \ucfirst($enumName) . '.' . $resolveKey($value);
+                    }, $values);
+
+                    return '[' . implode(', ', $items) . ']';
+                }
+
+                $value = ($example !== null && $example !== '') ? $example : $enumValues[0];
+                return \ucfirst($enumName) . '.' . $resolveKey($value);
             }),
         ];
     }
