@@ -125,6 +125,17 @@ abstract class JS extends Language
      */
     public function getTypeName(array $parameter, array $spec = []): string
     {
+        if (
+            ($parameter['type'] ?? null) === self::TYPE_ARRAY
+            && (isset($parameter['enumName']) || !empty($parameter['enumValues']))
+        ) {
+            $enumType = isset($parameter['enumName'])
+                ? \ucfirst($parameter['enumName'])
+                : \ucfirst($parameter['name']);
+
+            return $enumType . '[]';
+        }
+
         if (isset($parameter['enumName'])) {
             return \ucfirst($parameter['enumName']);
         }
@@ -217,7 +228,7 @@ abstract class JS extends Language
             new TwigFilter('caseEnumKey', function (string $value) {
                 return $this->toPascalCase($value);
             }),
-            new TwigFilter('enumExample', function (array $param, string $prefix = '') {
+            new TwigFilter('enumExample', function (array $param) {
                 $enumValues = $param['enumValues'] ?? [];
                 if (empty($enumValues)) {
                     return '';
@@ -227,6 +238,7 @@ abstract class JS extends Language
                 $enumName = $this->toPascalCase($param['enumName'] ?? $param['name'] ?? '');
                 $example = $param['example'] ?? null;
                 $isArray = ($param['type'] ?? '') === self::TYPE_ARRAY;
+                $prefix = $this->getPermissionPrefix();
 
                 $resolveKey = function ($value) use ($enumValues, $enumKeys) {
                     $index = array_search($value, $enumValues, true);

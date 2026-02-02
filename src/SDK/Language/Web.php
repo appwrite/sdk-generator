@@ -211,6 +211,17 @@ class Web extends JS
 
     public function getTypeName(array $parameter, array $method = []): string
     {
+        if (
+            ($parameter['type'] ?? null) === self::TYPE_ARRAY
+            && (isset($parameter['enumName']) || !empty($parameter['enumValues']))
+        ) {
+            $enumType = isset($parameter['enumName'])
+                ? \ucfirst($parameter['enumName'])
+                : \ucfirst($parameter['name']);
+
+            return $enumType . '[]';
+        }
+
         if (isset($parameter['enumName'])) {
             return \ucfirst($parameter['enumName']);
         }
