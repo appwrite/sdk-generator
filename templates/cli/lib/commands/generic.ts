@@ -364,8 +364,7 @@ export const client = new Command("client")
           const cookie = globalConfig.getCookie();
           let maskedCookie = "";
           if (cookie) {
-            const [cookieName, cookieValueAndRest = ""] =
-              cookie.split("=", 2);
+            const [cookieName, cookieValueAndRest = ""] = cookie.split("=", 2);
             const cookieValue = cookieValueAndRest.split(";")[0] ?? "";
             const tail =
               cookieValue.length > 8
