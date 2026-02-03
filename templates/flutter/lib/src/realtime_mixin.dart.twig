@@ -27,6 +27,7 @@ mixin RealtimeMixin {
   String? _lastUrl;
   late WebSocketFactory getWebSocket;
   GetFallbackCookie? getFallbackCookie;
+  bool _pendingSocketRebuild = false;
   int? get closeCode => _websok?.closeCode;
   bool _reconnect = true;
   int _retries = 0;
@@ -66,7 +67,11 @@ mixin RealtimeMixin {
       allChannels.addAll(subscription.channels);
     }
     
-    if(_creatingSocket || allChannels.isEmpty) return;
+    if (_creatingSocket) {
+      _pendingSocketRebuild = true;
+      return;
+    }
+    if (allChannels.isEmpty) return;
     _creatingSocket = true;
     final uri = _prepareUri();
     try {
@@ -167,6 +172,10 @@ mixin RealtimeMixin {
       _retry();
     } finally {
       _creatingSocket = false;
+      if (_pendingSocketRebuild) {
+        _pendingSocketRebuild = false;
+        Future.microtask(_createSocket);
+      }
     }
   }
 
