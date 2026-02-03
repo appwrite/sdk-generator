@@ -2,11 +2,10 @@ import fs from "fs";
 import path from "path";
 import net from "net";
 import childProcess from "child_process";
-import chalk from "chalk";
 import { fetch } from "undici";
 import type { Models } from "@appwrite.io/console";
 import { z } from "zod";
-import { localConfig, globalConfig } from "./config.js";
+import { globalConfig } from "./config.js";
 import type { SettingsType } from "./commands/config.js";
 import { NPM_REGISTRY_URL, DEFAULT_ENDPOINT } from "./constants.js";
 

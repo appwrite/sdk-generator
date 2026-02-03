@@ -31,7 +31,7 @@ import {
 } from "../parser.js";
 import { sdkForConsole } from "../sdks.js";
 import { isCloud } from "../utils.js";
-import { Account } from "@appwrite.io/console";
+import { Account, UseCases } from "@appwrite.io/console";
 import { DEFAULT_ENDPOINT, EXECUTABLE_NAME } from "../constants.js";
 
 const initResources = async (): Promise<void> => {
@@ -477,7 +477,7 @@ const initSite = async (): Promise<void> => {
     const sitesService = await getSitesService();
     const response = await sitesService.listTemplates(
       [answers.framework.key],
-      ["starter"],
+      [UseCases.Starter],
       1,
     );
     if (response.total == 0) {
@@ -540,8 +540,7 @@ const initSite = async (): Promise<void> => {
   if (process.platform === "win32") {
     dirSetupCommands = dirSetupCommands + "\n" + windowsGitCloneCommands;
     usedShell = "powershell.exe";
-  }
-  else {
+  } else {
     dirSetupCommands = dirSetupCommands + "\n" + unixGitCloneCommands;
   }
 
@@ -574,10 +573,13 @@ const initSite = async (): Promise<void> => {
 
   fs.rmSync(path.join(templatesDir, ".git"), { recursive: true, force: true });
 
-  fs.cpSync(selected.template === "./"
-    ? templatesDir
-    : path.join(templatesDir, selected.template),
-    siteDir, { recursive: true, force: true });
+  fs.cpSync(
+    selected.template === "./"
+      ? templatesDir
+      : path.join(templatesDir, selected.template),
+    siteDir,
+    { recursive: true, force: true },
+  );
 
   fs.rmSync(templatesDir, { recursive: true, force: true });
 

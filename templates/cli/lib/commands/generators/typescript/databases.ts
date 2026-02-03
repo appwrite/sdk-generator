@@ -85,9 +85,19 @@ export class TypeScriptDatabasesGenerator extends BaseDatabasesGenerator {
       }));
 
     // Build attributes for Create type (input) - relationships use Create suffix
-    const createAttributes = this.buildAttributes(entity, typeEntities, "    ", true);
+    const createAttributes = this.buildAttributes(
+      entity,
+      typeEntities,
+      "    ",
+      true,
+    );
     // Build attributes for Row type (output) - relationships use full type
-    const rowAttributes = this.buildAttributes(entity, typeEntities, "    ", false);
+    const rowAttributes = this.buildAttributes(
+      entity,
+      typeEntities,
+      "    ",
+      false,
+    );
 
     const createType =
       createAttributes.trim().length === 0
@@ -227,16 +237,24 @@ export class TypeScriptDatabasesGenerator extends BaseDatabasesGenerator {
 
 export type DatabaseHandle<D extends DatabaseId> = {
   use: <T extends keyof DatabaseTableMap[D] & string>(tableId: T) => DatabaseTableMap[D][T];
-${supportsServerSide ? `  create: (tableId: string, name: string, options?: { permissions?: ${PERMISSION_CALLBACK_INLINE}; rowSecurity?: boolean; enabled?: boolean; columns?: any[]; indexes?: any[] }) => Promise<Models.Table>;
+${
+  supportsServerSide
+    ? `  create: (tableId: string, name: string, options?: { permissions?: ${PERMISSION_CALLBACK_INLINE}; rowSecurity?: boolean; enabled?: boolean; columns?: any[]; indexes?: any[] }) => Promise<Models.Table>;
   update: <T extends keyof DatabaseTableMap[D] & string>(tableId: T, options?: { name?: string; permissions?: ${PERMISSION_CALLBACK_INLINE}; rowSecurity?: boolean; enabled?: boolean }) => Promise<Models.Table>;
-  delete: <T extends keyof DatabaseTableMap[D] & string>(tableId: T) => Promise<void>;` : ""}
+  delete: <T extends keyof DatabaseTableMap[D] & string>(tableId: T) => Promise<void>;`
+    : ""
+}
 };
 
 export type DatabaseTables = {
   use: <D extends DatabaseId>(databaseId: D) => DatabaseHandle<D>;
-${supportsServerSide ? `  create: (databaseId: string, name: string, options?: { enabled?: boolean }) => Promise<Models.Database>;
+${
+  supportsServerSide
+    ? `  create: (databaseId: string, name: string, options?: { enabled?: boolean }) => Promise<Models.Database>;
   update: <D extends DatabaseId>(databaseId: D, options?: { name?: string; enabled?: boolean }) => Promise<Models.Database>;
-  delete: <D extends DatabaseId>(databaseId: D) => Promise<void>;` : ""}
+  delete: <D extends DatabaseId>(databaseId: D) => Promise<void>;`
+    : ""
+}
 };`;
   }
 
