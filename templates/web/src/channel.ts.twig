@@ -68,7 +68,7 @@ export class Channel<T> {
   }
 
   // --- FUNCTION ROUTE ---
-  execution(this: Channel<Func>, id: string = "*"): Channel<Execution> {
+  execution(this: Channel<Func>, id?: string): Channel<Execution> {
     return this.next<Execution>("executions", id);
   }
 
