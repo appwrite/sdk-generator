@@ -1,3 +1,4 @@
+```csharp
 using {{ spec.title | caseUcfirst }};
 {% set addedEnum = false %}
 {% for parameter in method.parameters.all %}
@@ -26,3 +27,4 @@ Client client = new Client()
     {%~ endfor %}
 
 {% if method.parameters.all | length > 0 %});{% endif %}
+```

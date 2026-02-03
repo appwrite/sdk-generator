@@ -1,3 +1,4 @@
+```swift
 import {{ spec.title | caseUcfirst }}
 {% set addedEnum = false %}
 {% for parameter in method.parameters.all %}
@@ -29,3 +30,4 @@ let {% if method.type == 'webAuth' %}success{% elseif method.type == 'location' 
 {% endif %}
 
 {% endfor %}
+```

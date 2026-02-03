@@ -1,3 +1,4 @@
+```javascript
 const sdk = require('node-{{ spec.title | caseDash }}');
 {% if method.consumes[0] == 'multipart/form-data' %}
 const fs = require('fs');
@@ -27,3 +28,4 @@ const result = await {{ service.name | caseCamel }}.{{ method.name | caseCamel }
 {%~ endfor -%}
 });
 {% endif %}
+```

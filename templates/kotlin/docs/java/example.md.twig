@@ -1,3 +1,4 @@
+```java
 import {{ sdk.namespace | caseDot }}.Client;
 import {{ sdk.namespace | caseDot }}.coroutines.CoroutineCallback;
 {% if method.parameters.all | filter((param) => param.type == 'file') | length > 0 %}
@@ -53,3 +54,4 @@ Client client = new Client()
 {% endif %}
 
 {% endfor %}
+```

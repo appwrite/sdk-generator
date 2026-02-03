@@ -1,3 +1,4 @@
+```python
 from {{ spec.title | caseSnake }}.client import Client
 from {{ spec.title | caseSnake }}.services.{{ service.name | caseSnake }} import {{ service.name | caseUcfirst }}
 {% if method.parameters.all | filter((param) => param.type == 'file') | length > 0 %}
@@ -37,3 +38,4 @@ result = {{ service.name | caseSnake }}.{{ method.name | caseSnake }}({% if meth
     {%~ endfor %}
 {% if method.parameters.all | length > 0 %})
 {% endif %}
+```
