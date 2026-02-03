@@ -1,3 +1,4 @@
+```dart
 {% if method.type == 'upload' %}
 import 'dart:io';
 {% endif %}
@@ -36,3 +37,4 @@ Client client = Client()
     {%~ endfor %}
 {% if method.parameters.all | length > 0 %});
 {% endif %}
+```

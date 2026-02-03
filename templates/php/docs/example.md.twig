@@ -1,3 +1,4 @@
+```php
 <?php
 
 use {{ spec.namespace | caseNamespace }}\Client;
@@ -38,3 +39,4 @@ $result = ${{ service.name | caseCamel }}->{{ method.name | caseCamel }}({% if m
 
     {%~ endfor -%}
 {% if method.parameters.all | length > 0 %});{% endif %}
+```

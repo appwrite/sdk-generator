@@ -1,3 +1,4 @@
+```javascript
 import { Client, {{ service.name | caseUcfirst }}{% for parameter in method.parameters.all %}{% if parameter.enumValues | length > 0%}, {{ parameter.enumName | caseUcfirst}}{% endif %}{% endfor %}{% if method.parameters.all | hasPermissionParam %}, Permission, Role{% endif %} } from "{{ language.params.npmPackage }}";
 
 const client = new Client()
@@ -28,3 +29,4 @@ const {{ service.name | caseCamel }} = new {{service.name | caseUcfirst}}(client
 {% if method.type != 'webAuth' %}
 console.log(result);
 {% endif %}
+```

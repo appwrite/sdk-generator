@@ -1,3 +1,4 @@
+```ruby
 require '{{ spec.title | lower }}'
 
 include {{ spec.title | caseUcfirst }}
@@ -33,3 +34,4 @@ result = {{ service.name | caseSnake }}.{{ method.name | caseSnake }}({% if meth
     {%~ endfor -%}
 {% if method.parameters.all | length > 0 %})
 {% endif %}
+```
