@@ -95,10 +95,10 @@ mixin RealtimeMixin {
             
             // Store subscription ID mappings from backend
             // Format: { "0": "sub_a1f9", "1": "sub_b83c", ... }
+            _slotToSubscriptionId.clear();
+            _subscriptionIdToSlot.clear();
             if (data.data['subscriptions'] != null) {
               final subscriptions = data.data['subscriptions'] as Map<String, dynamic>;
-              _slotToSubscriptionId.clear();
-              _subscriptionIdToSlot.clear();
               subscriptions.forEach((slotStr, subscriptionId) {
                 final slot = int.tryParse(slotStr);
                 if (slot != null) {
@@ -236,7 +236,10 @@ mixin RealtimeMixin {
       }
     }
 
-    return Uri.parse("${uri.scheme}://${uri.host}${uri.port != null && uri.port != 80 && uri.port != 443 ? ':${uri.port}' : ''}${uri.path}/realtime?$queryParams");
+    final portPart = (uri.hasPort && uri.port != 80 && uri.port != 443)
+        ? ':${uri.port}'
+        : '';
+    return Uri.parse("${uri.scheme}://${uri.host}$portPart${uri.path}/realtime?$queryParams");
   }
 
   /// Convert channel value to string

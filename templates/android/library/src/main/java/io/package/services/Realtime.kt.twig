@@ -259,12 +259,11 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         
         private fun handleResponseConnected(message: RealtimeResponse) {
             val messageData = message.data?.jsonCast<Map<String, Any>>() ?: return
-            val subscriptions = messageData["subscriptions"] as? Map<*, *> ?: return
-            
             // Store subscription ID mappings from backend
             // Format: { "0": "sub_a1f9", "1": "sub_b83c", ... }
             slotToSubscriptionId.clear()
             subscriptionIdToSlot.clear()
+            val subscriptions = messageData["subscriptions"] as? Map<*, *> ?: return
             subscriptions.forEach { (slotStr, subscriptionId) ->
                 val slot = (slotStr as? String)?.toIntOrNull()
                 if (slot != null && subscriptionId is String) {
@@ -285,23 +284,37 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
             if (event.channels.isEmpty()) {
                 return
             }
-            
-            @Suppress("UNCHECKED_CAST")
-            val subscriptions = (messageData["subscriptions"] as? List<*>)?.mapNotNull { it as? String } ?: return
-            
-            if (subscriptions.isEmpty()) {
-                return
-            }
 
-            // Iterate over all matching subscriptionIds and call callback for each
-            subscriptions.forEach { subscriptionId ->
-                // O(1) lookup using subscriptionId
-                val slot = subscriptionIdToSlot[subscriptionId]
-                if (slot != null) {
-                    val subscription = activeSubscriptions[slot]
-                    if (subscription != null) {
-                        event.payload = event.payload.jsonCast(subscription.payloadClass)
-                        subscription.callback(event)
+            val rawPayload = event.payload
+            @Suppress("UNCHECKED_CAST")
+            val subscriptions = (messageData["subscriptions"] as? List<*>)?.mapNotNull { it as? String }
+
+            if (subscriptions != null && subscriptions.isNotEmpty()) {
+                // Use backend-provided subscription IDs for O(1) dispatch
+                subscriptions.forEach { subscriptionId ->
+                    // O(1) lookup using subscriptionId
+                    val slot = subscriptionIdToSlot[subscriptionId]
+                    if (slot != null) {
+                        val subscription = activeSubscriptions[slot]
+                        if (subscription != null) {
+                            val typedEvent = event.copy(
+                                payload = rawPayload.jsonCast(subscription.payloadClass)
+                            )
+                            subscription.callback(typedEvent)
+                        }
+                    }
+                }
+            } else {
+                // Fallback: match by channel for backward compatibility
+                activeSubscriptions.values.forEach { subscription ->
+                    val hasMatchingChannel = event.channels.any { channel ->
+                        subscription.channels.contains(channel)
+                    }
+                    if (hasMatchingChannel) {
+                        val typedEvent = event.copy(
+                            payload = rawPayload.jsonCast(subscription.payloadClass)
+                        )
+                        subscription.callback(typedEvent)
                     }
                 }
             }
