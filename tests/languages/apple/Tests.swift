@@ -32,7 +32,7 @@ class Tests: XCTestCase {
 
         // reset configs
         client.setProject("console")
-        client.setEndpointRealtime("ws://192.168.31.172:8080/v1")
+        client.setEndpointRealtime("wss://stage.cloud.appwrite.io/v1")
         client.setSelfSigned(true)
 
         let foo = Foo(client)

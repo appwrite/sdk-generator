@@ -34,7 +34,7 @@ void main() async {
   client.setSelfSigned();
   client.setProject('console');
   client.setEndPointRealtime(
-      "ws://192.168.31.172:8080/v1");
+      "wss://stage.cloud.appwrite.io/v1");
 
   Realtime realtime = Realtime(client);
   // Subscribe without queries
