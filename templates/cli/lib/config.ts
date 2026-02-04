@@ -749,15 +749,15 @@ class Global extends Config<GlobalConfigData> {
 
     sessions.forEach((sessionId) => {
       const sessionData = (this.data as any)[sessionId];
-      const email = sessionData[Global.PREFERENCE_EMAIL];
-      const endpoint = sessionData[Global.PREFERENCE_ENDPOINT];
+      const email = sessionData[Global.PREFERENCE_EMAIL] ?? "";
+      const endpoint = sessionData[Global.PREFERENCE_ENDPOINT] ?? "";
       const key = `${email}|${endpoint}`;
 
       if (sessionId === current || !sessionMap.has(key)) {
         sessionMap.set(key, {
           id: sessionId,
-          endpoint: sessionData[Global.PREFERENCE_ENDPOINT],
-          email: sessionData[Global.PREFERENCE_EMAIL],
+          endpoint,
+          email,
         });
       }
     });

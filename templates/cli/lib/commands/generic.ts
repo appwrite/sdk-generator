@@ -73,7 +73,7 @@ export const loginCommand = async ({
     }
 
     globalConfig.setCurrentSession(accountId);
-    success(`Current account is ${accountId}`);
+    success(`Switched to ${globalConfig.getEmail()}`);
 
     return;
   }
@@ -241,17 +241,72 @@ export const login = new Command("login")
   })
   .action(actionRunner(loginCommand));
 
-const deleteSession = async (accountId: string): Promise<void> => {
+const deleteSessionFromServer = async (): Promise<boolean> => {
   try {
     let client = await sdkForConsole();
     let accountClient = new Account(client);
-
     await accountClient.deleteSession("current");
+    return true;
   } catch (e) {
-    error("Unable to log out, removing locally saved session information");
-  } finally {
-    globalConfig.removeSession(accountId);
+    return false;
   }
+};
+
+const removeLocalSession = (accountId: string): void => {
+  globalConfig.removeSession(accountId);
+};
+
+type SessionData = { email?: string; endpoint?: string };
+
+const getSessionData = (sessionId: string): SessionData | undefined =>
+  globalConfig.get(sessionId as any) as SessionData | undefined;
+
+const getSessionAccountKey = (sessionId: string): string | undefined => {
+  const session = getSessionData(sessionId);
+  if (!session) return undefined;
+
+  return `${session.email ?? ""}|${session.endpoint ?? ""}`;
+};
+
+/**
+ * Given selected session IDs, determine which sessions should be logged out
+ * from the server (one per unique account) and which should be removed locally (all sessions for those accounts).
+ *
+ * @param selectedSessionIds Array of session IDs to process for logout.
+ * @returns Object containing `serverTargets` (sessions to logout from server)
+ *          and `localTargets` (sessions to remove locally).
+ */
+const planSessionLogout = (
+  selectedSessionIds: string[],
+): { serverTargets: string[]; localTargets: string[] } => {
+  // Map to group all session IDs by their unique account key (email+endpoint)
+  const sessionIdsByAccount = new Map<string, string[]>();
+  for (const sessionId of globalConfig.getSessionIds()) {
+    const key = getSessionAccountKey(sessionId);
+    if (!key) continue; // Skip sessions without proper account key
+
+    // For each account key, gather all associated session IDs
+    const ids = sessionIdsByAccount.get(key) ?? [];
+    ids.push(sessionId);
+    sessionIdsByAccount.set(key, ids);
+  }
+
+  // Map to store one selected session ID per unique account for server logout
+  const selectedByAccount = new Map<string, string>();
+  for (const selectedSessionId of selectedSessionIds) {
+    const key = getSessionAccountKey(selectedSessionId);
+    if (!key || selectedByAccount.has(key)) continue; // Skip if key missing or already considered for this account
+    selectedByAccount.set(key, selectedSessionId);
+  }
+
+  // Sessions to target for server logout: one per unique account
+  const serverTargets = Array.from(selectedByAccount.values());
+  // Sessions to remove locally: all sessions under selected accounts
+  const localTargets = Array.from(selectedByAccount.keys()).flatMap(
+    (accountKey) => sessionIdsByAccount.get(accountKey) ?? [],
+  );
+
+  return { serverTargets, localTargets };
 };
 
 export const logout = new Command("logout")
@@ -269,38 +324,58 @@ export const logout = new Command("logout")
         return;
       }
       if (sessions.length === 1) {
-        await deleteSession(current);
+        // Try to delete from server, then remove locally
+        const serverDeleted = await deleteSessionFromServer();
+        // Remove all local sessions with the same email+endpoint
+        const allSessionIds = globalConfig.getSessionIds();
+        for (const sessId of allSessionIds) {
+          removeLocalSession(sessId);
+        }
         globalConfig.setCurrentSession("");
-        success("Logging out");
+        if (!serverDeleted) {
+          hint("Could not reach server, removed local session data");
+        }
+        success("Logged out successfully");
 
         return;
       }
 
       const answers = await inquirer.prompt(questionsLogout);
 
-      if (answers.accounts) {
-        for (let accountId of answers.accounts) {
-          globalConfig.setCurrentSession(accountId);
-          await deleteSession(accountId);
+      if (answers.accounts?.length) {
+        const { serverTargets, localTargets } = planSessionLogout(
+          answers.accounts as string[],
+        );
+
+        for (const sessionId of serverTargets) {
+          globalConfig.setCurrentSession(sessionId);
+          await deleteSessionFromServer();
+        }
+
+        for (const sessionId of localTargets) {
+          removeLocalSession(sessionId);
         }
       }
 
       const remainingSessions = globalConfig.getSessions();
+      const hasCurrent = remainingSessions.some((session) => session.id === current);
 
-      if (
-        remainingSessions.length > 0 &&
-        remainingSessions.filter((session: any) => session.id === current)
-          .length !== 1
-      ) {
-        const accountId = remainingSessions[0].id;
-        globalConfig.setCurrentSession(accountId);
+      if (remainingSessions.length > 0 && !hasCurrent) {
+        const nextSession =
+          remainingSessions.find((session) => session.email) ??
+          remainingSessions[0];
+        globalConfig.setCurrentSession(nextSession.id);
 
-        success(`Current account is ${accountId}`);
+        success(
+          nextSession.email
+            ? `Switched to ${nextSession.email}`
+            : `Switched to session at ${nextSession.endpoint}`,
+        );
       } else if (remainingSessions.length === 0) {
         globalConfig.setCurrentSession("");
       }
 
-      success("Logging out");
+      success("Logged out successfully");
     }),
   );
 
@@ -438,10 +513,16 @@ export const client = new Command("client")
         if (reset !== undefined) {
           const sessions = globalConfig.getSessions();
 
-          for (let accountId of sessions.map((session: any) => session.id)) {
+          for (const accountId of sessions.map((session) => session.id)) {
             globalConfig.setCurrentSession(accountId);
-            await deleteSession(accountId);
+            await deleteSessionFromServer();
           }
+
+          for (const accountId of globalConfig.getSessionIds()) {
+            removeLocalSession(accountId);
+          }
+
+          globalConfig.setCurrentSession("");
         }
 
         if (!debug) {
