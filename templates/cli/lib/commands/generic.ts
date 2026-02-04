@@ -318,6 +318,7 @@ export const logout = new Command("logout")
     actionRunner(async () => {
       const sessions = globalConfig.getSessions();
       const current = globalConfig.getCurrentSession();
+      const originalCurrent = current;
 
       if (current === "" || !sessions.length) {
         log("No active sessions found.");
@@ -358,9 +359,13 @@ export const logout = new Command("logout")
       }
 
       const remainingSessions = globalConfig.getSessions();
-      const hasCurrent = remainingSessions.some((session) => session.id === current);
+      const hasCurrent = remainingSessions.some(
+        (session) => session.id === originalCurrent,
+      );
 
-      if (remainingSessions.length > 0 && !hasCurrent) {
+      if (remainingSessions.length > 0 && hasCurrent) {
+        globalConfig.setCurrentSession(originalCurrent);
+      } else if (remainingSessions.length > 0) {
         const nextSession =
           remainingSessions.find((session) => session.email) ??
           remainingSessions[0];
