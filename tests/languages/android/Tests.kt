@@ -213,7 +213,11 @@ class ServiceTest {
                 writeToFile(e.message)
             }
 
-            delay(10000)
+            // Give realtime extra time on slower / older runtimes (e.g. API 21) to:
+            // - establish the secure WebSocket connection
+            // - receive the connected/subscription mapping
+            // - dispatch at least one event on the "tests" channel
+            delay(20000)
             writeToFile(realtimeResponse)
             writeToFile(realtimeResponseWithQueries)
             writeToFile(realtimeResponseWithQueriesFailure)
