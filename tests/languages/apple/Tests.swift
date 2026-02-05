@@ -32,8 +32,8 @@ class Tests: XCTestCase {
 
         // reset configs
         client.setProject("console")
-        client.setEndpointRealtime("wss://stage.cloud.appwrite.io/v1")
-        client.setSelfSigned(true)
+        client.setEndpointRealtime("wss://cloud.appwrite.io/v1")
+        client.setSelfSigned(false)
 
         let foo = Foo(client)
         let bar = Bar(client)
@@ -187,11 +187,13 @@ class Tests: XCTestCase {
 
         print("Invalid endpoint URL: htp://cloud.appwrite.io/v1") // Indicates fatalError by client.setEndpoint
 
-        wait(for: [expectation, expectationWithQueries], timeout: 10.0)
+        wait(for: [expectation], timeout: 20.0)
         print(realtimeResponse)
+
+        wait(for: [expectationWithQueries], timeout: 20.0)
         print(realtimeResponseWithQueries)
         
-        wait(for: [expectationWithQueriesFailure], timeout: 10.0)
+        wait(for: [expectationWithQueriesFailure], timeout: 20.0)
         if expectationWithQueriesFailure.isInverted {
             print(realtimeResponseWithQueriesFailure)
         } else {
