@@ -304,19 +304,6 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
                         }
                     }
                 }
-            } else {
-                // Fallback: match by channel for backward compatibility
-                activeSubscriptions.values.forEach { subscription ->
-                    val hasMatchingChannel = event.channels.any { channel ->
-                        subscription.channels.contains(channel)
-                    }
-                    if (hasMatchingChannel) {
-                        val typedEvent = event.copy(
-                            payload = rawPayload.jsonCast(subscription.payloadClass)
-                        )
-                        subscription.callback(typedEvent)
-                    }
-                }
             }
         }
 
