@@ -8,6 +8,10 @@ export class JavaScript extends LanguageMeta {
     let type = "";
     switch (attribute.type) {
       case AttributeType.STRING:
+      case AttributeType.TEXT:
+      case AttributeType.VARCHAR:
+      case AttributeType.MEDIUMTEXT:
+      case AttributeType.LONGTEXT:
       case AttributeType.DATETIME:
         type = "string";
         if (attribute.format === AttributeType.ENUM) {
