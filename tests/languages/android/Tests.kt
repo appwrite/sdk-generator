@@ -213,11 +213,21 @@ class ServiceTest {
                 writeToFile(e.message)
             }
 
-            // Give realtime extra time on slower / older runtimes (e.g. API 21) to:
-            // - establish the secure WebSocket connection
-            // - receive the connected/subscription mapping
-            // - dispatch at least one event on the "tests" channel
-            delay(20000)
+            // Wait "eventually" for realtime results instead of relying on a fixed delay.
+            // We only require the first two subscriptions (no-queries and with-queries)
+            // to succeed; the third one should normally remain "Realtime failed!".
+            val maxWaitMs = 20_000L
+            val pollIntervalMs = 500L
+            val start = System.currentTimeMillis()
+
+            while (
+                (realtimeResponse == "Realtime failed!" ||
+                 realtimeResponseWithQueries == "Realtime failed!") &&
+                System.currentTimeMillis() - start < maxWaitMs
+            ) {
+                delay(pollIntervalMs)
+            }
+
             writeToFile(realtimeResponse)
             writeToFile(realtimeResponseWithQueries)
             writeToFile(realtimeResponseWithQueriesFailure)
