@@ -18,6 +18,7 @@ import okhttp3.WebSocketListener
 import okhttp3.internal.concurrent.TaskRunner
 import okhttp3.internal.ws.RealWebSocket
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 import android.util.Log
 import kotlin.coroutines.CoroutineContext
 
@@ -38,17 +39,20 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
 
         private var socket: RealWebSocket? = null
         // Slot-centric state: Map<slot, RealtimeCallback>
-        private var activeSubscriptions = mutableMapOf<Int, RealtimeCallback>()
+        private val activeSubscriptions = ConcurrentHashMap<Int, RealtimeCallback>()
         // Map slot index -> subscriptionId (from backend)
-        private var slotToSubscriptionId = mutableMapOf<Int, String>()
+        private val slotToSubscriptionId = ConcurrentHashMap<Int, String>()
         // Inverse map: subscriptionId -> slot index (for O(1) lookup)
-        private var subscriptionIdToSlot = mutableMapOf<String, Int>()
+        private val subscriptionIdToSlot = ConcurrentHashMap<String, Int>()
 
         private var subCallDepth = 0
         private var reconnectAttempts = 0
         private var subscriptionsCounter = 0
         private var reconnect = true
         private var heartbeatJob: Job? = null
+
+        // Lock to coordinate multi-map updates (activeSubscriptions, slotToSubscriptionId, subscriptionIdToSlot)
+        private val subscriptionLock = Any()
     }
 
     private fun createSocket() {
@@ -204,15 +208,17 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         // Convert queries to list of strings
         val queryList = queries.toList()
 
-        // Store slot-centric data: channels, queries, and callback belong to the slot
-        // queries is stored as List<String> (array of query strings)
-        // No channel mutation occurs here - channels are derived from slots in createSocket()
-        activeSubscriptions[slot] = RealtimeCallback(
-            channels.toSet(),
-            queries,
-            payloadType,
-            callback as (RealtimeResponseEvent<*>) -> Unit
-        )
+        // Store slot-centric data: channels, queries, and callback belong to the slot.
+        // We only touch activeSubscriptions here, but keep the pattern consistent
+        // and future-proof by guarding multi-map writes with a shared lock.
+        synchronized(subscriptionLock) {
+            activeSubscriptions[slot] = RealtimeCallback(
+                channels.toSet(),
+                queries,
+                payloadType,
+                callback as (RealtimeResponseEvent<*>) -> Unit
+            )
+        }
 
         launch {
             subCallDepth++
@@ -224,10 +230,14 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         }
 
         return RealtimeSubscription {
-            val subscriptionId = slotToSubscriptionId[slot]
-            activeSubscriptions.remove(slot)
-            slotToSubscriptionId.remove(slot)
-            subscriptionId?.let { subscriptionIdToSlot.remove(it) }
+            // Unsubscribe must update all three maps atomically so that
+            // no reader observes a half-updated state.
+            synchronized(subscriptionLock) {
+                val subscriptionId = slotToSubscriptionId[slot]
+                activeSubscriptions.remove(slot)
+                slotToSubscriptionId.remove(slot)
+                subscriptionId?.let { subscriptionIdToSlot.remove(it) }
+            }
             createSocket()
         }
     }
@@ -259,16 +269,20 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         
         private fun handleResponseConnected(message: RealtimeResponse) {
             val messageData = message.data?.jsonCast<Map<String, Any>>() ?: return
+            val subscriptions = messageData["subscriptions"] as? Map<*, *> ?: return
+
             // Store subscription ID mappings from backend
             // Format: { "0": "sub_a1f9", "1": "sub_b83c", ... }
-            slotToSubscriptionId.clear()
-            subscriptionIdToSlot.clear()
-            val subscriptions = messageData["subscriptions"] as? Map<*, *> ?: return
-            subscriptions.forEach { (slotStr, subscriptionId) ->
-                val slot = (slotStr as? String)?.toIntOrNull()
-                if (slot != null && subscriptionId is String) {
-                    slotToSubscriptionId[slot] = subscriptionId
-                    subscriptionIdToSlot[subscriptionId] = slot
+            synchronized(subscriptionLock) {
+                slotToSubscriptionId.clear()
+                subscriptionIdToSlot.clear()
+
+                subscriptions.forEach { (slotStr, subscriptionId) ->
+                    val slot = (slotStr as? String)?.toIntOrNull()
+                    if (slot != null && subscriptionId is String) {
+                        slotToSubscriptionId[slot] = subscriptionId
+                        subscriptionIdToSlot[subscriptionId] = slot
+                    }
                 }
             }
         }
