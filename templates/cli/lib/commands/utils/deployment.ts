@@ -3,6 +3,7 @@ import path from "path";
 import tar from "tar";
 import { Client, AppwriteException } from "@appwrite.io/console";
 import { error } from "../../parser.js";
+import ignore from "ignore";
 
 const POLL_DEBOUNCE = 2000; // Milliseconds
 
@@ -12,12 +13,24 @@ const POLL_DEBOUNCE = 2000; // Milliseconds
  */
 async function packageDirectory(dirPath: string): Promise<File> {
   const tempFile = `${dirPath.replace(/[^a-zA-Z0-9]/g, "_")}-${Date.now()}.tar.gz`;
+  
+  // Load .gitignore file if it exists
+  const ig = ignore();
+  const gitignorePath = path.join(dirPath, ".gitignore");
+
+  if (fs.existsSync(gitignorePath)) {
+    ig.add(fs.readFileSync(gitignorePath).toString());
+  }
 
   await tar.create(
     {
       gzip: true,
       file: tempFile,
       cwd: dirPath,
+      filter(xpath) {
+        const relativePath = path.join(dirPath, xpath);
+        return !ig.ignores(relativePath);
+      },      
     },
     ["."],
   );
