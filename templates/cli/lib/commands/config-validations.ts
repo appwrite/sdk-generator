@@ -18,7 +18,7 @@ export const validateRequiredDefault = (data: {
 };
 
 /**
- * Validates that string type attributes must have a size defined,
+ * Validates that string/varchar type attributes must have a size defined,
  * unless they have a format (email, url, ip, enum) which defines the size
  */
 export const validateStringSize = (data: {
@@ -26,8 +26,8 @@ export const validateStringSize = (data: {
   size?: number | null;
   format?: string | null;
 }) => {
-  // Skip validation if not a string type
-  if (data.type !== "string") {
+  // Skip validation if not a string-like type that requires size
+  if (data.type !== "string" && data.type !== "varchar") {
     return true;
   }
 
