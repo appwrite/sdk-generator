@@ -2324,7 +2324,7 @@ const pushCollection = async (): Promise<void> => {
   const { successfullyPushed, errors } = result;
 
   if (successfullyPushed === 0) {
-    error("No collections were pushed.");
+    warn("No collections were pushed.");
   } else {
     success(`Successfully pushed ${successfullyPushed} collections.`);
   }
