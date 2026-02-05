@@ -250,6 +250,43 @@ export class Attributes {
               encrypt: attribute.encrypt,
             });
         }
+      case "varchar":
+        return databasesService.createVarcharAttribute({
+          databaseId,
+          collectionId,
+          key: attribute.key,
+          size: attribute.size,
+          required: attribute.required,
+          xdefault: attribute.default,
+          array: attribute.array,
+        });
+      case "text":
+        return databasesService.createTextAttribute({
+          databaseId,
+          collectionId,
+          key: attribute.key,
+          required: attribute.required,
+          xdefault: attribute.default,
+          array: attribute.array,
+        });
+      case "mediumtext":
+        return databasesService.createMediumtextAttribute({
+          databaseId,
+          collectionId,
+          key: attribute.key,
+          required: attribute.required,
+          xdefault: attribute.default,
+          array: attribute.array,
+        });
+      case "longtext":
+        return databasesService.createLongtextAttribute({
+          databaseId,
+          collectionId,
+          key: attribute.key,
+          required: attribute.required,
+          xdefault: attribute.default,
+          array: attribute.array,
+        });
       case "integer":
         return databasesService.createIntegerAttribute({
           databaseId,
@@ -382,6 +419,39 @@ export class Attributes {
               xdefault: attribute.default,
             });
         }
+      case "varchar":
+        return databasesService.updateVarcharAttribute({
+          databaseId,
+          collectionId,
+          key: attribute.key,
+          required: attribute.required,
+          xdefault: attribute.default,
+          size: attribute.size,
+        });
+      case "text":
+        return databasesService.updateTextAttribute({
+          databaseId,
+          collectionId,
+          key: attribute.key,
+          required: attribute.required,
+          xdefault: attribute.default,
+        });
+      case "mediumtext":
+        return databasesService.updateMediumtextAttribute({
+          databaseId,
+          collectionId,
+          key: attribute.key,
+          required: attribute.required,
+          xdefault: attribute.default,
+        });
+      case "longtext":
+        return databasesService.updateLongtextAttribute({
+          databaseId,
+          collectionId,
+          key: attribute.key,
+          required: attribute.required,
+          xdefault: attribute.default,
+        });
       case "integer":
         return databasesService.updateIntegerAttribute({
           databaseId,
