@@ -1,5 +1,9 @@
 export const AttributeType = {
   STRING: "string",
+  TEXT: "text",
+  VARCHAR: "varchar",
+  MEDIUMTEXT: "mediumtext",
+  LONGTEXT: "longtext",
   INTEGER: "integer",
   FLOAT: "double",
   BOOLEAN: "boolean",

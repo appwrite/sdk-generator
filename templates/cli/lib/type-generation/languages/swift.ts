@@ -10,6 +10,10 @@ export class Swift extends LanguageMeta {
     let type = "";
     switch (attribute.type) {
       case AttributeType.STRING:
+      case AttributeType.TEXT:
+      case AttributeType.VARCHAR:
+      case AttributeType.MEDIUMTEXT:
+      case AttributeType.LONGTEXT:
       case AttributeType.DATETIME:
         type = "String";
         if (attribute.format === AttributeType.ENUM) {
@@ -129,7 +133,7 @@ public class <%- toPascalCase(collection.name) %>: Codable {
 <% for (const [index, attribute] of Object.entries(collection.attributes)) { -%>
 <% if (attribute.type === 'relationship') { -%>
             "<%- attribute.key %>": <%- strict ? toCamelCase(attribute.key) : attribute.key %> as Any<% if (index < collection.attributes.length - 1) { %>,<% } %>
-<% } else if (attribute.array && attribute.type !== 'string' && attribute.type !== 'integer' && attribute.type !== 'float' && attribute.type !== 'boolean') { -%>
+<% } else if (attribute.array && !['string', 'text', 'varchar', 'mediumtext', 'longtext', 'integer', 'float', 'boolean'].includes(attribute.type)) { -%>
             "<%- attribute.key %>": <%- strict ? toCamelCase(attribute.key) : attribute.key %>?.map { $0.toMap() } as Any<% if (index < collection.attributes.length - 1) { %>,<% } %>
 <% } else { -%>
             "<%- attribute.key %>": <%- strict ? toCamelCase(attribute.key) : attribute.key %> as Any<% if (index < collection.attributes.length - 1) { %>,<% } %>
@@ -145,7 +149,7 @@ public class <%- toPascalCase(collection.name) %>: Codable {
 <% const relationshipType = getType(attribute, collections, collection.name).replace('?', ''); -%>
             <%- strict ? toCamelCase(attribute.key) : attribute.key %>: map["<%- attribute.key %>"] as<% if (!attribute.required) { %>?<% } else { %>!<% } %> <%- relationshipType %><% if (index < collection.attributes.length - 1) { %>,<% } %>
 <% } else if (attribute.array) { -%>
-<% if (attribute.type === 'string') { -%>
+<% if (['string', 'text', 'varchar', 'mediumtext', 'longtext'].includes(attribute.type)) { -%>
             <%- strict ? toCamelCase(attribute.key) : attribute.key %>: map["<%- attribute.key %>"] as<% if (!attribute.required) { %>?<% } else { %>!<% } %> [String]<% if (index < collection.attributes.length - 1) { %>,<% } %>
 <% } else if (attribute.type === 'integer') { -%>
             <%- strict ? toCamelCase(attribute.key) : attribute.key %>: map["<%- attribute.key %>"] as<% if (!attribute.required) { %>?<% } else { %>!<% } %> [Int]<% if (index < collection.attributes.length - 1) { %>,<% } %>
@@ -157,9 +161,9 @@ public class <%- toPascalCase(collection.name) %>: Codable {
             <%- strict ? toCamelCase(attribute.key) : attribute.key %>: (map["<%- attribute.key %>"] as<% if (!attribute.required) { %>?<% } else { %>!<% } %> [[String: Any]])<% if (!attribute.required) { %>?<% } %>.map { <%- toPascalCase(attribute.type) %>.from(map: $0) }<% if (index < collection.attributes.length - 1) { %>,<% } %>
 <% } -%>
 <% } else { -%>
-<% if ((attribute.type === 'string' || attribute.type === 'email' || attribute.type === 'datetime') && attribute.format !== 'enum') { -%>
+<% if (['string', 'text', 'varchar', 'mediumtext', 'longtext', 'email', 'datetime'].includes(attribute.type) && attribute.format !== 'enum') { -%>
             <%- strict ? toCamelCase(attribute.key) : attribute.key %>: map["<%- attribute.key %>"] as<% if (!attribute.required) { %>?<% } else { %>!<% } %> String<% if (index < collection.attributes.length - 1) { %>,<% } %>
-<% } else if (attribute.type === 'string' && attribute.format === 'enum') { -%>
+<% } else if (['string', 'text', 'varchar', 'mediumtext', 'longtext'].includes(attribute.type) && attribute.format === 'enum') { -%>
             <%- strict ? toCamelCase(attribute.key) : attribute.key %>: <%- toPascalCase(collection.name) %><%- toPascalCase(attribute.key) %>(rawValue: map["<%- attribute.key %>"] as! String)!<% if (index < collection.attributes.length - 1) { %>,<% } %>
 <% } else if (attribute.type === 'integer') { -%>
             <%- strict ? toCamelCase(attribute.key) : attribute.key %>: map["<%- attribute.key %>"] as<% if (!attribute.required) { %>?<% } else { %>!<% } %> Int<% if (index < collection.attributes.length - 1) { %>,<% } %>

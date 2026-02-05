@@ -72,6 +72,10 @@ export class Dart extends LanguageMeta {
     let type = "";
     switch (attribute.type) {
       case AttributeType.STRING:
+      case AttributeType.TEXT:
+      case AttributeType.VARCHAR:
+      case AttributeType.MEDIUMTEXT:
+      case AttributeType.LONGTEXT:
       case AttributeType.DATETIME:
         type = "String";
         if (attribute.format === AttributeType.ENUM) {
@@ -193,7 +197,7 @@ class <%= toPascalCase(collection.name) %> {
   factory <%= toPascalCase(collection.name) %>.fromMap(Map<String, dynamic> map) {
     return <%= toPascalCase(collection.name) %>(<% if (__attrs.length > 0) { %>
 <% for (const [index, attribute] of Object.entries(__attrs)) { -%>
-      <%= strict ? toCamelCase(attribute.key) : attribute.key %>: <% if (attribute.type === '${AttributeType.STRING}' || attribute.type === '${AttributeType.EMAIL}' || attribute.type === '${AttributeType.DATETIME}') { -%>
+      <%= strict ? toCamelCase(attribute.key) : attribute.key %>: <% if (['${AttributeType.STRING}', '${AttributeType.TEXT}', '${AttributeType.VARCHAR}', '${AttributeType.MEDIUMTEXT}', '${AttributeType.LONGTEXT}', '${AttributeType.EMAIL}', '${AttributeType.DATETIME}'].includes(attribute.type)) { -%>
 <% if (attribute.format === '${AttributeType.ENUM}') { -%>
 <% if (attribute.array) { -%>
 (map['<%= attribute.key %>'] as List<dynamic>?)?.map((e) => <%- toPascalCase(collection.name) %><%- toPascalCase(attribute.key) %>.values.firstWhere((element) => element.value == e)).toList()<% } else { -%>

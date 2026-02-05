@@ -37,6 +37,10 @@ export function getTypeScriptType(
 
   switch (attribute.type) {
     case "string":
+    case "text":
+    case "varchar":
+    case "mediumtext":
+    case "longtext":
     case "datetime":
       type = "string";
       if (attribute.format === "enum") {

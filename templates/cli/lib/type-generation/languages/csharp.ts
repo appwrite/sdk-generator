@@ -10,6 +10,10 @@ export class CSharp extends LanguageMeta {
     let type = "";
     switch (attribute.type) {
       case AttributeType.STRING:
+      case AttributeType.TEXT:
+      case AttributeType.VARCHAR:
+      case AttributeType.MEDIUMTEXT:
+      case AttributeType.LONGTEXT:
       case AttributeType.DATETIME:
         type = "string";
         if (attribute.format === AttributeType.ENUM) {
@@ -126,7 +130,7 @@ public class <%= toPascalCase(collection.name) %>
                 }
             // ARRAY TYPES
             } else if (attribute.array) {
-                if (attribute.type === 'string' || attribute.type === 'datetime' || attribute.type === 'email') {
+                if (['string', 'text', 'varchar', 'mediumtext', 'longtext', 'datetime', 'email'].includes(attribute.type)) {
                     -%>((IEnumerable<object>)map["<%- attribute.key %>"]).Select(x => x?.ToString())<%- attribute.required ? '.Where(x => x != null)' : '' %>.ToList()!<%
                 } else if (attribute.type === 'integer') {
                     -%>((IEnumerable<object>)map["<%- attribute.key %>"]).Select(x => <%- !attribute.required ? 'x == null ? (long?)null : ' : '' %>Convert.ToInt64(x)).ToList()<%
@@ -142,7 +146,7 @@ public class <%= toPascalCase(collection.name) %>
                 -%><%- !attribute.required ? 'map["' + attribute.key + '"] == null ? null : ' : '' %>Convert.ToDouble(map["<%- attribute.key %>"])<%
             } else if (attribute.type === 'boolean') {
                 -%>(<%- getType(attribute, collections, collection.name) %>)map["<%- attribute.key %>"]<%
-            } else if (attribute.type === 'string' || attribute.type === 'datetime' || attribute.type === 'email') {
+            } else if (['string', 'text', 'varchar', 'mediumtext', 'longtext', 'datetime', 'email'].includes(attribute.type)) {
                 -%>map["<%- attribute.key %>"]<%- !attribute.required ? '?' : '' %>.ToString()<%- attribute.required ? '!' : ''%><%
             } else {
                 -%>default<%
