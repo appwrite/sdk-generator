@@ -339,7 +339,6 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
 
             launch {
                 delay(timeout)
-                reconnectAttempts++
                 createSocket()
             }
         }
