@@ -213,7 +213,7 @@ class ServiceTest {
                 writeToFile(e.message)
             }
 
-            delay(5000)
+            delay(30000)
 
             writeToFile(realtimeResponse)
             writeToFile(realtimeResponseWithQueries)

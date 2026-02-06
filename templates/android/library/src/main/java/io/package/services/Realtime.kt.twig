@@ -70,7 +70,8 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
             return
         }
 
-        var queryParams = "project=${client.config["project"]}"
+        val encodedProject = java.net.URLEncoder.encode(client.config["project"].toString(), "UTF-8")
+        var queryParams = "project=$encodedProject"
         
         allChannels.forEach { channel ->
             val encodedChannel = java.net.URLEncoder.encode(channel, "UTF-8")
