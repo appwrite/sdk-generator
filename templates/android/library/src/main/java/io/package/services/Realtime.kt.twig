@@ -206,7 +206,6 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         // Allocate a new slot index atomically
         val slot = subscriptionsCounter.incrementAndGet()
 
-
         // Store slot-centric data: channels, queries, and callback belong to the slot.
         // We only touch activeSubscriptions here, but keep the pattern consistent
         // and future-proof by guarding multi-map writes with a shared lock.
@@ -237,7 +236,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
                 slotToSubscriptionId.remove(slot)
                 subscriptionId?.let { subscriptionIdToSlot.remove(it) }
             }
-            createSocket()
+            launch { createSocket() }
         }
     }
 
