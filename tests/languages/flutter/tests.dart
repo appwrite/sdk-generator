@@ -33,7 +33,7 @@ void main() async {
 
   client.setSelfSigned();
   client.setProject('console');
-  client.setEndPointRealtime("wss://stage.cloud.appwrite.io/v1");
+  client.setEndPointRealtime("wss://cloud.appwrite.io/v1");
 
   Realtime realtime = Realtime(client);
   // Subscribe without queries

@@ -7,7 +7,6 @@ import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.title | caseUcfirst }}Ex
 import {{ sdk.namespace | caseDot }}.extensions.forEachAsync
 import {{ sdk.namespace | caseDot }}.extensions.fromJson
 import {{ sdk.namespace | caseDot }}.extensions.jsonCast
-import {{ sdk.namespace | caseDot }}.extensions.gson
 import {{ sdk.namespace | caseDot }}.models.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.Dispatchers.IO
@@ -31,6 +30,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         get() = Dispatchers.Main + job
 
     private companion object {
+        private const val TYPE_CONNECTED = "connected"
         private const val TYPE_ERROR = "error"
         private const val TYPE_EVENT = "event"
         private const val TYPE_PONG = "pong"
@@ -81,7 +81,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         // For each slot, repeat its queries under each channel it subscribes to
         // Example: slot 1 → channels [tests, prod], queries [q1, q2]
         //   Produces: tests[1][]=q1&tests[1][]=q2&prod[1][]=q1&prod[1][]=q2
-        val selectAllQuery = """{"method":"select","values":["*"]}"""
+        val selectAllQuery = Query.select(listOf('*')).toString()
         activeSubscriptions.forEach { (slot, subscription) ->
             // Get queries array - each query is a separate string
             val queries = if (subscription.queries.isEmpty()) {
@@ -260,7 +260,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
                 val message = text.fromJson<RealtimeResponse>()
                 when (message.type) {
                     TYPE_ERROR -> handleResponseError(message)
-                    "connected" -> handleResponseConnected(message)
+                    TYPE_CONNECTED -> handleResponseConnected(message)
                     TYPE_EVENT -> handleResponseEvent(message)
                     TYPE_PONG -> {}
                 }
@@ -303,19 +303,21 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
             @Suppress("UNCHECKED_CAST")
             val subscriptions = (messageData["subscriptions"] as? List<*>)?.mapNotNull { it as? String }
 
-            if (subscriptions != null && subscriptions.isNotEmpty()) {
-                // Use backend-provided subscription IDs for O(1) dispatch
-                subscriptions.forEach { subscriptionId ->
-                    // O(1) lookup using subscriptionId
-                    val slot = subscriptionIdToSlot[subscriptionId]
-                    if (slot != null) {
-                        val subscription = activeSubscriptions[slot]
-                        if (subscription != null) {
-                            val typedEvent = event.copy(
-                                payload = rawPayload.jsonCast(subscription.payloadClass)
-                            )
-                            subscription.callback(typedEvent)
-                        }
+            if (subscriptions.isNullOrEmpty()) {
+                return
+            }
+
+            // Use backend-provided subscription IDs for O(1) dispatch
+            subscriptions.forEach { subscriptionId ->
+                // O(1) lookup using subscriptionId
+                val slot = subscriptionIdToSlot[subscriptionId]
+                if (slot != null) {
+                    val subscription = activeSubscriptions[slot]
+                    if (subscription != null) {
+                        val typedEvent = event.copy(
+                            payload = rawPayload.jsonCast(subscription.payloadClass)
+                        )
+                        subscription.callback(typedEvent)
                     }
                 }
             }
