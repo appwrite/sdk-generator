@@ -28,7 +28,14 @@ async function packageDirectory(dirPath: string): Promise<File> {
       file: tempFile,
       cwd: dirPath,
       filter(xpath) {
-        const relativePath = path.join(dirPath, xpath);
+        const relativePath = xpath
+          .replace(/^[.][\\/]/, "") // Remove leading ./ or .\
+          .replace(/\\/g, "/"); // Normalize to forward slashes
+
+        // Handle root directory "." specially
+        if (relativePath === "" || relativePath === ".") {
+          return true;
+        }
         return !ig.ignores(relativePath);
       },      
     },
