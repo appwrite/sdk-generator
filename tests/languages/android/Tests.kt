@@ -213,20 +213,7 @@ class ServiceTest {
                 writeToFile(e.message)
             }
 
-            // Wait "eventually" for realtime results instead of relying on a fixed delay.
-            // We only require the first two subscriptions (no-queries and with-queries)
-            // to succeed; the third one should normally remain "Realtime failed!".
-            val maxWaitMs = 20_000L
-            val pollIntervalMs = 500L
-            val start = System.currentTimeMillis()
-
-            while (
-                (realtimeResponse == "Realtime failed!" ||
-                 realtimeResponseWithQueries == "Realtime failed!") &&
-                System.currentTimeMillis() - start < maxWaitMs
-            ) {
-                delay(pollIntervalMs)
-            }
+            delay(5000)
 
             writeToFile(realtimeResponse)
             writeToFile(realtimeResponseWithQueries)
