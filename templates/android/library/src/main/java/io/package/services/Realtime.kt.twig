@@ -19,6 +19,7 @@ import okhttp3.internal.concurrent.TaskRunner
 import okhttp3.internal.ws.RealWebSocket
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicInteger
 import android.util.Log
 import kotlin.coroutines.CoroutineContext
 
@@ -47,7 +48,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
 
         private var subCallDepth = 0
         private var reconnectAttempts = 0
-        private var subscriptionsCounter = 0
+        private val subscriptionsCounter = AtomicInteger(0)
         private var reconnect = true
         private var heartbeatJob: Job? = null
 
@@ -201,9 +202,8 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         queries: Set<String> = emptySet(),
         callback: (RealtimeResponseEvent<T>) -> Unit,
     ): RealtimeSubscription {
-        // Allocate a new slot index
-        subscriptionsCounter++
-        val slot = subscriptionsCounter
+        // Allocate a new slot index atomically
+        val slot = subscriptionsCounter.incrementAndGet()
 
         // Convert queries to list of strings
         val queryList = queries.toList()
