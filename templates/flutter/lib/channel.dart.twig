@@ -25,7 +25,7 @@ class Channel<T> {
 
   Channel._(this._segments);
 
-  /// Internal helper to transition to next state with segment and ID
+  /// Internal helper to transition to next state with segment and optional ID
   Channel<N> _next<N>(String segment, [String? id]) {
     final segments = [..._segments, segment];
 
@@ -80,7 +80,8 @@ class Channel<T> {
 
 /// Only available on Channel<_Database>
 extension DatabaseChannel on Channel<_Database> {
-  Channel<_Collection> collection([String? id]) => _next<_Collection>('collections', id);
+  Channel<_Collection> collection([String? id]) =>
+      _next<_Collection>('collections', id ?? '*');
 }
 
 /// Only available on Channel<_Collection>
@@ -92,7 +93,8 @@ extension CollectionChannel on Channel<_Collection> {
 
 /// Only available on Channel<_TablesDB>
 extension TablesDBChannel on Channel<_TablesDB> {
-  Channel<_Table> table([String? id]) => _next<_Table>('tables', id);
+  Channel<_Table> table([String? id]) =>
+      _next<_Table>('tables', id ?? '*');
 }
 
 /// Only available on Channel<_Table>

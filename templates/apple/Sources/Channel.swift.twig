@@ -30,7 +30,7 @@ public class RealtimeChannel<T> {
         self.segments = segments
     }
     
-    /// Internal helper to transition to next state with segment and ID
+    /// Internal helper to transition to next state with segment and optional ID
     internal func next<N>(_ segment: String, _ id: String? = nil) -> RealtimeChannel<N> {
         if let id = id {
             return RealtimeChannel<N>(segments + [segment, normalize(id)])
@@ -97,7 +97,7 @@ public enum Channel {
 /// Only available on RealtimeChannel<_Database>
 extension RealtimeChannel where T == _Database {
     public func collection(_ id: String? = nil) -> RealtimeChannel<_Collection> {
-        return self.next("collections", id)
+        return self.next("collections", id ?? "*")
     }
 }
 
@@ -113,7 +113,7 @@ extension RealtimeChannel where T == _Collection {
 /// Only available on RealtimeChannel<_TablesDB>
 extension RealtimeChannel where T == _TablesDB {
     public func table(_ id: String? = nil) -> RealtimeChannel<_Table> {
-        return self.next("tables", id)
+        return self.next("tables", id ?? "*")
     }
 }
 

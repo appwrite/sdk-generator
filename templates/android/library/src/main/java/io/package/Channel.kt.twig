@@ -97,7 +97,7 @@ class Channel<out T> private constructor(
  * Only available on Channel<_Database>
  */
 fun Channel<_Database>.collection(id: String? = null): Channel<_Collection> =
-    this.next("collections", id)
+    this.next("collections", id ?: "*")
 
 /**
  * Only available on Channel<_Collection>
@@ -111,7 +111,7 @@ fun Channel<_Collection>.document(id: String? = null): Channel<_Document> =
  * Only available on Channel<_TablesDB>
  */
 fun Channel<_TablesDB>.table(id: String? = null): Channel<_Table> =
-    this.next("tables", id)
+    this.next("tables", id ?: "*")
 
 /**
  * Only available on Channel<_Table>
