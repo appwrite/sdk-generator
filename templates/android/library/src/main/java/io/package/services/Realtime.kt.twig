@@ -82,7 +82,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         // For each slot, repeat its queries under each channel it subscribes to
         // Example: slot 1 → channels [tests, prod], queries [q1, q2]
         //   Produces: tests[1][]=q1&tests[1][]=q2&prod[1][]=q1&prod[1][]=q2
-        val selectAllQuery = Query.select(listOf('*')).toString()
+        val selectAllQuery = Query.select(listOf("*")).toString()
         activeSubscriptions.forEach { (slot, subscription) ->
             // Get queries array - each query is a separate string
             val queries = if (subscription.queries.isEmpty()) {
@@ -206,8 +206,6 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         // Allocate a new slot index atomically
         val slot = subscriptionsCounter.incrementAndGet()
 
-        // Convert queries to list of strings
-        val queryList = queries.toList()
 
         // Store slot-centric data: channels, queries, and callback belong to the slot.
         // We only touch activeSubscriptions here, but keep the pattern consistent
@@ -275,16 +273,21 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
             // Store subscription ID mappings from backend
             // Format: { "0": "sub_a1f9", "1": "sub_b83c", ... }
             synchronized(subscriptionLock) {
-                slotToSubscriptionId.clear()
-                subscriptionIdToSlot.clear()
+                val newSlotToSub = mutableMapOf<Int, String>()
+                val newSubToSlot = mutableMapOf<String, Int>()
 
                 subscriptions.forEach { (slotStr, subscriptionId) ->
                     val slot = (slotStr as? String)?.toIntOrNull()
                     if (slot != null && subscriptionId is String) {
-                        slotToSubscriptionId[slot] = subscriptionId
-                        subscriptionIdToSlot[subscriptionId] = slot
+                        newSlotToSub[slot] = subscriptionId
+                        newSubToSlot[subscriptionId] = slot
                     }
                 }
+
+                slotToSubscriptionId.clear()
+                slotToSubscriptionId.putAll(newSlotToSub)
+                subscriptionIdToSlot.clear()
+                subscriptionIdToSlot.putAll(newSubToSlot)
             }
         }
 
