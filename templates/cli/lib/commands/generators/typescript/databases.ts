@@ -13,6 +13,7 @@ import {
   getTypeScriptType,
   getAppwriteDependency,
   supportsServerSideMethods,
+  detectImportExtension,
   TypeAttribute,
   TypeEntity,
 } from "../../../shared/typescript-type-utils.js";
@@ -369,7 +370,7 @@ ${
         }`;
   }
 
-  private generateDatabasesFile(config: ConfigType): string {
+  private generateDatabasesFile(config: ConfigType, importExt: string): string {
     const entities = config.tables?.length ? config.tables : config.collections;
 
     if (!entities || entities.length === 0) {
@@ -386,6 +387,7 @@ ${
     return databasesTemplate({
       appwriteDep,
       supportsServerSide,
+      importExt,
       TABLE_ID_MAP: this.generateTableIdMap(entitiesByDb),
       TABLES_WITH_RELATIONSHIPS:
         this.generateTablesWithRelationships(entitiesByDb),
@@ -395,10 +397,11 @@ ${
     });
   }
 
-  private generateIndexFile(): string {
+  private generateIndexFile(importExt: string): string {
     return indexTemplate({
       sdkTitle: SDK_TITLE,
       executableName: EXECUTABLE_NAME,
+      importExt,
     });
   }
 
@@ -422,6 +425,7 @@ ${
       throw new Error("Project ID is required in configuration");
     }
 
+    const importExt = detectImportExtension();
     const files = new Map<string, string>();
 
     const hasEntities =
@@ -440,14 +444,14 @@ ${
         "types.ts",
         "// No tables or collections found in configuration\n",
       );
-      files.set("index.ts", this.generateIndexFile());
+      files.set("index.ts", this.generateIndexFile(importExt));
       files.set("constants.ts", this.generateConstantsFile(config));
       return { files };
     }
 
     files.set("types.ts", this.generateTypesFile(config));
-    files.set("databases.ts", this.generateDatabasesFile(config));
-    files.set("index.ts", this.generateIndexFile());
+    files.set("databases.ts", this.generateDatabasesFile(config, importExt));
+    files.set("index.ts", this.generateIndexFile(importExt));
     files.set("constants.ts", this.generateConstantsFile(config));
 
     return { files };
