@@ -167,7 +167,7 @@ export function detectImportExtension(cwd: string = process.cwd()): string {
       fs.existsSync(path.resolve(cwd, "deno.json")) ||
       fs.existsSync(path.resolve(cwd, "deno.jsonc"))
     ) {
-      return ".js";
+      return ".ts";
     }
   } catch {
     // Fall through to default
