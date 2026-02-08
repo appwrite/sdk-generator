@@ -1,0 +1,93 @@
+{% set lang = 'dotnet' %}
+{% set langName = '.NET' %}
+{{ include('agent-skills/base/frontmatter.md.twig') }}
+
+# {{ spec.title }} {{ langName }} SDK
+
+{{ spec.title }}'s server-side {{ langName }} SDK for C# and .NET backend applications. Provides full administrative access to {{ spec.title }} services using API keys — manage users, databases, tables, rows, storage, and functions. Uses async/await and standard .NET conventions.
+
+## When to Apply
+
+Reference this skill when:
+
+- Building a server-side C# or .NET application with {{ spec.title }}
+- Managing users, teams, or memberships programmatically with API keys
+- Creating or administering databases, tables, and columns
+- Performing server-side row CRUD and batch operations
+- Uploading files to {{ spec.title }} Storage from a .NET backend
+- Integrating {{ spec.title }} into ASP.NET, Blazor, or other .NET frameworks
+
+## Setting Up the Client
+
+```csharp
+using {{ spec.title }};
+using {{ spec.title }}.Services;
+using {{ spec.title }}.Models;
+
+var client = new Client()
+    .SetEndpoint("{{ spec.endpoint }}")
+    .SetProject("[PROJECT_ID]")
+    .SetKey("[API_KEY]");
+```
+
+## Code Examples
+
+### User Management
+
+```csharp
+var users = new Users(client);
+
+// Create user
+var user = await users.Create(ID.Unique(), "user@example.com", null, "password123", "User Name");
+
+// List users
+var list = await users.List(new List<string> { Query.Limit(25) });
+
+// Get user
+var fetched = await users.Get("[USER_ID]");
+
+// Delete user
+await users.Delete("[USER_ID]");
+```
+
+### Database Operations
+
+> **Note:** Use `TablesDB` (not the deprecated `Databases` class) for all new code. Only use `Databases` if the existing codebase already relies on it or the user explicitly requests it.
+
+```csharp
+var tablesDB = new TablesDB(client);
+
+// Create database
+var db = await tablesDB.Create(ID.Unique(), "My Database");
+
+// Create row
+var doc = await tablesDB.CreateRow("[DATABASE_ID]", "[TABLE_ID]", ID.Unique(),
+    new Dictionary<string, object> { { "title", "Hello World" } });
+
+// Query rows
+var results = await tablesDB.ListRows("[DATABASE_ID]", "[TABLE_ID]",
+    new List<string> { Query.Equal("title", "Hello World"), Query.Limit(10) });
+
+// Update row
+await tablesDB.UpdateRow("[DATABASE_ID]", "[TABLE_ID]", "[ROW_ID]",
+    new Dictionary<string, object> { { "title", "Updated" } });
+
+// Delete row
+await tablesDB.DeleteRow("[DATABASE_ID]", "[TABLE_ID]", "[ROW_ID]");
+```
+
+### File Storage
+
+```csharp
+var storage = new Storage(client);
+
+// Upload file
+var file = await storage.CreateFile("[BUCKET_ID]", ID.Unique(), InputFile.FromPath("/path/to/file.png"));
+
+// List files
+var files = await storage.ListFiles("[BUCKET_ID]");
+
+// Delete file
+await storage.DeleteFile("[BUCKET_ID]", "[FILE_ID]");
+```
+

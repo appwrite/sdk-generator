@@ -1,0 +1,115 @@
+{% set lang = 'go' %}
+{% set langName = 'Go' %}
+{{ include('agent-skills/base/frontmatter.md.twig') }}
+
+# {{ spec.title }} {{ langName }} SDK
+
+{{ spec.title }}'s server-side {{ langName }} SDK for backend Go applications. Provides full administrative access to {{ spec.title }} services using API keys — manage users, databases, tables, rows, storage, and functions. Uses per-service packages and functional options pattern for optional parameters.
+
+## When to Apply
+
+Reference this skill when:
+
+- Building a server-side Go application with {{ spec.title }}
+- Managing users, teams, or memberships programmatically with API keys
+- Creating or administering databases, tables, and columns
+- Performing server-side row CRUD and batch operations
+- Uploading files to {{ spec.title }} Storage from a Go backend
+- Using functional options pattern for optional {{ spec.title }} API parameters
+
+## Setting Up the Client
+
+```go
+import (
+    "github.com/{{ sdk.gitUserName }}/sdk-for-go/client"
+    "github.com/{{ sdk.gitUserName }}/sdk-for-go/users"
+    "github.com/{{ sdk.gitUserName }}/sdk-for-go/tablesdb"
+    "github.com/{{ sdk.gitUserName }}/sdk-for-go/storage"
+)
+
+clt := client.New(
+    client.WithEndpoint("{{ spec.endpoint }}"),
+    client.WithProject("[PROJECT_ID]"),
+    client.WithKey("[API_KEY]"),
+)
+```
+
+## Code Examples
+
+### User Management
+
+```go
+service := users.New(clt)
+
+// Create user
+user, err := service.Create(
+    "[USER_ID]",
+    "user@example.com",
+    "password123",
+    users.WithCreateName("User Name"),
+)
+
+// List users
+list, err := service.List()
+
+// Get user
+fetched, err := service.Get("[USER_ID]")
+
+// Delete user
+_, err = service.Delete("[USER_ID]")
+```
+
+### Database Operations
+
+> **Note:** Use `TablesDB` (not the deprecated `Databases` class) for all new code. Only use `Databases` if the existing codebase already relies on it or the user explicitly requests it.
+
+```go
+service := tablesdb.New(clt)
+
+// Create database
+db, err := service.Create("[DATABASE_ID]", "My Database")
+
+// Create row
+doc, err := service.CreateRow(
+    "[DATABASE_ID]",
+    "[TABLE_ID]",
+    "[ROW_ID]",
+    map[string]interface{}{"title": "Hello World"},
+)
+
+// List rows
+results, err := service.ListRows("[DATABASE_ID]", "[TABLE_ID]")
+
+// Update row
+_, err = service.UpdateRow(
+    "[DATABASE_ID]",
+    "[TABLE_ID]",
+    "[ROW_ID]",
+    tablesdb.WithUpdateRowData(map[string]interface{}{"title": "Updated"}),
+)
+
+// Delete row
+_, err = service.DeleteRow("[DATABASE_ID]", "[TABLE_ID]", "[ROW_ID]")
+```
+
+### File Storage
+
+```go
+import "github.com/{{ sdk.gitUserName }}/sdk-for-go/file"
+
+service := storage.New(clt)
+
+// Upload file
+f, err := service.CreateFile(
+    "[BUCKET_ID]",
+    "[FILE_ID]",
+    file.NewInputFile("/path/to/file.png", "file.png"),
+)
+
+// List files
+files, err := service.ListFiles("[BUCKET_ID]")
+
+// Delete file
+_, err = service.DeleteFile("[BUCKET_ID]", "[FILE_ID]")
+```
+

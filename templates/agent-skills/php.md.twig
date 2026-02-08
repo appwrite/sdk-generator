@@ -1,0 +1,100 @@
+{% set lang = 'php' %}
+{% set langName = 'PHP' %}
+{{ include('agent-skills/base/frontmatter.md.twig') }}
+
+# {{ spec.title }} {{ langName }} SDK
+
+{{ spec.title }}'s server-side {{ langName }} SDK for backend PHP applications. Provides full administrative access to {{ spec.title }} services using API keys — manage users, databases, tables, rows, storage, and functions. Installed via Composer.
+
+## When to Apply
+
+Reference this skill when:
+
+- Building a server-side PHP application with {{ spec.title }}
+- Managing users, teams, or memberships programmatically with API keys
+- Creating or administering databases, tables, and columns
+- Performing server-side row CRUD and batch operations
+- Uploading files to {{ spec.title }} Storage from a PHP backend
+- Integrating {{ spec.title }} into Laravel, Symfony, or other PHP frameworks
+
+## Setting Up the Client
+
+```php
+use {{ spec.title }}\Client;
+use {{ spec.title }}\ID;
+use {{ spec.title }}\Query;
+use {{ spec.title }}\Services\Users;
+use {{ spec.title }}\Services\TablesDB;
+use {{ spec.title }}\Services\Storage;
+
+$client = (new Client())
+    ->setEndpoint('{{ spec.endpoint }}')
+    ->setProject('[PROJECT_ID]')
+    ->setKey('[API_KEY]');
+```
+
+## Code Examples
+
+### User Management
+
+```php
+$users = new Users($client);
+
+// Create user
+$user = $users->create(ID::unique(), 'user@example.com', null, 'password123', 'User Name');
+
+// List users
+$list = $users->list([Query::limit(25)]);
+
+// Get user
+$fetched = $users->get('[USER_ID]');
+
+// Delete user
+$users->delete('[USER_ID]');
+```
+
+### Database Operations
+
+> **Note:** Use `TablesDB` (not the deprecated `Databases` class) for all new code. Only use `Databases` if the existing codebase already relies on it or the user explicitly requests it.
+
+```php
+$tablesDB = new TablesDB($client);
+
+// Create database
+$db = $tablesDB->create(ID::unique(), 'My Database');
+
+// Create row
+$doc = $tablesDB->createRow('[DATABASE_ID]', '[TABLE_ID]', ID::unique(), [
+    'title' => 'Hello World'
+]);
+
+// Query rows
+$results = $tablesDB->listRows('[DATABASE_ID]', '[TABLE_ID]', [
+    Query::equal('title', ['Hello World']),
+    Query::limit(10)
+]);
+
+// Update row
+$tablesDB->updateRow('[DATABASE_ID]', '[TABLE_ID]', '[ROW_ID]', [
+    'title' => 'Updated'
+]);
+
+// Delete row
+$tablesDB->deleteRow('[DATABASE_ID]', '[TABLE_ID]', '[ROW_ID]');
+```
+
+### File Storage
+
+```php
+$storage = new Storage($client);
+
+// Upload file
+$file = $storage->createFile('[BUCKET_ID]', ID::unique(), InputFile::withPath('/path/to/file.png'));
+
+// List files
+$files = $storage->listFiles('[BUCKET_ID]');
+
+// Delete file
+$storage->deleteFile('[BUCKET_ID]', '[FILE_ID]');
+```
+

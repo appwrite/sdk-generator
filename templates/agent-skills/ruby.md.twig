@@ -1,0 +1,104 @@
+{% set lang = 'ruby' %}
+{% set langName = 'Ruby' %}
+{{ include('agent-skills/base/frontmatter.md.twig') }}
+
+# {{ spec.title }} {{ langName }} SDK
+
+{{ spec.title }}'s server-side {{ langName }} SDK for backend Ruby applications. Provides full administrative access to {{ spec.title }} services using API keys — manage users, databases, tables, rows, storage, and functions. Uses keyword arguments and snake_case naming.
+
+## When to Apply
+
+Reference this skill when:
+
+- Building a server-side Ruby application with {{ spec.title }}
+- Managing users, teams, or memberships programmatically with API keys
+- Creating or administering databases, tables, and columns
+- Performing server-side row CRUD and batch operations
+- Uploading files to {{ spec.title }} Storage from a Ruby backend
+- Integrating {{ spec.title }} into Rails, Sinatra, or other Ruby frameworks
+
+## Setting Up the Client
+
+```ruby
+require '{{ spec.title | caseLower }}'
+
+include {{ spec.title }}
+
+client = Client.new
+    .set_endpoint('{{ spec.endpoint }}')
+    .set_project('[PROJECT_ID]')
+    .set_key('[API_KEY]')
+```
+
+## Code Examples
+
+### User Management
+
+```ruby
+users = Users.new(client)
+
+# Create user
+user = users.create(user_id: ID.unique, email: 'user@example.com', password: 'password123', name: 'User Name')
+
+# List users
+list = users.list(queries: [Query.limit(25)])
+
+# Get user
+fetched = users.get(user_id: '[USER_ID]')
+
+# Delete user
+users.delete(user_id: '[USER_ID]')
+```
+
+### Database Operations
+
+> **Note:** Use `TablesDB` (not the deprecated `Databases` class) for all new code. Only use `Databases` if the existing codebase already relies on it or the user explicitly requests it.
+
+```ruby
+tables_db = TablesDB.new(client)
+
+# Create database
+db = tables_db.create(database_id: ID.unique, name: 'My Database')
+
+# Create row
+doc = tables_db.create_row(
+    database_id: '[DATABASE_ID]',
+    table_id: '[TABLE_ID]',
+    row_id: ID.unique,
+    data: { title: 'Hello World' }
+)
+
+# Query rows
+results = tables_db.list_rows(
+    database_id: '[DATABASE_ID]',
+    table_id: '[TABLE_ID]',
+    queries: [Query.equal('title', 'Hello World'), Query.limit(10)]
+)
+
+# Update row
+tables_db.update_row(
+    database_id: '[DATABASE_ID]',
+    table_id: '[TABLE_ID]',
+    row_id: '[ROW_ID]',
+    data: { title: 'Updated' }
+)
+
+# Delete row
+tables_db.delete_row(database_id: '[DATABASE_ID]', table_id: '[TABLE_ID]', row_id: '[ROW_ID]')
+```
+
+### File Storage
+
+```ruby
+storage = Storage.new(client)
+
+# Upload file
+file = storage.create_file(bucket_id: '[BUCKET_ID]', file_id: ID.unique, file: InputFile.from_path('/path/to/file.png'))
+
+# List files
+files = storage.list_files(bucket_id: '[BUCKET_ID]')
+
+# Delete file
+storage.delete_file(bucket_id: '[BUCKET_ID]', file_id: '[FILE_ID]')
+```
+

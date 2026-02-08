@@ -1,0 +1,138 @@
+{% set lang = 'react-native' %}
+{% set langName = 'React Native' %}
+{{ include('agent-skills/base/frontmatter.md.twig') }}
+
+# {{ spec.title }} {{ langName }} SDK
+
+{{ spec.title }}'s {{ langName }} SDK for building cross-platform mobile apps. Provides client-side access to {{ spec.title }} services including authentication (email, OAuth), databases, storage (with native file picker support), and real-time subscriptions — optimized for iOS and Android via React Native.
+
+## When to Apply
+
+Reference this skill when:
+
+- Building a React Native mobile app (iOS/Android) with {{ spec.title }}
+- Adding user authentication (email/password, OAuth) to a mobile app
+- Performing CRUD operations on {{ spec.title }} databases from a mobile client
+- Uploading files from a native file picker or camera
+- Subscribing to real-time row changes for live updates in the UI
+- Using {{ spec.title }} Query helpers to filter and paginate results
+
+## Setting Up the Client
+
+```typescript
+import { Client, Account, TablesDB, Storage, ID, Query } from 'react-native-{{ spec.title | caseLower }}';
+
+const client = new Client()
+    .setEndpoint('{{ spec.endpoint }}')
+    .setProject('[PROJECT_ID]');
+```
+
+## Code Examples
+
+### Authentication
+
+```typescript
+const account = new Account(client);
+
+// Signup
+await account.create({
+    userId: ID.unique(),
+    email: 'user@example.com',
+    password: 'password123',
+    name: 'User Name'
+});
+
+// Login
+const session = await account.createEmailPasswordSession({
+    email: 'user@example.com',
+    password: 'password123'
+});
+
+// OAuth (opens browser)
+account.createOAuth2Session({ provider: 'google' });
+
+// Get current user
+const user = await account.get();
+
+// Logout
+await account.deleteSession({ sessionId: 'current' });
+```
+
+### Database Operations
+
+> **Note:** Use `TablesDB` (not the deprecated `Databases` class) for all new code. Only use `Databases` if the existing codebase already relies on it or the user explicitly requests it.
+
+```typescript
+const tablesDB = new TablesDB(client);
+
+// Create row
+const doc = await tablesDB.createRow({
+    databaseId: '[DATABASE_ID]',
+    tableId: '[TABLE_ID]',
+    rowId: ID.unique(),
+    data: { title: 'Hello', done: false }
+});
+
+// Query rows
+const results = await tablesDB.listRows({
+    databaseId: '[DATABASE_ID]',
+    tableId: '[TABLE_ID]',
+    queries: [Query.equal('done', false), Query.orderDesc('$createdAt'), Query.limit(20)]
+});
+
+// Update row
+await tablesDB.updateRow({
+    databaseId: '[DATABASE_ID]',
+    tableId: '[TABLE_ID]',
+    rowId: '[ROW_ID]',
+    data: { done: true }
+});
+
+// Delete row
+await tablesDB.deleteRow({
+    databaseId: '[DATABASE_ID]',
+    tableId: '[TABLE_ID]',
+    rowId: '[ROW_ID]'
+});
+```
+
+### File Storage
+
+```typescript
+const storage = new Storage(client);
+
+// Upload file (from React Native file picker)
+const file = await storage.createFile({
+    bucketId: '[BUCKET_ID]',
+    fileId: ID.unique(),
+    file: {
+        name: 'photo.jpg',
+        type: 'image/jpeg',
+        size: fileSize,
+        uri: 'file:///path/to/photo.jpg'
+    }
+});
+
+// Get file preview URL
+const preview = storage.getFilePreview({
+    bucketId: '[BUCKET_ID]',
+    fileId: '[FILE_ID]',
+    width: 300,
+    height: 300
+});
+
+// Delete file
+await storage.deleteFile({ bucketId: '[BUCKET_ID]', fileId: '[FILE_ID]' });
+```
+
+### Real-time Subscriptions
+
+```typescript
+const unsubscribe = client.subscribe('databases.[DATABASE_ID].tables.[TABLE_ID].rows', (response) => {
+    console.log('Change:', response.payload);
+});
+
+// Cleanup
+unsubscribe();
+```
+

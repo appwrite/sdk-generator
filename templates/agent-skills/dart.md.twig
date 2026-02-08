@@ -1,0 +1,105 @@
+{% set lang = 'dart' %}
+{% set langName = 'Dart' %}
+{{ include('agent-skills/base/frontmatter.md.twig') }}
+
+# {{ spec.title }} {{ langName }} SDK
+
+{{ spec.title }}'s server-side {{ langName }} SDK for backend Dart applications. Provides full administrative access to {{ spec.title }} services using API keys — manage users, databases, tables, rows, and storage. Uses Dart's named parameter syntax.
+
+## When to Apply
+
+Reference this skill when:
+
+- Building a server-side Dart application with {{ spec.title }}
+- Managing users, teams, or memberships programmatically with API keys
+- Creating or administering databases, tables, and columns
+- Performing server-side row CRUD and batch operations
+- Uploading files to {{ spec.title }} Storage from a Dart backend
+- Writing Dart CLI tools or scripts that interact with {{ spec.title }}
+
+## Setting Up the Client
+
+```dart
+import 'package:dart_{{ spec.title | caseLower }}/dart_{{ spec.title | caseLower }}.dart';
+
+final client = Client()
+    .setEndpoint('{{ spec.endpoint }}')
+    .setProject('[PROJECT_ID]')
+    .setKey('[API_KEY]');
+```
+
+## Code Examples
+
+### User Management
+
+```dart
+final users = Users(client);
+
+// Create user
+final user = await users.create(userId: ID.unique(), email: 'user@example.com', password: 'password123', name: 'User Name');
+
+// List users
+final list = await users.list(queries: [Query.limit(25)]);
+
+// Get user
+final fetched = await users.get(userId: '[USER_ID]');
+
+// Delete user
+await users.delete(userId: '[USER_ID]');
+```
+
+### Database Operations
+
+> **Note:** Use `TablesDB` (not the deprecated `Databases` class) for all new code. Only use `Databases` if the existing codebase already relies on it or the user explicitly requests it.
+
+```dart
+final tablesDB = TablesDB(client);
+
+// Create database
+final db = await tablesDB.create(databaseId: ID.unique(), name: 'My Database');
+
+// Create table
+final col = await tablesDB.createTable(databaseId: '[DATABASE_ID]', tableId: ID.unique(), name: 'My Table');
+
+// Create row
+final doc = await tablesDB.createRow(
+    databaseId: '[DATABASE_ID]',
+    tableId: '[TABLE_ID]',
+    rowId: ID.unique(),
+    data: {'title': 'Hello World'},
+);
+
+// Query rows
+final results = await tablesDB.listRows(
+    databaseId: '[DATABASE_ID]',
+    tableId: '[TABLE_ID]',
+    queries: [Query.equal('title', 'Hello World'), Query.limit(10)],
+);
+
+// Delete row
+await tablesDB.deleteRow(
+    databaseId: '[DATABASE_ID]',
+    tableId: '[TABLE_ID]',
+    rowId: '[ROW_ID]',
+);
+```
+
+### File Storage
+
+```dart
+final storage = Storage(client);
+
+// Upload file
+final file = await storage.createFile(
+    bucketId: '[BUCKET_ID]',
+    fileId: ID.unique(),
+    file: InputFile.fromPath(path: '/path/to/file.png', filename: 'file.png'),
+);
+
+// List files
+final files = await storage.listFiles(bucketId: '[BUCKET_ID]');
+
+// Delete file
+await storage.deleteFile(bucketId: '[BUCKET_ID]', fileId: '[FILE_ID]');
+```
+

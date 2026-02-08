@@ -1,0 +1,159 @@
+{% set lang = 'web' %}
+{% set langName = 'Web' %}
+{{ include('agent-skills/base/frontmatter.md.twig') }}
+
+# {{ spec.title }} {{ langName }} SDK
+
+{{ spec.title }}'s {{ langName }} SDK for browser-based JavaScript and TypeScript applications. Provides client-side access to {{ spec.title }} services including authentication (email, OAuth, anonymous), databases (rows, queries), storage (file upload/download/preview), and real-time subscriptions — all from the browser with no server required.
+
+## When to Apply
+
+Reference this skill when:
+
+- Building a browser-based JavaScript or TypeScript application with {{ spec.title }}
+- Adding user authentication (email/password, OAuth, anonymous sessions) to a web app
+- Performing CRUD operations on {{ spec.title }} databases from the client side
+- Uploading, downloading, or previewing files in the browser
+- Subscribing to real-time row or file changes via WebSocket
+- Using {{ spec.title }} Query helpers to filter and paginate results
+
+## Setting Up the Client
+
+```typescript
+import { Client, Account, TablesDB, Storage, ID, Query } from '{{ spec.title | caseLower }}';
+
+const client = new Client()
+    .setEndpoint('{{ spec.endpoint }}')
+    .setProject('[PROJECT_ID]');
+```
+
+## Code Examples
+
+### Authentication
+
+```typescript
+const account = new Account(client);
+
+// Email signup
+await account.create({
+    userId: ID.unique(),
+    email: 'user@example.com',
+    password: 'password123',
+    name: 'User Name'
+});
+
+// Email login
+const session = await account.createEmailPasswordSession({
+    email: 'user@example.com',
+    password: 'password123'
+});
+
+// OAuth login
+account.createOAuth2Session({
+    provider: 'github',
+    success: 'https://example.com/success',
+    failure: 'https://example.com/fail'
+});
+
+// Get current user
+const user = await account.get();
+
+// Logout
+await account.deleteSession({ sessionId: 'current' });
+```
+
+### Database Operations
+
+> **Note:** Use `TablesDB` (not the deprecated `Databases` class) for all new code. Only use `Databases` if the existing codebase already relies on it or the user explicitly requests it.
+
+```typescript
+const tablesDB = new TablesDB(client);
+
+// Create row
+const doc = await tablesDB.createRow({
+    databaseId: '[DATABASE_ID]',
+    tableId: '[TABLE_ID]',
+    rowId: ID.unique(),
+    data: { title: 'Hello World', content: 'Example content' }
+});
+
+// List rows with query
+const results = await tablesDB.listRows({
+    databaseId: '[DATABASE_ID]',
+    tableId: '[TABLE_ID]',
+    queries: [Query.equal('status', 'active'), Query.limit(10)]
+});
+
+// Get row
+const document = await tablesDB.getRow({
+    databaseId: '[DATABASE_ID]',
+    tableId: '[TABLE_ID]',
+    rowId: '[ROW_ID]'
+});
+
+// Update row
+await tablesDB.updateRow({
+    databaseId: '[DATABASE_ID]',
+    tableId: '[TABLE_ID]',
+    rowId: '[ROW_ID]',
+    data: { title: 'Updated Title' }
+});
+
+// Delete row
+await tablesDB.deleteRow({
+    databaseId: '[DATABASE_ID]',
+    tableId: '[TABLE_ID]',
+    rowId: '[ROW_ID]'
+});
+```
+
+### File Storage
+
+```typescript
+const storage = new Storage(client);
+
+// Upload file
+const file = await storage.createFile({
+    bucketId: '[BUCKET_ID]',
+    fileId: ID.unique(),
+    file: document.getElementById('file-input').files[0]
+});
+
+// List files
+const files = await storage.listFiles({ bucketId: '[BUCKET_ID]' });
+
+// Get file preview (image)
+const preview = storage.getFilePreview({
+    bucketId: '[BUCKET_ID]',
+    fileId: '[FILE_ID]',
+    width: 300,
+    height: 300
+});
+
+// Download file
+const download = await storage.getFileDownload({
+    bucketId: '[BUCKET_ID]',
+    fileId: '[FILE_ID]'
+});
+
+// Delete file
+await storage.deleteFile({ bucketId: '[BUCKET_ID]', fileId: '[FILE_ID]' });
+```
+
+### Real-time Subscriptions
+
+```typescript
+// Subscribe to row changes
+const unsubscribe = client.subscribe('databases.[DATABASE_ID].tables.[TABLE_ID].rows', (response) => {
+    console.log(response.payload);
+});
+
+// Subscribe to file changes
+client.subscribe('buckets.[BUCKET_ID].files', (response) => {
+    console.log(response.payload);
+});
+
+// Unsubscribe
+unsubscribe();
+```
+

@@ -1,0 +1,102 @@
+{% set lang = 'python' %}
+{% set langName = 'Python' %}
+{{ include('agent-skills/base/frontmatter.md.twig') }}
+
+# {{ spec.title }} {{ langName }} SDK
+
+{{ spec.title }}'s server-side {{ langName }} SDK for backend Python applications. Provides full administrative access to {{ spec.title }} services using API keys — manage users, databases, tables, rows, storage, and functions. Uses snake_case method naming convention.
+
+## When to Apply
+
+Reference this skill when:
+
+- Building a server-side Python application with {{ spec.title }}
+- Managing users, teams, or memberships programmatically with API keys
+- Creating or administering databases, tables, and columns
+- Performing server-side row CRUD and batch operations
+- Uploading files to {{ spec.title }} Storage from a Python backend
+- Integrating {{ spec.title }} into Django, Flask, FastAPI, or other Python frameworks
+
+## Setting Up the Client
+
+```python
+from {{ spec.title | caseLower }}.client import Client
+from {{ spec.title | caseLower }}.id import ID
+from {{ spec.title | caseLower }}.query import Query
+from {{ spec.title | caseLower }}.services.users import Users
+from {{ spec.title | caseLower }}.services.tablesdb import TablesDB
+from {{ spec.title | caseLower }}.services.storage import Storage
+
+client = (Client()
+    .set_endpoint('{{ spec.endpoint }}')
+    .set_project('[PROJECT_ID]')
+    .set_key('[API_KEY]'))
+```
+
+## Code Examples
+
+### User Management
+
+```python
+users = Users(client)
+
+# Create user
+user = users.create(ID.unique(), 'user@example.com', None, 'password123', 'User Name')
+
+# List users
+result = users.list([Query.limit(25)])
+
+# Get user
+fetched = users.get('[USER_ID]')
+
+# Delete user
+users.delete('[USER_ID]')
+```
+
+### Database Operations
+
+> **Note:** Use `TablesDB` (not the deprecated `Databases` class) for all new code. Only use `Databases` if the existing codebase already relies on it or the user explicitly requests it.
+
+```python
+tables_db = TablesDB(client)
+
+# Create database
+db = tables_db.create(ID.unique(), 'My Database')
+
+# Create row
+doc = tables_db.create_row('[DATABASE_ID]', '[TABLE_ID]', ID.unique(), {
+    'title': 'Hello World'
+})
+
+# Query rows
+results = tables_db.list_rows('[DATABASE_ID]', '[TABLE_ID]', [
+    Query.equal('title', 'Hello World'),
+    Query.limit(10)
+])
+
+# Update row
+tables_db.update_row('[DATABASE_ID]', '[TABLE_ID]', '[ROW_ID]', {
+    'title': 'Updated'
+})
+
+# Delete row
+tables_db.delete_row('[DATABASE_ID]', '[TABLE_ID]', '[ROW_ID]')
+```
+
+### File Storage
+
+```python
+from {{ spec.title | caseLower }}.input_file import InputFile
+
+storage = Storage(client)
+
+# Upload file
+file = storage.create_file('[BUCKET_ID]', ID.unique(), InputFile.from_path('/path/to/file.png'))
+
+# List files
+files = storage.list_files('[BUCKET_ID]')
+
+# Delete file
+storage.delete_file('[BUCKET_ID]', '[FILE_ID]')
+```
+

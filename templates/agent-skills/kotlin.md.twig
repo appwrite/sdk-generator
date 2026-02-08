@@ -1,0 +1,120 @@
+{% set lang = 'kotlin' %}
+{% set langName = 'Kotlin' %}
+{{ include('agent-skills/base/frontmatter.md.twig') }}
+
+# {{ spec.title }} {{ langName }} SDK
+
+{{ spec.title }}'s server-side {{ langName }} SDK for JVM and Kotlin Multiplatform backend applications. Provides full administrative access to {{ spec.title }} services using API keys — manage users, databases, tables, rows, storage, and functions. Uses coroutines and named parameter syntax.
+
+## When to Apply
+
+Reference this skill when:
+
+- Building a server-side Kotlin or Kotlin Multiplatform backend with {{ spec.title }}
+- Managing users, teams, or memberships programmatically with API keys
+- Creating or administering databases, tables, and columns
+- Performing server-side row CRUD and batch operations
+- Uploading files to {{ spec.title }} Storage from a JVM backend
+- Executing or managing {{ spec.title }} Functions from server code
+
+## Setting Up the Client
+
+```kotlin
+import io.{{ spec.title | caseLower }}.Client
+import io.{{ spec.title | caseLower }}.ID
+import io.{{ spec.title | caseLower }}.Query
+import io.{{ spec.title | caseLower }}.services.Users
+import io.{{ spec.title | caseLower }}.services.TablesDB
+import io.{{ spec.title | caseLower }}.services.Storage
+
+val client = Client()
+    .setEndpoint("{{ spec.endpoint }}")
+    .setProject("[PROJECT_ID]")
+    .setKey("[API_KEY]")
+```
+
+## Code Examples
+
+### User Management
+
+```kotlin
+val users = Users(client)
+
+// Create user
+val user = users.create(
+    userId = ID.unique(),
+    email = "user@example.com",
+    password = "password123",
+    name = "User Name"
+)
+
+// List users
+val list = users.list()
+
+// Get user
+val fetched = users.get(userId = "[USER_ID]")
+
+// Delete user
+users.delete(userId = "[USER_ID]")
+```
+
+### Database Operations
+
+> **Note:** Use `TablesDB` (not the deprecated `Databases` class) for all new code. Only use `Databases` if the existing codebase already relies on it or the user explicitly requests it.
+
+```kotlin
+val tablesDB = TablesDB(client)
+
+// Create database
+val db = tablesDB.create(databaseId = ID.unique(), name = "My Database")
+
+// Create row
+val doc = tablesDB.createRow(
+    databaseId = "[DATABASE_ID]",
+    tableId = "[TABLE_ID]",
+    rowId = ID.unique(),
+    data = mapOf("title" to "Hello World")
+)
+
+// Query rows
+val results = tablesDB.listRows(
+    databaseId = "[DATABASE_ID]",
+    tableId = "[TABLE_ID]",
+    queries = listOf(Query.equal("title", "Hello World"), Query.limit(10))
+)
+
+// Update row
+tablesDB.updateRow(
+    databaseId = "[DATABASE_ID]",
+    tableId = "[TABLE_ID]",
+    rowId = "[ROW_ID]",
+    data = mapOf("title" to "Updated")
+)
+
+// Delete row
+tablesDB.deleteRow(
+    databaseId = "[DATABASE_ID]",
+    tableId = "[TABLE_ID]",
+    rowId = "[ROW_ID]"
+)
+```
+
+### File Storage
+
+```kotlin
+val storage = Storage(client)
+
+// Upload file
+val file = storage.createFile(
+    bucketId = "[BUCKET_ID]",
+    fileId = ID.unique(),
+    file = InputFile.fromPath("/path/to/file.png")
+)
+
+// List files
+val files = storage.listFiles(bucketId = "[BUCKET_ID]")
+
+// Delete file
+storage.deleteFile(bucketId = "[BUCKET_ID]", fileId = "[FILE_ID]")
+```
+

@@ -1,0 +1,93 @@
+{% set lang = 'swift' %}
+{% set langName = 'Swift' %}
+{{ include('agent-skills/base/frontmatter.md.twig') }}
+
+# {{ spec.title }} {{ langName }} SDK
+
+{{ spec.title }}'s server-side {{ langName }} SDK for backend Swift applications. Provides full administrative access to {{ spec.title }} services using API keys — manage users, databases, tables, rows, and storage. Uses async/await and Swift labeled arguments.
+
+## When to Apply
+
+Reference this skill when:
+
+- Building a server-side Swift application with {{ spec.title }}
+- Managing users, teams, or memberships programmatically with API keys
+- Creating or administering databases, tables, and columns
+- Performing server-side row CRUD and batch operations
+- Uploading files to {{ spec.title }} Storage from a Swift backend
+- Using async/await for {{ spec.title }} API calls on the server
+
+## Setting Up the Client
+
+```swift
+import {{ spec.title }}
+
+let client = Client()
+    .setEndpoint("{{ spec.endpoint }}")
+    .setProject("[PROJECT_ID]")
+    .setKey("[API_KEY]")
+```
+
+## Code Examples
+
+### User Management
+
+```swift
+let users = Users(client)
+
+// Create user
+let user = try await users.create(userId: ID.unique(), email: "user@example.com", password: "password123", name: "User Name")
+
+// List users
+let list = try await users.list(queries: [Query.limit(25)])
+
+// Get user
+let fetched = try await users.get(userId: "[USER_ID]")
+
+// Delete user
+try await users.delete(userId: "[USER_ID]")
+```
+
+### Database Operations
+
+> **Note:** Use `TablesDB` (not the deprecated `Databases` class) for all new code. Only use `Databases` if the existing codebase already relies on it or the user explicitly requests it.
+
+```swift
+let tablesDB = TablesDB(client)
+
+// Create database
+let db = try await tablesDB.create(databaseId: ID.unique(), name: "My Database")
+
+// Create row
+let doc = try await tablesDB.createRow(databaseId: "[DATABASE_ID]", tableId: "[TABLE_ID]", rowId: ID.unique(), data: [
+    "title": "Hello World"
+])
+
+// Query rows
+let results = try await tablesDB.listRows(databaseId: "[DATABASE_ID]", tableId: "[TABLE_ID]", queries: [
+    Query.equal("title", value: "Hello World"),
+    Query.limit(10)
+])
+
+// Update row
+try await tablesDB.updateRow(databaseId: "[DATABASE_ID]", tableId: "[TABLE_ID]", rowId: "[ROW_ID]", data: ["title": "Updated"])
+
+// Delete row
+try await tablesDB.deleteRow(databaseId: "[DATABASE_ID]", tableId: "[TABLE_ID]", rowId: "[ROW_ID]")
+```
+
+### File Storage
+
+```swift
+let storage = Storage(client)
+
+// Upload file
+let file = try await storage.createFile(bucketId: "[BUCKET_ID]", fileId: ID.unique(), file: InputFile.fromPath("/path/to/file.png"))
+
+// List files
+let files = try await storage.listFiles(bucketId: "[BUCKET_ID]")
+
+// Delete file
+try await storage.deleteFile(bucketId: "[BUCKET_ID]", fileId: "[FILE_ID]")
+```
+
