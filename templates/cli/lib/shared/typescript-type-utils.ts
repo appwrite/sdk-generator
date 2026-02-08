@@ -150,6 +150,32 @@ export function getAppwriteDependency(): string {
 }
 
 /**
+ * Detects whether the user's project uses native ESM.
+ * Returns ".js" for ESM projects (package.json "type": "module" or Deno), "" for non-ESM projects.
+ */
+export function detectImportExtension(cwd: string = process.cwd()): string {
+  try {
+    const pkgPath = path.resolve(cwd, "package.json");
+    if (fs.existsSync(pkgPath)) {
+      const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8"));
+      if (pkg.type === "module") {
+        return ".js";
+      }
+    }
+
+    if (
+      fs.existsSync(path.resolve(cwd, "deno.json")) ||
+      fs.existsSync(path.resolve(cwd, "deno.jsonc"))
+    ) {
+      return ".ts";
+    }
+  } catch {
+    // Fall through to default
+  }
+  return "";
+}
+
+/**
  * Checks if the Appwrite dependency supports server-side methods.
  *
  * @param appwriteDep - The Appwrite dependency string

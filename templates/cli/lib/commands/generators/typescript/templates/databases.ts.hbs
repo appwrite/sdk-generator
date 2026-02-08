@@ -1,9 +1,9 @@
 import { Client, TablesDB, ID, Query, type Models, Permission, Role } from '{{appwriteDep}}';
-import type { DatabaseHandle, DatabaseId, DatabaseTableMap, DatabaseTables, QueryBuilder, PermissionBuilder, RoleBuilder, RoleString } from './types.js';
+import type { DatabaseHandle, DatabaseId, DatabaseTableMap, DatabaseTables, QueryBuilder, PermissionBuilder, RoleBuilder, RoleString } from './types{{importExt}}';
 {{#if supportsServerSide}}
-import { PROJECT_ID, ENDPOINT, API_KEY } from './constants.js';
+import { PROJECT_ID, ENDPOINT, API_KEY } from './constants{{importExt}}';
 {{else}}
-import { PROJECT_ID, ENDPOINT } from './constants.js';
+import { PROJECT_ID, ENDPOINT } from './constants{{importExt}}';
 {{/if}}
 
 const createQueryBuilder = <T>(): QueryBuilder<T> => ({
