@@ -1,23 +1,20 @@
 {% set lang = 'swift' %}
 {% set langName = 'Swift' %}
+{% set langDescription %}{{ spec.title }} {{ langName }} SDK skill. Use when building native iOS, macOS, watchOS, or tvOS apps, or server-side Swift applications with {{ spec.title }}. Covers client-side auth (email, OAuth), database queries, file uploads, real-time subscriptions with async/await, and server-side admin via API keys for user management, database administration, storage, and functions.{% endset %}
 {{ include('agent-skills/base/frontmatter.md.twig') }}
 
 # {{ spec.title }} {{ langName }} SDK
 
-{{ spec.title }}'s server-side {{ langName }} SDK for backend Swift applications. Provides full administrative access to {{ spec.title }} services using API keys — manage users, databases, tables, rows, and storage. Uses async/await and Swift labeled arguments.
+## Installation
 
-## When to Apply
-
-Reference this skill when:
-
-- Building a server-side Swift application with {{ spec.title }}
-- Managing users, teams, or memberships programmatically with API keys
-- Creating or administering databases, tables, and columns
-- Performing server-side row CRUD and batch operations
-- Uploading files to {{ spec.title }} Storage from a Swift backend
-- Using async/await for {{ spec.title }} API calls on the server
+```swift
+// Swift Package Manager — Package.swift
+.package(url: "https://github.com/{{ sdk.gitUserName }}/sdk-for-swift", from: "{{ spec.version }}")
+```
 
 ## Setting Up the Client
+
+### Client-side (Apple platforms)
 
 ```swift
 import {{ spec.title }}
@@ -25,12 +22,43 @@ import {{ spec.title }}
 let client = Client()
     .setEndpoint("{{ spec.endpoint }}")
     .setProject("[PROJECT_ID]")
-    .setKey("[API_KEY]")
+```
+
+### Server-side (Swift)
+
+```swift
+import {{ spec.title }}
+
+let client = Client()
+    .setEndpoint("{{ spec.endpoint }}")
+    .setProject(ProcessInfo.processInfo.environment["{{ spec.title | caseUpper }}_PROJECT_ID"]!)
+    .setKey(ProcessInfo.processInfo.environment["{{ spec.title | caseUpper }}_API_KEY"]!)
 ```
 
 ## Code Examples
 
-### User Management
+### Authentication (client-side)
+
+```swift
+let account = Account(client)
+
+// Signup
+let user = try await account.create(userId: ID.unique(), email: "user@example.com", password: "password123", name: "User Name")
+
+// Login
+let session = try await account.createEmailPasswordSession(email: "user@example.com", password: "password123")
+
+// OAuth
+try await account.createOAuth2Session(provider: .google)
+
+// Get current user
+let me = try await account.get()
+
+// Logout
+try await account.deleteSession(sessionId: "current")
+```
+
+### User Management (server-side)
 
 ```swift
 let users = Users(client)
@@ -55,22 +83,26 @@ try await users.delete(userId: "[USER_ID]")
 ```swift
 let tablesDB = TablesDB(client)
 
-// Create database
+// Create database (server-side only)
 let db = try await tablesDB.create(databaseId: ID.unique(), name: "My Database")
 
 // Create row
 let doc = try await tablesDB.createRow(databaseId: "[DATABASE_ID]", tableId: "[TABLE_ID]", rowId: ID.unique(), data: [
-    "title": "Hello World"
+    "title": "Hello",
+    "done": false
 ])
 
 // Query rows
 let results = try await tablesDB.listRows(databaseId: "[DATABASE_ID]", tableId: "[TABLE_ID]", queries: [
-    Query.equal("title", value: "Hello World"),
+    Query.equal("done", value: false),
     Query.limit(10)
 ])
 
+// Get row
+let row = try await tablesDB.getRow(databaseId: "[DATABASE_ID]", tableId: "[TABLE_ID]", rowId: "[ROW_ID]")
+
 // Update row
-try await tablesDB.updateRow(databaseId: "[DATABASE_ID]", tableId: "[TABLE_ID]", rowId: "[ROW_ID]", data: ["title": "Updated"])
+try await tablesDB.updateRow(databaseId: "[DATABASE_ID]", tableId: "[TABLE_ID]", rowId: "[ROW_ID]", data: ["done": true])
 
 // Delete row
 try await tablesDB.deleteRow(databaseId: "[DATABASE_ID]", tableId: "[TABLE_ID]", rowId: "[ROW_ID]")
@@ -91,3 +123,36 @@ let files = try await storage.listFiles(bucketId: "[BUCKET_ID]")
 try await storage.deleteFile(bucketId: "[BUCKET_ID]", fileId: "[FILE_ID]")
 ```
 
+### Real-time Subscriptions (client-side)
+
+```swift
+let realtime = Realtime(client)
+
+let subscription = realtime.subscribe(channels: ["databases.[DATABASE_ID].tables.[TABLE_ID].rows"]) { response in
+    print(response.payload)
+}
+
+// Cleanup
+subscription.close()
+```
+
+### Serverless Functions (server-side)
+
+```swift
+let functions = Functions(client)
+
+// Execute function
+let execution = try await functions.createExecution(functionId: "[FUNCTION_ID]", body: "{\"key\": \"value\"}")
+
+// List executions
+let executions = try await functions.listExecutions(functionId: "[FUNCTION_ID]")
+```
+
+## API Reference
+
+For complete method documentation, see the reference files:
+
+{% for service in spec.services %}
+- [{{ service.name | caseUcfirst }}](references/{{ service.name | caseLower }}.md){% if service.description %} — {{ service.description }}{% endif %}
+
+{% endfor %}

@@ -1,21 +1,15 @@
 {% set lang = 'go' %}
 {% set langName = 'Go' %}
+{% set langDescription %}{{ spec.title }} {{ langName }} SDK skill. Use when building server-side Go applications with {{ spec.title }}. Covers user management, database/table CRUD, file storage, and functions via API keys. Uses per-service packages and functional options pattern.{% endset %}
 {{ include('agent-skills/base/frontmatter.md.twig') }}
 
 # {{ spec.title }} {{ langName }} SDK
 
-{{ spec.title }}'s server-side {{ langName }} SDK for backend Go applications. Provides full administrative access to {{ spec.title }} services using API keys — manage users, databases, tables, rows, storage, and functions. Uses per-service packages and functional options pattern for optional parameters.
+## Installation
 
-## When to Apply
-
-Reference this skill when:
-
-- Building a server-side Go application with {{ spec.title }}
-- Managing users, teams, or memberships programmatically with API keys
-- Creating or administering databases, tables, and columns
-- Performing server-side row CRUD and batch operations
-- Uploading files to {{ spec.title }} Storage from a Go backend
-- Using functional options pattern for optional {{ spec.title }} API parameters
+```bash
+go get github.com/{{ sdk.gitUserName }}/sdk-for-go
+```
 
 ## Setting Up the Client
 
@@ -29,8 +23,8 @@ import (
 
 clt := client.New(
     client.WithEndpoint("{{ spec.endpoint }}"),
-    client.WithProject("[PROJECT_ID]"),
-    client.WithKey("[API_KEY]"),
+    client.WithProject(os.Getenv("{{ spec.title | caseUpper }}_PROJECT_ID")),
+    client.WithKey(os.Getenv("{{ spec.title | caseUpper }}_API_KEY")),
 )
 ```
 
@@ -80,6 +74,9 @@ doc, err := service.CreateRow(
 // List rows
 results, err := service.ListRows("[DATABASE_ID]", "[TABLE_ID]")
 
+// Get row
+row, err := service.GetRow("[DATABASE_ID]", "[TABLE_ID]", "[ROW_ID]")
+
 // Update row
 _, err = service.UpdateRow(
     "[DATABASE_ID]",
@@ -113,3 +110,28 @@ files, err := service.ListFiles("[BUCKET_ID]")
 _, err = service.DeleteFile("[BUCKET_ID]", "[FILE_ID]")
 ```
 
+### Serverless Functions
+
+```go
+import "github.com/{{ sdk.gitUserName }}/sdk-for-go/functions"
+
+svc := functions.New(clt)
+
+// Execute function
+execution, err := svc.CreateExecution(
+    "[FUNCTION_ID]",
+    functions.WithCreateExecutionBody(`{"key": "value"}`),
+)
+
+// List executions
+executions, err := svc.ListExecutions("[FUNCTION_ID]")
+```
+
+## API Reference
+
+For complete method documentation, see the reference files:
+
+{% for service in spec.services %}
+- [{{ service.name | caseUcfirst }}](references/{{ service.name | caseLower }}.md){% if service.description %} — {{ service.description }}{% endif %}
+
+{% endfor %}

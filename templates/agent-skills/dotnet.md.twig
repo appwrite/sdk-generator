@@ -1,21 +1,15 @@
 {% set lang = 'dotnet' %}
 {% set langName = '.NET' %}
+{% set langDescription %}{{ spec.title }} {{ langName }} SDK skill. Use when building server-side C# or .NET applications with {{ spec.title }}, including ASP.NET and Blazor integrations. Covers user management, database/table CRUD, file storage, and functions via API keys.{% endset %}
 {{ include('agent-skills/base/frontmatter.md.twig') }}
 
 # {{ spec.title }} {{ langName }} SDK
 
-{{ spec.title }}'s server-side {{ langName }} SDK for C# and .NET backend applications. Provides full administrative access to {{ spec.title }} services using API keys — manage users, databases, tables, rows, storage, and functions. Uses async/await and standard .NET conventions.
+## Installation
 
-## When to Apply
-
-Reference this skill when:
-
-- Building a server-side C# or .NET application with {{ spec.title }}
-- Managing users, teams, or memberships programmatically with API keys
-- Creating or administering databases, tables, and columns
-- Performing server-side row CRUD and batch operations
-- Uploading files to {{ spec.title }} Storage from a .NET backend
-- Integrating {{ spec.title }} into ASP.NET, Blazor, or other .NET frameworks
+```bash
+dotnet add package {{ spec.title }}
+```
 
 ## Setting Up the Client
 
@@ -26,8 +20,8 @@ using {{ spec.title }}.Models;
 
 var client = new Client()
     .SetEndpoint("{{ spec.endpoint }}")
-    .SetProject("[PROJECT_ID]")
-    .SetKey("[API_KEY]");
+    .SetProject(Environment.GetEnvironmentVariable("{{ spec.title | caseUpper }}_PROJECT_ID"))
+    .SetKey(Environment.GetEnvironmentVariable("{{ spec.title | caseUpper }}_API_KEY"));
 ```
 
 ## Code Examples
@@ -68,6 +62,9 @@ var doc = await tablesDB.CreateRow("[DATABASE_ID]", "[TABLE_ID]", ID.Unique(),
 var results = await tablesDB.ListRows("[DATABASE_ID]", "[TABLE_ID]",
     new List<string> { Query.Equal("title", "Hello World"), Query.Limit(10) });
 
+// Get row
+var row = await tablesDB.GetRow("[DATABASE_ID]", "[TABLE_ID]", "[ROW_ID]");
+
 // Update row
 await tablesDB.UpdateRow("[DATABASE_ID]", "[TABLE_ID]", "[ROW_ID]",
     new Dictionary<string, object> { { "title", "Updated" } });
@@ -91,3 +88,23 @@ var files = await storage.ListFiles("[BUCKET_ID]");
 await storage.DeleteFile("[BUCKET_ID]", "[FILE_ID]");
 ```
 
+### Serverless Functions
+
+```csharp
+var functions = new Functions(client);
+
+// Execute function
+var execution = await functions.CreateExecution("[FUNCTION_ID]", body: "{\"key\": \"value\"}");
+
+// List executions
+var executions = await functions.ListExecutions("[FUNCTION_ID]");
+```
+
+## API Reference
+
+For complete method documentation, see the reference files:
+
+{% for service in spec.services %}
+- [{{ service.name | caseUcfirst }}](references/{{ service.name | caseLower }}.md){% if service.description %} — {{ service.description }}{% endif %}
+
+{% endfor %}

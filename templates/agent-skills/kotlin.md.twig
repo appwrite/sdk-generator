@@ -1,23 +1,38 @@
 {% set lang = 'kotlin' %}
 {% set langName = 'Kotlin' %}
+{% set langDescription %}{{ spec.title }} {{ langName }} SDK skill. Use when building native Android apps or server-side Kotlin/JVM backends with {{ spec.title }}. Covers client-side auth (email, OAuth with Activity integration), database queries, file uploads, real-time subscriptions with coroutine support, and server-side admin via API keys for user management, database administration, storage, and functions.{% endset %}
 {{ include('agent-skills/base/frontmatter.md.twig') }}
 
 # {{ spec.title }} {{ langName }} SDK
 
-{{ spec.title }}'s server-side {{ langName }} SDK for JVM and Kotlin Multiplatform backend applications. Provides full administrative access to {{ spec.title }} services using API keys — manage users, databases, tables, rows, storage, and functions. Uses coroutines and named parameter syntax.
+## Installation
 
-## When to Apply
+```kotlin
+// build.gradle.kts — Android
+implementation("io.{{ spec.title | caseLower }}:sdk-for-android:{{ spec.version }}")
 
-Reference this skill when:
-
-- Building a server-side Kotlin or Kotlin Multiplatform backend with {{ spec.title }}
-- Managing users, teams, or memberships programmatically with API keys
-- Creating or administering databases, tables, and columns
-- Performing server-side row CRUD and batch operations
-- Uploading files to {{ spec.title }} Storage from a JVM backend
-- Executing or managing {{ spec.title }} Functions from server code
+// build.gradle.kts — Server (Kotlin JVM)
+implementation("io.{{ spec.title | caseLower }}:sdk-for-kotlin:{{ spec.version }}")
+```
 
 ## Setting Up the Client
+
+### Client-side (Android)
+
+```kotlin
+import io.{{ spec.title | caseLower }}.Client
+import io.{{ spec.title | caseLower }}.ID
+import io.{{ spec.title | caseLower }}.Query
+import io.{{ spec.title | caseLower }}.services.Account
+import io.{{ spec.title | caseLower }}.services.TablesDB
+import io.{{ spec.title | caseLower }}.services.Storage
+
+val client = Client(context)
+    .setEndpoint("{{ spec.endpoint }}")
+    .setProject("[PROJECT_ID]")
+```
+
+### Server-side (Kotlin JVM)
 
 ```kotlin
 import io.{{ spec.title | caseLower }}.Client
@@ -26,16 +41,46 @@ import io.{{ spec.title | caseLower }}.Query
 import io.{{ spec.title | caseLower }}.services.Users
 import io.{{ spec.title | caseLower }}.services.TablesDB
 import io.{{ spec.title | caseLower }}.services.Storage
+import io.{{ spec.title | caseLower }}.services.Functions
 
 val client = Client()
     .setEndpoint("{{ spec.endpoint }}")
-    .setProject("[PROJECT_ID]")
-    .setKey("[API_KEY]")
+    .setProject(System.getenv("{{ spec.title | caseUpper }}_PROJECT_ID"))
+    .setKey(System.getenv("{{ spec.title | caseUpper }}_API_KEY"))
 ```
 
 ## Code Examples
 
-### User Management
+### Authentication (client-side)
+
+```kotlin
+val account = Account(client)
+
+// Signup
+account.create(
+    userId = ID.unique(),
+    email = "user@example.com",
+    password = "password123",
+    name = "User Name"
+)
+
+// Login
+val session = account.createEmailPasswordSession(
+    email = "user@example.com",
+    password = "password123"
+)
+
+// OAuth
+account.createOAuth2Session(activity = activity, provider = OAuthProvider.GOOGLE)
+
+// Get current user
+val user = account.get()
+
+// Logout
+account.deleteSession(sessionId = "current")
+```
+
+### User Management (server-side)
 
 ```kotlin
 val users = Users(client)
@@ -65,7 +110,7 @@ users.delete(userId = "[USER_ID]")
 ```kotlin
 val tablesDB = TablesDB(client)
 
-// Create database
+// Create database (server-side only)
 val db = tablesDB.create(databaseId = ID.unique(), name = "My Database")
 
 // Create row
@@ -73,22 +118,25 @@ val doc = tablesDB.createRow(
     databaseId = "[DATABASE_ID]",
     tableId = "[TABLE_ID]",
     rowId = ID.unique(),
-    data = mapOf("title" to "Hello World")
+    data = mapOf("title" to "Hello", "done" to false)
 )
 
 // Query rows
 val results = tablesDB.listRows(
     databaseId = "[DATABASE_ID]",
     tableId = "[TABLE_ID]",
-    queries = listOf(Query.equal("title", "Hello World"), Query.limit(10))
+    queries = listOf(Query.equal("done", false), Query.limit(10))
 )
+
+// Get row
+val row = tablesDB.getRow(databaseId = "[DATABASE_ID]", tableId = "[TABLE_ID]", rowId = "[ROW_ID]")
 
 // Update row
 tablesDB.updateRow(
     databaseId = "[DATABASE_ID]",
     tableId = "[TABLE_ID]",
     rowId = "[ROW_ID]",
-    data = mapOf("title" to "Updated")
+    data = mapOf("done" to true)
 )
 
 // Delete row
@@ -108,7 +156,15 @@ val storage = Storage(client)
 val file = storage.createFile(
     bucketId = "[BUCKET_ID]",
     fileId = ID.unique(),
-    file = InputFile.fromPath("/path/to/file.png")
+    file = InputFile.fromFile(File("/path/to/file.png"))
+)
+
+// Get file preview
+val preview = storage.getFilePreview(
+    bucketId = "[BUCKET_ID]",
+    fileId = "[FILE_ID]",
+    width = 300,
+    height = 300
 )
 
 // List files
@@ -118,3 +174,39 @@ val files = storage.listFiles(bucketId = "[BUCKET_ID]")
 storage.deleteFile(bucketId = "[BUCKET_ID]", fileId = "[FILE_ID]")
 ```
 
+### Real-time Subscriptions (client-side)
+
+```kotlin
+val realtime = Realtime(client)
+
+val subscription = realtime.subscribe("databases.[DATABASE_ID].tables.[TABLE_ID].rows") { response ->
+    println(response.payload)
+}
+
+// Cleanup
+subscription.close()
+```
+
+### Serverless Functions (server-side)
+
+```kotlin
+val functions = Functions(client)
+
+// Execute function
+val execution = functions.createExecution(
+    functionId = "[FUNCTION_ID]",
+    body = """{"key": "value"}"""
+)
+
+// List executions
+val executions = functions.listExecutions(functionId = "[FUNCTION_ID]")
+```
+
+## API Reference
+
+For complete method documentation, see the reference files:
+
+{% for service in spec.services %}
+- [{{ service.name | caseUcfirst }}](references/{{ service.name | caseLower }}.md){% if service.description %} — {{ service.description }}{% endif %}
+
+{% endfor %}

@@ -1,21 +1,15 @@
 {% set lang = 'python' %}
 {% set langName = 'Python' %}
+{% set langDescription %}{{ spec.title }} {{ langName }} SDK skill. Use when building server-side Python applications with {{ spec.title }}, including Django, Flask, and FastAPI integrations. Covers user management, database/table CRUD, file storage, and functions via API keys.{% endset %}
 {{ include('agent-skills/base/frontmatter.md.twig') }}
 
 # {{ spec.title }} {{ langName }} SDK
 
-{{ spec.title }}'s server-side {{ langName }} SDK for backend Python applications. Provides full administrative access to {{ spec.title }} services using API keys — manage users, databases, tables, rows, storage, and functions. Uses snake_case method naming convention.
+## Installation
 
-## When to Apply
-
-Reference this skill when:
-
-- Building a server-side Python application with {{ spec.title }}
-- Managing users, teams, or memberships programmatically with API keys
-- Creating or administering databases, tables, and columns
-- Performing server-side row CRUD and batch operations
-- Uploading files to {{ spec.title }} Storage from a Python backend
-- Integrating {{ spec.title }} into Django, Flask, FastAPI, or other Python frameworks
+```bash
+pip install {{ spec.title | caseLower }}
+```
 
 ## Setting Up the Client
 
@@ -26,11 +20,14 @@ from {{ spec.title | caseLower }}.query import Query
 from {{ spec.title | caseLower }}.services.users import Users
 from {{ spec.title | caseLower }}.services.tablesdb import TablesDB
 from {{ spec.title | caseLower }}.services.storage import Storage
+from {{ spec.title | caseLower }}.services.functions import Functions
+
+import os
 
 client = (Client()
     .set_endpoint('{{ spec.endpoint }}')
-    .set_project('[PROJECT_ID]')
-    .set_key('[API_KEY]'))
+    .set_project(os.environ['{{ spec.title | caseUpper }}_PROJECT_ID'])
+    .set_key(os.environ['{{ spec.title | caseUpper }}_API_KEY']))
 ```
 
 ## Code Examples
@@ -74,6 +71,9 @@ results = tables_db.list_rows('[DATABASE_ID]', '[TABLE_ID]', [
     Query.limit(10)
 ])
 
+# Get row
+row = tables_db.get_row('[DATABASE_ID]', '[TABLE_ID]', '[ROW_ID]')
+
 # Update row
 tables_db.update_row('[DATABASE_ID]', '[TABLE_ID]', '[ROW_ID]', {
     'title': 'Updated'
@@ -100,3 +100,23 @@ files = storage.list_files('[BUCKET_ID]')
 storage.delete_file('[BUCKET_ID]', '[FILE_ID]')
 ```
 
+### Serverless Functions
+
+```python
+functions = Functions(client)
+
+# Execute function
+execution = functions.create_execution('[FUNCTION_ID]', body='{"key": "value"}')
+
+# List executions
+executions = functions.list_executions('[FUNCTION_ID]')
+```
+
+## API Reference
+
+For complete method documentation, see the reference files:
+
+{% for service in spec.services %}
+- [{{ service.name | caseUcfirst }}](references/{{ service.name | caseLower }}.md){% if service.description %} — {{ service.description }}{% endif %}
+
+{% endfor %}

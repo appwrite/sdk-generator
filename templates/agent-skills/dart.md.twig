@@ -1,36 +1,67 @@
 {% set lang = 'dart' %}
 {% set langName = 'Dart' %}
+{% set langDescription %}{{ spec.title }} {{ langName }} SDK skill. Use when building Flutter apps (mobile, web, desktop) or server-side Dart applications with {{ spec.title }}. Covers client-side auth (email, OAuth), database queries, file uploads with native file handling, real-time subscriptions, and server-side admin via API keys for user management, database administration, storage, and functions.{% endset %}
 {{ include('agent-skills/base/frontmatter.md.twig') }}
 
 # {{ spec.title }} {{ langName }} SDK
 
-{{ spec.title }}'s server-side {{ langName }} SDK for backend Dart applications. Provides full administrative access to {{ spec.title }} services using API keys — manage users, databases, tables, rows, and storage. Uses Dart's named parameter syntax.
+## Installation
 
-## When to Apply
+```bash
+# Flutter (client-side)
+flutter pub add {{ spec.title | caseLower }}
 
-Reference this skill when:
-
-- Building a server-side Dart application with {{ spec.title }}
-- Managing users, teams, or memberships programmatically with API keys
-- Creating or administering databases, tables, and columns
-- Performing server-side row CRUD and batch operations
-- Uploading files to {{ spec.title }} Storage from a Dart backend
-- Writing Dart CLI tools or scripts that interact with {{ spec.title }}
+# Dart (server-side)
+dart pub add dart_{{ spec.title | caseLower }}
+```
 
 ## Setting Up the Client
+
+### Client-side (Flutter)
+
+```dart
+import 'package:{{ spec.title | caseLower }}/{{ spec.title | caseLower }}.dart';
+
+final client = Client()
+    .setEndpoint('{{ spec.endpoint }}')
+    .setProject('[PROJECT_ID]');
+```
+
+### Server-side (Dart)
 
 ```dart
 import 'package:dart_{{ spec.title | caseLower }}/dart_{{ spec.title | caseLower }}.dart';
 
 final client = Client()
     .setEndpoint('{{ spec.endpoint }}')
-    .setProject('[PROJECT_ID]')
-    .setKey('[API_KEY]');
+    .setProject(Platform.environment['{{ spec.title | caseUpper }}_PROJECT_ID']!)
+    .setKey(Platform.environment['{{ spec.title | caseUpper }}_API_KEY']!);
 ```
 
 ## Code Examples
 
-### User Management
+### Authentication (client-side)
+
+```dart
+final account = Account(client);
+
+// Signup
+await account.create(userId: ID.unique(), email: 'user@example.com', password: 'password123', name: 'User Name');
+
+// Login
+final session = await account.createEmailPasswordSession(email: 'user@example.com', password: 'password123');
+
+// OAuth login
+await account.createOAuth2Session(provider: OAuthProvider.google);
+
+// Get current user
+final user = await account.get();
+
+// Logout
+await account.deleteSession(sessionId: 'current');
+```
+
+### User Management (server-side)
 
 ```dart
 final users = Users(client);
@@ -55,10 +86,10 @@ await users.delete(userId: '[USER_ID]');
 ```dart
 final tablesDB = TablesDB(client);
 
-// Create database
+// Create database (server-side only)
 final db = await tablesDB.create(databaseId: ID.unique(), name: 'My Database');
 
-// Create table
+// Create table (server-side only)
 final col = await tablesDB.createTable(databaseId: '[DATABASE_ID]', tableId: ID.unique(), name: 'My Table');
 
 // Create row
@@ -66,14 +97,25 @@ final doc = await tablesDB.createRow(
     databaseId: '[DATABASE_ID]',
     tableId: '[TABLE_ID]',
     rowId: ID.unique(),
-    data: {'title': 'Hello World'},
+    data: {'title': 'Hello', 'done': false},
 );
 
 // Query rows
 final results = await tablesDB.listRows(
     databaseId: '[DATABASE_ID]',
     tableId: '[TABLE_ID]',
-    queries: [Query.equal('title', 'Hello World'), Query.limit(10)],
+    queries: [Query.equal('done', false), Query.limit(10)],
+);
+
+// Get row
+final row = await tablesDB.getRow(databaseId: '[DATABASE_ID]', tableId: '[TABLE_ID]', rowId: '[ROW_ID]');
+
+// Update row
+await tablesDB.updateRow(
+    databaseId: '[DATABASE_ID]',
+    tableId: '[TABLE_ID]',
+    rowId: '[ROW_ID]',
+    data: {'done': true},
 );
 
 // Delete row
@@ -96,6 +138,9 @@ final file = await storage.createFile(
     file: InputFile.fromPath(path: '/path/to/file.png', filename: 'file.png'),
 );
 
+// Get file preview
+final preview = storage.getFilePreview(bucketId: '[BUCKET_ID]', fileId: '[FILE_ID]', width: 300, height: 300);
+
 // List files
 final files = await storage.listFiles(bucketId: '[BUCKET_ID]');
 
@@ -103,3 +148,37 @@ final files = await storage.listFiles(bucketId: '[BUCKET_ID]');
 await storage.deleteFile(bucketId: '[BUCKET_ID]', fileId: '[FILE_ID]');
 ```
 
+### Real-time Subscriptions (client-side)
+
+```dart
+final realtime = Realtime(client);
+
+final subscription = realtime.subscribe(['databases.[DATABASE_ID].tables.[TABLE_ID].rows']);
+subscription.stream.listen((response) {
+    print(response.payload);
+});
+
+// Cleanup
+subscription.close();
+```
+
+### Serverless Functions (server-side)
+
+```dart
+final functions = Functions(client);
+
+// Execute function
+final execution = await functions.createExecution(functionId: '[FUNCTION_ID]', body: '{"key": "value"}');
+
+// List executions
+final executions = await functions.listExecutions(functionId: '[FUNCTION_ID]');
+```
+
+## API Reference
+
+For complete method documentation, see the reference files:
+
+{% for service in spec.services %}
+- [{{ service.name | caseUcfirst }}](references/{{ service.name | caseLower }}.md){% if service.description %} — {{ service.description }}{% endif %}
+
+{% endfor %}

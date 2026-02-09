@@ -1,0 +1,24 @@
+# {{ service.name | caseUcfirst }}
+
+{{ service.description }}
+
+{% for method in service.methods %}
+## {{ method.title }}
+
+`{{ method.name }}`{% if method.deprecated %} **(DEPRECATED{% if method.replaceWith %} — use `{{ method.replaceWith }}` instead{% endif %})**{% endif %}
+
+{{ method.description }}
+
+{% if method.parameters.all | length > 0 %}
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+{% for parameter in method.parameters.all %}
+| `{{ parameter.name }}` | {{ parameter.type }}{% if parameter.type == 'array' and parameter.array.type %}\<{{ parameter.array.type }}\>{% endif %} | {{ parameter.required ? 'Yes' : 'No' }} | {{ parameter.description | replace({"\n": " "}) }}{% if parameter.default is not null and parameter.default != '' %} (default: `{{ parameter.default }}`){% endif %} |
+{% endfor %}
+{% endif %}
+
+{% if method.responseModel %}
+**Response:** `{{ method.responseModel }}`
+{% endif %}
+
+{% endfor %}

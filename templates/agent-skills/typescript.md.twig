@@ -1,35 +1,53 @@
-{% set lang = 'web' %}
-{% set langName = 'Web' %}
+{% set lang = 'typescript' %}
+{% set langName = 'TypeScript' %}
+{% set langDescription %}{{ spec.title }} {{ langName }} SDK skill. Use when building browser-based JavaScript/TypeScript apps, React Native mobile apps, or server-side Node.js/Deno backends with {{ spec.title }}. Covers client-side auth (email, OAuth, anonymous), database queries, file uploads, real-time subscriptions, and server-side admin via API keys for user management, database administration, storage, and functions.{% endset %}
 {{ include('agent-skills/base/frontmatter.md.twig') }}
 
 # {{ spec.title }} {{ langName }} SDK
 
-{{ spec.title }}'s {{ langName }} SDK for browser-based JavaScript and TypeScript applications. Provides client-side access to {{ spec.title }} services including authentication (email, OAuth, anonymous), databases (rows, queries), storage (file upload/download/preview), and real-time subscriptions — all from the browser with no server required.
+## Installation
 
-## When to Apply
+```bash
+# Web
+npm install {{ spec.title | caseLower }}
 
-Reference this skill when:
+# React Native
+npm install react-native-{{ spec.title | caseLower }}
 
-- Building a browser-based JavaScript or TypeScript application with {{ spec.title }}
-- Adding user authentication (email/password, OAuth, anonymous sessions) to a web app
-- Performing CRUD operations on {{ spec.title }} databases from the client side
-- Uploading, downloading, or previewing files in the browser
-- Subscribing to real-time row or file changes via WebSocket
-- Using {{ spec.title }} Query helpers to filter and paginate results
+# Node.js / Deno
+npm install node-{{ spec.title | caseLower }}
+```
 
 ## Setting Up the Client
 
+### Client-side (Web / React Native)
+
 ```typescript
+// Web
 import { Client, Account, TablesDB, Storage, ID, Query } from '{{ spec.title | caseLower }}';
+
+// React Native
+import { Client, Account, TablesDB, Storage, ID, Query } from 'react-native-{{ spec.title | caseLower }}';
 
 const client = new Client()
     .setEndpoint('{{ spec.endpoint }}')
     .setProject('[PROJECT_ID]');
 ```
 
+### Server-side (Node.js / Deno)
+
+```typescript
+import { Client, Users, TablesDB, Storage, Functions, ID, Query } from 'node-{{ spec.title | caseLower }}';
+
+const client = new Client()
+    .setEndpoint('{{ spec.endpoint }}')
+    .setProject(process.env.{{ spec.title | caseUpper }}_PROJECT_ID)
+    .setKey(process.env.{{ spec.title | caseUpper }}_API_KEY);
+```
+
 ## Code Examples
 
-### Authentication
+### Authentication (client-side)
 
 ```typescript
 const account = new Account(client);
@@ -62,12 +80,45 @@ const user = await account.get();
 await account.deleteSession({ sessionId: 'current' });
 ```
 
+### User Management (server-side)
+
+```typescript
+const users = new Users(client);
+
+// Create user
+const user = await users.create({
+    userId: ID.unique(),
+    email: 'user@example.com',
+    password: 'password123',
+    name: 'User Name'
+});
+
+// List users
+const list = await users.list({ queries: [Query.limit(25)] });
+
+// Get user
+const fetched = await users.get({ userId: '[USER_ID]' });
+
+// Delete user
+await users.delete({ userId: '[USER_ID]' });
+```
+
 ### Database Operations
 
 > **Note:** Use `TablesDB` (not the deprecated `Databases` class) for all new code. Only use `Databases` if the existing codebase already relies on it or the user explicitly requests it.
 
 ```typescript
 const tablesDB = new TablesDB(client);
+
+// Create database (server-side only)
+const db = await tablesDB.create({ databaseId: ID.unique(), name: 'My Database' });
+
+// Create table (server-side only)
+const col = await tablesDB.createTable({
+    databaseId: '[DATABASE_ID]',
+    tableId: ID.unique(),
+    name: 'My Table'
+});
 
 // Create row
 const doc = await tablesDB.createRow({
@@ -85,7 +136,7 @@ const results = await tablesDB.listRows({
 });
 
 // Get row
-const document = await tablesDB.getRow({
+const row = await tablesDB.getRow({
     databaseId: '[DATABASE_ID]',
     tableId: '[TABLE_ID]',
     rowId: '[ROW_ID]'
@@ -112,11 +163,20 @@ await tablesDB.deleteRow({
 ```typescript
 const storage = new Storage(client);
 
-// Upload file
+// Upload file (client-side — from file input)
 const file = await storage.createFile({
     bucketId: '[BUCKET_ID]',
     fileId: ID.unique(),
     file: document.getElementById('file-input').files[0]
+});
+
+// Upload file (server-side — from path)
+import { InputFile } from 'node-{{ spec.title | caseLower }}/file';
+
+const file2 = await storage.createFile({
+    bucketId: '[BUCKET_ID]',
+    fileId: ID.unique(),
+    file: InputFile.fromPath('/path/to/file.png', 'file.png')
 });
 
 // List files
@@ -140,7 +200,7 @@ const download = await storage.getFileDownload({
 await storage.deleteFile({ bucketId: '[BUCKET_ID]', fileId: '[FILE_ID]' });
 ```
 
-### Real-time Subscriptions
+### Real-time Subscriptions (client-side)
 
 ```typescript
 // Subscribe to row changes
@@ -157,3 +217,26 @@ client.subscribe('buckets.[BUCKET_ID].files', (response) => {
 unsubscribe();
 ```
 
+### Serverless Functions (server-side)
+
+```typescript
+const functions = new Functions(client);
+
+// Execute function
+const execution = await functions.createExecution({
+    functionId: '[FUNCTION_ID]',
+    body: JSON.stringify({ key: 'value' })
+});
+
+// List executions
+const executions = await functions.listExecutions({ functionId: '[FUNCTION_ID]' });
+```
+
+## API Reference
+
+For complete method documentation, see the reference files:
+
+{% for service in spec.services %}
+- [{{ service.name | caseUcfirst }}](references/{{ service.name | caseLower }}.md){% if service.description %} — {{ service.description }}{% endif %}
+
+{% endfor %}

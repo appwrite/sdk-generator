@@ -1,21 +1,15 @@
 {% set lang = 'php' %}
 {% set langName = 'PHP' %}
+{% set langDescription %}{{ spec.title }} {{ langName }} SDK skill. Use when building server-side PHP applications with {{ spec.title }}, including Laravel and Symfony integrations. Covers user management, database/table CRUD, file storage, and functions via API keys.{% endset %}
 {{ include('agent-skills/base/frontmatter.md.twig') }}
 
 # {{ spec.title }} {{ langName }} SDK
 
-{{ spec.title }}'s server-side {{ langName }} SDK for backend PHP applications. Provides full administrative access to {{ spec.title }} services using API keys — manage users, databases, tables, rows, storage, and functions. Installed via Composer.
+## Installation
 
-## When to Apply
-
-Reference this skill when:
-
-- Building a server-side PHP application with {{ spec.title }}
-- Managing users, teams, or memberships programmatically with API keys
-- Creating or administering databases, tables, and columns
-- Performing server-side row CRUD and batch operations
-- Uploading files to {{ spec.title }} Storage from a PHP backend
-- Integrating {{ spec.title }} into Laravel, Symfony, or other PHP frameworks
+```bash
+composer require {{ spec.title | caseLower }}/{{ spec.title | caseLower }}
+```
 
 ## Setting Up the Client
 
@@ -26,11 +20,12 @@ use {{ spec.title }}\Query;
 use {{ spec.title }}\Services\Users;
 use {{ spec.title }}\Services\TablesDB;
 use {{ spec.title }}\Services\Storage;
+use {{ spec.title }}\Services\Functions;
 
 $client = (new Client())
     ->setEndpoint('{{ spec.endpoint }}')
-    ->setProject('[PROJECT_ID]')
-    ->setKey('[API_KEY]');
+    ->setProject(getenv('{{ spec.title | caseUpper }}_PROJECT_ID'))
+    ->setKey(getenv('{{ spec.title | caseUpper }}_API_KEY'));
 ```
 
 ## Code Examples
@@ -74,6 +69,9 @@ $results = $tablesDB->listRows('[DATABASE_ID]', '[TABLE_ID]', [
     Query::limit(10)
 ]);
 
+// Get row
+$row = $tablesDB->getRow('[DATABASE_ID]', '[TABLE_ID]', '[ROW_ID]');
+
 // Update row
 $tablesDB->updateRow('[DATABASE_ID]', '[TABLE_ID]', '[ROW_ID]', [
     'title' => 'Updated'
@@ -98,3 +96,23 @@ $files = $storage->listFiles('[BUCKET_ID]');
 $storage->deleteFile('[BUCKET_ID]', '[FILE_ID]');
 ```
 
+### Serverless Functions
+
+```php
+$functions = new Functions($client);
+
+// Execute function
+$execution = $functions->createExecution('[FUNCTION_ID]', '{"key": "value"}');
+
+// List executions
+$executions = $functions->listExecutions('[FUNCTION_ID]');
+```
+
+## API Reference
+
+For complete method documentation, see the reference files:
+
+{% for service in spec.services %}
+- [{{ service.name | caseUcfirst }}](references/{{ service.name | caseLower }}.md){% if service.description %} — {{ service.description }}{% endif %}
+
+{% endfor %}

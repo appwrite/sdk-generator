@@ -90,14 +90,8 @@ class AgentSkills extends Language
     public function getFiles(): array
     {
         $languages = [
-            'web',
-            'node',
-            'react-native',
-            'deno',
-            'flutter',
+            'typescript',
             'dart',
-            'android',
-            'apple',
             'kotlin',
             'swift',
             'php',
@@ -105,7 +99,6 @@ class AgentSkills extends Language
             'ruby',
             'go',
             'dotnet',
-            'cli',
         ];
 
         $files = [];
@@ -115,6 +108,12 @@ class AgentSkills extends Language
                 'scope'       => 'default',
                 'destination' => '{{ spec.title | caseLower }}-' . $lang . '/SKILL.md',
                 'template'    => 'agent-skills/' . $lang . '.md.twig',
+            ];
+
+            $files[] = [
+                'scope'       => 'service',
+                'destination' => '{{ spec.title | caseLower }}-' . $lang . '/references/{{ service.name | caseLower }}.md',
+                'template'    => 'agent-skills/references/service.md.twig',
             ];
         }
 
