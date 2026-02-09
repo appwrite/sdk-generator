@@ -108,6 +108,90 @@ $execution = $functions->createExecution('[FUNCTION_ID]', '{"key": "value"}');
 $executions = $functions->listExecutions('[FUNCTION_ID]');
 ```
 
+### Server-Side Rendering (SSR) Authentication
+
+SSR apps (Laravel, Symfony, etc.) use the **server SDK** to handle auth. You need two clients:
+
+- **Admin client** — uses an API key, creates sessions, bypasses rate limits (reusable singleton)
+- **Session client** — uses a session cookie, acts on behalf of a user (create per-request, never share)
+
+```php
+use {{ spec.title }}\Client;
+use {{ spec.title }}\Services\Account;
+
+// Admin client (reusable)
+$adminClient = (new Client())
+    ->setEndpoint('https://<REGION>.cloud.appwrite.io/v1')
+    ->setProject('[PROJECT_ID]')
+    ->setKey(getenv('{{ spec.title | caseUpper }}_API_KEY'));
+
+// Session client (create per-request)
+$sessionClient = (new Client())
+    ->setEndpoint('https://<REGION>.cloud.appwrite.io/v1')
+    ->setProject('[PROJECT_ID]');
+
+$session = $_COOKIE['a_session_[PROJECT_ID]'] ?? null;
+if ($session) {
+    $sessionClient->setSession($session);
+}
+```
+
+#### Email/Password Login
+
+```php
+$account = new Account($adminClient);
+$session = $account->createEmailPasswordSession($email, $password);
+
+// Cookie name must be a_session_<PROJECT_ID>
+setcookie('a_session_[PROJECT_ID]', $session['secret'], [
+    'httpOnly' => true,
+    'secure' => true,
+    'sameSite' => 'strict',
+    'expires' => strtotime($session['expire']),
+    'path' => '/',
+]);
+```
+
+#### Authenticated Requests
+
+```php
+$session = $_COOKIE['a_session_[PROJECT_ID]'] ?? null;
+if (!$session) {
+    http_response_code(401);
+    exit;
+}
+
+$sessionClient->setSession($session);
+$account = new Account($sessionClient);
+$user = $account->get();
+```
+
+#### OAuth2 SSR Flow
+
+```php
+// Step 1: Redirect to OAuth provider
+$account = new Account($adminClient);
+$redirectUrl = $account->createOAuth2Token(
+    OAuthProvider::GITHUB(),
+    'https://example.com/oauth/success',
+    'https://example.com/oauth/failure',
+);
+header('Location: ' . $redirectUrl);
+
+// Step 2: Handle callback — exchange token for session
+$account = new Account($adminClient);
+$session = $account->createSession($_GET['userId'], $_GET['secret']);
+
+setcookie('a_session_[PROJECT_ID]', $session['secret'], [
+    'httpOnly' => true, 'secure' => true, 'sameSite' => 'strict',
+    'expires' => strtotime($session['expire']), 'path' => '/',
+]);
+```
+
+> **Cookie security:** Always use `httpOnly`, `secure`, and `sameSite: 'strict'` to prevent XSS. The cookie name must be `a_session_<PROJECT_ID>`.
+
+> **Forwarding user agent:** Call `$sessionClient->setForwardedUserAgent($_SERVER['HTTP_USER_AGENT'])` to record the end-user's browser info for debugging and security.
+
 ## Permissions & Roles (Critical)
 
 Appwrite uses permission strings to control access to resources. Each permission pairs an action (`read`, `update`, `delete`, `create`, or `write` which grants create + update + delete) with a role target. By default, **no user has access** unless permissions are explicitly set at the document/file level or inherited from the collection/bucket settings. Permissions are arrays of strings built with the `Permission` and `Role` helpers.

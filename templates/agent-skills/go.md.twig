@@ -127,6 +127,125 @@ execution, err := svc.CreateExecution(
 executions, err := svc.ListExecutions("[FUNCTION_ID]")
 ```
 
+### Server-Side Rendering (SSR) Authentication
+
+SSR apps using Go frameworks (net/http, Gin, Echo, Chi, etc.) use the **server SDK** to handle auth. You need two clients:
+
+- **Admin client** — uses an API key, creates sessions, bypasses rate limits (reusable singleton)
+- **Session client** — uses a session cookie, acts on behalf of a user (create per-request, never share)
+
+```go
+import (
+    "github.com/{{ sdk.gitUserName }}/sdk-for-go/client"
+    "github.com/{{ sdk.gitUserName }}/sdk-for-go/account"
+)
+
+// Admin client (reusable)
+adminClient := client.New(
+    client.WithEndpoint("https://<REGION>.cloud.appwrite.io/v1"),
+    client.WithProject(os.Getenv("{{ spec.title | caseUpper }}_PROJECT_ID")),
+    client.WithKey(os.Getenv("{{ spec.title | caseUpper }}_API_KEY")),
+)
+
+// Session client (create per-request)
+sessionClient := client.New(
+    client.WithEndpoint("https://<REGION>.cloud.appwrite.io/v1"),
+    client.WithProject(os.Getenv("{{ spec.title | caseUpper }}_PROJECT_ID")),
+)
+
+cookie, err := r.Cookie("a_session_[PROJECT_ID]")
+if err == nil {
+    sessionClient.SetSession(cookie.Value)
+}
+```
+
+#### Email/Password Login
+
+```go
+http.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
+    svc := account.New(adminClient)
+    session, err := svc.CreateEmailPasswordSession(r.FormValue("email"), r.FormValue("password"))
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusBadRequest)
+        return
+    }
+
+    // Cookie name must be a_session_<PROJECT_ID>
+    http.SetCookie(w, &http.Cookie{
+        Name:     "a_session_[PROJECT_ID]",
+        Value:    session.Secret,
+        HttpOnly: true,
+        Secure:   true,
+        SameSite: http.SameSiteStrictMode,
+        Path:     "/",
+    })
+
+    w.Header().Set("Content-Type", "application/json")
+    w.Write([]byte(`{"success": true}`))
+})
+```
+
+#### Authenticated Requests
+
+```go
+http.HandleFunc("/user", func(w http.ResponseWriter, r *http.Request) {
+    cookie, err := r.Cookie("a_session_[PROJECT_ID]")
+    if err != nil {
+        http.Error(w, "Unauthorized", http.StatusUnauthorized)
+        return
+    }
+
+    sessionClient := client.New(
+        client.WithEndpoint("https://<REGION>.cloud.appwrite.io/v1"),
+        client.WithProject(os.Getenv("{{ spec.title | caseUpper }}_PROJECT_ID")),
+        client.WithSession(cookie.Value),
+    )
+
+    svc := account.New(sessionClient)
+    user, err := svc.Get()
+    // Marshal user to JSON and write response
+})
+```
+
+#### OAuth2 SSR Flow
+
+```go
+// Step 1: Redirect to OAuth provider
+http.HandleFunc("/oauth", func(w http.ResponseWriter, r *http.Request) {
+    svc := account.New(adminClient)
+    redirectURL, err := svc.CreateOAuth2Token(
+        "github",
+        account.WithCreateOAuth2TokenSuccess("https://example.com/oauth/success"),
+        account.WithCreateOAuth2TokenFailure("https://example.com/oauth/failure"),
+    )
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+    http.Redirect(w, r, redirectURL, http.StatusFound)
+})
+
+// Step 2: Handle callback — exchange token for session
+http.HandleFunc("/oauth/success", func(w http.ResponseWriter, r *http.Request) {
+    svc := account.New(adminClient)
+    session, err := svc.CreateSession(r.URL.Query().Get("userId"), r.URL.Query().Get("secret"))
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusBadRequest)
+        return
+    }
+
+    http.SetCookie(w, &http.Cookie{
+        Name: "a_session_[PROJECT_ID]", Value: session.Secret,
+        HttpOnly: true, Secure: true, SameSite: http.SameSiteStrictMode, Path: "/",
+    })
+    w.Write([]byte(`{"success": true}`))
+})
+```
+
+> **Cookie security:** Always use `HttpOnly`, `Secure`, and `SameSiteStrictMode` to prevent XSS. The cookie name must be `a_session_<PROJECT_ID>`.
+
+> **Forwarding user agent:** Call `sessionClient.SetForwardedUserAgent(r.Header.Get("User-Agent"))` to record the end-user's browser info for debugging and security.
+
 ## Permissions & Roles (Critical)
 
 Appwrite uses permission strings to control access to resources. Each permission pairs an action (`read`, `update`, `delete`, `create`, or `write` which grants create + update + delete) with a role target. By default, **no user has access** unless permissions are explicitly set at the document/file level or inherited from the collection/bucket settings. Permissions are arrays of strings built with the `permission` and `role` helpers.

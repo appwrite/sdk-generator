@@ -111,6 +111,112 @@ execution = functions.create_execution(function_id: '[FUNCTION_ID]', body: '{"ke
 executions = functions.list_executions(function_id: '[FUNCTION_ID]')
 ```
 
+### Server-Side Rendering (SSR) Authentication
+
+SSR apps using Ruby frameworks (Rails, Sinatra, etc.) use the **server SDK** to handle auth. You need two clients:
+
+- **Admin client** — uses an API key, creates sessions, bypasses rate limits (reusable singleton)
+- **Session client** — uses a session cookie, acts on behalf of a user (create per-request, never share)
+
+```ruby
+require '{{ spec.title | caseLower }}'
+include {{ spec.title }}
+
+# Admin client (reusable)
+admin_client = Client.new
+    .set_endpoint('https://<REGION>.cloud.appwrite.io/v1')
+    .set_project('[PROJECT_ID]')
+    .set_key(ENV['{{ spec.title | caseUpper }}_API_KEY'])
+
+# Session client (create per-request)
+session_client = Client.new
+    .set_endpoint('https://<REGION>.cloud.appwrite.io/v1')
+    .set_project('[PROJECT_ID]')
+
+session = cookies['a_session_[PROJECT_ID]']
+session_client.set_session(session) if session
+```
+
+#### Email/Password Login (Sinatra)
+
+```ruby
+post '/login' do
+    account = Account.new(admin_client)
+    session = account.create_email_password_session(
+        email: params[:email],
+        password: params[:password]
+    )
+
+    # Cookie name must be a_session_<PROJECT_ID>
+    response.set_cookie('a_session_[PROJECT_ID]', {
+        value: session.secret,
+        httponly: true,
+        secure: true,
+        same_site: :strict,
+        path: '/',
+    })
+
+    content_type :json
+    { success: true }.to_json
+end
+```
+
+#### Authenticated Requests
+
+```ruby
+get '/user' do
+    session = request.cookies['a_session_[PROJECT_ID]']
+    halt 401, { error: 'Unauthorized' }.to_json unless session
+
+    session_client = Client.new
+        .set_endpoint('https://<REGION>.cloud.appwrite.io/v1')
+        .set_project('[PROJECT_ID]')
+        .set_session(session)
+
+    account = Account.new(session_client)
+    user = account.get
+
+    content_type :json
+    user.to_json
+end
+```
+
+#### OAuth2 SSR Flow
+
+```ruby
+# Step 1: Redirect to OAuth provider
+get '/oauth' do
+    account = Account.new(admin_client)
+    redirect_url = account.create_o_auth2_token(
+        provider: OAuthProvider::GITHUB,
+        success: 'https://example.com/oauth/success',
+        failure: 'https://example.com/oauth/failure'
+    )
+    redirect redirect_url
+end
+
+# Step 2: Handle callback — exchange token for session
+get '/oauth/success' do
+    account = Account.new(admin_client)
+    session = account.create_session(
+        user_id: params[:userId],
+        secret: params[:secret]
+    )
+
+    response.set_cookie('a_session_[PROJECT_ID]', {
+        value: session.secret,
+        httponly: true, secure: true, same_site: :strict, path: '/',
+    })
+
+    content_type :json
+    { success: true }.to_json
+end
+```
+
+> **Cookie security:** Always use `httponly`, `secure`, and `same_site: :strict` to prevent XSS. The cookie name must be `a_session_<PROJECT_ID>`.
+
+> **Forwarding user agent:** Call `session_client.set_forwarded_user_agent(request.user_agent)` to record the end-user's browser info for debugging and security.
+
 ## Permissions & Roles (Critical)
 
 Appwrite uses permission strings to control access to resources. Each permission pairs an action (`read`, `update`, `delete`, `create`, or `write` which grants create + update + delete) with a role target. By default, **no user has access** unless permissions are explicitly set at the document/file level or inherited from the collection/bucket settings. Permissions are arrays of strings built with the `Permission` and `Role` helpers.

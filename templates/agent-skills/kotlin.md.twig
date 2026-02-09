@@ -202,6 +202,112 @@ val execution = functions.createExecution(
 val executions = functions.listExecutions(functionId = "[FUNCTION_ID]")
 ```
 
+### Server-Side Rendering (SSR) Authentication
+
+SSR apps using Kotlin server frameworks (Ktor, Spring Boot, etc.) use the **server SDK** to handle auth. You need two clients:
+
+- **Admin client** — uses an API key, creates sessions, bypasses rate limits (reusable singleton)
+- **Session client** — uses a session cookie, acts on behalf of a user (create per-request, never share)
+
+```kotlin
+import io.{{ spec.title | caseLower }}.Client
+import io.{{ spec.title | caseLower }}.services.Account
+import io.{{ spec.title | caseLower }}.enums.OAuthProvider
+
+// Admin client (reusable)
+val adminClient = Client()
+    .setEndpoint("https://<REGION>.cloud.appwrite.io/v1")
+    .setProject("[PROJECT_ID]")
+    .setKey(System.getenv("{{ spec.title | caseUpper }}_API_KEY"))
+
+// Session client (create per-request)
+val sessionClient = Client()
+    .setEndpoint("https://<REGION>.cloud.appwrite.io/v1")
+    .setProject("[PROJECT_ID]")
+
+val session = call.request.cookies["a_session_[PROJECT_ID]"]
+if (session != null) {
+    sessionClient.setSession(session)
+}
+```
+
+#### Email/Password Login (Ktor)
+
+```kotlin
+post("/login") {
+    val body = call.receive<LoginRequest>()
+    val account = Account(adminClient)
+    val session = account.createEmailPasswordSession(
+        email = body.email,
+        password = body.password,
+    )
+
+    // Cookie name must be a_session_<PROJECT_ID>
+    call.response.cookies.append(Cookie(
+        name = "a_session_[PROJECT_ID]",
+        value = session.secret,
+        httpOnly = true,
+        secure = true,
+        extensions = mapOf("SameSite" to "Strict"),
+        path = "/",
+    ))
+    call.respond(mapOf("success" to true))
+}
+```
+
+#### Authenticated Requests
+
+```kotlin
+get("/user") {
+    val session = call.request.cookies["a_session_[PROJECT_ID]"]
+        ?: return@get call.respond(HttpStatusCode.Unauthorized)
+
+    val sessionClient = Client()
+        .setEndpoint("https://<REGION>.cloud.appwrite.io/v1")
+        .setProject("[PROJECT_ID]")
+        .setSession(session)
+
+    val account = Account(sessionClient)
+    val user = account.get()
+    call.respond(user)
+}
+```
+
+#### OAuth2 SSR Flow
+
+```kotlin
+// Step 1: Redirect to OAuth provider
+get("/oauth") {
+    val account = Account(adminClient)
+    val redirectUrl = account.createOAuth2Token(
+        provider = OAuthProvider.GITHUB,
+        success = "https://example.com/oauth/success",
+        failure = "https://example.com/oauth/failure",
+    )
+    call.respondRedirect(redirectUrl)
+}
+
+// Step 2: Handle callback — exchange token for session
+get("/oauth/success") {
+    val account = Account(adminClient)
+    val session = account.createSession(
+        userId = call.parameters["userId"]!!,
+        secret = call.parameters["secret"]!!,
+    )
+
+    call.response.cookies.append(Cookie(
+        name = "a_session_[PROJECT_ID]", value = session.secret,
+        httpOnly = true, secure = true,
+        extensions = mapOf("SameSite" to "Strict"), path = "/",
+    ))
+    call.respond(mapOf("success" to true))
+}
+```
+
+> **Cookie security:** Always use `httpOnly`, `secure`, and `SameSite=Strict` to prevent XSS. The cookie name must be `a_session_<PROJECT_ID>`.
+
+> **Forwarding user agent:** Call `sessionClient.setForwardedUserAgent(call.request.headers["User-Agent"])` to record the end-user's browser info for debugging and security.
+
 ## Permissions & Roles (Critical)
 
 Appwrite uses permission strings to control access to resources. Each permission pairs an action (`read`, `update`, `delete`, `create`, or `write` which grants create + update + delete) with a role target. By default, **no user has access** unless permissions are explicitly set at the document/file level or inherited from the collection/bucket settings. Permissions are arrays of strings built with the `Permission` and `Role` helpers.

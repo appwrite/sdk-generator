@@ -232,6 +232,109 @@ const execution = await functions.createExecution({
 const executions = await functions.listExecutions({ functionId: '[FUNCTION_ID]' });
 ```
 
+### Server-Side Rendering (SSR) Authentication
+
+SSR apps (Next.js, SvelteKit, Nuxt, Remix, Astro) use the **server SDK** (`node-{{ spec.title | caseLower }}`) to handle auth. You need two clients:
+
+- **Admin client** — uses an API key, creates sessions, bypasses rate limits (reusable singleton)
+- **Session client** — uses a session cookie, acts on behalf of a user (create per-request, never share)
+
+```typescript
+import { Client, Account, OAuthProvider } from 'node-{{ spec.title | caseLower }}';
+
+// Admin client (reusable)
+const adminClient = new Client()
+    .setEndpoint('https://<REGION>.cloud.appwrite.io/v1')
+    .setProject('[PROJECT_ID]')
+    .setKey(process.env.{{ spec.title | caseUpper }}_API_KEY);
+
+// Session client (create per-request)
+const sessionClient = new Client()
+    .setEndpoint('https://<REGION>.cloud.appwrite.io/v1')
+    .setProject('[PROJECT_ID]');
+
+const session = req.cookies['a_session_[PROJECT_ID]'];
+if (session) {
+    sessionClient.setSession(session);
+}
+```
+
+#### Email/Password Login
+
+```typescript
+app.post('/login', async (req, res) => {
+    const account = new Account(adminClient);
+    const session = await account.createEmailPasswordSession({
+        email: req.body.email,
+        password: req.body.password,
+    });
+
+    // Cookie name must be a_session_<PROJECT_ID>
+    res.cookie('a_session_[PROJECT_ID]', session.secret, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'strict',
+        expires: new Date(session.expire),
+        path: '/',
+    });
+
+    res.json({ success: true });
+});
+```
+
+#### Authenticated Requests
+
+```typescript
+app.get('/user', async (req, res) => {
+    const session = req.cookies['a_session_[PROJECT_ID]'];
+    if (!session) return res.status(401).json({ error: 'Unauthorized' });
+
+    // Create a fresh session client per request
+    const sessionClient = new Client()
+        .setEndpoint('https://<REGION>.cloud.appwrite.io/v1')
+        .setProject('[PROJECT_ID]')
+        .setSession(session);
+
+    const account = new Account(sessionClient);
+    const user = await account.get();
+    res.json(user);
+});
+```
+
+#### OAuth2 SSR Flow
+
+```typescript
+// Step 1: Redirect to OAuth provider
+app.get('/oauth', async (req, res) => {
+    const account = new Account(adminClient);
+    const redirectUrl = await account.createOAuth2Token({
+        provider: OAuthProvider.Github,
+        success: 'https://example.com/oauth/success',
+        failure: 'https://example.com/oauth/failure',
+    });
+    res.redirect(redirectUrl);
+});
+
+// Step 2: Handle callback — exchange token for session
+app.get('/oauth/success', async (req, res) => {
+    const account = new Account(adminClient);
+    const session = await account.createSession({
+        userId: req.query.userId,
+        secret: req.query.secret,
+    });
+
+    res.cookie('a_session_[PROJECT_ID]', session.secret, {
+        httpOnly: true, secure: true, sameSite: 'strict',
+        expires: new Date(session.expire), path: '/',
+    });
+    res.json({ success: true });
+});
+```
+
+> **Cookie security:** Always use `httpOnly`, `secure`, and `sameSite: 'strict'` to prevent XSS. The cookie name must be `a_session_<PROJECT_ID>`.
+
+> **Forwarding user agent:** Call `sessionClient.setForwardedUserAgent(req.headers['user-agent'])` to record the end-user's browser info for debugging and security.
+
 ## Permissions & Roles (Critical)
 
 Appwrite uses permission strings to control access to resources. Each permission pairs an action (`read`, `update`, `delete`, `create`, or `write` which grants create + update + delete) with a role target. By default, **no user has access** unless permissions are explicitly set at the document/file level or inherited from the collection/bucket settings. Permissions are arrays of strings built with the `Permission` and `Role` helpers.

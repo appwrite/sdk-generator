@@ -112,6 +112,101 @@ execution = functions.create_execution('[FUNCTION_ID]', body='{"key": "value"}')
 executions = functions.list_executions('[FUNCTION_ID]')
 ```
 
+### Server-Side Rendering (SSR) Authentication
+
+SSR apps (Flask, Django, FastAPI, etc.) use the **server SDK** to handle auth. You need two clients:
+
+- **Admin client** — uses an API key, creates sessions, bypasses rate limits (reusable singleton)
+- **Session client** — uses a session cookie, acts on behalf of a user (create per-request, never share)
+
+```python
+from {{ spec.title | caseLower }}.client import Client
+from {{ spec.title | caseLower }}.services.account import Account
+from flask import request, jsonify, make_response, redirect
+
+# Admin client (reusable)
+admin_client = (Client()
+    .set_endpoint('https://<REGION>.cloud.appwrite.io/v1')
+    .set_project('[PROJECT_ID]')
+    .set_key(os.environ['{{ spec.title | caseUpper }}_API_KEY']))
+
+# Session client (create per-request)
+session_client = (Client()
+    .set_endpoint('https://<REGION>.cloud.appwrite.io/v1')
+    .set_project('[PROJECT_ID]'))
+
+session = request.cookies.get('a_session_[PROJECT_ID]')
+if session:
+    session_client.set_session(session)
+```
+
+#### Email/Password Login
+
+```python
+@app.post('/login')
+def login():
+    account = Account(admin_client)
+    session = account.create_email_password_session(
+        request.json['email'], request.json['password']
+    )
+
+    # Cookie name must be a_session_<PROJECT_ID>
+    resp = make_response(jsonify({'success': True}))
+    resp.set_cookie('a_session_[PROJECT_ID]', session['secret'],
+                    httponly=True, secure=True, samesite='Strict',
+                    expires=session['expire'], path='/')
+    return resp
+```
+
+#### Authenticated Requests
+
+```python
+@app.get('/user')
+def get_user():
+    session = request.cookies.get('a_session_[PROJECT_ID]')
+    if not session:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    session_client = (Client()
+        .set_endpoint('https://<REGION>.cloud.appwrite.io/v1')
+        .set_project('[PROJECT_ID]')
+        .set_session(session))
+
+    account = Account(session_client)
+    return jsonify(account.get())
+```
+
+#### OAuth2 SSR Flow
+
+```python
+# Step 1: Redirect to OAuth provider
+@app.get('/oauth')
+def oauth():
+    account = Account(admin_client)
+    redirect_url = account.create_o_auth2_token(
+        OAuthProvider.Github,
+        'https://example.com/oauth/success',
+        'https://example.com/oauth/failure',
+    )
+    return redirect(redirect_url)
+
+# Step 2: Handle callback — exchange token for session
+@app.get('/oauth/success')
+def oauth_success():
+    account = Account(admin_client)
+    session = account.create_session(request.args['userId'], request.args['secret'])
+
+    resp = make_response(jsonify({'success': True}))
+    resp.set_cookie('a_session_[PROJECT_ID]', session['secret'],
+                    httponly=True, secure=True, samesite='Strict',
+                    expires=session['expire'], path='/')
+    return resp
+```
+
+> **Cookie security:** Always use `httponly`, `secure`, and `samesite='Strict'` to prevent XSS. The cookie name must be `a_session_<PROJECT_ID>`.
+
+> **Forwarding user agent:** Call `session_client.set_forwarded_user_agent(request.headers.get('user-agent'))` to record the end-user's browser info for debugging and security.
+
 ## Permissions & Roles (Critical)
 
 Appwrite uses permission strings to control access to resources. Each permission pairs an action (`read`, `update`, `delete`, `create`, or `write` which grants create + update + delete) with a role target. By default, **no user has access** unless permissions are explicitly set at the document/file level or inherited from the collection/bucket settings. Permissions are arrays of strings built with the `Permission` and `Role` helpers.

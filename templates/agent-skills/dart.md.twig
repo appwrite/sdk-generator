@@ -174,6 +174,91 @@ final execution = await functions.createExecution(functionId: '[FUNCTION_ID]', b
 final executions = await functions.listExecutions(functionId: '[FUNCTION_ID]');
 ```
 
+### Server-Side Rendering (SSR) Authentication
+
+SSR apps using server-side Dart (Dart Frog, Shelf, etc.) use the **server SDK** (`dart_{{ spec.title | caseLower }}`) to handle auth. You need two clients:
+
+- **Admin client** — uses an API key, creates sessions, bypasses rate limits (reusable singleton)
+- **Session client** — uses a session cookie, acts on behalf of a user (create per-request, never share)
+
+```dart
+import 'package:dart_{{ spec.title | caseLower }}/dart_{{ spec.title | caseLower }}.dart';
+
+// Admin client (reusable)
+final adminClient = Client()
+    .setEndpoint('https://<REGION>.cloud.appwrite.io/v1')
+    .setProject('[PROJECT_ID]')
+    .setKey(Platform.environment['{{ spec.title | caseUpper }}_API_KEY']!);
+
+// Session client (create per-request)
+final sessionClient = Client()
+    .setEndpoint('https://<REGION>.cloud.appwrite.io/v1')
+    .setProject('[PROJECT_ID]');
+
+final session = request.cookies['a_session_[PROJECT_ID]'];
+if (session != null) {
+    sessionClient.setSession(session);
+}
+```
+
+#### Email/Password Login
+
+```dart
+final account = Account(adminClient);
+final session = await account.createEmailPasswordSession(
+    email: body['email'],
+    password: body['password'],
+);
+
+// Cookie name must be a_session_<PROJECT_ID>
+response.headers.add('Set-Cookie',
+    'a_session_[PROJECT_ID]=${session.secret}; '
+    'HttpOnly; Secure; SameSite=Strict; '
+    'Expires=${HttpDate.format(DateTime.parse(session.expire))}; Path=/');
+```
+
+#### Authenticated Requests
+
+```dart
+final session = request.cookies['a_session_[PROJECT_ID]'];
+if (session == null) {
+    return Response(statusCode: 401, body: 'Unauthorized');
+}
+
+final sessionClient = Client()
+    .setEndpoint('https://<REGION>.cloud.appwrite.io/v1')
+    .setProject('[PROJECT_ID]')
+    .setSession(session);
+
+final account = Account(sessionClient);
+final user = await account.get();
+```
+
+#### OAuth2 SSR Flow
+
+```dart
+// Step 1: Redirect to OAuth provider
+final account = Account(adminClient);
+final redirectUrl = await account.createOAuth2Token(
+    provider: OAuthProvider.github,
+    success: 'https://example.com/oauth/success',
+    failure: 'https://example.com/oauth/failure',
+);
+return Response(statusCode: 302, headers: {'Location': redirectUrl});
+
+// Step 2: Handle callback — exchange token for session
+final account = Account(adminClient);
+final session = await account.createSession(
+    userId: request.uri.queryParameters['userId']!,
+    secret: request.uri.queryParameters['secret']!,
+);
+// Set session cookie as above
+```
+
+> **Cookie security:** Always use `HttpOnly`, `Secure`, and `SameSite=Strict` to prevent XSS. The cookie name must be `a_session_<PROJECT_ID>`.
+
+> **Forwarding user agent:** Call `sessionClient.setForwardedUserAgent(request.headers['user-agent'])` to record the end-user's browser info for debugging and security.
+
 ## Permissions & Roles (Critical)
 
 Appwrite uses permission strings to control access to resources. Each permission pairs an action (`read`, `update`, `delete`, `create`, or `write` which grants create + update + delete) with a role target. By default, **no user has access** unless permissions are explicitly set at the document/file level or inherited from the collection/bucket settings. Permissions are arrays of strings built with the `Permission` and `Role` helpers.
