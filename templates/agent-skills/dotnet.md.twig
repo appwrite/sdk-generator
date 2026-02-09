@@ -19,7 +19,7 @@ using {{ spec.title }}.Services;
 using {{ spec.title }}.Models;
 
 var client = new Client()
-    .SetEndpoint("{{ spec.endpoint }}")
+    .SetEndpoint("https://<REGION>.cloud.appwrite.io/v1")
     .SetProject(Environment.GetEnvironmentVariable("{{ spec.title | caseUpper }}_PROJECT_ID"))
     .SetKey(Environment.GetEnvironmentVariable("{{ spec.title | caseUpper }}_API_KEY"));
 ```
@@ -99,6 +99,49 @@ var execution = await functions.CreateExecution("[FUNCTION_ID]", body: "{\"key\"
 // List executions
 var executions = await functions.ListExecutions("[FUNCTION_ID]");
 ```
+
+## Permissions & Roles (Critical)
+
+Appwrite uses permission strings to control access to resources. Each permission pairs an action (`read`, `update`, `delete`, `create`, or `write` which grants create + update + delete) with a role target. By default, **no user has access** unless permissions are explicitly set at the document/file level or inherited from the collection/bucket settings. Permissions are arrays of strings built with the `Permission` and `Role` helpers.
+
+```csharp
+using {{ spec.title }};
+// Permission and Role are included in the main namespace
+```
+
+### Database Row with Permissions
+
+```csharp
+var doc = await tablesDB.CreateRow("[DATABASE_ID]", "[TABLE_ID]", ID.Unique(),
+    new Dictionary<string, object> { { "title", "Hello World" } },
+    new List<string>
+    {
+        Permission.Read(Role.User("[USER_ID]")),     // specific user can read
+        Permission.Update(Role.User("[USER_ID]")),   // specific user can update
+        Permission.Read(Role.Team("[TEAM_ID]")),     // all team members can read
+        Permission.Read(Role.Any()),                 // anyone (including guests) can read
+    });
+```
+
+### File Upload with Permissions
+
+```csharp
+var file = await storage.CreateFile("[BUCKET_ID]", ID.Unique(),
+    InputFile.FromPath("/path/to/file.png"),
+    new List<string>
+    {
+        Permission.Read(Role.Any()),
+        Permission.Update(Role.User("[USER_ID]")),
+        Permission.Delete(Role.User("[USER_ID]")),
+    });
+```
+
+> **When to set permissions:** Set document/file-level permissions when you need per-resource access control. If all documents in a collection share the same rules, configure permissions at the collection/bucket level and leave document permissions empty.
+
+> **Common mistakes:**
+> - **Forgetting permissions** — the resource becomes inaccessible to all users (including the creator)
+> - **`Role.Any()` with `write`/`update`/`delete`** — allows any user, including unauthenticated guests, to modify or remove the resource
+> - **`Permission.Read(Role.Any())` on sensitive data** — makes the resource publicly readable
 
 ## API Reference
 

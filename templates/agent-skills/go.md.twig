@@ -22,7 +22,7 @@ import (
 )
 
 clt := client.New(
-    client.WithEndpoint("{{ spec.endpoint }}"),
+    client.WithEndpoint("https://<REGION>.cloud.appwrite.io/v1"),
     client.WithProject(os.Getenv("{{ spec.title | caseUpper }}_PROJECT_ID")),
     client.WithKey(os.Getenv("{{ spec.title | caseUpper }}_API_KEY")),
 )
@@ -126,6 +126,56 @@ execution, err := svc.CreateExecution(
 // List executions
 executions, err := svc.ListExecutions("[FUNCTION_ID]")
 ```
+
+## Permissions & Roles (Critical)
+
+Appwrite uses permission strings to control access to resources. Each permission pairs an action (`read`, `update`, `delete`, `create`, or `write` which grants create + update + delete) with a role target. By default, **no user has access** unless permissions are explicitly set at the document/file level or inherited from the collection/bucket settings. Permissions are arrays of strings built with the `permission` and `role` helpers.
+
+```go
+import (
+    "github.com/{{ sdk.gitUserName }}/sdk-for-go/permission"
+    "github.com/{{ sdk.gitUserName }}/sdk-for-go/role"
+)
+```
+
+### Database Row with Permissions
+
+```go
+doc, err := service.CreateRow(
+    "[DATABASE_ID]",
+    "[TABLE_ID]",
+    "[ROW_ID]",
+    map[string]interface{}{"title": "Hello World"},
+    tablesdb.WithCreateRowPermissions([]string{
+        permission.Read(role.User("[USER_ID]")),     // specific user can read
+        permission.Update(role.User("[USER_ID]")),   // specific user can update
+        permission.Read(role.Team("[TEAM_ID]")),     // all team members can read
+        permission.Read(role.Any()),                 // anyone (including guests) can read
+    }),
+)
+```
+
+### File Upload with Permissions
+
+```go
+f, err := service.CreateFile(
+    "[BUCKET_ID]",
+    "[FILE_ID]",
+    file.NewInputFile("/path/to/file.png", "file.png"),
+    storage.WithCreateFilePermissions([]string{
+        permission.Read(role.Any()),
+        permission.Update(role.User("[USER_ID]")),
+        permission.Delete(role.User("[USER_ID]")),
+    }),
+)
+```
+
+> **When to set permissions:** Set document/file-level permissions when you need per-resource access control. If all documents in a collection share the same rules, configure permissions at the collection/bucket level and leave document permissions empty.
+
+> **Common mistakes:**
+> - **Forgetting permissions** — the resource becomes inaccessible to all users (including the creator)
+> - **`role.Any()` with `write`/`update`/`delete`** — allows any user, including unauthenticated guests, to modify or remove the resource
+> - **`permission.Read(role.Any())` on sensitive data** — makes the resource publicly readable
 
 ## API Reference
 

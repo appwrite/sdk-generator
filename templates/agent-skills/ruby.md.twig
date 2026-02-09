@@ -19,7 +19,7 @@ require '{{ spec.title | caseLower }}'
 include {{ spec.title }}
 
 client = Client.new
-    .set_endpoint('{{ spec.endpoint }}')
+    .set_endpoint('https://<REGION>.cloud.appwrite.io/v1')
     .set_project(ENV['{{ spec.title | caseUpper }}_PROJECT_ID'])
     .set_key(ENV['{{ spec.title | caseUpper }}_API_KEY'])
 ```
@@ -110,6 +110,55 @@ execution = functions.create_execution(function_id: '[FUNCTION_ID]', body: '{"ke
 # List executions
 executions = functions.list_executions(function_id: '[FUNCTION_ID]')
 ```
+
+## Permissions & Roles (Critical)
+
+Appwrite uses permission strings to control access to resources. Each permission pairs an action (`read`, `update`, `delete`, `create`, or `write` which grants create + update + delete) with a role target. By default, **no user has access** unless permissions are explicitly set at the document/file level or inherited from the collection/bucket settings. Permissions are arrays of strings built with the `Permission` and `Role` helpers.
+
+```ruby
+# Permission and Role are included in the main require
+require '{{ spec.title | caseLower }}'
+include {{ spec.title }}
+```
+
+### Database Row with Permissions
+
+```ruby
+doc = tables_db.create_row(
+    database_id: '[DATABASE_ID]',
+    table_id: '[TABLE_ID]',
+    row_id: ID.unique,
+    data: { title: 'Hello World' },
+    permissions: [
+        Permission.read(Role.user('[USER_ID]')),     # specific user can read
+        Permission.update(Role.user('[USER_ID]')),   # specific user can update
+        Permission.read(Role.team('[TEAM_ID]')),     # all team members can read
+        Permission.read(Role.any),                   # anyone (including guests) can read
+    ]
+)
+```
+
+### File Upload with Permissions
+
+```ruby
+file = storage.create_file(
+    bucket_id: '[BUCKET_ID]',
+    file_id: ID.unique,
+    file: InputFile.from_path('/path/to/file.png'),
+    permissions: [
+        Permission.read(Role.any),
+        Permission.update(Role.user('[USER_ID]')),
+        Permission.delete(Role.user('[USER_ID]')),
+    ]
+)
+```
+
+> **When to set permissions:** Set document/file-level permissions when you need per-resource access control. If all documents in a collection share the same rules, configure permissions at the collection/bucket level and leave document permissions empty.
+
+> **Common mistakes:**
+> - **Forgetting permissions** — the resource becomes inaccessible to all users (including the creator)
+> - **`Role.any` with `write`/`update`/`delete`** — allows any user, including unauthenticated guests, to modify or remove the resource
+> - **`Permission.read(Role.any)` on sensitive data** — makes the resource publicly readable
 
 ## API Reference
 
