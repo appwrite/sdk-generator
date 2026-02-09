@@ -15,7 +15,10 @@ go get github.com/{{ sdk.gitUserName }}/sdk-for-go
 
 ```go
 import (
+    "os"
+
     "github.com/{{ sdk.gitUserName }}/sdk-for-go/client"
+    "github.com/{{ sdk.gitUserName }}/sdk-for-go/id"
     "github.com/{{ sdk.gitUserName }}/sdk-for-go/users"
     "github.com/{{ sdk.gitUserName }}/sdk-for-go/tablesdb"
     "github.com/{{ sdk.gitUserName }}/sdk-for-go/storage"
@@ -37,7 +40,7 @@ service := users.New(clt)
 
 // Create user
 user, err := service.Create(
-    "[USER_ID]",
+    id.Unique(),
     "user@example.com",
     "password123",
     users.WithCreateName("User Name"),
@@ -61,13 +64,13 @@ _, err = service.Delete("[USER_ID]")
 service := tablesdb.New(clt)
 
 // Create database
-db, err := service.Create("[DATABASE_ID]", "My Database")
+db, err := service.Create(id.Unique(), "My Database")
 
 // Create row
 doc, err := service.CreateRow(
     "[DATABASE_ID]",
     "[TABLE_ID]",
-    "[ROW_ID]",
+    id.Unique(),
     map[string]interface{}{"title": "Hello World"},
 )
 

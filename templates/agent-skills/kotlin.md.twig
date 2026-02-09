@@ -26,6 +26,7 @@ import io.{{ spec.title | caseLower }}.Query
 import io.{{ spec.title | caseLower }}.services.Account
 import io.{{ spec.title | caseLower }}.services.TablesDB
 import io.{{ spec.title | caseLower }}.services.Storage
+import io.{{ spec.title | caseLower }}.models.InputFile
 
 val client = Client(context)
     .setEndpoint("https://<REGION>.cloud.appwrite.io/v1")
@@ -156,7 +157,7 @@ val storage = Storage(client)
 val file = storage.createFile(
     bucketId = "[BUCKET_ID]",
     fileId = ID.unique(),
-    file = InputFile.fromFile(File("/path/to/file.png"))
+    file = InputFile.fromPath("/path/to/file.png")
 )
 
 // Get file preview
@@ -340,7 +341,7 @@ val doc = tablesDB.createRow(
 val file = storage.createFile(
     bucketId = "[BUCKET_ID]",
     fileId = ID.unique(),
-    file = InputFile.fromFile(File("/path/to/file.png")),
+    file = InputFile.fromPath("/path/to/file.png"),
     permissions = listOf(
         Permission.read(Role.any()),
         Permission.update(Role.user("[USER_ID]")),
