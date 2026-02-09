@@ -52,6 +52,8 @@ class Channel<T> {
       Channel<_TablesDB>._(['tablesdb', _normalize(id)]);
 
   static Channel<_Bucket> bucket([String id = '*']) =>
+  static Channel<_Execution> execution([String id = '*']) =>
+      Channel<_Execution>._(['executions', _normalize(id)]);
       Channel<_Bucket>._(['buckets', _normalize(id)]);
 
   static Channel<_Func> function([String id = '*']) =>
@@ -113,7 +115,10 @@ extension BucketChannel on Channel<_Bucket> {
 
 /// Only available on Channel<_Func>
 extension FuncChannel on Channel<_Func> {
-  Channel<_Execution> execution([String? id]) => _next<_Execution>('executions', id);
+  Channel<_Execution> execution([String id = '*']) {
+    final normalized = _normalize(id);
+    return Channel<_Execution>._(['executions', normalized]);
+  }
 }
 
 // --- TERMINAL ACTIONS ---

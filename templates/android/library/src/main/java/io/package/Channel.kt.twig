@@ -66,6 +66,8 @@ class Channel<out T> private constructor(
             Channel(listOf("tablesdb", normalize(id)))
 
         fun bucket(id: String = "*"): Channel<_Bucket> =
+        fun execution(id: String = "*"): Channel<_Execution> =
+            Channel(listOf("executions", normalize(id)))
             Channel(listOf("buckets", normalize(id)))
 
         fun function(id: String = "*"): Channel<_Func> =
@@ -132,8 +134,10 @@ fun Channel<_Bucket>.file(id: String? = null): Channel<_File> =
 /**
  * Only available on Channel<_Func>
  */
-fun Channel<_Func>.execution(id: String? = null): Channel<_Execution> =
-    this.next("executions", id)
+fun Channel<_Func>.execution(id: String = "*"): Channel<_Execution> {
+    val normalized = normalize(id)
+    return Channel(listOf("executions", normalized))
+}
 
 // --- TERMINAL ACTIONS ---
 // Restricted to Actionable types (_Document, _Row, _File, _Execution, _Team, _Membership)

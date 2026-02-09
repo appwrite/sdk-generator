@@ -73,9 +73,9 @@ export class Channel<T> {
   }
 
   // --- FUNCTION ROUTE ---
-  execution(this: Channel<Func>, id?: string): Channel<Execution> {
-    // Default: no execution ID segment
-    return this.next<Execution>("executions", id);
+  execution(this: Channel<Func>, id: string = "*"): Channel<Execution> {
+    const normalized = normalize(id);
+    return new Channel<Execution>(["executions", normalized]);
   }
 
   // --- TERMINAL ACTIONS ---
@@ -94,6 +94,9 @@ export class Channel<T> {
 
   // --- ROOT FACTORIES ---
   static database(id: string = "*") {
+  static execution(id: string = "*") {
+    return new Channel<Execution>(["executions", normalize(id)]);
+  }
     return new Channel<Database>(["databases", normalize(id)]);
   }
 

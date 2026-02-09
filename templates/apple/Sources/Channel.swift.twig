@@ -70,6 +70,9 @@ public enum Channel {
     public static func function(_ id: String = "*") -> RealtimeChannel<_Func> {
         return RealtimeChannel<_Func>(["functions", normalize(id)])
     }
+    public static func execution(_ id: String = "*") -> RealtimeChannel<_Execution> {
+        return RealtimeChannel<_Execution>(["executions", normalize(id)])
+    }
     
     public static func team(_ id: String = "*") -> RealtimeChannel<_Team> {
         return RealtimeChannel<_Team>(["teams", normalize(id)])
@@ -137,8 +140,9 @@ extension RealtimeChannel where T == _Bucket {
 
 /// Only available on RealtimeChannel<_Func>
 extension RealtimeChannel where T == _Func {
-    public func execution(_ id: String? = nil) -> RealtimeChannel<_Execution> {
-        return self.next("executions", id)
+    public func execution(_ id: String = "*") -> RealtimeChannel<_Execution> {
+        let normalized = normalize(id)
+        return RealtimeChannel<_Execution>(["executions", normalized])
     }
 }
 

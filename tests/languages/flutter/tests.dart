@@ -278,7 +278,9 @@ void main() async {
   print(Channel.bucket().file().toString());
   print(Channel.bucket('bucket1').file('file1').toString());
   print(Channel.bucket('bucket1').file('file1').delete().toString());
-  print(Channel.function().execution().toString());
+  print(Channel.execution().toString());
+  print(Channel.execution('exec1').toString());
+  print(Channel.execution('exec1').create().toString());
   print(Channel.function('func1').execution('exec1').toString());
   print(Channel.function('func1').execution('exec1').create().toString());
   print(Channel.team().toString());

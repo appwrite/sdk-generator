@@ -296,7 +296,9 @@ async function start() {
     console.log(Channel.bucket().file().toString());
     console.log(Channel.bucket('bucket1').file('file1').toString());
     console.log(Channel.bucket('bucket1').file('file1').delete().toString());
-    console.log(Channel.function().execution().toString());
+    console.log(Channel.execution().toString());
+    console.log(Channel.execution('exec1').toString());
+    console.log(Channel.execution('exec1').create().toString());
     console.log(Channel.function('func1').execution('exec1').toString());
     console.log(Channel.function('func1').execution('exec1').create().toString());
     console.log(Channel.team().toString());
