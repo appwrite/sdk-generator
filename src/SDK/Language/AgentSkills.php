@@ -115,6 +115,24 @@ class AgentSkills extends Language
                 'destination' => '{{ spec.title | caseLower }}-' . $lang . '/references/{{ service.name | caseLower }}.md',
                 'template'    => 'agent-skills/references/service.md.twig',
             ];
+
+            $files[] = [
+                'scope'       => 'default',
+                'destination' => '{{ spec.title | caseLower }}-' . $lang . '/README.md',
+                'template'    => 'agent-skills/README.md.twig',
+            ];
+
+            $files[] = [
+                'scope'       => 'default',
+                'destination' => '{{ spec.title | caseLower }}-' . $lang . '/CHANGELOG.md',
+                'template'    => 'agent-skills/CHANGELOG.md.twig',
+            ];
+
+            $files[] = [
+                'scope'       => 'default',
+                'destination' => '{{ spec.title | caseLower }}-' . $lang . '/LICENSE',
+                'template'    => 'agent-skills/LICENSE.twig',
+            ];
         }
 
         return $files;
