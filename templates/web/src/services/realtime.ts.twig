@@ -57,6 +57,7 @@ export class Realtime {
     private subCallDepth = 0;
     private reconnectAttempts = 0;
     private subscriptionsCounter = 0;
+    private connectionId = 0;
     private reconnect = true;
 
     private onErrorCallbacks: Array<(error?: Error, statusCode?: number) => void> = [];
@@ -150,9 +151,13 @@ export class Realtime {
 
         return new Promise((resolve, reject) => {
             try {
+                const connectionId = ++this.connectionId;
                 const socket = (this.socket = new WebSocket(url));
 
                 socket.addEventListener('open', () => {
+                    if (connectionId !== this.connectionId) {
+                        return;
+                    }
                     this.reconnectAttempts = 0;
                     this.onOpenCallbacks.forEach(callback => callback());
                     this.startHeartbeat();
@@ -160,6 +165,9 @@ export class Realtime {
                 });
 
                 socket.addEventListener('message', (event: MessageEvent) => {
+                    if (connectionId !== this.connectionId) {
+                        return;
+                    }
                     try {
                         const message = JSON.parse(event.data) as RealtimeResponse;
                         this.handleMessage(message);
@@ -169,7 +177,7 @@ export class Realtime {
                 });
 
                 socket.addEventListener('close', async (event: CloseEvent) => {
-                    if (socket !== this.socket) {
+                    if (connectionId !== this.connectionId || socket !== this.socket) {
                         return;
                     }
                     this.stopHeartbeat();
@@ -194,7 +202,7 @@ export class Realtime {
                 });
 
                 socket.addEventListener('error', (event: Event) => {
-                    if (socket !== this.socket) {
+                    if (connectionId !== this.connectionId || socket !== this.socket) {
                         return;
                     }
                     this.stopHeartbeat();
