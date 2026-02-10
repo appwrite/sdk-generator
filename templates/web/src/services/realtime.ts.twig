@@ -141,21 +141,25 @@ export class Realtime {
 
         if (this.socket) {
             this.reconnect = false;
-            await this.closeSocket();
+            if (this.socket.readyState < WebSocket.CLOSING) {
+                await this.closeSocket();
+            }
+            // Ensure reconnect isn't stuck false if close event was missed.
+            this.reconnect = true;
         }
 
         return new Promise((resolve, reject) => {
             try {
-                this.socket = new WebSocket(url);
+                const socket = (this.socket = new WebSocket(url));
 
-                this.socket.addEventListener('open', () => {
+                socket.addEventListener('open', () => {
                     this.reconnectAttempts = 0;
                     this.onOpenCallbacks.forEach(callback => callback());
                     this.startHeartbeat();
                     resolve();
                 });
 
-                this.socket.addEventListener('message', (event: MessageEvent) => {
+                socket.addEventListener('message', (event: MessageEvent) => {
                     try {
                         const message = JSON.parse(event.data) as RealtimeResponse;
                         this.handleMessage(message);
@@ -164,7 +168,10 @@ export class Realtime {
                     }
                 });
 
-                this.socket.addEventListener('close', async (event: CloseEvent) => {
+                socket.addEventListener('close', async (event: CloseEvent) => {
+                    if (socket !== this.socket) {
+                        return;
+                    }
                     this.stopHeartbeat();
                     this.onCloseCallbacks.forEach(callback => callback());
 
@@ -186,7 +193,10 @@ export class Realtime {
                     }
                 });
 
-                this.socket.addEventListener('error', (event: Event) => {
+                socket.addEventListener('error', (event: Event) => {
+                    if (socket !== this.socket) {
+                        return;
+                    }
                     this.stopHeartbeat();
                     const error = new Error('WebSocket error');
                     console.error('WebSocket error:', error.message);
