@@ -65,6 +65,7 @@ export class Realtime {
     private subCallDepth = 0;
     private reconnectAttempts = 0;
     private subscriptionsCounter = 0;
+    private connectionId = 0;
     private reconnect = true;
 
     private onErrorCallbacks: Array<(error?: Error, statusCode?: number) => void> = [];
@@ -178,21 +179,32 @@ export class Realtime {
 
         if (this.socket) {
             this.reconnect = false;
-            await this.closeSocket();
+            if (this.socket.readyState < WebSocket.CLOSING) {
+                await this.closeSocket();
+            }
+            // Ensure reconnect isn't stuck false if close event was missed.
+            this.reconnect = true;
         }
 
         return new Promise((resolve, reject) => {
             try {
-                this.socket = new WebSocket(url);
+                const connectionId = ++this.connectionId;
+                const socket = (this.socket = new WebSocket(url));
 
-                this.socket.addEventListener('open', () => {
+                socket.addEventListener('open', () => {
+                    if (connectionId !== this.connectionId) {
+                        return;
+                    }
                     this.reconnectAttempts = 0;
                     this.onOpenCallbacks.forEach(callback => callback());
                     this.startHeartbeat();
                     resolve();
                 });
 
-                this.socket.addEventListener('message', (event: MessageEvent) => {
+                socket.addEventListener('message', (event: MessageEvent) => {
+                    if (connectionId !== this.connectionId) {
+                        return;
+                    }
                     try {
                         const message = JSON.parse(event.data) as RealtimeResponse;
                         this.handleMessage(message);
@@ -201,7 +213,10 @@ export class Realtime {
                     }
                 });
 
-                this.socket.addEventListener('close', async (event: CloseEvent) => {
+                socket.addEventListener('close', async (event: CloseEvent) => {
+                    if (connectionId !== this.connectionId || socket !== this.socket) {
+                        return;
+                    }
                     this.stopHeartbeat();
                     this.onCloseCallbacks.forEach(callback => callback());
 
@@ -223,7 +238,10 @@ export class Realtime {
                     }
                 });
 
-                this.socket.addEventListener('error', (event: Event) => {
+                socket.addEventListener('error', (event: Event) => {
+                    if (connectionId !== this.connectionId || socket !== this.socket) {
+                        return;
+                    }
                     this.stopHeartbeat();
                     const error = new Error('WebSocket error');
                     console.error('WebSocket error:', error.message);
