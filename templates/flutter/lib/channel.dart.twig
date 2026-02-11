@@ -72,10 +72,11 @@ class Channel<T> {
   }
 
   // Global events
-  static String get documents => 'documents';
-  static String get rows => 'rows';
-  static String get files => 'files';
-  static String get executions => 'executions';
+  static String documents() => 'documents';
+  static String rows() => 'rows';
+  static String files() => 'files';
+  static String executions() => 'executions';
+  static String teams() => 'teams';
 }
 
 // --- DATABASE ROUTE ---

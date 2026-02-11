@@ -86,10 +86,11 @@ class Channel<out T> private constructor(
         }
 
         // Global events
-        const val documents = "documents"
-        const val rows = "rows"
-        const val files = "files"
-        const val executions = "executions"
+        fun documents(): String = "documents"
+        fun rows(): String = "rows"
+        fun files(): String = "files"
+        fun executions(): String = "executions"
+        fun teams(): String = "teams"
     }
 }
 
