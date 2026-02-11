@@ -10,16 +10,21 @@ import {
   LanguageDetector,
   SupportedLanguage,
 } from "./generators/index.js";
+import { globalConfig } from "../config.js";
 import {
   SDK_TITLE,
   SDK_TITLE_LOWER,
   EXECUTABLE_NAME,
-  NPM_PACKAGE_NAME,
+  DEFAULT_ENDPOINT,
 } from "../constants.js";
+import { detectImportExtension } from "../shared/typescript-type-utils.js";
+
+type ServerSideOverride = "auto" | "true" | "false";
 
 export interface GenerateCommandOptions {
   output: string;
   language?: string;
+  server?: ServerSideOverride;
 }
 
 const generateAction = async (
@@ -37,6 +42,12 @@ const generateAction = async (
   // Determine the generator to use
   let generator;
   let detectedLanguage: string;
+
+  const serverSideOverride: ServerSideOverride = options.server ?? "auto";
+  if (!["auto", "true", "false"].includes(serverSideOverride)) {
+    error(`Invalid --server value: ${serverSideOverride}`);
+    process.exit(1);
+  }
 
   if (options.language) {
     // User explicitly specified a language
@@ -75,9 +86,17 @@ const generateAction = async (
     }
   }
 
+  if (typeof (generator as any).setServerSideOverride === "function") {
+    (generator as any).setServerSideOverride(serverSideOverride);
+  }
+
   const config: ConfigType = {
     projectId: project.projectId,
     projectName: project.projectName,
+    endpoint:
+      localConfig.getEndpoint() ||
+      globalConfig.getEndpoint() ||
+      DEFAULT_ENDPOINT,
     tablesDB: localConfig.getTablesDBs(),
     tables: localConfig.getTables(),
     databases: localConfig.getDatabases(),
@@ -105,20 +124,30 @@ const generateAction = async (
 
     // Show language-specific usage instructions
     if (detectedLanguage === "typescript") {
+      const entities = config.tables?.length
+        ? config.tables
+        : config.collections;
+      const firstEntity = entities?.[0];
+      const dbId = firstEntity?.databaseId ?? "databaseId";
+      const tableName = firstEntity?.name ?? "tableName";
+      const importExt = detectImportExtension();
+
       console.log("");
       log(`Import the generated SDK in your project:`);
       console.log(
-        `  import { createDatabases } from "./${outputDir}/${SDK_TITLE_LOWER}/index.js";`,
+        `  import { databases } from "./${outputDir}/${SDK_TITLE_LOWER}/index${importExt}";`,
+      );
+      console.log("");
+      log(`Configure your SDK constants:`);
+      console.log(
+        `  set values in ./${outputDir}/${SDK_TITLE_LOWER}/constants.ts`,
       );
       console.log("");
       log(`Usage:`);
-      console.log(`  import { Client } from '${NPM_PACKAGE_NAME}';`);
+      console.log(`  const mydb = databases.use(${JSON.stringify(dbId)});`);
       console.log(
-        `  const client = new Client().setEndpoint('...').setProject('...').setKey('...');`,
+        `  await mydb.use(${JSON.stringify(tableName)}).create({ ... });`,
       );
-      console.log(`  const databases = createDatabases(client);`);
-      console.log(`  const db = databases.from('your-database-id');`);
-      console.log(`  await db.tableName.create({ ... });`);
     }
   } catch (err: any) {
     error(`Failed to generate SDK: ${err.message}`);
@@ -132,11 +161,30 @@ export const generate = new Command("generate")
   )
   .option(
     "-o, --output <directory>",
-    "Output directory for generated files (default: generated)",
+    "Output directory for generated files",
     "generated",
   )
   .option(
     "-l, --language <language>",
     `Target language for SDK generation (supported: ${getSupportedLanguages().join(", ")})`,
+  )
+  .option(
+    "--server <mode>",
+    "Override server-side generation (auto|true|false)",
+    "auto",
+  )
+  .addHelpText(
+    "after",
+    `
+Example:
+  Import the generated SDK in your project:
+    import { databases } from "./generated/${SDK_TITLE_LOWER}/index${detectImportExtension()}";
+
+  Configure your SDK constants:
+    set values in ./generated/${SDK_TITLE_LOWER}/constants.ts
+
+  Usage:
+    const mydb = databases.use("databaseId");
+    await mydb.use("tableName").create({ ... });`,
   )
   .action(actionRunner(generateAction));

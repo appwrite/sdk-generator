@@ -1,3 +1,4 @@
+```kotlin
 import {{ sdk.namespace | caseDot }}.Client
 import {{ sdk.namespace | caseDot }}.coroutines.CoroutineCallback
 {% if method.parameters.all | filter((param) => param.type == 'file') | length > 0 %}
@@ -43,3 +44,4 @@ val result = {% endif %}{{ service.name | caseCamel }}.{{ method.name | caseCame
 
     {%~ endfor %}
 {% if method.parameters.all | length > 0  %}){% endif %}
+```

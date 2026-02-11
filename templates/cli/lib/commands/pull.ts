@@ -41,6 +41,7 @@ import {
   DatabaseSchema,
   TableSchema,
   ColumnSchema,
+  IndexTableSchema,
   BucketSchema,
   TopicSchema,
 } from "./config.js";
@@ -83,11 +84,17 @@ export interface PullSettingsResult {
   project: Models.Project;
 }
 
-async function createPullInstance(): Promise<Pull> {
+async function createPullInstance(
+  options: { silent?: boolean; requiresConsoleAuth?: boolean } = {
+    silent: false,
+    requiresConsoleAuth: false,
+  },
+): Promise<Pull> {
+  const { silent, requiresConsoleAuth } = options;
   const projectClient = await sdkForProject();
-  const consoleClient = await sdkForConsole();
-  const pullInstance = new Pull(projectClient, consoleClient);
+  const consoleClient = await sdkForConsole(requiresConsoleAuth);
 
+  const pullInstance = new Pull(projectClient, consoleClient, silent);
   pullInstance.setConfigDirectoryPath(localConfig.configDirectoryPath);
   return pullInstance;
 }
@@ -545,9 +552,15 @@ export class Pull {
           filterBySchema(col, ColumnSchema),
         );
 
+        // Filter indexes to only include schema-defined fields
+        const filteredIndexes = table.indexes?.map((idx: any) =>
+          filterBySchema(idx, IndexTableSchema),
+        );
+
         allTables.push({
           ...filterBySchema(table, TableSchema),
           columns: filteredColumns || [],
+          indexes: filteredIndexes || [],
         });
       }
     }
@@ -721,7 +734,9 @@ export const pullResources = async ({
 };
 
 const pullSettings = async (): Promise<void> => {
-  const pullInstance = await createPullInstance();
+  const pullInstance = await createPullInstance({
+    requiresConsoleAuth: true,
+  });
   const projectId = localConfig.getProject().projectId;
   const settings = await pullInstance.pullSettings(projectId);
 

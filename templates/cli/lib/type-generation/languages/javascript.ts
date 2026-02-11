@@ -8,10 +8,11 @@ export class JavaScript extends LanguageMeta {
     let type = "";
     switch (attribute.type) {
       case AttributeType.STRING:
-      case AttributeType.EMAIL:
+      case AttributeType.TEXT:
+      case AttributeType.VARCHAR:
+      case AttributeType.MEDIUMTEXT:
+      case AttributeType.LONGTEXT:
       case AttributeType.DATETIME:
-      case AttributeType.IP:
-      case AttributeType.URL:
         type = "string";
         if (attribute.format === AttributeType.ENUM) {
           type = LanguageMeta.toPascalCase(attribute.key);
@@ -27,14 +28,10 @@ export class JavaScript extends LanguageMeta {
         type = "boolean";
         break;
       case AttributeType.RELATIONSHIP:
-        const relatedCollection = collections?.find(
-          (c) => c.$id === attribute.relatedCollection,
+        const relatedCollection = LanguageMeta.getRelatedCollection(
+          attribute,
+          collections,
         );
-        if (!relatedCollection) {
-          throw new Error(
-            `Related collection with ID '${attribute.relatedCollection}' not found.`,
-          );
-        }
         type = LanguageMeta.toPascalCase(relatedCollection.name);
         if (
           (attribute.relationType === "oneToMany" &&

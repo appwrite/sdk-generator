@@ -21,6 +21,7 @@ use Appwrite\SDK\Language\Flutter;
 use Appwrite\SDK\Language\Android;
 use Appwrite\SDK\Language\Kotlin;
 use Appwrite\SDK\Language\ReactNative;
+use Appwrite\SDK\Language\Markdown;
 
 try {
 
@@ -269,6 +270,15 @@ try {
         $sdk = new SDK(new GraphQL(), new Swagger2($spec));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/graphql');
+    }
+
+    // Markdown
+    if (!$requestedSdk || $requestedSdk === 'markdown') {
+        $markdown = new Markdown();
+        $markdown->setNPMPackage('@appwrite.io/docs');
+        $sdk = new SDK($markdown, new Swagger2($spec));
+        configureSDK($sdk);
+        $sdk->generate(__DIR__ . '/examples/markdown');
     }
 }
 catch (Exception $exception) {

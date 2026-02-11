@@ -194,6 +194,10 @@ const AttributeSchema = z
     key: z.string(),
     type: z.enum([
       "string",
+      "text",
+      "varchar",
+      "mediumtext",
+      "longtext",
       "integer",
       "double",
       "boolean",
@@ -233,7 +237,7 @@ const AttributeSchema = z
     path: ["default"],
   })
   .refine(validateStringSize, {
-    message: "When 'type' is 'string', 'size' must be defined",
+    message: "When 'type' is 'string' or 'varchar', 'size' must be defined",
     path: ["size"],
   });
 
@@ -270,6 +274,10 @@ const ColumnSchema = z
     key: z.string(),
     type: z.enum([
       "string",
+      "text",
+      "varchar",
+      "mediumtext",
+      "longtext",
       "integer",
       "double",
       "boolean",
@@ -310,7 +318,7 @@ const ColumnSchema = z
     path: ["default"],
   })
   .refine(validateStringSize, {
-    message: "When 'type' is 'string', 'size' must be defined",
+    message: "When 'type' is 'string' or 'varchar', 'size' must be defined",
     path: ["size"],
   });
 

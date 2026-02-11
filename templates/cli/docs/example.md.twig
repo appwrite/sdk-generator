@@ -1,3 +1,4 @@
+```bash
 {% set requiredParams = [] %}
 {% for parameter in method.parameters.all %}
 {% if parameter.required %}
@@ -10,3 +11,4 @@
     --{{ parameter.name | caseKebab }} {{ parameter | paramExample }}{% if not loop.last %} \{% endif %}
 
 {% endfor %}
+```

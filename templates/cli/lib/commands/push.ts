@@ -1100,7 +1100,8 @@ export class Push {
                 this.consoleClient,
               );
               const variables = await consoleService.variables();
-              domain = ID.unique() + "." + variables["_APP_DOMAIN_SITES"];
+              const domains = variables["_APP_DOMAIN_SITES"].split(",");
+              domain = ID.unique() + "." + domains[0].trim();
             } catch (err) {
               this.error("Error fetching console variables.");
               throw err;
@@ -1670,9 +1671,16 @@ export class Push {
   }
 }
 
-async function createPushInstance(silent = false): Promise<Push> {
+async function createPushInstance(
+  options: { silent?: boolean; requiresConsoleAuth?: boolean } = {
+    silent: false,
+    requiresConsoleAuth: false,
+  },
+): Promise<Push> {
+  const { silent, requiresConsoleAuth } = options;
   const projectClient = await sdkForProject();
-  const consoleClient = await sdkForConsole();
+  const consoleClient = await sdkForConsole(requiresConsoleAuth);
+
   return new Push(projectClient, consoleClient, silent);
 }
 
@@ -1700,7 +1708,9 @@ const pushResources = async ({
       allowSitesCodePush = codeAnswer.override;
     }
 
-    const pushInstance = await createPushInstance();
+    const pushInstance = await createPushInstance({
+      requiresConsoleAuth: true,
+    });
     const project = localConfig.getProject();
     const config: ConfigType = {
       projectId: project.projectId ?? "",
@@ -1805,7 +1815,9 @@ const pushSettings = async (): Promise<void> => {
   try {
     log("Pushing project settings ...");
 
-    const pushInstance = await createPushInstance();
+    const pushInstance = await createPushInstance({
+      requiresConsoleAuth: true,
+    });
     const config = localConfig.getProject();
 
     await pushInstance.pushSettings({
@@ -2312,7 +2324,7 @@ const pushCollection = async (): Promise<void> => {
   const { successfullyPushed, errors } = result;
 
   if (successfullyPushed === 0) {
-    error("No collections were pushed.");
+    warn("No collections were pushed.");
   } else {
     success(`Successfully pushed ${successfullyPushed} collections.`);
   }

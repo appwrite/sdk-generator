@@ -244,6 +244,7 @@ export const commandDescriptions: Record<string, string> = {
   push: `The push command provides a convenient wrapper for pushing your functions, collections, buckets, teams, and messaging-topics.`,
   run: `The run command allows you to run the project locally to allow easy development and quick debugging.`,
   functions: `The functions command allows you to view, create, and manage your Cloud Functions.`,
+  generate: `The generate command allows you to generate a type-safe SDK from your ${SDK_TITLE} project configuration.`,
   health: `The health command allows you to both validate and monitor your ${SDK_TITLE} server's health.`,
   pull: `The pull command helps you pull your ${SDK_TITLE} project, functions, collections, buckets, teams, and messaging-topics`,
   locale: `The locale command allows you to customize your app based on your users' location.`,

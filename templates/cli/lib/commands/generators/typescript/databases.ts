@@ -1,14 +1,26 @@
-import * as fs from "fs";
-import * as path from "path";
 import { z } from "zod";
+import Handlebars from "handlebars";
 import { ConfigType, AttributeSchema } from "../../config.js";
-import { toPascalCase, sanitizeEnumKey } from "../../../utils.js";
+import { LanguageMeta } from "../../../type-generation/languages/language.js";
+import { TypeScript } from "../../../type-generation/languages/typescript.js";
 import { SDK_TITLE, EXECUTABLE_NAME } from "../../../constants.js";
 import {
   BaseDatabasesGenerator,
   GenerateResult,
   SupportedLanguage,
 } from "../base.js";
+import {
+  getTypeScriptType,
+  getAppwriteDependency,
+  supportsServerSideMethods,
+  detectImportExtension,
+  TypeAttribute,
+  TypeEntity,
+} from "../../../shared/typescript-type-utils.js";
+import typesTemplateSource from "./templates/types.ts.hbs";
+import databasesTemplateSource from "./templates/databases.ts.hbs";
+import indexTemplateSource from "./templates/index.ts.hbs";
+import constantsTemplateSource from "./templates/constants.ts.hbs";
 
 type Entity =
   | NonNullable<ConfigType["tables"]>[number]
@@ -17,6 +29,18 @@ type Entities =
   | NonNullable<ConfigType["tables"]>
   | NonNullable<ConfigType["collections"]>;
 
+const typesTemplate = Handlebars.compile(String(typesTemplateSource));
+const databasesTemplate = Handlebars.compile(String(databasesTemplateSource));
+const indexTemplate = Handlebars.compile(String(indexTemplateSource));
+const constantsTemplate = Handlebars.compile(String(constantsTemplateSource));
+
+// Inline permission callback type for better IntelliSense
+const PERMISSION_CALLBACK_INLINE = `(permission: { read: (role: RoleString) => string; write: (role: RoleString) => string; create: (role: RoleString) => string; update: (role: RoleString) => string; delete: (role: RoleString) => string }, role: { any: () => RoleString; user: (userId: string, status?: string) => RoleString; users: (status?: string) => RoleString; guests: () => RoleString; team: (teamId: string, role?: string) => RoleString; member: (memberId: string) => RoleString; label: (label: string) => RoleString }) => string[]`;
+
+// Inline query callback type for better IntelliSense (with type parameter for field safety)
+const getQueryCallbackInline = (typeName: string) =>
+  `(q: { equal: <K extends QueryableKeys<${typeName}>>(field: K, value: ExtractQueryValue<${typeName}[K]>) => string; notEqual: <K extends QueryableKeys<${typeName}>>(field: K, value: ExtractQueryValue<${typeName}[K]>) => string; lessThan: <K extends QueryableKeys<${typeName}>>(field: K, value: ExtractQueryValue<${typeName}[K]>) => string; lessThanEqual: <K extends QueryableKeys<${typeName}>>(field: K, value: ExtractQueryValue<${typeName}[K]>) => string; greaterThan: <K extends QueryableKeys<${typeName}>>(field: K, value: ExtractQueryValue<${typeName}[K]>) => string; greaterThanEqual: <K extends QueryableKeys<${typeName}>>(field: K, value: ExtractQueryValue<${typeName}[K]>) => string; contains: <K extends QueryableKeys<${typeName}>>(field: K, value: ExtractQueryValue<${typeName}[K]>) => string; search: <K extends QueryableKeys<${typeName}>>(field: K, value: string) => string; isNull: <K extends QueryableKeys<${typeName}>>(field: K) => string; isNotNull: <K extends QueryableKeys<${typeName}>>(field: K) => string; startsWith: <K extends QueryableKeys<${typeName}>>(field: K, value: string) => string; endsWith: <K extends QueryableKeys<${typeName}>>(field: K, value: string) => string; between: <K extends QueryableKeys<${typeName}>>(field: K, start: ExtractQueryValue<${typeName}[K]>, end: ExtractQueryValue<${typeName}[K]>) => string; select: <K extends keyof ${typeName}>(fields: K[]) => string; orderAsc: <K extends keyof ${typeName}>(field: K) => string; orderDesc: <K extends keyof ${typeName}>(field: K) => string; limit: (value: number) => string; offset: (value: number) => string; cursorAfter: (documentId: string) => string; cursorBefore: (documentId: string) => string; or: (...queries: string[]) => string; and: (...queries: string[]) => string }) => string[]`;
+
 /**
  * TypeScript-specific database generator.
  * Generates type-safe SDK files for TypeScript/JavaScript projects.
@@ -24,63 +48,11 @@ type Entities =
 export class TypeScriptDatabasesGenerator extends BaseDatabasesGenerator {
   readonly language: SupportedLanguage = "typescript";
   readonly fileExtension = "ts";
+  private readonly meta = new TypeScript();
+  private serverSideOverride: "auto" | "true" | "false" = "auto";
 
-  private getType(
-    attribute: z.infer<typeof AttributeSchema>,
-    collections: NonNullable<ConfigType["collections"]>,
-    entityName: string,
-  ): string {
-    let type = "";
-
-    switch (attribute.type) {
-      case "string":
-      case "datetime":
-        type = "string";
-        if (attribute.format === "enum") {
-          type = toPascalCase(entityName) + toPascalCase(attribute.key);
-        }
-        break;
-      case "integer":
-      case "double":
-        type = "number";
-        break;
-      case "boolean":
-        type = "boolean";
-        break;
-      case "relationship": {
-        // Handle both collections (relatedCollection) and tables (relatedTable)
-        const relatedId = attribute.relatedCollection ?? attribute.relatedTable;
-        const relatedEntity = collections.find(
-          (c) => c.$id === relatedId || c.name === relatedId,
-        );
-        if (!relatedEntity) {
-          throw new Error(`Related entity with ID '${relatedId}' not found.`);
-        }
-        type = toPascalCase(relatedEntity.name);
-        if (
-          (attribute.relationType === "oneToMany" &&
-            attribute.side === "parent") ||
-          (attribute.relationType === "manyToOne" &&
-            attribute.side === "child") ||
-          attribute.relationType === "manyToMany"
-        ) {
-          type = `${type}[]`;
-        }
-        break;
-      }
-      default:
-        throw new Error(`Unknown attribute type: ${attribute.type}`);
-    }
-
-    if (attribute.array) {
-      type += "[]";
-    }
-
-    if (!attribute.required && attribute.default === null) {
-      type += " | null";
-    }
-
-    return type;
+  setServerSideOverride(override: "auto" | "true" | "false"): void {
+    this.serverSideOverride = override;
   }
 
   private getFields(
@@ -94,10 +66,6 @@ export class TypeScriptDatabasesGenerator extends BaseDatabasesGenerator {
   /**
    * Checks if an entity has relationship columns.
    * Used to disable bulk methods for tables with relationships.
-   *
-   * TODO: Remove this restriction when bulk operations support relationships.
-   * To enable bulk methods for all tables, simply return false here:
-   *   return false;
    */
   private hasRelationshipColumns(entity: Entity): boolean {
     const fields = this.getFields(entity);
@@ -109,15 +77,69 @@ export class TypeScriptDatabasesGenerator extends BaseDatabasesGenerator {
     const fields = this.getFields(entity);
     if (!fields) return "";
 
-    const typeName = toPascalCase(entity.name);
-    const attributes = fields
-      .map(
-        (attr) =>
-          `    ${JSON.stringify(attr.key)}${attr.required ? "" : "?"}: ${this.getType(attr, entities as any, entity.name)};`,
-      )
-      .join("\n");
+    const typeName = LanguageMeta.toPascalCase(entity.name);
+    const typeEntities: TypeEntity[] = entities
+      .filter((e) => e.databaseId === entity.databaseId)
+      .map((e) => ({
+        $id: e.$id,
+        name: e.name,
+      }));
 
-    return `export type ${typeName} = Models.Row & {\n${attributes}\n}`;
+    // Build attributes for Create type (input) - relationships use Create suffix
+    const createAttributes = this.buildAttributes(
+      entity,
+      typeEntities,
+      "    ",
+      true,
+    );
+    // Build attributes for Row type (output) - relationships use full type
+    const rowAttributes = this.buildAttributes(
+      entity,
+      typeEntities,
+      "    ",
+      false,
+    );
+
+    const createType =
+      createAttributes.trim().length === 0
+        ? `export type ${typeName}Create = Record<string, never>`
+        : `export type ${typeName}Create = {\n${createAttributes}\n}`;
+
+    const rowType =
+      rowAttributes.trim().length === 0
+        ? `export type ${typeName} = Models.Row`
+        : `export type ${typeName} = Models.Row & {\n${rowAttributes}\n}`;
+
+    return `${createType}\n\n${rowType}`;
+  }
+
+  private buildAttributes(
+    entity: Entity,
+    typeEntities: TypeEntity[],
+    indent: string,
+    forCreate: boolean = false,
+  ): string {
+    const fields = this.getFields(entity);
+    if (!fields) return "";
+
+    return fields
+      .map((attr) => {
+        const typeAttr: TypeAttribute = {
+          key: attr.key,
+          type: attr.type,
+          required: attr.required,
+          array: attr.array,
+          default: attr.default,
+          format: attr.format,
+          elements: attr.elements,
+          relatedCollection: attr.relatedCollection,
+          relatedTable: attr.relatedTable,
+          relationType: attr.relationType,
+          side: attr.side,
+        };
+        return `${indent}${JSON.stringify(attr.key)}${attr.required ? "" : "?"}: ${getTypeScriptType(typeAttr, typeEntities, entity.name, forCreate)};`;
+      })
+      .join("\n");
   }
 
   private generateEnums(entities: Entities): string {
@@ -129,25 +151,18 @@ export class TypeScriptDatabasesGenerator extends BaseDatabasesGenerator {
 
       for (const field of fields) {
         if (field.format === "enum" && field.elements) {
-          const enumName = toPascalCase(entity.name) + toPascalCase(field.key);
-          const usedKeys = new Set<string>();
-          const enumValues = field.elements
-            .map((element: string, index: number) => {
-              let key = sanitizeEnumKey(element);
-              if (usedKeys.has(key)) {
-                let disambiguator = 1;
-                while (usedKeys.has(`${key}_${disambiguator}`)) {
-                  disambiguator++;
-                }
-                key = `${key}_${disambiguator}`;
-              }
-              usedKeys.add(key);
-              const isLast = index === field.elements!.length - 1;
-              return `    ${key} = ${JSON.stringify(element)}${isLast ? "" : ","}`;
+          const enumDef = this.meta.generateEnum(
+            entity.name,
+            field.key,
+            field.elements,
+          );
+          const enumValues = enumDef.members
+            .map((member, index) => {
+              const isLast = index === enumDef.members.length - 1;
+              return `    ${member.key} = ${JSON.stringify(member.value)}${isLast ? "" : ","}`;
             })
             .join("\n");
-
-          enumTypes.push(`export enum ${enumName} {\n${enumValues}\n}`);
+          enumTypes.push(`export enum ${enumDef.name} {\n${enumValues}\n}`);
         }
       }
     }
@@ -167,121 +182,81 @@ export class TypeScriptDatabasesGenerator extends BaseDatabasesGenerator {
     return entitiesByDb;
   }
 
-  private getAppwriteDependency(): string {
-    const cwd = process.cwd();
-
-    if (fs.existsSync(path.resolve(cwd, "package.json"))) {
-      try {
-        const packageJsonRaw = fs.readFileSync(
-          path.resolve(cwd, "package.json"),
-          "utf-8",
-        );
-        const packageJson = JSON.parse(packageJsonRaw);
-        const deps = packageJson.dependencies ?? {};
-
-        if (deps["@appwrite.io/console"]) {
-          return "@appwrite.io/console";
-        }
-        if (deps["react-native-appwrite"]) {
-          return "react-native-appwrite";
-        }
-        if (deps["appwrite"]) {
-          return "appwrite";
-        }
-        if (deps["node-appwrite"]) {
-          return "node-appwrite";
-        }
-      } catch {
-        // Fallback if package.json is invalid
-      }
-    }
-
-    if (fs.existsSync(path.resolve(cwd, "deno.json"))) {
-      return "npm:node-appwrite";
-    }
-
-    return "appwrite";
-  }
-
-  private supportsBulkMethods(appwriteDep: string): boolean {
-    return (
-      appwriteDep === "node-appwrite" ||
-      appwriteDep === "npm:node-appwrite" ||
-      appwriteDep === "@appwrite.io/console"
-    );
-  }
-
-  private generateQueryBuilderType(): string {
-    return `export type QueryValue = string | number | boolean;
-
-export type ExtractQueryValue<T> = T extends (infer U)[]
-  ? U extends QueryValue ? U : never
-  : T extends QueryValue | null ? NonNullable<T> : never;
-
-export type QueryableKeys<T> = {
-  [K in keyof T]: ExtractQueryValue<T[K]> extends never ? never : K;
-}[keyof T];
-
-export type QueryBuilder<T> = {
-  equal: <K extends QueryableKeys<T>>(field: K, value: ExtractQueryValue<T[K]>) => string;
-  notEqual: <K extends QueryableKeys<T>>(field: K, value: ExtractQueryValue<T[K]>) => string;
-  lessThan: <K extends QueryableKeys<T>>(field: K, value: ExtractQueryValue<T[K]>) => string;
-  lessThanEqual: <K extends QueryableKeys<T>>(field: K, value: ExtractQueryValue<T[K]>) => string;
-  greaterThan: <K extends QueryableKeys<T>>(field: K, value: ExtractQueryValue<T[K]>) => string;
-  greaterThanEqual: <K extends QueryableKeys<T>>(field: K, value: ExtractQueryValue<T[K]>) => string;
-  contains: <K extends QueryableKeys<T>>(field: K, value: ExtractQueryValue<T[K]>) => string;
-  search: <K extends QueryableKeys<T>>(field: K, value: string) => string;
-  isNull: <K extends QueryableKeys<T>>(field: K) => string;
-  isNotNull: <K extends QueryableKeys<T>>(field: K) => string;
-  startsWith: <K extends QueryableKeys<T>>(field: K, value: string) => string;
-  endsWith: <K extends QueryableKeys<T>>(field: K, value: string) => string;
-  between: <K extends QueryableKeys<T>>(field: K, start: ExtractQueryValue<T[K]>, end: ExtractQueryValue<T[K]>) => string;
-  select: <K extends keyof T>(fields: K[]) => string;
-  orderAsc: <K extends keyof T>(field: K) => string;
-  orderDesc: <K extends keyof T>(field: K) => string;
-  limit: (value: number) => string;
-  offset: (value: number) => string;
-  cursorAfter: (documentId: string) => string;
-  cursorBefore: (documentId: string) => string;
-  or: (...queries: string[]) => string;
-  and: (...queries: string[]) => string;
-}`;
-  }
-
   private generateDatabaseTablesType(
     entitiesByDb: Map<string, Entity[]>,
     appwriteDep: string,
   ): string {
-    const supportsBulk = this.supportsBulkMethods(appwriteDep);
+    const supportsServerSide = supportsServerSideMethods(
+      appwriteDep,
+      this.serverSideOverride,
+    );
     const dbReturnTypes = Array.from(entitiesByDb.entries())
       .map(([dbId, dbEntities]) => {
         const tableTypes = dbEntities
           .map((entity) => {
-            const typeName = toPascalCase(entity.name);
-            const baseMethods = `      create: (data: Omit<${typeName}, keyof Models.Row>, options?: { rowId?: string; permissions?: Permission[]; transactionId?: string }) => Promise<${typeName}>;
+            const typeName = LanguageMeta.toPascalCase(entity.name);
+            const typeEntities: TypeEntity[] = entitiesByDb
+              .get(entity.databaseId)!
+              .map((e) => ({
+                $id: e.$id,
+                name: e.name,
+              }));
+            const createFields = this.buildAttributes(
+              entity,
+              typeEntities,
+              "        ",
+              true, // forCreate - relationships use Create suffix
+            );
+            const createInline =
+              createFields.trim().length === 0
+                ? "Record<string, never>"
+                : `{\n${createFields}\n      }`;
+            const queryCallback = getQueryCallbackInline(typeName);
+            const baseMethods = `      create: (data: ${createInline}, options?: { rowId?: string; permissions?: ${PERMISSION_CALLBACK_INLINE}; transactionId?: string }) => Promise<${typeName}>;
       get: (id: string) => Promise<${typeName}>;
-      update: (id: string, data: Partial<Omit<${typeName}, keyof Models.Row>>, options?: { permissions?: Permission[]; transactionId?: string }) => Promise<${typeName}>;
+      update: (id: string, data: Partial<${createInline}>, options?: { permissions?: ${PERMISSION_CALLBACK_INLINE}; transactionId?: string }) => Promise<${typeName}>;
       delete: (id: string, options?: { transactionId?: string }) => Promise<void>;
-      list: (options?: { queries?: (q: QueryBuilder<${typeName}>) => string[] }) => Promise<{ total: number; rows: ${typeName}[] }>;`;
+      list: (options?: { queries?: ${queryCallback} }) => Promise<{ total: number; rows: ${typeName}[] }>;`;
 
-            // Bulk methods not supported for tables with relationship columns (see hasRelationshipColumns)
             const canUseBulkMethods =
-              supportsBulk && !this.hasRelationshipColumns(entity);
+              supportsServerSide && !this.hasRelationshipColumns(entity);
             const bulkMethods = canUseBulkMethods
               ? `
-      createMany: (rows: Array<Omit<${typeName}, keyof Models.Row> & { $id?: string; $permissions?: string[] }>, options?: { transactionId?: string }) => Promise<{ total: number; rows: ${typeName}[] }>;
-      updateMany: (data: Partial<Omit<${typeName}, keyof Models.Row>>, options?: { queries?: (q: QueryBuilder<${typeName}>) => string[]; transactionId?: string }) => Promise<{ total: number; rows: ${typeName}[] }>;
-      deleteMany: (options?: { queries?: (q: QueryBuilder<${typeName}>) => string[]; transactionId?: string }) => Promise<{ total: number; rows: ${typeName}[] }>;`
+      createMany: (rows: Array<${createInline} & { $id?: string; $permissions?: string[] }>, options?: { transactionId?: string }) => Promise<{ total: number; rows: ${typeName}[] }>;
+      updateMany: (data: Partial<${createInline}>, options?: { queries?: ${queryCallback}; transactionId?: string }) => Promise<{ total: number; rows: ${typeName}[] }>;
+      deleteMany: (options?: { queries?: ${queryCallback}; transactionId?: string }) => Promise<{ total: number; rows: ${typeName}[] }>;`
               : "";
 
-            return `    '${entity.name}': {\n${baseMethods}${bulkMethods}\n    }`;
+            return `    ${JSON.stringify(entity.name)}: {\n${baseMethods}${bulkMethods}\n    }`;
           })
           .join(";\n");
-        return `  '${dbId}': {\n${tableTypes}\n  }`;
+        return `  ${JSON.stringify(dbId)}: {\n${tableTypes}\n  }`;
       })
       .join(";\n");
 
-    return `export type DatabaseTables = {\n${dbReturnTypes}\n}`;
+    return `export type DatabaseTableMap = {\n${dbReturnTypes}\n};
+
+export type DatabaseHandle<D extends DatabaseId> = {
+  use: <T extends keyof DatabaseTableMap[D] & string>(tableId: T) => DatabaseTableMap[D][T];
+${
+  supportsServerSide
+    ? `  create: (tableId: string, name: string, options?: { permissions?: ${PERMISSION_CALLBACK_INLINE}; rowSecurity?: boolean; enabled?: boolean; columns?: any[]; indexes?: any[] }) => Promise<Models.Table>;
+  update: <T extends keyof DatabaseTableMap[D] & string>(tableId: T, options?: { name?: string; permissions?: ${PERMISSION_CALLBACK_INLINE}; rowSecurity?: boolean; enabled?: boolean }) => Promise<Models.Table>;
+  delete: <T extends keyof DatabaseTableMap[D] & string>(tableId: T) => Promise<void>;`
+    : ""
+}
+};
+
+export type DatabaseTables = {
+  use: <D extends DatabaseId>(databaseId: D) => DatabaseHandle<D>;
+${
+  supportsServerSide
+    ? `  create: (databaseId: string, name: string, options?: { enabled?: boolean }) => Promise<Models.Database>;
+  update: <D extends DatabaseId>(databaseId: D, options?: { name?: string; enabled?: boolean }) => Promise<Models.Database>;
+  delete: <D extends DatabaseId>(databaseId: D) => Promise<void>;`
+    : ""
+}
+};`;
   }
 
   private generateTypesFile(config: ConfigType): string {
@@ -291,62 +266,25 @@ export type QueryBuilder<T> = {
       return "// No tables or collections found in configuration\n";
     }
 
-    const appwriteDep = this.getAppwriteDependency();
+    const appwriteDep = getAppwriteDependency();
     const enums = this.generateEnums(entities);
     const types = entities
       .map((entity: Entity) => this.generateTableType(entity, entities))
       .join("\n\n");
     const entitiesByDb = this.groupEntitiesByDb(entities);
     const dbIds = Array.from(entitiesByDb.keys());
-    const dbIdType = dbIds.map((id) => `'${id}'`).join(" | ");
+    const databaseIdType = dbIds.map((id) => JSON.stringify(id)).join(" | ");
 
-    const parts = [
-      `import { type Models, Permission } from '${appwriteDep}';`,
-      "",
-    ];
-
-    if (enums) {
-      parts.push(enums);
-      parts.push("");
-    }
-
-    parts.push(types);
-    parts.push("");
-    parts.push(this.generateQueryBuilderType());
-    parts.push("");
-    parts.push(`export type DatabaseId = ${dbIdType};`);
-    parts.push("");
-    parts.push(this.generateDatabaseTablesType(entitiesByDb, appwriteDep));
-    parts.push("");
-
-    return parts.join("\n");
-  }
-
-  private generateQueryBuilder(): string {
-    return `const createQueryBuilder = <T>(): QueryBuilder<T> => ({
-  equal: (field, value) => Query.equal(String(field), value as any),
-  notEqual: (field, value) => Query.notEqual(String(field), value as any),
-  lessThan: (field, value) => Query.lessThan(String(field), value as any),
-  lessThanEqual: (field, value) => Query.lessThanEqual(String(field), value as any),
-  greaterThan: (field, value) => Query.greaterThan(String(field), value as any),
-  greaterThanEqual: (field, value) => Query.greaterThanEqual(String(field), value as any),
-  contains: (field, value) => Query.contains(String(field), value as any),
-  search: (field, value) => Query.search(String(field), value),
-  isNull: (field) => Query.isNull(String(field)),
-  isNotNull: (field) => Query.isNotNull(String(field)),
-  startsWith: (field, value) => Query.startsWith(String(field), value),
-  endsWith: (field, value) => Query.endsWith(String(field), value),
-  between: (field, start, end) => Query.between(String(field), start as any, end as any),
-  select: (fields) => Query.select(fields.map(String)),
-  orderAsc: (field) => Query.orderAsc(String(field)),
-  orderDesc: (field) => Query.orderDesc(String(field)),
-  limit: (value) => Query.limit(value),
-  offset: (value) => Query.offset(value),
-  cursorAfter: (documentId) => Query.cursorAfter(documentId),
-  cursorBefore: (documentId) => Query.cursorBefore(documentId),
-  or: (...queries) => Query.or(queries),
-  and: (...queries) => Query.and(queries),
-})`;
+    return typesTemplate({
+      appwriteDep,
+      ENUMS: enums ? enums + "\n" : "",
+      TYPES: types + "\n",
+      databaseIdType,
+      DATABASE_TABLES_TYPE: this.generateDatabaseTablesType(
+        entitiesByDb,
+        appwriteDep,
+      ),
+    });
   }
 
   private generateTableIdMap(entitiesByDb: Map<string, Entity[]>): string {
@@ -374,31 +312,24 @@ export type QueryBuilder<T> = {
     for (const [dbId, dbEntities] of entitiesByDb.entries()) {
       for (const entity of dbEntities) {
         if (this.hasRelationshipColumns(entity)) {
-          tablesWithRelationships.push(`'${dbId}:${entity.name}'`);
+          tablesWithRelationships.push(
+            JSON.stringify(`${dbId}:${entity.name}`),
+          );
         }
       }
     }
 
     if (tablesWithRelationships.length === 0) {
-      return `const tablesWithRelationships = new Set<string>()`;
+      return `const tablesWithRelationships = new Set<string>();`;
     }
 
-    return `const tablesWithRelationships = new Set<string>([${tablesWithRelationships.join(", ")}])`;
+    return `const tablesWithRelationships = new Set<string>([${tablesWithRelationships.join(", ")}]);`;
   }
 
-  private generateDatabasesFile(config: ConfigType): string {
-    const entities = config.tables?.length ? config.tables : config.collections;
+  private generateBulkMethods(supportsBulk: boolean): string {
+    if (!supportsBulk) return "";
 
-    if (!entities || entities.length === 0) {
-      return "// No tables or collections found in configuration\n";
-    }
-
-    const entitiesByDb = this.groupEntitiesByDb(entities);
-    const appwriteDep = this.getAppwriteDependency();
-    const supportsBulk = this.supportsBulkMethods(appwriteDep);
-
-    const bulkMethodsCode = supportsBulk
-      ? `
+    return `
     createMany: (rows: any[], options?: { transactionId?: string }) =>
       tablesDB.createRows({
         databaseId,
@@ -420,138 +351,73 @@ export type QueryBuilder<T> = {
         tableId,
         queries: options?.queries?.(createQueryBuilder()),
         transactionId: options?.transactionId,
-      }),`
-      : "";
+      }),`;
+  }
 
-    const hasBulkCheck = supportsBulk
-      ? `const hasBulkMethods = (dbId: string, tableName: string) => !tablesWithRelationships.has(\`\${dbId}:\${tableName}\`);`
-      : "";
+  private generateBulkCheck(supportsBulk: boolean): string {
+    if (!supportsBulk) return "";
+    return `const hasBulkMethods = (dbId: string, tableId: string) => !tablesWithRelationships.has(\`\${dbId}:\${tableId}\`);\n`;
+  }
 
-    return `import { Client, TablesDB, ID, Query, type Models, Permission } from '${appwriteDep}';
-import type { DatabaseId, DatabaseTables, QueryBuilder } from './types.js';
-
-${this.generateQueryBuilder()};
-
-${this.generateTableIdMap(entitiesByDb)};
-
-${this.generateTablesWithRelationships(entitiesByDb)};
-
-function createTableApi<T extends Models.Row>(
-  tablesDB: TablesDB,
-  databaseId: string,
-  tableId: string,
-) {
-  return {
-    create: (data: any, options?: { rowId?: string; permissions?: Permission[]; transactionId?: string }) =>
-      tablesDB.createRow<T>({
-        databaseId,
-        tableId,
-        rowId: options?.rowId ?? ID.unique(),
-        data,
-        permissions: options?.permissions?.map((p) => p.toString()),
-        transactionId: options?.transactionId,
-      }),
-    get: (id: string) =>
-      tablesDB.getRow<T>({
-        databaseId,
-        tableId,
-        rowId: id,
-      }),
-    update: (id: string, data: any, options?: { permissions?: Permission[]; transactionId?: string }) =>
-      tablesDB.updateRow<T>({
-        databaseId,
-        tableId,
-        rowId: id,
-        data,
-        ...(options?.permissions ? { permissions: options.permissions.map((p) => p.toString()) } : {}),
-        transactionId: options?.transactionId,
-      }),
-    delete: async (id: string, options?: { transactionId?: string }) => {
-      await tablesDB.deleteRow({
-        databaseId,
-        tableId,
-        rowId: id,
-        transactionId: options?.transactionId,
-      });
-    },
-    list: (options?: { queries?: (q: any) => string[] }) =>
-      tablesDB.listRows<T>({
-        databaseId,
-        tableId,
-        queries: options?.queries?.(createQueryBuilder<T>()),
-      }),${bulkMethodsCode}
-  };
-}
-
-${hasBulkCheck}
-
-const hasOwn = (obj: unknown, key: string): boolean =>
-  obj != null && Object.prototype.hasOwnProperty.call(obj, key);
-
-function createDatabaseProxy<D extends DatabaseId>(
-  tablesDB: TablesDB,
-  databaseId: D,
-): DatabaseTables[D] {
-  const tableApiCache = new Map<string, ReturnType<typeof createTableApi>>();
-  const dbMap = tableIdMap[databaseId];
-
-  return new Proxy({} as DatabaseTables[D], {
-    get(_target, tableName: string) {
-      if (typeof tableName === 'symbol') return undefined;
-
-      if (!tableApiCache.has(tableName)) {
-        if (!hasOwn(dbMap, tableName)) return undefined;
-        const tableId = dbMap[tableName];
-
-        const api = createTableApi(tablesDB, databaseId, tableId);
-        ${
-          supportsBulk
-            ? `
+  private generateBulkRemoval(supportsBulk: boolean): string {
+    if (!supportsBulk) return "";
+    return `
         // Remove bulk methods for tables with relationships
-        if (!hasBulkMethods(databaseId, tableName)) {
+        if (!hasBulkMethods(databaseId, tableId)) {
           delete (api as any).createMany;
           delete (api as any).updateMany;
           delete (api as any).deleteMany;
-        }`
-            : ""
-        }
-        tableApiCache.set(tableName, api);
-      }
-      return tableApiCache.get(tableName);
-    },
-    has(_target, tableName: string) {
-      return typeof tableName === 'string' && hasOwn(dbMap, tableName);
-    },
-  });
-}
-
-export const createDatabases = (client: Client) => {
-  const tablesDB = new TablesDB(client);
-  const dbCache = new Map<DatabaseId, DatabaseTables[DatabaseId]>();
-
-  return {
-    from: <T extends DatabaseId>(databaseId: T): DatabaseTables[T] => {
-      if (!dbCache.has(databaseId)) {
-        dbCache.set(databaseId, createDatabaseProxy(tablesDB, databaseId));
-      }
-      return dbCache.get(databaseId) as DatabaseTables[T];
-    },
-  };
-};
-`;
+        }`;
   }
 
-  private generateIndexFile(): string {
-    return `/**
- * ${SDK_TITLE} Generated SDK
- *
- * This file is auto-generated. Do not edit manually.
- * Re-run \`${EXECUTABLE_NAME} generate\` to regenerate.
- */
+  private generateDatabasesFile(config: ConfigType, importExt: string): string {
+    const entities = config.tables?.length ? config.tables : config.collections;
 
-export { createDatabases } from "./databases.js";
-export * from "./types.js";
-`;
+    if (!entities || entities.length === 0) {
+      return "// No tables or collections found in configuration\n";
+    }
+
+    const entitiesByDb = this.groupEntitiesByDb(entities);
+    const appwriteDep = getAppwriteDependency();
+    const supportsServerSide = supportsServerSideMethods(
+      appwriteDep,
+      this.serverSideOverride,
+    );
+
+    return databasesTemplate({
+      appwriteDep,
+      supportsServerSide,
+      importExt,
+      TABLE_ID_MAP: this.generateTableIdMap(entitiesByDb),
+      TABLES_WITH_RELATIONSHIPS:
+        this.generateTablesWithRelationships(entitiesByDb),
+      BULK_METHODS: this.generateBulkMethods(supportsServerSide),
+      BULK_CHECK: this.generateBulkCheck(supportsServerSide),
+      BULK_REMOVAL: this.generateBulkRemoval(supportsServerSide),
+    });
+  }
+
+  private generateIndexFile(importExt: string): string {
+    return indexTemplate({
+      sdkTitle: SDK_TITLE,
+      executableName: EXECUTABLE_NAME,
+      importExt,
+    });
+  }
+
+  private generateConstantsFile(config: ConfigType): string {
+    const appwriteDep = getAppwriteDependency();
+    const supportsServerSide = supportsServerSideMethods(
+      appwriteDep,
+      this.serverSideOverride,
+    );
+
+    return constantsTemplate({
+      sdkTitle: SDK_TITLE,
+      projectId: config.projectId,
+      endpoint: config.endpoint ?? "",
+      requiresApiKey: supportsServerSide,
+    });
   }
 
   async generate(config: ConfigType): Promise<GenerateResult> {
@@ -559,6 +425,7 @@ export * from "./types.js";
       throw new Error("Project ID is required in configuration");
     }
 
+    const importExt = detectImportExtension();
     const files = new Map<string, string>();
 
     const hasEntities =
@@ -577,13 +444,15 @@ export * from "./types.js";
         "types.ts",
         "// No tables or collections found in configuration\n",
       );
-      files.set("index.ts", this.generateIndexFile());
+      files.set("index.ts", this.generateIndexFile(importExt));
+      files.set("constants.ts", this.generateConstantsFile(config));
       return { files };
     }
 
     files.set("types.ts", this.generateTypesFile(config));
-    files.set("databases.ts", this.generateDatabasesFile(config));
-    files.set("index.ts", this.generateIndexFile());
+    files.set("databases.ts", this.generateDatabasesFile(config, importExt));
+    files.set("index.ts", this.generateIndexFile(importExt));
+    files.set("constants.ts", this.generateConstantsFile(config));
 
     return { files };
   }
