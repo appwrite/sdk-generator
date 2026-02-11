@@ -32,7 +32,7 @@
     "windows-arm64": "esbuild cli.ts --bundle --loader:.hbs=text --platform=node --target=node18 --format=esm --external:fsevents --outfile=dist/bundle-win-arm64.mjs && pkg dist/bundle-win-arm64.mjs -t node18-win-arm64 -o build/appwrite-cli-win-arm64.exe"
   },
   "dependencies": {
-    "@appwrite.io/console": "^2.1.3",
+    "@appwrite.io/console": "^2.2.0",
     "bignumber.js": "^9.0.0",
     "chalk": "4.1.2",
     "chokidar": "^3.6.0",

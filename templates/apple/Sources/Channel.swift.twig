@@ -88,10 +88,11 @@ public enum Channel {
     }
     
     // Global events
-    public static var documents: String { "documents" }
-    public static var rows: String { "rows" }
-    public static var files: String { "files" }
-    public static var executions: String { "executions" }
+    public static func documents() -> String { "documents" }
+    public static func rows() -> String { "rows" }
+    public static func files() -> String { "files" }
+    public static func executions() -> String { "executions" }
+    public static func teams() -> String { "teams" }
 }
 
 // MARK: - DATABASE ROUTE

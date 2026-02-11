@@ -10,6 +10,10 @@ export class Kotlin extends LanguageMeta {
     let type = "";
     switch (attribute.type) {
       case AttributeType.STRING:
+      case AttributeType.TEXT:
+      case AttributeType.VARCHAR:
+      case AttributeType.MEDIUMTEXT:
+      case AttributeType.LONGTEXT:
       case AttributeType.DATETIME:
         type = "String";
         if (attribute.format === AttributeType.ENUM) {

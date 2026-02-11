@@ -283,6 +283,11 @@ void main() async {
   print(Channel.execution('exec1').create().toString());
   print(Channel.function('func1').execution('exec1').toString());
   print(Channel.function('func1').execution('exec1').create().toString());
+  print(Channel.documents());
+  print(Channel.rows());
+  print(Channel.files());
+  print(Channel.executions());
+  print(Channel.teams());
   print(Channel.team().toString());
   print(Channel.team('team1').toString());
   print(Channel.team('team1').create().toString());

@@ -1100,7 +1100,8 @@ export class Push {
                 this.consoleClient,
               );
               const variables = await consoleService.variables();
-              domain = ID.unique() + "." + variables["_APP_DOMAIN_SITES"];
+              const domains = variables["_APP_DOMAIN_SITES"].split(",");
+              domain = ID.unique() + "." + domains[0].trim();
             } catch (err) {
               this.error("Error fetching console variables.");
               throw err;
@@ -2323,7 +2324,7 @@ const pushCollection = async (): Promise<void> => {
   const { successfullyPushed, errors } = result;
 
   if (successfullyPushed === 0) {
-    error("No collections were pushed.");
+    warn("No collections were pushed.");
   } else {
     success(`Successfully pushed ${successfullyPushed} collections.`);
   }

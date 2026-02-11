@@ -26,3 +26,20 @@ export type {
   ColumnType,
   TableIndexType,
 } from "./lib/commands/config.js";
+export {
+  ConfigSchema,
+  SettingsSchema,
+  SiteSchema,
+  FunctionSchema,
+  DatabaseSchema,
+  CollectionSchema,
+  AttributeSchema,
+  IndexSchema,
+  TableSchema,
+  ColumnSchema,
+  IndexTableSchema,
+  TopicSchema,
+  TeamSchema,
+  MessageSchema,
+  BucketSchema,
+} from "./lib/commands/config.js";

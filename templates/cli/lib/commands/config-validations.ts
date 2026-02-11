@@ -18,18 +18,29 @@ export const validateRequiredDefault = (data: {
 };
 
 /**
- * Validates that string type attributes must have a size defined
+ * Validates that string/varchar type attributes must have a size defined,
+ * unless they have a format (email, url, ip, enum) which defines the size
  */
 export const validateStringSize = (data: {
   type: string;
   size?: number | null;
+  format?: string | null;
 }) => {
-  if (
-    data.type === "string" &&
-    (data.size === undefined || data.size === null)
-  ) {
+  // Skip validation if not a string-like type that requires size
+  if (data.type !== "string" && data.type !== "varchar") {
+    return true;
+  }
+
+  // String columns with format don't need explicit size
+  if (data.format && data.format !== "") {
+    return true;
+  }
+
+  // Regular string columns need size
+  if (data.size === undefined || data.size === null) {
     return false;
   }
+
   return true;
 };
 

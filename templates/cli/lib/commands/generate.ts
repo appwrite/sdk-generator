@@ -17,6 +17,7 @@ import {
   EXECUTABLE_NAME,
   DEFAULT_ENDPOINT,
 } from "../constants.js";
+import { detectImportExtension } from "../shared/typescript-type-utils.js";
 
 type ServerSideOverride = "auto" | "true" | "false";
 
@@ -129,11 +130,12 @@ const generateAction = async (
       const firstEntity = entities?.[0];
       const dbId = firstEntity?.databaseId ?? "databaseId";
       const tableName = firstEntity?.name ?? "tableName";
+      const importExt = detectImportExtension();
 
       console.log("");
       log(`Import the generated SDK in your project:`);
       console.log(
-        `  import { databases } from "./${outputDir}/${SDK_TITLE_LOWER}/index.js";`,
+        `  import { databases } from "./${outputDir}/${SDK_TITLE_LOWER}/index${importExt}";`,
       );
       console.log("");
       log(`Configure your SDK constants:`);
@@ -176,7 +178,7 @@ export const generate = new Command("generate")
     `
 Example:
   Import the generated SDK in your project:
-    import { databases } from "./generated/${SDK_TITLE_LOWER}/index.js";
+    import { databases } from "./generated/${SDK_TITLE_LOWER}/index${detectImportExtension()}";
 
   Configure your SDK constants:
     set values in ./generated/${SDK_TITLE_LOWER}/constants.ts
