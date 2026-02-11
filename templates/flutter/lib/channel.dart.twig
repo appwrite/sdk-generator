@@ -112,16 +112,6 @@ extension BucketChannel on Channel<_Bucket> {
   Channel<_File> file([String? id]) => _next<_File>('files', id);
 }
 
-// --- FUNCTION ROUTE ---
-
-/// Only available on Channel<_Func>
-extension FuncChannel on Channel<_Func> {
-  Channel<_Execution> execution([String id = '*']) {
-    final normalized = _normalize(id);
-    return Channel<_Execution>._(['executions', normalized]);
-  }
-}
-
 // --- TERMINAL ACTIONS ---
 // Restricted to actionable types (_Document, _Row, _File, _Execution, _Team, _Membership)
 

@@ -62,16 +62,25 @@ void main() {
 
   group('functions()', () {
     test('returns functions channel with defaults', () {
-    expect(Channel.function().execution().toString(), 'executions.*');
+      expect(Channel.function().toString(), 'functions.*');
     });
 
     test('returns functions channel with specific IDs', () {
-    expect(Channel.function('func1').execution('exec1').toString(),
-          'executions.exec1');
+      expect(Channel.function('func1').toString(), 'functions.func1');
+    });
+  });
+
+  group('executions()', () {
+    test('returns executions channel with defaults', () {
+      expect(Channel.execution().toString(), 'executions.*');
     });
 
-    test('returns functions channel with action', () {
-    expect(Channel.function('func1').execution('exec1').create().toString(),
+    test('returns executions channel with specific IDs', () {
+      expect(Channel.execution('exec1').toString(), 'executions.exec1');
+    });
+
+    test('returns executions channel with action', () {
+      expect(Channel.execution('exec1').create().toString(),
           'executions.exec1.create');
     });
   });

@@ -72,12 +72,6 @@ export class Channel<T> {
     return this.next<File>("files", id);
   }
 
-  // --- FUNCTION ROUTE ---
-  execution(this: Channel<Func>, id: string = "*"): Channel<Execution> {
-    const normalized = normalize(id);
-    return new Channel<Execution>(["executions", normalized]);
-  }
-
   // --- TERMINAL ACTIONS ---
   // Restricted to the Actionable union
   create(this: Channel<Actionable>): Channel<Resolved> {

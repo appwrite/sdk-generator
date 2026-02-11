@@ -137,16 +137,6 @@ extension RealtimeChannel where T == _Bucket {
     }
 }
 
-// MARK: - FUNCTION ROUTE
-
-/// Only available on RealtimeChannel<_Func>
-extension RealtimeChannel where T == _Func {
-    public func execution(_ id: String = "*") -> RealtimeChannel<_Execution> {
-        let normalized = normalize(id)
-        return RealtimeChannel<_Execution>(["executions", normalized])
-    }
-}
-
 // MARK: - TERMINAL ACTIONS
 // Restricted to actionable types (_Document, _Row, _File, _Execution, _Team, _Membership)
 
