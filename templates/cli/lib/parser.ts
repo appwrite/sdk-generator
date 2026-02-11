@@ -54,25 +54,35 @@ export const parse = (data: Record<string, any>): void => {
   }
 };
 
-export const drawTable = (data: Array<Record<string, any>>): void => {
+export const drawTable = (
+  data: Array<Record<string, any> | null | undefined>,
+): void => {
   if (data.length == 0) {
     console.log("[]");
     return;
   }
 
+  const rows = data.map((item) =>
+    item && typeof item === "object" && !Array.isArray(item) ? item : {},
+  );
+
   // Create an object with all the keys in it
-  const obj = data.reduce((res, item) => ({ ...res, ...item }), {});
+  const obj = rows.reduce((res, item) => ({ ...res, ...item }), {});
   // Get those keys as an array
   const keys = Object.keys(obj);
+  if (keys.length === 0) {
+    drawJSON(data);
+    return;
+  }
   // Create an object with all keys set to the default value ''
   const def = keys.reduce((result: Record<string, string>, key) => {
     result[key] = "-";
     return result;
   }, {});
   // Use object destructuring to replace all default values with the ones we have
-  data = data.map((item) => ({ ...def, ...item }));
+  const normalizedData = rows.map((item) => ({ ...def, ...item }));
 
-  const columns = Object.keys(data[0]);
+  const columns = Object.keys(normalizedData[0]);
 
   const table = new Table({
     head: columns.map((c) => chalk.cyan.italic.bold(c)),
@@ -95,10 +105,10 @@ export const drawTable = (data: Array<Record<string, any>>): void => {
     },
   });
 
-  data.forEach((row) => {
+  normalizedData.forEach((row) => {
     const rowValues: any[] = [];
-    for (const key in row) {
-      if (row[key] === null) {
+    for (const key of columns) {
+      if (row[key] == null) {
         rowValues.push("-");
       } else if (Array.isArray(row[key])) {
         rowValues.push(JSON.stringify(row[key]));
