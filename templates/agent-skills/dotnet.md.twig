@@ -73,6 +73,40 @@ await tablesDB.UpdateRow("[DATABASE_ID]", "[TABLE_ID]", "[ROW_ID]",
 await tablesDB.DeleteRow("[DATABASE_ID]", "[TABLE_ID]", "[ROW_ID]");
 ```
 
+### Query Methods
+
+```csharp
+// Filtering
+Query.Equal("field", "value")             // == (or pass array for IN)
+Query.NotEqual("field", "value")          // !=
+Query.LessThan("field", 100)             // <
+Query.LessThanEqual("field", 100)        // <=
+Query.GreaterThan("field", 100)          // >
+Query.GreaterThanEqual("field", 100)     // >=
+Query.Between("field", 1, 100)           // 1 <= field <= 100
+Query.IsNull("field")                    // is null
+Query.IsNotNull("field")                 // is not null
+Query.StartsWith("field", "prefix")      // starts with
+Query.EndsWith("field", "suffix")        // ends with
+Query.Contains("field", "sub")           // contains
+Query.Search("field", "keywords")        // full-text search (requires index)
+
+// Sorting
+Query.OrderAsc("field")
+Query.OrderDesc("field")
+
+// Pagination
+Query.Limit(25)                          // max rows (default 25, max 100)
+Query.Offset(0)                          // skip N rows
+Query.CursorAfter("[ROW_ID]")            // cursor pagination (preferred)
+Query.CursorBefore("[ROW_ID]")
+
+// Selection & Logic
+Query.Select(new List<string> { "field1", "field2" })
+Query.Or(new List<string> { Query.Equal("a", 1), Query.Equal("b", 2) })   // OR
+Query.And(new List<string> { Query.GreaterThan("age", 18), Query.LessThan("age", 65) })  // AND (default)
+```
+
 ### File Storage
 
 ```csharp
@@ -88,6 +122,46 @@ var files = await storage.ListFiles("[BUCKET_ID]");
 await storage.DeleteFile("[BUCKET_ID]", "[FILE_ID]");
 ```
 
+#### InputFile Factory Methods
+
+```csharp
+using {{ spec.title }}.Models;
+
+InputFile.FromPath("/path/to/file.png")                          // from filesystem path
+InputFile.FromBytes(byteArray, "file.png", "image/png")          // from byte[]
+InputFile.FromStream(stream, "file.png", "image/png", size)      // from Stream (size required)
+```
+
+### Teams
+
+```csharp
+var teams = new Teams(client);
+
+// Create team
+var team = await teams.Create(ID.Unique(), "Engineering");
+
+// List teams
+var list = await teams.List();
+
+// Create membership (invite user by email)
+var membership = await teams.CreateMembership(
+    teamId: "[TEAM_ID]",
+    roles: new List<string> { "editor" },
+    email: "user@example.com"
+);
+
+// List memberships
+var members = await teams.ListMemberships("[TEAM_ID]");
+
+// Update membership roles
+await teams.UpdateMembership("[TEAM_ID]", "[MEMBERSHIP_ID]", new List<string> { "admin" });
+
+// Delete team
+await teams.Delete("[TEAM_ID]");
+```
+
+> **Role-based access:** Use `Role.Team("[TEAM_ID]")` for all team members or `Role.Team("[TEAM_ID]", "editor")` for a specific team role when setting permissions.
+
 ### Serverless Functions
 
 ```csharp
@@ -98,6 +172,33 @@ var execution = await functions.CreateExecution("[FUNCTION_ID]", body: "{\"key\"
 
 // List executions
 var executions = await functions.ListExecutions("[FUNCTION_ID]");
+```
+
+#### Writing a Function Handler (.NET runtime)
+
+```csharp
+// src/Main.cs — Appwrite Function entry point
+using System.Text.Json;
+
+public async Task<RuntimeOutput> Main(RuntimeContext context)
+{
+    // context.Req.Body        — raw body (string)
+    // context.Req.BodyJson    — parsed JSON (JsonElement)
+    // context.Req.Headers     — headers (Dictionary)
+    // context.Req.Method      — HTTP method
+    // context.Req.Path        — URL path
+    // context.Req.Query       — query params (Dictionary)
+
+    context.Log($"Processing: {context.Req.Method} {context.Req.Path}");
+
+    if (context.Req.Method == "GET")
+        return context.Res.Json(new { message = "Hello from Appwrite Function!" });
+
+    return context.Res.Json(new { success = true });      // JSON
+    // context.Res.Text("Hello");                         // plain text
+    // context.Res.Empty();                               // 204
+    // context.Res.Redirect("https://...");               // 302
+}
 ```
 
 ### Server-Side Rendering (SSR) Authentication
@@ -203,6 +304,34 @@ app.MapGet("/oauth/success", async (HttpContext ctx, string userId, string secre
 
 > **Forwarding user agent:** Call `sessionClient.SetForwardedUserAgent(ctx.Request.Headers["User-Agent"])` to record the end-user's browser info for debugging and security.
 
+## Error Handling
+
+```csharp
+using {{ spec.title }};
+
+try
+{
+    var row = await tablesDB.GetRow("[DATABASE_ID]", "[TABLE_ID]", "[ROW_ID]");
+}
+catch (AppwriteException e)
+{
+    Console.WriteLine(e.Message);    // human-readable message
+    Console.WriteLine(e.Code);       // HTTP status code (int)
+    Console.WriteLine(e.Type);       // error type (e.g. "document_not_found")
+    Console.WriteLine(e.Response);   // full response body
+}
+```
+
+**Common error codes:**
+
+| Code | Meaning |
+|------|---------|
+| `401` | Unauthorized — missing or invalid session/API key |
+| `403` | Forbidden — insufficient permissions |
+| `404` | Not found — resource does not exist |
+| `409` | Conflict — duplicate ID or unique constraint |
+| `429` | Rate limited — too many requests |
+
 ## Permissions & Roles (Critical)
 
 Appwrite uses permission strings to control access to resources. Each permission pairs an action (`read`, `update`, `delete`, `create`, or `write` which grants create + update + delete) with a role target. By default, **no user has access** unless permissions are explicitly set at the document/file level or inherited from the collection/bucket settings. Permissions are arrays of strings built with the `Permission` and `Role` helpers.
@@ -246,11 +375,3 @@ var file = await storage.CreateFile("[BUCKET_ID]", ID.Unique(),
 > - **`Role.Any()` with `write`/`update`/`delete`** — allows any user, including unauthenticated guests, to modify or remove the resource
 > - **`Permission.Read(Role.Any())` on sensitive data** — makes the resource publicly readable
 
-## API Reference
-
-For complete method documentation, see the reference files:
-
-{% for service in spec.services %}
-- [{{ service.name | caseUcfirst }}](references/{{ service.name | caseLower }}.md){% if service.description %} — {{ service.description }}{% endif %}
-
-{% endfor %}

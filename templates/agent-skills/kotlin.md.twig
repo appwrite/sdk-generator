@@ -150,6 +150,40 @@ tablesDB.deleteRow(
 )
 ```
 
+### Query Methods
+
+```kotlin
+// Filtering
+Query.equal("field", "value")             // == (or pass list for IN)
+Query.notEqual("field", "value")          // !=
+Query.lessThan("field", 100)              // <
+Query.lessThanEqual("field", 100)         // <=
+Query.greaterThan("field", 100)           // >
+Query.greaterThanEqual("field", 100)      // >=
+Query.between("field", 1, 100)            // 1 <= field <= 100
+Query.isNull("field")                     // is null
+Query.isNotNull("field")                  // is not null
+Query.startsWith("field", "prefix")       // starts with
+Query.endsWith("field", "suffix")         // ends with
+Query.contains("field", "sub")            // contains
+Query.search("field", "keywords")         // full-text search (requires index)
+
+// Sorting
+Query.orderAsc("field")
+Query.orderDesc("field")
+
+// Pagination
+Query.limit(25)                           // max rows (default 25, max 100)
+Query.offset(0)                           // skip N rows
+Query.cursorAfter("[ROW_ID]")             // cursor pagination (preferred)
+Query.cursorBefore("[ROW_ID]")
+
+// Selection & Logic
+Query.select(listOf("field1", "field2"))
+Query.or(listOf(Query.equal("a", 1), Query.equal("b", 2)))   // OR
+Query.and(listOf(Query.greaterThan("age", 18), Query.lessThan("age", 65)))  // AND (default)
+```
+
 ### File Storage
 
 ```kotlin
@@ -177,18 +211,80 @@ val files = storage.listFiles(bucketId = "[BUCKET_ID]")
 storage.deleteFile(bucketId = "[BUCKET_ID]", fileId = "[FILE_ID]")
 ```
 
+#### InputFile Factory Methods
+
+```kotlin
+import io.{{ spec.title | caseLower }}.models.InputFile
+
+InputFile.fromPath("/path/to/file.png")              // from filesystem path
+InputFile.fromBytes(byteArray, "file.png")           // from ByteArray
+```
+
+### Teams
+
+```kotlin
+val teams = Teams(client)
+
+// Create team
+val team = teams.create(teamId = ID.unique(), name = "Engineering")
+
+// List teams
+val list = teams.list()
+
+// Create membership (invite user by email)
+val membership = teams.createMembership(
+    teamId = "[TEAM_ID]",
+    roles = listOf("editor"),
+    email = "user@example.com"
+)
+
+// List memberships
+val members = teams.listMemberships(teamId = "[TEAM_ID]")
+
+// Update membership roles
+teams.updateMembership(teamId = "[TEAM_ID]", membershipId = "[MEMBERSHIP_ID]", roles = listOf("admin"))
+
+// Delete team
+teams.delete(teamId = "[TEAM_ID]")
+```
+
+> **Role-based access:** Use `Role.team("[TEAM_ID]")` for all team members or `Role.team("[TEAM_ID]", "editor")` for a specific team role when setting permissions.
+
 ### Real-time Subscriptions (client-side)
 
 ```kotlin
 val realtime = Realtime(client)
 
 val subscription = realtime.subscribe("databases.[DATABASE_ID].tables.[TABLE_ID].rows") { response ->
-    println(response.payload)
+    println(response.events)   // e.g. ["databases.*.tables.*.rows.*.create"]
+    println(response.payload)  // the affected resource
 }
+
+// Subscribe to multiple channels
+val multi = realtime.subscribe(
+    "databases.[DATABASE_ID].tables.[TABLE_ID].rows",
+    "buckets.[BUCKET_ID].files"
+) { response -> /* ... */ }
 
 // Cleanup
 subscription.close()
 ```
+
+**Available channels:**
+
+| Channel | Description |
+|---------|-------------|
+| `account` | Changes to the authenticated user's account |
+| `databases.[DB_ID].tables.[TABLE_ID].rows` | All rows in a table |
+| `databases.[DB_ID].tables.[TABLE_ID].rows.[ROW_ID]` | A specific row |
+| `buckets.[BUCKET_ID].files` | All files in a bucket |
+| `buckets.[BUCKET_ID].files.[FILE_ID]` | A specific file |
+| `teams` | Changes to teams the user belongs to |
+| `teams.[TEAM_ID]` | A specific team |
+| `memberships` | The user's team memberships |
+| `functions.[FUNCTION_ID].executions` | Function execution updates |
+
+Response fields: `events` (array), `payload` (resource), `channels` (matched), `timestamp` (ISO 8601).
 
 ### Serverless Functions (server-side)
 
@@ -203,6 +299,34 @@ val execution = functions.createExecution(
 
 // List executions
 val executions = functions.listExecutions(functionId = "[FUNCTION_ID]")
+```
+
+#### Writing a Function Handler (Kotlin runtime)
+
+```kotlin
+// src/Main.kt — Appwrite Function entry point
+import io.openruntimes.kotlin.RuntimeContext
+import io.openruntimes.kotlin.RuntimeOutput
+
+fun main(context: RuntimeContext): RuntimeOutput {
+    // context.req.body        — raw body (String)
+    // context.req.bodyJson    — parsed JSON (Map)
+    // context.req.headers     — headers (Map)
+    // context.req.method      — HTTP method
+    // context.req.path        — URL path
+    // context.req.query       — query params (Map)
+
+    context.log("Processing: ${context.req.method} ${context.req.path}")
+
+    if (context.req.method == "GET") {
+        return context.res.json(mapOf("message" to "Hello from Appwrite Function!"))
+    }
+
+    return context.res.json(mapOf("success" to true))    // JSON
+    // context.res.text("Hello")                          // plain text
+    // context.res.empty()                                // 204
+    // context.res.redirect("https://...")                 // 302
+}
 ```
 
 ### Server-Side Rendering (SSR) Authentication
@@ -311,6 +435,31 @@ get("/oauth/success") {
 
 > **Forwarding user agent:** Call `sessionClient.setForwardedUserAgent(call.request.headers["User-Agent"])` to record the end-user's browser info for debugging and security.
 
+## Error Handling
+
+```kotlin
+import io.{{ spec.title | caseLower }}.AppwriteException
+
+try {
+    val row = tablesDB.getRow(databaseId = "[DATABASE_ID]", tableId = "[TABLE_ID]", rowId = "[ROW_ID]")
+} catch (e: AppwriteException) {
+    println(e.message)     // human-readable message
+    println(e.code)        // HTTP status code (Int)
+    println(e.type)        // error type (e.g. "document_not_found")
+    println(e.response)    // full response body (Map)
+}
+```
+
+**Common error codes:**
+
+| Code | Meaning |
+|------|---------|
+| `401` | Unauthorized — missing or invalid session/API key |
+| `403` | Forbidden — insufficient permissions |
+| `404` | Not found — resource does not exist |
+| `409` | Conflict — duplicate ID or unique constraint |
+| `429` | Rate limited — too many requests |
+
 ## Permissions & Roles (Critical)
 
 Appwrite uses permission strings to control access to resources. Each permission pairs an action (`read`, `update`, `delete`, `create`, or `write` which grants create + update + delete) with a role target. By default, **no user has access** unless permissions are explicitly set at the document/file level or inherited from the collection/bucket settings. Permissions are arrays of strings built with the `Permission` and `Role` helpers.
@@ -359,11 +508,3 @@ val file = storage.createFile(
 > - **`Role.any()` with `write`/`update`/`delete`** — allows any user, including unauthenticated guests, to modify or remove the resource
 > - **`Permission.read(Role.any())` on sensitive data** — makes the resource publicly readable
 
-## API Reference
-
-For complete method documentation, see the reference files:
-
-{% for service in spec.services %}
-- [{{ service.name | caseUcfirst }}](references/{{ service.name | caseLower }}.md){% if service.description %} — {{ service.description }}{% endif %}
-
-{% endfor %}

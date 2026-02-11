@@ -108,6 +108,40 @@ try await tablesDB.updateRow(databaseId: "[DATABASE_ID]", tableId: "[TABLE_ID]",
 try await tablesDB.deleteRow(databaseId: "[DATABASE_ID]", tableId: "[TABLE_ID]", rowId: "[ROW_ID]")
 ```
 
+### Query Methods
+
+```swift
+// Filtering
+Query.equal("field", value: "value")          // == (or pass array for IN)
+Query.notEqual("field", value: "value")       // !=
+Query.lessThan("field", value: 100)           // <
+Query.lessThanEqual("field", value: 100)      // <=
+Query.greaterThan("field", value: 100)        // >
+Query.greaterThanEqual("field", value: 100)   // >=
+Query.between("field", start: 1, end: 100)    // 1 <= field <= 100
+Query.isNull("field")                         // is null
+Query.isNotNull("field")                      // is not null
+Query.startsWith("field", value: "prefix")    // starts with
+Query.endsWith("field", value: "suffix")      // ends with
+Query.contains("field", value: "sub")         // contains
+Query.search("field", value: "keywords")      // full-text search (requires index)
+
+// Sorting
+Query.orderAsc("field")
+Query.orderDesc("field")
+
+// Pagination
+Query.limit(25)                               // max rows (default 25, max 100)
+Query.offset(0)                               // skip N rows
+Query.cursorAfter("[ROW_ID]")                 // cursor pagination (preferred)
+Query.cursorBefore("[ROW_ID]")
+
+// Selection & Logic
+Query.select(["field1", "field2"])
+Query.or([Query.equal("a", value: 1), Query.equal("b", value: 2)])   // OR
+Query.and([Query.greaterThan("age", value: 18), Query.lessThan("age", value: 65)])  // AND (default)
+```
+
 ### File Storage
 
 ```swift
@@ -123,18 +157,78 @@ let files = try await storage.listFiles(bucketId: "[BUCKET_ID]")
 try await storage.deleteFile(bucketId: "[BUCKET_ID]", fileId: "[FILE_ID]")
 ```
 
+#### InputFile Factory Methods
+
+```swift
+InputFile.fromPath("/path/to/file.png")                    // from filesystem path
+InputFile.fromData(data, filename: "file.png", mimeType: "image/png")  // from Data
+```
+
+### Teams
+
+```swift
+let teams = Teams(client)
+
+// Create team
+let team = try await teams.create(teamId: ID.unique(), name: "Engineering")
+
+// List teams
+let list = try await teams.list()
+
+// Create membership (invite user by email)
+let membership = try await teams.createMembership(
+    teamId: "[TEAM_ID]",
+    roles: ["editor"],
+    email: "user@example.com"
+)
+
+// List memberships
+let members = try await teams.listMemberships(teamId: "[TEAM_ID]")
+
+// Update membership roles
+try await teams.updateMembership(teamId: "[TEAM_ID]", membershipId: "[MEMBERSHIP_ID]", roles: ["admin"])
+
+// Delete team
+try await teams.delete(teamId: "[TEAM_ID]")
+```
+
+> **Role-based access:** Use `Role.team("[TEAM_ID]")` for all team members or `Role.team("[TEAM_ID]", "editor")` for a specific team role when setting permissions.
+
 ### Real-time Subscriptions (client-side)
 
 ```swift
 let realtime = Realtime(client)
 
 let subscription = realtime.subscribe(channels: ["databases.[DATABASE_ID].tables.[TABLE_ID].rows"]) { response in
-    print(response.payload)
+    print(response.events)   // e.g. ["databases.*.tables.*.rows.*.create"]
+    print(response.payload)  // the affected resource
 }
+
+// Subscribe to multiple channels
+let multi = realtime.subscribe(channels: [
+    "databases.[DATABASE_ID].tables.[TABLE_ID].rows",
+    "buckets.[BUCKET_ID].files",
+]) { response in /* ... */ }
 
 // Cleanup
 subscription.close()
 ```
+
+**Available channels:**
+
+| Channel | Description |
+|---------|-------------|
+| `account` | Changes to the authenticated user's account |
+| `databases.[DB_ID].tables.[TABLE_ID].rows` | All rows in a table |
+| `databases.[DB_ID].tables.[TABLE_ID].rows.[ROW_ID]` | A specific row |
+| `buckets.[BUCKET_ID].files` | All files in a bucket |
+| `buckets.[BUCKET_ID].files.[FILE_ID]` | A specific file |
+| `teams` | Changes to teams the user belongs to |
+| `teams.[TEAM_ID]` | A specific team |
+| `memberships` | The user's team memberships |
+| `functions.[FUNCTION_ID].executions` | Function execution updates |
+
+Response fields: `events` (array), `payload` (resource), `channels` (matched), `timestamp` (ISO 8601).
 
 ### Serverless Functions (server-side)
 
@@ -146,6 +240,31 @@ let execution = try await functions.createExecution(functionId: "[FUNCTION_ID]",
 
 // List executions
 let executions = try await functions.listExecutions(functionId: "[FUNCTION_ID]")
+```
+
+#### Writing a Function Handler (Swift runtime)
+
+```swift
+// Sources/main.swift — Appwrite Function entry point
+func main(context: RuntimeContext) async throws -> RuntimeOutput {
+    // context.req.body        — raw body (String)
+    // context.req.bodyJson    — parsed JSON ([String: Any]?)
+    // context.req.headers     — headers ([String: String])
+    // context.req.method      — HTTP method
+    // context.req.path        — URL path
+    // context.req.query       — query params ([String: String])
+
+    context.log("Processing: \(context.req.method) \(context.req.path)")
+
+    if context.req.method == "GET" {
+        return context.res.json(["message": "Hello from Appwrite Function!"])
+    }
+
+    return context.res.json(["success": true])       // JSON
+    // context.res.text("Hello")                     // plain text
+    // context.res.empty()                           // 204
+    // context.res.redirect("https://...")            // 302
+}
 ```
 
 ### Server-Side Rendering (SSR) Authentication
@@ -252,6 +371,32 @@ app.get("oauth", "success") { req async throws -> Response in
 
 > **Forwarding user agent:** Call `sessionClient.setForwardedUserAgent(req.headers.first(name: .userAgent) ?? "")` to record the end-user's browser info for debugging and security.
 
+## Error Handling
+
+```swift
+import {{ spec.title }}
+// AppwriteException is included in the main module
+
+do {
+    let row = try await tablesDB.getRow(databaseId: "[DATABASE_ID]", tableId: "[TABLE_ID]", rowId: "[ROW_ID]")
+} catch let error as AppwriteException {
+    print(error.message)     // human-readable message
+    print(error.code)        // HTTP status code (Int)
+    print(error.type)        // error type (e.g. "document_not_found")
+    print(error.response)    // full response body
+}
+```
+
+**Common error codes:**
+
+| Code | Meaning |
+|------|---------|
+| `401` | Unauthorized — missing or invalid session/API key |
+| `403` | Forbidden — insufficient permissions |
+| `404` | Not found — resource does not exist |
+| `409` | Conflict — duplicate ID or unique constraint |
+| `429` | Rate limited — too many requests |
+
 ## Permissions & Roles (Critical)
 
 Appwrite uses permission strings to control access to resources. Each permission pairs an action (`read`, `update`, `delete`, `create`, or `write` which grants create + update + delete) with a role target. By default, **no user has access** unless permissions are explicitly set at the document/file level or inherited from the collection/bucket settings. Permissions are arrays of strings built with the `Permission` and `Role` helpers.
@@ -300,11 +445,3 @@ let file = try await storage.createFile(
 > - **`Role.any()` with `write`/`update`/`delete`** — allows any user, including unauthenticated guests, to modify or remove the resource
 > - **`Permission.read(Role.any())` on sensitive data** — makes the resource publicly readable
 
-## API Reference
-
-For complete method documentation, see the reference files:
-
-{% for service in spec.services %}
-- [{{ service.name | caseUcfirst }}](references/{{ service.name | caseLower }}.md){% if service.description %} — {{ service.description }}{% endif %}
-
-{% endfor %}

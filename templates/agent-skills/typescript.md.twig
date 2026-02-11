@@ -158,6 +158,81 @@ await tablesDB.deleteRow({
 });
 ```
 
+#### TypeScript Generics
+
+```typescript
+import { Models } from '{{ spec.title | caseLower }}';
+// Server-side: import from 'node-{{ spec.title | caseLower }}'
+
+// Define a typed interface for your row data
+interface Todo {
+    title: string;
+    done: boolean;
+    priority: number;
+}
+
+// listRows returns Models.DocumentList<Models.Document> by default
+// Cast or use generics for typed results
+const results = await tablesDB.listRows({
+    databaseId: '[DATABASE_ID]',
+    tableId: '[TABLE_ID]',
+    queries: [Query.equal('done', false)]
+});
+
+// Each document includes built-in fields alongside your data
+const doc = results.documents[0];
+doc.$id;            // string — unique row ID
+doc.$createdAt;     // string — ISO 8601 creation timestamp
+doc.$updatedAt;     // string — ISO 8601 update timestamp
+doc.$permissions;   // string[] — permission strings
+doc.$databaseId;    // string
+doc.$collectionId;  // string
+
+// Common model types
+// Models.User<Preferences>  — user account
+// Models.Session             — auth session
+// Models.File                — storage file metadata
+// Models.Team                — team object
+// Models.Execution           — function execution result
+// Models.DocumentList<T>     — paginated list with total count
+```
+
+### Query Methods
+
+```typescript
+// Filtering
+Query.equal('field', 'value')           // field == value (or pass array for IN)
+Query.notEqual('field', 'value')        // field != value
+Query.lessThan('field', 100)            // field < value
+Query.lessThanEqual('field', 100)       // field <= value
+Query.greaterThan('field', 100)         // field > value
+Query.greaterThanEqual('field', 100)    // field >= value
+Query.between('field', 1, 100)          // 1 <= field <= 100
+Query.isNull('field')                   // field is null
+Query.isNotNull('field')                // field is not null
+Query.startsWith('field', 'prefix')     // string starts with prefix
+Query.endsWith('field', 'suffix')       // string ends with suffix
+Query.contains('field', 'substring')    // string/array contains value
+Query.search('field', 'keywords')       // full-text search (requires full-text index)
+
+// Sorting
+Query.orderAsc('field')                 // sort ascending
+Query.orderDesc('field')                // sort descending
+
+// Pagination
+Query.limit(25)                         // max rows returned (default 25, max 100)
+Query.offset(0)                         // skip N rows
+Query.cursorAfter('[ROW_ID]')           // paginate after this row ID (preferred for large datasets)
+Query.cursorBefore('[ROW_ID]')          // paginate before this row ID
+
+// Selection
+Query.select(['field1', 'field2'])      // return only specified fields
+
+// Logical
+Query.or([Query.equal('a', 1), Query.equal('b', 2)])   // OR condition
+Query.and([Query.greaterThan('age', 18), Query.lessThan('age', 65)])  // explicit AND (queries are AND by default)
+```
+
 ### File Storage
 
 ```typescript
@@ -200,12 +275,58 @@ const download = await storage.getFileDownload({
 await storage.deleteFile({ bucketId: '[BUCKET_ID]', fileId: '[FILE_ID]' });
 ```
 
+#### InputFile Factory Methods (server-side)
+
+```typescript
+import { InputFile } from 'node-{{ spec.title | caseLower }}/file';
+
+InputFile.fromPath('/path/to/file.png', 'file.png')          // from filesystem path
+InputFile.fromBuffer(buffer, 'file.png')                       // from Buffer
+InputFile.fromStream(readableStream, 'file.png', size)         // from ReadableStream (size in bytes required)
+InputFile.fromPlainText('Hello world', 'hello.txt')            // from string content
+```
+
+### Teams
+
+```typescript
+const teams = new Teams(client);
+
+// Create team
+const team = await teams.create({ teamId: ID.unique(), name: 'Engineering' });
+
+// List teams
+const list = await teams.list();
+
+// Create membership (invite a user by email)
+const membership = await teams.createMembership({
+    teamId: '[TEAM_ID]',
+    roles: ['editor'],
+    email: 'user@example.com',
+});
+
+// List memberships
+const members = await teams.listMemberships({ teamId: '[TEAM_ID]' });
+
+// Update membership roles
+await teams.updateMembership({
+    teamId: '[TEAM_ID]',
+    membershipId: '[MEMBERSHIP_ID]',
+    roles: ['admin'],
+});
+
+// Delete team
+await teams.delete({ teamId: '[TEAM_ID]' });
+```
+
+> **Role-based access:** Use `Role.team('[TEAM_ID]')` for all team members or `Role.team('[TEAM_ID]', 'editor')` for a specific team role when setting permissions.
+
 ### Real-time Subscriptions (client-side)
 
 ```typescript
 // Subscribe to row changes
 const unsubscribe = client.subscribe('databases.[DATABASE_ID].tables.[TABLE_ID].rows', (response) => {
-    console.log(response.payload);
+    console.log(response.events);   // e.g. ['databases.*.tables.*.rows.*.create']
+    console.log(response.payload);  // the affected resource
 });
 
 // Subscribe to file changes
@@ -213,9 +334,32 @@ client.subscribe('buckets.[BUCKET_ID].files', (response) => {
     console.log(response.payload);
 });
 
+// Subscribe to multiple channels
+client.subscribe([
+    'databases.[DATABASE_ID].tables.[TABLE_ID].rows',
+    'buckets.[BUCKET_ID].files',
+], (response) => { /* ... */ });
+
 // Unsubscribe
 unsubscribe();
 ```
+
+**Available channels:**
+
+| Channel | Description |
+|---------|-------------|
+| `account` | Changes to the authenticated user's account |
+| `databases.[DB_ID].tables.[TABLE_ID].rows` | All rows in a table |
+| `databases.[DB_ID].tables.[TABLE_ID].rows.[ROW_ID]` | A specific row |
+| `buckets.[BUCKET_ID].files` | All files in a bucket |
+| `buckets.[BUCKET_ID].files.[FILE_ID]` | A specific file |
+| `teams` | Changes to teams the user belongs to |
+| `teams.[TEAM_ID]` | Changes to a specific team |
+| `memberships` | Changes to the user's team memberships |
+| `memberships.[MEMBERSHIP_ID]` | A specific membership |
+| `functions.[FUNCTION_ID].executions` | Execution updates for a function |
+
+The `response` object includes: `events` (array of event strings), `payload` (the affected resource), `channels` (channels matched), and `timestamp` (ISO 8601).
 
 ### Serverless Functions (server-side)
 
@@ -230,6 +374,43 @@ const execution = await functions.createExecution({
 
 // List executions
 const executions = await functions.listExecutions({ functionId: '[FUNCTION_ID]' });
+```
+
+#### Writing a Function Handler (Node.js runtime)
+
+When deploying your own Appwrite Function, the entry point file must export a default async function:
+
+```typescript
+// src/main.js (or src/main.ts)
+export default async ({ req, res, log, error }) => {
+    // Request properties
+    // req.body        — raw request body (string)
+    // req.bodyJson    — parsed JSON body (object, or undefined if not JSON)
+    // req.headers     — request headers (object)
+    // req.method      — HTTP method (GET, POST, PUT, DELETE, PATCH)
+    // req.path        — URL path (e.g. '/hello')
+    // req.query       — parsed query parameters (object)
+    // req.queryString — raw query string
+
+    log('Processing request: ' + req.method + ' ' + req.path);
+
+    if (req.method === 'GET') {
+        return res.json({ message: 'Hello from Appwrite Function!' });
+    }
+
+    const data = req.bodyJson;
+    if (!data?.name) {
+        error('Missing name field');
+        return res.json({ error: 'Name is required' }, 400);
+    }
+
+    // Response methods
+    return res.json({ success: true });                    // JSON (sets Content-Type automatically)
+    // return res.text('Hello');                           // plain text
+    // return res.empty();                                 // 204 No Content
+    // return res.redirect('https://example.com');         // 302 Redirect
+    // return res.send('data', 200, { 'X-Custom': '1' }); // custom body, status, headers
+};
 ```
 
 ### Server-Side Rendering (SSR) Authentication
@@ -335,6 +516,38 @@ app.get('/oauth/success', async (req, res) => {
 
 > **Forwarding user agent:** Call `sessionClient.setForwardedUserAgent(req.headers['user-agent'])` to record the end-user's browser info for debugging and security.
 
+## Error Handling
+
+```typescript
+import { AppwriteException } from '{{ spec.title | caseLower }}';
+// Server-side: import from 'node-{{ spec.title | caseLower }}'
+
+try {
+    const doc = await tablesDB.getRow({
+        databaseId: '[DATABASE_ID]',
+        tableId: '[TABLE_ID]',
+        rowId: '[ROW_ID]',
+    });
+} catch (err) {
+    if (err instanceof AppwriteException) {
+        console.log(err.message);   // human-readable error message
+        console.log(err.code);      // HTTP status code (number)
+        console.log(err.type);      // Appwrite error type string (e.g. 'document_not_found')
+        console.log(err.response);  // full response body (object)
+    }
+}
+```
+
+**Common error codes:**
+
+| Code | Meaning |
+|------|---------|
+| `401` | Unauthorized — missing or invalid session/API key |
+| `403` | Forbidden — insufficient permissions for this action |
+| `404` | Not found — resource does not exist |
+| `409` | Conflict — duplicate ID or unique constraint violation |
+| `429` | Rate limited — too many requests, retry after backoff |
+
 ## Permissions & Roles (Critical)
 
 Appwrite uses permission strings to control access to resources. Each permission pairs an action (`read`, `update`, `delete`, `create`, or `write` which grants create + update + delete) with a role target. By default, **no user has access** unless permissions are explicitly set at the document/file level or inherited from the collection/bucket settings. Permissions are arrays of strings built with the `Permission` and `Role` helpers.
@@ -383,11 +596,3 @@ const file = await storage.createFile({
 > - **`Role.any()` with `write`/`update`/`delete`** — allows any user, including unauthenticated guests, to modify or remove the resource
 > - **`Permission.read(Role.any())` on sensitive data** — makes the resource publicly readable
 
-## API Reference
-
-For complete method documentation, see the reference files:
-
-{% for service in spec.services %}
-- [{{ service.name | caseUcfirst }}](references/{{ service.name | caseLower }}.md){% if service.description %} — {{ service.description }}{% endif %}
-
-{% endfor %}

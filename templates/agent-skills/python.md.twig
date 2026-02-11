@@ -84,6 +84,40 @@ tables_db.update_row('[DATABASE_ID]', '[TABLE_ID]', '[ROW_ID]', {
 tables_db.delete_row('[DATABASE_ID]', '[TABLE_ID]', '[ROW_ID]')
 ```
 
+### Query Methods
+
+```python
+# Filtering
+Query.equal('field', 'value')             # == (or pass list for IN)
+Query.not_equal('field', 'value')         # !=
+Query.less_than('field', 100)             # <
+Query.less_than_equal('field', 100)       # <=
+Query.greater_than('field', 100)          # >
+Query.greater_than_equal('field', 100)    # >=
+Query.between('field', 1, 100)            # 1 <= field <= 100
+Query.is_null('field')                    # is null
+Query.is_not_null('field')                # is not null
+Query.starts_with('field', 'prefix')      # starts with
+Query.ends_with('field', 'suffix')        # ends with
+Query.contains('field', 'sub')            # contains (string or array)
+Query.search('field', 'keywords')         # full-text search (requires index)
+
+# Sorting
+Query.order_asc('field')
+Query.order_desc('field')
+
+# Pagination
+Query.limit(25)                           # max rows (default 25, max 100)
+Query.offset(0)                           # skip N rows
+Query.cursor_after('[ROW_ID]')            # cursor pagination (preferred)
+Query.cursor_before('[ROW_ID]')
+
+# Selection & Logic
+Query.select(['field1', 'field2'])        # return only specified fields
+Query.or_queries([Query.equal('a', 1), Query.equal('b', 2)])   # OR
+Query.and_queries([Query.greater_than('age', 18), Query.less_than('age', 65)])  # AND (default)
+```
+
 ### File Storage
 
 ```python
@@ -101,6 +135,44 @@ files = storage.list_files('[BUCKET_ID]')
 storage.delete_file('[BUCKET_ID]', '[FILE_ID]')
 ```
 
+#### InputFile Factory Methods
+
+```python
+from {{ spec.title | caseLower }}.input_file import InputFile
+
+InputFile.from_path('/path/to/file.png')             # from filesystem path
+InputFile.from_bytes(byte_data, 'file.png')          # from bytes
+InputFile.from_string('Hello world', 'hello.txt')    # from string content
+```
+
+### Teams
+
+```python
+from {{ spec.title | caseLower }}.services.teams import Teams
+
+teams = Teams(client)
+
+# Create team
+team = teams.create(ID.unique(), 'Engineering')
+
+# List teams
+team_list = teams.list()
+
+# Create membership (invite user by email)
+membership = teams.create_membership('[TEAM_ID]', roles=['editor'], email='user@example.com')
+
+# List memberships
+members = teams.list_memberships('[TEAM_ID]')
+
+# Update membership roles
+teams.update_membership('[TEAM_ID]', '[MEMBERSHIP_ID]', roles=['admin'])
+
+# Delete team
+teams.delete('[TEAM_ID]')
+```
+
+> **Role-based access:** Use `Role.team('[TEAM_ID]')` for all team members or `Role.team('[TEAM_ID]', 'editor')` for a specific team role when setting permissions.
+
 ### Serverless Functions
 
 ```python
@@ -111,6 +183,38 @@ execution = functions.create_execution('[FUNCTION_ID]', body='{"key": "value"}')
 
 # List executions
 executions = functions.list_executions('[FUNCTION_ID]')
+```
+
+#### Writing a Function Handler (Python runtime)
+
+```python
+# src/main.py — Appwrite Function entry point
+def main(context):
+    # context.req — request object
+    #   .body        — raw request body (string)
+    #   .body_json   — parsed JSON body (dict, or None if not JSON)
+    #   .headers     — request headers (dict)
+    #   .method      — HTTP method (GET, POST, etc.)
+    #   .path        — URL path
+    #   .query       — parsed query parameters (dict)
+    #   .query_string — raw query string
+
+    context.log('Processing: ' + context.req.method + ' ' + context.req.path)
+
+    if context.req.method == 'GET':
+        return context.res.json({'message': 'Hello from Appwrite Function!'})
+
+    data = context.req.body_json or {}
+    if 'name' not in data:
+        context.error('Missing name field')
+        return context.res.json({'error': 'Name is required'}, 400)
+
+    # Response methods
+    return context.res.json({'success': True})                    # JSON response
+    # return context.res.text('Hello')                           # plain text
+    # return context.res.empty()                                 # 204 No Content
+    # return context.res.redirect('https://example.com')         # 302 Redirect
+    # return context.res.send('data', 200, {'X-Custom': '1'})   # custom response
 ```
 
 ### Server-Side Rendering (SSR) Authentication
@@ -208,6 +312,30 @@ def oauth_success():
 
 > **Forwarding user agent:** Call `session_client.set_forwarded_user_agent(request.headers.get('user-agent'))` to record the end-user's browser info for debugging and security.
 
+## Error Handling
+
+```python
+from {{ spec.title | caseLower }}.exception import AppwriteException
+
+try:
+    row = tables_db.get_row('[DATABASE_ID]', '[TABLE_ID]', '[ROW_ID]')
+except AppwriteException as e:
+    print(e.message)    # human-readable error message
+    print(e.code)       # HTTP status code (int)
+    print(e.type)       # Appwrite error type string (e.g. 'document_not_found')
+    print(e.response)   # full response body (dict)
+```
+
+**Common error codes:**
+
+| Code | Meaning |
+|------|---------|
+| `401` | Unauthorized — missing or invalid session/API key |
+| `403` | Forbidden — insufficient permissions for this action |
+| `404` | Not found — resource does not exist |
+| `409` | Conflict — duplicate ID or unique constraint violation |
+| `429` | Rate limited — too many requests, retry after backoff |
+
 ## Permissions & Roles (Critical)
 
 Appwrite uses permission strings to control access to resources. Each permission pairs an action (`read`, `update`, `delete`, `create`, or `write` which grants create + update + delete) with a role target. By default, **no user has access** unless permissions are explicitly set at the document/file level or inherited from the collection/bucket settings. Permissions are arrays of strings built with the `Permission` and `Role` helpers.
@@ -247,11 +375,3 @@ file = storage.create_file('[BUCKET_ID]', ID.unique(), InputFile.from_path('/pat
 > - **`Role.any()` with `write`/`update`/`delete`** — allows any user, including unauthenticated guests, to modify or remove the resource
 > - **`Permission.read(Role.any())` on sensitive data** — makes the resource publicly readable
 
-## API Reference
-
-For complete method documentation, see the reference files:
-
-{% for service in spec.services %}
-- [{{ service.name | caseUcfirst }}](references/{{ service.name | caseLower }}.md){% if service.description %} — {{ service.description }}{% endif %}
-
-{% endfor %}

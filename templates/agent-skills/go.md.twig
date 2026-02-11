@@ -92,6 +92,42 @@ _, err = service.UpdateRow(
 _, err = service.DeleteRow("[DATABASE_ID]", "[TABLE_ID]", "[ROW_ID]")
 ```
 
+### Query Methods
+
+```go
+import "github.com/{{ sdk.gitUserName }}/sdk-for-go/query"
+
+// Filtering
+query.Equal("field", "value")             // == (or pass slice for IN)
+query.NotEqual("field", "value")          // !=
+query.LessThan("field", 100)             // <
+query.LessThanEqual("field", 100)        // <=
+query.GreaterThan("field", 100)          // >
+query.GreaterThanEqual("field", 100)     // >=
+query.Between("field", 1, 100)           // 1 <= field <= 100
+query.IsNull("field")                    // is null
+query.IsNotNull("field")                 // is not null
+query.StartsWith("field", "prefix")      // starts with
+query.EndsWith("field", "suffix")        // ends with
+query.Contains("field", "sub")           // contains
+query.Search("field", "keywords")        // full-text search (requires index)
+
+// Sorting
+query.OrderAsc("field")
+query.OrderDesc("field")
+
+// Pagination
+query.Limit(25)                          // max rows (default 25, max 100)
+query.Offset(0)                          // skip N rows
+query.CursorAfter("[ROW_ID]")            // cursor pagination (preferred)
+query.CursorBefore("[ROW_ID]")
+
+// Selection & Logic
+query.Select([]string{"field1", "field2"})
+query.Or([]string{query.Equal("a", 1), query.Equal("b", 2)})    // OR
+query.And([]string{query.GreaterThan("age", 18), query.LessThan("age", 65)})  // AND (default)
+```
+
 ### File Storage
 
 ```go
@@ -113,6 +149,48 @@ files, err := service.ListFiles("[BUCKET_ID]")
 _, err = service.DeleteFile("[BUCKET_ID]", "[FILE_ID]")
 ```
 
+#### InputFile Factory Methods
+
+```go
+import "github.com/{{ sdk.gitUserName }}/sdk-for-go/file"
+
+file.NewInputFile("/path/to/file.png", "file.png")          // from filesystem path
+file.NewInputFileFromReader(reader, "file.png", size)        // from io.Reader (size required)
+file.NewInputFileFromBytes(data, "file.png")                 // from []byte
+```
+
+### Teams
+
+```go
+import "github.com/{{ sdk.gitUserName }}/sdk-for-go/teams"
+
+svc := teams.New(clt)
+
+// Create team
+team, err := svc.Create(id.Unique(), "Engineering")
+
+// List teams
+list, err := svc.List()
+
+// Create membership (invite user by email)
+membership, err := svc.CreateMembership(
+    "[TEAM_ID]",
+    []string{"editor"},
+    teams.WithCreateMembershipEmail("user@example.com"),
+)
+
+// List memberships
+members, err := svc.ListMemberships("[TEAM_ID]")
+
+// Update membership roles
+_, err = svc.UpdateMembership("[TEAM_ID]", "[MEMBERSHIP_ID]", []string{"admin"})
+
+// Delete team
+_, err = svc.Delete("[TEAM_ID]")
+```
+
+> **Role-based access:** Use `role.Team("[TEAM_ID]")` for all team members or `role.Team("[TEAM_ID]", "editor")` for a specific team role when setting permissions.
+
 ### Serverless Functions
 
 ```go
@@ -128,6 +206,37 @@ execution, err := svc.CreateExecution(
 
 // List executions
 executions, err := svc.ListExecutions("[FUNCTION_ID]")
+```
+
+#### Writing a Function Handler (Go runtime)
+
+```go
+// src/main.go — Appwrite Function entry point
+package handler
+
+import (
+    "github.com/open-runtimes/types-for-go/v4/openruntimes"
+)
+
+func Main(context openruntimes.Context) openruntimes.Response {
+    // context.Req.Body        — raw body (string)
+    // context.Req.BodyJson    — parsed JSON (map[string]interface{})
+    // context.Req.Headers     — headers (map[string]string)
+    // context.Req.Method      — HTTP method
+    // context.Req.Path        — URL path
+    // context.Req.Query       — query params (map[string]string)
+
+    context.Log("Processing: " + context.Req.Method + " " + context.Req.Path)
+
+    if context.Req.Method == "GET" {
+        return context.Res.Json(map[string]interface{}{"message": "Hello!"})
+    }
+
+    return context.Res.Json(map[string]interface{}{"success": true})
+    // context.Res.Text("Hello")                  // plain text
+    // context.Res.Empty()                         // 204
+    // context.Res.Redirect("https://...")          // 302
+}
 ```
 
 ### Server-Side Rendering (SSR) Authentication
@@ -249,6 +358,32 @@ http.HandleFunc("/oauth/success", func(w http.ResponseWriter, r *http.Request) {
 
 > **Forwarding user agent:** Call `sessionClient.SetForwardedUserAgent(r.Header.Get("User-Agent"))` to record the end-user's browser info for debugging and security.
 
+## Error Handling
+
+```go
+import "github.com/{{ sdk.gitUserName }}/sdk-for-go/apperr"
+
+doc, err := service.GetRow("[DATABASE_ID]", "[TABLE_ID]", "[ROW_ID]")
+if err != nil {
+    var appErr *apperr.AppwriteException
+    if errors.As(err, &appErr) {
+        fmt.Println(appErr.Message)    // human-readable message
+        fmt.Println(appErr.Code)       // HTTP status code (int)
+        fmt.Println(appErr.Type)       // error type (e.g. "document_not_found")
+    }
+}
+```
+
+**Common error codes:**
+
+| Code | Meaning |
+|------|---------|
+| `401` | Unauthorized — missing or invalid session/API key |
+| `403` | Forbidden — insufficient permissions |
+| `404` | Not found — resource does not exist |
+| `409` | Conflict — duplicate ID or unique constraint |
+| `429` | Rate limited — too many requests |
+
 ## Permissions & Roles (Critical)
 
 Appwrite uses permission strings to control access to resources. Each permission pairs an action (`read`, `update`, `delete`, `create`, or `write` which grants create + update + delete) with a role target. By default, **no user has access** unless permissions are explicitly set at the document/file level or inherited from the collection/bucket settings. Permissions are arrays of strings built with the `permission` and `role` helpers.
@@ -299,11 +434,3 @@ f, err := service.CreateFile(
 > - **`role.Any()` with `write`/`update`/`delete`** — allows any user, including unauthenticated guests, to modify or remove the resource
 > - **`permission.Read(role.Any())` on sensitive data** — makes the resource publicly readable
 
-## API Reference
-
-For complete method documentation, see the reference files:
-
-{% for service in spec.services %}
-- [{{ service.name | caseUcfirst }}](references/{{ service.name | caseLower }}.md){% if service.description %} — {{ service.description }}{% endif %}
-
-{% endfor %}
