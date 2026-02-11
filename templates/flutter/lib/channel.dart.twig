@@ -52,9 +52,10 @@ class Channel<T> {
       Channel<_TablesDB>._(['tablesdb', _normalize(id)]);
 
   static Channel<_Bucket> bucket([String id = '*']) =>
+      Channel<_Bucket>._(['buckets', _normalize(id)]);
+
   static Channel<_Execution> execution([String id = '*']) =>
       Channel<_Execution>._(['executions', _normalize(id)]);
-      Channel<_Bucket>._(['buckets', _normalize(id)]);
 
   static Channel<_Func> function([String id = '*']) =>
       Channel<_Func>._(['functions', _normalize(id)]);
@@ -71,11 +72,10 @@ class Channel<T> {
   }
 
   // Global events
-  static String documents() => 'documents';
-  static String rows() => 'rows';
-  static String files() => 'files';
-  static String executions() => 'executions';
-  static String teams() => 'teams';
+  static String get documents => 'documents';
+  static String get rows => 'rows';
+  static String get files => 'files';
+  static String get executions => 'executions';
 }
 
 // --- DATABASE ROUTE ---

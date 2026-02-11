@@ -66,9 +66,10 @@ class Channel<out T> private constructor(
             Channel(listOf("tablesdb", normalize(id)))
 
         fun bucket(id: String = "*"): Channel<_Bucket> =
+            Channel(listOf("buckets", normalize(id)))
+
         fun execution(id: String = "*"): Channel<_Execution> =
             Channel(listOf("executions", normalize(id)))
-            Channel(listOf("buckets", normalize(id)))
 
         fun function(id: String = "*"): Channel<_Func> =
             Channel(listOf("functions", normalize(id)))
@@ -85,11 +86,10 @@ class Channel<out T> private constructor(
         }
 
         // Global events
-        fun documents(): String = "documents"
-        fun rows(): String = "rows"
-        fun files(): String = "files"
-        fun executions(): String = "executions"
-        fun teams(): String = "teams"
+        const val documents = "documents"
+        const val rows = "rows"
+        const val files = "files"
+        const val executions = "executions"
     }
 }
 

@@ -70,6 +70,7 @@ public enum Channel {
     public static func function(_ id: String = "*") -> RealtimeChannel<_Func> {
         return RealtimeChannel<_Func>(["functions", normalize(id)])
     }
+    
     public static func execution(_ id: String = "*") -> RealtimeChannel<_Execution> {
         return RealtimeChannel<_Execution>(["executions", normalize(id)])
     }
@@ -88,11 +89,10 @@ public enum Channel {
     }
     
     // Global events
-    public static func documents() -> String { "documents" }
-    public static func rows() -> String { "rows" }
-    public static func files() -> String { "files" }
-    public static func executions() -> String { "executions" }
-    public static func teams() -> String { "teams" }
+    public static var documents: String { "documents" }
+    public static var rows: String { "rows" }
+    public static var files: String { "files" }
+    public static var executions: String { "executions" }
 }
 
 // MARK: - DATABASE ROUTE

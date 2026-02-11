@@ -94,10 +94,11 @@ export class Channel<T> {
 
   // --- ROOT FACTORIES ---
   static database(id: string = "*") {
+    return new Channel<Database>(["databases", normalize(id)]);
+  }
+
   static execution(id: string = "*") {
     return new Channel<Execution>(["executions", normalize(id)]);
-  }
-    return new Channel<Database>(["databases", normalize(id)]);
   }
 
   static tablesdb(id: string = "*") {
@@ -126,24 +127,20 @@ export class Channel<T> {
   }
 
   // Global events
-  static documents(): string {
+  static get documents(): string {
     return "documents";
   }
 
-  static rows(): string {
+  static get rows(): string {
     return "rows";
   }
 
-  static files(): string {
+  static get files(): string {
     return "files";
   }
 
-  static executions(): string {
+  static get executions(): string {
     return "executions";
-  }
-
-  static teams(): string {
-    return "teams";
   }
 }
 
