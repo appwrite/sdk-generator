@@ -186,21 +186,6 @@ extension RealtimeChannel where T == _File {
     }
 }
 
-/// Only available on RealtimeChannel<_Execution>
-extension RealtimeChannel where T == _Execution {
-    public func create() -> RealtimeChannel<_Resolved> {
-        return self.resolve("create")
-    }
-    
-    public func update() -> RealtimeChannel<_Resolved> {
-        return self.resolve("update")
-    }
-    
-    public func delete() -> RealtimeChannel<_Resolved> {
-        return self.resolve("delete")
-    }
-}
-
 /// Only available on RealtimeChannel<_Team>
 extension RealtimeChannel where T == _Team {
     public func create() -> RealtimeChannel<_Resolved> {

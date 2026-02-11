@@ -78,11 +78,6 @@ void main() {
     test('returns executions channel with specific IDs', () {
       expect(Channel.execution('exec1').toString(), 'executions.exec1');
     });
-
-    test('returns executions channel with action', () {
-      expect(Channel.execution('exec1').create().toString(),
-          'executions.exec1.create');
-    });
   });
 
   group('teams()', () {

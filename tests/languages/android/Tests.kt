@@ -306,7 +306,6 @@ class ServiceTest {
             writeToFile(Channel.function("func1").toString())
             writeToFile(Channel.execution().toString())
             writeToFile(Channel.execution("exec1").toString())
-            writeToFile(Channel.execution("exec1").create().toString())
             writeToFile(Channel.documents())
             writeToFile(Channel.rows())
             writeToFile(Channel.files())

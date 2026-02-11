@@ -137,13 +137,6 @@ extension FileChannel on Channel<_File> {
   Channel<_Resolved> delete() => _resolve('delete');
 }
 
-/// Only available on Channel<_Execution>
-extension ExecutionChannel on Channel<_Execution> {
-  Channel<_Resolved> create() => _resolve('create');
-  Channel<_Resolved> update() => _resolve('update');
-  Channel<_Resolved> delete() => _resolve('delete');
-}
-
 /// Only available on Channel<_Team>
 extension TeamChannel on Channel<_Team> {
   Channel<_Resolved> create() => _resolve('create');

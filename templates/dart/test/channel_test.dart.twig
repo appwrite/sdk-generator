@@ -104,11 +104,6 @@ void main() {
       final builder = Channel.execution('exec1');
       expect(builder.channel, 'executions.exec1');
     });
-
-    test('returns executions channel with action', () {
-      final channel = Channel.execution('exec1').create();
-      expect(channel.toString(), 'executions.exec1.create');
-    });
   });
 
   group('teams()', () {

@@ -283,7 +283,6 @@ class Tests: XCTestCase {
         print(Channel.function("func1").toString())
         print(Channel.execution().toString())
         print(Channel.execution("exec1").toString())
-        print(Channel.execution("exec1").create().toString())
         print(Channel.documents())
         print(Channel.rows())
         print(Channel.files())

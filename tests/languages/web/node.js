@@ -300,7 +300,6 @@ async function start() {
     console.log(Channel.function('func1').toString());
     console.log(Channel.execution().toString());
     console.log(Channel.execution('exec1').toString());
-    console.log(Channel.execution('exec1').create().toString());
     console.log(Channel.documents());
     console.log(Channel.rows());
     console.log(Channel.files());

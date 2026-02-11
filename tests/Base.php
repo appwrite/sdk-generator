@@ -198,7 +198,6 @@ abstract class Base extends TestCase
         'functions.func1',
         'executions.*',
         'executions.exec1',
-        'executions.exec1.create',
         'documents',
         'rows',
         'files',

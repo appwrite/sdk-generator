@@ -13,7 +13,7 @@ interface Team { _team: any }
 interface Membership { _mem: any }
 interface Resolved { _res: any }
 
-type Actionable = Document | Row | File | Execution | Team | Membership;
+type Actionable = Document | Row | File | Team | Membership;
 
 function normalize(id: string): string {
   const trimmed = id.trim();

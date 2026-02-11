@@ -132,7 +132,7 @@ fun Channel<_Bucket>.file(id: String? = null): Channel<_File> =
     this.next("files", id)
 
 // --- TERMINAL ACTIONS ---
-// Restricted to Actionable types (_Document, _Row, _File, _Execution, _Team, _Membership)
+// Restricted to Actionable types (_Document, _Row, _File, _Team, _Membership)
 
 /**
  * Only available on Channel<_Document>
@@ -195,27 +195,6 @@ fun Channel<_File>.update(): Channel<_Resolved> =
  */
 @JvmName("deleteFile")
 fun Channel<_File>.delete(): Channel<_Resolved> =
-    this.resolve("delete")
-
-/**
- * Only available on Channel<_Execution>
- */
-@JvmName("createExecution")
-fun Channel<_Execution>.create(): Channel<_Resolved> =
-    this.resolve("create")
-
-/**
- * Only available on Channel<_Execution>
- */
-@JvmName("updateExecution")
-fun Channel<_Execution>.update(): Channel<_Resolved> =
-    this.resolve("update")
-
-/**
- * Only available on Channel<_Execution>
- */
-@JvmName("deleteExecution")
-fun Channel<_Execution>.delete(): Channel<_Resolved> =
     this.resolve("delete")
 
 /**
