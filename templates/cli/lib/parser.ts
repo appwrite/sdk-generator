@@ -108,7 +108,7 @@ export const drawTable = (
   normalizedData.forEach((row) => {
     const rowValues: any[] = [];
     for (const key of columns) {
-      if (row[key] === null) {
+      if (row[key] == null) {
         rowValues.push("-");
       } else if (Array.isArray(row[key])) {
         rowValues.push(JSON.stringify(row[key]));
