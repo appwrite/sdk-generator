@@ -21,6 +21,12 @@ func (model {{ definition.name | caseUcfirst }}) New(data []byte) *{{ definition
     return &model
 }
 
+func (p *{{ definition.name | caseUcfirst }}) UnmarshalJSON(b []byte) error {
+    p.data = make([]byte, len(b))
+    copy(p.data, b)
+    return nil
+}
+
 {%~ if definition.additionalProperties %}
 // Use this method to get response in desired type
 {%~ endif %}
