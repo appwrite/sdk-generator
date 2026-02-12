@@ -1,5 +1,5 @@
 ```go
-{%- set requireModelsPkg = false -%}
+{% set requireModelsPkg = false -%}
 {%- set requireFilesPkg = false -%}
 {%- if (method | returnType(spec, spec.title | caseLower)) starts with "models" -%}
 		{%- set requireModelsPkg = true -%}
