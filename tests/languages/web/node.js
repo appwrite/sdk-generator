@@ -294,13 +294,13 @@ async function start() {
     console.log(Channel.tablesdb('db1').table('table1').row('row1').toString());
     console.log(Channel.tablesdb('db1').table('table1').row('row1').update().toString());
     console.log(Channel.account());
-    console.log(Channel.account('user123'));
     console.log(Channel.bucket().file().toString());
     console.log(Channel.bucket('bucket1').file('file1').toString());
     console.log(Channel.bucket('bucket1').file('file1').delete().toString());
-    console.log(Channel.function().execution().toString());
-    console.log(Channel.function('func1').execution('exec1').toString());
-    console.log(Channel.function('func1').execution('exec1').create().toString());
+    console.log(Channel.function().toString());
+    console.log(Channel.function('func1').toString());
+    console.log(Channel.execution().toString());
+    console.log(Channel.execution('exec1').toString());
     console.log(Channel.documents());
     console.log(Channel.rows());
     console.log(Channel.files());

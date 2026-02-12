@@ -51,12 +51,8 @@ void main() {
   });
 
   group('account()', () {
-    test('returns account channel with default', () {
+    test('returns account channel', () {
       expect(Channel.account(), 'account');
-    });
-
-    test('returns account channel with specific user ID', () {
-      expect(Channel.account('user123'), 'account.user123');
     });
   });
 
@@ -92,15 +88,17 @@ void main() {
       final builder = Channel.function('func1');
       expect(builder.channel, 'functions.func1');
     });
+  });
 
-    test('returns functions channel with execution', () {
-      final channel = Channel.function('func1').execution('exec1');
-      expect(channel.channel, 'functions.func1.executions.exec1');
+  group('executions()', () {
+    test('returns executions channel builder', () {
+      final builder = Channel.execution();
+      expect(builder.channel, 'executions.*');
     });
 
-    test('returns functions channel with action', () {
-      final channel = Channel.function('func1').execution('exec1').create();
-      expect(channel.toString(), 'functions.func1.executions.exec1.create');
+    test('returns executions channel with specific ID', () {
+      final builder = Channel.execution('exec1');
+      expect(builder.channel, 'executions.exec1');
     });
   });
 

@@ -30,9 +30,13 @@ public class RealtimeChannel<T> {
         self.segments = segments
     }
     
-    /// Internal helper to transition to next state with segment and ID
-    internal func next<N>(_ segment: String, _ id: String = "*") -> RealtimeChannel<N> {
-        return RealtimeChannel<N>(segments + [segment, normalize(id)])
+    /// Internal helper to transition to next state with segment and optional ID
+    internal func next<N>(_ segment: String, _ id: String? = nil) -> RealtimeChannel<N> {
+        if let id = id {
+            return RealtimeChannel<N>(segments + [segment, normalize(id)])
+        }
+
+        return RealtimeChannel<N>(segments + [segment])
     }
     
     /// Internal helper for terminal actions (no ID segment)
@@ -67,6 +71,10 @@ public enum Channel {
         return RealtimeChannel<_Func>(["functions", normalize(id)])
     }
     
+    public static func execution(_ id: String = "*") -> RealtimeChannel<_Execution> {
+        return RealtimeChannel<_Execution>(["executions", normalize(id)])
+    }
+    
     public static func team(_ id: String = "*") -> RealtimeChannel<_Team> {
         return RealtimeChannel<_Team>(["teams", normalize(id)])
     }
@@ -75,9 +83,8 @@ public enum Channel {
         return RealtimeChannel<_Membership>(["memberships", normalize(id)])
     }
     
-    public static func account(_ userId: String = "") -> String {
-        let id = normalize(userId)
-        return id == "*" ? "account" : "account.\(id)"
+    public static func account() -> String {
+        return "account"
     }
     
     // Global events
@@ -93,14 +100,14 @@ public enum Channel {
 
 /// Only available on RealtimeChannel<_Database>
 extension RealtimeChannel where T == _Database {
-    public func collection(_ id: String = "*") -> RealtimeChannel<_Collection> {
-        return self.next("collections", id)
+    public func collection(_ id: String? = nil) -> RealtimeChannel<_Collection> {
+        return self.next("collections", id ?? "*")
     }
 }
 
 /// Only available on RealtimeChannel<_Collection>
 extension RealtimeChannel where T == _Collection {
-    public func document(_ id: String = "*") -> RealtimeChannel<_Document> {
+    public func document(_ id: String? = nil) -> RealtimeChannel<_Document> {
         return self.next("documents", id)
     }
 }
@@ -109,14 +116,14 @@ extension RealtimeChannel where T == _Collection {
 
 /// Only available on RealtimeChannel<_TablesDB>
 extension RealtimeChannel where T == _TablesDB {
-    public func table(_ id: String = "*") -> RealtimeChannel<_Table> {
-        return self.next("tables", id)
+    public func table(_ id: String? = nil) -> RealtimeChannel<_Table> {
+        return self.next("tables", id ?? "*")
     }
 }
 
 /// Only available on RealtimeChannel<_Table>
 extension RealtimeChannel where T == _Table {
-    public func row(_ id: String = "*") -> RealtimeChannel<_Row> {
+    public func row(_ id: String? = nil) -> RealtimeChannel<_Row> {
         return self.next("rows", id)
     }
 }
@@ -125,17 +132,8 @@ extension RealtimeChannel where T == _Table {
 
 /// Only available on RealtimeChannel<_Bucket>
 extension RealtimeChannel where T == _Bucket {
-    public func file(_ id: String = "*") -> RealtimeChannel<_File> {
+    public func file(_ id: String? = nil) -> RealtimeChannel<_File> {
         return self.next("files", id)
-    }
-}
-
-// MARK: - FUNCTION ROUTE
-
-/// Only available on RealtimeChannel<_Func>
-extension RealtimeChannel where T == _Func {
-    public func execution(_ id: String = "*") -> RealtimeChannel<_Execution> {
-        return self.next("executions", id)
     }
 }
 
@@ -174,21 +172,6 @@ extension RealtimeChannel where T == _Row {
 
 /// Only available on RealtimeChannel<_File>
 extension RealtimeChannel where T == _File {
-    public func create() -> RealtimeChannel<_Resolved> {
-        return self.resolve("create")
-    }
-    
-    public func update() -> RealtimeChannel<_Resolved> {
-        return self.resolve("update")
-    }
-    
-    public func delete() -> RealtimeChannel<_Resolved> {
-        return self.resolve("delete")
-    }
-}
-
-/// Only available on RealtimeChannel<_Execution>
-extension RealtimeChannel where T == _Execution {
     public func create() -> RealtimeChannel<_Resolved> {
         return self.resolve("create")
     }
