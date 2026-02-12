@@ -51,12 +51,8 @@ void main() {
   });
 
   group('account()', () {
-    test('returns account channel with default', () {
+    test('returns account channel', () {
       expect(Channel.account(), 'account');
-    });
-
-    test('returns account channel with specific user ID', () {
-      expect(Channel.account('user123'), 'account.user123');
     });
   });
 

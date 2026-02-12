@@ -302,7 +302,6 @@ void main() async {
   print(Channel.tablesdb('db1').table('table1').row('row1').toString());
   print(Channel.tablesdb('db1').table('table1').row('row1').update().toString());
   print(Channel.account());
-  print(Channel.account('user123'));
   print(Channel.bucket().file().toString());
   print(Channel.bucket('bucket1').file('file1').toString());
   print(Channel.bucket('bucket1').file('file1').delete().toString());

@@ -192,7 +192,6 @@ abstract class Base extends TestCase
         'tablesdb.db1.tables.table1.rows.row1',
         'tablesdb.db1.tables.table1.rows.row1.update',
         'account',
-        'account.user123',
         'buckets.*.files',
         'buckets.bucket1.files.file1',
         'buckets.bucket1.files.file1.delete',

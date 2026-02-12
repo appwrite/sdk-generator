@@ -66,10 +66,7 @@ class Channel<T> {
   static Channel<_Membership> membership([String id = '*']) =>
       Channel<_Membership>._(['memberships', _normalize(id)]);
 
-  static String account([String userId = '']) {
-    final id = _normalize(userId);
-    return id == '*' ? 'account' : 'account.$id';
-  }
+  static String account() => 'account';
 
   // Global events
   static String documents() => 'documents';

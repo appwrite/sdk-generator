@@ -83,9 +83,8 @@ public enum Channel {
         return RealtimeChannel<_Membership>(["memberships", normalize(id)])
     }
     
-    public static func account(_ userId: String = "") -> String {
-        let id = normalize(userId)
-        return id == "*" ? "account" : "account.\(id)"
+    public static func account() -> String {
+        return "account"
     }
     
     // Global events

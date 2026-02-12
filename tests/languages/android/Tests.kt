@@ -325,7 +325,6 @@ class ServiceTest {
             writeToFile(Channel.tablesdb("db1").table("table1").row("row1").toString())
             writeToFile(Channel.tablesdb("db1").table("table1").row("row1").update().toString())
             writeToFile(Channel.account())
-            writeToFile(Channel.account("user123"))
             writeToFile(Channel.bucket().file().toString())
             writeToFile(Channel.bucket("bucket1").file("file1").toString())
             writeToFile(Channel.bucket("bucket1").file("file1").delete().toString())

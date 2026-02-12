@@ -80,10 +80,7 @@ class Channel<out T> private constructor(
         fun membership(id: String = "*"): Channel<_Membership> =
             Channel(listOf("memberships", normalize(id)))
 
-        fun account(userId: String = ""): String {
-            val id = normalize(userId)
-            return if (id == "*") "account" else "account.$id"
-        }
+        fun account(): String = "account"
 
         // Global events
         fun documents(): String = "documents"
