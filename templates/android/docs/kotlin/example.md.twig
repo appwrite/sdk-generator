@@ -43,5 +43,7 @@ val result = {% endif %}{{ service.name | caseCamel }}.{{ method.name | caseCame
     {%~ endif %}
 
     {%~ endfor %}
-{% if method.parameters.all | length > 0  %}){% endif %}
+{% if method.parameters.all | length > 0  %}
+)
+{% endif %}
 ```
