@@ -21,10 +21,14 @@ func (model {{ definition.name | caseUcfirst }}) New(data []byte) *{{ definition
     return &model
 }
 
-func (p *{{ definition.name | caseUcfirst }}) UnmarshalJSON(b []byte) error {
-    p.data = make([]byte, len(b))
-    copy(p.data, b)
-    return nil
+func (p *{{ definition.name | caseUcfirst }}) UnmarshalJSON(b []byte) error {  
+    p.data = make([]byte, len(b))  
+    copy(p.data, b)  
+
+    // Alias avoids infinite recursion (the alias has no methods).  
+    type Alias {{ definition.name | caseUcfirst }}  
+    aux := (*Alias)(p)  
+    return json.Unmarshal(b, aux)  
 }
 
 {%~ if definition.additionalProperties %}
