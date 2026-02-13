@@ -211,8 +211,6 @@ abstract class Base extends TestCase
         'memberships.*',
         'memberships.membership1',
         'memberships.membership1.update',
-        'memberships.membership1',
-        'memberships.membership1.update',
     ];
 
     protected const OPERATOR_HELPER_RESPONSES = [
