@@ -327,6 +327,7 @@ class Tests: XCTestCase {
         print(Channel.team().toString())
         print(Channel.team("team1").toString())
         print(Channel.team("team1").create().toString())
+        print(Channel.memberships())
         print(Channel.membership().toString())
         print(Channel.membership("membership1").toString())
         print(Channel.membership("membership1").update().toString())

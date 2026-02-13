@@ -340,6 +340,7 @@ class ServiceTest {
             writeToFile(Channel.team().toString())
             writeToFile(Channel.team("team1").toString())
             writeToFile(Channel.team("team1").create().toString())
+            writeToFile(Channel.memberships())
             writeToFile(Channel.membership().toString())
             writeToFile(Channel.membership("membership1").toString())
             writeToFile(Channel.membership("membership1").update().toString())

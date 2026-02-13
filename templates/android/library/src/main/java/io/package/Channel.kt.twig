@@ -88,6 +88,7 @@ class Channel<out T> private constructor(
         fun files(): String = "files"
         fun executions(): String = "executions"
         fun teams(): String = "teams"
+        fun memberships(): String = "memberships"
     }
 }
 
