@@ -93,6 +93,7 @@ public enum Channel {
     public static func files() -> String { "files" }
     public static func executions() -> String { "executions" }
     public static func teams() -> String { "teams" }
+    public static func memberships() -> String { "memberships" }
 }
 
 // MARK: - DATABASE ROUTE
