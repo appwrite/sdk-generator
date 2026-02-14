@@ -20,53 +20,54 @@ namespace {{ spec.title | caseUcfirst }}
     // Helper function for normalizing ID
     internal static class ChannelHelper
     {
-        internal static string Normalize(string id) => string.IsNullOrWhiteSpace(id) ? "*" : id.Trim();
+        internal static string Normalize(string id = null) => string.IsNullOrWhiteSpace(id) ? "*" : id.Trim();
     }
 
     // State interfaces
-    public interface IActionable
+    public interface IChannelValue
+    {
+        string Channel { get; }
+    }
+
+    public interface IActionable : IChannelValue
     {
         ResolvedChannel Create();
         ResolvedChannel Update();
         ResolvedChannel Delete();
-        string Channel { get; }
     }
 
     public interface IDatabase
     {
-        ICollection Collection(string id = "*");
+        ICollection Collection(string id = null);
     }
 
     public interface ICollection
     {
-        IDocument Document(string id = "*");
+        IDocument Document(string id = null);
     }
 
     public interface IDocument : IActionable { }
 
     public interface ITablesDB
     {
-        ITable Table(string id = "*");
+        ITable Table(string id = null);
     }
 
     public interface ITable
     {
-        IRow Row(string id = "*");
+        IRow Row(string id = null);
     }
 
     public interface IRow : IActionable { }
 
     public interface IBucket
     {
-        IFile File(string id = "*");
+        IFile File(string id = null);
     }
 
     public interface IFile : IActionable { }
 
-    public interface IFunction
-    {
-        IExecution Execution(string id = "*");
-    }
+    public interface IFunction : IChannelValue { }
 
     public interface IExecution : IActionable { }
 
@@ -84,7 +85,7 @@ namespace {{ spec.title | caseUcfirst }}
             _segments = segments;
         }
 
-        private ChannelBuilder Next(string segment, string id)
+        private ChannelBuilder Next(string segment, string id = null)
         {
             var newSegments = new List<string>(_segments)
             {
@@ -94,17 +95,15 @@ namespace {{ spec.title | caseUcfirst }}
             return new ChannelBuilder(newSegments);
         }
 
-        public ICollection Collection(string id = "*") => Next("collections", id);
+        public ICollection Collection(string id = null) => Next("collections", id);
 
-        public IDocument Document(string id = "*") => Next("documents", id);
+        public IDocument Document(string id = null) => Next("documents", id);
 
-        public ITable Table(string id = "*") => Next("tables", id);
+        public ITable Table(string id = null) => Next("tables", id);
 
-        public IRow Row(string id = "*") => Next("rows", id);
+        public IRow Row(string id = null) => Next("rows", id);
 
-        public IFile File(string id = "*") => Next("files", id);
-
-        public IExecution Execution(string id = "*") => Next("executions", id);
+        public IFile File(string id = null) => Next("files", id);
 
         public ResolvedChannel Create() => Resolve("create");
 
@@ -122,34 +121,35 @@ namespace {{ spec.title | caseUcfirst }}
     // Entry point
     public static class Channel
     {
-        public static IDatabase Database(string id = "*") =>
+        public static IDatabase Database(string id = null) =>
             new ChannelBuilder(new List<string> { "databases", ChannelHelper.Normalize(id) });
 
-        public static ITablesDB TablesDB(string id = "*") =>
+        public static ITablesDB TablesDB(string id = null) =>
             new ChannelBuilder(new List<string> { "tablesdb", ChannelHelper.Normalize(id) });
 
-        public static IBucket Bucket(string id = "*") =>
+        public static IBucket Bucket(string id = null) =>
             new ChannelBuilder(new List<string> { "buckets", ChannelHelper.Normalize(id) });
 
-        public static IFunction Function(string id = "*") =>
+        public static IFunction Function(string id = null) =>
             new ChannelBuilder(new List<string> { "functions", ChannelHelper.Normalize(id) });
 
-        public static IActionable Team(string id = "*") =>
+        public static IExecution Execution(string id = null) =>
+            new ChannelBuilder(new List<string> { "executions", ChannelHelper.Normalize(id) });
+
+        public static IActionable Team(string id = null) =>
             new ChannelBuilder(new List<string> { "teams", ChannelHelper.Normalize(id) });
 
-        public static IActionable Membership(string id = "*") =>
+        public static IActionable Membership(string id = null) =>
             new ChannelBuilder(new List<string> { "memberships", ChannelHelper.Normalize(id) });
 
-        public static string Account(string userId = "")
-        {
-            var id = ChannelHelper.Normalize(userId);
-            return id == "*" ? "account" : $"account.{id}";
-        }
 
         // Global events (without ID)
-        public static string Documents => "documents";
-        public static string Rows => "rows";
-        public static string Files => "files";
-        public static string Executions => "executions";
+        public static string Account() => "account";
+        public static string Documents() => "documents";
+        public static string Rows() => "rows";
+        public static string Files() => "files";
+        public static string Executions() => "executions";
+        public static string Teams() => "teams";
+        public static string Memberships() => "memberships";
     }
 }

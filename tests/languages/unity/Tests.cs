@@ -33,6 +33,21 @@ namespace AppwriteTests
                 throw task.Exception;
             }
         }
+        private async Task<string> WaitForRealtimeMessage(Realtime realtime, string[] channels, int timeoutMs = 5000, List<string> queries = null)
+        {
+            var tcs = new TaskCompletionSource<string>();
+            var subscription = realtime.Subscribe(channels, (eventData) =>
+            {
+                if (eventData.Payload != null && eventData.Payload.TryGetValue("response", out var value) && value != null)
+                {
+                    tcs.TrySetResult(value.ToString());
+                }
+            }, queries);
+
+            var task = await Task.WhenAny(tcs.Task, Task.Delay(timeoutMs));
+            subscription.Close();
+            return task == tcs.Task ? await tcs.Task : "No realtime message received within timeout";
+        }
         
         private async Task RunAsyncTest()
         {
@@ -52,24 +67,6 @@ namespace AppwriteTests
             var realtimeObject = new GameObject("RealtimeTest");
             var realtime = realtimeObject.AddComponent<Realtime>();
             realtime.Initialize(client);
-            
-            string realtimeResponse = "No realtime message received within timeout";            
-            RealtimeSubscription subscription = null;
-            subscription = realtime.Subscribe(new [] { "tests" }, (eventData) => 
-            {
-                Debug.Log($"[Test] Realtime callback invoked! Payload count: {eventData.Payload?.Count}");
-                if (eventData.Payload != null && eventData.Payload.TryGetValue("response", out var value))
-                {
-                    Debug.Log($"[Test] Found response value: {value}");
-                    realtimeResponse = value.ToString();
-                    Debug.Log($"[Test] Updated realtimeResponse to: {realtimeResponse}");
-                }
-                else
-                {
-                    Debug.Log("[Test] No 'response' key found in payload");
-                }
-                subscription?.Close();
-            });
 
             await Task.Delay(5000);
 
@@ -192,10 +189,22 @@ namespace AppwriteTests
                 Debug.Log(e.Message);
             }
 
-            await general.Empty();
+            // Realtime tests
+            var realtimeNoQueryResponse = await WaitForRealtimeMessage(realtime, new[] { "tests" });
+            Debug.Log(realtimeNoQueryResponse);
 
-            await Task.Delay(5000);
-            Debug.Log(realtimeResponse);
+            var realtimeWithQueryResponse = await WaitForRealtimeMessage(realtime, new[] { "tests" }, queries: new List<string> { Query.Equal("response", new List<string> { "WS:/v1/realtime:passed" }) });
+            Debug.Log(realtimeWithQueryResponse);
+
+            var realtimeFailureResponse = await WaitForRealtimeMessage(realtime, new[] { "tests" }, queries: new List<string> { Query.Equal("response", new List<string> { "failed" }) });
+            if (realtimeFailureResponse == "No realtime message received within timeout")
+            {
+                Debug.Log("Realtime failed!");
+            }
+            else
+            {
+                Debug.Log("Realtime failed!");
+            }
 
             // Cookie tests
             mock = await general.SetCookie();
@@ -301,16 +310,22 @@ namespace AppwriteTests
             Debug.Log(Channel.TablesDB("db1").Table("table1").Row("row1").ToString());
             Debug.Log(Channel.TablesDB("db1").Table("table1").Row("row1").Update().ToString());
             Debug.Log(Channel.Account());
-            Debug.Log(Channel.Account("user123"));
             Debug.Log(Channel.Bucket().File().ToString());
             Debug.Log(Channel.Bucket("bucket1").File("file1").ToString());
             Debug.Log(Channel.Bucket("bucket1").File("file1").Delete().ToString());
-            Debug.Log(Channel.Function().Execution().ToString());
-            Debug.Log(Channel.Function("func1").Execution("exec1").ToString());
-            Debug.Log(Channel.Function("func1").Execution("exec1").Create().ToString());
+            Debug.Log(Channel.Function().ToString());
+            Debug.Log(Channel.Function("func1").ToString());
+            Debug.Log(Channel.Execution().ToString());
+            Debug.Log(Channel.Execution("exec1").ToString());
+            Debug.Log(Channel.Documents());
+            Debug.Log(Channel.Rows());
+            Debug.Log(Channel.Files());
+            Debug.Log(Channel.Executions());
+            Debug.Log(Channel.Teams());
             Debug.Log(Channel.Team().ToString());
             Debug.Log(Channel.Team("team1").ToString());
             Debug.Log(Channel.Team("team1").Create().ToString());
+            Debug.Log(Channel.Memberships());
             Debug.Log(Channel.Membership().ToString());
             Debug.Log(Channel.Membership("membership1").ToString());
             Debug.Log(Channel.Membership("membership1").Update().ToString());

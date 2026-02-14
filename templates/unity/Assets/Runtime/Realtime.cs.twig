@@ -41,6 +41,9 @@ namespace {{ spec.title | caseUcfirst }}
     {
         [JsonPropertyName("user")]
         public Dictionary<string, object> User { get; set; }
+
+        [JsonPropertyName("subscriptions")]
+        public Dictionary<string, string> Subscriptions { get; set; }
     }
     
     internal class RealtimeAuthData
@@ -59,6 +62,8 @@ namespace {{ spec.title | caseUcfirst }}
         public string[] Events { get; set; }
         [JsonPropertyName("channels")]
         public string[] Channels { get; set; }
+        [JsonPropertyName("subscriptions")]
+        public string[] Subscriptions { get; set; }
         [JsonPropertyName("timestamp")]
         public string Timestamp { get; set; }
         [JsonPropertyName("payload")]
@@ -73,6 +78,7 @@ namespace {{ spec.title | caseUcfirst }}
     public class RealtimeSubscription
     {
         public string[] Channels { get; internal set; }
+        public List<string> Queries { get; internal set; }
         public Action<RealtimeResponseEvent<Dictionary<string, object>>> OnMessage { get; internal set; }
         internal Action OnClose { get; set; }
 
@@ -94,11 +100,14 @@ namespace {{ spec.title | caseUcfirst }}
         private WebSocket _webSocket;
         private readonly HashSet<string> _channels = new();
         private readonly Dictionary<int, RealtimeSubscription> _subscriptions = new();
+        private readonly Dictionary<int, string> _slotToSubscriptionId = new();
+        private readonly Dictionary<string, int> _subscriptionIdToSlot = new();
         private int _subscriptionCounter;
         private bool _reconnect = true;
         private int _reconnectAttempts;
         private CancellationTokenSource _cancellationTokenSource;
         private bool _creatingSocket;
+        private bool _pendingSocketRebuild;
         private string _lastUrl;
         private CancellationTokenSource _heartbeatTokenSource;
         private string _lastSession;
@@ -157,22 +166,26 @@ namespace {{ spec.title | caseUcfirst }}
         /// <summary>
         /// Subscribe to one or more channels using string array
         /// </summary>
-        public RealtimeSubscription Subscribe(string[] channels, Action<RealtimeResponseEvent<Dictionary<string, object>>> callback)
+        public RealtimeSubscription Subscribe(string[] channels, Action<RealtimeResponseEvent<Dictionary<string, object>>> callback, List<string> queries = null)
         {
             Debug.Log($"[Realtime] Subscribe called for channels: [{string.Join(", ", channels)}]");
 
-            var subscriptionId = ++_subscriptionCounter;
+            var slot = ++_subscriptionCounter;
+            var normalizedChannels = channels.Select(channel => channel?.Trim()).Where(channel => !string.IsNullOrWhiteSpace(channel)).ToArray();
+            var normalizedQueries = queries == null ? new List<string>() : queries.Where(query => !string.IsNullOrWhiteSpace(query)).ToList();
+
             var subscription = new RealtimeSubscription
             {
-                Channels = channels,
+                Channels = normalizedChannels,
+                Queries = normalizedQueries,
                 OnMessage = callback,
-                OnClose = () => CloseSubscription(subscriptionId, channels)
+                OnClose = () => CloseSubscription(slot)
             };
 
-            _subscriptions[subscriptionId] = subscription;
+            _subscriptions[slot] = subscription;
 
             // Add channels to the set
-            foreach (var channel in channels)
+            foreach (var channel in normalizedChannels)
             {
                 _channels.Add(channel);
             }
@@ -187,56 +200,61 @@ namespace {{ spec.title | caseUcfirst }}
         /// <summary>
         /// Subscribe to a single channel using string
         /// </summary>
-        public RealtimeSubscription Subscribe(string channel, Action<RealtimeResponseEvent<Dictionary<string, object>>> callback)
+        public RealtimeSubscription Subscribe(string channel, Action<RealtimeResponseEvent<Dictionary<string, object>>> callback, List<string> queries = null)
         {
-            return Subscribe(new[] { channel }, callback);
+            return Subscribe(new[] { channel }, callback, queries);
         }
 
         /// <summary>
         /// Subscribe to a single channel using ResolvedChannel
         /// </summary>
-        public RealtimeSubscription Subscribe(ResolvedChannel channel, Action<RealtimeResponseEvent<Dictionary<string, object>>> callback)
+        public RealtimeSubscription Subscribe(ResolvedChannel channel, Action<RealtimeResponseEvent<Dictionary<string, object>>> callback, List<string> queries = null)
         {
-            return Subscribe(new[] { channel.ToString() }, callback);
+            return Subscribe(new[] { channel.ToString() }, callback, queries);
         }
 
         /// <summary>
         /// Subscribe to multiple channels using ResolvedChannel array
         /// </summary>
-        public RealtimeSubscription Subscribe(ResolvedChannel[] channels, Action<RealtimeResponseEvent<Dictionary<string, object>>> callback)
+        public RealtimeSubscription Subscribe(ResolvedChannel[] channels, Action<RealtimeResponseEvent<Dictionary<string, object>>> callback, List<string> queries = null)
         {
             var channelStrings = channels.Select(c => c.ToString()).ToArray();
-            return Subscribe(channelStrings, callback);
+            return Subscribe(channelStrings, callback, queries);
         }
 
         /// <summary>
         /// Subscribe to an actionable channel (without requiring terminal action)
         /// </summary>
-        public RealtimeSubscription Subscribe(IActionable actionable, Action<RealtimeResponseEvent<Dictionary<string, object>>> callback)
+        public RealtimeSubscription Subscribe(IActionable actionable, Action<RealtimeResponseEvent<Dictionary<string, object>>> callback, List<string> queries = null)
         {
-            return Subscribe(new[] { actionable.Channel }, callback);
+            return Subscribe(new[] { actionable.Channel }, callback, queries);
         }
 
         /// <summary>
         /// Subscribe to multiple actionable channels
         /// </summary>
-        public RealtimeSubscription Subscribe(IActionable[] actionables, Action<RealtimeResponseEvent<Dictionary<string, object>>> callback)
+        public RealtimeSubscription Subscribe(IActionable[] actionables, Action<RealtimeResponseEvent<Dictionary<string, object>>> callback, List<string> queries = null)
         {
             var channelStrings = actionables.Select(a => a.Channel).ToArray();
-            return Subscribe(channelStrings, callback);
+            return Subscribe(channelStrings, callback, queries);
         }
 
-        private void CloseSubscription(int subscriptionId, string[] channels)
+        private void CloseSubscription(int slot)
         {
-            _subscriptions.Remove(subscriptionId);
-
-            // Remove channels that are no longer in use
-            foreach (var channel in channels)
+            if (_slotToSubscriptionId.TryGetValue(slot, out var subscriptionId))
             {
-                bool stillInUse = _subscriptions.Values.Any(s => s.Channels.Contains(channel));
-                if (!stillInUse)
+                _subscriptionIdToSlot.Remove(subscriptionId);
+            }
+
+            _slotToSubscriptionId.Remove(slot);
+            _subscriptions.Remove(slot);
+
+            _channels.Clear();
+            foreach (var activeSubscription in _subscriptions.Values)
+            {
+                foreach (var activeChannel in activeSubscription.Channels)
                 {
-                    _channels.Remove(channel);
+                    _channels.Add(activeChannel);
                 }
             }
 
@@ -254,7 +272,14 @@ namespace {{ spec.title | caseUcfirst }}
         
         private async UniTask CreateSocket()
         {
-            if (_creatingSocket || _channels.Count == 0) return;
+            if (_creatingSocket)
+            {
+                _pendingSocketRebuild = true;
+                return;
+            }
+
+            if (_channels.Count == 0) return;
+
             _creatingSocket = true;
             
             Debug.Log($"[Realtime] Creating socket for {_channels.Count} channels");
@@ -299,6 +324,11 @@ namespace {{ spec.title | caseUcfirst }}
             finally
             {
                 _creatingSocket = false;
+                if (_pendingSocketRebuild)
+                {
+                    _pendingSocketRebuild = false;
+                    CreateSocket().Forget();
+                }
             }
         }
 
@@ -357,6 +387,20 @@ namespace {{ spec.title | caseUcfirst }}
         private void HandleConnectedMessage(RealtimeConnectedData data)
         {
             Debug.Log("[Realtime] Received 'connected' message");
+
+            _slotToSubscriptionId.Clear();
+            _subscriptionIdToSlot.Clear();
+            if (data?.Subscriptions != null)
+            {
+                foreach (var pair in data.Subscriptions)
+                {
+                    if (int.TryParse(pair.Key, out var slot) && !string.IsNullOrEmpty(pair.Value))
+                    {
+                        _slotToSubscriptionId[slot] = pair.Value;
+                        _subscriptionIdToSlot[pair.Value] = slot;
+                    }
+                }
+            }
             
             if (data.User == null || data.User.Count == 0)
             {
@@ -391,10 +435,30 @@ namespace {{ spec.title | caseUcfirst }}
         {
             try
             {
+                if (eventData?.Subscriptions != null && eventData.Subscriptions.Length > 0)
+                {
+                    foreach (var subscriptionId in eventData.Subscriptions)
+                    {
+                        if (string.IsNullOrEmpty(subscriptionId))
+                        {
+                            continue;
+                        }
+
+                        if (_subscriptionIdToSlot.TryGetValue(subscriptionId, out var slot) &&
+                            _subscriptions.TryGetValue(slot, out var subscription))
+                        {
+                            subscription.OnMessage?.Invoke(eventData);
+                        }
+                    }
+
+                    return;
+                }
+
+                var eventChannels = eventData?.Channels ?? Array.Empty<string>();
                 var subscriptionsCopy = _subscriptions.Values.ToArray();
                 foreach (var subscription in subscriptionsCopy)
                 {
-                    if (subscription.Channels.Any(subChannel => eventData.Channels.Contains(subChannel)))
+                    if (subscription.Channels.Any(subChannel => eventChannels.Contains(subChannel)))
                     {
                         subscription.OnMessage?.Invoke(eventData);
                     }
@@ -526,7 +590,36 @@ namespace {{ spec.title | caseUcfirst }}
                 throw new {{ spec.title | caseUcfirst }}Exception("Project ID is required to connect to the realtime server.");
             }
 
-            var channelParams = string.Join("&", _channels.Select(c => $"channels[]={Uri.EscapeDataString(c)}"));
+            var allChannels = new HashSet<string>(_subscriptions.Values.SelectMany(subscription => subscription.Channels));
+            var queryParts = new List<string>
+            {
+                $"project={Uri.EscapeDataString(project)}"
+            };
+
+            foreach (var channel in allChannels)
+            {
+                queryParts.Add($"channels[]={Uri.EscapeDataString(channel)}");
+            }
+
+            const string selectAllQuery = "{\"method\":\"select\",\"values\":[\"*\"]}";
+
+            foreach (var entry in _subscriptions)
+            {
+                var slot = entry.Key;
+                var subscription = entry.Value;
+                var queries = subscription.Queries != null && subscription.Queries.Count > 0
+                    ? subscription.Queries
+                    : new List<string> { selectAllQuery };
+
+                foreach (var channel in subscription.Channels)
+                {
+                    var encodedChannel = Uri.EscapeDataString(channel);
+                    foreach (var query in queries)
+                    {
+                        queryParts.Add($"{encodedChannel}[{slot}][]={Uri.EscapeDataString(query)}");
+                    }
+                }
+            }
             
             var uri = new Uri(realtimeEndpoint); 
             
@@ -537,8 +630,8 @@ namespace {{ spec.title | caseUcfirst }}
             {
                 baseUrl += $":{uri.Port}";
             }
-                        
-            return $"{baseUrl}{realtimePath}?project={Uri.EscapeDataString(project)}&{channelParams}";
+
+            return $"{baseUrl}{realtimePath}?{string.Join("&", queryParts)}";
         }
 
         private async UniTask CloseConnection(bool allowReconnect = true)
