@@ -14,14 +14,6 @@ export class Pools {
     }
   }
 
-  public setPollMaxDebounces(value: number): void {
-    this.pollMaxDebounces = value;
-  }
-
-  public getPollMaxDebounces(): number {
-    return this.pollMaxDebounces;
-  }
-
   public wipeAttributes = async (
     databaseId: string,
     collectionId: string,
@@ -222,65 +214,6 @@ export class Pools {
       databaseId,
       collectionId,
       attributeKeys,
-      iteration + 1,
-    );
-  };
-
-  public deleteIndexes = async (
-    databaseId: string,
-    collectionId: string,
-    indexesKeys: any[],
-    iteration: number = 1,
-  ): Promise<boolean> => {
-    if (iteration > this.pollMaxDebounces) {
-      return false;
-    }
-
-    if (this.pollMaxDebounces === this.POLL_DEFAULT_VALUE) {
-      let steps = Math.max(1, Math.ceil(indexesKeys.length / this.STEP_SIZE));
-      if (steps > 1 && iteration === 1) {
-        this.pollMaxDebounces *= steps;
-
-        log(
-          "Found a large number of indexes to be deleted. Increasing timeout to " +
-            (this.pollMaxDebounces * this.POLL_DEBOUNCE) / 1000 / 60 +
-            " minutes",
-        );
-      }
-    }
-
-    const { indexes } = await paginate(
-      async (args: any) => {
-        const databasesService = await getDatabasesService();
-        return await databasesService.listIndexes(
-          args.databaseId,
-          args.collectionId,
-          args.queries || [],
-        );
-      },
-      {
-        databaseId,
-        collectionId,
-      },
-      100,
-      "indexes",
-    );
-
-    const indexKeySet = new Set(indexes.map((i: any) => i.key));
-    const ready = indexesKeys.filter((index: any) =>
-      indexKeySet.has(index.key),
-    );
-
-    if (ready.length === 0) {
-      return true;
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, this.POLL_DEBOUNCE));
-
-    return await this.deleteIndexes(
-      databaseId,
-      collectionId,
-      indexesKeys,
       iteration + 1,
     );
   };

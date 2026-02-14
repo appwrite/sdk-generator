@@ -1,0 +1,36 @@
+{
+  "name": "sdk-for-markdown",
+  "version": "0.1.0",
+  "description": "Markdown documentation SDK for AI consumption",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "docs"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "build:manifest": "tsx scripts/build-manifest.ts",
+    "prepublishOnly": "npm run build:manifest && npm run build"
+  },
+  "keywords": [
+    "sdk",
+    "documentation",
+    "markdown",
+    "ai"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "20.11.25",
+    "tsx": "4.19.2",
+    "typescript": "5.4.2"
+  }
+}

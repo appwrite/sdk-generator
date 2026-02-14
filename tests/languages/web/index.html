@@ -19,6 +19,8 @@
         document.getElementById("start").addEventListener("click", async () => {
             let response;
             let responseRealtime = 'Realtime failed!';
+            let responseRealtimeWithQueries = 'Realtime failed!';
+            let responseRealtimeWithQueriesFailure = 'Realtime failed!';
 
             // Init SDK
             const { Client, Foo, Bar, General, Realtime, Query, Permission, Role, ID, Channel, Operator, Condition, MockType } = Appwrite;
@@ -38,10 +40,33 @@
             client.setEndpointRealtime('wss://cloud.appwrite.io/v1');
 
             const realtime = new Realtime(client);
+            const realtimeWithFailure = new Realtime(client);
 
+            // Subscribe without queries
             await realtime.subscribe(['tests'], message => {
                 responseRealtime = message.payload.response;
             });
+
+            // Subscribe with queries to ensure query array support works
+            await realtime.subscribe(
+                ['tests'],
+                message => {
+                    responseRealtimeWithQueries = message.payload.response;
+                },
+                [
+                    [Query.equal('response',["WS:/v1/realtime:passed"])]
+                ],
+            );
+
+            await realtime.subscribe(
+                ['tests'],
+                message => {
+                    responseRealtimeWithQueriesFailure = message.payload.response;
+                },
+                [
+                    [Query.equal('response',["failed"])]
+                ],
+            );
 
             // Foo
             response = await foo.get('string', 123, ["string in array"]);
@@ -255,6 +280,8 @@
             const delay = ms => new Promise(res => setTimeout(res, ms));
             await delay(5000);
             console.log(responseRealtime)
+            console.log(responseRealtimeWithQueries)
+            console.log(responseRealtimeWithQueriesFailure)
 
             // Query helper tests
             console.log(Query.equal("released", [true]));
@@ -361,16 +388,22 @@
             console.log(Channel.tablesdb('db1').table('table1').row('row1').toString());
             console.log(Channel.tablesdb('db1').table('table1').row('row1').update().toString());
             console.log(Channel.account());
-            console.log(Channel.account('user123'));
             console.log(Channel.bucket().file().toString());
             console.log(Channel.bucket('bucket1').file('file1').toString());
             console.log(Channel.bucket('bucket1').file('file1').delete().toString());
-            console.log(Channel.function().execution().toString());
-            console.log(Channel.function('func1').execution('exec1').toString());
-            console.log(Channel.function('func1').execution('exec1').create().toString());
+            console.log(Channel.function().toString());
+            console.log(Channel.function('func1').toString());
+            console.log(Channel.execution().toString());
+            console.log(Channel.execution('exec1').toString());
+            console.log(Channel.documents());
+            console.log(Channel.rows());
+            console.log(Channel.files());
+            console.log(Channel.executions());
+            console.log(Channel.teams());
             console.log(Channel.team().toString());
             console.log(Channel.team('team1').toString());
             console.log(Channel.team('team1').create().toString());
+            console.log(Channel.memberships());
             console.log(Channel.membership().toString());
             console.log(Channel.membership('membership1').toString());
             console.log(Channel.membership('membership1').update().toString());

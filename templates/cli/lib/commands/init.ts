@@ -31,7 +31,7 @@ import {
 } from "../parser.js";
 import { sdkForConsole } from "../sdks.js";
 import { isCloud } from "../utils.js";
-import { Account } from "@appwrite.io/console";
+import { Account, UseCases } from "@appwrite.io/console";
 import { DEFAULT_ENDPOINT, EXECUTABLE_NAME } from "../constants.js";
 
 const initResources = async (): Promise<void> => {
@@ -477,7 +477,7 @@ const initSite = async (): Promise<void> => {
     const sitesService = await getSitesService();
     const response = await sitesService.listTemplates(
       [answers.framework.key],
-      ["starter"],
+      [UseCases.Starter],
       1,
     );
     if (response.total == 0) {
@@ -499,7 +499,7 @@ const initSite = async (): Promise<void> => {
     template: templateDetails.frameworks[0].providerRootDirectory,
   };
 
-  let gitCloneCommands = "";
+  let dirSetupCommands = "";
 
   const sparse = selected.template.startsWith("./")
     ? selected.template.substring(2)
@@ -508,19 +508,15 @@ const initSite = async (): Promise<void> => {
   log("Fetching site code ...");
 
   if (selected.template === "./") {
-    gitCloneCommands = `
-            mkdir -p .
-            cd .
+    dirSetupCommands = `
+            cd ${templatesDir}
             git init
             git remote add origin ${repo}
-            git config --global init.defaultBranch main
-            git fetch --depth=1 origin refs/tags/$(git ls-remote --tags origin "${templateDetails.providerVersion}" | tail -n 1 | awk -F '/' '{print $3}')
-            git checkout FETCH_HEAD
+            git config --global init.defaultBranch main   
         `.trim();
   } else {
-    gitCloneCommands = `
-            mkdir -p .
-            cd .
+    dirSetupCommands = `
+            cd ${templatesDir}
             git init
             git remote add origin ${repo}
             git config --global init.defaultBranch main
@@ -528,21 +524,32 @@ const initSite = async (): Promise<void> => {
             echo "${sparse}" >> .git/info/sparse-checkout
             git config --add remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'
             git config remote.origin.tagopt --no-tags
-            git fetch --depth=1 origin refs/tags/$(git ls-remote --tags origin "${templateDetails.providerVersion}" | tail -n 1 | awk -F '/' '{print $3}')
-            git checkout FETCH_HEAD
         `.trim();
   }
+  let windowsGitCloneCommands = `
+            $tag = (git ls-remote --tags origin "${templateDetails.providerVersion}" | Select-Object -Last 1) -replace '.*refs/tags/', ''
+            git fetch --depth=1 origin "refs/tags/$tag"
+            git checkout FETCH_HEAD
+            `.trim();
+  let unixGitCloneCommands = `
+            git fetch --depth=1 origin refs/tags/$(git ls-remote --tags origin "${templateDetails.providerVersion}" | tail -n 1 | awk -F '/' '{print $3}')
+            git checkout FETCH_HEAD
+            `.trim();
 
-  /* Force use CMD as powershell does not support && */
+  let usedShell = null;
   if (process.platform === "win32") {
-    gitCloneCommands = 'cmd /c "' + gitCloneCommands + '"';
+    dirSetupCommands = dirSetupCommands + "\n" + windowsGitCloneCommands;
+    usedShell = "powershell.exe";
+  } else {
+    dirSetupCommands = dirSetupCommands + "\n" + unixGitCloneCommands;
   }
 
   /*  Execute the child process but do not print any std output */
   try {
-    childProcess.execSync(gitCloneCommands, {
+    childProcess.execSync(dirSetupCommands, {
       stdio: "pipe",
       cwd: templatesDir,
+      shell: usedShell,
     });
   } catch (err: any) {
     /* Specialised errors with recommended actions to take */
@@ -564,32 +571,14 @@ const initSite = async (): Promise<void> => {
     }
   }
 
-  fs.rmSync(path.join(templatesDir, ".git"), { recursive: true });
+  fs.rmSync(path.join(templatesDir, ".git"), { recursive: true, force: true });
 
-  const copyRecursiveSync = (src: string, dest: string): void => {
-    let exists = fs.existsSync(src);
-    let stats = exists && fs.statSync(src);
-    let isDirectory = exists && stats && stats.isDirectory();
-    if (isDirectory) {
-      if (!fs.existsSync(dest)) {
-        fs.mkdirSync(dest);
-      }
-
-      fs.readdirSync(src).forEach(function (childItemName) {
-        copyRecursiveSync(
-          path.join(src, childItemName),
-          path.join(dest, childItemName),
-        );
-      });
-    } else {
-      fs.copyFileSync(src, dest);
-    }
-  };
-  copyRecursiveSync(
+  fs.cpSync(
     selected.template === "./"
       ? templatesDir
       : path.join(templatesDir, selected.template),
     siteDir,
+    { recursive: true, force: true },
   );
 
   fs.rmSync(templatesDir, { recursive: true, force: true });

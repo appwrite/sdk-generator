@@ -99,6 +99,8 @@ abstract class Base extends TestCase
 
     protected const REALTIME_RESPONSES = [
         'WS:/v1/realtime:passed',
+        'WS:/v1/realtime:passed',
+        'Realtime failed!'
     ];
 
     protected const QUERY_HELPER_RESPONSES = [
@@ -183,23 +185,29 @@ abstract class Base extends TestCase
     ];
 
     protected const CHANNEL_HELPER_RESPONSES = [
-        'databases.*.collections.*.documents.*',
+        'databases.*.collections.*.documents',
         'databases.db1.collections.col1.documents.doc1',
         'databases.db1.collections.col1.documents.doc1.create',
-        'tablesdb.*.tables.*.rows.*',
+        'tablesdb.*.tables.*.rows',
         'tablesdb.db1.tables.table1.rows.row1',
         'tablesdb.db1.tables.table1.rows.row1.update',
         'account',
-        'account.user123',
-        'buckets.*.files.*',
+        'buckets.*.files',
         'buckets.bucket1.files.file1',
         'buckets.bucket1.files.file1.delete',
-        'functions.*.executions.*',
-        'functions.func1.executions.exec1',
-        'functions.func1.executions.exec1.create',
+        'functions.*',
+        'functions.func1',
+        'executions.*',
+        'executions.exec1',
+        'documents',
+        'rows',
+        'files',
+        'executions',
+        'teams',
         'teams.*',
         'teams.team1',
         'teams.team1.create',
+        'memberships',
         'memberships.*',
         'memberships.membership1',
         'memberships.membership1.update',

@@ -1,8 +1,8 @@
 import os from "os";
 import { fetch, FormData, Agent } from "undici";
-import JSONbig from "json-bigint";
 import { AppwriteException } from "@appwrite.io/console";
 import { globalConfig } from "./config.js";
+import { JSONBig } from "./json.js";
 import chalk from "chalk";
 import type {
   Headers,
@@ -18,8 +18,6 @@ import {
   SDK_VERSION,
   SDK_TITLE,
 } from "./constants.js";
-
-const JSONBigInt = JSONbig({ useNativeBigInt: true });
 
 class Client {
   private endpoint: string;
@@ -199,7 +197,7 @@ class Client {
 
       body = formData;
     } else {
-      body = JSONBigInt.stringify(params);
+      body = JSONBig.stringify(params);
     }
 
     let response: Awaited<ReturnType<typeof fetch>> | undefined = undefined;
@@ -266,7 +264,7 @@ class Client {
     const text = await response.text();
     let json: T | undefined = undefined;
     try {
-      json = JSONBigInt.parse(text);
+      json = JSONBig.parse(text);
     } catch (error) {
       return text as T;
     }
