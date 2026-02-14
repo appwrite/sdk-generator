@@ -1,0 +1,436 @@
+{% set lang = 'go' %}
+{% set langName = 'Go' %}
+{% set langDescription %}{{ spec.title }} {{ langName }} SDK skill. Use when building server-side Go applications with {{ spec.title }}. Covers user management, database/table CRUD, file storage, and functions via API keys. Uses per-service packages and functional options pattern.{% endset %}
+{{ include('agent-skills/base/frontmatter.md.twig') }}
+
+# {{ spec.title }} {{ langName }} SDK
+
+## Installation
+
+```bash
+go get github.com/{{ sdk.gitUserName }}/sdk-for-go
+```
+
+## Setting Up the Client
+
+```go
+import (
+    "os"
+
+    "github.com/{{ sdk.gitUserName }}/sdk-for-go/client"
+    "github.com/{{ sdk.gitUserName }}/sdk-for-go/id"
+    "github.com/{{ sdk.gitUserName }}/sdk-for-go/users"
+    "github.com/{{ sdk.gitUserName }}/sdk-for-go/tablesdb"
+    "github.com/{{ sdk.gitUserName }}/sdk-for-go/storage"
+)
+
+clt := client.New(
+    client.WithEndpoint("https://<REGION>.cloud.appwrite.io/v1"),
+    client.WithProject(os.Getenv("{{ spec.title | caseUpper }}_PROJECT_ID")),
+    client.WithKey(os.Getenv("{{ spec.title | caseUpper }}_API_KEY")),
+)
+```
+
+## Code Examples
+
+### User Management
+
+```go
+service := users.New(clt)
+
+// Create user
+user, err := service.Create(
+    id.Unique(),
+    "user@example.com",
+    "password123",
+    users.WithCreateName("User Name"),
+)
+
+// List users
+list, err := service.List()
+
+// Get user
+fetched, err := service.Get("[USER_ID]")
+
+// Delete user
+_, err = service.Delete("[USER_ID]")
+```
+
+### Database Operations
+
+> **Note:** Use `TablesDB` (not the deprecated `Databases` class) for all new code. Only use `Databases` if the existing codebase already relies on it or the user explicitly requests it.
+
+```go
+service := tablesdb.New(clt)
+
+// Create database
+db, err := service.Create(id.Unique(), "My Database")
+
+// Create row
+doc, err := service.CreateRow(
+    "[DATABASE_ID]",
+    "[TABLE_ID]",
+    id.Unique(),
+    map[string]interface{}{"title": "Hello World"},
+)
+
+// List rows
+results, err := service.ListRows("[DATABASE_ID]", "[TABLE_ID]")
+
+// Get row
+row, err := service.GetRow("[DATABASE_ID]", "[TABLE_ID]", "[ROW_ID]")
+
+// Update row
+_, err = service.UpdateRow(
+    "[DATABASE_ID]",
+    "[TABLE_ID]",
+    "[ROW_ID]",
+    tablesdb.WithUpdateRowData(map[string]interface{}{"title": "Updated"}),
+)
+
+// Delete row
+_, err = service.DeleteRow("[DATABASE_ID]", "[TABLE_ID]", "[ROW_ID]")
+```
+
+### Query Methods
+
+```go
+import "github.com/{{ sdk.gitUserName }}/sdk-for-go/query"
+
+// Filtering
+query.Equal("field", "value")             // == (or pass slice for IN)
+query.NotEqual("field", "value")          // !=
+query.LessThan("field", 100)             // <
+query.LessThanEqual("field", 100)        // <=
+query.GreaterThan("field", 100)          // >
+query.GreaterThanEqual("field", 100)     // >=
+query.Between("field", 1, 100)           // 1 <= field <= 100
+query.IsNull("field")                    // is null
+query.IsNotNull("field")                 // is not null
+query.StartsWith("field", "prefix")      // starts with
+query.EndsWith("field", "suffix")        // ends with
+query.Contains("field", "sub")           // contains
+query.Search("field", "keywords")        // full-text search (requires index)
+
+// Sorting
+query.OrderAsc("field")
+query.OrderDesc("field")
+
+// Pagination
+query.Limit(25)                          // max rows (default 25, max 100)
+query.Offset(0)                          // skip N rows
+query.CursorAfter("[ROW_ID]")            // cursor pagination (preferred)
+query.CursorBefore("[ROW_ID]")
+
+// Selection & Logic
+query.Select([]string{"field1", "field2"})
+query.Or([]string{query.Equal("a", 1), query.Equal("b", 2)})    // OR
+query.And([]string{query.GreaterThan("age", 18), query.LessThan("age", 65)})  // AND (default)
+```
+
+### File Storage
+
+```go
+import "github.com/{{ sdk.gitUserName }}/sdk-for-go/file"
+
+service := storage.New(clt)
+
+// Upload file
+f, err := service.CreateFile(
+    "[BUCKET_ID]",
+    "[FILE_ID]",
+    file.NewInputFile("/path/to/file.png", "file.png"),
+)
+
+// List files
+files, err := service.ListFiles("[BUCKET_ID]")
+
+// Delete file
+_, err = service.DeleteFile("[BUCKET_ID]", "[FILE_ID]")
+```
+
+#### InputFile Factory Methods
+
+```go
+import "github.com/{{ sdk.gitUserName }}/sdk-for-go/file"
+
+file.NewInputFile("/path/to/file.png", "file.png")          // from filesystem path
+file.NewInputFileFromReader(reader, "file.png", size)        // from io.Reader (size required)
+file.NewInputFileFromBytes(data, "file.png")                 // from []byte
+```
+
+### Teams
+
+```go
+import "github.com/{{ sdk.gitUserName }}/sdk-for-go/teams"
+
+svc := teams.New(clt)
+
+// Create team
+team, err := svc.Create(id.Unique(), "Engineering")
+
+// List teams
+list, err := svc.List()
+
+// Create membership (invite user by email)
+membership, err := svc.CreateMembership(
+    "[TEAM_ID]",
+    []string{"editor"},
+    teams.WithCreateMembershipEmail("user@example.com"),
+)
+
+// List memberships
+members, err := svc.ListMemberships("[TEAM_ID]")
+
+// Update membership roles
+_, err = svc.UpdateMembership("[TEAM_ID]", "[MEMBERSHIP_ID]", []string{"admin"})
+
+// Delete team
+_, err = svc.Delete("[TEAM_ID]")
+```
+
+> **Role-based access:** Use `role.Team("[TEAM_ID]")` for all team members or `role.Team("[TEAM_ID]", "editor")` for a specific team role when setting permissions.
+
+### Serverless Functions
+
+```go
+import "github.com/{{ sdk.gitUserName }}/sdk-for-go/functions"
+
+svc := functions.New(clt)
+
+// Execute function
+execution, err := svc.CreateExecution(
+    "[FUNCTION_ID]",
+    functions.WithCreateExecutionBody(`{"key": "value"}`),
+)
+
+// List executions
+executions, err := svc.ListExecutions("[FUNCTION_ID]")
+```
+
+#### Writing a Function Handler (Go runtime)
+
+```go
+// src/main.go — Appwrite Function entry point
+package handler
+
+import (
+    "github.com/open-runtimes/types-for-go/v4/openruntimes"
+)
+
+func Main(context openruntimes.Context) openruntimes.Response {
+    // context.Req.Body        — raw body (string)
+    // context.Req.BodyJson    — parsed JSON (map[string]interface{})
+    // context.Req.Headers     — headers (map[string]string)
+    // context.Req.Method      — HTTP method
+    // context.Req.Path        — URL path
+    // context.Req.Query       — query params (map[string]string)
+
+    context.Log("Processing: " + context.Req.Method + " " + context.Req.Path)
+
+    if context.Req.Method == "GET" {
+        return context.Res.Json(map[string]interface{}{"message": "Hello!"})
+    }
+
+    return context.Res.Json(map[string]interface{}{"success": true})
+    // context.Res.Text("Hello")                  // plain text
+    // context.Res.Empty()                         // 204
+    // context.Res.Redirect("https://...")          // 302
+}
+```
+
+### Server-Side Rendering (SSR) Authentication
+
+SSR apps using Go frameworks (net/http, Gin, Echo, Chi, etc.) use the **server SDK** to handle auth. You need two clients:
+
+- **Admin client** — uses an API key, creates sessions, bypasses rate limits (reusable singleton)
+- **Session client** — uses a session cookie, acts on behalf of a user (create per-request, never share)
+
+```go
+import (
+    "github.com/{{ sdk.gitUserName }}/sdk-for-go/client"
+    "github.com/{{ sdk.gitUserName }}/sdk-for-go/account"
+)
+
+// Admin client (reusable)
+adminClient := client.New(
+    client.WithEndpoint("https://<REGION>.cloud.appwrite.io/v1"),
+    client.WithProject(os.Getenv("{{ spec.title | caseUpper }}_PROJECT_ID")),
+    client.WithKey(os.Getenv("{{ spec.title | caseUpper }}_API_KEY")),
+)
+
+// Session client (create per-request)
+sessionClient := client.New(
+    client.WithEndpoint("https://<REGION>.cloud.appwrite.io/v1"),
+    client.WithProject(os.Getenv("{{ spec.title | caseUpper }}_PROJECT_ID")),
+)
+
+cookie, err := r.Cookie("a_session_[PROJECT_ID]")
+if err == nil {
+    sessionClient.SetSession(cookie.Value)
+}
+```
+
+#### Email/Password Login
+
+```go
+http.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
+    svc := account.New(adminClient)
+    session, err := svc.CreateEmailPasswordSession(r.FormValue("email"), r.FormValue("password"))
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusBadRequest)
+        return
+    }
+
+    // Cookie name must be a_session_<PROJECT_ID>
+    http.SetCookie(w, &http.Cookie{
+        Name:     "a_session_[PROJECT_ID]",
+        Value:    session.Secret,
+        HttpOnly: true,
+        Secure:   true,
+        SameSite: http.SameSiteStrictMode,
+        Path:     "/",
+    })
+
+    w.Header().Set("Content-Type", "application/json")
+    w.Write([]byte(`{"success": true}`))
+})
+```
+
+#### Authenticated Requests
+
+```go
+http.HandleFunc("/user", func(w http.ResponseWriter, r *http.Request) {
+    cookie, err := r.Cookie("a_session_[PROJECT_ID]")
+    if err != nil {
+        http.Error(w, "Unauthorized", http.StatusUnauthorized)
+        return
+    }
+
+    sessionClient := client.New(
+        client.WithEndpoint("https://<REGION>.cloud.appwrite.io/v1"),
+        client.WithProject(os.Getenv("{{ spec.title | caseUpper }}_PROJECT_ID")),
+        client.WithSession(cookie.Value),
+    )
+
+    svc := account.New(sessionClient)
+    user, err := svc.Get()
+    // Marshal user to JSON and write response
+})
+```
+
+#### OAuth2 SSR Flow
+
+```go
+// Step 1: Redirect to OAuth provider
+http.HandleFunc("/oauth", func(w http.ResponseWriter, r *http.Request) {
+    svc := account.New(adminClient)
+    redirectURL, err := svc.CreateOAuth2Token(
+        "github",
+        account.WithCreateOAuth2TokenSuccess("https://example.com/oauth/success"),
+        account.WithCreateOAuth2TokenFailure("https://example.com/oauth/failure"),
+    )
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+    http.Redirect(w, r, redirectURL, http.StatusFound)
+})
+
+// Step 2: Handle callback — exchange token for session
+http.HandleFunc("/oauth/success", func(w http.ResponseWriter, r *http.Request) {
+    svc := account.New(adminClient)
+    session, err := svc.CreateSession(r.URL.Query().Get("userId"), r.URL.Query().Get("secret"))
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusBadRequest)
+        return
+    }
+
+    http.SetCookie(w, &http.Cookie{
+        Name: "a_session_[PROJECT_ID]", Value: session.Secret,
+        HttpOnly: true, Secure: true, SameSite: http.SameSiteStrictMode, Path: "/",
+    })
+    w.Write([]byte(`{"success": true}`))
+})
+```
+
+> **Cookie security:** Always use `HttpOnly`, `Secure`, and `SameSiteStrictMode` to prevent XSS. The cookie name must be `a_session_<PROJECT_ID>`.
+
+> **Forwarding user agent:** Call `sessionClient.SetForwardedUserAgent(r.Header.Get("User-Agent"))` to record the end-user's browser info for debugging and security.
+
+## Error Handling
+
+```go
+import "github.com/{{ sdk.gitUserName }}/sdk-for-go/apperr"
+
+doc, err := service.GetRow("[DATABASE_ID]", "[TABLE_ID]", "[ROW_ID]")
+if err != nil {
+    var appErr *apperr.AppwriteException
+    if errors.As(err, &appErr) {
+        fmt.Println(appErr.Message)    // human-readable message
+        fmt.Println(appErr.Code)       // HTTP status code (int)
+        fmt.Println(appErr.Type)       // error type (e.g. "document_not_found")
+    }
+}
+```
+
+**Common error codes:**
+
+| Code | Meaning |
+|------|---------|
+| `401` | Unauthorized — missing or invalid session/API key |
+| `403` | Forbidden — insufficient permissions |
+| `404` | Not found — resource does not exist |
+| `409` | Conflict — duplicate ID or unique constraint |
+| `429` | Rate limited — too many requests |
+
+## Permissions & Roles (Critical)
+
+Appwrite uses permission strings to control access to resources. Each permission pairs an action (`read`, `update`, `delete`, `create`, or `write` which grants create + update + delete) with a role target. By default, **no user has access** unless permissions are explicitly set at the document/file level or inherited from the collection/bucket settings. Permissions are arrays of strings built with the `permission` and `role` helpers.
+
+```go
+import (
+    "github.com/{{ sdk.gitUserName }}/sdk-for-go/permission"
+    "github.com/{{ sdk.gitUserName }}/sdk-for-go/role"
+)
+```
+
+### Database Row with Permissions
+
+```go
+doc, err := service.CreateRow(
+    "[DATABASE_ID]",
+    "[TABLE_ID]",
+    "[ROW_ID]",
+    map[string]interface{}{"title": "Hello World"},
+    tablesdb.WithCreateRowPermissions([]string{
+        permission.Read(role.User("[USER_ID]")),     // specific user can read
+        permission.Update(role.User("[USER_ID]")),   // specific user can update
+        permission.Read(role.Team("[TEAM_ID]")),     // all team members can read
+        permission.Read(role.Any()),                 // anyone (including guests) can read
+    }),
+)
+```
+
+### File Upload with Permissions
+
+```go
+f, err := service.CreateFile(
+    "[BUCKET_ID]",
+    "[FILE_ID]",
+    file.NewInputFile("/path/to/file.png", "file.png"),
+    storage.WithCreateFilePermissions([]string{
+        permission.Read(role.Any()),
+        permission.Update(role.User("[USER_ID]")),
+        permission.Delete(role.User("[USER_ID]")),
+    }),
+)
+```
+
+> **When to set permissions:** Set document/file-level permissions when you need per-resource access control. If all documents in a collection share the same rules, configure permissions at the collection/bucket level and leave document permissions empty.
+
+> **Common mistakes:**
+> - **Forgetting permissions** — the resource becomes inaccessible to all users (including the creator)
+> - **`role.Any()` with `write`/`update`/`delete`** — allows any user, including unauthenticated guests, to modify or remove the resource
+> - **`permission.Read(role.Any())` on sensitive data** — makes the resource publicly readable
+

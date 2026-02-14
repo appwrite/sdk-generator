@@ -57,6 +57,8 @@ const templateHelpers = {
   toSnakeCase: LanguageMeta.toSnakeCase,
   toKebabCase: LanguageMeta.toKebabCase,
   toUpperSnakeCase: LanguageMeta.toUpperSnakeCase,
+  getRelatedCollection: LanguageMeta.getRelatedCollection,
+  getRelatedCollectionId: LanguageMeta.getRelatedCollectionId,
 };
 
 const typesOutputArgument = new Argument(
@@ -95,6 +97,10 @@ const typesCommand = actionRunner(
     }
 
     const meta = createLanguageMeta(language as SupportedLanguage);
+    const templatingHelpers = {
+      ...templateHelpers,
+      generateEnum: meta.generateEnum.bind(meta),
+    };
 
     const rawOutputPath = rawOutputDirectory;
     const outputExt = path.extname(rawOutputPath);
@@ -179,7 +185,7 @@ const typesCommand = actionRunner(
       const content = templater({
         collections: dataItems,
         strict,
-        ...templateHelpers,
+        ...templatingHelpers,
         getType: meta.getType.bind(meta),
       });
 
@@ -194,7 +200,7 @@ const typesCommand = actionRunner(
           collections: dataItems,
           collection: item,
           strict,
-          ...templateHelpers,
+          ...templatingHelpers,
           getType: meta.getType.bind(meta),
         });
 

@@ -16,7 +16,9 @@ class CLIBun10Test extends Base
     protected string $class = 'Appwrite\SDK\Language\CLI';
     protected array $build = [
         'docker run --rm -v $(pwd):/app -w /app/tests/sdks/cli oven/bun:1.0 bun install',
-        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/cli oven/bun:1.0 bun run build',
+        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/cli oven/bun:1.0 bun run build:types',
+        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/cli oven/bun:1.0 bun run build:lib:runtime',
+        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/cli oven/bun:1.0 bun run build:cli',
         'cp tests/languages/cli/test.js tests/sdks/cli/test.js'
     ];
     protected string $command =

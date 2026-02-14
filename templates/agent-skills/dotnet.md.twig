@@ -1,0 +1,377 @@
+{% set lang = 'dotnet' %}
+{% set langName = '.NET' %}
+{% set langDescription %}{{ spec.title }} {{ langName }} SDK skill. Use when building server-side C# or .NET applications with {{ spec.title }}, including ASP.NET and Blazor integrations. Covers user management, database/table CRUD, file storage, and functions via API keys.{% endset %}
+{{ include('agent-skills/base/frontmatter.md.twig') }}
+
+# {{ spec.title }} {{ langName }} SDK
+
+## Installation
+
+```bash
+dotnet add package {{ spec.title }}
+```
+
+## Setting Up the Client
+
+```csharp
+using {{ spec.title }};
+using {{ spec.title }}.Services;
+using {{ spec.title }}.Models;
+
+var client = new Client()
+    .SetEndpoint("https://<REGION>.cloud.appwrite.io/v1")
+    .SetProject(Environment.GetEnvironmentVariable("{{ spec.title | caseUpper }}_PROJECT_ID"))
+    .SetKey(Environment.GetEnvironmentVariable("{{ spec.title | caseUpper }}_API_KEY"));
+```
+
+## Code Examples
+
+### User Management
+
+```csharp
+var users = new Users(client);
+
+// Create user
+var user = await users.Create(ID.Unique(), "user@example.com", null, "password123", "User Name");
+
+// List users
+var list = await users.List(new List<string> { Query.Limit(25) });
+
+// Get user
+var fetched = await users.Get("[USER_ID]");
+
+// Delete user
+await users.Delete("[USER_ID]");
+```
+
+### Database Operations
+
+> **Note:** Use `TablesDB` (not the deprecated `Databases` class) for all new code. Only use `Databases` if the existing codebase already relies on it or the user explicitly requests it.
+
+```csharp
+var tablesDB = new TablesDB(client);
+
+// Create database
+var db = await tablesDB.Create(ID.Unique(), "My Database");
+
+// Create row
+var doc = await tablesDB.CreateRow("[DATABASE_ID]", "[TABLE_ID]", ID.Unique(),
+    new Dictionary<string, object> { { "title", "Hello World" } });
+
+// Query rows
+var results = await tablesDB.ListRows("[DATABASE_ID]", "[TABLE_ID]",
+    new List<string> { Query.Equal("title", "Hello World"), Query.Limit(10) });
+
+// Get row
+var row = await tablesDB.GetRow("[DATABASE_ID]", "[TABLE_ID]", "[ROW_ID]");
+
+// Update row
+await tablesDB.UpdateRow("[DATABASE_ID]", "[TABLE_ID]", "[ROW_ID]",
+    new Dictionary<string, object> { { "title", "Updated" } });
+
+// Delete row
+await tablesDB.DeleteRow("[DATABASE_ID]", "[TABLE_ID]", "[ROW_ID]");
+```
+
+### Query Methods
+
+```csharp
+// Filtering
+Query.Equal("field", "value")             // == (or pass array for IN)
+Query.NotEqual("field", "value")          // !=
+Query.LessThan("field", 100)             // <
+Query.LessThanEqual("field", 100)        // <=
+Query.GreaterThan("field", 100)          // >
+Query.GreaterThanEqual("field", 100)     // >=
+Query.Between("field", 1, 100)           // 1 <= field <= 100
+Query.IsNull("field")                    // is null
+Query.IsNotNull("field")                 // is not null
+Query.StartsWith("field", "prefix")      // starts with
+Query.EndsWith("field", "suffix")        // ends with
+Query.Contains("field", "sub")           // contains
+Query.Search("field", "keywords")        // full-text search (requires index)
+
+// Sorting
+Query.OrderAsc("field")
+Query.OrderDesc("field")
+
+// Pagination
+Query.Limit(25)                          // max rows (default 25, max 100)
+Query.Offset(0)                          // skip N rows
+Query.CursorAfter("[ROW_ID]")            // cursor pagination (preferred)
+Query.CursorBefore("[ROW_ID]")
+
+// Selection & Logic
+Query.Select(new List<string> { "field1", "field2" })
+Query.Or(new List<string> { Query.Equal("a", 1), Query.Equal("b", 2) })   // OR
+Query.And(new List<string> { Query.GreaterThan("age", 18), Query.LessThan("age", 65) })  // AND (default)
+```
+
+### File Storage
+
+```csharp
+var storage = new Storage(client);
+
+// Upload file
+var file = await storage.CreateFile("[BUCKET_ID]", ID.Unique(), InputFile.FromPath("/path/to/file.png"));
+
+// List files
+var files = await storage.ListFiles("[BUCKET_ID]");
+
+// Delete file
+await storage.DeleteFile("[BUCKET_ID]", "[FILE_ID]");
+```
+
+#### InputFile Factory Methods
+
+```csharp
+using {{ spec.title }}.Models;
+
+InputFile.FromPath("/path/to/file.png")                          // from filesystem path
+InputFile.FromBytes(byteArray, "file.png", "image/png")          // from byte[]
+InputFile.FromStream(stream, "file.png", "image/png", size)      // from Stream (size required)
+```
+
+### Teams
+
+```csharp
+var teams = new Teams(client);
+
+// Create team
+var team = await teams.Create(ID.Unique(), "Engineering");
+
+// List teams
+var list = await teams.List();
+
+// Create membership (invite user by email)
+var membership = await teams.CreateMembership(
+    teamId: "[TEAM_ID]",
+    roles: new List<string> { "editor" },
+    email: "user@example.com"
+);
+
+// List memberships
+var members = await teams.ListMemberships("[TEAM_ID]");
+
+// Update membership roles
+await teams.UpdateMembership("[TEAM_ID]", "[MEMBERSHIP_ID]", new List<string> { "admin" });
+
+// Delete team
+await teams.Delete("[TEAM_ID]");
+```
+
+> **Role-based access:** Use `Role.Team("[TEAM_ID]")` for all team members or `Role.Team("[TEAM_ID]", "editor")` for a specific team role when setting permissions.
+
+### Serverless Functions
+
+```csharp
+var functions = new Functions(client);
+
+// Execute function
+var execution = await functions.CreateExecution("[FUNCTION_ID]", body: "{\"key\": \"value\"}");
+
+// List executions
+var executions = await functions.ListExecutions("[FUNCTION_ID]");
+```
+
+#### Writing a Function Handler (.NET runtime)
+
+```csharp
+// src/Main.cs — Appwrite Function entry point
+using System.Text.Json;
+
+public async Task<RuntimeOutput> Main(RuntimeContext context)
+{
+    // context.Req.Body        — raw body (string)
+    // context.Req.BodyJson    — parsed JSON (JsonElement)
+    // context.Req.Headers     — headers (Dictionary)
+    // context.Req.Method      — HTTP method
+    // context.Req.Path        — URL path
+    // context.Req.Query       — query params (Dictionary)
+
+    context.Log($"Processing: {context.Req.Method} {context.Req.Path}");
+
+    if (context.Req.Method == "GET")
+        return context.Res.Json(new { message = "Hello from Appwrite Function!" });
+
+    return context.Res.Json(new { success = true });      // JSON
+    // context.Res.Text("Hello");                         // plain text
+    // context.Res.Empty();                               // 204
+    // context.Res.Redirect("https://...");               // 302
+}
+```
+
+### Server-Side Rendering (SSR) Authentication
+
+SSR apps using .NET frameworks (ASP.NET, Blazor Server, etc.) use the **server SDK** to handle auth. You need two clients:
+
+- **Admin client** — uses an API key, creates sessions, bypasses rate limits (reusable singleton)
+- **Session client** — uses a session cookie, acts on behalf of a user (create per-request, never share)
+
+```csharp
+using {{ spec.title }};
+using {{ spec.title }}.Services;
+
+// Admin client (reusable)
+var adminClient = new Client()
+    .SetEndpoint("https://<REGION>.cloud.appwrite.io/v1")
+    .SetProject("[PROJECT_ID]")
+    .SetKey(Environment.GetEnvironmentVariable("{{ spec.title | caseUpper }}_API_KEY"));
+
+// Session client (create per-request)
+var sessionClient = new Client()
+    .SetEndpoint("https://<REGION>.cloud.appwrite.io/v1")
+    .SetProject("[PROJECT_ID]");
+
+var session = Request.Cookies["a_session_[PROJECT_ID]"];
+if (session != null)
+{
+    sessionClient.SetSession(session);
+}
+```
+
+#### Email/Password Login (ASP.NET Minimal API)
+
+```csharp
+app.MapPost("/login", async (HttpContext ctx, LoginRequest body) =>
+{
+    var account = new Account(adminClient);
+    var session = await account.CreateEmailPasswordSession(body.Email, body.Password);
+
+    // Cookie name must be a_session_<PROJECT_ID>
+    ctx.Response.Cookies.Append("a_session_[PROJECT_ID]", session.Secret, new CookieOptions
+    {
+        HttpOnly = true,
+        Secure = true,
+        SameSite = SameSiteMode.Strict,
+        Path = "/",
+    });
+
+    return Results.Ok(new { success = true });
+});
+```
+
+#### Authenticated Requests
+
+```csharp
+app.MapGet("/user", async (HttpContext ctx) =>
+{
+    var session = ctx.Request.Cookies["a_session_[PROJECT_ID]"];
+    if (session == null) return Results.Unauthorized();
+
+    var sessionClient = new Client()
+        .SetEndpoint("https://<REGION>.cloud.appwrite.io/v1")
+        .SetProject("[PROJECT_ID]")
+        .SetSession(session);
+
+    var account = new Account(sessionClient);
+    var user = await account.Get();
+    return Results.Ok(user);
+});
+```
+
+#### OAuth2 SSR Flow
+
+```csharp
+// Step 1: Redirect to OAuth provider
+app.MapGet("/oauth", async () =>
+{
+    var account = new Account(adminClient);
+    var redirectUrl = await account.CreateOAuth2Token(
+        provider: OAuthProvider.Github,
+        success: "https://example.com/oauth/success",
+        failure: "https://example.com/oauth/failure"
+    );
+    return Results.Redirect(redirectUrl);
+});
+
+// Step 2: Handle callback — exchange token for session
+app.MapGet("/oauth/success", async (HttpContext ctx, string userId, string secret) =>
+{
+    var account = new Account(adminClient);
+    var session = await account.CreateSession(userId, secret);
+
+    ctx.Response.Cookies.Append("a_session_[PROJECT_ID]", session.Secret, new CookieOptions
+    {
+        HttpOnly = true, Secure = true, SameSite = SameSiteMode.Strict, Path = "/",
+    });
+
+    return Results.Ok(new { success = true });
+});
+```
+
+> **Cookie security:** Always use `HttpOnly`, `Secure`, and `SameSite = SameSiteMode.Strict` to prevent XSS. The cookie name must be `a_session_<PROJECT_ID>`.
+
+> **Forwarding user agent:** Call `sessionClient.SetForwardedUserAgent(ctx.Request.Headers["User-Agent"])` to record the end-user's browser info for debugging and security.
+
+## Error Handling
+
+```csharp
+using {{ spec.title }};
+
+try
+{
+    var row = await tablesDB.GetRow("[DATABASE_ID]", "[TABLE_ID]", "[ROW_ID]");
+}
+catch (AppwriteException e)
+{
+    Console.WriteLine(e.Message);    // human-readable message
+    Console.WriteLine(e.Code);       // HTTP status code (int)
+    Console.WriteLine(e.Type);       // error type (e.g. "document_not_found")
+    Console.WriteLine(e.Response);   // full response body
+}
+```
+
+**Common error codes:**
+
+| Code | Meaning |
+|------|---------|
+| `401` | Unauthorized — missing or invalid session/API key |
+| `403` | Forbidden — insufficient permissions |
+| `404` | Not found — resource does not exist |
+| `409` | Conflict — duplicate ID or unique constraint |
+| `429` | Rate limited — too many requests |
+
+## Permissions & Roles (Critical)
+
+Appwrite uses permission strings to control access to resources. Each permission pairs an action (`read`, `update`, `delete`, `create`, or `write` which grants create + update + delete) with a role target. By default, **no user has access** unless permissions are explicitly set at the document/file level or inherited from the collection/bucket settings. Permissions are arrays of strings built with the `Permission` and `Role` helpers.
+
+```csharp
+using {{ spec.title }};
+// Permission and Role are included in the main namespace
+```
+
+### Database Row with Permissions
+
+```csharp
+var doc = await tablesDB.CreateRow("[DATABASE_ID]", "[TABLE_ID]", ID.Unique(),
+    new Dictionary<string, object> { { "title", "Hello World" } },
+    new List<string>
+    {
+        Permission.Read(Role.User("[USER_ID]")),     // specific user can read
+        Permission.Update(Role.User("[USER_ID]")),   // specific user can update
+        Permission.Read(Role.Team("[TEAM_ID]")),     // all team members can read
+        Permission.Read(Role.Any()),                 // anyone (including guests) can read
+    });
+```
+
+### File Upload with Permissions
+
+```csharp
+var file = await storage.CreateFile("[BUCKET_ID]", ID.Unique(),
+    InputFile.FromPath("/path/to/file.png"),
+    new List<string>
+    {
+        Permission.Read(Role.Any()),
+        Permission.Update(Role.User("[USER_ID]")),
+        Permission.Delete(Role.User("[USER_ID]")),
+    });
+```
+
+> **When to set permissions:** Set document/file-level permissions when you need per-resource access control. If all documents in a collection share the same rules, configure permissions at the collection/bucket level and leave document permissions empty.
+
+> **Common mistakes:**
+> - **Forgetting permissions** — the resource becomes inaccessible to all users (including the creator)
+> - **`Role.Any()` with `write`/`update`/`delete`** — allows any user, including unauthenticated guests, to modify or remove the resource
+> - **`Permission.Read(Role.Any())` on sensitive data** — makes the resource publicly readable
+

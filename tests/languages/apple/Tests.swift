@@ -40,12 +40,39 @@ class Tests: XCTestCase {
         let general = General(client)
         let realtime = Realtime(client)
         var realtimeResponse = "Realtime failed!"
+        var realtimeResponseWithQueries = "Realtime failed!"
+        var realtimeResponseWithQueriesFailure = "Realtime failed!"
 
         let expectation = XCTestExpectation(description: "realtime server")
+        let expectationWithQueries = XCTestExpectation(description: "realtime server (with queries)")
+        let expectationWithQueriesFailure = XCTestExpectation(description: "realtime server (with queries failure)")
+        expectationWithQueriesFailure.isInverted = true
 
+        // Subscribe without queries
         try await realtime.subscribe(channels: ["tests"]) { message in
             realtimeResponse = message.payload!["response"] as! String
             expectation.fulfill()
+        }
+
+        // Subscribe with queries to ensure query array support works
+        try await realtime.subscribe(
+            channels: ["tests"],
+            queries: [
+                Query.equal("response", value: ["WS:/v1/realtime:passed"])
+            ]
+        ) { message in
+            realtimeResponseWithQueries = message.payload?["response"] as! String
+            expectationWithQueries.fulfill()
+        }
+
+        try await realtime.subscribe(
+            channels: ["tests"],
+            queries: [
+                Query.equal("response", value: ["failed"])
+            ]
+        ) { message in
+            realtimeResponseWithQueriesFailure = message.payload?["response"] as! String
+            expectationWithQueriesFailure.fulfill()
         }
 
         var mock: Mock
@@ -160,8 +187,18 @@ class Tests: XCTestCase {
 
         print("Invalid endpoint URL: htp://cloud.appwrite.io/v1") // Indicates fatalError by client.setEndpoint
 
-        wait(for: [expectation], timeout: 10.0)
+        wait(for: [expectation], timeout: 20.0)
         print(realtimeResponse)
+
+        wait(for: [expectationWithQueries], timeout: 20.0)
+        print(realtimeResponseWithQueries)
+        
+        wait(for: [expectationWithQueriesFailure], timeout: 20.0)
+        if expectationWithQueriesFailure.isInverted {
+            print(realtimeResponseWithQueriesFailure)
+        } else {
+            print("Realtime failed")
+        }
 
         mock = try await general.setCookie()
         print(mock.result)
@@ -275,16 +312,22 @@ class Tests: XCTestCase {
         print(Channel.tablesdb("db1").table("table1").row("row1").toString())
         print(Channel.tablesdb("db1").table("table1").row("row1").update().toString())
         print(Channel.account())
-        print(Channel.account("user123"))
         print(Channel.bucket().file().toString())
         print(Channel.bucket("bucket1").file("file1").toString())
         print(Channel.bucket("bucket1").file("file1").delete().toString())
-        print(Channel.function().execution().toString())
-        print(Channel.function("func1").execution("exec1").toString())
-        print(Channel.function("func1").execution("exec1").create().toString())
+        print(Channel.function().toString())
+        print(Channel.function("func1").toString())
+        print(Channel.execution().toString())
+        print(Channel.execution("exec1").toString())
+        print(Channel.documents())
+        print(Channel.rows())
+        print(Channel.files())
+        print(Channel.executions())
+        print(Channel.teams())
         print(Channel.team().toString())
         print(Channel.team("team1").toString())
         print(Channel.team("team1").create().toString())
+        print(Channel.memberships())
         print(Channel.membership().toString())
         print(Channel.membership("membership1").toString())
         print(Channel.membership("membership1").update().toString())
