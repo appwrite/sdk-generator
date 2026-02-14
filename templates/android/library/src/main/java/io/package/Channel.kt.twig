@@ -37,8 +37,12 @@ class Channel<out T> private constructor(
      * Internal helper to transition to next state with segment and ID
      * Public for extension function access
      */
-    fun <N> next(segment: String, id: String = "*"): Channel<N> {
-        return Channel(segments + listOf(segment, normalize(id)))
+    fun <N> next(segment: String, id: String? = null): Channel<N> {
+        return if (id == null) {
+            Channel(segments + segment)
+        } else {
+            Channel(segments + listOf(segment, normalize(id)))
+        }
     }
 
     /**
@@ -64,6 +68,9 @@ class Channel<out T> private constructor(
         fun bucket(id: String = "*"): Channel<_Bucket> =
             Channel(listOf("buckets", normalize(id)))
 
+        fun execution(id: String = "*"): Channel<_Execution> =
+            Channel(listOf("executions", normalize(id)))
+
         fun function(id: String = "*"): Channel<_Func> =
             Channel(listOf("functions", normalize(id)))
 
@@ -73,16 +80,15 @@ class Channel<out T> private constructor(
         fun membership(id: String = "*"): Channel<_Membership> =
             Channel(listOf("memberships", normalize(id)))
 
-        fun account(userId: String = ""): String {
-            val id = normalize(userId)
-            return if (id == "*") "account" else "account.$id"
-        }
+        fun account(): String = "account"
 
         // Global events
-        const val documents = "documents"
-        const val rows = "rows"
-        const val files = "files"
-        const val executions = "executions"
+        fun documents(): String = "documents"
+        fun rows(): String = "rows"
+        fun files(): String = "files"
+        fun executions(): String = "executions"
+        fun teams(): String = "teams"
+        fun memberships(): String = "memberships"
     }
 }
 
@@ -92,13 +98,13 @@ class Channel<out T> private constructor(
 /**
  * Only available on Channel<_Database>
  */
-fun Channel<_Database>.collection(id: String = "*"): Channel<_Collection> =
-    this.next("collections", id)
+fun Channel<_Database>.collection(id: String? = null): Channel<_Collection> =
+    this.next("collections", id ?: "*")
 
 /**
  * Only available on Channel<_Collection>
  */
-fun Channel<_Collection>.document(id: String = "*"): Channel<_Document> =
+fun Channel<_Collection>.document(id: String? = null): Channel<_Document> =
     this.next("documents", id)
 
 // --- TABLESDB ROUTE ---
@@ -106,13 +112,13 @@ fun Channel<_Collection>.document(id: String = "*"): Channel<_Document> =
 /**
  * Only available on Channel<_TablesDB>
  */
-fun Channel<_TablesDB>.table(id: String = "*"): Channel<_Table> =
-    this.next("tables", id)
+fun Channel<_TablesDB>.table(id: String? = null): Channel<_Table> =
+    this.next("tables", id ?: "*")
 
 /**
  * Only available on Channel<_Table>
  */
-fun Channel<_Table>.row(id: String = "*"): Channel<_Row> =
+fun Channel<_Table>.row(id: String? = null): Channel<_Row> =
     this.next("rows", id)
 
 // --- BUCKET ROUTE ---
@@ -120,19 +126,11 @@ fun Channel<_Table>.row(id: String = "*"): Channel<_Row> =
 /**
  * Only available on Channel<_Bucket>
  */
-fun Channel<_Bucket>.file(id: String = "*"): Channel<_File> =
+fun Channel<_Bucket>.file(id: String? = null): Channel<_File> =
     this.next("files", id)
 
-// --- FUNCTION ROUTE ---
-
-/**
- * Only available on Channel<_Func>
- */
-fun Channel<_Func>.execution(id: String = "*"): Channel<_Execution> =
-    this.next("executions", id)
-
 // --- TERMINAL ACTIONS ---
-// Restricted to Actionable types (_Document, _Row, _File, _Execution, _Team, _Membership)
+// Restricted to Actionable types (_Document, _Row, _File, _Team, _Membership)
 
 /**
  * Only available on Channel<_Document>
@@ -195,27 +193,6 @@ fun Channel<_File>.update(): Channel<_Resolved> =
  */
 @JvmName("deleteFile")
 fun Channel<_File>.delete(): Channel<_Resolved> =
-    this.resolve("delete")
-
-/**
- * Only available on Channel<_Execution>
- */
-@JvmName("createExecution")
-fun Channel<_Execution>.create(): Channel<_Resolved> =
-    this.resolve("create")
-
-/**
- * Only available on Channel<_Execution>
- */
-@JvmName("updateExecution")
-fun Channel<_Execution>.update(): Channel<_Resolved> =
-    this.resolve("update")
-
-/**
- * Only available on Channel<_Execution>
- */
-@JvmName("deleteExecution")
-fun Channel<_Execution>.delete(): Channel<_Resolved> =
     this.resolve("delete")
 
 /**

@@ -2,7 +2,6 @@
 
 namespace Appwrite\SDK\Language;
 
-use Twig\TwigFilter;
 use Twig\TwigFunction;
 
 class CLI extends Node
@@ -195,6 +194,16 @@ class CLI extends Node
                 'template'      => 'cli/CHANGELOG.md.twig',
             ],
             [
+                'scope'         => 'copy',
+                'destination'   => 'bun-types.d.ts',
+                'template'      => 'cli/bun-types.d.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'bunfig.toml',
+                'template'      => 'cli/bunfig.toml',
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => 'LICENSE.md',
                 'template'      => 'cli/LICENSE.md.twig',
@@ -276,6 +285,11 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'lib/json.ts',
+                'template'      => 'cli/lib/json.ts',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'lib/config.ts',
                 'template'      => 'cli/lib/config.ts',
             ],
@@ -335,6 +349,13 @@ class CLI extends Node
                 'template'      => 'cli/lib/validations.ts',
             ],
 
+            // Shared utilities (lib/shared/)
+            [
+                'scope'         => 'copy',
+                'destination'   => 'lib/shared/typescript-type-utils.ts',
+                'template'      => 'cli/lib/shared/typescript-type-utils.ts',
+            ],
+
             // Commands (lib/commands/)
             [
                 'scope'         => 'copy',
@@ -343,8 +364,53 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'copy',
-                'destination'   => 'lib/commands/db.ts',
-                'template'      => 'cli/lib/commands/db.ts',
+                'destination'   => 'lib/commands/config-validations.ts',
+                'template'      => 'cli/lib/commands/config-validations.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'lib/commands/generate.ts',
+                'template'      => 'cli/lib/commands/generate.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'lib/commands/generators/base.ts',
+                'template'      => 'cli/lib/commands/generators/base.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'lib/commands/generators/index.ts',
+                'template'      => 'cli/lib/commands/generators/index.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'lib/commands/generators/language-detector.ts',
+                'template'      => 'cli/lib/commands/generators/language-detector.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'lib/commands/generators/typescript/databases.ts',
+                'template'      => 'cli/lib/commands/generators/typescript/databases.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'lib/commands/generators/typescript/templates/types.ts.hbs',
+                'template'      => 'cli/lib/commands/generators/typescript/templates/types.ts.hbs',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'lib/commands/generators/typescript/templates/databases.ts.hbs',
+                'template'      => 'cli/lib/commands/generators/typescript/templates/databases.ts.hbs',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'lib/commands/generators/typescript/templates/index.ts.hbs',
+                'template'      => 'cli/lib/commands/generators/typescript/templates/index.ts.hbs',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'lib/commands/generators/typescript/templates/constants.ts.hbs',
+                'template'      => 'cli/lib/commands/generators/typescript/templates/constants.ts.hbs',
             ],
             [
                 'scope'         => 'copy',
@@ -692,7 +758,7 @@ class CLI extends Node
 
             /**
              * Get CLI argument expression for a parameter when calling the SDK method.
-             * Handles enum casting, JSON parsing for objects, or plain variable.
+             * Handles JSON parsing for objects, or plain variable.
              */
             new TwigFunction('getCliArgExpression', function (array $parameter): string {
                 $name = $parameter['name'];
@@ -701,10 +767,7 @@ class CLI extends Node
                 $varName = lcfirst(str_replace(' ', '', ucwords(str_replace('-', ' ', $optionName))));
                 $type = $parameter['type'] ?? 'string';
 
-                if (isset($parameter['enumName'])) {
-                    $enumName = ucfirst($parameter['enumName']);
-                    return "{$varName} as {$enumName}";
-                } elseif ($type === 'object') {
+                if ($type === 'object') {
                     return "JSON.parse({$varName})";
                 } else {
                     return $varName;

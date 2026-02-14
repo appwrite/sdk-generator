@@ -1,0 +1,359 @@
+{% set lang = 'php' %}
+{% set langName = 'PHP' %}
+{% set langDescription %}{{ spec.title }} {{ langName }} SDK skill. Use when building server-side PHP applications with {{ spec.title }}, including Laravel and Symfony integrations. Covers user management, database/table CRUD, file storage, and functions via API keys.{% endset %}
+{{ include('agent-skills/base/frontmatter.md.twig') }}
+
+# {{ spec.title }} {{ langName }} SDK
+
+## Installation
+
+```bash
+composer require {{ spec.title | caseLower }}/{{ spec.title | caseLower }}
+```
+
+## Setting Up the Client
+
+```php
+use {{ spec.title }}\Client;
+use {{ spec.title }}\ID;
+use {{ spec.title }}\Query;
+use {{ spec.title }}\Services\Users;
+use {{ spec.title }}\Services\TablesDB;
+use {{ spec.title }}\Services\Storage;
+use {{ spec.title }}\Services\Functions;
+use {{ spec.title }}\InputFile;
+
+$client = (new Client())
+    ->setEndpoint('https://<REGION>.cloud.appwrite.io/v1')
+    ->setProject(getenv('{{ spec.title | caseUpper }}_PROJECT_ID'))
+    ->setKey(getenv('{{ spec.title | caseUpper }}_API_KEY'));
+```
+
+## Code Examples
+
+### User Management
+
+```php
+$users = new Users($client);
+
+// Create user
+$user = $users->create(ID::unique(), 'user@example.com', null, 'password123', 'User Name');
+
+// List users
+$list = $users->list([Query::limit(25)]);
+
+// Get user
+$fetched = $users->get('[USER_ID]');
+
+// Delete user
+$users->delete('[USER_ID]');
+```
+
+### Database Operations
+
+> **Note:** Use `TablesDB` (not the deprecated `Databases` class) for all new code. Only use `Databases` if the existing codebase already relies on it or the user explicitly requests it.
+
+```php
+$tablesDB = new TablesDB($client);
+
+// Create database
+$db = $tablesDB->create(ID::unique(), 'My Database');
+
+// Create row
+$doc = $tablesDB->createRow('[DATABASE_ID]', '[TABLE_ID]', ID::unique(), [
+    'title' => 'Hello World'
+]);
+
+// Query rows
+$results = $tablesDB->listRows('[DATABASE_ID]', '[TABLE_ID]', [
+    Query::equal('title', ['Hello World']),
+    Query::limit(10)
+]);
+
+// Get row
+$row = $tablesDB->getRow('[DATABASE_ID]', '[TABLE_ID]', '[ROW_ID]');
+
+// Update row
+$tablesDB->updateRow('[DATABASE_ID]', '[TABLE_ID]', '[ROW_ID]', [
+    'title' => 'Updated'
+]);
+
+// Delete row
+$tablesDB->deleteRow('[DATABASE_ID]', '[TABLE_ID]', '[ROW_ID]');
+```
+
+### Query Methods
+
+```php
+// Filtering
+Query::equal('field', ['value'])            // == (always pass array)
+Query::notEqual('field', ['value'])         // !=
+Query::lessThan('field', 100)              // <
+Query::lessThanEqual('field', 100)         // <=
+Query::greaterThan('field', 100)           // >
+Query::greaterThanEqual('field', 100)      // >=
+Query::between('field', 1, 100)            // 1 <= field <= 100
+Query::isNull('field')                     // is null
+Query::isNotNull('field')                  // is not null
+Query::startsWith('field', 'prefix')       // starts with
+Query::endsWith('field', 'suffix')         // ends with
+Query::contains('field', ['sub'])          // contains (string or array)
+Query::search('field', 'keywords')         // full-text search (requires index)
+
+// Sorting
+Query::orderAsc('field')
+Query::orderDesc('field')
+
+// Pagination
+Query::limit(25)                           // max rows (default 25, max 100)
+Query::offset(0)                           // skip N rows
+Query::cursorAfter('[ROW_ID]')             // cursor pagination (preferred)
+Query::cursorBefore('[ROW_ID]')
+
+// Selection & Logic
+Query::select(['field1', 'field2'])        // return only specified fields
+Query::or([Query::equal('a', [1]), Query::equal('b', [2])])   // OR
+Query::and([Query::greaterThan('age', 18), Query::lessThan('age', 65)])  // AND (default)
+```
+
+### File Storage
+
+```php
+$storage = new Storage($client);
+
+// Upload file
+$file = $storage->createFile('[BUCKET_ID]', ID::unique(), InputFile::withPath('/path/to/file.png'));
+
+// List files
+$files = $storage->listFiles('[BUCKET_ID]');
+
+// Delete file
+$storage->deleteFile('[BUCKET_ID]', '[FILE_ID]');
+```
+
+#### InputFile Factory Methods
+
+```php
+use {{ spec.title }}\InputFile;
+
+InputFile::withPath('/path/to/file.png')                    // from filesystem path
+InputFile::withData('Hello world', 'hello.txt')             // from string content
+```
+
+### Teams
+
+```php
+$teams = new Teams($client);
+
+// Create team
+$team = $teams->create(ID::unique(), 'Engineering');
+
+// List teams
+$list = $teams->list();
+
+// Create membership (invite user by email)
+$membership = $teams->createMembership('[TEAM_ID]', ['editor'], email: 'user@example.com');
+
+// List memberships
+$members = $teams->listMemberships('[TEAM_ID]');
+
+// Update membership roles
+$teams->updateMembership('[TEAM_ID]', '[MEMBERSHIP_ID]', ['admin']);
+
+// Delete team
+$teams->delete('[TEAM_ID]');
+```
+
+> **Role-based access:** Use `Role::team('[TEAM_ID]')` for all team members or `Role::team('[TEAM_ID]', 'editor')` for a specific team role when setting permissions.
+
+### Serverless Functions
+
+```php
+$functions = new Functions($client);
+
+// Execute function
+$execution = $functions->createExecution('[FUNCTION_ID]', '{"key": "value"}');
+
+// List executions
+$executions = $functions->listExecutions('[FUNCTION_ID]');
+```
+
+#### Writing a Function Handler (PHP runtime)
+
+```php
+// src/main.php — Appwrite Function entry point
+return function ($context) {
+    // $context->req->body        — raw body (string)
+    // $context->req->bodyJson    — parsed JSON (array or null)
+    // $context->req->headers     — headers (array)
+    // $context->req->method      — HTTP method
+    // $context->req->path        — URL path
+    // $context->req->query       — query params (array)
+
+    $context->log('Processing: ' . $context->req->method . ' ' . $context->req->path);
+
+    if ($context->req->method === 'GET') {
+        return $context->res->json(['message' => 'Hello from Appwrite Function!']);
+    }
+
+    $data = $context->req->bodyJson ?? [];
+    if (!isset($data['name'])) {
+        $context->error('Missing name field');
+        return $context->res->json(['error' => 'Name is required'], 400);
+    }
+
+    return $context->res->json(['success' => true]);      // JSON
+    // return $context->res->text('Hello');                // plain text
+    // return $context->res->empty();                      // 204
+    // return $context->res->redirect('https://...');      // 302
+};
+```
+
+### Server-Side Rendering (SSR) Authentication
+
+SSR apps (Laravel, Symfony, etc.) use the **server SDK** to handle auth. You need two clients:
+
+- **Admin client** — uses an API key, creates sessions, bypasses rate limits (reusable singleton)
+- **Session client** — uses a session cookie, acts on behalf of a user (create per-request, never share)
+
+```php
+use {{ spec.title }}\Client;
+use {{ spec.title }}\Services\Account;
+
+// Admin client (reusable)
+$adminClient = (new Client())
+    ->setEndpoint('https://<REGION>.cloud.appwrite.io/v1')
+    ->setProject('[PROJECT_ID]')
+    ->setKey(getenv('{{ spec.title | caseUpper }}_API_KEY'));
+
+// Session client (create per-request)
+$sessionClient = (new Client())
+    ->setEndpoint('https://<REGION>.cloud.appwrite.io/v1')
+    ->setProject('[PROJECT_ID]');
+
+$session = $_COOKIE['a_session_[PROJECT_ID]'] ?? null;
+if ($session) {
+    $sessionClient->setSession($session);
+}
+```
+
+#### Email/Password Login
+
+```php
+$account = new Account($adminClient);
+$session = $account->createEmailPasswordSession($email, $password);
+
+// Cookie name must be a_session_<PROJECT_ID>
+setcookie('a_session_[PROJECT_ID]', $session['secret'], [
+    'httpOnly' => true,
+    'secure' => true,
+    'sameSite' => 'strict',
+    'expires' => strtotime($session['expire']),
+    'path' => '/',
+]);
+```
+
+#### Authenticated Requests
+
+```php
+$session = $_COOKIE['a_session_[PROJECT_ID]'] ?? null;
+if (!$session) {
+    http_response_code(401);
+    exit;
+}
+
+$sessionClient->setSession($session);
+$account = new Account($sessionClient);
+$user = $account->get();
+```
+
+#### OAuth2 SSR Flow
+
+```php
+// Step 1: Redirect to OAuth provider
+$account = new Account($adminClient);
+$redirectUrl = $account->createOAuth2Token(
+    OAuthProvider::GITHUB(),
+    'https://example.com/oauth/success',
+    'https://example.com/oauth/failure',
+);
+header('Location: ' . $redirectUrl);
+
+// Step 2: Handle callback — exchange token for session
+$account = new Account($adminClient);
+$session = $account->createSession($_GET['userId'], $_GET['secret']);
+
+setcookie('a_session_[PROJECT_ID]', $session['secret'], [
+    'httpOnly' => true, 'secure' => true, 'sameSite' => 'strict',
+    'expires' => strtotime($session['expire']), 'path' => '/',
+]);
+```
+
+> **Cookie security:** Always use `httpOnly`, `secure`, and `sameSite: 'strict'` to prevent XSS. The cookie name must be `a_session_<PROJECT_ID>`.
+
+> **Forwarding user agent:** Call `$sessionClient->setForwardedUserAgent($_SERVER['HTTP_USER_AGENT'])` to record the end-user's browser info for debugging and security.
+
+## Error Handling
+
+```php
+use {{ spec.title }}\AppwriteException;
+
+try {
+    $row = $tablesDB->getRow('[DATABASE_ID]', '[TABLE_ID]', '[ROW_ID]');
+} catch (AppwriteException $e) {
+    echo $e->getMessage();   // human-readable error message
+    echo $e->getCode();      // HTTP status code (int)
+    echo $e->getType();      // Appwrite error type string (e.g. 'document_not_found')
+    echo $e->getResponse();  // full response body (array)
+}
+```
+
+**Common error codes:**
+
+| Code | Meaning |
+|------|---------|
+| `401` | Unauthorized — missing or invalid session/API key |
+| `403` | Forbidden — insufficient permissions for this action |
+| `404` | Not found — resource does not exist |
+| `409` | Conflict — duplicate ID or unique constraint violation |
+| `429` | Rate limited — too many requests, retry after backoff |
+
+## Permissions & Roles (Critical)
+
+Appwrite uses permission strings to control access to resources. Each permission pairs an action (`read`, `update`, `delete`, `create`, or `write` which grants create + update + delete) with a role target. By default, **no user has access** unless permissions are explicitly set at the document/file level or inherited from the collection/bucket settings. Permissions are arrays of strings built with the `Permission` and `Role` helpers.
+
+```php
+use {{ spec.title }}\Permission;
+use {{ spec.title }}\Role;
+```
+
+### Database Row with Permissions
+
+```php
+$doc = $tablesDB->createRow('[DATABASE_ID]', '[TABLE_ID]', ID::unique(), [
+    'title' => 'Hello World'
+], [
+    Permission::read(Role::user('[USER_ID]')),     // specific user can read
+    Permission::update(Role::user('[USER_ID]')),   // specific user can update
+    Permission::read(Role::team('[TEAM_ID]')),     // all team members can read
+    Permission::read(Role::any()),                 // anyone (including guests) can read
+]);
+```
+
+### File Upload with Permissions
+
+```php
+$file = $storage->createFile('[BUCKET_ID]', ID::unique(), InputFile::withPath('/path/to/file.png'), [
+    Permission::read(Role::any()),
+    Permission::update(Role::user('[USER_ID]')),
+    Permission::delete(Role::user('[USER_ID]')),
+]);
+```
+
+> **When to set permissions:** Set document/file-level permissions when you need per-resource access control. If all documents in a collection share the same rules, configure permissions at the collection/bucket level and leave document permissions empty.
+
+> **Common mistakes:**
+> - **Forgetting permissions** — the resource becomes inaccessible to all users (including the creator)
+> - **`Role::any()` with `write`/`update`/`delete`** — allows any user, including unauthenticated guests, to modify or remove the resource
+> - **`Permission::read(Role::any())` on sensitive data** — makes the resource publicly readable
+

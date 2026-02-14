@@ -84,9 +84,33 @@ class ServiceTest {
         val general = General(client)
         val realtime = Realtime(client)
         var realtimeResponse = "Realtime failed!"
+        var realtimeResponseWithQueries = "Realtime failed!"
+        var realtimeResponseWithQueriesFailure = "Realtime failed!"
 
+        // Subscribe without queries
         realtime.subscribe("tests", payloadType = TestPayload::class.java) {
             realtimeResponse = it.payload.response
+        }
+
+        // Subscribe with queries to ensure query set support works
+        realtime.subscribe(
+            "tests",
+            payloadType = TestPayload::class.java,
+            queries = setOf(
+                Query.equal("response", listOf("WS:/v1/realtime:passed"))
+            )
+        ) {
+            realtimeResponseWithQueries = it.payload.response
+        }
+
+        realtime.subscribe(
+            "tests",
+            payloadType = TestPayload::class.java,
+            queries = setOf(
+                Query.equal("response", listOf("failed"))
+            )
+        ) {
+            realtimeResponseWithQueriesFailure = "WS:/v1/realtime:passed"
         }
 
         runBlocking {
@@ -189,8 +213,11 @@ class ServiceTest {
                 writeToFile(e.message)
             }
 
-            delay(5000)
+            delay(30000)
+
             writeToFile(realtimeResponse)
+            writeToFile(realtimeResponseWithQueries)
+            writeToFile(realtimeResponseWithQueriesFailure)
 
             // mock = general.setCookie()
             // writeToFile(mock.result)
@@ -298,16 +325,22 @@ class ServiceTest {
             writeToFile(Channel.tablesdb("db1").table("table1").row("row1").toString())
             writeToFile(Channel.tablesdb("db1").table("table1").row("row1").update().toString())
             writeToFile(Channel.account())
-            writeToFile(Channel.account("user123"))
             writeToFile(Channel.bucket().file().toString())
             writeToFile(Channel.bucket("bucket1").file("file1").toString())
             writeToFile(Channel.bucket("bucket1").file("file1").delete().toString())
-            writeToFile(Channel.function().execution().toString())
-            writeToFile(Channel.function("func1").execution("exec1").toString())
-            writeToFile(Channel.function("func1").execution("exec1").create().toString())
+            writeToFile(Channel.function().toString())
+            writeToFile(Channel.function("func1").toString())
+            writeToFile(Channel.execution().toString())
+            writeToFile(Channel.execution("exec1").toString())
+            writeToFile(Channel.documents())
+            writeToFile(Channel.rows())
+            writeToFile(Channel.files())
+            writeToFile(Channel.executions())
+            writeToFile(Channel.teams())
             writeToFile(Channel.team().toString())
             writeToFile(Channel.team("team1").toString())
             writeToFile(Channel.team("team1").create().toString())
+            writeToFile(Channel.memberships())
             writeToFile(Channel.membership().toString())
             writeToFile(Channel.membership("membership1").toString())
             writeToFile(Channel.membership("membership1").update().toString())

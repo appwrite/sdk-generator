@@ -2,8 +2,8 @@ import os from "os";
 import fs from "fs";
 import _path from "path";
 import process from "process";
-import JSONbig from "json-bigint";
 import type { Models } from "@appwrite.io/console";
+import type { z } from "zod";
 import type {
   BucketType,
   CollectionType,
@@ -15,6 +15,20 @@ import type {
   TeamType,
   TopicType,
 } from "./commands/config.js";
+import {
+  SiteSchema,
+  FunctionSchema,
+  DatabaseSchema,
+  CollectionSchema,
+  AttributeSchema,
+  IndexSchema,
+  TableSchema,
+  ColumnSchema,
+  IndexTableSchema,
+  TopicSchema,
+  TeamSchema,
+  BucketSchema,
+} from "./commands/config.js";
 import type {
   SessionData,
   ConfigData,
@@ -22,142 +36,38 @@ import type {
   GlobalConfigData,
 } from "./types.js";
 import { createSettingsObject } from "./utils.js";
-import { SDK_TITLE_LOWER } from "./constants.js";
+import { EXECUTABLE_NAME } from "./constants.js";
+import { JSONBig } from "./json.js";
 
-const JSONBigInt = JSONbig({ useNativeBigInt: true });
+/**
+ * Extract keys from a Zod object schema.
+ * Handles both plain ZodObject and ZodEffects (schemas with refinements).
+ */
+function getSchemaKeys(schema: z.ZodTypeAny): Set<string> {
+  // For ZodEffects (created by .refine(), .superRefine(), .transform())
+  if ("def" in schema && "schema" in (schema.def as any)) {
+    return getSchemaKeys((schema.def as any).schema);
+  }
+  // For ZodObject
+  if ("shape" in schema) {
+    return new Set(Object.keys((schema as any).shape));
+  }
+  return new Set();
+}
 
 const KeysVars = new Set(["key", "value"]);
-const KeysSite = new Set([
-  "path",
-  "$id",
-  "name",
-  "enabled",
-  "logging",
-  "timeout",
-  "framework",
-  "buildRuntime",
-  "adapter",
-  "installCommand",
-  "buildCommand",
-  "outputDirectory",
-  "fallbackFile",
-  "specification",
-  "vars",
-]);
-const KeysFunction = new Set([
-  "path",
-  "$id",
-  "execute",
-  "name",
-  "enabled",
-  "logging",
-  "runtime",
-  "specification",
-  "scopes",
-  "events",
-  "schedule",
-  "timeout",
-  "entrypoint",
-  "commands",
-  "vars",
-]);
-const KeysDatabase = new Set(["$id", "name", "enabled"]);
-const KeysCollection = new Set([
-  "$id",
-  "$permissions",
-  "databaseId",
-  "name",
-  "enabled",
-  "documentSecurity",
-  "attributes",
-  "indexes",
-]);
-const KeysTable = new Set([
-  "$id",
-  "$permissions",
-  "databaseId",
-  "name",
-  "enabled",
-  "rowSecurity",
-  "columns",
-  "indexes",
-]);
-const KeysStorage = new Set([
-  "$id",
-  "$permissions",
-  "fileSecurity",
-  "name",
-  "enabled",
-  "maximumFileSize",
-  "allowedFileExtensions",
-  "compression",
-  "encryption",
-  "antivirus",
-]);
-const KeysTopics = new Set(["$id", "name", "subscribe"]);
-const KeysTeams = new Set(["$id", "name"]);
-const KeysAttributes = new Set([
-  "key",
-  "type",
-  "required",
-  "array",
-  "size",
-  "default",
-  // integer and float
-  "min",
-  "max",
-  // email, enum, URL, IP, and datetime
-  "format",
-  // enum
-  "elements",
-  // relationship
-  "relatedCollection",
-  "relationType",
-  "twoWay",
-  "twoWayKey",
-  "onDelete",
-  "side",
-  // Indexes
-  "attributes",
-  "orders",
-  // Strings
-  "encrypt",
-]);
-const KeysColumns = new Set([
-  "key",
-  "type",
-  "required",
-  "array",
-  "size",
-  "default",
-  // integer and float
-  "min",
-  "max",
-  // email, enum, URL, IP, and datetime
-  "format",
-  // enum
-  "elements",
-  // relationship
-  "relatedTable",
-  "relationType",
-  "twoWay",
-  "twoWayKey",
-  "onDelete",
-  "side",
-  // Indexes
-  "columns",
-  "orders",
-  // Strings
-  "encrypt",
-]);
-const KeyIndexes = new Set(["key", "type", "status", "attributes", "orders"]);
-const KeyIndexesColumns = new Set([
-  "key",
-  "type",
-  "status",
-  "columns",
-  "orders",
-]);
+const KeysSite = getSchemaKeys(SiteSchema);
+const KeysFunction = getSchemaKeys(FunctionSchema);
+const KeysDatabase = getSchemaKeys(DatabaseSchema);
+const KeysCollection = getSchemaKeys(CollectionSchema);
+const KeysTable = getSchemaKeys(TableSchema);
+const KeysStorage = getSchemaKeys(BucketSchema);
+const KeysTopics = getSchemaKeys(TopicSchema);
+const KeysTeams = getSchemaKeys(TeamSchema);
+const KeysAttributes = getSchemaKeys(AttributeSchema);
+const KeysColumns = getSchemaKeys(ColumnSchema);
+const KeyIndexes = getSchemaKeys(IndexSchema);
+const KeyIndexesColumns = getSchemaKeys(IndexTableSchema);
 
 const CONFIG_KEY_ORDER = [
   "projectId",
@@ -235,7 +145,7 @@ class Config<T extends ConfigData = ConfigData> {
   read(): void {
     try {
       const file = fs.readFileSync(this.path).toString();
-      this.data = JSONBigInt.parse(file);
+      this.data = JSONBig.parse(file);
     } catch (e) {
       this.data = {} as T;
     }
@@ -246,7 +156,7 @@ class Config<T extends ConfigData = ConfigData> {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
-    fs.writeFileSync(this.path, JSONBigInt.stringify(this.data, null, 4), {
+    fs.writeFileSync(this.path, JSONBig.stringify(this.data, null, 4), {
       mode: 0o600,
     });
   }
@@ -285,7 +195,7 @@ class Config<T extends ConfigData = ConfigData> {
   }
 
   toString(): string {
-    return JSONBigInt.stringify(this.data, null, 4);
+    return JSONBig.stringify(this.data, null, 4);
   }
 
   protected _getDBEntities(entityType: string): Entity[] {
@@ -342,8 +252,8 @@ class Config<T extends ConfigData = ConfigData> {
 }
 
 class Local extends Config<ConfigType> {
-  static CONFIG_FILE_PATH = `${SDK_TITLE_LOWER}.config.json`;
-  static CONFIG_FILE_PATH_LEGACY = `${SDK_TITLE_LOWER}.json`;
+  static CONFIG_FILE_PATH = `${EXECUTABLE_NAME}.config.json`;
+  static CONFIG_FILE_PATH_LEGACY = `${EXECUTABLE_NAME}.json`;
   configDirectoryPath = "";
 
   constructor(
@@ -367,7 +277,7 @@ class Local extends Config<ConfigType> {
       fs.mkdirSync(dir, { recursive: true });
     }
     const orderedData = orderConfigKeys(this.data);
-    fs.writeFileSync(this.path, JSONBigInt.stringify(orderedData, null, 4), {
+    fs.writeFileSync(this.path, JSONBig.stringify(orderedData, null, 4), {
       mode: 0o600,
     });
   }
@@ -774,7 +684,7 @@ class Local extends Config<ConfigType> {
 }
 
 class Global extends Config<GlobalConfigData> {
-  static CONFIG_FILE_PATH = `.${SDK_TITLE_LOWER}/prefs.json`;
+  static CONFIG_FILE_PATH = `.${EXECUTABLE_NAME}/prefs.json`;
 
   static PREFERENCE_CURRENT = "current" as const;
   static PREFERENCE_ENDPOINT = "endpoint" as const;
@@ -839,15 +749,15 @@ class Global extends Config<GlobalConfigData> {
 
     sessions.forEach((sessionId) => {
       const sessionData = (this.data as any)[sessionId];
-      const email = sessionData[Global.PREFERENCE_EMAIL];
-      const endpoint = sessionData[Global.PREFERENCE_ENDPOINT];
+      const email = sessionData[Global.PREFERENCE_EMAIL] ?? "";
+      const endpoint = sessionData[Global.PREFERENCE_ENDPOINT] ?? "";
       const key = `${email}|${endpoint}`;
 
       if (sessionId === current || !sessionMap.has(key)) {
         sessionMap.set(key, {
           id: sessionId,
-          endpoint: sessionData[Global.PREFERENCE_ENDPOINT],
-          email: sessionData[Global.PREFERENCE_EMAIL],
+          endpoint,
+          email,
         });
       }
     });

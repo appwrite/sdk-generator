@@ -186,6 +186,17 @@ class DotNet extends Language
      */
     public function getTypeName(array $parameter, array $spec = []): string
     {
+        if (
+            ($parameter['type'] ?? null) === self::TYPE_ARRAY
+            && (isset($parameter['enumName']) || !empty($parameter['enumValues']))
+        ) {
+            $enumType = isset($parameter['enumName'])
+                ? \ucfirst($parameter['enumName'])
+                : \ucfirst($parameter['name']);
+
+            return 'List<Appwrite.Enums.' . $enumType . '>';
+        }
+
         if (isset($parameter['enumName'])) {
             return 'Appwrite.Enums.' . \ucfirst($parameter['enumName']);
         }
@@ -516,6 +527,53 @@ class DotNet extends Language
             }),
             new TwigFilter('toMapValue', function (array $property, string $definitionName) {
                 return $this->getToMapExpression($property, $definitionName);
+            new TwigFilter('enumExample', function (array $param) {
+                $enumValues = $param['enumValues'] ?? [];
+                if (empty($enumValues)) {
+                    return '';
+                }
+
+                $enumKeys = $param['enumKeys'] ?? [];
+                $enumName = $this->toPascalCase($param['enumName'] ?? $param['name'] ?? '');
+                $example = $param['example'] ?? null;
+                $isArray = ($param['type'] ?? '') === self::TYPE_ARRAY;
+
+                $resolveKey = function ($value) use ($enumValues, $enumKeys) {
+                    $index = array_search($value, $enumValues, true);
+                    if ($index !== false && isset($enumKeys[$index]) && $enumKeys[$index] !== '') {
+                        return $this->toPascalCase($enumKeys[$index]);
+                    }
+                    if ($index !== false && isset($enumValues[$index])) {
+                        return $this->toPascalCase($enumValues[$index]);
+                    }
+                    $fallback = $enumKeys[0] ?? $enumValues[0] ?? $value;
+                    return $this->toPascalCase((string)$fallback);
+                };
+
+                if ($isArray) {
+                    $values = [];
+                    if (\is_string($example) && $example !== '') {
+                        $decoded = json_decode($example, true);
+                        if (\is_array($decoded)) {
+                            $values = $decoded;
+                        }
+                    } elseif (\is_array($example)) {
+                        $values = $example;
+                    }
+
+                    if (empty($values)) {
+                        $values = [$enumValues[0]];
+                    }
+
+                    $items = array_map(function ($value) use ($enumName, $resolveKey) {
+                        return $enumName . '.' . $resolveKey($value);
+                    }, $values);
+
+                    return 'new List<' . $enumName . '> { ' . implode(', ', $items) . ' }';
+                }
+
+                $value = ($example !== null && $example !== '') ? $example : $enumValues[0];
+                return $enumName . '.' . $resolveKey($value);
             }),
         ];
     }
