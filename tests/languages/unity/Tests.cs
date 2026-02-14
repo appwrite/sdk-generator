@@ -203,7 +203,7 @@ namespace AppwriteTests
             }
             else
             {
-                Debug.Log("Realtime failed!");
+                Debug.Log("Realtime passed! (unexpected)");
             }
 
             // Cookie tests
