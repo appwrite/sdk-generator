@@ -527,6 +527,7 @@ class DotNet extends Language
             }),
             new TwigFilter('toMapValue', function (array $property, string $definitionName) {
                 return $this->getToMapExpression($property, $definitionName);
+            }),
             new TwigFilter('enumExample', function (array $param) {
                 $enumValues = $param['enumValues'] ?? [];
                 if (empty($enumValues)) {
