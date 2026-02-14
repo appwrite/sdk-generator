@@ -5,8 +5,8 @@ namespace {{spec.title | caseUcfirst}}
     public class {{spec.title | caseUcfirst}}Exception : Exception
     {
         public int? Code { get; set; }
-        public string? Type { get; set; } = null;
-        public string? Response { get; set; } = null;
+        public string? Type { get; set; }
+        public string? Response { get; set; }
 
         public {{spec.title | caseUcfirst}}Exception(
             string? message = null,
