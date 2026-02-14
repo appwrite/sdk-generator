@@ -102,7 +102,11 @@ void main() {
         {%- if method.type == 'location' ~%}
             expect(response, isA<Uint8List>());
         {%~ endif ~%}{%~ if method.responseModel and method.responseModel != 'any' ~%}
+            {% if method.responseModels|length > 1 %}
+            expect(response, isA<Map<String, dynamic>>());
+            {% else %}
             expect(response, isA<models.{{method.responseModel | caseUcfirst | overrideIdentifier}}>());
+            {% endif %}
         {%~ endif ~%}
         });
 
