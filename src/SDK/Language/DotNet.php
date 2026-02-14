@@ -708,7 +708,7 @@ class DotNet extends Language
 
         if (!empty($property['sub_schema'])) {
             if ($property['type'] === 'array') {
-                return "{$propName}{$nullOp}.Select(it => it.ToMap())" . (!$required ? '?.ToList()' : '');
+                return "{$propName}{$nullOp}.Select(it => it.ToMap()).ToList()";
             }
             return "{$propName}{$nullOp}.ToMap()";
         }
