@@ -536,7 +536,7 @@ namespace {{ spec.title | caseUcfirst }}
             _reconnectAttempts++;
             var timeout = GetTimeout();
             
-            Debug.Log($"Reconnecting in {timeout} seconds.");
+            Debug.Log($"[Realtime] Reconnecting in {timeout} seconds.");
             
             // Ensure we have a cancellation token source
             if (_cancellationTokenSource == null || _cancellationTokenSource.IsCancellationRequested)

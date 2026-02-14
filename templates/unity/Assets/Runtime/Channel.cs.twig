@@ -91,18 +91,18 @@ namespace {{ spec.title | caseUcfirst }}
             {
                 segment
             };
-            if (!string.IsNullOrWhiteSpace(id))
+            if (id != null)
             {
                 newSegments.Add(ChannelHelper.Normalize(id));
             }
             return new ChannelBuilder(newSegments);
         }
 
-        public ICollection Collection(string id = null) => Next("collections", id);
+        public ICollection Collection(string id = null) => Next("collections", id ?? "*");
 
         public IDocument Document(string id = null) => Next("documents", id);
 
-        public ITable Table(string id = null) => Next("tables", id);
+        public ITable Table(string id = null) => Next("tables", id ?? "*");
 
         public IRow Row(string id = null) => Next("rows", id);
 
