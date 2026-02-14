@@ -142,7 +142,6 @@ namespace {{ spec.title | caseUcfirst }}
         public static IActionable Membership(string id = null) =>
             new ChannelBuilder(new List<string> { "memberships", ChannelHelper.Normalize(id) });
 
-
         // Global events (without ID)
         public static string Account() => "account";
         public static string Documents() => "documents";
