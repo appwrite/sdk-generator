@@ -126,8 +126,7 @@ class ServiceTest {
         ) {
             fun hasResponses(): Boolean {
                 return realtimeResponse != "Realtime failed!" &&
-                        realtimeResponseWithQueries != "Realtime failed!" &&
-                        realtimeResponseWithQueriesFailure != "Realtime failed!"
+                        realtimeResponseWithQueries != "Realtime failed!"
             }
 
             repeat(maxAttempts) {
