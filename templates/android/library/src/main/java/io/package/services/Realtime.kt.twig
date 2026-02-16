@@ -53,8 +53,41 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         private var reconnect = true
         private var heartbeatJob: Job? = null
 
+        // Optional lifecycle callbacks (primarily for tests)
+        @Volatile
+        private var onSocketClosedCallback: ((code: Int, reason: String?) -> Unit)? = null
+
+        @Volatile
+        private var onSocketClosingCallback: ((code: Int, reason: String?) -> Unit)? = null
+
+        @Volatile
+        private var onSocketFailureCallback: ((Throwable, Response?) -> Unit)? = null
+
         // Lock to coordinate multi-map updates (activeSubscriptions, slotToSubscriptionId, subscriptionIdToSlot)
         private val subscriptionLock = Any()
+    }
+
+    /**
+     * Register a callback invoked when the websocket has fully closed.
+     * Intended for diagnostics and tests; safe to ignore in production.
+     */
+    fun setOnSocketClosedCallback(callback: ((code: Int, reason: String?) -> Unit)?) {
+        onSocketClosedCallback = callback
+    }
+
+    /**
+     * Register a callback invoked when the websocket is about to close and
+     * reconnection logic (if enabled) is scheduled.
+     */
+    fun setOnSocketClosingCallback(callback: ((code: Int, reason: String?) -> Unit)?) {
+        onSocketClosingCallback = callback
+    }
+
+    /**
+     * Register a callback invoked when the websocket fails due to an error.
+     */
+    fun setOnSocketFailureCallback(callback: ((Throwable, Response?) -> Unit)?) {
+        onSocketFailureCallback = callback
     }
 
     private fun createSocket() {
@@ -330,6 +363,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
             super.onClosing(webSocket, code, reason)
             stopHeartbeat()
+            onSocketClosingCallback?.invoke(code, reason)
             if (!reconnect || code == RealtimeCode.POLICY_VIOLATION.value) {
                 reconnect = true
                 return
@@ -353,7 +387,13 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
             super.onFailure(webSocket, t, response)
             stopHeartbeat()
+            onSocketFailureCallback?.invoke(t, response)
             t.printStackTrace()
+        }
+
+        override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
+            super.onClosed(webSocket, code, reason)
+            onSocketClosedCallback?.invoke(code, reason)
         }
     }
 }

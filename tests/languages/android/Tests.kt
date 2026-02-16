@@ -88,6 +88,17 @@ class ServiceTest {
         var realtimeResponseWithQueries = "Realtime failed!"
         var realtimeResponseWithQueriesFailure = "Realtime failed!"
 
+        var connectionClosed = false
+        var connectionClosing = false
+
+        realtime.setOnSocketClosedCallback { _, _ ->
+            connectionClosed = true
+        }
+
+        realtime.setOnSocketClosingCallback { _, _ ->
+            connectionClosing = true
+        }
+
         var subscriptionWithoutQueries: RealtimeSubscription? = null
         var subscriptionWithQueries: RealtimeSubscription? = null
         var subscriptionWithQueriesFailure: RealtimeSubscription? = null
@@ -254,6 +265,10 @@ class ServiceTest {
             writeToFile(realtimeResponse)
             writeToFile(realtimeResponseWithQueries)
             writeToFile(realtimeResponseWithQueriesFailure)
+
+            // Deterministic logs for websocket lifecycle to validate reconnection behavior
+            writeToFile(if (connectionClosed) "connection closed" else "connection not closed")
+            writeToFile(if (connectionClosing) "connection closing" else "connection not closing")
 
             // mock = general.setCookie()
             // writeToFile(mock.result)
