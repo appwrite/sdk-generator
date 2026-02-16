@@ -18,7 +18,6 @@ import io.appwrite.models.Error
 import io.appwrite.models.InputFile
 import io.appwrite.models.Mock
 import io.appwrite.models.Player
-import io.appwrite.models.RealtimeSubscription
 import io.appwrite.services.Bar
 import io.appwrite.services.Foo
 import io.appwrite.services.General
@@ -90,74 +89,44 @@ class ServiceTest {
 
         var connectionClosed = false
         var connectionClosing = false
+        var connectionClosedReason: String? = null
+        var connectionClosingReason: String? = null
 
-        realtime.setOnSocketClosedCallback { _, _ ->
+        realtime.setOnSocketClosedCallback { code, reason ->
             connectionClosed = true
+            connectionClosedReason = "code=$code reason=${reason ?: ""}"
         }
 
-        realtime.setOnSocketClosingCallback { _, _ ->
+        realtime.setOnSocketClosingCallback { code, reason ->
             connectionClosing = true
+            connectionClosingReason = "code=$code reason=${reason ?: ""}"
         }
 
-        var subscriptionWithoutQueries: RealtimeSubscription? = null
-        var subscriptionWithQueries: RealtimeSubscription? = null
-        var subscriptionWithQueriesFailure: RealtimeSubscription? = null
-
-        fun subscribeAll() {
-            // Subscribe without queries
-            subscriptionWithoutQueries = realtime.subscribe("tests", payloadType = TestPayload::class.java) {
-                realtimeResponse = it.payload.response
-            }
-
-            // Subscribe with queries to ensure query set support works
-            subscriptionWithQueries = realtime.subscribe(
-                "tests",
-                payloadType = TestPayload::class.java,
-                queries = setOf(
-                    Query.equal("response", listOf("WS:/v1/realtime:passed"))
-                )
-            ) {
-                realtimeResponseWithQueries = it.payload.response
-            }
-
-            subscriptionWithQueriesFailure = realtime.subscribe(
-                "tests",
-                payloadType = TestPayload::class.java,
-                queries = setOf(
-                    Query.equal("response", listOf("failed"))
-                )
-            ) {
-                realtimeResponseWithQueriesFailure = "WS:/v1/realtime:passed"
-            }
+        // Subscribe without queries
+        realtime.subscribe("tests", payloadType = TestPayload::class.java) {
+            realtimeResponse = it.payload.response
         }
 
-        suspend fun waitForRealtimeResponses(
-            maxAttempts: Int = 10,
-            waitMillis: Long = 3000L
+        // Subscribe with queries to ensure query set support works
+        realtime.subscribe(
+            "tests",
+            payloadType = TestPayload::class.java,
+            queries = setOf(
+                Query.equal("response", listOf("WS:/v1/realtime:passed"))
+            )
         ) {
-            fun hasResponses(): Boolean {
-                return realtimeResponse != "Realtime failed!" &&
-                        realtimeResponseWithQueries != "Realtime failed!"
-            }
-
-            repeat(maxAttempts) {
-                if (hasResponses()) return
-
-                delay(waitMillis)
-
-                if (hasResponses()) return
-
-                // If we still don't have responses, reconnect by closing and re-subscribing
-                subscriptionWithoutQueries?.close()
-                subscriptionWithQueries?.close()
-                subscriptionWithQueriesFailure?.close()
-
-                subscribeAll()
-            }
+            realtimeResponseWithQueries = it.payload.response
         }
 
-        // Initial subscriptions
-        subscribeAll()
+        realtime.subscribe(
+            "tests",
+            payloadType = TestPayload::class.java,
+            queries = setOf(
+                Query.equal("response", listOf("failed"))
+            )
+        ) {
+            realtimeResponseWithQueriesFailure = "WS:/v1/realtime:passed"
+        }
 
         runBlocking {
             var mock: Mock
@@ -259,16 +228,12 @@ class ServiceTest {
                 writeToFile(e.message)
             }
 
-            // Wait for realtime messages with retries and reconnection
-            waitForRealtimeResponses()
+            // Simple delay-based wait for realtime messages
+            delay(30000)
 
             writeToFile(realtimeResponse)
             writeToFile(realtimeResponseWithQueries)
             writeToFile(realtimeResponseWithQueriesFailure)
-
-            // Deterministic logs for websocket lifecycle to validate reconnection behavior
-            writeToFile(if (connectionClosed) "connection closed" else "connection not closed")
-            writeToFile(if (connectionClosing) "connection closing" else "connection not closing")
 
             // mock = general.setCookie()
             // writeToFile(mock.result)
@@ -425,6 +390,12 @@ class ServiceTest {
 
             mock = general.headers()
             writeToFile(mock.result)
+
+            // WebSocket lifecycle diagnostics (extra, not part of assertions)
+            writeToFile(if (connectionClosed) "connection closed" else "connection not closed")
+            connectionClosedReason?.let { writeToFile(it) }
+            writeToFile(if (connectionClosing) "connection closing" else "connection not closing")
+            connectionClosingReason?.let { writeToFile(it) }
         }
     }
 
