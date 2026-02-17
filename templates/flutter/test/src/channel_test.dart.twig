@@ -93,10 +93,6 @@ void main() {
     test('returns teams channel with action', () {
     expect(Channel.team('team1').create().toString(), 'teams.team1.create');
     });
-
-    test('returns teams channel with upsert action', () {
-    expect(Channel.team('team1').upsert().toString(), 'teams.team1.upsert');
-    });
   });
 
   group('memberships()', () {

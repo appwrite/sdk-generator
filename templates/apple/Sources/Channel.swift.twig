@@ -185,10 +185,6 @@ extension RealtimeChannel where T == _File {
         return self.resolve("create")
     }
     
-    public func upsert() -> RealtimeChannel<_Resolved> {
-        return self.resolve("upsert")
-    }
-    
     public func update() -> RealtimeChannel<_Resolved> {
         return self.resolve("update")
     }
@@ -204,10 +200,6 @@ extension RealtimeChannel where T == _Team {
         return self.resolve("create")
     }
     
-    public func upsert() -> RealtimeChannel<_Resolved> {
-        return self.resolve("upsert")
-    }
-    
     public func update() -> RealtimeChannel<_Resolved> {
         return self.resolve("update")
     }
@@ -221,10 +213,6 @@ extension RealtimeChannel where T == _Team {
 extension RealtimeChannel where T == _Membership {
     public func create() -> RealtimeChannel<_Resolved> {
         return self.resolve("create")
-    }
-    
-    public func upsert() -> RealtimeChannel<_Resolved> {
-        return self.resolve("upsert")
     }
     
     public func update() -> RealtimeChannel<_Resolved> {

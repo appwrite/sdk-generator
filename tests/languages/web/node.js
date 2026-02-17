@@ -310,7 +310,6 @@ async function start() {
     console.log(Channel.team().toString());
     console.log(Channel.team('team1').toString());
     console.log(Channel.team('team1').create().toString());
-    console.log(Channel.team('team1').upsert().toString());
     console.log(Channel.memberships());
     console.log(Channel.membership().toString());
     console.log(Channel.membership('membership1').toString());

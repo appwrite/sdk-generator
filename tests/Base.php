@@ -208,7 +208,6 @@ abstract class Base extends TestCase
         'teams.*',
         'teams.team1',
         'teams.team1.create',
-        'teams.team1.upsert',
         'memberships',
         'memberships.*',
         'memberships.membership1',

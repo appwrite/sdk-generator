@@ -133,7 +133,6 @@ extension RowChannel on Channel<_Row> {
 /// Only available on Channel<_File>
 extension FileChannel on Channel<_File> {
   Channel<_Resolved> create() => _resolve('create');
-  Channel<_Resolved> upsert() => _resolve('upsert');
   Channel<_Resolved> update() => _resolve('update');
   Channel<_Resolved> delete() => _resolve('delete');
 }
@@ -141,7 +140,6 @@ extension FileChannel on Channel<_File> {
 /// Only available on Channel<_Team>
 extension TeamChannel on Channel<_Team> {
   Channel<_Resolved> create() => _resolve('create');
-  Channel<_Resolved> upsert() => _resolve('upsert');
   Channel<_Resolved> update() => _resolve('update');
   Channel<_Resolved> delete() => _resolve('delete');
 }
@@ -149,7 +147,6 @@ extension TeamChannel on Channel<_Team> {
 /// Only available on Channel<_Membership>
 extension MembershipChannel on Channel<_Membership> {
   Channel<_Resolved> create() => _resolve('create');
-  Channel<_Resolved> upsert() => _resolve('upsert');
   Channel<_Resolved> update() => _resolve('update');
   Channel<_Resolved> delete() => _resolve('delete');
 }
