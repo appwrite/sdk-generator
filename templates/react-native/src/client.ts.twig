@@ -55,10 +55,6 @@ export type RealtimeResponseEvent<T extends unknown> = {
     payload: T;
 }
 
-export type RealtimeSubscription = {
-    close: () => Promise<void>;
-}
-
 type RealtimeResponseError = {
     code: number;
     message: string;
