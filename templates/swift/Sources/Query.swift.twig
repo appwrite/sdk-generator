@@ -353,7 +353,7 @@ public struct Query : Codable, CustomStringConvertible {
     /// Filter resources where attribute contains the specified value.
     /// For string attributes, checks if the string contains the substring.
     ///
-    /// - Note: Deprecated for array attributes. Use ``containsAny(_:value:)`` or ``containsAll(_:value:)`` instead.
+    /// - Note: For array attributes, use ``containsAny(_:value:)`` or ``containsAll(_:value:)`` instead.
     public static func contains(_ attribute: String, value: Any) -> String {
         return Query(
             method: "contains",

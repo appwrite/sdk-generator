@@ -184,7 +184,7 @@ namespace {{ spec.title | caseUcfirst }}
         /// Filter resources where attribute contains the specified value.
         /// For string attributes, checks if the string contains the substring.
         /// </summary>
-        /// <remarks>Deprecated for array attributes. Use <see cref="ContainsAny"/> or <see cref="ContainsAll"/> instead.</remarks>
+        /// <remarks>For array attributes, use <see cref="ContainsAny"/> or <see cref="ContainsAll"/> instead.</remarks>
         public static string Contains(string attribute, object value) {
             return new Query("contains", attribute, value).ToString();
         }

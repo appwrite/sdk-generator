@@ -80,7 +80,7 @@ class Query(
          * Filter resources where attribute contains the specified value.
          * For string attributes, checks if the string contains the substring.
          *
-         * @deprecated For array attributes, use containsAny or containsAll instead.
+         * Note: For array attributes, use containsAny or containsAll instead.
          */
         fun contains(attribute: String, value: Any) = Query("contains", attribute, parseValue(value)).toJson()
 

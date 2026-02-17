@@ -144,7 +144,7 @@ class Query():
         Filter resources where attribute contains the specified value.
         For string attributes, checks if the string contains the substring.
 
-        Deprecated: For array attributes, use contains_any() or contains_all() instead.
+        Note: For array attributes, use contains_any() or contains_all() instead.
         """
         return str(Query("contains", attribute, value))
 

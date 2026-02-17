@@ -150,7 +150,7 @@ func EndsWith(attribute string, value interface{}) string {
 // Contains filters resources where attribute contains the specified value.
 // For string attributes, checks if the string contains the substring.
 //
-// Deprecated: For array attributes, use ContainsAny or ContainsAll instead.
+// Note: For array attributes, use ContainsAny or ContainsAll instead.
 func Contains(attribute string, value interface{}) string {
 	values := toArray(value)
 	return parseQuery(queryOptions{
