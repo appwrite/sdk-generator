@@ -53,6 +53,9 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         private var reconnect = true
         private var heartbeatJob: Job? = null
         private var createSocketDebounceJob: Job? = null
+        private var createSocketScope: CoroutineScope? = null
+        private var createSocketSequence = AtomicInteger(0)
+        private var createSocketInProgress = false
 
         // Optional lifecycle callbacks (primarily for tests)
         @Volatile
@@ -146,78 +149,98 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
     }
 
     private fun createSocket() {
-        // Rebuild activeChannels from all slots
-        val allChannels = mutableSetOf<String>()
-        activeSubscriptions.values.forEach { subscription ->
-            allChannels.addAll(subscription.channels)
+        // Prevent concurrent createSocket() calls - only one should run at a time
+        val shouldProceed = synchronized(subscriptionLock) {
+            if (createSocketInProgress) {
+                log("realtime: createSocket skipped (already in progress)")
+                false
+            } else {
+                createSocketInProgress = true
+                true
+            }
         }
 
-        if (allChannels.isEmpty()) {
-            log("realtime: createSocket skipped (no channels)")
-            reconnect = false
-            closeSocket()
+        if (!shouldProceed) {
             return
         }
 
-        log("realtime: createSocket connecting channels=$allChannels")
+        try {
+            // Rebuild activeChannels from all slots
+            val allChannels = mutableSetOf<String>()
+            activeSubscriptions.values.forEach { subscription ->
+                allChannels.addAll(subscription.channels)
+            }
 
-        val encodedProject = java.net.URLEncoder.encode(client.config["project"].toString(), "UTF-8")
-        var queryParams = "project=$encodedProject"
-        
-        allChannels.forEach { channel ->
-            val encodedChannel = java.net.URLEncoder.encode(channel, "UTF-8")
-            queryParams += "&channels[]=$encodedChannel"
-        }
-
-        // Build query string from slots → channels → queries
-        // Format: channel[slot][]=query (each query sent as separate parameter)
-        // For each slot, repeat its queries under each channel it subscribes to
-        // Example: slot 1 → channels [tests, prod], queries [q1, q2]
-        //   Produces: tests[1][]=q1&tests[1][]=q2&prod[1][]=q1&prod[1][]=q2
-        val selectAllQuery = Query.select(listOf("*")).toString()
-        activeSubscriptions.forEach { (slot, subscription) ->
-            // Get queries array - each query is a separate string
-            val queries = if (subscription.queries.isEmpty()) {
-                listOf(selectAllQuery)
+            if (allChannels.isEmpty()) {
+                log("realtime: createSocket skipped (no channels)")
+                reconnect = false
+                closeSocket()
             } else {
-                subscription.queries.toList()
-            }
-            
-            // Repeat this slot's queries under each channel it subscribes to
-            // Each query is sent as a separate parameter: channel[slot][]=q1&channel[slot][]=q2
-            subscription.channels.forEach { channel ->
-                val encodedChannel = java.net.URLEncoder.encode(channel, "UTF-8")
-                queries.forEach { query ->
-                    val encodedQuery = java.net.URLEncoder.encode(query, "UTF-8")
-                    queryParams += "&$encodedChannel[$slot][]=$encodedQuery"
+                log("realtime: createSocket connecting channels=$allChannels")
+
+                val encodedProject = java.net.URLEncoder.encode(client.config["project"].toString(), "UTF-8")
+                var queryParams = "project=$encodedProject"
+                
+                allChannels.forEach { channel ->
+                    val encodedChannel = java.net.URLEncoder.encode(channel, "UTF-8")
+                    queryParams += "&channels[]=$encodedChannel"
                 }
+
+                // Build query string from slots → channels → queries
+                // Format: channel[slot][]=query (each query sent as separate parameter)
+                // For each slot, repeat its queries under each channel it subscribes to
+                // Example: slot 1 → channels [tests, prod], queries [q1, q2]
+                //   Produces: tests[1][]=q1&tests[1][]=q2&prod[1][]=q1&prod[1][]=q2
+                val selectAllQuery = Query.select(listOf("*")).toString()
+                activeSubscriptions.forEach { (slot, subscription) ->
+                    // Get queries array - each query is a separate string
+                    val queries = if (subscription.queries.isEmpty()) {
+                        listOf(selectAllQuery)
+                    } else {
+                        subscription.queries.toList()
+                    }
+                    
+                    // Repeat this slot's queries under each channel it subscribes to
+                    // Each query is sent as a separate parameter: channel[slot][]=q1&channel[slot][]=q2
+                    subscription.channels.forEach { channel ->
+                        val encodedChannel = java.net.URLEncoder.encode(channel, "UTF-8")
+                        queries.forEach { query ->
+                            val encodedQuery = java.net.URLEncoder.encode(query, "UTF-8")
+                            queryParams += "&$encodedChannel[$slot][]=$encodedQuery"
+                        }
+                    }
+                }
+
+                val url = "${client.endpointRealtime}/realtime?$queryParams"
+
+                val request = Request.Builder()
+                    .url(url)
+                    .build()
+
+                if (socket != null) {
+                    log("realtime: createSocket closing existing socket before reconnect")
+                    reconnect = false
+                    closeSocket()
+                }
+
+                socket = RealWebSocket(
+                    taskRunner = TaskRunner.INSTANCE,
+                    originalRequest = request,
+                    listener = {{ spec.title | caseUcfirst }}WebSocketListener(),
+                    random = Random(),
+                    pingIntervalMillis = client.http.pingIntervalMillis.toLong(),
+                    extensions = null,
+                    minimumDeflateSize = client.http.minWebSocketMessageToCompress
+                )
+
+                socket!!.connect(client.http)
+                log("realtime: connect() called on socket")
+            }
+        } finally {
+            synchronized(subscriptionLock) {
+                createSocketInProgress = false
             }
         }
-
-        val url = "${client.endpointRealtime}/realtime?$queryParams"
-
-        val request = Request.Builder()
-            .url(url)
-            .build()
-
-        if (socket != null) {
-            log("realtime: createSocket closing existing socket before reconnect")
-            reconnect = false
-            closeSocket()
-        }
-
-        socket = RealWebSocket(
-            taskRunner = TaskRunner.INSTANCE,
-            originalRequest = request,
-            listener = {{ spec.title | caseUcfirst }}WebSocketListener(),
-            random = Random(),
-            pingIntervalMillis = client.http.pingIntervalMillis.toLong(),
-            extensions = null,
-            minimumDeflateSize = client.http.minWebSocketMessageToCompress
-        )
-
-        socket!!.connect(client.http)
-        log("realtime: connect() called on socket")
     }
 
     private fun closeSocket() {
@@ -265,17 +288,31 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
     /**
      * Debounce createSocket so rapid subscribe() calls result in a single socket creation.
      * Cancels any pending job and schedules a new one; only the last job runs.
-     * Uses instance scope and subscriptionLock to avoid races and scope/job leaks.
+     * Uses shared scope (since socket/activeSubscriptions are shared) and subscriptionLock
+     * to avoid races and ensure proper cancellation across all Realtime instances.
+     * Uses sequence number to ensure only the latest createSocket() call executes.
      */
     private fun scheduleCreateSocket() {
         synchronized(subscriptionLock) {
             createSocketDebounceJob?.cancel()
 
-            val instance = this
+            val scope = createSocketScope ?: run {
+                val newScope = CoroutineScope(Dispatchers.Main + Job())
+                createSocketScope = newScope
+                newScope
+            }
 
-            createSocketDebounceJob = launch {
+            val instance = this
+            val sequence = createSocketSequence.incrementAndGet()
+
+            createSocketDebounceJob = scope.launch {
                 delay(DEBOUNCE_MILLIS)
-                instance.createSocket()
+                // Only execute if this is still the latest scheduled call
+                if (sequence == createSocketSequence.get()) {
+                    instance.createSocket()
+                } else {
+                    log("realtime: createSocket debounce skipped (newer call scheduled)")
+                }
             }
         }
     }
@@ -467,7 +504,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
             launch {
                 delay(timeout)
                 reconnectAttempts++
-                createSocket()
+                scheduleCreateSocket()
             }
         }
 
