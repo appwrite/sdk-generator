@@ -76,7 +76,27 @@ class Query(
 
         fun offset(offset: Int) = Query("offset", null, listOf(offset)).toJson()
 
+        /**
+         * Filter resources where attribute contains the specified value.
+         * For string attributes, checks if the string contains the substring.
+         *
+         * @deprecated For array attributes, use containsAny or containsAll instead.
+         */
         fun contains(attribute: String, value: Any) = Query("contains", attribute, parseValue(value)).toJson()
+
+        /**
+         * Filter resources where attribute contains ANY of the specified values.
+         * For array and relationship attributes, matches documents where the attribute
+         * contains at least one of the given values.
+         */
+        fun containsAny(attribute: String, value: List<Any>) = Query("containsAny", attribute, value).toJson()
+
+        /**
+         * Filter resources where attribute contains ALL of the specified values.
+         * For array and relationship attributes, matches documents where the attribute
+         * contains every one of the given values.
+         */
+        fun containsAll(attribute: String, value: List<Any>) = Query("containsAll", attribute, value).toJson()
 
         fun notContains(attribute: String, value: Any) = Query("notContains", attribute, parseValue(value)).toJson()
 

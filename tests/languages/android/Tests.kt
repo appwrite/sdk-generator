@@ -251,7 +251,9 @@ class ServiceTest {
             writeToFile(Query.offset(20))
             writeToFile(Query.contains("title", listOf("Spider")))
             writeToFile(Query.contains("labels", listOf("first")))
-            
+            writeToFile(Query.containsAny("labels", listOf("first", "second")))
+            writeToFile(Query.containsAll("labels", listOf("first", "second")))
+
             // New query methods
             writeToFile(Query.notContains("title", listOf("Spider")))
             writeToFile(Query.notSearch("name", "john"))

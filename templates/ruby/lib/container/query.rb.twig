@@ -133,8 +133,26 @@ module {{spec.title | caseUcfirst}}
                 return Query.new("offset", nil, offset).to_s
             end
 
+            # Filter resources where attribute contains the specified value.
+            # For string attributes, checks if the string contains the substring.
+            #
+            # @deprecated For array attributes, use contains_any or contains_all instead.
             def contains(attribute, value)
                 return Query.new("contains", attribute, value).to_s
+            end
+
+            # Filter resources where attribute contains ANY of the specified values.
+            # For array and relationship attributes, matches documents where the attribute
+            # contains at least one of the given values.
+            def contains_any(attribute, value)
+                return Query.new("containsAny", attribute, value).to_s
+            end
+
+            # Filter resources where attribute contains ALL of the specified values.
+            # For array and relationship attributes, matches documents where the attribute
+            # contains every one of the given values.
+            def contains_all(attribute, value)
+                return Query.new("containsAll", attribute, value).to_s
             end
 
             def not_contains(attribute, value)

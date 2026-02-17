@@ -168,7 +168,9 @@ namespace AppwriteTests
             TestContext.WriteLine(Query.Offset(20));
             TestContext.WriteLine(Query.Contains("title", "Spider"));
             TestContext.WriteLine(Query.Contains("labels", "first"));
-            
+            TestContext.WriteLine(Query.ContainsAny("labels", new List<string> { "first", "second" }));
+            TestContext.WriteLine(Query.ContainsAll("labels", new List<string> { "first", "second" }));
+
             // New query methods
             TestContext.WriteLine(Query.NotContains("title", "Spider"));
             TestContext.WriteLine(Query.NotSearch("name", "john"));

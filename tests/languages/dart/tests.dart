@@ -160,7 +160,9 @@ void main() async {
   print(Query.offset(20));
   print(Query.contains("title", "Spider"));
   print(Query.contains("labels", "first"));
-  
+  print(Query.containsAny("labels", ["first", "second"]));
+  print(Query.containsAll("labels", ["first", "second"]));
+
   // New query methods
   print(Query.notContains("title", "Spider"));
   print(Query.notSearch("name", "john"));

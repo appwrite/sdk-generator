@@ -158,6 +158,8 @@ puts Query.limit(50)
 puts Query.offset(20)
 puts Query.contains("title", "Spider")
 puts Query.contains("labels", "first")
+puts Query.contains_any("labels", ["first", "second"])
+puts Query.contains_all("labels", ["first", "second"])
 
 # New query methods
 puts Query.not_contains("title", "Spider")

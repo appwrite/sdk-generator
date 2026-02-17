@@ -232,7 +232,9 @@ class Tests: XCTestCase {
         print(Query.offset(20))
         print(Query.contains("title", value: "Spider"))
         print(Query.contains("labels", value: "first"))
-        
+        print(Query.containsAny("labels", value: ["first", "second"]))
+        print(Query.containsAll("labels", value: ["first", "second"]))
+
         // New query methods
         print(Query.notContains("title", value: "Spider"))
         print(Query.notSearch("name", value: "john"))
