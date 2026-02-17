@@ -290,6 +290,7 @@ async function start() {
     console.log(Channel.database().collection().document().toString());
     console.log(Channel.database('db1').collection('col1').document('doc1').toString());
     console.log(Channel.database('db1').collection('col1').document('doc1').create().toString());
+    console.log(Channel.database('db1').collection('col1').document('doc1').upsert().toString());
     console.log(Channel.tablesdb().table().row().toString());
     console.log(Channel.tablesdb('db1').table('table1').row('row1').toString());
     console.log(Channel.tablesdb('db1').table('table1').row('row1').update().toString());
@@ -309,6 +310,7 @@ async function start() {
     console.log(Channel.team().toString());
     console.log(Channel.team('team1').toString());
     console.log(Channel.team('team1').create().toString());
+    console.log(Channel.team('team1').upsert().toString());
     console.log(Channel.memberships());
     console.log(Channel.membership().toString());
     console.log(Channel.membership('membership1').toString());

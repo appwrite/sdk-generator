@@ -298,6 +298,7 @@ void main() async {
   print(Channel.database().collection().document().toString());
   print(Channel.database('db1').collection('col1').document('doc1').toString());
   print(Channel.database('db1').collection('col1').document('doc1').create().toString());
+  print(Channel.database('db1').collection('col1').document('doc1').upsert().toString());
   print(Channel.tablesdb().table().row().toString());
   print(Channel.tablesdb('db1').table('table1').row('row1').toString());
   print(Channel.tablesdb('db1').table('table1').row('row1').update().toString());
@@ -317,6 +318,7 @@ void main() async {
   print(Channel.team().toString());
   print(Channel.team('team1').toString());
   print(Channel.team('team1').create().toString());
+  print(Channel.team('team1').upsert().toString());
   print(Channel.memberships());
   print(Channel.membership().toString());
   print(Channel.membership('membership1').toString());

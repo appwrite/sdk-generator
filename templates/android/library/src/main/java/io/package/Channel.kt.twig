@@ -142,6 +142,13 @@ fun Channel<_Document>.create(): Channel<_Resolved> =
 /**
  * Only available on Channel<_Document>
  */
+@JvmName("upsertDocument")
+fun Channel<_Document>.upsert(): Channel<_Resolved> =
+    this.resolve("upsert")
+
+/**
+ * Only available on Channel<_Document>
+ */
 @JvmName("updateDocument")
 fun Channel<_Document>.update(): Channel<_Resolved> =
     this.resolve("update")
@@ -159,6 +166,13 @@ fun Channel<_Document>.delete(): Channel<_Resolved> =
 @JvmName("createRow")
 fun Channel<_Row>.create(): Channel<_Resolved> =
     this.resolve("create")
+
+/**
+ * Only available on Channel<_Row>
+ */
+@JvmName("upsertRow")
+fun Channel<_Row>.upsert(): Channel<_Resolved> =
+    this.resolve("upsert")
 
 /**
  * Only available on Channel<_Row>
@@ -184,6 +198,13 @@ fun Channel<_File>.create(): Channel<_Resolved> =
 /**
  * Only available on Channel<_File>
  */
+@JvmName("upsertFile")
+fun Channel<_File>.upsert(): Channel<_Resolved> =
+    this.resolve("upsert")
+
+/**
+ * Only available on Channel<_File>
+ */
 @JvmName("updateFile")
 fun Channel<_File>.update(): Channel<_Resolved> =
     this.resolve("update")
@@ -205,6 +226,13 @@ fun Channel<_Team>.create(): Channel<_Resolved> =
 /**
  * Only available on Channel<_Team>
  */
+@JvmName("upsertTeam")
+fun Channel<_Team>.upsert(): Channel<_Resolved> =
+    this.resolve("upsert")
+
+/**
+ * Only available on Channel<_Team>
+ */
 @JvmName("updateTeam")
 fun Channel<_Team>.update(): Channel<_Resolved> =
     this.resolve("update")
@@ -222,6 +250,13 @@ fun Channel<_Team>.delete(): Channel<_Resolved> =
 @JvmName("createMembership")
 fun Channel<_Membership>.create(): Channel<_Resolved> =
     this.resolve("create")
+
+/**
+ * Only available on Channel<_Membership>
+ */
+@JvmName("upsertMembership")
+fun Channel<_Membership>.upsert(): Channel<_Resolved> =
+    this.resolve("upsert")
 
 /**
  * Only available on Channel<_Membership>
