@@ -47,11 +47,12 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         // Inverse map: subscriptionId -> slot index (for O(1) lookup)
         private val subscriptionIdToSlot = ConcurrentHashMap<String, Int>()
 
-        private var subCallDepth = 0
         private var reconnectAttempts = 0
         private val subscriptionsCounter = AtomicInteger(0)
         private var reconnect = true
         private var heartbeatJob: Job? = null
+        private var createSocketDebounceJob: Job? = null
+        private var createSocketScope: CoroutineScope? = null
 
         // Lock to coordinate multi-map updates (activeSubscriptions, slotToSubscriptionId, subscriptionIdToSlot)
         private val subscriptionLock = Any()
@@ -166,6 +167,30 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         }
     }
 
+    private fun scheduleCreateSocket() {
+        // Cancel any pending createSocket call
+        createSocketDebounceJob?.cancel()
+        
+        // Get or create a shared scope for debouncing across all Realtime instances
+        // Since socket and activeSubscriptions are shared (companion object), we need
+        // shared debouncing. We use the first Realtime instance's scope that calls this.
+        val scope = createSocketScope ?: run {
+            val newScope = CoroutineScope(Dispatchers.Main + Job())
+            createSocketScope = newScope
+            newScope
+        }
+        
+        // Capture this instance to ensure createSocket() is called with correct client
+        val instance = this
+        
+        // Schedule createSocket after debounce delay
+        createSocketDebounceJob = scope.launch {
+            delay(DEBOUNCE_MILLIS)
+            instance.createSocket()
+            createSocketDebounceJob = null
+        }
+    }
+
     fun subscribe(
         vararg channels: Channel<*>,
         callback: (RealtimeResponseEvent<Any>) -> Unit,
@@ -219,14 +244,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
             )
         }
 
-        launch {
-            subCallDepth++
-            delay(DEBOUNCE_MILLIS)
-            if (subCallDepth == 1) {
-                createSocket()
-            }
-            subCallDepth--
-        }
+        scheduleCreateSocket()
 
         return RealtimeSubscription {
             // Unsubscribe must update all three maps atomically so that
@@ -237,7 +255,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
                 slotToSubscriptionId.remove(slot)
                 subscriptionId?.let { subscriptionIdToSlot.remove(it) }
             }
-            launch { createSocket() }
+            this@Realtime.scheduleCreateSocket()
         }
     }
 
