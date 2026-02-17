@@ -15,55 +15,55 @@ jobs:
       matrix:
         include:
           # Client SDKs
-          - sdk: web
-            platform: client
+          # - sdk: web
+          #   platform: client
 
-          - sdk: flutter
-            platform: client
+          # - sdk: flutter
+          #   platform: client
 
-          - sdk: apple
-            platform: client
+          # - sdk: apple
+          #   platform: client
 
           - sdk: android
             platform: client
 
-          - sdk: react-native
-            platform: client
+          # - sdk: react-native
+          #   platform: client
 
-          # Server SDKs
-          - sdk: node
-            platform: server
+          # # Server SDKs
+          # - sdk: node
+          #   platform: server
 
-          - sdk: php
-            platform: server
+          # - sdk: php
+          #   platform: server
 
-          - sdk: python
-            platform: server
+          # - sdk: python
+          #   platform: server
 
-          - sdk: ruby
-            platform: server
+          # - sdk: ruby
+          #   platform: server
 
-          - sdk: dart
-            platform: server
+          # - sdk: dart
+          #   platform: server
 
-          - sdk: go
-            platform: server
+          # - sdk: go
+          #   platform: server
 
-          - sdk: swift
-            platform: server
+          # - sdk: swift
+          #   platform: server
 
-          - sdk: dotnet
-            platform: server
+          # - sdk: dotnet
+          #   platform: server
 
-          - sdk: kotlin
-            platform: server
+          # - sdk: kotlin
+          #   platform: server
 
-          # Console SDKs
-          - sdk: cli
-            platform: console
+          # # Console SDKs
+          # - sdk: cli
+          #   platform: console
           
-          - sdk: web
-            platform: console
+          # - sdk: web
+          #   platform: console
 
     steps:
       - name: Checkout repository
