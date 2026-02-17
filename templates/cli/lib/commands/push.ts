@@ -1933,7 +1933,18 @@ const pushSite = async ({
 
   failedDeployments.forEach((failed) => {
     const { name, deployment, $id } = failed;
-    const failUrl = `${globalConfig.getEndpoint().slice(0, -3)}/console/project-${localConfig.getProject().projectId}/sites/site-${$id}/deployments/deployment-${deployment}`;
+    const projectId = localConfig.getProject().projectId;
+    const endpoint = localConfig.getEndpoint() || globalConfig.getEndpoint();
+    let region = '';
+    try {
+      const hostname = new URL(endpoint).hostname;
+      const firstSubdomain = hostname.split('.')[0];
+      if (firstSubdomain.length === 3) {
+        region = firstSubdomain;
+      }
+    } catch {}
+    const projectSlug = region ? `project-${region}-${projectId}` : `project-${projectId}`;
+    const failUrl = `${globalConfig.getEndpoint().slice(0, -3)}/console/${projectSlug}/sites/site-${$id}/deployments/deployment-${deployment}`;
 
     error(
       `Deployment of ${name} has failed. Check at ${failUrl} for more details\n`,
@@ -2061,7 +2072,18 @@ const pushFunction = async ({
 
   failedDeployments.forEach((failed) => {
     const { name, deployment, $id } = failed;
-    const failUrl = `${globalConfig.getEndpoint().slice(0, -3)}/console/project-${localConfig.getProject().projectId}/functions/function-${$id}/deployment-${deployment}`;
+    const projectId = localConfig.getProject().projectId;
+    const endpoint = localConfig.getEndpoint() || globalConfig.getEndpoint();
+    let region = '';
+    try {
+      const hostname = new URL(endpoint).hostname;
+      const firstSubdomain = hostname.split('.')[0];
+      if (firstSubdomain.length === 3) {
+        region = firstSubdomain;
+      }
+    } catch {}
+    const projectSlug = region ? `project-${region}-${projectId}` : `project-${projectId}`;
+    const failUrl = `${globalConfig.getEndpoint().slice(0, -3)}/console/${projectSlug}/functions/function-${$id}/deployment-${deployment}`;
 
     error(
       `Deployment of ${name} has failed. Check at ${failUrl} for more details\n`,
