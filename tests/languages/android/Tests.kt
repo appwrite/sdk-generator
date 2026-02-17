@@ -89,8 +89,10 @@ class ServiceTest {
 
         var connectionClosed = false
         var connectionClosing = false
+        var connectionFailed = false
         var connectionClosedReason: String? = null
         var connectionClosingReason: String? = null
+        var connectionFailureReason: String? = null
 
         realtime.setOnSocketClosedCallback { code, reason ->
             connectionClosed = true
@@ -101,6 +103,14 @@ class ServiceTest {
             connectionClosing = true
             connectionClosingReason = "code=$code reason=${reason ?: ""}"
         }
+
+        realtime.setOnSocketFailureCallback { t, _ ->
+            connectionFailed = true
+            connectionFailureReason = "failure: ${t.message ?: t.toString()}"
+        }
+
+        // Realtime trace: events buffered; callback receives full dump after 10s idle or flushRealtimeLogDump()
+        realtime.setOnRealtimeLogCallback { dump -> writeToFile("=== realtime trace ===\n$dump") }
 
         // Subscribe without queries
         realtime.subscribe("tests", payloadType = TestPayload::class.java) {
@@ -391,11 +401,21 @@ class ServiceTest {
             mock = general.headers()
             writeToFile(mock.result)
 
+            // Give OkHttp time to complete close handshake and invoke onClosed (runs on its thread)
+            delay(2000)
+
+            // Flush buffered realtime trace so we see full workflow in one log
+            realtime.flushRealtimeLogDump()
+
             // WebSocket lifecycle diagnostics (extra, not part of assertions)
+            // onClosing = remote sent close; onClosed = handshake complete. If connection drops
+            // abruptly, OkHttp may call onFailure only (no onClosing/onClosed).
             writeToFile(if (connectionClosed) "connection closed" else "connection not closed")
             connectionClosedReason?.let { writeToFile(it) }
             writeToFile(if (connectionClosing) "connection closing" else "connection not closing")
             connectionClosingReason?.let { writeToFile(it) }
+            writeToFile(if (connectionFailed) "connection failed" else "connection not failed")
+            connectionFailureReason?.let { writeToFile(it) }
         }
     }
 

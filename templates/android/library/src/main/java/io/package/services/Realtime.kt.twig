@@ -36,6 +36,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         private const val TYPE_EVENT = "event"
         private const val TYPE_PONG = "pong"
         private const val HEARTBEAT_INTERVAL = 20_000L // 20 seconds
+        private const val LOG_DUMP_IDLE_MS = 10_000L
 
         private const val DEBOUNCE_MILLIS = 1L
 
@@ -63,8 +64,62 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         @Volatile
         private var onSocketFailureCallback: ((Throwable, Response?) -> Unit)? = null
 
+        @Volatile
+        private var onRealtimeLogDumpCallback: ((String) -> Unit)? = null
+
+        internal fun setRealtimeLogDumpCallback(cb: ((String) -> Unit)?) { onRealtimeLogDumpCallback = cb }
+        internal fun invokeLogDump(dump: String) { onRealtimeLogDumpCallback?.invoke(dump) }
+
         // Lock to coordinate multi-map updates (activeSubscriptions, slotToSubscriptionId, subscriptionIdToSlot)
         private val subscriptionLock = Any()
+    }
+
+    private val logBuffer = mutableListOf<String>()
+    private val logBufferLock = Any()
+    private var logFlushJob: Job? = null
+
+    /**
+     * Register a callback invoked with the full trace dump (all events joined) when:
+     * - No event has occurred for 10 seconds, or
+     * - {@link #flushRealtimeLogDump} is called.
+     * Intended for diagnostics and tests; safe to ignore in production.
+     */
+    fun setOnRealtimeLogCallback(callback: ((String) -> Unit)?) {
+        setRealtimeLogDumpCallback(callback)
+    }
+
+    /**
+     * Flush any buffered realtime trace logs immediately (single log string).
+     * Call this at the end of a test to capture the last events.
+     */
+    fun flushRealtimeLogDump() {
+        logFlushJob?.cancel()
+        logFlushJob = null
+        doFlushLogDump()
+    }
+
+    private fun log(msg: String) {
+        synchronized(logBufferLock) {
+            logBuffer.add(msg)
+        }
+        scheduleLogFlush()
+    }
+
+    private fun scheduleLogFlush() {
+        logFlushJob?.cancel()
+        logFlushJob = launch {
+            delay(LOG_DUMP_IDLE_MS)
+            doFlushLogDump()
+            logFlushJob = null
+        }
+    }
+
+    private fun doFlushLogDump() {
+        val dump = synchronized(logBufferLock) {
+            if (logBuffer.isEmpty()) return
+            logBuffer.joinToString("\n").also { logBuffer.clear() }
+        }
+        invokeLogDump(dump)
     }
 
     /**
@@ -98,10 +153,13 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         }
 
         if (allChannels.isEmpty()) {
+            log("realtime: createSocket skipped (no channels)")
             reconnect = false
             closeSocket()
             return
         }
+
+        log("realtime: createSocket connecting channels=$allChannels")
 
         val encodedProject = java.net.URLEncoder.encode(client.config["project"].toString(), "UTF-8")
         var queryParams = "project=$encodedProject"
@@ -143,6 +201,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
             .build()
 
         if (socket != null) {
+            log("realtime: createSocket closing existing socket before reconnect")
             reconnect = false
             closeSocket()
         }
@@ -158,18 +217,22 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         )
 
         socket!!.connect(client.http)
+        log("realtime: connect() called on socket")
     }
 
     private fun closeSocket() {
+        log("realtime: closeSocket (intentional) policy_violation")
         stopHeartbeat()
         socket?.close(RealtimeCode.POLICY_VIOLATION.value, null)
     }
 
     private fun startHeartbeat() {
         stopHeartbeat()
+        log("realtime: heartbeat started interval=${HEARTBEAT_INTERVAL}ms")
         heartbeatJob = launch {
             while (isActive) {
                 delay(HEARTBEAT_INTERVAL)
+                log("realtime: ping sent")
                 socket?.send("""{"type":"ping"}""")
             }
         }
@@ -254,6 +317,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
 
         launch {
             subCallDepth++
+            log("realtime: subscribe slot=$slot channels=${channels.toSet()} debounce=$DEBOUNCE_MILLIS")
             delay(DEBOUNCE_MILLIS)
             if (subCallDepth == 1) {
                 createSocket()
@@ -262,6 +326,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         }
 
         return RealtimeSubscription {
+            this@Realtime.log("realtime: unsubscribe slot=$slot")
             // Unsubscribe must update all three maps atomically so that
             // no reader observes a half-updated state.
             synchronized(subscriptionLock) {
@@ -281,6 +346,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
 
         override fun onOpen(webSocket: WebSocket, response: Response) {
             super.onOpen(webSocket, response)
+            this@Realtime.log("realtime: onOpen responseCode=${response.code}")
             reconnectAttempts = 0
             startHeartbeat()
         }
@@ -291,10 +357,16 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
             launch(IO) {
                 val message = text.fromJson<RealtimeResponse>()
                 when (message.type) {
-                    TYPE_ERROR -> handleResponseError(message)
+                    TYPE_ERROR -> {
+                        this@Realtime.log("realtime: message type=error data=${message.data}")
+                        handleResponseError(message)
+                    }
                     TYPE_CONNECTED -> handleResponseConnected(message)
-                    TYPE_EVENT -> handleResponseEvent(message)
-                    TYPE_PONG -> {}
+                    TYPE_EVENT -> {
+                        this@Realtime.log("realtime: message type=event")
+                        handleResponseEvent(message)
+                    }
+                    TYPE_PONG -> this@Realtime.log("realtime: pong received")
                 }
             }
         }
@@ -302,6 +374,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         private fun handleResponseConnected(message: RealtimeResponse) {
             val messageData = message.data?.jsonCast<Map<String, Any>>() ?: return
             val subscriptions = messageData["subscriptions"] as? Map<*, *> ?: return
+            this@Realtime.log("realtime: connected subscriptions=$subscriptions")
 
             // Store subscription ID mappings from backend
             // Format: { "0": "sub_a1f9", "1": "sub_b83c", ... }
@@ -362,14 +435,17 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
 
         override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
             super.onClosing(webSocket, code, reason)
+            this@Realtime.log("realtime: onClosing code=$code reason=$reason reconnect=$reconnect policyViolation=${RealtimeCode.POLICY_VIOLATION.value}")
             stopHeartbeat()
             onSocketClosingCallback?.invoke(code, reason)
             if (!reconnect || code == RealtimeCode.POLICY_VIOLATION.value) {
+                this@Realtime.log("realtime: onClosing not scheduling reconnect (reconnect=$reconnect code=$code)")
                 reconnect = true
                 return
             }
 
             val timeout = getTimeout()
+            this@Realtime.log("realtime: onClosing scheduling reconnect in ${timeout}ms attempt=${reconnectAttempts + 1}")
 
             Log.e(
                 this@Realtime::class.java.name,
@@ -386,6 +462,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
 
         override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
             super.onFailure(webSocket, t, response)
+            this@Realtime.log("realtime: onFailure message=${t.message} responseCode=${response?.code}")
             stopHeartbeat()
             onSocketFailureCallback?.invoke(t, response)
             t.printStackTrace()
@@ -393,6 +470,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
 
         override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
             super.onClosed(webSocket, code, reason)
+            this@Realtime.log("realtime: onClosed code=$code reason=$reason")
             onSocketClosedCallback?.invoke(code, reason)
         }
     }
