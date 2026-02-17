@@ -1,0 +1,68 @@
+name: Publish Package to npmjs
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Setup binfmt with QEMU
+        run: | 
+          sudo apt update
+          sudo apt install qemu-system binfmt-support qemu-user-static
+          update-binfmts --display
+
+      - name: Setup ldid
+        run: |
+          git clone https://github.com/tpoechtrager/ldid
+          cd ./ldid
+          sudo make
+          sudo make install
+
+      - name: Install dependencies and build for Linux and Windows
+        run: |
+          bun install
+          bun run linux-x64
+          bun run linux-arm64
+          bun run mac-x64
+          bun run mac-arm64
+          bun run windows-x64
+          bun run windows-arm64
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Update npm to latest version for OIDC support
+        run: npm install -g npm@latest
+
+      - name: Determine release tag
+        id: release_tag
+        run: |
+          if [[ "${{ github.ref }}" == *"-rc"* ]] || [[ "${{ github.ref }}" == *"-RC"* ]]; then
+            echo "tag=next" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=latest" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish
+        run: npm publish --provenance --access public --tag ${{ steps.release_tag.outputs.tag }}
+
+      - uses: fnkr/github-action-ghr@v1
+        env:
+          GHR_PATH: build/
+          GHR_REPLACE: false
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}

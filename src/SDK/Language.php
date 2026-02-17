@@ -158,6 +158,21 @@ abstract class Language
         return \strtoupper($this->toSnakeCase($str));
     }
 
+    /**
+     * Escape reserved keywords by prefixing with 'x'
+     *
+     * @param string $value
+     * @return string
+     */
+    public function escapeKeyword(string $value): string
+    {
+        if (in_array($value, $this->getKeywords())) {
+            return 'x' . $value;
+        }
+
+        return $value;
+    }
+
     public function isPermissionString(string $string): bool
     {
         $pattern = '/^\["(read|update|delete|write)\(\\"[^\\"]+\\"\)"(,\s*"(read|update|delete|write)\(\\"[^\\"]+\\"\)")*\]$/';

@@ -84,6 +84,16 @@ namespace AppwriteTests
             mock = await general.Enum(MockType.First);
             TestContext.WriteLine(mock.Result);
 
+            // Request model tests
+            mock = await general.CreatePlayer(new Player("player1", "John Doe", 100));
+            TestContext.WriteLine(mock.Result);
+
+            mock = await general.CreatePlayers(new List<Player> {
+                new Player("player1", "John Doe", 100),
+                new Player("player2", "Jane Doe", 200)
+            });
+            TestContext.WriteLine(mock.Result);
+
             try
             {
                 await general.Error400();
@@ -208,6 +218,15 @@ namespace AppwriteTests
                     Query.GreaterThan("releasedYear", 2015)
                 }
             ));
+
+            // regex, exists, notExists, elemMatch
+            TestContext.WriteLine(Query.Regex("name", "pattern.*"));
+            TestContext.WriteLine(Query.Exists(new List<string> { "attr1", "attr2" }));
+            TestContext.WriteLine(Query.NotExists(new List<string> { "attr1", "attr2" }));
+            TestContext.WriteLine(Query.ElemMatch("friends", new List<string> {
+                Query.Equal("name", "Alice"),
+                Query.GreaterThan("age", 18)
+            }));
 
             // Permission & Roles helper tests
             TestContext.WriteLine(Permission.Read(Role.Any()));

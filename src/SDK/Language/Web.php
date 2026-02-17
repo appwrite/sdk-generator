@@ -82,6 +82,11 @@ class Web extends JS
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'src/channel.ts',
+                'template'      => 'web/src/channel.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'src/query.ts',
                 'template'      => 'web/src/query.ts.twig',
             ],
@@ -206,11 +211,29 @@ class Web extends JS
 
     public function getTypeName(array $parameter, array $method = []): string
     {
+        if (
+            ($parameter['type'] ?? null) === self::TYPE_ARRAY
+            && (isset($parameter['enumName']) || !empty($parameter['enumValues']))
+        ) {
+            $enumType = isset($parameter['enumName'])
+                ? \ucfirst($parameter['enumName'])
+                : \ucfirst($parameter['name']);
+
+            return $enumType . '[]';
+        }
+
         if (isset($parameter['enumName'])) {
             return \ucfirst($parameter['enumName']);
         }
         if (!empty($parameter['enumValues'])) {
             return \ucfirst($parameter['name']);
+        }
+        if (!empty($parameter['array']['model'])) {
+            return 'Models.' . $this->toPascalCase($parameter['array']['model']) . '[]';
+        }
+        if (!empty($parameter['model'])) {
+            $modelType = 'Models.' . $this->toPascalCase($parameter['model']);
+            return $parameter['type'] === self::TYPE_ARRAY ? $modelType . '[]' : $modelType;
         }
         if (isset($parameter['items'])) {
             // Map definition nested type to parameter nested type
@@ -219,6 +242,9 @@ class Web extends JS
         switch ($parameter['type']) {
             case self::TYPE_INTEGER:
             case self::TYPE_NUMBER:
+                if (isset($parameter['format']) && $parameter['format'] === 'int64') {
+                    return 'number | bigint';
+                }
                 return 'number';
             case self::TYPE_ARRAY:
                 if (!empty($parameter['array']['x-anyOf'] ?? [])) {
@@ -302,6 +328,54 @@ class Web extends JS
         return '<' . implode(', ', $generics) . '>';
     }
 
+    /**
+     * Generate union return type for methods with multiple response models.
+     */
+    protected function getUnionReturnType(array $method, array $spec): ?string
+    {
+        // check for union types i.e. multiple response models
+        if (!array_key_exists('responseModels', $method) || empty($method['responseModels']) || count($method['responseModels']) <= 1) {
+            return null;
+        }
+
+        $unionTypes = [];
+
+        foreach ($method['responseModels'] as $model) {
+            if ($model === 'any') {
+                continue;
+            }
+
+            $modelType = '';
+
+            if (
+                array_key_exists($model, $spec['definitions']) &&
+                array_key_exists('additionalProperties', $spec['definitions'][$model]) &&
+                !$spec['definitions'][$model]['additionalProperties']
+            ) {
+                $modelType .= 'Models.';
+            }
+
+            $modelType .= $this->toPascalCase($model);
+
+            $models = [];
+            $this->populateGenerics($model, $spec, $models);
+            $models = array_unique($models);
+            $models = array_filter($models, fn ($m) => $m != $this->toPascalCase($model));
+
+            if (!empty($models)) {
+                $modelType .= '<' . implode(', ', $models) . '>';
+            }
+
+            $unionTypes[] = $modelType;
+        }
+
+        if (empty($unionTypes)) {
+            return null;
+        }
+
+        return 'Promise<' . implode(' | ', $unionTypes) . '>';
+    }
+
     public function getReturn(array $method, array $spec): string
     {
         if ($method['type'] === 'webAuth') {
@@ -310,6 +384,12 @@ class Web extends JS
 
         if ($method['type'] === 'location') {
             return 'string';
+        }
+
+        // check for union types i.e. multiple response models
+        $unionType = $this->getUnionReturnType($method, $spec);
+        if ($unionType !== null) {
+            return $unionType;
         }
 
         if (array_key_exists('responseModel', $method) && !empty($method['responseModel']) && $method['responseModel'] !== 'any') {
@@ -340,6 +420,7 @@ class Web extends JS
 
             return $ret;
         }
+
         return 'Promise<{}>';
     }
 
@@ -392,6 +473,48 @@ class Web extends JS
             new TwigFilter('getReturn', function (array $method, array $spec) {
                 return $this->getReturn($method, $spec);
             }),
+            new TwigFilter('getOverloadCondition', function (array $method) {
+                $params = $method['parameters']['all'] ?? [];
+
+                $hasRequired = false;
+                foreach ($params as $param) {
+                    if ($param['required'] ?? false) {
+                        $hasRequired = true;
+                        break;
+                    }
+                }
+
+                $condition = '';
+                if (!$hasRequired) {
+                    $condition .= '!paramsOrFirst || ';
+                }
+
+                $condition .= "(paramsOrFirst && typeof paramsOrFirst === 'object' && !Array.isArray(paramsOrFirst)";
+
+                $firstParamType = $this->getTypeName($params[0], $method);
+                $isPrimitive = str_starts_with($firstParamType, 'string')
+                    || str_starts_with($firstParamType, 'number')
+                    || str_starts_with($firstParamType, 'boolean');
+
+                if (!$isPrimitive) {
+                    $keys = [];
+                    foreach ($params as $param) {
+                        $name = $this->toCamelCase($param['name']);
+                        $name = $this->escapeKeyword($name);
+                        $keys[] = "'" . $name . "' in paramsOrFirst";
+                    }
+
+                    if (in_array('multipart/form-data', $method['consumes'] ?? [])) {
+                        $keys[] = "'onProgress' in paramsOrFirst";
+                    }
+
+                    $condition .= ' && (' . implode(' || ', $keys) . ')';
+                }
+
+                $condition .= ')';
+
+                return $condition;
+            }, ['is_safe' => ['html']]),
             new TwigFilter('comment2', function ($value) {
                 $value = explode("\n", $value);
                 foreach ($value as $key => $line) {

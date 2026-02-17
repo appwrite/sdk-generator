@@ -121,11 +121,29 @@ class Kotlin extends Language
      */
     public function getTypeName(array $parameter, array $spec = []): string
     {
+        if (
+            ($parameter['type'] ?? null) === self::TYPE_ARRAY
+            && (isset($parameter['enumName']) || !empty($parameter['enumValues']))
+        ) {
+            $enumType = isset($parameter['enumName'])
+                ? \ucfirst($parameter['enumName'])
+                : \ucfirst($parameter['name']);
+
+            return 'List<io.appwrite.enums.' . $enumType . '>';
+        }
+
         if (isset($parameter['enumName'])) {
             return 'io.appwrite.enums.' . \ucfirst($parameter['enumName']);
         }
         if (!empty($parameter['enumValues'])) {
             return 'io.appwrite.enums.' . \ucfirst($parameter['name']);
+        }
+        if (!empty($parameter['array']['model'])) {
+            return 'List<io.appwrite.models.' . $this->toPascalCase($parameter['array']['model']) . '>';
+        }
+        if (!empty($parameter['model'])) {
+            $modelType = 'io.appwrite.models.' . $this->toPascalCase($parameter['model']);
+            return $parameter['type'] === self::TYPE_ARRAY ? 'List<' . $modelType . '>' : $modelType;
         }
         if (isset($parameter['items'])) {
             $parameter['array'] = $parameter['items'];
@@ -632,6 +650,11 @@ class Kotlin extends Language
                 'template'      => '/kotlin/src/main/kotlin/io/appwrite/models/Model.kt.twig',
             ],
             [
+                'scope'         => 'requestModel',
+                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/models/{{ requestModel.name | caseUcfirst }}.kt',
+                'template'      => '/kotlin/src/main/kotlin/io/appwrite/models/RequestModel.kt.twig',
+            ],
+            [
                 'scope'         => 'enum',
                 'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/enums/{{ enum.name | caseUcfirst }}.kt',
                 'template'      => '/kotlin/src/main/kotlin/io/appwrite/enums/Enum.kt.twig',
@@ -666,7 +689,71 @@ class Kotlin extends Language
             new TwigFilter('javaParamExample', function (array $param) {
                 return $this->getParamExample($param, 'java');
             }, ['is_safe' => ['html']]),
+            new TwigFilter('enumExample', function (array $param, string $lang = 'kotlin') {
+                return $this->getEnumExample($param, $lang);
+            }),
+            new TwigFilter('javaEnumExample', function (array $param) {
+                return $this->getEnumExample($param, 'java');
+            }),
         ];
+    }
+
+    /**
+     * Generate enum example for Kotlin/Java
+     *
+     * @param array $param
+     * @param string $lang 'kotlin' or 'java'
+     * @return string
+     */
+    protected function getEnumExample(array $param, string $lang = 'kotlin'): string
+    {
+        $enumValues = $param['enumValues'] ?? [];
+        if (empty($enumValues)) {
+            return '';
+        }
+
+        $enumKeys = $param['enumKeys'] ?? [];
+        $enumName = $this->toPascalCase($param['enumName'] ?? $param['name'] ?? '');
+        $example = $param['example'] ?? null;
+        $isArray = ($param['type'] ?? '') === self::TYPE_ARRAY;
+
+        $resolveKey = function ($value) use ($enumValues, $enumKeys) {
+            $index = array_search($value, $enumValues, true);
+            if ($index !== false && isset($enumKeys[$index]) && $enumKeys[$index] !== '') {
+                return $this->toUpperSnakeCase($enumKeys[$index]);
+            }
+            if ($index !== false && isset($enumValues[$index])) {
+                return $this->toUpperSnakeCase($enumValues[$index]);
+            }
+            $fallback = $enumKeys[0] ?? $enumValues[0] ?? $value;
+            return $this->toUpperSnakeCase((string)$fallback);
+        };
+
+        if ($isArray) {
+            $values = [];
+            if (\is_string($example) && $example !== '') {
+                $decoded = json_decode($example, true);
+                if (\is_array($decoded)) {
+                    $values = $decoded;
+                }
+            } elseif (\is_array($example)) {
+                $values = $example;
+            }
+
+            if (empty($values)) {
+                $values = [$enumValues[0]];
+            }
+
+            $items = array_map(function ($value) use ($enumName, $resolveKey) {
+                return $enumName . '.' . $resolveKey($value);
+            }, $values);
+
+            $listOf = $lang === 'java' ? 'List.of' : 'listOf';
+            return $listOf . '(' . implode(', ', $items) . ')';
+        }
+
+        $value = ($example !== null && $example !== '') ? $example : $enumValues[0];
+        return $enumName . '.' . $resolveKey($value);
     }
 
     protected function getReturnType(array $method, array $spec, string $namespace, string $generic = 'T'): string
@@ -678,6 +765,14 @@ class Kotlin extends Language
             return 'ByteArray';
         }
 
+        if (
+            \array_key_exists('responseModels', $method)
+            && \count($method['responseModels']) > 1
+        ) {
+            return 'Any';
+        }
+
+        // Check for missing or generic response model
         if (
             !\array_key_exists('responseModel', $method)
             || empty($method['responseModel'])

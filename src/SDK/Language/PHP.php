@@ -159,6 +159,11 @@ class PHP extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '.gitignore',
+                'template'      => 'php/.gitignore',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'CHANGELOG.md',
                 'template'      => 'php/CHANGELOG.md.twig',
             ],
@@ -179,98 +184,103 @@ class PHP extends Language
             ],
             [
                 'scope'         => 'service',
-                'destination'   => 'docs/{{service.name | caseLower}}.md',
+                'destination'   => 'docs/{{ service.name | caseLower }}.md',
                 'template'      => 'php/docs/service.md.twig',
             ],
             [
                 'scope'         => 'method',
-                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseKebab}}.md',
+                'destination'   => 'docs/examples/{{ service.name | caseLower }}/{{ method.name | caseKebab }}.md',
                 'template'      => 'php/docs/example.md.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'src/{{ spec.title | caseUcfirst}}/Client.php',
+                'destination'   => 'src/{{ spec.namespace | caseNamespacePath }}/Client.php',
                 'template'      => 'php/src/Client.php.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'src/{{ spec.title | caseUcfirst}}/Permission.php',
+                'destination'   => 'src/{{ spec.namespace | caseNamespacePath }}/Permission.php',
                 'template'      => 'php/src/Permission.php.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'tests/{{ spec.title | caseUcfirst}}/PermissionTest.php',
+                'destination'   => 'tests/{{ spec.namespace | caseNamespacePath }}/PermissionTest.php',
                 'template'      => 'php/tests/PermissionTest.php.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'src/{{ spec.title | caseUcfirst}}/Role.php',
+                'destination'   => 'src/{{ spec.namespace | caseNamespacePath }}/Role.php',
                 'template'      => 'php/src/Role.php.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'tests/{{ spec.title | caseUcfirst}}/RoleTest.php',
+                'destination'   => 'tests/{{ spec.namespace | caseNamespacePath }}/RoleTest.php',
                 'template'      => 'php/tests/RoleTest.php.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'src/{{ spec.title | caseUcfirst}}/ID.php',
+                'destination'   => 'src/{{ spec.namespace | caseNamespacePath }}/ID.php',
                 'template'      => 'php/src/ID.php.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'tests/{{ spec.title | caseUcfirst}}/IDTest.php',
+                'destination'   => 'tests/{{ spec.namespace | caseNamespacePath }}/IDTest.php',
                 'template'      => 'php/tests/IDTest.php.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'src/{{ spec.title | caseUcfirst}}/Query.php',
+                'destination'   => 'src/{{ spec.namespace | caseNamespacePath }}/Query.php',
                 'template'      => 'php/src/Query.php.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'tests/{{ spec.title | caseUcfirst}}/QueryTest.php',
+                'destination'   => 'tests/{{ spec.namespace | caseNamespacePath }}/QueryTest.php',
                 'template'      => 'php/tests/QueryTest.php.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'src/{{ spec.title | caseUcfirst}}/Operator.php',
+                'destination'   => 'src/{{ spec.namespace | caseNamespacePath }}/Operator.php',
                 'template'      => 'php/src/Operator.php.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'tests/{{ spec.title | caseUcfirst}}/OperatorTest.php',
+                'destination'   => 'tests/{{ spec.namespace | caseNamespacePath }}/OperatorTest.php',
                 'template'      => 'php/tests/OperatorTest.php.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'src/{{ spec.title | caseUcfirst}}/InputFile.php',
+                'destination'   => 'src/{{ spec.namespace | caseNamespacePath }}/InputFile.php',
                 'template'      => 'php/src/InputFile.php.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'src/{{ spec.title | caseUcfirst}}/{{ spec.title | caseUcfirst}}Exception.php',
+                'destination'   => 'src/{{ spec.namespace | caseNamespacePath }}/{{ spec.namespace | split(\'\\\\\') | last | caseUcfirst}}Exception.php',
                 'template'      => 'php/src/Exception.php.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/src/{{ spec.title | caseUcfirst}}/Service.php',
+                'destination'   => '/src/{{ spec.namespace | caseNamespacePath }}/Service.php',
                 'template'      => 'php/src/Service.php.twig',
             ],
             [
                 'scope'         => 'service',
-                'destination'   => '/src/{{ spec.title | caseUcfirst}}/Services/{{service.name | caseUcfirst}}.php',
+                'destination'   => '/src/{{ spec.namespace | caseNamespacePath }}/Services/{{service.name | caseUcfirst}}.php',
                 'template'      => 'php/src/Services/Service.php.twig',
             ],
             [
                 'scope'         => 'service',
-                'destination'   => '/tests/{{ spec.title | caseUcfirst}}/Services/{{service.name | caseUcfirst}}Test.php',
+                'destination'   => '/tests/{{ spec.namespace | caseNamespacePath }}/Services/{{service.name | caseUcfirst}}Test.php',
                 'template'      => 'php/tests/Services/ServiceTest.php.twig',
             ],
             [
                 'scope'         => 'enum',
-                'destination'   => '/src/{{ spec.title | caseUcfirst}}/Enums/{{ enum.name | caseUcfirst }}.php',
+                'destination'   => '/src/{{ spec.namespace | caseNamespacePath }}/Enums/{{ enum.name | caseUcfirst }}.php',
                 'template'      => 'php/src/Enums/Enum.php.twig',
+            ],
+            [
+                'scope'         => 'requestModel',
+                'destination'   => '/src/{{ spec.namespace | caseNamespacePath }}/Models/{{ requestModel.name | caseUcfirst }}.php',
+                'template'      => 'php/src/Models/RequestModel.php.twig',
             ],
         ];
     }
@@ -282,11 +292,25 @@ class PHP extends Language
      */
     public function getTypeName(array $parameter, array $spec = []): string
     {
+        if (
+            ($parameter['type'] ?? null) === self::TYPE_ARRAY
+            && (isset($parameter['enumName']) || !empty($parameter['enumValues']))
+        ) {
+            return 'array';
+        }
+
         if (isset($parameter['enumName'])) {
             return \ucfirst($parameter['enumName']);
         }
         if (!empty($parameter['enumValues'])) {
             return \ucfirst($parameter['name']);
+        }
+        if (!empty($parameter['array']['model'])) {
+            return 'array';
+        }
+        if (!empty($parameter['model'])) {
+            $modelType = $this->toPascalCase($parameter['model']);
+            return $parameter['type'] === self::TYPE_ARRAY ? 'array' : $modelType;
         }
         return match ($parameter['type']) {
             self::TYPE_STRING => 'string',
@@ -459,11 +483,45 @@ class PHP extends Language
         return 'array';
     }
 
+    /**
+     * Generate method parameters string for PHP method signatures
+     *
+     * @param array $method
+     * @return string
+     */
+    protected function getMethodParameters(array $method): string
+    {
+        $params = [];
+
+        foreach ($method['parameters']['all'] ?? [] as $parameter) {
+            $nullable = (!($parameter['required'] ?? true)) || ($parameter['nullable'] ?? false);
+            $nullablePrefix = $nullable ? '?' : '';
+
+            $typeName = $this->getTypeName($parameter);
+            $paramName = '$' . $this->escapeKeyword($this->toCamelCase($parameter['name'] ?? ''));
+            $default = !($parameter['required'] ?? true) ? ' = null' : '';
+
+            $params[] = $nullablePrefix . $typeName . ' ' . $paramName . $default;
+        }
+
+        $result = implode(', ', $params);
+
+        // Add onProgress callback for multipart/form-data methods
+        if (in_array('multipart/form-data', $method['consumes'] ?? [])) {
+            $result .= ($result !== '' ? ', ' : '') . '?callable $onProgress = null';
+        }
+
+        return $result;
+    }
+
     public function getFilters(): array
     {
         return [
             new TwigFilter('getReturn', function ($value) {
                 return $this->getReturn($value);
+            }),
+            new TwigFilter('methodParameters', function ($value) {
+                return $this->getMethodParameters($value);
             }),
             new TwigFilter('deviceInfo', function ($value) {
                 return php_uname('s') . '; ' . php_uname('v') . '; ' . php_uname('m');
@@ -474,6 +532,83 @@ class PHP extends Language
                 }
                 $value = \preg_replace('/[^a-zA-Z0-9]/', '', $value);
                 return $this->toUpperSnakeCase($value);
+            }),
+            new TwigFilter('hasBearerAuth', function (array $headers) {
+                foreach ($headers as $header) {
+                    if (isset($header['type']) && $header['type'] === 'bearer') {
+                        return true;
+                    }
+                }
+                return false;
+            }),
+            new TwigFilter('caseNamespace', function ($value) {
+                $segments = explode('\\', $value);
+                $segments = array_map(function ($segment) {
+                    return ucfirst($this->toCamelCase($segment));
+                }, $segments);
+                return implode('\\', $segments);
+            }),
+            new TwigFilter('caseNamespacePath', function ($value) {
+                $segments = explode('\\', $value);
+                $segments = array_map(function ($segment) {
+                    return ucfirst($this->toCamelCase($segment));
+                }, $segments);
+                return implode('/', $segments);
+            }),
+            new TwigFilter('escapeJson', function ($value) {
+                // Escape backslashes for JSON strings
+                return str_replace('\\', '\\\\', $value);
+            }),
+            new TwigFilter('enumExample', function (array $param) {
+                $enumValues = $param['enumValues'] ?? [];
+                if (empty($enumValues)) {
+                    return '';
+                }
+
+                $enumKeys = $param['enumKeys'] ?? [];
+                $enumName = $this->toPascalCase($param['enumName'] ?? $param['name'] ?? '');
+                $example = $param['example'] ?? null;
+                $isArray = ($param['type'] ?? '') === self::TYPE_ARRAY;
+
+                $resolveKey = function ($value) use ($enumValues, $enumKeys) {
+                    $index = array_search($value, $enumValues, true);
+                    if ($index !== false && isset($enumKeys[$index]) && $enumKeys[$index] !== '') {
+                        $cleaned = \preg_replace('/[^a-zA-Z0-9]/', '', $enumKeys[$index]);
+                        return $this->toUpperSnakeCase($cleaned);
+                    }
+                    if ($index !== false && isset($enumValues[$index])) {
+                        $cleaned = \preg_replace('/[^a-zA-Z0-9]/', '', $enumValues[$index]);
+                        return $this->toUpperSnakeCase($cleaned);
+                    }
+                    $fallback = $enumKeys[0] ?? $enumValues[0] ?? $value;
+                    $cleaned = \preg_replace('/[^a-zA-Z0-9]/', '', (string)$fallback);
+                    return $this->toUpperSnakeCase($cleaned);
+                };
+
+                if ($isArray) {
+                    $values = [];
+                    if (\is_string($example) && $example !== '') {
+                        $decoded = json_decode($example, true);
+                        if (\is_array($decoded)) {
+                            $values = $decoded;
+                        }
+                    } elseif (\is_array($example)) {
+                        $values = $example;
+                    }
+
+                    if (empty($values)) {
+                        $values = [$enumValues[0]];
+                    }
+
+                    $items = array_map(function ($value) use ($enumName, $resolveKey) {
+                        return $enumName . '::' . $resolveKey($value) . '()';
+                    }, $values);
+
+                    return '[' . implode(', ', $items) . ']';
+                }
+
+                $value = ($example !== null && $example !== '') ? $example : $enumValues[0];
+                return $enumName . '::' . $resolveKey($value) . '()';
             }),
         ];
     }

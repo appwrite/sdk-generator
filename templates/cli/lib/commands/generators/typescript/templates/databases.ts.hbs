@@ -1,0 +1,216 @@
+import { Client, TablesDB, ID, Query, type Models, Permission, Role } from '{{appwriteDep}}';
+import type { DatabaseHandle, DatabaseId, DatabaseTableMap, DatabaseTables, QueryBuilder, PermissionBuilder, RoleBuilder, RoleString } from './types{{importExt}}';
+{{#if supportsServerSide}}
+import { PROJECT_ID, ENDPOINT, API_KEY } from './constants{{importExt}}';
+{{else}}
+import { PROJECT_ID, ENDPOINT } from './constants{{importExt}}';
+{{/if}}
+
+const createQueryBuilder = <T>(): QueryBuilder<T> => ({
+  equal: (field, value) => Query.equal(String(field), value as any),
+  notEqual: (field, value) => Query.notEqual(String(field), value as any),
+  lessThan: (field, value) => Query.lessThan(String(field), value as any),
+  lessThanEqual: (field, value) => Query.lessThanEqual(String(field), value as any),
+  greaterThan: (field, value) => Query.greaterThan(String(field), value as any),
+  greaterThanEqual: (field, value) => Query.greaterThanEqual(String(field), value as any),
+  contains: (field, value) => Query.contains(String(field), value as any),
+  search: (field, value) => Query.search(String(field), value),
+  isNull: (field) => Query.isNull(String(field)),
+  isNotNull: (field) => Query.isNotNull(String(field)),
+  startsWith: (field, value) => Query.startsWith(String(field), value),
+  endsWith: (field, value) => Query.endsWith(String(field), value),
+  between: (field, start, end) => Query.between(String(field), start as any, end as any),
+  select: (fields) => Query.select(fields.map(String)),
+  orderAsc: (field) => Query.orderAsc(String(field)),
+  orderDesc: (field) => Query.orderDesc(String(field)),
+  limit: (value) => Query.limit(value),
+  offset: (value) => Query.offset(value),
+  cursorAfter: (documentId) => Query.cursorAfter(documentId),
+  cursorBefore: (documentId) => Query.cursorBefore(documentId),
+  or: (...queries) => Query.or(queries),
+  and: (...queries) => Query.and(queries),
+});
+
+{{{TABLE_ID_MAP}}}
+
+{{{TABLES_WITH_RELATIONSHIPS}}}
+
+const roleBuilder: RoleBuilder = {
+  any: () => Role.any() as RoleString,
+  user: (userId, status?) => Role.user(userId, status) as RoleString,
+  users: (status?) => Role.users(status) as RoleString,
+  guests: () => Role.guests() as RoleString,
+  team: (teamId, role?) => Role.team(teamId, role) as RoleString,
+  member: (memberId) => Role.member(memberId) as RoleString,
+  label: (label) => Role.label(label) as RoleString,
+};
+
+const permissionBuilder: PermissionBuilder = {
+  read: (role) => Permission.read(role),
+  write: (role) => Permission.write(role),
+  create: (role) => Permission.create(role),
+  update: (role) => Permission.update(role),
+  delete: (role) => Permission.delete(role),
+};
+
+const resolvePermissions = (callback?: (permission: { read: (role: RoleString) => string; write: (role: RoleString) => string; create: (role: RoleString) => string; update: (role: RoleString) => string; delete: (role: RoleString) => string }, role: { any: () => RoleString; user: (userId: string, status?: string) => RoleString; users: (status?: string) => RoleString; guests: () => RoleString; team: (teamId: string, role?: string) => RoleString; member: (memberId: string) => RoleString; label: (label: string) => RoleString }) => string[]): string[] | undefined =>
+  callback?.(permissionBuilder, roleBuilder);
+
+function createTableApi<T extends Models.Row>(
+  tablesDB: TablesDB,
+  databaseId: string,
+  tableId: string,
+) {
+  return {
+    create: (data: any, options?: { rowId?: string; permissions?: (permission: { read: (role: RoleString) => string; write: (role: RoleString) => string; create: (role: RoleString) => string; update: (role: RoleString) => string; delete: (role: RoleString) => string }, role: { any: () => RoleString; user: (userId: string, status?: string) => RoleString; users: (status?: string) => RoleString; guests: () => RoleString; team: (teamId: string, role?: string) => RoleString; member: (memberId: string) => RoleString; label: (label: string) => RoleString }) => string[]; transactionId?: string }) =>
+      tablesDB.createRow<T>({
+        databaseId,
+        tableId,
+        rowId: options?.rowId ?? ID.unique(),
+        data,
+        permissions: resolvePermissions(options?.permissions),
+        transactionId: options?.transactionId,
+      }),
+    get: (id: string) =>
+      tablesDB.getRow<T>({
+        databaseId,
+        tableId,
+        rowId: id,
+      }),
+    update: (id: string, data: any, options?: { permissions?: (permission: { read: (role: RoleString) => string; write: (role: RoleString) => string; create: (role: RoleString) => string; update: (role: RoleString) => string; delete: (role: RoleString) => string }, role: { any: () => RoleString; user: (userId: string, status?: string) => RoleString; users: (status?: string) => RoleString; guests: () => RoleString; team: (teamId: string, role?: string) => RoleString; member: (memberId: string) => RoleString; label: (label: string) => RoleString }) => string[]; transactionId?: string }) =>
+      tablesDB.updateRow<T>({
+        databaseId,
+        tableId,
+        rowId: id,
+        data,
+        ...(options?.permissions ? { permissions: resolvePermissions(options.permissions) } : {}),
+        transactionId: options?.transactionId,
+      }),
+    delete: async (id: string, options?: { transactionId?: string }) => {
+      await tablesDB.deleteRow({
+        databaseId,
+        tableId,
+        rowId: id,
+        transactionId: options?.transactionId,
+      });
+    },
+    list: (options?: { queries?: (q: any) => string[] }) =>
+      tablesDB.listRows<T>({
+        databaseId,
+        tableId,
+        queries: options?.queries?.(createQueryBuilder<T>()),
+      }),{{{BULK_METHODS}}}
+  };
+}
+
+{{{BULK_CHECK}}}
+const hasOwn = (obj: unknown, key: string): boolean =>
+  obj != null && Object.prototype.hasOwnProperty.call(obj, key);
+
+function createDatabaseHandle<D extends DatabaseId>(
+  tablesDB: TablesDB,
+  databaseId: D,
+): DatabaseHandle<D> {
+  const tableApiCache = new Map<string, unknown>();
+  const dbMap = tableIdMap[databaseId];
+
+  return {
+    use: <T extends keyof DatabaseTableMap[D] & string>(tableId: T): DatabaseTableMap[D][T] => {
+      if (!hasOwn(dbMap, tableId)) {
+        throw new Error(`Unknown table "${tableId}" in database "${databaseId}"`);
+      }
+
+      if (!tableApiCache.has(tableId)) {
+        const resolvedTableId = dbMap[tableId];
+        const api = createTableApi(tablesDB, databaseId, resolvedTableId);
+        {{{BULK_REMOVAL}}}
+        tableApiCache.set(tableId, api);
+      }
+      return tableApiCache.get(tableId) as DatabaseTableMap[D][T];
+    },
+{{#if supportsServerSide}}
+    create: (tableId: string, name: string, options?: { permissions?: (permission: { read: (role: RoleString) => string; write: (role: RoleString) => string; create: (role: RoleString) => string; update: (role: RoleString) => string; delete: (role: RoleString) => string }, role: { any: () => RoleString; user: (userId: string, status?: string) => RoleString; users: (status?: string) => RoleString; guests: () => RoleString; team: (teamId: string, role?: string) => RoleString; member: (memberId: string) => RoleString; label: (label: string) => RoleString }) => string[]; rowSecurity?: boolean; enabled?: boolean; columns?: any[]; indexes?: any[] }) =>
+      tablesDB.createTable({
+        databaseId,
+        tableId,
+        name,
+        permissions: resolvePermissions(options?.permissions),
+        rowSecurity: options?.rowSecurity,
+        enabled: options?.enabled,
+        columns: options?.columns,
+        indexes: options?.indexes,
+      }),
+    update: (tableId: string, options?: { name?: string; permissions?: (permission: { read: (role: RoleString) => string; write: (role: RoleString) => string; create: (role: RoleString) => string; update: (role: RoleString) => string; delete: (role: RoleString) => string }, role: { any: () => RoleString; user: (userId: string, status?: string) => RoleString; users: (status?: string) => RoleString; guests: () => RoleString; team: (teamId: string, role?: string) => RoleString; member: (memberId: string) => RoleString; label: (label: string) => RoleString }) => string[]; rowSecurity?: boolean; enabled?: boolean }) => {
+      if (!hasOwn(dbMap, tableId)) {
+        throw new Error(`Unknown table "${tableId}" in database "${databaseId}"`);
+      }
+      const resolvedTableId = dbMap[tableId];
+      return tablesDB.updateTable({
+        databaseId,
+        tableId: resolvedTableId,
+        name: options?.name ?? tableId, // TODO: remove this fallback once fixed in other SDKs
+        permissions: resolvePermissions(options?.permissions),
+        rowSecurity: options?.rowSecurity,
+        enabled: options?.enabled,
+      });
+    },
+    delete: async (tableId: string) => {
+      if (!hasOwn(dbMap, tableId)) {
+        throw new Error(`Unknown table "${tableId}" in database "${databaseId}"`);
+      }
+      const resolvedTableId = dbMap[tableId];
+      await tablesDB.deleteTable({
+        databaseId,
+        tableId: resolvedTableId,
+      });
+    },
+{{/if}}
+  };
+}
+
+function createDatabasesApi(tablesDB: TablesDB): DatabaseTables {
+  const dbCache = new Map<DatabaseId, ReturnType<typeof createDatabaseHandle>>();
+
+  return {
+    use: (databaseId: DatabaseId) => {
+      if (!hasOwn(tableIdMap, databaseId)) {
+        throw new Error(`Unknown database "${databaseId}"`);
+      }
+
+      if (!dbCache.has(databaseId)) {
+        dbCache.set(databaseId, createDatabaseHandle(tablesDB, databaseId));
+      }
+      return dbCache.get(databaseId);
+    },
+{{#if supportsServerSide}}
+    create: (databaseId: string, name: string, options?: { enabled?: boolean }) =>
+      tablesDB.create({
+        databaseId,
+        name,
+        enabled: options?.enabled,
+      }),
+    update: (databaseId: DatabaseId, options?: { name?: string; enabled?: boolean }) => {
+      return tablesDB.update({
+        databaseId,
+        name: options?.name ?? databaseId,
+        enabled: options?.enabled,
+      });
+    },
+    delete: async (databaseId: DatabaseId) => {
+      await tablesDB.delete({
+        databaseId,
+      });
+    },
+{{/if}}
+  } as DatabaseTables;
+}
+
+// Initialize client
+const client = new Client()
+  .setEndpoint(ENDPOINT)
+  .setProject(PROJECT_ID){{#if supportsServerSide}}
+  .setKey(API_KEY){{/if}};
+
+const tablesDB = new TablesDB(client);
+
+export const databases: DatabaseTables = createDatabasesApi(tablesDB);

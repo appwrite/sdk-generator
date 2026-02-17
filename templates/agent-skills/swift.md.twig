@@ -1,0 +1,447 @@
+{% set lang = 'swift' %}
+{% set langName = 'Swift' %}
+{% set langDescription %}{{ spec.title }} {{ langName }} SDK skill. Use when building native iOS, macOS, watchOS, or tvOS apps, or server-side Swift applications with {{ spec.title }}. Covers client-side auth (email, OAuth), database queries, file uploads, real-time subscriptions with async/await, and server-side admin via API keys for user management, database administration, storage, and functions.{% endset %}
+{{ include('agent-skills/base/frontmatter.md.twig') }}
+
+# {{ spec.title }} {{ langName }} SDK
+
+## Installation
+
+```swift
+// Swift Package Manager — Package.swift
+.package(url: "https://github.com/{{ sdk.gitUserName }}/sdk-for-swift", branch: "main")
+```
+
+## Setting Up the Client
+
+### Client-side (Apple platforms)
+
+```swift
+import {{ spec.title }}
+
+let client = Client()
+    .setEndpoint("https://<REGION>.cloud.appwrite.io/v1")
+    .setProject("[PROJECT_ID]")
+```
+
+### Server-side (Swift)
+
+```swift
+import {{ spec.title }}
+
+let client = Client()
+    .setEndpoint("https://<REGION>.cloud.appwrite.io/v1")
+    .setProject(ProcessInfo.processInfo.environment["{{ spec.title | caseUpper }}_PROJECT_ID"]!)
+    .setKey(ProcessInfo.processInfo.environment["{{ spec.title | caseUpper }}_API_KEY"]!)
+```
+
+## Code Examples
+
+### Authentication (client-side)
+
+```swift
+let account = Account(client)
+
+// Signup
+let user = try await account.create(userId: ID.unique(), email: "user@example.com", password: "password123", name: "User Name")
+
+// Login
+let session = try await account.createEmailPasswordSession(email: "user@example.com", password: "password123")
+
+// OAuth
+try await account.createOAuth2Session(provider: .google)
+
+// Get current user
+let me = try await account.get()
+
+// Logout
+try await account.deleteSession(sessionId: "current")
+```
+
+### User Management (server-side)
+
+```swift
+let users = Users(client)
+
+// Create user
+let user = try await users.create(userId: ID.unique(), email: "user@example.com", password: "password123", name: "User Name")
+
+// List users
+let list = try await users.list(queries: [Query.limit(25)])
+
+// Get user
+let fetched = try await users.get(userId: "[USER_ID]")
+
+// Delete user
+try await users.delete(userId: "[USER_ID]")
+```
+
+### Database Operations
+
+> **Note:** Use `TablesDB` (not the deprecated `Databases` class) for all new code. Only use `Databases` if the existing codebase already relies on it or the user explicitly requests it.
+
+```swift
+let tablesDB = TablesDB(client)
+
+// Create database (server-side only)
+let db = try await tablesDB.create(databaseId: ID.unique(), name: "My Database")
+
+// Create row
+let doc = try await tablesDB.createRow(databaseId: "[DATABASE_ID]", tableId: "[TABLE_ID]", rowId: ID.unique(), data: [
+    "title": "Hello",
+    "done": false
+])
+
+// Query rows
+let results = try await tablesDB.listRows(databaseId: "[DATABASE_ID]", tableId: "[TABLE_ID]", queries: [
+    Query.equal("done", value: false),
+    Query.limit(10)
+])
+
+// Get row
+let row = try await tablesDB.getRow(databaseId: "[DATABASE_ID]", tableId: "[TABLE_ID]", rowId: "[ROW_ID]")
+
+// Update row
+try await tablesDB.updateRow(databaseId: "[DATABASE_ID]", tableId: "[TABLE_ID]", rowId: "[ROW_ID]", data: ["done": true])
+
+// Delete row
+try await tablesDB.deleteRow(databaseId: "[DATABASE_ID]", tableId: "[TABLE_ID]", rowId: "[ROW_ID]")
+```
+
+### Query Methods
+
+```swift
+// Filtering
+Query.equal("field", value: "value")          // == (or pass array for IN)
+Query.notEqual("field", value: "value")       // !=
+Query.lessThan("field", value: 100)           // <
+Query.lessThanEqual("field", value: 100)      // <=
+Query.greaterThan("field", value: 100)        // >
+Query.greaterThanEqual("field", value: 100)   // >=
+Query.between("field", start: 1, end: 100)    // 1 <= field <= 100
+Query.isNull("field")                         // is null
+Query.isNotNull("field")                      // is not null
+Query.startsWith("field", value: "prefix")    // starts with
+Query.endsWith("field", value: "suffix")      // ends with
+Query.contains("field", value: "sub")         // contains
+Query.search("field", value: "keywords")      // full-text search (requires index)
+
+// Sorting
+Query.orderAsc("field")
+Query.orderDesc("field")
+
+// Pagination
+Query.limit(25)                               // max rows (default 25, max 100)
+Query.offset(0)                               // skip N rows
+Query.cursorAfter("[ROW_ID]")                 // cursor pagination (preferred)
+Query.cursorBefore("[ROW_ID]")
+
+// Selection & Logic
+Query.select(["field1", "field2"])
+Query.or([Query.equal("a", value: 1), Query.equal("b", value: 2)])   // OR
+Query.and([Query.greaterThan("age", value: 18), Query.lessThan("age", value: 65)])  // AND (default)
+```
+
+### File Storage
+
+```swift
+let storage = Storage(client)
+
+// Upload file
+let file = try await storage.createFile(bucketId: "[BUCKET_ID]", fileId: ID.unique(), file: InputFile.fromPath("/path/to/file.png"))
+
+// List files
+let files = try await storage.listFiles(bucketId: "[BUCKET_ID]")
+
+// Delete file
+try await storage.deleteFile(bucketId: "[BUCKET_ID]", fileId: "[FILE_ID]")
+```
+
+#### InputFile Factory Methods
+
+```swift
+InputFile.fromPath("/path/to/file.png")                    // from filesystem path
+InputFile.fromData(data, filename: "file.png", mimeType: "image/png")  // from Data
+```
+
+### Teams
+
+```swift
+let teams = Teams(client)
+
+// Create team
+let team = try await teams.create(teamId: ID.unique(), name: "Engineering")
+
+// List teams
+let list = try await teams.list()
+
+// Create membership (invite user by email)
+let membership = try await teams.createMembership(
+    teamId: "[TEAM_ID]",
+    roles: ["editor"],
+    email: "user@example.com"
+)
+
+// List memberships
+let members = try await teams.listMemberships(teamId: "[TEAM_ID]")
+
+// Update membership roles
+try await teams.updateMembership(teamId: "[TEAM_ID]", membershipId: "[MEMBERSHIP_ID]", roles: ["admin"])
+
+// Delete team
+try await teams.delete(teamId: "[TEAM_ID]")
+```
+
+> **Role-based access:** Use `Role.team("[TEAM_ID]")` for all team members or `Role.team("[TEAM_ID]", "editor")` for a specific team role when setting permissions.
+
+### Real-time Subscriptions (client-side)
+
+```swift
+let realtime = Realtime(client)
+
+let subscription = realtime.subscribe(channels: ["databases.[DATABASE_ID].tables.[TABLE_ID].rows"]) { response in
+    print(response.events)   // e.g. ["databases.*.tables.*.rows.*.create"]
+    print(response.payload)  // the affected resource
+}
+
+// Subscribe to multiple channels
+let multi = realtime.subscribe(channels: [
+    "databases.[DATABASE_ID].tables.[TABLE_ID].rows",
+    "buckets.[BUCKET_ID].files",
+]) { response in /* ... */ }
+
+// Cleanup
+subscription.close()
+```
+
+**Available channels:**
+
+| Channel | Description |
+|---------|-------------|
+| `account` | Changes to the authenticated user's account |
+| `databases.[DB_ID].tables.[TABLE_ID].rows` | All rows in a table |
+| `databases.[DB_ID].tables.[TABLE_ID].rows.[ROW_ID]` | A specific row |
+| `buckets.[BUCKET_ID].files` | All files in a bucket |
+| `buckets.[BUCKET_ID].files.[FILE_ID]` | A specific file |
+| `teams` | Changes to teams the user belongs to |
+| `teams.[TEAM_ID]` | A specific team |
+| `memberships` | The user's team memberships |
+| `functions.[FUNCTION_ID].executions` | Function execution updates |
+
+Response fields: `events` (array), `payload` (resource), `channels` (matched), `timestamp` (ISO 8601).
+
+### Serverless Functions (server-side)
+
+```swift
+let functions = Functions(client)
+
+// Execute function
+let execution = try await functions.createExecution(functionId: "[FUNCTION_ID]", body: "{\"key\": \"value\"}")
+
+// List executions
+let executions = try await functions.listExecutions(functionId: "[FUNCTION_ID]")
+```
+
+#### Writing a Function Handler (Swift runtime)
+
+```swift
+// Sources/main.swift — Appwrite Function entry point
+func main(context: RuntimeContext) async throws -> RuntimeOutput {
+    // context.req.body        — raw body (String)
+    // context.req.bodyJson    — parsed JSON ([String: Any]?)
+    // context.req.headers     — headers ([String: String])
+    // context.req.method      — HTTP method
+    // context.req.path        — URL path
+    // context.req.query       — query params ([String: String])
+
+    context.log("Processing: \(context.req.method) \(context.req.path)")
+
+    if context.req.method == "GET" {
+        return context.res.json(["message": "Hello from Appwrite Function!"])
+    }
+
+    return context.res.json(["success": true])       // JSON
+    // context.res.text("Hello")                     // plain text
+    // context.res.empty()                           // 204
+    // context.res.redirect("https://...")            // 302
+}
+```
+
+### Server-Side Rendering (SSR) Authentication
+
+SSR apps using server-side Swift (Vapor, Hummingbird, etc.) use the **server SDK** to handle auth. You need two clients:
+
+- **Admin client** — uses an API key, creates sessions, bypasses rate limits (reusable singleton)
+- **Session client** — uses a session cookie, acts on behalf of a user (create per-request, never share)
+
+```swift
+import {{ spec.title }}
+
+// Admin client (reusable)
+let adminClient = Client()
+    .setEndpoint("https://<REGION>.cloud.appwrite.io/v1")
+    .setProject("[PROJECT_ID]")
+    .setKey(Environment.get("{{ spec.title | caseUpper }}_API_KEY")!)
+
+// Session client (create per-request)
+let sessionClient = Client()
+    .setEndpoint("https://<REGION>.cloud.appwrite.io/v1")
+    .setProject("[PROJECT_ID]")
+
+if let session = req.cookies["a_session_[PROJECT_ID]"]?.string {
+    sessionClient.setSession(session)
+}
+```
+
+#### Email/Password Login (Vapor)
+
+```swift
+app.post("login") { req async throws -> Response in
+    let body = try req.content.decode(LoginRequest.self)
+    let account = Account(adminClient)
+    let session = try await account.createEmailPasswordSession(
+        email: body.email,
+        password: body.password
+    )
+
+    // Cookie name must be a_session_<PROJECT_ID>
+    let response = Response(status: .ok, body: .init(string: "{\"success\": true}"))
+    response.cookies["a_session_[PROJECT_ID]"] = HTTPCookies.Value(
+        string: session.secret,
+        isHTTPOnly: true,
+        isSecure: true,
+        sameSite: .strict,
+        path: "/"
+    )
+    return response
+}
+```
+
+#### Authenticated Requests
+
+```swift
+app.get("user") { req async throws -> Response in
+    guard let session = req.cookies["a_session_[PROJECT_ID]"]?.string else {
+        throw Abort(.unauthorized)
+    }
+
+    let sessionClient = Client()
+        .setEndpoint("https://<REGION>.cloud.appwrite.io/v1")
+        .setProject("[PROJECT_ID]")
+        .setSession(session)
+
+    let account = Account(sessionClient)
+    let user = try await account.get()
+    // Return user as JSON
+}
+```
+
+#### OAuth2 SSR Flow
+
+```swift
+// Step 1: Redirect to OAuth provider
+app.get("oauth") { req async throws -> Response in
+    let account = Account(adminClient)
+    let redirectUrl = try await account.createOAuth2Token(
+        provider: .github,
+        success: "https://example.com/oauth/success",
+        failure: "https://example.com/oauth/failure"
+    )
+    return req.redirect(to: redirectUrl)
+}
+
+// Step 2: Handle callback — exchange token for session
+app.get("oauth", "success") { req async throws -> Response in
+    let userId = try req.query.get(String.self, at: "userId")
+    let secret = try req.query.get(String.self, at: "secret")
+
+    let account = Account(adminClient)
+    let session = try await account.createSession(userId: userId, secret: secret)
+
+    let response = Response(status: .ok, body: .init(string: "{\"success\": true}"))
+    response.cookies["a_session_[PROJECT_ID]"] = HTTPCookies.Value(
+        string: session.secret,
+        isHTTPOnly: true, isSecure: true, sameSite: .strict, path: "/"
+    )
+    return response
+}
+```
+
+> **Cookie security:** Always use `isHTTPOnly`, `isSecure`, and `sameSite: .strict` to prevent XSS. The cookie name must be `a_session_<PROJECT_ID>`.
+
+> **Forwarding user agent:** Call `sessionClient.setForwardedUserAgent(req.headers.first(name: .userAgent) ?? "")` to record the end-user's browser info for debugging and security.
+
+## Error Handling
+
+```swift
+import {{ spec.title }}
+// AppwriteException is included in the main module
+
+do {
+    let row = try await tablesDB.getRow(databaseId: "[DATABASE_ID]", tableId: "[TABLE_ID]", rowId: "[ROW_ID]")
+} catch let error as AppwriteException {
+    print(error.message)     // human-readable message
+    print(error.code)        // HTTP status code (Int)
+    print(error.type)        // error type (e.g. "document_not_found")
+    print(error.response)    // full response body
+}
+```
+
+**Common error codes:**
+
+| Code | Meaning |
+|------|---------|
+| `401` | Unauthorized — missing or invalid session/API key |
+| `403` | Forbidden — insufficient permissions |
+| `404` | Not found — resource does not exist |
+| `409` | Conflict — duplicate ID or unique constraint |
+| `429` | Rate limited — too many requests |
+
+## Permissions & Roles (Critical)
+
+Appwrite uses permission strings to control access to resources. Each permission pairs an action (`read`, `update`, `delete`, `create`, or `write` which grants create + update + delete) with a role target. By default, **no user has access** unless permissions are explicitly set at the document/file level or inherited from the collection/bucket settings. Permissions are arrays of strings built with the `Permission` and `Role` helpers.
+
+```swift
+import {{ spec.title }}
+// Permission and Role are included in the main module import
+```
+
+### Database Row with Permissions
+
+```swift
+let doc = try await tablesDB.createRow(
+    databaseId: "[DATABASE_ID]",
+    tableId: "[TABLE_ID]",
+    rowId: ID.unique(),
+    data: ["title": "Hello World"],
+    permissions: [
+        Permission.read(Role.user("[USER_ID]")),     // specific user can read
+        Permission.update(Role.user("[USER_ID]")),   // specific user can update
+        Permission.read(Role.team("[TEAM_ID]")),     // all team members can read
+        Permission.read(Role.any()),                 // anyone (including guests) can read
+    ]
+)
+```
+
+### File Upload with Permissions
+
+```swift
+let file = try await storage.createFile(
+    bucketId: "[BUCKET_ID]",
+    fileId: ID.unique(),
+    file: InputFile.fromPath("/path/to/file.png"),
+    permissions: [
+        Permission.read(Role.any()),
+        Permission.update(Role.user("[USER_ID]")),
+        Permission.delete(Role.user("[USER_ID]")),
+    ]
+)
+```
+
+> **When to set permissions:** Set document/file-level permissions when you need per-resource access control. If all documents in a collection share the same rules, configure permissions at the collection/bucket level and leave document permissions empty.
+
+> **Common mistakes:**
+> - **Forgetting permissions** — the resource becomes inaccessible to all users (including the creator)
+> - **`Role.any()` with `write`/`update`/`delete`** — allows any user, including unauthenticated guests, to modify or remove the resource
+> - **`Permission.read(Role.any())` on sensitive data** — makes the resource publicly readable
+

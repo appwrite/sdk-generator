@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -32,11 +33,26 @@ void main() async {
 
   client.setSelfSigned();
   client.setProject('console');
-  client.setEndPointRealtime(
-      "wss://cloud.appwrite.io/v1");
+  client.setEndPointRealtime("wss://cloud.appwrite.io/v1");
 
   Realtime realtime = Realtime(client);
+  // Subscribe without queries
   final rtsub = realtime.subscribe(["tests"]);
+
+  // Subscribe with queries to ensure query array support works
+  final rtsubWithQueries = realtime.subscribe(
+    ["tests"],
+    queries: [
+      Query.equal('response',["WS:/v1/realtime:passed"])
+    ],
+  );
+
+  final rtsubWithQueriesFailure = realtime.subscribe(
+    ["tests"],
+    queries: [
+      Query.equal('response',["failed"])
+    ],
+  );
 
   await Future.delayed(Duration(seconds: 5));
   client.addHeader('Origin', 'http://localhost');
@@ -118,6 +134,16 @@ void main() async {
   response = await general.xenum(mockType: MockType.first);
   print(response.result);
 
+  // Request model tests
+  response = await general.createPlayer(player: Player(id: 'player1', name: 'John Doe', score: 100));
+  print(response.result);
+
+  response = await general.createPlayers(players: [
+    Player(id: 'player1', name: 'John Doe', score: 100),
+    Player(id: 'player2', name: 'Jane Doe', score: 200)
+  ]);
+  print(response.result);
+
   try {
     await general.error400();
   } on AppwriteException catch (e) {
@@ -145,12 +171,24 @@ void main() async {
     print(e.message);
   }
 
-  rtsub.stream.listen((message) {
-    print(message.payload["response"]);
-    rtsub.close();
-  });
+  // Assert realtime outputs in a deterministic order (no-query then with-query)
+  final message1 = await rtsub.stream.first.timeout(Duration(seconds: 10));
+  print(message1.payload["response"]);
+  await rtsub.close();
 
-  await Future.delayed(Duration(seconds: 5));
+  final message2 = await rtsubWithQueries.stream.first.timeout(Duration(seconds: 10));
+  print(message2.payload["response"]);
+  await rtsubWithQueries.close();
+
+  try {
+    final message3 = await rtsubWithQueriesFailure.stream.first.timeout(Duration(seconds: 10));
+    // If we receive a message, it means the query filtering failed, so realtime failed
+    print("Realtime failed!");
+  } on TimeoutException {
+    // Timeout means no matching message was received, which is expected for a failure query
+    print("Realtime failed!");
+  }
+  await rtsubWithQueriesFailure.close();
 
   response = await general.setCookie();
   print(response.result);
@@ -230,6 +268,15 @@ void main() async {
     Query.equal("released", false),
     Query.greaterThan("releasedYear", 2015)
   ]));
+  
+  // regex, exists, notExists, elemMatch
+  print(Query.regex("name", "pattern.*"));
+  print(Query.exists(["attr1", "attr2"]));
+  print(Query.notExists(["attr1", "attr2"]));
+  print(Query.elemMatch("friends", [
+    Query.equal("name", "Alice"),
+    Query.greaterThan("age", 18)
+  ]));
 
   // Permission & Role helper tests
   print(Permission.read(Role.any()));
@@ -246,6 +293,34 @@ void main() async {
   // ID helper tests
   print(ID.unique());
   print(ID.custom('custom_id'));
+
+  // Channel helper tests
+  print(Channel.database().collection().document().toString());
+  print(Channel.database('db1').collection('col1').document('doc1').toString());
+  print(Channel.database('db1').collection('col1').document('doc1').create().toString());
+  print(Channel.tablesdb().table().row().toString());
+  print(Channel.tablesdb('db1').table('table1').row('row1').toString());
+  print(Channel.tablesdb('db1').table('table1').row('row1').update().toString());
+  print(Channel.account());
+  print(Channel.bucket().file().toString());
+  print(Channel.bucket('bucket1').file('file1').toString());
+  print(Channel.bucket('bucket1').file('file1').delete().toString());
+  print(Channel.function().toString());
+  print(Channel.function('func1').toString());
+  print(Channel.execution().toString());
+  print(Channel.execution('exec1').toString());
+  print(Channel.documents());
+  print(Channel.rows());
+  print(Channel.files());
+  print(Channel.executions());
+  print(Channel.teams());
+  print(Channel.team().toString());
+  print(Channel.team('team1').toString());
+  print(Channel.team('team1').create().toString());
+  print(Channel.memberships());
+  print(Channel.membership().toString());
+  print(Channel.membership('membership1').toString());
+  print(Channel.membership('membership1').update().toString());
 
   // Operator helper tests
   print(Operator.increment(1));

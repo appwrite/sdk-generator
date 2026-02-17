@@ -1,50 +1,72 @@
 {
   "name": "{{ language.params.npmPackage|caseDash }}",
+  "type": "module",
   "homepage": "{{ spec.contactURL }}",
   "description": "{{ sdk.shortDescription }}",
   "version": "{{ sdk.version }}",
   "license": "{{ sdk.license }}",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "bin": {
-    "{{ language.params.executableName|caseLower }}": "index.js"
+    "{{ language.params.executableName|caseLower }}": "dist/cli.cjs"
   },
   "repository": {
     "type": "git",
     "url": "{{ sdk.gitURL }}"
   },
   "scripts": {
+    "build": "npm run build:types && npm run build:runtime",
+    "build:types": "tsc -p tsconfig.json --emitDeclarationOnly",
+    "build:runtime": "npm run build:lib:runtime && npm run build:cli",
+    "build:lib:runtime": "esbuild index.ts --bundle --platform=node --target=node18 --format=esm --loader:.hbs=text --outfile=dist/index.js",
+    "build:cli": "esbuild cli.ts --bundle --platform=node --target=node18 --format=cjs --loader:.hbs=text --external:fsevents --outfile=dist/cli.cjs",
+    "format": "prettier --write \"**/*.{js,ts,json,md}\"",
+    "generate": "tsx scripts/generate-commands.ts",
+    "prepublishOnly": "npm run build",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "linux-x64": "pkg -t node18-linux-x64 -o build/appwrite-cli-linux-x64 package.json",
-    "linux-arm64": "pkg -t node18-linux-arm64 -o build/appwrite-cli-linux-arm64 package.json",
-    "mac-x64": "pkg -t node18-macos-x64 -o build/appwrite-cli-darwin-x64 package.json",
-    "mac-arm64": "pkg -t node18-macos-arm64 -o build/appwrite-cli-darwin-arm64 package.json",
-    "windows-x64": "pkg -t node18-win-x64 -o build/appwrite-cli-win-x64.exe package.json",
-    "windows-arm64": "pkg -t node18-win-arm64 -o build/appwrite-cli-win-arm64.exe package.json"
+    "linux-x64": "bun build cli.ts --compile --sourcemap=inline --target=bun-linux-x64 --outfile build/appwrite-cli-linux-x64",
+    "linux-arm64": "bun build cli.ts --compile --sourcemap=inline --target=bun-linux-arm64 --outfile build/appwrite-cli-linux-arm64",
+    "mac-x64": "bun build cli.ts --compile --sourcemap=inline --target=bun-darwin-x64 --outfile build/appwrite-cli-darwin-x64",
+    "mac-arm64": "bun build cli.ts --compile --sourcemap=inline --target=bun-darwin-arm64 --outfile build/appwrite-cli-darwin-arm64",
+    "windows-x64": "bun build cli.ts --compile --sourcemap=inline --target=bun-windows-x64 --outfile build/appwrite-cli-win-x64.exe",
+    "windows-arm64": "esbuild cli.ts --bundle --loader:.hbs=text --platform=node --target=node18 --format=esm --external:fsevents --outfile=dist/bundle-win-arm64.mjs && pkg dist/bundle-win-arm64.mjs -t node18-win-arm64 -o build/appwrite-cli-win-arm64.exe"
   },
   "dependencies": {
-    "undici": "^5.28.2",
-    "ejs": "^3.1.9",
+    "@appwrite.io/console": "^2.3.0",
     "chalk": "4.1.2",
+    "chokidar": "^3.6.0",
     "cli-progress": "^3.12.0",
     "cli-table3": "^0.6.2",
     "commander": "^9.2.0",
-    "form-data": "^4.0.0",
-    "json-bigint": "^1.0.0",
+    "dotenv": "^16.4.5",
+    "ejs": "^3.1.9",
+    "handlebars": "^4.7.7",
+    "ignore": "^7.0.5",
     "inquirer": "^8.2.4",
     "inquirer-search-list": "^1.2.6",
-    "tar": "^6.1.11",
-    "ignore": "^5.2.0",
-    "chokidar": "^3.6.0",
+    "json-bigint": "^1.0.0",
     "tail": "^2.2.6",
-    "dotenv": "^16.4.5"
+    "tar": "^6.1.11",
+    "undici": "^5.28.2",
+    "zod": "^4.3.5"
   },
   "devDependencies": {
-    "@yao-pkg/pkg": "^6.9.0"
+    "@types/bun": "^1.3.5",
+    "@types/cli-progress": "^3.11.5",
+    "@types/inquirer": "^8.2.10",
+    "@types/json-bigint": "^1.0.4",
+    "@types/node": "^18.19.0",
+    "@types/tar": "^6.1.11",
+    "@yao-pkg/pkg": "^6.11.0",
+    "esbuild": "^0.27.2",
+    "prettier": "^3.7.4",
+    "tsx": "^4.21.0",
+    "typescript": "^5.3.3"
   },
   "pkg": {
     "scripts": [
-      "index.js",
-      "lib/**/*.js"
+      "dist/cli.js",
+      "dist/lib/**/*.js"
     ]
   }
 }

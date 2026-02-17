@@ -16,6 +16,12 @@
         "swoole/ide-helper": "5.1.2"
     },
     "platform": {
-        "php": "8.2"
+        "php": "8.4"
+    },
+    "config": {
+        "allow-plugins": {
+            "php-http/discovery": true,
+            "tbachert/spi": true
+        }
     }
 }

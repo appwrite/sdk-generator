@@ -186,11 +186,29 @@ class DotNet extends Language
      */
     public function getTypeName(array $parameter, array $spec = []): string
     {
+        if (
+            ($parameter['type'] ?? null) === self::TYPE_ARRAY
+            && (isset($parameter['enumName']) || !empty($parameter['enumValues']))
+        ) {
+            $enumType = isset($parameter['enumName'])
+                ? \ucfirst($parameter['enumName'])
+                : \ucfirst($parameter['name']);
+
+            return 'List<Appwrite.Enums.' . $enumType . '>';
+        }
+
         if (isset($parameter['enumName'])) {
             return 'Appwrite.Enums.' . \ucfirst($parameter['enumName']);
         }
         if (!empty($parameter['enumValues'])) {
             return 'Appwrite.Enums.' . \ucfirst($parameter['name']);
+        }
+        if (!empty($parameter['array']['model'])) {
+            return 'List<Appwrite.Models.' . $this->toPascalCase($parameter['array']['model']) . '>';
+        }
+        if (!empty($parameter['model'])) {
+            $modelType = 'Appwrite.Models.' . $this->toPascalCase($parameter['model']);
+            return $parameter['type'] === self::TYPE_ARRAY ? 'List<' . $modelType . '>' : $modelType;
         }
         if (isset($parameter['items'])) {
             // Map definition nested type to parameter nested type
@@ -465,6 +483,11 @@ class DotNet extends Language
                 'template'      => 'dotnet/Package/Models/Model.cs.twig',
             ],
             [
+                'scope'         => 'requestModel',
+                'destination'   => '{{ spec.title | caseUcfirst }}/Models/{{ requestModel.name | caseUcfirst | overrideIdentifier }}.cs',
+                'template'      => 'dotnet/Package/Models/RequestModel.cs.twig',
+            ],
+            [
                 'scope'         => 'enum',
                 'destination'   => '{{ spec.title | caseUcfirst }}/Enums/{{ enum.name | caseUcfirst | overrideIdentifier }}.cs',
                 'template'      => 'dotnet/Package/Enums/Enum.cs.twig',
@@ -496,7 +519,84 @@ class DotNet extends Language
                 }
                 return $property;
             }),
+            new TwigFilter('propertyType', function (array $property, array $spec = []) {
+                return $this->getPropertyType($property, $spec);
+            }),
+            new TwigFilter('enumExample', function (array $param) {
+                $enumValues = $param['enumValues'] ?? [];
+                if (empty($enumValues)) {
+                    return '';
+                }
+
+                $enumKeys = $param['enumKeys'] ?? [];
+                $enumName = $this->toPascalCase($param['enumName'] ?? $param['name'] ?? '');
+                $example = $param['example'] ?? null;
+                $isArray = ($param['type'] ?? '') === self::TYPE_ARRAY;
+
+                $resolveKey = function ($value) use ($enumValues, $enumKeys) {
+                    $index = array_search($value, $enumValues, true);
+                    if ($index !== false && isset($enumKeys[$index]) && $enumKeys[$index] !== '') {
+                        return $this->toPascalCase($enumKeys[$index]);
+                    }
+                    if ($index !== false && isset($enumValues[$index])) {
+                        return $this->toPascalCase($enumValues[$index]);
+                    }
+                    $fallback = $enumKeys[0] ?? $enumValues[0] ?? $value;
+                    return $this->toPascalCase((string)$fallback);
+                };
+
+                if ($isArray) {
+                    $values = [];
+                    if (\is_string($example) && $example !== '') {
+                        $decoded = json_decode($example, true);
+                        if (\is_array($decoded)) {
+                            $values = $decoded;
+                        }
+                    } elseif (\is_array($example)) {
+                        $values = $example;
+                    }
+
+                    if (empty($values)) {
+                        $values = [$enumValues[0]];
+                    }
+
+                    $items = array_map(function ($value) use ($enumName, $resolveKey) {
+                        return $enumName . '.' . $resolveKey($value);
+                    }, $values);
+
+                    return 'new List<' . $enumName . '> { ' . implode(', ', $items) . ' }';
+                }
+
+                $value = ($example !== null && $example !== '') ? $example : $enumValues[0];
+                return $enumName . '.' . $resolveKey($value);
+            }),
         ];
+    }
+
+    /**
+     * Get property type for request models
+     *
+     * @param array $property
+     * @param array $spec
+     * @return string
+     */
+    protected function getPropertyType(array $property, array $spec = []): string
+    {
+        if (isset($property['sub_schema']) && !empty($property['sub_schema'])) {
+            $type = $this->toPascalCase($property['sub_schema']);
+
+            if ($property['type'] === 'array') {
+                return 'List<' . $type . '>';
+            }
+            return $type;
+        }
+
+        if (isset($property['enum']) && !empty($property['enum'])) {
+            $enumName = $property['enumName'] ?? $property['name'];
+            return 'Appwrite.Enums.' . $this->toPascalCase($enumName);
+        }
+
+        return $this->getTypeName($property, $spec);
     }
 
     /**

@@ -7,6 +7,7 @@ import io.appwrite.exceptions.AppwriteException
 import io.appwrite.Permission
 import io.appwrite.Role
 import io.appwrite.ID
+import io.appwrite.Channel
 import io.appwrite.Query
 import io.appwrite.Operator
 import io.appwrite.Condition
@@ -16,6 +17,7 @@ import io.appwrite.extensions.toJson
 import io.appwrite.models.Error
 import io.appwrite.models.InputFile
 import io.appwrite.models.Mock
+import io.appwrite.models.Player
 import io.appwrite.services.Bar
 import io.appwrite.services.Foo
 import io.appwrite.services.General
@@ -82,9 +84,33 @@ class ServiceTest {
         val general = General(client)
         val realtime = Realtime(client)
         var realtimeResponse = "Realtime failed!"
+        var realtimeResponseWithQueries = "Realtime failed!"
+        var realtimeResponseWithQueriesFailure = "Realtime failed!"
 
+        // Subscribe without queries
         realtime.subscribe("tests", payloadType = TestPayload::class.java) {
             realtimeResponse = it.payload.response
+        }
+
+        // Subscribe with queries to ensure query set support works
+        realtime.subscribe(
+            "tests",
+            payloadType = TestPayload::class.java,
+            queries = setOf(
+                Query.equal("response", listOf("WS:/v1/realtime:passed"))
+            )
+        ) {
+            realtimeResponseWithQueries = it.payload.response
+        }
+
+        realtime.subscribe(
+            "tests",
+            payloadType = TestPayload::class.java,
+            queries = setOf(
+                Query.equal("response", listOf("failed"))
+            )
+        ) {
+            realtimeResponseWithQueriesFailure = "WS:/v1/realtime:passed"
         }
 
         runBlocking {
@@ -150,6 +176,16 @@ class ServiceTest {
             mock = general.enum(MockType.FIRST)
             writeToFile(mock.result)
 
+            // Request model tests
+            mock = general.createPlayer(Player(id = "player1", name = "John Doe", score = 100))
+            writeToFile(mock.result)
+
+            mock = general.createPlayers(listOf(
+                Player(id = "player1", name = "John Doe", score = 100),
+                Player(id = "player2", name = "Jane Doe", score = 200)
+            ))
+            writeToFile(mock.result)
+
             try {
                 general.error400()
             } catch (e: AppwriteException) {
@@ -177,8 +213,11 @@ class ServiceTest {
                 writeToFile(e.message)
             }
 
-            delay(5000)
+            delay(30000)
+
             writeToFile(realtimeResponse)
+            writeToFile(realtimeResponseWithQueries)
+            writeToFile(realtimeResponseWithQueriesFailure)
 
             // mock = general.setCookie()
             // writeToFile(mock.result)
@@ -253,6 +292,15 @@ class ServiceTest {
             writeToFile(Query.or(listOf(Query.equal("released", listOf(true)), Query.lessThan("releasedYear", 1990))))
             writeToFile(Query.and(listOf(Query.equal("released", listOf(false)), Query.greaterThan("releasedYear", 2015))))
 
+            // regex, exists, notExists, elemMatch
+            writeToFile(Query.regex("name", "pattern.*"))
+            writeToFile(Query.exists(listOf("attr1", "attr2")))
+            writeToFile(Query.notExists(listOf("attr1", "attr2")))
+            writeToFile(Query.elemMatch("friends", listOf(
+                Query.equal("name", "Alice"),
+                Query.greaterThan("age", 18)
+            )))
+
             // Permission & Roles helper tests
             writeToFile(Permission.read(Role.any()))
             writeToFile(Permission.write(Role.user(ID.custom("userid"))))
@@ -268,6 +316,34 @@ class ServiceTest {
             // ID helper tests
             writeToFile(ID.unique())
             writeToFile(ID.custom("custom_id"))
+
+            // Channel helper tests
+            writeToFile(Channel.database().collection().document().toString())
+            writeToFile(Channel.database("db1").collection("col1").document("doc1").toString())
+            writeToFile(Channel.database("db1").collection("col1").document("doc1").create().toString())
+            writeToFile(Channel.tablesdb().table().row().toString())
+            writeToFile(Channel.tablesdb("db1").table("table1").row("row1").toString())
+            writeToFile(Channel.tablesdb("db1").table("table1").row("row1").update().toString())
+            writeToFile(Channel.account())
+            writeToFile(Channel.bucket().file().toString())
+            writeToFile(Channel.bucket("bucket1").file("file1").toString())
+            writeToFile(Channel.bucket("bucket1").file("file1").delete().toString())
+            writeToFile(Channel.function().toString())
+            writeToFile(Channel.function("func1").toString())
+            writeToFile(Channel.execution().toString())
+            writeToFile(Channel.execution("exec1").toString())
+            writeToFile(Channel.documents())
+            writeToFile(Channel.rows())
+            writeToFile(Channel.files())
+            writeToFile(Channel.executions())
+            writeToFile(Channel.teams())
+            writeToFile(Channel.team().toString())
+            writeToFile(Channel.team("team1").toString())
+            writeToFile(Channel.team("team1").create().toString())
+            writeToFile(Channel.memberships())
+            writeToFile(Channel.membership().toString())
+            writeToFile(Channel.membership("membership1").toString())
+            writeToFile(Channel.membership("membership1").update().toString())
 
             // Operator helper tests
             writeToFile(Operator.increment(1))

@@ -9,3 +9,6 @@ part 'src/models/model.dart';
 {% for definition in spec.definitions %}
 part 'src/models/{{definition.name | caseSnake}}.dart';
 {% endfor %}
+{% for requestModel in spec.requestModels %}
+part 'src/models/{{requestModel.name | caseSnake}}.dart';
+{% endfor %}

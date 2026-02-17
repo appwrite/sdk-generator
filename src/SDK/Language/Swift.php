@@ -308,6 +308,11 @@ class Swift extends Language
                 'template'      => '/swift/Sources/Models/Model.swift.twig',
             ],
             [
+                'scope'         => 'requestModel',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}Models/{{ requestModel.name | caseUcfirst }}.swift',
+                'template'      => '/swift/Sources/Models/RequestModel.swift.twig',
+            ],
+            [
                 'scope' => 'enum',
                 'destination' => '/Sources/{{ spec.title | caseUcfirst}}Enums/{{ enum.name | caseUcfirst }}.swift',
                 'template' => '/swift/Sources/Enums/Enum.swift.twig',
@@ -321,11 +326,29 @@ class Swift extends Language
      */
     public function getTypeName(array $parameter, array $spec = [], bool $isProperty = false): string
     {
+        if (
+            ($parameter['type'] ?? null) === self::TYPE_ARRAY
+            && (isset($parameter['enumName']) || !empty($parameter['enumValues']))
+        ) {
+            $enumType = isset($parameter['enumName'])
+                ? \ucfirst($parameter['enumName'])
+                : \ucfirst($parameter['name']);
+
+            return '[' . ($spec['title'] ?? '') . 'Enums.' . $enumType . ']';
+        }
+
         if (isset($parameter['enumName'])) {
             return ($spec['title'] ?? '') . 'Enums.' . \ucfirst($parameter['enumName']);
         }
         if (!empty($parameter['enumValues'])) {
             return ($spec['title'] ?? '') . 'Enums.' . \ucfirst($parameter['name']);
+        }
+        if (!empty($parameter['array']['model'])) {
+            return '[' . ($spec['title'] ?? '') . 'Models.' . $this->toPascalCase($parameter['array']['model']) . ']';
+        }
+        if (!empty($parameter['model'])) {
+            $modelType = ($spec['title'] ?? '') . 'Models.' . $this->toPascalCase($parameter['model']);
+            return $parameter['type'] === self::TYPE_ARRAY ? '[' . $modelType . ']' : $modelType;
         }
         if (isset($parameter['items'])) {
             // Map definition nested type to parameter nested type
@@ -550,6 +573,53 @@ class Swift extends Language
                 }
                 return $this->toCamelCase($value);
             }),
+            new TwigFilter('enumExample', function (array $param) {
+                $enumValues = $param['enumValues'] ?? [];
+                if (empty($enumValues)) {
+                    return '';
+                }
+
+                $enumKeys = $param['enumKeys'] ?? [];
+                $example = $param['example'] ?? null;
+                $isArray = ($param['type'] ?? '') === self::TYPE_ARRAY;
+
+                $resolveKey = function ($value) use ($enumValues, $enumKeys) {
+                    $index = array_search($value, $enumValues, true);
+                    if ($index !== false && isset($enumKeys[$index]) && $enumKeys[$index] !== '') {
+                        return $this->toCamelCase($enumKeys[$index]);
+                    }
+                    if ($index !== false && isset($enumValues[$index])) {
+                        return $this->toCamelCase($enumValues[$index]);
+                    }
+                    $fallback = $enumKeys[0] ?? $enumValues[0] ?? $value;
+                    return $this->toCamelCase((string)$fallback);
+                };
+
+                if ($isArray) {
+                    $values = [];
+                    if (\is_string($example) && $example !== '') {
+                        $decoded = json_decode($example, true);
+                        if (\is_array($decoded)) {
+                            $values = $decoded;
+                        }
+                    } elseif (\is_array($example)) {
+                        $values = $example;
+                    }
+
+                    if (empty($values)) {
+                        $values = [$enumValues[0]];
+                    }
+
+                    $items = array_map(function ($value) use ($resolveKey) {
+                        return '.' . $resolveKey($value);
+                    }, $values);
+
+                    return '[' . implode(', ', $items) . ']';
+                }
+
+                $value = ($example !== null && $example !== '') ? $example : $enumValues[0];
+                return '.' . $resolveKey($value);
+            }),
         ];
     }
 
@@ -562,6 +632,14 @@ class Swift extends Language
             return 'ByteBuffer';
         }
 
+        if (
+            \array_key_exists('responseModels', $method)
+            && \count($method['responseModels']) > 1
+        ) {
+            return 'Any';
+        }
+
+        // Check for missing or generic response model
         if (
             !\array_key_exists('responseModel', $method)
             || empty($method['responseModel'])

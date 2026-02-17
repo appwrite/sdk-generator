@@ -1,0 +1,460 @@
+{% set lang = 'dart' %}
+{% set langName = 'Dart' %}
+{% set langDescription %}{{ spec.title }} {{ langName }} SDK skill. Use when building Flutter apps (mobile, web, desktop) or server-side Dart applications with {{ spec.title }}. Covers client-side auth (email, OAuth), database queries, file uploads with native file handling, real-time subscriptions, and server-side admin via API keys for user management, database administration, storage, and functions.{% endset %}
+{{ include('agent-skills/base/frontmatter.md.twig') }}
+
+# {{ spec.title }} {{ langName }} SDK
+
+## Installation
+
+```bash
+# Flutter (client-side)
+flutter pub add {{ spec.title | caseLower }}
+
+# Dart (server-side)
+dart pub add dart_{{ spec.title | caseLower }}
+```
+
+## Setting Up the Client
+
+### Client-side (Flutter)
+
+```dart
+import 'package:{{ spec.title | caseLower }}/{{ spec.title | caseLower }}.dart';
+
+final client = Client()
+    .setEndpoint('https://<REGION>.cloud.appwrite.io/v1')
+    .setProject('[PROJECT_ID]');
+```
+
+### Server-side (Dart)
+
+```dart
+import 'package:dart_{{ spec.title | caseLower }}/dart_{{ spec.title | caseLower }}.dart';
+
+final client = Client()
+    .setEndpoint('https://<REGION>.cloud.appwrite.io/v1')
+    .setProject(Platform.environment['{{ spec.title | caseUpper }}_PROJECT_ID']!)
+    .setKey(Platform.environment['{{ spec.title | caseUpper }}_API_KEY']!);
+```
+
+## Code Examples
+
+### Authentication (client-side)
+
+```dart
+final account = Account(client);
+
+// Signup
+await account.create(userId: ID.unique(), email: 'user@example.com', password: 'password123', name: 'User Name');
+
+// Login
+final session = await account.createEmailPasswordSession(email: 'user@example.com', password: 'password123');
+
+// OAuth login
+await account.createOAuth2Session(provider: OAuthProvider.google);
+
+// Get current user
+final user = await account.get();
+
+// Logout
+await account.deleteSession(sessionId: 'current');
+```
+
+### User Management (server-side)
+
+```dart
+final users = Users(client);
+
+// Create user
+final user = await users.create(userId: ID.unique(), email: 'user@example.com', password: 'password123', name: 'User Name');
+
+// List users
+final list = await users.list(queries: [Query.limit(25)]);
+
+// Get user
+final fetched = await users.get(userId: '[USER_ID]');
+
+// Delete user
+await users.delete(userId: '[USER_ID]');
+```
+
+### Database Operations
+
+> **Note:** Use `TablesDB` (not the deprecated `Databases` class) for all new code. Only use `Databases` if the existing codebase already relies on it or the user explicitly requests it.
+
+```dart
+final tablesDB = TablesDB(client);
+
+// Create database (server-side only)
+final db = await tablesDB.create(databaseId: ID.unique(), name: 'My Database');
+
+// Create table (server-side only)
+final col = await tablesDB.createTable(databaseId: '[DATABASE_ID]', tableId: ID.unique(), name: 'My Table');
+
+// Create row
+final doc = await tablesDB.createRow(
+    databaseId: '[DATABASE_ID]',
+    tableId: '[TABLE_ID]',
+    rowId: ID.unique(),
+    data: {'title': 'Hello', 'done': false},
+);
+
+// Query rows
+final results = await tablesDB.listRows(
+    databaseId: '[DATABASE_ID]',
+    tableId: '[TABLE_ID]',
+    queries: [Query.equal('done', false), Query.limit(10)],
+);
+
+// Get row
+final row = await tablesDB.getRow(databaseId: '[DATABASE_ID]', tableId: '[TABLE_ID]', rowId: '[ROW_ID]');
+
+// Update row
+await tablesDB.updateRow(
+    databaseId: '[DATABASE_ID]',
+    tableId: '[TABLE_ID]',
+    rowId: '[ROW_ID]',
+    data: {'done': true},
+);
+
+// Delete row
+await tablesDB.deleteRow(
+    databaseId: '[DATABASE_ID]',
+    tableId: '[TABLE_ID]',
+    rowId: '[ROW_ID]',
+);
+```
+
+### Query Methods
+
+```dart
+// Filtering
+Query.equal('field', 'value')             // == (or pass list for IN)
+Query.notEqual('field', 'value')          // !=
+Query.lessThan('field', 100)              // <
+Query.lessThanEqual('field', 100)         // <=
+Query.greaterThan('field', 100)           // >
+Query.greaterThanEqual('field', 100)      // >=
+Query.between('field', 1, 100)            // 1 <= field <= 100
+Query.isNull('field')                     // is null
+Query.isNotNull('field')                  // is not null
+Query.startsWith('field', 'prefix')       // starts with
+Query.endsWith('field', 'suffix')         // ends with
+Query.contains('field', 'sub')            // contains
+Query.search('field', 'keywords')         // full-text search (requires index)
+
+// Sorting
+Query.orderAsc('field')
+Query.orderDesc('field')
+
+// Pagination
+Query.limit(25)                           // max rows (default 25, max 100)
+Query.offset(0)                           // skip N rows
+Query.cursorAfter('[ROW_ID]')             // cursor pagination (preferred)
+Query.cursorBefore('[ROW_ID]')
+
+// Selection & Logic
+Query.select(['field1', 'field2'])        // return only specified fields
+Query.or([Query.equal('a', 1), Query.equal('b', 2)])   // OR
+Query.and([Query.greaterThan('age', 18), Query.lessThan('age', 65)])  // AND (default)
+```
+
+### File Storage
+
+```dart
+final storage = Storage(client);
+
+// Upload file
+final file = await storage.createFile(
+    bucketId: '[BUCKET_ID]',
+    fileId: ID.unique(),
+    file: InputFile.fromPath(path: '/path/to/file.png', filename: 'file.png'),
+);
+
+// Get file preview
+final preview = storage.getFilePreview(bucketId: '[BUCKET_ID]', fileId: '[FILE_ID]', width: 300, height: 300);
+
+// List files
+final files = await storage.listFiles(bucketId: '[BUCKET_ID]');
+
+// Delete file
+await storage.deleteFile(bucketId: '[BUCKET_ID]', fileId: '[FILE_ID]');
+```
+
+#### InputFile Factory Methods
+
+```dart
+// Client-side (Flutter)
+InputFile.fromPath(path: '/path/to/file.png', filename: 'file.png')    // from path
+InputFile.fromBytes(bytes: uint8List, filename: 'file.png')            // from Uint8List
+
+// Server-side (Dart)
+InputFile.fromPath(path: '/path/to/file.png', filename: 'file.png')
+InputFile.fromBytes(bytes: uint8List, filename: 'file.png')
+```
+
+### Teams
+
+```dart
+final teams = Teams(client);
+
+// Create team
+final team = await teams.create(teamId: ID.unique(), name: 'Engineering');
+
+// List teams
+final list = await teams.list();
+
+// Create membership (invite user by email)
+final membership = await teams.createMembership(
+    teamId: '[TEAM_ID]',
+    roles: ['editor'],
+    email: 'user@example.com',
+);
+
+// List memberships
+final members = await teams.listMemberships(teamId: '[TEAM_ID]');
+
+// Update membership roles
+await teams.updateMembership(teamId: '[TEAM_ID]', membershipId: '[MEMBERSHIP_ID]', roles: ['admin']);
+
+// Delete team
+await teams.delete(teamId: '[TEAM_ID]');
+```
+
+> **Role-based access:** Use `Role.team('[TEAM_ID]')` for all team members or `Role.team('[TEAM_ID]', 'editor')` for a specific team role when setting permissions.
+
+### Real-time Subscriptions (client-side)
+
+```dart
+final realtime = Realtime(client);
+
+final subscription = realtime.subscribe(['databases.[DATABASE_ID].tables.[TABLE_ID].rows']);
+subscription.stream.listen((response) {
+    print(response.events);   // e.g. ['databases.*.tables.*.rows.*.create']
+    print(response.payload);  // the affected resource
+});
+
+// Subscribe to multiple channels
+final multi = realtime.subscribe([
+    'databases.[DATABASE_ID].tables.[TABLE_ID].rows',
+    'buckets.[BUCKET_ID].files',
+]);
+
+// Cleanup
+subscription.close();
+```
+
+**Available channels:**
+
+| Channel | Description |
+|---------|-------------|
+| `account` | Changes to the authenticated user's account |
+| `databases.[DB_ID].tables.[TABLE_ID].rows` | All rows in a table |
+| `databases.[DB_ID].tables.[TABLE_ID].rows.[ROW_ID]` | A specific row |
+| `buckets.[BUCKET_ID].files` | All files in a bucket |
+| `buckets.[BUCKET_ID].files.[FILE_ID]` | A specific file |
+| `teams` | Changes to teams the user belongs to |
+| `teams.[TEAM_ID]` | A specific team |
+| `memberships` | The user's team memberships |
+| `memberships.[MEMBERSHIP_ID]` | A specific membership |
+| `functions.[FUNCTION_ID].executions` | Function execution updates |
+
+Response fields: `events` (array), `payload` (resource), `channels` (matched), `timestamp` (ISO 8601).
+
+### Serverless Functions (server-side)
+
+```dart
+final functions = Functions(client);
+
+// Execute function
+final execution = await functions.createExecution(functionId: '[FUNCTION_ID]', body: '{"key": "value"}');
+
+// List executions
+final executions = await functions.listExecutions(functionId: '[FUNCTION_ID]');
+```
+
+#### Writing a Function Handler (Dart runtime)
+
+```dart
+// lib/main.dart — Appwrite Function entry point
+Future<dynamic> main(final context) async {
+    // context.req.body        — raw body (String)
+    // context.req.bodyJson    — parsed JSON (Map or null)
+    // context.req.headers     — headers (Map)
+    // context.req.method      — HTTP method
+    // context.req.path        — URL path
+    // context.req.query       — query params (Map)
+
+    context.log('Processing: ${context.req.method} ${context.req.path}');
+
+    if (context.req.method == 'GET') {
+        return context.res.json({'message': 'Hello from Appwrite Function!'});
+    }
+
+    return context.res.json({'success': true});      // JSON
+    // return context.res.text('Hello');              // plain text
+    // return context.res.empty();                    // 204
+    // return context.res.redirect('https://...');    // 302
+}
+```
+
+### Server-Side Rendering (SSR) Authentication
+
+SSR apps using server-side Dart (Dart Frog, Shelf, etc.) use the **server SDK** (`dart_{{ spec.title | caseLower }}`) to handle auth. You need two clients:
+
+- **Admin client** — uses an API key, creates sessions, bypasses rate limits (reusable singleton)
+- **Session client** — uses a session cookie, acts on behalf of a user (create per-request, never share)
+
+```dart
+import 'package:dart_{{ spec.title | caseLower }}/dart_{{ spec.title | caseLower }}.dart';
+
+// Admin client (reusable)
+final adminClient = Client()
+    .setEndpoint('https://<REGION>.cloud.appwrite.io/v1')
+    .setProject('[PROJECT_ID]')
+    .setKey(Platform.environment['{{ spec.title | caseUpper }}_API_KEY']!);
+
+// Session client (create per-request)
+final sessionClient = Client()
+    .setEndpoint('https://<REGION>.cloud.appwrite.io/v1')
+    .setProject('[PROJECT_ID]');
+
+final session = request.cookies['a_session_[PROJECT_ID]'];
+if (session != null) {
+    sessionClient.setSession(session);
+}
+```
+
+#### Email/Password Login
+
+```dart
+final account = Account(adminClient);
+final session = await account.createEmailPasswordSession(
+    email: body['email'],
+    password: body['password'],
+);
+
+// Cookie name must be a_session_<PROJECT_ID>
+response.headers.add('Set-Cookie',
+    'a_session_[PROJECT_ID]=${session.secret}; '
+    'HttpOnly; Secure; SameSite=Strict; '
+    'Expires=${HttpDate.format(DateTime.parse(session.expire))}; Path=/');
+```
+
+#### Authenticated Requests
+
+```dart
+final session = request.cookies['a_session_[PROJECT_ID]'];
+if (session == null) {
+    return Response(statusCode: 401, body: 'Unauthorized');
+}
+
+final sessionClient = Client()
+    .setEndpoint('https://<REGION>.cloud.appwrite.io/v1')
+    .setProject('[PROJECT_ID]')
+    .setSession(session);
+
+final account = Account(sessionClient);
+final user = await account.get();
+```
+
+#### OAuth2 SSR Flow
+
+```dart
+// Step 1: Redirect to OAuth provider
+final account = Account(adminClient);
+final redirectUrl = await account.createOAuth2Token(
+    provider: OAuthProvider.github,
+    success: 'https://example.com/oauth/success',
+    failure: 'https://example.com/oauth/failure',
+);
+return Response(statusCode: 302, headers: {'Location': redirectUrl});
+
+// Step 2: Handle callback — exchange token for session
+final account = Account(adminClient);
+final session = await account.createSession(
+    userId: request.uri.queryParameters['userId']!,
+    secret: request.uri.queryParameters['secret']!,
+);
+// Set session cookie as above
+```
+
+> **Cookie security:** Always use `HttpOnly`, `Secure`, and `SameSite=Strict` to prevent XSS. The cookie name must be `a_session_<PROJECT_ID>`.
+
+> **Forwarding user agent:** Call `sessionClient.setForwardedUserAgent(request.headers['user-agent'])` to record the end-user's browser info for debugging and security.
+
+## Error Handling
+
+```dart
+import 'package:{{ spec.title | caseLower }}/{{ spec.title | caseLower }}.dart';
+// AppwriteException is included in the main import
+
+try {
+    final row = await tablesDB.getRow(databaseId: '[DATABASE_ID]', tableId: '[TABLE_ID]', rowId: '[ROW_ID]');
+} on AppwriteException catch (e) {
+    print(e.message);    // human-readable message
+    print(e.code);       // HTTP status code (int)
+    print(e.type);       // error type (e.g. 'document_not_found')
+    print(e.response);   // full response body (Map)
+}
+```
+
+**Common error codes:**
+
+| Code | Meaning |
+|------|---------|
+| `401` | Unauthorized — missing or invalid session/API key |
+| `403` | Forbidden — insufficient permissions |
+| `404` | Not found — resource does not exist |
+| `409` | Conflict — duplicate ID or unique constraint |
+| `429` | Rate limited — too many requests |
+
+## Permissions & Roles (Critical)
+
+Appwrite uses permission strings to control access to resources. Each permission pairs an action (`read`, `update`, `delete`, `create`, or `write` which grants create + update + delete) with a role target. By default, **no user has access** unless permissions are explicitly set at the document/file level or inherited from the collection/bucket settings. Permissions are arrays of strings built with the `Permission` and `Role` helpers.
+
+```dart
+import 'package:{{ spec.title | caseLower }}/{{ spec.title | caseLower }}.dart';
+// Permission and Role are included in the main package import
+```
+
+### Database Row with Permissions
+
+```dart
+final doc = await tablesDB.createRow(
+    databaseId: '[DATABASE_ID]',
+    tableId: '[TABLE_ID]',
+    rowId: ID.unique(),
+    data: {'title': 'Hello World'},
+    permissions: [
+        Permission.read(Role.user('[USER_ID]')),     // specific user can read
+        Permission.update(Role.user('[USER_ID]')),   // specific user can update
+        Permission.read(Role.team('[TEAM_ID]')),     // all team members can read
+        Permission.read(Role.any()),                 // anyone (including guests) can read
+    ],
+);
+```
+
+### File Upload with Permissions
+
+```dart
+final file = await storage.createFile(
+    bucketId: '[BUCKET_ID]',
+    fileId: ID.unique(),
+    file: InputFile.fromPath(path: '/path/to/file.png', filename: 'file.png'),
+    permissions: [
+        Permission.read(Role.any()),
+        Permission.update(Role.user('[USER_ID]')),
+        Permission.delete(Role.user('[USER_ID]')),
+    ],
+);
+```
+
+> **When to set permissions:** Set document/file-level permissions when you need per-resource access control. If all documents in a collection share the same rules, configure permissions at the collection/bucket level and leave document permissions empty.
+
+> **Common mistakes:**
+> - **Forgetting permissions** — the resource becomes inaccessible to all users (including the creator)
+> - **`Role.any()` with `write`/`update`/`delete`** — allows any user, including unauthenticated guests, to modify or remove the resource
+> - **`Permission.read(Role.any())` on sensitive data** — makes the resource publicly readable
+

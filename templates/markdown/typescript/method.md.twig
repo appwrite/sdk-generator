@@ -1,0 +1,82 @@
+# {{ method.name | caseCamel }}
+{% if method.deprecated %}
+
+⚠️ **DEPRECATED**{% if method.since %} since {{ method.since }}{% endif %}{% if method.replaceWith %} - Use `{{ method.replaceWith }}` instead{% endif %}
+
+{% endif %}
+
+Description: {{ method.description | decodeHtmlEntities | trim }}
+
+## Parameters
+{% if method.parameters.all | length > 0 %}
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+{% for parameter in method.parameters.all -%}
+| `{{ parameter.name | caseCamel }}` | `{{ parameter | getPropertyType }}` | {% if parameter.required %}✅{% else %}❌{% endif %} | {{ parameter.description | decodeHtmlEntities }}{% if parameter.default %} (Default: `{{ parameter.default }}`){% endif %}{% if parameter.enumValues | length > 0 %}<br>**Allowed:** {% for value in parameter.enumValues %}`{{ value }}`{% if not loop.last %}, {% endif %}{% endfor %}{% endif %} |
+{% endfor %}
+{%- else %}
+
+This method does not accept any parameters.
+{% endif %}
+
+## Usage
+
+```typescript
+import { Client, {{ service.name | caseUcfirst }}{% for parameter in method.parameters.all %}{% if parameter.enumValues | length > 0 %}, {{ parameter.enumName | caseUcfirst }}{% endif %}{% endfor %}{% if method | getResponseModel %}, Models{% endif %}{% if method.parameters.all | needsPermissionImport %}, Permission, Role{% endif %} } from '{{ spec.title | caseLower }}';
+
+const client = new Client()
+    .setEndpoint('{{ spec.endpointDocs | raw }}')
+{%- if method.auth|length > 0 %}
+{% for node in method.auth -%}
+{% for key,header in node|keys -%}
+    .set{{header}}('{{ node[header]['x-appwrite']['demo'] | raw }}')
+{%- endfor %}
+{%- endfor -%}
+{% endif -%}
+;
+
+const {{ service.name | caseCamel }} = new {{ service.name | caseUcfirst }}(client);
+{% if method.type == 'location' %}
+const result{% if method | getResponseModel %}: {{ method | getResponseModel }}{% endif %} = {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% if method.parameters.all | length == 0 %});
+{% else -%}
+{
+{% for parameter in method.parameters.all %}
+  {{ parameter.name | caseCamel }}: {% if parameter.enumValues | length > 0 %}{{ parameter.enumName | caseUcfirst }}.{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}{% else %}{{ parameter | paramExample }}{% endif %},
+{% endfor -%}
+});
+{% endif -%}
+{% elseif method.type != 'webAuth' %}
+const result{% if method | getResponseModel %}: {{ method | getResponseModel }}{% endif %} = await {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% if method.parameters.all | length == 0 %});
+{% else -%}
+{
+{% for parameter in method.parameters.all %}
+  {{ parameter.name | caseCamel }}: {% if parameter.enumValues | length > 0 %}{{ parameter.enumName | caseUcfirst }}.{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}{% else %}{{ parameter | paramExample }}{% endif %},
+{% endfor -%}
+});
+{% endif -%}
+{% else -%}
+{{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% if method.parameters.all | length == 0 %});
+{% else -%}
+{
+{% for parameter in method.parameters.all %}
+  {{ parameter.name | caseCamel }}: {% if parameter.enumValues | length > 0 %}{{ parameter.enumName | caseUcfirst }}.{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}{% else %}{{ parameter | paramExample }}{% endif %},
+{% endfor -%}
+});
+{% endif -%}
+{% endif -%}
+```
+{% if method | getResponseModel %}
+
+## Response Model
+
+Returns a `{{ method | getResponseModel }}` object with the following properties:
+{% if method.responseModel and spec.definitions[method.responseModel] %}
+
+| Property | Type | Description |
+|----------|------|-------------|
+{% for property in spec.definitions[method.responseModel].properties -%}
+| `{{ property.name | caseCamel }}` | `{{ property | getPropertyType }}` | {{ property.description | decodeHtmlEntities }} |
+{% endfor %}
+{%- endif %}
+{% endif %}

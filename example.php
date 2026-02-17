@@ -21,6 +21,8 @@ use Appwrite\SDK\Language\Flutter;
 use Appwrite\SDK\Language\Android;
 use Appwrite\SDK\Language\Kotlin;
 use Appwrite\SDK\Language\ReactNative;
+use Appwrite\SDK\Language\Markdown;
+use Appwrite\SDK\Language\AgentSkills;
 
 try {
 
@@ -51,7 +53,7 @@ try {
             'gitRepoName' => 'reponame',
             'twitter' => 'appwrite',
             'discord' => ['564160730845151244', 'https://appwrite.io/discord'],
-            'defaultHeaders' => ['X-Appwrite-Response-Format' => '1.6.0'],
+            'defaultHeaders' => ['X-Appwrite-Response-Format' => '1.8.0'],
             'readme' => '**README**',
         ];
 
@@ -78,6 +80,9 @@ try {
         }
         if (isset($config['exclude'])) {
             $sdk->setExclude($config['exclude']);
+        }
+        if (isset($config['platform'])) {
+            $sdk->setPlatform($config['platform']);
         }
 
         return $sdk;
@@ -120,7 +125,7 @@ try {
     // Web
     if (!$requestedSdk || $requestedSdk === 'web') {
         $sdk  = new SDK(new Web(), new Swagger2($spec));
-        configureSDK($sdk);
+        configureSDK($sdk, ['platform' => $platform]);
         $sdk->generate(__DIR__ . '/examples/web');
     }
 
@@ -154,6 +159,7 @@ try {
         |_|   |_|                                                ");
 
         $sdk  = new SDK($language, new Swagger2($spec));
+        $sdk->setTest(false);
         configureSDK($sdk, [
             'exclude' => [
                 'services' => [
@@ -265,6 +271,21 @@ try {
         $sdk = new SDK(new GraphQL(), new Swagger2($spec));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/graphql');
+    }
+
+    // Markdown
+    if (!$requestedSdk || $requestedSdk === 'markdown') {
+        $markdown = new Markdown();
+        $markdown->setNPMPackage('@appwrite.io/docs');
+        $sdk = new SDK($markdown, new Swagger2($spec));
+        configureSDK($sdk);
+        $sdk->generate(__DIR__ . '/examples/markdown');
+    }
+    // Agent Skills
+    if (!$requestedSdk || $requestedSdk === 'agent-skills') {
+        $sdk = new SDK(new AgentSkills(), new Swagger2($spec));
+        configureSDK($sdk);
+        $sdk->generate(__DIR__ . '/examples/agent-skills');
     }
 }
 catch (Exception $exception) {
