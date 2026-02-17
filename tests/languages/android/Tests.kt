@@ -321,6 +321,7 @@ class ServiceTest {
             writeToFile(Channel.database().collection().document().toString())
             writeToFile(Channel.database("db1").collection("col1").document("doc1").toString())
             writeToFile(Channel.database("db1").collection("col1").document("doc1").create().toString())
+            writeToFile(Channel.database("db1").collection("col1").document("doc1").upsert().toString())
             writeToFile(Channel.tablesdb().table().row().toString())
             writeToFile(Channel.tablesdb("db1").table("table1").row("row1").toString())
             writeToFile(Channel.tablesdb("db1").table("table1").row("row1").update().toString())

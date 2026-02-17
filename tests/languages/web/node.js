@@ -290,6 +290,7 @@ async function start() {
     console.log(Channel.database().collection().document().toString());
     console.log(Channel.database('db1').collection('col1').document('doc1').toString());
     console.log(Channel.database('db1').collection('col1').document('doc1').create().toString());
+    console.log(Channel.database('db1').collection('col1').document('doc1').upsert().toString());
     console.log(Channel.tablesdb().table().row().toString());
     console.log(Channel.tablesdb('db1').table('table1').row('row1').toString());
     console.log(Channel.tablesdb('db1').table('table1').row('row1').update().toString());

@@ -147,6 +147,10 @@ extension RealtimeChannel where T == _Document {
         return self.resolve("create")
     }
     
+    public func upsert() -> RealtimeChannel<_Resolved> {
+        return self.resolve("upsert")
+    }
+    
     public func update() -> RealtimeChannel<_Resolved> {
         return self.resolve("update")
     }
@@ -160,6 +164,10 @@ extension RealtimeChannel where T == _Document {
 extension RealtimeChannel where T == _Row {
     public func create() -> RealtimeChannel<_Resolved> {
         return self.resolve("create")
+    }
+    
+    public func upsert() -> RealtimeChannel<_Resolved> {
+        return self.resolve("upsert")
     }
     
     public func update() -> RealtimeChannel<_Resolved> {
