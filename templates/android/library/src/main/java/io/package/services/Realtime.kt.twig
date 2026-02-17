@@ -48,11 +48,11 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         // Inverse map: subscriptionId -> slot index (for O(1) lookup)
         private val subscriptionIdToSlot = ConcurrentHashMap<String, Int>()
 
-        private var subCallDepth = 0
         private var reconnectAttempts = 0
         private val subscriptionsCounter = AtomicInteger(0)
         private var reconnect = true
         private var heartbeatJob: Job? = null
+        private var createSocketDebounceJob: Job? = null
 
         // Optional lifecycle callbacks (primarily for tests)
         @Volatile
@@ -262,6 +262,24 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         }
     }
 
+    /**
+     * Debounce createSocket so rapid subscribe() calls result in a single socket creation.
+     * Cancels any pending job and schedules a new one; only the last job runs.
+     * Uses instance scope and subscriptionLock to avoid races and scope/job leaks.
+     */
+    private fun scheduleCreateSocket() {
+        synchronized(subscriptionLock) {
+            createSocketDebounceJob?.cancel()
+
+            val instance = this
+
+            createSocketDebounceJob = launch {
+                delay(DEBOUNCE_MILLIS)
+                instance.createSocket()
+            }
+        }
+    }
+
     fun subscribe(
         vararg channels: Channel<*>,
         callback: (RealtimeResponseEvent<Any>) -> Unit,
@@ -315,15 +333,8 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
             )
         }
 
-        launch {
-            subCallDepth++
-            log("realtime: subscribe slot=$slot channels=${channels.toSet()} debounce=$DEBOUNCE_MILLIS")
-            delay(DEBOUNCE_MILLIS)
-            if (subCallDepth == 1) {
-                createSocket()
-            }
-            subCallDepth--
-        }
+        log("realtime: subscribe slot=$slot channels=${channels.toSet()} debounce=$DEBOUNCE_MILLIS")
+        scheduleCreateSocket()
 
         return RealtimeSubscription {
             this@Realtime.log("realtime: unsubscribe slot=$slot")
@@ -335,7 +346,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
                 slotToSubscriptionId.remove(slot)
                 subscriptionId?.let { subscriptionIdToSlot.remove(it) }
             }
-            launch { createSocket() }
+            this@Realtime.scheduleCreateSocket()
         }
     }
 
