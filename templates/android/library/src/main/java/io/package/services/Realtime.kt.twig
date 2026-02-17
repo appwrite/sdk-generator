@@ -38,8 +38,6 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         private const val HEARTBEAT_INTERVAL = 20_000L // 20 seconds
         private const val LOG_DUMP_IDLE_MS = 10_000L
 
-        private const val DEBOUNCE_MILLIS = 1L
-
         private var socket: RealWebSocket? = null
         // Slot-centric state: Map<slot, RealtimeCallback>
         private val activeSubscriptions = ConcurrentHashMap<Int, RealtimeCallback>()
@@ -52,9 +50,6 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         private val subscriptionsCounter = AtomicInteger(0)
         private var reconnect = true
         private var heartbeatJob: Job? = null
-        private var createSocketDebounceJob: Job? = null
-        private var createSocketScope: CoroutineScope? = null
-        private var createSocketSequence = AtomicInteger(0)
         private var createSocketInProgress = false
 
         // Optional lifecycle callbacks (primarily for tests)
@@ -221,6 +216,8 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
                     log("realtime: createSocket closing existing socket before reconnect")
                     reconnect = false
                     closeSocket()
+                    // Don't rely on stale socket callbacks to restore reconnect=true.
+                    reconnect = true
                 }
 
                 socket = RealWebSocket(
@@ -286,37 +283,8 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
     }
 
     /**
-     * Debounce createSocket so rapid subscribe() calls result in a single socket creation.
-     * Cancels any pending job and schedules a new one; only the last job runs.
-     * Uses shared scope (since socket/activeSubscriptions are shared) and subscriptionLock
-     * to avoid races and ensure proper cancellation across all Realtime instances.
-     * Uses sequence number to ensure only the latest createSocket() call executes.
+     * Subscribe overloads
      */
-    private fun scheduleCreateSocket() {
-        synchronized(subscriptionLock) {
-            createSocketDebounceJob?.cancel()
-
-            val scope = createSocketScope ?: run {
-                val newScope = CoroutineScope(Dispatchers.Main + Job())
-                createSocketScope = newScope
-                newScope
-            }
-
-            val instance = this
-            val sequence = createSocketSequence.incrementAndGet()
-
-            createSocketDebounceJob = scope.launch {
-                delay(DEBOUNCE_MILLIS)
-                // Only execute if this is still the latest scheduled call
-                if (sequence == createSocketSequence.get()) {
-                    instance.createSocket()
-                } else {
-                    log("realtime: createSocket debounce skipped (newer call scheduled)")
-                }
-            }
-        }
-    }
-
     fun subscribe(
         vararg channels: Channel<*>,
         callback: (RealtimeResponseEvent<Any>) -> Unit,
@@ -370,8 +338,9 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
             )
         }
 
-        log("realtime: subscribe slot=$slot channels=${channels.toSet()} debounce=$DEBOUNCE_MILLIS")
-        scheduleCreateSocket()
+        // Sequential: apply subscription changes immediately (A then A+B then A+B+C).
+        log("realtime: subscribe slot=$slot channels=${channels.toSet()}")
+        createSocket()
 
         return RealtimeSubscription {
             this@Realtime.log("realtime: unsubscribe slot=$slot")
@@ -383,7 +352,8 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
                 slotToSubscriptionId.remove(slot)
                 subscriptionId?.let { subscriptionIdToSlot.remove(it) }
             }
-            this@Realtime.scheduleCreateSocket()
+            // Sequential: apply unsubscribe changes immediately.
+            this@Realtime.createSocket()
         }
     }
 
@@ -394,6 +364,10 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
 
         override fun onOpen(webSocket: WebSocket, response: Response) {
             super.onOpen(webSocket, response)
+            if (webSocket !== socket) {
+                this@Realtime.log("realtime: onOpen ignored (stale socket)")
+                return
+            }
             this@Realtime.log("realtime: onOpen responseCode=${response.code}")
             reconnectAttempts = 0
             startHeartbeat()
@@ -401,8 +375,15 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
 
         override fun onMessage(webSocket: WebSocket, text: String) {
             super.onMessage(webSocket, text)
+            if (webSocket !== socket) {
+                this@Realtime.log("realtime: onMessage ignored (stale socket)")
+                return
+            }
 
             launch(IO) {
+                if (webSocket !== socket) {
+                    return@launch
+                }
                 val message = text.fromJson<RealtimeResponse>()
                 when (message.type) {
                     TYPE_ERROR -> {
@@ -483,6 +464,10 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
 
         override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
             super.onClosing(webSocket, code, reason)
+            if (webSocket !== socket) {
+                this@Realtime.log("realtime: onClosing ignored (stale socket) code=$code reason=$reason")
+                return
+            }
             this@Realtime.log("realtime: onClosing code=$code reason=$reason reconnect=$reconnect policyViolation=${RealtimeCode.POLICY_VIOLATION.value}")
             stopHeartbeat()
             onSocketClosingCallback?.invoke(code, reason)
@@ -504,12 +489,16 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
             launch {
                 delay(timeout)
                 reconnectAttempts++
-                scheduleCreateSocket()
+                createSocket()
             }
         }
 
         override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
             super.onFailure(webSocket, t, response)
+            if (webSocket !== socket) {
+                this@Realtime.log("realtime: onFailure ignored (stale socket) message=${t.message} responseCode=${response?.code}")
+                return
+            }
             this@Realtime.log("realtime: onFailure message=${t.message} responseCode=${response?.code}")
             stopHeartbeat()
             onSocketFailureCallback?.invoke(t, response)
@@ -518,6 +507,10 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
 
         override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
             super.onClosed(webSocket, code, reason)
+            if (webSocket !== socket) {
+                this@Realtime.log("realtime: onClosed ignored (stale socket) code=$code reason=$reason")
+                return
+            }
             this@Realtime.log("realtime: onClosed code=$code reason=$reason")
             onSocketClosedCallback?.invoke(code, reason)
         }
