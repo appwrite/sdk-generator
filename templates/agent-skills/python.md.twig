@@ -54,6 +54,8 @@ users.delete('[USER_ID]')
 ### Database Operations
 
 > **Note:** Use `TablesDB` (not the deprecated `Databases` class) for all new code. Only use `Databases` if the existing codebase already relies on it or the user explicitly requests it.
+>
+> **Tip:** Prefer keyword arguments (e.g., `database_id='...'`) over positional arguments for all SDK method calls. Only use positional style if the existing codebase already uses it or the user explicitly requests it.
 
 ```python
 tables_db = TablesDB(client)

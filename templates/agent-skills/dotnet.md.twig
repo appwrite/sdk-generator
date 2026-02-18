@@ -47,6 +47,8 @@ await users.Delete("[USER_ID]");
 ### Database Operations
 
 > **Note:** Use `TablesDB` (not the deprecated `Databases` class) for all new code. Only use `Databases` if the existing codebase already relies on it or the user explicitly requests it.
+>
+> **Tip:** Prefer named arguments (e.g., `databaseId: "..."`) for all SDK method calls. Only use positional arguments if the existing codebase already uses them or the user explicitly requests it.
 
 ```csharp
 var tablesDB = new TablesDB(client);

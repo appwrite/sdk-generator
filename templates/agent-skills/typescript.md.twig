@@ -106,6 +106,8 @@ await users.delete({ userId: '[USER_ID]' });
 ### Database Operations
 
 > **Note:** Use `TablesDB` (not the deprecated `Databases` class) for all new code. Only use `Databases` if the existing codebase already relies on it or the user explicitly requests it.
+>
+> **Tip:** Prefer the object-params calling style (e.g., `{ databaseId: '...' }`) for all SDK method calls. Only use positional arguments if the existing codebase already uses them or the user explicitly requests it.
 
 ```typescript
 const tablesDB = new TablesDB(client);

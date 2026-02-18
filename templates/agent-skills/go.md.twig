@@ -59,6 +59,8 @@ _, err = service.Delete("[USER_ID]")
 ### Database Operations
 
 > **Note:** Use `TablesDB` (not the deprecated `Databases` class) for all new code. Only use `Databases` if the existing codebase already relies on it or the user explicitly requests it.
+>
+> **Tip:** Prefer explicit functional option parameters (e.g., `tablesdb.WithUpdateRowData(...)`) over bare positional arguments where available. Only use positional-only style if the existing codebase already uses it or the user explicitly requests it.
 
 ```go
 service := tablesdb.New(clt)
