@@ -188,6 +188,7 @@ abstract class Base extends TestCase
         'databases.*.collections.*.documents',
         'databases.db1.collections.col1.documents.doc1',
         'databases.db1.collections.col1.documents.doc1.create',
+        'databases.db1.collections.col1.documents.doc1.upsert',
         'tablesdb.*.tables.*.rows',
         'tablesdb.db1.tables.table1.rows.row1',
         'tablesdb.db1.tables.table1.rows.row1.update',
