@@ -84,6 +84,35 @@ tables_db.update_row(
 tables_db.delete_row(database_id: '[DATABASE_ID]', table_id: '[TABLE_ID]', row_id: '[ROW_ID]')
 ```
 
+#### String Column Types
+
+> **Note:** The legacy `string` type is deprecated. Use explicit column types for all new columns.
+
+| Type | Max characters | Indexing | Storage |
+|------|---------------|----------|---------|
+| `varchar` | 16,383 | Full index (if size ≤ 768) | Inline in row |
+| `text` | 16,383 | Prefix only | Off-page |
+| `mediumtext` | 4,194,303 | Prefix only | Off-page |
+| `longtext` | 1,073,741,823 | Prefix only | Off-page |
+
+- `varchar` is stored inline and counts towards the 64 KB row size limit. Prefer for short, indexed fields like names, slugs, or identifiers.
+- `text`, `mediumtext`, and `longtext` are stored off-page (only a 20-byte pointer lives in the row), so they don't consume the row size budget. `size` is not required for these types.
+
+```ruby
+# Create table with explicit string column types
+tables_db.create_table(
+    database_id: '[DATABASE_ID]',
+    table_id: ID.unique,
+    name: 'articles',
+    columns: [
+        { key: 'title',    type: 'varchar',    size: 255, required: true  },  # inline, fully indexable
+        { key: 'summary',  type: 'text',                  required: false },  # off-page, prefix index only
+        { key: 'body',     type: 'mediumtext',            required: false },  # up to ~4 M chars
+        { key: 'raw_data', type: 'longtext',              required: false },  # up to ~1 B chars
+    ]
+)
+```
+
 ### Query Methods
 
 ```ruby
