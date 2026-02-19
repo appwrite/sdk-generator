@@ -11,11 +11,13 @@ export type SupportedLanguage = "typescript";
 
 /**
  * Result of the generation process.
- * Each language generator should return files as a map of filename to content.
+ * Each language generator should return named content fields.
  */
 export interface GenerateResult {
-  /** Map of relative file paths to their content */
-  files: Map<string, string>;
+  dbContent: string;
+  typesContent: string;
+  indexContent: string;
+  constantsContent: string;
 }
 
 /**
@@ -71,7 +73,14 @@ export abstract class BaseDatabasesGenerator implements IDatabasesGenerator {
       fs.mkdirSync(sdkDir, { recursive: true });
     }
 
-    for (const [relativePath, content] of result.files) {
+    const fileEntries: Array<[string, string]> = [
+      ["databases.ts", result.dbContent],
+      ["types.ts", result.typesContent],
+      ["index.ts", result.indexContent],
+      ["constants.ts", result.constantsContent],
+    ];
+
+    for (const [relativePath, content] of fileEntries) {
       const filePath = path.join(sdkDir, relativePath);
       const fileDir = path.dirname(filePath);
 
@@ -87,9 +96,12 @@ export abstract class BaseDatabasesGenerator implements IDatabasesGenerator {
     }
   }
 
-  getGeneratedFilePaths(result: GenerateResult): string[] {
-    return Array.from(result.files.keys()).map((relativePath) =>
-      path.join(SDK_TITLE_LOWER, relativePath),
-    );
+  getGeneratedFilePaths(_result: GenerateResult): string[] {
+    return [
+      path.join(SDK_TITLE_LOWER, "databases.ts"),
+      path.join(SDK_TITLE_LOWER, "types.ts"),
+      path.join(SDK_TITLE_LOWER, "index.ts"),
+      path.join(SDK_TITLE_LOWER, "constants.ts"),
+    ];
   }
 }
