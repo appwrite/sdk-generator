@@ -127,6 +127,8 @@ abstract class Base extends TestCase
         '{"method":"offset","values":[20]}',
         '{"method":"contains","attribute":"title","values":["Spider"]}',
         '{"method":"contains","attribute":"labels","values":["first"]}',
+        '{"method":"containsAny","attribute":"labels","values":["first","second"]}',
+        '{"method":"containsAll","attribute":"labels","values":["first","second"]}',
         '{"method":"notContains","attribute":"title","values":["Spider"]}',
         '{"method":"notSearch","attribute":"name","values":["john"]}',
         '{"method":"notBetween","attribute":"age","values":[50,100]}',

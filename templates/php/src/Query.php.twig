@@ -268,6 +268,10 @@ class Query implements \JsonSerializable
     /**
      * Contains
      *
+     * Filter resources where attribute contains the specified value.
+     * For string attributes, checks if the string contains the substring.
+     *
+     * Note: For array attributes, use containsAny() or containsAll() instead.
      * @param string $attribute
      * @param mixed $value
      * @return string
@@ -275,6 +279,38 @@ class Query implements \JsonSerializable
     public static function contains(string $attribute, $value): string
     {
         return (new Query('contains', $attribute, $value))->__toString();
+    }
+
+    /**
+     * Contains Any
+     *
+     * Filter resources where attribute contains ANY of the specified values.
+     * For array and relationship attributes, matches documents where the attribute
+     * contains at least one of the given values.
+     *
+     * @param string $attribute
+     * @param array<mixed> $value
+     * @return string
+     */
+    public static function containsAny(string $attribute, array $value): string
+    {
+        return (new Query('containsAny', $attribute, $value))->__toString();
+    }
+
+    /**
+     * Contains All
+     *
+     * Filter resources where attribute contains ALL of the specified values.
+     * For array and relationship attributes, matches documents where the attribute
+     * contains every one of the given values.
+     *
+     * @param string $attribute
+     * @param array<mixed> $value
+     * @return string
+     */
+    public static function containsAll(string $attribute, array $value): string
+    {
+        return (new Query('containsAll', $attribute, $value))->__toString();
     }
 
     /**

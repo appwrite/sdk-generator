@@ -213,7 +213,9 @@ async function start() {
     console.log(Query.offset(20));
     console.log(Query.contains("title", "Spider"));
     console.log(Query.contains("labels", "first"));
-    
+    console.log(Query.containsAny("labels", ["first", "second"]));
+    console.log(Query.containsAll("labels", ["first", "second"]));
+
     // New query methods
     console.log(Query.notContains("title", "Spider"));
     console.log(Query.notSearch("name", "john"));

@@ -147,12 +147,38 @@ func EndsWith(attribute string, value interface{}) string {
 	})
 }
 
+// Contains filters resources where attribute contains the specified value.
+// For string attributes, checks if the string contains the substring.
+//
+// Note: For array attributes, use ContainsAny or ContainsAll instead.
 func Contains(attribute string, value interface{}) string {
 	values := toArray(value)
 	return parseQuery(queryOptions{
 		Method:    "contains",
 		Attribute: &attribute,
 		Values:    &values,
+	})
+}
+
+// ContainsAny filters resources where attribute contains ANY of the specified values.
+// For array and relationship attributes, matches documents where the attribute
+// contains at least one of the given values.
+func ContainsAny(attribute string, value []interface{}) string {
+	return parseQuery(queryOptions{
+		Method:    "containsAny",
+		Attribute: &attribute,
+		Values:    &value,
+	})
+}
+
+// ContainsAll filters resources where attribute contains ALL of the specified values.
+// For array and relationship attributes, matches documents where the attribute
+// contains every one of the given values.
+func ContainsAll(attribute string, value []interface{}) string {
+	return parseQuery(queryOptions{
+		Method:    "containsAll",
+		Attribute: &attribute,
+		Values:    &value,
 	})
 }
 
