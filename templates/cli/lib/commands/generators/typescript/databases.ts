@@ -426,7 +426,6 @@ ${
     }
 
     const importExt = detectImportExtension();
-    const files = new Map<string, string>();
 
     const hasEntities =
       (config.tables && config.tables.length > 0) ||
@@ -436,24 +435,19 @@ ${
       console.log(
         "No tables or collections found in configuration. Skipping database generation.",
       );
-      files.set(
-        "databases.ts",
-        "// No tables or collections found in configuration\n",
-      );
-      files.set(
-        "types.ts",
-        "// No tables or collections found in configuration\n",
-      );
-      files.set("index.ts", this.generateIndexFile(importExt));
-      files.set("constants.ts", this.generateConstantsFile(config));
-      return { files };
+      return {
+        dbContent: "// No tables or collections found in configuration\n",
+        typesContent: "// No tables or collections found in configuration\n",
+        indexContent: this.generateIndexFile(importExt),
+        constantsContent: this.generateConstantsFile(config),
+      };
     }
 
-    files.set("types.ts", this.generateTypesFile(config));
-    files.set("databases.ts", this.generateDatabasesFile(config, importExt));
-    files.set("index.ts", this.generateIndexFile(importExt));
-    files.set("constants.ts", this.generateConstantsFile(config));
-
-    return { files };
+    return {
+      dbContent: this.generateDatabasesFile(config, importExt),
+      typesContent: this.generateTypesFile(config),
+      indexContent: this.generateIndexFile(importExt),
+      constantsContent: this.generateConstantsFile(config),
+    };
   }
 }
