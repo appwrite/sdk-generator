@@ -5,8 +5,21 @@
   "description": "{{ sdk.shortDescription }}",
   "version": "{{ sdk.version }}",
   "license": "{{ sdk.license }}",
-  "main": "dist/index.js",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
   "bin": {
     "{{ language.params.executableName|caseLower }}": "dist/cli.cjs"
   },
@@ -17,8 +30,9 @@
   "scripts": {
     "build": "npm run build:types && npm run build:runtime",
     "build:types": "tsc -p tsconfig.json --emitDeclarationOnly",
-    "build:runtime": "npm run build:lib:runtime && npm run build:cli",
-    "build:lib:runtime": "esbuild index.ts --bundle --platform=node --target=node18 --format=esm --loader:.hbs=text --outfile=dist/index.js",
+    "build:runtime": "npm run build:lib:esm && npm run build:lib:cjs && npm run build:cli",
+    "build:lib:esm": "esbuild index.ts --bundle --platform=node --target=node18 --format=esm --loader:.hbs=text --outfile=dist/index.js",
+    "build:lib:cjs": "esbuild index.ts --bundle --platform=node --target=node18 --format=cjs --loader:.hbs=text --outfile=dist/index.cjs",
     "build:cli": "esbuild cli.ts --bundle --platform=node --target=node18 --format=cjs --loader:.hbs=text --external:fsevents --outfile=dist/cli.cjs",
     "format": "prettier --write \"**/*.{js,ts,json,md}\"",
     "generate": "tsx scripts/generate-commands.ts",
