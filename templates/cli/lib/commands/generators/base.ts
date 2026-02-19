@@ -11,7 +11,13 @@ export type SupportedLanguage = "typescript";
 
 /**
  * Result of the generation process.
- * Each language generator should return named content fields.
+ * Each language generator should return named content fields with fixed output filenames
+ * under `<output>/<sdk-title-lower>/`.
+ *
+ * - `dbContent` -> `databases.ts`
+ * - `typesContent` -> `types.ts`
+ * - `indexContent` -> `index.ts` (entrypoint to import `databases` and exported types)
+ * - `constantsContent` -> `constants.ts`
  */
 export interface GenerateResult {
   dbContent: string;
@@ -38,7 +44,10 @@ export interface IDatabasesGenerator {
   /**
    * Generate the SDK files from the configuration.
    * @param config - The project configuration containing tables/collections
-   * @returns Promise resolving to the generated files
+   * @returns Promise resolving to named file contents:
+   * `dbContent` (`databases.ts`), `typesContent` (`types.ts`),
+   * `indexContent` (`index.ts`), and `constantsContent` (`constants.ts`).
+   * Import your generated SDK from `index.ts` (or `index.js` after transpilation).
    */
   generate(config: ConfigType): Promise<GenerateResult>;
 
