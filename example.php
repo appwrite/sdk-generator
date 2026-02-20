@@ -21,6 +21,7 @@ use Appwrite\SDK\Language\Flutter;
 use Appwrite\SDK\Language\Android;
 use Appwrite\SDK\Language\Kotlin;
 use Appwrite\SDK\Language\ReactNative;
+use Appwrite\SDK\Language\Unity;
 use Appwrite\SDK\Language\Markdown;
 use Appwrite\SDK\Language\AgentSkills;
 
@@ -119,6 +120,13 @@ try {
         $sdk  = new SDK($php, new Swagger2($spec));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/php');
+    }
+
+    // Unity
+    if (!$requestedSdk || $requestedSdk === 'unity') {        
+        $sdk  = new SDK(new Unity(), new Swagger2($spec));
+        configureSDK($sdk);
+        $sdk->generate(__DIR__ . '/examples/unity');
     }
 
     // Web

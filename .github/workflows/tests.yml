@@ -6,6 +6,9 @@ concurrency:
 
 on: [pull_request]
 
+env:
+  UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -46,6 +49,7 @@ jobs:
           Ruby31,
           AppleSwift56,
           Swift56,
+          Unity2021,
           WebChromium,
           WebNode
         ]
