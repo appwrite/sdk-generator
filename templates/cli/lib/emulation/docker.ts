@@ -218,6 +218,7 @@ export async function dockerStart(
   params.push("-p", `${port}:3000`);
   params.push("-e", "OPEN_RUNTIMES_ENV=development");
   params.push("-e", "OPEN_RUNTIMES_SECRET=");
+  params.push("-e", `OPEN_RUNTIMES_ENTRYPOINT=${func.entrypoint}`);
 
   for (const k of Object.keys(variables)) {
     params.push("-e", `${k}=${variables[k]}`);
