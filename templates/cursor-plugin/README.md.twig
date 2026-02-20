@@ -21,16 +21,19 @@ Install this plugin in Cursor by adding the plugin directory to your project or 
 
 ## Structure
 
+{% set languages = ['typescript', 'dart', 'kotlin', 'swift', 'php', 'python', 'ruby', 'go', 'dotnet'] %}
 ```
 .cursor-plugin/
-└── plugin.json          # Plugin manifest
-skills/                  # Agent skills (per language)
-{% set languages = ['typescript', 'dart', 'kotlin', 'swift', 'php', 'python', 'ruby', 'go', 'dotnet'] %}
+└── plugin.json              # Plugin manifest
+skills/                      # Agent skills (per language)
 {% for lang in languages %}
 ├── {{ spec.title | caseLower }}-{{ lang }}/
 │   └── SKILL.md
 {% endfor %}
-.mcp.json                # MCP server definitions
+commands/                    # Agent-executable commands
+├── deploy-site.md
+└── deploy-function.md
+.mcp.json                    # MCP server definitions
 ```
 
 ## Skills
@@ -49,6 +52,13 @@ This plugin comes with two MCP (Model Context Protocol) servers pre-configured i
 
 - **{{ spec.title }} API MCP** — Lets AI agents access the {{ spec.title }} API to manage users, databases, storage, and more.
 - **{{ spec.title }} Docs MCP** — Access {{ spec.title }} documentation inline for quick reference while coding.
+
+## Commands
+
+Agent-executable commands for deploying directly from your editor:
+
+- **deploy-site** — Deploy an {{ spec.title }} site using the CLI. Covers init, push, CI/CD non-interactive mode, site management, variables, and logs.
+- **deploy-function** — Deploy an {{ spec.title }} function using the CLI. Covers init, push, CI/CD non-interactive mode, function management, executions, variables, and local development.
 
 {% if sdk.gettingStarted %}
 
