@@ -36,7 +36,7 @@ namespace {{ spec.title | caseUcfirst }}.Models
             return new Dictionary<string, object?>
             {
                 {%~ for property in requestModel.properties %}
-                { "{{ property.name }}", {% if property.sub_schema %}{% if property.type == 'array' %}{{ property.name | caseUcfirst | overrideIdentifier }}?.ConvertAll(p => p.ToMap()){% else %}{{ property.name | caseUcfirst | overrideIdentifier }}?.ToMap(){% endif %}{% elseif property.enum %}{{ property.name | caseUcfirst | overrideIdentifier }}{% if not property.required %}?{% endif %}.Value{% else %}{{ property.name | caseUcfirst | overrideIdentifier }}{% endif %} }{% if not loop.last %},{% endif %}
+                { "{{ property.name }}", {{ property | toMapValue(requestModel.name) | raw }} }{% if not loop.last %},{% endif %}
 
                 {%~ endfor %}
             };
