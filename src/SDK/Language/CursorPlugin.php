@@ -120,6 +120,18 @@ class CursorPlugin extends Language
             'template'    => 'cursor-plugin/plugin.json.twig',
         ];
 
+        // Commands
+        $files[] = [
+            'scope'       => 'default',
+            'destination' => 'commands/deploy-site.md',
+            'template'    => 'cursor-plugin/commands/deploy-site.md.twig',
+        ];
+        $files[] = [
+            'scope'       => 'default',
+            'destination' => 'commands/deploy-function.md',
+            'template'    => 'cursor-plugin/commands/deploy-function.md.twig',
+        ];
+
         // MCP server definitions
         $files[] = [
             'scope'       => 'default',
