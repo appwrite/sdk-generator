@@ -4,6 +4,7 @@ import { KeysAttributes } from "../../config.js";
 import { log, success, error, cliConfig, drawTable } from "../../parser.js";
 import { Pools } from "./pools.js";
 import inquirer from "inquirer";
+import type { Client } from "@appwrite.io/console";
 
 const changeableKeys = [
   "status",
@@ -53,9 +54,11 @@ const questionPushChangesConfirmation = [
 export class Attributes {
   private pools: Pools;
   private skipConfirmation: boolean;
+  private client?: Client;
 
-  constructor(pools?: Pools, skipConfirmation = false) {
-    this.pools = pools || new Pools();
+  constructor(pools?: Pools, skipConfirmation = false, client?: Client) {
+    this.client = client;
+    this.pools = pools || new Pools(undefined, client);
     this.skipConfirmation = skipConfirmation;
   }
 
@@ -197,7 +200,7 @@ export class Attributes {
     collectionId: string,
     attribute: any,
   ): Promise<any> => {
-    const databasesService = await getDatabasesService();
+    const databasesService = await getDatabasesService(this.client);
     switch (attribute.type) {
       case "string":
         switch (attribute.format) {
@@ -373,7 +376,7 @@ export class Attributes {
     collectionId: string,
     attribute: any,
   ): Promise<any> => {
-    const databasesService = await getDatabasesService();
+    const databasesService = await getDatabasesService(this.client);
     switch (attribute.type) {
       case "string":
         switch (attribute.format) {
@@ -533,7 +536,7 @@ export class Attributes {
       `Deleting ${isIndex ? "index" : "attribute"} ${attribute.key} of ${collection.name} ( ${collection["$id"]} )`,
     );
 
-    const databasesService = await getDatabasesService();
+    const databasesService = await getDatabasesService(this.client);
     if (isIndex) {
       await databasesService.deleteIndex(
         collection["databaseId"],
@@ -733,7 +736,7 @@ export class Attributes {
   ): Promise<void> => {
     log(`Creating indexes ...`);
 
-    const databasesService = await getDatabasesService();
+    const databasesService = await getDatabasesService(this.client);
     for (let index of indexes) {
       await databasesService.createIndex({
         databaseId: collection["databaseId"],
