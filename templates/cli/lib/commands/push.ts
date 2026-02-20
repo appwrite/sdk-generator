@@ -24,7 +24,11 @@ import {
   type CollectionType,
 } from "./config.js";
 import { parseWithBetterErrors } from "./utils/error-formatter.js";
-import { createSettingsObject } from "../utils.js";
+import {
+  createSettingsObject,
+  checkDeployConditions,
+  arrayEqualsUnordered,
+} from "../utils.js";
 import { Spinner, SPINNER_DOTS } from "../spinner.js";
 import { paginate } from "../paginate.js";
 import { pushDeployment } from "./utils/deployment.js";
@@ -72,7 +76,6 @@ import {
   Client,
   Query,
 } from "@appwrite.io/console";
-import { checkDeployConditions } from "../utils.js";
 import { Pools } from "./utils/pools.js";
 import { Attributes, Collection } from "./utils/attributes.js";
 import {
@@ -502,13 +505,54 @@ export class Push {
     let successfullyPushed = 0;
     const errors: any[] = [];
 
+    const hasBucketChanges = (remoteBucket: any, localBucket: any): boolean => {
+      const scalarFields = [
+        "name",
+        "fileSecurity",
+        "enabled",
+        "maximumFileSize",
+        "encryption",
+        "antivirus",
+        "compression",
+      ] as const;
+
+      if (
+        scalarFields.some((field) => remoteBucket[field] !== localBucket[field])
+      ) {
+        return true;
+      }
+
+      if (
+        !arrayEqualsUnordered(
+          remoteBucket["$permissions"],
+          localBucket["$permissions"],
+        )
+      ) {
+        return true;
+      }
+
+      return !arrayEqualsUnordered(
+        remoteBucket.allowedFileExtensions,
+        localBucket.allowedFileExtensions,
+      );
+    };
+
     for (const bucket of buckets) {
       try {
         this.log(`Pushing bucket ${chalk.bold(bucket["name"])} ...`);
         const storageService = await getStorageService(this.projectClient);
 
         try {
-          await storageService.getBucket(bucket["$id"]);
+          const remoteBucket = await storageService.getBucket(bucket["$id"]);
+          const hasChanges = hasBucketChanges(remoteBucket, bucket);
+
+          if (!hasChanges) {
+            this.log(
+              `No changes detected for bucket ${chalk.bold(bucket["name"])}. Skipping.`,
+            );
+            continue;
+          }
+
           await storageService.updateBucket({
             bucketId: bucket["$id"],
             name: bucket.name,
@@ -521,6 +565,7 @@ export class Push {
             antivirus: bucket.antivirus,
             compression: bucket.compression,
           });
+          successfullyPushed++;
         } catch (e: unknown) {
           if (e instanceof AppwriteException && Number(e.code) === 404) {
             await storageService.createBucket({
@@ -535,12 +580,11 @@ export class Push {
               encryption: bucket.encryption,
               antivirus: bucket.antivirus,
             });
+            successfullyPushed++;
           } else {
             throw e;
           }
         }
-
-        successfullyPushed++;
       } catch (e: any) {
         errors.push(e);
         this.error(`Failed to push bucket ${bucket["name"]}: ${e.message}`);
@@ -1373,8 +1417,12 @@ export class Push {
   }> {
     const { attempts, skipConfirmation = false } = options;
     const pollMaxDebounces = attempts ?? POLL_DEFAULT_VALUE;
-    const pools = new Pools(pollMaxDebounces);
-    const attributes = new Attributes(pools, skipConfirmation);
+    const pools = new Pools(pollMaxDebounces, this.projectClient);
+    const attributes = new Attributes(
+      pools,
+      skipConfirmation,
+      this.projectClient,
+    );
 
     let tablesChanged = new Set();
     const errors: any[] = [];
@@ -1467,6 +1515,11 @@ export class Push {
         hadChanges = columnsResult.hasChanges || indexesResult.hasChanges;
 
         if (!hadChanges && columns.length <= 0 && indexes.length <= 0) {
+          if (!tablesChanged.has(table["$id"])) {
+            this.log(
+              `No changes detected for table ${chalk.bold(table["name"])}. Skipping.`,
+            );
+          }
           continue;
         }
       }
@@ -1506,8 +1559,12 @@ export class Push {
     errors: Error[];
   }> {
     const { skipConfirmation = false } = options;
-    const pools = new Pools(POLL_DEFAULT_VALUE);
-    const attributesHelper = new Attributes(pools, skipConfirmation);
+    const pools = new Pools(POLL_DEFAULT_VALUE, this.projectClient);
+    const attributesHelper = new Attributes(
+      pools,
+      skipConfirmation,
+      this.projectClient,
+    );
 
     const errors: Error[] = [];
 
@@ -2333,12 +2390,13 @@ const pushCollection = async (): Promise<void> => {
     const localDatabase = localConfig.getDatabase(collection.databaseId);
     collection.databaseName = localDatabase.name ?? collection.databaseId;
   });
+  const projectClient = await sdkForProject();
 
   if (
     !(await approveChanges(
       collections,
       async (args: any) => {
-        const databasesService = await getDatabasesService();
+        const databasesService = await getDatabasesService(projectClient);
         return await databasesService.getCollection(
           args.databaseId,
           args.collectionId,
