@@ -609,12 +609,21 @@ class Swagger2 extends Spec
                     foreach ($method['parameters']['all'] as $parameter) {
                         $enumName = $parameter['enumName'] ?? $parameter['name'];
 
-                        if (isset($parameter['enumValues']) && !\in_array($enumName, $list)) {
-                            $list[$enumName] = [
-                                'name' => $enumName,
-                                'enum' => $parameter['enumValues'],
-                                'keys' => $parameter['enumKeys'],
-                            ];
+                        if (isset($parameter['enumValues'])) {
+                            if (!isset($list[$enumName])) {
+                                $list[$enumName] = [
+                                    'name' => $enumName,
+                                    'enum' => $parameter['enumValues'],
+                                    'keys' => $parameter['enumKeys'],
+                                ];
+                            } else {
+                                $list[$enumName]['enum'] = array_values(array_unique(
+                                    array_merge($list[$enumName]['enum'], $parameter['enumValues'])
+                                ));
+                                $list[$enumName]['keys'] = array_values(array_unique(
+                                    array_merge($list[$enumName]['keys'], $parameter['enumKeys'])
+                                ));
+                            }
                         }
                     }
                 }
