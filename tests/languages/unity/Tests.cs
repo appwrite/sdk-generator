@@ -237,6 +237,8 @@ namespace AppwriteTests
             Debug.Log(Query.Offset(20));
             Debug.Log(Query.Contains("title", "Spider"));
             Debug.Log(Query.Contains("labels", "first"));
+            Debug.Log(Query.ContainsAny("labels", new List<string> { "first", "second" }));
+            Debug.Log(Query.ContainsAll("labels", new List<string> { "first", "second" }));
 
             // New query methods
             Debug.Log(Query.NotContains("title", "Spider"));
@@ -306,6 +308,7 @@ namespace AppwriteTests
             Debug.Log(Channel.Database().Collection().Document().ToString());
             Debug.Log(Channel.Database("db1").Collection("col1").Document("doc1").ToString());
             Debug.Log(Channel.Database("db1").Collection("col1").Document("doc1").Create().ToString());
+            Debug.Log(Channel.Database("db1").Collection("col1").Document("doc1").Upsert().ToString());
             Debug.Log(Channel.TablesDB().Table().Row().ToString());
             Debug.Log(Channel.TablesDB("db1").Table("table1").Row("row1").ToString());
             Debug.Log(Channel.TablesDB("db1").Table("table1").Row("row1").Update().ToString());
