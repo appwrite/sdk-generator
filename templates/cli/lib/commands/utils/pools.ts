@@ -1,14 +1,17 @@
 import { getDatabasesService } from "../../services.js";
 import { paginate } from "../../paginate.js";
 import { log } from "../../parser.js";
+import type { Client } from "@appwrite.io/console";
 
 export class Pools {
   private STEP_SIZE = 100; // Resources
   private POLL_DEBOUNCE = 2000; // Milliseconds
   private pollMaxDebounces = 30;
   private POLL_DEFAULT_VALUE = 30;
+  private client?: Client;
 
-  constructor(pollMaxDebounces?: number) {
+  constructor(pollMaxDebounces?: number, client?: Client) {
+    this.client = client;
     if (pollMaxDebounces) {
       this.pollMaxDebounces = pollMaxDebounces;
     }
@@ -23,7 +26,7 @@ export class Pools {
       return false;
     }
 
-    const databasesService = await getDatabasesService();
+    const databasesService = await getDatabasesService(this.client);
     const response = await databasesService.listAttributes(
       databaseId,
       collectionId,
@@ -62,7 +65,7 @@ export class Pools {
       return false;
     }
 
-    const databasesService = await getDatabasesService();
+    const databasesService = await getDatabasesService(this.client);
     const response = await databasesService.listIndexes(
       databaseId,
       collectionId,
@@ -117,7 +120,7 @@ export class Pools {
 
     const { attributes } = await paginate(
       async (args: any) => {
-        const databasesService = await getDatabasesService();
+        const databasesService = await getDatabasesService(this.client);
         return await databasesService.listAttributes({
           databaseId: args.databaseId,
           collectionId: args.collectionId,
@@ -175,7 +178,7 @@ export class Pools {
 
     const { attributes } = await paginate(
       async (args: any) => {
-        const databasesService = await getDatabasesService();
+        const databasesService = await getDatabasesService(this.client);
         return await databasesService.listAttributes(
           args.databaseId,
           args.collectionId,
@@ -243,7 +246,7 @@ export class Pools {
 
     const { indexes } = await paginate(
       async (args: any) => {
-        const databasesService = await getDatabasesService();
+        const databasesService = await getDatabasesService(this.client);
         return await databasesService.listIndexes(
           args.databaseId,
           args.collectionId,

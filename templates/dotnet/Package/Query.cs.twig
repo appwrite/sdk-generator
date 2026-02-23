@@ -180,8 +180,31 @@ namespace {{ spec.title | caseUcfirst }}
             return new Query("offset", null, offset).ToString();
         }
 
+        /// <summary>
+        /// Filter resources where attribute contains the specified value.
+        /// For string attributes, checks if the string contains the substring.
+        /// </summary>
+        /// <remarks>For array attributes, use <see cref="ContainsAny"/> or <see cref="ContainsAll"/> instead.</remarks>
         public static string Contains(string attribute, object value) {
             return new Query("contains", attribute, value).ToString();
+        }
+
+        /// <summary>
+        /// Filter resources where attribute contains ANY of the specified values.
+        /// For array and relationship attributes, matches documents where the attribute
+        /// contains at least one of the given values.
+        /// </summary>
+        public static string ContainsAny(string attribute, IList value) {
+            return new Query("containsAny", attribute, value).ToString();
+        }
+
+        /// <summary>
+        /// Filter resources where attribute contains ALL of the specified values.
+        /// For array and relationship attributes, matches documents where the attribute
+        /// contains every one of the given values.
+        /// </summary>
+        public static string ContainsAll(string attribute, IList value) {
+            return new Query("containsAll", attribute, value).ToString();
         }
 
         public static string NotContains(string attribute, object value) {

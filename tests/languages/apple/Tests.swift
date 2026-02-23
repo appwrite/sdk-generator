@@ -232,7 +232,9 @@ class Tests: XCTestCase {
         print(Query.offset(20))
         print(Query.contains("title", value: "Spider"))
         print(Query.contains("labels", value: "first"))
-        
+        print(Query.containsAny("labels", value: ["first", "second"]))
+        print(Query.containsAll("labels", value: ["first", "second"]))
+
         // New query methods
         print(Query.notContains("title", value: "Spider"))
         print(Query.notSearch("name", value: "john"))
@@ -308,6 +310,7 @@ class Tests: XCTestCase {
         print(Channel.database().collection().document().toString())
         print(Channel.database("db1").collection("col1").document("doc1").toString())
         print(Channel.database("db1").collection("col1").document("doc1").create().toString())
+        print(Channel.database("db1").collection("col1").document("doc1").upsert().toString())
         print(Channel.tablesdb().table().row().toString())
         print(Channel.tablesdb("db1").table("table1").row("row1").toString())
         print(Channel.tablesdb("db1").table("table1").row("row1").update().toString())

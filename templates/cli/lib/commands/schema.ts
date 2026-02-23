@@ -4,12 +4,10 @@ import { ConfigSchema } from "./config.js";
 import { Pull, PullOptions } from "./pull.js";
 import { Push, PushOptions } from "./push.js";
 import { parseWithBetterErrors } from "./utils/error-formatter.js";
-import JSONbig from "json-bigint";
+import { JSONBig } from "../json.js";
 import * as fs from "fs";
 import * as path from "path";
 import { TypeScriptDatabasesGenerator } from "./generators/typescript/databases.js";
-
-const JSONBig = JSONbig({ useNativeBigInt: true });
 
 export class Schema {
   private pullCommand: Pull;

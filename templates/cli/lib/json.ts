@@ -1,21 +1,36 @@
 import JSONbigModule from "json-bigint";
-import { BigNumber } from "bignumber.js";
 
 const JSONbigParser = JSONbigModule({ storeAsString: false });
 const JSONbigSerializer = JSONbigModule({ useNativeBigInt: true });
 
 const MAX_SAFE = BigInt(Number.MAX_SAFE_INTEGER);
 const MIN_SAFE = BigInt(Number.MIN_SAFE_INTEGER);
+const MAX_INT64 = BigInt("9223372036854775807");
+const MIN_INT64 = BigInt("-9223372036854775808");
+
+function isBigNumber(value: any): boolean {
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    value._isBigNumber === true &&
+    typeof value.isInteger === "function" &&
+    typeof value.toFixed === "function" &&
+    typeof value.toNumber === "function"
+  );
+}
 
 function reviver(_key: string, value: any): any {
-  if (BigNumber.isBigNumber(value)) {
+  if (isBigNumber(value)) {
     if (value.isInteger()) {
       const str = value.toFixed();
       const bi = BigInt(str);
       if (bi >= MIN_SAFE && bi <= MAX_SAFE) {
         return Number(str);
       }
-      return bi;
+      if (bi >= MIN_INT64 && bi <= MAX_INT64) {
+        return bi;
+      }
+      return value.toNumber();
     }
     return value.toNumber();
   }

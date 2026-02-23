@@ -37,8 +37,6 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         private const val TYPE_PONG = "pong"
         private const val HEARTBEAT_INTERVAL = 20_000L // 20 seconds
 
-        private const val DEBOUNCE_MILLIS = 1L
-
         private var socket: RealWebSocket? = null
         // Slot-centric state: Map<slot, RealtimeCallback>
         private val activeSubscriptions = ConcurrentHashMap<Int, RealtimeCallback>()
@@ -47,9 +45,9 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         // Inverse map: subscriptionId -> slot index (for O(1) lookup)
         private val subscriptionIdToSlot = ConcurrentHashMap<String, Int>()
 
-        private var subCallDepth = 0
         private var reconnectAttempts = 0
         private val subscriptionsCounter = AtomicInteger(0)
+        private val socketGeneration = AtomicInteger(0)
         private var reconnect = true
         private var heartbeatJob: Job? = null
 
@@ -58,73 +56,80 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
     }
 
     private fun createSocket() {
-        // Rebuild activeChannels from all slots
-        val allChannels = mutableSetOf<String>()
-        activeSubscriptions.values.forEach { subscription ->
-            allChannels.addAll(subscription.channels)
-        }
-
-        if (allChannels.isEmpty()) {
-            reconnect = false
-            closeSocket()
-            return
-        }
-
-        val encodedProject = java.net.URLEncoder.encode(client.config["project"].toString(), "UTF-8")
-        var queryParams = "project=$encodedProject"
-        
-        allChannels.forEach { channel ->
-            val encodedChannel = java.net.URLEncoder.encode(channel, "UTF-8")
-            queryParams += "&channels[]=$encodedChannel"
-        }
-
-        // Build query string from slots → channels → queries
-        // Format: channel[slot][]=query (each query sent as separate parameter)
-        // For each slot, repeat its queries under each channel it subscribes to
-        // Example: slot 1 → channels [tests, prod], queries [q1, q2]
-        //   Produces: tests[1][]=q1&tests[1][]=q2&prod[1][]=q1&prod[1][]=q2
-        val selectAllQuery = Query.select(listOf("*")).toString()
-        activeSubscriptions.forEach { (slot, subscription) ->
-            // Get queries array - each query is a separate string
-            val queries = if (subscription.queries.isEmpty()) {
-                listOf(selectAllQuery)
-            } else {
-                subscription.queries.toList()
+        // Serialize socket recreation so subscribe(A), subscribe(B), subscribe(C)
+        // deterministically results in A -> A+B -> A+B+C (sequential updates).
+        val request: Request
+        val newSocket: RealWebSocket?
+        synchronized(subscriptionLock) {
+            // Rebuild activeChannels from all slots
+            val allChannels = mutableSetOf<String>()
+            activeSubscriptions.values.forEach { subscription ->
+                allChannels.addAll(subscription.channels)
             }
-            
-            // Repeat this slot's queries under each channel it subscribes to
-            // Each query is sent as a separate parameter: channel[slot][]=q1&channel[slot][]=q2
-            subscription.channels.forEach { channel ->
+
+            if (allChannels.isEmpty()) {
+                reconnect = false
+                closeSocket()
+                return
+            }
+
+            val encodedProject = java.net.URLEncoder.encode(client.config["project"].toString(), "UTF-8")
+            var queryParams = "project=$encodedProject"
+
+            allChannels.forEach { channel ->
                 val encodedChannel = java.net.URLEncoder.encode(channel, "UTF-8")
-                queries.forEach { query ->
-                    val encodedQuery = java.net.URLEncoder.encode(query, "UTF-8")
-                    queryParams += "&$encodedChannel[$slot][]=$encodedQuery"
+                queryParams += "&channels[]=$encodedChannel"
+            }
+
+            // Build query string from slots → channels → queries
+            // Format: channel[slot][]=query (each query sent as separate parameter)
+            // For each slot, repeat its queries under each channel it subscribes to
+            // Example: slot 1 → channels [tests, prod], queries [q1, q2]
+            //   Produces: tests[1][]=q1&tests[1][]=q2&prod[1][]=q1&prod[1][]=q2
+            val selectAllQuery = Query.select(listOf("*")).toString()
+            activeSubscriptions.forEach { (slot, subscription) ->
+                // Get queries array - each query is a separate string
+                val queries = if (subscription.queries.isEmpty()) {
+                    listOf(selectAllQuery)
+                } else {
+                    subscription.queries.toList()
+                }
+
+                // Repeat this slot's queries under each channel it subscribes to
+                // Each query is sent as a separate parameter: channel[slot][]=q1&channel[slot][]=q2
+                subscription.channels.forEach { channel ->
+                    val encodedChannel = java.net.URLEncoder.encode(channel, "UTF-8")
+                    queries.forEach { query ->
+                        val encodedQuery = java.net.URLEncoder.encode(query, "UTF-8")
+                        queryParams += "&$encodedChannel[$slot][]=$encodedQuery"
+                    }
                 }
             }
+
+            val url = "${client.endpointRealtime}/realtime?$queryParams"
+            request = Request.Builder().url(url).build()
+
+            if (socket != null) {
+                reconnect = false
+                closeSocket()
+                // Don't rely on old socket callbacks to flip reconnect back.
+                reconnect = true
+            }
+
+            val generation = socketGeneration.incrementAndGet()
+            newSocket = RealWebSocket(
+                taskRunner = TaskRunner.INSTANCE,
+                originalRequest = request,
+                listener = {{ spec.title | caseUcfirst }}WebSocketListener(generation),
+                random = Random(),
+                pingIntervalMillis = client.http.pingIntervalMillis.toLong(),
+                extensions = null,
+                minimumDeflateSize = client.http.minWebSocketMessageToCompress
+            )
+            socket = newSocket
         }
 
-        val url = "${client.endpointRealtime}/realtime?$queryParams"
-
-        val request = Request.Builder()
-            .url(url)
-            .build()
-
-        if (socket != null) {
-            reconnect = false
-            closeSocket()
-        }
-
-        socket = RealWebSocket(
-            taskRunner = TaskRunner.INSTANCE,
-            originalRequest = request,
-            listener = {{ spec.title | caseUcfirst }}WebSocketListener(),
-            random = Random(),
-            pingIntervalMillis = client.http.pingIntervalMillis.toLong(),
-            extensions = null,
-            minimumDeflateSize = client.http.minWebSocketMessageToCompress
-        )
-
-        socket!!.connect(client.http)
+        newSocket?.connect(client.http)
     }
 
     private fun closeSocket() {
@@ -218,15 +223,8 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
                 callback as (RealtimeResponseEvent<*>) -> Unit
             )
         }
-
-        launch {
-            subCallDepth++
-            delay(DEBOUNCE_MILLIS)
-            if (subCallDepth == 1) {
-                createSocket()
-            }
-            subCallDepth--
-        }
+        // Sequential: rebuild socket immediately for A -> A+B -> A+B+C.
+        createSocket()
 
         return RealtimeSubscription {
             // Unsubscribe must update all three maps atomically so that
@@ -237,25 +235,35 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
                 slotToSubscriptionId.remove(slot)
                 subscriptionId?.let { subscriptionIdToSlot.remove(it) }
             }
-            launch { createSocket() }
+            // Sequential: rebuild socket immediately after unsubscribe.
+            this@Realtime.createSocket()
         }
     }
 
     // cleanUp is no longer needed - slots are removed directly in subscribe().close()
     // Channels are automatically rebuilt from remaining slots in createSocket()
 
-    private inner class {{ spec.title | caseUcfirst }}WebSocketListener : WebSocketListener() {
+    private inner class {{ spec.title | caseUcfirst }}WebSocketListener(
+        private val generation: Int
+    ) : WebSocketListener() {
+
+        private fun isStale(webSocket: WebSocket): Boolean {
+            return generation != socketGeneration.get() || webSocket !== socket
+        }
 
         override fun onOpen(webSocket: WebSocket, response: Response) {
             super.onOpen(webSocket, response)
+            if (isStale(webSocket)) return
             reconnectAttempts = 0
             startHeartbeat()
         }
 
         override fun onMessage(webSocket: WebSocket, text: String) {
             super.onMessage(webSocket, text)
+            if (isStale(webSocket)) return
 
             launch(IO) {
+                if (isStale(webSocket)) return@launch
                 val message = text.fromJson<RealtimeResponse>()
                 when (message.type) {
                     TYPE_ERROR -> handleResponseError(message)
@@ -329,6 +337,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
 
         override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
             super.onClosing(webSocket, code, reason)
+            if (isStale(webSocket)) return
             stopHeartbeat()
             if (!reconnect || code == RealtimeCode.POLICY_VIOLATION.value) {
                 reconnect = true
@@ -352,6 +361,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
 
         override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
             super.onFailure(webSocket, t, response)
+            if (isStale(webSocket)) return
             stopHeartbeat()
             t.printStackTrace()
         }

@@ -106,6 +106,8 @@ await users.delete({ userId: '[USER_ID]' });
 ### Database Operations
 
 > **Note:** Use `TablesDB` (not the deprecated `Databases` class) for all new code. Only use `Databases` if the existing codebase already relies on it or the user explicitly requests it.
+>
+> **Tip:** Prefer the object-params calling style (e.g., `{ databaseId: '...' }`) for all SDK method calls. Only use positional arguments if the existing codebase already uses them or the user explicitly requests it.
 
 ```typescript
 const tablesDB = new TablesDB(client);
@@ -155,6 +157,35 @@ await tablesDB.deleteRow({
     databaseId: '[DATABASE_ID]',
     tableId: '[TABLE_ID]',
     rowId: '[ROW_ID]'
+});
+```
+
+#### String Column Types
+
+> **Note:** The legacy `string` type is deprecated. Use explicit column types for all new columns.
+
+| Type | Max characters | Indexing | Storage |
+|------|---------------|----------|---------|
+| `varchar` | 16,383 | Full index (if size ≤ 768) | Inline in row |
+| `text` | 16,383 | Prefix only | Off-page |
+| `mediumtext` | 4,194,303 | Prefix only | Off-page |
+| `longtext` | 1,073,741,823 | Prefix only | Off-page |
+
+- `varchar` is stored inline and counts towards the 64 KB row size limit. Prefer for short, indexed fields like names, slugs, or identifiers.
+- `text`, `mediumtext`, and `longtext` are stored off-page (only a 20-byte pointer lives in the row), so they don't consume the row size budget. `size` is not required for these types.
+
+```typescript
+// Create table with explicit string column types
+await tablesDB.createTable({
+    databaseId: '[DATABASE_ID]',
+    tableId: ID.unique(),
+    name: 'articles',
+    columns: [
+        { key: 'title',    type: 'varchar',    size: 255, required: true  },  // inline, fully indexable
+        { key: 'summary',  type: 'text',                  required: false },  // off-page, prefix index only
+        { key: 'body',     type: 'mediumtext',            required: false },  // up to ~4 M chars
+        { key: 'raw_data', type: 'longtext',              required: false },  // up to ~1 B chars
+    ]
 });
 ```
 

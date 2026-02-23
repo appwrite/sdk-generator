@@ -251,7 +251,9 @@ class ServiceTest {
             writeToFile(Query.offset(20))
             writeToFile(Query.contains("title", listOf("Spider")))
             writeToFile(Query.contains("labels", listOf("first")))
-            
+            writeToFile(Query.containsAny("labels", listOf("first", "second")))
+            writeToFile(Query.containsAll("labels", listOf("first", "second")))
+
             // New query methods
             writeToFile(Query.notContains("title", listOf("Spider")))
             writeToFile(Query.notSearch("name", "john"))
@@ -321,6 +323,7 @@ class ServiceTest {
             writeToFile(Channel.database().collection().document().toString())
             writeToFile(Channel.database("db1").collection("col1").document("doc1").toString())
             writeToFile(Channel.database("db1").collection("col1").document("doc1").create().toString())
+            writeToFile(Channel.database("db1").collection("col1").document("doc1").upsert().toString())
             writeToFile(Channel.tablesdb().table().row().toString())
             writeToFile(Channel.tablesdb("db1").table("table1").row("row1").toString())
             writeToFile(Channel.tablesdb("db1").table("table1").row("row1").update().toString())
