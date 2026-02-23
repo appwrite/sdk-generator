@@ -46,7 +46,10 @@ namespace {{ spec.title | caseUcfirst }}
         IDocument Document(string id = null);
     }
 
-    public interface IDocument : IActionable { }
+    public interface IDocument : IActionable
+    {
+        ResolvedChannel Upsert();
+    }
 
     public interface ITablesDB
     {
@@ -58,7 +61,10 @@ namespace {{ spec.title | caseUcfirst }}
         IRow Row(string id = null);
     }
 
-    public interface IRow : IActionable { }
+    public interface IRow : IActionable
+    {
+        ResolvedChannel Upsert();
+    }
 
     public interface IBucket
     {
@@ -109,6 +115,8 @@ namespace {{ spec.title | caseUcfirst }}
         public IFile File(string id = null) => Next("files", id);
 
         public ResolvedChannel Create() => Resolve("create");
+
+        public ResolvedChannel Upsert() => Resolve("upsert");
 
         public ResolvedChannel Update() => Resolve("update");
 
