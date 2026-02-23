@@ -160,6 +160,21 @@ export function isCloud(): boolean {
   return hostname.endsWith("appwrite.io");
 }
 
+export function arrayEqualsUnordered(left: unknown, right: unknown): boolean {
+  const a = Array.isArray(left)
+    ? [...left].map((item) => String(item)).sort()
+    : [];
+  const b = Array.isArray(right)
+    ? [...right].map((item) => String(item)).sort()
+    : [];
+
+  if (a.length !== b.length) {
+    return false;
+  }
+
+  return a.every((value, index) => value === b[index]);
+}
+
 /**
  * Filters an object to only include fields defined in a Zod object schema.
  * Uses the schema's shape to determine allowed keys.

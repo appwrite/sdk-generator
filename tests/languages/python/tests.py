@@ -147,6 +147,8 @@ print(Query.limit(50))
 print(Query.offset(20))
 print(Query.contains("title", "Spider"))
 print(Query.contains("labels", "first"))
+print(Query.contains_any("labels", ["first", "second"]))
+print(Query.contains_all("labels", ["first", "second"]))
 
 # New query methods
 print(Query.not_contains("title", "Spider"))

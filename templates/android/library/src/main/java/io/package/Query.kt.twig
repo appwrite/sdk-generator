@@ -217,12 +217,36 @@ class Query(
 
         /**
          * Filter resources where attribute contains the specified value.
+         * For string attributes, checks if the string contains the substring.
          *
+         * Note: For array attributes, use [containsAny] or [containsAll] instead.
          * @param attribute The attribute to filter on.
          * @param value The value to compare against.
          * @returns The query string.
          */
         fun contains(attribute: String, value: Any) = Query("contains", attribute, parseValue(value)).toJson()
+
+        /**
+         * Filter resources where attribute contains ANY of the specified values.
+         * For array and relationship attributes, matches documents where the attribute
+         * contains at least one of the given values.
+         *
+         * @param attribute The attribute to filter on.
+         * @param value The value to compare against.
+         * @returns The query string.
+         */
+        fun containsAny(attribute: String, value: List<Any>) = Query("containsAny", attribute, value).toJson()
+
+        /**
+         * Filter resources where attribute contains ALL of the specified values.
+         * For array and relationship attributes, matches documents where the attribute
+         * contains every one of the given values.
+         *
+         * @param attribute The attribute to filter on.
+         * @param value The values to match against.
+         * @returns The query string.
+         */
+        fun containsAll(attribute: String, value: List<Any>) = Query("containsAll", attribute, value).toJson()
 
         /**
          * Filter resources where attribute does not contain the specified value.

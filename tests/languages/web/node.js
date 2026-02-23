@@ -213,7 +213,9 @@ async function start() {
     console.log(Query.offset(20));
     console.log(Query.contains("title", "Spider"));
     console.log(Query.contains("labels", "first"));
-    
+    console.log(Query.containsAny("labels", ["first", "second"]));
+    console.log(Query.containsAll("labels", ["first", "second"]));
+
     // New query methods
     console.log(Query.notContains("title", "Spider"));
     console.log(Query.notSearch("name", "john"));
@@ -290,6 +292,7 @@ async function start() {
     console.log(Channel.database().collection().document().toString());
     console.log(Channel.database('db1').collection('col1').document('doc1').toString());
     console.log(Channel.database('db1').collection('col1').document('doc1').create().toString());
+    console.log(Channel.database('db1').collection('col1').document('doc1').upsert().toString());
     console.log(Channel.tablesdb().table().row().toString());
     console.log(Channel.tablesdb('db1').table('table1').row('row1').toString());
     console.log(Channel.tablesdb('db1').table('table1').row('row1').update().toString());

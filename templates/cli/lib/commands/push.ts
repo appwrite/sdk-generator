@@ -24,7 +24,11 @@ import {
   type CollectionType,
 } from "./config.js";
 import { parseWithBetterErrors } from "./utils/error-formatter.js";
-import { createSettingsObject } from "../utils.js";
+import {
+  createSettingsObject,
+  checkDeployConditions,
+  arrayEqualsUnordered,
+} from "../utils.js";
 import { Spinner, SPINNER_DOTS } from "../spinner.js";
 import { paginate } from "../paginate.js";
 import { pushDeployment } from "./utils/deployment.js";
@@ -72,7 +76,6 @@ import {
   Client,
   Query,
 } from "@appwrite.io/console";
-import { checkDeployConditions } from "../utils.js";
 import { Pools } from "./utils/pools.js";
 import { Attributes, Collection } from "./utils/attributes.js";
 import {
@@ -98,6 +101,7 @@ export interface PushOptions {
   topics?: boolean;
   skipDeprecated?: boolean;
   skipConfirmation?: boolean;
+  force?: boolean;
   functionOptions?: {
     async?: boolean;
     code?: boolean;
@@ -200,207 +204,219 @@ export class Push {
     results: Record<string, any>;
     errors: any[];
   }> {
-    const { skipDeprecated = true } = options;
-    const results: Record<string, any> = {};
-    const allErrors: any[] = [];
-    const shouldPushAll = options.all === true;
-
-    // Push settings
-    if (
-      (shouldPushAll || options.settings) &&
-      (config.projectName || config.settings)
-    ) {
-      try {
-        this.log("Pushing settings ...");
-        await this.pushSettings({
-          projectId: config.projectId,
-          projectName: config.projectName,
-          settings: config.settings,
-        });
-        this.success(
-          `Successfully pushed ${chalk.bold("all")} project settings.`,
-        );
-        results.settings = { success: true };
-      } catch (e: any) {
-        allErrors.push(e);
-        results.settings = { success: false, error: e.message };
-      }
+    const previousForce = cliConfig.force;
+    if (options.force !== undefined) {
+      cliConfig.force = options.force;
     }
 
-    // Push buckets
-    if (
-      (shouldPushAll || options.buckets) &&
-      config.buckets &&
-      config.buckets.length > 0
-    ) {
-      try {
-        this.log("Pushing buckets ...");
-        const result = await this.pushBuckets(config.buckets);
-        this.success(
-          `Successfully pushed ${chalk.bold(result.successfullyPushed)} buckets.`,
-        );
-        results.buckets = result;
-        allErrors.push(...result.errors);
-      } catch (e: any) {
-        allErrors.push(e);
-        results.buckets = { successfullyPushed: 0, errors: [e] };
-      }
-    }
+    try {
+      const { skipDeprecated = true } = options;
+      const results: Record<string, any> = {};
+      const allErrors: any[] = [];
+      const shouldPushAll = options.all === true;
 
-    // Push teams
-    if (
-      (shouldPushAll || options.teams) &&
-      config.teams &&
-      config.teams.length > 0
-    ) {
-      try {
-        this.log("Pushing teams ...");
-        const result = await this.pushTeams(config.teams);
-        this.success(
-          `Successfully pushed ${chalk.bold(result.successfullyPushed)} teams.`,
-        );
-        results.teams = result;
-        allErrors.push(...result.errors);
-      } catch (e: any) {
-        allErrors.push(e);
-        results.teams = { successfullyPushed: 0, errors: [e] };
+      // Push settings
+      if (
+        (shouldPushAll || options.settings) &&
+        (config.projectName || config.settings)
+      ) {
+        try {
+          this.log("Pushing settings ...");
+          await this.pushSettings({
+            projectId: config.projectId,
+            projectName: config.projectName,
+            settings: config.settings,
+          });
+          this.success(
+            `Successfully pushed ${chalk.bold("all")} project settings.`,
+          );
+          results.settings = { success: true };
+        } catch (e: any) {
+          allErrors.push(e);
+          results.settings = { success: false, error: e.message };
+        }
       }
-    }
 
-    // Push messaging topics
-    if (
-      (shouldPushAll || options.topics) &&
-      config.topics &&
-      config.topics.length > 0
-    ) {
-      try {
-        this.log("Pushing topics ...");
-        const result = await this.pushMessagingTopics(config.topics);
-        this.success(
-          `Successfully pushed ${chalk.bold(result.successfullyPushed)} topics.`,
-        );
-        results.topics = result;
-        allErrors.push(...result.errors);
-      } catch (e: any) {
-        allErrors.push(e);
-        results.topics = { successfullyPushed: 0, errors: [e] };
+      // Push buckets
+      if (
+        (shouldPushAll || options.buckets) &&
+        config.buckets &&
+        config.buckets.length > 0
+      ) {
+        try {
+          this.log("Pushing buckets ...");
+          const result = await this.pushBuckets(config.buckets);
+          this.success(
+            `Successfully pushed ${chalk.bold(result.successfullyPushed)} buckets.`,
+          );
+          results.buckets = result;
+          allErrors.push(...result.errors);
+        } catch (e: any) {
+          allErrors.push(e);
+          results.buckets = { successfullyPushed: 0, errors: [e] };
+        }
       }
-    }
 
-    // Push functions
-    if (
-      (shouldPushAll || options.functions) &&
-      config.functions &&
-      config.functions.length > 0
-    ) {
-      try {
-        this.log("Pushing functions ...");
-        const result = await this.pushFunctions(
-          config.functions,
-          options.functionOptions,
-        );
-        this.success(
-          `Successfully pushed ${chalk.bold(result.successfullyPushed)} functions.`,
-        );
-        results.functions = result;
-        allErrors.push(...result.errors);
-      } catch (e: any) {
-        allErrors.push(e);
-        results.functions = {
-          successfullyPushed: 0,
-          successfullyDeployed: 0,
-          failedDeployments: [],
-          errors: [e],
-        };
+      // Push teams
+      if (
+        (shouldPushAll || options.teams) &&
+        config.teams &&
+        config.teams.length > 0
+      ) {
+        try {
+          this.log("Pushing teams ...");
+          const result = await this.pushTeams(config.teams);
+          this.success(
+            `Successfully pushed ${chalk.bold(result.successfullyPushed)} teams.`,
+          );
+          results.teams = result;
+          allErrors.push(...result.errors);
+        } catch (e: any) {
+          allErrors.push(e);
+          results.teams = { successfullyPushed: 0, errors: [e] };
+        }
       }
-    }
 
-    // Push sites
-    if (
-      (shouldPushAll || options.sites) &&
-      config.sites &&
-      config.sites.length > 0
-    ) {
-      try {
-        this.log("Pushing sites ...");
-        const result = await this.pushSites(config.sites, options.siteOptions);
-        this.success(
-          `Successfully pushed ${chalk.bold(result.successfullyPushed)} sites.`,
-        );
-        results.sites = result;
-        allErrors.push(...result.errors);
-      } catch (e: any) {
-        allErrors.push(e);
-        results.sites = {
-          successfullyPushed: 0,
-          successfullyDeployed: 0,
-          failedDeployments: [],
-          errors: [e],
-        };
+      // Push messaging topics
+      if (
+        (shouldPushAll || options.topics) &&
+        config.topics &&
+        config.topics.length > 0
+      ) {
+        try {
+          this.log("Pushing topics ...");
+          const result = await this.pushMessagingTopics(config.topics);
+          this.success(
+            `Successfully pushed ${chalk.bold(result.successfullyPushed)} topics.`,
+          );
+          results.topics = result;
+          allErrors.push(...result.errors);
+        } catch (e: any) {
+          allErrors.push(e);
+          results.topics = { successfullyPushed: 0, errors: [e] };
+        }
       }
-    }
 
-    // Push tables
-    if (
-      (shouldPushAll || options.tables) &&
-      config.tables &&
-      config.tables.length > 0
-    ) {
-      try {
-        this.log("Pushing tables ...");
-        const result = await this.pushTables(config.tables, {
-          attempts: options.tableOptions?.attempts,
-          skipConfirmation: options.skipConfirmation,
-        });
-        this.success(
-          `Successfully pushed ${chalk.bold(result.successfullyPushed)} tables.`,
-        );
-        results.tables = result;
-        allErrors.push(...result.errors);
-      } catch (e: any) {
-        allErrors.push(e);
-        results.tables = { successfullyPushed: 0, errors: [e] };
+      // Push functions
+      if (
+        (shouldPushAll || options.functions) &&
+        config.functions &&
+        config.functions.length > 0
+      ) {
+        try {
+          this.log("Pushing functions ...");
+          const result = await this.pushFunctions(
+            config.functions,
+            options.functionOptions,
+          );
+          this.success(
+            `Successfully pushed ${chalk.bold(result.successfullyPushed)} functions.`,
+          );
+          results.functions = result;
+          allErrors.push(...result.errors);
+        } catch (e: any) {
+          allErrors.push(e);
+          results.functions = {
+            successfullyPushed: 0,
+            successfullyDeployed: 0,
+            failedDeployments: [],
+            errors: [e],
+          };
+        }
       }
-    }
 
-    // Push collections (skipDeprecated only applies when pushing all, explicit collections option takes precedence)
-    if (
-      (options.collections || (shouldPushAll && !skipDeprecated)) &&
-      config.collections &&
-      config.collections.length > 0
-    ) {
-      try {
-        this.log("Pushing collections ...");
-        // Add database names to collections
-        const collectionsWithDbNames = config.collections.map(
-          (collection: any) => {
-            const database = config.databases?.find(
-              (db: any) => db.$id === collection.databaseId,
-            );
-            return {
-              ...collection,
-              databaseName: database?.name ?? collection.databaseId,
-            };
-          },
-        );
-        const result = await this.pushCollections(collectionsWithDbNames, {
-          skipConfirmation: options.skipConfirmation,
-        });
-        this.success(
-          `Successfully pushed ${chalk.bold(result.successfullyPushed)} collections.`,
-        );
-        results.collections = result;
-        allErrors.push(...result.errors);
-      } catch (e: any) {
-        allErrors.push(e);
-        results.collections = { successfullyPushed: 0, errors: [e] };
+      // Push sites
+      if (
+        (shouldPushAll || options.sites) &&
+        config.sites &&
+        config.sites.length > 0
+      ) {
+        try {
+          this.log("Pushing sites ...");
+          const result = await this.pushSites(
+            config.sites,
+            options.siteOptions,
+          );
+          this.success(
+            `Successfully pushed ${chalk.bold(result.successfullyPushed)} sites.`,
+          );
+          results.sites = result;
+          allErrors.push(...result.errors);
+        } catch (e: any) {
+          allErrors.push(e);
+          results.sites = {
+            successfullyPushed: 0,
+            successfullyDeployed: 0,
+            failedDeployments: [],
+            errors: [e],
+          };
+        }
       }
-    }
 
-    return {
-      results,
-      errors: allErrors,
-    };
+      // Push tables
+      if (
+        (shouldPushAll || options.tables) &&
+        config.tables &&
+        config.tables.length > 0
+      ) {
+        try {
+          this.log("Pushing tables ...");
+          const result = await this.pushTables(config.tables, {
+            attempts: options.tableOptions?.attempts,
+            skipConfirmation: options.skipConfirmation,
+          });
+          this.success(
+            `Successfully pushed ${chalk.bold(result.successfullyPushed)} tables.`,
+          );
+          results.tables = result;
+          allErrors.push(...result.errors);
+        } catch (e: any) {
+          allErrors.push(e);
+          results.tables = { successfullyPushed: 0, errors: [e] };
+        }
+      }
+
+      // Push collections (skipDeprecated only applies when pushing all, explicit collections option takes precedence)
+      if (
+        (options.collections || (shouldPushAll && !skipDeprecated)) &&
+        config.collections &&
+        config.collections.length > 0
+      ) {
+        try {
+          this.log("Pushing collections ...");
+          // Add database names to collections
+          const collectionsWithDbNames = config.collections.map(
+            (collection: any) => {
+              const database = config.databases?.find(
+                (db: any) => db.$id === collection.databaseId,
+              );
+              return {
+                ...collection,
+                databaseName: database?.name ?? collection.databaseId,
+              };
+            },
+          );
+          const result = await this.pushCollections(collectionsWithDbNames, {
+            skipConfirmation: options.skipConfirmation,
+          });
+          this.success(
+            `Successfully pushed ${chalk.bold(result.successfullyPushed)} collections.`,
+          );
+          results.collections = result;
+          allErrors.push(...result.errors);
+        } catch (e: any) {
+          allErrors.push(e);
+          results.collections = { successfullyPushed: 0, errors: [e] };
+        }
+      }
+
+      return {
+        results,
+        errors: allErrors,
+      };
+    } finally {
+      cliConfig.force = previousForce;
+    }
   }
 
   public async pushSettings(config: {
@@ -489,13 +505,54 @@ export class Push {
     let successfullyPushed = 0;
     const errors: any[] = [];
 
+    const hasBucketChanges = (remoteBucket: any, localBucket: any): boolean => {
+      const scalarFields = [
+        "name",
+        "fileSecurity",
+        "enabled",
+        "maximumFileSize",
+        "encryption",
+        "antivirus",
+        "compression",
+      ] as const;
+
+      if (
+        scalarFields.some((field) => remoteBucket[field] !== localBucket[field])
+      ) {
+        return true;
+      }
+
+      if (
+        !arrayEqualsUnordered(
+          remoteBucket["$permissions"],
+          localBucket["$permissions"],
+        )
+      ) {
+        return true;
+      }
+
+      return !arrayEqualsUnordered(
+        remoteBucket.allowedFileExtensions,
+        localBucket.allowedFileExtensions,
+      );
+    };
+
     for (const bucket of buckets) {
       try {
         this.log(`Pushing bucket ${chalk.bold(bucket["name"])} ...`);
         const storageService = await getStorageService(this.projectClient);
 
         try {
-          await storageService.getBucket(bucket["$id"]);
+          const remoteBucket = await storageService.getBucket(bucket["$id"]);
+          const hasChanges = hasBucketChanges(remoteBucket, bucket);
+
+          if (!hasChanges) {
+            this.log(
+              `No changes detected for bucket ${chalk.bold(bucket["name"])}. Skipping.`,
+            );
+            continue;
+          }
+
           await storageService.updateBucket({
             bucketId: bucket["$id"],
             name: bucket.name,
@@ -508,6 +565,7 @@ export class Push {
             antivirus: bucket.antivirus,
             compression: bucket.compression,
           });
+          successfullyPushed++;
         } catch (e: unknown) {
           if (e instanceof AppwriteException && Number(e.code) === 404) {
             await storageService.createBucket({
@@ -522,12 +580,11 @@ export class Push {
               encryption: bucket.encryption,
               antivirus: bucket.antivirus,
             });
+            successfullyPushed++;
           } else {
             throw e;
           }
         }
-
-        successfullyPushed++;
       } catch (e: any) {
         errors.push(e);
         this.error(`Failed to push bucket ${bucket["name"]}: ${e.message}`);
@@ -1360,8 +1417,12 @@ export class Push {
   }> {
     const { attempts, skipConfirmation = false } = options;
     const pollMaxDebounces = attempts ?? POLL_DEFAULT_VALUE;
-    const pools = new Pools(pollMaxDebounces);
-    const attributes = new Attributes(pools, skipConfirmation);
+    const pools = new Pools(pollMaxDebounces, this.projectClient);
+    const attributes = new Attributes(
+      pools,
+      skipConfirmation,
+      this.projectClient,
+    );
 
     let tablesChanged = new Set();
     const errors: any[] = [];
@@ -1454,6 +1515,11 @@ export class Push {
         hadChanges = columnsResult.hasChanges || indexesResult.hasChanges;
 
         if (!hadChanges && columns.length <= 0 && indexes.length <= 0) {
+          if (!tablesChanged.has(table["$id"])) {
+            this.log(
+              `No changes detected for table ${chalk.bold(table["name"])}. Skipping.`,
+            );
+          }
           continue;
         }
       }
@@ -1493,8 +1559,12 @@ export class Push {
     errors: Error[];
   }> {
     const { skipConfirmation = false } = options;
-    const pools = new Pools(POLL_DEFAULT_VALUE);
-    const attributesHelper = new Attributes(pools, skipConfirmation);
+    const pools = new Pools(POLL_DEFAULT_VALUE, this.projectClient);
+    const attributesHelper = new Attributes(
+      pools,
+      skipConfirmation,
+      this.projectClient,
+    );
 
     const errors: Error[] = [];
 
@@ -1933,7 +2003,20 @@ const pushSite = async ({
 
   failedDeployments.forEach((failed) => {
     const { name, deployment, $id } = failed;
-    const failUrl = `${globalConfig.getEndpoint().slice(0, -3)}/console/project-${localConfig.getProject().projectId}/sites/site-${$id}/deployments/deployment-${deployment}`;
+    const projectId = localConfig.getProject().projectId;
+    const endpoint = localConfig.getEndpoint() || globalConfig.getEndpoint();
+    let region = "";
+    try {
+      const hostname = new URL(endpoint).hostname;
+      const firstSubdomain = hostname.split(".")[0];
+      if (firstSubdomain.length === 3) {
+        region = firstSubdomain;
+      }
+    } catch {}
+    const projectSlug = region
+      ? `project-${region}-${projectId}`
+      : `project-${projectId}`;
+    const failUrl = `${globalConfig.getEndpoint().slice(0, -3)}/console/${projectSlug}/sites/site-${$id}/deployments/deployment-${deployment}`;
 
     error(
       `Deployment of ${name} has failed. Check at ${failUrl} for more details\n`,
@@ -2061,7 +2144,20 @@ const pushFunction = async ({
 
   failedDeployments.forEach((failed) => {
     const { name, deployment, $id } = failed;
-    const failUrl = `${globalConfig.getEndpoint().slice(0, -3)}/console/project-${localConfig.getProject().projectId}/functions/function-${$id}/deployment-${deployment}`;
+    const projectId = localConfig.getProject().projectId;
+    const endpoint = localConfig.getEndpoint() || globalConfig.getEndpoint();
+    let region = "";
+    try {
+      const hostname = new URL(endpoint).hostname;
+      const firstSubdomain = hostname.split(".")[0];
+      if (firstSubdomain.length === 3) {
+        region = firstSubdomain;
+      }
+    } catch {}
+    const projectSlug = region
+      ? `project-${region}-${projectId}`
+      : `project-${projectId}`;
+    const failUrl = `${globalConfig.getEndpoint().slice(0, -3)}/console/${projectSlug}/functions/function-${$id}/deployment-${deployment}`;
 
     error(
       `Deployment of ${name} has failed. Check at ${failUrl} for more details\n`,
@@ -2294,12 +2390,13 @@ const pushCollection = async (): Promise<void> => {
     const localDatabase = localConfig.getDatabase(collection.databaseId);
     collection.databaseName = localDatabase.name ?? collection.databaseId;
   });
+  const projectClient = await sdkForProject();
 
   if (
     !(await approveChanges(
       collections,
       async (args: any) => {
-        const databasesService = await getDatabasesService();
+        const databasesService = await getDatabasesService(projectClient);
         return await databasesService.getCollection(
           args.databaseId,
           args.collectionId,

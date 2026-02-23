@@ -168,6 +168,8 @@ echo Query::limit(50) . "\n";
 echo Query::offset(20) . "\n";
 echo Query::contains('title', ['Spider']) . "\n";
 echo Query::contains('labels', ['first']) . "\n";
+echo Query::containsAny('labels', ['first', 'second']) . "\n";
+echo Query::containsAll('labels', ['first', 'second']) . "\n";
 
 // New query methods
 echo Query::notContains('title', ['Spider']) . "\n";
