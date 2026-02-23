@@ -2,6 +2,8 @@ import os from "os";
 import fs from "fs";
 import _path from "path";
 import process from "process";
+import chalk from "chalk";
+import { loadConfig } from "c12";
 import type { Models } from "@appwrite.io/console";
 import type { z } from "zod";
 import type {
@@ -38,6 +40,7 @@ import type {
 import { createSettingsObject } from "./utils.js";
 import { EXECUTABLE_NAME } from "./constants.js";
 import { JSONBig } from "./json.js";
+import { writeTypeScriptConfig, findTypeScriptConfig } from "./config-writer.js";
 
 /**
  * Extract keys from a Zod object schema.
@@ -255,6 +258,10 @@ class Local extends Config<ConfigType> {
   static CONFIG_FILE_PATH = `${EXECUTABLE_NAME}.config.json`;
   static CONFIG_FILE_PATH_LEGACY = `${EXECUTABLE_NAME}.json`;
   configDirectoryPath = "";
+  private c12Config: ConfigType | null = null;
+  private c12ConfigFile: string | null = null;
+  private tsWriteTimeout: NodeJS.Timeout | null = null;
+  private tsWritePending: boolean = false;
 
   constructor(
     path: string = Local.CONFIG_FILE_PATH,
@@ -271,7 +278,73 @@ class Local extends Config<ConfigType> {
     this.configDirectoryPath = _path.dirname(absolutePath);
   }
 
+  /**
+   * Load configuration using c12, which supports TypeScript, JavaScript, and JSON config files.
+   * This allows users to define config in appwrite.config.ts, appwrite.config.js, or appwrite.config.json
+   */
+  async loadC12Config(): Promise<void> {
+    try {
+      const { config, configFile } = await loadConfig<ConfigType>({
+        name: EXECUTABLE_NAME,
+        cwd: this.configDirectoryPath || process.cwd(),
+        dotenv: false,
+        globalRc: false,
+        giget: false, // Disable giget to avoid node-fetch-native dependency issues
+      });
+
+      if (config && Object.keys(config).length > 0) {
+        this.c12Config = config;
+        this.c12ConfigFile = configFile || null;
+        // Merge c12 config with existing data
+        this.data = { ...this.data, ...this.c12Config };
+      }
+    } catch (err) {
+      // If c12 fails, fall back to the JSON config (already loaded in constructor)
+      console.warn(
+        chalk.yellow(
+          `⚠️  Failed to load c12 config: ${err instanceof Error ? err.message : String(err)}`
+        )
+      );
+      this.c12Config = null;
+      this.c12ConfigFile = null;
+    }
+  }
+
+  /**
+   * Check if config was loaded from a TypeScript/JavaScript file via c12
+   */
+  hasC12TypeScriptConfig(): boolean {
+    if (!this.c12ConfigFile) return false;
+    return /\.(ts|js|mjs|cjs|mts|cts)$/.test(this.c12ConfigFile);
+  }
+
+  /**
+   * Get the c12 config file path if loaded via c12
+   */
+  getC12ConfigFile(): string | null {
+    return this.c12ConfigFile;
+  }
+
+  /**
+   * Override read to support both c12 configs and legacy JSON configs
+   */
+  read(): void {
+    try {
+      const file = fs.readFileSync(this.path).toString();
+      this.data = JSONBig.parse(file);
+    } catch (e) {
+      this.data = {} as ConfigType;
+    }
+  }
+
   write(): void {
+    // Check if a TypeScript/JavaScript config file exists
+    const tsConfigPath = findTypeScriptConfig(
+      this.configDirectoryPath,
+      `${EXECUTABLE_NAME}.config`,
+    );
+
+    // Always write to JSON file synchronously (original behavior)
     const dir = _path.dirname(this.path);
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
@@ -280,6 +353,43 @@ class Local extends Config<ConfigType> {
     fs.writeFileSync(this.path, JSONBig.stringify(orderedData, null, 4), {
       mode: 0o600,
     });
+
+    // Debounced write to TypeScript/JavaScript config file
+    if (tsConfigPath) {
+      this.tsWritePending = true;
+
+      // Clear existing timeout to debounce multiple rapid writes
+      if (this.tsWriteTimeout) {
+        clearTimeout(this.tsWriteTimeout);
+      }
+
+      // Set new timeout - writes will be batched and executed after a delay
+      this.tsWriteTimeout = setTimeout(async () => {
+        if (!this.tsWritePending) return;
+
+        this.tsWritePending = false;
+        const snapshot = { ...this.data }; // Capture current state
+
+        try {
+          const success = await writeTypeScriptConfig(tsConfigPath, snapshot);
+          if (success) {
+            console.log(chalk.green(`✓ Updated ${tsConfigPath}`));
+          } else {
+            console.warn(
+              chalk.yellow(
+                `⚠️  Failed to update ${tsConfigPath}, changes saved to ${this.path}`,
+              ),
+            );
+          }
+        } catch (err) {
+          console.error(
+            chalk.red(
+              `✗ Error writing ${tsConfigPath}: ${err instanceof Error ? err.message : String(err)}`,
+            ),
+          );
+        }
+      }, 50); // 50ms debounce window
+    }
   }
 
   static findConfigFile(filename: string): string | null {
@@ -876,6 +986,17 @@ class Global extends Config<GlobalConfigData> {
 
 export const localConfig = new Local();
 export const globalConfig = new Global();
+
+/**
+ * Initialize configuration by loading TypeScript/JavaScript config files via c12.
+ * This should be called once at CLI startup before accessing configuration values.
+ * It merges c12 config (from appwrite.config.ts, appwrite.config.js, etc.) with
+ * the JSON config file.
+ */
+export async function initializeConfig(): Promise<void> {
+  await localConfig.loadC12Config();
+}
+
 export {
   KeysAttributes,
   KeysSite,

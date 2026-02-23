@@ -236,6 +236,13 @@ class CLI extends Node
                 'template'      => 'cli/index.ts',
             ],
 
+            // Build scripts
+            [
+                'scope'         => 'copy',
+                'destination'   => 'scripts/patch-giget.mjs',
+                'template'      => 'cli/scripts/patch-giget.mjs',
+            ],
+
             // Installation scripts
             [
                 'scope'         => 'default',
@@ -292,6 +299,16 @@ class CLI extends Node
                 'scope'         => 'copy',
                 'destination'   => 'lib/config.ts',
                 'template'      => 'cli/lib/config.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'lib/config-writer.ts',
+                'template'      => 'cli/lib/config-writer.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'lib/define-config.ts',
+                'template'      => 'cli/lib/define-config.ts',
             ],
             [
                 'scope'         => 'default',

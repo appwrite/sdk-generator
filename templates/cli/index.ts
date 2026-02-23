@@ -10,6 +10,8 @@ import { Schema } from "./lib/commands/schema.js";
 
 export { Schema, Push, Pull };
 export { Client } from "@appwrite.io/console";
+export { defineConfig } from "./lib/define-config.js";
+export { initializeConfig } from "./lib/config.js";
 export type {
   ConfigType,
   SettingsType,

@@ -18,50 +18,33 @@ const int64Schema = z.preprocess(
     if (typeof val === "bigint") {
       return val;
     }
-
-    if (typeof val === "object" && val !== null) {
-      if (typeof val.valueOf === "function") {
-        try {
-          const valueOfResult = val.valueOf();
-          const bigIntVal = BigInt(valueOfResult as string | number | bigint);
-          return bigIntVal;
-        } catch (e) {
-          return undefined;
-        }
-      }
-
-      const num = Number(val);
-      return !isNaN(num) ? BigInt(Math.trunc(num)) : undefined;
+    if (typeof val === "number") {
+      return val; // Keep numbers as-is for double columns
     }
-
     if (typeof val === "string") {
       try {
         return BigInt(val);
-      } catch (e) {
-        return undefined;
+      } catch {
+        const num = Number(val);
+        return isNaN(num) ? undefined : num;
       }
     }
-
-    if (typeof val === "number") {
-      return BigInt(Math.trunc(val));
-    }
-
     return val;
   },
   z
-    .bigint()
-    .nullable()
+    .union([
+      z.bigint().superRefine((val, ctx) => {
+        if (val < INT64_MIN || val > INT64_MAX) {
+          ctx.addIssue({
+            code: "custom",
+            message: `Value must be between ${INT64_MIN} and ${INT64_MAX} (64-bit signed integer range)`,
+          });
+        }
+      }),
+      z.number(),
+    ])
     .optional()
-    .superRefine((val, ctx) => {
-      if (val === undefined || val === null) return;
-
-      if (val < INT64_MIN || val > INT64_MAX) {
-        ctx.addIssue({
-          code: "custom",
-          message: `Value must be between ${INT64_MIN} and ${INT64_MAX} (64-bit signed integer range)`,
-        });
-      }
-    }),
+    .nullable(),
 );
 
 const MockNumberSchema = z
