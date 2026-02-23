@@ -996,7 +996,7 @@ export const globalConfig = new Global();
  * It merges c12 config (from appwrite.config.ts, appwrite.config.js, etc.) with
  * the JSON config file.
  */
-export async function initializeConfig(): Promise<void> {
+async function initializeConfig(): Promise<void> {
   await localConfig.loadC12Config();
 }
 
