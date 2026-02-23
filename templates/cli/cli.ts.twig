@@ -130,9 +130,13 @@ if (process.argv.includes('-v') || process.argv.includes('--version')) {
         .addCommand(client);
 
     // Initialize config (loads TypeScript/JavaScript configs via c12)
-    await initializeConfig();
-
-    program.parse(process.argv);
+    // Use .then() instead of await for CJS compatibility
+    initializeConfig().then(() => {
+        program.parse(process.argv);
+    }).catch((err) => {
+        console.error('Failed to initialize config:', err);
+        process.exit(1);
+    });
 
     process.stdout.columns = oldWidth;
 }

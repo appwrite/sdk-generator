@@ -13,39 +13,17 @@ import {
 const INT64_MIN = BigInt("-9223372036854775808");
 const INT64_MAX = BigInt("9223372036854775807");
 
-const int64Schema = z.preprocess(
-  (val) => {
-    if (typeof val === "bigint") {
-      return val;
+const int64Schema = z.union([
+  z.bigint().superRefine((val, ctx) => {
+    if (val < INT64_MIN || val > INT64_MAX) {
+      ctx.addIssue({
+        code: "custom",
+        message: `Value must be between ${INT64_MIN} and ${INT64_MAX} (64-bit signed integer range)`,
+      });
     }
-    if (typeof val === "number") {
-      return val; // Keep numbers as-is for double columns
-    }
-    if (typeof val === "string") {
-      try {
-        return BigInt(val);
-      } catch {
-        const num = Number(val);
-        return isNaN(num) ? undefined : num;
-      }
-    }
-    return val;
-  },
-  z
-    .union([
-      z.bigint().superRefine((val, ctx) => {
-        if (val < INT64_MIN || val > INT64_MAX) {
-          ctx.addIssue({
-            code: "custom",
-            message: `Value must be between ${INT64_MIN} and ${INT64_MAX} (64-bit signed integer range)`,
-          });
-        }
-      }),
-      z.number(),
-    ])
-    .optional()
-    .nullable(),
-);
+  }),
+  z.number(),
+]).optional().nullable();
 
 const MockNumberSchema = z
   .object({
@@ -212,7 +190,7 @@ const AttributeSchema = z
     side: z.string().optional(),
     attributes: z.array(z.string()).optional(),
     orders: z.array(z.string()).optional(),
-    encrypt: z.boolean().optional(),
+    encrypt: z.boolean().nullable().optional(),
   })
   .strict()
   .refine(validateRequiredDefault, {
@@ -293,7 +271,7 @@ const ColumnSchema = z
     // For table indexes, uses columns instead of attributes
     columns: z.array(z.string()).optional(),
     orders: z.array(z.string()).optional(),
-    encrypt: z.boolean().optional(),
+    encrypt: z.boolean().nullable().optional(),
   })
   .strict()
   .refine(validateRequiredDefault, {

@@ -18,6 +18,7 @@ import type {
   TopicType,
 } from "./commands/config.js";
 import {
+  ConfigSchema,
   SiteSchema,
   FunctionSchema,
   DatabaseSchema,
@@ -296,18 +297,65 @@ class Local extends Config<ConfigType> {
       });
 
       if (config && Object.keys(config).length > 0) {
-        this.c12Config = config;
-        this.c12ConfigFile = configFile || null;
-        // Merge c12 config with existing data
-        this.data = { ...this.data, ...this.c12Config };
+        // Validate the loaded config using runtime schema
+        const validation = ConfigSchema.safeParse(config);
+
+        if (validation.success) {
+          this.c12Config = validation.data;
+          this.c12ConfigFile = configFile || null;
+          // Merge validated c12 config with existing data
+          this.data = { ...this.data, ...this.c12Config };
+        } else {
+          // Validation failed, log errors and don't use invalid config
+          console.error(
+            chalk.red("✗ Invalid configuration in TypeScript/JavaScript config file:")
+          );
+          validation.error.issues.forEach((err) => {
+            console.error(chalk.red(`  - ${err.path.join(".")}: ${err.message}`));
+          });
+          this.c12Config = null;
+          this.c12ConfigFile = null;
+        }
       }
-    } catch (err) {
-      // If c12 fails, fall back to the JSON config (already loaded in constructor)
-      console.warn(
-        chalk.yellow(
-          `⚠️  Failed to load c12 config: ${err instanceof Error ? err.message : String(err)}`,
-        ),
+    } catch {
+      // c12 failed (common in compiled binaries)
+      // Try to load TypeScript config using Bun.Transpiler
+      const tsConfigPath = findTypeScriptConfig(
+        this.configDirectoryPath,
+        `${EXECUTABLE_NAME}.config`,
       );
+
+      if (tsConfigPath && typeof Bun !== "undefined") {
+        try {
+          const config = await loadTypeScriptConfig(tsConfigPath);
+
+          if (config && Object.keys(config).length > 0) {
+            const validation = ConfigSchema.safeParse(config);
+
+            if (validation.success) {
+              this.c12Config = validation.data;
+              this.c12ConfigFile = tsConfigPath;
+              this.data = { ...this.data, ...this.c12Config };
+              return;
+            } else {
+              console.error(
+                chalk.red("✗ Invalid configuration in TypeScript config file:")
+              );
+              validation.error.issues.forEach((err) => {
+                console.error(chalk.red(`  - ${err.path.join(".")}: ${err.message}`));
+              });
+            }
+          }
+        } catch (err) {
+          console.warn(
+            chalk.yellow(
+              `⚠️  Failed to load TypeScript config: ${err instanceof Error ? err.message : String(err)}`
+            )
+          );
+        }
+      }
+
+      // Fall back to JSON config
       this.c12Config = null;
       this.c12ConfigFile = null;
     }
@@ -375,9 +423,7 @@ class Local extends Config<ConfigType> {
 
         try {
           const success = await writeTypeScriptConfig(tsConfigPath, snapshot);
-          if (success) {
-            console.log(chalk.green(`✓ Updated ${tsConfigPath}`));
-          } else {
+          if (!success) {
             console.warn(
               chalk.yellow(
                 `⚠️  Failed to update ${tsConfigPath}, changes saved to ${this.path}`,
@@ -991,12 +1037,50 @@ export const localConfig = new Local();
 export const globalConfig = new Global();
 
 /**
+ * Load TypeScript config using Bun.Transpiler (works in compiled binaries).
+ * Transpiles TS to JS on the fly, writes to temp file, imports it, then cleans up.
+ */
+async function loadTypeScriptConfig(configPath: string): Promise<any> {
+  const tsSource = await Bun.file(configPath).text();
+
+  const transpiler = new Bun.Transpiler({
+    loader: "ts",
+    target: "bun",
+  });
+
+  let jsSource = transpiler.transformSync(tsSource);
+
+  // Replace the import statement with a local defineConfig function
+  // The defineConfig function is just an identity function for type safety
+  jsSource = jsSource.replace(
+    /import\s*\{[^}]*defineConfig[^}]*\}\s*from\s*['"][^'"]+['"];?\n?/g,
+    "function defineConfig(config) { return config; }\n"
+  );
+
+  // Write to a deterministic temp path
+  const tmpPath = _path.join(os.tmpdir(), `appwrite-config-${Date.now()}.mjs`);
+  await Bun.write(tmpPath, jsSource);
+
+  try {
+    const mod = await import(tmpPath);
+    return mod.default ?? mod;
+  } finally {
+    // Cleanup temp file
+    try {
+      fs.unlinkSync(tmpPath);
+    } catch {
+      // Ignore cleanup errors
+    }
+  }
+}
+
+/**
  * Initialize configuration by loading TypeScript/JavaScript config files via c12.
  * This should be called once at CLI startup before accessing configuration values.
  * It merges c12 config (from appwrite.config.ts, appwrite.config.js, etc.) with
  * the JSON config file.
  */
-async function initializeConfig(): Promise<void> {
+export async function initializeConfig(): Promise<void> {
   await localConfig.loadC12Config();
 }
 

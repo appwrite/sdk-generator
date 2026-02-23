@@ -10,8 +10,8 @@ import type { ConfigType } from "./commands/config.js";
  * import { defineConfig } from "appwrite-cli";
  *
  * export default defineConfig({
- *   projectId: "my-project",
- *   endpoint: "https://cloud.appwrite.io/v1",
+ *   projectId: "<project-id>",
+ *   endpoint: "https://<region>.cloud.appwrite.io/v1",
  *   functions: [
  *     {
  *       $id: "my-function",

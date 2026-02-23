@@ -52,7 +52,7 @@ async function prettify(code: string): Promise<string> {
   return format(code, {
     parser: "typescript",
     printWidth: 100,
-    tabWidth: 2,
+    tabWidth: 4,
     useTabs: false,
     semi: true,
     singleQuote: false,
