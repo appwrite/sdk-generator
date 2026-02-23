@@ -40,7 +40,10 @@ import type {
 import { createSettingsObject } from "./utils.js";
 import { EXECUTABLE_NAME } from "./constants.js";
 import { JSONBig } from "./json.js";
-import { writeTypeScriptConfig, findTypeScriptConfig } from "./config-writer.js";
+import {
+  writeTypeScriptConfig,
+  findTypeScriptConfig,
+} from "./config-writer.js";
 
 /**
  * Extract keys from a Zod object schema.
@@ -302,8 +305,8 @@ class Local extends Config<ConfigType> {
       // If c12 fails, fall back to the JSON config (already loaded in constructor)
       console.warn(
         chalk.yellow(
-          `⚠️  Failed to load c12 config: ${err instanceof Error ? err.message : String(err)}`
-        )
+          `⚠️  Failed to load c12 config: ${err instanceof Error ? err.message : String(err)}`,
+        ),
       );
       this.c12Config = null;
       this.c12ConfigFile = null;
