@@ -276,18 +276,25 @@ appwrite push tables
 
 ### Column type commands
 
+> **Note:** The legacy `string` type is deprecated. Use explicit string column types instead.
+
 | Command | Description |
 |---------|-------------|
-| `create-string-column` | Create string column |
-| `create-boolean-column` | Create boolean column |
-| `create-integer-column` | Create integer column |
-| `create-float-column` | Create float column |
-| `create-email-column` | Create email column |
-| `create-url-column` | Create URL column |
-| `create-ip-column` | Create IP address column |
-| `create-datetime-column` | Create datetime column |
-| `create-enum-column` | Create enum column |
-| `create-relationship-column` | Create relationship column |
+| `create-varchar-attribute` | Varchar column — inline storage, fully indexable (max 16,383 chars, size ≤ 768 for full index) |
+| `create-text-attribute` | Text column — off-page storage, prefix index only (max 16,383 chars) |
+| `create-mediumtext-attribute` | Mediumtext column — off-page storage (max ~4M chars) |
+| `create-longtext-attribute` | Longtext column — off-page storage (max ~1B chars) |
+| `create-boolean-attribute` | Boolean column |
+| `create-integer-attribute` | Integer column (optional min/max) |
+| `create-float-attribute` | Float column (optional min/max) |
+| `create-email-attribute` | Email column |
+| `create-url-attribute` | URL column |
+| `create-ip-attribute` | IP address column |
+| `create-datetime-attribute` | Datetime column (ISO 8601) |
+| `create-enum-attribute` | Enum column (whitelist of accepted values) |
+| `create-relationship-attribute` | Relationship column |
+
+All column commands use `appwrite databases <command> --database-id <ID> --table-id <ID>`.
 
 ### Row operations
 
