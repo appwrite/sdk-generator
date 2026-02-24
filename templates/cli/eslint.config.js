@@ -36,7 +36,7 @@ export default tseslint.config(
       '@typescript-eslint/no-misused-promises': 'off',
       'unused-imports/no-unused-imports': 'error',
       '@typescript-eslint/require-await': 'off',
-      '@typescript-eslint/only-throw-error': 'off', // won't work with TanStack redirects
+      '@typescript-eslint/only-throw-error': 'off',
     },
   },
 )
