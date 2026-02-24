@@ -614,14 +614,15 @@ class Swagger2 extends Spec
                                 $list[$enumName] = [
                                     'name' => $enumName,
                                     'enum' => $parameter['enumValues'],
-                                    'keys' => $parameter['enumKeys'],
+                                    'keys' => $parameter['enumKeys'] ?? [],
                                 ];
                             } else {
                                 $list[$enumName]['enum'] = array_values(array_unique(
                                     array_merge($list[$enumName]['enum'], $parameter['enumValues'])
                                 ));
                                 $list[$enumName]['keys'] = array_values(array_unique(
-                                    array_merge($list[$enumName]['keys'], $parameter['enumKeys'])
+                                    array_merge($list[$enumName]['keys'] ?? [], $parameter['enumKeys'] ?? []),
+                                    SORT_REGULAR
                                 ));
                             }
                         }
