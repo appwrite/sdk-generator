@@ -155,11 +155,11 @@ export function systemHasCommand(command: string): boolean {
 }
 
 type DeployLocalConfig = {
-  data: Record<string, unknown>;
+  keys: () => string[];
 };
 
 export const checkDeployConditions = (localConfig: DeployLocalConfig): void => {
-  if (Object.keys(localConfig.data).length === 0) {
+  if (localConfig.keys().length === 0) {
     throw new Error(
       "No appwrite.config.json file found in the current directory. Please run this command again in the folder containing your appwrite.config.json file, or run 'appwrite init project' to link current directory to an Appwrite project.",
     );

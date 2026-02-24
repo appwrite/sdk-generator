@@ -31,11 +31,57 @@ import {
 } from "../parser.js";
 import { sdkForConsole } from "../sdks.js";
 import { isCloud } from "../utils.js";
-import { Account, UseCases } from "@appwrite.io/console";
+import { Account, UseCases, AppwriteException } from "@appwrite.io/console";
 import { DEFAULT_ENDPOINT, EXECUTABLE_NAME } from "../constants.js";
 
+type InitResourceAction = (_options?: unknown) => Promise<void>;
+type ProjectsService = Awaited<ReturnType<typeof getProjectsService>>;
+type ProjectCreateRegion = Parameters<ProjectsService["create"]>[3];
+
+interface ExistingProjectSummary {
+  $id: string;
+  name?: string;
+  region?: string;
+}
+
+interface InitProjectAnswers {
+  start: "new" | "existing";
+  override?: boolean;
+  id?: string;
+  project: string | ExistingProjectSummary;
+  organization: string;
+  region?: ProjectCreateRegion;
+}
+
+interface InitProjectAutopullAnswer {
+  autopull?: boolean;
+}
+
+interface SiteTemplateFramework {
+  providerRootDirectory: string;
+  adapter?: string;
+  buildRuntime?: string;
+  installCommand?: string;
+  buildCommand?: string;
+  outputDirectory?: string;
+  fallbackFile?: string;
+}
+
+interface SiteTemplateVariable {
+  name: string;
+  value?: string;
+}
+
+interface SiteTemplateDetails {
+  providerOwner: string;
+  providerRepositoryId: string;
+  providerVersion: string;
+  frameworks: SiteTemplateFramework[];
+  variables?: SiteTemplateVariable[];
+}
+
 const initResources = async (): Promise<void> => {
-  const actions: Record<string, (options?: any) => Promise<void>> = {
+  const actions: Record<string, InitResourceAction> = {
     function: initFunction,
     site: initSite,
     table: initTable,
@@ -64,8 +110,6 @@ const initProject = async ({
   projectId,
   projectName,
 }: InitProjectOptions = {}): Promise<void> => {
-  let response: any = {};
-
   try {
     if (globalConfig.getEndpoint() === "" || globalConfig.getCookie() === "") {
       throw new Error(
@@ -83,7 +127,7 @@ const initProject = async ({
     process.exit(1);
   }
 
-  let answers: any = {};
+  let answers: InitProjectAnswers;
 
   if (!organizationId && !projectId && !projectName) {
     answers = await inquirer.prompt(questionsInitProject);
@@ -91,27 +135,33 @@ const initProject = async ({
       process.exit(1);
     }
   } else {
-    answers.start = "existing";
-    answers.project = {};
-    answers.organization = {};
-
-    answers.organization =
+    const selectedOrganization =
       organizationId ??
       (await inquirer.prompt([questionsInitProject[2]])).organization;
-    answers.project.name =
+    const selectedProjectName =
       projectName ?? (await inquirer.prompt([questionsInitProject[3]])).project;
-    answers.project =
+    const selectedProjectId =
       projectId ?? (await inquirer.prompt([questionsInitProject[4]])).id;
+
+    answers = {
+      start: "existing",
+      project: selectedProjectId,
+      organization: selectedOrganization,
+    };
 
     try {
       const projectsService = await getProjectsService();
-      await projectsService.get(projectId);
+      const existingProject: ExistingProjectSummary =
+        await projectsService.get(selectedProjectId);
+      answers.project = existingProject;
     } catch (e) {
-      const errorCode = (e as { code?: number }).code;
-      if (errorCode === 404) {
-        answers.start = "new";
-        answers.id = answers.project;
-        answers.project = answers.project.name;
+      if (e instanceof AppwriteException && e.code === 404) {
+        answers = {
+          start: "new",
+          id: selectedProjectId,
+          project: selectedProjectName,
+          organization: selectedOrganization,
+        };
       } else {
         throw e;
       }
@@ -122,10 +172,28 @@ const initProject = async ({
   const url = new URL(DEFAULT_ENDPOINT);
 
   if (answers.start === "new") {
+    let projectIdToCreate;
+    let projectNameToCreate;
+
+    switch (typeof answers.project) {
+      case "string":
+        projectIdToCreate = answers.id ?? answers.project;
+        projectNameToCreate = answers.project;
+        break;
+      case "object":
+        projectIdToCreate = answers.id ?? answers.project.$id;
+        projectNameToCreate = answers.project.name ?? answers.project.$id;
+        break;
+      default:
+        projectIdToCreate = answers.id;
+        projectNameToCreate = "";
+        break;
+    }
+
     const projectsService = await getProjectsService();
-    response = await projectsService.create(
-      answers.id,
-      answers.project,
+    const response = await projectsService.create(
+      projectIdToCreate,
+      projectNameToCreate,
       answers.organization,
       answers.region,
     );
@@ -137,10 +205,25 @@ const initProject = async ({
       );
     }
   } else {
-    localConfig.setProject(answers.project["$id"]);
-    if (isCloud()) {
+    let selectedProject;
+
+    switch (typeof answers.project) {
+      case "string":
+        selectedProject = { $id: answers.project };
+        break;
+      case "object":
+        selectedProject = answers.project;
+        break;
+      default:
+        selectedProject = { $id: "" };
+        break;
+    }
+
+    localConfig.setProject(selectedProject.$id);
+
+    if (isCloud() && selectedProject.region) {
       localConfig.setEndpoint(
-        `https://${answers.project["region"]}.${url.host}${url.pathname}`,
+        `https://${selectedProject.region}.${url.host}${url.pathname}`,
       );
     }
   }
@@ -150,8 +233,10 @@ const initProject = async ({
   );
 
   if (answers.start === "existing") {
-    answers = await inquirer.prompt(questionsInitProjectAutopull);
-    if (answers.autopull) {
+    const autopullAnswers: InitProjectAutopullAnswer = await inquirer.prompt(
+      questionsInitProjectAutopull,
+    );
+    if (autopullAnswers.autopull) {
       cliConfig.all = true;
       cliConfig.force = true;
       await pullResources({
@@ -473,7 +558,7 @@ const initSite = async (): Promise<void> => {
     );
   }
 
-  let templateDetails: any;
+  let templateDetails: SiteTemplateDetails;
   try {
     const sitesService = await getSitesService();
     const response = await sitesService.listTemplates(
@@ -593,25 +678,23 @@ const initSite = async (): Promise<void> => {
   newReadmeFile.splice(1, 2);
   fs.writeFileSync(readmePath, newReadmeFile.join("\n"));
 
-  const vars = (templateDetails.variables ?? []).map((variable: any) => {
-    let value = variable.value;
+  const vars: Record<string, string> = {};
+  for (const variable of templateDetails.variables ?? []) {
+    let value = variable.value ?? "";
     const replacements: Record<string, string> = {
       "{apiEndpoint}": globalConfig.getEndpoint(),
-      "{projectId}": localConfig.getProject().projectId,
-      "{projectName}": localConfig.getProject().projectName,
+      "{projectId}": localConfig.getProject().projectId ?? "",
+      "{projectName}": localConfig.getProject().projectName ?? "",
     };
 
     for (const placeholder in replacements) {
-      if (value?.includes(placeholder)) {
+      if (value.includes(placeholder)) {
         value = value.replace(placeholder, replacements[placeholder]);
       }
     }
 
-    return {
-      key: variable.name,
-      value: value,
-    };
-  });
+    vars[variable.name] = value;
+  }
 
   const data = {
     $id: siteId,
