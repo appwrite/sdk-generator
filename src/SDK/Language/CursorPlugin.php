@@ -113,6 +113,13 @@ class CursorPlugin extends Language
             ];
         }
 
+        // Logo
+        $files[] = [
+            'scope'       => 'copy',
+            'destination' => 'logo.svg',
+            'template'    => 'cursor-plugin/logo.svg',
+        ];
+
         // Plugin manifest
         $files[] = [
             'scope'       => 'default',
