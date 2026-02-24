@@ -49,6 +49,14 @@ export const createSettingsObject = (project: Models.Project): SettingsType => {
   };
 };
 
+export const getErrorMessage = (error: unknown): string => {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return String(error);
+};
+
 /**
  * Get the latest version from npm registry
  */
