@@ -719,7 +719,7 @@ export const pullResources = async ({
   }
 
   if (cliConfig.all) {
-    for (let action of Object.values(actions)) {
+    for (const action of Object.values(actions)) {
       cliConfig.all = true;
       await action({ returnOnZero: true });
     }

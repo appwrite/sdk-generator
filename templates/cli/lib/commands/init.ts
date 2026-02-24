@@ -76,7 +76,7 @@ const initProject = async ({
     const accountClient = new Account(client);
 
     await accountClient.get();
-  } catch (e) {
+  } catch (_e) {
     error(
       `Error Session not found. Please run '${EXECUTABLE_NAME} login' to create a session`,
     );
@@ -322,7 +322,6 @@ const initFunction = async (): Promise<void> => {
   fs.mkdirSync(functionDir, { mode: 0o777 });
   fs.mkdirSync(templatesDir, { mode: 0o777 });
   const repo = "https://github.com/appwrite/templates";
-  const api = `https://api.github.com/repos/appwrite/templates/contents/${answers.runtime.name}`;
   let selected: { template: string } = { template: "starter" };
 
   const sparse = (
@@ -390,9 +389,9 @@ const initFunction = async (): Promise<void> => {
   }
 
   const copyRecursiveSync = (src: string, dest: string): void => {
-    let exists = fs.existsSync(src);
-    let stats = exists && fs.statSync(src);
-    let isDirectory = exists && stats && stats.isDirectory();
+    const exists = fs.existsSync(src);
+    const stats = exists && fs.statSync(src);
+    const isDirectory = exists && stats && stats.isDirectory();
     if (isDirectory) {
       if (!fs.existsSync(dest)) {
         fs.mkdirSync(dest);
@@ -424,7 +423,7 @@ const initFunction = async (): Promise<void> => {
   newReadmeFile.splice(1, 2);
   fs.writeFileSync(readmePath, newReadmeFile.join("\n"));
 
-  let data = {
+  const data = {
     $id: functionId,
     name: answers.name,
     runtime: answers.runtime.id,
@@ -495,7 +494,7 @@ const initSite = async (): Promise<void> => {
   fs.mkdirSync(siteDir, { mode: 0o777 });
   fs.mkdirSync(templatesDir, { mode: 0o777 });
   const repo = `https://github.com/${templateDetails.providerOwner}/${templateDetails.providerRepositoryId}`;
-  let selected = {
+  const selected = {
     template: templateDetails.frameworks[0].providerRootDirectory,
   };
 
@@ -526,12 +525,12 @@ const initSite = async (): Promise<void> => {
             git config remote.origin.tagopt --no-tags
         `.trim();
   }
-  let windowsGitCloneCommands = `
+  const windowsGitCloneCommands = `
             $tag = (git ls-remote --tags origin "${templateDetails.providerVersion}" | Select-Object -Last 1) -replace '.*refs/tags/', ''
             git fetch --depth=1 origin "refs/tags/$tag"
             git checkout FETCH_HEAD
             `.trim();
-  let unixGitCloneCommands = `
+  const unixGitCloneCommands = `
             git fetch --depth=1 origin refs/tags/$(git ls-remote --tags origin "${templateDetails.providerVersion}" | tail -n 1 | awk -F '/' '{print $3}')
             git checkout FETCH_HEAD
             `.trim();
@@ -590,7 +589,7 @@ const initSite = async (): Promise<void> => {
   newReadmeFile.splice(1, 2);
   fs.writeFileSync(readmePath, newReadmeFile.join("\n"));
 
-  let vars = (templateDetails.variables ?? []).map((variable: any) => {
+  const vars = (templateDetails.variables ?? []).map((variable: any) => {
     let value = variable.value;
     const replacements: Record<string, string> = {
       "{apiEndpoint}": globalConfig.getEndpoint(),
@@ -610,7 +609,7 @@ const initSite = async (): Promise<void> => {
     };
   });
 
-  let data = {
+  const data = {
     $id: siteId,
     name: answers.name,
     framework: answers.framework.key,

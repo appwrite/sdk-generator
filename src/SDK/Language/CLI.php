@@ -223,6 +223,11 @@ class CLI extends Node
                 'destination'   => 'tsconfig.json',
                 'template'      => 'cli/tsconfig.json',
             ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'eslint.config.js',
+                'template'      => 'cli/eslint.config.js',
+            ],
 
             // Entry points
             [

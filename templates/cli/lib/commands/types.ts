@@ -126,13 +126,11 @@ const typesCommand = actionRunner(
     }
 
     // Try tables first, fallback to collections
-    let tables = localConfig.getTables();
+    const tables = localConfig.getTables();
     let collections: any[] = [];
-    let dataSource = "tables";
 
     if (tables.length === 0) {
       collections = localConfig.getCollections();
-      dataSource = "collections";
 
       if (collections.length === 0) {
         const configFileName = path.basename(localConfig.path);

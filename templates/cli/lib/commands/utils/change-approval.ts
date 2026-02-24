@@ -33,7 +33,7 @@ export const getConfirmation = async (): Promise<boolean> => {
     return answers.changes;
   }
 
-  let answers = await inquirer.prompt(questionPushChanges);
+  const answers = await inquirer.prompt(questionPushChanges);
 
   if (answers.changes !== "YES" && answers.changes !== "NO") {
     answers.changes = await fixConfirmation();
@@ -111,7 +111,7 @@ export const getObjectChanges = <T extends Record<string, any>>(
  */
 export const approveChanges = async (
   resource: any[],
-  resourceGetFunction: Function,
+  resourceGetFunction: (options: Record<string, unknown>) => Promise<unknown>,
   keys: Set<string>,
   resourceName: string,
   resourcePlural: string,
@@ -135,7 +135,7 @@ export const approveChanges = async (
 
         const remoteResource = await resourceGetFunction(options);
 
-        for (let [key, value] of Object.entries(
+        for (const [key, value] of Object.entries(
           whitelistKeys(remoteResource, keys),
         )) {
           if (skipKeys.includes(key)) {

@@ -36,7 +36,7 @@ const isInstalledViaNpm = (): boolean => {
     }
 
     return false;
-  } catch (e) {
+  } catch (_e) {
     return false;
   }
 };
@@ -51,7 +51,7 @@ const isInstalledViaHomebrew = (): boolean => {
       scriptPath.includes("/opt/homebrew/") ||
       scriptPath.includes("/usr/local/Cellar/")
     );
-  } catch (e) {
+  } catch (_e) {
     return false;
   }
 };

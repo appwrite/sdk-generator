@@ -90,7 +90,7 @@ export function getAllFiles(folder: string): string[] {
     let stats: fs.Stats;
     try {
       stats = fs.statSync(pathAbsolute);
-    } catch (error) {
+    } catch (_error) {
       continue;
     }
     if (stats.isDirectory()) {

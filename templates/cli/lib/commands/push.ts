@@ -439,7 +439,7 @@ export class Push {
 
     if (settings.services) {
       this.log("Applying service statuses ...");
-      for (let [service, status] of Object.entries(settings.services)) {
+      for (const [service, status] of Object.entries(settings.services)) {
         await projectsService.updateServiceStatus({
           projectId: projectId,
           service: service as ApiService,
@@ -487,7 +487,7 @@ export class Push {
 
       if (settings.auth.methods) {
         this.log("Applying auth methods statuses ...");
-        for (let [method, status] of Object.entries(settings.auth.methods)) {
+        for (const [method, status] of Object.entries(settings.auth.methods)) {
           await projectsService.updateAuthStatus({
             projectId,
             method: method as AuthMethod,
@@ -861,7 +861,7 @@ export class Push {
                 ([key, value]) => ({ key, value }),
               );
             }
-          } catch (error) {
+          } catch (_error) {
             envVariables = [];
           }
           await Promise.all(
@@ -1223,7 +1223,7 @@ export class Push {
                 ([key, value]) => ({ key, value }),
               );
             }
-          } catch (error) {
+          } catch (_error) {
             envVariables = [];
           }
           await Promise.all(
@@ -1424,7 +1424,7 @@ export class Push {
       this.projectClient,
     );
 
-    let tablesChanged = new Set();
+    const tablesChanged = new Set();
     const errors: any[] = [];
 
     // Parallel tables actions
@@ -1492,7 +1492,7 @@ export class Push {
     );
 
     // Serialize attribute actions
-    for (let table of tables) {
+    for (const table of tables) {
       let columns = table.columns;
       let indexes = table.indexes;
       let hadChanges = false;
@@ -1843,7 +1843,7 @@ const pushSettings = async (): Promise<void> => {
 
   try {
     const projectsService = await getProjectsService();
-    let response = await projectsService.get(
+    const response = await projectsService.get(
       localConfig.getProject().projectId,
     );
 
@@ -1880,7 +1880,7 @@ const pushSettings = async (): Promise<void> => {
         return;
       }
     }
-  } catch (e) {}
+  } catch (_e) {}
 
   try {
     log("Pushing project settings ...");
@@ -1939,7 +1939,7 @@ const pushSite = async ({
     return;
   }
 
-  let sites = siteIds.map((id: string) => {
+  const sites = siteIds.map((id: string) => {
     const sites = localConfig.getSites();
     const site = sites.find((s: any) => s.$id === id);
 
@@ -1952,7 +1952,7 @@ const pushSite = async ({
 
   log("Validating sites ...");
   // Validation is done BEFORE pushing so the deployment process can be run in async with progress update
-  for (let site of sites) {
+  for (const site of sites) {
     if (!site.buildCommand) {
       log(`Site ${site.name} is missing build command.`);
       const answers = await inquirer.prompt(questionsGetEntrypoint);
@@ -2081,7 +2081,7 @@ const pushFunction = async ({
     return;
   }
 
-  let functions = functionIds.map((id: string) => {
+  const functions = functionIds.map((id: string) => {
     const functions = localConfig.getFunctions();
     const func = functions.find((f: any) => f.$id === id);
 
@@ -2093,7 +2093,7 @@ const pushFunction = async ({
   });
 
   log("Validating functions ...");
-  for (let func of functions) {
+  for (const func of functions) {
     if (!func.entrypoint) {
       log(`Function ${func.name} is missing an entrypoint.`);
       const answers = await inquirer.prompt(questionsGetEntrypoint);
@@ -2258,7 +2258,7 @@ const pushTable = async ({
           });
         }
       }
-    } catch (e) {
+    } catch (_e) {
       // Skip if database doesn't exist or other errors
     }
   }
@@ -2432,7 +2432,7 @@ const pushCollection = async (): Promise<void> => {
 };
 
 const pushBucket = async (): Promise<void> => {
-  let bucketIds: string[] = [];
+  const bucketIds: string[] = [];
   const configBuckets = localConfig.getBuckets();
 
   if (cliConfig.all) {
@@ -2455,7 +2455,7 @@ const pushBucket = async (): Promise<void> => {
     return;
   }
 
-  let buckets: any[] = [];
+  const buckets: any[] = [];
 
   for (const bucketId of bucketIds) {
     const idBuckets = configBuckets.filter((b: any) => b.$id === bucketId);
@@ -2496,7 +2496,7 @@ const pushBucket = async (): Promise<void> => {
 };
 
 const pushTeam = async (): Promise<void> => {
-  let teamIds: string[] = [];
+  const teamIds: string[] = [];
   const configTeams = localConfig.getTeams();
 
   if (cliConfig.all) {
@@ -2519,7 +2519,7 @@ const pushTeam = async (): Promise<void> => {
     return;
   }
 
-  let teams: any[] = [];
+  const teams: any[] = [];
 
   for (const teamId of teamIds) {
     const idTeams = configTeams.filter((t: any) => t.$id === teamId);
@@ -2560,7 +2560,7 @@ const pushTeam = async (): Promise<void> => {
 };
 
 const pushMessagingTopic = async (): Promise<void> => {
-  let topicsIds: string[] = [];
+  const topicsIds: string[] = [];
   const configTopics = localConfig.getMessagingTopics();
 
   if (cliConfig.all) {
@@ -2583,7 +2583,7 @@ const pushMessagingTopic = async (): Promise<void> => {
     return;
   }
 
-  let topics: any[] = [];
+  const topics: any[] = [];
 
   for (const topicId of topicsIds) {
     const idTopic = configTopics.filter((b: any) => b.$id === topicId);

@@ -222,7 +222,7 @@ class Client {
         undefined;
       try {
         json = JSON.parse(text);
-      } catch (error) {
+      } catch (_error) {
         throw new AppwriteException(text, response.status, "", text);
       }
 
@@ -265,7 +265,7 @@ class Client {
     let json: T | undefined = undefined;
     try {
       json = JSONBig.parse(text);
-    } catch (error) {
+    } catch (_error) {
       return text as T;
     }
     return json as T;

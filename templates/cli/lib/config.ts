@@ -146,7 +146,7 @@ class Config<T extends ConfigData = ConfigData> {
     try {
       const file = fs.readFileSync(this.path).toString();
       this.data = JSONBig.parse(file);
-    } catch (e) {
+    } catch (_e) {
       this.data = {} as T;
     }
   }

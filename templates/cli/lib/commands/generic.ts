@@ -92,11 +92,11 @@ const completeMfaLogin = async ({
 
 const deleteServerSession = async (sessionId: string): Promise<boolean> => {
   try {
-    let client = await sdkForConsole();
-    let accountClient = new Account(client);
+    const client = await sdkForConsole();
+    const accountClient = new Account(client);
     await accountClient.deleteSession(sessionId);
     return true;
-  } catch (e) {
+  } catch (_e) {
     return false;
   }
 };
@@ -234,7 +234,7 @@ export const loginCommand = async ({
   // Use legacy client for login to extract cookies from response
   const legacyClient = createLegacyConsoleClient(configEndpoint);
 
-  let client = await sdkForConsole(false);
+  const client = await sdkForConsole(false);
   let accountClient = new Account(client);
 
   let account;
@@ -301,8 +301,8 @@ export const whoami = new Command("whoami")
         return;
       }
 
-      let client = await sdkForConsole(false);
-      let accountClient = new Account(client);
+      const client = await sdkForConsole(false);
+      const accountClient = new Account(client);
 
       let account;
 
@@ -501,7 +501,7 @@ export const client = new Command("client")
                 : cookieValue || "********";
             maskedCookie = `${cookieName}=...${tail}`;
           }
-          let config = {
+          const config = {
             endpoint: globalConfig.getEndpoint(),
             key: maskedKey,
             cookie: maskedCookie,
@@ -515,17 +515,17 @@ export const client = new Command("client")
         if (endpoint !== undefined) {
           try {
             const id = ID.unique();
-            let url = new URL(endpoint);
+            const url = new URL(endpoint);
             if (url.protocol !== "http:" && url.protocol !== "https:") {
               throw new Error();
             }
 
-            let clientInstance = new Client().setEndpoint(endpoint);
+            const clientInstance = new Client().setEndpoint(endpoint);
             clientInstance.setProject("console");
             if (selfSigned || globalConfig.getSelfSigned()) {
               clientInstance.setSelfSigned(true);
             }
-            let response = (await clientInstance.call(
+            const response = (await clientInstance.call(
               "GET",
               new URL(endpoint + "/health/version"),
             )) as { version?: string };

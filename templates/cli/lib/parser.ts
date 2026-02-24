@@ -129,7 +129,7 @@ export const drawJSON = (data: any): void => {
 
 export const parseError = (err: Error): void => {
   if (cliConfig.report) {
-    (async () => {
+    void (async () => {
       let appwriteVersion = "unknown";
       const endpoint = globalConfig.getEndpoint();
 
