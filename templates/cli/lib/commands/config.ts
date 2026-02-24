@@ -13,17 +13,56 @@ import {
 const INT64_MIN = BigInt("-9223372036854775808");
 const INT64_MAX = BigInt("9223372036854775807");
 
-const int64Schema = z.union([
-  z.bigint().superRefine((val, ctx) => {
-    if (val < INT64_MIN || val > INT64_MAX) {
-      ctx.addIssue({
-        code: "custom",
-        message: `Value must be between ${INT64_MIN} and ${INT64_MAX} (64-bit signed integer range)`,
-      });
+const int64Schema = z.preprocess(
+  (val) => {
+    if (typeof val === "bigint") {
+      return val;
     }
-  }),
-  z.number(),
-]).optional().nullable();
+
+    if (typeof val === "object" && val !== null) {
+      if (typeof val.valueOf === "function") {
+        try {
+          const valueOfResult = val.valueOf();
+          const bigIntVal = BigInt(valueOfResult as string | number | bigint);
+          return bigIntVal;
+        } catch (e) {
+          return undefined;
+        }
+      }
+
+      const num = Number(val);
+      return !isNaN(num) ? BigInt(Math.trunc(num)) : undefined;
+    }
+
+    if (typeof val === "string") {
+      try {
+        return BigInt(val);
+      } catch (e) {
+        return undefined;
+      }
+    }
+
+    if (typeof val === "number") {
+      return BigInt(Math.trunc(val));
+    }
+
+    return val;
+  },
+  z
+    .bigint()
+    .nullable()
+    .optional()
+    .superRefine((val, ctx) => {
+      if (val === undefined || val === null) return;
+
+      if (val < INT64_MIN || val > INT64_MAX) {
+        ctx.addIssue({
+          code: "custom",
+          message: `Value must be between ${INT64_MIN} and ${INT64_MAX} (64-bit signed integer range)`,
+        });
+      }
+    }),
+);
 
 const MockNumberSchema = z
   .object({
@@ -190,7 +229,7 @@ const AttributeSchema = z
     side: z.string().optional(),
     attributes: z.array(z.string()).optional(),
     orders: z.array(z.string()).optional(),
-    encrypt: z.boolean().nullable().optional(),
+    encrypt: z.boolean().optional(),
   })
   .strict()
   .refine(validateRequiredDefault, {
@@ -271,7 +310,7 @@ const ColumnSchema = z
     // For table indexes, uses columns instead of attributes
     columns: z.array(z.string()).optional(),
     orders: z.array(z.string()).optional(),
-    encrypt: z.boolean().nullable().optional(),
+    encrypt: z.boolean().optional(),
   })
   .strict()
   .refine(validateRequiredDefault, {
