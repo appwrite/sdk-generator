@@ -77,17 +77,18 @@ const generateAction = async (
       } else {
         log(`Detected language: ${detectedLanguage} (${detection.reason})`);
       }
-    } catch (err: any) {
+    } catch (err) {
       const supported = getSupportedLanguages().join(", ");
+      const message = err instanceof Error ? err.message : String(err);
       error(
-        `${err.message}\nUse --language to specify the target language. Supported: ${supported}`,
+        `${message}\nUse --language to specify the target language. Supported: ${supported}`,
       );
       process.exit(1);
     }
   }
 
-  if (typeof (generator as any).setServerSideOverride === "function") {
-    (generator as any).setServerSideOverride(serverSideOverride);
+  if (typeof generator.setServerSideOverride === "function") {
+    generator.setServerSideOverride(serverSideOverride);
   }
 
   const config: ConfigType = {
@@ -149,8 +150,9 @@ const generateAction = async (
         `  await mydb.use(${JSON.stringify(tableName)}).create({ ... });`,
       );
     }
-  } catch (err: any) {
-    error(`Failed to generate SDK: ${err.message}`);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    error(`Failed to generate SDK: ${message}`);
     process.exit(1);
   }
 };

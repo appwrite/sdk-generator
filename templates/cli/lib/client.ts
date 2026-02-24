@@ -189,7 +189,7 @@ class Client {
           value.type === "file"
         ) {
           const fileUpload = value as FileUpload;
-          formData.append(key, fileUpload.file as any, fileUpload.filename);
+          formData.append(key, fileUpload.file as Blob, fileUpload.filename);
         } else {
           formData.append(key, value as string);
         }

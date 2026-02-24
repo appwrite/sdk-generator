@@ -106,7 +106,7 @@ if (process.argv.includes('-v') || process.argv.includes('--version')) {
             cliConfig.all = true;
         })
         .on('option:id', function () {
-            cliConfig.ids = (this as any).opts().id;
+            cliConfig.ids = (this.opts().id as string[]);
         })
         .showSuggestionAfterError()
 {% if sdk.test != "true" %}

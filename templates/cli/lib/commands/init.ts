@@ -106,8 +106,9 @@ const initProject = async ({
     try {
       const projectsService = await getProjectsService();
       await projectsService.get(projectId);
-    } catch (e: any) {
-      if (e.code === 404) {
+    } catch (e) {
+      const errorCode = (e as { code?: number }).code;
+      if (errorCode === 404) {
         answers.start = "new";
         answers.id = answers.project;
         answers.project = answers.project.name;
@@ -350,20 +351,21 @@ const initFunction = async (): Promise<void> => {
       stdio: "pipe",
       cwd: templatesDir,
     });
-  } catch (err: any) {
+  } catch (err) {
     /* Specialised errors with recommended actions to take */
-    if (err.message.includes("error: unknown option")) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    if (errorMessage.includes("error: unknown option")) {
       throw new Error(
-        `${err.message} \n\nSuggestion: Try updating your git to the latest version, then trying to run this command again.`,
+        `${errorMessage} \n\nSuggestion: Try updating your git to the latest version, then trying to run this command again.`,
       );
     } else if (
-      err.message.includes(
+      errorMessage.includes(
         "is not recognized as an internal or external command,",
       ) ||
-      err.message.includes("command not found")
+      errorMessage.includes("command not found")
     ) {
       throw new Error(
-        `${err.message} \n\nSuggestion: It appears that git is not installed, try installing git then trying to run this command again.`,
+        `${errorMessage} \n\nSuggestion: It appears that git is not installed, try installing git then trying to run this command again.`,
       );
     } else {
       throw err;
@@ -485,9 +487,10 @@ const initSite = async (): Promise<void> => {
       );
     }
     templateDetails = response.templates[0];
-  } catch (err: any) {
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
     throw new Error(
-      `Failed to fetch template for framework ${answers.framework.key}: ${err.message}`,
+      `Failed to fetch template for framework ${answers.framework.key}: ${errorMessage}`,
     );
   }
 
@@ -550,20 +553,21 @@ const initSite = async (): Promise<void> => {
       cwd: templatesDir,
       shell: usedShell,
     });
-  } catch (err: any) {
+  } catch (err) {
     /* Specialised errors with recommended actions to take */
-    if (err.message.includes("error: unknown option")) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    if (errorMessage.includes("error: unknown option")) {
       throw new Error(
-        `${err.message} \n\nSuggestion: Try updating your git to the latest version, then trying to run this command again.`,
+        `${errorMessage} \n\nSuggestion: Try updating your git to the latest version, then trying to run this command again.`,
       );
     } else if (
-      err.message.includes(
+      errorMessage.includes(
         "is not recognized as an internal or external command,",
       ) ||
-      err.message.includes("command not found")
+      errorMessage.includes("command not found")
     ) {
       throw new Error(
-        `${err.message} \n\nSuggestion: It appears that git is not installed, try installing git then trying to run this command again.`,
+        `${errorMessage} \n\nSuggestion: It appears that git is not installed, try installing git then trying to run this command again.`,
       );
     } else {
       throw err;

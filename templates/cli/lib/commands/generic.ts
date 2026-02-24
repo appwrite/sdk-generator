@@ -28,9 +28,14 @@ import ClientLegacy from "../client.js";
 
 const DEFAULT_ENDPOINT = "https://cloud.appwrite.io/v1";
 
-const isMfaRequiredError = (err: any): boolean =>
-  err?.type === "user_more_factors_required" ||
-  err?.response === "user_more_factors_required";
+interface AppwriteError {
+  type?: string;
+  response?: string;
+}
+
+const isMfaRequiredError = (err: unknown): err is AppwriteError =>
+  (err as AppwriteError)?.type === "user_more_factors_required" ||
+  (err as AppwriteError)?.response === "user_more_factors_required";
 
 const createLegacyConsoleClient = (endpoint: string): ClientLegacy => {
   const legacyClient = new ClientLegacy();
@@ -52,7 +57,7 @@ const completeMfaLogin = async ({
   legacyClient: ClientLegacy;
   mfa?: string;
   code?: string;
-}): Promise<any> => {
+}): Promise<unknown> => {
   let accountClient = new Account(client);
 
   const savedCookie = globalConfig.getCookie();
@@ -206,7 +211,7 @@ export const loginCommand = async ({
 
     try {
       await accountClient.get();
-    } catch (err: any) {
+    } catch (err) {
       if (!isMfaRequiredError(err)) {
         throw err;
       }
@@ -261,7 +266,7 @@ export const loginCommand = async ({
 
     accountClient = new Account(client);
     account = await accountClient.get();
-  } catch (err: any) {
+  } catch (err) {
     if (isMfaRequiredError(err)) {
       account = await completeMfaLogin({
         client,
