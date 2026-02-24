@@ -1,6 +1,7 @@
 import ignoreModule from "ignore";
 const ignore: typeof ignoreModule =
-  (ignoreModule as any).default ?? ignoreModule;
+  (ignoreModule as unknown as { default?: typeof ignoreModule }).default ??
+  ignoreModule;
 import net from "net";
 import chalk from "chalk";
 import childProcess from "child_process";
@@ -256,11 +257,9 @@ export async function dockerStart(
 
   try {
     await waitUntilPortOpen(port);
-  } catch (err: any) {
-    error(
-      "Failed to start function with error: " +
-        (err.message ? err.message : err.toString()),
-    );
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    error(`Failed to start function with error: ${message}`);
     return;
   }
 
