@@ -291,8 +291,8 @@ const ColumnSchema = z
     array: z.boolean().optional(),
     size: z.number().optional(),
     default: z.any().optional(),
-    min: int64Schema,
-    max: int64Schema,
+    min: z.union([z.number(), int64Schema]),
+    max: z.union([z.number(), int64Schema]),
     format: z
       .union([
         z.enum(["email", "enum", "url", "ip", "datetime"]),
@@ -310,7 +310,7 @@ const ColumnSchema = z
     // For table indexes, uses columns instead of attributes
     columns: z.array(z.string()).optional(),
     orders: z.array(z.string()).optional(),
-    encrypt: z.boolean().optional(),
+    encrypt: z.boolean().nullable().optional(),
   })
   .strict()
   .refine(validateRequiredDefault, {

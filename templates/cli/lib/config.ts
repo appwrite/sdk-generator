@@ -297,8 +297,19 @@ class Local extends Config<ConfigType> {
       });
 
       if (config && Object.keys(config).length > 0) {
+        // c12 uses standard JSON.parse which corrupts large 64-bit integers.
+        // Re-parse JSON files with JSONBig to preserve integer precision.
+        let parsedConfig: ConfigType = config;
+        if (configFile && /\.json$/.test(configFile)) {
+          try {
+            parsedConfig = JSONBig.parse(fs.readFileSync(configFile).toString());
+          } catch {
+            // Fall back to c12-parsed config
+          }
+        }
+
         // Validate the loaded config using runtime schema
-        const validation = ConfigSchema.safeParse(config);
+        const validation = ConfigSchema.safeParse(parsedConfig);
 
         if (validation.success) {
           this.c12Config = validation.data;
@@ -307,11 +318,11 @@ class Local extends Config<ConfigType> {
           this.data = { ...this.data, ...this.c12Config };
         } else {
           // Validation failed, log errors and don't use invalid config
-          console.error(
-            chalk.red("✗ Invalid configuration in TypeScript/JavaScript config file:")
+          console.warn(
+            chalk.red("✗ Invalid configuration in config file:")
           );
           validation.error.issues.forEach((err) => {
-            console.error(chalk.red(`  - ${err.path.join(".")}: ${err.message}`));
+            console.warn(chalk.red(`  - ${err.path.join(".")}: ${err.message}`));
           });
           this.c12Config = null;
           this.c12ConfigFile = null;
