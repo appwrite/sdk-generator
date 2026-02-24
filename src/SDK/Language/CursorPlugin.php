@@ -100,6 +100,7 @@ class CursorPlugin extends Language
             'ruby',
             'go',
             'dotnet',
+            'cli',
         ];
 
         $files = [];
