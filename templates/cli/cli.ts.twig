@@ -15,6 +15,7 @@ import { getLatestVersion, compareVersions } from './lib/utils.js';
 import inquirerSearchList from 'inquirer-search-list';
 
 import { client } from './lib/commands/generic.js';
+import { initializeConfig } from './lib/config.js';
 {% if sdk.test != "true" %}
 import { login, logout, whoami, migrate, register } from './lib/commands/generic.js';
 import { init } from './lib/commands/init.js';
@@ -126,8 +127,16 @@ if (process.argv.includes('-v') || process.argv.includes('--version')) {
 {% for service in spec.services %}
         .addCommand({{ service.name }})
 {% endfor %}
-        .addCommand(client)
-        .parse(process.argv);
+        .addCommand(client);
+
+    // Initialize config (loads TypeScript/JavaScript configs via c12)
+    // Use .then() instead of await for CJS compatibility
+    initializeConfig().then(() => {
+        program.parse(process.argv);
+    }).catch((err) => {
+        console.error('Failed to initialize config:', err);
+        process.exit(1);
+    });
 
     process.stdout.columns = oldWidth;
 }
