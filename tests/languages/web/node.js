@@ -289,31 +289,31 @@ async function start() {
     console.log(ID.custom('custom_id'));
 
     // Channel helper tests
-    console.log(Channel.database().collection().document().toString());
+    console.log(Channel.database('db1').collection('col1').document().toString());
     console.log(Channel.database('db1').collection('col1').document('doc1').toString());
     console.log(Channel.database('db1').collection('col1').document('doc1').create().toString());
     console.log(Channel.database('db1').collection('col1').document('doc1').upsert().toString());
-    console.log(Channel.tablesdb().table().row().toString());
+    console.log(Channel.tablesdb('db1').table('table1').row().toString());
     console.log(Channel.tablesdb('db1').table('table1').row('row1').toString());
     console.log(Channel.tablesdb('db1').table('table1').row('row1').update().toString());
     console.log(Channel.account());
-    console.log(Channel.bucket().file().toString());
+    console.log(Channel.bucket('bucket1').file().toString());
     console.log(Channel.bucket('bucket1').file('file1').toString());
     console.log(Channel.bucket('bucket1').file('file1').delete().toString());
-    console.log(Channel.function().toString());
+    console.log(Channel.function('func2').toString());
     console.log(Channel.function('func1').toString());
-    console.log(Channel.execution().toString());
+    console.log(Channel.execution('exec2').toString());
     console.log(Channel.execution('exec1').toString());
     console.log(Channel.documents());
     console.log(Channel.rows());
     console.log(Channel.files());
     console.log(Channel.executions());
     console.log(Channel.teams());
-    console.log(Channel.team().toString());
+    console.log(Channel.team('team2').toString());
     console.log(Channel.team('team1').toString());
     console.log(Channel.team('team1').create().toString());
     console.log(Channel.memberships());
-    console.log(Channel.membership().toString());
+    console.log(Channel.membership('membership2').toString());
     console.log(Channel.membership('membership1').toString());
     console.log(Channel.membership('membership1').update().toString());
 

@@ -1,0 +1,546 @@
+{% set lang = 'cli' %}
+{% set langName = 'CLI' %}
+{% set langDescription %}{{ spec.title }} {{ langName }} skill. Use when managing {{ spec.title }} projects from the command line. Covers installation, login, project initialization, deploying functions/sites/tables/buckets/teams/topics, managing resources, non-interactive CI/CD mode, and generating type-safe SDKs.{% endset %}
+{{ include('agent-skills/base/frontmatter.md.twig') }}
+
+# {{ spec.title }} {{ langName }}
+
+## Installation
+
+```bash
+# npm
+npm install -g appwrite-cli
+
+# macOS (Homebrew)
+brew install appwrite
+
+# macOS / Linux (script)
+curl -sL https://appwrite.io/cli/install.sh | bash
+
+# Windows (Scoop)
+scoop install https://raw.githubusercontent.com/appwrite/sdk-for-cli/master/scoop/appwrite.config.json
+```
+
+Verify installation:
+
+```bash
+appwrite -v
+```
+
+## Login & Initialization
+
+```bash
+# Login to your account
+appwrite login
+
+# Login to a self-hosted instance
+appwrite login --endpoint "https://your-instance.com/v1"
+
+# Initialize a project (creates appwrite.config.json)
+appwrite init project
+
+# Verify by fetching project info
+appwrite projects get --project-id "<PROJECT_ID>"
+```
+
+## Configuration
+
+```bash
+appwrite client --endpoint https://<REGION>.cloud.appwrite.io/v1
+appwrite client --key <API_KEY>
+appwrite client --self-signed true    # for self-signed SSL certs
+appwrite client --reset               # reset CLI configuration
+appwrite client --debug               # print current configuration
+```
+
+## appwrite.config.json
+
+All resources are configured in a single `appwrite.config.json` file at the project root:
+
+```json
+{
+    "projectId": "<PROJECT_ID>",
+    "endpoint": "https://<REGION>.cloud.appwrite.io/v1",
+    "functions": [],
+    "sites": [],
+    "tablesDB": [],
+    "tables": [],
+    "buckets": [],
+    "teams": [],
+    "topics": []
+}
+```
+
+## Deploying Functions
+
+```bash
+# Create a new function
+appwrite init functions
+
+# Pull existing functions from Console
+appwrite pull functions
+
+# Deploy functions
+appwrite push functions
+```
+
+### Function configuration in appwrite.config.json
+
+```json
+{
+    "functions": [
+        {
+            "$id": "<FUNCTION_ID>",
+            "name": "userAuth",
+            "enabled": true,
+            "live": true,
+            "logging": true,
+            "runtime": "node-18.0",
+            "deployment": "<DEPLOYMENT_ID>",
+            "vars": [],
+            "events": [],
+            "schedule": "",
+            "timeout": 15,
+            "entrypoint": "userAuth.js",
+            "commands": "npm install",
+            "version": "v3",
+            "path": "functions/userAuth"
+        }
+    ]
+}
+```
+
+### Function commands
+
+| Command | Description |
+|---------|-------------|
+| `appwrite functions list` | List all functions |
+| `appwrite functions create` | Create a new function |
+| `appwrite functions get --function-id <ID>` | Get a function by ID |
+| `appwrite functions update --function-id <ID>` | Update a function |
+| `appwrite functions delete --function-id <ID>` | Delete a function |
+| `appwrite functions list-runtimes` | List all active runtimes |
+| `appwrite functions list-deployments --function-id <ID>` | List deployments |
+| `appwrite functions create-deployment --function-id <ID>` | Upload a new deployment |
+| `appwrite functions update-deployment --function-id <ID> --deployment-id <ID>` | Set active deployment |
+| `appwrite functions delete-deployment --function-id <ID> --deployment-id <ID>` | Delete a deployment |
+| `appwrite functions download-deployment --function-id <ID> --deployment-id <ID>` | Download deployment |
+| `appwrite functions create-execution --function-id <ID>` | Trigger execution |
+| `appwrite functions list-executions --function-id <ID>` | List execution logs |
+| `appwrite functions get-execution --function-id <ID> --execution-id <ID>` | Get execution log |
+| `appwrite functions list-variables --function-id <ID>` | List variables |
+| `appwrite functions create-variable --function-id <ID> --key <KEY> --value <VALUE>` | Create variable |
+| `appwrite functions update-variable --function-id <ID> --variable-id <ID> --key <KEY> --value <VALUE>` | Update variable |
+| `appwrite functions delete-variable --function-id <ID> --variable-id <ID>` | Delete variable |
+
+### Trigger a function with body
+
+```bash
+appwrite functions create-execution \
+    --function-id <FUNCTION_ID> \
+    --body '{"key": "value"}'
+```
+
+### Local development
+
+```bash
+appwrite run functions
+```
+
+## Deploying Sites
+
+```bash
+# Create a new site
+appwrite init sites
+
+# Pull existing sites from Console
+appwrite pull sites
+
+# Deploy sites
+appwrite push sites
+```
+
+### Site configuration in appwrite.config.json
+
+```json
+{
+    "sites": [
+        {
+            "$id": "<SITE_ID>",
+            "name": "Documentation template",
+            "enabled": true,
+            "logging": true,
+            "framework": "astro",
+            "timeout": 30,
+            "installCommand": "npm install",
+            "buildCommand": "npm run build",
+            "outputDirectory": "./dist",
+            "specification": "s-1vcpu-512mb",
+            "buildRuntime": "node-22",
+            "adapter": "ssr",
+            "fallbackFile": "",
+            "path": "sites/documentation-template"
+        }
+    ]
+}
+```
+
+### Site commands
+
+| Command | Description |
+|---------|-------------|
+| `appwrite sites list` | List all sites |
+| `appwrite sites create` | Create a new site |
+| `appwrite sites get --site-id <ID>` | Get a site by ID |
+| `appwrite sites update --site-id <ID>` | Update a site |
+| `appwrite sites delete --site-id <ID>` | Delete a site |
+| `appwrite sites list-frameworks` | List available frameworks |
+| `appwrite sites list-specifications` | List allowed specs |
+| `appwrite sites list-templates` | List available templates |
+| `appwrite sites get-template --template-id <ID>` | Get template details |
+| `appwrite sites list-deployments --site-id <ID>` | List deployments |
+| `appwrite sites create-deployment --site-id <ID>` | Create deployment |
+| `appwrite sites get-deployment --site-id <ID> --deployment-id <ID>` | Get deployment |
+| `appwrite sites delete-deployment --site-id <ID> --deployment-id <ID>` | Delete deployment |
+| `appwrite sites update-site-deployment --site-id <ID> --deployment-id <ID>` | Set active deployment |
+| `appwrite sites update-deployment-status --site-id <ID> --deployment-id <ID>` | Cancel ongoing build |
+| `appwrite sites list-variables --site-id <ID>` | List variables |
+| `appwrite sites create-variable --site-id <ID> --key <KEY> --value <VALUE>` | Create variable |
+| `appwrite sites update-variable --site-id <ID> --variable-id <ID> --key <KEY> --value <VALUE>` | Update variable |
+| `appwrite sites delete-variable --site-id <ID> --variable-id <ID>` | Delete variable |
+| `appwrite sites list-logs --site-id <ID>` | List request logs |
+| `appwrite sites get-log --site-id <ID> --log-id <ID>` | Get a log |
+| `appwrite sites delete-log --site-id <ID> --log-id <ID>` | Delete a log |
+
+## Managing Tables (Databases)
+
+```bash
+# Create a new table
+appwrite init tables
+
+# Pull existing tables from Console
+appwrite pull tables
+
+# Deploy tables
+appwrite push tables
+```
+
+### Table configuration in appwrite.config.json
+
+```json
+{
+    "tablesDB": [
+        {
+            "$id": "<DATABASE_ID>",
+            "name": "songs",
+            "enabled": true
+        }
+    ],
+    "tables": [
+        {
+            "$id": "<TABLE_ID>",
+            "$permissions": ["create(\"any\")", "read(\"any\")"],
+            "databaseId": "<DATABASE_ID>",
+            "name": "music",
+            "enabled": true,
+            "rowSecurity": false,
+            "columns": [
+                {
+                    "key": "title",
+                    "type": "varchar",
+                    "required": true,
+                    "size": 255
+                }
+            ],
+            "indexes": []
+        }
+    ]
+}
+```
+
+### Database commands
+
+| Command | Description |
+|---------|-------------|
+| `appwrite databases list-tables --database-id <ID>` | List tables |
+| `appwrite databases create-table --database-id <ID>` | Create table |
+| `appwrite databases get-table --database-id <ID> --table-id <ID>` | Get table |
+| `appwrite databases update-table --database-id <ID> --table-id <ID>` | Update table |
+| `appwrite databases delete-table --database-id <ID> --table-id <ID>` | Delete table |
+| `appwrite databases list-columns --database-id <ID> --table-id <ID>` | List columns |
+| `appwrite databases get-column --database-id <ID> --table-id <ID> --key <KEY>` | Get column |
+| `appwrite databases delete-column --database-id <ID> --table-id <ID> --key <KEY>` | Delete column |
+| `appwrite databases list-indexes --database-id <ID> --table-id <ID>` | List indexes |
+| `appwrite databases create-index --database-id <ID> --table-id <ID>` | Create index |
+| `appwrite databases delete-index --database-id <ID> --table-id <ID> --key <KEY>` | Delete index |
+
+### Column type commands
+
+> **Note:** The legacy `string` type is deprecated. Use explicit string column types instead.
+
+| Command | Description |
+|---------|-------------|
+| `create-varchar-attribute` | Varchar column — inline storage, fully indexable (max 16,383 chars, size ≤ 768 for full index) |
+| `create-text-attribute` | Text column — off-page storage, prefix index only (max 16,383 chars) |
+| `create-mediumtext-attribute` | Mediumtext column — off-page storage (max ~4M chars) |
+| `create-longtext-attribute` | Longtext column — off-page storage (max ~1B chars) |
+| `create-boolean-attribute` | Boolean column |
+| `create-integer-attribute` | Integer column (optional min/max) |
+| `create-float-attribute` | Float column (optional min/max) |
+| `create-email-attribute` | Email column |
+| `create-url-attribute` | URL column |
+| `create-ip-attribute` | IP address column |
+| `create-datetime-attribute` | Datetime column (ISO 8601) |
+| `create-enum-attribute` | Enum column (whitelist of accepted values) |
+| `create-relationship-attribute` | Relationship column |
+
+All column commands use `appwrite databases <command> --database-id <ID> --table-id <ID>`.
+
+### Row operations
+
+```bash
+# Create a row
+appwrite databases create-row \
+    --database-id "<DATABASE_ID>" --table-id "<TABLE_ID>" \
+    --row-id 'unique()' --data '{ "title": "Hello World" }' \
+    --permissions 'read("any")' 'write("team:abc")'
+
+# List rows (JSON output)
+appwrite databases list-rows \
+    --database-id "<DATABASE_ID>" --table-id "<TABLE_ID>" --json
+
+# Get a row
+appwrite databases get-row \
+    --database-id "<DATABASE_ID>" --table-id "<TABLE_ID>" --row-id "<ROW_ID>"
+```
+
+## Managing Buckets (Storage)
+
+```bash
+# Create a new bucket
+appwrite init buckets
+
+# Pull existing buckets from Console
+appwrite pull buckets
+
+# Deploy buckets
+appwrite push buckets
+```
+
+### Storage commands
+
+| Command | Description |
+|---------|-------------|
+| `appwrite storage list-buckets` | List all buckets |
+| `appwrite storage create-bucket` | Create a bucket |
+| `appwrite storage get-bucket --bucket-id <ID>` | Get a bucket |
+| `appwrite storage update-bucket --bucket-id <ID>` | Update a bucket |
+| `appwrite storage delete-bucket --bucket-id <ID>` | Delete a bucket |
+| `appwrite storage list-files --bucket-id <ID>` | List files |
+| `appwrite storage create-file --bucket-id <ID>` | Upload a file |
+| `appwrite storage get-file --bucket-id <ID> --file-id <ID>` | Get file metadata |
+| `appwrite storage delete-file --bucket-id <ID> --file-id <ID>` | Delete a file |
+| `appwrite storage get-file-download --bucket-id <ID> --file-id <ID>` | Download a file |
+| `appwrite storage get-file-preview --bucket-id <ID> --file-id <ID>` | Get image preview |
+| `appwrite storage get-file-view --bucket-id <ID> --file-id <ID>` | View file in browser |
+
+## Managing Teams
+
+```bash
+# Create a new team
+appwrite init teams
+
+# Pull existing teams from Console
+appwrite pull teams
+
+# Deploy teams
+appwrite push teams
+```
+
+### Team commands
+
+| Command | Description |
+|---------|-------------|
+| `appwrite teams list` | List all teams |
+| `appwrite teams create` | Create a team |
+| `appwrite teams get --team-id <ID>` | Get a team |
+| `appwrite teams update-name --team-id <ID>` | Update team name |
+| `appwrite teams delete --team-id <ID>` | Delete a team |
+| `appwrite teams list-memberships --team-id <ID>` | List members |
+| `appwrite teams create-membership --team-id <ID>` | Invite a member |
+| `appwrite teams update-membership --team-id <ID> --membership-id <ID>` | Update member roles |
+| `appwrite teams delete-membership --team-id <ID> --membership-id <ID>` | Remove a member |
+| `appwrite teams get-prefs --team-id <ID>` | Get team preferences |
+| `appwrite teams update-prefs --team-id <ID>` | Update team preferences |
+
+## Managing Topics (Messaging)
+
+```bash
+# Create a new topic
+appwrite init topics
+
+# Pull existing topics from Console
+appwrite pull topics
+
+# Deploy topics
+appwrite push topics
+```
+
+### Messaging commands
+
+| Command | Description |
+|---------|-------------|
+| `appwrite messaging list-messages` | List all messages |
+| `appwrite messaging create-email` | Create email message |
+| `appwrite messaging create-push` | Create push notification |
+| `appwrite messaging create-sms` | Create SMS message |
+| `appwrite messaging get-message --message-id <ID>` | Get a message |
+| `appwrite messaging delete --message-id <ID>` | Delete a message |
+| `appwrite messaging list-topics` | List all topics |
+| `appwrite messaging create-topic` | Create a topic |
+| `appwrite messaging get-topic --topic-id <ID>` | Get a topic |
+| `appwrite messaging update-topic --topic-id <ID>` | Update a topic |
+| `appwrite messaging delete-topic --topic-id <ID>` | Delete a topic |
+| `appwrite messaging list-subscribers --topic-id <ID>` | List subscribers |
+| `appwrite messaging create-subscriber --topic-id <ID>` | Add subscriber |
+| `appwrite messaging delete-subscriber --topic-id <ID> --subscriber-id <ID>` | Remove subscriber |
+
+## User Management
+
+```bash
+# Create a user
+appwrite users create --user-id "unique()" \
+    --email hello@appwrite.io \
+    --password very_strong_password
+
+# List users
+appwrite users list
+
+# Get a user
+appwrite users get --user-id "<USER_ID>"
+
+# Delete a user
+appwrite users delete --user-id "<USER_ID>"
+```
+
+## Generate Type-Safe SDK
+
+```bash
+# Auto-detect language and generate
+appwrite generate
+
+# Specify output directory
+appwrite generate --output ./src/generated
+
+# Specify language
+appwrite generate --language typescript
+```
+
+Generated files:
+
+| File | Description |
+|------|-------------|
+| `types.ts` | Type definitions from your database schema |
+| `databases.ts` | Typed database helpers for querying and mutating rows |
+| `constants.ts` | Configuration constants (endpoint, project ID) |
+| `index.ts` | Entry point that exports all helpers |
+
+Usage:
+
+```typescript
+import { databases } from "./generated/appwrite";
+
+const customers = databases.use("main").use("customers");
+
+// Create
+const customer = await customers.create({
+    name: "Walter O' Brian",
+    email: "walter@example.com"
+});
+
+// List with typed queries
+const results = await customers.list({
+    queries: (q) => [
+        q.equal("name", "Walter O' Brian"),
+        q.orderDesc("$createdAt"),
+        q.limit(10)
+    ]
+});
+
+// Update
+await customers.update("customer-id-123", {
+    email: "walter@scorpion.com"
+});
+
+// Delete
+await customers.delete("customer-id-123");
+
+// Bulk create
+await customers.createMany([
+    { name: "Walter O' Brian", email: "walter@example.com" },
+    { name: "Paige Dineen", email: "paige@example.com" }
+]);
+```
+
+## Non-Interactive / CI/CD Mode
+
+For headless automation without config files or sessions:
+
+```bash
+# Configure client for non-interactive mode
+appwrite client \
+    --endpoint https://<REGION>.cloud.appwrite.io/v1 \
+    --project-id <PROJECT_ID> \
+    --key <API_KEY>
+```
+
+### Deploy non-interactively
+
+```bash
+# Push everything
+appwrite push all --all --force
+
+# Push specific resources
+appwrite push functions --all --force
+appwrite push functions --function-id <FUNCTION_ID> --force
+appwrite push sites --all --force
+appwrite push tables --all --force
+appwrite push teams --all --force
+appwrite push buckets --all --force
+appwrite push topics --all --force
+```
+
+## Global Command Options
+
+| Option | Description |
+|--------|-------------|
+| `-v, --version` | Output version number |
+| `-V, --verbose` | Show complete error log |
+| `-j, --json` | Output in JSON format |
+| `-f, --force` | Confirm all warnings |
+| `-a, --all` | Select all resources |
+| `--id [id...]` | Pass a list of IDs |
+| `--report` | Generate GitHub error report link |
+| `--console` | Get direct link to Console |
+| `--open` | Open Console link in browser |
+| `-h, --help` | Display help |
+
+## Examples
+
+```bash
+# List users with JSON output
+appwrite users list --json
+
+# Get verbose error output
+appwrite users list --verbose
+
+# View a row in the Console
+appwrite databases get-row \
+    --database-id "<DATABASE_ID>" \
+    --table-id "<TABLE_ID>" \
+    --row-id "<ROW_ID>" \
+    --console --open
+
+# Generate error report
+appwrite login --report
+```

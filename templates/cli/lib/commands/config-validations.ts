@@ -9,7 +9,7 @@ import { z } from "zod";
  */
 export const validateRequiredDefault = (data: {
   required?: boolean;
-  default?: any;
+  default?: unknown;
 }) => {
   if (data.required === true && data.default !== null) {
     return false;

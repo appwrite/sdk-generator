@@ -25,7 +25,7 @@ const int64Schema = z.preprocess(
           const valueOfResult = val.valueOf();
           const bigIntVal = BigInt(valueOfResult as string | number | bigint);
           return bigIntVal;
-        } catch (e) {
+        } catch (_e) {
           return undefined;
         }
       }
@@ -37,7 +37,7 @@ const int64Schema = z.preprocess(
     if (typeof val === "string") {
       try {
         return BigInt(val);
-      } catch (e) {
+      } catch (_e) {
         return undefined;
       }
     }

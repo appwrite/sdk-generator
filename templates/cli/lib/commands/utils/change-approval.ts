@@ -1,5 +1,6 @@
 import chalk from "chalk";
 import inquirer from "inquirer";
+import { AppwriteException } from "@appwrite.io/console";
 import { cliConfig, success, warn, log, drawTable } from "../../parser.js";
 import { whitelistKeys } from "../../config.js";
 import {
@@ -10,7 +11,7 @@ import {
 /**
  * Check if a value is considered empty
  */
-export const isEmpty = (value: any): boolean =>
+export const isEmpty = (value: unknown): boolean =>
   value === null ||
   value === undefined ||
   (typeof value === "string" && value.trim().length === 0) ||
@@ -33,7 +34,7 @@ export const getConfirmation = async (): Promise<boolean> => {
     return answers.changes;
   }
 
-  let answers = await inquirer.prompt(questionPushChanges);
+  const answers = await inquirer.prompt(questionPushChanges);
 
   if (answers.changes !== "YES" && answers.changes !== "NO") {
     answers.changes = await fixConfirmation();
@@ -57,9 +58,9 @@ interface ObjectChange {
   local: string;
 }
 
-type ComparableValue = boolean | number | string | any[] | undefined;
+type ComparableValue = boolean | number | string | unknown[] | undefined;
 
-export const getObjectChanges = <T extends Record<string, any>>(
+export const getObjectChanges = <T extends Record<string, unknown>>(
   remote: T,
   local: T,
   index: keyof T,
@@ -110,8 +111,10 @@ export const getObjectChanges = <T extends Record<string, any>>(
  * Compares local resources with remote resources and prompts user for confirmation
  */
 export const approveChanges = async (
-  resource: any[],
-  resourceGetFunction: Function,
+  resource: Array<Record<string, unknown>>,
+  resourceGetFunction: (
+    options: Record<string, unknown>,
+  ) => Promise<Record<string, unknown>>,
   keys: Set<string>,
   resourceName: string,
   resourcePlural: string,
@@ -120,12 +123,12 @@ export const approveChanges = async (
   secondResourceName: string = "",
 ): Promise<boolean> => {
   log("Checking for changes ...");
-  const changes: any[] = [];
+  const changes: Array<Record<string, unknown>> = [];
 
   await Promise.all(
     resource.map(async (localResource) => {
       try {
-        const options: Record<string, any> = {
+        const options: Record<string, unknown> = {
           [resourceName]: localResource["$id"],
         };
 
@@ -135,7 +138,7 @@ export const approveChanges = async (
 
         const remoteResource = await resourceGetFunction(options);
 
-        for (let [key, value] of Object.entries(
+        for (const [key, value] of Object.entries(
           whitelistKeys(remoteResource, keys),
         )) {
           if (skipKeys.includes(key)) {
@@ -146,28 +149,32 @@ export const approveChanges = async (
             continue;
           }
 
-          if (Array.isArray(value) && Array.isArray(localResource[key])) {
-            if (JSON.stringify(value) !== JSON.stringify(localResource[key])) {
+          const localValue = localResource[key];
+
+          if (Array.isArray(value) && Array.isArray(localValue)) {
+            if (JSON.stringify(value) !== JSON.stringify(localValue)) {
               changes.push({
                 id: localResource["$id"],
                 key,
                 remote: chalk.red((value as string[]).join("\n")),
-                local: chalk.green(localResource[key].join("\n")),
+                local: chalk.green(
+                  localValue.map((entry) => String(entry)).join("\n"),
+                ),
               });
             }
-          } else if (value !== localResource[key]) {
+          } else if (value !== localValue) {
             changes.push({
               id: localResource["$id"],
               key,
-              remote: chalk.red(value),
-              local: chalk.green(localResource[key]),
+              remote: chalk.red(String(value ?? "")),
+              local: chalk.green(String(localValue ?? "")),
             });
           }
         }
-      } catch (e: any) {
-        if (Number(e.code) !== 404) {
-          throw e;
-        }
+      } catch (e: unknown) {
+        const isNotFound =
+          e instanceof AppwriteException && Number(e.code) === 404;
+        if (!isNotFound) throw e;
       }
     }),
   );

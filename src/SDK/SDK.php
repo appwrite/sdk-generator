@@ -212,6 +212,9 @@ class SDK
         $this->twig->addFilter(new TwigFilter('capitalizeFirst', function ($value) {
             return ucfirst($value);
         }));
+        $this->twig->addFilter(new TwigFilter('caseSpace', function ($value) {
+            return preg_replace('/([a-z])([A-Z])/', '$1 $2', $value);
+        }));
         $this->twig->addFilter(new TwigFilter('caseSnakeExceptFirstDot', function ($value) {
             $parts = explode('.', $value, 2);
             $toSnake = function ($str) {

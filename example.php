@@ -23,6 +23,7 @@ use Appwrite\SDK\Language\Kotlin;
 use Appwrite\SDK\Language\ReactNative;
 use Appwrite\SDK\Language\Markdown;
 use Appwrite\SDK\Language\AgentSkills;
+use Appwrite\SDK\Language\CursorPlugin;
 
 try {
 
@@ -285,6 +286,13 @@ try {
         $sdk = new SDK(new AgentSkills(), new Swagger2($spec));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/agent-skills');
+    }
+
+    // Cursor Plugin
+    if (!$requestedSdk || $requestedSdk === 'cursor-plugin') {
+        $sdk = new SDK(new CursorPlugin(), new Swagger2($spec));
+        configureSDK($sdk);
+        $sdk->generate(__DIR__ . '/examples/cursor-plugin');
     }
 }
 catch (Exception $exception) {

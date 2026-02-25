@@ -64,6 +64,12 @@ export interface IDatabasesGenerator {
    * @param result - The generation result
    */
   getGeneratedFilePaths(result: GenerateResult): string[];
+
+  /**
+   * Optional method to override server-side generation behavior.
+   * @param override - The override value
+   */
+  setServerSideOverride?(override: "auto" | "true" | "false"): void;
 }
 
 /**
