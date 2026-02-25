@@ -16,10 +16,16 @@ public struct _Team {}
 public struct _Membership {}
 public struct _Resolved {}
 
+public enum ChannelValidationError: Error {
+    case invalidID
+}
+
 // Helper for normalizing IDs
-private func normalize(_ id: String) -> String {
+private func normalize(_ id: String) throws -> String {
     let trimmed = id.trimmingCharacters(in: .whitespacesAndNewlines)
-    precondition(!trimmed.isEmpty, "Channel ID is required.")
+    guard !trimmed.isEmpty else {
+        throw ChannelValidationError.invalidID
+    }
     return trimmed
 }
 
@@ -32,9 +38,9 @@ public class RealtimeChannel<T> {
     }
     
     /// Internal helper to transition to next state with segment and optional ID
-    internal func next<N>(_ segment: String, _ id: String? = nil) -> RealtimeChannel<N> {
+    internal func next<N>(_ segment: String, _ id: String? = nil) throws -> RealtimeChannel<N> {
         if let id = id {
-            return RealtimeChannel<N>(segments + [segment, normalize(id)])
+            return RealtimeChannel<N>(segments + [segment, try normalize(id)])
         }
 
         return RealtimeChannel<N>(segments + [segment])
@@ -56,32 +62,32 @@ public enum Channel {
     
     // MARK: - Root Factories
     
-    public static func database(_ id: String) -> RealtimeChannel<_Database> {
-        return RealtimeChannel<_Database>(["databases", normalize(id)])
+    public static func database(_ id: String) throws -> RealtimeChannel<_Database> {
+        return RealtimeChannel<_Database>(["databases", try normalize(id)])
     }
     
-    public static func tablesdb(_ id: String) -> RealtimeChannel<_TablesDB> {
-        return RealtimeChannel<_TablesDB>(["tablesdb", normalize(id)])
+    public static func tablesdb(_ id: String) throws -> RealtimeChannel<_TablesDB> {
+        return RealtimeChannel<_TablesDB>(["tablesdb", try normalize(id)])
     }
     
-    public static func bucket(_ id: String) -> RealtimeChannel<_Bucket> {
-        return RealtimeChannel<_Bucket>(["buckets", normalize(id)])
+    public static func bucket(_ id: String) throws -> RealtimeChannel<_Bucket> {
+        return RealtimeChannel<_Bucket>(["buckets", try normalize(id)])
     }
     
-    public static func function(_ id: String) -> RealtimeChannel<_Func> {
-        return RealtimeChannel<_Func>(["functions", normalize(id)])
+    public static func function(_ id: String) throws -> RealtimeChannel<_Func> {
+        return RealtimeChannel<_Func>(["functions", try normalize(id)])
     }
     
-    public static func execution(_ id: String) -> RealtimeChannel<_Execution> {
-        return RealtimeChannel<_Execution>(["executions", normalize(id)])
+    public static func execution(_ id: String) throws -> RealtimeChannel<_Execution> {
+        return RealtimeChannel<_Execution>(["executions", try normalize(id)])
     }
     
-    public static func team(_ id: String) -> RealtimeChannel<_Team> {
-        return RealtimeChannel<_Team>(["teams", normalize(id)])
+    public static func team(_ id: String) throws -> RealtimeChannel<_Team> {
+        return RealtimeChannel<_Team>(["teams", try normalize(id)])
     }
     
-    public static func membership(_ id: String) -> RealtimeChannel<_Membership> {
-        return RealtimeChannel<_Membership>(["memberships", normalize(id)])
+    public static func membership(_ id: String) throws -> RealtimeChannel<_Membership> {
+        return RealtimeChannel<_Membership>(["memberships", try normalize(id)])
     }
     
     public static func account() -> String {
@@ -102,15 +108,15 @@ public enum Channel {
 
 /// Only available on RealtimeChannel<_Database>
 extension RealtimeChannel where T == _Database {
-    public func collection(_ id: String) -> RealtimeChannel<_Collection> {
-        return self.next("collections", id)
+    public func collection(_ id: String) throws -> RealtimeChannel<_Collection> {
+        return try self.next("collections", id)
     }
 }
 
 /// Only available on RealtimeChannel<_Collection>
 extension RealtimeChannel where T == _Collection {
-    public func document(_ id: String? = nil) -> RealtimeChannel<_Document> {
-        return self.next("documents", id)
+    public func document(_ id: String? = nil) throws -> RealtimeChannel<_Document> {
+        return try self.next("documents", id)
     }
 }
 
@@ -118,15 +124,15 @@ extension RealtimeChannel where T == _Collection {
 
 /// Only available on RealtimeChannel<_TablesDB>
 extension RealtimeChannel where T == _TablesDB {
-    public func table(_ id: String) -> RealtimeChannel<_Table> {
-        return self.next("tables", id)
+    public func table(_ id: String) throws -> RealtimeChannel<_Table> {
+        return try self.next("tables", id)
     }
 }
 
 /// Only available on RealtimeChannel<_Table>
 extension RealtimeChannel where T == _Table {
-    public func row(_ id: String? = nil) -> RealtimeChannel<_Row> {
-        return self.next("rows", id)
+    public func row(_ id: String? = nil) throws -> RealtimeChannel<_Row> {
+        return try self.next("rows", id)
     }
 }
 
@@ -134,8 +140,8 @@ extension RealtimeChannel where T == _Table {
 
 /// Only available on RealtimeChannel<_Bucket>
 extension RealtimeChannel where T == _Bucket {
-    public func file(_ id: String? = nil) -> RealtimeChannel<_File> {
-        return self.next("files", id)
+    public func file(_ id: String? = nil) throws -> RealtimeChannel<_File> {
+        return try self.next("files", id)
     }
 }
 
