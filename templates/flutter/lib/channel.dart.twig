@@ -22,9 +22,6 @@ String _normalize(String id) {
   if (trimmed.isEmpty) {
     throw ArgumentError('Channel ID is required');
   }
-  if (trimmed.contains('*')) {
-    throw ArgumentError("Channel ID cannot contain '*'");
-  }
   return trimmed;
 }
 

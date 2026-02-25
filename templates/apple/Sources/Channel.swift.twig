@@ -20,7 +20,6 @@ public struct _Resolved {}
 private func normalize(_ id: String) -> String {
     let trimmed = id.trimmingCharacters(in: .whitespacesAndNewlines)
     precondition(!trimmed.isEmpty, "Channel ID is required.")
-    precondition(!trimmed.contains("*"), "Channel ID cannot contain '*'.")
     return trimmed
 }
 

@@ -25,7 +25,6 @@ typealias Actionable = _Document
 private fun normalize(id: String): String {
     val trimmed = id.trim()
     require(trimmed.isNotEmpty()) { "Channel ID is required." }
-    require(!trimmed.contains("*")) { "Channel ID cannot contain '*'" }
     return trimmed
 }
 

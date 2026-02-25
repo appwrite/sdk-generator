@@ -23,9 +23,6 @@ function normalize(id: string): string {
   if (trimmed === "") {
     throw new Error("Channel ID is required");
   }
-  if (trimmed.includes("*")) {
-    throw new Error("Channel ID cannot contain '*'");
-  }
   return trimmed;
 }
 
