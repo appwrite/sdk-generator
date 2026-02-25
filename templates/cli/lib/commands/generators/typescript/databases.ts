@@ -240,7 +240,7 @@ export type DatabaseHandle<D extends DatabaseId> = {
   use: <T extends keyof DatabaseTableMap[D] & string>(tableId: T) => DatabaseTableMap[D][T];
 ${
   supportsServerSide
-    ? `  create: (tableId: string, name: string, options?: { permissions?: ${PERMISSION_CALLBACK_INLINE}; rowSecurity?: boolean; enabled?: boolean; columns?: any[]; indexes?: any[] }) => Promise<Models.Table>;
+    ? `  create: (tableId: string, name: string, options?: { permissions?: ${PERMISSION_CALLBACK_INLINE}; rowSecurity?: boolean; enabled?: boolean; columns?: object[]; indexes?: object[] }) => Promise<Models.Table>;
   update: <T extends keyof DatabaseTableMap[D] & string>(tableId: T, options?: { name?: string; permissions?: ${PERMISSION_CALLBACK_INLINE}; rowSecurity?: boolean; enabled?: boolean }) => Promise<Models.Table>;
   delete: <T extends keyof DatabaseTableMap[D] & string>(tableId: T) => Promise<void>;`
     : ""
@@ -330,26 +330,26 @@ ${
     if (!supportsBulk) return "";
 
     return `
-    createMany: (rows: any[], options?: { transactionId?: string }) =>
+    createMany: (rows: object[], options?: { transactionId?: string }) =>
       tablesDB.createRows({
         databaseId,
         tableId,
         rows,
         transactionId: options?.transactionId,
       }),
-    updateMany: (data: any, options?: { queries?: (q: any) => string[]; transactionId?: string }) =>
+    updateMany: (data: object, options?: { queries?: (q: QueryBuilder<T>) => string[]; transactionId?: string }) =>
       tablesDB.updateRows({
         databaseId,
         tableId,
         data,
-        queries: options?.queries?.(createQueryBuilder()),
+        queries: options?.queries?.(createQueryBuilder<T>()),
         transactionId: options?.transactionId,
       }),
-    deleteMany: (options?: { queries?: (q: any) => string[]; transactionId?: string }) =>
+    deleteMany: (options?: { queries?: (q: QueryBuilder<T>) => string[]; transactionId?: string }) =>
       tablesDB.deleteRows({
         databaseId,
         tableId,
-        queries: options?.queries?.(createQueryBuilder()),
+        queries: options?.queries?.(createQueryBuilder<T>()),
         transactionId: options?.transactionId,
       }),`;
   }
@@ -364,9 +364,9 @@ ${
     return `
         // Remove bulk methods for tables with relationships
         if (!hasBulkMethods(databaseId, tableId)) {
-          delete (api as any).createMany;
-          delete (api as any).updateMany;
-          delete (api as any).deleteMany;
+          delete (api as Record<string, unknown>).createMany;
+          delete (api as Record<string, unknown>).updateMany;
+          delete (api as Record<string, unknown>).deleteMany;
         }`;
   }
 
