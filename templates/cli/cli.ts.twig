@@ -61,7 +61,7 @@ async function checkVersion(): Promise<void> {
             // Current version is newer than latest (pre-release/dev)
             process.stdout.write(chalk.blue('\n🚀 You are running a pre-release or development version.') + '\n');
         }
-    } catch (error) {
+    } catch (_error) {
         // Silently fail version check, just show current version
         process.stdout.write(chalk.gray('\n(Unable to check for updates)') + '\n');
     }
@@ -69,7 +69,7 @@ async function checkVersion(): Promise<void> {
 
 // Intercept version flag before Commander.js processes it
 if (process.argv.includes('-v') || process.argv.includes('--version')) {
-    (async () => {
+    void (async () => {
         await checkVersion();
         process.exit(0);
     })();
@@ -106,7 +106,7 @@ if (process.argv.includes('-v') || process.argv.includes('--version')) {
             cliConfig.all = true;
         })
         .on('option:id', function () {
-            cliConfig.ids = (this as any).opts().id;
+            cliConfig.ids = (this.opts().id as string[]);
         })
         .showSuggestionAfterError()
 {% if sdk.test != "true" %}

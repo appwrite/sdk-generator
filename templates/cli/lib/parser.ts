@@ -25,7 +25,36 @@ const cliConfig: CliConfig = {
   reportData: {},
 };
 
-export const parse = (data: Record<string, any>): void => {
+type JsonObject = Record<string, unknown>;
+
+interface ReportDataPayload {
+  data?: {
+    args?: string[];
+  };
+}
+
+const toJsonObject = (value: unknown): JsonObject | null => {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return value as JsonObject;
+  }
+
+  return null;
+};
+
+const extractReportCommandArgs = (value: unknown): string[] => {
+  if (!value || typeof value !== "object") {
+    return [];
+  }
+
+  const reportData = value as ReportDataPayload;
+  if (!Array.isArray(reportData.data?.args)) {
+    return [];
+  }
+
+  return reportData.data.args;
+};
+
+export const parse = (data: JsonObject): void => {
   if (cliConfig.json) {
     drawJSON(data);
     return;
@@ -46,7 +75,8 @@ export const parse = (data: Record<string, any>): void => {
         console.log(`${chalk.yellow.bold(key)} : ${data[key]}`);
       } else {
         console.log(`${chalk.yellow.bold.underline(key)}`);
-        drawTable([data[key]]);
+        const tableRow = toJsonObject(data[key]) ?? {};
+        drawTable([tableRow]);
       }
     } else {
       console.log(`${chalk.yellow.bold(key)} : ${data[key]}`);
@@ -54,17 +84,13 @@ export const parse = (data: Record<string, any>): void => {
   }
 };
 
-export const drawTable = (
-  data: Array<Record<string, any> | null | undefined>,
-): void => {
+export const drawTable = (data: Array<JsonObject | null | undefined>): void => {
   if (data.length == 0) {
     console.log("[]");
     return;
   }
 
-  const rows = data.map((item) =>
-    item && typeof item === "object" && !Array.isArray(item) ? item : {},
-  );
+  const rows = data.map((item): JsonObject => toJsonObject(item) ?? {});
 
   // Create an object with all the keys in it
   const obj = rows.reduce((res, item) => ({ ...res, ...item }), {});
@@ -106,7 +132,7 @@ export const drawTable = (
   });
 
   normalizedData.forEach((row) => {
-    const rowValues: any[] = [];
+    const rowValues: string[] = [];
     for (const key of columns) {
       if (row[key] == null) {
         rowValues.push("-");
@@ -115,7 +141,7 @@ export const drawTable = (
       } else if (typeof row[key] === "object") {
         rowValues.push(JSON.stringify(row[key]));
       } else {
-        rowValues.push(row[key]);
+        rowValues.push(String(row[key]));
       }
     }
     table.push(rowValues);
@@ -123,13 +149,13 @@ export const drawTable = (
   console.log(table.toString());
 };
 
-export const drawJSON = (data: any): void => {
+export const drawJSON = (data: unknown): void => {
   console.log(JSON.stringify(data, null, 2));
 };
 
 export const parseError = (err: Error): void => {
   if (cliConfig.report) {
-    (async () => {
+    void (async () => {
       let appwriteVersion = "unknown";
       const endpoint = globalConfig.getEndpoint();
 
@@ -145,7 +171,8 @@ export const parseError = (err: Error): void => {
       }
 
       const version = SDK_VERSION;
-      const stepsToReproduce = `Running \`${EXECUTABLE_NAME} ${(cliConfig.reportData as any).data.args.join(" ")}\``;
+      const commandArgs = extractReportCommandArgs(cliConfig.reportData);
+      const stepsToReproduce = `Running \`${EXECUTABLE_NAME} ${commandArgs.join(" ")}\``;
       const yourEnvironment = `CLI version: ${version}\nOperation System: ${os.type()}\nAppwrite version: ${appwriteVersion}\nIs Cloud: ${isCloud()}`;
 
       const stack = "```\n" + (err.stack || err.message) + "\n```";
@@ -188,7 +215,9 @@ export const parseError = (err: Error): void => {
   }
 };
 
-export const actionRunner = <T extends (...args: any[]) => Promise<any>>(
+export const actionRunner = <
+  T extends (...args: unknown[]) => Promise<unknown>,
+>(
   fn: T,
 ): ((...args: Parameters<T>) => Promise<void>) => {
   return (...args: Parameters<T>) => {
@@ -200,7 +229,9 @@ export const actionRunner = <T extends (...args: any[]) => Promise<any>>(
       error(`The '--all' and '--id' flags cannot be used together.`);
       process.exit(1);
     }
-    return fn(...args).catch(parseError);
+    return fn(...args)
+      .then(() => undefined)
+      .catch(parseError);
   };
 };
 

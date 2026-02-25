@@ -34,6 +34,7 @@
     "build:lib:esm": "esbuild index.ts --bundle --platform=node --target=node18 --format=esm --loader:.hbs=text --outfile=dist/index.js",
     "build:lib:cjs": "esbuild index.ts --bundle --platform=node --target=node18 --format=cjs --loader:.hbs=text --outfile=dist/index.cjs",
     "build:cli": "esbuild cli.ts --bundle --platform=node --target=node18 --format=cjs --loader:.hbs=text --external:fsevents --outfile=dist/cli.cjs",
+    "lint": "eslint .",
     "format": "prettier --write \"**/*.{js,ts,json,md}\"",
     "generate": "tsx scripts/generate-commands.ts",
     "prepublishOnly": "npm run build",
@@ -65,7 +66,12 @@
     "zod": "^4.3.5"
   },
   "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
     "@types/bun": "^1.3.5",
+    "eslint": "^9.0.0",
+    "eslint-plugin-unused-imports": "^4.0.0",
+    "typescript-eslint": "^8.0.0",
     "@types/cli-progress": "^3.11.5",
     "@types/inquirer": "^8.2.10",
     "@types/json-bigint": "^1.0.4",

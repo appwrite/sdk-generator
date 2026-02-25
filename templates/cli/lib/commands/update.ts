@@ -3,7 +3,11 @@ import { Command } from "commander";
 import chalk from "chalk";
 import inquirer from "inquirer";
 import { success, log, warn, error, hint, actionRunner } from "../parser.js";
-import { getLatestVersion, compareVersions } from "../utils.js";
+import {
+  getLatestVersion,
+  compareVersions,
+  getErrorMessage,
+} from "../utils.js";
 import {
   GITHUB_RELEASES_URL,
   NPM_PACKAGE_NAME,
@@ -11,6 +15,8 @@ import {
 } from "../constants.js";
 import packageJson from "../../package.json" with { type: "json" };
 const { version } = packageJson;
+
+type ExecCommandOptions = Exclude<Parameters<typeof spawn>[2], undefined>;
 
 /**
  * Check if the CLI was installed via npm
@@ -36,7 +42,7 @@ const isInstalledViaNpm = (): boolean => {
     }
 
     return false;
-  } catch (e) {
+  } catch (_e) {
     return false;
   }
 };
@@ -51,7 +57,7 @@ const isInstalledViaHomebrew = (): boolean => {
       scriptPath.includes("/opt/homebrew/") ||
       scriptPath.includes("/usr/local/Cellar/")
     );
-  } catch (e) {
+  } catch (_e) {
     return false;
   }
 };
@@ -62,7 +68,7 @@ const isInstalledViaHomebrew = (): boolean => {
 const execCommand = (
   command: string,
   args: string[] = [],
-  options: any = {},
+  options: ExecCommandOptions = {},
 ): Promise<void> => {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
@@ -94,17 +100,16 @@ const updateViaNpm = async (): Promise<void> => {
     console.log("");
     success("Updated to latest version via npm!");
     hint("Run 'appwrite --version' to verify the new version.");
-  } catch (e: any) {
-    if (
-      e.message.includes("EEXIST") ||
-      e.message.includes("file already exists")
-    ) {
+  } catch (e: unknown) {
+    const message = getErrorMessage(e);
+
+    if (message.includes("EEXIST") || message.includes("file already exists")) {
       console.log("");
       success("Latest version is already installed via npm!");
       hint("The CLI is up to date. Run 'appwrite --version' to verify.");
     } else {
       console.log("");
-      error(`Failed to update via npm: ${e.message}`);
+      error(`Failed to update via npm: ${message}`);
       hint(`Try running: npm install -g ${NPM_PACKAGE_NAME}@latest --force`);
     }
   }
@@ -119,17 +124,19 @@ const updateViaHomebrew = async (): Promise<void> => {
     console.log("");
     success("Updated to latest version via Homebrew!");
     hint("Run 'appwrite --version' to verify the new version.");
-  } catch (e: any) {
+  } catch (e: unknown) {
+    const message = getErrorMessage(e);
+
     if (
-      e.message.includes("already installed") ||
-      e.message.includes("up-to-date")
+      message.includes("already installed") ||
+      message.includes("up-to-date")
     ) {
       console.log("");
       success("Latest version is already installed via Homebrew!");
       hint("The CLI is up to date. Run 'appwrite --version' to verify.");
     } else {
       console.log("");
-      error(`Failed to update via Homebrew: ${e.message}`);
+      error(`Failed to update via Homebrew: ${message}`);
       hint("Try running: brew upgrade appwrite");
     }
   }
@@ -230,9 +237,10 @@ const updateCli = async ({ manual }: UpdateOptions = {}): Promise<void> => {
     } else {
       await chooseUpdateMethod(latestVersion);
     }
-  } catch (e: any) {
+  } catch (e: unknown) {
+    const message = getErrorMessage(e);
     console.log("");
-    error(`Failed to check for updates: ${e.message}`);
+    error(`Failed to check for updates: ${message}`);
     hint(`You can manually check for updates at: ${GITHUB_RELEASES_URL}`);
   }
 };
