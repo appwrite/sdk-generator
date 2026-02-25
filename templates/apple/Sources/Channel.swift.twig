@@ -19,7 +19,9 @@ public struct _Resolved {}
 // Helper for normalizing IDs
 private func normalize(_ id: String) -> String {
     let trimmed = id.trimmingCharacters(in: .whitespacesAndNewlines)
-    return trimmed.isEmpty ? "*" : trimmed
+    precondition(!trimmed.isEmpty, "Channel ID is required.")
+    precondition(!trimmed.contains("*"), "Channel ID cannot contain '*'.")
+    return trimmed
 }
 
 /// Channel class with generic type parameter for type-safe method chaining
@@ -55,31 +57,31 @@ public enum Channel {
     
     // MARK: - Root Factories
     
-    public static func database(_ id: String = "*") -> RealtimeChannel<_Database> {
+    public static func database(_ id: String) -> RealtimeChannel<_Database> {
         return RealtimeChannel<_Database>(["databases", normalize(id)])
     }
     
-    public static func tablesdb(_ id: String = "*") -> RealtimeChannel<_TablesDB> {
+    public static func tablesdb(_ id: String) -> RealtimeChannel<_TablesDB> {
         return RealtimeChannel<_TablesDB>(["tablesdb", normalize(id)])
     }
     
-    public static func bucket(_ id: String = "*") -> RealtimeChannel<_Bucket> {
+    public static func bucket(_ id: String) -> RealtimeChannel<_Bucket> {
         return RealtimeChannel<_Bucket>(["buckets", normalize(id)])
     }
     
-    public static func function(_ id: String = "*") -> RealtimeChannel<_Func> {
+    public static func function(_ id: String) -> RealtimeChannel<_Func> {
         return RealtimeChannel<_Func>(["functions", normalize(id)])
     }
     
-    public static func execution(_ id: String = "*") -> RealtimeChannel<_Execution> {
+    public static func execution(_ id: String) -> RealtimeChannel<_Execution> {
         return RealtimeChannel<_Execution>(["executions", normalize(id)])
     }
     
-    public static func team(_ id: String = "*") -> RealtimeChannel<_Team> {
+    public static func team(_ id: String) -> RealtimeChannel<_Team> {
         return RealtimeChannel<_Team>(["teams", normalize(id)])
     }
     
-    public static func membership(_ id: String = "*") -> RealtimeChannel<_Membership> {
+    public static func membership(_ id: String) -> RealtimeChannel<_Membership> {
         return RealtimeChannel<_Membership>(["memberships", normalize(id)])
     }
     
@@ -101,8 +103,8 @@ public enum Channel {
 
 /// Only available on RealtimeChannel<_Database>
 extension RealtimeChannel where T == _Database {
-    public func collection(_ id: String? = nil) -> RealtimeChannel<_Collection> {
-        return self.next("collections", id ?? "*")
+    public func collection(_ id: String) -> RealtimeChannel<_Collection> {
+        return self.next("collections", id)
     }
 }
 
@@ -117,8 +119,8 @@ extension RealtimeChannel where T == _Collection {
 
 /// Only available on RealtimeChannel<_TablesDB>
 extension RealtimeChannel where T == _TablesDB {
-    public func table(_ id: String? = nil) -> RealtimeChannel<_Table> {
-        return self.next("tables", id ?? "*")
+    public func table(_ id: String) -> RealtimeChannel<_Table> {
+        return self.next("tables", id)
     }
 }
 
