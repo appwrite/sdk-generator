@@ -1,0 +1,138 @@
+---
+name: deploy-site
+description: Deploy a site using the {{ spec.title }} CLI
+---
+
+# Deploy a site using the {{ spec.title }} CLI
+
+## Prerequisites
+
+- {{ spec.title }} CLI installed (`npm install -g appwrite-cli`)
+- Authenticated with `appwrite login`
+- Project initialized with `appwrite init`
+
+## Quick Deploy
+
+```sh
+appwrite push sites
+```
+
+## Full Workflow
+
+### 1. Initialize a new site
+
+```sh
+appwrite init sites
+```
+
+### 2. Pull existing sites from Console
+
+```sh
+appwrite pull sites
+```
+
+### 3. Configuration
+
+Sites are configured in `appwrite.config.json`:
+
+```json
+{
+    "projectId": "<PROJECT_ID>",
+    "endpoint": "https://<REGION>.cloud.appwrite.io/v1",
+    "sites": [
+        {
+            "$id": "<SITE_ID>",
+            "name": "My Site",
+            "enabled": true,
+            "logging": true,
+            "framework": "astro",
+            "timeout": 30,
+            "installCommand": "npm install",
+            "buildCommand": "npm run build",
+            "outputDirectory": "./dist",
+            "specification": "s-1vcpu-512mb",
+            "buildRuntime": "node-22",
+            "adapter": "ssr",
+            "fallbackFile": "",
+            "path": "sites/my-site"
+        }
+    ]
+}
+```
+
+### 4. Deploy
+
+```sh
+appwrite push sites
+```
+
+## CI/CD (Non-Interactive)
+
+Set up headless mode first:
+
+```sh
+appwrite client \
+    --endpoint https://<REGION>.cloud.appwrite.io/v1 \
+    --project-id <PROJECT_ID> \
+    --key <API_KEY>
+```
+
+Then deploy non-interactively:
+
+```sh
+# Push all sites
+appwrite push sites --all --force
+
+# Push a specific site
+appwrite push sites --site-id <SITE_ID> --force
+```
+
+## Site Management Commands
+
+| Command | Description |
+|---------|-------------|
+| `appwrite sites list` | List all sites in the project |
+| `appwrite sites create` | Create a new site |
+| `appwrite sites get --site-id <ID>` | Get a site by ID |
+| `appwrite sites update --site-id <ID>` | Update a site |
+| `appwrite sites delete --site-id <ID>` | Delete a site |
+| `appwrite sites list-frameworks` | List available frameworks |
+| `appwrite sites list-specifications` | List allowed site specifications |
+
+## Deployment Commands
+
+| Command | Description |
+|---------|-------------|
+| `appwrite sites list-deployments --site-id <ID>` | List all deployments |
+| `appwrite sites create-deployment --site-id <ID>` | Create a new deployment |
+| `appwrite sites get-deployment --site-id <ID> --deployment-id <ID>` | Get a deployment |
+| `appwrite sites delete-deployment --site-id <ID> --deployment-id <ID>` | Delete a deployment |
+| `appwrite sites update-site-deployment --site-id <ID> --deployment-id <ID>` | Set active deployment |
+| `appwrite sites update-deployment-status --site-id <ID> --deployment-id <ID>` | Cancel an ongoing build |
+
+## Environment Variables
+
+| Command | Description |
+|---------|-------------|
+| `appwrite sites list-variables --site-id <ID>` | List all variables |
+| `appwrite sites create-variable --site-id <ID> --key <KEY> --value <VALUE>` | Create a variable |
+| `appwrite sites update-variable --site-id <ID> --variable-id <ID> --key <KEY> --value <VALUE>` | Update a variable |
+| `appwrite sites delete-variable --site-id <ID> --variable-id <ID>` | Delete a variable |
+
+Variables are accessible during build and runtime (server-side rendering) as environment variables.
+
+## Logs
+
+| Command | Description |
+|---------|-------------|
+| `appwrite sites list-logs --site-id <ID>` | List site request logs |
+| `appwrite sites get-log --site-id <ID> --log-id <ID>` | Get a specific log |
+| `appwrite sites delete-log --site-id <ID> --log-id <ID>` | Delete a log |
+
+## Templates
+
+| Command | Description |
+|---------|-------------|
+| `appwrite sites list-templates` | List available site templates |
+| `appwrite sites get-template --template-id <ID>` | Get template details |
+| `appwrite sites create-template-deployment --site-id <ID>` | Deploy from a template |
