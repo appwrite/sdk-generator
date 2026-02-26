@@ -49,6 +49,14 @@ export const createSettingsObject = (project: Models.Project): SettingsType => {
   };
 };
 
+export const getErrorMessage = (error: unknown): string => {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return String(error);
+};
+
 /**
  * Get the latest version from npm registry
  */
@@ -90,7 +98,7 @@ export function getAllFiles(folder: string): string[] {
     let stats: fs.Stats;
     try {
       stats = fs.statSync(pathAbsolute);
-    } catch (error) {
+    } catch (_error) {
       continue;
     }
     if (stats.isDirectory()) {
@@ -146,8 +154,12 @@ export function systemHasCommand(command: string): boolean {
   return true;
 }
 
-export const checkDeployConditions = (localConfig: any): void => {
-  if (Object.keys(localConfig.data).length === 0) {
+type DeployLocalConfig = {
+  keys: () => string[];
+};
+
+export const checkDeployConditions = (localConfig: DeployLocalConfig): void => {
+  if (localConfig.keys().length === 0) {
     throw new Error(
       "No appwrite.config.json file found in the current directory. Please run this command again in the folder containing your appwrite.config.json file, or run 'appwrite init project' to link current directory to an Appwrite project.",
     );
@@ -158,6 +170,21 @@ export function isCloud(): boolean {
   const endpoint = globalConfig.getEndpoint() || DEFAULT_ENDPOINT;
   const hostname = new URL(endpoint).hostname;
   return hostname.endsWith("appwrite.io");
+}
+
+export function arrayEqualsUnordered(left: unknown, right: unknown): boolean {
+  const a = Array.isArray(left)
+    ? [...left].map((item) => String(item)).sort()
+    : [];
+  const b = Array.isArray(right)
+    ? [...right].map((item) => String(item)).sort()
+    : [];
+
+  if (a.length !== b.length) {
+    return false;
+  }
+
+  return a.every((value, index) => value === b[index]);
 }
 
 /**

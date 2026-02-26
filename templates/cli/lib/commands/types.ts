@@ -83,6 +83,16 @@ interface TypesOptions {
   strict: boolean;
 }
 
+type TypeAttribute = Record<string, unknown> & {
+  relatedTable?: string;
+};
+
+type TypeDataItem = Record<string, unknown> & {
+  name: string;
+  attributes?: TypeAttribute[];
+  columns?: TypeAttribute[];
+};
+
 const typesCommand = actionRunner(
   async (rawOutputDirectory: string, { language, strict }: TypesOptions) => {
     if (language === "auto") {
@@ -126,13 +136,11 @@ const typesCommand = actionRunner(
     }
 
     // Try tables first, fallback to collections
-    let tables = localConfig.getTables();
-    let collections: any[] = [];
-    let dataSource = "tables";
+    const tables = localConfig.getTables();
+    let collections: TypeDataItem[] = [];
 
     if (tables.length === 0) {
       collections = localConfig.getCollections();
-      dataSource = "collections";
 
       if (collections.length === 0) {
         const configFileName = path.basename(localConfig.path);
@@ -143,7 +151,8 @@ const typesCommand = actionRunner(
     }
 
     // Use tables if available, otherwise use collections
-    let dataItems: any[] = tables.length > 0 ? tables : collections;
+    let dataItems: TypeDataItem[] =
+      tables.length > 0 ? (tables as TypeDataItem[]) : collections;
     const itemType = tables.length > 0 ? "tables" : "collections";
 
     // Normalize tables data: rename 'columns' to 'attributes' for template compatibility
@@ -152,7 +161,7 @@ const typesCommand = actionRunner(
         const { columns, ...rest } = table;
         return {
           ...rest,
-          attributes: (columns || []).map((column: any) => {
+          attributes: (columns || []).map((column: TypeAttribute) => {
             if (column.relatedTable) {
               const { relatedTable, ...columnRest } = column;
               return {
@@ -167,14 +176,15 @@ const typesCommand = actionRunner(
     }
 
     log(
-      `Found ${dataItems.length} ${itemType}: ${dataItems.map((c: any) => c.name).join(", ")}`,
+      `Found ${dataItems.length} ${itemType}: ${dataItems.map((c) => c.name).join(", ")}`,
     );
 
     // Use columns if available, otherwise use attributes
     const resourceType = tables.length > 0 ? "columns" : "attributes";
 
     const totalAttributes = dataItems.reduce(
-      (count: number, item: any) => count + (item.attributes || []).length,
+      (count: number, item: TypeDataItem) =>
+        count + (item.attributes || []).length,
       0,
     );
     log(`Found ${totalAttributes} ${resourceType} across all ${itemType}`);

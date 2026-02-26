@@ -142,14 +142,14 @@ export const JwtManager = {
       await usersClient.get({
         userId,
       });
-      const userResponse: any = await usersClient.createJWT({
+      const userResponse = await usersClient.createJWT({
         userId,
         duration: 60 * 60,
       });
       this.userJwt = userResponse.jwt;
     }
 
-    const functionResponse: any = await projectsClient.createJWT({
+    const functionResponse = await projectsClient.createJWT({
       projectId: localConfig.getProject().projectId!,
       scopes: projectScopes,
       duration: 60 * 60,

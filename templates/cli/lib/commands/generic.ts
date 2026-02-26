@@ -28,9 +28,14 @@ import ClientLegacy from "../client.js";
 
 const DEFAULT_ENDPOINT = "https://cloud.appwrite.io/v1";
 
-const isMfaRequiredError = (err: any): boolean =>
-  err?.type === "user_more_factors_required" ||
-  err?.response === "user_more_factors_required";
+interface AppwriteError {
+  type?: string;
+  response?: string;
+}
+
+const isMfaRequiredError = (err: unknown): err is AppwriteError =>
+  (err as AppwriteError)?.type === "user_more_factors_required" ||
+  (err as AppwriteError)?.response === "user_more_factors_required";
 
 const createLegacyConsoleClient = (endpoint: string): ClientLegacy => {
   const legacyClient = new ClientLegacy();
@@ -52,7 +57,7 @@ const completeMfaLogin = async ({
   legacyClient: ClientLegacy;
   mfa?: string;
   code?: string;
-}): Promise<any> => {
+}): Promise<unknown> => {
   let accountClient = new Account(client);
 
   const savedCookie = globalConfig.getCookie();
@@ -92,11 +97,11 @@ const completeMfaLogin = async ({
 
 const deleteServerSession = async (sessionId: string): Promise<boolean> => {
   try {
-    let client = await sdkForConsole();
-    let accountClient = new Account(client);
+    const client = await sdkForConsole();
+    const accountClient = new Account(client);
     await accountClient.deleteSession(sessionId);
     return true;
-  } catch (e) {
+  } catch (_e) {
     return false;
   }
 };
@@ -206,7 +211,7 @@ export const loginCommand = async ({
 
     try {
       await accountClient.get();
-    } catch (err: any) {
+    } catch (err) {
       if (!isMfaRequiredError(err)) {
         throw err;
       }
@@ -234,7 +239,7 @@ export const loginCommand = async ({
   // Use legacy client for login to extract cookies from response
   const legacyClient = createLegacyConsoleClient(configEndpoint);
 
-  let client = await sdkForConsole(false);
+  const client = await sdkForConsole(false);
   let accountClient = new Account(client);
 
   let account;
@@ -261,7 +266,7 @@ export const loginCommand = async ({
 
     accountClient = new Account(client);
     account = await accountClient.get();
-  } catch (err: any) {
+  } catch (err) {
     if (isMfaRequiredError(err)) {
       account = await completeMfaLogin({
         client,
@@ -301,8 +306,8 @@ export const whoami = new Command("whoami")
         return;
       }
 
-      let client = await sdkForConsole(false);
-      let accountClient = new Account(client);
+      const client = await sdkForConsole(false);
+      const accountClient = new Account(client);
 
       let account;
 
@@ -501,7 +506,7 @@ export const client = new Command("client")
                 : cookieValue || "********";
             maskedCookie = `${cookieName}=...${tail}`;
           }
-          let config = {
+          const config = {
             endpoint: globalConfig.getEndpoint(),
             key: maskedKey,
             cookie: maskedCookie,
@@ -515,17 +520,17 @@ export const client = new Command("client")
         if (endpoint !== undefined) {
           try {
             const id = ID.unique();
-            let url = new URL(endpoint);
+            const url = new URL(endpoint);
             if (url.protocol !== "http:" && url.protocol !== "https:") {
               throw new Error();
             }
 
-            let clientInstance = new Client().setEndpoint(endpoint);
+            const clientInstance = new Client().setEndpoint(endpoint);
             clientInstance.setProject("console");
             if (selfSigned || globalConfig.getSelfSigned()) {
               clientInstance.setSelfSigned(true);
             }
-            let response = (await clientInstance.call(
+            const response = (await clientInstance.call(
               "GET",
               new URL(endpoint + "/health/version"),
             )) as { version?: string };

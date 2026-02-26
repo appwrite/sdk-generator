@@ -9,6 +9,7 @@ import { Pull } from "./lib/commands/pull.js";
 import { Schema } from "./lib/commands/schema.js";
 
 export { Schema, Push, Pull };
+export { Client } from "@appwrite.io/console";
 export type {
   ConfigType,
   SettingsType,

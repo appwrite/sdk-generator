@@ -222,7 +222,9 @@ void main() async {
   print(Query.offset(20));
   print(Query.contains("title", "Spider"));
   print(Query.contains("labels", "first"));
-  
+  print(Query.containsAny("labels", ["first", "second"]));
+  print(Query.containsAll("labels", ["first", "second"]));
+
   // New query methods
   print(Query.notContains("title", "Spider"));
   print(Query.notSearch("name", "john"));
@@ -295,30 +297,31 @@ void main() async {
   print(ID.custom('custom_id'));
 
   // Channel helper tests
-  print(Channel.database().collection().document().toString());
+  print(Channel.database('db1').collection('col1').document().toString());
   print(Channel.database('db1').collection('col1').document('doc1').toString());
   print(Channel.database('db1').collection('col1').document('doc1').create().toString());
-  print(Channel.tablesdb().table().row().toString());
+  print(Channel.database('db1').collection('col1').document('doc1').upsert().toString());
+  print(Channel.tablesdb('db1').table('table1').row().toString());
   print(Channel.tablesdb('db1').table('table1').row('row1').toString());
   print(Channel.tablesdb('db1').table('table1').row('row1').update().toString());
   print(Channel.account());
-  print(Channel.bucket().file().toString());
+  print(Channel.bucket('bucket1').file().toString());
   print(Channel.bucket('bucket1').file('file1').toString());
   print(Channel.bucket('bucket1').file('file1').delete().toString());
-  print(Channel.function().toString());
+  print(Channel.function('func2').toString());
   print(Channel.function('func1').toString());
-  print(Channel.execution().toString());
+  print(Channel.execution('exec2').toString());
   print(Channel.execution('exec1').toString());
   print(Channel.documents());
   print(Channel.rows());
   print(Channel.files());
   print(Channel.executions());
   print(Channel.teams());
-  print(Channel.team().toString());
+  print(Channel.team('team2').toString());
   print(Channel.team('team1').toString());
   print(Channel.team('team1').create().toString());
   print(Channel.memberships());
-  print(Channel.membership().toString());
+  print(Channel.membership('membership2').toString());
   print(Channel.membership('membership1').toString());
   print(Channel.membership('membership1').update().toString());
 

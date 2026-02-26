@@ -99,6 +99,7 @@ class AgentSkills extends Language
             'ruby',
             'go',
             'dotnet',
+            'cli',
         ];
 
         $files = [];

@@ -6,6 +6,7 @@ import { TypeScript } from "../../../type-generation/languages/typescript.js";
 import { SDK_TITLE, EXECUTABLE_NAME } from "../../../constants.js";
 import {
   BaseDatabasesGenerator,
+  GenerateOptions,
   GenerateResult,
   SupportedLanguage,
 } from "../base.js";
@@ -240,7 +241,7 @@ export type DatabaseHandle<D extends DatabaseId> = {
   use: <T extends keyof DatabaseTableMap[D] & string>(tableId: T) => DatabaseTableMap[D][T];
 ${
   supportsServerSide
-    ? `  create: (tableId: string, name: string, options?: { permissions?: ${PERMISSION_CALLBACK_INLINE}; rowSecurity?: boolean; enabled?: boolean; columns?: any[]; indexes?: any[] }) => Promise<Models.Table>;
+    ? `  create: (tableId: string, name: string, options?: { permissions?: ${PERMISSION_CALLBACK_INLINE}; rowSecurity?: boolean; enabled?: boolean; columns?: object[]; indexes?: object[] }) => Promise<Models.Table>;
   update: <T extends keyof DatabaseTableMap[D] & string>(tableId: T, options?: { name?: string; permissions?: ${PERMISSION_CALLBACK_INLINE}; rowSecurity?: boolean; enabled?: boolean }) => Promise<Models.Table>;
   delete: <T extends keyof DatabaseTableMap[D] & string>(tableId: T) => Promise<void>;`
     : ""
@@ -259,14 +260,13 @@ ${
 };`;
   }
 
-  private generateTypesFile(config: ConfigType): string {
+  private generateTypesFile(config: ConfigType, appwriteDep: string): string {
     const entities = config.tables?.length ? config.tables : config.collections;
 
     if (!entities || entities.length === 0) {
       return "// No tables or collections found in configuration\n";
     }
 
-    const appwriteDep = getAppwriteDependency();
     const enums = this.generateEnums(entities);
     const types = entities
       .map((entity: Entity) => this.generateTableType(entity, entities))
@@ -330,26 +330,26 @@ ${
     if (!supportsBulk) return "";
 
     return `
-    createMany: (rows: any[], options?: { transactionId?: string }) =>
+    createMany: (rows: object[], options?: { transactionId?: string }) =>
       tablesDB.createRows({
         databaseId,
         tableId,
         rows,
         transactionId: options?.transactionId,
       }),
-    updateMany: (data: any, options?: { queries?: (q: any) => string[]; transactionId?: string }) =>
+    updateMany: (data: object, options?: { queries?: (q: QueryBuilder<T>) => string[]; transactionId?: string }) =>
       tablesDB.updateRows({
         databaseId,
         tableId,
         data,
-        queries: options?.queries?.(createQueryBuilder()),
+        queries: options?.queries?.(createQueryBuilder<T>()),
         transactionId: options?.transactionId,
       }),
-    deleteMany: (options?: { queries?: (q: any) => string[]; transactionId?: string }) =>
+    deleteMany: (options?: { queries?: (q: QueryBuilder<T>) => string[]; transactionId?: string }) =>
       tablesDB.deleteRows({
         databaseId,
         tableId,
-        queries: options?.queries?.(createQueryBuilder()),
+        queries: options?.queries?.(createQueryBuilder<T>()),
         transactionId: options?.transactionId,
       }),`;
   }
@@ -364,13 +364,17 @@ ${
     return `
         // Remove bulk methods for tables with relationships
         if (!hasBulkMethods(databaseId, tableId)) {
-          delete (api as any).createMany;
-          delete (api as any).updateMany;
-          delete (api as any).deleteMany;
+          delete (api as Record<string, unknown>).createMany;
+          delete (api as Record<string, unknown>).updateMany;
+          delete (api as Record<string, unknown>).deleteMany;
         }`;
   }
 
-  private generateDatabasesFile(config: ConfigType, importExt: string): string {
+  private generateDatabasesFile(
+    config: ConfigType,
+    importExt: string,
+    appwriteDep: string,
+  ): string {
     const entities = config.tables?.length ? config.tables : config.collections;
 
     if (!entities || entities.length === 0) {
@@ -378,7 +382,6 @@ ${
     }
 
     const entitiesByDb = this.groupEntitiesByDb(entities);
-    const appwriteDep = getAppwriteDependency();
     const supportsServerSide = supportsServerSideMethods(
       appwriteDep,
       this.serverSideOverride,
@@ -405,8 +408,10 @@ ${
     });
   }
 
-  private generateConstantsFile(config: ConfigType): string {
-    const appwriteDep = getAppwriteDependency();
+  private generateConstantsFile(
+    config: ConfigType,
+    appwriteDep: string,
+  ): string {
     const supportsServerSide = supportsServerSideMethods(
       appwriteDep,
       this.serverSideOverride,
@@ -420,13 +425,17 @@ ${
     });
   }
 
-  async generate(config: ConfigType): Promise<GenerateResult> {
+  async generate(
+    config: ConfigType,
+    options?: GenerateOptions,
+  ): Promise<GenerateResult> {
     if (!config.projectId) {
       throw new Error("Project ID is required in configuration");
     }
 
-    const importExt = detectImportExtension();
-    const files = new Map<string, string>();
+    const appwriteDep =
+      options?.appwriteImportSource ?? getAppwriteDependency();
+    const importExt = options?.importExtension ?? detectImportExtension();
 
     const hasEntities =
       (config.tables && config.tables.length > 0) ||
@@ -436,24 +445,19 @@ ${
       console.log(
         "No tables or collections found in configuration. Skipping database generation.",
       );
-      files.set(
-        "databases.ts",
-        "// No tables or collections found in configuration\n",
-      );
-      files.set(
-        "types.ts",
-        "// No tables or collections found in configuration\n",
-      );
-      files.set("index.ts", this.generateIndexFile(importExt));
-      files.set("constants.ts", this.generateConstantsFile(config));
-      return { files };
+      return {
+        dbContent: "// No tables or collections found in configuration\n",
+        typesContent: "// No tables or collections found in configuration\n",
+        indexContent: this.generateIndexFile(importExt),
+        constantsContent: this.generateConstantsFile(config, appwriteDep),
+      };
     }
 
-    files.set("types.ts", this.generateTypesFile(config));
-    files.set("databases.ts", this.generateDatabasesFile(config, importExt));
-    files.set("index.ts", this.generateIndexFile(importExt));
-    files.set("constants.ts", this.generateConstantsFile(config));
-
-    return { files };
+    return {
+      dbContent: this.generateDatabasesFile(config, importExt, appwriteDep),
+      typesContent: this.generateTypesFile(config, appwriteDep),
+      indexContent: this.generateIndexFile(importExt),
+      constantsContent: this.generateConstantsFile(config, appwriteDep),
+    };
   }
 }

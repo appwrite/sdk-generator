@@ -4,6 +4,7 @@ import { KeysAttributes } from "../../config.js";
 import { log, success, error, cliConfig, drawTable } from "../../parser.js";
 import { Pools } from "./pools.js";
 import inquirer from "inquirer";
+import type { Client } from "@appwrite.io/console";
 
 const changeableKeys = [
   "status",
@@ -53,9 +54,11 @@ const questionPushChangesConfirmation = [
 export class Attributes {
   private pools: Pools;
   private skipConfirmation: boolean;
+  private client?: Client;
 
-  constructor(pools?: Pools, skipConfirmation = false) {
-    this.pools = pools || new Pools();
+  constructor(pools?: Pools, skipConfirmation = false, client?: Client) {
+    this.client = client;
+    this.pools = pools || new Pools(undefined, client);
     this.skipConfirmation = skipConfirmation;
   }
 
@@ -73,7 +76,7 @@ export class Attributes {
       return answers.changes;
     }
 
-    let answers = await inquirer.prompt(questionPushChanges);
+    const answers = await inquirer.prompt(questionPushChanges);
 
     if (answers.changes !== "YES" && answers.changes !== "NO") {
       answers.changes = await fixConfirmation();
@@ -145,9 +148,9 @@ export class Attributes {
     const keyName = `${chalk.yellow(local.key)} in ${collection.name} (${collection["$id"]})`;
     const action = chalk.cyan(recreating ? "recreating" : "changing");
     let reason = "";
-    let attribute = recreating ? remote : local;
+    const attribute = recreating ? remote : local;
 
-    for (let key of Object.keys(remote)) {
+    for (const key of Object.keys(remote)) {
       if (!KeysAttributes.has(key)) {
         continue;
       }
@@ -197,7 +200,7 @@ export class Attributes {
     collectionId: string,
     attribute: any,
   ): Promise<any> => {
-    const databasesService = await getDatabasesService();
+    const databasesService = await getDatabasesService(this.client);
     switch (attribute.type) {
       case "string":
         switch (attribute.format) {
@@ -373,7 +376,7 @@ export class Attributes {
     collectionId: string,
     attribute: any,
   ): Promise<any> => {
-    const databasesService = await getDatabasesService();
+    const databasesService = await getDatabasesService(this.client);
     switch (attribute.type) {
       case "string":
         switch (attribute.format) {
@@ -533,7 +536,7 @@ export class Attributes {
       `Deleting ${isIndex ? "index" : "attribute"} ${attribute.key} of ${collection.name} ( ${collection["$id"]} )`,
     );
 
-    const databasesService = await getDatabasesService();
+    const databasesService = await getDatabasesService(this.client);
     if (isIndex) {
       await databasesService.deleteIndex(
         collection["databaseId"],
@@ -733,8 +736,8 @@ export class Attributes {
   ): Promise<void> => {
     log(`Creating indexes ...`);
 
-    const databasesService = await getDatabasesService();
-    for (let index of indexes) {
+    const databasesService = await getDatabasesService(this.client);
+    for (const index of indexes) {
       await databasesService.createIndex({
         databaseId: collection["databaseId"],
         collectionId: collection["$id"],
@@ -766,7 +769,7 @@ export class Attributes {
   ): Promise<void> => {
     log(`Creating attributes ...`);
 
-    for (let attribute of attributes) {
+    for (const attribute of attributes) {
       if (attribute.side !== "child") {
         await this.createAttribute(
           collection["databaseId"],
@@ -800,7 +803,7 @@ export class Attributes {
   ): Promise<void> => {
     log(`Creating columns ...`);
 
-    for (let column of columns) {
+    for (const column of columns) {
       if (column.side !== "child") {
         await this.createAttribute(table["databaseId"], table["$id"], column);
       }

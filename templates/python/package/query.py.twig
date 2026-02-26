@@ -140,7 +140,31 @@ class Query():
 
     @staticmethod
     def contains(attribute, value):
+        """
+        Filter resources where attribute contains the specified value.
+        For string attributes, checks if the string contains the substring.
+
+        Note: For array attributes, use contains_any() or contains_all() instead.
+        """
         return str(Query("contains", attribute, value))
+
+    @staticmethod
+    def contains_any(attribute, value):
+        """
+        Filter resources where attribute contains ANY of the specified values.
+        For array and relationship attributes, matches documents where the attribute
+        contains at least one of the given values.
+        """
+        return str(Query("containsAny", attribute, value))
+
+    @staticmethod
+    def contains_all(attribute, value):
+        """
+        Filter resources where attribute contains ALL of the specified values.
+        For array and relationship attributes, matches documents where the attribute
+        contains every one of the given values.
+        """
+        return str(Query("containsAll", attribute, value))
 
     @staticmethod
     def not_contains(attribute, value):

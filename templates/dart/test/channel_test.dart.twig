@@ -7,9 +7,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('database()', () {
-    test('returns database channel builder', () {
-      final builder = Channel.database();
-      expect(builder.channel, 'databases.*');
+    test('throws when database id is missing', () {
+      expect(() => Channel.database(''), throwsArgumentError);
     });
 
     test('returns database channel with specific ID', () {
@@ -18,20 +17,24 @@ void main() {
     });
 
     test('returns database channel with collection and document', () {
-      final channel = Channel.database('db1').collection('col1').document('doc1');
-      expect(channel.channel, 'databases.db1.collections.col1.documents.doc1');
+      final channel = Channel.database('db1').collection('col1').document();
+      expect(channel.channel, 'databases.db1.collections.col1.documents');
     });
 
     test('returns database channel with action', () {
       final channel = Channel.database('db1').collection('col1').document('doc1').create();
       expect(channel.toString(), 'databases.db1.collections.col1.documents.doc1.create');
     });
+
+    test('returns database channel with upsert action', () {
+      final channel = Channel.database('db1').collection('col1').document('doc1').upsert();
+      expect(channel.toString(), 'databases.db1.collections.col1.documents.doc1.upsert');
+    });
   });
 
   group('tablesdb()', () {
-    test('returns tablesdb channel builder', () {
-      final builder = Channel.tablesdb();
-      expect(builder.channel, 'tablesdb.*');
+    test('throws when tablesdb id is missing', () {
+      expect(() => Channel.tablesdb(''), throwsArgumentError);
     });
 
     test('returns tablesdb channel with specific ID', () {
@@ -40,8 +43,8 @@ void main() {
     });
 
     test('returns tablesdb channel with table and row', () {
-      final channel = Channel.tablesdb('db1').table('table1').row('row1');
-      expect(channel.channel, 'tablesdb.db1.tables.table1.rows.row1');
+      final channel = Channel.tablesdb('db1').table('table1').row();
+      expect(channel.channel, 'tablesdb.db1.tables.table1.rows');
     });
 
     test('returns tablesdb channel with action', () {
@@ -57,9 +60,8 @@ void main() {
   });
 
   group('bucket()', () {
-    test('returns buckets channel builder', () {
-      final builder = Channel.bucket();
-      expect(builder.channel, 'buckets.*');
+    test('throws when bucket id is missing', () {
+      expect(() => Channel.bucket(''), throwsArgumentError);
     });
 
     test('returns buckets channel with specific ID', () {
@@ -68,8 +70,8 @@ void main() {
     });
 
     test('returns buckets channel with file', () {
-      final channel = Channel.bucket('bucket1').file('file1');
-      expect(channel.channel, 'buckets.bucket1.files.file1');
+      final channel = Channel.bucket('bucket1').file();
+      expect(channel.channel, 'buckets.bucket1.files');
     });
 
     test('returns buckets channel with action', () {
@@ -79,9 +81,8 @@ void main() {
   });
 
   group('functions()', () {
-    test('returns functions channel builder', () {
-      final builder = Channel.function();
-      expect(builder.channel, 'functions.*');
+    test('throws when function id is missing', () {
+      expect(() => Channel.function(''), throwsArgumentError);
     });
 
     test('returns functions channel with specific ID', () {
@@ -91,9 +92,8 @@ void main() {
   });
 
   group('executions()', () {
-    test('returns executions channel builder', () {
-      final builder = Channel.execution();
-      expect(builder.channel, 'executions.*');
+    test('throws when execution id is missing', () {
+      expect(() => Channel.execution(''), throwsArgumentError);
     });
 
     test('returns executions channel with specific ID', () {
@@ -103,9 +103,8 @@ void main() {
   });
 
   group('teams()', () {
-    test('returns teams channel builder', () {
-      final builder = Channel.team();
-      expect(builder.channel, 'teams.*');
+    test('throws when team id is missing', () {
+      expect(() => Channel.team(''), throwsArgumentError);
     });
 
     test('returns teams channel with specific team ID', () {
@@ -120,9 +119,8 @@ void main() {
   });
 
   group('memberships()', () {
-    test('returns memberships channel builder', () {
-      final builder = Channel.membership();
-      expect(builder.channel, 'memberships.*');
+    test('throws when membership id is missing', () {
+      expect(() => Channel.membership(''), throwsArgumentError);
     });
 
     test('returns memberships channel with specific membership ID', () {

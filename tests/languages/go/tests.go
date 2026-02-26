@@ -213,7 +213,9 @@ func testQueries() {
 	fmt.Println(query.Offset(20))
 	fmt.Println(query.Contains("title", "Spider"))
 	fmt.Println(query.Contains("labels", "first"))
-	
+	fmt.Println(query.ContainsAny("labels", []interface{}{"first", "second"}))
+	fmt.Println(query.ContainsAll("labels", []interface{}{"first", "second"}))
+
 	// New query methods
 	fmt.Println(query.NotContains("title", "Spider"))
 	fmt.Println(query.NotSearch("name", "john"))

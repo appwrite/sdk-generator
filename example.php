@@ -23,6 +23,7 @@ use Appwrite\SDK\Language\Kotlin;
 use Appwrite\SDK\Language\ReactNative;
 use Appwrite\SDK\Language\Markdown;
 use Appwrite\SDK\Language\AgentSkills;
+use Appwrite\SDK\Language\CursorPlugin;
 
 try {
 
@@ -99,9 +100,8 @@ try {
         // $platform = 'server';
     }
 
-    $branch = '1.8.x';
     $version = '1.8.x';
-    $spec = getSSLPage("https://raw.githubusercontent.com/appwrite/appwrite/{$branch}/app/config/specs/swagger2-{$version}-{$platform}.json");
+    $spec = getSSLPage("https://raw.githubusercontent.com/appwrite/specs/main/specs/{$version}/swagger2-{$version}-{$platform}.json");
 
     if(empty($spec)) {
         throw new Exception('Failed to fetch spec from Appwrite server');
@@ -286,6 +286,13 @@ try {
         $sdk = new SDK(new AgentSkills(), new Swagger2($spec));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/agent-skills');
+    }
+
+    // Cursor Plugin
+    if (!$requestedSdk || $requestedSdk === 'cursor-plugin') {
+        $sdk = new SDK(new CursorPlugin(), new Swagger2($spec));
+        configureSDK($sdk);
+        $sdk->generate(__DIR__ . '/examples/cursor-plugin');
     }
 }
 catch (Exception $exception) {

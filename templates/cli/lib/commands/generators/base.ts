@@ -11,11 +11,37 @@ export type SupportedLanguage = "typescript";
 
 /**
  * Result of the generation process.
- * Each language generator should return files as a map of filename to content.
+ * Each language generator should return named content fields with fixed output filenames
+ * under `<output>/<sdk-title-lower>/`.
+ *
+ * - `dbContent` -> `databases.ts`
+ * - `typesContent` -> `types.ts`
+ * - `indexContent` -> `index.ts` (entrypoint to import `databases` and exported types)
+ * - `constantsContent` -> `constants.ts`
  */
 export interface GenerateResult {
-  /** Map of relative file paths to their content */
-  files: Map<string, string>;
+  dbContent: string;
+  typesContent: string;
+  indexContent: string;
+  constantsContent: string;
+}
+
+/**
+ * Options for overriding auto-detected generation settings.
+ */
+export interface GenerateOptions {
+  /**
+   * Override the Appwrite import source used in generated files.
+   * Auto-detected from package.json/deno.json if not provided.
+   * Examples: "node-appwrite", "appwrite", "@appwrite.io/console"
+   */
+  appwriteImportSource?: string;
+  /**
+   * Override the import file extension used in generated files.
+   * Auto-detected from package.json "type" field / deno.json if not provided.
+   * Use ".js" for ESM projects or "" for CJS/unknown projects.
+   */
+  importExtension?: string;
 }
 
 /**
@@ -36,9 +62,16 @@ export interface IDatabasesGenerator {
   /**
    * Generate the SDK files from the configuration.
    * @param config - The project configuration containing tables/collections
-   * @returns Promise resolving to the generated files
+   * @param options - Optional overrides for auto-detected settings (e.g. import source, extension)
+   * @returns Promise resolving to named file contents:
+   * `dbContent` (`databases.ts`), `typesContent` (`types.ts`),
+   * `indexContent` (`index.ts`), and `constantsContent` (`constants.ts`).
+   * Import your generated SDK from `index.ts` (or `index.js` after transpilation).
    */
-  generate(config: ConfigType): Promise<GenerateResult>;
+  generate(
+    config: ConfigType,
+    options?: GenerateOptions,
+  ): Promise<GenerateResult>;
 
   /**
    * Write the generated files to disk.
@@ -53,6 +86,12 @@ export interface IDatabasesGenerator {
    * @param result - The generation result
    */
   getGeneratedFilePaths(result: GenerateResult): string[];
+
+  /**
+   * Optional method to override server-side generation behavior.
+   * @param override - The override value
+   */
+  setServerSideOverride?(override: "auto" | "true" | "false"): void;
 }
 
 /**
@@ -63,7 +102,10 @@ export abstract class BaseDatabasesGenerator implements IDatabasesGenerator {
   abstract readonly language: SupportedLanguage;
   abstract readonly fileExtension: string;
 
-  abstract generate(config: ConfigType): Promise<GenerateResult>;
+  abstract generate(
+    config: ConfigType,
+    options?: GenerateOptions,
+  ): Promise<GenerateResult>;
 
   async writeFiles(outputDir: string, result: GenerateResult): Promise<void> {
     const sdkDir = path.join(outputDir, SDK_TITLE_LOWER);
@@ -71,7 +113,14 @@ export abstract class BaseDatabasesGenerator implements IDatabasesGenerator {
       fs.mkdirSync(sdkDir, { recursive: true });
     }
 
-    for (const [relativePath, content] of result.files) {
+    const fileEntries: Array<[string, string]> = [
+      ["databases.ts", result.dbContent],
+      ["types.ts", result.typesContent],
+      ["index.ts", result.indexContent],
+      ["constants.ts", result.constantsContent],
+    ];
+
+    for (const [relativePath, content] of fileEntries) {
       const filePath = path.join(sdkDir, relativePath);
       const fileDir = path.dirname(filePath);
 
@@ -87,9 +136,12 @@ export abstract class BaseDatabasesGenerator implements IDatabasesGenerator {
     }
   }
 
-  getGeneratedFilePaths(result: GenerateResult): string[] {
-    return Array.from(result.files.keys()).map((relativePath) =>
-      path.join(SDK_TITLE_LOWER, relativePath),
-    );
+  getGeneratedFilePaths(_result: GenerateResult): string[] {
+    return [
+      path.join(SDK_TITLE_LOWER, "databases.ts"),
+      path.join(SDK_TITLE_LOWER, "types.ts"),
+      path.join(SDK_TITLE_LOWER, "index.ts"),
+      path.join(SDK_TITLE_LOWER, "constants.ts"),
+    ];
   }
 }

@@ -25,6 +25,8 @@ export interface GenerateCommandOptions {
   output: string;
   language?: string;
   server?: ServerSideOverride;
+  appwriteImportSource?: string;
+  importExtension?: string;
 }
 
 const generateAction = async (
@@ -77,17 +79,18 @@ const generateAction = async (
       } else {
         log(`Detected language: ${detectedLanguage} (${detection.reason})`);
       }
-    } catch (err: any) {
+    } catch (err) {
       const supported = getSupportedLanguages().join(", ");
+      const message = err instanceof Error ? err.message : String(err);
       error(
-        `${err.message}\nUse --language to specify the target language. Supported: ${supported}`,
+        `${message}\nUse --language to specify the target language. Supported: ${supported}`,
       );
       process.exit(1);
     }
   }
 
-  if (typeof (generator as any).setServerSideOverride === "function") {
-    (generator as any).setServerSideOverride(serverSideOverride);
+  if (typeof generator.setServerSideOverride === "function") {
+    generator.setServerSideOverride(serverSideOverride);
   }
 
   const config: ConfigType = {
@@ -113,7 +116,10 @@ const generateAction = async (
   );
 
   try {
-    const result = await generator.generate(config);
+    const result = await generator.generate(config, {
+      appwriteImportSource: options.appwriteImportSource,
+      importExtension: options.importExtension,
+    });
     await generator.writeFiles(absoluteOutputDir, result);
 
     const generatedFiles = generator.getGeneratedFilePaths(result);
@@ -130,7 +136,7 @@ const generateAction = async (
       const firstEntity = entities?.[0];
       const dbId = firstEntity?.databaseId ?? "databaseId";
       const tableName = firstEntity?.name ?? "tableName";
-      const importExt = detectImportExtension();
+      const importExt = options.importExtension ?? detectImportExtension();
 
       console.log("");
       log(`Import the generated SDK in your project:`);
@@ -149,8 +155,9 @@ const generateAction = async (
         `  await mydb.use(${JSON.stringify(tableName)}).create({ ... });`,
       );
     }
-  } catch (err: any) {
-    error(`Failed to generate SDK: ${err.message}`);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    error(`Failed to generate SDK: ${message}`);
     process.exit(1);
   }
 };
@@ -172,6 +179,14 @@ export const generate = new Command("generate")
     "--server <mode>",
     "Override server-side generation (auto|true|false)",
     "auto",
+  )
+  .option(
+    "--appwrite-import-source <source>",
+    "Override Appwrite import source in generated files (e.g. node-appwrite, appwrite, @appwrite.io/console). Auto-detected from package.json/deno.json if not provided.",
+  )
+  .option(
+    "--import-extension <ext>",
+    'Override import file extension in generated files (.js for ESM, empty string for CJS). Auto-detected from package.json "type" field if not provided.',
   )
   .addHelpText(
     "after",

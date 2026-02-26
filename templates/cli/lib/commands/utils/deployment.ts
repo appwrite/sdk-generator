@@ -6,6 +6,19 @@ import { error } from "../../parser.js";
 
 const POLL_DEBOUNCE = 2000; // Milliseconds
 
+interface DeploymentListResult {
+  total: number;
+  deployments: Array<{
+    $id: string;
+  }>;
+}
+
+interface DeploymentDetails {
+  $id: string;
+  status: string;
+  [key: string]: unknown;
+}
+
 /**
  * Package a directory into a tar.gz File object for deployment
  * @private - Only used internally by pushDeployment
@@ -38,7 +51,7 @@ export async function downloadDeploymentCode(params: {
   resourcePath: string;
   holdingVars: { key: string; value: string }[];
   withVariables?: boolean;
-  listDeployments: () => Promise<any>;
+  listDeployments: () => Promise<DeploymentListResult>;
   getDownloadUrl: (deploymentId: string) => string;
   projectClient: Client;
 }): Promise<void> {
@@ -85,8 +98,12 @@ export async function downloadDeploymentCode(params: {
     "arrayBuffer",
   );
 
+  if (!(downloadBuffer instanceof ArrayBuffer)) {
+    throw new Error("Failed to download deployment archive as ArrayBuffer.");
+  }
+
   try {
-    fs.writeFileSync(compressedFileName, Buffer.from(downloadBuffer as any));
+    fs.writeFileSync(compressedFileName, Buffer.from(downloadBuffer));
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     throw new Error(
@@ -118,14 +135,14 @@ export async function downloadDeploymentCode(params: {
 
 export interface PushDeploymentParams {
   resourcePath: string;
-  createDeployment: (codeFile: File) => Promise<any>;
-  getDeployment?: (deploymentId: string) => Promise<any>;
+  createDeployment: (codeFile: File) => Promise<DeploymentDetails>;
+  getDeployment?: (deploymentId: string) => Promise<DeploymentDetails>;
   pollForStatus?: boolean;
   onStatusUpdate?: (status: string) => void;
 }
 
 export interface PushDeploymentResult {
-  deployment: any;
+  deployment: DeploymentDetails;
   wasPolled: boolean;
   finalStatus?: string;
 }
