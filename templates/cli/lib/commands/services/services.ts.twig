@@ -26,16 +26,7 @@ import {
 {% if sdk.test %}
 {{ include('cli/base/mock.twig') }}
 {% else %}
-{% if enumNames | length > 0 %}
-import {
-  {{ service.name | caseUcfirst }},
-{% for enumName in enumNames %}
-  {{ enumName | caseUcfirst }},
-{% endfor %}
-} from "@appwrite.io/console";
-{% else %}
 import { {{ service.name | caseUcfirst }} } from "@appwrite.io/console";
-{% endif %}
 {% endif %}
 
 let {{ service.name | caseCamel }}Client: {{ service.name | caseUcfirst }} | null = null;

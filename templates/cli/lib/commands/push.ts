@@ -17,7 +17,12 @@ import {
   KeysCollection,
   KeysTable,
 } from "../config.js";
-import { ConfigSchema, type SettingsType, type ConfigType } from "./config.js";
+import {
+  ConfigSchema,
+  type SettingsType,
+  type ConfigType,
+  type CollectionType,
+} from "./config.js";
 import { parseWithBetterErrors } from "./utils/error-formatter.js";
 import { createSettingsObject } from "../utils.js";
 import { Spinner, SPINNER_DOTS } from "../spinner.js";
@@ -125,6 +130,20 @@ interface PushFunctionOptions {
 interface PushTableOptions {
   attempts?: number;
   skipConfirmation?: boolean;
+}
+
+interface PushCollectionInput extends CollectionType {
+  databaseName?: string;
+}
+
+interface PushCollectionState extends PushCollectionInput {
+  remoteVersion?: {
+    name: string;
+    attributes: object[];
+    indexes: object[];
+  };
+  isExisted?: boolean;
+  isNewlyCreated?: boolean;
 }
 
 export class Push {
@@ -1081,7 +1100,8 @@ export class Push {
                 this.consoleClient,
               );
               const variables = await consoleService.variables();
-              domain = ID.unique() + "." + variables["_APP_DOMAIN_SITES"];
+              const domains = variables["_APP_DOMAIN_SITES"].split(",");
+              domain = ID.unique() + "." + domains[0].trim();
             } catch (err) {
               this.error("Error fetching console variables.");
               throw err;
@@ -1414,26 +1434,26 @@ export class Push {
     for (let table of tables) {
       let columns = table.columns;
       let indexes = table.indexes;
+      let hadChanges = false;
 
       if (table.isExisted) {
-        columns = await attributes.attributesToCreate(
+        const columnsResult = await attributes.attributesToCreate(
           table.remoteVersion.columns,
           table.columns,
           table as Collection,
         );
-        indexes = await attributes.attributesToCreate(
+        const indexesResult = await attributes.attributesToCreate(
           table.remoteVersion.indexes,
           table.indexes,
           table as Collection,
           true,
         );
 
-        if (
-          Array.isArray(columns) &&
-          columns.length <= 0 &&
-          Array.isArray(indexes) &&
-          indexes.length <= 0
-        ) {
+        columns = columnsResult.attributes;
+        indexes = indexesResult.attributes;
+        hadChanges = columnsResult.hasChanges || indexesResult.hasChanges;
+
+        if (!hadChanges && columns.length <= 0 && indexes.length <= 0) {
           continue;
         }
       }
@@ -1466,25 +1486,28 @@ export class Push {
   }
 
   public async pushCollections(
-    collections: any[],
+    collections: PushCollectionInput[],
     options: { skipConfirmation?: boolean } = {},
   ): Promise<{
     successfullyPushed: number;
-    errors: any[];
+    errors: Error[];
   }> {
     const { skipConfirmation = false } = options;
     const pools = new Pools(POLL_DEFAULT_VALUE);
-    const attributes = new Attributes(pools, skipConfirmation);
+    const attributesHelper = new Attributes(pools, skipConfirmation);
 
-    const errors: any[] = [];
+    const errors: Error[] = [];
+
+    // Cast to state type since we'll be adding state properties
+    const collectionsWithState = collections as PushCollectionState[];
 
     const databases = Array.from(
-      new Set(collections.map((collection: any) => collection["databaseId"])),
+      new Set(collectionsWithState.map((collection) => collection.databaseId)),
     );
 
     // Parallel db actions
     await Promise.all(
-      databases.map(async (databaseId: any) => {
+      databases.map(async (databaseId) => {
         const databasesService = await getDatabasesService(this.projectClient);
         try {
           const database = await databasesService.get(databaseId);
@@ -1492,7 +1515,7 @@ export class Push {
           // Note: We can't get the local database name here since we don't have access to localConfig
           // This will need to be handled by the caller if needed
           const localDatabaseName =
-            collections.find((c: any) => c.databaseId === databaseId)
+            collectionsWithState.find((c) => c.databaseId === databaseId)
               ?.databaseName ?? databaseId;
 
           if (database.name !== localDatabaseName) {
@@ -1500,12 +1523,12 @@ export class Push {
 
             this.success(`Updated ${localDatabaseName} ( ${databaseId} ) name`);
           }
-        } catch (err: any) {
-          if (Number(err.code) === 404) {
+        } catch (err: unknown) {
+          if (err instanceof AppwriteException && Number(err.code) === 404) {
             this.log(`Database ${databaseId} not found. Creating it now ...`);
 
             const localDatabaseName =
-              collections.find((c: any) => c.databaseId === databaseId)
+              collectionsWithState.find((c) => c.databaseId === databaseId)
                 ?.databaseName ?? databaseId;
 
             await databasesService.create(databaseId, localDatabaseName);
@@ -1518,32 +1541,32 @@ export class Push {
 
     // Parallel collection actions
     await Promise.all(
-      collections.map(async (collection: any) => {
+      collectionsWithState.map(async (collection) => {
         try {
           const databasesService = await getDatabasesService(
             this.projectClient,
           );
           const remoteCollection = await databasesService.getCollection(
-            collection["databaseId"],
-            collection["$id"],
+            collection.databaseId,
+            collection.$id,
           );
 
           if (remoteCollection.name !== collection.name) {
-            await databasesService.updateCollection(
-              collection["databaseId"],
-              collection["$id"],
-              collection.name,
-            );
+            await databasesService.updateCollection({
+              databaseId: collection.databaseId,
+              collectionId: collection.$id,
+              name: collection.name,
+            });
 
             this.success(
-              `Updated ${collection.name} ( ${collection["$id"]} ) name`,
+              `Updated ${collection.name} ( ${collection.$id} ) name`,
             );
           }
           collection.remoteVersion = remoteCollection;
 
           collection.isExisted = true;
-        } catch (e: any) {
-          if (Number(e.code) === 404) {
+        } catch (e: unknown) {
+          if (e instanceof AppwriteException && Number(e.code) === 404) {
             this.log(
               `Collection ${collection.name} does not exist in the project. Creating ... `,
             );
@@ -1551,14 +1574,19 @@ export class Push {
               this.projectClient,
             );
             await databasesService.createCollection({
-              databaseId: collection["databaseId"],
-              collectionId: collection["$id"],
+              databaseId: collection.databaseId,
+              collectionId: collection.$id,
               name: collection.name,
               documentSecurity: collection.documentSecurity,
-              permissions: collection["$permissions"],
+              permissions: collection.$permissions,
+              attributes: collection.attributes,
+              indexes: collection.indexes,
             });
+            collection.isNewlyCreated = true;
           } else {
-            errors.push(e);
+            if (e instanceof Error) {
+              errors.push(e);
+            }
             throw e;
           }
         }
@@ -1567,56 +1595,72 @@ export class Push {
 
     let numberOfCollections = 0;
     // Serialize attribute actions
-    for (let collection of collections) {
-      let collectionAttributes = collection.attributes;
-      let indexes = collection.indexes;
+    for (const collection of collectionsWithState) {
+      // Skip newly created collections - their attributes and indexes were already created
+      if (collection.isNewlyCreated) {
+        numberOfCollections++;
+        this.success(
+          `Successfully pushed ${collection.name} ( ${collection.$id} )`,
+        );
+        continue;
+      }
 
-      if (collection.isExisted) {
-        collectionAttributes = await attributes.attributesToCreate(
-          collection.remoteVersion.attributes,
-          collection.attributes,
+      if (!collection.isExisted) {
+        continue;
+      }
+
+      const collectionAttributesResult =
+        await attributesHelper.attributesToCreate(
+          collection.remoteVersion!.attributes,
+          collection.attributes ?? [],
           collection as Collection,
         );
-        indexes = await attributes.attributesToCreate(
-          collection.remoteVersion.indexes,
-          collection.indexes,
-          collection as Collection,
-          true,
-        );
+      const indexesResult = await attributesHelper.attributesToCreate(
+        collection.remoteVersion!.indexes,
+        collection.indexes ?? [],
+        collection as Collection,
+        true,
+      );
 
-        if (
-          Array.isArray(collectionAttributes) &&
-          collectionAttributes.length <= 0 &&
-          Array.isArray(indexes) &&
-          indexes.length <= 0
-        ) {
-          continue;
-        }
+      const collectionAttributes = collectionAttributesResult.attributes;
+      const indexes = indexesResult.attributes;
+
+      if (
+        collectionAttributes.length <= 0 &&
+        indexes.length <= 0 &&
+        !collectionAttributesResult.hasChanges &&
+        !indexesResult.hasChanges
+      ) {
+        continue;
       }
 
       this.log(
-        `Pushing collection ${collection.name} ( ${collection["databaseId"]} - ${collection["$id"]} ) attributes`,
+        `Pushing collection ${collection.name} ( ${collection.databaseId} - ${collection.$id} ) attributes`,
       );
 
       try {
-        await attributes.createAttributes(
+        await attributesHelper.createAttributes(
           collectionAttributes,
           collection as Collection,
         );
       } catch (e) {
-        errors.push(e);
+        if (e instanceof Error) {
+          errors.push(e);
+        }
         throw e;
       }
 
       try {
-        await attributes.createIndexes(indexes, collection as Collection);
+        await attributesHelper.createIndexes(indexes, collection as Collection);
       } catch (e) {
-        errors.push(e);
+        if (e instanceof Error) {
+          errors.push(e);
+        }
         throw e;
       }
       numberOfCollections++;
       this.success(
-        `Successfully pushed ${collection.name} ( ${collection["$id"]} )`,
+        `Successfully pushed ${collection.name} ( ${collection.$id} )`,
       );
     }
 
@@ -1627,9 +1671,16 @@ export class Push {
   }
 }
 
-async function createPushInstance(silent = false): Promise<Push> {
+async function createPushInstance(
+  options: { silent?: boolean; requiresConsoleAuth?: boolean } = {
+    silent: false,
+    requiresConsoleAuth: false,
+  },
+): Promise<Push> {
+  const { silent, requiresConsoleAuth } = options;
   const projectClient = await sdkForProject();
-  const consoleClient = await sdkForConsole();
+  const consoleClient = await sdkForConsole(requiresConsoleAuth);
+
   return new Push(projectClient, consoleClient, silent);
 }
 
@@ -1657,7 +1708,9 @@ const pushResources = async ({
       allowSitesCodePush = codeAnswer.override;
     }
 
-    const pushInstance = await createPushInstance();
+    const pushInstance = await createPushInstance({
+      requiresConsoleAuth: true,
+    });
     const project = localConfig.getProject();
     const config: ConfigType = {
       projectId: project.projectId ?? "",
@@ -1762,7 +1815,9 @@ const pushSettings = async (): Promise<void> => {
   try {
     log("Pushing project settings ...");
 
-    const pushInstance = await createPushInstance();
+    const pushInstance = await createPushInstance({
+      requiresConsoleAuth: true,
+    });
     const config = localConfig.getProject();
 
     await pushInstance.pushSettings({
@@ -2193,7 +2248,7 @@ const pushTable = async ({
   const { successfullyPushed, errors } = result;
 
   if (successfullyPushed === 0) {
-    error("No tables were pushed.");
+    warn("No tables were pushed.");
   } else {
     success(`Successfully pushed ${successfullyPushed} tables.`);
   }
@@ -2269,7 +2324,7 @@ const pushCollection = async (): Promise<void> => {
   const { successfullyPushed, errors } = result;
 
   if (successfullyPushed === 0) {
-    error("No collections were pushed.");
+    warn("No collections were pushed.");
   } else {
     success(`Successfully pushed ${successfullyPushed} collections.`);
   }

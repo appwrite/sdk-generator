@@ -85,7 +85,7 @@ jobs:
 
       # Language-specific setup
       - name: Setup Node.js
-        if: matrix.sdk == 'web' || matrix.sdk == 'node' || matrix.sdk == 'react-native'
+        if: matrix.sdk == 'web' || matrix.sdk == 'node' || matrix.sdk == 'react-native' || matrix.sdk == 'cli'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -165,6 +165,10 @@ jobs:
               bun run mac-arm64
               bun run windows-x64
               bun run windows-arm64
+
+              npm install
+              npm run build
+              node dist/cli.cjs --help
               ;;
             react-native)
               npm install

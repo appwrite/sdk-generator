@@ -1,0 +1,390 @@
+{% set lang = 'ruby' %}
+{% set langName = 'Ruby' %}
+{% set langDescription %}{{ spec.title }} {{ langName }} SDK skill. Use when building server-side Ruby applications with {{ spec.title }}, including Rails and Sinatra integrations. Covers user management, database/table CRUD, file storage, and functions via API keys.{% endset %}
+{{ include('agent-skills/base/frontmatter.md.twig') }}
+
+# {{ spec.title }} {{ langName }} SDK
+
+## Installation
+
+```bash
+gem install {{ spec.title | caseLower }}
+```
+
+## Setting Up the Client
+
+```ruby
+require '{{ spec.title | caseLower }}'
+
+include {{ spec.title }}
+
+client = Client.new
+    .set_endpoint('https://<REGION>.cloud.appwrite.io/v1')
+    .set_project(ENV['{{ spec.title | caseUpper }}_PROJECT_ID'])
+    .set_key(ENV['{{ spec.title | caseUpper }}_API_KEY'])
+```
+
+## Code Examples
+
+### User Management
+
+```ruby
+users = Users.new(client)
+
+# Create user
+user = users.create(user_id: ID.unique, email: 'user@example.com', password: 'password123', name: 'User Name')
+
+# List users
+list = users.list(queries: [Query.limit(25)])
+
+# Get user
+fetched = users.get(user_id: '[USER_ID]')
+
+# Delete user
+users.delete(user_id: '[USER_ID]')
+```
+
+### Database Operations
+
+> **Note:** Use `TablesDB` (not the deprecated `Databases` class) for all new code. Only use `Databases` if the existing codebase already relies on it or the user explicitly requests it.
+
+```ruby
+tables_db = TablesDB.new(client)
+
+# Create database
+db = tables_db.create(database_id: ID.unique, name: 'My Database')
+
+# Create row
+doc = tables_db.create_row(
+    database_id: '[DATABASE_ID]',
+    table_id: '[TABLE_ID]',
+    row_id: ID.unique,
+    data: { title: 'Hello World' }
+)
+
+# Query rows
+results = tables_db.list_rows(
+    database_id: '[DATABASE_ID]',
+    table_id: '[TABLE_ID]',
+    queries: [Query.equal('title', 'Hello World'), Query.limit(10)]
+)
+
+# Get row
+row = tables_db.get_row(database_id: '[DATABASE_ID]', table_id: '[TABLE_ID]', row_id: '[ROW_ID]')
+
+# Update row
+tables_db.update_row(
+    database_id: '[DATABASE_ID]',
+    table_id: '[TABLE_ID]',
+    row_id: '[ROW_ID]',
+    data: { title: 'Updated' }
+)
+
+# Delete row
+tables_db.delete_row(database_id: '[DATABASE_ID]', table_id: '[TABLE_ID]', row_id: '[ROW_ID]')
+```
+
+### Query Methods
+
+```ruby
+# Filtering
+Query.equal('field', 'value')             # == (or pass array for IN)
+Query.not_equal('field', 'value')         # !=
+Query.less_than('field', 100)             # <
+Query.less_than_equal('field', 100)       # <=
+Query.greater_than('field', 100)          # >
+Query.greater_than_equal('field', 100)    # >=
+Query.between('field', 1, 100)            # 1 <= field <= 100
+Query.is_null('field')                    # is null
+Query.is_not_null('field')                # is not null
+Query.starts_with('field', 'prefix')      # starts with
+Query.ends_with('field', 'suffix')        # ends with
+Query.contains('field', 'sub')            # contains
+Query.search('field', 'keywords')         # full-text search (requires index)
+
+# Sorting
+Query.order_asc('field')
+Query.order_desc('field')
+
+# Pagination
+Query.limit(25)                           # max rows (default 25, max 100)
+Query.offset(0)                           # skip N rows
+Query.cursor_after('[ROW_ID]')            # cursor pagination (preferred)
+Query.cursor_before('[ROW_ID]')
+
+# Selection & Logic
+Query.select(['field1', 'field2'])        # return only specified fields
+Query.or([Query.equal('a', 1), Query.equal('b', 2)])   # OR
+Query.and([Query.greater_than('age', 18), Query.less_than('age', 65)])  # AND (default)
+```
+
+### File Storage
+
+```ruby
+storage = Storage.new(client)
+
+# Upload file
+file = storage.create_file(bucket_id: '[BUCKET_ID]', file_id: ID.unique, file: InputFile.from_path('/path/to/file.png'))
+
+# List files
+files = storage.list_files(bucket_id: '[BUCKET_ID]')
+
+# Delete file
+storage.delete_file(bucket_id: '[BUCKET_ID]', file_id: '[FILE_ID]')
+```
+
+#### InputFile Factory Methods
+
+```ruby
+InputFile.from_path('/path/to/file.png')             # from filesystem path
+InputFile.from_string('Hello world', 'hello.txt')    # from string content
+```
+
+### Teams
+
+```ruby
+teams = Teams.new(client)
+
+# Create team
+team = teams.create(team_id: ID.unique, name: 'Engineering')
+
+# List teams
+list = teams.list
+
+# Create membership (invite user by email)
+membership = teams.create_membership(
+    team_id: '[TEAM_ID]',
+    roles: ['editor'],
+    email: 'user@example.com'
+)
+
+# List memberships
+members = teams.list_memberships(team_id: '[TEAM_ID]')
+
+# Update membership roles
+teams.update_membership(team_id: '[TEAM_ID]', membership_id: '[MEMBERSHIP_ID]', roles: ['admin'])
+
+# Delete team
+teams.delete(team_id: '[TEAM_ID]')
+```
+
+> **Role-based access:** Use `Role.team('[TEAM_ID]')` for all team members or `Role.team('[TEAM_ID]', 'editor')` for a specific team role when setting permissions.
+
+### Serverless Functions
+
+```ruby
+functions = Functions.new(client)
+
+# Execute function
+execution = functions.create_execution(function_id: '[FUNCTION_ID]', body: '{"key": "value"}')
+
+# List executions
+executions = functions.list_executions(function_id: '[FUNCTION_ID]')
+```
+
+#### Writing a Function Handler (Ruby runtime)
+
+```ruby
+# src/main.rb — Appwrite Function entry point
+def main(context)
+    # context.req.body         — raw body (String)
+    # context.req.body_json    — parsed JSON (Hash or nil)
+    # context.req.headers      — headers (Hash)
+    # context.req.method       — HTTP method
+    # context.req.path         — URL path
+    # context.req.query        — query params (Hash)
+
+    context.log("Processing: #{context.req.method} #{context.req.path}")
+
+    if context.req.method == 'GET'
+        return context.res.json({ message: 'Hello from Appwrite Function!' })
+    end
+
+    context.res.json({ success: true })          # JSON
+    # context.res.text('Hello')                  # plain text
+    # context.res.empty                          # 204
+    # context.res.redirect('https://...')         # 302
+end
+```
+
+### Server-Side Rendering (SSR) Authentication
+
+SSR apps using Ruby frameworks (Rails, Sinatra, etc.) use the **server SDK** to handle auth. You need two clients:
+
+- **Admin client** — uses an API key, creates sessions, bypasses rate limits (reusable singleton)
+- **Session client** — uses a session cookie, acts on behalf of a user (create per-request, never share)
+
+```ruby
+require '{{ spec.title | caseLower }}'
+include {{ spec.title }}
+
+# Admin client (reusable)
+admin_client = Client.new
+    .set_endpoint('https://<REGION>.cloud.appwrite.io/v1')
+    .set_project('[PROJECT_ID]')
+    .set_key(ENV['{{ spec.title | caseUpper }}_API_KEY'])
+
+# Session client (create per-request)
+session_client = Client.new
+    .set_endpoint('https://<REGION>.cloud.appwrite.io/v1')
+    .set_project('[PROJECT_ID]')
+
+session = cookies['a_session_[PROJECT_ID]']
+session_client.set_session(session) if session
+```
+
+#### Email/Password Login (Sinatra)
+
+```ruby
+post '/login' do
+    account = Account.new(admin_client)
+    session = account.create_email_password_session(
+        email: params[:email],
+        password: params[:password]
+    )
+
+    # Cookie name must be a_session_<PROJECT_ID>
+    response.set_cookie('a_session_[PROJECT_ID]', {
+        value: session.secret,
+        httponly: true,
+        secure: true,
+        same_site: :strict,
+        path: '/',
+    })
+
+    content_type :json
+    { success: true }.to_json
+end
+```
+
+#### Authenticated Requests
+
+```ruby
+get '/user' do
+    session = request.cookies['a_session_[PROJECT_ID]']
+    halt 401, { error: 'Unauthorized' }.to_json unless session
+
+    session_client = Client.new
+        .set_endpoint('https://<REGION>.cloud.appwrite.io/v1')
+        .set_project('[PROJECT_ID]')
+        .set_session(session)
+
+    account = Account.new(session_client)
+    user = account.get
+
+    content_type :json
+    user.to_json
+end
+```
+
+#### OAuth2 SSR Flow
+
+```ruby
+# Step 1: Redirect to OAuth provider
+get '/oauth' do
+    account = Account.new(admin_client)
+    redirect_url = account.create_o_auth2_token(
+        provider: OAuthProvider::GITHUB,
+        success: 'https://example.com/oauth/success',
+        failure: 'https://example.com/oauth/failure'
+    )
+    redirect redirect_url
+end
+
+# Step 2: Handle callback — exchange token for session
+get '/oauth/success' do
+    account = Account.new(admin_client)
+    session = account.create_session(
+        user_id: params[:userId],
+        secret: params[:secret]
+    )
+
+    response.set_cookie('a_session_[PROJECT_ID]', {
+        value: session.secret,
+        httponly: true, secure: true, same_site: :strict, path: '/',
+    })
+
+    content_type :json
+    { success: true }.to_json
+end
+```
+
+> **Cookie security:** Always use `httponly`, `secure`, and `same_site: :strict` to prevent XSS. The cookie name must be `a_session_<PROJECT_ID>`.
+
+> **Forwarding user agent:** Call `session_client.set_forwarded_user_agent(request.user_agent)` to record the end-user's browser info for debugging and security.
+
+## Error Handling
+
+```ruby
+require '{{ spec.title | caseLower }}'
+include {{ spec.title }}
+
+begin
+    row = tables_db.get_row(database_id: '[DATABASE_ID]', table_id: '[TABLE_ID]', row_id: '[ROW_ID]')
+rescue {{ spec.title }}::Exception => e
+    puts e.message    # human-readable message
+    puts e.code       # HTTP status code (Integer)
+    puts e.type       # error type (e.g. 'document_not_found')
+    puts e.response   # full response body (Hash)
+end
+```
+
+**Common error codes:**
+
+| Code | Meaning |
+|------|---------|
+| `401` | Unauthorized — missing or invalid session/API key |
+| `403` | Forbidden — insufficient permissions |
+| `404` | Not found — resource does not exist |
+| `409` | Conflict — duplicate ID or unique constraint |
+| `429` | Rate limited — too many requests |
+
+## Permissions & Roles (Critical)
+
+Appwrite uses permission strings to control access to resources. Each permission pairs an action (`read`, `update`, `delete`, `create`, or `write` which grants create + update + delete) with a role target. By default, **no user has access** unless permissions are explicitly set at the document/file level or inherited from the collection/bucket settings. Permissions are arrays of strings built with the `Permission` and `Role` helpers.
+
+```ruby
+# Permission and Role are included in the main require
+require '{{ spec.title | caseLower }}'
+include {{ spec.title }}
+```
+
+### Database Row with Permissions
+
+```ruby
+doc = tables_db.create_row(
+    database_id: '[DATABASE_ID]',
+    table_id: '[TABLE_ID]',
+    row_id: ID.unique,
+    data: { title: 'Hello World' },
+    permissions: [
+        Permission.read(Role.user('[USER_ID]')),     # specific user can read
+        Permission.update(Role.user('[USER_ID]')),   # specific user can update
+        Permission.read(Role.team('[TEAM_ID]')),     # all team members can read
+        Permission.read(Role.any),                   # anyone (including guests) can read
+    ]
+)
+```
+
+### File Upload with Permissions
+
+```ruby
+file = storage.create_file(
+    bucket_id: '[BUCKET_ID]',
+    file_id: ID.unique,
+    file: InputFile.from_path('/path/to/file.png'),
+    permissions: [
+        Permission.read(Role.any),
+        Permission.update(Role.user('[USER_ID]')),
+        Permission.delete(Role.user('[USER_ID]')),
+    ]
+)
+```
+
+> **When to set permissions:** Set document/file-level permissions when you need per-resource access control. If all documents in a collection share the same rules, configure permissions at the collection/bucket level and leave document permissions empty.
+
+> **Common mistakes:**
+> - **Forgetting permissions** — the resource becomes inaccessible to all users (including the creator)
+> - **`Role.any` with `write`/`update`/`delete`** — allows any user, including unauthenticated guests, to modify or remove the resource
+> - **`Permission.read(Role.any)` on sensitive data** — makes the resource publicly readable
+

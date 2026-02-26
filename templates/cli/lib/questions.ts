@@ -28,6 +28,7 @@ interface Choice {
   value: any;
   disabled?: boolean | string;
   current?: boolean;
+  short?: string;
 }
 
 interface Question {
@@ -752,7 +753,7 @@ export const questionsLogin: Question[] = [
     when: (answers: Answers) => answers.method !== "select",
   },
   {
-    type: "search-list",
+    type: "list",
     name: "accountId",
     message: "Select an account to use",
     choices() {
@@ -772,6 +773,7 @@ export const questionsLogin: Question[] = [
           data.push({
             current: current === session.id,
             value: session.id,
+            short: `${session.email} (${session.endpoint})`,
             name: `${session.email.padEnd(longestEmail)} ${current === session.id ? chalk.green.bold("current") : " ".repeat(6)} ${session.endpoint}`,
           });
         }
