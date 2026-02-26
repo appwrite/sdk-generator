@@ -621,6 +621,8 @@ class DotNet extends Language
 
                 $enumKeys = $param['enumKeys'] ?? [];
                 $enumName = $this->toPascalCase($param['enumName'] ?? $param['name'] ?? '');
+                $enumPrefix = 'Appwrite.Enums.';
+                $enumFullName = $enumPrefix . $enumName;
                 $example = $param['example'] ?? null;
                 $isArray = ($param['type'] ?? '') === self::TYPE_ARRAY;
 
@@ -659,7 +661,7 @@ class DotNet extends Language
                 }
 
                 $value = ($example !== null && $example !== '') ? $example : $enumValues[0];
-                return $enumName . '.' . $resolveKey($value);
+                return $enumFullName . '.' . $resolveKey($value);
             }),
         ];
     }

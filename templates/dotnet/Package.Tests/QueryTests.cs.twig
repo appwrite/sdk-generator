@@ -669,5 +669,169 @@ namespace {{ spec.title | caseUcfirst }}.Tests
             Assert.NotNull(query.Values);
             Assert.Equal(2, query.Values.Count);
         }
+
+        [Fact]
+        public void DistanceEqual_ReturnsCorrectQuery()
+        {
+            var result = Query.DistanceEqual("attr", new List<double> { 40.0, -74.0 }, 1000);
+            var query = JsonSerializer.Deserialize<Query>(result);
+
+            Assert.NotNull(query);
+            Assert.Equal("distanceEqual", query.Method);
+            Assert.Equal("attr", query.Attribute);
+            Assert.NotNull(query.Values);
+        }
+
+        [Fact]
+        public void DistanceNotEqual_ReturnsCorrectQuery()
+        {
+            var result = Query.DistanceNotEqual("attr", new List<double> { 40.0, -74.0 }, 1000);
+            var query = JsonSerializer.Deserialize<Query>(result);
+
+            Assert.NotNull(query);
+            Assert.Equal("distanceNotEqual", query.Method);
+            Assert.Equal("attr", query.Attribute);
+            Assert.NotNull(query.Values);
+        }
+
+        [Fact]
+        public void DistanceGreaterThan_ReturnsCorrectQuery()
+        {
+            var result = Query.DistanceGreaterThan("attr", new List<double> { 40.0, -74.0 }, 500);
+            var query = JsonSerializer.Deserialize<Query>(result);
+
+            Assert.NotNull(query);
+            Assert.Equal("distanceGreaterThan", query.Method);
+            Assert.Equal("attr", query.Attribute);
+            Assert.NotNull(query.Values);
+        }
+
+        [Fact]
+        public void DistanceLessThan_ReturnsCorrectQuery()
+        {
+            var result = Query.DistanceLessThan("attr", new List<double> { 40.0, -74.0 }, 500);
+            var query = JsonSerializer.Deserialize<Query>(result);
+
+            Assert.NotNull(query);
+            Assert.Equal("distanceLessThan", query.Method);
+            Assert.Equal("attr", query.Attribute);
+            Assert.NotNull(query.Values);
+        }
+
+        [Fact]
+        public void Intersects_ReturnsCorrectQuery()
+        {
+            var result = Query.Intersects("attr", new List<double> { 40.0, -74.0 });
+            var query = JsonSerializer.Deserialize<Query>(result);
+
+            Assert.NotNull(query);
+            Assert.Equal("intersects", query.Method);
+            Assert.Equal("attr", query.Attribute);
+            Assert.NotNull(query.Values);
+        }
+
+        [Fact]
+        public void NotIntersects_ReturnsCorrectQuery()
+        {
+            var result = Query.NotIntersects("attr", new List<double> { 40.0, -74.0 });
+            var query = JsonSerializer.Deserialize<Query>(result);
+
+            Assert.NotNull(query);
+            Assert.Equal("notIntersects", query.Method);
+            Assert.Equal("attr", query.Attribute);
+            Assert.NotNull(query.Values);
+        }
+
+        [Fact]
+        public void Crosses_ReturnsCorrectQuery()
+        {
+            var result = Query.Crosses("attr", new List<double> { 40.0, -74.0 });
+            var query = JsonSerializer.Deserialize<Query>(result);
+
+            Assert.NotNull(query);
+            Assert.Equal("crosses", query.Method);
+            Assert.Equal("attr", query.Attribute);
+            Assert.NotNull(query.Values);
+        }
+
+        [Fact]
+        public void NotCrosses_ReturnsCorrectQuery()
+        {
+            var result = Query.NotCrosses("attr", new List<double> { 40.0, -74.0 });
+            var query = JsonSerializer.Deserialize<Query>(result);
+
+            Assert.NotNull(query);
+            Assert.Equal("notCrosses", query.Method);
+            Assert.Equal("attr", query.Attribute);
+            Assert.NotNull(query.Values);
+        }
+
+        [Fact]
+        public void Overlaps_ReturnsCorrectQuery()
+        {
+            var result = Query.Overlaps("attr", new List<double> { 40.0, -74.0 });
+            var query = JsonSerializer.Deserialize<Query>(result);
+
+            Assert.NotNull(query);
+            Assert.Equal("overlaps", query.Method);
+            Assert.Equal("attr", query.Attribute);
+            Assert.NotNull(query.Values);
+        }
+
+        [Fact]
+        public void NotOverlaps_ReturnsCorrectQuery()
+        {
+            var result = Query.NotOverlaps("attr", new List<double> { 40.0, -74.0 });
+            var query = JsonSerializer.Deserialize<Query>(result);
+
+            Assert.NotNull(query);
+            Assert.Equal("notOverlaps", query.Method);
+            Assert.Equal("attr", query.Attribute);
+            Assert.NotNull(query.Values);
+        }
+
+        [Fact]
+        public void Touches_ReturnsCorrectQuery()
+        {
+            var result = Query.Touches("attr", new List<double> { 40.0, -74.0 });
+            var query = JsonSerializer.Deserialize<Query>(result);
+
+            Assert.NotNull(query);
+            Assert.Equal("touches", query.Method);
+            Assert.Equal("attr", query.Attribute);
+            Assert.NotNull(query.Values);
+        }
+
+        [Fact]
+        public void NotTouches_ReturnsCorrectQuery()
+        {
+            var result = Query.NotTouches("attr", new List<double> { 40.0, -74.0 });
+            var query = JsonSerializer.Deserialize<Query>(result);
+
+            Assert.NotNull(query);
+            Assert.Equal("notTouches", query.Method);
+            Assert.Equal("attr", query.Attribute);
+            Assert.NotNull(query.Values);
+        }
+
+        [Fact]
+        public void DistanceEqual_WithMeters_ReturnsCorrectQuery()
+        {
+            var result = Query.DistanceEqual("attr", new List<double> { 40.0, -74.0 }, 1000, true);
+            var query = JsonSerializer.Deserialize<Query>(result);
+
+            Assert.NotNull(query);
+            Assert.Equal("distanceEqual", query.Method);
+        }
+
+        [Fact]
+        public void DistanceEqual_WithoutMeters_ReturnsCorrectQuery()
+        {
+            var result = Query.DistanceEqual("attr", new List<double> { 40.0, -74.0 }, 1000, false);
+            var query = JsonSerializer.Deserialize<Query>(result);
+
+            Assert.NotNull(query);
+            Assert.Equal("distanceEqual", query.Method);
+        }
     }
 }

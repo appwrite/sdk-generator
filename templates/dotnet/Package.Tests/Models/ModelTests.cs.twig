@@ -163,7 +163,19 @@ namespace {{ spec.title | caseUcfirst }}.Tests.Models
             // Assert
             Assert.NotNull(model);
             {%~ for property in definition.properties | filter(p => p.required) %}
-            {%~ if property.type == 'string' or property.type == 'array' or property.type == 'object' or property.sub_schema or property.enum %}
+            {%~ if property.enum %}
+            Assert.Equal({{ property.enumName | caseUcfirst }}.{{ (property.enumKeys[0] ?? property.enum[0]) | caseEnumKey }}.Value, model.{{ property_name(definition, property) | overrideProperty(definition.name) }}.Value);
+            {%~ elseif property.type == 'string' %}
+            Assert.Equal("{{ property['x-example'] | default('test') | escapeCsString }}", model.{{ property_name(definition, property) | overrideProperty(definition.name) }});
+            {%~ elseif property.type == 'integer' or property.type == 'number' %}
+            Assert.Equal({{ property['x-example'] | default(1) }}, model.{{ property_name(definition, property) | overrideProperty(definition.name) }});
+            {%~ elseif property.type == 'boolean' %}
+            {%~ if property['x-example'] is defined %}
+            Assert.{% if property['x-example'] is same as(true) or property['x-example'] == 'true' or property['x-example'] == 1 %}True{% else %}False{% endif %}(model.{{ property_name(definition, property) | overrideProperty(definition.name) }});
+            {%~ else %}
+            Assert.True(model.{{ property_name(definition, property) | overrideProperty(definition.name) }});
+            {%~ endif %}
+            {%~ elseif property.type == 'array' or property.type == 'object' or property.sub_schema %}
             Assert.NotNull(model.{{ property_name(definition, property) | overrideProperty(definition.name) }});
             {%~ endif %}
             {%~ endfor %}

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Text.Json;
 using Xunit;
@@ -330,6 +331,84 @@ namespace {{ spec.title | caseUcfirst }}.Tests
             Assert.Equal("dateSetNow", op.Method);
             Assert.NotNull(op.Values);
             Assert.Empty(op.Values);
+        }
+
+        [Fact]
+        public void Increment_WithNaN_ThrowsArgumentException()
+        {
+            Assert.Throws<ArgumentException>(() => Operator.Increment(double.NaN));
+        }
+
+        [Fact]
+        public void Increment_WithInfinity_ThrowsArgumentException()
+        {
+            Assert.Throws<ArgumentException>(() => Operator.Increment(double.PositiveInfinity));
+        }
+
+        [Fact]
+        public void Decrement_WithNaN_ThrowsArgumentException()
+        {
+            Assert.Throws<ArgumentException>(() => Operator.Decrement(double.NaN));
+        }
+
+        [Fact]
+        public void Multiply_WithNaN_ThrowsArgumentException()
+        {
+            Assert.Throws<ArgumentException>(() => Operator.Multiply(double.NaN));
+        }
+
+        [Fact]
+        public void Divide_WithZero_ThrowsArgumentException()
+        {
+            Assert.Throws<ArgumentException>(() => Operator.Divide(0));
+        }
+
+        [Fact]
+        public void Divide_WithNaN_ThrowsArgumentException()
+        {
+            Assert.Throws<ArgumentException>(() => Operator.Divide(double.NaN));
+        }
+
+        [Fact]
+        public void Modulo_WithZero_ThrowsArgumentException()
+        {
+            Assert.Throws<ArgumentException>(() => Operator.Modulo(0));
+        }
+
+        [Fact]
+        public void Modulo_WithNaN_ThrowsArgumentException()
+        {
+            Assert.Throws<ArgumentException>(() => Operator.Modulo(double.NaN));
+        }
+
+        [Fact]
+        public void Power_WithNaN_ThrowsArgumentException()
+        {
+            Assert.Throws<ArgumentException>(() => Operator.Power(double.NaN));
+        }
+
+        [Fact]
+        public void ArrayAppend_WithNull_ThrowsArgumentNullException()
+        {
+            Assert.Throws<ArgumentNullException>(() => Operator.ArrayAppend(null));
+        }
+
+        [Fact]
+        public void ArrayPrepend_WithNull_ThrowsArgumentNullException()
+        {
+            Assert.Throws<ArgumentNullException>(() => Operator.ArrayPrepend(null));
+        }
+
+        [Fact]
+        public void ArrayIntersect_WithNull_ThrowsArgumentNullException()
+        {
+            Assert.Throws<ArgumentNullException>(() => Operator.ArrayIntersect(null));
+        }
+
+        [Fact]
+        public void ArrayDiff_WithNull_ThrowsArgumentNullException()
+        {
+            Assert.Throws<ArgumentNullException>(() => Operator.ArrayDiff(null));
         }
     }
 }

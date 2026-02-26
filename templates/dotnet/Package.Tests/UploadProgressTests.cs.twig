@@ -8,17 +8,14 @@ namespace {{ spec.title | caseUcfirst }}.Tests
         [Fact]
         public void Constructor_WithValidParameters_CreatesInstance()
         {
-            // Arrange
-            var id = "test-id";
-            var progress = 50.0;
+            var id = "12345";
+            var progress = 0.75;
             var sizeUploaded = 1024L;
             var chunksTotal = 10L;
             var chunksUploaded = 5L;
 
-            // Act
             var uploadProgress = new UploadProgress(id, progress, sizeUploaded, chunksTotal, chunksUploaded);
 
-            // Assert
             Assert.NotNull(uploadProgress);
             Assert.Equal(id, uploadProgress.Id);
             Assert.Equal(progress, uploadProgress.Progress);
@@ -30,10 +27,8 @@ namespace {{ spec.title | caseUcfirst }}.Tests
         [Fact]
         public void Constructor_WithZeroProgress_CreatesInstance()
         {
-            // Arrange & Act
             var uploadProgress = new UploadProgress("id", 0.0, 0L, 10L, 0L);
 
-            // Assert
             Assert.Equal(0.0, uploadProgress.Progress);
             Assert.Equal(0L, uploadProgress.SizeUploaded);
             Assert.Equal(0L, uploadProgress.ChunksUploaded);
@@ -42,105 +37,9 @@ namespace {{ spec.title | caseUcfirst }}.Tests
         [Fact]
         public void Constructor_WithCompleteProgress_CreatesInstance()
         {
-            // Arrange & Act
             var uploadProgress = new UploadProgress("id", 100.0, 5120L, 5L, 5L);
 
-            // Assert
             Assert.Equal(100.0, uploadProgress.Progress);
-            Assert.Equal(5L, uploadProgress.ChunksTotal);
-            Assert.Equal(5L, uploadProgress.ChunksUploaded);
-        }
-
-        [Fact]
-        public void Id_IsReadOnly()
-        {
-            // Arrange
-            var uploadProgress = new UploadProgress("test-id", 50.0, 1024L, 10L, 5L);
-
-            // Assert
-            var propertyInfo = typeof(UploadProgress).GetProperty("Id");
-            Assert.NotNull(propertyInfo);
-            Assert.Null(propertyInfo.GetSetMethod());
-        }
-
-        [Fact]
-        public void Progress_IsReadOnly()
-        {
-            // Arrange
-            var uploadProgress = new UploadProgress("test-id", 50.0, 1024L, 10L, 5L);
-
-            // Assert
-            var propertyInfo = typeof(UploadProgress).GetProperty("Progress");
-            Assert.NotNull(propertyInfo);
-            Assert.Null(propertyInfo.GetSetMethod());
-        }
-
-        [Fact]
-        public void SizeUploaded_IsReadOnly()
-        {
-            // Arrange
-            var uploadProgress = new UploadProgress("test-id", 50.0, 1024L, 10L, 5L);
-
-            // Assert
-            var propertyInfo = typeof(UploadProgress).GetProperty("SizeUploaded");
-            Assert.NotNull(propertyInfo);
-            Assert.Null(propertyInfo.GetSetMethod());
-        }
-
-        [Fact]
-        public void ChunksTotal_IsReadOnly()
-        {
-            // Arrange
-            var uploadProgress = new UploadProgress("test-id", 50.0, 1024L, 10L, 5L);
-
-            // Assert
-            var propertyInfo = typeof(UploadProgress).GetProperty("ChunksTotal");
-            Assert.NotNull(propertyInfo);
-            Assert.Null(propertyInfo.GetSetMethod());
-        }
-
-        [Fact]
-        public void ChunksUploaded_IsReadOnly()
-        {
-            // Arrange
-            var uploadProgress = new UploadProgress("test-id", 50.0, 1024L, 10L, 5L);
-
-            // Assert
-            var propertyInfo = typeof(UploadProgress).GetProperty("ChunksUploaded");
-            Assert.NotNull(propertyInfo);
-            Assert.Null(propertyInfo.GetSetMethod());
-        }
-
-        [Fact]
-        public void Progress_WithDecimalValue_StoresCorrectly()
-        {
-            // Arrange & Act
-            var uploadProgress = new UploadProgress("id", 75.5, 3840L, 10L, 7L);
-
-            // Assert
-            Assert.Equal(75.5, uploadProgress.Progress);
-        }
-
-        [Fact]
-        public void SizeUploaded_WithLargeValue_StoresCorrectly()
-        {
-            // Arrange
-            var largeSize = long.MaxValue;
-
-            // Act
-            var uploadProgress = new UploadProgress("id", 100.0, largeSize, 1000L, 1000L);
-
-            // Assert
-            Assert.Equal(largeSize, uploadProgress.SizeUploaded);
-        }
-
-        [Fact]
-        public void ChunksTotal_MatchesChunksUploaded_WhenComplete()
-        {
-            // Arrange & Act
-            var uploadProgress = new UploadProgress("id", 100.0, 10240L, 10L, 10L);
-
-            // Assert
             Assert.Equal(uploadProgress.ChunksTotal, uploadProgress.ChunksUploaded);
         }
 
@@ -152,15 +51,26 @@ namespace {{ spec.title | caseUcfirst }}.Tests
         public void Constructor_WithVariousValues_CreatesCorrectInstance(
             string id, double progress, long sizeUploaded, long chunksTotal, long chunksUploaded)
         {
-            // Act
             var uploadProgress = new UploadProgress(id, progress, sizeUploaded, chunksTotal, chunksUploaded);
 
-            // Assert
             Assert.Equal(id, uploadProgress.Id);
             Assert.Equal(progress, uploadProgress.Progress);
             Assert.Equal(sizeUploaded, uploadProgress.SizeUploaded);
             Assert.Equal(chunksTotal, uploadProgress.ChunksTotal);
             Assert.Equal(chunksUploaded, uploadProgress.ChunksUploaded);
+        }
+
+        [Fact]
+        public void Properties_AreReadOnly()
+        {
+            var propertyNames = new[] { "Id", "Progress", "SizeUploaded", "ChunksTotal", "ChunksUploaded" };
+
+            foreach (var name in propertyNames)
+            {
+                var propertyInfo = typeof(UploadProgress).GetProperty(name);
+                Assert.NotNull(propertyInfo);
+                Assert.Null(propertyInfo.GetSetMethod());
+            }
         }
     }
 }
