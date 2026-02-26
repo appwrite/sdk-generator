@@ -129,7 +129,7 @@ class SDK
             return $this->helperCamelCase($value);
         }));
         $this->twig->addFilter(new TwigFilter('removeDash', function ($value) {
-            return preg_replace_callback('/-([a-zA-Z])/', fn($m) => strtoupper($m[1]), $value);
+            return str_replace('-', '', $value);
         }));
         $this->twig->addFilter(new TwigFilter('caseDash', function ($value) {
             return str_replace([' ', '_'], '-', strtolower(preg_replace('/([a-zA-Z])(?=[A-Z])/', '$1-', $value)));
