@@ -1,0 +1,414 @@
+using System;
+using System.Collections.Generic;
+using System.Text.Json;
+using Xunit;
+
+namespace {{ spec.title | caseUcfirst }}.Tests
+{
+    public class OperatorTests
+    {
+        [Fact]
+        public void Increment_ReturnsCorrectOperator()
+        {
+            var result = Operator.Increment(1);
+            var op = JsonSerializer.Deserialize<Operator>(result);
+            
+            Assert.NotNull(op);
+            Assert.Equal("increment", op.Method);
+            Assert.NotNull(op.Values);
+            Assert.Single(op.Values);
+            Assert.Equal(1, ((JsonElement)op.Values[0]).GetInt32());
+        }
+
+        [Fact]
+        public void Increment_WithMax_ReturnsCorrectOperator()
+        {
+            var result = Operator.Increment(5, 100);
+            var op = JsonSerializer.Deserialize<Operator>(result);
+            
+            Assert.NotNull(op);
+            Assert.Equal("increment", op.Method);
+            Assert.NotNull(op.Values);
+            Assert.Equal(2, op.Values.Count);
+            Assert.Equal(5, ((JsonElement)op.Values[0]).GetInt32());
+            Assert.Equal(100, ((JsonElement)op.Values[1]).GetInt32());
+        }
+
+        [Fact]
+        public void Decrement_ReturnsCorrectOperator()
+        {
+            var result = Operator.Decrement(1);
+            var op = JsonSerializer.Deserialize<Operator>(result);
+            
+            Assert.NotNull(op);
+            Assert.Equal("decrement", op.Method);
+            Assert.NotNull(op.Values);
+            Assert.Single(op.Values);
+            Assert.Equal(1, ((JsonElement)op.Values[0]).GetInt32());
+        }
+
+        [Fact]
+        public void Decrement_WithMin_ReturnsCorrectOperator()
+        {
+            var result = Operator.Decrement(3, 0);
+            var op = JsonSerializer.Deserialize<Operator>(result);
+            
+            Assert.NotNull(op);
+            Assert.Equal("decrement", op.Method);
+            Assert.NotNull(op.Values);
+            Assert.Equal(2, op.Values.Count);
+            Assert.Equal(3, ((JsonElement)op.Values[0]).GetInt32());
+            Assert.Equal(0, ((JsonElement)op.Values[1]).GetInt32());
+        }
+
+        [Fact]
+        public void Multiply_ReturnsCorrectOperator()
+        {
+            var result = Operator.Multiply(2);
+            var op = JsonSerializer.Deserialize<Operator>(result);
+            
+            Assert.NotNull(op);
+            Assert.Equal("multiply", op.Method);
+            Assert.NotNull(op.Values);
+            Assert.Single(op.Values);
+            Assert.Equal(2, ((JsonElement)op.Values[0]).GetInt32());
+        }
+
+        [Fact]
+        public void Multiply_WithMax_ReturnsCorrectOperator()
+        {
+            var result = Operator.Multiply(3, 1000);
+            var op = JsonSerializer.Deserialize<Operator>(result);
+            
+            Assert.NotNull(op);
+            Assert.Equal("multiply", op.Method);
+            Assert.NotNull(op.Values);
+            Assert.Equal(2, op.Values.Count);
+            Assert.Equal(3, ((JsonElement)op.Values[0]).GetInt32());
+            Assert.Equal(1000, ((JsonElement)op.Values[1]).GetInt32());
+        }
+
+        [Fact]
+        public void Divide_ReturnsCorrectOperator()
+        {
+            var result = Operator.Divide(2);
+            var op = JsonSerializer.Deserialize<Operator>(result);
+            
+            Assert.NotNull(op);
+            Assert.Equal("divide", op.Method);
+            Assert.NotNull(op.Values);
+            Assert.Single(op.Values);
+            Assert.Equal(2, ((JsonElement)op.Values[0]).GetInt32());
+        }
+
+        [Fact]
+        public void Divide_WithMin_ReturnsCorrectOperator()
+        {
+            var result = Operator.Divide(4, 1);
+            var op = JsonSerializer.Deserialize<Operator>(result);
+            
+            Assert.NotNull(op);
+            Assert.Equal("divide", op.Method);
+            Assert.NotNull(op.Values);
+            Assert.Equal(2, op.Values.Count);
+            Assert.Equal(4, ((JsonElement)op.Values[0]).GetInt32());
+            Assert.Equal(1, ((JsonElement)op.Values[1]).GetInt32());
+        }
+
+        [Fact]
+        public void Modulo_ReturnsCorrectOperator()
+        {
+            var result = Operator.Modulo(5);
+            var op = JsonSerializer.Deserialize<Operator>(result);
+            
+            Assert.NotNull(op);
+            Assert.Equal("modulo", op.Method);
+            Assert.NotNull(op.Values);
+            Assert.Single(op.Values);
+            Assert.Equal(5, ((JsonElement)op.Values[0]).GetInt32());
+        }
+
+        [Fact]
+        public void Power_ReturnsCorrectOperator()
+        {
+            var result = Operator.Power(2);
+            var op = JsonSerializer.Deserialize<Operator>(result);
+            
+            Assert.NotNull(op);
+            Assert.Equal("power", op.Method);
+            Assert.NotNull(op.Values);
+            Assert.Single(op.Values);
+            Assert.Equal(2, ((JsonElement)op.Values[0]).GetInt32());
+        }
+
+        [Fact]
+        public void Power_WithMax_ReturnsCorrectOperator()
+        {
+            var result = Operator.Power(3, 100);
+            var op = JsonSerializer.Deserialize<Operator>(result);
+            
+            Assert.NotNull(op);
+            Assert.Equal("power", op.Method);
+            Assert.NotNull(op.Values);
+            Assert.Equal(2, op.Values.Count);
+            Assert.Equal(3, ((JsonElement)op.Values[0]).GetInt32());
+            Assert.Equal(100, ((JsonElement)op.Values[1]).GetInt32());
+        }
+
+        [Fact]
+        public void ArrayAppend_ReturnsCorrectOperator()
+        {
+            var result = Operator.ArrayAppend(new List<object>() { "item1", "item2" });
+            var op = JsonSerializer.Deserialize<Operator>(result);
+            
+            Assert.NotNull(op);
+            Assert.Equal("arrayAppend", op.Method);
+            Assert.NotNull(op.Values);
+            Assert.Equal(2, op.Values.Count);
+        }
+
+        [Fact]
+        public void ArrayPrepend_ReturnsCorrectOperator()
+        {
+            var result = Operator.ArrayPrepend(new List<object>() { "first", "second" });
+            var op = JsonSerializer.Deserialize<Operator>(result);
+            
+            Assert.NotNull(op);
+            Assert.Equal("arrayPrepend", op.Method);
+            Assert.NotNull(op.Values);
+            Assert.Equal(2, op.Values.Count);
+        }
+
+        [Fact]
+        public void ArrayInsert_ReturnsCorrectOperator()
+        {
+            var result = Operator.ArrayInsert(0, "newItem");
+            var op = JsonSerializer.Deserialize<Operator>(result);
+            
+            Assert.NotNull(op);
+            Assert.Equal("arrayInsert", op.Method);
+            Assert.NotNull(op.Values);
+            Assert.Equal(2, op.Values.Count);
+            Assert.Equal(0, ((JsonElement)op.Values[0]).GetInt32());
+            Assert.Equal("newItem", op.Values[1].ToString());
+        }
+
+        [Fact]
+        public void ArrayRemove_ReturnsCorrectOperator()
+        {
+            var result = Operator.ArrayRemove("oldItem");
+            var op = JsonSerializer.Deserialize<Operator>(result);
+            
+            Assert.NotNull(op);
+            Assert.Equal("arrayRemove", op.Method);
+            Assert.NotNull(op.Values);
+            Assert.Single(op.Values);
+            Assert.Equal("oldItem", op.Values[0].ToString());
+        }
+
+        [Fact]
+        public void ArrayUnique_ReturnsCorrectOperator()
+        {
+            var result = Operator.ArrayUnique();
+            var op = JsonSerializer.Deserialize<Operator>(result);
+            
+            Assert.NotNull(op);
+            Assert.Equal("arrayUnique", op.Method);
+            Assert.NotNull(op.Values);
+            Assert.Empty(op.Values);
+        }
+
+        [Fact]
+        public void ArrayIntersect_ReturnsCorrectOperator()
+        {
+            var result = Operator.ArrayIntersect(new List<object>() { "a", "b", "c" });
+            var op = JsonSerializer.Deserialize<Operator>(result);
+            
+            Assert.NotNull(op);
+            Assert.Equal("arrayIntersect", op.Method);
+            Assert.NotNull(op.Values);
+            Assert.Equal(3, op.Values.Count);
+        }
+
+        [Fact]
+        public void ArrayDiff_ReturnsCorrectOperator()
+        {
+            var result = Operator.ArrayDiff(new List<object>() { "x", "y" });
+            var op = JsonSerializer.Deserialize<Operator>(result);
+            
+            Assert.NotNull(op);
+            Assert.Equal("arrayDiff", op.Method);
+            Assert.NotNull(op.Values);
+            Assert.Equal(2, op.Values.Count);
+        }
+
+        [Fact]
+        public void ArrayFilter_ReturnsCorrectOperator()
+        {
+            var result = Operator.ArrayFilter(Condition.Equal, "test");
+            var op = JsonSerializer.Deserialize<Operator>(result);
+            
+            Assert.NotNull(op);
+            Assert.Equal("arrayFilter", op.Method);
+            Assert.NotNull(op.Values);
+            Assert.Equal(2, op.Values.Count);
+            Assert.Equal("equal", op.Values[0].ToString());
+            Assert.Equal("test", op.Values[1].ToString());
+        }
+
+        [Fact]
+        public void StringConcat_ReturnsCorrectOperator()
+        {
+            var result = Operator.StringConcat("suffix");
+            var op = JsonSerializer.Deserialize<Operator>(result);
+            
+            Assert.NotNull(op);
+            Assert.Equal("stringConcat", op.Method);
+            Assert.NotNull(op.Values);
+            Assert.Single(op.Values);
+            Assert.Equal("suffix", op.Values[0].ToString());
+        }
+
+        [Fact]
+        public void StringReplace_ReturnsCorrectOperator()
+        {
+            var result = Operator.StringReplace("old", "new");
+            var op = JsonSerializer.Deserialize<Operator>(result);
+            
+            Assert.NotNull(op);
+            Assert.Equal("stringReplace", op.Method);
+            Assert.NotNull(op.Values);
+            Assert.Equal(2, op.Values.Count);
+            Assert.Equal("old", op.Values[0].ToString());
+            Assert.Equal("new", op.Values[1].ToString());
+        }
+
+        [Fact]
+        public void Toggle_ReturnsCorrectOperator()
+        {
+            var result = Operator.Toggle();
+            var op = JsonSerializer.Deserialize<Operator>(result);
+            
+            Assert.NotNull(op);
+            Assert.Equal("toggle", op.Method);
+            Assert.NotNull(op.Values);
+            Assert.Empty(op.Values);
+        }
+
+        [Fact]
+        public void DateAddDays_ReturnsCorrectOperator()
+        {
+            var result = Operator.DateAddDays(7);
+            var op = JsonSerializer.Deserialize<Operator>(result);
+            
+            Assert.NotNull(op);
+            Assert.Equal("dateAddDays", op.Method);
+            Assert.NotNull(op.Values);
+            Assert.Single(op.Values);
+            Assert.Equal(7, ((JsonElement)op.Values[0]).GetInt32());
+        }
+
+        [Fact]
+        public void DateSubDays_ReturnsCorrectOperator()
+        {
+            var result = Operator.DateSubDays(3);
+            var op = JsonSerializer.Deserialize<Operator>(result);
+            
+            Assert.NotNull(op);
+            Assert.Equal("dateSubDays", op.Method);
+            Assert.NotNull(op.Values);
+            Assert.Single(op.Values);
+            Assert.Equal(3, ((JsonElement)op.Values[0]).GetInt32());
+        }
+
+        [Fact]
+        public void DateSetNow_ReturnsCorrectOperator()
+        {
+            var result = Operator.DateSetNow();
+            var op = JsonSerializer.Deserialize<Operator>(result);
+            
+            Assert.NotNull(op);
+            Assert.Equal("dateSetNow", op.Method);
+            Assert.NotNull(op.Values);
+            Assert.Empty(op.Values);
+        }
+
+        [Fact]
+        public void Increment_WithNaN_ThrowsArgumentException()
+        {
+            Assert.Throws<ArgumentException>(() => Operator.Increment(double.NaN));
+        }
+
+        [Fact]
+        public void Increment_WithInfinity_ThrowsArgumentException()
+        {
+            Assert.Throws<ArgumentException>(() => Operator.Increment(double.PositiveInfinity));
+        }
+
+        [Fact]
+        public void Decrement_WithNaN_ThrowsArgumentException()
+        {
+            Assert.Throws<ArgumentException>(() => Operator.Decrement(double.NaN));
+        }
+
+        [Fact]
+        public void Multiply_WithNaN_ThrowsArgumentException()
+        {
+            Assert.Throws<ArgumentException>(() => Operator.Multiply(double.NaN));
+        }
+
+        [Fact]
+        public void Divide_WithZero_ThrowsArgumentException()
+        {
+            Assert.Throws<ArgumentException>(() => Operator.Divide(0));
+        }
+
+        [Fact]
+        public void Divide_WithNaN_ThrowsArgumentException()
+        {
+            Assert.Throws<ArgumentException>(() => Operator.Divide(double.NaN));
+        }
+
+        [Fact]
+        public void Modulo_WithZero_ThrowsArgumentException()
+        {
+            Assert.Throws<ArgumentException>(() => Operator.Modulo(0));
+        }
+
+        [Fact]
+        public void Modulo_WithNaN_ThrowsArgumentException()
+        {
+            Assert.Throws<ArgumentException>(() => Operator.Modulo(double.NaN));
+        }
+
+        [Fact]
+        public void Power_WithNaN_ThrowsArgumentException()
+        {
+            Assert.Throws<ArgumentException>(() => Operator.Power(double.NaN));
+        }
+
+        [Fact]
+        public void ArrayAppend_WithNull_ThrowsArgumentNullException()
+        {
+            Assert.Throws<ArgumentNullException>(() => Operator.ArrayAppend(null));
+        }
+
+        [Fact]
+        public void ArrayPrepend_WithNull_ThrowsArgumentNullException()
+        {
+            Assert.Throws<ArgumentNullException>(() => Operator.ArrayPrepend(null));
+        }
+
+        [Fact]
+        public void ArrayIntersect_WithNull_ThrowsArgumentNullException()
+        {
+            Assert.Throws<ArgumentNullException>(() => Operator.ArrayIntersect(null));
+        }
+
+        [Fact]
+        public void ArrayDiff_WithNull_ThrowsArgumentNullException()
+        {
+            Assert.Throws<ArgumentNullException>(() => Operator.ArrayDiff(null));
+        }
+    }
+}

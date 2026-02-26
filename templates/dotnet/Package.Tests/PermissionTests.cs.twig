@@ -1,0 +1,38 @@
+using Xunit;
+using {{ spec.title | caseUcfirst }};
+
+namespace {{ spec.title | caseUcfirst }}.Tests
+{
+    public class PermissionTests
+    {
+        [Fact]
+        public void Read_ReturnsCorrectPermission()
+        {
+            Assert.Equal("read(\"any\")", Permission.Read(Role.Any()));
+        }
+
+        [Fact]
+        public void Write_ReturnsCorrectPermission()
+        {
+            Assert.Equal("write(\"any\")", Permission.Write(Role.Any()));
+        }
+
+        [Fact]
+        public void Create_ReturnsCorrectPermission()
+        {
+            Assert.Equal("create(\"any\")", Permission.Create(Role.Any()));
+        }
+
+        [Fact]
+        public void Update_ReturnsCorrectPermission()
+        {
+            Assert.Equal("update(\"any\")", Permission.Update(Role.Any()));
+        }
+
+        [Fact]
+        public void Delete_ReturnsCorrectPermission()
+        {
+            Assert.Equal("delete(\"any\")", Permission.Delete(Role.Any()));
+        }
+    }
+}

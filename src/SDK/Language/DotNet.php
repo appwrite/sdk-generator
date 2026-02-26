@@ -496,6 +496,85 @@ class DotNet extends Language
                 'scope'         => 'default',
                 'destination'   => '{{ spec.title | caseUcfirst }}/Enums/IEnum.cs',
                 'template'      => 'dotnet/Package/Enums/IEnum.cs.twig',
+            ],
+            // Tests
+            [
+                'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseUcfirst }}.Tests/{{ spec.title | caseUcfirst }}.Tests.csproj',
+                'template'      => 'dotnet/Package.Tests/Tests.csproj.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseUcfirst }}.Tests/.gitignore',
+                'template'      => 'dotnet/Package.Tests/.gitignore',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseUcfirst }}.Tests/ClientTests.cs',
+                'template'      => 'dotnet/Package.Tests/ClientTests.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseUcfirst }}.Tests/IDTests.cs',
+                'template'      => 'dotnet/Package.Tests/IDTests.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseUcfirst }}.Tests/PermissionTests.cs',
+                'template'      => 'dotnet/Package.Tests/PermissionTests.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseUcfirst }}.Tests/RoleTests.cs',
+                'template'      => 'dotnet/Package.Tests/RoleTests.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseUcfirst }}.Tests/QueryTests.cs',
+                'template'      => 'dotnet/Package.Tests/QueryTests.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseUcfirst }}.Tests/ExceptionTests.cs',
+                'template'      => 'dotnet/Package.Tests/ExceptionTests.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseUcfirst }}.Tests/UploadProgressTests.cs',
+                'template'      => 'dotnet/Package.Tests/UploadProgressTests.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseUcfirst }}.Tests/Models/InputFileTests.cs',
+                'template'      => 'dotnet/Package.Tests/Models/InputFileTests.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseUcfirst }}.Tests/Converters/ObjectToInferredTypesConverterTests.cs',
+                'template'      => 'dotnet/Package.Tests/Converters/ObjectToInferredTypesConverterTests.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseUcfirst }}.Tests/Converters/ValueClassConverterTests.cs',
+                'template'      => 'dotnet/Package.Tests/Converters/ValueClassConverterTests.cs.twig',
+            ],
+            // Tests for each definition (model)
+            [
+                'scope'         => 'definition',
+                'destination'   => '{{ spec.title | caseUcfirst }}.Tests/Models/{{ definition.name | caseUcfirst | overrideIdentifier }}Tests.cs',
+                'template'      => 'dotnet/Package.Tests/Models/ModelTests.cs.twig',
+            ],
+            // Tests for each enum
+            [
+                'scope'         => 'enum',
+                'destination'   => '{{ spec.title | caseUcfirst }}.Tests/Enums/{{ enum.name | caseUcfirst | overrideIdentifier }}Tests.cs',
+                'template'      => 'dotnet/Package.Tests/Enums/EnumTests.cs.twig',
+            ],
+            // Tests for each service
+            [
+                'scope'         => 'service',
+                'destination'   => '{{ spec.title | caseUcfirst }}.Tests/Services/{{service.name | caseUcfirst}}Tests.cs',
+                'template'      => 'dotnet/Package.Tests/Services/ServiceTests.cs.twig',
             ]
         ];
     }
@@ -519,8 +598,20 @@ class DotNet extends Language
                 }
                 return $property;
             }),
+            new TwigFilter('escapeCsString', function ($value) {
+                if (is_string($value)) {
+                    return addcslashes($value, '\\"');
+                }
+                return $value;
+            }),
             new TwigFilter('propertyType', function (array $property, array $spec = []) {
                 return $this->getPropertyType($property, $spec);
+            }),
+            new TwigFilter('propertyAssignment', function (array $property) {
+                return $this->getPropertyAssignment($property);
+            }),
+            new TwigFilter('toMapValue', function (array $property, string $definitionName) {
+                return $this->getToMapExpression($property, $definitionName);
             }),
             new TwigFilter('enumExample', function (array $param) {
                 $enumValues = $param['enumValues'] ?? [];
@@ -530,6 +621,8 @@ class DotNet extends Language
 
                 $enumKeys = $param['enumKeys'] ?? [];
                 $enumName = $this->toPascalCase($param['enumName'] ?? $param['name'] ?? '');
+                $enumPrefix = 'Appwrite.Enums.';
+                $enumFullName = $enumPrefix . $enumName;
                 $example = $param['example'] ?? null;
                 $isArray = ($param['type'] ?? '') === self::TYPE_ARRAY;
 
@@ -568,7 +661,7 @@ class DotNet extends Language
                 }
 
                 $value = ($example !== null && $example !== '') ? $example : $enumValues[0];
-                return $enumName . '.' . $resolveKey($value);
+                return $enumFullName . '.' . $resolveKey($value);
             }),
         ];
     }
@@ -580,7 +673,7 @@ class DotNet extends Language
      * @param array $spec
      * @return string
      */
-    protected function getPropertyType(array $property, array $spec = []): string
+    protected function getPropertyType(array $property, array $spec = [], bool $fullyQualified = true): string
     {
         if (isset($property['sub_schema']) && !empty($property['sub_schema'])) {
             $type = $this->toPascalCase($property['sub_schema']);
@@ -593,7 +686,8 @@ class DotNet extends Language
 
         if (isset($property['enum']) && !empty($property['enum'])) {
             $enumName = $property['enumName'] ?? $property['name'];
-            return 'Appwrite.Enums.' . $this->toPascalCase($enumName);
+            $prefix = $fullyQualified ? 'Appwrite.Enums.' : '';
+            return $prefix . $this->toPascalCase($enumName);
         }
 
         return $this->getTypeName($property, $spec);
@@ -607,37 +701,193 @@ class DotNet extends Language
     {
         return [
             new TwigFunction('sub_schema', function (array $property) {
-                $result = '';
-
-                if (isset($property['sub_schema']) && !empty($property['sub_schema'])) {
-                    if ($property['type'] === 'array') {
-                        $result = 'List<' . $this->toPascalCase($property['sub_schema']) . '>';
-                    } else {
-                        $result = $this->toPascalCase($property['sub_schema']);
-                    }
-                } elseif (isset($property['enum']) && !empty($property['enum'])) {
-                    $enumName = $property['enumName'] ?? $property['name'];
-                    $result = $this->toPascalCase($enumName);
-                } else {
-                    $result = $this->getTypeName($property);
-                }
+                $result = $this->getPropertyType($property, [], false);
 
                 if (!($property['required'] ?? true)) {
                     $result .= '?';
                 }
 
                 return $result;
-            }),
-            new TwigFunction('property_name', function (array $definition, array $property) {
-                $name = $property['name'];
-                $name = \str_replace('$', '', $name);
-                $name = $this->toPascalCase($name);
-                if (\in_array($name, $this->getKeywords())) {
-                    $name = '@' . $name;
+            }, ['is_safe' => ['html']]),
+            new TwigFunction('test_item_type', function (array $property) {
+                // For test templates: returns the item type for arrays without the List<> wrapper
+                $result = '';
+
+                if (isset($property['sub_schema']) && !empty($property['sub_schema'])) {
+                    // Model type
+                    $result = $this->toPascalCase($property['sub_schema']);
+                    $result = 'Appwrite.Models.' . $result;
+                } elseif (isset($property['enum']) && !empty($property['enum'])) {
+                    // Enum type
+                    $enumName = $property['enumName'] ?? $property['name'];
+                    $result = 'Appwrite.Enums.' . $this->toPascalCase($enumName);
+                } elseif (isset($property['items']) && isset($property['items']['type'])) {
+                    // Primitive array type (for definitions)
+                    $result = $this->getTypeName($property['items']);
+                } elseif (isset($property['array']) && isset($property['array']['type'])) {
+                    // Primitive array type (for method parameters)
+                    $result = $this->getTypeName($property['array']);
+                } else {
+                    $result = 'object';
                 }
-                return $name;
+
+                return $result;
+            }, ['is_safe' => ['html']]),
+            new TwigFunction('property_name', function (array $definition, array $property) {
+                return $this->getPropertyName($property);
             }),
         ];
+    }
+
+    /**
+     * Generate property name for C# model
+     *
+     * @param array $property
+     * @return string
+     */
+    protected function getPropertyName(array $property): string
+    {
+        $name = $property['name'];
+        $name = \str_replace('$', '', $name);
+        $name = $this->toPascalCase($name);
+        if (\in_array($name, $this->getKeywords())) {
+            $name = '@' . $name;
+        }
+        return $name;
+    }
+
+    /**
+     * Resolved property name with overrides applied
+     *
+     * @param array $property
+     * @param string $definitionName
+     * @return string
+     */
+    protected function getResolvedPropertyName(array $property, string $definitionName): string
+    {
+        $name = $this->getPropertyName($property);
+        $overrides = $this->getPropertyOverrides();
+        if (isset($overrides[$definitionName][$name])) {
+            return $overrides[$definitionName][$name];
+        }
+        return $name;
+    }
+
+    /**
+     * Generate full property assignment expression for model deserialization (From method).
+     * Handles TryGetValue wrapping for optional properties internally.
+     *
+     * @param array $property
+     * @return string
+     */
+    protected function getPropertyAssignment(array $property): string
+    {
+        $required = $property['required'] ?? false;
+        $propertyName = $property['name'];
+        $mapAccess = "map[\"{$propertyName}\"]";
+
+        if ($required) {
+            return $this->convertValue($property, $mapAccess);
+        }
+
+        $v = 'v' . $this->toPascalCase(\str_replace('$', '', $propertyName));
+        $tryGet = "map.TryGetValue(\"{$propertyName}\", out var {$v})";
+
+        // Sub_schema objects — use pattern matching for type-safe cast
+        if (!empty($property['sub_schema']) && $property['type'] !== 'array') {
+            $subSchema = $this->toPascalCase($property['sub_schema']);
+            return "{$tryGet} && {$v} is Dictionary<string, object> {$v}Map ? {$subSchema}.From(map: {$v}Map) : null";
+        }
+
+        // Integer, number, enum — guard with null check to avoid Convert/constructor on null
+        if (\in_array($property['type'], ['integer', 'number']) || !empty($property['enum'])) {
+            $expr = $this->convertValue($property, $v);
+            return "{$tryGet} && {$v} != null ? {$expr} : null";
+        }
+
+        // String, boolean, arrays — null-safe conversion
+        $expr = $this->convertValue($property, $v, false);
+        return "{$tryGet} ? {$expr} : null";
+    }
+
+    /**
+     * Build type conversion expression for a single value.
+     *
+     * @param array $property Property definition
+     * @param string $src Source variable or expression
+     * @param bool $srcNonNull Whether $src is guaranteed non-null
+     * @return string
+     */
+    private function convertValue(array $property, string $src, bool $srcNonNull = true): string
+    {
+        // Sub_schema (nested objects)
+        if (!empty($property['sub_schema'])) {
+            $subSchema = $this->toPascalCase($property['sub_schema']);
+            if ($property['type'] === 'array') {
+                return "{$src}.ToEnumerable().Select(it => {$subSchema}.From(map: (Dictionary<string, object>)it)).ToList()";
+            }
+            return "{$subSchema}.From(map: (Dictionary<string, object>){$src})";
+        }
+
+        // Enum
+        if (!empty($property['enum'])) {
+            $enumClass = $this->toPascalCase($property['enumName'] ?? $property['name']);
+            return "new {$enumClass}({$src}.ToString())";
+        }
+
+        // Arrays
+        if ($property['type'] === 'array') {
+            $itemsType = $property['items']['type'] ?? 'object';
+            $selectExpression = match ($itemsType) {
+                'string' => 'x.ToString()',
+                'integer' => 'Convert.ToInt64(x)',
+                'number' => 'Convert.ToDouble(x)',
+                'boolean' => '(bool)x',
+                default => 'x'
+            };
+            return "{$src}.ToEnumerable().Select(x => {$selectExpression}).ToList()";
+        }
+
+        // Integer/Number
+        if ($property['type'] === 'integer' || $property['type'] === 'number') {
+            $convertMethod = $property['type'] === 'integer' ? 'Int64' : 'Double';
+            return "Convert.To{$convertMethod}({$src})";
+        }
+
+        // Boolean
+        if ($property['type'] === 'boolean') {
+            return $srcNonNull ? "(bool){$src}" : "(bool?){$src}";
+        }
+
+        // String (default)
+        return $srcNonNull ? "{$src}.ToString()" : "{$src}?.ToString()";
+    }
+
+    /**
+     * Generate ToMap() value expression for a property.
+     *
+     * @param array $property
+     * @param string $definitionName
+     * @return string
+     */
+    protected function getToMapExpression(array $property, string $definitionName): string
+    {
+        $propName = $this->getResolvedPropertyName($property, $definitionName);
+        $required = $property['required'] ?? true;
+        $nullOp = $required ? '' : '?';
+
+        if (!empty($property['sub_schema'])) {
+            if ($property['type'] === 'array') {
+                return "{$propName}{$nullOp}.Select(it => it.ToMap()).ToList()";
+            }
+            return "{$propName}{$nullOp}.ToMap()";
+        }
+
+        if (!empty($property['enum'])) {
+            return "{$propName}{$nullOp}.Value";
+        }
+
+        return $propName;
     }
 
     /**

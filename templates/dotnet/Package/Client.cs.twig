@@ -88,6 +88,27 @@ namespace {{ spec.title | caseUcfirst }}
             }
         }
 
+        // Parameterless constructor required for mocking frameworks (Moq/Castle)
+        // Initializes minimal defaults so proxies can be created without errors.
+        protected Client()
+        {
+            _endpoint = "{{spec.endpoint}}";
+            _http = new HttpClient();
+            _httpForRedirect = new HttpClient(new HttpClientHandler(){ AllowAutoRedirect = false });
+
+            _headers = new Dictionary<string, string>()
+            {
+                { "content-type", "application/json" },
+                { "user-agent" , $"{{spec.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} ({Environment.OSVersion.Platform}; {Environment.OSVersion.VersionString})"},
+                { "x-sdk-name", "{{ sdk.name }}" },
+                { "x-sdk-platform", "{{ sdk.platform }}" },
+                { "x-sdk-language", "{{ language.name | caseLower }}" },
+                { "x-sdk-version", "{{ sdk.version }}" }
+            };
+
+            _config = new Dictionary<string, string>();
+        }
+
         public Client SetSelfSigned(bool selfSigned)
         {
             var handler = new HttpClientHandler()
@@ -154,6 +175,7 @@ namespace {{ spec.title | caseUcfirst }}
 
                 foreach (var parameter in parameters)
                 {
+                    if (parameter.Value == null) continue; 
                     if (parameter.Key == "file")
                     {
                         var fileContent = parameters["file"] as MultipartFormDataContent;
@@ -222,7 +244,7 @@ namespace {{ spec.title | caseUcfirst }}
             return request;
         }
 
-        public async Task<String> Redirect(
+        public virtual async Task<String> Redirect(
             string method,
             string path,
             Dictionary<string, string> headers,
@@ -268,7 +290,7 @@ namespace {{ spec.title | caseUcfirst }}
             return response.Headers.Location?.OriginalString ?? string.Empty;
         }
 
-        public Task<Dictionary<string, object?>> Call(
+        public virtual Task<Dictionary<string, object?>> Call(
             string method,
             string path,
             Dictionary<string, string> headers,
@@ -277,7 +299,7 @@ namespace {{ spec.title | caseUcfirst }}
             return Call<Dictionary<string, object?>>(method, path, headers, parameters);
         }
 
-        public async Task<T> Call<T>(
+        public virtual async Task<T> Call<T>(
             string method,
             string path,
             Dictionary<string, string> headers,
@@ -352,7 +374,7 @@ namespace {{ spec.title | caseUcfirst }}
             }
         }
 
-        public async Task<T> ChunkedUpload<T>(
+        public virtual async Task<T> ChunkedUpload<T>(
             string path,
             Dictionary<string, string> headers,
             Dictionary<string, object?> parameters,

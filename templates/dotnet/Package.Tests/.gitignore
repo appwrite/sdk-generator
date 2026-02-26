@@ -1,0 +1,23 @@
+# Test results
+TestResults/
+*.trx
+*.coverage
+*.coveragexml
+
+# Coverage reports
+coverage/
+coverage.json
+coverage.opencover.xml
+lcov.info
+
+# Build outputs
+bin/
+obj/
+*.user
+*.suo
+
+# Rider
+.idea/
+
+# Visual Studio
+.vs/
