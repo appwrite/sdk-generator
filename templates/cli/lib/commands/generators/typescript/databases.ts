@@ -6,6 +6,7 @@ import { TypeScript } from "../../../type-generation/languages/typescript.js";
 import { SDK_TITLE, EXECUTABLE_NAME } from "../../../constants.js";
 import {
   BaseDatabasesGenerator,
+  GenerateOptions,
   GenerateResult,
   SupportedLanguage,
 } from "../base.js";
@@ -259,14 +260,13 @@ ${
 };`;
   }
 
-  private generateTypesFile(config: ConfigType): string {
+  private generateTypesFile(config: ConfigType, appwriteDep: string): string {
     const entities = config.tables?.length ? config.tables : config.collections;
 
     if (!entities || entities.length === 0) {
       return "// No tables or collections found in configuration\n";
     }
 
-    const appwriteDep = getAppwriteDependency();
     const enums = this.generateEnums(entities);
     const types = entities
       .map((entity: Entity) => this.generateTableType(entity, entities))
@@ -370,7 +370,11 @@ ${
         }`;
   }
 
-  private generateDatabasesFile(config: ConfigType, importExt: string): string {
+  private generateDatabasesFile(
+    config: ConfigType,
+    importExt: string,
+    appwriteDep: string,
+  ): string {
     const entities = config.tables?.length ? config.tables : config.collections;
 
     if (!entities || entities.length === 0) {
@@ -378,7 +382,6 @@ ${
     }
 
     const entitiesByDb = this.groupEntitiesByDb(entities);
-    const appwriteDep = getAppwriteDependency();
     const supportsServerSide = supportsServerSideMethods(
       appwriteDep,
       this.serverSideOverride,
@@ -405,8 +408,10 @@ ${
     });
   }
 
-  private generateConstantsFile(config: ConfigType): string {
-    const appwriteDep = getAppwriteDependency();
+  private generateConstantsFile(
+    config: ConfigType,
+    appwriteDep: string,
+  ): string {
     const supportsServerSide = supportsServerSideMethods(
       appwriteDep,
       this.serverSideOverride,
@@ -420,12 +425,17 @@ ${
     });
   }
 
-  async generate(config: ConfigType): Promise<GenerateResult> {
+  async generate(
+    config: ConfigType,
+    options?: GenerateOptions,
+  ): Promise<GenerateResult> {
     if (!config.projectId) {
       throw new Error("Project ID is required in configuration");
     }
 
-    const importExt = detectImportExtension();
+    const appwriteDep =
+      options?.appwriteImportSource ?? getAppwriteDependency();
+    const importExt = options?.importExtension ?? detectImportExtension();
 
     const hasEntities =
       (config.tables && config.tables.length > 0) ||
@@ -439,15 +449,15 @@ ${
         dbContent: "// No tables or collections found in configuration\n",
         typesContent: "// No tables or collections found in configuration\n",
         indexContent: this.generateIndexFile(importExt),
-        constantsContent: this.generateConstantsFile(config),
+        constantsContent: this.generateConstantsFile(config, appwriteDep),
       };
     }
 
     return {
-      dbContent: this.generateDatabasesFile(config, importExt),
-      typesContent: this.generateTypesFile(config),
+      dbContent: this.generateDatabasesFile(config, importExt, appwriteDep),
+      typesContent: this.generateTypesFile(config, appwriteDep),
       indexContent: this.generateIndexFile(importExt),
-      constantsContent: this.generateConstantsFile(config),
+      constantsContent: this.generateConstantsFile(config, appwriteDep),
     };
   }
 }
