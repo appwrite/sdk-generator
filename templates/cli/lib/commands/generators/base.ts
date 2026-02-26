@@ -27,6 +27,24 @@ export interface GenerateResult {
 }
 
 /**
+ * Options for overriding auto-detected generation settings.
+ */
+export interface GenerateOptions {
+  /**
+   * Override the Appwrite import source used in generated files.
+   * Auto-detected from package.json/deno.json if not provided.
+   * Examples: "node-appwrite", "appwrite", "@appwrite.io/console"
+   */
+  appwriteImportSource?: string;
+  /**
+   * Override the import file extension used in generated files.
+   * Auto-detected from package.json "type" field / deno.json if not provided.
+   * Use ".js" for ESM projects or "" for CJS/unknown projects.
+   */
+  importExtension?: string;
+}
+
+/**
  * Base interface for all language-specific database generators.
  * Implement this interface to add support for new languages.
  */
@@ -44,12 +62,16 @@ export interface IDatabasesGenerator {
   /**
    * Generate the SDK files from the configuration.
    * @param config - The project configuration containing tables/collections
+   * @param options - Optional overrides for auto-detected settings (e.g. import source, extension)
    * @returns Promise resolving to named file contents:
    * `dbContent` (`databases.ts`), `typesContent` (`types.ts`),
    * `indexContent` (`index.ts`), and `constantsContent` (`constants.ts`).
    * Import your generated SDK from `index.ts` (or `index.js` after transpilation).
    */
-  generate(config: ConfigType): Promise<GenerateResult>;
+  generate(
+    config: ConfigType,
+    options?: GenerateOptions,
+  ): Promise<GenerateResult>;
 
   /**
    * Write the generated files to disk.
@@ -80,7 +102,10 @@ export abstract class BaseDatabasesGenerator implements IDatabasesGenerator {
   abstract readonly language: SupportedLanguage;
   abstract readonly fileExtension: string;
 
-  abstract generate(config: ConfigType): Promise<GenerateResult>;
+  abstract generate(
+    config: ConfigType,
+    options?: GenerateOptions,
+  ): Promise<GenerateResult>;
 
   async writeFiles(outputDir: string, result: GenerateResult): Promise<void> {
     const sdkDir = path.join(outputDir, SDK_TITLE_LOWER);
