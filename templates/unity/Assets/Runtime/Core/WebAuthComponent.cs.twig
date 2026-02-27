@@ -1,0 +1,102 @@
+#if (UNITY_EDITOR || UNITY_IOS || UNITY_ANDROID || UNITY_WEBGL) && UNI_TASK
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using Appwrite.Extensions;
+using Cysharp.Threading.Tasks;
+using UnityEngine;
+
+namespace {{ spec.title | caseUcfirst }}
+{
+    public static class WebAuthComponent
+    {
+        private static readonly ConcurrentDictionary<string, UniTaskCompletionSource<Uri>> PendingAuth = new();
+
+        public static event Action<string> OnDeepLink;
+
+        [RuntimeInitializeOnLoadMethod]
+        private static void Initialize()
+        {
+            Application.deepLinkActivated -= OnDeepLinkActivated;
+            Application.deepLinkActivated += OnDeepLinkActivated;
+            Debug.Log("[{{ spec.title | caseUcfirst }}DeepLinkHandler] Initialized for OAuth callbacks.");
+        }
+
+        private static void OnDeepLinkActivated(string url)
+        {
+            Debug.Log($"[{{ spec.title | caseUcfirst }}DeepLinkHandler] Received deep link: {url}");
+            OnDeepLink?.Invoke(url);
+        }
+        static WebAuthComponent()
+        {
+            OnDeepLink += HandleCallback;
+        }
+
+        public static async UniTask<Uri> Authenticate(string authUrl)
+        {
+            var authUri = new Uri(authUrl);
+            var queryDict = authUri.Query.FromQueryString();
+            var projectId = queryDict.GetValueOrDefault("project");
+            if (string.IsNullOrEmpty(projectId))
+            {
+                throw new {{ spec.title | caseUcfirst }}Exception("Project ID not found in authentication URL.");
+            }
+
+            var callbackScheme = $"{{ spec.title | caseLower }}-callback-{projectId}";
+            var tcs = new UniTaskCompletionSource<Uri>();
+            
+            if (!PendingAuth.TryAdd(callbackScheme, tcs))
+            {
+                throw new {{ spec.title | caseUcfirst }}Exception("Authentication process already in progress.");
+            }
+
+            Debug.Log($"[WebAuthenticator] Opening authentication URL: {authUrl}");
+#if UNITY_WEBGL && !UNITY_EDITOR
+            OpenUrlSamePage(authUrl);
+#else
+            Application.OpenURL(authUrl);
+#endif            
+            Debug.Log($"[WebAuthenticator] Waiting for callback with scheme: {callbackScheme}");
+
+            try
+            {
+                return await tcs.Task;
+            }
+            finally
+            {
+                PendingAuth.TryRemove(callbackScheme, out _);
+            }
+        }
+
+        private static void HandleCallback(string url)
+        {
+            try
+            {
+                var uri = new Uri(url);
+                var scheme = uri.Scheme;
+
+                Debug.Log($"[WebAuthenticator] Received callback with scheme: {scheme}");
+
+                if (PendingAuth.TryGetValue(scheme, out var tcs))
+                {
+                    Debug.Log($"[WebAuthenticator] Found matching pending authentication for scheme: {scheme}");
+                    tcs.TrySetResult(uri);
+                }
+                else
+                {
+                    Debug.LogWarning($"[WebAuthenticator] No pending authentication found for scheme: {scheme}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[WebAuthenticator] Error handling callback: {ex.Message}");
+            }
+        }
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+        [System.Runtime.InteropServices.DllImport("__Internal")]
+        private static extern void OpenUrlSamePage(string url);
+#endif
+    }
+}
+#endif

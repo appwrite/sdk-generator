@@ -1,0 +1,684 @@
+#if UNI_TASK
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using Cysharp.Threading.Tasks;
+using UnityEngine;
+using NativeWebSocket;
+
+namespace {{ spec.title | caseUcfirst }}
+{
+    #region Realtime Data Models
+    
+    // Base class to identify a message type
+    internal class RealtimeMessageBase
+    {
+        [JsonPropertyName("type")]
+        public string Type { get; set; }
+    }
+
+    // Generic message structure
+    internal class RealtimeMessage<T> : RealtimeMessageBase
+    {
+        [JsonPropertyName("data")]
+        public T Data { get; set; }
+    }
+
+    // Specific data models for different message types
+    internal class RealtimeErrorData
+    {
+        [JsonPropertyName("code")]
+        public int Code { get; set; }
+        [JsonPropertyName("message")]
+        public string Message { get; set; }
+    }
+
+    internal class RealtimeConnectedData
+    {
+        [JsonPropertyName("user")]
+        public Dictionary<string, object> User { get; set; }
+
+        [JsonPropertyName("subscriptions")]
+        public Dictionary<string, string> Subscriptions { get; set; }
+    }
+    
+    internal class RealtimeAuthData
+    {
+        [JsonPropertyName("session")]
+        public string Session { get; set; }
+    }
+    
+    /// <summary>
+    /// Realtime response event structure
+    /// </summary>
+    [Serializable]
+    public class RealtimeResponseEvent<T>
+    {
+        [JsonPropertyName("events")]
+        public string[] Events { get; set; }
+        [JsonPropertyName("channels")]
+        public string[] Channels { get; set; }
+        [JsonPropertyName("subscriptions")]
+        public string[] Subscriptions { get; set; }
+        [JsonPropertyName("timestamp")]
+        public string Timestamp { get; set; }
+        [JsonPropertyName("payload")]
+        public T Payload { get; set; }
+    }
+    
+    #endregion
+
+    /// <summary>
+    /// Realtime subscription for Unity
+    /// </summary>
+    public class RealtimeSubscription
+    {
+        public string[] Channels { get; internal set; }
+        public List<string> Queries { get; internal set; }
+        public Action<RealtimeResponseEvent<Dictionary<string, object>>> OnMessage { get; internal set; }
+        internal Action OnClose { get; set; }
+
+        /// <summary>
+        /// Close this subscription
+        /// </summary>
+        public void Close()
+        {
+            OnClose?.Invoke();
+        }
+    }
+
+    /// <summary>
+    /// Realtime connection interface for Unity WebSocket communication
+    /// </summary>
+    public class Realtime : MonoBehaviour
+    {
+        private Client _client;
+        private WebSocket _webSocket;
+        private readonly HashSet<string> _channels = new();
+        private readonly Dictionary<int, RealtimeSubscription> _subscriptions = new();
+        private readonly Dictionary<int, string> _slotToSubscriptionId = new();
+        private readonly Dictionary<string, int> _subscriptionIdToSlot = new();
+        private int _subscriptionCounter;
+        private bool _reconnect = true;
+        private int _reconnectAttempts;
+        private CancellationTokenSource _cancellationTokenSource;
+        private bool _creatingSocket;
+        private bool _pendingSocketRebuild;
+        private string _lastUrl;
+        private CancellationTokenSource _heartbeatTokenSource;
+        private string _lastSession;
+        public HashSet<string> Channels => _channels;
+
+        public bool IsConnected => _webSocket?.State == WebSocketState.Open;
+        public event Action OnConnected;
+        public event Action OnDisconnected;
+        public event Action<Exception> OnError;
+
+        public void Initialize(Client client)
+        {
+            _client = client;
+            _lastSession = _client.GetSession();
+        }
+        
+        /// <summary>
+        /// Update the client reference (used when client is reinitialized)
+        /// </summary>
+        public void UpdateClient(Client client)
+        {
+            _client = client;
+            var newSession = _client.GetSession();
+            
+            // If session changed and we're connected, re-authenticate
+            if (_lastSession != newSession && IsConnected)
+            {
+                _lastSession = newSession;
+                SendFallbackAuthentication();
+            }
+        }
+        
+        /// <summary>
+        /// Notify realtime that session has changed and re-authentication may be needed
+        /// </summary>
+        public void OnSessionChanged()
+        {
+            var newSession = _client?.GetSession();
+            if (_lastSession != newSession && IsConnected)
+            {
+                _lastSession = newSession;
+                SendFallbackAuthentication();
+            }
+        }
+
+        private void Update()
+        {
+            // DispatchMessageQueue ensures that WebSocket messages are processed on the main thread.
+            // This is crucial for Unity API calls (e.g., modifying GameObjects, UI) from within WebSocket events.
+            // Note: This ties message processing to the game's frame rate and Time.timeScale. If the game is paused (Time.timeScale = 0), message processing will also pause.
+            #if !UNITY_WEBGL || UNITY_EDITOR
+                _webSocket?.DispatchMessageQueue();
+            #endif
+        }
+
+        /// <summary>
+        /// Subscribe to one or more channels using string array
+        /// </summary>
+        public RealtimeSubscription Subscribe(string[] channels, Action<RealtimeResponseEvent<Dictionary<string, object>>> callback, List<string> queries = null)
+        {
+            Debug.Log($"[Realtime] Subscribe called for channels: [{string.Join(", ", channels)}]");
+
+            var slot = ++_subscriptionCounter;
+            var normalizedChannels = channels.Select(channel => channel?.Trim()).Where(channel => !string.IsNullOrWhiteSpace(channel)).ToArray();
+            var normalizedQueries = queries == null ? new List<string>() : queries.Where(query => !string.IsNullOrWhiteSpace(query)).ToList();
+
+            var subscription = new RealtimeSubscription
+            {
+                Channels = normalizedChannels,
+                Queries = normalizedQueries,
+                OnMessage = callback,
+                OnClose = () => CloseSubscription(slot)
+            };
+
+            _subscriptions[slot] = subscription;
+
+            // Add channels to the set
+            foreach (var channel in normalizedChannels)
+            {
+                _channels.Add(channel);
+            }
+
+            // Ensure reconnect is enabled when subscribing
+            _reconnect = true;
+            CreateSocket().Forget();
+
+            return subscription;
+        }
+
+        /// <summary>
+        /// Subscribe to a single channel using string
+        /// </summary>
+        public RealtimeSubscription Subscribe(string channel, Action<RealtimeResponseEvent<Dictionary<string, object>>> callback, List<string> queries = null)
+        {
+            return Subscribe(new[] { channel }, callback, queries);
+        }
+
+        /// <summary>
+        /// Subscribe to a single channel using ResolvedChannel
+        /// </summary>
+        public RealtimeSubscription Subscribe(ResolvedChannel channel, Action<RealtimeResponseEvent<Dictionary<string, object>>> callback, List<string> queries = null)
+        {
+            return Subscribe(new[] { channel.ToString() }, callback, queries);
+        }
+
+        /// <summary>
+        /// Subscribe to multiple channels using ResolvedChannel array
+        /// </summary>
+        public RealtimeSubscription Subscribe(ResolvedChannel[] channels, Action<RealtimeResponseEvent<Dictionary<string, object>>> callback, List<string> queries = null)
+        {
+            var channelStrings = channels.Select(c => c.ToString()).ToArray();
+            return Subscribe(channelStrings, callback, queries);
+        }
+
+        /// <summary>
+        /// Subscribe to an actionable channel (without requiring terminal action)
+        /// </summary>
+        public RealtimeSubscription Subscribe(IActionable actionable, Action<RealtimeResponseEvent<Dictionary<string, object>>> callback, List<string> queries = null)
+        {
+            return Subscribe(new[] { actionable.Channel }, callback, queries);
+        }
+
+        /// <summary>
+        /// Subscribe to multiple actionable channels
+        /// </summary>
+        public RealtimeSubscription Subscribe(IActionable[] actionables, Action<RealtimeResponseEvent<Dictionary<string, object>>> callback, List<string> queries = null)
+        {
+            var channelStrings = actionables.Select(a => a.Channel).ToArray();
+            return Subscribe(channelStrings, callback, queries);
+        }
+
+        private void CloseSubscription(int slot)
+        {
+            if (_slotToSubscriptionId.TryGetValue(slot, out var subscriptionId))
+            {
+                _subscriptionIdToSlot.Remove(subscriptionId);
+            }
+
+            _slotToSubscriptionId.Remove(slot);
+            _subscriptions.Remove(slot);
+
+            _channels.Clear();
+            foreach (var activeSubscription in _subscriptions.Values)
+            {
+                foreach (var activeChannel in activeSubscription.Channels)
+                {
+                    _channels.Add(activeChannel);
+                }
+            }
+
+            // Recreate socket with new channels or close if none
+            if (_channels.Count > 0)
+            {
+                CreateSocket().Forget();
+            }
+            else
+            {
+                // No more subscriptions, close and disable reconnect
+                CloseConnection(allowReconnect: false).Forget();
+            }
+        }
+        
+        private async UniTask CreateSocket()
+        {
+            if (_creatingSocket)
+            {
+                _pendingSocketRebuild = true;
+                return;
+            }
+
+            if (_channels.Count == 0) return;
+
+            _creatingSocket = true;
+            
+            Debug.Log($"[Realtime] Creating socket for {_channels.Count} channels");
+
+            try
+            {
+                var uri = PrepareUri();
+                Debug.Log($"[Realtime] Connecting to URI: {uri}");
+                
+                if (_webSocket == null || _webSocket.State == WebSocketState.Closed)
+                {
+                    _webSocket = new WebSocket(uri);
+                    _lastUrl = uri;
+                    SetupWebSocketEvents();
+                }
+                else if (_lastUrl != uri && _webSocket.State != WebSocketState.Closed)
+                {
+                    await CloseConnection();
+                    _webSocket = new WebSocket(uri);
+                    _lastUrl = uri;
+                    SetupWebSocketEvents();
+                }
+
+                if (_webSocket.State == WebSocketState.Connecting || _webSocket.State == WebSocketState.Open)
+                {
+                    Debug.Log($"[Realtime] Socket already connecting/connected: {_webSocket.State}");
+                    _creatingSocket = false;
+                    return;
+                }
+
+                Debug.Log("[Realtime] Attempting to connect...");
+                await _webSocket.Connect();
+                Debug.Log("[Realtime] Connect call completed");
+                _reconnectAttempts = 0;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[Realtime] Connection failed: {ex.Message}");
+                OnError?.Invoke(ex);
+                Retry();
+            }
+            finally
+            {
+                _creatingSocket = false;
+                if (_pendingSocketRebuild)
+                {
+                    _pendingSocketRebuild = false;
+                    CreateSocket().Forget();
+                }
+            }
+        }
+
+        private void SetupWebSocketEvents()
+        {
+            _webSocket.OnOpen += OnWebSocketOpen;
+            _webSocket.OnMessage += OnWebSocketMessage;
+            _webSocket.OnError += OnWebSocketError;
+            _webSocket.OnClose += OnWebSocketClose;
+        }
+
+        private void OnWebSocketOpen()
+        {
+            _reconnectAttempts = 0;
+            OnConnected?.Invoke();
+            StartHeartbeat();
+            Debug.Log("[Realtime] WebSocket opened successfully.");
+        }
+
+        private void OnWebSocketMessage(byte[] data)
+        {
+            try
+            {
+                var message = Encoding.UTF8.GetString(data);
+                var baseMessage = JsonSerializer.Deserialize<RealtimeMessageBase>(message, Client.DeserializerOptions);
+
+                switch (baseMessage.Type)
+                {
+                    case "connected":
+                        var connectedMsg = JsonSerializer.Deserialize<RealtimeMessage<RealtimeConnectedData>>(message, Client.DeserializerOptions);
+                        HandleConnectedMessage(connectedMsg.Data);
+                        break;
+                    case "event":
+                        var eventMsg = JsonSerializer.Deserialize<RealtimeMessage<RealtimeResponseEvent<Dictionary<string, object>>>>(message, Client.DeserializerOptions);
+                        HandleRealtimeEvent(eventMsg.Data);
+                        break;
+                    case "error":
+                        var errorMsg = JsonSerializer.Deserialize<RealtimeMessage<RealtimeErrorData>>(message, Client.DeserializerOptions);
+                        HandleErrorMessage(errorMsg.Data);
+                        break;
+                    case "pong":
+                        Debug.Log("[Realtime] Received pong");
+                        break;
+                    default:
+                        Debug.Log($"[Realtime] Unknown message type: {baseMessage.Type}");
+                        break;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[Realtime] Message processing failed: {ex.Message}");
+                OnError?.Invoke(ex);
+            }
+        }
+
+        private void HandleConnectedMessage(RealtimeConnectedData data)
+        {
+            Debug.Log("[Realtime] Received 'connected' message");
+
+            _slotToSubscriptionId.Clear();
+            _subscriptionIdToSlot.Clear();
+            if (data?.Subscriptions != null)
+            {
+                foreach (var pair in data.Subscriptions)
+                {
+                    if (int.TryParse(pair.Key, out var slot) && !string.IsNullOrEmpty(pair.Value))
+                    {
+                        _slotToSubscriptionId[slot] = pair.Value;
+                        _subscriptionIdToSlot[pair.Value] = slot;
+                    }
+                }
+            }
+            
+            if (data.User == null || data.User.Count == 0)
+            {
+                Debug.Log("[Realtime] No user found, sending fallback authentication");
+                SendFallbackAuthentication();
+            }
+        }
+
+        private void SendFallbackAuthentication()
+        {
+            var session = _client.Config.GetValueOrDefault("session");
+            
+            if (!string.IsNullOrEmpty(session))
+            {
+                var authMessage = new RealtimeMessage<RealtimeAuthData>
+                {
+                    Type = "authentication",
+                    Data = new RealtimeAuthData { Session = session }
+                };
+
+                var json = JsonSerializer.Serialize(authMessage, Client.SerializerOptions);
+                _webSocket.SendText(json);
+            }
+        }
+
+        private void HandleErrorMessage(RealtimeErrorData data)
+        {
+            OnError?.Invoke(new {{ spec.title | caseUcfirst }}Exception(data.Message, data.Code));
+        }
+
+        private void HandleRealtimeEvent(RealtimeResponseEvent<Dictionary<string, object>> eventData)
+        {
+            try
+            {
+                if (eventData?.Subscriptions != null && eventData.Subscriptions.Length > 0)
+                {
+                    foreach (var subscriptionId in eventData.Subscriptions)
+                    {
+                        if (string.IsNullOrEmpty(subscriptionId))
+                        {
+                            continue;
+                        }
+
+                        if (_subscriptionIdToSlot.TryGetValue(subscriptionId, out var slot) &&
+                            _subscriptions.TryGetValue(slot, out var subscription))
+                        {
+                            subscription.OnMessage?.Invoke(eventData);
+                        }
+                    }
+
+                    return;
+                }
+
+                var eventChannels = eventData?.Channels ?? Array.Empty<string>();
+                var subscriptionsCopy = _subscriptions.Values.ToArray();
+                foreach (var subscription in subscriptionsCopy)
+                {
+                    if (subscription.Channels.Any(subChannel => eventChannels.Contains(subChannel)))
+                    {
+                        subscription.OnMessage?.Invoke(eventData);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[Realtime] HandleRealtimeEvent error: {ex.Message}");
+                OnError?.Invoke(ex);
+            }
+        }
+
+        private void OnWebSocketError(string error)
+        {
+            Debug.LogError($"[Realtime] WebSocket error: {error}");
+            OnError?.Invoke(new {{ spec.title | caseUcfirst }}Exception($"WebSocket error: {error}"));
+            Retry();
+
+        }
+
+        private void OnWebSocketClose(WebSocketCloseCode closeCode)
+        {
+            Debug.Log($"[Realtime] WebSocket closed with code: {closeCode}");
+            StopHeartbeat();
+            OnDisconnected?.Invoke();
+            if (_reconnect && closeCode != WebSocketCloseCode.PolicyViolation)
+            {
+                Retry();
+            }
+        }
+
+        private void StartHeartbeat()
+        {
+            StopHeartbeat();
+            _heartbeatTokenSource = new CancellationTokenSource();
+            
+            UniTask.Create(async () =>
+            {
+                try
+                {
+                    while (!_heartbeatTokenSource.Token.IsCancellationRequested && _webSocket?.State == WebSocketState.Open)
+                    {
+                        await UniTask.Delay(TimeSpan.FromSeconds(20), cancellationToken: _heartbeatTokenSource.Token);
+                        
+                        if (_webSocket?.State == WebSocketState.Open && !_heartbeatTokenSource.Token.IsCancellationRequested)
+                        {
+                            var pingMessage = new { type = "ping" };
+                            var json = JsonSerializer.Serialize(pingMessage, Client.SerializerOptions);
+                            await _webSocket.SendText(json);
+                        }
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    // Expected when cancellation is requested
+                }
+                catch (Exception ex)
+                {
+                    OnError?.Invoke(ex);
+                }
+            });
+        }
+
+        private void StopHeartbeat()
+        {
+            _heartbeatTokenSource?.Cancel();
+            _heartbeatTokenSource?.Dispose();
+            _heartbeatTokenSource = null;
+        }
+
+        private void Retry()
+        {
+            if (!_reconnect) return;
+            
+            _reconnectAttempts++;
+            var timeout = GetTimeout();
+            
+            Debug.Log($"[Realtime] Reconnecting in {timeout} seconds.");
+            
+            // Ensure we have a cancellation token source
+            if (_cancellationTokenSource == null || _cancellationTokenSource.IsCancellationRequested)
+            {
+                _cancellationTokenSource?.Dispose();
+                _cancellationTokenSource = new CancellationTokenSource();
+            }
+            
+            var token = _cancellationTokenSource.Token;
+            
+            UniTask.Create(async () =>
+            {
+                try
+                {
+                    await UniTask.Delay(TimeSpan.FromSeconds(timeout), cancellationToken: token);
+                    
+                    // Re-check _reconnect after delay in case disconnect was called during wait
+                    if (!_reconnect || token.IsCancellationRequested)
+                    {
+                        Debug.Log("[Realtime] Retry cancelled - reconnect disabled");
+                        return;
+                    }
+                    
+                    await CreateSocket();
+                }
+                catch (OperationCanceledException)
+                {
+                    Debug.Log("[Realtime] Retry cancelled");
+                }
+            });
+        }
+
+        private int GetTimeout()
+        {
+            return _reconnectAttempts < 5 ? 1 :
+                   _reconnectAttempts < 15 ? 5 :
+                   _reconnectAttempts < 100 ? 10 : 60;
+        }
+
+        private string PrepareUri()
+        {
+            var realtimeEndpoint = _client.Config.GetValueOrDefault("endpointRealtime");
+            if (string.IsNullOrEmpty(realtimeEndpoint))
+            {
+                throw new {{ spec.title | caseUcfirst }}Exception("Please set endPointRealtime to connect to the realtime server.");
+            }
+
+            var project = _client.Config.GetValueOrDefault("project", "");
+            if (string.IsNullOrEmpty(project))
+            {
+                throw new {{ spec.title | caseUcfirst }}Exception("Project ID is required to connect to the realtime server.");
+            }
+
+            var allChannels = new HashSet<string>(_subscriptions.Values.SelectMany(subscription => subscription.Channels));
+            var queryParts = new List<string>
+            {
+                $"project={Uri.EscapeDataString(project)}"
+            };
+
+            foreach (var channel in allChannels)
+            {
+                queryParts.Add($"channels[]={Uri.EscapeDataString(channel)}");
+            }
+
+            const string selectAllQuery = "{\"method\":\"select\",\"values\":[\"*\"]}";
+
+            foreach (var entry in _subscriptions)
+            {
+                var slot = entry.Key;
+                var subscription = entry.Value;
+                var queries = subscription.Queries != null && subscription.Queries.Count > 0
+                    ? subscription.Queries
+                    : new List<string> { selectAllQuery };
+
+                foreach (var channel in subscription.Channels)
+                {
+                    var encodedChannel = Uri.EscapeDataString(channel);
+                    foreach (var query in queries)
+                    {
+                        queryParts.Add($"{encodedChannel}[{slot}][]={Uri.EscapeDataString(query)}");
+                    }
+                }
+            }
+            
+            var uri = new Uri(realtimeEndpoint); 
+            
+            var realtimePath = uri.AbsolutePath.TrimEnd('/') + "/realtime";
+                        
+            var baseUrl = $"{uri.Scheme}://{uri.Host}";
+            if ((uri.Scheme == "wss" && uri.Port != 443) || (uri.Scheme == "ws" && uri.Port != 80))
+            {
+                baseUrl += $":{uri.Port}";
+            }
+
+            return $"{baseUrl}{realtimePath}?{string.Join("&", queryParts)}";
+        }
+
+        private async UniTask CloseConnection(bool allowReconnect = true)
+        {
+            var previousReconnect = _reconnect;
+            _reconnect = false;
+            StopHeartbeat();
+            
+            // Cancel any pending retry operations
+            _cancellationTokenSource?.Cancel();
+            _cancellationTokenSource?.Dispose();
+            _cancellationTokenSource = null;
+            
+            if (_webSocket != null)
+            {
+                await _webSocket.Close();
+            }
+            
+            _reconnectAttempts = 0;
+            
+            // Restore reconnect flag if we want to allow future reconnects
+            if (allowReconnect)
+            {
+                _reconnect = previousReconnect;
+                // Create fresh cancellation token for future retry operations
+                _cancellationTokenSource = new CancellationTokenSource();
+            }
+        }
+
+        public async UniTask Disconnect()
+        {
+            // Disconnect permanently - don't allow auto-reconnect
+            await CloseConnection(allowReconnect: false);
+        }
+        
+        /// <summary>
+        /// Reconnect after a manual disconnect
+        /// </summary>
+        public void EnableReconnect()
+        {
+            _reconnect = true;
+        }
+        
+        private void OnDestroy()
+        {
+            Disconnect().Forget();
+        }
+    }
+}
+#endif

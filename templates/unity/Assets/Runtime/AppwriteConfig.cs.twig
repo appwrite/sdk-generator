@@ -1,0 +1,131 @@
+using System;
+using UnityEngine;
+
+namespace {{ spec.title | caseUcfirst }}
+{
+    // Define the service enum with Flags attribute for multi-selection in the inspector
+    [Flags]
+    public enum {{ spec.title | caseUcfirst }}Service
+    {
+        None = 0,
+        [Tooltip("Selects all main services: Account, Databases, Functions, Storage")]
+        Main = (1 << 4) - 1, // 0-3
+        [Tooltip("Selects all other services: Avatars, GraphQL, Locale, Messaging, Teams")]
+        Others = (1 << 9) - 1 ^ (1 << 4) - 1, // 4-8
+        Account = 1 << 0,
+        Databases = 1 << 1,
+        Functions = 1 << 2,
+        Storage = 1 << 3,
+        Avatars = 1 << 4,
+        Graphql = 1 << 5,
+        Locale = 1 << 6,
+        Messaging = 1 << 7,
+        Teams = 1 << 8,
+
+        [Tooltip("Selects all available services.")]
+        All = ~0
+
+    }
+
+    /// <summary>
+    /// ScriptableObject configuration for {{ spec.title | caseUcfirst }} client settings
+    /// </summary>
+    [CreateAssetMenu(fileName = "{{ spec.title | caseUcfirst }}Config", menuName = "{{ spec.title | caseUcfirst }}/Configuration")]
+    public class {{ spec.title | caseUcfirst }}Config : ScriptableObject
+    {
+        [Header("Connection Settings")]
+        [Tooltip("Endpoint URL for {{ spec.title | caseUcfirst }} API (e.g., https://cloud.{{ spec.title | lower }}.io/v1)")]
+        [SerializeField] private string endpoint = "https://cloud.{{ spec.title | lower }}.io/v1";
+        
+        [Tooltip("WebSocket endpoint for realtime updates (optional)")]
+        [SerializeField] private string realtimeEndpoint = "wss://cloud.{{ spec.title | lower }}.io/v1";
+        
+        [Tooltip("Enable if using a self-signed SSL certificate")]
+        [SerializeField] private bool selfSigned;
+        
+        [Header("Project Settings")]
+        [Tooltip("Your {{ spec.title | caseUcfirst }} project ID")]
+        [SerializeField] private string projectId = "";
+
+        [Header("Service Initialization")] 
+        [Tooltip("Select which {{ spec.title | caseUcfirst }} services to initialize.")]
+        [SerializeField] private {{ spec.title | caseUcfirst }}Service servicesToInitialize = {{ spec.title | caseUcfirst }}Service.All;
+        
+        [Header("Advanced Settings")]
+        [Tooltip("Dev key (optional). Dev keys allow bypassing rate limits and CORS errors in your development environment. WARNING: Storing dev keys in ScriptableObjects is a security risk. Do not expose this in public repositories. Consider loading from a secure location at runtime for production builds.")]
+        [SerializeField] private string devKey = "";
+
+        [Tooltip("Automatically connect to {{ spec.title | caseUcfirst }} on start")]
+        [SerializeField] private bool autoConnect;
+
+        public string Endpoint => endpoint;
+        public string RealtimeEndpoint => realtimeEndpoint;
+        public bool SelfSigned => selfSigned;
+        public string ProjectId => projectId;
+        public string DevKey => devKey;
+        public bool AutoConnect => autoConnect;
+        public {{ spec.title | caseUcfirst }}Service ServicesToInitialize => servicesToInitialize;
+
+        /// <summary>
+        /// Validate configuration settings
+        /// </summary>
+        private void OnValidate()
+        {
+            if (string.IsNullOrEmpty(endpoint))
+                Debug.LogWarning("{{ spec.title | caseUcfirst }}Config: Endpoint is required");
+            
+            if (string.IsNullOrEmpty(projectId))
+                Debug.LogWarning("{{ spec.title | caseUcfirst }}Config: Project ID is required");
+
+            if (!string.IsNullOrEmpty(devKey))
+                Debug.LogWarning("{{ spec.title | caseUcfirst }}Config: Dev Key is set. For security, avoid storing keys directly in assets for production builds.");
+        }
+        
+        
+        /// <summary>
+        /// Apply this configuration to a client
+        /// </summary>
+        public void ApplyTo(Client client)
+        {
+            client.SetEndpoint(endpoint);
+            client.SetProject(projectId);
+
+            if (!string.IsNullOrEmpty(realtimeEndpoint))
+                client.SetEndPointRealtime(realtimeEndpoint);
+                
+            client.SetSelfSigned(selfSigned);
+            
+            if (!string.IsNullOrEmpty(devKey))
+                client.SetDevKey(devKey);
+        }
+
+        #if UNITY_EDITOR
+        [UnityEditor.MenuItem("{{ spec.title | caseUcfirst }}/Create Configuration")]
+        public static {{ spec.title | caseUcfirst }}Config CreateConfiguration()
+        {
+            var config = CreateInstance<{{ spec.title | caseUcfirst }}Config>();
+            
+            if (!System.IO.Directory.Exists("Assets/{{ spec.title | caseUcfirst }}"))
+            {
+                UnityEditor.AssetDatabase.CreateFolder("Assets", "{{ spec.title | caseUcfirst }}");
+            }
+            if (!System.IO.Directory.Exists("Assets/{{ spec.title | caseUcfirst }}/Resources"))
+            {
+                UnityEditor.AssetDatabase.CreateFolder("Assets/{{ spec.title | caseUcfirst }}", "Resources");
+            }
+            
+            string path = "Assets/{{ spec.title | caseUcfirst }}/Resources/{{ spec.title | caseUcfirst }}Config.asset";
+            path = UnityEditor.AssetDatabase.GenerateUniqueAssetPath(path);
+                
+            UnityEditor.AssetDatabase.CreateAsset(config, path);
+            UnityEditor.AssetDatabase.SaveAssets();
+            UnityEditor.EditorUtility.FocusProjectWindow();
+            UnityEditor.Selection.activeObject = config;
+
+            Debug.Log($"{{ spec.title | caseUcfirst }} configuration created at: {path}");
+            
+            return config;
+        }
+        #endif
+    }
+}

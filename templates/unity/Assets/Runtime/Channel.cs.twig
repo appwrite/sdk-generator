@@ -1,0 +1,165 @@
+using System.Collections.Generic;
+
+namespace {{ spec.title | caseUcfirst }}
+{
+    /// <summary>
+    /// The result of building the channel.
+    /// </summary>
+    public class ResolvedChannel
+    {
+        public string Value { get; }
+
+        internal ResolvedChannel(string value)
+        {
+            Value = value;
+        }
+
+        public override string ToString() => Value;
+    }
+
+    // Helper function for normalizing ID
+    internal static class ChannelHelper
+    {
+        internal static string Normalize(string id = null) => string.IsNullOrWhiteSpace(id) ? "*" : id.Trim();
+    }
+
+    // State interfaces
+    public interface IChannelValue
+    {
+        string Channel { get; }
+    }
+
+    public interface IActionable : IChannelValue
+    {
+        ResolvedChannel Create();
+        ResolvedChannel Update();
+        ResolvedChannel Delete();
+    }
+
+    public interface IDatabase
+    {
+        ICollection Collection(string id = null);
+    }
+
+    public interface ICollection
+    {
+        IDocument Document(string id = null);
+    }
+
+    public interface IDocument : IActionable
+    {
+        ResolvedChannel Upsert();
+    }
+
+    public interface ITablesDB
+    {
+        ITable Table(string id = null);
+    }
+
+    public interface ITable
+    {
+        IRow Row(string id = null);
+    }
+
+    public interface IRow : IActionable
+    {
+        ResolvedChannel Upsert();
+    }
+
+    public interface IBucket
+    {
+        IFile File(string id = null);
+    }
+
+    public interface IFile : IActionable { }
+
+    public interface IFunction : IChannelValue { }
+
+    public interface IExecution : IActionable { }
+
+    // Builder implementation
+    internal class ChannelBuilder :
+        IDatabase, ICollection, IDocument,
+        ITablesDB, ITable, IRow,
+        IBucket, IFile,
+        IFunction, IExecution, IActionable
+    {
+        private readonly List<string> _segments;
+
+        internal ChannelBuilder(List<string> segments)
+        {
+            _segments = segments;
+        }
+
+        private ChannelBuilder Next(string segment, string id = null)
+        {
+            var newSegments = new List<string>(_segments)
+            {
+                segment
+            };
+            if (id != null)
+            {
+                newSegments.Add(ChannelHelper.Normalize(id));
+            }
+            return new ChannelBuilder(newSegments);
+        }
+
+        public ICollection Collection(string id = null) => Next("collections", id ?? "*");
+
+        public IDocument Document(string id = null) => Next("documents", id);
+
+        public ITable Table(string id = null) => Next("tables", id ?? "*");
+
+        public IRow Row(string id = null) => Next("rows", id);
+
+        public IFile File(string id = null) => Next("files", id);
+
+        public ResolvedChannel Create() => Resolve("create");
+
+        public ResolvedChannel Upsert() => Resolve("upsert");
+
+        public ResolvedChannel Update() => Resolve("update");
+
+        public ResolvedChannel Delete() => Resolve("delete");
+
+        public string Channel => string.Join(".", _segments);
+
+        public override string ToString() => Channel;
+
+        private ResolvedChannel Resolve(string action) => new ResolvedChannel($"{Channel}.{action}");
+    }
+
+    // Entry point
+    public static class Channel
+    {
+        public static IDatabase Database(string id = null) =>
+            new ChannelBuilder(new List<string> { "databases", ChannelHelper.Normalize(id) });
+
+        public static ITablesDB TablesDB(string id = null) =>
+            new ChannelBuilder(new List<string> { "tablesdb", ChannelHelper.Normalize(id) });
+
+        public static IBucket Bucket(string id = null) =>
+            new ChannelBuilder(new List<string> { "buckets", ChannelHelper.Normalize(id) });
+
+        public static IFunction Function(string id = null) =>
+            new ChannelBuilder(new List<string> { "functions", ChannelHelper.Normalize(id) });
+
+        public static IExecution Execution(string id = null) =>
+            new ChannelBuilder(new List<string> { "executions", ChannelHelper.Normalize(id) });
+
+        public static IActionable Team(string id = null) =>
+            new ChannelBuilder(new List<string> { "teams", ChannelHelper.Normalize(id) });
+
+        public static IActionable Membership(string id = null) =>
+            new ChannelBuilder(new List<string> { "memberships", ChannelHelper.Normalize(id) });
+
+        // Global events (without ID)
+        public static string Account() => "account";
+        public static string Documents() => "documents";
+        public static string Rows() => "rows";
+        public static string Files() => "files";
+        public static string Executions() => "executions";
+        public static string Teams() => "teams";
+        public static string Memberships() => "memberships";
+    }
+}

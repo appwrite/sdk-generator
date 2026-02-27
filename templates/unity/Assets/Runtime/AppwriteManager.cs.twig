@@ -1,0 +1,271 @@
+#if UNI_TASK
+using System;
+using System.Collections.Generic;
+using {{ spec.title | caseUcfirst }}.Services;
+using Cysharp.Threading.Tasks;
+using UnityEngine;
+
+namespace {{ spec.title | caseUcfirst }}
+{
+    /// <summary>
+    /// Unity MonoBehaviour wrapper for {{ spec.title | caseUcfirst }} Client with DI support
+    /// </summary>
+    public class {{ spec.title | caseUcfirst }}Manager : MonoBehaviour
+    {
+        [Header("Configuration")]
+        [SerializeField] private {{ spec.title | caseUcfirst }}Config config;
+        [SerializeField] private bool initializeOnStart = true;
+        [SerializeField] private bool dontDestroyOnLoad = true;
+        
+        private Client _client;
+        private Realtime _realtime;
+        private bool _isInitialized;
+        
+        private readonly Dictionary<Type, object> _services = new();
+        
+        // Events
+        public static event Action<Client> OnClientInitialized;
+        public static event Action OnClientDestroyed;
+        
+        // Singleton instance for easy access
+        public static {{ spec.title | caseUcfirst }}Manager Instance { get; private set; }
+        
+        // Properties
+        public Client Client 
+        { 
+            get 
+            { 
+                if (_client == null)
+                    throw new InvalidOperationException("{{ spec.title | caseUcfirst }} client is not initialized. Call Initialize() first.");
+                return _client; 
+            } 
+        }
+        
+        public Realtime Realtime 
+        { 
+            get 
+            { 
+                if (ReferenceEquals(_realtime, null))
+                    Debug.LogWarning("Realtime was not initialized. Call Initialize(true) to enable it.");
+                return _realtime; 
+            } 
+        }
+        
+        public bool IsInitialized => _isInitialized;
+        public {{ spec.title | caseUcfirst }}Config Config => config;
+
+        private void Awake()
+        {
+            if (ReferenceEquals(Instance, null))
+            {
+                Instance = this;
+                if (dontDestroyOnLoad)
+                    DontDestroyOnLoad(gameObject);
+            }
+            else if (!ReferenceEquals(Instance, this))
+            {
+                Debug.LogWarning("Multiple {{ spec.title | caseUcfirst }}Manager instances detected. Destroying duplicate.");
+                Destroy(gameObject);
+            }
+        }
+
+        private void Start()
+        {
+            if (initializeOnStart)
+            {
+                Initialize().Forget();
+            }
+        }
+        
+        /// <summary>
+        /// Initialize the {{ spec.title | caseUcfirst }} client and selected services
+        /// </summary>
+        public async UniTask<bool> Initialize(bool needRealtime = false)
+        {
+            if (_isInitialized)
+            {
+                Debug.LogWarning("{{ spec.title | caseUcfirst }} client is already initialized");
+                return true;
+            }
+            
+            if (!config)
+            {
+                Debug.LogError("{{ spec.title | caseUcfirst }}Config is not assigned!");
+                return false;
+            }
+            
+            try
+            {
+                _client = new Client();
+                config.ApplyTo(_client);
+                
+                InitializeSelectedServices();
+                
+                if (config.AutoConnect)
+                {
+                    var pingResult = await _client.Ping();
+                    Debug.Log($"{{ spec.title | caseUcfirst }} connected successfully: {pingResult}");
+                }
+                
+                if (needRealtime)
+                {
+                    InitializeRealtime();
+                }
+                
+                _isInitialized = true;
+                OnClientInitialized?.Invoke(_client);
+                
+                Debug.Log("{{ spec.title | caseUcfirst }} client initialized successfully");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Failed to initialize {{ spec.title | caseUcfirst }} client: {ex.Message}");
+                return false;
+            }
+        }
+
+        private readonly Dictionary<Type, ({{ spec.title | caseUcfirst }}Service flag, Func<Client, Service> factory)> _serviceDefinitions = new()
+        {
+            { typeof(Account), ({{ spec.title | caseUcfirst }}Service.Account, client => new Account(client)) },
+            { typeof(Databases), ({{ spec.title | caseUcfirst }}Service.Databases, client => new Databases(client)) },
+            { typeof(Functions), ({{ spec.title | caseUcfirst }}Service.Functions, client => new Functions(client)) },
+            { typeof(Storage), ({{ spec.title | caseUcfirst }}Service.Storage, client => new Storage(client)) },
+            { typeof(Avatars), ({{ spec.title | caseUcfirst }}Service.Avatars, client => new Avatars(client)) },
+            { typeof(Graphql), ({{ spec.title | caseUcfirst }}Service.Graphql, client => new Graphql(client)) },
+            { typeof(Locale), ({{ spec.title | caseUcfirst }}Service.Locale, client => new Locale(client)) },
+            { typeof(Messaging), ({{ spec.title | caseUcfirst }}Service.Messaging, client => new Messaging(client)) },
+            { typeof(Teams), ({{ spec.title | caseUcfirst }}Service.Teams, client => new Teams(client)) },
+        };
+        
+        /// <summary>
+        /// Initialize selected {{ spec.title | caseUcfirst }} services based on the configuration.
+        /// </summary>
+        private void InitializeSelectedServices()
+        {
+            _services.Clear();
+            var servicesToInit = config.ServicesToInitialize;
+            
+            foreach (var kvp in _serviceDefinitions)
+            {
+                if (servicesToInit.HasFlag(kvp.Value.flag))
+                {
+                    TryCreateService(kvp.Key, kvp.Value.factory);
+                }
+            }
+        }
+        
+        /// <summary>
+        /// Try to create and register a service instance.
+        /// </summary>
+        private void TryCreateService(Type type, Func<Client, Service> factory)
+        {
+            try
+            {
+                _services[type] = factory(_client);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Failed to create service {type.Name}: {ex.Message}");
+            }
+        }
+        
+        private void InitializeRealtime()
+        {
+            if (_client == null)
+                throw new InvalidOperationException("Client must be initialized before realtime");
+            if (ReferenceEquals(_realtime, null))
+            {
+                var realtimeGo = new GameObject("{{ spec.title | caseUcfirst }}Realtime");
+                realtimeGo.transform.SetParent(transform);
+                _realtime = realtimeGo.AddComponent<Realtime>();
+                _realtime.Initialize(_client);
+            }
+            else
+            {
+                // Update existing realtime with new client reference
+                _realtime.UpdateClient(_client);
+            }
+        }
+        
+        /// <summary>
+        /// Get an initialized service instance
+        /// </summary>
+        public T GetService<T>() where T : class
+        {
+            if (!_isInitialized)
+                throw new InvalidOperationException("Client is not initialized. Call Initialize() first.");
+
+            var type = typeof(T);
+            if (_services.TryGetValue(type, out var service))
+            {
+                return (T)service;
+            }
+
+            throw new InvalidOperationException($"Service of type {type.Name} was not initialized. Ensure it is selected in the {{ spec.title | caseUcfirst }}Config asset.");
+        }
+        
+        /// <summary>
+        /// Try to get an initialized service instance without throwing an exception.
+        /// </summary>
+        /// <returns>True if the service was found and initialized, otherwise false.</returns>
+        public bool TryGetService<T>(out T service) where T : class
+        {
+            if (!_isInitialized)
+            {
+                service = null;
+                Debug.LogWarning("{{ spec.title | caseUcfirst }}Manager: Cannot get service, client is not initialized.");
+                return false;
+            }
+
+            var type = typeof(T);
+            if (_services.TryGetValue(type, out var serviceObj))
+            {
+                service = (T)serviceObj;
+                return true;
+            }
+
+            service = null;
+            return false;
+        }
+        
+        public void SetConfig({{ spec.title | caseUcfirst }}Config newConfig)
+        {
+            config = newConfig;
+        }
+        
+        public async UniTask<bool> Reinitialize({{ spec.title | caseUcfirst }}Config newConfig = null, bool needRealtime = false)
+        {
+            config = newConfig ?? config;
+            Shutdown();
+            return await Initialize(needRealtime);
+        }
+        
+        private void Shutdown()
+        {
+            if (!ReferenceEquals(_realtime, null))
+            {
+                _realtime.Disconnect().Forget();
+                if (_realtime.gameObject != null)
+                    Destroy(_realtime.gameObject);
+            }
+            _realtime = null;
+            _client = null;
+            _isInitialized = false;
+            _services.Clear();
+            
+            OnClientDestroyed?.Invoke();
+            Debug.Log("{{ spec.title | caseUcfirst }} client shutdown");
+        }
+
+        private void OnDestroy()
+        {
+            if (Instance == this)
+            {
+                Shutdown();
+                Instance = null;
+            }
+        }
+    }
+}
+#endif
