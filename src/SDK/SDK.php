@@ -128,6 +128,9 @@ class SDK
         $this->twig->addFilter(new TwigFilter('caseCamel', function ($value) {
             return $this->helperCamelCase($value);
         }));
+        $this->twig->addFilter(new TwigFilter('removeDash', function ($value) {
+            return str_replace('-', '', $value);
+        }));
         $this->twig->addFilter(new TwigFilter('caseDash', function ($value) {
             return str_replace([' ', '_'], '-', strtolower(preg_replace('/([a-zA-Z])(?=[A-Z])/', '$1-', $value)));
         }));
