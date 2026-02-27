@@ -216,3 +216,100 @@ jobs:
               exit 1
               ;;
           esac
+
+      - name: Run Tests
+        working-directory: examples/${{ matrix.sdk }}
+        run: |
+          case "${{ matrix.sdk }}" in
+            web|node|cli|react-native)
+              if [ -f "package.json" ] && grep -q '"test"' package.json; then
+                # Check if test script is not a placeholder/error message
+                if grep -q '"test".*"echo.*no test' package.json; then
+                  echo "No tests configured (placeholder script found)"
+                else
+                  npm test
+                fi
+              else
+                echo "No tests configured in package.json"
+              fi
+              ;;
+            flutter)
+              if [ -d "test" ] && find test -name "*_test.dart" 2>/dev/null | grep -q .; then
+                flutter test
+              else
+                echo "No Flutter tests found"
+              fi
+              ;;
+            apple|swift)
+              if [ -d "Tests" ] && find Tests -name "*.swift" 2>/dev/null | grep -q .; then
+                swift test
+              else
+                echo "No Swift tests found"
+              fi
+              ;;
+            android)
+              if [ -d "library/src/test" ] || [ -d "app/src/test" ]; then
+                ./gradlew test
+              else
+                echo "No Android tests found"
+              fi
+              ;;
+            kotlin)
+              if [ -d "src/test" ]; then
+                ./gradlew test
+              else
+                echo "No Kotlin tests found"
+              fi
+              ;;
+            php)
+              if [ -f "vendor/bin/phpunit" ] && [ -d "tests" ]; then
+                vendor/bin/phpunit tests/
+              else
+                echo "No PHPUnit tests configured"
+              fi
+              ;;
+            python)
+              if [ -d "tests" ] || find . -maxdepth 2 -name "test_*.py" -o -name "*_test.py" 2>/dev/null | grep -q .; then
+                python -m pytest
+              else
+                echo "No pytest tests found"
+              fi
+              ;;
+            ruby)
+              if [ -d "test" ] || [ -d "spec" ]; then
+                if [ -f "Rakefile" ] && grep -q "test" Rakefile; then
+                  bundle exec rake test
+                elif [ -d "spec" ]; then
+                  bundle exec rspec
+                else
+                  echo "No Ruby tests configured"
+                fi
+              else
+                echo "No Ruby tests found"
+              fi
+              ;;
+            dart)
+              if [ -d "test" ] && find test -name "*_test.dart" 2>/dev/null | grep -q .; then
+                dart test
+              else
+                echo "No Dart tests found"
+              fi
+              ;;
+            go)
+              if find . -name "*_test.go" 2>/dev/null | grep -q .; then
+                go test ./...
+              else
+                echo "No Go tests found"
+              fi
+              ;;
+            dotnet)
+              if find . -name "*.csproj" -exec grep -l "Microsoft.NET.Test.Sdk" {} \; 2>/dev/null | grep -q .; then
+                dotnet test
+              else
+                echo "No .NET tests configured"
+              fi
+              ;;
+            *)
+              echo "No tests for SDK: ${{ matrix.sdk }}"
+              ;;
+          esac
