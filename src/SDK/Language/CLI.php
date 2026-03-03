@@ -259,6 +259,11 @@ class CLI extends Node
                 'destination'   => '.github/workflows/publish.yml',
                 'template'      => 'cli/.github/workflows/publish.yml',
             ],
+            [
+                'scope'         => 'copy',
+                'destination'   => '.github/workflows/ci.yml',
+                'template'      => 'cli/.github/workflows/ci.yml',
+            ],
 
             // Documentation
             [
