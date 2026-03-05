@@ -5,7 +5,7 @@ import ignoreModule from "ignore";
 const ignore: typeof ignoreModule =
   (ignoreModule as unknown as { default?: typeof ignoreModule }).default ??
   ignoreModule;
-import tar from "tar";
+import { create, extract } from "tar";
 import fs from "fs";
 import chokidar from "chokidar";
 import inquirer from "inquirer";
@@ -323,7 +323,7 @@ const runFunction = async ({
           fs.mkdirSync(hotSwapPath, { recursive: true });
         }
 
-        await tar.extract({
+        await extract({
           keep: true,
           sync: true,
           cwd: hotSwapPath,
@@ -358,7 +358,7 @@ const runFunction = async ({
           fs.copyFileSync(sourcePath, filePath);
         }
 
-        await tar.create(
+        await create(
           {
             gzip: true,
             sync: true,

@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import tar from "tar";
+import { create, extract } from "tar";
 import { Client, AppwriteException } from "@appwrite.io/console";
 import { error } from "../../parser.js";
 
@@ -26,7 +26,7 @@ interface DeploymentDetails {
 async function packageDirectory(dirPath: string): Promise<File> {
   const tempFile = `${dirPath.replace(/[^a-zA-Z0-9]/g, "_")}-${Date.now()}.tar.gz`;
 
-  await tar.create(
+  await create(
     {
       gzip: true,
       file: tempFile,
@@ -111,7 +111,7 @@ export async function downloadDeploymentCode(params: {
     );
   }
 
-  tar.extract({
+  extract({
     sync: true,
     cwd: resourcePath,
     file: compressedFileName,

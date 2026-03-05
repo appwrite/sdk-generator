@@ -36,7 +36,8 @@ const isInstalledViaNpm = (): boolean => {
       scriptPath.includes("/usr/local/lib/node_modules/") ||
       scriptPath.includes("/opt/homebrew/lib/node_modules/") ||
       scriptPath.includes("/.npm-global/") ||
-      scriptPath.includes("/node_modules/.bin/")
+      scriptPath.includes("/node_modules/.bin/") ||
+      scriptPath.includes("/.nvm/versions/node/")
     ) {
       return true;
     }
