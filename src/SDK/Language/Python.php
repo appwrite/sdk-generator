@@ -137,6 +137,11 @@ class Python extends Language
             ],
             [
                 'scope' => 'default',
+                'destination' => 'pyproject.toml',
+                'template' => 'python/pyproject.toml.twig',
+            ],
+            [
+                'scope' => 'default',
                 'destination' => '{{ spec.title | caseSnake}}/__init__.py',
                 'template' => 'python/package/__init__.py.twig',
             ],
@@ -197,6 +202,16 @@ class Python extends Language
             ],
             [
                 'scope' => 'default',
+                'destination' => '{{ spec.title | caseSnake}}/models/__init__.py',
+                'template' => 'python/package/models/__init__.py.twig',
+            ],
+            [
+                'scope' => 'default',
+                'destination' => '{{ spec.title | caseSnake}}/models/base_model.py',
+                'template' => 'python/package/models/base_model.py.twig',
+            ],
+            [
+                'scope' => 'default',
                 'destination' => '{{ spec.title | caseSnake}}/services/__init__.py',
                 'template' => 'python/package/services/__init__.py.twig',
             ],
@@ -249,6 +264,11 @@ class Python extends Language
                 'scope' => 'requestModel',
                 'destination' => '{{ spec.title | caseSnake}}/models/{{ requestModel.name | caseSnake }}.py',
                 'template' => 'python/package/models/request_model.py.twig',
+            ],
+            [
+                'scope' => 'definition',
+                'destination' => '{{ spec.title | caseSnake}}/models/{{ definition.name | caseSnake }}.py',
+                'template' => 'python/package/models/model.py.twig',
             ],
         ];
     }
@@ -303,7 +323,7 @@ class Python extends Language
                     }
                     break;
                 case self::TYPE_OBJECT:
-                    $typeName = 'dict';
+                    $typeName = 'Dict[str, Any]';
                     break;
                 default:
                     $typeName = $parameter['type'];
@@ -410,6 +430,137 @@ class Python extends Language
         };
     }
 
+    protected function getModelName(string $name): string
+    {
+        return $this->toPascalCase($name);
+    }
+
+    protected function getUnionType(array $types): string
+    {
+        $types = array_values(array_unique(array_filter($types)));
+
+        if (empty($types)) {
+            return 'Any';
+        }
+
+        if (count($types) === 1) {
+            return $types[0];
+        }
+
+        return 'Union[' . implode(', ', $types) . ']';
+    }
+
+    protected function normalizeModelFieldName(string $name): string
+    {
+        $name = ltrim($name, '$');
+        $name = $this->toSnakeCase($name);
+
+        if ($name === '') {
+            $name = 'value';
+        }
+
+        return $this->escapeKeyword($name);
+    }
+
+    protected function getModelFieldName(array $property, array $properties): string
+    {
+        $propertyName = $property['name'] ?? 'value';
+        $baseName = $this->normalizeModelFieldName($propertyName);
+        $index = 0;
+
+        foreach ($properties as $candidate) {
+            if ($this->normalizeModelFieldName($candidate['name'] ?? 'value') !== $baseName) {
+                continue;
+            }
+
+            $index++;
+
+            if (($candidate['name'] ?? null) === $propertyName) {
+                break;
+            }
+        }
+
+        if ($index <= 1) {
+            return $baseName;
+        }
+
+        return $baseName . '_' . $index;
+    }
+
+    protected function getModelPropertyType(array $property, string $ownerName = ''): string
+    {
+        if (!empty($property['sub_schemas'])) {
+            $unionType = $this->getUnionType(array_map(
+                fn($schema) => $this->getModelName($schema),
+                $property['sub_schemas']
+            ));
+
+            return ($property['type'] ?? '') === self::TYPE_ARRAY
+                ? 'List[' . $unionType . ']'
+                : $unionType;
+        }
+
+        if (!empty($property['sub_schema'])) {
+            $modelType = $this->getModelName($property['sub_schema']);
+
+            return ($property['type'] ?? '') === self::TYPE_ARRAY
+                ? 'List[' . $modelType . ']'
+                : $modelType;
+        }
+
+        if (
+            ($property['type'] ?? null) === self::TYPE_ARRAY
+            && !empty($property['items']['enum'])
+        ) {
+            $enumType = $this->getModelName($property['x-enum-name'] ?? (($ownerName ?: 'Model') . ucfirst($property['name'] ?? 'Value')));
+
+            return 'List[' . $enumType . ']';
+        }
+
+        if (!empty($property['enum'])) {
+            $enumType = $this->getModelName($property['enumName'] ?? $property['x-enum-name'] ?? (($ownerName ?: 'Model') . ucfirst($property['name'] ?? 'Value')));
+
+            return ($property['type'] ?? '') === self::TYPE_ARRAY
+                ? 'List[' . $enumType . ']'
+                : $enumType;
+        }
+
+        if (($property['type'] ?? '') === self::TYPE_OBJECT) {
+            return 'Dict[str, Any]';
+        }
+
+        return $this->getTypeName(array_merge($property, [
+            'required' => true,
+            'nullable' => false,
+        ]));
+    }
+
+    protected function getResponseType(array $method): string
+    {
+        if (($method['type'] ?? null) === 'webAuth') {
+            return 'str';
+        }
+
+        if (($method['type'] ?? null) === 'location') {
+            return 'bytes';
+        }
+
+        if (!empty($method['responseModels']) && count($method['responseModels']) > 1) {
+            $types = array_map(fn($model) => $this->getModelName($model), array_filter(
+                $method['responseModels'],
+                fn($model) => !empty($model) && $model !== 'any'
+            ));
+
+            return $this->getUnionType($types);
+        }
+
+        if (!empty($method['responseModel']) && $method['responseModel'] !== 'any') {
+            return $this->getModelName($method['responseModel']);
+        }
+
+        return 'Dict[str, Any]';
+    }
+
     public function getFilters(): array
     {
         return [
@@ -418,6 +569,15 @@ class Python extends Language
             }),
             new TwigFilter('getPropertyType', function ($value, $method = []) {
                 return $this->getTypeName($value, $method);
+            }),
+            new TwigFilter('getModelPropertyType', function (array $value, string $ownerName = '') {
+                return $this->getModelPropertyType($value, $ownerName);
+            }),
+            new TwigFilter('getModelFieldName', function (array $value, array $properties) {
+                return $this->getModelFieldName($value, $properties);
+            }),
+            new TwigFilter('getResponseType', function (array $method) {
+                return $this->getResponseType($method);
             }),
             new TwigFilter('formatParamValue', function (string $paramName, string $paramType, bool $isMultipartFormData) {
                 if ($isMultipartFormData && $paramType === self::TYPE_BOOLEAN) {

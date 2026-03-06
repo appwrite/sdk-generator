@@ -21,7 +21,9 @@ setuptools.setup(
   download_url='https://github.com/{{sdk.gitUserName}}/{{sdk.gitRepoName}}/archive/{{sdk.version}}.tar.gz',
   install_requires=[
     'requests',
+    'pydantic>=2,<3',
   ],
+  python_requires='>=3.9',
   classifiers=[
     'Development Status :: 5 - Production/Stable',
     'Intended Audience :: Developers',
@@ -29,9 +31,9 @@ setuptools.setup(
     'Topic :: Software Development',
     'License :: OSI Approved :: {{ sdk.license }}',
     'Programming Language :: Python :: 3',
-    'Programming Language :: Python :: 3.5',
-    'Programming Language :: Python :: 3.6',
-    'Programming Language :: Python :: 3.7',
-    'Programming Language :: Python :: 3.8',
+    'Programming Language :: Python :: 3.9',
+    'Programming Language :: Python :: 3.10',
+    'Programming Language :: Python :: 3.11',
+    'Programming Language :: Python :: 3.12',
   ],
 )

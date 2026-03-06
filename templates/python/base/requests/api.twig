@@ -1,8 +1,24 @@
-        return self.client.call('{{ method.method | caseLower }}', api_path, {
+        response = self.client.call('{{ method.method | caseLower }}', api_path, {
 {% for parameter in method.parameters.header %}
-            '{{ parameter.name }}': {{ parameter.name | escapeKeyword | caseSnake }},
+            '{{ parameter.name }}': self._normalize_value({{ parameter.name | escapeKeyword | caseSnake }}),
 {% endfor %}
 {% for key, header in method.headers %}
             '{{ key }}': '{{ header }}',
 {% endfor %}
         }, api_params{% if method.type == 'webAuth' %}, response_type='location'{% endif %})
+{% if method.responseModels is defined and method.responseModels|length > 1 %}
+{% set validResponseModels = [] %}
+{% for responseModel in method.responseModels %}
+{% if responseModel and responseModel != 'any' %}
+{% set validResponseModels = validResponseModels|merge([responseModel]) %}
+{% endif %}
+{% endfor %}
+
+        return self._parse_response(response, union_models=({% for responseModel in validResponseModels %}{% if (responseModel | caseUcfirst) == (service.name | caseUcfirst) %}{{ responseModel | caseUcfirst }}Model{% else %}{{ responseModel | caseUcfirst }}{% endif %}, {% endfor %}))
+{% elseif method.responseModel and method.responseModel != 'any' %}
+
+        return self._parse_response(response, model={% if (method.responseModel | caseUcfirst) == (service.name | caseUcfirst) %}{{ method.responseModel | caseUcfirst }}Model{% else %}{{ method.responseModel | caseUcfirst }}{% endif %})
+{% else %}
+
+        return response
+{% endif %}

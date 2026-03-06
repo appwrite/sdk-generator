@@ -1,5 +1,5 @@
 from ..service import Service
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional, Union
 from ..exception import AppwriteException
 from appwrite.utils.deprecated import deprecated
 {% set added = [] %}
@@ -17,11 +17,37 @@ from ..enums.{{ parameter.enumName | caseSnake }} import {{ parameter.enumName |
 {% endif %}
 {% if parameter.model is not empty %}
 {% if parameter.model not in added %}
+{% if (parameter.model | caseUcfirst) == (service.name | caseUcfirst) %}
+from ..models.{{ parameter.model | caseSnake }} import {{ parameter.model | caseUcfirst }} as {{ parameter.model | caseUcfirst }}Model;
+{% else %}
 from ..models.{{ parameter.model | caseSnake }} import {{ parameter.model | caseUcfirst }};
+{% endif %}
 {% set added = added|merge([parameter.model]) %}
 {% endif %}
 {% endif %}
 {% endfor %}
+{% if method.responseModel and method.responseModel != 'any' %}
+{% if method.responseModel not in added %}
+{% if (method.responseModel | caseUcfirst) == (service.name | caseUcfirst) %}
+from ..models.{{ method.responseModel | caseSnake }} import {{ method.responseModel | caseUcfirst }} as {{ method.responseModel | caseUcfirst }}Model;
+{% else %}
+from ..models.{{ method.responseModel | caseSnake }} import {{ method.responseModel | caseUcfirst }};
+{% endif %}
+{% set added = added|merge([method.responseModel]) %}
+{% endif %}
+{% endif %}
+{% if method.responseModels is defined and method.responseModels|length > 1 %}
+{% for responseModel in method.responseModels %}
+{% if responseModel and responseModel != 'any' and responseModel not in added %}
+{% if (responseModel | caseUcfirst) == (service.name | caseUcfirst) %}
+from ..models.{{ responseModel | caseSnake }} import {{ responseModel | caseUcfirst }} as {{ responseModel | caseUcfirst }}Model;
+{% else %}
+from ..models.{{ responseModel | caseSnake }} import {{ responseModel | caseUcfirst }};
+{% endif %}
+{% set added = added|merge([responseModel]) %}
+{% endif %}
+{% endfor %}
+{% endif %}
 {% endfor %}
 
 class {{ service.name | caseUcfirst }}(Service):
@@ -40,6 +66,14 @@ class {{ service.name | caseUcfirst }}(Service):
 {% endfor %}
 {% endif %}
 {% if not shouldSkip %}
+{% set validResponseModels = [] %}
+{% if method.responseModels is defined and method.responseModels|length > 1 %}
+{% for responseModel in method.responseModels %}
+{% if responseModel and responseModel != 'any' %}
+{% set validResponseModels = validResponseModels|merge([responseModel]) %}
+{% endif %}
+{% endfor %}
+{% endif %}
 
 {% if method.deprecated %}
 {% if method.since and method.replaceWith %}
@@ -48,7 +82,7 @@ class {{ service.name | caseUcfirst }}(Service):
     @deprecated("This API has been deprecated.")
 {% endif %}
 {% endif %}
-    def {{ method.name | caseSnake }}(self{% if method.parameters.all|length > 0 %}, {% endif %}{% for parameter in method.parameters.all %}{{ parameter.name | escapeKeyword | caseSnake }}: {{ parameter | getPropertyType(method) | raw }}{% if not parameter.required %} = None{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, on_progress = None{% endif %}) -> {% if method.type == 'webAuth' %}str{% elseif method.type == 'location' %}bytes{% else %}Dict[str, Any]{% endif %}:
+    def {{ method.name | caseSnake }}(self{% if method.parameters.all|length > 0 %}, {% endif %}{% for parameter in method.parameters.all %}{{ parameter.name | escapeKeyword | caseSnake }}: {{ parameter | getPropertyType(method) | raw }}{% if not parameter.required %} = None{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, on_progress = None{% endif %}) -> {% if method.type == 'webAuth' %}str{% elseif method.type == 'location' %}bytes{% elseif validResponseModels|length > 1 %}Union[{% for responseModel in validResponseModels %}{% if not loop.first %}, {% endif %}{% if (responseModel | caseUcfirst) == (service.name | caseUcfirst) %}{{ responseModel | caseUcfirst }}Model{% else %}{{ responseModel | caseUcfirst }}{% endif %}{% endfor %}]{% elseif method.responseModel and method.responseModel != 'any' %}{% if (method.responseModel | caseUcfirst) == (service.name | caseUcfirst) %}{{ method.responseModel | caseUcfirst }}Model{% else %}{{ method.responseModel | caseUcfirst }}{% endif %}{% else %}Dict[str, Any]{% endif %}:
         """
         {% autoescape false %}{{ method.description | replace({"\n": "\n        "}) }}{% endautoescape %}
 
@@ -79,6 +113,10 @@ class {{ service.name | caseUcfirst }}(Service):
             Authentication response as a string
         {% elseif method.type == 'location' %}bytes
             Response as bytes
+        {% elseif method.responseModels is defined and method.responseModels|length > 1 %}{{ method | getResponseType }}
+            API response as one of the typed response models
+        {% elseif method.responseModel and method.responseModel != 'any' %}{{ method | getResponseType }}
+            API response as a typed Pydantic model
         {% else %}Dict[str, Any]
             API response as a dictionary
         {% endif %}

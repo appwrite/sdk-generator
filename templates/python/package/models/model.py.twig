@@ -4,8 +4,8 @@ from pydantic import Field
 
 from .base_model import AppwriteModel
 {% set added = [] %}
-{%~ for property in requestModel.properties %}
-{%~ set enumName = property.enumName ?? attribute(property, 'x-enum-name') ?? (requestModel.name ~ (property.name | caseUcfirst)) %}
+{%~ for property in definition.properties %}
+{%~ set enumName = property.enumName ?? attribute(property, 'x-enum-name') ?? (definition.name ~ (property.name | caseUcfirst)) %}
 {%~ if property.enum or property.items.enum is defined %}
 {%~ if enumName not in added %}
 from ..enums.{{ enumName | caseSnake }} import {{ enumName | caseUcfirst }}
@@ -26,16 +26,16 @@ from .{{ subSchema | caseSnake }} import {{ subSchema | caseUcfirst }}
 {%~ endif %}
 {%~ endfor %}
 
-class {{ requestModel.name | caseUcfirst }}(AppwriteModel):
+class {{ definition.name | caseUcfirst }}(AppwriteModel):
     """
-    {{ requestModel.description }}
-{% if requestModel.properties | length > 0 %}
+    {{ definition.description }}
+{% if definition.properties | length > 0 %}
 
     Attributes
     ----------
-{% for property in requestModel.properties %}
-{% set propertyType %}{% if not property.required %}Optional[{{ property | getModelPropertyType(requestModel.name) | raw }}]{% else %}{{ property | getModelPropertyType(requestModel.name) | raw }}{% endif %}{% endset %}
-    {{ property | getModelFieldName(requestModel.properties) }} : {{ propertyType | trim }}
+{% for property in definition.properties %}
+{% set propertyType %}{% if not property.required %}Optional[{{ property | getModelPropertyType(definition.name) | raw }}]{% else %}{{ property | getModelPropertyType(definition.name) | raw }}{% endif %}{% endset %}
+    {{ property | getModelFieldName(definition.properties) }} : {{ propertyType | trim }}
 {% if property.description %}
         {{ property.description | replace({"\n": "\n        "}) }}
 {% else %}
@@ -44,10 +44,10 @@ class {{ requestModel.name | caseUcfirst }}(AppwriteModel):
 {% endfor %}
 {% endif %}
     """
-{% if requestModel.properties | length == 0 %}
+{% if definition.properties | length == 0 %}
     pass
 {% else %}
-{% for property in requestModel.properties %}
-    {{ property | getModelFieldName(requestModel.properties) }}: {% if not property.required %}Optional[{{ property | getModelPropertyType(requestModel.name) | raw }}]{% else %}{{ property | getModelPropertyType(requestModel.name) | raw }}{% endif %} = Field({% if property.required %}...{% else %}default=None{% endif %}, alias='{{ property.name }}')
+{% for property in definition.properties %}
+    {{ property | getModelFieldName(definition.properties) }}: {% if not property.required %}Optional[{{ property | getModelPropertyType(definition.name) | raw }}]{% else %}{{ property | getModelPropertyType(definition.name) | raw }}{% endif %} = Field({% if property.required %}...{% else %}default=None{% endif %}, alias='{{ property.name }}')
 {% endfor %}
 {% endif %}
