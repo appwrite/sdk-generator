@@ -1,6 +1,8 @@
-from typing import Any, Dict, List, Optional, Union
+{% set hasGenericProperty = definition.properties|hasGenericTypeProperty(spec) %}
+{% set isGeneric = definition.additionalProperties or hasGenericProperty %}
+from typing import Any, Dict, List, Optional, Union, cast{% if isGeneric %}, Generic, TypeVar, Type{% endif %}
 
-from pydantic import Field
+from pydantic import Field, PrivateAttr
 
 from .base_model import AppwriteModel
 {% set added = [] %}
@@ -25,8 +27,12 @@ from .{{ subSchema | caseSnake }} import {{ subSchema | caseUcfirst }}
 {%~ endfor %}
 {%~ endif %}
 {%~ endfor %}
+{% if isGeneric %}
 
-class {{ definition.name | caseUcfirst }}(AppwriteModel):
+T = TypeVar('T')
+{% endif %}
+
+class {{ definition.name | caseUcfirst }}(AppwriteModel{% if isGeneric %}, Generic[T]{% endif %}):
     """
     {{ definition.description }}
 {% if definition.properties | length > 0 %}
@@ -34,7 +40,9 @@ class {{ definition.name | caseUcfirst }}(AppwriteModel):
     Attributes
     ----------
 {% for property in definition.properties %}
-{% set propertyType %}{% if not property.required and not (property.nullable ?? false) %}Optional[{{ property | getModelPropertyType(definition.name) | raw }}]{% else %}{{ property | getModelPropertyType(definition.name) | raw }}{% endif %}{% endset %}
+{% set baseType = property | getModelPropertyType(definition.name) | raw %}
+{% set propertyType %}{% if property.sub_schema and property.sub_schema | hasGenericType(spec) %}{{ baseType | replace({(property.sub_schema | caseUcfirst): (property.sub_schema | caseUcfirst) ~ '[T]'}) }}{% else %}{{ baseType }}{% endif %}{% endset %}
+{% if not property.required and not (property.nullable ?? false) %}{% set propertyType %}Optional[{{ propertyType | trim }}]{% endset %}{% endif %}
     {{ property | getModelFieldName(definition.properties) }} : {{ propertyType | trim }}
 {% if property.description %}
         {{ property.description | replace({"\n": "\n        "}) }}
@@ -48,6 +56,62 @@ class {{ definition.name | caseUcfirst }}(AppwriteModel):
     pass
 {% else %}
 {% for property in definition.properties %}
-    {{ property | getModelFieldName(definition.properties) }}: {% if not property.required and not (property.nullable ?? false) %}Optional[{{ property | getModelPropertyType(definition.name) | raw }}]{% else %}{{ property | getModelPropertyType(definition.name) | raw }}{% endif %} = Field({% if property.required %}...{% else %}default=None{% endif %}, alias='{{ property.name }}')
+{% set baseType = property | getModelPropertyType(definition.name) | raw %}
+{% set propType %}{% if property.sub_schema and property.sub_schema | hasGenericType(spec) %}{{ baseType | replace({(property.sub_schema | caseUcfirst): (property.sub_schema | caseUcfirst) ~ '[T]'}) }}{% else %}{{ baseType }}{% endif %}{% endset %}
+    {{ property | getModelFieldName(definition.properties) }}: {% if not property.required and not (property.nullable ?? false) %}Optional[{{ propType | trim }}]{% else %}{{ propType | trim }}{% endif %} = Field({% if property.required %}...{% else %}default=None{% endif %}, alias='{{ property.name }}')
 {% endfor %}
+{% endif %}
+{% if isGeneric %}
+
+    @classmethod
+    def with_data(cls, data: Dict[str, Any], model_type: Type[T] = dict) -> '{{ definition.name | caseUcfirst }}[T]':
+        """Create {{ definition.name | caseUcfirst }} instance with typed data."""
+{% if definition.additionalProperties %}
+        internal_fields = {k: v for k, v in data.items() if k.startswith('$')}
+        user_data = {k: v for k, v in data.items() if not k.startswith('$')}
+        instance = cls.model_validate(internal_fields)
+        instance._data = model_type(**user_data) if model_type is not dict else user_data
+        return instance
+{% else %}
+        instance = cls.model_validate(data)
+{% for property in definition.properties %}
+{% if property.sub_schema and property.sub_schema | hasGenericType(spec) %}
+        if '{{ property.name }}' in data and data['{{ property.name }}'] is not None:
+{% if property.type == 'array' %}
+            instance.{{ property | getModelFieldName(definition.properties) }} = [
+                {{ property.sub_schema | caseUcfirst }}.with_data(row, model_type) 
+                for row in data['{{ property.name }}']
+            ]
+{% else %}
+            instance.{{ property | getModelFieldName(definition.properties) }} = {{ property.sub_schema | caseUcfirst }}.with_data(
+                data['{{ property.name }}'], model_type
+            )
+{% endif %}
+{% endif %}
+{% endfor %}
+        return instance
+{% endif %}
+{% endif %}
+{% if definition.additionalProperties %}
+
+    _data: Any = PrivateAttr(default_factory=dict)
+
+    @property
+    def data(self) -> T:
+        return cast(T, self._data)
+
+    @data.setter
+    def data(self, value: T) -> None:
+        object.__setattr__(self, '_data', value)
+
+    def to_dict(self) -> Dict[str, Any]:
+        result = super().to_dict()
+        if hasattr(self, '_data'):
+            if isinstance(self._data, dict):
+                result['data'] = self._data
+            elif hasattr(self._data, 'model_dump'):
+                result['data'] = self._data.model_dump(mode='json')
+            else:
+                result['data'] = self._data
+        return result
 {% endif %}

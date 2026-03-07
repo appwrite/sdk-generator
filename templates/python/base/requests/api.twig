@@ -16,8 +16,14 @@
 
         return self._parse_response(response, union_models=({% for responseModel in validResponseModels %}{% if (responseModel | caseUcfirst) == (service.name | caseUcfirst) %}{{ responseModel | caseUcfirst }}Model{% else %}{{ responseModel | caseUcfirst }}{% endif %}, {% endfor %}))
 {% elseif method.responseModel and method.responseModel != 'any' %}
+{% set isGenericResponse = method.responseModel | hasGenericType(spec) %}
+{% if isGenericResponse %}
+
+        return {{ method.responseModel | caseUcfirst }}.with_data(response, model_type)
+{% else %}
 
         return self._parse_response(response, model={% if (method.responseModel | caseUcfirst) == (service.name | caseUcfirst) %}{{ method.responseModel | caseUcfirst }}Model{% else %}{{ method.responseModel | caseUcfirst }}{% endif %})
+{% endif %}
 {% else %}
 
         return response

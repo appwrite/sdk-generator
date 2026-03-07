@@ -1,5 +1,6 @@
 from ..service import Service
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union{% set hasGenericModel = false %}{% for method in service.methods %}{% if method.responseModel and method.responseModel != 'any' and method.responseModel | hasGenericType(spec) %}{% set hasGenericModel = true %}{% endif %}{% endfor %}{% if hasGenericModel %}, Type, TypeVar{% endif %}
+
 from ..exception import AppwriteException
 from appwrite.utils.deprecated import deprecated
 {% set added = [] %}
@@ -50,6 +51,10 @@ from ..models.{{ responseModel | caseSnake }} import {{ responseModel | caseUcfi
 {% endfor %}
 {% endif %}
 {% endfor %}
+{% if hasGenericModel %}
+
+T = TypeVar('T')
+{% endif %}
 
 class {{ service.name | caseUcfirst }}(Service):
 
@@ -75,6 +80,7 @@ class {{ service.name | caseUcfirst }}(Service):
 {% endif %}
 {% endfor %}
 {% endif %}
+{% set isGenericResponse = method.responseModel and method.responseModel != 'any' and method.responseModel | hasGenericType(spec) %}
 
 {% if method.deprecated %}
 {% if method.since and method.replaceWith %}
@@ -93,7 +99,7 @@ Union[{% for responseModel in validResponseModels %}{% if not loop.first %}, {% 
 {% elseif validResponseModels|length == 1 %}
 {% if (validResponseModels[0] | caseUcfirst) == (service.name | caseUcfirst) %}{{ validResponseModels[0] | caseUcfirst }}Model{% else %}{{ validResponseModels[0] | caseUcfirst }}{% endif %}
 {% elseif method.responseModel and method.responseModel != 'any' %}
-{% if (method.responseModel | caseUcfirst) == (service.name | caseUcfirst) %}{{ method.responseModel | caseUcfirst }}Model{% else %}{{ method.responseModel | caseUcfirst }}{% endif %}
+{% if isGenericResponse %}{{ method.responseModel | caseUcfirst }}[T]{% elseif (method.responseModel | caseUcfirst) == (service.name | caseUcfirst) %}{{ method.responseModel | caseUcfirst }}Model{% else %}{{ method.responseModel | caseUcfirst }}{% endif %}
 {% else %}
 Dict[str, Any]
 {% endif %}
@@ -101,12 +107,13 @@ Dict[str, Any]
     def {{ method.name | caseSnake }}(
         self{% for parameter in method.parameters.all %},
         {{ parameter.name | escapeKeyword | caseSnake }}: {{ parameter | getServicePropertyType(service.name) | raw }}{% if not parameter.required %} = None{% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %},
-        on_progress = None{% endif %}
+        on_progress = None{% endif %}{% if isGenericResponse %},
+        model_type: Type[T] = dict{% endif %}
     ) -> {{ returnType | trim }}:
         """
         {% autoescape false %}{{ method.description | replace({"\n": "\n        "}) }}{% endautoescape %}
 
-{% if method.parameters.all|length > 0 or 'multipart/form-data' in method.consumes %}
+{% if method.parameters.all|length > 0 or 'multipart/form-data' in method.consumes or isGenericResponse %}
 
 {% if method.deprecated %}
 {%~ if method.since and method.replaceWith %}
@@ -125,6 +132,9 @@ Dict[str, Any]
         {% endfor %}{% if 'multipart/form-data' in method.consumes %}
         on_progress : callable, optional
             Optional callback for upload progress
+        {% endif %}{%~ if isGenericResponse ~%}
+        model_type : Type[T], optional
+            Pydantic model class for the user-defined data. Defaults to dict for backward compatibility.
         {% endif %}{% endif %}
 
         Returns
@@ -137,7 +147,7 @@ Dict[str, Any]
             API response as one of the typed response models
         {% elseif validResponseModels|length == 1 %}{{ validResponseModels[0] | caseUcfirst }}
             API response as a typed Pydantic model
-        {% elseif method.responseModel and method.responseModel != 'any' %}{{ method | getResponseType(service.name) }}
+        {% elseif method.responseModel and method.responseModel != 'any' %}{% if isGenericResponse %}{{ method.responseModel | caseUcfirst }}[T]{% else %}{{ method | getResponseType(service.name) }}{% endif %}
             API response as a typed Pydantic model
         {% else %}Dict[str, Any]
             API response as a dictionary

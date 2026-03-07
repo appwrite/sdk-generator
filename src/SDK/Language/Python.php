@@ -671,6 +671,39 @@ class Python extends Language
         return 'Dict[str, Any]';
     }
 
+    /**
+     * Check if a model or any of its sub-schemas has additionalProperties
+     *
+     * @param string|null $model
+     * @param array $spec
+     * @return bool
+     */
+    protected function hasGenericType(?string $model, array $spec): bool
+    {
+        if (empty($model) || $model === 'any' || !array_key_exists($model, $spec['definitions'] ?? [])) {
+            return false;
+        }
+
+        $modelDef = $spec['definitions'][$model];
+
+        // Check if model has additionalProperties (dynamic fields)
+        if (!empty($modelDef['additionalProperties'])) {
+            return true;
+        }
+
+        // Recursively check sub-schemas
+        foreach ($modelDef['properties'] ?? [] as $property) {
+            if (!\array_key_exists('sub_schema', $property) || !$property['sub_schema']) {
+                continue;
+            }
+            if ($this->hasGenericType($property['sub_schema'], $spec)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public function getFilters(): array
     {
         return [
@@ -679,6 +712,17 @@ class Python extends Language
             }),
             new TwigFilter('getPropertyType', function ($value, $method = []) {
                 return $this->getTypeName($value, $method);
+            }),
+            new TwigFilter('hasGenericType', function (string $model, array $spec) {
+                return $this->hasGenericType($model, $spec);
+            }),
+            new TwigFilter('hasGenericTypeProperty', function (array $properties, array $spec) {
+                foreach ($properties as $property) {
+                    if (!empty($property['sub_schema']) && $this->hasGenericType($property['sub_schema'], $spec)) {
+                        return true;
+                    }
+                }
+                return false;
             }),
             new TwigFilter('getServicePropertyType', function (array $value, string $serviceName) {
                 return $this->getServicePropertyType($value, $serviceName);
