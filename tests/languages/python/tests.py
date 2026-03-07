@@ -10,6 +10,7 @@ from appwrite.role import Role
 from appwrite.id import ID
 from appwrite.operator import Operator, Condition
 from appwrite.enums.mock_type import MockType
+from appwrite.models.player import Player
 
 import os.path
 
@@ -21,73 +22,80 @@ general = General(client)
 client.add_header('Origin', 'http://localhost')
 client.set_self_signed()
 
+def print_result(response):
+    if isinstance(response, dict):
+        print(response['result'])
+        return
+
+    print(response.result)
+
 print("\nTest Started")
 
 # Foo Tests
 
 response = foo.get('string', 123, ['string in array'])
-print(response['result'])
+print_result(response)
 
 response = foo.post('string', 123, ['string in array'])
-print(response['result'])
+print_result(response)
 
 response = foo.put('string', 123, ['string in array'])
-print(response['result'])
+print_result(response)
 
 response = foo.patch('string', 123, ['string in array'])
-print(response['result'])
+print_result(response)
 
 response = foo.delete('string', 123, ['string in array'])
-print(response['result'])
+print_result(response)
 
 # Bar Tests
 
 response = bar.get('string',123, ['string in array'])
-print(response['result'])
+print_result(response)
 
 response = bar.post('string', 123, ['string in array'])
-print(response['result'])
+print_result(response)
 
 response = bar.put('string', 123, ['string in array'])
-print(response['result'])
+print_result(response)
 
 response = bar.patch('string', 123, ['string in array'])
-print(response['result'])
+print_result(response)
 
 response = bar.delete('string', 123, ['string in array'])
-print(response['result'])
+print_result(response)
 
 # General Tests
 
 response = general.redirect()
-print(response['result'])
+print_result(response)
 
 response = general.upload('string', 123, ['string in array'], InputFile.from_path('./tests/resources/file.png'))
-print(response['result'])
+print_result(response)
 
 response = general.upload('string', 123, ['string in array'], InputFile.from_path('./tests/resources/large_file.mp4'))
-print(response['result'])
+print_result(response)
 
 data = open('./tests/resources/file.png', 'rb').read()
 response = general.upload('string', 123, ['string in array'], InputFile.from_bytes(data, 'file.png', 'image/png'))
-print(response['result'])
+print_result(response)
 
 data = open('./tests/resources/large_file.mp4', 'rb').read()
 response = general.upload('string', 123, ['string in array'], InputFile.from_bytes(data, 'large_file.mp4','video/mp4'))
-print(response['result'])
+print_result(response)
 
 response = general.enum(MockType.FIRST)
-print(response['result'])
+print_result(response)
 
 # Request model tests
-response = general.create_player({'id': 'player1', 'name': 'John Doe', 'score': 100})
-print(response['result'])
+response = general.create_player(Player(id='player1', name='John Doe', score=100))
+print_result(response)
 
 response = general.create_players([
     {'id': 'player1', 'name': 'John Doe', 'score': 100},
     {'id': 'player2', 'name': 'Jane Doe', 'score': 200}
 ])
-print(response['result'])
+print_result(response)
 
 try:
     response = general.error400()
@@ -247,4 +255,4 @@ print(Operator.date_sub_days(3))
 print(Operator.date_set_now())
 
 response = general.headers()
-print(response['result'])
+print_result(response)
