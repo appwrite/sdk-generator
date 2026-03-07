@@ -489,23 +489,31 @@ class Python extends Language
 
     protected function getModelPropertyType(array $property, string $ownerName = ''): string
     {
+        $wrapNullable = function (string $type) use ($property): string {
+            if ($property['nullable'] ?? false) {
+                return 'Optional[' . $type . ']';
+            }
+
+            return $type;
+        };
+
         if (!empty($property['sub_schemas'])) {
             $unionType = $this->getUnionType(array_map(
                 fn($schema) => $this->getModelName($schema),
                 $property['sub_schemas']
             ));
 
-            return ($property['type'] ?? '') === self::TYPE_ARRAY
+            return $wrapNullable(($property['type'] ?? '') === self::TYPE_ARRAY
                 ? 'List[' . $unionType . ']'
-                : $unionType;
+                : $unionType);
         }
 
         if (!empty($property['sub_schema'])) {
             $modelType = $this->getModelName($property['sub_schema']);
 
-            return ($property['type'] ?? '') === self::TYPE_ARRAY
+            return $wrapNullable(($property['type'] ?? '') === self::TYPE_ARRAY
                 ? 'List[' . $modelType . ']'
-                : $modelType;
+                : $modelType);
         }
 
         if (
@@ -514,19 +522,19 @@ class Python extends Language
         ) {
             $enumType = $this->getModelName($property['x-enum-name'] ?? (($ownerName ?: 'Model') . ucfirst($property['name'] ?? 'Value')));
 
-            return 'List[' . $enumType . ']';
+            return $wrapNullable('List[' . $enumType . ']');
         }
 
         if (!empty($property['enum'])) {
             $enumType = $this->getModelName($property['enumName'] ?? $property['x-enum-name'] ?? (($ownerName ?: 'Model') . ucfirst($property['name'] ?? 'Value')));
 
-            return ($property['type'] ?? '') === self::TYPE_ARRAY
+            return $wrapNullable(($property['type'] ?? '') === self::TYPE_ARRAY
                 ? 'List[' . $enumType . ']'
-                : $enumType;
+                : $enumType);
         }
 
         if (($property['type'] ?? '') === self::TYPE_OBJECT) {
-            return 'Dict[str, Any]';
+            return $wrapNullable('Dict[str, Any]');
         }
 
         return $this->getTypeName(array_merge($property, [

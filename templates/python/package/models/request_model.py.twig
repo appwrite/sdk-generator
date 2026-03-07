@@ -34,7 +34,7 @@ class {{ requestModel.name | caseUcfirst }}(AppwriteModel):
     Attributes
     ----------
 {% for property in requestModel.properties %}
-{% set propertyType %}{% if not property.required %}Optional[{{ property | getModelPropertyType(requestModel.name) | raw }}]{% else %}{{ property | getModelPropertyType(requestModel.name) | raw }}{% endif %}{% endset %}
+{% set propertyType %}{% if not property.required and not (property.nullable ?? false) %}Optional[{{ property | getModelPropertyType(requestModel.name) | raw }}]{% else %}{{ property | getModelPropertyType(requestModel.name) | raw }}{% endif %}{% endset %}
     {{ property | getModelFieldName(requestModel.properties) }} : {{ propertyType | trim }}
 {% if property.description %}
         {{ property.description | replace({"\n": "\n        "}) }}
@@ -48,6 +48,6 @@ class {{ requestModel.name | caseUcfirst }}(AppwriteModel):
     pass
 {% else %}
 {% for property in requestModel.properties %}
-    {{ property | getModelFieldName(requestModel.properties) }}: {% if not property.required %}Optional[{{ property | getModelPropertyType(requestModel.name) | raw }}]{% else %}{{ property | getModelPropertyType(requestModel.name) | raw }}{% endif %} = Field({% if property.required %}...{% else %}default=None{% endif %}, alias='{{ property.name }}')
+    {{ property | getModelFieldName(requestModel.properties) }}: {% if not property.required and not (property.nullable ?? false) %}Optional[{{ property | getModelPropertyType(requestModel.name) | raw }}]{% else %}{{ property | getModelPropertyType(requestModel.name) | raw }}{% endif %} = Field({% if property.required %}...{% else %}default=None{% endif %}, alias='{{ property.name }}')
 {% endfor %}
 {% endif %}

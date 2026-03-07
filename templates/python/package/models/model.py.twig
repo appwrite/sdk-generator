@@ -34,7 +34,7 @@ class {{ definition.name | caseUcfirst }}(AppwriteModel):
     Attributes
     ----------
 {% for property in definition.properties %}
-{% set propertyType %}{% if not property.required %}Optional[{{ property | getModelPropertyType(definition.name) | raw }}]{% else %}{{ property | getModelPropertyType(definition.name) | raw }}{% endif %}{% endset %}
+{% set propertyType %}{% if not property.required and not (property.nullable ?? false) %}Optional[{{ property | getModelPropertyType(definition.name) | raw }}]{% else %}{{ property | getModelPropertyType(definition.name) | raw }}{% endif %}{% endset %}
     {{ property | getModelFieldName(definition.properties) }} : {{ propertyType | trim }}
 {% if property.description %}
         {{ property.description | replace({"\n": "\n        "}) }}
@@ -48,6 +48,6 @@ class {{ definition.name | caseUcfirst }}(AppwriteModel):
     pass
 {% else %}
 {% for property in definition.properties %}
-    {{ property | getModelFieldName(definition.properties) }}: {% if not property.required %}Optional[{{ property | getModelPropertyType(definition.name) | raw }}]{% else %}{{ property | getModelPropertyType(definition.name) | raw }}{% endif %} = Field({% if property.required %}...{% else %}default=None{% endif %}, alias='{{ property.name }}')
+    {{ property | getModelFieldName(definition.properties) }}: {% if not property.required and not (property.nullable ?? false) %}Optional[{{ property | getModelPropertyType(definition.name) | raw }}]{% else %}{{ property | getModelPropertyType(definition.name) | raw }}{% endif %} = Field({% if property.required %}...{% else %}default=None{% endif %}, alias='{{ property.name }}')
 {% endfor %}
 {% endif %}
