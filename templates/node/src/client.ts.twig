@@ -58,19 +58,6 @@ type Headers = {
     [key: string]: string;
 }
 
-class Response {
-    toString(): string {
-        return JSONbig.stringify(this);
-    }
-
-    static fromPayload<T>(data: T): T {
-        if (data === null || data === undefined || typeof data !== 'object' || data instanceof ArrayBuffer) {
-            return data;
-        }
-        return Object.assign(Object.create(Response.prototype), data);
-    }
-}
-
 class {{spec.title | caseUcfirst}}Exception extends Error {
     code: number;
     response: string;
@@ -356,7 +343,11 @@ class Client {
             throw new {{spec.title | caseUcfirst}}Exception(data?.message, response.status, data?.type, responseText);
         }
 
-        return Response.fromPayload(data);
+        if (data && typeof data === 'object') {
+            data.toString = () => JSONbig.stringify(data);
+        }
+
+        return data;
     }
 
     static flatten(data: Payload, prefix = ''): Payload {
@@ -375,7 +366,7 @@ class Client {
     }
 }
 
-export { Client, Response, {{spec.title | caseUcfirst}}Exception };
+export { Client, {{spec.title | caseUcfirst}}Exception };
 export { Query } from './query';
 export type { Models, Payload, UploadProgress };
 export type { QueryTypes, QueryTypesList } from './query';

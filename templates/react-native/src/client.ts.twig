@@ -129,19 +129,6 @@ export type UploadProgress = {
     chunksUploaded: number;
 }
 
-class Response {
-    toString(): string {
-        return JSONbig.stringify(this);
-    }
-
-    static fromPayload<T>(data: T): T {
-        if (data === null || data === undefined || typeof data !== 'object' || data instanceof ArrayBuffer) {
-            return data;
-        }
-        return Object.assign(Object.create(Response.prototype), data);
-    }
-}
-
 class {{spec.title | caseUcfirst}}Exception extends Error {
     code: number;
     response: string;
@@ -547,7 +534,11 @@ class Client {
                 window.localStorage.setItem('cookieFallback', cookieFallback);
             }
 
-            return Response.fromPayload(data);
+            if (data && typeof data === 'object') {
+                data.toString = () => JSONbig.stringify(data);
+            }
+
+            return data;
         } catch (e) {
             if (e instanceof {{spec.title | caseUcfirst}}Exception) {
                 throw e;
@@ -557,5 +548,5 @@ class Client {
     }
 }
 
-export { Client, Response, {{spec.title | caseUcfirst}}Exception };
+export { Client, {{spec.title | caseUcfirst}}Exception };
 export type { Models, Payload };

@@ -5,7 +5,7 @@
  * For older versions, please check
  * [previous releases](https://github.com/{{sdk.gitUserName}}/{{sdk.gitRepoName}}/releases).
  */
-export { Client, Response, Query, {{spec.title | caseUcfirst}}Exception } from './client';
+export { Client, Query, {{spec.title | caseUcfirst}}Exception } from './client';
 {% for service in spec.services %}
 export { {{service.name | caseUcfirst}} } from './services/{{service.name | caseKebab}}';
 {% endfor %}

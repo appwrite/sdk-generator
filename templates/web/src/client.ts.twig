@@ -322,24 +322,6 @@ type UploadProgress = {
 }
 
 /**
- * Response class that wraps API responses to provide proper string serialization.
- * When used in string interpolation (e.g. `${response}`), it returns a JSON string
- * instead of "[object Object]".
- */
-class Response {
-    toString(): string {
-        return JSONbig.stringify(this);
-    }
-
-    static fromPayload<T>(data: T): T {
-        if (data === null || data === undefined || typeof data !== 'object' || data instanceof ArrayBuffer) {
-            return data;
-        }
-        return Object.assign(Object.create(Response.prototype), data);
-    }
-}
-
-/**
  * Exception thrown by the {{language.params.packageName}} package
  */
 class {{spec.title | caseUcfirst}}Exception extends Error {
@@ -937,7 +919,11 @@ class Client {
             window.localStorage.setItem('cookieFallback', cookieFallback);
         }
 
-        return Response.fromPayload(data);
+        if (data && typeof data === 'object') {
+            data.toString = () => JSONbig.stringify(data);
+        }
+
+        return data;
     }
 
     static flatten(data: Payload, prefix = ''): Payload {
@@ -956,7 +942,7 @@ class Client {
     }
 }
 
-export { Client, Response, {{spec.title | caseUcfirst}}Exception };
+export { Client, {{spec.title | caseUcfirst}}Exception };
 export { Query } from './query';
 export type { Models, Payload, UploadProgress };
 export type { RealtimeResponseEvent };
