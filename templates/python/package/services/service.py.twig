@@ -147,8 +147,9 @@ Dict[str, Any]
             API response as one of the typed response models
         {% elseif validResponseModels|length == 1 %}{{ validResponseModels[0] | caseUcfirst }}
             API response as a typed Pydantic model
-        {% elseif method.responseModel and method.responseModel != 'any' %}{% if isGenericResponse %}{{ method.responseModel | caseUcfirst }}[T]{% else %}{{ method | getResponseType(service.name) }}{% endif %}
-            API response as a typed Pydantic model
+        {% elseif method.responseModel and method.responseModel != 'any' %}{% if isGenericResponse %}{{ method.responseModel | caseUcfirst }}[T]
+{% else %}{{ method | getResponseType(service.name) }}
+{% endif %}            API response as a typed Pydantic model
         {% else %}Dict[str, Any]
             API response as a dictionary
         {% endif %}
