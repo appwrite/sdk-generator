@@ -645,7 +645,7 @@ class Python extends Language
         return $typeName;
     }
 
-    protected function getResponseType(array $method): string
+    protected function getResponseType(array $method, string $serviceName = ''): string
     {
         if (($method['type'] ?? null) === 'webAuth') {
             return 'str';
@@ -656,7 +656,7 @@ class Python extends Language
         }
 
         if (!empty($method['responseModels']) && count($method['responseModels']) > 1) {
-            $types = array_map(fn($model) => $this->getModelName($model), array_filter(
+            $types = array_map(fn($model) => $this->getDocsModelTypeName($model, $serviceName), array_filter(
                 $method['responseModels'],
                 fn($model) => !empty($model) && $model !== 'any'
             ));
@@ -665,7 +665,7 @@ class Python extends Language
         }
 
         if (!empty($method['responseModel']) && $method['responseModel'] !== 'any') {
-            return $this->getModelName($method['responseModel']);
+            return $this->getDocsModelTypeName($method['responseModel'], $serviceName);
         }
 
         return 'Dict[str, Any]';
@@ -689,8 +689,8 @@ class Python extends Language
             new TwigFilter('getModelFieldName', function (array $value, array $properties) {
                 return $this->getModelFieldName($value, $properties);
             }),
-            new TwigFilter('getResponseType', function (array $method) {
-                return $this->getResponseType($method);
+            new TwigFilter('getResponseType', function (array $method, string $serviceName = '') {
+                return $this->getResponseType($method, $serviceName);
             }),
             new TwigFilter('formatParamValue', function (string $paramName, string $paramType, bool $isMultipartFormData) {
                 if ($isMultipartFormData && $paramType === self::TYPE_BOOLEAN) {

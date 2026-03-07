@@ -133,11 +133,11 @@ Dict[str, Any]
             Authentication response as a string
         {% elseif method.type == 'location' %}bytes
             Response as bytes
-        {% elseif validResponseModels|length > 1 %}{{ method | getResponseType }}
+        {% elseif validResponseModels|length > 1 %}{{ method | getResponseType(service.name) }}
             API response as one of the typed response models
         {% elseif validResponseModels|length == 1 %}{{ validResponseModels[0] | caseUcfirst }}
             API response as a typed Pydantic model
-        {% elseif method.responseModel and method.responseModel != 'any' %}{{ method | getResponseType }}
+        {% elseif method.responseModel and method.responseModel != 'any' %}{{ method | getResponseType(service.name) }}
             API response as a typed Pydantic model
         {% else %}Dict[str, Any]
             API response as a dictionary
