@@ -531,8 +531,37 @@ class Python extends Language
 
         return $this->getTypeName(array_merge($property, [
             'required' => true,
-            'nullable' => false,
+            'nullable' => $property['nullable'] ?? false,
         ]));
+    }
+
+    protected function getServiceModelTypeName(string $modelName, string $serviceName): string
+    {
+        $modelType = $this->getModelName($modelName);
+
+        if ($modelType === $this->getModelName($serviceName)) {
+            return $modelType . 'Model';
+        }
+
+        return $modelType;
+    }
+
+    protected function getServicePropertyType(array $parameter, string $serviceName): string
+    {
+        if (!empty($parameter['array']['model'])) {
+            $typeName = 'List[' . $this->getServiceModelTypeName($parameter['array']['model'], $serviceName) . ']';
+        } elseif (!empty($parameter['model'])) {
+            $modelType = $this->getServiceModelTypeName($parameter['model'], $serviceName);
+            $typeName = ($parameter['type'] ?? '') === self::TYPE_ARRAY ? 'List[' . $modelType . ']' : $modelType;
+        } else {
+            return $this->getTypeName($parameter);
+        }
+
+        if (!($parameter['required'] ?? true) || ($parameter['nullable'] ?? false)) {
+            return 'Optional[' . $typeName . ']';
+        }
+
+        return $typeName;
     }
 
     protected function getResponseType(array $method): string
@@ -569,6 +598,9 @@ class Python extends Language
             }),
             new TwigFilter('getPropertyType', function ($value, $method = []) {
                 return $this->getTypeName($value, $method);
+            }),
+            new TwigFilter('getServicePropertyType', function (array $value, string $serviceName) {
+                return $this->getServicePropertyType($value, $serviceName);
             }),
             new TwigFilter('getModelPropertyType', function (array $value, string $ownerName = '') {
                 return $this->getModelPropertyType($value, $ownerName);

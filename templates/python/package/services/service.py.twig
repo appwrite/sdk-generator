@@ -82,7 +82,7 @@ class {{ service.name | caseUcfirst }}(Service):
     @deprecated("This API has been deprecated.")
 {% endif %}
 {% endif %}
-    def {{ method.name | caseSnake }}(self{% if method.parameters.all|length > 0 %}, {% endif %}{% for parameter in method.parameters.all %}{{ parameter.name | escapeKeyword | caseSnake }}: {{ parameter | getPropertyType(method) | raw }}{% if not parameter.required %} = None{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, on_progress = None{% endif %}) -> {% if method.type == 'webAuth' %}str{% elseif method.type == 'location' %}bytes{% elseif validResponseModels|length > 1 %}Union[{% for responseModel in validResponseModels %}{% if not loop.first %}, {% endif %}{% if (responseModel | caseUcfirst) == (service.name | caseUcfirst) %}{{ responseModel | caseUcfirst }}Model{% else %}{{ responseModel | caseUcfirst }}{% endif %}{% endfor %}]{% elseif method.responseModel and method.responseModel != 'any' %}{% if (method.responseModel | caseUcfirst) == (service.name | caseUcfirst) %}{{ method.responseModel | caseUcfirst }}Model{% else %}{{ method.responseModel | caseUcfirst }}{% endif %}{% else %}Dict[str, Any]{% endif %}:
+    def {{ method.name | caseSnake }}(self{% if method.parameters.all|length > 0 %}, {% endif %}{% for parameter in method.parameters.all %}{{ parameter.name | escapeKeyword | caseSnake }}: {{ parameter | getServicePropertyType(service.name) | raw }}{% if not parameter.required %} = None{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, on_progress = None{% endif %}) -> {% if method.type == 'webAuth' %}str{% elseif method.type == 'location' %}bytes{% elseif validResponseModels|length > 1 %}Union[{% for responseModel in validResponseModels %}{% if not loop.first %}, {% endif %}{% if (responseModel | caseUcfirst) == (service.name | caseUcfirst) %}{{ responseModel | caseUcfirst }}Model{% else %}{{ responseModel | caseUcfirst }}{% endif %}{% endfor %}]{% elseif validResponseModels|length == 1 %}{% if (validResponseModels[0] | caseUcfirst) == (service.name | caseUcfirst) %}{{ validResponseModels[0] | caseUcfirst }}Model{% else %}{{ validResponseModels[0] | caseUcfirst }}{% endif %}{% elseif method.responseModel and method.responseModel != 'any' %}{% if (method.responseModel | caseUcfirst) == (service.name | caseUcfirst) %}{{ method.responseModel | caseUcfirst }}Model{% else %}{{ method.responseModel | caseUcfirst }}{% endif %}{% else %}Dict[str, Any]{% endif %}:
         """
         {% autoescape false %}{{ method.description | replace({"\n": "\n        "}) }}{% endautoescape %}
 
@@ -99,7 +99,7 @@ class {{ service.name | caseUcfirst }}(Service):
 {% endif %}
         Parameters
         ----------
-        {% for parameter in method.parameters.all %}{{ parameter.name | escapeKeyword | caseSnake }} : {{ parameter | getPropertyType(method) | raw }}
+        {% for parameter in method.parameters.all %}{{ parameter.name | escapeKeyword | caseSnake }} : {{ parameter | getServicePropertyType(service.name) | raw }}
             {% autoescape false %}{{ parameter.description | replace({"\n": "\n            "}) }}{% endautoescape %}
 
         {% endfor %}{% if 'multipart/form-data' in method.consumes %}
@@ -113,8 +113,10 @@ class {{ service.name | caseUcfirst }}(Service):
             Authentication response as a string
         {% elseif method.type == 'location' %}bytes
             Response as bytes
-        {% elseif method.responseModels is defined and method.responseModels|length > 1 %}{{ method | getResponseType }}
+        {% elseif validResponseModels|length > 1 %}{{ method | getResponseType }}
             API response as one of the typed response models
+        {% elseif validResponseModels|length == 1 %}{{ validResponseModels[0] | caseUcfirst }}
+            API response as a typed Pydantic model
         {% elseif method.responseModel and method.responseModel != 'any' %}{{ method | getResponseType }}
             API response as a typed Pydantic model
         {% else %}Dict[str, Any]
