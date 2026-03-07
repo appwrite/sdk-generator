@@ -5,6 +5,18 @@ from {{ spec.title | caseSnake }}.services.{{ service.name | caseSnake }} import
 from {{ spec.title | caseSnake }}.input_file import InputFile
 {% endif %}
 {% set added = [] %}
+{% if method.responseModel and method.responseModel != 'any' %}
+from {{ spec.title | caseSnake }}.models import {{ method.responseModel | caseUcfirst }}
+{% set added = added|merge([method.responseModel]) %}
+{% endif %}
+{% if method.responseModels is defined %}
+{% for responseModel in method.responseModels %}
+{% if responseModel and responseModel != 'any' and responseModel not in added %}
+from {{ spec.title | caseSnake }}.models import {{ responseModel | caseUcfirst }}
+{% set added = added|merge([responseModel]) %}
+{% endif %}
+{% endfor %}
+{% endif %}
 {% for parameter in method.parameters.all %}
 {% if parameter.enumValues is not empty %}
 {% if parameter.enumName not in added %}
@@ -22,6 +34,14 @@ from {{ spec.title | caseSnake }}.models import {{ modelName | caseUcfirst }}
 from {{ spec.title | caseSnake }}.permission import Permission
 from {{ spec.title | caseSnake }}.role import Role
 {% endif %}
+{% set validResponseModels = [] %}
+{% if method.responseModels is defined %}
+{% for responseModel in method.responseModels %}
+{% if responseModel and responseModel != 'any' %}
+{% set validResponseModels = validResponseModels|merge([responseModel]) %}
+{% endif %}
+{% endfor %}
+{% endif %}
 
 client = Client()
 {% if method.auth|length > 0 %}
@@ -35,21 +55,25 @@ client.set_{{header | caseSnake}}('{{node[header]['x-appwrite']['demo'] | raw }}
 {% endif %}
 {{ service.name | caseSnake }} = {{ service.name | caseUcfirst }}(client)
 
+{% if method.type == 'webAuth' %}
+result: str = {{ service.name | caseSnake }}.{{ method.name | caseSnake }}({% if method.parameters.all | length == 0 %}){% endif %}
+{% elseif method.type == 'location' %}
+result: bytes = {{ service.name | caseSnake }}.{{ method.name | caseSnake }}({% if method.parameters.all | length == 0 %}){% endif %}
+{% elseif method.responseModels is defined and validResponseModels | length > 1 %}
+result: Union[{% for responseModel in validResponseModels %}{% if not loop.first %}, {% endif %}{{ responseModel | caseUcfirst }}{% endfor %}] = {{ service.name | caseSnake }}.{{ method.name | caseSnake }}({% if method.parameters.all | length == 0 %}){% endif %}
+{% elseif method.responseModel and method.responseModel != 'any' %}
+result: {{ method.responseModel | caseUcfirst }} = {{ service.name | caseSnake }}.{{ method.name | caseSnake }}({% if method.parameters.all | length == 0 %}){% endif %}
+{% elseif method.responseModels is defined and validResponseModels | length == 1 %}
+result: {{ validResponseModels[0] | caseUcfirst }} = {{ service.name | caseSnake }}.{{ method.name | caseSnake }}({% if method.parameters.all | length == 0 %}){% endif %}
+{% else %}
 result = {{ service.name | caseSnake }}.{{ method.name | caseSnake }}({% if method.parameters.all | length == 0 %}){% endif %}
+{% endif %}
 
     {%~ for parameter in method.parameters.all %}
     {{ parameter.name | caseSnake }} = {% if parameter.model or parameter.array.model %}{{ parameter | requestModelExample(spec) | raw }}{% elseif parameter.enumValues | length > 0 %}{{ parameter | enumExample }}{% else %}{{ parameter | paramExample }}{% endif %}{% if not loop.last %},{% endif %}{% if not parameter.required %} # optional{% endif %}
 
     {%~ endfor %}
 {% if method.parameters.all | length > 0 %})
-{% endif %}
-{% set validResponseModels = [] %}
-{% if method.responseModels is defined %}
-{% for responseModel in method.responseModels %}
-{% if responseModel and responseModel != 'any' %}
-{% set validResponseModels = validResponseModels|merge([responseModel]) %}
-{% endif %}
-{% endfor %}
 {% endif %}
 {% if (method.responseModel and method.responseModel != 'any') or validResponseModels | length > 0 %}
 
