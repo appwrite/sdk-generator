@@ -109,6 +109,7 @@ Dict[str, Any]
         {{ parameter.name | escapeKeyword | caseSnake }}: {{ parameter | getServicePropertyType(service.name) | raw }}{% if not parameter.required %} = None{% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %},
         on_progress = None{% endif %}{% if isGenericResponse %},
         model_type: Type[T] = dict{% endif %}
+
     ) -> {{ returnType | trim }}:
         """
         {% autoescape false %}{{ method.description | replace({"\n": "\n        "}) }}{% endautoescape %}

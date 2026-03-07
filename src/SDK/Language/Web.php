@@ -111,10 +111,10 @@ class Web extends JS
                 'template'      => 'web/LICENSE.twig',
             ],
             [
-                'scope'         => 'default',
-                'destination'   => 'package.json',
-                'template'      => 'web/package.json.twig',
-            ],
+            'scope'         => 'default',
+            'destination'   => 'package.json',
+            'template'      => 'web/package.json.twig',
+        ],
             [
                 'scope'         => 'method',
                 'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseKebab}}.md',
