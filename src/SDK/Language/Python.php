@@ -430,6 +430,68 @@ class Python extends Language
         };
     }
 
+    protected function getRequestModelDefinition(string $modelName, array $spec): ?array
+    {
+        foreach (($spec['requestModels'] ?? []) as $requestModel) {
+            if (($requestModel['name'] ?? '') === $modelName) {
+                return $requestModel;
+            }
+        }
+
+        return null;
+    }
+
+    protected function getRequestModelPropertyExample(array $property, array $spec): string
+    {
+        if (!empty($property['sub_schema'])) {
+            $example = $this->getRequestModelInstanceExample($property['sub_schema'], $spec);
+
+            return ($property['type'] ?? '') === self::TYPE_ARRAY ? '[' . $example . ']' : $example;
+        }
+
+        if (!empty($property['sub_schemas'])) {
+            $example = $this->getRequestModelInstanceExample($property['sub_schemas'][0], $spec);
+
+            return ($property['type'] ?? '') === self::TYPE_ARRAY ? '[' . $example . ']' : $example;
+        }
+
+        return $this->getParamExample($property);
+    }
+
+    protected function getRequestModelInstanceExample(string $modelName, array $spec): string
+    {
+        $requestModel = $this->getRequestModelDefinition($modelName, $spec);
+
+        if ($requestModel === null) {
+            return $this->getModelName($modelName) . '()';
+        }
+
+        $arguments = [];
+
+        foreach (($requestModel['properties'] ?? []) as $property) {
+            $arguments[] = $this->getModelFieldName($property, $requestModel['properties']) . ' = ' . $this->getRequestModelPropertyExample($property, $spec);
+        }
+
+        return $this->getModelName($modelName) . '(' . implode(', ', $arguments) . ')';
+    }
+
+    protected function getRequestModelExample(array $parameter, array $spec): string
+    {
+        $modelName = $parameter['model'] ?? (($parameter['array'] ?? [])['model'] ?? null);
+
+        if (empty($modelName)) {
+            return $this->getParamExample($parameter);
+        }
+
+        $example = $this->getRequestModelInstanceExample($modelName, $spec);
+
+        if (($parameter['type'] ?? '') === self::TYPE_ARRAY) {
+            return '[' . $example . ']';
+        }
+
+        return $example;
+    }
+
     protected function getModelName(string $name): string
     {
         return $this->toPascalCase($name);
@@ -672,6 +734,9 @@ class Python extends Language
 
                 $value = ($example !== null && $example !== '') ? $example : $enumValues[0];
                 return $enumName . '.' . $resolveKey($value);
+            }),
+            new TwigFilter('requestModelExample', function (array $parameter, array $spec) {
+                return $this->getRequestModelExample($parameter, $spec);
             }),
         ];
     }

@@ -12,6 +12,11 @@ from {{ spec.title | caseSnake }}.enums import {{parameter.enumName | caseUcfirs
 {% set added = added|merge([parameter.enumName]) %}
 {% endif %}
 {% endif %}
+{% set modelName = parameter.model ?? parameter.array.model ?? null %}
+{% if modelName and modelName not in added %}
+from {{ spec.title | caseSnake }}.models import {{ modelName | caseUcfirst }}
+{% set added = added|merge([modelName]) %}
+{% endif %}
 {% endfor %}
 {% if method.parameters.all | hasPermissionParam %}
 from {{ spec.title | caseSnake }}.permission import Permission
@@ -33,9 +38,21 @@ client.set_{{header | caseSnake}}('{{node[header]['x-appwrite']['demo'] | raw }}
 result = {{ service.name | caseSnake }}.{{ method.name | caseSnake }}({% if method.parameters.all | length == 0 %}){% endif %}
 
     {%~ for parameter in method.parameters.all %}
-    {{ parameter.name | caseSnake }} = {% if parameter.enumValues | length > 0 %}{{ parameter | enumExample }}{% else %}{{ parameter | paramExample }}{% endif %}{% if not loop.last %},{% endif %}{% if not parameter.required %} # optional{% endif %}
+    {{ parameter.name | caseSnake }} = {% if parameter.model or parameter.array.model %}{{ parameter | requestModelExample(spec) | raw }}{% elseif parameter.enumValues | length > 0 %}{{ parameter | enumExample }}{% else %}{{ parameter | paramExample }}{% endif %}{% if not loop.last %},{% endif %}{% if not parameter.required %} # optional{% endif %}
 
     {%~ endfor %}
 {% if method.parameters.all | length > 0 %})
+{% endif %}
+{% set validResponseModels = [] %}
+{% if method.responseModels is defined %}
+{% for responseModel in method.responseModels %}
+{% if responseModel and responseModel != 'any' %}
+{% set validResponseModels = validResponseModels|merge([responseModel]) %}
+{% endif %}
+{% endfor %}
+{% endif %}
+{% if (method.responseModel and method.responseModel != 'any') or validResponseModels | length > 0 %}
+
+print(result.model_dump())
 {% endif %}
 ```
