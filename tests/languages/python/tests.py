@@ -10,6 +10,7 @@ from appwrite.role import Role
 from appwrite.id import ID
 from appwrite.operator import Operator, Condition
 from appwrite.enums.mock_type import MockType
+from appwrite.models.player import Player
 
 import os.path
 
@@ -87,7 +88,7 @@ response = general.enum(MockType.FIRST)
 print_result(response)
 
 # Request model tests
-response = general.create_player({'id': 'player1', 'name': 'John Doe', 'score': 100})
+response = general.create_player(Player(id='player1', name='John Doe', score=100))
 print_result(response)
 
 response = general.create_players([

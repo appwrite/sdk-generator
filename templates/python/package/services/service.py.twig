@@ -15,14 +15,15 @@ from ..enums.{{ parameter.enumName | caseSnake }} import {{ parameter.enumName |
 {% set added = added|merge([parameter.enumName]) %}
 {% endif %}
 {% endif %}
-{% if parameter.model is not empty %}
-{% if parameter.model not in added %}
-{% if (parameter.model | caseUcfirst) == (service.name | caseUcfirst) %}
-from ..models.{{ parameter.model | caseSnake }} import {{ parameter.model | caseUcfirst }} as {{ parameter.model | caseUcfirst }}Model;
+{% set modelName = parameter.model ?? parameter.array.model ?? null %}
+{% if modelName %}
+{% if modelName not in added %}
+{% if (modelName | caseUcfirst) == (service.name | caseUcfirst) %}
+from ..models.{{ modelName | caseSnake }} import {{ modelName | caseUcfirst }} as {{ modelName | caseUcfirst }}Model;
 {% else %}
-from ..models.{{ parameter.model | caseSnake }} import {{ parameter.model | caseUcfirst }};
+from ..models.{{ modelName | caseSnake }} import {{ modelName | caseUcfirst }};
 {% endif %}
-{% set added = added|merge([parameter.model]) %}
+{% set added = added|merge([modelName]) %}
 {% endif %}
 {% endif %}
 {% endfor %}

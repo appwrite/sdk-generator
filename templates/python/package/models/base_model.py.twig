@@ -21,7 +21,7 @@ class AppwriteModel(BaseModel):
         return cls.model_validate(data)
 
     def to_dict(self) -> Dict[str, Any]:
-        return self.model_dump(by_alias=True, mode='json')
+        return self.model_dump(by_alias=True, mode='json', exclude_unset=True)
 
     def to_json(self) -> str:
         return self.model_dump_json(by_alias=True)
