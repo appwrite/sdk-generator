@@ -1,4 +1,4 @@
-export { Client, {{spec.title | caseUcfirst}}Exception } from './client';
+export { Client, Response, {{spec.title | caseUcfirst}}Exception } from './client';
 {% for service in spec.services %}
 export { {{service.name | caseUcfirst}} } from './services/{{service.name | caseKebab}}';
 {% endfor %}
