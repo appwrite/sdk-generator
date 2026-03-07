@@ -919,6 +919,10 @@ class Client {
             window.localStorage.setItem('cookieFallback', cookieFallback);
         }
 
+        if (data && typeof data === 'object') {
+            data.toString = () => JSONbig.stringify(data);
+        }
+
         return data;
     }
 

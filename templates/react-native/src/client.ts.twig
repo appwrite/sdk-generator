@@ -534,6 +534,10 @@ class Client {
                 window.localStorage.setItem('cookieFallback', cookieFallback);
             }
 
+            if (data && typeof data === 'object') {
+                data.toString = () => JSONbig.stringify(data);
+            }
+
             return data;
         } catch (e) {
             if (e instanceof {{spec.title | caseUcfirst}}Exception) {
