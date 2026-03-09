@@ -423,8 +423,8 @@ await teams.delete({ teamId: '[TEAM_ID]' });
 
 ```typescript
 // Subscribe to row changes
-const unsubscribe = client.subscribe('databases.[DATABASE_ID].tables.[TABLE_ID].rows', (response) => {
-    console.log(response.events);   // e.g. ['databases.*.tables.*.rows.*.create']
+const unsubscribe = client.subscribe('tablesdb.[DATABASE_ID].tables.[TABLE_ID].rows', (response) => {
+    console.log(response.events);   // e.g. ['tablesdb.*.tables.*.rows.*.create']
     console.log(response.payload);  // the affected resource
 });
 
@@ -435,7 +435,7 @@ client.subscribe('buckets.[BUCKET_ID].files', (response) => {
 
 // Subscribe to multiple channels
 client.subscribe([
-    'databases.[DATABASE_ID].tables.[TABLE_ID].rows',
+    'tablesdb.[DATABASE_ID].tables.[TABLE_ID].rows',
     'buckets.[BUCKET_ID].files',
 ], (response) => { /* ... */ });
 
@@ -448,8 +448,8 @@ unsubscribe();
 | Channel | Description |
 |---------|-------------|
 | `account` | Changes to the authenticated user's account |
-| `databases.[DB_ID].tables.[TABLE_ID].rows` | All rows in a table |
-| `databases.[DB_ID].tables.[TABLE_ID].rows.[ROW_ID]` | A specific row |
+| `tablesdb.[DB_ID].tables.[TABLE_ID].rows` | All rows in a table |
+| `tablesdb.[DB_ID].tables.[TABLE_ID].rows.[ROW_ID]` | A specific row |
 | `buckets.[BUCKET_ID].files` | All files in a bucket |
 | `buckets.[BUCKET_ID].files.[FILE_ID]` | A specific file |
 | `teams` | Changes to teams the user belongs to |
