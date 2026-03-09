@@ -46,12 +46,12 @@ appwrite projects get --project-id "<PROJECT_ID>"
 ## Configuration
 
 ```bash
-appwrite client --endpoint https://<REGION>.cloud.appwrite.io/v1
-appwrite client --key <API_KEY>
-appwrite client --self-signed true    # for self-signed SSL certs
-appwrite client --reset               # reset CLI configuration
-appwrite client --debug               # print current configuration
+# Authenticate with Appwrite
+appwrite login
 ```
+
+> For the full list of CLI commands, see [CLI Commands](https://appwrite.io/docs/tooling/command-line/commands).
+> For headless / CI/CD usage, see [Non-Interactive Mode](https://appwrite.io/docs/tooling/command-line/non-interactive).
 
 ## appwrite.config.json
 
@@ -258,21 +258,21 @@ appwrite push tables
 }
 ```
 
-### Database commands
+### Database commands (TablesDB)
 
 | Command | Description |
 |---------|-------------|
-| `appwrite databases list-tables --database-id <ID>` | List tables |
-| `appwrite databases create-table --database-id <ID>` | Create table |
-| `appwrite databases get-table --database-id <ID> --table-id <ID>` | Get table |
-| `appwrite databases update-table --database-id <ID> --table-id <ID>` | Update table |
-| `appwrite databases delete-table --database-id <ID> --table-id <ID>` | Delete table |
-| `appwrite databases list-columns --database-id <ID> --table-id <ID>` | List columns |
-| `appwrite databases get-column --database-id <ID> --table-id <ID> --key <KEY>` | Get column |
-| `appwrite databases delete-column --database-id <ID> --table-id <ID> --key <KEY>` | Delete column |
-| `appwrite databases list-indexes --database-id <ID> --table-id <ID>` | List indexes |
-| `appwrite databases create-index --database-id <ID> --table-id <ID>` | Create index |
-| `appwrite databases delete-index --database-id <ID> --table-id <ID> --key <KEY>` | Delete index |
+| `appwrite tables-db list-tables --database-id <ID>` | List tables |
+| `appwrite tables-db create-table --database-id <ID>` | Create table |
+| `appwrite tables-db get-table --database-id <ID> --table-id <ID>` | Get table |
+| `appwrite tables-db update-table --database-id <ID> --table-id <ID>` | Update table |
+| `appwrite tables-db delete-table --database-id <ID> --table-id <ID>` | Delete table |
+| `appwrite tables-db list-columns --database-id <ID> --table-id <ID>` | List columns |
+| `appwrite tables-db get-column --database-id <ID> --table-id <ID> --key <KEY>` | Get column |
+| `appwrite tables-db delete-column --database-id <ID> --table-id <ID> --key <KEY>` | Delete column |
+| `appwrite tables-db list-column-indexes --database-id <ID> --table-id <ID>` | List indexes |
+| `appwrite tables-db create-column-index --database-id <ID> --table-id <ID>` | Create index |
+| `appwrite tables-db delete-column-index --database-id <ID> --table-id <ID> --key <KEY>` | Delete index |
 
 ### Column type commands
 
@@ -280,37 +280,37 @@ appwrite push tables
 
 | Command | Description |
 |---------|-------------|
-| `create-varchar-attribute` | Varchar column — inline storage, fully indexable (max 16,383 chars, size ≤ 768 for full index) |
-| `create-text-attribute` | Text column — off-page storage, prefix index only (max 16,383 chars) |
-| `create-mediumtext-attribute` | Mediumtext column — off-page storage (max ~4M chars) |
-| `create-longtext-attribute` | Longtext column — off-page storage (max ~1B chars) |
-| `create-boolean-attribute` | Boolean column |
-| `create-integer-attribute` | Integer column (optional min/max) |
-| `create-float-attribute` | Float column (optional min/max) |
-| `create-email-attribute` | Email column |
-| `create-url-attribute` | URL column |
-| `create-ip-attribute` | IP address column |
-| `create-datetime-attribute` | Datetime column (ISO 8601) |
-| `create-enum-attribute` | Enum column (whitelist of accepted values) |
-| `create-relationship-attribute` | Relationship column |
+| `create-varchar-column` | Varchar column — inline storage, fully indexable (max 16,383 chars, size ≤ 768 for full index) |
+| `create-text-column` | Text column — off-page storage, prefix index only (max 16,383 chars) |
+| `create-mediumtext-column` | Mediumtext column — off-page storage (max ~4M chars) |
+| `create-longtext-column` | Longtext column — off-page storage (max ~1B chars) |
+| `create-boolean-column` | Boolean column |
+| `create-integer-column` | Integer column (optional min/max) |
+| `create-float-column` | Float column (optional min/max) |
+| `create-email-column` | Email column |
+| `create-url-column` | URL column |
+| `create-ip-column` | IP address column |
+| `create-datetime-column` | Datetime column (ISO 8601) |
+| `create-enum-column` | Enum column (whitelist of accepted values) |
+| `create-relationship-column` | Relationship column |
 
-All column commands use `appwrite databases <command> --database-id <ID> --table-id <ID>`.
+All column commands use `appwrite tables-db <command> --database-id <ID> --table-id <ID>`.
 
 ### Row operations
 
 ```bash
 # Create a row
-appwrite databases create-row \
+appwrite tables-db create-row \
     --database-id "<DATABASE_ID>" --table-id "<TABLE_ID>" \
     --row-id 'unique()' --data '{ "title": "Hello World" }' \
     --permissions 'read("any")' 'write("team:abc")'
 
 # List rows (JSON output)
-appwrite databases list-rows \
+appwrite tables-db list-rows \
     --database-id "<DATABASE_ID>" --table-id "<TABLE_ID>" --json
 
 # Get a row
-appwrite databases get-row \
+appwrite tables-db get-row \
     --database-id "<DATABASE_ID>" --table-id "<TABLE_ID>" --row-id "<ROW_ID>"
 ```
 
@@ -410,8 +410,7 @@ appwrite push topics
 ```bash
 # Create a user
 appwrite users create --user-id "unique()" \
-    --email hello@appwrite.io \
-    --password very_strong_password
+    --email hello@appwrite.io
 
 # List users
 appwrite users list
@@ -484,15 +483,7 @@ await customers.createMany([
 
 ## Non-Interactive / CI/CD Mode
 
-For headless automation without config files or sessions:
-
-```bash
-# Configure client for non-interactive mode
-appwrite client \
-    --endpoint https://<REGION>.cloud.appwrite.io/v1 \
-    --project-id <PROJECT_ID> \
-    --key <API_KEY>
-```
+For headless automation, see the [Non-Interactive Mode docs](https://appwrite.io/docs/tooling/command-line/non-interactive).
 
 ### Deploy non-interactively
 
@@ -535,7 +526,7 @@ appwrite users list --json
 appwrite users list --verbose
 
 # View a row in the Console
-appwrite databases get-row \
+appwrite tables-db get-row \
     --database-id "<DATABASE_ID>" \
     --table-id "<TABLE_ID>" \
     --row-id "<ROW_ID>" \
