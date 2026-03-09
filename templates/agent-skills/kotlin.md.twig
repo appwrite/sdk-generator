@@ -284,17 +284,22 @@ teams.delete(teamId = "[TEAM_ID]")
 ### Real-time Subscriptions (client-side)
 
 ```kotlin
+import io.{{ spec.title | caseLower }}.Channel
+
 val realtime = Realtime(client)
 
-val subscription = realtime.subscribe("tablesdb.[DATABASE_ID].tables.[TABLE_ID].rows") { response ->
+// Subscribe to row changes
+val subscription = realtime.subscribe(
+    Channel.tablesdb("[DATABASE_ID]").table("[TABLE_ID]").row()
+) { response ->
     println(response.events)   // e.g. ["tablesdb.*.tables.*.rows.*.create"]
     println(response.payload)  // the affected resource
 }
 
 // Subscribe to multiple channels
 val multi = realtime.subscribe(
-    "tablesdb.[DATABASE_ID].tables.[TABLE_ID].rows",
-    "buckets.[BUCKET_ID].files"
+    Channel.tablesdb("[DATABASE_ID]").table("[TABLE_ID]").row(),
+    Channel.bucket("[BUCKET_ID]").file()
 ) { response -> /* ... */ }
 
 // Cleanup

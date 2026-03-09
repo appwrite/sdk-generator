@@ -260,7 +260,10 @@ await teams.delete(teamId: '[TEAM_ID]');
 ```dart
 final realtime = Realtime(client);
 
-final subscription = realtime.subscribe(['tablesdb.[DATABASE_ID].tables.[TABLE_ID].rows']);
+// Subscribe to row changes
+final subscription = realtime.subscribe([
+    Channel.tablesdb('[DATABASE_ID]').table('[TABLE_ID]').row(),
+]);
 subscription.stream.listen((response) {
     print(response.events);   // e.g. ['tablesdb.*.tables.*.rows.*.create']
     print(response.payload);  // the affected resource
@@ -268,8 +271,8 @@ subscription.stream.listen((response) {
 
 // Subscribe to multiple channels
 final multi = realtime.subscribe([
-    'tablesdb.[DATABASE_ID].tables.[TABLE_ID].rows',
-    'buckets.[BUCKET_ID].files',
+    Channel.tablesdb('[DATABASE_ID]').table('[TABLE_ID]').row(),
+    Channel.bucket('[BUCKET_ID]').file(),
 ]);
 
 // Cleanup

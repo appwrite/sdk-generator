@@ -422,25 +422,33 @@ await teams.delete({ teamId: '[TEAM_ID]' });
 ### Real-time Subscriptions (client-side)
 
 ```typescript
-// Subscribe to row changes
-const unsubscribe = client.subscribe('tablesdb.[DATABASE_ID].tables.[TABLE_ID].rows', (response) => {
-    console.log(response.events);   // e.g. ['tablesdb.*.tables.*.rows.*.create']
-    console.log(response.payload);  // the affected resource
-});
+import { Realtime, Channel } from '{{ spec.title | caseLower }}';
 
-// Subscribe to file changes
-client.subscribe('buckets.[BUCKET_ID].files', (response) => {
-    console.log(response.payload);
-});
+const realtime = new Realtime(client);
+
+// Subscribe to row changes
+const subscription = await realtime.subscribe(
+    Channel.tablesdb('[DATABASE_ID]').table('[TABLE_ID]').row(),
+    (response) => {
+        console.log(response.events);   // e.g. ['tablesdb.*.tables.*.rows.*.create']
+        console.log(response.payload);  // the affected resource
+    }
+);
+
+// Subscribe to a specific row
+await realtime.subscribe(
+    Channel.tablesdb('[DATABASE_ID]').table('[TABLE_ID]').row('[ROW_ID]'),
+    (response) => { /* ... */ }
+);
 
 // Subscribe to multiple channels
-client.subscribe([
-    'tablesdb.[DATABASE_ID].tables.[TABLE_ID].rows',
-    'buckets.[BUCKET_ID].files',
+await realtime.subscribe([
+    Channel.tablesdb('[DATABASE_ID]').table('[TABLE_ID]').row(),
+    Channel.bucket('[BUCKET_ID]').file(),
 ], (response) => { /* ... */ });
 
 // Unsubscribe
-unsubscribe();
+await subscription.close();
 ```
 
 **Available channels:**
