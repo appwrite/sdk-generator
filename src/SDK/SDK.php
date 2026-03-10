@@ -176,7 +176,7 @@ class SDK
             return implode("\n", $value);
         }, ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('escapeDollarSign', function ($value) {
-            $value = str_replace('\\', '\\\\', $value); // Escape backslashes first
+            $value = str_replace('\\', '\\\\', $value ?? ''); // Escape backslashes first
             $value = str_replace('"', '\\"', $value);   // Escape double quotes
             $value = str_replace('$', '\\$', $value);   // Escape dollar signs
             return $value;

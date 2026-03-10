@@ -2,7 +2,7 @@
 
 namespace Appwrite\SDK\Language;
 
-class Node extends JS
+class Node extends Web
 {
     /**
      * @return string
@@ -192,7 +192,7 @@ class Node extends JS
             ],
             [
                 'scope'         => 'service',
-                'destination'   => '/test/services/{{service.name | caseDash}}.test.js',
+                'destination'   => 'test/services/{{service.name | caseDash}}.test.js',
                 'template'      => 'node/test/services/service.test.js.twig',
             ],
             [
@@ -223,7 +223,7 @@ class Node extends JS
             [
                 'scope'         => 'default',
                 'destination'   => 'tsconfig.json',
-                'template'      => '/node/tsconfig.json.twig',
+                'template'      => 'node/tsconfig.json.twig',
             ],
             [
                 'scope'         => 'default',

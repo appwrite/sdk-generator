@@ -1,5 +1,5 @@
-const Permission = require("../lib/permission");
-const Role = require("../lib/role");
+const { Permission } = require("../dist/permission");
+const { Role } = require("../dist/role");
 
 describe('Permission', () => {
     test('read', () => expect(Permission.read(Role.any())).toEqual('read("any")'));
