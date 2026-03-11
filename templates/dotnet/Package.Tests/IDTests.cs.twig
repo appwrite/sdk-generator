@@ -1,0 +1,58 @@
+using Xunit;
+using {{ spec.title | caseUcfirst }};
+
+namespace {{ spec.title | caseUcfirst }}.Tests
+{
+    public class IDTests
+    {
+        [Fact]
+        public void Unique_ReturnsUniqueID()
+        {
+            var id = ID.Unique();
+            Assert.NotNull(id);
+            Assert.NotEmpty(id);
+            Assert.Equal(20, id.Length);
+        }
+
+        [Fact]
+        public void Unique_WithCustomPadding_ReturnsCorrectLength()
+        {
+            var padding = 10;
+            var id = ID.Unique(padding);
+            Assert.NotNull(id);
+            Assert.NotEmpty(id);
+            Assert.Equal(13 + padding, id.Length); // 13 is base timestamp length
+        }
+
+        [Fact]
+        public void Unique_GeneratesUniqueIDs()
+        {
+            var id1 = ID.Unique();
+            var id2 = ID.Unique();
+            Assert.NotEqual(id1, id2);
+        }
+
+        [Fact]
+        public void Custom_ReturnsCustomString()
+        {
+            var customId = "custom";
+            var result = ID.Custom(customId);
+            Assert.Equal(customId, result);
+        }
+
+        [Fact]
+        public void Custom_WithEmptyString_ReturnsEmptyString()
+        {
+            var result = ID.Custom("");
+            Assert.Equal("", result);
+        }
+
+        [Fact]
+        public void Custom_WithSpecialCharacters_ReturnsExactString()
+        {
+            var customId = "test-123_abc@xyz";
+            var result = ID.Custom(customId);
+            Assert.Equal(customId, result);
+        }
+    }
+}

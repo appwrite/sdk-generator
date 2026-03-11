@@ -1,0 +1,143 @@
+using System;
+using Xunit;
+using {{ spec.title | caseUcfirst }};
+
+namespace {{ spec.title | caseUcfirst }}.Tests
+{
+    public class ExceptionTests
+    {
+        [Fact]
+        public void Constructor_Default_CreatesException()
+        {
+            var exception = new {{spec.title | caseUcfirst}}Exception();
+            
+            Assert.NotNull(exception);
+            Assert.NotNull(exception.Message);
+            Assert.Null(exception.Code);
+            Assert.Null(exception.Type);
+            Assert.Null(exception.Response);
+        }
+
+        [Fact]
+        public void Constructor_WithMessage_SetsMessage()
+        {
+            var message = "Some error message";
+            var exception = new {{spec.title | caseUcfirst}}Exception(message);
+            
+            Assert.NotNull(exception);
+            Assert.Equal(message, exception.Message);
+            Assert.Null(exception.Code);
+            Assert.Null(exception.Type);
+            Assert.Null(exception.Response);
+        }
+
+        [Fact]
+        public void Constructor_WithAllParameters_SetsAllProperties()
+        {
+            var message = "Invalid request";
+            var code = 400;
+            var type = "ValidationError";
+            var response = "{\"error\":\"validation failed\"}";
+            
+            var exception = new {{spec.title | caseUcfirst}}Exception(message, code, type, response);
+            
+            Assert.NotNull(exception);
+            Assert.Equal(message, exception.Message);
+            Assert.Equal(code, exception.Code);
+            Assert.Equal(type, exception.Type);
+            Assert.Equal(response, exception.Response);
+        }
+
+        [Fact]
+        public void Constructor_WithMessageAndCode_SetsCorrectly()
+        {
+            var message = "Not found";
+            var code = 404;
+            
+            var exception = new {{spec.title | caseUcfirst}}Exception(message, code);
+            
+            Assert.NotNull(exception);
+            Assert.Equal(message, exception.Message);
+            Assert.Equal(code, exception.Code);
+            Assert.Null(exception.Type);
+            Assert.Null(exception.Response);
+        }
+
+        [Fact]
+        public void Constructor_WithInnerException_SetsInnerException()
+        {
+            var message = "Outer exception";
+            var innerException = new Exception("Inner exception");
+            
+            var exception = new {{spec.title | caseUcfirst}}Exception(message, innerException);
+            
+            Assert.NotNull(exception);
+            Assert.Equal(message, exception.Message);
+            Assert.NotNull(exception.InnerException);
+            Assert.Equal("Inner exception", exception.InnerException.Message);
+        }
+
+        [Fact]
+        public void Exception_CanBeCaught()
+        {
+            var caught = false;
+            
+            try
+            {
+                throw new {{spec.title | caseUcfirst}}Exception("Test exception");
+            }
+            catch ({{spec.title | caseUcfirst}}Exception)
+            {
+                caught = true;
+            }
+            
+            Assert.True(caught);
+        }
+
+        [Fact]
+        public void Exception_WithCode_ReturnsCorrectCode()
+        {
+            var exception = new {{spec.title | caseUcfirst}}Exception("Error", 500, "ServerError");
+            
+            Assert.Equal(500, exception.Code);
+        }
+
+        [Fact]
+        public void Exception_WithType_ReturnsCorrectType()
+        {
+            var exception = new {{spec.title | caseUcfirst}}Exception("Error", 401, "Unauthorized");
+            
+            Assert.Equal("Unauthorized", exception.Type);
+        }
+
+        [Fact]
+        public void Exception_WithResponse_ReturnsCorrectResponse()
+        {
+            var response = "{\"message\":\"error\"}";
+            var exception = new {{spec.title | caseUcfirst}}Exception("Error", 400, "BadRequest", response);
+            
+            Assert.Equal(response, exception.Response);
+        }
+
+        [Fact]
+        public void ToString_WithDefaultConstructor_ReturnsCorrectString()
+        {
+            var exception = new {{spec.title | caseUcfirst}}Exception();
+            var result = exception.ToString();
+            
+            Assert.NotNull(result);
+            Assert.Contains("{{spec.title | caseUcfirst}}Exception", result);
+        }
+
+        [Fact]
+        public void ToString_WithMessage_ReturnsCorrectString()
+        {
+            var exception = new {{spec.title | caseUcfirst}}Exception("Some error message");
+            var result = exception.ToString();
+            
+            Assert.NotNull(result);
+            Assert.Contains("{{spec.title | caseUcfirst}}Exception", result);
+            Assert.Contains("Some error message", result);
+        }
+    }
+}
