@@ -17,6 +17,7 @@ import {
   SDK_LANGUAGE,
   SDK_VERSION,
   SDK_TITLE,
+  EXECUTABLE_NAME,
 } from "./constants.js";
 
 class Client {
@@ -239,6 +240,22 @@ class Client {
         globalConfig.setCurrentSession("");
         globalConfig.removeSession(current);
       }
+
+      const isUnauthorized =
+        json.code === 401 &&
+        json.type === "general_unauthorized_scope" &&
+        typeof json.message === "string" &&
+        /role:\s*guests/i.test(json.message);
+
+      if (isUnauthorized) {
+        throw new AppwriteException(
+          `You are not authenticated. Run '${EXECUTABLE_NAME} login' to authenticate and try again.`,
+          json.code,
+          json.type,
+          text,
+        );
+      }
+
       throw new AppwriteException(
         json.message || text,
         json.code,
