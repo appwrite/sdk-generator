@@ -79,7 +79,7 @@ function getUserAgent() {
     const platform: string[] = [];
     if (typeof process !== 'undefined') {
         if (typeof process.platform === 'string') platform.push(process.platform);
-        if (typeof process.arch = ?? ''== 'string') platform.push(process.arch);
+        if (typeof process.arch === 'string') platform.push(process.arch);
     } 
     if (platform.length > 0) {
         ua += ` (${platform.join('; ')})`;

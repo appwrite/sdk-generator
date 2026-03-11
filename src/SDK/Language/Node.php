@@ -187,6 +187,11 @@ class Node extends Web
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'test/operator.test.js',
+                'template'      => 'node/test/operator.test.js.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'src/operator.ts',
                 'template'      => 'node/src/operator.ts.twig',
             ],
