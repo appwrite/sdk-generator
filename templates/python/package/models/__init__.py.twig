@@ -1,0 +1,10 @@
+{%~ for definition in spec.definitions %}
+from .{{ definition.name | caseSnake }} import {{ definition.name | caseUcfirst }}
+{%~ endfor %}
+
+__all__ = [
+{%~ for definition in spec.definitions %}
+    "{{ definition.name | caseUcfirst }}"{% if not loop.last %},{% endif %}
+
+{%~ endfor %}
+]

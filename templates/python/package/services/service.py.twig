@@ -17,11 +17,17 @@ from ..enums.{{ parameter.enumName | caseSnake }} import {{ parameter.enumName |
 {% endif %}
 {% if parameter.model is not empty %}
 {% if parameter.model not in added %}
-from ..models.{{ parameter.model | caseSnake }} import {{ parameter.model | caseUcfirst }};
+from ..models.{{ parameter.model | caseSnake }} import {{ parameter.model | caseUcfirst }}
 {% set added = added|merge([parameter.model]) %}
 {% endif %}
 {% endif %}
 {% endfor %}
+{% if method.responseModel | length > 0 %}
+{% if method.responseModel not in added and method.responseModel != 'any' %}
+from ..models.{{ method.responseModel | caseSnake }} import {{ method.responseModel | caseUcfirst }}
+{% set added = added|merge([method.responseModel]) %}
+{% endif %}
+{% endif %}
 {% endfor %}
 
 class {{ service.name | caseUcfirst }}(Service):
@@ -48,7 +54,7 @@ class {{ service.name | caseUcfirst }}(Service):
     @deprecated("This API has been deprecated.")
 {% endif %}
 {% endif %}
-    def {{ method.name | caseSnake }}(self{% if method.parameters.all|length > 0 %}, {% endif %}{% for parameter in method.parameters.all %}{{ parameter.name | escapeKeyword | caseSnake }}: {{ parameter | getPropertyType(method) | raw }}{% if not parameter.required %} = None{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, on_progress = None{% endif %}) -> {% if method.type == 'webAuth' %}str{% elseif method.type == 'location' %}bytes{% else %}Dict[str, Any]{% endif %}:
+    def {{ method.name | caseSnake }}(self{% if method.parameters.all|length > 0 %}, {% endif %}{% for parameter in method.parameters.all %}{{ parameter.name | escapeKeyword | caseSnake }}: {{ parameter | getPropertyType(method) | raw }}{% if not parameter.required %} = None{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, on_progress = None{% endif %}) -> {% if method.type == 'webAuth' %}str{% elseif method.type == 'location' %}bytes{% elseif method.responseModel | length > 0 and method.responseModel != 'any' %}{{ method.responseModel | caseUcfirst }}{% else %}Any{% endif %}:
         """
         {% autoescape false %}{{ method.description | replace({"\n": "\n        "}) }}{% endautoescape %}
 
@@ -79,8 +85,8 @@ class {{ service.name | caseUcfirst }}(Service):
             Authentication response as a string
         {% elseif method.type == 'location' %}bytes
             Response as bytes
-        {% else %}Dict[str, Any]
-            API response as a dictionary
+        {% elseif method.responseModel | length > 0 and method.responseModel != 'any' %}{{ method.responseModel | caseUcfirst }}
+        {% else %}Any
         {% endif %}
 
         Raises

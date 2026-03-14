@@ -1,3 +1,15 @@
+{% if method.responseModel | length > 0 and method.responseModel != 'any' %}
+        response = self.client.call('{{ method.method | caseLower }}', api_path, {
+{% for parameter in method.parameters.header %}
+            '{{ parameter.name }}': {{ parameter.name | escapeKeyword | caseSnake }},
+{% endfor %}
+{% for key, header in method.headers %}
+            '{{ key }}': '{{ header }}',
+{% endfor %}
+        }, api_params{% if method.type == 'webAuth' %}, response_type='location'{% endif %})
+
+        return {{ method.responseModel | caseUcfirst }}.from_map(response)
+{% else %}
         return self.client.call('{{ method.method | caseLower }}', api_path, {
 {% for parameter in method.parameters.header %}
             '{{ parameter.name }}': {{ parameter.name | escapeKeyword | caseSnake }},
@@ -6,3 +18,4 @@
             '{{ key }}': '{{ header }}',
 {% endfor %}
         }, api_params{% if method.type == 'webAuth' %}, response_type='location'{% endif %})
+{% endif %}

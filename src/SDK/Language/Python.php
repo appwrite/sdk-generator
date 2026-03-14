@@ -246,6 +246,16 @@ class Python extends Language
                 'template' => 'python/package/enums/__init__.py.twig',
             ],
             [
+                'scope' => 'definition',
+                'destination' => '{{ spec.title | caseSnake}}/models/{{ definition.name | caseSnake }}.py',
+                'template' => 'python/package/models/model.py.twig',
+            ],
+            [
+                'scope' => 'default',
+                'destination' => '{{ spec.title | caseSnake}}/models/__init__.py',
+                'template' => 'python/package/models/__init__.py.twig',
+            ],
+            [
                 'scope' => 'requestModel',
                 'destination' => '{{ spec.title | caseSnake}}/models/{{ requestModel.name | caseSnake }}.py',
                 'template' => 'python/package/models/request_model.py.twig',
@@ -286,8 +296,10 @@ class Python extends Language
                     $typeName = 'InputFile';
                     break;
                 case self::TYPE_NUMBER:
-                case self::TYPE_INTEGER:
                     $typeName = 'float';
+                    break;
+                case self::TYPE_INTEGER:
+                    $typeName = 'int';
                     break;
                 case self::TYPE_BOOLEAN:
                     $typeName = 'bool';
@@ -303,7 +315,7 @@ class Python extends Language
                     }
                     break;
                 case self::TYPE_OBJECT:
-                    $typeName = 'dict';
+                    $typeName = 'Dict[str, Any]';
                     break;
                 default:
                     $typeName = $parameter['type'];
@@ -413,6 +425,9 @@ class Python extends Language
     public function getFilters(): array
     {
         return [
+            new TwigFilter('typeName', function ($value) {
+                return $this->getTypeName($value);
+            }),
             new TwigFilter('caseEnumKey', function (string $value) {
                 return $this->toUpperSnakeCase($value);
             }),

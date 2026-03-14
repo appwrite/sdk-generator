@@ -1,0 +1,113 @@
+from typing import Optional, List, Dict, Any
+{%~ for property in definition.properties %}
+{%~ if property.enum %}
+from ..enums.{{ property.enumName | caseSnake }} import {{ property.enumName | caseUcfirst }}
+{%~ endif %}
+{%~ if property.sub_schema %}
+from .{{ property.sub_schema | caseSnake }} import {{ property.sub_schema | caseUcfirst }}
+{%~ endif %}
+{%~ endfor %}
+
+class {{ definition.name | caseUcfirst }}:
+    """
+    {{ definition.description }}
+    """
+
+    def __init__(
+        self,
+        {%~ for property in definition.properties %}
+        {{ property.name | caseSnake | escapeKeyword }}: {% if not property.required %}Optional[{% endif %}{{ property | typeName }}{% if not property.required %}] = None{% endif %}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
+
+        {%~ endfor %}
+        {%~ if definition.additionalProperties %}
+        **kwargs
+        {%~ endif %}
+    ):
+        {%~ for property in definition.properties %}
+        self.{{ property.name | caseSnake | escapeKeyword }} = {{ property.name | caseSnake | escapeKeyword }}
+        {%~ endfor %}
+        {%~ if definition.additionalProperties %}
+        self.data = kwargs
+        {%~ endif %}
+
+    @classmethod
+    def from_map(cls, data: Dict[str, Any]) -> '{{ definition.name | caseUcfirst }}':
+        kwargs = dict(data)
+        {%~ for property in definition.properties %}
+        {%~ set propName = property.name | caseSnake | escapeKeyword %}
+        if '{{ property.name }}' in kwargs and kwargs['{{ property.name }}'] is not None:
+            {%~ if property.sub_schema %}
+            {%~ if property.type == 'array' %}
+            kwargs['{{ propName }}'] = [{{ property.sub_schema | caseUcfirst }}.from_map(item) for item in kwargs.pop('{{ property.name }}')]
+            {%~ else %}
+            kwargs['{{ propName }}'] = {{ property.sub_schema | caseUcfirst }}.from_map(kwargs.pop('{{ property.name }}'))
+            {%~ endif %}
+            {%~ elseif property.enum %}
+            kwargs['{{ propName }}'] = {{ property.enumName | caseUcfirst }}(kwargs.pop('{{ property.name }}'))
+            {%~ else %}
+            kwargs['{{ propName }}'] = kwargs.pop('{{ property.name }}')
+            {%~ endif %}
+        else:
+            {%~ if property.required %}
+            raise ValueError("Missing required field '{{ property.name }}' for {{ definition.name | caseUcfirst }}")
+            {%~ else %}
+            kwargs.pop('{{ property.name }}', None)
+            kwargs['{{ propName }}'] = None
+            {%~ endif %}
+
+        {%~ endfor %}
+        return cls(**kwargs)
+
+    def to_map(self) -> Dict[str, Any]:
+        output = {
+            {%~ for property in definition.properties %}
+            {%~ set propName = property.name | caseSnake | escapeKeyword %}
+            '{{ property.name }}': {% if property.sub_schema %}{% if property.type == 'array' %}[item.to_map() for item in self.{{ propName }}] if self.{{ propName }} is not None else None{% else %}self.{{ propName }}.to_map() if self.{{ propName }} is not None else None{% endif %}{% elseif property.enum %}self.{{ propName }}.value if self.{{ propName }} is not None else None{% else %}self.{{ propName }}{% endif %}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
+
+            {%~ endfor %}
+        }
+        {%~ if definition.additionalProperties %}
+        output.update(self.data)
+        {%~ endif %}
+        return output
+
+    def keys(self):
+        return self.to_map().keys()
+
+    def values(self):
+        return self.to_map().values()
+
+    def items(self):
+        return self.to_map().items()
+
+    def __getitem__(self, key: str) -> Any:
+        return self.to_map()[key]
+
+    def __setitem__(self, key: str, value: Any):
+        {%~ if definition.additionalProperties %}
+        if hasattr(self, key):
+            setattr(self, key, value)
+        else:
+            self.data[key] = value
+        {%~ else %}
+        if not hasattr(self, key):
+            raise KeyError(key)
+        setattr(self, key, value)
+        {%~ endif %}
+
+    def __contains__(self, key: str) -> bool:
+        return key in self.to_map()
+
+    def __iter__(self):
+        return iter(self.to_map())
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, {{ definition.name | caseUcfirst }}):
+            return NotImplemented
+        return self.to_map() == other.to_map()
+
+    def __len__(self) -> int:
+        return len(self.to_map())
+
+    def __hash__(self) -> int:
+        return hash(str(self.to_map()))
