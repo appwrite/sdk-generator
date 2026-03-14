@@ -425,9 +425,7 @@ class Python extends Language
     public function getFilters(): array
     {
         return [
-            new TwigFilter('typeName', function ($value) {
-                return $this->getTypeName($value);
-            }),
+
             new TwigFilter('caseEnumKey', function (string $value) {
                 return $this->toUpperSnakeCase($value);
             }),

@@ -1,10 +1,13 @@
 from typing import Optional, List, Dict, Any
+{%~ set added = [] %}
 {%~ for property in definition.properties %}
-{%~ if property.enum %}
+{%~ if property.enum and property.enumName not in added %}
 from ..enums.{{ property.enumName | caseSnake }} import {{ property.enumName | caseUcfirst }}
+{%~ set added = added|merge([property.enumName]) %}
 {%~ endif %}
-{%~ if property.sub_schema %}
+{%~ if property.sub_schema and property.sub_schema not in added %}
 from .{{ property.sub_schema | caseSnake }} import {{ property.sub_schema | caseUcfirst }}
+{%~ set added = added|merge([property.sub_schema]) %}
 {%~ endif %}
 {%~ endfor %}
 
@@ -62,7 +65,7 @@ class {{ definition.name | caseUcfirst }}:
         output = {
             {%~ for property in definition.properties %}
             {%~ set propName = property.name | caseSnake | escapeKeyword %}
-            '{{ property.name }}': {% if property.sub_schema %}{% if property.type == 'array' %}[item.to_map() for item in self.{{ propName }}] if self.{{ propName }} is not None else None{% else %}self.{{ propName }}.to_map() if self.{{ propName }} is not None else None{% endif %}{% elseif property.enum %}self.{{ propName }}.value if self.{{ propName }} is not None else None{% else %}self.{{ propName }}{% endif %}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
+            '{{ property.name }}': {% if property.sub_schema %}{% if property.type == 'array' %}[item.to_map() if item is not None else None for item in self.{{ propName }}] if self.{{ propName }} is not None else None{% else %}self.{{ propName }}.to_map() if self.{{ propName }} is not None else None{% endif %}{% elseif property.enum %}self.{{ propName }}.value if self.{{ propName }} is not None else None{% else %}self.{{ propName }}{% endif %}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
 
             {%~ endfor %}
         }
