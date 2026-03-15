@@ -24,7 +24,6 @@ package {{ service.name | caseLower }}
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/{{sdk.gitUserName}}/sdk-for-go/client"
 {% if requireModelsPkg %}
 	"github.com/{{sdk.gitUserName}}/sdk-for-go/models"
@@ -33,6 +32,7 @@ import (
 	"github.com/{{sdk.gitUserName}}/sdk-for-go/file"
 {% endif %}
 {% if requireUrlPkg %}
+	"fmt"
 	"net/url"
 {% endif %}
 	"strings"
