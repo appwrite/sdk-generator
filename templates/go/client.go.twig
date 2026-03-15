@@ -127,6 +127,11 @@ func (client *Client) AddHeader(key string, value string) {
 	client.Headers[key] = value
 }
 
+// GetEndpoint returns the client's current endpoint
+func (client *Client) GetEndpoint() string {
+	return client.Endpoint
+}
+
 func isFileUpload(headers map[string]interface{}) bool {
 	contentType, ok := headers["content-type"].(string)
 	if ok {
