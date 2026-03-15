@@ -32,8 +32,10 @@ import (
 	"github.com/{{sdk.gitUserName}}/sdk-for-go/file"
 {% endif %}
 {% if requireUrlPkg %}
-	"fmt"
 	"net/url"
+{% endif %}
+{% if requireFmtPkg %}
+    "fmt"
 {% endif %}
 	"strings"
 )
