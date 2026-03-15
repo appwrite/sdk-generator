@@ -6,6 +6,12 @@
 {%- set requireUrlPkg = true -%}
 {%- endif -%}
 {%- endfor -%}
+{%- set requireFmtPkg = false -%}
+{%- for method in service.methods -%}
+{%- if method.type == 'location' and (method.parameters.query|length > 0) -%}
+{%- set requireFmtPkg = true -%}
+{%- endif -%}
+{%- endfor -%}
 {%- for method in service.methods -%}
 {%- if (method | returnType(spec, spec.title | caseLower)) starts with "models" -%}
 		{%- set requireModelsPkg = true -%}
