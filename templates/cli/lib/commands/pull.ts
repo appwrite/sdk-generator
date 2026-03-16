@@ -299,6 +299,7 @@ export class Pull {
         scopes: func.scopes,
         buildSpecification: func.buildSpecification,
         runtimeSpecification: func.runtimeSpecification,
+        deploymentRetention: func.deploymentRetention,
       };
 
       result.push(functionConfig);
@@ -396,8 +397,10 @@ export class Pull {
         buildCommand: site.buildCommand,
         outputDirectory: site.outputDirectory,
         fallbackFile: site.fallbackFile,
+        startCommand: site.startCommand,
         buildSpecification: site.buildSpecification,
         runtimeSpecification: site.runtimeSpecification,
+        deploymentRetention: site.deploymentRetention,
       };
 
       result.push(siteConfig);

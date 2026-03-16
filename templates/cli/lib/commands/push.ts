@@ -751,6 +751,7 @@ export class Push {
             scopes: func.scopes,
             buildSpecification: func.buildSpecification,
             runtimeSpecification: func.runtimeSpecification,
+            deploymentRetention: func.deploymentRetention,
           });
         } catch (e: any) {
           if (Number(e.code) === 404) {
@@ -786,6 +787,7 @@ export class Push {
               scopes: func.scopes,
               buildSpecification: func.buildSpecification,
               runtimeSpecification: func.runtimeSpecification,
+              deploymentRetention: func.deploymentRetention,
             });
 
             let domain = "";
@@ -1117,8 +1119,10 @@ export class Push {
             outputDirectory: site.outputDirectory,
             buildRuntime: site.buildRuntime,
             adapter: site.adapter,
+            startCommand: site.startCommand,
             buildSpecification: site.buildSpecification,
             runtimeSpecification: site.runtimeSpecification,
+            deploymentRetention: site.deploymentRetention,
           });
         } catch (e: any) {
           if (Number(e.code) === 404) {
@@ -1151,8 +1155,10 @@ export class Push {
               outputDirectory: site.outputDirectory,
               buildRuntime: site.buildRuntime,
               adapter: site.adapter,
+              startCommand: site.startCommand,
               buildSpecification: site.buildSpecification,
               runtimeSpecification: site.runtimeSpecification,
+              deploymentRetention: site.deploymentRetention,
             });
 
             let domain = "";

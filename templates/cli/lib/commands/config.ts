@@ -148,6 +148,8 @@ const SiteSchema = z
     fallbackFile: z.string().optional(),
     buildSpecification: z.string().optional(),
     runtimeSpecification: z.string().optional(),
+    deploymentRetention: z.number().optional(),
+    startCommand: z.string().optional(),
     vars: z.record(z.string(), z.string()).optional(),
     ignore: z.string().optional(),
   })
@@ -164,6 +166,7 @@ const FunctionSchema = z
     runtime: z.string(),
     buildSpecification: z.string().optional(),
     runtimeSpecification: z.string().optional(),
+    deploymentRetention: z.number().optional(),
     scopes: z.array(z.string()).optional(),
     events: z.array(z.string()).optional(),
     schedule: z.string().optional(),
