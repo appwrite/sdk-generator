@@ -7,3 +7,9 @@ inline fun <reified T : Any> classOf(): Class<T> {
     @Suppress("UNCHECKED_CAST")
     return (typeOf<T>().classifier!! as KClass<T>).java
 }
+
+fun Any?.toNumber(): Number? {
+    if (this is Number) return this
+    if (this is String) return this.toLongOrNull() ?: this.toDoubleOrNull()
+    return null
+}

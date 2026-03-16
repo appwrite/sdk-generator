@@ -897,13 +897,13 @@ class Kotlin extends Language
         $nullableModifier = $property['required'] ? '' : '?';
 
         if ($property['type'] === 'integer') {
-            return "($mapKey as$nullableModifier Number)" .
-                   ($nullableModifier ? '?' : '') . '.toLong()';
+            return "$mapKey.toNumber()" .
+                ($nullableModifier ? '?' : '!!') . '.toLong()';
         }
 
         if ($property['type'] === 'number') {
-            return "($mapKey as$nullableModifier Number)" .
-                   ($nullableModifier ? '?' : '') . '.toDouble()';
+            return "$mapKey.toNumber()" .
+                ($nullableModifier ? '?' : '!!') . '.toDouble()';
         }
 
         // Handle other types (string, boolean, etc.)

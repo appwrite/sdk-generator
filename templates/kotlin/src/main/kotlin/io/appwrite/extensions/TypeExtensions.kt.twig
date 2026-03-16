@@ -6,3 +6,9 @@ import kotlin.reflect.typeOf
 inline fun <reified T : Any> classOf(): Class<T> {
     return (typeOf<T>().classifier!! as KClass<T>).java
 }
+
+fun Any?.toNumber(): Number? {
+    if (this is Number) return this
+    if (this is String) return this.toLongOrNull() ?: this.toDoubleOrNull()
+    return null
+}
