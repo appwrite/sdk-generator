@@ -4,7 +4,6 @@ namespace {{ spec.namespace | caseNamespace }};
 {% if spec.global.headers | hasBearerAuth %}
 
 use Ahc\Jwt\JWT;
-use DateTime;
 {% endif %}
 
 class Client
