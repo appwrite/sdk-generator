@@ -28,6 +28,12 @@ To install via [PyPI](https://pypi.org/):
 pip install {{ language.params.pipPackage }}
 ```
 
+Or with `uv`:
+
+```bash
+uv add {{ language.params.pipPackage }}
+```
+
 {% if sdk.gettingStarted %}
 
 {{ sdk.gettingStarted|raw }}

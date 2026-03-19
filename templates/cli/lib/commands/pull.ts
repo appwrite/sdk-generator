@@ -297,7 +297,9 @@ export class Pull {
         timeout: func.timeout,
         commands: func.commands,
         scopes: func.scopes,
-        specification: func.specification,
+        buildSpecification: func.buildSpecification,
+        runtimeSpecification: func.runtimeSpecification,
+        deploymentRetention: func.deploymentRetention,
       };
 
       result.push(functionConfig);
@@ -395,7 +397,10 @@ export class Pull {
         buildCommand: site.buildCommand,
         outputDirectory: site.outputDirectory,
         fallbackFile: site.fallbackFile,
-        specification: site.specification,
+        startCommand: site.startCommand,
+        buildSpecification: site.buildSpecification,
+        runtimeSpecification: site.runtimeSpecification,
+        deploymentRetention: site.deploymentRetention,
       };
 
       result.push(siteConfig);

@@ -90,7 +90,7 @@ extension ExampleView {
                     fileId: fileId
                 )
                 DispatchQueue.main.async {
-                    self.downloadedImage = Image(data: Data(buffer: data))
+                    self.downloadedImage = Image(data: Data(data.readableBytesView))
                 }
             } catch {
                 DispatchQueue.main.async {

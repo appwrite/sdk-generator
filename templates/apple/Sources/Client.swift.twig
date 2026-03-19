@@ -1,6 +1,8 @@
 import NIO
 import NIOCore
+#if canImport(NIOFoundationCompat)
 import NIOFoundationCompat
+#endif
 import NIOSSL
 import Foundation
 import AsyncHTTPClient
@@ -328,7 +330,7 @@ open class Client {
                 if data.readableBytes == 0 {
                     return true as! T
                 }
-                let dict = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+                let dict = try JSONSerialization.jsonObject(with: Data(data.readableBytesView)) as? [String: Any]
 
                 return converter?(dict!) ?? dict! as! T
             }
@@ -338,7 +340,7 @@ open class Client {
             var responseString = ""
 
             do {
-                let dict = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+                let dict = try JSONSerialization.jsonObject(with: Data(data.readableBytesView)) as? [String: Any]
 
                 message = dict?["message"] as? String ?? response.status.reasonPhrase
                 type = dict?["type"] as? String ?? ""
@@ -370,9 +372,9 @@ open class Client {
 
         switch(input.sourceType) {
         case "path":
-            input.data = ByteBuffer(data: try! Data(contentsOf: URL(fileURLWithPath: input.path)))
+            input.data = ByteBuffer(bytes: try! Data(contentsOf: URL(fileURLWithPath: input.path)))
         case "data":
-            input.data = ByteBuffer(data: input.data as! Data)
+            input.data = ByteBuffer(bytes: input.data as! Data)
         default:
             break
         }
