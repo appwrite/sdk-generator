@@ -1,4 +1,5 @@
 import fs from "fs";
+import os from "os";
 import path from "path";
 import { create, extract } from "tar";
 import { Client, AppwriteException } from "@appwrite.io/console";
@@ -21,10 +22,9 @@ interface DeploymentDetails {
 
 /**
  * Package a directory into a tar.gz File object for deployment
- * @private - Only used internally by pushDeployment
  */
 async function packageDirectory(dirPath: string): Promise<File> {
-  const tempFile = `${dirPath.replace(/[^a-zA-Z0-9]/g, "_")}-${Date.now()}.tar.gz`;
+  const tempFile = path.join(os.tmpdir(), `appwrite-deploy-${Date.now()}.tar.gz`);
 
   await create(
     {
@@ -35,12 +35,33 @@ async function packageDirectory(dirPath: string): Promise<File> {
     ["."],
   );
 
-  const buffer = fs.readFileSync(tempFile);
-  fs.unlinkSync(tempFile);
+  try {
+    const buffer = fs.readFileSync(tempFile);
+    return new File([buffer], path.basename(tempFile), {
+      type: "application/gzip",
+    });
+  } finally {
+    if (fs.existsSync(tempFile)) {
+      fs.unlinkSync(tempFile);
+    }
+  }
+}
 
-  return new File([buffer], path.basename(tempFile), {
-    type: "application/gzip",
-  });
+/**
+ * Resolve a file path (file or directory) into a File object for upload.
+ * Directories are packaged into a tar.gz archive.
+ */
+export async function resolveFileParam(filePath: string): Promise<File> {
+  const resolved = path.resolve(filePath);
+  if (!fs.existsSync(resolved)) {
+    throw new Error(`File or directory not found: ${resolved}`);
+  }
+  const stat = fs.statSync(resolved);
+  if (stat.isDirectory()) {
+    return packageDirectory(resolved);
+  }
+  const buffer = fs.readFileSync(resolved);
+  return new File([buffer], path.basename(resolved));
 }
 
 /**

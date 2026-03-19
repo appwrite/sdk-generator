@@ -779,6 +779,8 @@ class CLI extends Node
 
                 if ($type === 'object') {
                     return "JSON.parse({$varName})";
+                } elseif ($type === 'file') {
+                    return "{$varName} !== undefined ? await resolveFileParam({$varName}) : undefined";
                 } else {
                     return $varName;
                 }
