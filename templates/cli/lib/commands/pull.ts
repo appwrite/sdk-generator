@@ -266,7 +266,8 @@ export class Pull {
       }
 
       const { functions: allFunctions } = await paginate(
-        async () => new Functions(this.projectClient).list(),
+        async (args) =>
+          new Functions(this.projectClient).list(args.queries as string[]),
         {},
         100,
         "functions",
@@ -366,7 +367,8 @@ export class Pull {
       }
 
       const { sites: fetchedSites } = await paginate(
-        async () => new Sites(this.projectClient).list(),
+        async (args) =>
+          new Sites(this.projectClient).list(args.queries as string[]),
         {},
         100,
         "sites",
@@ -463,7 +465,8 @@ export class Pull {
     }
 
     const { databases } = await paginate(
-      async () => new Databases(this.projectClient).list(),
+      async (args) =>
+        new Databases(this.projectClient).list(args.queries as string[]),
       {},
       100,
       "databases",
@@ -479,8 +482,11 @@ export class Pull {
       allDatabases.push(database);
 
       const { collections } = await paginate(
-        async () =>
-          new Databases(this.projectClient).listCollections(database.$id),
+        async (args) =>
+          new Databases(this.projectClient).listCollections(
+            database.$id,
+            args.queries as string[],
+          ),
         {},
         100,
         "collections",
@@ -529,7 +535,10 @@ export class Pull {
     }
 
     const { databases } = await paginate(
-      async () => new TablesDB(this.projectClient).list(),
+      async (args) =>
+        new TablesDB(this.projectClient).list({
+          queries: args.queries as string[],
+        }),
       {},
       100,
       "databases",
@@ -545,7 +554,11 @@ export class Pull {
       allDatabases.push(filterBySchema(database, DatabaseSchema));
 
       const { tables } = await paginate(
-        async () => new TablesDB(this.projectClient).listTables(database.$id),
+        async (args) =>
+          new TablesDB(this.projectClient).listTables({
+            databaseId: database.$id,
+            queries: args.queries as string[],
+          }),
         {},
         100,
         "tables",
@@ -599,7 +612,8 @@ export class Pull {
     }
 
     const { buckets } = await paginate(
-      async () => new Storage(this.projectClient).listBuckets(),
+      async (args) =>
+        new Storage(this.projectClient).listBuckets(args.queries as string[]),
       {},
       100,
       "buckets",
@@ -638,7 +652,8 @@ export class Pull {
     }
 
     const { teams } = await paginate(
-      async () => new Teams(this.projectClient).list(),
+      async (args) =>
+        new Teams(this.projectClient).list(args.queries as string[]),
       {},
       100,
       "teams",
@@ -672,7 +687,8 @@ export class Pull {
     }
 
     const { topics } = await paginate(
-      async () => new Messaging(this.projectClient).listTopics(),
+      async (args) =>
+        new Messaging(this.projectClient).listTopics(args.queries as string[]),
       {},
       100,
       "topics",
@@ -763,7 +779,8 @@ const pullFunctions = async ({
   const functionsToCheck = cliConfig.all
     ? (
         await paginate(
-          async () => (await getFunctionsService()).list(),
+          async (args) =>
+            (await getFunctionsService()).list(args.queries as string[]),
           {},
           100,
           "functions",
@@ -811,7 +828,8 @@ const pullSites = async ({
   const sitesToCheck = cliConfig.all
     ? (
         await paginate(
-          async () => (await getSitesService()).list(),
+          async (args) =>
+            (await getSitesService()).list(args.queries as string[]),
           {},
           100,
           "sites",

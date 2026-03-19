@@ -425,6 +425,18 @@ ${
     });
   }
 
+  /**
+   * Deduplicate entities by composite key ($id + databaseId).
+   * Keeps the last occurrence to match addTable/addCollection semantics.
+   */
+  private dedupeEntities<T extends Entity>(entities: T[]): T[] {
+    const seen = new Map<string, T>();
+    for (const entity of entities) {
+      seen.set(`${entity.databaseId}:${entity.$id}`, entity);
+    }
+    return Array.from(seen.values());
+  }
+
   async generate(
     config: ConfigType,
     options?: GenerateOptions,
@@ -437,9 +449,20 @@ ${
       options?.appwriteImportSource ?? getAppwriteDependency();
     const importExt = options?.importExtension ?? detectImportExtension();
 
+    // Deduplicate entities to guard against corrupted configs
+    const dedupedConfig = { ...config };
+    if (dedupedConfig.tables && dedupedConfig.tables.length > 0) {
+      dedupedConfig.tables = this.dedupeEntities(dedupedConfig.tables);
+    }
+    if (dedupedConfig.collections && dedupedConfig.collections.length > 0) {
+      dedupedConfig.collections = this.dedupeEntities(
+        dedupedConfig.collections,
+      );
+    }
+
     const hasEntities =
-      (config.tables && config.tables.length > 0) ||
-      (config.collections && config.collections.length > 0);
+      (dedupedConfig.tables && dedupedConfig.tables.length > 0) ||
+      (dedupedConfig.collections && dedupedConfig.collections.length > 0);
 
     if (!hasEntities) {
       console.log(
@@ -449,15 +472,22 @@ ${
         dbContent: "// No tables or collections found in configuration\n",
         typesContent: "// No tables or collections found in configuration\n",
         indexContent: this.generateIndexFile(importExt),
-        constantsContent: this.generateConstantsFile(config, appwriteDep),
+        constantsContent: this.generateConstantsFile(
+          dedupedConfig,
+          appwriteDep,
+        ),
       };
     }
 
     return {
-      dbContent: this.generateDatabasesFile(config, importExt, appwriteDep),
-      typesContent: this.generateTypesFile(config, appwriteDep),
+      dbContent: this.generateDatabasesFile(
+        dedupedConfig,
+        importExt,
+        appwriteDep,
+      ),
+      typesContent: this.generateTypesFile(dedupedConfig, appwriteDep),
       indexContent: this.generateIndexFile(importExt),
-      constantsContent: this.generateConstantsFile(config, appwriteDep),
+      constantsContent: this.generateConstantsFile(dedupedConfig, appwriteDep),
     };
   }
 }
