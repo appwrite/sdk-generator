@@ -1,11 +1,15 @@
 import { Command } from "commander";
 {% set hasLocationMethod = false %}
+{% set hasFileParam = false %}
 {% set enumNames = [] %}
 {% for method in service.methods %}
 {% if method.type == 'location' %}
 {% set hasLocationMethod = true %}
 {% endif %}
 {% for parameter in method.parameters.all %}
+{% if parameter.type == 'file' %}
+{% set hasFileParam = true %}
+{% endif %}
 {% if parameter.enumName is defined and parameter.enumName not in enumNames %}
 {% set enumNames = enumNames|merge([parameter.enumName]) %}
 {% endif %}
@@ -13,6 +17,9 @@ import { Command } from "commander";
 {% endfor %}
 {% if hasLocationMethod %}
 import fs from "fs";
+{% endif %}
+{% if hasFileParam %}
+import { resolveFileParam } from "../utils/deployment.js";
 {% endif %}
 import { sdkForProject } from "../../sdks.js";
 import {
