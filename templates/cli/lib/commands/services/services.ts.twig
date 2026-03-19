@@ -1,18 +1,26 @@
 import { Command } from "commander";
 {% set hasLocationMethod = false %}
+{% set hasFileParam = false %}
 {% set enumNames = [] %}
 {% for method in service.methods %}
 {% if method.type == 'location' %}
 {% set hasLocationMethod = true %}
 {% endif %}
 {% for parameter in method.parameters.all %}
+{% if parameter.type == 'file' %}
+{% set hasFileParam = true %}
+{% endif %}
 {% if parameter.enumName is defined and parameter.enumName not in enumNames %}
 {% set enumNames = enumNames|merge([parameter.enumName]) %}
 {% endif %}
 {% endfor %}
 {% endfor %}
-{% if hasLocationMethod %}
+{% if hasLocationMethod or hasFileParam %}
 import fs from "fs";
+{% endif %}
+{% if hasFileParam %}
+import path from "path";
+import { create as tarCreate } from "tar";
 {% endif %}
 import { sdkForProject } from "../../sdks.js";
 import {
@@ -38,6 +46,22 @@ const get{{ service.name | caseUcfirst }}Client = async (): Promise<{{ service.n
   }
   return {{ service.name | caseCamel }}Client;
 };
+
+{% if hasFileParam %}
+const resolveFileParam = async (filePath: string): Promise<File> => {
+  const resolved = path.resolve(filePath);
+  const stat = fs.statSync(resolved);
+  if (stat.isDirectory()) {
+    const tempFile = `${resolved.replace(/[^a-zA-Z0-9]/g, "_")}-${Date.now()}.tar.gz`;
+    await tarCreate({ gzip: true, file: tempFile, cwd: resolved }, ["."]);
+    const buffer = fs.readFileSync(tempFile);
+    fs.unlinkSync(tempFile);
+    return new File([buffer], path.basename(tempFile), { type: "application/gzip" });
+  }
+  const buffer = fs.readFileSync(resolved);
+  return new File([buffer], path.basename(resolved));
+};
+{% endif %}
 
 export const {{ service.name | caseCamel }} = new Command("{{ service.name | caseKebab }}")
   .description(commandDescriptions["{{ service.name | caseCamel }}"] ?? "")
