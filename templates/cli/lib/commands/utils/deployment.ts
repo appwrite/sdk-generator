@@ -24,7 +24,10 @@ interface DeploymentDetails {
  * Package a directory into a tar.gz File object for deployment
  */
 async function packageDirectory(dirPath: string): Promise<File> {
-  const tempFile = path.join(os.tmpdir(), `appwrite-deploy-${Date.now()}.tar.gz`);
+  const tempFile = path.join(
+    os.tmpdir(),
+    `appwrite-deploy-${Date.now()}.tar.gz`,
+  );
 
   await create(
     {
