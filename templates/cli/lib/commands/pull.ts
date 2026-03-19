@@ -266,7 +266,8 @@ export class Pull {
       }
 
       const { functions: allFunctions } = await paginate(
-        async (args) => new Functions(this.projectClient).list(args.queries as string[]),
+        async (args) =>
+          new Functions(this.projectClient).list(args.queries as string[]),
         {},
         100,
         "functions",
@@ -366,7 +367,8 @@ export class Pull {
       }
 
       const { sites: fetchedSites } = await paginate(
-        async (args) => new Sites(this.projectClient).list(args.queries as string[]),
+        async (args) =>
+          new Sites(this.projectClient).list(args.queries as string[]),
         {},
         100,
         "sites",
@@ -610,7 +612,8 @@ export class Pull {
     }
 
     const { buckets } = await paginate(
-      async (args) => new Storage(this.projectClient).listBuckets(args.queries as string[]),
+      async (args) =>
+        new Storage(this.projectClient).listBuckets(args.queries as string[]),
       {},
       100,
       "buckets",
@@ -649,7 +652,8 @@ export class Pull {
     }
 
     const { teams } = await paginate(
-      async (args) => new Teams(this.projectClient).list(args.queries as string[]),
+      async (args) =>
+        new Teams(this.projectClient).list(args.queries as string[]),
       {},
       100,
       "teams",
@@ -683,7 +687,8 @@ export class Pull {
     }
 
     const { topics } = await paginate(
-      async (args) => new Messaging(this.projectClient).listTopics(args.queries as string[]),
+      async (args) =>
+        new Messaging(this.projectClient).listTopics(args.queries as string[]),
       {},
       100,
       "topics",
@@ -774,7 +779,8 @@ const pullFunctions = async ({
   const functionsToCheck = cliConfig.all
     ? (
         await paginate(
-          async (args) => (await getFunctionsService()).list(args.queries as string[]),
+          async (args) =>
+            (await getFunctionsService()).list(args.queries as string[]),
           {},
           100,
           "functions",
@@ -822,7 +828,8 @@ const pullSites = async ({
   const sitesToCheck = cliConfig.all
     ? (
         await paginate(
-          async (args) => (await getSitesService()).list(args.queries as string[]),
+          async (args) =>
+            (await getSitesService()).list(args.queries as string[]),
           {},
           100,
           "sites",
