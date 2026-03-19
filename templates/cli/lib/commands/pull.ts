@@ -463,7 +463,8 @@ export class Pull {
     }
 
     const { databases } = await paginate(
-      async () => new Databases(this.projectClient).list(),
+      async (args) =>
+        new Databases(this.projectClient).list(args.queries as string[]),
       {},
       100,
       "databases",
@@ -479,8 +480,11 @@ export class Pull {
       allDatabases.push(database);
 
       const { collections } = await paginate(
-        async () =>
-          new Databases(this.projectClient).listCollections(database.$id),
+        async (args) =>
+          new Databases(this.projectClient).listCollections(
+            database.$id,
+            args.queries as string[],
+          ),
         {},
         100,
         "collections",
@@ -529,7 +533,10 @@ export class Pull {
     }
 
     const { databases } = await paginate(
-      async () => new TablesDB(this.projectClient).list(),
+      async (args) =>
+        new TablesDB(this.projectClient).list({
+          queries: args.queries as string[],
+        }),
       {},
       100,
       "databases",
@@ -545,7 +552,11 @@ export class Pull {
       allDatabases.push(filterBySchema(database, DatabaseSchema));
 
       const { tables } = await paginate(
-        async () => new TablesDB(this.projectClient).listTables(database.$id),
+        async (args) =>
+          new TablesDB(this.projectClient).listTables({
+            databaseId: database.$id,
+            queries: args.queries as string[],
+          }),
         {},
         100,
         "tables",
