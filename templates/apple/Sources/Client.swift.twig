@@ -1,5 +1,8 @@
 import NIO
 import NIOCore
+#if canImport(NIOFoundationCompat)
+import NIOFoundationCompat
+#endif
 import NIOSSL
 import Foundation
 import AsyncHTTPClient

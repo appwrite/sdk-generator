@@ -1,5 +1,8 @@
 import Foundation
 import NIO
+#if canImport(NIOFoundationCompat)
+import NIOFoundationCompat
+#endif
 import NIOHTTP1
 import NIOWebSocket
 import Dispatch
