@@ -56,14 +56,18 @@ extension MessageHandler: ChannelInboundHandler, RemovableChannelHandler {
         case .binary:
             let data = unmaskedData(frame: frame)
             if frame.fin {
-                let binaryData = Data(data.readableBytesView)
+                guard let binaryData = data.getData(at: 0, length: data.readableBytes) else {
+                    return
+                }
                 if let delegate = client.delegate {
                     try! delegate.onMessage(data: binaryData)
                 } else {
                     client.onBinaryMessage(binaryData)
                 }
             } else {
-                let binaryData = Data(data.readableBytesView)
+                guard let binaryData = data.getData(at: 0, length: data.readableBytes) else {
+                    return
+                }
                 binaryBuffer = binaryData
             }
         case .continuation:
@@ -88,7 +92,9 @@ extension MessageHandler: ChannelInboundHandler, RemovableChannelHandler {
                 }
             } else {
                 if frame.fin {
-                    let binaryData = Data(data.readableBytesView)
+                    guard let binaryData = data.getData(at: 0, length: data.readableBytes) else {
+                        return
+                    }
                     binaryBuffer.append(binaryData)
                     if let delegate = client.delegate {
                         try! delegate.onMessage(data: binaryBuffer)
@@ -96,7 +102,9 @@ extension MessageHandler: ChannelInboundHandler, RemovableChannelHandler {
                         client.onBinaryMessage(binaryBuffer)
                     }
                 } else {
-                    let binaryData = Data(data.readableBytesView)
+                    guard let binaryData = data.getData(at: 0, length: data.readableBytes) else {
+                        return
+                    }
                     binaryBuffer.append(binaryData)
                 }
             }
@@ -106,12 +114,12 @@ extension MessageHandler: ChannelInboundHandler, RemovableChannelHandler {
             }
             let data = frame.data
             if !client.closeSent {
-                client.close(data: Data(frame.data.readableBytesView))
+                client.close(data: frame.data.getData(at: 0, length: frame.data.readableBytes) ?? Data())
             }
             if let delegate = client.delegate {
-                delegate.onClose(channel: context.channel, data: Data(data.readableBytesView))
+                delegate.onClose(channel: context.channel, data: data.getData(at: 0, length: data.readableBytes)!)
             } else {
-                client.onClose(context.channel, Data(data.readableBytesView))
+                client.onClose(context.channel, data.getData(at: 0, length: data.readableBytes)!)
             }
         default:
             break

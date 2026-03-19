@@ -87,7 +87,7 @@ class ViewController: UIViewController {
                 bucketId: bucketId,
                 fileId: fileId
             )
-            let data = Data(response.readableBytesView)
+            let data = response.getData(at: 0, length: response.readableBytes)!
             self.image.image = UIImage(data: data)
         } catch {
             self.response = String(describing: error)
