@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "{{ spec.title | caseSnake }}"
+version = "{{ sdk.version }}"
+description = "{{ sdk.shortDescription }}"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "{{ spec.licenseName }}" }
+authors = [
+  { name = "{{ spec.contactName }}", email = "{{ spec.contactEmail }}" }
+]
+maintainers = [
+  { name = "{{ spec.contactName }}", email = "{{ spec.contactEmail }}" }
+]
+dependencies = [
+  "requests",
+  "pydantic>=2,<3",
+]
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Intended Audience :: Developers",
+  "Environment :: Web Environment",
+  "Topic :: Software Development",
+  "License :: OSI Approved :: {{ sdk.license }}",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+]
+
+[project.urls]
+Homepage = "{{ spec.contactURL }}"
+Repository = "https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName }}"
+
+[tool.setuptools.packages.find]
+include = ["{{ spec.title | caseSnake }}*"]

@@ -457,8 +457,25 @@ export const questionsCreateFunction: Question[] = [
   },
   {
     type: "list",
-    name: "specification",
-    message: "What specification would you like to use?",
+    name: "buildSpecification",
+    message: "What build specification would you like to use?",
+    choices: async () => {
+      const response = await (await getFunctionsService()).listSpecifications();
+      const specifications = response["specifications"];
+      const choices = specifications.map((spec: any, _idx: number) => {
+        return {
+          name: `${spec.cpus} CPU, ${spec.memory}MB RAM`,
+          value: spec.slug,
+          disabled: spec.enabled === false ? "Upgrade to use" : false,
+        };
+      });
+      return choices;
+    },
+  },
+  {
+    type: "list",
+    name: "runtimeSpecification",
+    message: "What runtime specification would you like to use?",
     choices: async () => {
       const response = await (await getFunctionsService()).listSpecifications();
       const specifications = response["specifications"];
@@ -1166,8 +1183,25 @@ export const questionsCreateSite: Question[] = [
   },
   {
     type: "list",
-    name: "specification",
-    message: "What specification would you like to use?",
+    name: "buildSpecification",
+    message: "What build specification would you like to use?",
+    choices: async () => {
+      const response = await (await getSitesService()).listSpecifications();
+      const specifications = response["specifications"];
+      const choices = specifications.map((spec: any) => {
+        return {
+          name: `${spec.cpus} CPU, ${spec.memory}MB RAM`,
+          value: spec.slug,
+          disabled: spec.enabled === false ? "Upgrade to use" : false,
+        };
+      });
+      return choices;
+    },
+  },
+  {
+    type: "list",
+    name: "runtimeSpecification",
+    message: "What runtime specification would you like to use?",
     choices: async () => {
       const response = await (await getSitesService()).listSpecifications();
       const specifications = response["specifications"];
