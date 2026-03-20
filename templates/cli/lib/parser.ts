@@ -305,6 +305,7 @@ export const commandDescriptions: Record<string, string> = {
   messaging: `The messaging command allows you to manage topics and targets and send messages.`,
   migrations: `The migrations command allows you to migrate data between services.`,
   vcs: `The vcs command allows you to interact with VCS providers and manage your code repositories.`,
+  webhooks: `The webhooks command allows you to manage your project webhooks.`,
   main: chalk.redBright(`${logo}${description}`),
 };
 
