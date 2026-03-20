@@ -301,9 +301,6 @@ abstract class Base extends TestCase
             ->setLicense('BSD-3-Clause')
             ->setLicenseContent('demo license')
             ->setChangelog('--changelog--')
-            ->setDefaultHeaders([
-                'X-Appwrite-Response-Format' => '0.8.0',
-            ])
             ->setTest("true");
 
         if ($this->language === 'android' || $this->language === 'kotlin') {

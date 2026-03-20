@@ -18,6 +18,7 @@ import {
   SDK_VERSION,
   SDK_TITLE,
   EXECUTABLE_NAME,
+  APPWRITE_RESPONSE_FORMAT,
 } from "./constants.js";
 
 class Client {
@@ -35,7 +36,7 @@ class Client {
       "x-sdk-language": SDK_LANGUAGE,
       "x-sdk-version": SDK_VERSION,
       "user-agent": `${SDK_TITLE}CLI/${SDK_VERSION} (${os.type()} ${os.version()}; ${os.arch()})`,
-      "X-Appwrite-Response-Format": "1.8.1",
+      "X-Appwrite-Response-Format": APPWRITE_RESPONSE_FORMAT,
     };
   }
 

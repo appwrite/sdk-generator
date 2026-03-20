@@ -53,7 +53,7 @@ try {
             'gitRepoName' => 'reponame',
             'twitter' => 'appwrite',
             'discord' => ['564160730845151244', 'https://appwrite.io/discord'],
-            'defaultHeaders' => ['X-Appwrite-Response-Format' => '1.8.0'],
+            'defaultHeaders' => [],
             'readme' => '**README**',
         ];
 

@@ -648,7 +648,9 @@ class SDK
                 'requestModels' => $this->spec->getRequestModels(),
                 'global' => [
                     'headers' => $this->spec->getGlobalHeaders(),
-                    'defaultHeaders' => $this->defaultHeaders,
+                    'defaultHeaders' => array_merge($this->defaultHeaders, [
+                        'X-Appwrite-Response-Format' => $this->spec->getVersion(),
+                    ]),
                 ],
             ],
             'language' => [
