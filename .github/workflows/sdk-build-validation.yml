@@ -203,6 +203,7 @@ jobs:
             python)
               pip install -e .
               python -m compileall appwrite/
+              python -m unittest
               ;;
             ruby)
               bundle install
