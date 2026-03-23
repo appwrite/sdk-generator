@@ -2,7 +2,7 @@ import { EventEmitter } from "node:events";
 import { localConfig } from "../config.js";
 import { log } from "../parser.js";
 import { sdkForConsole } from "../sdks.js";
-import { Projects, Users } from "@appwrite.io/console";
+import { Projects, Scopes, Users } from "@appwrite.io/console";
 
 export const openRuntimesVersion = "v4";
 
@@ -105,7 +105,7 @@ export const JwtManager = {
 
   async setup(
     userId: string | null = null,
-    projectScopes: string[] = [],
+    projectScopes: Scopes[] = [],
   ): Promise<void> {
     const consoleClient = await sdkForConsole();
     const usersClient = new Users(consoleClient);
@@ -142,14 +142,14 @@ export const JwtManager = {
       await usersClient.get({
         userId,
       });
-      const userResponse: any = await usersClient.createJWT({
+      const userResponse = await usersClient.createJWT({
         userId,
         duration: 60 * 60,
       });
       this.userJwt = userResponse.jwt;
     }
 
-    const functionResponse: any = await projectsClient.createJWT({
+    const functionResponse = await projectsClient.createJWT({
       projectId: localConfig.getProject().projectId!,
       scopes: projectScopes,
       duration: 60 * 60,

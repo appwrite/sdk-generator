@@ -160,7 +160,9 @@ void main() async {
   print(Query.offset(20));
   print(Query.contains("title", "Spider"));
   print(Query.contains("labels", "first"));
-  
+  print(Query.containsAny("labels", ["first", "second"]));
+  print(Query.containsAll("labels", ["first", "second"]));
+
   // New query methods
   print(Query.notContains("title", "Spider"));
   print(Query.notSearch("name", "john"));
@@ -205,6 +207,15 @@ void main() async {
   print(Query.and([
     Query.equal("released", false),
     Query.greaterThan("releasedYear", 2015)
+  ]));
+  
+  // regex, exists, notExists, elemMatch
+  print(Query.regex("name", "pattern.*"));
+  print(Query.exists(["attr1", "attr2"]));
+  print(Query.notExists(["attr1", "attr2"]));
+  print(Query.elemMatch("friends", [
+    Query.equal("name", "Alice"),
+    Query.greaterThan("age", 18)
   ]));
   
   // Permission & Role helper tests

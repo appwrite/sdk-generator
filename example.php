@@ -21,6 +21,9 @@ use Appwrite\SDK\Language\Flutter;
 use Appwrite\SDK\Language\Android;
 use Appwrite\SDK\Language\Kotlin;
 use Appwrite\SDK\Language\ReactNative;
+use Appwrite\SDK\Language\Markdown;
+use Appwrite\SDK\Language\AgentSkills;
+use Appwrite\SDK\Language\CursorPlugin;
 use Appwrite\SDK\Language\Rust;
 
 try {
@@ -33,7 +36,6 @@ try {
         curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         $result = curl_exec($ch);
-        curl_close($ch);
         return $result;
     }
 
@@ -52,7 +54,6 @@ try {
             'gitRepoName' => 'reponame',
             'twitter' => 'appwrite',
             'discord' => ['564160730845151244', 'https://appwrite.io/discord'],
-            'defaultHeaders' => ['X-Appwrite-Response-Format' => '1.8.0'],
             'readme' => '**README**',
         ];
 
@@ -71,7 +72,6 @@ try {
             ->setGitRepoName($config['gitRepoName'])
             ->setTwitter($config['twitter'])
             ->setDiscord($config['discord'][0], $config['discord'][1])
-            ->setDefaultHeaders($config['defaultHeaders'])
             ->setReadme($config['readme']);
 
         if (isset($config['namespace'])) {
@@ -98,9 +98,8 @@ try {
         // $platform = 'server';
     }
 
-    $branch = '1.8.x';
     $version = '1.8.x';
-    $spec = getSSLPage("https://raw.githubusercontent.com/appwrite/appwrite/{$branch}/app/config/specs/swagger2-{$version}-{$platform}.json");
+    $spec = getSSLPage("https://raw.githubusercontent.com/appwrite/specs/main/specs/{$version}/swagger2-{$version}-{$platform}.json");
 
     if(empty($spec)) {
         throw new Exception('Failed to fetch spec from Appwrite server');
@@ -270,6 +269,28 @@ try {
         $sdk = new SDK(new GraphQL(), new Swagger2($spec));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/graphql');
+    }
+
+    // Markdown
+    if (!$requestedSdk || $requestedSdk === 'markdown') {
+        $markdown = new Markdown();
+        $markdown->setNPMPackage('@appwrite.io/docs');
+        $sdk = new SDK($markdown, new Swagger2($spec));
+        configureSDK($sdk);
+        $sdk->generate(__DIR__ . '/examples/markdown');
+    }
+    // Agent Skills
+    if (!$requestedSdk || $requestedSdk === 'agent-skills') {
+        $sdk = new SDK(new AgentSkills(), new Swagger2($spec));
+        configureSDK($sdk);
+        $sdk->generate(__DIR__ . '/examples/agent-skills');
+    }
+
+    // Cursor Plugin
+    if (!$requestedSdk || $requestedSdk === 'cursor-plugin') {
+        $sdk = new SDK(new CursorPlugin(), new Swagger2($spec));
+        configureSDK($sdk);
+        $sdk->generate(__DIR__ . '/examples/cursor-plugin');
     }
 
     // Rust

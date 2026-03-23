@@ -2,10 +2,10 @@ import fs from "fs";
 import path from "path";
 import net from "net";
 import childProcess from "child_process";
-import chalk from "chalk";
 import { fetch } from "undici";
 import type { Models } from "@appwrite.io/console";
-import { localConfig, globalConfig } from "./config.js";
+import { z } from "zod";
+import { globalConfig } from "./config.js";
 import type { SettingsType } from "./commands/config.js";
 import { NPM_REGISTRY_URL, DEFAULT_ENDPOINT } from "./constants.js";
 
@@ -49,6 +49,14 @@ export const createSettingsObject = (project: Models.Project): SettingsType => {
   };
 };
 
+export const getErrorMessage = (error: unknown): string => {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return String(error);
+};
+
 /**
  * Get the latest version from npm registry
  */
@@ -90,7 +98,7 @@ export function getAllFiles(folder: string): string[] {
     let stats: fs.Stats;
     try {
       stats = fs.statSync(pathAbsolute);
-    } catch (error) {
+    } catch (_error) {
       continue;
     }
     if (stats.isDirectory()) {
@@ -146,248 +154,59 @@ export function systemHasCommand(command: string): boolean {
   return true;
 }
 
-export const checkDeployConditions = (localConfig: any): void => {
-  if (Object.keys(localConfig.data).length === 0) {
+type DeployLocalConfig = {
+  keys: () => string[];
+};
+
+export const checkDeployConditions = (localConfig: DeployLocalConfig): void => {
+  if (localConfig.keys().length === 0) {
     throw new Error(
       "No appwrite.config.json file found in the current directory. Please run this command again in the folder containing your appwrite.config.json file, or run 'appwrite init project' to link current directory to an Appwrite project.",
     );
   }
 };
 
-export function showConsoleLink(
-  serviceName: string,
-  action: string,
-  ...ids: string[]
-): void {
-  const projectId = localConfig.getProject().projectId;
-
-  const url = new URL(globalConfig.getEndpoint().replace("/v1", "/console"));
-  url.pathname += `/project-${projectId}`;
-  action = action.toLowerCase();
-
-  switch (serviceName) {
-    case "account":
-      url.pathname = url.pathname.replace(`/project-${projectId}`, "");
-      url.pathname += getAccountPath(action);
-      break;
-    case "databases":
-      url.pathname += getDatabasePath(action, ids);
-      break;
-    case "functions":
-      url.pathname += getFunctionsPath(action, ids);
-      break;
-    case "messaging":
-      url.pathname += getMessagingPath(action, ids);
-      break;
-    case "projects":
-      url.pathname = url.pathname.replace(`/project-${projectId}`, "");
-      url.pathname += getProjectsPath(action, ids);
-      break;
-    case "storage":
-      url.pathname += getBucketsPath(action, ids);
-      break;
-    case "teams":
-      url.pathname += getTeamsPath(action, ids);
-      break;
-    case "organizations":
-      url.pathname += getOrganizationsPath(action, ids);
-      break;
-    case "users":
-      url.pathname += getUsersPath(action, ids);
-      break;
-    default:
-      return;
-  }
-
-  console.log(
-    `${chalk.green.bold("✓ Success:")} ${chalk.green(url.toString())}`,
-  );
-}
-
-function getAccountPath(action: string): string {
-  let path = "/account";
-
-  if (action === "listsessions") {
-    path += "/sessions";
-  }
-
-  return path;
-}
-
-function getDatabasePath(action: string, ids: string[]): string {
-  let path = "/databases";
-
-  if (
-    [
-      "get",
-      "listcollections",
-      "getcollection",
-      "listattributes",
-      "listdocuments",
-      "getdocument",
-      "listindexes",
-      "getdatabaseusage",
-    ].includes(action)
-  ) {
-    path += `/database-${ids[0]}`;
-  }
-
-  if (action === "getdatabaseusage") {
-    path += `/usage`;
-  }
-
-  if (
-    [
-      "getcollection",
-      "listattributes",
-      "listdocuments",
-      "getdocument",
-      "listindexes",
-    ].includes(action)
-  ) {
-    path += `/collection-${ids[1]}`;
-  }
-
-  if (action === "listattributes") {
-    path += "/attributes";
-  }
-  if (action === "listindexes") {
-    path += "/indexes";
-  }
-  if (action === "getdocument") {
-    path += `/document-${ids[2]}`;
-  }
-
-  return path;
-}
-
-function getFunctionsPath(action: string, ids: string[]): string {
-  let path = "/functions";
-
-  if (action !== "list") {
-    path += `/function-${ids[0]}`;
-  }
-
-  if (action === "getdeployment") {
-    path += `/deployment-${ids[1]}`;
-  }
-
-  if (action === "getexecution" || action === "listexecution") {
-    path += `/executions`;
-  }
-  if (action === "getfunctionusage") {
-    path += `/usage`;
-  }
-
-  return path;
-}
-
-function getMessagingPath(action: string, ids: string[]): string {
-  let path = "/messaging";
-
-  if (["getmessage", "listmessagelogs"].includes(action)) {
-    path += `/message-${ids[0]}`;
-  }
-
-  if (["listproviders", "getprovider"].includes(action)) {
-    path += `/providers`;
-  }
-
-  if (action === "getprovider") {
-    path += `/provider-${ids[0]}`;
-  }
-
-  if (["listtopics", "gettopic"].includes(action)) {
-    path += `/topics`;
-  }
-
-  if (action === "gettopic") {
-    path += `/topic-${ids[0]}`;
-  }
-
-  return path;
-}
-
-function getProjectsPath(action: string, ids: string[]): string {
-  let path = "";
-
-  if (action !== "list") {
-    path += `/project-${ids[0]}`;
-  }
-
-  if (["listkeys", "getkey"].includes(action)) {
-    path += "/overview/keys";
-  }
-
-  if (["listplatforms", "getplatform"].includes(action)) {
-    path += "/overview/platforms";
-  }
-
-  if (["listwebhooks", "getwebhook"].includes(action)) {
-    path += "/settings/webhooks";
-  }
-
-  if (["getplatform", "getkey", "getwebhook"].includes(action)) {
-    path += `/${ids[1]}`;
-  }
-
-  return path;
-}
-
-function getBucketsPath(action: string, ids: string[]): string {
-  let path = "/storage";
-
-  if (action !== "listbuckets") {
-    path += `/bucket-${ids[0]}`;
-  }
-
-  if (action === "getbucketusage") {
-    path += `/usage`;
-  }
-
-  if (action === "getfile") {
-    path += `/file-${ids[1]}`;
-  }
-
-  return path;
-}
-
-function getTeamsPath(action: string, ids: string[]): string {
-  let path = "/auth/teams";
-
-  if (action !== "list") {
-    path += `/team-${ids[0]}`;
-  }
-
-  return path;
-}
-
-function getOrganizationsPath(action: string, ids: string[]): string {
-  let path = `/organization-${ids[0]}`;
-
-  if (action === "list") {
-    path = "/account/organizations";
-  }
-
-  return path;
-}
-
-function getUsersPath(action: string, ids: string[]): string {
-  let path = "/auth";
-
-  if (action !== "list") {
-    path += `/user-${ids[0]}`;
-  }
-
-  if (action === "listsessions") {
-    path += "sessions";
-  }
-
-  return path;
-}
-
 export function isCloud(): boolean {
   const endpoint = globalConfig.getEndpoint() || DEFAULT_ENDPOINT;
   const hostname = new URL(endpoint).hostname;
   return hostname.endsWith("appwrite.io");
+}
+
+export function arrayEqualsUnordered(left: unknown, right: unknown): boolean {
+  const a = Array.isArray(left)
+    ? [...left].map((item) => String(item)).sort()
+    : [];
+  const b = Array.isArray(right)
+    ? [...right].map((item) => String(item)).sort()
+    : [];
+
+  if (a.length !== b.length) {
+    return false;
+  }
+
+  return a.every((value, index) => value === b[index]);
+}
+
+/**
+ * Filters an object to only include fields defined in a Zod object schema.
+ * Uses the schema's shape to determine allowed keys.
+ *
+ * @param data - The data to filter
+ * @param schema - A Zod object schema with a shape property
+ * @returns The filtered data with only schema-defined fields
+ */
+export function filterBySchema<T extends z.ZodObject<z.ZodRawShape>>(
+  data: Record<string, unknown>,
+  schema: T,
+): z.infer<T> {
+  const allowedKeys = Object.keys(schema.shape);
+  const result: Record<string, unknown> = {};
+
+  for (const key of allowedKeys) {
+    if (key in data) {
+      result[key] = data[key];
+    }
+  }
+
+  return result as z.infer<T>;
 }

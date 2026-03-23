@@ -5,7 +5,6 @@ const oldWidth = process.stdout.columns;
 process.stdout.columns = 100;
 /** ---------------------------------------------- */
 
-import { createRequire } from 'module';
 import { program } from 'commander';
 import chalk from 'chalk';
 import inquirer from 'inquirer';
@@ -13,6 +12,7 @@ import inquirer from 'inquirer';
 import packageJson from './package.json' with { type: 'json' };
 import { commandDescriptions, cliConfig } from './lib/parser.js';
 import { getLatestVersion, compareVersions } from './lib/utils.js';
+import inquirerSearchList from 'inquirer-search-list';
 
 import { client } from './lib/commands/generic.js';
 {% if sdk.test != "true" %}
@@ -23,6 +23,7 @@ import { pull } from './lib/commands/pull.js';
 import { run } from './lib/commands/run.js';
 import { push, deploy } from './lib/commands/push.js';
 import { update } from './lib/commands/update.js';
+import { generate } from './lib/commands/generate.js';
 {% else %}
 import { migrate } from './lib/commands/generic.js';
 {% endif %}
@@ -30,9 +31,6 @@ import { migrate } from './lib/commands/generic.js';
 {% for service in spec.services %}
 import { {{ service.name }} } from './lib/commands/services/{{ service.name | caseKebab }}.js';
 {% endfor %}
-
-const require = createRequire(import.meta.url);
-const inquirerSearchList = require('inquirer-search-list');
 
 const { version } = packageJson;
 inquirer.registerPrompt('search-list', inquirerSearchList);
@@ -63,7 +61,7 @@ async function checkVersion(): Promise<void> {
             // Current version is newer than latest (pre-release/dev)
             process.stdout.write(chalk.blue('\n🚀 You are running a pre-release or development version.') + '\n');
         }
-    } catch (error) {
+    } catch (_error) {
         // Silently fail version check, just show current version
         process.stdout.write(chalk.gray('\n(Unable to check for updates)') + '\n');
     }
@@ -71,7 +69,7 @@ async function checkVersion(): Promise<void> {
 
 // Intercept version flag before Commander.js processes it
 if (process.argv.includes('-v') || process.argv.includes('--version')) {
-    (async () => {
+    void (async () => {
         await checkVersion();
         process.exit(0);
     })();
@@ -108,7 +106,7 @@ if (process.argv.includes('-v') || process.argv.includes('--version')) {
             cliConfig.all = true;
         })
         .on('option:id', function () {
-            cliConfig.ids = (this as any).opts().id;
+            cliConfig.ids = (this.opts().id as string[]);
         })
         .showSuggestionAfterError()
 {% if sdk.test != "true" %}
@@ -122,6 +120,7 @@ if (process.argv.includes('-v') || process.argv.includes('--version')) {
         .addCommand(deploy)
         .addCommand(run)
         .addCommand(update)
+        .addCommand(generate)
         .addCommand(logout)
 {% endif %}
 {% for service in spec.services %}

@@ -184,7 +184,9 @@ class Tests: XCTestCase {
         print(Query.offset(20))
         print(Query.contains("title", value: "Spider"))
         print(Query.contains("labels", value: "first"))
-        
+        print(Query.containsAny("labels", value: ["first", "second"]))
+        print(Query.containsAll("labels", value: ["first", "second"]))
+
         // New query methods
         print(Query.notContains("title", value: "Spider"))
         print(Query.notSearch("name", value: "john"))
@@ -228,6 +230,15 @@ class Tests: XCTestCase {
         print(Query.and(
             [Query.equal("released", value: false), Query.greaterThan("releasedYear", value: 2015)]
         ))
+
+        // regex, exists, notExists, elemMatch
+        print(Query.regex("name", pattern: "pattern.*"))
+        print(Query.exists(["attr1", "attr2"]))
+        print(Query.notExists(["attr1", "attr2"]))
+        print(Query.elemMatch("friends", queries: [
+            Query.equal("name", value: "Alice"),
+            Query.greaterThan("age", value: 18)
+        ]))
 
         // Permission & Role helper tests
         print(Permission.read(Role.any()))

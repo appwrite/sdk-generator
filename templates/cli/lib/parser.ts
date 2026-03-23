@@ -25,7 +25,36 @@ const cliConfig: CliConfig = {
   reportData: {},
 };
 
-export const parse = (data: Record<string, any>): void => {
+type JsonObject = Record<string, unknown>;
+
+interface ReportDataPayload {
+  data?: {
+    args?: string[];
+  };
+}
+
+const toJsonObject = (value: unknown): JsonObject | null => {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return value as JsonObject;
+  }
+
+  return null;
+};
+
+const extractReportCommandArgs = (value: unknown): string[] => {
+  if (!value || typeof value !== "object") {
+    return [];
+  }
+
+  const reportData = value as ReportDataPayload;
+  if (!Array.isArray(reportData.data?.args)) {
+    return [];
+  }
+
+  return reportData.data.args;
+};
+
+export const parse = (data: JsonObject): void => {
   if (cliConfig.json) {
     drawJSON(data);
     return;
@@ -46,7 +75,8 @@ export const parse = (data: Record<string, any>): void => {
         console.log(`${chalk.yellow.bold(key)} : ${data[key]}`);
       } else {
         console.log(`${chalk.yellow.bold.underline(key)}`);
-        drawTable([data[key]]);
+        const tableRow = toJsonObject(data[key]) ?? {};
+        drawTable([tableRow]);
       }
     } else {
       console.log(`${chalk.yellow.bold(key)} : ${data[key]}`);
@@ -54,25 +84,31 @@ export const parse = (data: Record<string, any>): void => {
   }
 };
 
-export const drawTable = (data: Array<Record<string, any>>): void => {
+export const drawTable = (data: Array<JsonObject | null | undefined>): void => {
   if (data.length == 0) {
     console.log("[]");
     return;
   }
 
+  const rows = data.map((item): JsonObject => toJsonObject(item) ?? {});
+
   // Create an object with all the keys in it
-  const obj = data.reduce((res, item) => ({ ...res, ...item }), {});
+  const obj = rows.reduce((res, item) => ({ ...res, ...item }), {});
   // Get those keys as an array
   const keys = Object.keys(obj);
+  if (keys.length === 0) {
+    drawJSON(data);
+    return;
+  }
   // Create an object with all keys set to the default value ''
   const def = keys.reduce((result: Record<string, string>, key) => {
     result[key] = "-";
     return result;
   }, {});
   // Use object destructuring to replace all default values with the ones we have
-  data = data.map((item) => ({ ...def, ...item }));
+  const normalizedData = rows.map((item) => ({ ...def, ...item }));
 
-  const columns = Object.keys(data[0]);
+  const columns = Object.keys(normalizedData[0]);
 
   const table = new Table({
     head: columns.map((c) => chalk.cyan.italic.bold(c)),
@@ -95,17 +131,17 @@ export const drawTable = (data: Array<Record<string, any>>): void => {
     },
   });
 
-  data.forEach((row) => {
-    const rowValues: any[] = [];
-    for (const key in row) {
-      if (row[key] === null) {
+  normalizedData.forEach((row) => {
+    const rowValues: string[] = [];
+    for (const key of columns) {
+      if (row[key] == null) {
         rowValues.push("-");
       } else if (Array.isArray(row[key])) {
         rowValues.push(JSON.stringify(row[key]));
       } else if (typeof row[key] === "object") {
         rowValues.push(JSON.stringify(row[key]));
       } else {
-        rowValues.push(row[key]);
+        rowValues.push(String(row[key]));
       }
     }
     table.push(rowValues);
@@ -113,13 +149,13 @@ export const drawTable = (data: Array<Record<string, any>>): void => {
   console.log(table.toString());
 };
 
-export const drawJSON = (data: any): void => {
+export const drawJSON = (data: unknown): void => {
   console.log(JSON.stringify(data, null, 2));
 };
 
 export const parseError = (err: Error): void => {
   if (cliConfig.report) {
-    (async () => {
+    void (async () => {
       let appwriteVersion = "unknown";
       const endpoint = globalConfig.getEndpoint();
 
@@ -135,7 +171,8 @@ export const parseError = (err: Error): void => {
       }
 
       const version = SDK_VERSION;
-      const stepsToReproduce = `Running \`${EXECUTABLE_NAME} ${(cliConfig.reportData as any).data.args.join(" ")}\``;
+      const commandArgs = extractReportCommandArgs(cliConfig.reportData);
+      const stepsToReproduce = `Running \`${EXECUTABLE_NAME} ${commandArgs.join(" ")}\``;
       const yourEnvironment = `CLI version: ${version}\nOperation System: ${os.type()}\nAppwrite version: ${appwriteVersion}\nIs Cloud: ${isCloud()}`;
 
       const stack = "```\n" + (err.stack || err.message) + "\n```";
@@ -178,7 +215,9 @@ export const parseError = (err: Error): void => {
   }
 };
 
-export const actionRunner = <T extends (...args: any[]) => Promise<any>>(
+export const actionRunner = <
+  T extends (...args: unknown[]) => Promise<unknown>,
+>(
   fn: T,
 ): ((...args: Parameters<T>) => Promise<void>) => {
   return (...args: Parameters<T>) => {
@@ -190,7 +229,9 @@ export const actionRunner = <T extends (...args: any[]) => Promise<any>>(
       error(`The '--all' and '--id' flags cannot be used together.`);
       process.exit(1);
     }
-    return fn(...args).catch(parseError);
+    return fn(...args)
+      .then(() => undefined)
+      .catch(parseError);
   };
 };
 
@@ -244,6 +285,7 @@ export const commandDescriptions: Record<string, string> = {
   push: `The push command provides a convenient wrapper for pushing your functions, collections, buckets, teams, and messaging-topics.`,
   run: `The run command allows you to run the project locally to allow easy development and quick debugging.`,
   functions: `The functions command allows you to view, create, and manage your Cloud Functions.`,
+  generate: `The generate command allows you to generate a type-safe SDK from your ${SDK_TITLE} project configuration.`,
   health: `The health command allows you to both validate and monitor your ${SDK_TITLE} server's health.`,
   pull: `The pull command helps you pull your ${SDK_TITLE} project, functions, collections, buckets, teams, and messaging-topics`,
   locale: `The locale command allows you to customize your app based on your users' location.`,
@@ -263,6 +305,7 @@ export const commandDescriptions: Record<string, string> = {
   messaging: `The messaging command allows you to manage topics and targets and send messages.`,
   migrations: `The migrations command allows you to migrate data between services.`,
   vcs: `The vcs command allows you to interact with VCS providers and manage your code repositories.`,
+  webhooks: `The webhooks command allows you to manage your project webhooks.`,
   main: chalk.redBright(`${logo}${description}`),
 };
 

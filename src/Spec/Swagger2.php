@@ -250,6 +250,10 @@ class Swagger2 extends Spec
                 $param['enumValues'] = $parameter['enum'];
                 $param['enumName'] = $parameter['x-enum-name'] ?? $param['name'];
                 $param['enumKeys'] = $parameter['x-enum-keys'];
+            } elseif (($param['type'] ?? null) === 'array' && isset($parameter['items']['enum'])) {
+                $param['enumValues'] = $parameter['items']['enum'];
+                $param['enumName'] = $parameter['items']['x-enum-name'] ?? $param['name'];
+                $param['enumKeys'] = $parameter['items']['x-enum-keys'] ?? [];
             }
 
             switch ($parameter['in']) {
@@ -292,6 +296,10 @@ class Swagger2 extends Spec
                             $temp['enumValues'] = $value['enum'];
                             $temp['enumName'] = $value['x-enum-name'] ?? $temp['name'];
                             $temp['enumKeys'] = $value['x-enum-keys'];
+                        } elseif (($temp['type'] ?? null) === 'array' && isset($value['items']['enum'])) {
+                            $temp['enumValues'] = $value['items']['enum'];
+                            $temp['enumName'] = $value['items']['x-enum-name'] ?? $temp['name'];
+                            $temp['enumKeys'] = $value['items']['x-enum-keys'] ?? [];
                         }
 
                         $temp['default'] = (is_array($value['default']) || $value['default'] instanceof stdClass) ? json_encode($value['default']) : $value['default'];

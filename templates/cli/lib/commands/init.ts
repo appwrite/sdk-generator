@@ -31,11 +31,57 @@ import {
 } from "../parser.js";
 import { sdkForConsole } from "../sdks.js";
 import { isCloud } from "../utils.js";
-import { Account } from "@appwrite.io/console";
+import { Account, UseCases, AppwriteException } from "@appwrite.io/console";
 import { DEFAULT_ENDPOINT, EXECUTABLE_NAME } from "../constants.js";
 
+type InitResourceAction = (_options?: unknown) => Promise<void>;
+type ProjectsService = Awaited<ReturnType<typeof getProjectsService>>;
+type ProjectCreateRegion = Parameters<ProjectsService["create"]>[3];
+
+interface ExistingProjectSummary {
+  $id: string;
+  name?: string;
+  region?: string;
+}
+
+interface InitProjectAnswers {
+  start: "new" | "existing";
+  override?: boolean;
+  id?: string;
+  project: string | ExistingProjectSummary;
+  organization: string;
+  region?: ProjectCreateRegion;
+}
+
+interface InitProjectAutopullAnswer {
+  autopull?: boolean;
+}
+
+interface SiteTemplateFramework {
+  providerRootDirectory: string;
+  adapter?: string;
+  buildRuntime?: string;
+  installCommand?: string;
+  buildCommand?: string;
+  outputDirectory?: string;
+  fallbackFile?: string;
+}
+
+interface SiteTemplateVariable {
+  name: string;
+  value?: string;
+}
+
+interface SiteTemplateDetails {
+  providerOwner: string;
+  providerRepositoryId: string;
+  providerVersion: string;
+  frameworks: SiteTemplateFramework[];
+  variables?: SiteTemplateVariable[];
+}
+
 const initResources = async (): Promise<void> => {
-  const actions: Record<string, (options?: any) => Promise<void>> = {
+  const actions: Record<string, InitResourceAction> = {
     function: initFunction,
     site: initSite,
     table: initTable,
@@ -64,8 +110,6 @@ const initProject = async ({
   projectId,
   projectName,
 }: InitProjectOptions = {}): Promise<void> => {
-  let response: any = {};
-
   try {
     if (globalConfig.getEndpoint() === "" || globalConfig.getCookie() === "") {
       throw new Error(
@@ -76,14 +120,14 @@ const initProject = async ({
     const accountClient = new Account(client);
 
     await accountClient.get();
-  } catch (e) {
+  } catch (_e) {
     error(
       `Error Session not found. Please run '${EXECUTABLE_NAME} login' to create a session`,
     );
     process.exit(1);
   }
 
-  let answers: any = {};
+  let answers: InitProjectAnswers;
 
   if (!organizationId && !projectId && !projectName) {
     answers = await inquirer.prompt(questionsInitProject);
@@ -91,26 +135,33 @@ const initProject = async ({
       process.exit(1);
     }
   } else {
-    answers.start = "existing";
-    answers.project = {};
-    answers.organization = {};
-
-    answers.organization =
+    const selectedOrganization =
       organizationId ??
       (await inquirer.prompt([questionsInitProject[2]])).organization;
-    answers.project.name =
+    const selectedProjectName =
       projectName ?? (await inquirer.prompt([questionsInitProject[3]])).project;
-    answers.project =
+    const selectedProjectId =
       projectId ?? (await inquirer.prompt([questionsInitProject[4]])).id;
+
+    answers = {
+      start: "existing",
+      project: selectedProjectId,
+      organization: selectedOrganization,
+    };
 
     try {
       const projectsService = await getProjectsService();
-      await projectsService.get(projectId);
-    } catch (e: any) {
-      if (e.code === 404) {
-        answers.start = "new";
-        answers.id = answers.project;
-        answers.project = answers.project.name;
+      const existingProject: ExistingProjectSummary =
+        await projectsService.get(selectedProjectId);
+      answers.project = existingProject;
+    } catch (e) {
+      if (e instanceof AppwriteException && e.code === 404) {
+        answers = {
+          start: "new",
+          id: selectedProjectId,
+          project: selectedProjectName,
+          organization: selectedOrganization,
+        };
       } else {
         throw e;
       }
@@ -121,10 +172,28 @@ const initProject = async ({
   const url = new URL(DEFAULT_ENDPOINT);
 
   if (answers.start === "new") {
+    let projectIdToCreate;
+    let projectNameToCreate;
+
+    switch (typeof answers.project) {
+      case "string":
+        projectIdToCreate = answers.id ?? answers.project;
+        projectNameToCreate = answers.project;
+        break;
+      case "object":
+        projectIdToCreate = answers.id ?? answers.project.$id;
+        projectNameToCreate = answers.project.name ?? answers.project.$id;
+        break;
+      default:
+        projectIdToCreate = answers.id;
+        projectNameToCreate = "";
+        break;
+    }
+
     const projectsService = await getProjectsService();
-    response = await projectsService.create(
-      answers.id,
-      answers.project,
+    const response = await projectsService.create(
+      projectIdToCreate,
+      projectNameToCreate,
       answers.organization,
       answers.region,
     );
@@ -136,10 +205,25 @@ const initProject = async ({
       );
     }
   } else {
-    localConfig.setProject(answers.project["$id"]);
-    if (isCloud()) {
+    let selectedProject;
+
+    switch (typeof answers.project) {
+      case "string":
+        selectedProject = { $id: answers.project };
+        break;
+      case "object":
+        selectedProject = answers.project;
+        break;
+      default:
+        selectedProject = { $id: "" };
+        break;
+    }
+
+    localConfig.setProject(selectedProject.$id);
+
+    if (isCloud() && selectedProject.region) {
       localConfig.setEndpoint(
-        `https://${answers.project["region"]}.${url.host}${url.pathname}`,
+        `https://${selectedProject.region}.${url.host}${url.pathname}`,
       );
     }
   }
@@ -149,8 +233,10 @@ const initProject = async ({
   );
 
   if (answers.start === "existing") {
-    answers = await inquirer.prompt(questionsInitProjectAutopull);
-    if (answers.autopull) {
+    const autopullAnswers: InitProjectAutopullAnswer = await inquirer.prompt(
+      questionsInitProjectAutopull,
+    );
+    if (autopullAnswers.autopull) {
       cliConfig.all = true;
       cliConfig.force = true;
       await pullResources({
@@ -322,7 +408,6 @@ const initFunction = async (): Promise<void> => {
   fs.mkdirSync(functionDir, { mode: 0o777 });
   fs.mkdirSync(templatesDir, { mode: 0o777 });
   const repo = "https://github.com/appwrite/templates";
-  const api = `https://api.github.com/repos/appwrite/templates/contents/${answers.runtime.name}`;
   let selected: { template: string } = { template: "starter" };
 
   const sparse = (
@@ -351,20 +436,21 @@ const initFunction = async (): Promise<void> => {
       stdio: "pipe",
       cwd: templatesDir,
     });
-  } catch (err: any) {
+  } catch (err) {
     /* Specialised errors with recommended actions to take */
-    if (err.message.includes("error: unknown option")) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    if (errorMessage.includes("error: unknown option")) {
       throw new Error(
-        `${err.message} \n\nSuggestion: Try updating your git to the latest version, then trying to run this command again.`,
+        `${errorMessage} \n\nSuggestion: Try updating your git to the latest version, then trying to run this command again.`,
       );
     } else if (
-      err.message.includes(
+      errorMessage.includes(
         "is not recognized as an internal or external command,",
       ) ||
-      err.message.includes("command not found")
+      errorMessage.includes("command not found")
     ) {
       throw new Error(
-        `${err.message} \n\nSuggestion: It appears that git is not installed, try installing git then trying to run this command again.`,
+        `${errorMessage} \n\nSuggestion: It appears that git is not installed, try installing git then trying to run this command again.`,
       );
     } else {
       throw err;
@@ -390,9 +476,9 @@ const initFunction = async (): Promise<void> => {
   }
 
   const copyRecursiveSync = (src: string, dest: string): void => {
-    let exists = fs.existsSync(src);
-    let stats = exists && fs.statSync(src);
-    let isDirectory = exists && stats && stats.isDirectory();
+    const exists = fs.existsSync(src);
+    const stats = exists && fs.statSync(src);
+    const isDirectory = exists && stats && stats.isDirectory();
     if (isDirectory) {
       if (!fs.existsSync(dest)) {
         fs.mkdirSync(dest);
@@ -424,11 +510,12 @@ const initFunction = async (): Promise<void> => {
   newReadmeFile.splice(1, 2);
   fs.writeFileSync(readmePath, newReadmeFile.join("\n"));
 
-  let data = {
+  const data = {
     $id: functionId,
     name: answers.name,
     runtime: answers.runtime.id,
-    specification: answers.specification,
+    buildSpecification: answers.buildSpecification,
+    runtimeSpecification: answers.runtimeSpecification,
     execute: ["any"],
     events: [],
     scopes: ["users.read"],
@@ -472,12 +559,12 @@ const initSite = async (): Promise<void> => {
     );
   }
 
-  let templateDetails: any;
+  let templateDetails: SiteTemplateDetails;
   try {
     const sitesService = await getSitesService();
     const response = await sitesService.listTemplates(
       [answers.framework.key],
-      ["starter"],
+      [UseCases.Starter],
       1,
     );
     if (response.total == 0) {
@@ -486,20 +573,21 @@ const initSite = async (): Promise<void> => {
       );
     }
     templateDetails = response.templates[0];
-  } catch (err: any) {
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
     throw new Error(
-      `Failed to fetch template for framework ${answers.framework.key}: ${err.message}`,
+      `Failed to fetch template for framework ${answers.framework.key}: ${errorMessage}`,
     );
   }
 
   fs.mkdirSync(siteDir, { mode: 0o777 });
   fs.mkdirSync(templatesDir, { mode: 0o777 });
   const repo = `https://github.com/${templateDetails.providerOwner}/${templateDetails.providerRepositoryId}`;
-  let selected = {
+  const selected = {
     template: templateDetails.frameworks[0].providerRootDirectory,
   };
 
-  let gitCloneCommands = "";
+  let dirSetupCommands = "";
 
   const sparse = selected.template.startsWith("./")
     ? selected.template.substring(2)
@@ -508,19 +596,15 @@ const initSite = async (): Promise<void> => {
   log("Fetching site code ...");
 
   if (selected.template === "./") {
-    gitCloneCommands = `
-            mkdir -p .
-            cd .
+    dirSetupCommands = `
+            cd ${templatesDir}
             git init
             git remote add origin ${repo}
-            git config --global init.defaultBranch main
-            git fetch --depth=1 origin refs/tags/$(git ls-remote --tags origin "${templateDetails.providerVersion}" | tail -n 1 | awk -F '/' '{print $3}')
-            git checkout FETCH_HEAD
+            git config --global init.defaultBranch main   
         `.trim();
   } else {
-    gitCloneCommands = `
-            mkdir -p .
-            cd .
+    dirSetupCommands = `
+            cd ${templatesDir}
             git init
             git remote add origin ${repo}
             git config --global init.defaultBranch main
@@ -528,68 +612,62 @@ const initSite = async (): Promise<void> => {
             echo "${sparse}" >> .git/info/sparse-checkout
             git config --add remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'
             git config remote.origin.tagopt --no-tags
-            git fetch --depth=1 origin refs/tags/$(git ls-remote --tags origin "${templateDetails.providerVersion}" | tail -n 1 | awk -F '/' '{print $3}')
-            git checkout FETCH_HEAD
         `.trim();
   }
+  const windowsGitCloneCommands = `
+            $tag = (git ls-remote --tags origin "${templateDetails.providerVersion}" | Select-Object -Last 1) -replace '.*refs/tags/', ''
+            git fetch --depth=1 origin "refs/tags/$tag"
+            git checkout FETCH_HEAD
+            `.trim();
+  const unixGitCloneCommands = `
+            git fetch --depth=1 origin refs/tags/$(git ls-remote --tags origin "${templateDetails.providerVersion}" | tail -n 1 | awk -F '/' '{print $3}')
+            git checkout FETCH_HEAD
+            `.trim();
 
-  /* Force use CMD as powershell does not support && */
+  let usedShell = null;
   if (process.platform === "win32") {
-    gitCloneCommands = 'cmd /c "' + gitCloneCommands + '"';
+    dirSetupCommands = dirSetupCommands + "\n" + windowsGitCloneCommands;
+    usedShell = "powershell.exe";
+  } else {
+    dirSetupCommands = dirSetupCommands + "\n" + unixGitCloneCommands;
   }
 
   /*  Execute the child process but do not print any std output */
   try {
-    childProcess.execSync(gitCloneCommands, {
+    childProcess.execSync(dirSetupCommands, {
       stdio: "pipe",
       cwd: templatesDir,
+      shell: usedShell,
     });
-  } catch (err: any) {
+  } catch (err) {
     /* Specialised errors with recommended actions to take */
-    if (err.message.includes("error: unknown option")) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    if (errorMessage.includes("error: unknown option")) {
       throw new Error(
-        `${err.message} \n\nSuggestion: Try updating your git to the latest version, then trying to run this command again.`,
+        `${errorMessage} \n\nSuggestion: Try updating your git to the latest version, then trying to run this command again.`,
       );
     } else if (
-      err.message.includes(
+      errorMessage.includes(
         "is not recognized as an internal or external command,",
       ) ||
-      err.message.includes("command not found")
+      errorMessage.includes("command not found")
     ) {
       throw new Error(
-        `${err.message} \n\nSuggestion: It appears that git is not installed, try installing git then trying to run this command again.`,
+        `${errorMessage} \n\nSuggestion: It appears that git is not installed, try installing git then trying to run this command again.`,
       );
     } else {
       throw err;
     }
   }
 
-  fs.rmSync(path.join(templatesDir, ".git"), { recursive: true });
+  fs.rmSync(path.join(templatesDir, ".git"), { recursive: true, force: true });
 
-  const copyRecursiveSync = (src: string, dest: string): void => {
-    let exists = fs.existsSync(src);
-    let stats = exists && fs.statSync(src);
-    let isDirectory = exists && stats && stats.isDirectory();
-    if (isDirectory) {
-      if (!fs.existsSync(dest)) {
-        fs.mkdirSync(dest);
-      }
-
-      fs.readdirSync(src).forEach(function (childItemName) {
-        copyRecursiveSync(
-          path.join(src, childItemName),
-          path.join(dest, childItemName),
-        );
-      });
-    } else {
-      fs.copyFileSync(src, dest);
-    }
-  };
-  copyRecursiveSync(
+  fs.cpSync(
     selected.template === "./"
       ? templatesDir
       : path.join(templatesDir, selected.template),
     siteDir,
+    { recursive: true, force: true },
   );
 
   fs.rmSync(templatesDir, { recursive: true, force: true });
@@ -601,27 +679,25 @@ const initSite = async (): Promise<void> => {
   newReadmeFile.splice(1, 2);
   fs.writeFileSync(readmePath, newReadmeFile.join("\n"));
 
-  let vars = (templateDetails.variables ?? []).map((variable: any) => {
-    let value = variable.value;
+  const vars: Record<string, string> = {};
+  for (const variable of templateDetails.variables ?? []) {
+    let value = variable.value ?? "";
     const replacements: Record<string, string> = {
       "{apiEndpoint}": globalConfig.getEndpoint(),
-      "{projectId}": localConfig.getProject().projectId,
-      "{projectName}": localConfig.getProject().projectName,
+      "{projectId}": localConfig.getProject().projectId ?? "",
+      "{projectName}": localConfig.getProject().projectName ?? "",
     };
 
     for (const placeholder in replacements) {
-      if (value?.includes(placeholder)) {
+      if (value.includes(placeholder)) {
         value = value.replace(placeholder, replacements[placeholder]);
       }
     }
 
-    return {
-      key: variable.name,
-      value: value,
-    };
-  });
+    vars[variable.name] = value;
+  }
 
-  let data = {
+  const data = {
     $id: siteId,
     name: answers.name,
     framework: answers.framework.key,
@@ -631,7 +707,8 @@ const initSite = async (): Promise<void> => {
     buildCommand: templateDetails.frameworks[0].buildCommand || "",
     outputDirectory: templateDetails.frameworks[0].outputDirectory || "",
     fallbackFile: templateDetails.frameworks[0].fallbackFile || "",
-    specification: answers.specification,
+    buildSpecification: answers.buildSpecification,
+    runtimeSpecification: answers.runtimeSpecification,
     enabled: true,
     timeout: 30,
     logging: true,

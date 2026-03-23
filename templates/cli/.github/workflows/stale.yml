@@ -1,9 +1,0 @@
-name: Mark stale issues
-
-on:
-  schedule:
-    - cron: "0 0 * * *"  # Midnight Runtime
-
-jobs:
-  stale:
-    uses: appwrite/.github/.github/workflows/stale.yml@main 

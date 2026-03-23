@@ -213,7 +213,9 @@ func testQueries() {
 	fmt.Println(query.Offset(20))
 	fmt.Println(query.Contains("title", "Spider"))
 	fmt.Println(query.Contains("labels", "first"))
-	
+	fmt.Println(query.ContainsAny("labels", []interface{}{"first", "second"}))
+	fmt.Println(query.ContainsAll("labels", []interface{}{"first", "second"}))
+
 	// New query methods
 	fmt.Println(query.NotContains("title", "Spider"))
 	fmt.Println(query.NotSearch("name", "john"))
@@ -258,6 +260,15 @@ func testQueries() {
 	fmt.Println(query.And([]string{
 		query.Equal("released", false),
 		query.GreaterThan("releasedYear", 2015),
+	}))
+
+	// regex, exists, notExists, elemMatch
+	fmt.Println(query.Regex("name", "pattern.*"))
+	fmt.Println(query.Exists([]interface{}{"attr1", "attr2"}))
+	fmt.Println(query.NotExists([]interface{}{"attr1", "attr2"}))
+	fmt.Println(query.ElemMatch("friends", []string{
+		query.Equal("name", "Alice"),
+		query.GreaterThan("age", 18),
 	}))
 }
 

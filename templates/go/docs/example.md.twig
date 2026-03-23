@@ -1,4 +1,5 @@
-{%- set requireModelsPkg = false -%}
+```go
+{% set requireModelsPkg = false -%}
 {%- set requireFilesPkg = false -%}
 {%- if (method | returnType(spec, spec.title | caseLower)) starts with "models" -%}
 		{%- set requireModelsPkg = true -%}
@@ -38,3 +39,4 @@ response, error := service.{{ method.name | caseUcfirst }}({% if method.paramete
 {% endif %}
 {% endfor %}
 {% endif %})
+```

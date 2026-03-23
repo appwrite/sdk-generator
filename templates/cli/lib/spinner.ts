@@ -52,7 +52,11 @@ class Spinner {
     Spinner.updatesBar.stop();
   }
 
-  static formatter(options: any, params: any, payload: SpinnerPayload): string {
+  static formatter(
+    _options: unknown,
+    _params: unknown,
+    payload: SpinnerPayload,
+  ): string {
     const status = payload.status.padEnd(12);
     const middle = `${payload.resource} (${payload.id})`.padEnd(40);
 

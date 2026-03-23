@@ -1,11 +1,15 @@
 import { Command } from "commander";
 {% set hasLocationMethod = false %}
+{% set hasFileParam = false %}
 {% set enumNames = [] %}
 {% for method in service.methods %}
 {% if method.type == 'location' %}
 {% set hasLocationMethod = true %}
 {% endif %}
 {% for parameter in method.parameters.all %}
+{% if parameter.type == 'file' %}
+{% set hasFileParam = true %}
+{% endif %}
 {% if parameter.enumName is defined and parameter.enumName not in enumNames %}
 {% set enumNames = enumNames|merge([parameter.enumName]) %}
 {% endif %}
@@ -13,6 +17,9 @@ import { Command } from "commander";
 {% endfor %}
 {% if hasLocationMethod %}
 import fs from "fs";
+{% endif %}
+{% if hasFileParam %}
+import { resolveFileParam } from "../utils/deployment.js";
 {% endif %}
 import { sdkForProject } from "../../sdks.js";
 import {
@@ -26,16 +33,7 @@ import {
 {% if sdk.test %}
 {{ include('cli/base/mock.twig') }}
 {% else %}
-{% if enumNames | length > 0 %}
-import {
-  {{ service.name | caseUcfirst }},
-{% for enumName in enumNames %}
-  {{ enumName | caseUcfirst }},
-{% endfor %}
-} from "@appwrite.io/console";
-{% else %}
 import { {{ service.name | caseUcfirst }} } from "@appwrite.io/console";
-{% endif %}
 {% endif %}
 
 let {{ service.name | caseCamel }}Client: {{ service.name | caseUcfirst }} | null = null;

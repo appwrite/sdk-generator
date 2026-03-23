@@ -2,7 +2,45 @@ import { fetch, FormData, File } from 'node-fetch-native-with-agent';
 import { createAgent } from 'node-fetch-native-with-agent/agent';
 import { Models } from './models';
 import JSONbigModule from 'json-bigint';
-const JSONbig = JSONbigModule({ useNativeBigInt: true });
+const JSONbigParser = JSONbigModule({ storeAsString: false });
+const JSONbigSerializer = JSONbigModule({ useNativeBigInt: true });
+
+const MAX_SAFE = BigInt(Number.MAX_SAFE_INTEGER);
+const MIN_SAFE = BigInt(Number.MIN_SAFE_INTEGER);
+const MAX_INT64 = BigInt('9223372036854775807');
+const MIN_INT64 = BigInt('-9223372036854775808');
+
+function isBigNumber(value: any): boolean {
+    return value !== null
+        && typeof value === 'object'
+        && value._isBigNumber === true
+        && typeof value.isInteger === 'function'
+        && typeof value.toFixed === 'function'
+        && typeof value.toNumber === 'function';
+}
+
+function reviver(_key: string, value: any): any {
+    if (isBigNumber(value)) {
+        if (value.isInteger()) {
+            const str = value.toFixed();
+            const bi = BigInt(str);
+            if (bi >= MIN_SAFE && bi <= MAX_SAFE) {
+                return Number(str);
+            }
+            if (bi >= MIN_INT64 && bi <= MAX_INT64) {
+                return bi;
+            }
+            return value.toNumber();
+        }
+        return value.toNumber();
+    }
+    return value;
+}
+
+const JSONbig = {
+    parse: (text: string) => JSONbigParser.parse(text, reviver),
+    stringify: JSONbigSerializer.stringify
+};
 
 type Payload = {
     [key: string]: any;
@@ -303,6 +341,10 @@ class Client {
                 responseText = data?.message;
             }
             throw new {{spec.title | caseUcfirst}}Exception(data?.message, response.status, data?.type, responseText);
+        }
+
+        if (data && typeof data === 'object') {
+            data.toString = () => JSONbig.stringify(data);
         }
 
         return data;

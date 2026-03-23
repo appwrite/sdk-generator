@@ -9,6 +9,7 @@ import { Pull } from "./lib/commands/pull.js";
 import { Schema } from "./lib/commands/schema.js";
 
 export { Schema, Push, Pull };
+export { Client } from "@appwrite.io/console";
 export type {
   ConfigType,
   SettingsType,
@@ -25,4 +26,21 @@ export type {
   IndexType,
   ColumnType,
   TableIndexType,
+} from "./lib/commands/config.js";
+export {
+  ConfigSchema,
+  SettingsSchema,
+  SiteSchema,
+  FunctionSchema,
+  DatabaseSchema,
+  CollectionSchema,
+  AttributeSchema,
+  IndexSchema,
+  TableSchema,
+  ColumnSchema,
+  IndexTableSchema,
+  TopicSchema,
+  TeamSchema,
+  MessageSchema,
+  BucketSchema,
 } from "./lib/commands/config.js";

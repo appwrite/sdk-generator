@@ -1,0 +1,66 @@
+name: CI
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+  build-validation:
+    name: Build Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "latest"
+
+      - name: Install Node dependencies
+        run: npm install
+
+      - name: Build project
+        run: npm run build
+
+      - name: Verify CLI runs with Node
+        run: node dist/cli.cjs -v
+
+      - name: Verify npm package can be built
+        run: npm pack
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build all platform binaries
+        run: |
+          rm -rf build
+          mkdir -p build
+          bun run linux-x64
+          bun run linux-arm64
+          bun run windows-x64
+          bun run windows-arm64
+          bun run mac-x64
+          bun run mac-arm64
+
+      - name: Verify generated binaries
+        run: |
+          test -s build/appwrite-cli-linux-x64
+          test -s build/appwrite-cli-linux-arm64
+          test -s build/appwrite-cli-win-x64.exe
+          test -s build/appwrite-cli-win-arm64.exe
+          test -s build/appwrite-cli-darwin-x64
+          test -s build/appwrite-cli-darwin-arm64

@@ -39,6 +39,13 @@ class Query {
   static String notEqual(String attribute, dynamic value) =>
       Query._('notEqual', attribute, value).toString();
 
+  /// Filter resources where [attribute] matches a regular expression pattern.
+  ///
+  /// [attribute] The attribute to filter on.
+  /// [pattern] The regular expression pattern to match.
+  static String regex(String attribute, String pattern) =>
+      Query._('regex', attribute, pattern).toString();
+
   /// Filter resources where [attribute] is less than [value].
   static String lessThan(String attribute, dynamic value) =>
       Query._('lessThan', attribute, value).toString();
@@ -67,6 +74,18 @@ class Query {
   static String isNotNull(String attribute) =>
       Query._('isNotNull', attribute).toString();
 
+  /// Filter resources where the specified attributes exist.
+  ///
+  /// [attributes] The list of attributes that must exist.
+  static String exists(List<String> attributes) =>
+      Query._('exists', null, attributes).toString();
+
+  /// Filter resources where the specified attributes do not exist.
+  ///
+  /// [attributes] The list of attributes that must not exist.
+  static String notExists(List<String> attributes) =>
+      Query._('notExists', null, attributes).toString();
+
   /// Filter resources where [attribute] is between [start] and [end] (inclusive).
   static String between(String attribute, dynamic start, dynamic end) =>
       Query._('between', attribute, [start, end]).toString();
@@ -79,10 +98,25 @@ class Query {
   static String endsWith(String attribute, String value) =>
       Query._('endsWith', attribute, value).toString();
 
-  /// Filter resources where [attribute] contains [value]
+  /// Filter resources where [attribute] contains [value].
+  /// For string attributes, checks if the string contains the substring.
   /// [value] can be a single value or a list.
+  ///
+  /// Note: For array attributes, use [containsAny] or [containsAll] instead.
   static String contains(String attribute, dynamic value) =>
       Query._('contains', attribute, value).toString();
+
+  /// Filter resources where [attribute] contains ANY of the specified [value]s.
+  /// For array and relationship attributes, matches documents where the attribute
+  /// contains at least one of the given values.
+  static String containsAny(String attribute, List<dynamic> value) =>
+      Query._('containsAny', attribute, value).toString();
+
+  /// Filter resources where [attribute] contains ALL of the specified [value]s.
+  /// For array and relationship attributes, matches documents where the attribute
+  /// contains every one of the given values.
+  static String containsAll(String attribute, List<dynamic> value) =>
+      Query._('containsAll', attribute, value).toString();
 
   /// Filter resources where [attribute] does not contain [value]
   /// [value] can be a single value or a list.
@@ -138,6 +172,16 @@ class Query {
   static String and(List<String> queries) => Query._(
     'and',
     null,
+    queries.map((query) => jsonDecode(query)).toList(),
+  ).toString();
+
+  /// Filter array elements where at least one element matches all the specified queries.
+  ///
+  /// [attribute] The attribute containing the array to filter on.
+  /// [queries] The list of query strings to match against array elements.
+  static String elemMatch(String attribute, List<String> queries) => Query._(
+    'elemMatch',
+    attribute,
     queries.map((query) => jsonDecode(query)).toList(),
   ).toString();
 

@@ -1,7 +1,33 @@
-import fs from "fs";
-import path from "path";
-import { AttributeType } from "../attribute.js";
-import { LanguageMeta, Attribute, Collection } from "./language.js";
+import {
+  LanguageMeta,
+  Attribute,
+  Collection,
+  EnumDefinition,
+  EnumMember,
+} from "./language.js";
+import {
+  getTypeScriptType,
+  getAppwriteDependency,
+  TypeAttribute,
+  TypeEntity,
+} from "../../shared/typescript-type-utils.js";
+
+function generateEnumMembers(elements: string[]): EnumMember[] {
+  const usedKeys = new Set<string>();
+
+  return elements.map((element) => {
+    let key = LanguageMeta.sanitizeEnumKey(element);
+    if (usedKeys.has(key)) {
+      let disambiguator = 1;
+      while (usedKeys.has(`${key}_${disambiguator}`)) {
+        disambiguator++;
+      }
+      key = `${key}_${disambiguator}`;
+    }
+    usedKeys.add(key);
+    return { key, value: element };
+  });
+}
 
 export class TypeScript extends LanguageMeta {
   getType(
@@ -9,95 +35,51 @@ export class TypeScript extends LanguageMeta {
     collections?: Collection[],
     collectionName?: string,
   ): string {
-    let type = "";
-    switch (attribute.type) {
-      case AttributeType.STRING:
-      case AttributeType.EMAIL:
-      case AttributeType.DATETIME:
-      case AttributeType.IP:
-      case AttributeType.URL:
-        type = "string";
-        if (attribute.format === AttributeType.ENUM) {
-          type =
-            LanguageMeta.toPascalCase(collectionName!) +
-            LanguageMeta.toPascalCase(attribute.key);
-        }
-        break;
-      case AttributeType.INTEGER:
-        type = "number";
-        break;
-      case AttributeType.FLOAT:
-        type = "number";
-        break;
-      case AttributeType.BOOLEAN:
-        type = "boolean";
-        break;
-      case AttributeType.RELATIONSHIP:
-        const relatedCollection = collections?.find(
-          (c) => c.$id === attribute.relatedCollection,
-        );
-        if (!relatedCollection) {
-          throw new Error(
-            `Related collection with ID '${attribute.relatedCollection}' not found.`,
-          );
-        }
-        type = LanguageMeta.toPascalCase(relatedCollection.name);
-        if (
-          (attribute.relationType === "oneToMany" &&
-            attribute.side === "parent") ||
-          (attribute.relationType === "manyToOne" &&
-            attribute.side === "child") ||
-          attribute.relationType === "manyToMany"
-        ) {
-          type = `${type}[]`;
-        }
-        break;
-      case AttributeType.POINT:
-        type = "Array<number>";
-        break;
-      case AttributeType.LINESTRING:
-        type = "Array<Array<number>>";
-        break;
-      case AttributeType.POLYGON:
-        type = "Array<Array<Array<number>>>";
-        break;
-      default:
-        throw new Error(`Unknown attribute type: ${attribute.type}`);
-    }
-    if (attribute.array) {
-      type += "[]";
-    }
-    if (!attribute.required && attribute.default === null) {
-      type += " | null";
-    }
-    return type;
+    // Normalize relationship keys for shared TypeAttribute handling.
+    const typeAttribute = {
+      key: attribute.key,
+      type: attribute.type,
+      required: attribute.required,
+      array: attribute.array,
+      default: attribute.default,
+      format: attribute.format,
+      elements: attribute.elements,
+      relatedCollection: LanguageMeta.getRelatedCollectionId(attribute),
+      relationType: attribute.relationType,
+      side: attribute.side,
+    } as TypeAttribute;
+
+    const entities: TypeEntity[] = (collections ?? []).map((c) => ({
+      $id: c.$id,
+      name: c.name,
+    }));
+
+    return getTypeScriptType(typeAttribute, entities, collectionName ?? "");
   }
 
   isSingleFile(): boolean {
     return true;
   }
 
-  private _getAppwriteDependency(): string {
-    if (fs.existsSync(path.resolve(process.cwd(), "package.json"))) {
-      const packageJsonRaw = fs.readFileSync(
-        path.resolve(process.cwd(), "package.json"),
-      );
-      const packageJson = JSON.parse(packageJsonRaw.toString("utf-8"));
-      return packageJson.dependencies &&
-        packageJson.dependencies["node-appwrite"]
-        ? "node-appwrite"
-        : "appwrite";
-    }
+  generateEnum(
+    entityName: string,
+    attributeKey: string,
+    elements: string[],
+  ): EnumDefinition {
+    const name =
+      LanguageMeta.toPascalCase(entityName) +
+      LanguageMeta.toPascalCase(attributeKey);
 
-    if (fs.existsSync(path.resolve(process.cwd(), "deno.json"))) {
-      return "https://deno.land/x/appwrite/mod.ts";
-    }
-
-    return "appwrite";
+    return {
+      name,
+      members: generateEnumMembers(elements),
+    };
   }
 
   getTemplate(): string {
-    return `import type { Models } from '${this._getAppwriteDependency()}';
+    const appwriteDep = getAppwriteDependency();
+
+    return `import type { Models } from '${appwriteDep}';
 
 // This file is auto-generated by the Appwrite CLI.
 // You can regenerate it by running \`appwrite ${process.argv.slice(2).join(" ")}\`.
@@ -105,10 +87,10 @@ export class TypeScript extends LanguageMeta {
 <% for (const collection of collections) { -%>
 <% for (const attribute of collection.attributes) { -%>
 <% if (attribute.format === 'enum') { -%>
-export enum <%- toPascalCase(collection.name) %><%- toPascalCase(attribute.key) %> {
-<% const entries = Object.entries(attribute.elements); -%>
-<% for (let i = 0; i < entries.length; i++) { -%>
-    <%- toUpperSnakeCase(entries[i][1]) %> = "<%- entries[i][1] %>"<% if (i !== entries.length - 1) { %>,<% } %>
+<% const enumDef = generateEnum(collection.name, attribute.key, Object.values(attribute.elements)); -%>
+export enum <%- enumDef.name %> {
+<% for (let i = 0; i < enumDef.members.length; i++) { -%>
+    <%- enumDef.members[i].key %> = <%- JSON.stringify(enumDef.members[i].value) %><% if (i < enumDef.members.length - 1) { -%>,<% } %>
 <% } -%>
 }
 

@@ -1,3 +1,4 @@
+```graphql
 {% macro getProperty(definitions, responseModel, depth) %}
         {%~ for definition in definitions %}
         {%~ if definition.name == responseModel %}
@@ -79,3 +80,4 @@ mutation {
 }
 {% endif %}
 {% endfor %}
+```

@@ -99,6 +99,8 @@ abstract class Base extends TestCase
 
     protected const REALTIME_RESPONSES = [
         'WS:/v1/realtime:passed',
+        'WS:/v1/realtime:passed',
+        'Realtime failed!'
     ];
 
     protected const QUERY_HELPER_RESPONSES = [
@@ -125,6 +127,8 @@ abstract class Base extends TestCase
         '{"method":"offset","values":[20]}',
         '{"method":"contains","attribute":"title","values":["Spider"]}',
         '{"method":"contains","attribute":"labels","values":["first"]}',
+        '{"method":"containsAny","attribute":"labels","values":["first","second"]}',
+        '{"method":"containsAll","attribute":"labels","values":["first","second"]}',
         '{"method":"notContains","attribute":"title","values":["Spider"]}',
         '{"method":"notSearch","attribute":"name","values":["john"]}',
         '{"method":"notBetween","attribute":"age","values":[50,100]}',
@@ -157,7 +161,11 @@ abstract class Base extends TestCase
         '{"method":"equal","attribute":"location","values":[[40.7128,-74],[40.7128,-74]]}',
         '{"method":"notEqual","attribute":"location","values":[[40.7128,-74],[40.7128,-74]]}',
         '{"method":"or","values":[{"method":"equal","attribute":"released","values":[true]},{"method":"lessThan","attribute":"releasedYear","values":[1990]}]}',
-        '{"method":"and","values":[{"method":"equal","attribute":"released","values":[false]},{"method":"greaterThan","attribute":"releasedYear","values":[2015]}]}'
+        '{"method":"and","values":[{"method":"equal","attribute":"released","values":[false]},{"method":"greaterThan","attribute":"releasedYear","values":[2015]}]}',
+        '{"method":"regex","attribute":"name","values":["pattern.*"]}',
+        '{"method":"exists","values":["attr1","attr2"]}',
+        '{"method":"notExists","values":["attr1","attr2"]}',
+        '{"method":"elemMatch","attribute":"friends","values":[{"method":"equal","attribute":"name","values":["Alice"]},{"method":"greaterThan","attribute":"age","values":[18]}]}',
     ];
 
     protected const PERMISSION_HELPER_RESPONSES = [
@@ -176,6 +184,36 @@ abstract class Base extends TestCase
     protected const ID_HELPER_RESPONSES = [
         'unique()',
         'custom_id'
+    ];
+
+    protected const CHANNEL_HELPER_RESPONSES = [
+        'databases.db1.collections.col1.documents',
+        'databases.db1.collections.col1.documents.doc1',
+        'databases.db1.collections.col1.documents.doc1.create',
+        'databases.db1.collections.col1.documents.doc1.upsert',
+        'tablesdb.db1.tables.table1.rows',
+        'tablesdb.db1.tables.table1.rows.row1',
+        'tablesdb.db1.tables.table1.rows.row1.update',
+        'account',
+        'buckets.bucket1.files',
+        'buckets.bucket1.files.file1',
+        'buckets.bucket1.files.file1.delete',
+        'functions.func2',
+        'functions.func1',
+        'executions.exec2',
+        'executions.exec1',
+        'documents',
+        'rows',
+        'files',
+        'executions',
+        'teams',
+        'teams.team2',
+        'teams.team1',
+        'teams.team1.create',
+        'memberships',
+        'memberships.membership2',
+        'memberships.membership1',
+        'memberships.membership1.update',
     ];
 
     protected const OPERATOR_HELPER_RESPONSES = [

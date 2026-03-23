@@ -168,6 +168,8 @@ echo Query::limit(50) . "\n";
 echo Query::offset(20) . "\n";
 echo Query::contains('title', ['Spider']) . "\n";
 echo Query::contains('labels', ['first']) . "\n";
+echo Query::containsAny('labels', ['first', 'second']) . "\n";
+echo Query::containsAll('labels', ['first', 'second']) . "\n";
 
 // New query methods
 echo Query::notContains('title', ['Spider']) . "\n";
@@ -213,6 +215,15 @@ echo Query::or([
 echo Query::and([
     Query::equal('released', [false]),
     Query::greaterThan('releasedYear', 2015)
+]) . "\n";
+
+// regex, exists, notExists, elemMatch
+echo Query::regex('name', 'pattern.*') . "\n";
+echo Query::exists(['attr1', 'attr2']) . "\n";
+echo Query::notExists(['attr1', 'attr2']) . "\n";
+echo Query::elemMatch('friends', [
+    Query::equal('name', ['Alice']),
+    Query::greaterThan('age', 18)
 ]) . "\n";
 
 // Permission & Role helper tests

@@ -3,8 +3,9 @@ import { parse as parseDotenv } from "dotenv";
 import chalk from "chalk";
 import ignoreModule from "ignore";
 const ignore: typeof ignoreModule =
-  (ignoreModule as any).default ?? ignoreModule;
-import tar from "tar";
+  (ignoreModule as unknown as { default?: typeof ignoreModule }).default ??
+  ignoreModule;
+import { create, extract } from "tar";
 import fs from "fs";
 import chokidar from "chokidar";
 import inquirer from "inquirer";
@@ -24,7 +25,12 @@ import {
   commandDescriptions,
   drawTable,
 } from "../parser.js";
-import { systemHasCommand, isPortTaken, getAllFiles } from "../utils.js";
+import {
+  systemHasCommand,
+  isPortTaken,
+  getAllFiles,
+  getErrorMessage,
+} from "../utils.js";
 import {
   runtimeNames,
   systemTools,
@@ -38,6 +44,7 @@ import {
   dockerBuild,
   dockerPull,
 } from "../emulation/docker.js";
+import { Scopes } from "@appwrite.io/console";
 
 interface RunFunctionOptions {
   port?: string | number;
@@ -61,7 +68,7 @@ const runFunction = async ({
   }
 
   const functions = localConfig.getFunctions();
-  const func = functions.find((f: any) => f.$id === functionId);
+  const func = functions.find((f) => f.$id === functionId);
   if (!func) {
     throw new Error("Function '" + functionId + "' not found.");
   }
@@ -177,14 +184,14 @@ const runFunction = async ({
         "variables",
       );
 
-      remoteVariables.forEach((v: any) => {
+      remoteVariables.forEach((v) => {
         allVariables[v.key] = v.value;
         userVariables[v.key] = v.value;
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       warn(
         "Remote variables not fetched. Production environment variables will not be available. Reason: " +
-          err.message,
+          getErrorMessage(err),
       );
     }
   }
@@ -212,11 +219,11 @@ const runFunction = async ({
   allVariables["APPWRITE_FUNCTION_RUNTIME_VERSION"] = func.runtime;
 
   try {
-    await JwtManager.setup(userId, func.scopes ?? []);
-  } catch (err: any) {
+    await JwtManager.setup(userId, (func.scopes as Scopes[]) ?? []);
+  } catch (err: unknown) {
     warn(
       "Dynamic API key not generated. Header x-appwrite-key will not be set. Reason: " +
-        err.message,
+        getErrorMessage(err),
     );
   }
 
@@ -316,7 +323,7 @@ const runFunction = async ({
           fs.mkdirSync(hotSwapPath, { recursive: true });
         }
 
-        await tar.extract({
+        await extract({
           keep: true,
           sync: true,
           cwd: hotSwapPath,
@@ -351,7 +358,7 @@ const runFunction = async ({
           fs.copyFileSync(sourcePath, filePath);
         }
 
-        await tar.create(
+        await create(
           {
             gzip: true,
             sync: true,
@@ -393,7 +400,7 @@ export const run = new Command("run")
     helpWidth: process.stdout.columns || 80,
   })
   .action(
-    actionRunner(async (_options: any, command: Command) => {
+    actionRunner(async (_options: unknown, command: Command) => {
       command.help();
     }),
   );

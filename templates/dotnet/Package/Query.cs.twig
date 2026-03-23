@@ -55,6 +55,17 @@ namespace {{ spec.title | caseUcfirst }}
             return new Query("notEqual", attribute, value).ToString();
         }
 
+        /// <summary>
+        /// Filter resources where attribute matches a regular expression pattern.
+        /// </summary>
+        /// <param name="attribute">The attribute to filter on.</param>
+        /// <param name="pattern">The regular expression pattern to match.</param>
+        /// <returns>The query string.</returns>
+        public static string Regex(string attribute, string pattern)
+        {
+            return new Query("regex", attribute, pattern).ToString();
+        }
+
         public static string LessThan(string attribute, object value)
         {
             return new Query("lessThan", attribute, value).ToString();
@@ -88,6 +99,26 @@ namespace {{ spec.title | caseUcfirst }}
         public static string IsNotNull(string attribute)
         {
             return new Query("isNotNull", attribute, null).ToString();
+        }
+
+        /// <summary>
+        /// Filter resources where the specified attributes exist.
+        /// </summary>
+        /// <param name="attributes">The list of attributes that must exist.</param>
+        /// <returns>The query string.</returns>
+        public static string Exists(List<string> attributes)
+        {
+            return new Query("exists", null, attributes).ToString();
+        }
+
+        /// <summary>
+        /// Filter resources where the specified attributes do not exist.
+        /// </summary>
+        /// <param name="attributes">The list of attributes that must not exist.</param>
+        /// <returns>The query string.</returns>
+        public static string NotExists(List<string> attributes)
+        {
+            return new Query("notExists", null, attributes).ToString();
         }
 
         public static string StartsWith(string attribute, string value)
@@ -149,8 +180,31 @@ namespace {{ spec.title | caseUcfirst }}
             return new Query("offset", null, offset).ToString();
         }
 
+        /// <summary>
+        /// Filter resources where attribute contains the specified value.
+        /// For string attributes, checks if the string contains the substring.
+        /// </summary>
+        /// <remarks>For array attributes, use <see cref="ContainsAny"/> or <see cref="ContainsAll"/> instead.</remarks>
         public static string Contains(string attribute, object value) {
             return new Query("contains", attribute, value).ToString();
+        }
+
+        /// <summary>
+        /// Filter resources where attribute contains ANY of the specified values.
+        /// For array and relationship attributes, matches documents where the attribute
+        /// contains at least one of the given values.
+        /// </summary>
+        public static string ContainsAny(string attribute, IList value) {
+            return new Query("containsAny", attribute, value).ToString();
+        }
+
+        /// <summary>
+        /// Filter resources where attribute contains ALL of the specified values.
+        /// For array and relationship attributes, matches documents where the attribute
+        /// contains every one of the given values.
+        /// </summary>
+        public static string ContainsAll(string attribute, IList value) {
+            return new Query("containsAll", attribute, value).ToString();
         }
 
         public static string NotContains(string attribute, object value) {
@@ -211,6 +265,19 @@ namespace {{ spec.title | caseUcfirst }}
 
         public static string And(List<string> queries) {
             return new Query("and", null, queries.Select(q => JsonSerializer.Deserialize<Query>(q, Client.DeserializerOptions)).ToList()).ToString();
+        }
+
+        /// <summary>
+        /// Filter array elements where at least one element matches all the specified queries.
+        /// </summary>
+        /// <param name="attribute">The attribute containing the array to filter on.</param>
+        /// <param name="queries">The list of query strings to match against array elements.</param>
+        /// <returns>The query string.</returns>
+        public static string ElemMatch(string attribute, List<string> queries) {
+            var parsed = queries
+                .Select(q => JsonSerializer.Deserialize<Query>(q, Client.DeserializerOptions) as object)
+                .ToList();
+            return new Query("elemMatch", attribute, parsed).ToString();
         }
 
         public static string DistanceEqual(string attribute, object values, double distance, bool meters = true)

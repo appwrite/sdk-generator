@@ -128,6 +128,9 @@ class SDK
         $this->twig->addFilter(new TwigFilter('caseCamel', function ($value) {
             return $this->helperCamelCase($value);
         }));
+        $this->twig->addFilter(new TwigFilter('removeDash', function ($value) {
+            return str_replace('-', '', $value);
+        }));
         $this->twig->addFilter(new TwigFilter('caseDash', function ($value) {
             return str_replace([' ', '_'], '-', strtolower(preg_replace('/([a-zA-Z])(?=[A-Z])/', '$1-', $value)));
         }));
@@ -211,6 +214,9 @@ class SDK
         }));
         $this->twig->addFilter(new TwigFilter('capitalizeFirst', function ($value) {
             return ucfirst($value);
+        }));
+        $this->twig->addFilter(new TwigFilter('caseSpace', function ($value) {
+            return preg_replace('/([a-z])([A-Z])/', '$1 $2', $value);
         }));
         $this->twig->addFilter(new TwigFilter('caseSnakeExceptFirstDot', function ($value) {
             $parts = explode('.', $value, 2);
@@ -642,7 +648,10 @@ class SDK
                 'requestModels' => $this->spec->getRequestModels(),
                 'global' => [
                     'headers' => $this->spec->getGlobalHeaders(),
-                    'defaultHeaders' => $this->defaultHeaders,
+                    'defaultHeaders' => array_merge(
+                        $this->defaultHeaders,
+                        $this->spec->getVersion() !== '' ? ['X-Appwrite-Response-Format' => $this->spec->getVersion()] : [],
+                    ),
                 ],
             ],
             'language' => [

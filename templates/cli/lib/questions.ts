@@ -28,6 +28,7 @@ interface Choice {
   value: any;
   disabled?: boolean | string;
   current?: boolean;
+  short?: string;
 }
 
 interface Question {
@@ -183,7 +184,7 @@ export const questionsInitProject: Question[] = [
     name: "organization",
     message: "Choose your organization",
     choices: async () => {
-      let client = await sdkForConsole(true);
+      const client = await sdkForConsole(true);
       const { teams } = isCloud()
         ? await paginate(
             async (opts: { sdk?: Client } = {}) =>
@@ -200,7 +201,7 @@ export const questionsInitProject: Question[] = [
             "teams",
           );
 
-      let choices = teams.map((team: any, idx: number) => {
+      const choices = teams.map((team: any, _idx: number) => {
         return {
           name: `${team.name} (${team["$id"]})`,
           value: team["$id"],
@@ -253,7 +254,7 @@ export const questionsInitProject: Question[] = [
         queries,
       );
 
-      let choices = projects.map((project: any) => {
+      const choices = projects.map((project: any) => {
         return {
           name: `${project.name} (${project["$id"]})`,
           value: {
@@ -276,13 +277,13 @@ export const questionsInitProject: Question[] = [
     name: "region",
     message: `Select your ${SDK_TITLE} Cloud region`,
     choices: async () => {
-      let client = await sdkForConsole(true);
+      const client = await sdkForConsole(true);
       const endpoint = globalConfig.getEndpoint() || DEFAULT_ENDPOINT;
-      let response = (await client.call(
+      const response = (await client.call(
         "GET",
         new URL(endpoint + "/console/regions"),
       )) as { regions: any[] };
-      let regions = response.regions || [];
+      const regions = response.regions || [];
       if (!regions.length) {
         throw new Error(
           "No regions found. Please check your network or Appwrite Cloud availability.",
@@ -437,9 +438,9 @@ export const questionsCreateFunction: Question[] = [
     name: "runtime",
     message: "What runtime would you like to use?",
     choices: async () => {
-      let response = await (await getFunctionsService()).listRuntimes();
-      let runtimes = response["runtimes"];
-      let choices = runtimes.map((runtime: any, idx: number) => {
+      const response = await (await getFunctionsService()).listRuntimes();
+      const runtimes = response["runtimes"];
+      const choices = runtimes.map((runtime: any, _idx: number) => {
         return {
           name: `${runtime.name} (${runtime["$id"]})`,
           value: {
@@ -456,12 +457,29 @@ export const questionsCreateFunction: Question[] = [
   },
   {
     type: "list",
-    name: "specification",
-    message: "What specification would you like to use?",
+    name: "buildSpecification",
+    message: "What build specification would you like to use?",
     choices: async () => {
-      let response = await (await getFunctionsService()).listSpecifications();
-      let specifications = response["specifications"];
-      let choices = specifications.map((spec: any, idx: number) => {
+      const response = await (await getFunctionsService()).listSpecifications();
+      const specifications = response["specifications"];
+      const choices = specifications.map((spec: any, _idx: number) => {
+        return {
+          name: `${spec.cpus} CPU, ${spec.memory}MB RAM`,
+          value: spec.slug,
+          disabled: spec.enabled === false ? "Upgrade to use" : false,
+        };
+      });
+      return choices;
+    },
+  },
+  {
+    type: "list",
+    name: "runtimeSpecification",
+    message: "What runtime specification would you like to use?",
+    choices: async () => {
+      const response = await (await getFunctionsService()).listSpecifications();
+      const specifications = response["specifications"];
+      const choices = specifications.map((spec: any, _idx: number) => {
         return {
           name: `${spec.cpus} CPU, ${spec.memory}MB RAM`,
           value: spec.slug,
@@ -547,7 +565,7 @@ export const questionsCreateCollection: Question[] = [
     choices: async () => {
       const databases = localConfig.getDatabases();
 
-      let choices = databases.map((database: any, idx: number) => {
+      const choices = databases.map((database: any, _idx: number) => {
         return {
           name: `${database.name} (${database.$id})`,
           value: database.$id,
@@ -619,7 +637,7 @@ export const questionsCreateTable: Question[] = [
     choices: async () => {
       const databases = localConfig.getTablesDBs();
 
-      let choices = databases.map((database: any, idx: number) => {
+      const choices = databases.map((database: any, _idx: number) => {
         return {
           name: `${database.name} (${database.$id})`,
           value: database.$id,
@@ -696,15 +714,15 @@ export const questionsPullCollection: Question[] = [
     message: "From which database would you like to pull collections?",
     validate: (value: any) => validateRequired("collection", value),
     choices: async () => {
-      let response = await (await getDatabasesService()).list();
-      let databases = response["databases"];
+      const response = await (await getDatabasesService()).list();
+      const databases = response["databases"];
 
       if (databases.length <= 0) {
         throw new Error(
           "No databases found. Please create one in project console.",
         );
       }
-      let choices = databases.map((database: any, idx: number) => {
+      const choices = databases.map((database: any, _idx: number) => {
         return {
           name: `${database.name} (${database.$id})`,
           value: database.$id,
@@ -752,7 +770,7 @@ export const questionsLogin: Question[] = [
     when: (answers: Answers) => answers.method !== "select",
   },
   {
-    type: "search-list",
+    type: "list",
     name: "accountId",
     message: "Select an account to use",
     choices() {
@@ -772,6 +790,7 @@ export const questionsLogin: Question[] = [
           data.push({
             current: current === session.id,
             value: session.id,
+            short: `${session.email} (${session.endpoint})`,
             name: `${session.email.padEnd(longestEmail)} ${current === session.id ? chalk.green.bold("current") : " ".repeat(6)} ${session.endpoint}`,
           });
         }
@@ -793,9 +812,9 @@ export const questionGetEndpoint: Question[] = [
       if (!value) {
         return "Please enter a valid endpoint.";
       }
-      let client = new Client().setEndpoint(value);
+      const client = new Client().setEndpoint(value);
       try {
-        let response = (await client.call(
+        const response = (await client.call(
           "get",
           new URL(value + "/health/version"),
         )) as { version?: string };
@@ -804,7 +823,7 @@ export const questionGetEndpoint: Question[] = [
         } else {
           throw new Error();
         }
-      } catch (error) {
+      } catch (_error) {
         return "Invalid endpoint or your Appwrite server is not running as expected.";
       }
     },
@@ -892,9 +911,9 @@ export const questionsPushSites: Question[] = [
     validate: (value: any) => validateRequired("site", value),
     when: () => localConfig.getSites().length > 0,
     choices: () => {
-      let sites = localConfig.getSites();
+      const sites = localConfig.getSites();
       checkDeployConditions(localConfig);
-      let choices = sites.map((site: any, idx: number) => {
+      const choices = sites.map((site: any, _idx: number) => {
         return {
           name: `${site.name} (${site.$id})`,
           value: site.$id,
@@ -913,9 +932,9 @@ export const questionsPushFunctions: Question[] = [
     validate: (value: any) => validateRequired("function", value),
     when: () => localConfig.getFunctions().length > 0,
     choices: () => {
-      let functions = localConfig.getFunctions();
+      const functions = localConfig.getFunctions();
       checkDeployConditions(localConfig);
-      let choices = functions.map((func: any, idx: number) => {
+      const choices = functions.map((func: any, _idx: number) => {
         return {
           name: `${func.name} (${func.$id})`,
           value: func.$id,
@@ -934,7 +953,7 @@ export const questionsPushCollections: Question[] = [
     validate: (value: any) => validateRequired("collection", value),
     when: () => localConfig.getCollections().length > 0,
     choices: () => {
-      let collections = localConfig.getCollections();
+      const collections = localConfig.getCollections();
       checkDeployConditions(localConfig);
 
       return collections.map((collection: any) => {
@@ -955,7 +974,7 @@ export const questionsPushTables: Question[] = [
     validate: (value: any) => validateRequired("table", value),
     when: () => localConfig.getTables().length > 0,
     choices: () => {
-      let tables = localConfig.getTables();
+      const tables = localConfig.getTables();
       checkDeployConditions(localConfig);
 
       return tables.map((table: any) => {
@@ -992,7 +1011,7 @@ export const questionsPushBuckets: Question[] = [
     validate: (value: any) => validateRequired("bucket", value),
     when: () => localConfig.getBuckets().length > 0,
     choices: () => {
-      let buckets = localConfig.getBuckets();
+      const buckets = localConfig.getBuckets();
       checkDeployConditions(localConfig);
 
       return buckets.map((bucket: any) => {
@@ -1013,7 +1032,7 @@ export const questionsPushMessagingTopics: Question[] = [
     validate: (value: any) => validateRequired("topics", value),
     when: () => localConfig.getMessagingTopics().length > 0,
     choices: () => {
-      let topics = localConfig.getMessagingTopics();
+      const topics = localConfig.getMessagingTopics();
 
       return topics.map((topic: any) => {
         return {
@@ -1047,7 +1066,7 @@ export const questionsPushTeams: Question[] = [
     validate: (value: any) => validateRequired("team", value),
     when: () => localConfig.getTeams().length > 0,
     choices: () => {
-      let teams = localConfig.getTeams();
+      const teams = localConfig.getTeams();
       checkDeployConditions(localConfig);
 
       return teams.map((team: any) => {
@@ -1067,7 +1086,7 @@ export const questionsListFactors: Question[] = [
     message:
       "Your account is protected by multi-factor authentication. Please choose one for verification.",
     choices: async () => {
-      let client = await sdkForConsole(false);
+      const client = await sdkForConsole(false);
       const accountClient = new Account(client);
       const factors = await accountClient.listMfaFactors();
 
@@ -1116,13 +1135,13 @@ export const questionsRunFunctions: Question[] = [
     message: "Which function would you like to develop locally?",
     validate: (value: any) => validateRequired("function", value),
     choices: () => {
-      let functions = localConfig.getFunctions();
+      const functions = localConfig.getFunctions();
       if (functions.length === 0) {
         throw new Error(
           `No functions found. Use '${EXECUTABLE_NAME} pull functions' to synchronize existing one, or use '${EXECUTABLE_NAME} init function' to create a new one.`,
         );
       }
-      let choices = functions.map((func: any, idx: number) => {
+      const choices = functions.map((func: any, _idx: number) => {
         return {
           name: `${func.name} (${func.$id})`,
           value: func.$id,
@@ -1151,9 +1170,9 @@ export const questionsCreateSite: Question[] = [
     name: "framework",
     message: "What framework would you like to use?",
     choices: async () => {
-      let response = await (await getSitesService()).listFrameworks();
-      let frameworks = response["frameworks"];
-      let choices = frameworks.map((framework: any) => {
+      const response = await (await getSitesService()).listFrameworks();
+      const frameworks = response["frameworks"];
+      const choices = frameworks.map((framework: any) => {
         return {
           name: `${framework.name} (${framework.key})`,
           value: framework,
@@ -1164,12 +1183,29 @@ export const questionsCreateSite: Question[] = [
   },
   {
     type: "list",
-    name: "specification",
-    message: "What specification would you like to use?",
+    name: "buildSpecification",
+    message: "What build specification would you like to use?",
     choices: async () => {
-      let response = await (await getSitesService()).listSpecifications();
-      let specifications = response["specifications"];
-      let choices = specifications.map((spec: any) => {
+      const response = await (await getSitesService()).listSpecifications();
+      const specifications = response["specifications"];
+      const choices = specifications.map((spec: any) => {
+        return {
+          name: `${spec.cpus} CPU, ${spec.memory}MB RAM`,
+          value: spec.slug,
+          disabled: spec.enabled === false ? "Upgrade to use" : false,
+        };
+      });
+      return choices;
+    },
+  },
+  {
+    type: "list",
+    name: "runtimeSpecification",
+    message: "What runtime specification would you like to use?",
+    choices: async () => {
+      const response = await (await getSitesService()).listSpecifications();
+      const specifications = response["specifications"];
+      const choices = specifications.map((spec: any) => {
         return {
           name: `${spec.cpus} CPU, ${spec.memory}MB RAM`,
           value: spec.slug,

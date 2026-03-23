@@ -1,8 +1,8 @@
 import os from "os";
 import { fetch, FormData, Agent } from "undici";
-import JSONbig from "json-bigint";
 import { AppwriteException } from "@appwrite.io/console";
 import { globalConfig } from "./config.js";
+import { JSONBig } from "./json.js";
 import chalk from "chalk";
 import type {
   Headers,
@@ -17,9 +17,8 @@ import {
   SDK_LANGUAGE,
   SDK_VERSION,
   SDK_TITLE,
+  EXECUTABLE_NAME,
 } from "./constants.js";
-
-const JSONBigInt = JSONbig({ useNativeBigInt: true });
 
 class Client {
   private endpoint: string;
@@ -191,7 +190,7 @@ class Client {
           value.type === "file"
         ) {
           const fileUpload = value as FileUpload;
-          formData.append(key, fileUpload.file as any, fileUpload.filename);
+          formData.append(key, fileUpload.file as Blob, fileUpload.filename);
         } else {
           formData.append(key, value as string);
         }
@@ -199,7 +198,7 @@ class Client {
 
       body = formData;
     } else {
-      body = JSONBigInt.stringify(params);
+      body = JSONBig.stringify(params);
     }
 
     let response: Awaited<ReturnType<typeof fetch>> | undefined = undefined;
@@ -224,7 +223,7 @@ class Client {
         undefined;
       try {
         json = JSON.parse(text);
-      } catch (error) {
+      } catch (_error) {
         throw new AppwriteException(text, response.status, "", text);
       }
 
@@ -241,6 +240,22 @@ class Client {
         globalConfig.setCurrentSession("");
         globalConfig.removeSession(current);
       }
+
+      const isUnauthorized =
+        json.code === 401 &&
+        json.type === "general_unauthorized_scope" &&
+        typeof json.message === "string" &&
+        /role:\s*guests/i.test(json.message);
+
+      if (isUnauthorized) {
+        throw new AppwriteException(
+          `You are not authenticated. Run '${EXECUTABLE_NAME} login' to authenticate and try again.`,
+          json.code,
+          json.type,
+          text,
+        );
+      }
+
       throw new AppwriteException(
         json.message || text,
         json.code,
@@ -266,8 +281,8 @@ class Client {
     const text = await response.text();
     let json: T | undefined = undefined;
     try {
-      json = JSONBigInt.parse(text);
-    } catch (error) {
+      json = JSONBig.parse(text);
+    } catch (_error) {
       return text as T;
     }
     return json as T;

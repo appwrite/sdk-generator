@@ -10,7 +10,10 @@ export class Kotlin extends LanguageMeta {
     let type = "";
     switch (attribute.type) {
       case AttributeType.STRING:
-      case AttributeType.EMAIL:
+      case AttributeType.TEXT:
+      case AttributeType.VARCHAR:
+      case AttributeType.MEDIUMTEXT:
+      case AttributeType.LONGTEXT:
       case AttributeType.DATETIME:
         type = "String";
         if (attribute.format === AttributeType.ENUM) {
@@ -29,14 +32,10 @@ export class Kotlin extends LanguageMeta {
         type = "Boolean";
         break;
       case AttributeType.RELATIONSHIP:
-        const relatedCollection = collections?.find(
-          (c) => c.$id === attribute.relatedCollection,
+        const relatedCollection = LanguageMeta.getRelatedCollection(
+          attribute,
+          collections,
         );
-        if (!relatedCollection) {
-          throw new Error(
-            `Related collection with ID '${attribute.relatedCollection}' not found.`,
-          );
-        }
         type = LanguageMeta.toPascalCase(relatedCollection.name);
         if (
           (attribute.relationType === "oneToMany" &&
@@ -74,7 +73,8 @@ export class Kotlin extends LanguageMeta {
 
 <% for (const attribute of collection.attributes) { -%>
 <% if (attribute.type === 'relationship') { -%>
-import <%- toPascalCase(collections.find(c => c.$id === attribute.relatedCollection).name) %>
+<% const related = getRelatedCollection(attribute, collections); -%>
+import <%- toPascalCase(related.name) %>
 
 <% } -%>
 <% } -%>

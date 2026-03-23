@@ -1,3 +1,4 @@
+```java
 import {{ sdk.namespace | caseDot }}.Client;
 import {{ sdk.namespace | caseDot }}.coroutines.CoroutineCallback;
 {% if method.parameters.all | filter((param) => param.type == 'file') | length > 0 %}
@@ -38,7 +39,7 @@ Client client = new Client()
 }));{% endif %}
 
     {%~ for parameter in method.parameters.all %}
-    {% if parameter.enumValues | length > 0%}{{ parameter.enumName | caseUcfirst }}.{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}{% else %}{{ parameter | javaParamExample }}{% endif %}, // {{ parameter.name }}{% if not parameter.required %} (optional){% endif %}
+    {% if parameter.enumValues | length > 0%}{{ parameter | javaEnumExample }}{% else %}{{ parameter | javaParamExample }}{% endif %}, // {{ parameter.name }}{% if not parameter.required %} (optional){% endif %}
     {%~ if loop.last %}
 
     new CoroutineCallback<>((result, error) -> {
@@ -53,3 +54,4 @@ Client client = new Client()
 {% endif %}
 
 {% endfor %}
+```

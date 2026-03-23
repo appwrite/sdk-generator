@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "appwrite-api": {
+      "command": "uvx",
+      "args": ["mcp-server-appwrite", "--users"],
+      "env": {
+        "APPWRITE_API_KEY": "your-api-key",
+        "APPWRITE_PROJECT_ID": "your-project-id",
+        "APPWRITE_ENDPOINT": "https://<REGION>.cloud.appwrite.io/v1"
+      }
+    },
+    "appwrite-docs": {
+      "command": "npx",
+      "args": ["mcp-remote", "https://mcp-for-docs.appwrite.io"]
+    }
+  }
+}
