@@ -12,7 +12,6 @@ import inquirer from "inquirer";
 import path from "path";
 import { Command } from "commander";
 import { localConfig, globalConfig } from "../config.js";
-import { paginate } from "../paginate.js";
 import { getFunctionsService } from "../services.js";
 import { questionsRunFunctions } from "../questions.js";
 import {
@@ -177,12 +176,11 @@ const runFunction = async ({
 
   if (withVariables) {
     try {
-      const { variables: remoteVariables } = await paginate(
-        async () => (await getFunctionsService()).listVariables(func["$id"]),
-        {},
-        100,
-        "variables",
-      );
+      const { variables: remoteVariables } = await (
+        await getFunctionsService()
+      ).listVariables({
+        functionId: func["$id"],
+      });
 
       remoteVariables.forEach((v) => {
         allVariables[v.key] = v.value;
