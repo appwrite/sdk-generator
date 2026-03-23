@@ -222,6 +222,8 @@ fn test_queries() {
     println!("{}", Query::offset(20));
     println!("{}", Query::contains("title", "Spider"));
     println!("{}", Query::contains("labels", "first"));
+    println!("{}", Query::contains_any("labels", vec!["first", "second"]));
+    println!("{}", Query::contains_all("labels", vec!["first", "second"]));
     println!("{}", Query::not_contains("title", "Spider"));
     println!("{}", Query::not_search("name", "john"));
     println!("{}", Query::not_between("age", 50, 100));
@@ -260,6 +262,13 @@ fn test_queries() {
     println!("{}", Query::and(vec![
         Query::equal("released", false).to_string(),
         Query::greater_than("releasedYear", 2015).to_string(),
+    ]));
+    println!("{}", Query::regex("name", "pattern.*"));
+    println!("{}", Query::exists(vec!["attr1", "attr2"]));
+    println!("{}", Query::not_exists(vec!["attr1", "attr2"]));
+    println!("{}", Query::elem_match("friends", vec![
+        Query::equal("name", "Alice").to_string(),
+        Query::greater_than("age", 18).to_string(),
     ]));
 }
 

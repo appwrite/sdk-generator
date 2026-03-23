@@ -118,6 +118,14 @@ impl Query {
         Self::new("contains".to_string(), Some(attribute.into()), Self::to_array(value.into()))
     }
 
+    pub fn contains_any<S: Into<String>, V: Into<Value>>(attribute: S, values: Vec<V>) -> Self {
+        Self::new("containsAny".to_string(), Some(attribute.into()), values.into_iter().map(|v| v.into()).collect())
+    }
+
+    pub fn contains_all<S: Into<String>, V: Into<Value>>(attribute: S, values: Vec<V>) -> Self {
+        Self::new("containsAll".to_string(), Some(attribute.into()), values.into_iter().map(|v| v.into()).collect())
+    }
+
     pub fn not_contains<S: Into<String>, V: Into<Value>>(attribute: S, value: V) -> Self {
         Self::new("notContains".to_string(), Some(attribute.into()), Self::to_array(value.into()))
     }
@@ -232,6 +240,31 @@ impl Query {
             .filter_map(|query| serde_json::from_str(query.as_ref()).ok())
             .collect();
         Self::new("and".to_string(), None, values)
+    }
+
+    pub fn regex<S: Into<String>, V: Into<Value>>(attribute: S, value: V) -> Self {
+        Self::new("regex".to_string(), Some(attribute.into()), Self::to_array(value.into()))
+    }
+
+    pub fn exists<V: Into<Value>>(attributes: Vec<V>) -> Self {
+        Self::new("exists".to_string(), None, attributes.into_iter().map(|v| v.into()).collect())
+    }
+
+    pub fn not_exists<V: Into<Value>>(attributes: Vec<V>) -> Self {
+        Self::new("notExists".to_string(), None, attributes.into_iter().map(|v| v.into()).collect())
+    }
+
+    pub fn elem_match<S, I, Q>(attribute: S, queries: I) -> Self
+    where
+        S: Into<String>,
+        I: IntoIterator<Item = Q>,
+        Q: AsRef<str>,
+    {
+        let values: Vec<Value> = queries
+            .into_iter()
+            .filter_map(|query| serde_json::from_str(query.as_ref()).ok())
+            .collect();
+        Self::new("elemMatch".to_string(), Some(attribute.into()), values)
     }
 
     /// Convert query to JSON value (matches Go/Python SDK format)
