@@ -251,7 +251,7 @@ export const questionsInitProject: Question[] = [
       ];
 
       const { projects } = await paginate(
-        async () => (await getProjectsService()).list(queries),
+        async (args) => (await getProjectsService()).list(args.queries as string[]),
         { parseOutput: false },
         100,
         "projects",
