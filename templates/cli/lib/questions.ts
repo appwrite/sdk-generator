@@ -187,15 +187,19 @@ export const questionsInitProject: Question[] = [
       const client = await sdkForConsole(true);
       const { teams } = isCloud()
         ? await paginate(
-            async (opts: { sdk?: Client } = {}) =>
-              (await getOrganizationsService(opts.sdk)).list(),
+            async (args) =>
+              (await getOrganizationsService(args.sdk as Client)).list({
+                queries: args.queries as string[],
+              }),
             { sdk: client },
             100,
             "teams",
           )
         : await paginate(
-            async (opts: { sdk?: Client } = {}) =>
-              (await getTeamsService(opts.sdk)).list(),
+            async (args) =>
+              (await getTeamsService(args.sdk as Client)).list({
+                queries: args.queries as string[],
+              }),
             { parseOutput: false, sdk: client },
             100,
             "teams",
@@ -247,7 +251,7 @@ export const questionsInitProject: Question[] = [
       ];
 
       const { projects } = await paginate(
-        async () => (await getProjectsService()).list(queries),
+        async (args) => (await getProjectsService()).list(args.queries as string[]),
         { parseOutput: false },
         100,
         "projects",
@@ -342,7 +346,8 @@ export const questionsPullFunctions: Question[] = [
     validate: (value: any) => validateRequired("function", value),
     choices: async () => {
       const { functions } = await paginate(
-        async () => (await getFunctionsService()).list(),
+        async (args) =>
+          (await getFunctionsService()).list(args.queries as string[]),
         { parseOutput: false },
         100,
         "functions",
@@ -385,7 +390,8 @@ export const questionsPullSites: Question[] = [
     validate: (value: any) => validateRequired("site", value),
     choices: async () => {
       const { sites } = await paginate(
-        async () => (await getSitesService()).list(),
+        async (args) =>
+          (await getSitesService()).list(args.queries as string[]),
         { parseOutput: false },
         100,
         "sites",
