@@ -80,6 +80,21 @@ class SDK
     ];
 
     /**
+     * @var array|null
+     */
+    protected ?array $excludeIndex = null;
+
+    /**
+     * @var array|null
+     */
+    protected ?array $filteredServicesCache = null;
+
+    /**
+     * @var array|null
+     */
+    protected ?array $filteredModelDataCache = null;
+
+    /**
      * SDK constructor.
      *
      * @param Language $language
@@ -571,6 +586,10 @@ class SDK
      */
     protected function getFilteredServices(): array
     {
+        if ($this->filteredServicesCache !== null) {
+            return $this->filteredServicesCache;
+        }
+
         $allServices = $this->spec->getServices();
         $filteredServices = [];
 
@@ -581,7 +600,7 @@ class SDK
                 continue;
             }
 
-            $methods = $this->getFilteredMethods($serviceName);
+            $methods = $this->getFilteredMethods($allMethods);
 
             if (empty($methods)) {
                 continue;
@@ -591,17 +610,17 @@ class SDK
             $filteredServices[$serviceName] = $service;
         }
 
-        return $filteredServices;
+        $this->filteredServicesCache = $filteredServices;
+
+        return $this->filteredServicesCache;
     }
 
     /**
-     * @param string $serviceName
+     * @param array $methods
      * @return array
      */
-    protected function getFilteredMethods(string $serviceName): array
+    protected function getFilteredMethods(array $methods): array
     {
-        $methods = $this->spec->getMethods($serviceName);
-
         return \array_values(\array_filter($methods, fn (array $method) => !$this->isMethodExcluded($method)));
     }
 
@@ -624,11 +643,12 @@ class SDK
     /**
      * @return array
      */
-    protected function getFilteredRequestEnums(): array
+    protected function getFilteredRequestEnums(?array $filteredServices = null): array
     {
+        $filteredServices ??= $this->getFilteredServices();
         $list = [];
 
-        foreach ($this->getFilteredServices() as $service) {
+        foreach ($filteredServices as $service) {
             foreach ($service['methods'] ?? [] as $method) {
                 foreach ($method['parameters']['all'] ?? [] as $parameter) {
                     $enumName = $parameter['enumName'] ?? $parameter['name'] ?? '';
@@ -652,11 +672,12 @@ class SDK
     /**
      * @return array
      */
-    protected function getFilteredResponseEnums(): array
+    protected function getFilteredResponseEnums(?array $filteredDefinitions = null): array
     {
+        $filteredDefinitions ??= $this->getFilteredDefinitions();
         $list = [];
 
-        foreach ($this->getFilteredDefinitions() as $modelName => $model) {
+        foreach ($filteredDefinitions as $modelName => $model) {
             foreach ($model['properties'] ?? [] as $propertyName => $property) {
                 if (isset($property['enum'])) {
                     $enumName = $property['enumName'] ?? ucfirst((string)$modelName) . ucfirst((string)$propertyName);
@@ -692,15 +713,17 @@ class SDK
     /**
      * @return array
      */
-    protected function getFilteredAllEnums(): array
+    protected function getFilteredAllEnums(?array $filteredRequestEnums = null, ?array $filteredResponseEnums = null): array
     {
+        $filteredRequestEnums ??= $this->getFilteredRequestEnums();
+        $filteredResponseEnums ??= $this->getFilteredResponseEnums();
         $list = [];
 
-        foreach ($this->getFilteredRequestEnums() as $enum) {
+        foreach ($filteredRequestEnums as $enum) {
             $list[$enum['name']] = $enum;
         }
 
-        foreach ($this->getFilteredResponseEnums() as $enum) {
+        foreach ($filteredResponseEnums as $enum) {
             $list[$enum['name']] = $enum;
         }
 
@@ -712,6 +735,10 @@ class SDK
      */
     protected function getFilteredModelData(): array
     {
+        if ($this->filteredModelDataCache !== null) {
+            return $this->filteredModelDataCache;
+        }
+
         $definitions = $this->spec->getDefinitions();
         $requestModels = $this->spec->getRequestModels();
         $excludedDefinitions = $this->getExcludedDefinitions();
@@ -802,10 +829,12 @@ class SDK
             }
         }
 
-        return [
+        $this->filteredModelDataCache = [
             'definitions' => $filteredDefinitions,
             'requestModels' => $filteredRequestModels,
         ];
+
+        return $this->filteredModelDataCache;
     }
 
     /**
@@ -818,11 +847,12 @@ class SDK
     public function generate(string $target): void
     {
         $filteredServices = $this->getFilteredServices();
-        $filteredDefinitions = $this->getFilteredDefinitions();
-        $filteredRequestModels = $this->getFilteredRequestModels();
-        $filteredRequestEnums = $this->getFilteredRequestEnums();
-        $filteredResponseEnums = $this->getFilteredResponseEnums();
-        $filteredAllEnums = $this->getFilteredAllEnums();
+        $filteredModelData = $this->getFilteredModelData();
+        $filteredDefinitions = $filteredModelData['definitions'];
+        $filteredRequestModels = $filteredModelData['requestModels'];
+        $filteredRequestEnums = $this->getFilteredRequestEnums($filteredServices);
+        $filteredResponseEnums = $this->getFilteredResponseEnums($filteredDefinitions);
+        $filteredAllEnums = $this->getFilteredAllEnums($filteredRequestEnums, $filteredResponseEnums);
 
         $params = [
             'spec' => [
@@ -977,6 +1007,10 @@ class SDK
             }
         }
 
+        $this->excludeIndex = null;
+        $this->filteredServicesCache = null;
+        $this->filteredModelDataCache = null;
+
         return $this;
     }
 
@@ -987,20 +1021,9 @@ class SDK
      */
     protected function isServiceExcluded(string $serviceName, array $methods): bool
     {
-        $excludeServices = [];
-        $excludeFeatures = [];
+        $excludeIndex = $this->getExcludeIndex();
 
-        foreach ($this->excludeRules['services'] ?? [] as $service) {
-            if (isset($service['name'])) {
-                $excludeServices[] = $service['name'];
-            }
-
-            if (isset($service['feature'])) {
-                $excludeFeatures[] = $service['feature'];
-            }
-        }
-
-        if (\in_array($serviceName, $excludeServices, true)) {
+        if (isset($excludeIndex['services'][$serviceName])) {
             return true;
         }
 
@@ -1010,7 +1033,7 @@ class SDK
             'webAuth' => $this->hasWebAuth($methods),
         ];
 
-        foreach ($excludeFeatures as $feature) {
+        foreach ($excludeIndex['features'] as $feature) {
             if ($serviceFeatures[$feature] ?? false) {
                 return true;
             }
@@ -1025,21 +1048,10 @@ class SDK
      */
     protected function isMethodExcluded(array $method): bool
     {
-        $methods = [];
-        $types = [];
+        $excludeIndex = $this->getExcludeIndex();
 
-        foreach ($this->excludeRules['methods'] ?? [] as $excludeMethod) {
-            if (isset($excludeMethod['name'])) {
-                $methods[] = $excludeMethod['name'];
-            }
-
-            if (isset($excludeMethod['type'])) {
-                $types[] = $excludeMethod['type'];
-            }
-        }
-
-        return \in_array($method['name'] ?? '', $methods, true)
-            || \in_array($method['type'] ?? '', $types, true);
+        return isset($excludeIndex['methods'][$method['name'] ?? ''])
+            || isset($excludeIndex['types'][$method['type'] ?? '']);
     }
 
     /**
@@ -1047,15 +1059,53 @@ class SDK
      */
     protected function getExcludedDefinitions(): array
     {
-        $definitions = [];
+        return $this->getExcludeIndex()['definitions'];
+    }
 
-        foreach ($this->excludeRules['definitions'] ?? [] as $definition) {
-            if (isset($definition['name'])) {
-                $definitions[$definition['name']] = true;
+    /**
+     * @return array
+     */
+    protected function getExcludeIndex(): array
+    {
+        if ($this->excludeIndex !== null) {
+            return $this->excludeIndex;
+        }
+
+        $this->excludeIndex = [
+            'services' => [],
+            'features' => [],
+            'methods' => [],
+            'types' => [],
+            'definitions' => [],
+        ];
+
+        foreach ($this->excludeRules['services'] ?? [] as $service) {
+            if (isset($service['name'])) {
+                $this->excludeIndex['services'][$service['name']] = true;
+            }
+
+            if (isset($service['feature'])) {
+                $this->excludeIndex['features'][$service['feature']] = $service['feature'];
             }
         }
 
-        return $definitions;
+        foreach ($this->excludeRules['methods'] ?? [] as $method) {
+            if (isset($method['name'])) {
+                $this->excludeIndex['methods'][$method['name']] = true;
+            }
+
+            if (isset($method['type'])) {
+                $this->excludeIndex['types'][$method['type']] = true;
+            }
+        }
+
+        foreach ($this->excludeRules['definitions'] ?? [] as $definition) {
+            if (isset($definition['name'])) {
+                $this->excludeIndex['definitions'][$definition['name']] = true;
+            }
+        }
+
+        return $this->excludeIndex;
     }
 
     /**

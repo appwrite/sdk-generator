@@ -674,6 +674,80 @@
         ]
       }
     },
+    "\/mock\/tests\/general\/excluded-method": {
+      "post": {
+        "summary": "Create Excluded General Fixture",
+        "operationId": "generalCreateExcludedFixture",
+        "consumes": [
+          "application\/json"
+        ],
+        "produces": [
+          "application\/json"
+        ],
+        "tags": [
+          "general"
+        ],
+        "description": "Fixture-only general method used to verify method exclusion does not remove the whole service.",
+        "responses": {
+          "200": {
+            "description": "Excluded general fixture response",
+            "schema": {
+              "$ref": "#\/definitions\/zzexcludedmethodresult"
+            }
+          }
+        },
+        "x-appwrite": {
+          "method": "createExcludedGeneralFixture",
+          "weight": 301,
+          "cookies": false,
+          "type": "",
+          "demo": "general\/excluded-method.md",
+          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/master",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "platforms": [
+            "client",
+            "server"
+          ],
+          "packaging": false,
+          "offline-model": "",
+          "offline-key": "",
+          "offline-response-key": "$id",
+          "auth": {
+            "Project": []
+          }
+        },
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "payload",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "payload": {
+                  "type": "object",
+                  "description": "Excluded general fixture payload.",
+                  "x-model": "zzexcludedmethodpayload",
+                  "default": null
+                }
+              },
+              "required": [
+                "payload"
+              ]
+            }
+          }
+        ]
+      }
+    },
     "\/mock\/tests\/foo": {
       "get": {
         "summary": "Get Foo",
@@ -2375,10 +2449,37 @@
           "type": "string",
           "description": "Excluded payload message.",
           "x-example": "should-not-be-generated"
+        },
+        "children": {
+          "type": "array",
+          "description": "Excluded child collection.",
+          "items": {
+            "$ref": "#\/definitions\/zzexcludedchild"
+          }
         }
       },
       "required": [
-        "message"
+        "message",
+        "children"
+      ]
+    },
+    "zzexcludedchild": {
+      "description": "Excluded child",
+      "type": "object",
+      "properties": {
+        "state": {
+          "type": "string",
+          "description": "Excluded child status.",
+          "x-example": "sleeping",
+          "enum": [
+            "sleeping",
+            "active"
+          ],
+          "x-enum-name": "zzexcludedchildstatus"
+        }
+      },
+      "required": [
+        "state"
       ]
     },
     "zzexcludedresult": {
@@ -2399,6 +2500,46 @@
             "done"
           ],
           "x-enum-name": "zzexcludedstatus"
+        }
+      },
+      "required": [
+        "result",
+        "status"
+      ]
+    },
+    "zzexcludedmethodpayload": {
+      "description": "Excluded method payload",
+      "type": "object",
+      "x-request-model": true,
+      "properties": {
+        "message": {
+          "type": "string",
+          "description": "Excluded method payload message.",
+          "x-example": "should-not-be-generated"
+        }
+      },
+      "required": [
+        "message"
+      ]
+    },
+    "zzexcludedmethodresult": {
+      "description": "Excluded method result",
+      "type": "object",
+      "properties": {
+        "result": {
+          "type": "string",
+          "description": "Excluded method result message.",
+          "x-example": "excluded-method"
+        },
+        "status": {
+          "type": "string",
+          "description": "Excluded method result status.",
+          "x-example": "pending",
+          "enum": [
+            "pending",
+            "finished"
+          ],
+          "x-enum-name": "zzexcludedmethodstatus"
         }
       },
       "required": [

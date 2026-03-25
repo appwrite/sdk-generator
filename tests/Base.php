@@ -88,6 +88,11 @@ abstract class Base extends TestCase
         'zzexcludedpayload',
         'zzexcludedresult',
         'zzexcludedstatus',
+        'zzexcludedchild',
+        'zzexcludedchildstatus',
+        'zzexcludedmethodpayload',
+        'zzexcludedmethodresult',
+        'zzexcludedmethodstatus',
     ];
 
     /**
@@ -314,6 +319,9 @@ abstract class Base extends TestCase
             ->setExclude([
                 'services' => [
                     ['name' => 'zzexcludedservice'],
+                ],
+                'methods' => [
+                    ['name' => 'createExcludedGeneralFixture'],
                 ],
             ])
             ->setTest("true");
