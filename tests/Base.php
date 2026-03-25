@@ -83,6 +83,13 @@ abstract class Base extends TestCase
         'POST:/v1/mock/tests/general/upload:passed',
     ];
 
+    protected const EXCLUDED_FIXTURE_TOKENS = [
+        'zzexcludedservice',
+        'zzexcludedpayload',
+        'zzexcludedresult',
+        'zzexcludedstatus',
+    ];
+
     /**
      * 'Mock 400 error'                              -> message
      * '{"message":"Mock 400 error","code":400}'     -> response
@@ -304,6 +311,11 @@ abstract class Base extends TestCase
             ->setDefaultHeaders([
                 'X-Appwrite-Response-Format' => '0.8.0',
             ])
+            ->setExclude([
+                'services' => [
+                    ['name' => 'zzexcludedservice'],
+                ],
+            ])
             ->setTest("true");
 
         if ($this->language === 'android' || $this->language === 'kotlin') {
@@ -317,6 +329,7 @@ abstract class Base extends TestCase
         $this->rmdirRecursive($dir);
 
         $sdk->generate(__DIR__ . '/sdks/' . $this->language);
+        $this->assertExcludedFixtureWasRemoved($dir);
 
         /**
          * Build SDK
@@ -375,6 +388,41 @@ abstract class Base extends TestCase
             }
         }
         \rmdir($dir);
+    }
+
+    private function assertExcludedFixtureWasRemoved(string $dir): void
+    {
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS)
+        );
+
+        foreach ($iterator as $file) {
+            $path = \strtolower($file->getPathname());
+
+            foreach (self::EXCLUDED_FIXTURE_TOKENS as $token) {
+                $this->assertStringNotContainsString($token, $path, "Excluded fixture leaked into generated path: {$path}");
+            }
+
+            if (!$file->isFile()) {
+                continue;
+            }
+
+            $contents = \file_get_contents($file->getPathname());
+
+            if ($contents === false) {
+                continue;
+            }
+
+            $contents = \strtolower($contents);
+
+            foreach (self::EXCLUDED_FIXTURE_TOKENS as $token) {
+                $this->assertStringNotContainsString(
+                    $token,
+                    $contents,
+                    "Excluded fixture leaked into generated file: {$file->getPathname()}"
+                );
+            }
+        }
     }
 
     public function getLanguage(): Language
