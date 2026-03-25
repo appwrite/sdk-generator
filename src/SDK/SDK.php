@@ -653,15 +653,16 @@ class SDK
                 foreach ($method['parameters']['all'] ?? [] as $parameter) {
                     $enumName = $parameter['enumName'] ?? $parameter['name'] ?? '';
 
-                    if (!isset($parameter['enumValues']) || empty($enumName) || isset($list[$enumName])) {
+                    if (!isset($parameter['enumValues']) || empty($enumName)) {
                         continue;
                     }
 
-                    $list[$enumName] = [
-                        'name' => $enumName,
-                        'enum' => $parameter['enumValues'],
-                        'keys' => $parameter['enumKeys'] ?? [],
-                    ];
+                    $this->mergeEnumValues(
+                        $list,
+                        $enumName,
+                        $parameter['enumValues'],
+                        $parameter['enumKeys'] ?? []
+                    );
                 }
             }
         }
@@ -682,13 +683,12 @@ class SDK
                 if (isset($property['enum'])) {
                     $enumName = $property['enumName'] ?? ucfirst((string)$modelName) . ucfirst((string)$propertyName);
 
-                    if (!isset($list[$enumName])) {
-                        $list[$enumName] = [
-                            'name' => $enumName,
-                            'enum' => $property['enum'],
-                            'keys' => $property['enumKeys'] ?? [],
-                        ];
-                    }
+                    $this->mergeEnumValues(
+                        $list,
+                        $enumName,
+                        $property['enum'],
+                        $property['enumKeys'] ?? []
+                    );
                 }
 
                 if ((($property['type'] ?? null) === 'array') && isset($property['items']['enum'])) {
@@ -696,13 +696,12 @@ class SDK
                         ?? $property['enumName']
                         ?? ucfirst((string)$modelName) . ucfirst((string)$propertyName);
 
-                    if (!isset($list[$enumName])) {
-                        $list[$enumName] = [
-                            'name' => $enumName,
-                            'enum' => $property['items']['enum'],
-                            'keys' => $property['items']['x-enum-keys'] ?? [],
-                        ];
-                    }
+                    $this->mergeEnumValues(
+                        $list,
+                        $enumName,
+                        $property['items']['enum'],
+                        $property['items']['x-enum-keys'] ?? []
+                    );
                 }
             }
         }
@@ -720,14 +719,51 @@ class SDK
         $list = [];
 
         foreach ($filteredRequestEnums as $enum) {
-            $list[$enum['name']] = $enum;
+            $this->mergeEnumValues(
+                $list,
+                $enum['name'],
+                $enum['enum'],
+                $enum['keys'] ?? []
+            );
         }
 
         foreach ($filteredResponseEnums as $enum) {
-            $list[$enum['name']] = $enum;
+            $this->mergeEnumValues(
+                $list,
+                $enum['name'],
+                $enum['enum'],
+                $enum['keys'] ?? []
+            );
         }
 
         return \array_values($list);
+    }
+
+    /**
+     * @param array $list
+     * @param string $enumName
+     * @param array $enumValues
+     * @param array $enumKeys
+     * @return void
+     */
+    protected function mergeEnumValues(array &$list, string $enumName, array $enumValues, array $enumKeys = []): void
+    {
+        if (!isset($list[$enumName])) {
+            $list[$enumName] = [
+                'name' => $enumName,
+                'enum' => [],
+                'keys' => [],
+            ];
+        }
+
+        foreach ($enumValues as $index => $value) {
+            if (\in_array($value, $list[$enumName]['enum'], true)) {
+                continue;
+            }
+
+            $list[$enumName]['enum'][] = $value;
+            $list[$enumName]['keys'][] = $enumKeys[$index] ?? $value;
+        }
     }
 
     /**
