@@ -743,8 +743,8 @@ class SDK
         $requestModels = $this->spec->getRequestModels();
         $excludedDefinitions = $this->getExcludedDefinitions();
         $queue = [];
-        $filteredDefinitions = [];
-        $filteredRequestModels = [];
+        $reachableDefinitions = [];
+        $reachableRequestModels = [];
 
         foreach ($this->getFilteredServices() as $service) {
             foreach ($service['methods'] ?? [] as $method) {
@@ -795,17 +795,17 @@ class SDK
             }
 
             if (isset($definitions[$modelName])) {
-                if (isset($filteredDefinitions[$modelName])) {
+                if (isset($reachableDefinitions[$modelName])) {
                     continue;
                 }
 
-                $filteredDefinitions[$modelName] = $model;
+                $reachableDefinitions[$modelName] = true;
             } else {
-                if (isset($filteredRequestModels[$modelName])) {
+                if (isset($reachableRequestModels[$modelName])) {
                     continue;
                 }
 
-                $filteredRequestModels[$modelName] = $model;
+                $reachableRequestModels[$modelName] = true;
             }
 
             foreach ($model['properties'] ?? [] as $property) {
@@ -826,6 +826,20 @@ class SDK
                         $queue[$dependency] = true;
                     }
                 }
+            }
+        }
+
+        $filteredDefinitions = [];
+        foreach ($definitions as $modelName => $definition) {
+            if (isset($reachableDefinitions[$modelName])) {
+                $filteredDefinitions[$modelName] = $definition;
+            }
+        }
+
+        $filteredRequestModels = [];
+        foreach ($requestModels as $modelName => $requestModel) {
+            if (isset($reachableRequestModels[$modelName])) {
+                $filteredRequestModels[$modelName] = $requestModel;
             }
         }
 
