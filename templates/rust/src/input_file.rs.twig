@@ -1,0 +1,298 @@
+//! Input file handling for {{ spec.title }} SDK
+
+use crate::error::Result;
+use bytes::Bytes;
+use std::path::{Path, PathBuf};
+use tokio::fs;
+
+/// Source of the input file data
+#[derive(Debug, Clone)]
+pub enum InputFileSource {
+    Path { path: PathBuf },
+    Bytes { data: Bytes },
+}
+
+/// Chunked reader for streaming file data without reopening
+pub struct ChunkedReader {
+    file: Option<fs::File>,
+    data: Option<Bytes>,
+    position: u64,
+    total_size: u64,
+}
+
+/// Represents a file to be uploaded to {{ spec.title }}
+#[derive(Debug, Clone)]
+pub struct InputFile {
+    source: InputFileSource,
+    filename: String,
+    mime_type: Option<String>,
+}
+
+impl Default for InputFile {
+    fn default() -> Self {
+        Self {
+            source: InputFileSource::Bytes { data: Bytes::new() },
+            filename: String::new(),
+            mime_type: None,
+        }
+    }
+}
+
+impl InputFile {
+    /// Create a new InputFile from raw bytes
+    pub fn from_bytes<S: Into<String>, B: Into<Bytes>>(
+        data: B,
+        filename: S,
+        mime_type: Option<&str>,
+    ) -> Self {
+        Self {
+            source: InputFileSource::Bytes { data: data.into() },
+            filename: filename.into(),
+            mime_type: mime_type.map(|s| s.to_string()),
+        }
+    }
+
+    pub async fn from_path<P: AsRef<Path>>(path: P, mime_type: Option<&str>) -> Result<Self> {
+        let path = path.as_ref();
+        fs::metadata(path).await?;
+
+        let filename = path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or("unknown")
+            .to_string();
+
+        Ok(Self {
+            source: InputFileSource::Path { path: path.to_path_buf() },
+            filename,
+            mime_type: mime_type.map(|s| s.to_string()),
+        })
+    }
+
+    pub fn from_path_sync<P: AsRef<Path>>(path: P, mime_type: Option<&str>) -> Result<Self> {
+        let path = path.as_ref();
+        std::fs::metadata(path)?;
+
+        let filename = path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or("unknown")
+            .to_string();
+
+        Ok(Self {
+            source: InputFileSource::Path { path: path.to_path_buf() },
+            filename,
+            mime_type: mime_type.map(|s| s.to_string()),
+        })
+    }
+
+    pub fn source(&self) -> &InputFileSource {
+        &self.source
+    }
+
+    pub fn filename(&self) -> &str {
+        &self.filename
+    }
+
+    pub fn mime_type(&self) -> Option<&str> {
+        self.mime_type.as_deref()
+    }
+
+    pub async fn size(&self) -> Result<u64> {
+        match &self.source {
+            InputFileSource::Bytes { data } => Ok(data.len() as u64),
+            InputFileSource::Path { path } => {
+                Ok(fs::metadata(path).await?.len())
+            }
+        }
+    }
+
+    pub fn size_sync(&self) -> Result<u64> {
+        match &self.source {
+            InputFileSource::Bytes { data } => Ok(data.len() as u64),
+            InputFileSource::Path { path } => {
+                Ok(std::fs::metadata(path)?.len())
+            }
+        }
+    }
+
+    pub async fn read_all(&self) -> Result<Bytes> {
+        match &self.source {
+            InputFileSource::Bytes { data } => Ok(data.clone()),
+            InputFileSource::Path { path } => {
+                Ok(Bytes::from(fs::read(path).await?))
+            }
+        }
+    }
+
+    pub async fn chunked_reader(&self) -> Result<ChunkedReader> {
+        match &self.source {
+            InputFileSource::Path { path } => {
+                let file = fs::File::open(path).await?;
+                let total_size = file.metadata().await?.len();
+                Ok(ChunkedReader {
+                    file: Some(file),
+                    data: None,
+                    position: 0,
+                    total_size,
+                })
+            }
+            InputFileSource::Bytes { data } => {
+                Ok(ChunkedReader {
+                    file: None,
+                    data: Some(data.clone()),
+                    position: 0,
+                    total_size: data.len() as u64,
+                })
+            }
+        }
+    }
+
+    /// Set the filename
+    pub fn set_filename<S: Into<String>>(mut self, filename: S) -> Self {
+        self.filename = filename.into();
+        self
+    }
+
+    /// Set the MIME type
+    pub fn set_mime_type<S: Into<String>>(mut self, mime_type: S) -> Self {
+        self.mime_type = Some(mime_type.into());
+        self
+    }
+
+    pub fn is_empty(&self) -> bool {
+        match &self.source {
+            InputFileSource::Bytes { data } => data.is_empty(),
+            InputFileSource::Path { path } => {
+                std::fs::metadata(path)
+                    .map(|m| m.len() == 0)
+                    .unwrap_or(true)
+            }
+        }
+    }
+}
+
+impl ChunkedReader {
+    /// Read the next chunk of specified size
+    pub async fn read_next(&mut self, chunk_size: usize) -> Result<Option<Bytes>> {
+        if self.position >= self.total_size {
+            return Ok(None);
+        }
+
+        match (&mut self.file, &self.data) {
+            (Some(file), None) => {
+                use tokio::io::AsyncReadExt;
+
+                let remaining = (self.total_size - self.position) as usize;
+                let to_read = remaining.min(chunk_size);
+                let mut buffer = vec![0u8; to_read];
+                let mut total_read = 0;
+
+                while total_read < to_read {
+                    match file.read(&mut buffer[total_read..]).await? {
+                        0 => break,
+                        n => total_read += n,
+                    }
+                }
+
+                if total_read == 0 {
+                    return Ok(None);
+                }
+
+                buffer.truncate(total_read);
+                self.position += total_read as u64;
+                Ok(Some(Bytes::from(buffer)))
+            }
+            (None, Some(data)) => {
+                let start = self.position as usize;
+                let end = ((self.position + chunk_size as u64).min(self.total_size)) as usize;
+
+                if start >= end {
+                    return Ok(None);
+                }
+
+                self.position = end as u64;
+                Ok(Some(data.slice(start..end)))
+            }
+            _ => Ok(None),
+        }
+    }
+
+    /// Get the current read position
+    pub fn position(&self) -> u64 {
+        self.position
+    }
+
+    /// Get the total size
+    pub fn total_size(&self) -> u64 {
+        self.total_size
+    }
+
+    pub async fn seek(&mut self, position: u64) -> Result<()> {
+        if position > self.total_size {
+            return Err(crate::error::{{ spec.title | caseUcfirst }}Error::new(
+                0,
+                format!("Seek position {} exceeds file size {}", position, self.total_size),
+                None,
+                String::new(),
+            ));
+        }
+
+        if let Some(file) = &mut self.file {
+            use tokio::io::AsyncSeekExt;
+            file.seek(std::io::SeekFrom::Start(position)).await?;
+        }
+
+        self.position = position;
+        Ok(())
+    }
+}
+
+impl From<Vec<u8>> for InputFile {
+    fn from(data: Vec<u8>) -> Self {
+        Self::from_bytes(data, "unknown", None)
+    }
+}
+
+impl From<&[u8]> for InputFile {
+    fn from(data: &[u8]) -> Self {
+        Self::from_bytes(data.to_vec(), "unknown", None)
+    }
+}
+
+impl From<Bytes> for InputFile {
+    fn from(data: Bytes) -> Self {
+        Self::from_bytes(data, "unknown", None)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_from_bytes() {
+        let data = b"Hello, world!".to_vec();
+        let file = InputFile::from_bytes(data.clone(), "test.txt", Some("text/plain"));
+
+        assert_eq!(file.read_all().await.unwrap(), data);
+        assert_eq!(file.filename(), "test.txt");
+        assert_eq!(file.mime_type(), Some("text/plain"));
+        assert_eq!(file.size().await.unwrap(), 13);
+    }
+
+    #[test]
+    fn test_empty_file() {
+        let file = InputFile::default();
+        assert!(file.is_empty());
+        assert_eq!(file.size_sync().unwrap(), 0);
+    }
+
+    #[tokio::test]
+    async fn test_from_vec() {
+        let data = vec![1, 2, 3, 4, 5];
+        let file = InputFile::from(data.clone());
+        assert_eq!(file.read_all().await.unwrap(), data);
+        assert_eq!(file.filename(), "unknown");
+    }
+}

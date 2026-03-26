@@ -1,0 +1,118 @@
+//! ID generation utilities for {{ spec.title }} SDK
+
+use std::time::{SystemTime, UNIX_EPOCH};
+
+/// ID generator for {{ spec.title }} resources
+pub struct ID;
+
+impl ID {
+    /// Generate a unique ID (13 hex timestamp + 7 random hex)
+    pub fn unique() -> String {
+        Self::unique_with_padding(7)
+    }
+
+    /// Generate a unique ID with custom padding
+    pub fn unique_with_padding(padding: usize) -> String {
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("Time went backwards");
+
+        let sec = now.as_secs();
+        let usec = now.subsec_micros();
+        let timestamp_hex = format!("{:08x}{:05x}", sec, usec);
+
+        if padding == 0 {
+            return timestamp_hex;
+        }
+
+        let mut id = String::with_capacity(13 + padding);
+        id.push_str(&timestamp_hex);
+
+        const HEX: &[u8; 16] = b"0123456789abcdef";
+        for _ in 0..padding {
+            let idx = fastrand::u8(..16) as usize;
+            id.push(HEX[idx] as char);
+        }
+
+        id
+    }
+
+    /// Create a custom ID
+    pub fn custom<S: Into<String>>(id: S) -> String {
+        id.into()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_unique_id_length() {
+        let id = ID::unique();
+        assert_eq!(id.len(), 20);
+    }
+
+    #[test]
+    fn test_unique_id_uniqueness() {
+        let id1 = ID::unique();
+        let id2 = ID::unique();
+        assert_ne!(id1, id2);
+    }
+
+    #[test]
+    fn test_unique_id_hex_format() {
+        let id = ID::unique();
+        assert!(id.chars().all(|c| c.is_ascii_hexdigit()));
+    }
+
+    #[test]
+    fn test_custom_id_passthrough() {
+        let id = ID::custom("my_custom_id_123");
+        assert_eq!(id, "my_custom_id_123");
+    }
+
+    #[test]
+    fn test_custom_id_with_special_chars() {
+        let id = ID::custom("test@id-with_special.chars");
+        assert_eq!(id, "test@id-with_special.chars");
+    }
+
+    #[test]
+    fn test_custom_id_empty() {
+        let id = ID::custom("");
+        assert_eq!(id, "");
+    }
+
+    #[test]
+    fn test_multiple_unique_ids() {
+        let ids: Vec<String> = (0..100).map(|_| ID::unique()).collect();
+        assert!(ids.iter().all(|id| id.len() == 20));
+        let unique_count = ids.iter().collect::<std::collections::HashSet<_>>().len();
+        assert_eq!(unique_count, 100);
+    }
+
+    #[test]
+    fn test_unique_with_padding() {
+        let id_no_padding = ID::unique_with_padding(0);
+        assert_eq!(id_no_padding.len(), 13);
+
+        let id_small_padding = ID::unique_with_padding(3);
+        assert_eq!(id_small_padding.len(), 16);
+
+        let id_large_padding = ID::unique_with_padding(15);
+        assert_eq!(id_large_padding.len(), 28);
+    }
+
+    #[test]
+    fn test_format_matches_sdk_length() {
+        let id = ID::unique();
+        assert_eq!(id.len(), 20);
+        assert!(id.chars().all(|c| c.is_ascii_hexdigit()));
+
+        let timestamp_part = &id[..13];
+        let random_part = &id[13..];
+        assert_eq!(timestamp_part.len(), 13);
+        assert_eq!(random_part.len(), 7);
+    }
+}

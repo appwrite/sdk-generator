@@ -25,6 +25,7 @@ use Appwrite\SDK\Language\ReactNative;
 use Appwrite\SDK\Language\Markdown;
 use Appwrite\SDK\Language\AgentSkills;
 use Appwrite\SDK\Language\CursorPlugin;
+use Appwrite\SDK\Language\Rust;
 
 try {
 
@@ -308,6 +309,13 @@ try {
         ));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/cursor-plugin');
+    }
+
+    // Rust
+    if (!$requestedSdk || $requestedSdk === 'rust') {
+        $sdk = new SDK(new Rust(), new Swagger2($spec));
+        configureSDK($sdk);
+        $sdk->generate(__DIR__ . '/examples/rust');
     }
 }
 catch (Exception $exception) {

@@ -1,0 +1,150 @@
+//! Basic usage example for {{ spec.title }} Rust SDK
+
+use {{ sdk.cratePackage | default('appwrite') | rustCrateName }}::{
+    Client,
+    services::Users,
+    id::ID,
+    {{ spec.title | caseUcfirst }}Error,
+};
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Initialize the client
+    let client = Client::new()
+        .set_endpoint("{{ spec.endpoint }}") // Your API Endpoint
+        .set_project("5df5acd0d48c2") // Your project ID
+        .set_key("919c2d18fb5d4...a2ae413da83346ad2"); // Your secret API key
+
+    println!("🚀 {{ spec.title }} Rust SDK Example");
+    println!("Connected to: {}", client.endpoint());
+
+    // Initialize services
+    let users = Users::new(&client);
+
+    println!("\n📝 Creating a new user...");
+    match users.create(
+        ID::unique(),
+        Some("walter.obrien@example.com".to_string()),
+        Some("+1234567890".to_string()),
+        Some("password123".to_string()),
+        Some("Walter O'Brien".to_string()),
+    ).await {
+        Ok(user) => {
+            println!("✅ User created successfully!");
+            println!("User ID: {}", user.id);
+            println!("Email: {}", user.email.unwrap_or_default());
+            println!("Name: {}", user.name.unwrap_or_default());
+        }
+        Err(e) => {
+            println!("❌ Error {}: {}", e.code, e.message);
+        }
+    }
+
+    println!("\n📋 Listing users...");
+    match users.list(None, None).await {
+        Ok(users_list) => {
+            println!("✅ Found {} users", users_list.total);
+            for user in users_list.users.iter().take(3) {
+                println!("  - {} ({})",
+                    user.name.as_ref().unwrap_or(&"No name".to_string()),
+                    user.email.as_ref().unwrap_or(&"No email".to_string())
+                );
+            }
+        }
+        Err(e) => {
+            println!("❌ Error {}: {}", e.code, e.message);
+        }
+    }
+
+    // Example 3: Using Database service (if available)
+    {% for service in spec.services %}
+    {% if service.name == 'databases' %}
+    use {{ sdk.cratePackage | default('appwrite') | rustCrateName }}::services::Databases;
+    use {{ sdk.cratePackage | default('appwrite') | rustCrateName }}::query::Query;
+
+    let databases = Databases::new(&client);
+
+    println!("\n🗄️ Working with databases...");
+
+    // List documents with query
+    let queries = vec![
+        Query::limit(10),
+        Query::order_desc("$createdAt"),
+    ];
+
+    match databases.list_documents(
+        "your-database-id".to_string(),
+        "your-collection-id".to_string(),
+        Some(queries.into_iter().map(|q| q.to_string()).collect()),
+    ).await {
+        Ok(documents) => {
+            println!("✅ Found {} documents", documents.total);
+        }
+        Err(e) => {
+            println!("❌ Database Error {}: {}", e.code, e.message);
+        }
+    }
+    {% endif %}
+    {% endfor %}
+
+    // Example 4: Using Storage service for file operations (if available)
+    {% for service in spec.services %}
+    {% if service.name == 'storage' %}
+    use {{ sdk.cratePackage | default('appwrite') | rustCrateName }}::services::Storage;
+    use {{ sdk.cratePackage | default('appwrite') | rustCrateName }}::input_file::InputFile;
+
+    let storage = Storage::new(&client);
+
+    println!("\n📁 Working with storage...");
+
+    // Create a sample file
+    let sample_data = b"Hello, {{ spec.title }}! This is a test file.";
+    let file = InputFile::from_bytes(
+        sample_data.to_vec(),
+        "test.txt",
+        Some("text/plain"),
+    );
+
+    match storage.create_file(
+        "your-bucket-id".to_string(),
+        ID::unique(),
+        file,
+        None,
+    ).await {
+        Ok(file_result) => {
+            println!("✅ File uploaded successfully!");
+            println!("File ID: {}", file_result.id);
+            println!("File name: {}", file_result.name);
+            println!("File size: {} bytes", file_result.size_original);
+        }
+        Err(e) => {
+            println!("❌ Storage Error {}: {}", e.code, e.message);
+        }
+    }
+    {% endif %}
+    {% endfor %}
+
+    // Example 5: Error handling patterns
+    println!("\n🛠️ Demonstrating error handling...");
+
+    // This will likely fail with invalid credentials
+    let invalid_client = Client::new()
+        .set_endpoint("{{ spec.endpoint }}")
+        .set_project("invalid-project")
+        .set_key("invalid-key");
+
+    let invalid_users = Users::new(&invalid_client);
+
+    match invalid_users.list(None, None).await {
+        Ok(_) => println!("Unexpected success with invalid credentials"),
+        Err(e) => {
+            println!("✅ Expected error with invalid credentials: {} - {}", e.code, e.message);
+        }
+    }
+
+    println!("\n🎉 Example completed!");
+    println!("For more examples, check the documentation at:");
+    println!("https://docs.rs/{{ sdk.cratePackage | default('appwrite') }}");
+
+    Ok(())
+}
