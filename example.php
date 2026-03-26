@@ -4,6 +4,7 @@ include_once 'vendor/autoload.php';
 
 use Appwrite\SDK\Language\GraphQL;
 use Appwrite\Spec\Swagger2;
+use Appwrite\Spec\StaticSpec;
 use Appwrite\SDK\SDK;
 use Appwrite\SDK\Language\Web;
 use Appwrite\SDK\Language\Node;
@@ -98,10 +99,15 @@ try {
     }
 
     $version = '1.8.x';
-    $spec = getSSLPage("https://raw.githubusercontent.com/appwrite/specs/main/specs/{$version}/swagger2-{$version}-{$platform}.json");
+    $speclessSDKs = ['agent-skills', 'cursor-plugin'];
+    $needsSpec = !$requestedSdk || !in_array($requestedSdk, $speclessSDKs);
 
-    if(empty($spec)) {
-        throw new Exception('Failed to fetch spec from Appwrite server');
+    if ($needsSpec) {
+        $spec = getSSLPage("https://raw.githubusercontent.com/appwrite/specs/main/specs/{$version}/swagger2-{$version}-{$platform}.json");
+
+        if(empty($spec)) {
+            throw new Exception('Failed to fetch spec from Appwrite server');
+        }
     }
 
     if ($requestedSdk) {
@@ -280,14 +286,26 @@ try {
     }
     // Agent Skills
     if (!$requestedSdk || $requestedSdk === 'agent-skills') {
-        $sdk = new SDK(new AgentSkills(), new Swagger2($spec));
+        $sdk = new SDK(new AgentSkills(), new StaticSpec(
+            title: 'Appwrite',
+            description: 'Appwrite backend as a service',
+            version: $version,
+            licenseName: 'BSD-3-Clause',
+            licenseURL: 'https://raw.githubusercontent.com/appwrite/appwrite/master/LICENSE',
+        ));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/agent-skills');
     }
 
     // Cursor Plugin
     if (!$requestedSdk || $requestedSdk === 'cursor-plugin') {
-        $sdk = new SDK(new CursorPlugin(), new Swagger2($spec));
+        $sdk = new SDK(new CursorPlugin(), new StaticSpec(
+            title: 'Appwrite',
+            description: 'Appwrite backend as a service',
+            version: $version,
+            licenseName: 'BSD-3-Clause',
+            licenseURL: 'https://raw.githubusercontent.com/appwrite/appwrite/master/LICENSE',
+        ));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/cursor-plugin');
     }
