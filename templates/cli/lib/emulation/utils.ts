@@ -108,8 +108,6 @@ export const JwtManager = {
     projectScopes: Scopes[] = [],
   ): Promise<void> {
     const consoleClient = await sdkForConsole();
-    const projectClient = await sdkForProject();
-    const usersClient = new Users(projectClient);
     const projectsClient = new Projects(consoleClient);
 
     if (this.timerWarn) {
@@ -140,6 +138,8 @@ export const JwtManager = {
     ); // 60 mins
 
     if (userId) {
+      const projectClient = await sdkForProject();
+      const usersClient = new Users(projectClient);
       await usersClient.get({
         userId,
       });
