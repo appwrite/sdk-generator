@@ -1,7 +1,7 @@
 import { EventEmitter } from "node:events";
 import { localConfig } from "../config.js";
 import { log } from "../parser.js";
-import { sdkForConsole } from "../sdks.js";
+import { sdkForConsole, sdkForProject } from "../sdks.js";
 import { Projects, Scopes, Users } from "@appwrite.io/console";
 
 export const openRuntimesVersion = "v4";
@@ -108,7 +108,8 @@ export const JwtManager = {
     projectScopes: Scopes[] = [],
   ): Promise<void> {
     const consoleClient = await sdkForConsole();
-    const usersClient = new Users(consoleClient);
+    const projectClient = await sdkForProject();
+    const usersClient = new Users(projectClient);
     const projectsClient = new Projects(consoleClient);
 
     if (this.timerWarn) {
