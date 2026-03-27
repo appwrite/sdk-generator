@@ -88,6 +88,7 @@ impl Client {
     /// Create a new {{ spec.title }} client
     pub fn new() -> Self {
         let mut headers = HeaderMap::new();
+        // SAFETY: Header values below are compile-time constants from the SDK spec and always valid ASCII.
 {% for key, header in spec.global.defaultHeaders %}
         headers.insert("{{ key }}", "{{ header }}".parse().unwrap());
 {% endfor %}
@@ -138,72 +139,92 @@ impl Client {
     }
 
     /// Set the API endpoint
-    pub fn set_endpoint<S: Into<String>>(&self, endpoint: S) -> Self {
+    pub fn set_endpoint<S: Into<String>>(&self, endpoint: S) -> Result<Self> {
         let endpoint = endpoint.into();
         if !endpoint.starts_with("http://") && !endpoint.starts_with("https://") {
-            panic!("Invalid endpoint URL: {}. Endpoint must start with http:// or https://", endpoint);
+            return Err({{ spec.title | caseUcfirst }}Error::new(
+                400,
+                format!("Invalid endpoint URL: {}", endpoint),
+                None,
+                String::new(),
+            ));
         }
         self.state.rcu(|state| {
             let mut next = (**state).clone();
             next.config.endpoint = endpoint.clone();
             Arc::new(next)
         });
-        self.clone()
+        Ok(self.clone())
     }
 
     /// Set the project ID
-    pub fn set_project<S: Into<String>>(&self, project: S) -> Self {
+    pub fn set_project<S: Into<String>>(&self, project: S) -> Result<Self> {
         let project = project.into();
+        let value = project.parse().map_err(|_| {{ spec.title | caseUcfirst }}Error::new(
+            400, "Invalid header value for x-appwrite-project", None, String::new(),
+        ))?;
         self.state.rcu(|state| {
             let mut next = (**state).clone();
-            next.config.headers.insert("x-appwrite-project", project.clone().parse().unwrap());
+            next.config.headers.insert("x-appwrite-project", value.clone());
             Arc::new(next)
         });
-        self.clone()
+        Ok(self.clone())
     }
 
     /// Set the API key
-    pub fn set_key<S: Into<String>>(&self, key: S) -> Self {
+    pub fn set_key<S: Into<String>>(&self, key: S) -> Result<Self> {
         let key = key.into();
+        let value = key.parse().map_err(|_| {{ spec.title | caseUcfirst }}Error::new(
+            400, "Invalid header value for x-appwrite-key", None, String::new(),
+        ))?;
         self.state.rcu(|state| {
             let mut next = (**state).clone();
-            next.config.headers.insert("x-appwrite-key", key.clone().parse().unwrap());
+            next.config.headers.insert("x-appwrite-key", value.clone());
             Arc::new(next)
         });
-        self.clone()
+        Ok(self.clone())
     }
 
     /// Set the JWT token
-    pub fn set_jwt<S: Into<String>>(&self, jwt: S) -> Self {
+    pub fn set_jwt<S: Into<String>>(&self, jwt: S) -> Result<Self> {
         let jwt = jwt.into();
+        let value = jwt.parse().map_err(|_| {{ spec.title | caseUcfirst }}Error::new(
+            400, "Invalid header value for x-appwrite-jwt", None, String::new(),
+        ))?;
         self.state.rcu(|state| {
             let mut next = (**state).clone();
-            next.config.headers.insert("x-appwrite-jwt", jwt.clone().parse().unwrap());
+            next.config.headers.insert("x-appwrite-jwt", value.clone());
             Arc::new(next)
         });
-        self.clone()
+        Ok(self.clone())
     }
 
     /// Set the locale
-    pub fn set_locale<S: Into<String>>(&self, locale: S) -> Self {
+    pub fn set_locale<S: Into<String>>(&self, locale: S) -> Result<Self> {
         let locale = locale.into();
+        let value = locale.parse().map_err(|_| {{ spec.title | caseUcfirst }}Error::new(
+            400, "Invalid header value for x-appwrite-locale", None, String::new(),
+        ))?;
         self.state.rcu(|state| {
             let mut next = (**state).clone();
-            next.config.headers.insert("x-appwrite-locale", locale.clone().parse().unwrap());
+            next.config.headers.insert("x-appwrite-locale", value.clone());
             Arc::new(next)
         });
-        self.clone()
+        Ok(self.clone())
     }
 
     /// Set the session
-    pub fn set_session<S: Into<String>>(&self, session: S) -> Self {
+    pub fn set_session<S: Into<String>>(&self, session: S) -> Result<Self> {
         let session = session.into();
+        let value = session.parse().map_err(|_| {{ spec.title | caseUcfirst }}Error::new(
+            400, "Invalid header value for x-appwrite-session", None, String::new(),
+        ))?;
         self.state.rcu(|state| {
             let mut next = (**state).clone();
-            next.config.headers.insert("x-appwrite-session", session.clone().parse().unwrap());
+            next.config.headers.insert("x-appwrite-session", value.clone());
             Arc::new(next)
         });
-        self.clone()
+        Ok(self.clone())
     }
 
     /// Enable or disable self-signed certificates
@@ -897,10 +918,24 @@ mod tests {
     #[test]
     fn test_client_builder_pattern() {
         let client = Client::new()
-            .set_endpoint("https://custom.example.com/v1")
-            .set_project("test-project")
-            .set_key("test-key");
+            .set_endpoint("https://custom.example.com/v1").unwrap()
+            .set_project("test-project").unwrap()
+            .set_key("test-key").unwrap();
 
         assert_eq!(client.endpoint(), "https://custom.example.com/v1");
+    }
+
+    #[test]
+    fn test_invalid_endpoint() {
+        let client = Client::new();
+        let err = client.set_endpoint("htp://cloud.appwrite.io/v1").unwrap_err();
+        assert_eq!(err.code, 400);
+        assert!(err.message.contains("Invalid endpoint URL"));
+    }
+
+    #[test]
+    fn test_invalid_header_value() {
+        let client = Client::new();
+        assert!(client.set_key("my\nkey").is_err());
     }
 }
