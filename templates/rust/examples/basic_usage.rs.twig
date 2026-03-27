@@ -11,9 +11,9 @@ use {{ sdk.cratePackage | default('appwrite') | rustCrateName }}::{
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize the client
     let client = Client::new()
-        .set_endpoint("{{ spec.endpoint }}") // Your API Endpoint
-        .set_project("5df5acd0d48c2") // Your project ID
-        .set_key("919c2d18fb5d4...a2ae413da83346ad2"); // Your secret API key
+        .set_endpoint("{{ spec.endpoint }}")? // Your API Endpoint
+        .set_project("5df5acd0d48c2")? // Your project ID
+        .set_key("919c2d18fb5d4...a2ae413da83346ad2")?; // Your secret API key
 
     println!("🚀 {{ spec.title }} Rust SDK Example");
     println!("Connected to: {}", client.endpoint());
@@ -129,9 +129,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // This will likely fail with invalid credentials
     let invalid_client = Client::new()
-        .set_endpoint("{{ spec.endpoint }}")
-        .set_project("invalid-project")
-        .set_key("invalid-key");
+        .set_endpoint("{{ spec.endpoint }}")?
+        .set_project("invalid-project")?
+        .set_key("invalid-key")?;
 
     let invalid_users = Users::new(&invalid_client);
 

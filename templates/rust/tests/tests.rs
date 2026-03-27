@@ -8,9 +8,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let string_in_array = vec!["string in array".to_string()];
 
     let client = Client::new()
-        .set_endpoint("http://mockapi/v1")
-        .set_project("appwrite")
-        .set_key("apikey")
+        .set_endpoint("http://mockapi/v1").unwrap()
+        .set_project("appwrite").unwrap()
+        .set_key("apikey").unwrap()
         .add_header("Origin", "http://localhost");
 
     println!("\n\nTest Started");
@@ -126,7 +126,10 @@ async fn test_general_service(client: &Client, string_in_array: &[String]) -> Re
         },
     }
 
-    println!("Invalid endpoint URL: htp://cloud.appwrite.io/v1");
+    match Client::new().set_endpoint("htp://cloud.appwrite.io/v1") {
+        Ok(_) => println!("Expected error for invalid endpoint"),
+        Err(e) => println!("{}", e.message),
+    }
 
     let _ = general.empty().await;
 
