@@ -192,6 +192,7 @@ class Swagger2 extends Spec
             'security' => [$methodSecurity] ?? [],
             'consumes' => $method['consumes'] ?? [],
             'cookies' => $method['x-appwrite']['cookies'] ?? false,
+            'platforms' => $method['x-appwrite']['platforms'] ?? [],
             'type' => $method['x-appwrite']['type'] ?? false,
             'deprecated' => $method['deprecated'] ?? false,
             'headers' => [],

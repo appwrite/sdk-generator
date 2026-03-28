@@ -52,6 +52,7 @@ export interface CommandDescription {
 export interface CliConfig {
   verbose: boolean;
   json: boolean;
+  raw: boolean;
   force: boolean;
   all: boolean;
   ids: string[];

@@ -21,7 +21,11 @@ import fs from "fs";
 {% if hasFileParam %}
 import { resolveFileParam } from "../utils/deployment.js";
 {% endif %}
+{% if service.isConsoleOnly %}
+import { sdkForConsole } from "../../sdks.js";
+{% else %}
 import { sdkForProject } from "../../sdks.js";
+{% endif %}
 import {
   actionRunner,
   commandDescriptions,
@@ -29,6 +33,9 @@ import {
   parse,
   parseBool,
   parseInteger,
+{% if service.name == 'teams' %}
+  hint,
+{% endif %}
 } from "../../parser.js";
 {% if sdk.test %}
 {{ include('cli/base/mock.twig') }}
@@ -40,7 +47,19 @@ let {{ service.name | caseCamel }}Client: {{ service.name | caseUcfirst }} | nul
 
 const get{{ service.name | caseUcfirst }}Client = async (): Promise<{{ service.name | caseUcfirst }}> => {
   if (!{{ service.name | caseCamel }}Client) {
-    const sdkClient = await sdkForProject();
+{% if service.name == 'teams' %}
+    let sdkClient;
+    try {
+      sdkClient = await sdkForProject();
+    } catch (e) {
+      if (e instanceof Error && e.message.includes("Project is not set")) {
+        hint(`To manage console-level teams, use the 'organizations' command instead.`);
+      }
+      throw e;
+    }
+{% else %}
+    const sdkClient = await {{ service.isConsoleOnly ? 'sdkForConsole' : 'sdkForProject' }}();
+{% endif %}
     {{ service.name | caseCamel }}Client = new {{ service.name | caseUcfirst }}(sdkClient);
   }
   return {{ service.name | caseCamel }}Client;

@@ -227,14 +227,14 @@ export const questionsInitProject: Question[] = [
     name: "project",
     message: "What would you like to name your project?",
     default: "My Awesome Project",
-    when: (answer: Answers) => answer.start !== "existing",
+    when: (answer: Answers) => whenOverride(answer) && answer.start !== "existing",
   },
   {
     type: "input",
     name: "id",
     message: "What ID would you like to have for your project?",
     default: "unique()",
-    when: (answer: Answers) => answer.start !== "existing",
+    when: (answer: Answers) => whenOverride(answer) && answer.start !== "existing",
   },
   {
     type: "search-list",
