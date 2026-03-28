@@ -1277,9 +1277,13 @@ class SDK
 
     protected function isConsoleOnly(array $methods): bool
     {
+        if (empty($methods)) {
+            return false;
+        }
+
         foreach ($methods as $method) {
             $platforms = $method['platforms'] ?? [];
-            if (!empty($platforms) && $platforms !== ['console']) {
+            if ($platforms !== ['console']) {
                 return false;
             }
         }

@@ -52,7 +52,9 @@ const get{{ service.name | caseUcfirst }}Client = async (): Promise<{{ service.n
     try {
       sdkClient = await sdkForProject();
     } catch (e) {
-      hint(`To manage console-level teams, use the 'organizations' command instead.`);
+      if (e instanceof Error && e.message.includes("Project is not set")) {
+        hint(`To manage console-level teams, use the 'organizations' command instead.`);
+      }
       throw e;
     }
 {% else %}

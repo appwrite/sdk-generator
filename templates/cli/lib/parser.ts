@@ -64,6 +64,10 @@ const filterObject = (obj: JsonObject): JsonObject => {
     const value = obj[key];
     if (typeof value === "function") continue;
     if (value == null) continue;
+    if (value?.constructor?.name === "BigNumber") {
+      result[key] = String(value);
+      continue;
+    }
     if (typeof value === "object") continue;
     if (typeof value === "string" && value.trim() === "") continue;
     result[key] = value;
@@ -77,12 +81,17 @@ const filterData = (data: JsonObject): JsonObject => {
     const value = data[key];
     if (typeof value === "function") continue;
     if (value == null) continue;
+    if (value?.constructor?.name === "BigNumber") {
+      result[key] = String(value);
+      continue;
+    }
     if (Array.isArray(value)) {
-      result[key] = value.map((item) =>
-        item && typeof item === "object" && !Array.isArray(item)
+      result[key] = value.map((item) => {
+        if (item?.constructor?.name === "BigNumber") return String(item);
+        return item && typeof item === "object" && !Array.isArray(item)
           ? filterObject(item as JsonObject)
-          : item,
-      );
+          : item;
+      });
     } else if (typeof value === "object") {
       continue;
     } else if (typeof value === "string" && value.trim() === "") {
@@ -195,7 +204,13 @@ export const drawTable = (data: Array<JsonObject | null | undefined>): void => {
       return entries;
     });
 
-    const maxKeyLen = Math.max(...rowEntries.flat().map(([key]) => key.length));
+    const flatEntries = rowEntries.flat();
+    if (flatEntries.length === 0) {
+      drawJSON(data);
+      return;
+    }
+
+    const maxKeyLen = Math.max(...flatEntries.map(([key]) => key.length));
 
     const separatorLen = Math.min(maxKeyLen + 2 + MAX_COL_WIDTH, process.stdout.columns || 80);
 
