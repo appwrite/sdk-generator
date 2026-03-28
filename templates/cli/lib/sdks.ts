@@ -88,4 +88,3 @@ export const sdkForProject = async (): Promise<Client> => {
     `Session not found. Please run \`${EXECUTABLE_NAME} login\` to create a session.`,
   );
 };
-

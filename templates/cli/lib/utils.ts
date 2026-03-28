@@ -172,6 +172,227 @@ export function isCloud(): boolean {
   return hostname.endsWith("appwrite.io");
 }
 
+// --- Agent Skills helpers ---
+
+const SKILLS_REPO = "https://github.com/appwrite/agent-skills";
+
+const LANGUAGE_MARKERS: Record<string, string[]> = {
+  typescript: [
+    "package.json",
+    "tsconfig.json",
+    "bun.lockb",
+    "yarn.lock",
+    "package-lock.json",
+  ],
+  python: ["requirements.txt", "pyproject.toml", "setup.py", "Pipfile"],
+  php: ["composer.json"],
+  dart: ["pubspec.yaml"],
+  swift: ["Package.swift", "*.xcodeproj"],
+  kotlin: ["build.gradle.kts", "build.gradle"],
+  go: ["go.mod"],
+  ruby: ["Gemfile"],
+  dotnet: ["*.csproj", "*.sln", "*.fsproj"],
+};
+
+export interface SkillInfo {
+  name: string;
+  description: string;
+  dirName: string;
+}
+
+const parseSkillFrontmatter = (
+  content: string,
+): { name: string; description: string } => {
+  const match = content.match(/^---\s*\n([\s\S]*?)\n---/);
+  if (!match) return { name: "", description: "" };
+
+  const frontmatter = match[1];
+  const nameMatch = frontmatter.match(/^name:\s*(.+)$/m);
+  const descMatch = frontmatter.match(/^description:\s*(.+)$/m);
+
+  return {
+    name: nameMatch ? nameMatch[1].trim() : "",
+    description: descMatch ? descMatch[1].trim() : "",
+  };
+};
+
+export function hasSkillsInstalled(configDirectoryPath: string): boolean {
+  const skillsDirs = [
+    path.join(configDirectoryPath, ".agents", "skills"),
+    path.join(configDirectoryPath, ".claude", "skills"),
+  ];
+  return skillsDirs.some(
+    (dir) =>
+      fs.existsSync(dir) &&
+      fs.statSync(dir).isDirectory() &&
+      fs.readdirSync(dir).length > 0,
+  );
+}
+
+export function fetchAvailableSkills(cwd: string): {
+  skills: SkillInfo[];
+  tempDir: string;
+} {
+  const tempDir = path.join(cwd, ".appwrite-skills-tmp");
+
+  fs.mkdirSync(tempDir, { recursive: true });
+
+  let gitInitCommands = `git clone --single-branch --depth 1 --sparse ${SKILLS_REPO} .`;
+  let gitPullCommands = `git sparse-checkout add skills`;
+
+  if (process.platform === "win32") {
+    gitInitCommands = 'cmd /c "' + gitInitCommands + '"';
+    gitPullCommands = 'cmd /c "' + gitPullCommands + '"';
+  }
+
+  try {
+    childProcess.execSync(gitInitCommands, { stdio: "pipe", cwd: tempDir });
+    childProcess.execSync(gitPullCommands, { stdio: "pipe", cwd: tempDir });
+  } catch (err) {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    if (errorMessage.includes("error: unknown option")) {
+      throw new Error(
+        `${errorMessage}\n\nSuggestion: Try updating your git to the latest version, then trying to run this command again.`,
+      );
+    } else if (
+      errorMessage.includes(
+        "is not recognized as an internal or external command,",
+      ) ||
+      errorMessage.includes("command not found")
+    ) {
+      throw new Error(
+        `${errorMessage}\n\nSuggestion: It appears that git is not installed, try installing git then trying to run this command again.`,
+      );
+    }
+    throw err;
+  }
+
+  const skillsSrcDir = path.join(tempDir, "skills");
+  if (!fs.existsSync(skillsSrcDir)) {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+    throw new Error("No skills directory found in the repository.");
+  }
+
+  const skillDirs = fs
+    .readdirSync(skillsSrcDir, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory());
+
+  const skills: SkillInfo[] = [];
+  for (const dir of skillDirs) {
+    const skillMdPath = path.join(skillsSrcDir, dir.name, "SKILL.md");
+    if (fs.existsSync(skillMdPath)) {
+      const content = fs.readFileSync(skillMdPath, "utf-8");
+      const { name, description } = parseSkillFrontmatter(content);
+      skills.push({
+        name: name || dir.name,
+        description,
+        dirName: dir.name,
+      });
+    }
+  }
+
+  if (skills.length === 0) {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+    throw new Error("No skills found in the repository.");
+  }
+
+  return { skills, tempDir };
+}
+
+export function detectProjectSkills(
+  cwd: string,
+  skills: SkillInfo[],
+): SkillInfo[] {
+  const detected: Set<string> = new Set();
+
+  for (const [language, markers] of Object.entries(LANGUAGE_MARKERS)) {
+    for (const marker of markers) {
+      if (marker.includes("*")) {
+        const ext = marker.replace("*", "");
+        try {
+          const files = fs.readdirSync(cwd);
+          if (files.some((f) => f.endsWith(ext))) {
+            detected.add(language);
+          }
+        } catch {
+          // ignore read errors
+        }
+      } else if (fs.existsSync(path.join(cwd, marker))) {
+        detected.add(language);
+      }
+    }
+  }
+
+  // Always include the CLI skill
+  detected.add("cli");
+
+  return skills.filter((skill) =>
+    Array.from(detected).some((lang) =>
+      skill.dirName.toLowerCase().includes(lang),
+    ),
+  );
+}
+
+export function placeSkills(
+  cwd: string,
+  tempDir: string,
+  selectedDirNames: string[],
+  selectedAgents: string[],
+  useSymlinks: boolean,
+): void {
+  const skillsSrcDir = path.join(tempDir, "skills");
+
+  if (useSymlinks && selectedAgents.length > 1) {
+    const canonicalAgent = selectedAgents[0];
+    const canonicalBase = path.join(cwd, canonicalAgent, "skills");
+    fs.mkdirSync(canonicalBase, { recursive: true });
+
+    for (const dirName of selectedDirNames) {
+      const src = path.join(skillsSrcDir, dirName);
+      const dest = path.join(canonicalBase, dirName);
+      if (fs.existsSync(dest)) {
+        fs.rmSync(dest, { recursive: true, force: true });
+      }
+      fs.cpSync(src, dest, { recursive: true });
+    }
+
+    for (const agent of selectedAgents.slice(1)) {
+      const targetBase = path.join(cwd, agent, "skills");
+      fs.mkdirSync(targetBase, { recursive: true });
+
+      for (const dirName of selectedDirNames) {
+        const canonicalSkillDir = path.join(canonicalBase, dirName);
+        const dest = path.join(targetBase, dirName);
+
+        try {
+          fs.lstatSync(dest);
+          fs.rmSync(dest, { recursive: true, force: true });
+        } catch {
+          // dest does not exist, nothing to remove
+        }
+
+        const relativePath = path.relative(targetBase, canonicalSkillDir);
+        fs.symlinkSync(relativePath, dest);
+      }
+    }
+  } else {
+    for (const agent of selectedAgents) {
+      const targetBase = path.join(cwd, agent, "skills");
+      fs.mkdirSync(targetBase, { recursive: true });
+
+      for (const dirName of selectedDirNames) {
+        const src = path.join(skillsSrcDir, dirName);
+        const dest = path.join(targetBase, dirName);
+        if (fs.existsSync(dest)) {
+          fs.rmSync(dest, { recursive: true, force: true });
+        }
+        fs.cpSync(src, dest, { recursive: true });
+      }
+    }
+  }
+}
+
 export function arrayEqualsUnordered(left: unknown, right: unknown): boolean {
   const a = Array.isArray(left)
     ? [...left].map((item) => String(item)).sort()
