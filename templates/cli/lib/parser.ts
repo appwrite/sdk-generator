@@ -197,6 +197,10 @@ export const drawTable = (data: Array<JsonObject | null | undefined>): void => {
         const value = row[key];
         if (typeof value === "function") continue;
         if (value == null) continue;
+        if (value?.constructor?.name === "BigNumber") {
+          entries.push([key, String(value)]);
+          continue;
+        }
         if (typeof value === "object") continue;
         if (typeof value === "string" && value.trim() === "") continue;
         entries.push([key, String(value)]);
