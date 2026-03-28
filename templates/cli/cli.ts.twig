@@ -84,6 +84,7 @@ if (process.argv.includes('-v') || process.argv.includes('--version')) {
         .version(version, '-v, --version', 'Output the version number')
         .option('-V, --verbose', 'Show complete error log')
         .option('-j, --json', 'Output in JSON format')
+        .option('-R, --raw', 'Output full raw JSON (no filtering)')
         .hook('preAction', migrate)
         .option('-f,--force', 'Flag to confirm all warnings')
         .option('-a,--all', 'Flag to push all resources')
@@ -91,6 +92,9 @@ if (process.argv.includes('-v') || process.argv.includes('--version')) {
         .option('--report', 'Enable reporting in case of CLI errors')
         .on('option:json', () => {
             cliConfig.json = true;
+        })
+        .on('option:raw', () => {
+            cliConfig.raw = true;
         })
         .on('option:verbose', () => {
             cliConfig.verbose = true;
