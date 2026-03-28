@@ -9,7 +9,9 @@ import (
 func TestIncrement(t *testing.T) {
 	q := Increment(1)
 	var data map[string]interface{}
-	json.Unmarshal([]byte(q), &data)
+	if err := json.Unmarshal([]byte(q), &data); err != nil {
+		t.Fatal(err)
+	}
 
 	if data["method"] != "increment" {
 		t.Errorf("Expected increment, got %s", data["method"])
@@ -23,21 +25,28 @@ func TestIncrement(t *testing.T) {
 func TestDecrement(t *testing.T) {
 	q := Decrement(1, 0)
 	var data map[string]interface{}
-	json.Unmarshal([]byte(q), &data)
+	if err := json.Unmarshal([]byte(q), &data); err != nil {
+		t.Fatal(err)
+	}
 
 	if data["method"] != "decrement" {
 		t.Errorf("Expected decrement, got %s", data["method"])
 	}
 	values := data["values"].([]interface{})
+	if values[0].(float64) != 1 {
+		t.Errorf("Expected decrement amount to be 1, got %v", values[0])
+	}
 	if values[1].(float64) != 0 {
-		t.Errorf("Expected [1, 0], got %v", values)
+		t.Errorf("Expected default value to be 0, got %v", values[1])
 	}
 }
 
 func TestMultiply(t *testing.T) {
 	q := Multiply(2)
 	var data map[string]interface{}
-	json.Unmarshal([]byte(q), &data)
+	if err := json.Unmarshal([]byte(q), &data); err != nil {
+		t.Fatal(err)
+	}
 
 	if data["method"] != "multiply" {
 		t.Errorf("Expected multiply, got %s", data["method"])
@@ -51,7 +60,9 @@ func TestMultiply(t *testing.T) {
 func TestDivide(t *testing.T) {
 	q := Divide(2)
 	var data map[string]interface{}
-	json.Unmarshal([]byte(q), &data)
+	if err := json.Unmarshal([]byte(q), &data); err != nil {
+		t.Fatal(err)
+	}
 
 	if data["method"] != "divide" {
 		t.Errorf("Expected divide, got %s", data["method"])
@@ -61,7 +72,9 @@ func TestDivide(t *testing.T) {
 func TestArrayAppend(t *testing.T) {
 	q := ArrayAppend([]interface{}{"a", "b"})
 	var data map[string]interface{}
-	json.Unmarshal([]byte(q), &data)
+	if err := json.Unmarshal([]byte(q), &data); err != nil {
+		t.Fatal(err)
+	}
 
 	if data["method"] != "arrayAppend" {
 		t.Errorf("Expected arrayAppend, got %s", data["method"])
@@ -75,7 +88,9 @@ func TestArrayAppend(t *testing.T) {
 func TestArrayRemove(t *testing.T) {
 	q := ArrayRemove("item")
 	var data map[string]interface{}
-	json.Unmarshal([]byte(q), &data)
+	if err := json.Unmarshal([]byte(q), &data); err != nil {
+		t.Fatal(err)
+	}
 
 	if data["method"] != "arrayRemove" {
 		t.Errorf("Expected arrayRemove, got %s", data["method"])
@@ -89,7 +104,9 @@ func TestArrayRemove(t *testing.T) {
 func TestStringConcat(t *testing.T) {
 	q := StringConcat("suffix")
 	var data map[string]interface{}
-	json.Unmarshal([]byte(q), &data)
+	if err := json.Unmarshal([]byte(q), &data); err != nil {
+		t.Fatal(err)
+	}
 
 	if data["method"] != "stringConcat" {
 		t.Errorf("Expected stringConcat, got %s", data["method"])

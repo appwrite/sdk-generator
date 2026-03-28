@@ -138,41 +138,25 @@ class Go extends Language
                 'destination'   => 'id/id_test.go',
                 'template'      => 'go/id_test.go.twig',
             ],
-            [
-                'scope'         => 'default',
-                'destination'   => 'role/role.go',
-                'template'      => 'go/role.go.twig',
-            ],
+
             [
                 'scope'         => 'default',
                 'destination'   => 'role/role_test.go',
                 'template'      => 'go/role_test.go.twig',
             ],
-            [
-                'scope'         => 'default',
-                'destination'   => 'permission/permission.go',
-                'template'      => 'go/permission.go.twig',
-            ],
+
             [
                 'scope'         => 'default',
                 'destination'   => 'permission/permission_test.go',
                 'template'      => 'go/permission_test.go.twig',
             ],
-            [
-                'scope'         => 'default',
-                'destination'   => 'query/query.go',
-                'template'      => 'go/query.go.twig',
-            ],
+
             [
                 'scope'         => 'default',
                 'destination'   => 'query/query_test.go',
                 'template'      => 'go/query_test.go.twig',
             ],
-            [
-                'scope'         => 'default',
-                'destination'   => 'operator/operator.go',
-                'template'      => 'go/operator.go.twig',
-            ],
+
             [
                 'scope'         => 'default',
                 'destination'   => 'operator/operator_test.go',

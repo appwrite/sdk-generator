@@ -100,7 +100,13 @@ func Test{{ service.name | caseUcfirst }}(t *testing.T) {
 		{%- endif %}
 
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			{% if requireFilesPkg and method.method | upper != 'GET' -%}
+			{% set methodUsesFile = false %}
+			{%- for parameter in method.parameters.all -%}
+				{%- if "file.InputFile" in (parameter | typeName) -%}
+					{%- set methodUsesFile = true -%}
+				{%- endif -%}
+			{%- endfor -%}
+			{% if methodUsesFile and method.method | upper != 'GET' -%}
 			if r.Method == "GET" && "{{ method.method | upper }}" != "GET" {
 				// Handle file upload resume check
 				w.Header().Set("Content-Type", "application/json")
@@ -146,7 +152,7 @@ func Test{{ service.name | caseUcfirst }}(t *testing.T) {
 			{%- elseif parameter.type == 'boolean' -%}
 				{%- set val = "true" -%}
 			{%- elseif parameter.type == 'string' -%}
-				{%- set val = "\"" ~ (parameter.example | replace({'"': '\\"'})) ~ "\"" -%}
+				{%- set val = "\"" ~ (parameter.example | replace({'"': '\\"', '\\': '\\\\'})) ~ "\"" -%}
 			{%- elseif parameter.type == 'integer' -%}
 				{%- set val = "1" -%}
 			{%- elseif parameter.type == 'number' -%}

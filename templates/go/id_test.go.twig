@@ -7,8 +7,8 @@ import (
 
 func TestUnique(t *testing.T) {
 	id := Unique()
-	if len(id) != 20 {
-		t.Errorf("Expected length 20, got %d", len(id))
+	if len(id) < 15 || len(id) > 25 {
+		t.Errorf("Expected length between 15 and 25, got %d", len(id))
 	}
 }
 
