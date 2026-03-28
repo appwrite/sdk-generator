@@ -227,14 +227,16 @@ export const questionsInitProject: Question[] = [
     name: "project",
     message: "What would you like to name your project?",
     default: "My Awesome Project",
-    when: (answer: Answers) => whenOverride(answer) && answer.start !== "existing",
+    when: (answer: Answers) =>
+      whenOverride(answer) && answer.start !== "existing",
   },
   {
     type: "input",
     name: "id",
     message: "What ID would you like to have for your project?",
     default: "unique()",
-    when: (answer: Answers) => whenOverride(answer) && answer.start !== "existing",
+    when: (answer: Answers) =>
+      whenOverride(answer) && answer.start !== "existing",
   },
   {
     type: "search-list",
@@ -251,7 +253,8 @@ export const questionsInitProject: Question[] = [
       ];
 
       const { projects } = await paginate(
-        async (args) => (await getProjectsService()).list(args.queries as string[]),
+        async (args) =>
+          (await getProjectsService()).list(args.queries as string[]),
         { parseOutput: false },
         100,
         "projects",
@@ -301,6 +304,7 @@ export const questionsInitProject: Question[] = [
         }));
     },
     when: (answer: Answers) => {
+      if (!whenOverride(answer)) return false;
       if (answer.start === "existing") return false;
       return isCloud();
     },
@@ -900,6 +904,7 @@ export const questionsInitResources: Question[] = [
     choices: [
       { name: "Function", value: "function" },
       { name: "Site", value: "site" },
+      { name: "Skill", value: "skill" },
       { name: "Table", value: "table" },
       { name: "Bucket", value: "bucket" },
       { name: "Team", value: "team" },
