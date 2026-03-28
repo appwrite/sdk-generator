@@ -134,9 +134,64 @@ class Go extends Language
                 'template'      => 'go/id.go.twig',
             ],
             [
+                'scope'         => 'default',
+                'destination'   => 'id/id_test.go',
+                'template'      => 'go/id_test.go.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'role/role.go',
+                'template'      => 'go/role.go.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'role/role_test.go',
+                'template'      => 'go/role_test.go.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'permission/permission.go',
+                'template'      => 'go/permission.go.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'permission/permission_test.go',
+                'template'      => 'go/permission_test.go.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'query/query.go',
+                'template'      => 'go/query.go.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'query/query_test.go',
+                'template'      => 'go/query_test.go.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'operator/operator.go',
+                'template'      => 'go/operator.go.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'operator/operator_test.go',
+                'template'      => 'go/operator_test.go.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'client/client_test.go',
+                'template'      => 'go/client_test.go.twig',
+            ],
+            [
                 'scope'         => 'service',
                 'destination'   => '{{ service.name | caseLower}}/{{service.name | caseSnake}}.go',
                 'template'      => 'go/services/service.go.twig',
+            ],
+            [
+                'scope'         => 'service',
+                'destination'   => '{{ service.name | caseLower}}/{{service.name | caseSnake}}_test.go',
+                'template'      => 'go/services/service_test.go.twig',
             ],
             [
                 'scope'         => 'method',
@@ -147,6 +202,11 @@ class Go extends Language
                 'scope'         => 'definition',
                 'destination'   => 'models/{{ definition.name | caseSnake }}.go',
                 'template'      => 'go/models/model.go.twig',
+            ],
+            [
+                'scope'         => 'definition',
+                'destination'   => 'models/{{ definition.name | caseSnake }}_test.go',
+                'template'      => 'go/models/model_test.go.twig',
             ],
             [
                 'scope'         => 'requestModel',

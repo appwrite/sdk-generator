@@ -165,7 +165,15 @@ func (client *Client) FileUpload(url string, headers map[string]interface{}, par
 	if uploadId != "" {
 		resp, err := client.Call("GET", url+"/"+uploadId, nil, nil)
 		if err == nil {
-			currentChunk = int64(resp.Result.(map[string]interface{})["chunksUploaded"].(float64))
+			var result map[string]interface{}
+			if resStr, ok := resp.Result.(string); ok {
+				_ = json.Unmarshal([]byte(resStr), &result)
+			} else {
+				result, _ = resp.Result.(map[string]interface{})
+			}
+			if result != nil && result["chunksUploaded"] != nil {
+				currentChunk = int64(result["chunksUploaded"].(float64))
+			}
 		}
 	}
 
