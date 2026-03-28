@@ -1,4 +1,5 @@
 import fs from "fs";
+import os from "os";
 import path from "path";
 import net from "net";
 import childProcess from "child_process";
@@ -229,13 +230,11 @@ export function hasSkillsInstalled(configDirectoryPath: string): boolean {
   );
 }
 
-export function fetchAvailableSkills(cwd: string): {
+export function fetchAvailableSkills(): {
   skills: SkillInfo[];
   tempDir: string;
 } {
-  const tempDir = path.join(cwd, ".appwrite-skills-tmp");
-
-  fs.mkdirSync(tempDir, { recursive: true });
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "appwrite-skills-"));
 
   let gitInitCommands = `git clone --single-branch --depth 1 --sparse ${SKILLS_REPO} .`;
   let gitPullCommands = `git sparse-checkout add skills`;
@@ -373,7 +372,21 @@ export function placeSkills(
         }
 
         const relativePath = path.relative(targetBase, canonicalSkillDir);
-        fs.symlinkSync(relativePath, dest);
+        try {
+          fs.symlinkSync(relativePath, dest);
+        } catch (err: unknown) {
+          if (
+            process.platform === "win32" &&
+            (err as NodeJS.ErrnoException).code === "EPERM"
+          ) {
+            throw new Error(
+              "Symlinks require Developer Mode or Administrator rights on Windows.\n" +
+                "Enable Developer Mode in Settings > System > For developers, or re-run as Administrator.\n" +
+                "Alternatively, use 'Copy' install mode instead.",
+            );
+          }
+          throw err;
+        }
       }
     }
   } else {

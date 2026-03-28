@@ -263,14 +263,14 @@ const initProject = async ({
 
   if (!hasSkillsInstalled(localConfig.configDirectoryPath)) {
     try {
-      const cwd = process.cwd();
+      const skillsCwd = localConfig.configDirectoryPath;
       log("Setting up Appwrite agent skills ...");
-      const { skills, tempDir } = fetchAvailableSkills(cwd);
+      const { skills, tempDir } = fetchAvailableSkills();
       try {
-        const detected = detectProjectSkills(cwd, skills);
+        const detected = detectProjectSkills(skillsCwd, skills);
         if (detected.length > 0) {
           const names = detected.map((s) => s.dirName);
-          placeSkills(cwd, tempDir, names, [".agents", ".claude"], true);
+          placeSkills(skillsCwd, tempDir, names, [".agents", ".claude"], true);
           success(
             `Installed ${names.length} agent skill${names.length === 1 ? "" : "s"} based on your project: ${detected.map((s) => s.name).join(", ")}`,
           );
@@ -405,7 +405,7 @@ const initSkill = async (): Promise<void> => {
   const cwd = process.cwd();
 
   log("Fetching available Appwrite agent skills ...");
-  const { skills, tempDir } = fetchAvailableSkills(cwd);
+  const { skills, tempDir } = fetchAvailableSkills();
 
   try {
     const { selectedSkills } = await inquirer.prompt([
