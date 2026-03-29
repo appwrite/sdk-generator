@@ -244,25 +244,40 @@ export const parse = (data: JsonObject): void => {
 
     for (const key of keys) {
       const value = sanitizedData[key];
-      if (value === null) {
-        console.log(`${chalk.yellow.bold(key)} : null`);
-        printedScalar = true;
-      } else if (Array.isArray(value)) {
+      if (value == null) continue;
+      if (typeof value === "string" && value.trim() === "") continue;
+      if (Array.isArray(value)) {
+        if (value.length === 0) continue;
+        if (
+          value.every(
+            (item) =>
+              item &&
+              typeof item === "object" &&
+              !Array.isArray(item) &&
+              Object.keys(item).length === 0,
+          )
+        )
+          continue;
+        console.log();
         console.log(`${chalk.yellow.bold.underline(key)}`);
         if (typeof value[0] === "object") {
           drawTable(value);
         } else {
           drawJSON(value);
         }
+        console.log();
         printedScalar = false;
       } else if (typeof value === "object") {
         if (value?.constructor?.name === "BigNumber") {
           console.log(`${chalk.yellow.bold(key)} : ${value}`);
           printedScalar = true;
         } else {
-          console.log(`${chalk.yellow.bold.underline(key)}`);
           const tableRow = toJsonObject(value) ?? {};
+          if (Object.keys(tableRow).length === 0) continue;
+          console.log();
+          console.log(`${chalk.yellow.bold.underline(key)}`);
           drawTable([tableRow]);
+          console.log();
           printedScalar = false;
         }
       } else {
