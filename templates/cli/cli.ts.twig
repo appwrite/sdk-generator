@@ -84,7 +84,7 @@ if (process.argv.includes('-v') || process.argv.includes('--version')) {
         .version(version, '-v, --version', 'Output the version number')
         .option('-V, --verbose', 'Show complete error log')
         .option('-j, --json', 'Output in JSON format')
-        .option('-R, --raw', 'Output raw JSON structure')
+        .option('-R, --raw', 'Output raw JSON (secrets still redacted unless --show-secrets is set)')
         .option('--show-secrets', 'Display sensitive values like secrets and tokens in output')
         .hook('preAction', migrate)
         .option('-f,--force', 'Flag to confirm all warnings')
@@ -92,18 +92,12 @@ if (process.argv.includes('-v') || process.argv.includes('--version')) {
         .option('--id [id...]', 'Flag to pass a list of ids for a given action')
         .option('--report', 'Enable reporting in case of CLI errors')
         .hook('preAction', (_thisCommand, actionCommand) => {
-            const commandPath: string[] = [];
-            let current = actionCommand;
-
-            while (current) {
-                const name = current.name();
-                if (name) {
-                    commandPath.unshift(name);
-                }
-                current = current.parent;
-            }
-
-            cliConfig.commandPath = commandPath.slice(1);
+            const commandConfig = actionCommand as typeof actionCommand & {
+                outputFields?: string[];
+            };
+            cliConfig.displayFields = Array.isArray(commandConfig.outputFields)
+                ? commandConfig.outputFields
+                : [];
         })
         .on('option:json', () => {
             cliConfig.json = true;

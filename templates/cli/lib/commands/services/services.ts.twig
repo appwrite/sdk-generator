@@ -76,7 +76,8 @@ export const {{ service.name | caseCamel }} = new Command("{{ service.name | cas
 {% set commandName = method.name | caseKebab %}
 {% if commandName not in seenCommands %}
 {% set seenCommands = seenCommands|merge([commandName]) %}
-{{ service.name | caseCamel }}
+{% set commandVar = service.name | caseCamel ~ method.name | caseUcfirst ~ 'Command' %}
+const {{ commandVar }} = {{ service.name | caseCamel }}
   .command(`{{ commandName }}`)
   .description(`{{ method.description | replace({'`': '\\`'}) | raw }}`)
 {% for parameter in method.parameters.all %}
@@ -129,6 +130,10 @@ export const {{ service.name | caseCamel }} = new Command("{{ service.name | cas
 {% endif %}
     ),
   );
+
+{% if service.name == 'projects' and method.name == 'list' %}
+({{ commandVar }} as Command & { outputFields?: string[] }).outputFields = ["name", "$id", "region", "status"];
+{% endif %}
 
 {% endif %}
 {% endfor %}

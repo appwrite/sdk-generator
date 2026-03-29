@@ -30,13 +30,23 @@ const cliConfig: CliConfig = {
   ids: [],
   report: false,
   reportData: {},
-  commandPath: [],
+  displayFields: [],
 };
 
 type JsonObject = Record<string, unknown>;
 
-const PROJECT_LIST_FIELDS = new Set(["name", "$id", "region", "status"]);
 const HIDDEN_VALUE = "[hidden]";
+const SENSITIVE_KEYS = new Set([
+  "secret",
+  "apikey",
+  "accesstoken",
+  "refreshtoken",
+  "password",
+  "jwt",
+  "clientsecret",
+  "secretkey",
+  "sessionsecret",
+]);
 let renderDepth = 0;
 let redactionApplied = false;
 
@@ -86,17 +96,7 @@ const endRender = (): void => {
 const isSensitiveKey = (key: string): boolean => {
   const normalizedKey = key.toLowerCase().replace(/[^a-z0-9]/g, "");
 
-  return (
-    normalizedKey === "jwt" ||
-    normalizedKey === "secret" ||
-    normalizedKey.endsWith("secret") ||
-    normalizedKey === "password" ||
-    normalizedKey.endsWith("password") ||
-    normalizedKey === "token" ||
-    normalizedKey.endsWith("token") ||
-    normalizedKey === "apikey" ||
-    normalizedKey.endsWith("apikey")
-  );
+  return SENSITIVE_KEYS.has(normalizedKey);
 };
 
 const maskSensitiveString = (value: string): string => {
@@ -153,10 +153,9 @@ const maskSensitiveData = (value: unknown, key?: string): unknown => {
 };
 
 const filterObject = (obj: JsonObject): JsonObject => {
-  const sanitizedObject = maskSensitiveData(obj) as JsonObject;
   const result: JsonObject = {};
-  for (const key of Object.keys(sanitizedObject)) {
-    const value = sanitizedObject[key];
+  for (const key of Object.keys(obj)) {
+    const value = obj[key];
     if (typeof value === "function") continue;
     if (value == null) continue;
     if (value?.constructor?.name === "BigNumber") {
@@ -170,35 +169,28 @@ const filterObject = (obj: JsonObject): JsonObject => {
   return result;
 };
 
-const isProjectsListCommand = (): boolean =>
-  cliConfig.commandPath.length >= 2 &&
-  cliConfig.commandPath[0] === "projects" &&
-  cliConfig.commandPath[1] === "list";
-
-const filterProjectsListRow = (row: JsonObject): JsonObject => {
-  const filtered: JsonObject = {};
-
-  for (const key of Object.keys(row)) {
-    if (!PROJECT_LIST_FIELDS.has(key)) continue;
-    filtered[key] = row[key];
-  }
-
-  return filtered;
-};
-
 const applyDisplayFilter = (rows: JsonObject[]): JsonObject[] => {
-  if (isProjectsListCommand()) {
-    return rows.map(filterProjectsListRow);
+  if (cliConfig.displayFields.length === 0) {
+    return rows;
   }
 
-  return rows;
+  return rows.map((row) => {
+    const filtered: JsonObject = {};
+
+    for (const key of cliConfig.displayFields) {
+      if (Object.prototype.hasOwnProperty.call(row, key)) {
+        filtered[key] = row[key];
+      }
+    }
+
+    return Object.keys(filtered).length > 0 ? filtered : row;
+  });
 };
 
 const filterData = (data: JsonObject): JsonObject => {
-  const sanitizedData = maskSensitiveData(data) as JsonObject;
   const result: JsonObject = {};
-  for (const key of Object.keys(sanitizedData)) {
-    const value = sanitizedData[key];
+  for (const key of Object.keys(data)) {
+    const value = data[key];
     if (typeof value === "function") continue;
     if (value == null) continue;
     if (value?.constructor?.name === "BigNumber") {

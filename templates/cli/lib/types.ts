@@ -59,7 +59,7 @@ export interface CliConfig {
   ids: string[];
   report: boolean;
   reportData: Record<string, unknown>;
-  commandPath: string[];
+  displayFields: string[];
 }
 
 export interface SessionData {
