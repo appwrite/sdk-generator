@@ -89,7 +89,14 @@ const endRender = (): void => {
   renderDepth = Math.max(0, renderDepth - 1);
 
   if (renderDepth === 0 && redactionApplied && !cliConfig.showSecrets) {
-    hint("Sensitive values were redacted. Pass --show-secrets to display them.");
+    const message =
+      "Sensitive values were redacted. Pass --show-secrets to display them.";
+
+    if (cliConfig.json || cliConfig.raw) {
+      console.error(`${chalk.cyan.bold("♥ Hint:")} ${chalk.cyan(message)}`);
+    } else {
+      hint(message);
+    }
   }
 };
 
@@ -100,19 +107,18 @@ const isSensitiveKey = (key: string): boolean => {
 };
 
 const maskSensitiveString = (value: string): string => {
-  if (value.length <= 8) {
+  if (value.length <= 16) {
     return HIDDEN_VALUE;
   }
 
   const separatorIndex = value.indexOf("_");
-  if (separatorIndex > 0 && separatorIndex < value.length - 5) {
+  if (separatorIndex > 0 && separatorIndex < value.length - 9) {
     const prefix = value.slice(0, separatorIndex + 1);
-    const head = value.slice(separatorIndex + 1, separatorIndex + 5);
     const tail = value.slice(-4);
-    return `${prefix}${head}...${tail}`;
+    return `${prefix}${HIDDEN_VALUE}${tail}`;
   }
 
-  return `${value.slice(0, 4)}...${value.slice(-4)}`;
+  return `${HIDDEN_VALUE}${value.slice(-4)}`;
 };
 
 const maskSensitiveData = (value: unknown, key?: string): unknown => {
