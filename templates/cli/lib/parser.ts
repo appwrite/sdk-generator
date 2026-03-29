@@ -24,14 +24,21 @@ const cliConfig: CliConfig = {
   verbose: false,
   json: false,
   raw: false,
+  showSecrets: false,
   force: false,
   all: false,
   ids: [],
   report: false,
   reportData: {},
+  commandPath: [],
 };
 
 type JsonObject = Record<string, unknown>;
+
+const PROJECT_LIST_FIELDS = new Set(["name", "$id", "region", "status"]);
+const HIDDEN_VALUE = "[hidden]";
+let renderDepth = 0;
+let redactionApplied = false;
 
 interface ReportDataPayload {
   data?: {
@@ -60,10 +67,96 @@ const extractReportCommandArgs = (value: unknown): string[] => {
   return reportData.data.args;
 };
 
+const beginRender = (): void => {
+  if (renderDepth === 0) {
+    redactionApplied = false;
+  }
+
+  renderDepth++;
+};
+
+const endRender = (): void => {
+  renderDepth = Math.max(0, renderDepth - 1);
+
+  if (renderDepth === 0 && redactionApplied && !cliConfig.showSecrets) {
+    hint("Sensitive values were redacted. Pass --show-secrets to display them.");
+  }
+};
+
+const isSensitiveKey = (key: string): boolean => {
+  const normalizedKey = key.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+  return (
+    normalizedKey === "jwt" ||
+    normalizedKey === "secret" ||
+    normalizedKey.endsWith("secret") ||
+    normalizedKey === "password" ||
+    normalizedKey.endsWith("password") ||
+    normalizedKey === "token" ||
+    normalizedKey.endsWith("token") ||
+    normalizedKey === "apikey" ||
+    normalizedKey.endsWith("apikey")
+  );
+};
+
+const maskSensitiveString = (value: string): string => {
+  if (value.length <= 8) {
+    return HIDDEN_VALUE;
+  }
+
+  const separatorIndex = value.indexOf("_");
+  if (separatorIndex > 0 && separatorIndex < value.length - 5) {
+    const prefix = value.slice(0, separatorIndex + 1);
+    const head = value.slice(separatorIndex + 1, separatorIndex + 5);
+    const tail = value.slice(-4);
+    return `${prefix}${head}...${tail}`;
+  }
+
+  return `${value.slice(0, 4)}...${value.slice(-4)}`;
+};
+
+const maskSensitiveData = (value: unknown, key?: string): unknown => {
+  if (key && isSensitiveKey(key) && !cliConfig.showSecrets) {
+    redactionApplied = true;
+
+    if (typeof value === "string") {
+      return maskSensitiveString(value);
+    }
+
+    if (value == null) {
+      return value;
+    }
+
+    return HIDDEN_VALUE;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => maskSensitiveData(item));
+  }
+
+  if (value && typeof value === "object") {
+    if (value?.constructor?.name === "BigNumber") {
+      return String(value);
+    }
+
+    const result: JsonObject = {};
+    for (const childKey of Object.keys(value as JsonObject)) {
+      const childValue = (value as JsonObject)[childKey];
+      if (typeof childValue === "function") continue;
+      result[childKey] = maskSensitiveData(childValue, childKey);
+    }
+
+    return result;
+  }
+
+  return value;
+};
+
 const filterObject = (obj: JsonObject): JsonObject => {
+  const sanitizedObject = maskSensitiveData(obj) as JsonObject;
   const result: JsonObject = {};
-  for (const key of Object.keys(obj)) {
-    const value = obj[key];
+  for (const key of Object.keys(sanitizedObject)) {
+    const value = sanitizedObject[key];
     if (typeof value === "function") continue;
     if (value == null) continue;
     if (value?.constructor?.name === "BigNumber") {
@@ -77,10 +170,35 @@ const filterObject = (obj: JsonObject): JsonObject => {
   return result;
 };
 
+const isProjectsListCommand = (): boolean =>
+  cliConfig.commandPath.length >= 2 &&
+  cliConfig.commandPath[0] === "projects" &&
+  cliConfig.commandPath[1] === "list";
+
+const filterProjectsListRow = (row: JsonObject): JsonObject => {
+  const filtered: JsonObject = {};
+
+  for (const key of Object.keys(row)) {
+    if (!PROJECT_LIST_FIELDS.has(key)) continue;
+    filtered[key] = row[key];
+  }
+
+  return filtered;
+};
+
+const applyDisplayFilter = (rows: JsonObject[]): JsonObject[] => {
+  if (isProjectsListCommand()) {
+    return rows.map(filterProjectsListRow);
+  }
+
+  return rows;
+};
+
 const filterData = (data: JsonObject): JsonObject => {
+  const sanitizedData = maskSensitiveData(data) as JsonObject;
   const result: JsonObject = {};
-  for (const key of Object.keys(data)) {
-    const value = data[key];
+  for (const key of Object.keys(sanitizedData)) {
+    const value = sanitizedData[key];
     if (typeof value === "function") continue;
     if (value == null) continue;
     if (value?.constructor?.name === "BigNumber") {
@@ -106,48 +224,56 @@ const filterData = (data: JsonObject): JsonObject => {
 };
 
 export const parse = (data: JsonObject): void => {
-  if (cliConfig.raw) {
-    drawJSON(data);
-    return;
-  }
+  beginRender();
 
-  if (cliConfig.json) {
-    drawJSON(filterData(data));
-    return;
-  }
+  try {
+    const sanitizedData = maskSensitiveData(data) as JsonObject;
 
-  const keys = Object.keys(data).filter((k) => typeof data[k] !== "function");
-  let printedScalar = false;
+    if (cliConfig.raw) {
+      drawJSON(sanitizedData);
+      return;
+    }
 
-  for (const key of keys) {
-    const value = data[key];
-    if (value === null) {
-      console.log(`${chalk.yellow.bold(key)} : null`);
-      printedScalar = true;
-    } else if (Array.isArray(value)) {
-      if (printedScalar) console.log("");
-      console.log(`${chalk.yellow.bold.underline(key)}`);
-      if (typeof value[0] === "object") {
-        drawTable(value);
+    if (cliConfig.json) {
+      drawJSON(filterData(sanitizedData));
+      return;
+    }
+
+    const keys = Object.keys(sanitizedData).filter(
+      (k) => typeof sanitizedData[k] !== "function",
+    );
+    let printedScalar = false;
+
+    for (const key of keys) {
+      const value = sanitizedData[key];
+      if (value === null) {
+        console.log(`${chalk.yellow.bold(key)} : null`);
+        printedScalar = true;
+      } else if (Array.isArray(value)) {
+        console.log(`${chalk.yellow.bold.underline(key)}`);
+        if (typeof value[0] === "object") {
+          drawTable(value);
+        } else {
+          drawJSON(value);
+        }
+        printedScalar = false;
+      } else if (typeof value === "object") {
+        if (value?.constructor?.name === "BigNumber") {
+          console.log(`${chalk.yellow.bold(key)} : ${value}`);
+          printedScalar = true;
+        } else {
+          console.log(`${chalk.yellow.bold.underline(key)}`);
+          const tableRow = toJsonObject(value) ?? {};
+          drawTable([tableRow]);
+          printedScalar = false;
+        }
       } else {
-        drawJSON(value);
-      }
-      printedScalar = false;
-    } else if (typeof value === "object") {
-      if (printedScalar) console.log("");
-      if (value?.constructor?.name === "BigNumber") {
         console.log(`${chalk.yellow.bold(key)} : ${value}`);
         printedScalar = true;
-      } else {
-        console.log(`${chalk.yellow.bold.underline(key)}`);
-        const tableRow = toJsonObject(value) ?? {};
-        drawTable([tableRow]);
-        printedScalar = false;
       }
-    } else {
-      console.log(`${chalk.yellow.bold(key)} : ${value}`);
-      printedScalar = true;
     }
+  } finally {
+    endRender();
   }
 };
 
@@ -173,107 +299,118 @@ const formatCellValue = (value: unknown): string => {
 };
 
 export const drawTable = (data: Array<JsonObject | null | undefined>): void => {
-  if (data.length == 0) {
-    console.log("[]");
-    return;
-  }
+  beginRender();
 
-  const rows = data.map((item): JsonObject => toJsonObject(item) ?? {});
+  try {
+    if (data.length == 0) {
+      console.log("[]");
+      return;
+    }
 
-  // Create an object with all the keys in it
-  const obj = rows.reduce((res, item) => ({ ...res, ...item }), {});
-  // Get those keys as an array
-  const allKeys = Object.keys(obj);
-  if (allKeys.length === 0) {
-    drawJSON(data);
-    return;
-  }
+    const rows = applyDisplayFilter(
+      data.map((item): JsonObject => {
+        const maskedItem = maskSensitiveData(item);
+        return toJsonObject(maskedItem) ?? {};
+      }),
+    );
 
-  // If too many columns, show condensed key-value output with only scalar, non-empty fields
-  const maxColumns = 6;
-  if (allKeys.length > maxColumns) {
-    // Collect visible entries per row to compute alignment
-    const rowEntries = rows.map((row) => {
-      const entries: Array<[string, string]> = [];
-      for (const key of Object.keys(row)) {
-        const value = row[key];
-        if (typeof value === "function") continue;
-        if (value == null) continue;
-        if (value?.constructor?.name === "BigNumber") {
-          entries.push([key, String(value)]);
-          continue;
-        }
-        if (typeof value === "object") continue;
-        if (typeof value === "string" && value.trim() === "") continue;
-        entries.push([key, String(value)]);
-      }
-      return entries;
-    });
-
-    const flatEntries = rowEntries.flat();
-    if (flatEntries.length === 0) {
+    // Create an object with all the keys in it
+    const obj = rows.reduce((res, item) => ({ ...res, ...item }), {});
+    // Get those keys as an array
+    const allKeys = Object.keys(obj);
+    if (allKeys.length === 0) {
       drawJSON(data);
       return;
     }
 
-    const maxKeyLen = Math.max(...flatEntries.map(([key]) => key.length));
+    // If too many columns, show condensed key-value output with only scalar, non-empty fields
+    const maxColumns = 6;
+    if (allKeys.length > maxColumns) {
+      // Collect visible entries per row to compute alignment
+      const rowEntries = rows.map((row) => {
+        const entries: Array<[string, string]> = [];
+        for (const key of Object.keys(row)) {
+          const value = row[key];
+          if (typeof value === "function") continue;
+          if (value == null) continue;
+          if (value?.constructor?.name === "BigNumber") {
+            entries.push([key, String(value)]);
+            continue;
+          }
+          if (typeof value === "object") continue;
+          if (typeof value === "string" && value.trim() === "") continue;
+          entries.push([key, String(value)]);
+        }
+        return entries;
+      });
 
-    const separatorLen = Math.min(
-      maxKeyLen + 2 + MAX_COL_WIDTH,
-      process.stdout.columns || 80,
-    );
-
-    rowEntries.forEach((entries, idx) => {
-      if (idx > 0) console.log(chalk.cyan("─".repeat(separatorLen)));
-      for (const [key, value] of entries) {
-        const paddedKey = key.padEnd(maxKeyLen);
-        console.log(`${chalk.yellow.bold(paddedKey)}  ${value}`);
+      const flatEntries = rowEntries.flat();
+      if (flatEntries.length === 0) {
+        drawJSON(data);
+        return;
       }
-    });
-    return;
-  }
 
-  const columns = allKeys;
+      const maxKeyLen = Math.max(...flatEntries.map(([key]) => key.length));
 
-  // Create an object with all keys set to the default value ''
-  const def = allKeys.reduce((result: Record<string, string>, key) => {
-    result[key] = "-";
-    return result;
-  }, {});
-  // Use object destructuring to replace all default values with the ones we have
-  const normalizedData = rows.map((item) => ({ ...def, ...item }));
+      const separatorLen = Math.min(
+        maxKeyLen + 2 + MAX_COL_WIDTH,
+        process.stdout.columns || 80,
+      );
 
-  const table = new Table({
-    head: columns.map((c) => chalk.cyan.italic.bold(c)),
-    colWidths: columns.map(() => null) as (number | null)[],
-    wordWrap: false,
-    chars: {
-      top: " ",
-      "top-mid": " ",
-      "top-left": " ",
-      "top-right": " ",
-      bottom: " ",
-      "bottom-mid": " ",
-      "bottom-left": " ",
-      "bottom-right": " ",
-      left: " ",
-      "left-mid": " ",
-      mid: chalk.cyan("─"),
-      "mid-mid": chalk.cyan("┼"),
-      right: " ",
-      "right-mid": " ",
-      middle: chalk.cyan("│"),
-    },
-  });
-
-  normalizedData.forEach((row) => {
-    const rowValues: string[] = [];
-    for (const key of columns) {
-      rowValues.push(formatCellValue(row[key]));
+      rowEntries.forEach((entries, idx) => {
+        if (idx > 0) console.log(chalk.cyan("─".repeat(separatorLen)));
+        for (const [key, value] of entries) {
+          const paddedKey = key.padEnd(maxKeyLen);
+          console.log(`${chalk.yellow.bold(paddedKey)}  ${value}`);
+        }
+      });
+      return;
     }
-    table.push(rowValues);
-  });
-  console.log(table.toString());
+
+    const columns = allKeys;
+
+    // Create an object with all keys set to the default value ''
+    const def = allKeys.reduce((result: Record<string, string>, key) => {
+      result[key] = "-";
+      return result;
+    }, {});
+    // Use object destructuring to replace all default values with the ones we have
+    const normalizedData = rows.map((item) => ({ ...def, ...item }));
+
+    const table = new Table({
+      head: columns.map((c) => chalk.cyan.italic.bold(c)),
+      colWidths: columns.map(() => null) as (number | null)[],
+      wordWrap: false,
+      chars: {
+        top: " ",
+        "top-mid": " ",
+        "top-left": " ",
+        "top-right": " ",
+        bottom: " ",
+        "bottom-mid": " ",
+        "bottom-left": " ",
+        "bottom-right": " ",
+        left: " ",
+        "left-mid": " ",
+        mid: chalk.cyan("─"),
+        "mid-mid": chalk.cyan("┼"),
+        right: " ",
+        "right-mid": " ",
+        middle: chalk.cyan("│"),
+      },
+    });
+
+    normalizedData.forEach((row) => {
+      const rowValues: string[] = [];
+      for (const key of columns) {
+        rowValues.push(formatCellValue(row[key]));
+      }
+      table.push(rowValues);
+    });
+    console.log(table.toString());
+  } finally {
+    endRender();
+  }
 };
 
 export const drawJSON = (data: unknown): void => {
