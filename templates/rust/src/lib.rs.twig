@@ -19,9 +19,9 @@
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
 //!     let client = Client::new()
-//!         .set_endpoint("{{ spec.endpoint }}")
-//!         .set_project("your-project-id")
-//!         .set_key("your-api-key");
+//!         .set_endpoint("{{ spec.endpoint }}")?
+//!         .set_project("your-project-id")?
+//!         .set_key("your-api-key")?;
 //!
 //!     // Use the client to make API calls
 //!     Ok(())
