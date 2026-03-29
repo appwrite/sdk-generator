@@ -99,7 +99,7 @@ try {
         // $platform = 'server';
     }
 
-    $version = '1.8.x';
+    $version = '1.9.x';
     $speclessSDKs = ['agent-skills', 'cursor-plugin'];
     $needsSpec = !$requestedSdk || !in_array($requestedSdk, $speclessSDKs);
 
