@@ -56,7 +56,21 @@ try {
             'twitter' => 'appwrite',
             'discord' => ['564160730845151244', 'https://appwrite.io/discord'],
             'readme' => '**README**',
+            'exclude' => [
+                'services' => [
+                    ['name' => 'documentsDB'],
+                    ['name' => 'vectorsDB'],
+                ],
+            ],
         ];
+
+        // Deep-merge exclude services so overrides add to defaults rather than replacing
+        if (isset($overrides['exclude']['services']) && isset($defaults['exclude']['services'])) {
+            $overrides['exclude']['services'] = array_merge(
+                $defaults['exclude']['services'],
+                $overrides['exclude']['services']
+            );
+        }
 
         $config = array_merge($defaults, $overrides);
 
