@@ -1,0 +1,323 @@
+{% set DefinitionClass = definition.name | caseUcfirst | overrideIdentifier %}
+{% macro generate_sub_dict(sub_def) %}
+new Dictionary<string, object> {
+{% for subprop in sub_def.properties | filter(p => p.required) %}
+{ "{{ subprop.name }}", {% if subprop.enum %}{{ subprop.enumName | caseUcfirst }}.{{ (subprop.enumKeys[0] ?? subprop.enum[0]) | caseEnumKey }}.Value{% elseif subprop.type == 'string' %}"{{ subprop['x-example'] | default('test') | escapeCsString }}"{% elseif subprop.type == 'integer' %}{{ subprop['x-example'] | default(1) }}{% elseif subprop.type == 'number' %}{{ subprop['x-example'] | default(1.0) }}{% elseif subprop.type == 'boolean' %}{% if subprop['x-example'] is defined %}{% if subprop['x-example'] is same as(true) or subprop['x-example'] == 'true' or subprop['x-example'] == 1 %}true{% else %}false{% endif %}{% else %}true{% endif %}{% elseif subprop.sub_schema %}new Dictionary<string, object>(){% else %}"{{ subprop['x-example'] | default('test') | escapeCsString }}"{% endif %} }{% if not loop.last %},{% endif %}
+{% endfor %}
+}
+{% endmacro %}
+using System;
+using System.Collections.Generic;
+using Xunit;
+using {{ spec.title | caseUcfirst }}.Models;
+{% if definition.properties | filter(p => p.enum) | length > 0 %}
+using {{ spec.title | caseUcfirst }}.Enums;
+{% endif %}
+
+namespace {{ spec.title | caseUcfirst }}.Tests.Models
+{
+    public class {{ DefinitionClass }}Tests
+    {
+        [Fact]
+        public void Constructor_WithValidParameters_CreatesInstance()
+        {
+            // Arrange & Act
+            var model = new {{ spec.title | caseUcfirst }}.Models.{{ DefinitionClass }}(
+                {%~ for property in definition.properties %}
+                {%~ if property.enum %}
+                {{ property.name | caseCamel | escapeKeyword }}: {{ property.enumName | caseUcfirst }}.{{ (property.enumKeys[0] ?? property.enum[0]) | caseEnumKey }}
+                {%~ elseif property.type == 'string' %}
+                {{ property.name | caseCamel | escapeKeyword }}: "{{ property['x-example'] | default('test') | escapeCsString }}"
+                {%~ elseif property.type == 'boolean' %}
+                {%~ if property['x-example'] is defined %}
+                {{ property.name | caseCamel | escapeKeyword }}: {% if property['x-example'] is same as(true) or property['x-example'] == 'true' or property['x-example'] == 1 %}true{% else %}false{% endif %}
+                {%~ else %}
+                {{ property.name | caseCamel | escapeKeyword }}: true
+                {%~ endif %}
+                {%~ elseif property.type == 'integer' %}
+                {{ property.name | caseCamel | escapeKeyword }}: {{ property['x-example'] | default(1) }}
+                {%~ elseif property.type == 'number' %}
+                {{ property.name | caseCamel | escapeKeyword }}: {{ property['x-example'] | default(1.0) }}
+                {%~ elseif property.type == 'array' %}
+                {%~ set itemType = test_item_type(property) %}
+                {{ property.name | caseCamel | escapeKeyword }}: new List<{{ itemType }}>()
+                {%~ elseif property.type == 'object' and not property.sub_schema %}
+                {{ property.name | caseCamel | escapeKeyword }}: new Dictionary<string, object>()
+                {%~ elseif property.sub_schema %}
+                {{ property.name | caseCamel | escapeKeyword }}: {{ property.sub_schema | caseUcfirst }}.From({{ _self.generate_sub_dict(spec.definitions | filter(d => d.name == property.sub_schema) | first) }})
+                {%~ else %}
+                {{ property.name | caseCamel | escapeKeyword }}: {{ property['x-example'] | default('null') | escapeCsString }}
+                {%~ endif -%}
+                {%~ if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
+                {%~ endfor %}
+                {%~ if definition.additionalProperties %}
+                data: new Dictionary<string, object>()
+                {%~ endif %}
+            );
+
+            // Assert
+            Assert.NotNull(model);
+            {%~ for property in definition.properties %}
+            {%~ if property.enum %}
+            Assert.Equal({{ property.enumName | caseUcfirst }}.{{ (property.enumKeys[0] ?? property.enum[0]) | caseEnumKey }}.Value, model.{{ property_name(definition, property) | overrideProperty(definition.name) }}.Value);
+            {%~ elseif property.type == 'string' %}
+            Assert.Equal("{{ property['x-example'] | default('test') | escapeCsString }}", model.{{ property_name(definition, property) | overrideProperty(definition.name) }});
+            {%~ elseif property.type == 'boolean' %}
+            {%~ if property['x-example'] is defined %}
+            Assert.{% if property['x-example'] is same as(true) or property['x-example'] == 'true' or property['x-example'] == 1 %}True{% else %}False{% endif %}(model.{{ property_name(definition, property) | overrideProperty(definition.name) }});
+            {%~ else %}
+            Assert.True(model.{{ property_name(definition, property) | overrideProperty(definition.name) }});
+            {%~ endif %}
+            {%~ elseif property.type == 'integer' or property.type == 'number' %}
+            Assert.Equal({{ property['x-example'] | default(1) }}, model.{{ property_name(definition, property) | overrideProperty(definition.name) }});
+            {%~ elseif property.type == 'array' or (property.type == 'object' and not property.sub_schema) %}
+            Assert.NotNull(model.{{ property_name(definition, property) | overrideProperty(definition.name) }});
+            {%~ endif %}
+            {%~ endfor %}
+        }
+
+        [Fact]
+        public void ToMap_ReturnsCorrectDictionary()
+        {
+            // Arrange
+            var model = new {{ spec.title | caseUcfirst }}.Models.{{ DefinitionClass }}(
+                {%~ for property in definition.properties %}
+                {%~ if property.enum %}
+                {{ property.name | caseCamel | escapeKeyword }}: {{ property.enumName | caseUcfirst }}.{{ (property.enumKeys[0] ?? property.enum[0]) | caseEnumKey }}
+                {%~ elseif property.type == 'string' %}
+                {{ property.name | caseCamel | escapeKeyword }}: "{{ property['x-example'] | default('test') | escapeCsString }}"
+                {%~ elseif property.type == 'integer' %}
+                {{ property.name | caseCamel | escapeKeyword }}: {{ property['x-example'] | default(1) }}
+                {%~ elseif property.type == 'number' %}
+                {{ property.name | caseCamel | escapeKeyword }}: {{ property['x-example'] | default(1.0) }}
+                {%~ elseif property.type == 'boolean' %}
+                {%~ if property['x-example'] is defined %}
+                {{ property.name | caseCamel | escapeKeyword }}: {% if property['x-example'] is same as(true) or property['x-example'] == 'true' or property['x-example'] == 1 %}true{% else %}false{% endif %}
+                {%~ else %}
+                {{ property.name | caseCamel | escapeKeyword }}: true
+                {%~ endif %}
+                {%~ elseif property.type == 'array' %}
+                {%~ set itemType = test_item_type(property) %}
+                {{ property.name | caseCamel | escapeKeyword }}: new List<{{ itemType }}>()
+                {%~ elseif property.type == 'object' and not property.sub_schema %}
+                {{ property.name | caseCamel | escapeKeyword }}: new Dictionary<string, object>()
+                {%~ elseif property.sub_schema %}
+                {{ property.name | caseCamel | escapeKeyword }}: {{ property.sub_schema | caseUcfirst }}.From({{ _self.generate_sub_dict(spec.definitions | filter(d => d.name == property.sub_schema) | first) }})
+                {%~ else %}
+                {{ property.name | caseCamel | escapeKeyword }}: {{ property['x-example'] | default('null') }}
+                {%~ endif %}
+                {%~ if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
+                {%~ endfor %}
+                {%~ if definition.additionalProperties %}
+                data: new Dictionary<string, object>()
+                {%~ endif %}
+            );
+
+            // Act
+            var map = model.ToMap();
+
+            // Assert
+            Assert.NotNull(map);
+            {%~ for property in definition.properties %}
+            Assert.True(map.ContainsKey("{{ property.name }}"));
+            {%~ endfor %}
+        }
+
+        [Fact]
+        public void From_WithValidMap_CreatesInstance()
+        {
+            // Arrange
+            var map = new Dictionary<string, object>
+            {
+                {%~ for property in definition.properties | filter(p => p.required) %}
+                {%~ if property.enum %}
+                { "{{ property.name }}", {{ property.enumName | caseUcfirst }}.{{ (property.enumKeys[0] ?? property.enum[0]) | caseEnumKey }}.Value }
+                {%~ elseif property.type == 'string' %}
+                { "{{ property.name }}", "{{ property['x-example'] | default('test') | escapeCsString }}" }
+                {%~ elseif property.type == 'integer' %}
+                { "{{ property.name }}", {{ property['x-example'] | default(1) }} }
+                {%~ elseif property.type == 'number' %}
+                { "{{ property.name }}", {{ property['x-example'] | default(1.0) }} }
+                {%~ elseif property.type == 'boolean' %}
+                {%~ if property['x-example'] is defined %}
+                { "{{ property.name }}", {% if property['x-example'] is same as(true) or property['x-example'] == 'true' or property['x-example'] == 1 %}true{% else %}false{% endif %} }
+                {%~ else %}
+                { "{{ property.name }}", true }
+                {%~ endif %}
+                {%~ elseif property.type == 'array' %}
+                { "{{ property.name }}", new List<object>() }
+                {%~ elseif property.type == 'object' and not property.sub_schema %}
+                { "{{ property.name }}", new Dictionary<string, object>() }
+                {%~ elseif property.sub_schema %}
+                { "{{ property.name }}", {{ _self.generate_sub_dict(spec.definitions | filter(d => d.name == property.sub_schema) | first) }} }
+                {%~ else %}
+                { "{{ property.name }}", "{{ property['x-example'] | default('test') | escapeCsString }}" }
+                {%~ endif %}
+                {%~ if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
+                {%~ endfor %}
+            };
+
+            // Act
+            var model = {{ spec.title | caseUcfirst }}.Models.{{ DefinitionClass }}.From(map);
+
+            // Assert
+            Assert.NotNull(model);
+            {%~ for property in definition.properties | filter(p => p.required) %}
+            {%~ if property.enum %}
+            Assert.Equal({{ property.enumName | caseUcfirst }}.{{ (property.enumKeys[0] ?? property.enum[0]) | caseEnumKey }}.Value, model.{{ property_name(definition, property) | overrideProperty(definition.name) }}.Value);
+            {%~ elseif property.type == 'string' %}
+            Assert.Equal("{{ property['x-example'] | default('test') | escapeCsString }}", model.{{ property_name(definition, property) | overrideProperty(definition.name) }});
+            {%~ elseif property.type == 'integer' or property.type == 'number' %}
+            Assert.Equal({{ property['x-example'] | default(1) }}, model.{{ property_name(definition, property) | overrideProperty(definition.name) }});
+            {%~ elseif property.type == 'boolean' %}
+            {%~ if property['x-example'] is defined %}
+            Assert.{% if property['x-example'] is same as(true) or property['x-example'] == 'true' or property['x-example'] == 1 %}True{% else %}False{% endif %}(model.{{ property_name(definition, property) | overrideProperty(definition.name) }});
+            {%~ else %}
+            Assert.True(model.{{ property_name(definition, property) | overrideProperty(definition.name) }});
+            {%~ endif %}
+            {%~ elseif property.type == 'array' or property.type == 'object' or property.sub_schema %}
+            Assert.NotNull(model.{{ property_name(definition, property) | overrideProperty(definition.name) }});
+            {%~ endif %}
+            {%~ endfor %}
+        }
+
+        [Fact]
+        public void ToMap_AndFrom_RoundTrip_PreservesData()
+        {
+            // Arrange
+            var original = new {{ spec.title | caseUcfirst }}.Models.{{ DefinitionClass }}(
+                {%~ for property in definition.properties %}
+                {%~ if property.enum %}
+                {{ property.name | caseCamel | escapeKeyword }}: {{ property.enumName | caseUcfirst }}.{{ (property.enumKeys[0] ?? property.enum[0]) | caseEnumKey }}
+                {%~ elseif property.type == 'string' %}
+                {{ property.name | caseCamel | escapeKeyword }}: "{{ property['x-example'] | default('test') | escapeCsString }}"
+                {%~ elseif property.type == 'integer' %}
+                {{ property.name | caseCamel | escapeKeyword }}: {{ property['x-example'] | default(1) }}
+                {%~ elseif property.type == 'number' %}
+                {{ property.name | caseCamel | escapeKeyword }}: {{ property['x-example'] | default(1.0) }}
+                {%~ elseif property.type == 'boolean' %}
+                {%~ if property['x-example'] is defined %}
+                {{ property.name | caseCamel | escapeKeyword }}: {% if property['x-example'] is same as(true) or property['x-example'] == 'true' or property['x-example'] == 1 %}true{% else %}false{% endif %}
+                {%~ else %}
+                {{ property.name | caseCamel | escapeKeyword }}: true
+                {%~ endif %}
+                {%~ elseif property.type == 'array' %}
+                {%~ set itemType = test_item_type(property) %}
+                {{ property.name | caseCamel | escapeKeyword }}: new List<{{ itemType }}>()
+                {%~ elseif property.type == 'object' and not property.sub_schema %}
+                {{ property.name | caseCamel | escapeKeyword }}: new Dictionary<string, object>()
+                {%~ elseif property.sub_schema %}
+                {{ property.name | caseCamel | escapeKeyword }}: {{ property.sub_schema | caseUcfirst }}.From({{ _self.generate_sub_dict(spec.definitions | filter(d => d.name == property.sub_schema) | first) }})
+                {%~ else %}
+                {{ property.name | caseCamel | escapeKeyword }}: {{ property['x-example'] | default('null') }}
+                {%~ endif %}
+                {%~ if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
+                {%~ endfor %}
+                {%~ if definition.additionalProperties %}
+                data: new Dictionary<string, object>()
+                {%~ endif %}
+            );
+
+            // Act
+            var map = original.ToMap();
+            var result = {{ spec.title | caseUcfirst }}.Models.{{ DefinitionClass }}.From(map);
+
+            // Assert
+            {%~ for property in definition.properties | filter(p => p.required) %}
+            {%~ if property.enum %}
+            Assert.Equal(original.{{ property_name(definition, property) | overrideProperty(definition.name) }}.Value, result.{{ property_name(definition, property) | overrideProperty(definition.name) }}.Value);
+            {%~ elseif property.type == 'string' or property.type == 'integer' or property.type == 'number' or property.type == 'boolean' %}
+            Assert.Equal(original.{{ property_name(definition, property) | overrideProperty(definition.name) }}, result.{{ property_name(definition, property) | overrideProperty(definition.name) }});
+            {%~ endif %}
+            {%~ endfor %}
+        }
+        {%~ if definition.additionalProperties %}
+
+        [Fact]
+        public void ConvertTo_WithValidFunction_ConvertsCorrectly()
+        {
+            // Arrange
+            var data = new Dictionary<string, object>
+            {
+                { "customKey", "customValue" }
+            };
+            var model = new {{ spec.title | caseUcfirst }}.Models.{{ DefinitionClass }}(
+                {%~ for property in definition.properties %}
+                {%~ if property.type == 'string' %}
+                {{ property.name | caseCamel | escapeKeyword }}: "test"
+                {%~ elseif property.type == 'integer' %}
+                {{ property.name | caseCamel | escapeKeyword }}: 1
+                {%~ elseif property.type == 'number' %}
+                {{ property.name | caseCamel | escapeKeyword }}: 1.0
+                {%~ elseif property.type == 'boolean' %}
+                {{ property.name | caseCamel | escapeKeyword }}: true
+                {%~ elseif property.type == 'array' %}
+                {%~ set itemType = test_item_type(property) %}
+                {{ property.name | caseCamel | escapeKeyword }}: new List<{{ itemType }}>()
+                {%~ elseif property.type == 'object' and not property.sub_schema %}
+                {{ property.name | caseCamel | escapeKeyword }}: new Dictionary<string, object>()
+                {%~ elseif property.enum %}
+                {{ property.name | caseCamel | escapeKeyword }}: {{ property.enumName | caseUcfirst }}.{{ (property.enumKeys[0] ?? property.enum[0]) | caseEnumKey }}
+                {%~ elseif property.sub_schema %}
+                {{ property.name | caseCamel | escapeKeyword }}: {{ property.sub_schema | caseUcfirst }}.From({{ _self.generate_sub_dict(spec.definitions | filter(d => d.name == property.sub_schema) | first) }})
+                {%~ else %}
+                {{ property.name | caseCamel | escapeKeyword }}: null
+                {%~ endif %}
+                {%~ if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
+                {%~ endfor %}
+                {%~ if definition.additionalProperties %}
+                data: data
+                {%~ endif %}
+            );
+
+            // Act
+            var result = model.ConvertTo(d => d["customKey"].ToString());
+
+            // Assert
+            Assert.Equal("customValue", result);
+        }
+        {%~ endif %}
+
+        [Fact]
+        public void Properties_AreReadOnly()
+        {
+            // Arrange
+            var model = new {{ spec.title | caseUcfirst }}.Models.{{ DefinitionClass }}(
+                {%~ for property in definition.properties %}
+                {%~ if property.enum %}
+                {{ property.name | caseCamel | escapeKeyword }}: {{ property.enumName | caseUcfirst }}.{{ (property.enumKeys[0] ?? property.enum[0]) | caseEnumKey }}
+                {%~ elseif property.type == 'string' %}
+                {{ property.name | caseCamel | escapeKeyword }}: "test"
+                {%~ elseif property.type == 'integer' %}
+                {{ property.name | caseCamel | escapeKeyword }}: 1
+                {%~ elseif property.type == 'number' %}
+                {{ property.name | caseCamel | escapeKeyword }}: 1.0
+                {%~ elseif property.type == 'boolean' %}
+                {{ property.name | caseCamel | escapeKeyword }}: true
+                {%~ elseif property.type == 'array' %}
+                {%~ set itemType = test_item_type(property) %}
+                {{ property.name | caseCamel | escapeKeyword }}: new List<{{ itemType }}>()
+                {%~ elseif property.type == 'object' and not property.sub_schema %}
+                {{ property.name | caseCamel | escapeKeyword }}: new Dictionary<string, object>()
+                {%~ elseif property.sub_schema %}
+                {{ property.name | caseCamel | escapeKeyword }}: {{ property.sub_schema | caseUcfirst }}.From({{ _self.generate_sub_dict(spec.definitions | filter(d => d.name == property.sub_schema) | first) }})
+                {%~ else %}
+                {{ property.name | caseCamel | escapeKeyword }}: null
+                {%~ endif %}
+                {%~ if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
+                {%~ endfor %}
+                {%~ if definition.additionalProperties %}
+                data: new Dictionary<string, object>()
+                {%~ endif %}
+            );
+
+            // Assert - properties should have private setters
+            {%~ for property in definition.properties | slice(0, 1) %}
+            var propertyInfo = typeof({{ spec.title | caseUcfirst }}.Models.{{ DefinitionClass }}).GetProperty("{{ property_name(definition, property) | overrideProperty(definition.name) }}");
+            Assert.NotNull(propertyInfo);
+            Assert.Null(propertyInfo.GetSetMethod());
+            {%~ endfor %}
+        }
+    }
+}
+

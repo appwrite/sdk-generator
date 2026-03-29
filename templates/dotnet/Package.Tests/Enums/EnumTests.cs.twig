@@ -1,0 +1,111 @@
+using Xunit;
+using System.Linq;
+using {{ spec.title | caseUcfirst }}.Enums;
+
+namespace {{ spec.title | caseUcfirst }}.Tests.Enums
+{
+    public class {{ enum.name | caseUcfirst | overrideIdentifier }}Tests
+    {
+        [Fact]
+        public void Constructor_WithValue_CreatesInstance()
+        {
+            // Arrange & Act
+            var enumValue = new {{ enum.name | caseUcfirst | overrideIdentifier }}("test");
+
+            // Assert
+            Assert.NotNull(enumValue);
+            Assert.Equal("test", enumValue.Value);
+        }
+
+        {%~ for value in enum.enum %}
+        {%~ set key = enum.keys is empty ? value : enum.keys[loop.index0] %}
+        [Fact]
+        public void {{ key | caseEnumKey }}_ReturnsCorrectValue()
+        {
+            // Act
+            var enumValue = {{ enum.name | caseUcfirst | overrideIdentifier }}.{{ key | caseEnumKey }};
+
+            // Assert
+            Assert.NotNull(enumValue);
+            Assert.Equal("{{ value }}", enumValue.Value);
+        }
+
+        {%~ endfor %}
+
+        [Theory]
+        {%~ for value in enum.enum %}
+        [InlineData("{{ value }}")]
+        {%~ endfor %}
+        public void Value_WithValidString_IsCorrect(string value)
+        {
+            // Act
+            var enumValue = new {{ enum.name | caseUcfirst | overrideIdentifier }}(value);
+
+            // Assert
+            Assert.Equal(value, enumValue.Value);
+        }
+
+        [Fact]
+        public void StaticProperties_AreNotNull()
+        {
+            {%~ for value in enum.enum %}
+            {%~ set key = enum.keys is empty ? value : enum.keys[loop.index0] %}
+            Assert.NotNull({{ enum.name | caseUcfirst | overrideIdentifier }}.{{ key | caseEnumKey }});
+            {%~ endfor %}
+        }
+
+        [Fact]
+        public void StaticProperties_HaveUniqueValues()
+        {
+            var values = new[]
+            {
+                {%~ for value in enum.enum %}
+                {%~ set key = enum.keys is empty ? value : enum.keys[loop.index0] %}
+                {{ enum.name | caseUcfirst | overrideIdentifier }}.{{ key | caseEnumKey }}.Value{% if not loop.last %},{% endif %}
+
+                {%~ endfor %}
+            };
+
+            Assert.Equal(values.Length, values.Distinct().Count());
+        }
+
+        [Fact]
+        public void Implements_IEnum()
+        {
+            // Arrange
+            {%~ set firstValue = enum.enum[0] %}
+            {%~ set firstKey = enum.keys is empty ? firstValue : enum.keys[0] %}
+            var enumValue = {{ enum.name | caseUcfirst | overrideIdentifier }}.{{ firstKey | caseEnumKey }};
+
+            // Assert
+            Assert.IsAssignableFrom<IEnum>(enumValue);
+        }
+
+        [Fact]
+        public void Value_CanBeSetInConstructor()
+        {
+            // Arrange
+            var customValue = "customValue";
+
+            // Act
+            var enumValue = new {{ enum.name | caseUcfirst | overrideIdentifier }}(customValue);
+
+            // Assert
+            Assert.Equal(customValue, enumValue.Value);
+        }
+
+        [Fact]
+        public void ToString_ReturnsValue()
+        {
+            // Arrange
+            {%~ set firstValue = enum.enum[0] %}
+            {%~ set firstKey = enum.keys is empty ? firstValue : enum.keys[0] %}
+            var enumValue = {{ enum.name | caseUcfirst | overrideIdentifier }}.{{ firstKey | caseEnumKey }};
+
+            // Act & Assert
+            // Value property should return the string value
+            Assert.NotNull(enumValue.Value);
+            Assert.IsType<string>(enumValue.Value);
+        }
+    }
+}

@@ -1,0 +1,76 @@
+using Xunit;
+using {{ spec.title | caseUcfirst }};
+
+namespace {{ spec.title | caseUcfirst }}.Tests
+{
+    public class UploadProgressTests
+    {
+        [Fact]
+        public void Constructor_WithValidParameters_CreatesInstance()
+        {
+            var id = "12345";
+            var progress = 0.75;
+            var sizeUploaded = 1024L;
+            var chunksTotal = 10L;
+            var chunksUploaded = 5L;
+
+            var uploadProgress = new UploadProgress(id, progress, sizeUploaded, chunksTotal, chunksUploaded);
+
+            Assert.NotNull(uploadProgress);
+            Assert.Equal(id, uploadProgress.Id);
+            Assert.Equal(progress, uploadProgress.Progress);
+            Assert.Equal(sizeUploaded, uploadProgress.SizeUploaded);
+            Assert.Equal(chunksTotal, uploadProgress.ChunksTotal);
+            Assert.Equal(chunksUploaded, uploadProgress.ChunksUploaded);
+        }
+
+        [Fact]
+        public void Constructor_WithZeroProgress_CreatesInstance()
+        {
+            var uploadProgress = new UploadProgress("id", 0.0, 0L, 10L, 0L);
+
+            Assert.Equal(0.0, uploadProgress.Progress);
+            Assert.Equal(0L, uploadProgress.SizeUploaded);
+            Assert.Equal(0L, uploadProgress.ChunksUploaded);
+        }
+
+        [Fact]
+        public void Constructor_WithCompleteProgress_CreatesInstance()
+        {
+            var uploadProgress = new UploadProgress("id", 100.0, 5120L, 5L, 5L);
+
+            Assert.Equal(100.0, uploadProgress.Progress);
+            Assert.Equal(uploadProgress.ChunksTotal, uploadProgress.ChunksUploaded);
+        }
+
+        [Theory]
+        [InlineData("id1", 25.0, 256L, 4L, 1L)]
+        [InlineData("id2", 50.0, 512L, 4L, 2L)]
+        [InlineData("id3", 75.0, 768L, 4L, 3L)]
+        [InlineData("id4", 100.0, 1024L, 4L, 4L)]
+        public void Constructor_WithVariousValues_CreatesCorrectInstance(
+            string id, double progress, long sizeUploaded, long chunksTotal, long chunksUploaded)
+        {
+            var uploadProgress = new UploadProgress(id, progress, sizeUploaded, chunksTotal, chunksUploaded);
+
+            Assert.Equal(id, uploadProgress.Id);
+            Assert.Equal(progress, uploadProgress.Progress);
+            Assert.Equal(sizeUploaded, uploadProgress.SizeUploaded);
+            Assert.Equal(chunksTotal, uploadProgress.ChunksTotal);
+            Assert.Equal(chunksUploaded, uploadProgress.ChunksUploaded);
+        }
+
+        [Fact]
+        public void Properties_AreReadOnly()
+        {
+            var propertyNames = new[] { "Id", "Progress", "SizeUploaded", "ChunksTotal", "ChunksUploaded" };
+
+            foreach (var name in propertyNames)
+            {
+                var propertyInfo = typeof(UploadProgress).GetProperty(name);
+                Assert.NotNull(propertyInfo);
+                Assert.Null(propertyInfo.GetSetMethod());
+            }
+        }
+    }
+}

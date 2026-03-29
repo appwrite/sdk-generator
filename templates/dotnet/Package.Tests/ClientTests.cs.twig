@@ -1,0 +1,143 @@
+using System;
+using System.Collections.Generic;
+using System.Net.Http;
+using System.Threading.Tasks;
+using Xunit;
+using {{ spec.title | caseUcfirst }};
+
+namespace {{ spec.title | caseUcfirst }}.Tests
+{
+    public class ClientTests
+    {
+        [Fact]
+        public void Constructor_Default_CreatesClient()
+        {
+            var client = new Client();
+
+            Assert.NotNull(client);
+            Assert.Equal("{{spec.endpoint}}", client.Endpoint);
+            Assert.NotNull(client.Config);
+        }
+
+        [Fact]
+        public void Constructor_WithCustomEndpoint_SetsEndpoint()
+        {
+            var customEndpoint = "https://custom.example.com/v1";
+
+            var client = new Client(endpoint: customEndpoint);
+
+            Assert.Equal(customEndpoint, client.Endpoint);
+        }
+
+        [Fact]
+        public void Constructor_WithSelfSigned_EnablesSelfSigned()
+        {
+            var client = new Client(selfSigned: true);
+
+            Assert.NotNull(client);
+        }
+
+        [Fact]
+        public void Constructor_WithHttpClient_UsesProvidedClient()
+        {
+            var httpClient = new HttpClient();
+
+            var client = new Client(http: httpClient);
+
+            Assert.NotNull(client);
+        }
+
+        [Fact]
+        public void SetEndpoint_UpdatesEndpoint()
+        {
+            var client = new Client();
+            var newEndpoint = "https://new.example.com/v1";
+
+            var result = client.SetEndpoint(newEndpoint);
+
+            Assert.Equal(newEndpoint, client.Endpoint);
+            Assert.Same(client, result);
+        }
+
+        [Theory]
+        {%~ for header in spec.global.headers %}
+        [InlineData("{{header.key}}", "test-{{header.key}}")]
+        {%~ endfor %}
+        public void AddHeader_SetsCustomHeader(string key, string value)
+        {
+            var client = new Client();
+
+            var result = client.AddHeader(key, value);
+
+            Assert.Same(client, result);
+        }
+
+        {%~ for header in spec.global.headers %}
+        [Fact]
+        public void Set{{header.key | caseUcfirst}}_UpdatesConfig()
+        {
+            var client = new Client();
+            var value = "test-{{header.key}}-value";
+
+            var result = client.Set{{header.key | caseUcfirst}}(value);
+
+            Assert.True(client.Config.ContainsKey("{{ header.key | caseCamel }}"));
+            Assert.Equal(value, client.Config["{{ header.key | caseCamel }}"]);
+            Assert.Same(client, result);
+        }
+
+        {%~ endfor %}
+        [Fact]
+        public void SetSelfSigned_EnablesSelfSignedCertificates()
+        {
+            var client = new Client();
+
+            var result = client.SetSelfSigned(true);
+
+            Assert.NotNull(result);
+            Assert.Same(client, result);
+        }
+
+        [Fact]
+        public void SetSelfSigned_DisablesSelfSignedCertificates()
+        {
+            var client = new Client(selfSigned: true);
+
+            var result = client.SetSelfSigned(false);
+
+            Assert.NotNull(result);
+            Assert.Same(client, result);
+        }
+
+        [Fact]
+        public void DeserializerOptions_HasConverters()
+        {
+            Assert.NotNull(Client.DeserializerOptions);
+            Assert.NotEmpty(Client.DeserializerOptions.Converters);
+        }
+
+        [Fact]
+        public void SerializerOptions_HasConverters()
+        {
+            Assert.NotNull(Client.SerializerOptions);
+            Assert.NotEmpty(Client.SerializerOptions.Converters);
+        }
+
+        [Fact]
+        public void ChainedCalls_Work()
+        {
+            var client = new Client()
+                .SetEndpoint("https://example.com/v1")
+                {%~ for header in spec.global.headers %}
+                .Set{{header.key | caseUcfirst}}("test-{{header.key}}")
+                {%~ endfor %}
+                .SetSelfSigned(false);
+
+            Assert.NotNull(client);
+            Assert.Equal("https://example.com/v1", client.Endpoint);
+            {%~ for header in spec.global.headers %}
+            Assert.Equal("test-{{header.key}}", client.Config["{{ header.key | caseCamel }}"]);
+            {%~ endfor %}
+        }
+    }
+}
