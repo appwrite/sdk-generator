@@ -84,17 +84,29 @@ if (process.argv.includes('-v') || process.argv.includes('--version')) {
         .version(version, '-v, --version', 'Output the version number')
         .option('-V, --verbose', 'Show complete error log')
         .option('-j, --json', 'Output in JSON format')
-        .option('-R, --raw', 'Output full raw JSON (no filtering)')
+        .option('-R, --raw', 'Output raw JSON (secrets still redacted unless --show-secrets is set)')
+        .option('--show-secrets', 'Display sensitive values like secrets and tokens in output')
         .hook('preAction', migrate)
         .option('-f,--force', 'Flag to confirm all warnings')
         .option('-a,--all', 'Flag to push all resources')
         .option('--id [id...]', 'Flag to pass a list of ids for a given action')
         .option('--report', 'Enable reporting in case of CLI errors')
+        .hook('preAction', (_thisCommand, actionCommand) => {
+            const commandConfig = actionCommand as typeof actionCommand & {
+                outputFields?: string[];
+            };
+            cliConfig.displayFields = Array.isArray(commandConfig.outputFields)
+                ? commandConfig.outputFields
+                : [];
+        })
         .on('option:json', () => {
             cliConfig.json = true;
         })
         .on('option:raw', () => {
             cliConfig.raw = true;
+        })
+        .on('option:show-secrets', () => {
+            cliConfig.showSecrets = true;
         })
         .on('option:verbose', () => {
             cliConfig.verbose = true;
