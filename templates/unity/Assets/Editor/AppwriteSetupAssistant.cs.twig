@@ -1,0 +1,178 @@
+using UnityEngine;
+using UnityEditor;
+using UnityEditor.PackageManager;
+using System.Linq;
+using System;
+using System.Collections.Generic;
+
+namespace {{ spec.title | caseUcfirst }}.Editor
+{
+    [InitializeOnLoad]
+    public static class {{ spec.title | caseUcfirst }}SetupAssistant
+    {
+        private const string UNITASK_PACKAGE_URL = "https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask";
+        private const string UNITASK_PACKAGE_NAME = "com.cysharp.unitask";
+        private const string WEBSOCKET_PACKAGE_URL = "https://github.com/endel/NativeWebSocket.git#upm";
+        private const string WEBSOCKET_PACKAGE_NAME = "com.endel.nativewebsocket";
+        private const string SETUP_COMPLETED_KEY = "{{ spec.title | caseUcfirst }}_Setup_Completed";
+        private const string SHOW_SETUP_DIALOG_KEY = "{{ spec.title | caseUcfirst }}_Show_Setup_Dialog";
+        private static bool _isBusy; // General flag to prevent running two operations at once
+
+        public static bool HasUniTask { get; private set; }
+        public static bool HasWebSocket { get; private set; }
+
+        static {{ spec.title | caseUcfirst }}SetupAssistant()
+        {
+            // Use delayCall so the Unity Editor has time to initialize
+            EditorApplication.delayCall += InitialCheck;
+        }
+
+        private static void InitialCheck()
+        {
+            if (EditorApplication.isCompiling || EditorApplication.isUpdating || EditorPrefs.GetBool(SETUP_COMPLETED_KEY, false)) return;
+
+            RefreshPackageStatus(() => {
+                if (!HasUniTask || !HasWebSocket)
+                {
+                    if (!EditorPrefs.GetBool(SHOW_SETUP_DIALOG_KEY, false))
+                    {
+                        EditorPrefs.SetBool(SHOW_SETUP_DIALOG_KEY, true);
+                        ShowSetupWindow();
+                    }
+                }
+                else
+                {
+                    CompleteSetup();
+                }
+            });
+        }
+        
+        /// <summary>
+        /// Asynchronously checks installed packages and invokes the callback when finished.
+        /// </summary>
+        public static void RefreshPackageStatus(Action onRefreshed = null)
+        {
+            if (_isBusy) return;
+            _isBusy = true;
+            
+            var request = Client.List();
+            // Subscribe to the editor update event to poll the request status each frame
+            EditorApplication.update += CheckProgress;
+
+            void CheckProgress()
+            {
+                if (!request.IsCompleted) return;
+                
+                EditorApplication.update -= CheckProgress; // Unsubscribe so we don't call it again
+                if (request.Status == StatusCode.Success)
+                {
+                    HasUniTask = request.Result.Any(p => p.name == UNITASK_PACKAGE_NAME);
+                    HasWebSocket = request.Result.Any(p => p.name == WEBSOCKET_PACKAGE_NAME);
+                }
+                else
+                {
+                    Debug.LogWarning($"{{ spec.title | caseUcfirst }} Setup: Could not refresh package status - {request.Error?.message ?? "Unknown"}");
+                }
+                _isBusy = false;
+                onRefreshed?.Invoke(); // Invoke the callback
+            }
+        }
+        
+        public static void InstallUniTask(Action onCompleted) => InstallPackage(UNITASK_PACKAGE_URL, onCompleted);
+        public static void InstallWebSocket(Action onCompleted) => InstallPackage(WEBSOCKET_PACKAGE_URL, onCompleted);
+
+        /// <summary>
+        /// New reliable method to install all missing packages.
+        /// </summary>
+        public static void InstallAllPackages(Action onSuccess, Action<string> onError)
+        {
+            if (_isBusy) { onError?.Invoke("Another operation is already in progress."); return; }
+
+            var packagesToInstall = new Queue<string>();
+            if (!HasUniTask) packagesToInstall.Enqueue(UNITASK_PACKAGE_URL);
+            if (!HasWebSocket) packagesToInstall.Enqueue(WEBSOCKET_PACKAGE_URL);
+
+            if (packagesToInstall.Count == 0)
+            {
+                onSuccess?.Invoke();
+                return;
+            }
+
+            _isBusy = true;
+            AssetDatabase.StartAssetEditing(); // Pause asset importing to speed up operations
+            InstallNextPackage(packagesToInstall, onSuccess, onError);
+        }
+
+        /// <summary>
+        /// Recursively installs packages from the queue one by one.
+        /// </summary>
+        private static void InstallNextPackage(Queue<string> packageQueue, Action onSuccess, Action<string> onError)
+        {
+            if (packageQueue.Count == 0)
+            {
+                AssetDatabase.StopAssetEditing();
+                _isBusy = false;
+                onSuccess?.Invoke(); // All packages installed, invoke the final callback
+                return;
+            }
+
+            string packageUrl = packageQueue.Dequeue();
+            var request = Client.Add(packageUrl);
+            EditorApplication.update += CheckInstallProgress;
+
+            void CheckInstallProgress()
+            {
+                if (!request.IsCompleted) return;
+                
+                EditorApplication.update -= CheckInstallProgress;
+                if (request.Status == StatusCode.Success)
+                {
+                    Debug.Log($"{{ spec.title | caseUcfirst }} Setup: Successfully installed {request.Result.displayName}.");
+                    InstallNextPackage(packageQueue, onSuccess, onError); // Install the next package
+                }
+                else
+                {
+                    string error = request.Error?.message ?? "Unknown error";
+                    Debug.LogError($"{{ spec.title | caseUcfirst }} Setup: Failed to install {packageUrl} - {error}");
+                    AssetDatabase.StopAssetEditing();
+                    _isBusy = false;
+                    onError?.Invoke(error);
+                }
+            }
+        }
+        
+        private static void InstallPackage(string packageUrl, Action onCompleted)
+        {
+            if (_isBusy) return;
+            
+            var queue = new Queue<string>();
+            queue.Enqueue(packageUrl);
+            
+            InstallNextPackage(queue,() => onCompleted?.Invoke(), Debug.LogError);
+        }
+
+        private static void ShowSetupWindow()
+        {
+            var window = EditorWindow.GetWindow<{{ spec.title | caseUcfirst }}SetupWindow>(true, "{{ spec.title | caseUcfirst }} Setup Assistant");
+            window.Show();
+            window.Focus();
+        }
+        private static void CompleteSetup()
+        {
+            EditorPrefs.SetBool(SETUP_COMPLETED_KEY, true);
+            EditorPrefs.SetBool(SHOW_SETUP_DIALOG_KEY, true);
+            Debug.Log("{{ spec.title | caseUcfirst }} Setup: Setup completed successfully!");
+        }
+        [MenuItem("{{ spec.title | caseUcfirst }}/Setup Assistant", priority = 1)]
+        public static void ShowSetupAssistant() => ShowSetupWindow();
+        [MenuItem("{{ spec.title | caseUcfirst }}/Reset Setup", priority = 100)]
+        public static void ResetSetup()
+        {
+            EditorPrefs.DeleteKey(SETUP_COMPLETED_KEY);
+            EditorPrefs.DeleteKey(SHOW_SETUP_DIALOG_KEY);
+            HasUniTask = false;
+            HasWebSocket = false;
+            Debug.Log("{{ spec.title | caseUcfirst }} Setup: Setup state reset. Reopening the window will trigger the check.");
+        }
+    }
+}
