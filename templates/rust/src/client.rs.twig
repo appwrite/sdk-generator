@@ -264,6 +264,23 @@ impl Client {
         self.clone()
     }
 
+    /// Get a copy of the current request headers
+    pub fn get_headers(&self) -> HashMap<String, String> {
+        let state = self.state.load();
+
+        state
+            .config
+            .headers
+            .iter()
+            .filter_map(|(key, value)| {
+                value
+                    .to_str()
+                    .ok()
+                    .map(|value| (key.as_str().to_string(), value.to_string()))
+            })
+            .collect()
+    }
+
     /// Get the current endpoint
     pub fn endpoint(&self) -> String {
         let state = self.state.load();

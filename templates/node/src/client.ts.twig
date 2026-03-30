@@ -180,6 +180,10 @@ class Client {
         return this;
     }
 
+    getHeaders(): Headers {
+        return { ...this.headers };
+    }
+
     {%~ for header in spec.global.headers %}
     /**
      * Set {{header.key | caseUcfirst}}

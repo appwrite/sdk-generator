@@ -131,6 +131,11 @@ namespace {{ spec.title | caseUcfirst }}
             return this;
         }
 
+        public Dictionary<string, string> GetHeaders()
+        {
+            return new Dictionary<string, string>(_headers);
+        }
+
         private HttpRequestMessage PrepareRequest(
             string method,
             string path,

@@ -156,6 +156,10 @@ class Client {
     return this;
   }
 
+  getHeaders(): Headers {
+    return { ...this.headers };
+  }
+
   async call<T = unknown>(
     method: string,
     path: string = "",

@@ -39,6 +39,8 @@ $bar = new Bar($client);
 $general = new General($client);
 
 echo "\nTest Started\n";
+$sdkHeaders = $client->getHeaders();
+echo "x-sdk-name: {$sdkHeaders['x-sdk-name']}; x-sdk-platform: {$sdkHeaders['x-sdk-platform']}; x-sdk-language: {$sdkHeaders['x-sdk-language']}; x-sdk-version: {$sdkHeaders['x-sdk-version']}\n";
 
 // Foo Service
 

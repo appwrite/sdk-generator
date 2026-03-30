@@ -156,6 +156,10 @@ open class Client {
         return self
     }
 
+    open func getHeaders() -> [String: String] {
+        return self.headers
+    }
+
    ///
    /// Builds a query string from parameters
    ///

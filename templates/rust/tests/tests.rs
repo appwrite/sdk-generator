@@ -14,6 +14,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .add_header("Origin", "http://localhost");
 
     println!("\n\nTest Started");
+    let sdk_headers = client.get_headers();
+    println!(
+        "x-sdk-name: {}; x-sdk-platform: {}; x-sdk-language: {}; x-sdk-version: {}",
+        sdk_headers["x-sdk-name"],
+        sdk_headers["x-sdk-platform"],
+        sdk_headers["x-sdk-language"],
+        sdk_headers["x-sdk-version"],
+    );
     test_foo_service(&client, &string_in_array).await?;
     test_bar_service(&client, &string_in_array).await?;
     test_general_service(&client, &string_in_array).await?;

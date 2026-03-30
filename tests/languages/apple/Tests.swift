@@ -24,6 +24,8 @@ class Tests: XCTestCase {
             .setProject("123456")
             .addHeader(key: "Origin", value: "http://localhost")
             .setSelfSigned()
+        let sdkHeaders = client.getHeaders()
+        print("x-sdk-name: \(sdkHeaders["x-sdk-name"]!); x-sdk-platform: \(sdkHeaders["x-sdk-platform"]!); x-sdk-language: \(sdkHeaders["x-sdk-language"]!); x-sdk-version: \(sdkHeaders["x-sdk-version"]!)")
 
         // Ping pong test
         let ping = try await client.ping()
