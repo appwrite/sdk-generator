@@ -239,7 +239,7 @@ class Client @JvmOverloads constructor(
      *
      * @return the OkHttpClient instance used by this client
      */
-    fun getHttpClient(): OkHttpClient = http.newBuilder().build()
+    fun getHttpClient(): OkHttpClient = http
 
     /**
      * Sends a "ping" request to Appwrite to verify connectivity.

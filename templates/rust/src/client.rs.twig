@@ -272,11 +272,16 @@ impl Client {
             .config
             .headers
             .iter()
-            .filter_map(|(key, value)| {
-                value
-                    .to_str()
-                    .ok()
-                    .map(|value| (key.as_str().to_string(), value.to_string()))
+            .filter_map(|(key, value)| match value.to_str() {
+                Ok(value) => Some((key.as_str().to_string(), value.to_string())),
+                Err(_) => {
+                    debug_assert!(
+                        false,
+                        "Non-UTF-8 header value found for key {}",
+                        key.as_str()
+                    );
+                    None
+                }
             })
             .collect()
     }
