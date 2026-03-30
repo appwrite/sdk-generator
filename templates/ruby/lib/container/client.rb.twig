@@ -80,6 +80,13 @@ module {{ spec.title | caseUcfirst }}
             self
         end
 
+        # Get request headers
+        #
+        # @return [Hash]
+        def get_headers
+            @headers.dup
+        end
+
         # Send the HTTP request.
         #
         # @param [String] method The HTTP method for the request

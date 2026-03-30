@@ -11,6 +11,8 @@ async function start() {
     const general = new General(client);
 
     // Ping
+    const sdkHeaders = client.getHeaders();
+    console.log(`x-sdk-name: ${sdkHeaders['x-sdk-name']}; x-sdk-platform: ${sdkHeaders['x-sdk-platform']}; x-sdk-language: ${sdkHeaders['x-sdk-language']}; x-sdk-version: ${sdkHeaders['x-sdk-version']}`);
     response = await client.ping();
     console.log(response.result);
 

@@ -264,6 +264,28 @@ impl Client {
         self.clone()
     }
 
+    /// Get a copy of the current request headers
+    pub fn get_headers(&self) -> HashMap<String, String> {
+        let state = self.state.load();
+
+        state
+            .config
+            .headers
+            .iter()
+            .filter_map(|(key, value)| match value.to_str() {
+                Ok(value) => Some((key.as_str().to_string(), value.to_string())),
+                Err(_) => {
+                    debug_assert!(
+                        false,
+                        "Non-UTF-8 header value found for key {}",
+                        key.as_str()
+                    );
+                    None
+                }
+            })
+            .collect()
+    }
+
     /// Get the current endpoint
     pub fn endpoint(&self) -> String {
         let state = self.state.load();

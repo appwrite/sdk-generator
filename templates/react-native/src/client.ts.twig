@@ -162,6 +162,10 @@ class Client {
 {% endfor %}
     };
 
+    getHeaders(): Headers {
+        return { ...this.headers };
+    }
+
     /**
      * Set Endpoint
      *
