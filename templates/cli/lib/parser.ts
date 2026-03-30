@@ -100,6 +100,16 @@ const endRender = (): void => {
   }
 };
 
+const withRender = <T>(callback: () => T): T => {
+  beginRender();
+
+  try {
+    return callback();
+  } finally {
+    endRender();
+  }
+};
+
 const isSensitiveKey = (key: string): boolean => {
   const normalizedKey = key.toLowerCase().replace(/[^a-z0-9]/g, "");
 
@@ -222,9 +232,7 @@ const filterData = (data: JsonObject): JsonObject => {
 };
 
 export const parse = (data: JsonObject): void => {
-  beginRender();
-
-  try {
+  withRender(() => {
     const sanitizedData = maskSensitiveData(data) as JsonObject;
 
     if (cliConfig.raw) {
@@ -285,9 +293,7 @@ export const parse = (data: JsonObject): void => {
         printedScalar = true;
       }
     }
-  } finally {
-    endRender();
-  }
+  });
 };
 
 const MAX_COL_WIDTH = 40;
@@ -312,9 +318,7 @@ const formatCellValue = (value: unknown): string => {
 };
 
 export const drawTable = (data: Array<JsonObject | null | undefined>): void => {
-  beginRender();
-
-  try {
+  withRender(() => {
     if (data.length == 0) {
       console.log("[]");
       return;
@@ -395,21 +399,21 @@ export const drawTable = (data: Array<JsonObject | null | undefined>): void => {
       colWidths: columns.map(() => null) as (number | null)[],
       wordWrap: false,
       chars: {
-        top: " ",
+        "top": " ",
         "top-mid": " ",
         "top-left": " ",
         "top-right": " ",
-        bottom: " ",
+        "bottom": " ",
         "bottom-mid": " ",
         "bottom-left": " ",
         "bottom-right": " ",
-        left: " ",
+        "left": " ",
         "left-mid": " ",
-        mid: chalk.cyan("─"),
+        "mid": chalk.cyan("─"),
         "mid-mid": chalk.cyan("┼"),
-        right: " ",
+        "right": " ",
         "right-mid": " ",
-        middle: chalk.cyan("│"),
+        "middle": chalk.cyan("│"),
       },
     });
 
@@ -421,9 +425,7 @@ export const drawTable = (data: Array<JsonObject | null | undefined>): void => {
       table.push(rowValues);
     });
     console.log(table.toString());
-  } finally {
-    endRender();
-  }
+  });
 };
 
 export const drawJSON = (data: unknown): void => {
