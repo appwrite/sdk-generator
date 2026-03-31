@@ -173,7 +173,7 @@ jobs:
               bun run windows-x64
               bun run windows-arm64
 
-              npm ci
+              npm install
               npm run build
               node dist/cli.cjs --help
               ;;
