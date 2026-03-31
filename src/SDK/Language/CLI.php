@@ -109,6 +109,11 @@ class CLI extends Node
         'private'
     ];
 
+    public function getInstallCommand(): ?string
+    {
+        return 'bun install';
+    }
+
     /**
      * @return string
      */

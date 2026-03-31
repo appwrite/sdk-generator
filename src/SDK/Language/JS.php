@@ -34,6 +34,11 @@ abstract class JS extends Language
         return $this;
     }
 
+    public function getInstallCommand(): ?string
+    {
+        return 'npm install --package-lock-only';
+    }
+
     /**
      * Get Language Keywords List
      *

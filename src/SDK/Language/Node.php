@@ -250,6 +250,11 @@ class Node extends Web
                 'destination'   => 'src/models/{{ requestModel.name | caseKebab }}.ts',
                 'template'      => 'node/src/models/requestModel.ts.twig',
             ],
+            [
+                'scope'         => 'copy',
+                'destination'   => '.gitignore',
+                'template'      => 'node/.gitignore',
+            ],
         ];
     }
 }

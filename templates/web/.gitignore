@@ -1,4 +1,4 @@
 node_modules/
-build/
-.DS_Store
 dist/
+types/
+.DS_Store
