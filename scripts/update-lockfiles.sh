@@ -20,23 +20,28 @@ strip_twig() {
     sed 's/{{[^}]*}}/PLACEHOLDER/g' "$1"
 }
 
+replace_first() {
+    # POSIX-portable first-match replacement (no GNU sed required).
+    # Usage: replace_first <file> <literal_old> <literal_new>
+    local file="$1" old="$2" new="$3"
+    awk -v o="$old" -v n="$new" -v done=0 \
+        '{ if (!done && index($0, o)) { sub(o, n); done=1 } print }' \
+        "$file" > "${file}.tmp" && mv "${file}.tmp" "$file"
+}
+
 restore_twig_npm() {
     # Replace PLACEHOLDER values in package-lock.json with the correct
     # Twig expressions extracted from the corresponding package.json.twig.
+    # PLACEHOLDER appears in: root "name", root "version",
+    # packages[""] "name", "version", "license".
     local lockfile="$1"
     local twig_name="$2"
 
-    # In npm lockfiles, PLACEHOLDER appears in these fields:
-    #   root "name", root "version", packages[""] "name", "version", "license"
-    # We use distinct markers to replace them with the correct Twig vars.
-    sed -i.bak \
-        -e "0,/\"name\": \"PLACEHOLDER\"/s//\"name\": \"${twig_name}\"/" \
-        -e "0,/\"version\": \"PLACEHOLDER\"/s//\"version\": \"{{ sdk.version }}\"/" \
-        -e "0,/\"name\": \"PLACEHOLDER\"/s//\"name\": \"${twig_name}\"/" \
-        -e "0,/\"version\": \"PLACEHOLDER\"/s//\"version\": \"{{ sdk.version }}\"/" \
-        -e "0,/\"license\": \"PLACEHOLDER\"/s//\"license\": \"{{ sdk.license }}\"/" \
-        "$lockfile"
-    rm -f "${lockfile}.bak"
+    replace_first "$lockfile" '"name": "PLACEHOLDER"' "\"name\": \"${twig_name}\""
+    replace_first "$lockfile" '"version": "PLACEHOLDER"' '"version": "{{ sdk.version }}"'
+    replace_first "$lockfile" '"name": "PLACEHOLDER"' "\"name\": \"${twig_name}\""
+    replace_first "$lockfile" '"version": "PLACEHOLDER"' '"version": "{{ sdk.version }}"'
+    replace_first "$lockfile" '"license": "PLACEHOLDER"' '"license": "{{ sdk.license }}"'
 }
 
 restore_twig_bun() {
@@ -44,10 +49,7 @@ restore_twig_bun() {
     local lockfile="$1"
     local twig_name="$2"
 
-    sed -i.bak \
-        -e "s/\"name\": \"PLACEHOLDER\"/\"name\": \"${twig_name}\"/" \
-        "$lockfile"
-    rm -f "${lockfile}.bak"
+    replace_first "$lockfile" '"name": "PLACEHOLDER"' "\"name\": \"${twig_name}\""
 }
 
 update_npm() {
