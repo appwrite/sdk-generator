@@ -22,10 +22,11 @@ strip_twig() {
 
 replace_first() {
     # POSIX-portable first-match replacement (no GNU sed required).
+    # Exits with code 2 if the pattern is not found.
     # Usage: replace_first <file> <literal_old> <literal_new>
     local file="$1" old="$2" new="$3"
     awk -v o="$old" -v n="$new" -v done=0 \
-        '{ if (!done && index($0, o)) { sub(o, n); done=1 } print }' \
+        '{ if (!done && index($0, o)) { sub(o, n); done=1 } print } END { exit(done ? 0 : 2) }' \
         "$file" > "${file}.tmp" && mv "${file}.tmp" "$file"
 }
 
@@ -42,6 +43,11 @@ restore_twig_npm() {
     replace_first "$lockfile" '"name": "PLACEHOLDER"' "\"name\": \"${twig_name}\""
     replace_first "$lockfile" '"version": "PLACEHOLDER"' '"version": "{{ sdk.version }}"'
     replace_first "$lockfile" '"license": "PLACEHOLDER"' '"license": "{{ sdk.license }}"'
+
+    if grep -q '"PLACEHOLDER"' "$lockfile"; then
+        echo "ERROR: unresolved PLACEHOLDER values remain in $lockfile" >&2
+        return 1
+    fi
 }
 
 restore_twig_bun() {
@@ -50,6 +56,11 @@ restore_twig_bun() {
     local twig_name="$2"
 
     replace_first "$lockfile" '"name": "PLACEHOLDER"' "\"name\": \"${twig_name}\""
+
+    if grep -q '"PLACEHOLDER"' "$lockfile"; then
+        echo "ERROR: unresolved PLACEHOLDER values remain in $lockfile" >&2
+        return 1
+    fi
 }
 
 update_npm() {
