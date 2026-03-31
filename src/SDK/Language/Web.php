@@ -150,6 +150,16 @@ class Web extends JS
                 'destination'   => 'src/enums/{{ enum.name | caseKebab }}.ts',
                 'template'      => 'web/src/enums/enum.ts.twig',
             ],
+            [
+                'scope'         => 'copy',
+                'destination'   => '.gitignore',
+                'template'      => 'web/.gitignore',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'package-lock.json',
+                'template'      => 'web/package-lock.json',
+            ],
         ];
     }
 

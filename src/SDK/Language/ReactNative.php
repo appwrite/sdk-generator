@@ -130,6 +130,16 @@ class ReactNative extends Web
                 'destination'   => 'src/enums/{{ enum.name | caseKebab }}.ts',
                 'template'      => 'react-native/src/enums/enum.ts.twig',
             ],
+            [
+                'scope'         => 'copy',
+                'destination'   => '.gitignore',
+                'template'      => 'react-native/.gitignore',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'package-lock.json',
+                'template'      => 'react-native/package-lock.json',
+            ],
         ];
     }
 
