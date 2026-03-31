@@ -224,6 +224,11 @@ class CLI extends Node
                 'template'      => 'cli/package.json.twig',
             ],
             [
+                'scope'         => 'default',
+                'destination'   => 'package-lock.json',
+                'template'      => 'cli/package-lock.json.twig',
+            ],
+            [
                 'scope'         => 'copy',
                 'destination'   => 'tsconfig.json',
                 'template'      => 'cli/tsconfig.json',

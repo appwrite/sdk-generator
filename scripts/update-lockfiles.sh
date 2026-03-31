@@ -30,6 +30,14 @@ replace_first() {
         "$file" > "${file}.tmp" && mv "${file}.tmp" "$file"
 }
 
+validate_no_placeholders() {
+    local lockfile="$1"
+    if grep -q '"PLACEHOLDER"' "$lockfile"; then
+        echo "ERROR: unresolved PLACEHOLDER values remain in $lockfile" >&2
+        return 1
+    fi
+}
+
 restore_twig_npm() {
     # Replace PLACEHOLDER values in package-lock.json with the correct
     # Twig expressions extracted from the corresponding package.json.twig.
@@ -43,11 +51,6 @@ restore_twig_npm() {
     replace_first "$lockfile" '"name": "PLACEHOLDER"' "\"name\": \"${twig_name}\""
     replace_first "$lockfile" '"version": "PLACEHOLDER"' '"version": "{{ sdk.version }}"'
     replace_first "$lockfile" '"license": "PLACEHOLDER"' '"license": "{{ sdk.license }}"'
-
-    if grep -q '"PLACEHOLDER"' "$lockfile"; then
-        echo "ERROR: unresolved PLACEHOLDER values remain in $lockfile" >&2
-        return 1
-    fi
 }
 
 restore_twig_bun() {
@@ -56,11 +59,7 @@ restore_twig_bun() {
     local twig_name="$2"
 
     replace_first "$lockfile" '"name": "PLACEHOLDER"' "\"name\": \"${twig_name}\""
-
-    if grep -q '"PLACEHOLDER"' "$lockfile"; then
-        echo "ERROR: unresolved PLACEHOLDER values remain in $lockfile" >&2
-        return 1
-    fi
+    validate_no_placeholders "$lockfile"
 }
 
 update_npm() {
@@ -94,15 +93,40 @@ update_bun() {
     echo "  updated templates/cli/bun.lock.twig"
 }
 
+restore_cli_bin() {
+    replace_first "$ROOT/templates/cli/package-lock.json.twig" \
+        '"PLACEHOLDER": "dist/cli.cjs"' \
+        '"{{ language.params.executableName|caseLower }}": "dist/cli.cjs"'
+    validate_no_placeholders "$ROOT/templates/cli/package-lock.json.twig"
+}
+
 case "$TARGET" in
-    web)           update_npm web "{{ language.params.npmPackage }}" ;;
-    node)          update_npm node "{{ language.params.npmPackage | caseDash }}" ;;
-    react-native)  update_npm react-native "{{ language.params.npmPackage }}" ;;
-    cli)           update_bun "{{ language.params.npmPackage|caseDash }}" ;;
+    web)
+        update_npm web "{{ language.params.npmPackage }}"
+        validate_no_placeholders "$ROOT/templates/web/package-lock.json.twig"
+        ;;
+    node)
+        update_npm node "{{ language.params.npmPackage | caseDash }}"
+        validate_no_placeholders "$ROOT/templates/node/package-lock.json.twig"
+        ;;
+    react-native)
+        update_npm react-native "{{ language.params.npmPackage }}"
+        validate_no_placeholders "$ROOT/templates/react-native/package-lock.json.twig"
+        ;;
+    cli)
+        update_npm cli "{{ language.params.npmPackage|caseDash }}"
+        restore_cli_bin
+        update_bun "{{ language.params.npmPackage|caseDash }}"
+        ;;
     all)
         update_npm web "{{ language.params.npmPackage }}"
+        validate_no_placeholders "$ROOT/templates/web/package-lock.json.twig"
         update_npm node "{{ language.params.npmPackage | caseDash }}"
+        validate_no_placeholders "$ROOT/templates/node/package-lock.json.twig"
         update_npm react-native "{{ language.params.npmPackage }}"
+        validate_no_placeholders "$ROOT/templates/react-native/package-lock.json.twig"
+        update_npm cli "{{ language.params.npmPackage|caseDash }}"
+        restore_cli_bin
         update_bun "{{ language.params.npmPackage|caseDash }}"
         ;;
     *)
