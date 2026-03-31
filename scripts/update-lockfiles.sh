@@ -65,8 +65,7 @@ restore_twig_bun() {
 
 update_npm() {
     local lang="$1"
-    local extra_flags="${2:-}"
-    local twig_name="$3"
+    local twig_name="$2"
     local template="$ROOT/templates/$lang/package.json.twig"
     local dest="$ROOT/templates/$lang/package-lock.json.twig"
     local dir="$WORKDIR/$lang"
@@ -74,8 +73,7 @@ update_npm() {
     echo "→ $lang (npm)"
     mkdir -p "$dir"
     strip_twig "$template" > "$dir/package.json"
-    # shellcheck disable=SC2086
-    (cd "$dir" && npm install --package-lock-only --ignore-scripts --silent $extra_flags 2>/dev/null)
+    (cd "$dir" && npm install --package-lock-only --ignore-scripts --silent 2>/dev/null)
     cp "$dir/package-lock.json" "$dest"
     restore_twig_npm "$dest" "$twig_name"
     echo "  updated templates/$lang/package-lock.json.twig"
@@ -97,14 +95,14 @@ update_bun() {
 }
 
 case "$TARGET" in
-    web)           update_npm web "" "{{ language.params.npmPackage }}" ;;
-    node)          update_npm node "" "{{ language.params.npmPackage | caseDash }}" ;;
-    react-native)  update_npm react-native --legacy-peer-deps "{{ language.params.npmPackage }}" ;;
+    web)           update_npm web "{{ language.params.npmPackage }}" ;;
+    node)          update_npm node "{{ language.params.npmPackage | caseDash }}" ;;
+    react-native)  update_npm react-native "{{ language.params.npmPackage }}" ;;
     cli)           update_bun "{{ language.params.npmPackage|caseDash }}" ;;
     all)
-        update_npm web "" "{{ language.params.npmPackage }}"
-        update_npm node "" "{{ language.params.npmPackage | caseDash }}"
-        update_npm react-native --legacy-peer-deps "{{ language.params.npmPackage }}"
+        update_npm web "{{ language.params.npmPackage }}"
+        update_npm node "{{ language.params.npmPackage | caseDash }}"
+        update_npm react-native "{{ language.params.npmPackage }}"
         update_bun "{{ language.params.npmPackage|caseDash }}"
         ;;
     *)
