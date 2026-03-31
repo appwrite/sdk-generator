@@ -29,19 +29,6 @@ use Appwrite\SDK\Language\Rust;
 
 try {
 
-    function runInstallCommand(\Appwrite\SDK\Language $language, string $outputDir): void
-    {
-        $cmd = $language->getInstallCommand();
-        if ($cmd !== null) {
-            echo "Running: $cmd in $outputDir\n";
-            exec('cd ' . escapeshellarg($outputDir) . ' && ' . $cmd . ' 2>&1', $output, $exitCode);
-            if ($exitCode !== 0) {
-                echo "Warning: install command exited with code $exitCode\n";
-                echo implode("\n", $output) . "\n";
-            }
-        }
-    }
-
     function getSSLPage($url) {
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_HEADER, false);
@@ -155,20 +142,16 @@ try {
 
     // Web
     if (!$requestedSdk || $requestedSdk === 'web') {
-        $lang = new Web();
-        $sdk  = new SDK($lang, new Swagger2($spec));
+        $sdk  = new SDK(new Web(), new Swagger2($spec));
         configureSDK($sdk, ['platform' => $platform]);
         $sdk->generate(__DIR__ . '/examples/web');
-        runInstallCommand($lang, __DIR__ . '/examples/web');
     }
 
     // Node
     if (!$requestedSdk || $requestedSdk === 'node') {
-        $lang = new Node();
-        $sdk  = new SDK($lang, new Swagger2($spec));
+        $sdk  = new SDK(new Node(), new Swagger2($spec));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/node');
-        runInstallCommand($lang, __DIR__ . '/examples/node');
     }
 
     // CLI
@@ -205,7 +188,6 @@ try {
         ]);
 
         $sdk->generate(__DIR__ . '/examples/cli');
-        runInstallCommand($language, __DIR__ . '/examples/cli');
     }
 
     // Ruby
@@ -247,7 +229,6 @@ try {
         $sdk  = new SDK($reactNative, new Swagger2($spec));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/react-native');
-        runInstallCommand($reactNative, __DIR__ . '/examples/react-native');
     }
 
     // GO

@@ -155,6 +155,11 @@ class Web extends JS
                 'destination'   => '.gitignore',
                 'template'      => 'web/.gitignore',
             ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'package-lock.json',
+                'template'      => 'web/package-lock.json',
+            ],
         ];
     }
 

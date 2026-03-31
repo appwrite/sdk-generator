@@ -109,11 +109,6 @@ class CLI extends Node
         'private'
     ];
 
-    public function getInstallCommand(): ?string
-    {
-        return 'bun install';
-    }
-
     /**
      * @return string
      */
@@ -207,6 +202,11 @@ class CLI extends Node
                 'scope'         => 'copy',
                 'destination'   => 'bunfig.toml',
                 'template'      => 'cli/bunfig.toml',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'bun.lock',
+                'template'      => 'cli/bun.lock',
             ],
             [
                 'scope'         => 'default',

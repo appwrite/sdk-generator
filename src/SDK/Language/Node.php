@@ -255,6 +255,11 @@ class Node extends Web
                 'destination'   => '.gitignore',
                 'template'      => 'node/.gitignore',
             ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'package-lock.json',
+                'template'      => 'node/package-lock.json',
+            ],
         ];
     }
 }

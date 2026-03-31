@@ -96,16 +96,6 @@ abstract class Language
     }
 
     /**
-     * Returns the shell command to run after SDK generation to produce a lock file,
-     * or null if no lock file is needed.
-     * @return string|null
-     */
-    public function getInstallCommand(): ?string
-    {
-        return null;
-    }
-
-    /**
      * Language specific filters.
      * @return array
      */
