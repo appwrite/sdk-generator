@@ -72,7 +72,7 @@ update_npm() {
     echo "→ $lang (npm)"
     mkdir -p "$dir"
     strip_twig "$template" > "$dir/package.json"
-    (cd "$dir" && npm install --package-lock-only --ignore-scripts --silent 2>/dev/null)
+    (cd "$dir" && npm_config_legacy_peer_deps=false npm install --package-lock-only --ignore-scripts --silent 2>/dev/null)
     cp "$dir/package-lock.json" "$dest"
     restore_twig_npm "$dest" "$twig_name"
     echo "  updated templates/$lang/package-lock.json.twig"
