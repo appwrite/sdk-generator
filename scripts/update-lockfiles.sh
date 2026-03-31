@@ -20,11 +20,55 @@ strip_twig() {
     sed 's/{{[^}]*}}/PLACEHOLDER/g' "$1"
 }
 
+replace_first() {
+    # POSIX-portable first-match replacement (no GNU sed required).
+    # Exits with code 2 if the pattern is not found.
+    # Usage: replace_first <file> <literal_old> <literal_new>
+    local file="$1" old="$2" new="$3"
+    awk -v o="$old" -v n="$new" -v done=0 \
+        '{ if (!done && index($0, o)) { sub(o, n); done=1 } print } END { exit(done ? 0 : 2) }' \
+        "$file" > "${file}.tmp" && mv "${file}.tmp" "$file"
+}
+
+restore_twig_npm() {
+    # Replace PLACEHOLDER values in package-lock.json with the correct
+    # Twig expressions extracted from the corresponding package.json.twig.
+    # PLACEHOLDER appears in: root "name", root "version",
+    # packages[""] "name", "version", "license".
+    local lockfile="$1"
+    local twig_name="$2"
+
+    replace_first "$lockfile" '"name": "PLACEHOLDER"' "\"name\": \"${twig_name}\""
+    replace_first "$lockfile" '"version": "PLACEHOLDER"' '"version": "{{ sdk.version }}"'
+    replace_first "$lockfile" '"name": "PLACEHOLDER"' "\"name\": \"${twig_name}\""
+    replace_first "$lockfile" '"version": "PLACEHOLDER"' '"version": "{{ sdk.version }}"'
+    replace_first "$lockfile" '"license": "PLACEHOLDER"' '"license": "{{ sdk.license }}"'
+
+    if grep -q '"PLACEHOLDER"' "$lockfile"; then
+        echo "ERROR: unresolved PLACEHOLDER values remain in $lockfile" >&2
+        return 1
+    fi
+}
+
+restore_twig_bun() {
+    # Replace PLACEHOLDER in bun.lock with the correct Twig expression.
+    local lockfile="$1"
+    local twig_name="$2"
+
+    replace_first "$lockfile" '"name": "PLACEHOLDER"' "\"name\": \"${twig_name}\""
+
+    if grep -q '"PLACEHOLDER"' "$lockfile"; then
+        echo "ERROR: unresolved PLACEHOLDER values remain in $lockfile" >&2
+        return 1
+    fi
+}
+
 update_npm() {
     local lang="$1"
     local extra_flags="${2:-}"
+    local twig_name="$3"
     local template="$ROOT/templates/$lang/package.json.twig"
-    local dest="$ROOT/templates/$lang/package-lock.json"
+    local dest="$ROOT/templates/$lang/package-lock.json.twig"
     local dir="$WORKDIR/$lang"
 
     echo "→ $lang (npm)"
@@ -33,32 +77,35 @@ update_npm() {
     # shellcheck disable=SC2086
     (cd "$dir" && npm install --package-lock-only --ignore-scripts --silent $extra_flags 2>/dev/null)
     cp "$dir/package-lock.json" "$dest"
-    echo "  updated templates/$lang/package-lock.json"
+    restore_twig_npm "$dest" "$twig_name"
+    echo "  updated templates/$lang/package-lock.json.twig"
 }
 
 update_bun() {
+    local twig_name="$1"
     local dir="$WORKDIR/cli"
     local template="$ROOT/templates/cli/package.json.twig"
-    local dest="$ROOT/templates/cli/bun.lock"
+    local dest="$ROOT/templates/cli/bun.lock.twig"
 
     echo "→ cli (bun)"
     mkdir -p "$dir"
     strip_twig "$template" > "$dir/package.json"
     cd "$dir" && bun install --silent 2>/dev/null
     cp "$dir/bun.lock" "$dest"
-    echo "  updated templates/cli/bun.lock"
+    restore_twig_bun "$dest" "$twig_name"
+    echo "  updated templates/cli/bun.lock.twig"
 }
 
 case "$TARGET" in
-    web)           update_npm web ;;
-    node)          update_npm node ;;
-    react-native)  update_npm react-native --legacy-peer-deps ;;
-    cli)           update_bun ;;
+    web)           update_npm web "" "{{ language.params.npmPackage }}" ;;
+    node)          update_npm node "" "{{ language.params.npmPackage | caseDash }}" ;;
+    react-native)  update_npm react-native --legacy-peer-deps "{{ language.params.npmPackage }}" ;;
+    cli)           update_bun "{{ language.params.npmPackage|caseDash }}" ;;
     all)
-        update_npm web
-        update_npm node
-        update_npm react-native --legacy-peer-deps
-        update_bun
+        update_npm web "" "{{ language.params.npmPackage }}"
+        update_npm node "" "{{ language.params.npmPackage | caseDash }}"
+        update_npm react-native --legacy-peer-deps "{{ language.params.npmPackage }}"
+        update_bun "{{ language.params.npmPackage|caseDash }}"
         ;;
     *)
         echo "Unknown target: $TARGET. Use web | node | react-native | cli | all"

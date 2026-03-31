@@ -136,9 +136,9 @@ class ReactNative extends Web
                 'template'      => 'react-native/.gitignore',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'package-lock.json',
-                'template'      => 'react-native/package-lock.json',
+                'template'      => 'react-native/package-lock.json.twig',
             ],
         ];
     }

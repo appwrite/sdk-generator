@@ -156,9 +156,9 @@ class Web extends JS
                 'template'      => 'web/.gitignore',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'package-lock.json',
-                'template'      => 'web/package-lock.json',
+                'template'      => 'web/package-lock.json.twig',
             ],
         ];
     }

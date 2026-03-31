@@ -204,9 +204,9 @@ class CLI extends Node
                 'template'      => 'cli/bunfig.toml',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'bun.lock',
-                'template'      => 'cli/bun.lock',
+                'template'      => 'cli/bun.lock.twig',
             ],
             [
                 'scope'         => 'default',
