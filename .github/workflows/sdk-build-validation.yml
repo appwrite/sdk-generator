@@ -232,3 +232,57 @@ jobs:
               exit 1
               ;;
           esac
+
+      - name: Verify npm package entry points
+        if: matrix.sdk == 'web' || matrix.sdk == 'node' || matrix.sdk == 'react-native' || matrix.sdk == 'cli'
+        working-directory: examples/${{ matrix.sdk }}
+        run: |
+          echo "::group::Checking package.json has files field"
+          if ! node -e "const pkg = require('./package.json'); if (!pkg.files) { console.error('ERROR: package.json is missing \"files\" field — dist/ will be excluded from npm publish'); process.exit(1); }"; then
+            exit 1
+          fi
+          echo "files field present"
+          echo "::endgroup::"
+
+          echo "::group::Running npm pack --dry-run"
+          PACK_OUTPUT=$(npm pack --dry-run 2>&1)
+          echo "$PACK_OUTPUT"
+          echo "::endgroup::"
+
+          echo "::group::Verifying declared entry points are in the tarball"
+          # Collect all entry point paths from package.json exports, main, and module
+          ENTRY_POINTS=$(node -e "
+            const pkg = require('./package.json');
+            const paths = new Set();
+            if (pkg.main) paths.add(pkg.main);
+            if (pkg.module) paths.add(pkg.module);
+            function walk(obj) {
+              if (typeof obj === 'string') {
+                if (obj.endsWith('.js') || obj.endsWith('.cjs') || obj.endsWith('.mjs')) {
+                  paths.add(obj.replace(/^\.\//, ''));
+                }
+              } else if (obj && typeof obj === 'object') {
+                Object.values(obj).forEach(walk);
+              }
+            }
+            if (pkg.exports) walk(pkg.exports);
+            if (pkg.bin) walk(pkg.bin);
+            paths.forEach(p => console.log(p));
+          ")
+
+          MISSING=0
+          for entry in $ENTRY_POINTS; do
+            if echo "$PACK_OUTPUT" | grep -q "$entry"; then
+              echo "✓ $entry is included"
+            else
+              echo "✗ $entry is MISSING from package — will break consumers"
+              MISSING=1
+            fi
+          done
+
+          if [ "$MISSING" -eq 1 ]; then
+            echo "::error::One or more entry points declared in package.json are not included in the npm package. Check the \"files\" field."
+            exit 1
+          fi
+          echo "All entry points verified."
+          echo "::endgroup::"
