@@ -301,6 +301,17 @@ export class Attributes {
           xdefault: attribute.default,
           array: attribute.array,
         });
+      case "bigint":
+        return databasesService.createBigIntAttribute({
+          databaseId,
+          collectionId,
+          key: attribute.key,
+          required: attribute.required,
+          min: attribute.min,
+          max: attribute.max,
+          xdefault: attribute.default,
+          array: attribute.array,
+        });
       case "double":
         return databasesService.createFloatAttribute({
           databaseId,
@@ -457,6 +468,16 @@ export class Attributes {
         });
       case "integer":
         return databasesService.updateIntegerAttribute({
+          databaseId,
+          collectionId,
+          key: attribute.key,
+          required: attribute.required,
+          min: attribute.min,
+          max: attribute.max,
+          xdefault: attribute.default,
+        });
+      case "bigint":
+        return databasesService.updateBigIntAttribute({
           databaseId,
           collectionId,
           key: attribute.key,
