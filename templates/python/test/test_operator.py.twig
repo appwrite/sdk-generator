@@ -1,0 +1,80 @@
+import unittest
+
+from appwrite.operator import Operator, Condition
+
+class TestOperatorMethods(unittest.TestCase):
+
+    def test_increment(self):
+        self.assertEqual(Operator.increment(1), '{"method":"increment","values":[1]}')
+
+    def test_increment_with_max(self):
+        self.assertEqual(Operator.increment(5, 100), '{"method":"increment","values":[5,100]}')
+
+    def test_decrement(self):
+        self.assertEqual(Operator.decrement(1), '{"method":"decrement","values":[1]}')
+
+    def test_decrement_with_min(self):
+        self.assertEqual(Operator.decrement(3, 0), '{"method":"decrement","values":[3,0]}')
+
+    def test_multiply(self):
+        self.assertEqual(Operator.multiply(2), '{"method":"multiply","values":[2]}')
+
+    def test_multiply_with_max(self):
+        self.assertEqual(Operator.multiply(3, 1000), '{"method":"multiply","values":[3,1000]}')
+
+    def test_divide(self):
+        self.assertEqual(Operator.divide(2), '{"method":"divide","values":[2]}')
+
+    def test_divide_with_min(self):
+        self.assertEqual(Operator.divide(4, 1), '{"method":"divide","values":[4,1]}')
+
+    def test_modulo(self):
+        self.assertEqual(Operator.modulo(5), '{"method":"modulo","values":[5]}')
+
+    def test_power(self):
+        self.assertEqual(Operator.power(2), '{"method":"power","values":[2]}')
+
+    def test_power_with_max(self):
+        self.assertEqual(Operator.power(3, 100), '{"method":"power","values":[3,100]}')
+
+    def test_array_append(self):
+        self.assertEqual(Operator.array_append(['item1', 'item2']), '{"method":"arrayAppend","values":["item1","item2"]}')
+
+    def test_array_prepend(self):
+        self.assertEqual(Operator.array_prepend(['first', 'second']), '{"method":"arrayPrepend","values":["first","second"]}')
+
+    def test_array_insert(self):
+        self.assertEqual(Operator.array_insert(0, 'newItem'), '{"method":"arrayInsert","values":[0,"newItem"]}')
+
+    def test_array_remove(self):
+        self.assertEqual(Operator.array_remove('oldItem'), '{"method":"arrayRemove","values":["oldItem"]}')
+
+    def test_array_unique(self):
+        self.assertEqual(Operator.array_unique(), '{"method":"arrayUnique","values":[]}')
+
+    def test_array_intersect(self):
+        self.assertEqual(Operator.array_intersect(['a', 'b', 'c']), '{"method":"arrayIntersect","values":["a","b","c"]}')
+
+    def test_array_diff(self):
+        self.assertEqual(Operator.array_diff(['x', 'y']), '{"method":"arrayDiff","values":["x","y"]}')
+
+    def test_array_filter(self):
+        self.assertEqual(Operator.array_filter(Condition.EQUAL, 'test'), '{"method":"arrayFilter","values":["equal","test"]}')
+
+    def test_string_concat(self):
+        self.assertEqual(Operator.string_concat('suffix'), '{"method":"stringConcat","values":["suffix"]}')
+
+    def test_string_replace(self):
+        self.assertEqual(Operator.string_replace('old', 'new'), '{"method":"stringReplace","values":["old","new"]}')
+
+    def test_toggle(self):
+        self.assertEqual(Operator.toggle(), '{"method":"toggle","values":[]}')
+
+    def test_date_add_days(self):
+        self.assertEqual(Operator.date_add_days(7), '{"method":"dateAddDays","values":[7]}')
+
+    def test_date_sub_days(self):
+        self.assertEqual(Operator.date_sub_days(3), '{"method":"dateSubDays","values":[3]}')
+
+    def test_date_set_now(self):
+        self.assertEqual(Operator.date_set_now(), '{"method":"dateSetNow","values":[]}')
