@@ -1,6 +1,6 @@
 import { Models } from './models';
 import { Service } from './service';
-import { Platform as ReactNativePlatform } from 'react-native';
+import { Platform } from 'react-native';
 import { Query } from './query';
 import JSONbigModule from 'json-bigint';
 const JSONbigParser = JSONbigModule({ storeAsString: false });
@@ -150,6 +150,7 @@ class Client {
 {% for header in spec.global.headers %}
         {{ header.key | caseLower }}: '',
 {% endfor %}
+        platform: '',
     };
     headers: Headers = {
         'x-sdk-name': '{{ sdk.name }}',
@@ -214,6 +215,20 @@ class Client {
         }
 
         this.config.endpointRealtime = endpointRealtime;
+        return this;
+    }
+
+    /**
+     * Set platform
+     * 
+     * Set platform. Will be used as origin for all requests.
+     * 
+     * @param {string} platform
+     * @returns {this}
+     */
+    setPlatform(platform: string): this {
+        this.config.platform = platform;
+
         return this;
     }
 
@@ -313,7 +328,7 @@ class Client {
                 // @ts-ignore
                 this.realtime.socket = new WebSocket(url, undefined, {
                     headers: {
-                        Origin: `{{ spec.title | caseLower }}-${ReactNativePlatform.OS}://${this.config.platform}`
+                        Origin: `{{ spec.title | caseLower }}-${Platform.OS}://${this.config.platform}`
                     }
                 });
                 this.realtime.socket.addEventListener('message', this.realtime.onMessage);
@@ -454,7 +469,7 @@ class Client {
         method = method.toUpperCase();
 
         headers = Object.assign({}, this.headers, headers);
-        headers.Origin = `{{ spec.title | caseLower }}-${ReactNativePlatform.OS}://${this.config.platform}`
+        headers.Origin = `{{ spec.title | caseLower }}-${Platform.OS}://${this.config.platform}`
 
         let options: RequestInit = {
             method,
