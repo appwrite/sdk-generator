@@ -26,7 +26,7 @@ class TestQueryMethods(unittest.TestCase):
         for t in tests:
             self.assertEqual(
                 Query.equal('attr', t.value),
-                f'equal("attr", {t.expected_values})',
+                {% verbatim %}f'{{"method":"equal","attribute":"attr","values":{t.expected_values}}}',{% endverbatim %}
                 t.description
             )
 
@@ -34,7 +34,7 @@ class TestQueryMethods(unittest.TestCase):
         for t in tests:
             self.assertEqual(
                 Query.not_equal('attr', t.value),
-                f'notEqual("attr", {t.expected_values})',
+                {% verbatim %}f'{{"method":"notEqual","attribute":"attr","values":{t.expected_values}}}',{% endverbatim %}
                 t.description
             )
 
@@ -42,7 +42,7 @@ class TestQueryMethods(unittest.TestCase):
         for t in tests:
             self.assertEqual(
                 Query.less_than('attr', t.value),
-                f'lessThan("attr", {t.expected_values})',
+                {% verbatim %}f'{{"method":"lessThan","attribute":"attr","values":{t.expected_values}}}',{% endverbatim %}
                 t.description
             )
 
@@ -50,7 +50,7 @@ class TestQueryMethods(unittest.TestCase):
         for t in tests:
             self.assertEqual(
                 Query.less_than_equal('attr', t.value),
-                f'lessThanEqual("attr", {t.expected_values})',
+                {% verbatim %}f'{{"method":"lessThanEqual","attribute":"attr","values":{t.expected_values}}}',{% endverbatim %}
                 t.description
             )
 
@@ -58,7 +58,7 @@ class TestQueryMethods(unittest.TestCase):
         for t in tests:
             self.assertEqual(
                 Query.greater_than('attr', t.value),
-                f'greaterThan("attr", {t.expected_values})',
+                {% verbatim %}f'{{"method":"greaterThan","attribute":"attr","values":{t.expected_values}}}',{% endverbatim %}
                 t.description
             )
 
@@ -66,45 +66,45 @@ class TestQueryMethods(unittest.TestCase):
         for t in tests:
             self.assertEqual(
                 Query.greater_than_equal('attr', t.value),
-                f'greaterThanEqual("attr", {t.expected_values})',
+                {% verbatim %}f'{{"method":"greaterThanEqual","attribute":"attr","values":{t.expected_values}}}',{% endverbatim %}
                 t.description
             )
 
     def test_search(self):
-        self.assertEqual(Query.search('attr', 'keyword1 keyword2'), 'search("attr", ["keyword1 keyword2"])')
+        self.assertEqual(Query.search('attr', 'keyword1 keyword2'), '{"method":"search","attribute":"attr","values":["keyword1 keyword2"]}')
 
     def test_is_null(self):
-        self.assertEqual(Query.is_null('attr'), 'isNull("attr")')
+        self.assertEqual(Query.is_null('attr'), '{"method":"isNull","attribute":"attr"}')
 
     def test_is_not_null(self):
-        self.assertEqual(Query.is_not_null('attr'), 'isNotNull("attr")')
+        self.assertEqual(Query.is_not_null('attr'), '{"method":"isNotNull","attribute":"attr"}')
 
     def test_between_with_integers(self):
-        self.assertEqual(Query.between('attr', 1, 2), 'between("attr", 1, 2)')
+        self.assertEqual(Query.between('attr', 1, 2), '{"method":"between","attribute":"attr","values":[1,2]}')
 
     def test_between_with_doubles(self):
-        self.assertEqual(Query.between('attr', 1.0, 2.0), 'between("attr", 1.0, 2.0)')
+        self.assertEqual(Query.between('attr', 1.0, 2.0), '{"method":"between","attribute":"attr","values":[1.0,2.0]}')
 
     def test_between_with_strings(self):
-        self.assertEqual(Query.between('attr', 'a', 'z'), 'between("attr", "a" "z")')
+        self.assertEqual(Query.between('attr', 'a', 'z'), '{"method":"between","attribute":"attr","values":["a","z"]}')
 
     def test_select(self):
-        self.assertEqual(Query.select(['attr1', 'attr2']), 'select(["attr1","attr2"])')
+        self.assertEqual(Query.select(['attr1', 'attr2']), '{"method":"select","values":["attr1","attr2"]}')
 
     def test_order_asc(self):
-        self.assertEqual(Query.order_asc('attr'), 'orderAsc("attr")')
+        self.assertEqual(Query.order_asc('attr'), '{"method":"orderAsc","attribute":"attr"}')
 
     def test_order_desc(self):
-        self.assertEqual(Query.order_desc('attr'), 'orderDesc("attr")')
+        self.assertEqual(Query.order_desc('attr'), '{"method":"orderDesc","attribute":"attr"}')
 
     def test_cursor_before(self):
-        self.assertEqual(Query.cursor_before('custom'), 'cursorBefore("custom")')
+        self.assertEqual(Query.cursor_before('custom'), '{"method":"cursorBefore","values":["custom"]}')
 
     def test_cursor_after(self):
-        self.assertEqual(Query.cursor_after('custom'), 'cursorAfter("custom")')
+        self.assertEqual(Query.cursor_after('custom'), '{"method":"cursorAfter","values":["custom"]}')
 
     def test_limit(self):
-        self.assertEqual(Query.limit(1), 'limit(1)')
+        self.assertEqual(Query.limit(1), '{"method":"limit","values":[1]}')
 
     def test_offset(self):
-        self.assertEqual(Query.offset(1), 'offset(1)')
+        self.assertEqual(Query.offset(1), '{"method":"offset","values":[1]}')

@@ -212,6 +212,11 @@ class Python extends Language
             ],
             [
                 'scope' => 'default',
+                'destination' => 'test/test_operator.py',
+                'template' => 'python/test/test_operator.py.twig',
+            ],
+            [
+                'scope' => 'default',
                 'destination' => '{{ spec.title | caseSnake}}/exception.py',
                 'template' => 'python/package/exception.py.twig',
             ],
@@ -739,6 +744,42 @@ class Python extends Language
         return false;
     }
 
+    /**
+     * Creates an example for a response model with the given name
+     *
+     * @param string $model
+     * @param array $spec
+     * @return string
+     */
+    protected function getResponseModelExample(string $model, array $spec): string
+    {
+        $modelDef = $spec['definitions'][$model];
+
+        $result = [];
+        foreach ($modelDef['properties'] ?? [] as $property) {
+            if (!$property['required']) {
+                continue;
+            }
+
+            if ($property['type'] === 'object') {
+                echo $property;
+                return '';
+            }
+
+            $result[$property['name']] = match ($property['type']) {
+                'object' => $this->getResponseModelExample($property['sub_schema'], $spec),
+                'array' => [],
+                'string' => $property['example'] ?? '',
+                'boolean' => true,
+                default => $property['example'],
+            };
+        }
+
+        $json = json_encode($result, JSON_PRETTY_PRINT);
+
+        return str_replace('true', "True", $json);
+    }
+
     public function getFilters(): array
     {
         return [
@@ -828,6 +869,9 @@ class Python extends Language
             new TwigFilter('requestModelExample', function (array $parameter, array $spec, string $serviceName = '') {
                 return $this->getRequestModelExample($parameter, $spec, $serviceName);
             }),
+            new TwigFilter('responseModelExample', function (string $model, array $spec) {
+                return $this->getResponseModelExample($model, $spec);
+            })
         ];
     }
 }
