@@ -272,7 +272,7 @@ jobs:
 
           MISSING=0
           for entry in $ENTRY_POINTS; do
-            if echo "$PACK_OUTPUT" | grep -q "$entry"; then
+            if echo "$PACK_OUTPUT" | grep -qF "$entry"; then
               echo "✓ $entry is included"
             else
               echo "✗ $entry is MISSING from package — will break consumers"
