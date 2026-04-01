@@ -52,11 +52,14 @@ export interface CommandDescription {
 export interface CliConfig {
   verbose: boolean;
   json: boolean;
+  raw: boolean;
+  showSecrets: boolean;
   force: boolean;
   all: boolean;
   ids: string[];
   report: boolean;
   reportData: Record<string, unknown>;
+  displayFields: string[];
 }
 
 export interface SessionData {

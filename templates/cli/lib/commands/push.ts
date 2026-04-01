@@ -749,7 +749,9 @@ export class Push {
             entrypoint: func.entrypoint,
             commands: func.commands,
             scopes: func.scopes,
-            specification: func.specification,
+            buildSpecification: func.buildSpecification,
+            runtimeSpecification: func.runtimeSpecification,
+            deploymentRetention: func.deploymentRetention,
           });
         } catch (e: any) {
           if (Number(e.code) === 404) {
@@ -783,7 +785,9 @@ export class Push {
               entrypoint: func.entrypoint,
               commands: func.commands,
               scopes: func.scopes,
-              specification: func.specification,
+              buildSpecification: func.buildSpecification,
+              runtimeSpecification: func.runtimeSpecification,
+              deploymentRetention: func.deploymentRetention,
             });
 
             let domain = "";
@@ -825,18 +829,9 @@ export class Push {
           const functionsServiceForVars = await getFunctionsService(
             this.projectClient,
           );
-          const { variables } = await paginate(
-            async (args: any) => {
-              return await functionsServiceForVars.listVariables({
-                functionId: args.functionId,
-              });
-            },
-            {
-              functionId: func["$id"],
-            },
-            100,
-            "variables",
-          );
+          const { variables } = await functionsServiceForVars.listVariables({
+            functionId: func["$id"],
+          });
 
           await Promise.all(
             variables.map(async (variable: any) => {
@@ -1115,7 +1110,10 @@ export class Push {
             outputDirectory: site.outputDirectory,
             buildRuntime: site.buildRuntime,
             adapter: site.adapter,
-            specification: site.specification,
+            startCommand: site.startCommand,
+            buildSpecification: site.buildSpecification,
+            runtimeSpecification: site.runtimeSpecification,
+            deploymentRetention: site.deploymentRetention,
           });
         } catch (e: any) {
           if (Number(e.code) === 404) {
@@ -1148,7 +1146,10 @@ export class Push {
               outputDirectory: site.outputDirectory,
               buildRuntime: site.buildRuntime,
               adapter: site.adapter,
-              specification: site.specification,
+              startCommand: site.startCommand,
+              buildSpecification: site.buildSpecification,
+              runtimeSpecification: site.runtimeSpecification,
+              deploymentRetention: site.deploymentRetention,
             });
 
             let domain = "";
@@ -1189,18 +1190,9 @@ export class Push {
             .replaceSpinner(SPINNER_DOTS);
 
           const sitesServiceForVars = await getSitesService(this.projectClient);
-          const { variables } = await paginate(
-            async (args: any) => {
-              return await sitesServiceForVars.listVariables({
-                siteId: args.siteId,
-              });
-            },
-            {
-              siteId: site["$id"],
-            },
-            100,
-            "variables",
-          );
+          const { variables } = await sitesServiceForVars.listVariables({
+            siteId: site["$id"],
+          });
 
           await Promise.all(
             variables.map(async (variable: any) => {

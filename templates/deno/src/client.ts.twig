@@ -68,6 +68,10 @@ export class Client {
         return this;
     }
 
+    getHeaders(): Payload {
+        return { ...this.headers };
+    }
+
     async call(method: string, path: string = "", headers: Payload = {}, params: Payload = {}, responseType: string = "json") {
         headers = {...this.headers, ...headers};
         const url = new URL(this.endpoint + path);

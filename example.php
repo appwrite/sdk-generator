@@ -4,6 +4,7 @@ include_once 'vendor/autoload.php';
 
 use Appwrite\SDK\Language\GraphQL;
 use Appwrite\Spec\Swagger2;
+use Appwrite\Spec\StaticSpec;
 use Appwrite\SDK\SDK;
 use Appwrite\SDK\Language\Web;
 use Appwrite\SDK\Language\Node;
@@ -24,6 +25,7 @@ use Appwrite\SDK\Language\ReactNative;
 use Appwrite\SDK\Language\Markdown;
 use Appwrite\SDK\Language\AgentSkills;
 use Appwrite\SDK\Language\CursorPlugin;
+use Appwrite\SDK\Language\Rust;
 
 try {
 
@@ -35,7 +37,6 @@ try {
         curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         $result = curl_exec($ch);
-        curl_close($ch);
         return $result;
     }
 
@@ -54,9 +55,22 @@ try {
             'gitRepoName' => 'reponame',
             'twitter' => 'appwrite',
             'discord' => ['564160730845151244', 'https://appwrite.io/discord'],
-            'defaultHeaders' => ['X-Appwrite-Response-Format' => '1.8.0'],
             'readme' => '**README**',
+            'exclude' => [
+                'services' => [
+                    ['name' => 'documentsDB'],
+                    ['name' => 'vectorsDB'],
+                ],
+            ],
         ];
+
+        // Deep-merge exclude services so overrides add to defaults rather than replacing
+        if (isset($overrides['exclude']['services']) && isset($defaults['exclude']['services'])) {
+            $overrides['exclude']['services'] = array_merge(
+                $defaults['exclude']['services'],
+                $overrides['exclude']['services']
+            );
+        }
 
         $config = array_merge($defaults, $overrides);
 
@@ -73,7 +87,6 @@ try {
             ->setGitRepoName($config['gitRepoName'])
             ->setTwitter($config['twitter'])
             ->setDiscord($config['discord'][0], $config['discord'][1])
-            ->setDefaultHeaders($config['defaultHeaders'])
             ->setReadme($config['readme']);
 
         if (isset($config['namespace'])) {
@@ -100,11 +113,16 @@ try {
         // $platform = 'server';
     }
 
-    $version = '1.8.x';
-    $spec = getSSLPage("https://raw.githubusercontent.com/appwrite/specs/main/specs/{$version}/swagger2-{$version}-{$platform}.json");
+    $version = '1.9.x';
+    $speclessSDKs = ['agent-skills', 'cursor-plugin'];
+    $needsSpec = !$requestedSdk || !in_array($requestedSdk, $speclessSDKs);
 
-    if(empty($spec)) {
-        throw new Exception('Failed to fetch spec from Appwrite server');
+    if ($needsSpec) {
+        $spec = getSSLPage("https://raw.githubusercontent.com/appwrite/specs/main/specs/{$version}/swagger2-{$version}-{$platform}.json");
+
+        if(empty($spec)) {
+            throw new Exception('Failed to fetch spec from Appwrite server');
+        }
     }
 
     if ($requestedSdk) {
@@ -283,16 +301,35 @@ try {
     }
     // Agent Skills
     if (!$requestedSdk || $requestedSdk === 'agent-skills') {
-        $sdk = new SDK(new AgentSkills(), new Swagger2($spec));
+        $sdk = new SDK(new AgentSkills(), new StaticSpec(
+            title: 'Appwrite',
+            description: 'Appwrite backend as a service',
+            version: $version,
+            licenseName: 'BSD-3-Clause',
+            licenseURL: 'https://raw.githubusercontent.com/appwrite/appwrite/master/LICENSE',
+        ));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/agent-skills');
     }
 
     // Cursor Plugin
     if (!$requestedSdk || $requestedSdk === 'cursor-plugin') {
-        $sdk = new SDK(new CursorPlugin(), new Swagger2($spec));
+        $sdk = new SDK(new CursorPlugin(), new StaticSpec(
+            title: 'Appwrite',
+            description: 'Appwrite backend as a service',
+            version: $version,
+            licenseName: 'BSD-3-Clause',
+            licenseURL: 'https://raw.githubusercontent.com/appwrite/appwrite/master/LICENSE',
+        ));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/cursor-plugin');
+    }
+
+    // Rust
+    if (!$requestedSdk || $requestedSdk === 'rust') {
+        $sdk = new SDK(new Rust(), new Swagger2($spec));
+        configureSDK($sdk);
+        $sdk->generate(__DIR__ . '/examples/rust');
     }
 }
 catch (Exception $exception) {

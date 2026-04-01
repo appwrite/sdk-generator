@@ -180,6 +180,18 @@ class Client {
         return this;
     }
 
+    /**
+     * Get Headers
+     *
+     * Returns a copy of the current request headers, including any
+     * authentication headers. Handle with care.
+     *
+     * @returns {Headers}
+     */
+    getHeaders(): Headers {
+        return { ...this.headers };
+    }
+
     {%~ for header in spec.global.headers %}
     /**
      * Set {{header.key | caseUcfirst}}
@@ -341,6 +353,10 @@ class Client {
                 responseText = data?.message;
             }
             throw new {{spec.title | caseUcfirst}}Exception(data?.message, response.status, data?.type, responseText);
+        }
+
+        if (data && typeof data === 'object') {
+            data.toString = () => JSONbig.stringify(data);
         }
 
         return data;

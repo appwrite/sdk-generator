@@ -83,6 +83,18 @@ abstract class Base extends TestCase
         'POST:/v1/mock/tests/general/upload:passed',
     ];
 
+    protected const EXCLUDED_FIXTURE_TOKENS = [
+        'zzexcludedservice',
+        'zzexcludedpayload',
+        'zzexcludedresult',
+        'zzexcludedstatus',
+        'zzexcludedchild',
+        'zzexcludedchildstatus',
+        'zzexcludedmethodpayload',
+        'zzexcludedmethodresult',
+        'zzexcludedmethodstatus',
+    ];
+
     /**
      * 'Mock 400 error'                              -> message
      * '{"message":"Mock 400 error","code":400}'     -> response
@@ -256,15 +268,18 @@ abstract class Base extends TestCase
 
     public function setUp(): void
     {
-        $headers = "x-sdk-name: {$this->sdkName}; x-sdk-platform: {$this->sdkPlatform}; x-sdk-language: {$this->sdkLanguage}; x-sdk-version: {$this->version}";
-
-        $this->expectedOutput[] = $headers;
+        \array_unshift($this->expectedOutput, $this->getExpectedSdkHeaders());
 
         \exec('
             cd ./mock-server && \
             docker compose build && \
             docker compose up -d --force-recreate
         ');
+    }
+
+    protected function getExpectedSdkHeaders(): string
+    {
+        return "x-sdk-name: {$this->sdkName}; x-sdk-platform: {$this->sdkPlatform}; x-sdk-language: {$this->sdkLanguage}; x-sdk-version: {$this->version}";
     }
 
     public function tearDown(): void
@@ -304,6 +319,14 @@ abstract class Base extends TestCase
             ->setDefaultHeaders([
                 'X-Appwrite-Response-Format' => '0.8.0',
             ])
+            ->setExclude([
+                'services' => [
+                    ['name' => 'zzexcludedservice'],
+                ],
+                'methods' => [
+                    ['name' => 'createExcludedGeneralFixture'],
+                ],
+            ])
             ->setTest("true");
 
         if ($this->language === 'android' || $this->language === 'kotlin') {
@@ -317,6 +340,7 @@ abstract class Base extends TestCase
         $this->rmdirRecursive($dir);
 
         $sdk->generate(__DIR__ . '/sdks/' . $this->language);
+        $this->assertExcludedFixtureWasRemoved($dir);
 
         /**
          * Build SDK
@@ -375,6 +399,41 @@ abstract class Base extends TestCase
             }
         }
         \rmdir($dir);
+    }
+
+    private function assertExcludedFixtureWasRemoved(string $dir): void
+    {
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS)
+        );
+
+        foreach ($iterator as $file) {
+            $path = \strtolower($file->getPathname());
+
+            foreach (self::EXCLUDED_FIXTURE_TOKENS as $token) {
+                $this->assertStringNotContainsString($token, $path, "Excluded fixture leaked into generated path: {$path}");
+            }
+
+            if (!$file->isFile()) {
+                continue;
+            }
+
+            $contents = \file_get_contents($file->getPathname());
+
+            if ($contents === false) {
+                continue;
+            }
+
+            $contents = \strtolower($contents);
+
+            foreach (self::EXCLUDED_FIXTURE_TOKENS as $token) {
+                $this->assertStringNotContainsString(
+                    $token,
+                    $contents,
+                    "Excluded fixture leaked into generated file: {$file->getPathname()}"
+                );
+            }
+        }
     }
 
     public function getLanguage(): Language

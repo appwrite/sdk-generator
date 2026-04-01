@@ -1,4 +1,5 @@
 const { execSync } = require("child_process");
+const Client = require("./lib/client.ts").default;
 
 execSync(
   "bun ./dist/cli.cjs client --endpoint 'http://mockapi/v1' --project-id console --key=35y3h5h345 --self-signed true",
@@ -7,6 +8,8 @@ execSync(
 
 var output;
 console.log("\nTest Started");
+const sdkHeaders = new Client().getHeaders();
+console.log(`x-sdk-name: ${sdkHeaders["x-sdk-name"]}; x-sdk-platform: ${sdkHeaders["x-sdk-platform"]}; x-sdk-language: ${sdkHeaders["x-sdk-language"]}; x-sdk-version: ${sdkHeaders["x-sdk-version"]}`);
 
 // Foo
 output = execSync(

@@ -205,6 +205,11 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'bun.lock',
+                'template'      => 'cli/bun.lock.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'LICENSE.md',
                 'template'      => 'cli/LICENSE.md.twig',
             ],
@@ -217,6 +222,11 @@ class CLI extends Node
                 'scope'         => 'default',
                 'destination'   => 'package.json',
                 'template'      => 'cli/package.json.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'package-lock.json',
+                'template'      => 'cli/package-lock.json.twig',
             ],
             [
                 'scope'         => 'copy',
@@ -258,6 +268,11 @@ class CLI extends Node
                 'scope'         => 'copy',
                 'destination'   => '.github/workflows/publish.yml',
                 'template'      => 'cli/.github/workflows/publish.yml',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => '.github/workflows/ci.yml',
+                'template'      => 'cli/.github/workflows/ci.yml',
             ],
 
             // Documentation
@@ -774,6 +789,8 @@ class CLI extends Node
 
                 if ($type === 'object') {
                     return "JSON.parse({$varName})";
+                } elseif ($type === 'file') {
+                    return "{$varName} !== undefined ? await resolveFileParam({$varName}) : undefined";
                 } else {
                     return $varName;
                 }

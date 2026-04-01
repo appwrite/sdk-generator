@@ -5,14 +5,13 @@ import ignoreModule from "ignore";
 const ignore: typeof ignoreModule =
   (ignoreModule as unknown as { default?: typeof ignoreModule }).default ??
   ignoreModule;
-import tar from "tar";
+import { create, extract } from "tar";
 import fs from "fs";
 import chokidar from "chokidar";
 import inquirer from "inquirer";
 import path from "path";
 import { Command } from "commander";
 import { localConfig, globalConfig } from "../config.js";
-import { paginate } from "../paginate.js";
 import { getFunctionsService } from "../services.js";
 import { questionsRunFunctions } from "../questions.js";
 import {
@@ -177,12 +176,11 @@ const runFunction = async ({
 
   if (withVariables) {
     try {
-      const { variables: remoteVariables } = await paginate(
-        async () => (await getFunctionsService()).listVariables(func["$id"]),
-        {},
-        100,
-        "variables",
-      );
+      const { variables: remoteVariables } = await (
+        await getFunctionsService()
+      ).listVariables({
+        functionId: func["$id"],
+      });
 
       remoteVariables.forEach((v) => {
         allVariables[v.key] = v.value;
@@ -323,7 +321,7 @@ const runFunction = async ({
           fs.mkdirSync(hotSwapPath, { recursive: true });
         }
 
-        await tar.extract({
+        await extract({
           keep: true,
           sync: true,
           cwd: hotSwapPath,
@@ -358,7 +356,7 @@ const runFunction = async ({
           fs.copyFileSync(sourcePath, filePath);
         }
 
-        await tar.create(
+        await create(
           {
             gzip: true,
             sync: true,

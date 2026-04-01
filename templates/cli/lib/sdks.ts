@@ -23,6 +23,7 @@ export const sdkForConsole = async (
   }
 
   client.headers = {
+    ...client.headers,
     "x-sdk-name": "Command Line",
     "x-sdk-platform": "console",
     "x-sdk-language": "cli",
@@ -61,6 +62,7 @@ export const sdkForProject = async (): Promise<Client> => {
   }
 
   client.headers = {
+    ...client.headers,
     "x-sdk-name": "Command Line",
     "x-sdk-platform": "console",
     "x-sdk-language": "cli",

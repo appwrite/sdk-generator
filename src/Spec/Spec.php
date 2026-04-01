@@ -42,95 +42,90 @@ abstract class Spec extends ArrayObject
         parent::__construct($input);
     }
 
-    /**
-     * @return string
-     */
-    abstract public function getTitle(): string;
+    public function getTitle(): string
+    {
+        return '';
+    }
 
-    /**
-     * @return string
-     */
-    abstract public function getDescription(): string;
+    public function getDescription(): string
+    {
+        return '';
+    }
 
-    /**
-     * @return string
-     */
-    abstract public function getNamespace(): string;
+    public function getNamespace(): string
+    {
+        return '';
+    }
 
-    /**
-     * @return string
-     */
-    abstract public function getVersion(): string;
+    public function getVersion(): string
+    {
+        return '';
+    }
 
-    /**
-     * @return string
-     */
-    abstract public function getEndpoint(): string;
+    public function getEndpoint(): string
+    {
+        return '';
+    }
 
-    /**
-     * @return string
-     */
-    abstract public function getEndpointDocs(): string;
+    public function getEndpointDocs(): string
+    {
+        return '';
+    }
 
-    /**
-     * @return string
-     */
-    abstract public function getLicenseName(): string;
+    public function getLicenseName(): string
+    {
+        return '';
+    }
 
-    /**
-     * @return string
-     */
-    abstract public function getLicenseURL(): string;
+    public function getLicenseURL(): string
+    {
+        return '';
+    }
 
-    /**
-     * @return string
-     */
-    abstract public function getContactName(): string;
+    public function getContactName(): string
+    {
+        return '';
+    }
 
-    /**
-     * @return string
-     */
-    abstract public function getContactURL(): string;
+    public function getContactURL(): string
+    {
+        return '';
+    }
 
-    /**
-     * @return string
-     */
-    abstract public function getContactEmail(): string;
+    public function getContactEmail(): string
+    {
+        return '';
+    }
 
-    /**
-     * @return array
-     */
-    abstract public function getServices(): array;
+    public function getServices(): array
+    {
+        return [];
+    }
 
-    /**
-     * @param string $service
-     * @return array
-     */
-    abstract public function getMethods($service): array;
+    public function getMethods($service): array
+    {
+        return [];
+    }
 
-    /**
-     * @param array $method
-     * @param string $service
-     * @return string
-     */
-    abstract public function getTargetNamespace(array $method, string $service): string;
+    public function getTargetNamespace(array $method, string $service): string
+    {
+        return '';
+    }
 
-    /**
-     * @return array
-     */
-    abstract public function getGlobalHeaders(): array;
+    public function getGlobalHeaders(): array
+    {
+        return [];
+    }
 
-    /**
-     * @return array
-     */
-    abstract public function getDefinitions(): array;
+    public function getDefinitions(): array
+    {
+        return [];
+    }
 
-    /**
-     * Get request model definitions
-     *
-     * @return array
-     */
-    abstract public function getRequestModels(): array;
+    public function getRequestModels(): array
+    {
+        return [];
+    }
 
     /**
      * Get Attribute
@@ -187,17 +182,13 @@ abstract class Spec extends ArrayObject
         return $this;
     }
 
-    /**
-     * Get Request Enums
-     *
-     * @return array
-     */
-    abstract public function getRequestEnums(): array;
+    public function getRequestEnums(): array
+    {
+        return [];
+    }
 
-    /**
-     * Get Response Enums
-     *
-     * @return array
-     */
-    abstract public function getResponseEnums(): array;
+    public function getResponseEnums(): array
+    {
+        return [];
+    }
 }

@@ -1,9 +1,11 @@
 import Foundation
 import NIO
+#if canImport(NIOFoundationCompat)
+import NIOFoundationCompat
+#endif
 import NIOHTTP1
 import NIOWebSocket
 import Dispatch
-import NIOFoundationCompat
 import NIOSSL
 
 public let WEBSOCKET_LOCKER_QUEUE = "SyncLocker"

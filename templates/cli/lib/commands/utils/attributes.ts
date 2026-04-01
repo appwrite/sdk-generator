@@ -262,6 +262,7 @@ export class Attributes {
           required: attribute.required,
           xdefault: attribute.default,
           array: attribute.array,
+          encrypt: attribute.encrypt,
         });
       case "text":
         return databasesService.createTextAttribute({
@@ -271,6 +272,7 @@ export class Attributes {
           required: attribute.required,
           xdefault: attribute.default,
           array: attribute.array,
+          encrypt: attribute.encrypt,
         });
       case "mediumtext":
         return databasesService.createMediumtextAttribute({
@@ -280,6 +282,7 @@ export class Attributes {
           required: attribute.required,
           xdefault: attribute.default,
           array: attribute.array,
+          encrypt: attribute.encrypt,
         });
       case "longtext":
         return databasesService.createLongtextAttribute({
@@ -289,6 +292,7 @@ export class Attributes {
           required: attribute.required,
           xdefault: attribute.default,
           array: attribute.array,
+          encrypt: attribute.encrypt,
         });
       case "integer":
         return databasesService.createIntegerAttribute({

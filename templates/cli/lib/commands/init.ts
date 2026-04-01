@@ -30,7 +30,13 @@ import {
   commandDescriptions,
 } from "../parser.js";
 import { sdkForConsole } from "../sdks.js";
-import { isCloud } from "../utils.js";
+import {
+  isCloud,
+  hasSkillsInstalled,
+  fetchAvailableSkills,
+  detectProjectSkills,
+  placeSkills,
+} from "../utils.js";
 import { Account, UseCases, AppwriteException } from "@appwrite.io/console";
 import { DEFAULT_ENDPOINT, EXECUTABLE_NAME } from "../constants.js";
 
@@ -84,6 +90,7 @@ const initResources = async (): Promise<void> => {
   const actions: Record<string, InitResourceAction> = {
     function: initFunction,
     site: initSite,
+    skill: initSkill,
     table: initTable,
     bucket: initBucket,
     team: initTeam,
@@ -132,7 +139,8 @@ const initProject = async ({
   if (!organizationId && !projectId && !projectName) {
     answers = await inquirer.prompt(questionsInitProject);
     if (answers.override === false) {
-      process.exit(1);
+      log("No changes made. Existing project configuration was kept.");
+      return;
     }
   } else {
     const selectedOrganization =
@@ -252,6 +260,30 @@ const initProject = async ({
   hint(
     `Next you can use '${EXECUTABLE_NAME} init' to create resources in your project, or use '${EXECUTABLE_NAME} pull' and '${EXECUTABLE_NAME} push' to synchronize your project.`,
   );
+
+  if (!hasSkillsInstalled(localConfig.configDirectoryPath)) {
+    try {
+      const skillsCwd = localConfig.configDirectoryPath;
+      log("Setting up Appwrite agent skills ...");
+      const { skills, tempDir } = fetchAvailableSkills();
+      try {
+        const detected = detectProjectSkills(skillsCwd, skills);
+        if (detected.length > 0) {
+          const names = detected.map((s) => s.dirName);
+          placeSkills(skillsCwd, tempDir, names, [".agents", ".claude"], true);
+          success(
+            `Installed ${names.length} agent skill${names.length === 1 ? "" : "s"} based on your project: ${detected.map((s) => s.name).join(", ")}`,
+          );
+        }
+      } finally {
+        fs.rmSync(tempDir, { recursive: true, force: true });
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      error(`Failed to install agent skills: ${msg}`);
+      hint(`You can install them later with '${EXECUTABLE_NAME} init skill'.`);
+    }
+  }
 };
 
 const initBucket = async (): Promise<void> => {
@@ -366,6 +398,75 @@ const initTopic = async (): Promise<void> => {
   log(
     `Next you can use '${EXECUTABLE_NAME} push topic' to deploy the changes.`,
   );
+};
+
+const initSkill = async (): Promise<void> => {
+  process.chdir(localConfig.configDirectoryPath);
+  const cwd = process.cwd();
+
+  log("Fetching available Appwrite agent skills ...");
+  const { skills, tempDir } = fetchAvailableSkills();
+
+  try {
+    const { selectedSkills } = await inquirer.prompt([
+      {
+        type: "checkbox",
+        name: "selectedSkills",
+        message: "Which skills would you like to install?",
+        choices: skills.map((skill) => ({
+          name: skill.name,
+          value: skill.dirName,
+          checked: false,
+        })),
+        validate: (value: string[]) =>
+          value.length > 0 || "Please select at least one skill.",
+      },
+    ]);
+
+    const { selectedAgents } = await inquirer.prompt([
+      {
+        type: "checkbox",
+        name: "selectedAgents",
+        message: "Which agent directories would you like to install to?",
+        choices: [
+          { name: ".agents", value: ".agents", checked: true },
+          { name: ".claude", value: ".claude", checked: false },
+        ],
+        validate: (value: string[]) =>
+          value.length > 0 || "Please select at least one agent directory.",
+      },
+    ]);
+
+    const { installMethod } = await inquirer.prompt([
+      {
+        type: "list",
+        name: "installMethod",
+        message: "How would you like to install the skills?",
+        choices: [
+          {
+            name: "Symlink (recommended) — single source of truth, easy to update",
+            value: "symlink",
+          },
+          {
+            name: "Copy — independent copies in each agent directory",
+            value: "copy",
+          },
+        ],
+      },
+    ]);
+
+    const useSymlinks = installMethod === "symlink";
+    placeSkills(cwd, tempDir, selectedSkills, selectedAgents, useSymlinks);
+
+    success(
+      `${selectedSkills.length} skill${selectedSkills.length === 1 ? "" : "s"} installed successfully.`,
+    );
+    hint(
+      `Agent skills are automatically discovered by AI coding agents like Claude Code, Cursor, and GitHub Copilot.`,
+    );
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
 };
 
 const initFunction = async (): Promise<void> => {
@@ -514,7 +615,8 @@ const initFunction = async (): Promise<void> => {
     $id: functionId,
     name: answers.name,
     runtime: answers.runtime.id,
-    specification: answers.specification,
+    buildSpecification: answers.buildSpecification,
+    runtimeSpecification: answers.runtimeSpecification,
     execute: ["any"],
     events: [],
     scopes: ["users.read"],
@@ -706,7 +808,8 @@ const initSite = async (): Promise<void> => {
     buildCommand: templateDetails.frameworks[0].buildCommand || "",
     outputDirectory: templateDetails.frameworks[0].outputDirectory || "",
     fallbackFile: templateDetails.frameworks[0].fallbackFile || "",
-    specification: answers.specification,
+    buildSpecification: answers.buildSpecification,
+    runtimeSpecification: answers.runtimeSpecification,
     enabled: true,
     timeout: 30,
     logging: true,
@@ -767,6 +870,12 @@ init
   .alias("sites")
   .description("Init a new Appwrite site")
   .action(actionRunner(initSite));
+
+init
+  .command("skill")
+  .alias("skills")
+  .description("Install Appwrite agent skills for AI coding agents")
+  .action(actionRunner(initSkill));
 
 init
   .command("bucket")

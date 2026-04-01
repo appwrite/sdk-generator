@@ -20,6 +20,9 @@
       }
     }
   },
+  "files": [
+    "dist"
+  ],
   "bin": {
     "{{ language.params.executableName|caseLower }}": "dist/cli.cjs"
   },
@@ -47,7 +50,7 @@
     "windows-arm64": "esbuild cli.ts --bundle --loader:.hbs=text --platform=node --target=node18 --format=esm --external:fsevents --outfile=dist/bundle-win-arm64.mjs && pkg dist/bundle-win-arm64.mjs -t node18-win-arm64 -o build/appwrite-cli-win-arm64.exe"
   },
   "dependencies": {
-    "@appwrite.io/console": "^3.1.0",
+    "@appwrite.io/console": "~8.0.0",
     "chalk": "4.1.2",
     "chokidar": "^3.6.0",
     "cli-progress": "^3.12.0",
@@ -61,7 +64,7 @@
     "inquirer-search-list": "^1.2.6",
     "json-bigint": "^1.0.0",
     "tail": "^2.2.6",
-    "tar": "^6.1.11",
+    "tar": "^7.4.3",
     "undici": "^5.28.2",
     "zod": "^4.3.5"
   },
@@ -76,7 +79,7 @@
     "@types/inquirer": "^8.2.10",
     "@types/json-bigint": "^1.0.4",
     "@types/node": "^18.19.0",
-    "@types/tar": "^6.1.11",
+    "@types/tar": "^6.1.13",
     "@yao-pkg/pkg": "^6.11.0",
     "esbuild": "^0.27.2",
     "prettier": "^3.7.4",

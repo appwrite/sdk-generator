@@ -51,6 +51,29 @@ class Client
         'x-sdk-version'=> '{{ sdk.version }}',
     ];
 
+{% if spec.global.headers | hasBearerAuth %}
+    /**
+     * API key for JWT generation
+     *
+     * @var string|null
+     */
+    protected ?string $key = null;
+
+    /**
+     * Cached authorization header value
+     *
+     * @var string|null
+     */
+    protected ?string $authorization = null;
+
+    /**
+     * Authorization header expiry time
+     *
+     * @var \DateTime|null
+     */
+    protected ?\DateTime $authorizationExpiresAt = null;
+
+{% endif %}
     /**
      * Timeout in seconds
      *
@@ -90,8 +113,9 @@ class Client
     public function set{{header.key | caseUcfirst}}(string $value): Client
     {
 {% if header.type is defined and header.type == 'bearer' %}
-        $jwt = new JWT($value, 'HS256', self::JWT_MAX_AGE_SECONDS);
-        $this->addHeader('{{header.name}}', 'Bearer ' . $jwt->encode([]));
+        $this->key = $value;
+        $this->authorization = null;
+        $this->authorizationExpiresAt = null;
 {% else %}
         $this->addHeader('{{header.name}}', $value);
 {% endif %}
@@ -162,6 +186,37 @@ class Client
     }
 
     /**
+     * Get the request headers.
+     *
+     * @return array
+     */
+    public function getHeaders(): array
+    {
+        return $this->headers;
+    }
+
+{% if spec.global.headers | hasBearerAuth %}
+    /**
+     * Get authorization header, generating a new JWT if needed
+     *
+     * @return string
+     */
+    private function getAuthorization(): string
+    {
+        if (\is_string($this->authorization) && $this->authorizationExpiresAt > new \DateTime()) {
+            return $this->authorization;
+        }
+
+        $jwt = new JWT($this->key, maxAge: self::JWT_MAX_AGE_SECONDS);
+        $this->authorization = "Bearer {$jwt->encode([])}";
+
+        $this->authorizationExpiresAt = (new \DateTime())->modify('+' . (self::JWT_MAX_AGE_SECONDS - 5) . ' seconds');
+
+        return $this->authorization;
+    }
+
+{% endif %}
+    /**
      * Call
      *
      * Make an API call
@@ -181,6 +236,11 @@ class Client
         ?string $responseType = null
     )
     {
+{% if spec.global.headers | hasBearerAuth %}
+        if ($this->key !== null) {
+            $this->headers['authorization'] = $this->getAuthorization();
+        }
+{% endif %}
         $headers = array_merge($this->headers, $headers);
         $ch = curl_init($this->endpoint . $path . (($method == self::METHOD_GET && !empty($params)) ? '?' . http_build_query($params) : ''));
         $responseHeaders = [];

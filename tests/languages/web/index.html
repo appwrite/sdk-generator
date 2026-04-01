@@ -29,8 +29,10 @@
             const foo = new Foo(client);
             const bar = new Bar(client);
             const general = new General(client);
+            const sdkHeaders = client.getHeaders();
 
             // Ping
+            console.log(`x-sdk-name: ${sdkHeaders['x-sdk-name']}; x-sdk-platform: ${sdkHeaders['x-sdk-platform']}; x-sdk-language: ${sdkHeaders['x-sdk-language']}; x-sdk-version: ${sdkHeaders['x-sdk-version']}`);
             client.setProject('123456');
             response = await client.ping();
             console.log(response.result);

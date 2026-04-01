@@ -187,15 +187,19 @@ export const questionsInitProject: Question[] = [
       const client = await sdkForConsole(true);
       const { teams } = isCloud()
         ? await paginate(
-            async (opts: { sdk?: Client } = {}) =>
-              (await getOrganizationsService(opts.sdk)).list(),
+            async (args) =>
+              (await getOrganizationsService(args.sdk as Client)).list({
+                queries: args.queries as string[],
+              }),
             { sdk: client },
             100,
             "teams",
           )
         : await paginate(
-            async (opts: { sdk?: Client } = {}) =>
-              (await getTeamsService(opts.sdk)).list(),
+            async (args) =>
+              (await getTeamsService(args.sdk as Client)).list({
+                queries: args.queries as string[],
+              }),
             { parseOutput: false, sdk: client },
             100,
             "teams",
@@ -223,14 +227,16 @@ export const questionsInitProject: Question[] = [
     name: "project",
     message: "What would you like to name your project?",
     default: "My Awesome Project",
-    when: (answer: Answers) => answer.start !== "existing",
+    when: (answer: Answers) =>
+      whenOverride(answer) && answer.start !== "existing",
   },
   {
     type: "input",
     name: "id",
     message: "What ID would you like to have for your project?",
     default: "unique()",
-    when: (answer: Answers) => answer.start !== "existing",
+    when: (answer: Answers) =>
+      whenOverride(answer) && answer.start !== "existing",
   },
   {
     type: "search-list",
@@ -247,7 +253,8 @@ export const questionsInitProject: Question[] = [
       ];
 
       const { projects } = await paginate(
-        async () => (await getProjectsService()).list(queries),
+        async (args) =>
+          (await getProjectsService()).list(args.queries as string[]),
         { parseOutput: false },
         100,
         "projects",
@@ -297,6 +304,7 @@ export const questionsInitProject: Question[] = [
         }));
     },
     when: (answer: Answers) => {
+      if (!whenOverride(answer)) return false;
       if (answer.start === "existing") return false;
       return isCloud();
     },
@@ -342,7 +350,8 @@ export const questionsPullFunctions: Question[] = [
     validate: (value: any) => validateRequired("function", value),
     choices: async () => {
       const { functions } = await paginate(
-        async () => (await getFunctionsService()).list(),
+        async (args) =>
+          (await getFunctionsService()).list(args.queries as string[]),
         { parseOutput: false },
         100,
         "functions",
@@ -385,7 +394,8 @@ export const questionsPullSites: Question[] = [
     validate: (value: any) => validateRequired("site", value),
     choices: async () => {
       const { sites } = await paginate(
-        async () => (await getSitesService()).list(),
+        async (args) =>
+          (await getSitesService()).list(args.queries as string[]),
         { parseOutput: false },
         100,
         "sites",
@@ -457,8 +467,25 @@ export const questionsCreateFunction: Question[] = [
   },
   {
     type: "list",
-    name: "specification",
-    message: "What specification would you like to use?",
+    name: "buildSpecification",
+    message: "What build specification would you like to use?",
+    choices: async () => {
+      const response = await (await getFunctionsService()).listSpecifications();
+      const specifications = response["specifications"];
+      const choices = specifications.map((spec: any, _idx: number) => {
+        return {
+          name: `${spec.cpus} CPU, ${spec.memory}MB RAM`,
+          value: spec.slug,
+          disabled: spec.enabled === false ? "Upgrade to use" : false,
+        };
+      });
+      return choices;
+    },
+  },
+  {
+    type: "list",
+    name: "runtimeSpecification",
+    message: "What runtime specification would you like to use?",
     choices: async () => {
       const response = await (await getFunctionsService()).listSpecifications();
       const specifications = response["specifications"];
@@ -877,6 +904,7 @@ export const questionsInitResources: Question[] = [
     choices: [
       { name: "Function", value: "function" },
       { name: "Site", value: "site" },
+      { name: "Skill", value: "skill" },
       { name: "Table", value: "table" },
       { name: "Bucket", value: "bucket" },
       { name: "Team", value: "team" },
@@ -1166,8 +1194,25 @@ export const questionsCreateSite: Question[] = [
   },
   {
     type: "list",
-    name: "specification",
-    message: "What specification would you like to use?",
+    name: "buildSpecification",
+    message: "What build specification would you like to use?",
+    choices: async () => {
+      const response = await (await getSitesService()).listSpecifications();
+      const specifications = response["specifications"];
+      const choices = specifications.map((spec: any) => {
+        return {
+          name: `${spec.cpus} CPU, ${spec.memory}MB RAM`,
+          value: spec.slug,
+          disabled: spec.enabled === false ? "Upgrade to use" : false,
+        };
+      });
+      return choices;
+    },
+  },
+  {
+    type: "list",
+    name: "runtimeSpecification",
+    message: "What runtime specification would you like to use?",
     choices: async () => {
       const response = await (await getSitesService()).listSpecifications();
       const specifications = response["specifications"];
