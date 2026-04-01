@@ -179,7 +179,7 @@ jobs:
               ;;
             react-native)
               npm ci
-              npm run build || echo "No build script, checking syntax only"
+              npm run build
               ;;
             flutter)
               flutter pub get

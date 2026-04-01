@@ -127,8 +127,8 @@ class Web extends JS
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'rollup.config.js',
-                'template'      => '/web/rollup.config.js.twig',
+                'destination'   => 'rollup.config.mjs',
+                'template'      => '/web/rollup.config.mjs.twig',
             ],
             [
                 'scope'         => 'default',
