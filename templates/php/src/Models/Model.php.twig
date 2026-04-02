@@ -132,7 +132,47 @@ class {{ definition.name | caseUcfirst | overrideIdentifier }}
     {
         return new self(
             {%~ for property in definition.properties %}
-            {{ property.name | caseCamel | escapeKeyword }}: {% if property.sub_schema %}{% if property.type == 'array' %}{% if property.required %}array_map(static fn (array $item): {{ property.sub_schema | caseUcfirst | overrideIdentifier }} => {{ property.sub_schema | caseUcfirst | overrideIdentifier }}::from($item), $data['{{ property.name }}']){% else %}array_key_exists('{{ property.name }}', $data) ? array_map(static fn (array $item): {{ property.sub_schema | caseUcfirst | overrideIdentifier }} => {{ property.sub_schema | caseUcfirst | overrideIdentifier }}::from($item), $data['{{ property.name }}']) : null{% endif %}{% else %}{% if property.required %}{{ property.sub_schema | caseUcfirst | overrideIdentifier }}::from($data['{{ property.name }}']){% else %}array_key_exists('{{ property.name }}', $data) ? {{ property.sub_schema | caseUcfirst | overrideIdentifier }}::from($data['{{ property.name }}']) : null{% endif %}{% endif %}{% elseif property.enum %}{% set enumName = property.enumName ?? property.name %}{% if property.required %}{{ enumName | caseUcfirst | overrideIdentifier }}::from((string) $data['{{ property.name }}']){% else %}array_key_exists('{{ property.name }}', $data) ? {{ enumName | caseUcfirst | overrideIdentifier }}::from((string) $data['{{ property.name }}']) : null{% endif %}{% else %}{% if property.required %}$data['{{ property.name }}']{% else %}$data['{{ property.name }}'] ?? null{% endif %}{% endif %}{% if not loop.last or definition.additionalProperties %},{% endif %}
+            {{ property.name | caseCamel | escapeKeyword }}:
+                {%~ if property.sub_schema %}
+                    {%~ if property.type == 'array' %}
+                        {%~ if property.required %}
+                            array_map(
+                                static fn (array $item): {{ property.sub_schema | caseUcfirst | overrideIdentifier }} => {{ property.sub_schema | caseUcfirst | overrideIdentifier }}::from($item),
+                                $data['{{ property.name }}']
+                            )
+                        {%~ else %}
+                            array_key_exists('{{ property.name }}', $data)
+                                ? array_map(
+                                    static fn (array $item): {{ property.sub_schema | caseUcfirst | overrideIdentifier }} => {{ property.sub_schema | caseUcfirst | overrideIdentifier }}::from($item),
+                                    $data['{{ property.name }}']
+                                )
+                                : null
+                        {%~ endif %}
+                    {%~ else %}
+                        {%~ if property.required %}
+                            {{ property.sub_schema | caseUcfirst | overrideIdentifier }}::from($data['{{ property.name }}'])
+                        {%~ else %}
+                            array_key_exists('{{ property.name }}', $data)
+                                ? {{ property.sub_schema | caseUcfirst | overrideIdentifier }}::from($data['{{ property.name }}'])
+                                : null
+                        {%~ endif %}
+                    {%~ endif %}
+                {%~ elseif property.enum %}
+                    {%~ set enumName = property.enumName ?? property.name %}
+                    {%~ if property.required %}
+                        {{ enumName | caseUcfirst | overrideIdentifier }}::from((string) $data['{{ property.name }}'])
+                    {%~ else %}
+                        array_key_exists('{{ property.name }}', $data)
+                            ? {{ enumName | caseUcfirst | overrideIdentifier }}::from((string) $data['{{ property.name }}'])
+                            : null
+                    {%~ endif %}
+                {%~ else %}
+                    {%~ if property.required %}
+                        $data['{{ property.name }}']
+                    {%~ else %}
+                        $data['{{ property.name }}'] ?? null
+                    {%~ endif %}
+                {%~ endif %}{% if not loop.last or definition.additionalProperties %},{% endif %}
 
             {%~ endfor %}
             {%~ if definition.additionalProperties %}

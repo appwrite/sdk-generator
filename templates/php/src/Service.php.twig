@@ -12,11 +12,11 @@ abstract class Service
     }
 
     /**
-     * @param array<string, mixed>|string $response
+     * @param mixed $response
      * @param array<class-string> $models
      * @return mixed
      */
-    protected function parseResponse(array|string $response, array $models = []): mixed
+    protected function parseResponse(mixed $response, array $models = []): mixed
     {
         if (!is_array($response) || empty($models)) {
             return $response;

@@ -360,6 +360,10 @@ class PHP extends Language
         if (!empty($parameter['array']['model'])) {
             return 'array';
         }
+        if (!empty($parameter['sub_schema'])) {
+            $modelType = $this->applyIdentifierOverride($this->toPascalCase($parameter['sub_schema']));
+            return ($parameter['type'] ?? null) === self::TYPE_ARRAY ? 'array' : $modelType;
+        }
         if (!empty($parameter['model'])) {
             $modelType = $this->applyIdentifierOverride($this->toPascalCase($parameter['model']));
             return $parameter['type'] === self::TYPE_ARRAY ? 'array' : $modelType;
