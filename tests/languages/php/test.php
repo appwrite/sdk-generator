@@ -46,51 +46,42 @@ echo "\nTest Started\n";
 $sdkHeaders = $client->getHeaders();
 echo "x-sdk-name: {$sdkHeaders['x-sdk-name']}; x-sdk-platform: {$sdkHeaders['x-sdk-platform']}; x-sdk-language: {$sdkHeaders['x-sdk-language']}; x-sdk-version: {$sdkHeaders['x-sdk-version']}\n";
 
-function getResult($response): string
-{
-    if (is_array($response)) {
-        return $response['result'];
-    }
-
-    return $response->getResult();
-}
-
 // Foo Service
 
 $response = $foo->get('string', 123, ['string in array']);
-echo getResult($response) . "\n";
+echo $response->getResult() . "\n";
 
 $response = $foo->post('string', 123, ['string in array']);
-echo getResult($response) . "\n";
+echo $response->getResult() . "\n";
 
 $response = $foo->put('string', 123, ['string in array']);
-echo getResult($response) . "\n";
+echo $response->getResult() . "\n";
 
 $response = $foo->patch('string', 123, ['string in array']);
-echo getResult($response) . "\n";
+echo $response->getResult() . "\n";
 
 $response = $foo->delete('string', 123, ['string in array']);
-echo getResult($response) . "\n";
+echo $response->getResult() . "\n";
 
 // Bar Service
 
 $response = $bar->get('string', 123, ['string in array']);
-echo getResult($response) . "\n";
+echo $response->getResult() . "\n";
 
 $response = $bar->post('string', 123, ['string in array']);
-echo getResult($response) . "\n";
+echo $response->getResult() . "\n";
 
 $response = $bar->put('string', 123, ['string in array']);
-echo getResult($response) . "\n";
+echo $response->getResult() . "\n";
 
 $response = $bar->patch('string', 123, ['string in array']);
-echo getResult($response) . "\n";
+echo $response->getResult() . "\n";
 
 $response = $bar->delete('string', 123, ['string in array']);
-echo getResult($response) . "\n";
+echo $response->getResult() . "\n";
 
 $response = $general->redirect();
-echo getResult($response) . "\n";
+echo $response['result'] . "\n";
 
 $response = $general->getUnion();
 echo $response->getResult() . "\n";
@@ -101,32 +92,32 @@ echo $response->getType() . "\n";
 
 $data = file_get_contents(__DIR__ . '/../../resources/file.png');
 $response = $general->upload('string', 123, ['string in array'], InputFile::withData($data, 'image/png', 'file.png'));
-echo getResult($response) . "\n";
+echo $response->getResult() . "\n";
 
 $data = file_get_contents(__DIR__ . '/../../resources/large_file.mp4');
 $response = $general->upload('string', 123, ['string in array'], InputFile::withData($data, 'video/mp4', 'large_file.mp4'));
-echo getResult($response) . "\n";
+echo $response->getResult() . "\n";
 
 $response = $general->upload('string', 123, ['string in array'], InputFile::withPath(__DIR__ .'/../../resources/file.png'));
-echo getResult($response) . "\n";
+echo $response->getResult() . "\n";
 
 $response = $general->upload('string', 123, ['string in array'], InputFile::withPath(__DIR__ .'/../../resources/large_file.mp4'));
-echo getResult($response) . "\n";
+echo $response->getResult() . "\n";
 
 $response = $general->enum(MockType::FIRST());
-echo getResult($response) . "\n";
+echo $response->getResult() . "\n";
 
 // Request model tests
 $player = new Player('player1', 'John Doe', 100);
 $response = $general->createPlayer($player);
-echo getResult($response) . "\n";
+echo $response->getResult() . "\n";
 
 $players = [
     new Player('player1', 'John Doe', 100),
     new Player('player2', 'Jane Doe', 200),
 ];
 $response = $general->createPlayers($players);
-echo getResult($response) . "\n";
+echo $response->getResult() . "\n";
 
 try {
     $response = $general->error400();
@@ -292,4 +283,4 @@ echo Operator::dateSubDays(3) . "\n";
 echo Operator::dateSetNow() . "\n";
 
 $response = $general->headers();
-echo getResult($response) . "\n";
+echo $response->getResult() . "\n";
