@@ -1,0 +1,198 @@
+<?php
+
+namespace {{ spec.namespace | caseNamespace }}\Models;
+
+{% set added = [] %}
+{% for property in definition.properties %}
+{% if property.enumValues is not empty or property.enumName is not empty %}
+{% set enumName = property.enumName ?? property.name %}
+{% if enumName not in added %}
+use {{ spec.namespace | caseNamespace }}\Enums\{{ enumName | caseUcfirst | overrideIdentifier }};
+{% set added = added|merge([enumName]) %}
+{% endif %}
+{% endif %}
+{% endfor %}
+
+/**
+ * {{ definition.description }}
+ */
+class {{ definition.name | caseUcfirst | overrideIdentifier }}
+{
+    {% set requiredProperties = definition.properties | filter((property) => property.required) %}
+    {% set optionalProperties = definition.properties | filter((property) => not property.required) %}
+    {%~ for property in definition.properties %}
+    /**
+     * {{ property.description }}
+     *
+     * @var {{ property | typeName }}{% if not property.required %}|null{% endif %}
+     */
+    protected {% if not property.required %}?{% endif %}{{ property | typeName }} ${{ property.name | caseCamel | escapeKeyword }};
+
+    {%~ endfor %}
+    {%~ if definition.additionalProperties %}
+    /**
+     * Additional properties.
+     *
+     * @var array<string, mixed>
+     */
+    protected array $data;
+
+    {%~ endif %}
+    /**
+     * {{ definition.name | caseUcfirst }} constructor.
+     *
+     {%~ for property in requiredProperties %}
+     * @param {{ property | typeName }} ${{ property.name | caseCamel | escapeKeyword }}
+     {%~ endfor %}
+     {%~ for property in optionalProperties %}
+     * @param {{ property | typeName }}{% if not property.required %}|null{% endif %} ${{ property.name | caseCamel | escapeKeyword }}
+     {%~ endfor %}
+     {%~ if definition.additionalProperties %}
+     * @param array<string, mixed> $data
+     {%~ endif %}
+     */
+    public function __construct(
+        {%~ for property in requiredProperties %}
+        {{ property | typeName }} ${{ property.name | caseCamel | escapeKeyword }}{% if not loop.last or optionalProperties | length > 0 or definition.additionalProperties %},{% endif %}
+
+        {%~ endfor %}
+        {%~ for property in optionalProperties %}
+        ?{{ property | typeName }} ${{ property.name | caseCamel | escapeKeyword }} = null{% if not loop.last or definition.additionalProperties %},{% endif %}
+
+        {%~ endfor %}
+        {%~ if definition.additionalProperties %}
+        array $data = []
+        {%~ endif %}
+    ) {
+        {%~ for property in definition.properties %}
+        $this->{{ property.name | caseCamel | escapeKeyword }} = ${{ property.name | caseCamel | escapeKeyword }};
+        {%~ endfor %}
+        {%~ if definition.additionalProperties %}
+        $this->data = $data;
+        {%~ endif %}
+    }
+
+    {%~ for property in definition.properties %}
+    /**
+     * Get {{ property.description | lower }}
+     *
+     * @return {{ property | typeName }}{% if not property.required %}|null{% endif %}
+     */
+    public function get{{ property.name | caseUcfirst }}(): {% if not property.required %}?{% endif %}{{ property | typeName }}
+    {
+        return $this->{{ property.name | caseCamel | escapeKeyword }};
+    }
+
+    /**
+     * Set {{ property.description | lower }}
+     *
+     * @param {{ property | typeName }}{% if not property.required %}|null{% endif %} ${{ property.name | caseCamel | escapeKeyword }}
+     * @return self
+     */
+    public function set{{ property.name | caseUcfirst }}({% if not property.required %}?{% endif %}{{ property | typeName }} ${{ property.name | caseCamel | escapeKeyword }}): self
+    {
+        $this->{{ property.name | caseCamel | escapeKeyword }} = ${{ property.name | caseCamel | escapeKeyword }};
+
+        return $this;
+    }
+
+    {%~ endfor %}
+    {%~ if definition.additionalProperties %}
+    /**
+     * Get additional properties.
+     *
+     * @return array<string, mixed>
+     */
+    public function getData(): array
+    {
+        return $this->data;
+    }
+
+    /**
+     * Set additional properties.
+     *
+     * @param array<string, mixed> $data
+     * @return self
+     */
+    public function setData(array $data): self
+    {
+        $this->data = $data;
+
+        return $this;
+    }
+
+    {%~ endif %}
+    /**
+     * Hydrate the model from an array payload.
+     *
+     * @param array<string, mixed> $data
+     * @return self
+     */
+    public static function from(array $data): self
+    {
+        return new self(
+            {%~ for property in definition.properties %}
+            {{ property.name | caseCamel | escapeKeyword }}: {% if property.sub_schema %}{% if property.type == 'array' %}{% if property.required %}array_map(static fn (array $item): {{ property.sub_schema | caseUcfirst | overrideIdentifier }} => {{ property.sub_schema | caseUcfirst | overrideIdentifier }}::from($item), $data['{{ property.name }}']){% else %}array_key_exists('{{ property.name }}', $data) ? array_map(static fn (array $item): {{ property.sub_schema | caseUcfirst | overrideIdentifier }} => {{ property.sub_schema | caseUcfirst | overrideIdentifier }}::from($item), $data['{{ property.name }}']) : null{% endif %}{% else %}{% if property.required %}{{ property.sub_schema | caseUcfirst | overrideIdentifier }}::from($data['{{ property.name }}']){% else %}array_key_exists('{{ property.name }}', $data) ? {{ property.sub_schema | caseUcfirst | overrideIdentifier }}::from($data['{{ property.name }}']) : null{% endif %}{% endif %}{% elseif property.enum %}{% set enumName = property.enumName ?? property.name %}{% if property.required %}{{ enumName | caseUcfirst | overrideIdentifier }}::from((string) $data['{{ property.name }}']){% else %}array_key_exists('{{ property.name }}', $data) ? {{ enumName | caseUcfirst | overrideIdentifier }}::from((string) $data['{{ property.name }}']) : null{% endif %}{% else %}{% if property.required %}$data['{{ property.name }}']{% else %}$data['{{ property.name }}'] ?? null{% endif %}{% endif %}{% if not loop.last or definition.additionalProperties %},{% endif %}
+
+            {%~ endfor %}
+            {%~ if definition.additionalProperties %}
+            data: isset($data['data']) && is_array($data['data']) ? $data['data'] : $data
+            {%~ endif %}
+        );
+    }
+
+    /**
+     * Score how well the payload matches this model.
+     *
+     * @param array<string, mixed> $data
+     * @return int
+     */
+    public static function matchScore(array $data): int
+    {
+        $score = 0;
+
+        {%~ if definition.properties | length == 0 %}
+        return {% if definition.additionalProperties %}0{% else %}-1{% endif %};
+        {%~ else %}
+        {%~ for property in definition.properties %}
+        {% if property.required %}
+        if (!array_key_exists('{{ property.name }}', $data)) {
+            return -1;
+        }
+        {% endif %}
+        if (array_key_exists('{{ property.name }}', $data)) {
+            $score++;
+        }
+
+        {%~ endfor %}
+        return $score;
+        {%~ endif %}
+    }
+
+    /**
+     * Convert the model to an array.
+     *
+     * @return array<string, mixed>
+     */
+    public function toArray(): array
+    {
+        return [
+            {%~ for property in definition.properties %}
+            '{{ property.name }}' => {% if property.sub_schema %}{% if property.type == 'array' %}array_map(static fn ($item) => $item->toArray(), $this->{{ property.name | caseCamel | escapeKeyword }} ?? []){% else %}$this->{{ property.name | caseCamel | escapeKeyword }}?->toArray(){% endif %}{% elseif property.enum %}$this->{{ property.name | caseCamel | escapeKeyword }}{% if not property.required %}?{% endif %}->__toString(){% else %}$this->{{ property.name | caseCamel | escapeKeyword }}{% endif %}{% if not loop.last or definition.additionalProperties %},{% endif %}
+            {%~ endfor %}
+            {%~ if definition.additionalProperties %}
+            'data' => $this->data
+            {%~ endif %}
+        ];
+    }
+
+    /**
+     * Convert the model to JSON.
+     *
+     * @return string
+     */
+    public function toJson(): string
+    {
+        return json_encode($this->toArray());
+    }
+}

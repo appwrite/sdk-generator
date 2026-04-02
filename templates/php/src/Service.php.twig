@@ -10,4 +10,52 @@ abstract class Service
     {
         $this->client = $client;
     }
+
+    /**
+     * @param array<string, mixed>|string $response
+     * @param array<class-string> $models
+     * @return mixed
+     */
+    protected function parseResponse(array|string $response, array $models = []): mixed
+    {
+        if (!is_array($response) || empty($models)) {
+            return $response;
+        }
+
+        if (count($models) === 1) {
+            return $this->hydrateModel($models[0], $response);
+        }
+
+        $bestModel = null;
+        $bestScore = -1;
+
+        foreach ($models as $model) {
+            if (!method_exists($model, 'matchScore')) {
+                continue;
+            }
+
+            $score = $model::matchScore($response);
+
+            if ($score > $bestScore) {
+                $bestScore = $score;
+                $bestModel = $model;
+            }
+        }
+
+        return $this->hydrateModel($bestModel ?? $models[0], $response);
+    }
+
+    /**
+     * @param class-string $model
+     * @param array<string, mixed> $response
+     * @return mixed
+     */
+    protected function hydrateModel(string $model, array $response): mixed
+    {
+        if (!method_exists($model, 'from')) {
+            return $response;
+        }
+
+        return $model::from($response);
+    }
 }

@@ -127,7 +127,14 @@ class PHP extends Language
      */
     public function getIdentifierOverrides(): array
     {
-        return [];
+        return [
+            'Function' => 'FunctionModel',
+        ];
+    }
+
+    protected function applyIdentifierOverride(string $value): string
+    {
+        return $this->getIdentifierOverrides()[$value] ?? $value;
     }
 
     public function getStaticAccessOperator(): string
@@ -274,15 +281,60 @@ class PHP extends Language
             ],
             [
                 'scope'         => 'enum',
-                'destination'   => '/src/{{ spec.namespace | caseNamespacePath }}/Enums/{{ enum.name | caseUcfirst }}.php',
+                'destination'   => '/src/{{ spec.namespace | caseNamespacePath }}/Enums/{{ enum.name | caseUcfirst | overrideIdentifier }}.php',
                 'template'      => 'php/src/Enums/Enum.php.twig',
             ],
             [
+                'scope'         => 'definition',
+                'destination'   => '/src/{{ spec.namespace | caseNamespacePath }}/Models/{{ definition.name | caseUcfirst | overrideIdentifier }}.php',
+                'template'      => 'php/src/Models/Model.php.twig',
+            ],
+            [
                 'scope'         => 'requestModel',
-                'destination'   => '/src/{{ spec.namespace | caseNamespacePath }}/Models/{{ requestModel.name | caseUcfirst }}.php',
+                'destination'   => '/src/{{ spec.namespace | caseNamespacePath }}/Models/{{ requestModel.name | caseUcfirst | overrideIdentifier }}.php',
                 'template'      => 'php/src/Models/RequestModel.php.twig',
             ],
         ];
+    }
+
+    protected function normalizeNamespace(string $namespace): string
+    {
+        $segments = explode('\\', $namespace);
+        $segments = array_map(function ($segment) {
+            return ucfirst($this->toCamelCase($segment));
+        }, $segments);
+
+        return implode('\\', $segments);
+    }
+
+    protected function getModelClassName(string $modelName, array $spec, bool $fullyQualified = false): string
+    {
+        $className = $this->applyIdentifierOverride($this->toPascalCase($modelName));
+
+        if (!$fullyQualified) {
+            return $className;
+        }
+
+        return '\\' . $this->normalizeNamespace($spec['namespace'] ?? '') . '\\Models\\' . $className;
+    }
+
+    protected function getResponseModels(array $method, array $spec): array
+    {
+        $models = [];
+
+        foreach ($method['responseModels'] ?? [] as $modelName) {
+            if (empty($modelName) || $modelName === 'any') {
+                continue;
+            }
+
+            $models[] = $this->getModelClassName($modelName, $spec, true);
+        }
+
+        if (empty($models) && !empty($method['responseModel']) && $method['responseModel'] !== 'any') {
+            $models[] = $this->getModelClassName($method['responseModel'], $spec, true);
+        }
+
+        return array_values(array_unique($models));
     }
 
     /**
@@ -300,16 +352,16 @@ class PHP extends Language
         }
 
         if (isset($parameter['enumName'])) {
-            return \ucfirst($parameter['enumName']);
+            return $this->applyIdentifierOverride(\ucfirst($parameter['enumName']));
         }
         if (!empty($parameter['enumValues'])) {
-            return \ucfirst($parameter['name']);
+            return $this->applyIdentifierOverride(\ucfirst($parameter['name']));
         }
         if (!empty($parameter['array']['model'])) {
             return 'array';
         }
         if (!empty($parameter['model'])) {
-            $modelType = $this->toPascalCase($parameter['model']);
+            $modelType = $this->applyIdentifierOverride($this->toPascalCase($parameter['model']));
             return $parameter['type'] === self::TYPE_ARRAY ? 'array' : $modelType;
         }
         return match ($parameter['type']) {
@@ -474,10 +526,16 @@ class PHP extends Language
         return $output;
     }
 
-    protected function getReturn(array $method): string
+    protected function getReturn(array $method, array $spec = []): string
     {
         if (($method['emptyResponse'] ?? true) || $method['type'] === 'location' || $method['type'] === 'webAuth') {
             return 'string';
+        }
+
+        $responseModels = $this->getResponseModels($method, $spec);
+
+        if (!empty($responseModels)) {
+            return implode('|', $responseModels);
         }
 
         return 'array';
@@ -517,8 +575,11 @@ class PHP extends Language
     public function getFilters(): array
     {
         return [
-            new TwigFilter('getReturn', function ($value) {
-                return $this->getReturn($value);
+            new TwigFilter('getReturn', function ($value, array $spec = []) {
+                return $this->getReturn($value, $spec);
+            }),
+            new TwigFilter('getResponseModels', function ($value, array $spec = []) {
+                return $this->getResponseModels($value, $spec);
             }),
             new TwigFilter('methodParameters', function ($value) {
                 return $this->getMethodParameters($value);

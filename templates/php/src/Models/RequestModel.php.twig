@@ -5,7 +5,7 @@ namespace {{ spec.namespace | caseNamespace }}\Models;
 /**
  * {{ requestModel.description }}
  */
-class {{ requestModel.name | caseUcfirst }}
+class {{ requestModel.name | caseUcfirst | overrideIdentifier }}
 {
     {%~ for property in requestModel.properties %}
     /**

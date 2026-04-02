@@ -1,7 +1,15 @@
-        return $this->client->call(
+        $response = $this->client->call(
             Client::METHOD_{{ method.method | caseUpper }},
             $apiPath,
             $apiHeaders,
             $apiParams{% if method.type == 'webAuth' -%}, 'location'{% endif %}
 
         );
+{% set responseModels = method | getResponseModels(spec) %}
+{% if responseModels | length > 0 %}
+
+        return $this->parseResponse($response, [{% for responseModel in responseModels %}{{ responseModel }}::class{% if not loop.last %}, {% endif %}{% endfor %}]);
+{% else %}
+
+        return $response;
+{% endif %}

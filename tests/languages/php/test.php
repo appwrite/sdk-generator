@@ -9,11 +9,15 @@ include __DIR__ . '/../../sdks/php/src/Appwrite/Role.php';
 include __DIR__ . '/../../sdks/php/src/Appwrite/ID.php';
 include __DIR__ . '/../../sdks/php/src/Appwrite/Operator.php';
 include __DIR__ . '/../../sdks/php/src/Appwrite/AppwriteException.php';
-include __DIR__ . '/../../sdks/php/src/Appwrite/Enums/MockType.php';
-include __DIR__ . '/../../sdks/php/src/Appwrite/Services/Foo.php';
-include __DIR__ . '/../../sdks/php/src/Appwrite/Services/Bar.php';
-include __DIR__ . '/../../sdks/php/src/Appwrite/Services/General.php';
-include __DIR__ . '/../../sdks/php/src/Appwrite/Models/Player.php';
+foreach (glob(__DIR__ . '/../../sdks/php/src/Appwrite/Enums/*.php') as $file) {
+    include $file;
+}
+foreach (glob(__DIR__ . '/../../sdks/php/src/Appwrite/Models/*.php') as $file) {
+    include $file;
+}
+foreach (glob(__DIR__ . '/../../sdks/php/src/Appwrite/Services/*.php') as $file) {
+    include $file;
+}
 
 use Appwrite\AppwriteException;
 use Appwrite\Models\Player;
@@ -42,71 +46,87 @@ echo "\nTest Started\n";
 $sdkHeaders = $client->getHeaders();
 echo "x-sdk-name: {$sdkHeaders['x-sdk-name']}; x-sdk-platform: {$sdkHeaders['x-sdk-platform']}; x-sdk-language: {$sdkHeaders['x-sdk-language']}; x-sdk-version: {$sdkHeaders['x-sdk-version']}\n";
 
+function getResult($response): string
+{
+    if (is_array($response)) {
+        return $response['result'];
+    }
+
+    return $response->getResult();
+}
+
 // Foo Service
 
 $response = $foo->get('string', 123, ['string in array']);
-echo "{$response['result']}\n";
+echo getResult($response) . "\n";
 
 $response = $foo->post('string', 123, ['string in array']);
-echo "{$response['result']}\n";
+echo getResult($response) . "\n";
 
 $response = $foo->put('string', 123, ['string in array']);
-echo "{$response['result']}\n";
+echo getResult($response) . "\n";
 
 $response = $foo->patch('string', 123, ['string in array']);
-echo "{$response['result']}\n";
+echo getResult($response) . "\n";
 
 $response = $foo->delete('string', 123, ['string in array']);
-echo "{$response['result']}\n";
+echo getResult($response) . "\n";
 
 // Bar Service
 
 $response = $bar->get('string', 123, ['string in array']);
-echo "{$response['result']}\n";
+echo getResult($response) . "\n";
 
 $response = $bar->post('string', 123, ['string in array']);
-echo "{$response['result']}\n";
+echo getResult($response) . "\n";
 
 $response = $bar->put('string', 123, ['string in array']);
-echo "{$response['result']}\n";
+echo getResult($response) . "\n";
 
 $response = $bar->patch('string', 123, ['string in array']);
-echo "{$response['result']}\n";
+echo getResult($response) . "\n";
 
 $response = $bar->delete('string', 123, ['string in array']);
-echo "{$response['result']}\n";
+echo getResult($response) . "\n";
 
 $response = $general->redirect();
-echo "{$response['result']}\n";
+echo getResult($response) . "\n";
+
+$response = $general->getUnion();
+echo $response->getResult() . "\n";
+
+$response = $general->getUnion('stub');
+echo $response->getData() . "\n";
+echo $response->getType() . "\n";
 
 $data = file_get_contents(__DIR__ . '/../../resources/file.png');
 $response = $general->upload('string', 123, ['string in array'], InputFile::withData($data, 'image/png', 'file.png'));
-echo "{$response['result']}\n";
+echo getResult($response) . "\n";
 
 $data = file_get_contents(__DIR__ . '/../../resources/large_file.mp4');
 $response = $general->upload('string', 123, ['string in array'], InputFile::withData($data, 'video/mp4', 'large_file.mp4'));
-echo "{$response['result']}\n";
+echo getResult($response) . "\n";
 
 $response = $general->upload('string', 123, ['string in array'], InputFile::withPath(__DIR__ .'/../../resources/file.png'));
-echo "{$response['result']}\n";
+echo getResult($response) . "\n";
 
 $response = $general->upload('string', 123, ['string in array'], InputFile::withPath(__DIR__ .'/../../resources/large_file.mp4'));
-echo "{$response['result']}\n";
+echo getResult($response) . "\n";
 
 $response = $general->enum(MockType::FIRST());
-echo "{$response['result']}\n";
+echo getResult($response) . "\n";
 
 // Request model tests
 $player = new Player('player1', 'John Doe', 100);
 $response = $general->createPlayer($player);
-echo "{$response['result']}\n";
+echo getResult($response) . "\n";
 
 $players = [
     new Player('player1', 'John Doe', 100),
     new Player('player2', 'Jane Doe', 200),
 ];
 $response = $general->createPlayers($players);
-echo "{$response['result']}\n";
+echo getResult($response) . "\n";
 
 try {
     $response = $general->error400();
@@ -272,4 +292,4 @@ echo Operator::dateSubDays(3) . "\n";
 echo Operator::dateSetNow() . "\n";
 
 $response = $general->headers();
-echo "{$response['result']}\n";
+echo getResult($response) . "\n";

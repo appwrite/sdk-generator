@@ -1,5 +1,6 @@
 {% for parameter in method.parameters.all %}
 {% if parameter.type == 'file' %}
+{% set responseModels = method | getResponseModels(spec) %}
         $size = 0;
         $mimeType = null;
         $postedName = null;
@@ -9,7 +10,7 @@
             $postedName = ${{ parameter.name | caseCamel }}->getFilename();
             if ($size <= Client::CHUNK_SIZE) {
                 $apiParams['{{ parameter.name | caseCamel }}'] = new \CURLFile('data://' . $mimeType . ';base64,' . base64_encode(${{ parameter.name | caseCamel }}->getData()), $mimeType, $postedName);
-                return $this->client->call(Client::METHOD_POST, $apiPath, [
+                $response = $this->client->call(Client::METHOD_POST, $apiPath, [
     {% for param in method.parameters.header %}
                     '{{ param.name }}' => ${{ param.name | caseCamel }},
     {% endfor %}
@@ -17,6 +18,11 @@
                     '{{ key }}' => '{{ header }}',
     {% endfor %}
                     ], $apiParams);
+{% if responseModels | length > 0 %}
+                return $this->parseResponse($response, [{% for responseModel in responseModels %}{{ responseModel }}::class{% if not loop.last %}, {% endif %}{% endfor %}]);
+{% else %}
+                return $response;
+{% endif %}
             }
         } else {
             $size = filesize(${{ parameter.name | caseCamel }}->getPath());
@@ -25,7 +31,7 @@
             //send single file if size is less than or equal to 5MB
             if ($size <= Client::CHUNK_SIZE) {
                 $apiParams['{{ parameter.name }}'] = new \CURLFile(${{ parameter.name | caseCamel }}->getPath(), $mimeType, $postedName);
-                return $this->client->call(Client::METHOD_{{ method.method | caseUpper }}, $apiPath, [
+                $response = $this->client->call(Client::METHOD_{{ method.method | caseUpper }}, $apiPath, [
     {% for param in method.parameters.header %}
                     '{{ param.name }}' => ${{ param.name | caseCamel }},
     {% endfor %}
@@ -33,6 +39,11 @@
                     '{{ key }}' => '{{ header }}',
     {% endfor %}
                     ], $apiParams);
+{% if responseModels | length > 0 %}
+                return $this->parseResponse($response, [{% for responseModel in responseModels %}{{ responseModel }}::class{% if not loop.last %}, {% endif %}{% endfor %}]);
+{% else %}
+                return $response;
+{% endif %}
             }
         }
 
@@ -89,6 +100,10 @@
         if(!empty($handle)) {
             @fclose($handle);
         }
+{% if responseModels | length > 0 %}
+        return $this->parseResponse($response, [{% for responseModel in responseModels %}{{ responseModel }}::class{% if not loop.last %}, {% endif %}{% endfor %}]);
+{% else %}
         return $response;
+{% endif %}
 {% endif %}
 {% endfor %}

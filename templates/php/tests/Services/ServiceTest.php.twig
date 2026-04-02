@@ -44,7 +44,7 @@ final class {{service.name | caseUcfirst}}Test extends TestCase {
             {%- for definition in spec.definitions ~%}{%~ if definition.name == method.responseModel -%}{%~ for property in definition.properties | filter((param) => param.required) ~%}
             "{{property.name | escapeDollarSign}}" => {% if property.type == 'object' %}array(){% elseif property.type == 'array' %}array(){% elseif property.type == 'string' %}"{{property.example | escapeDollarSign}}"{% elseif property.type == 'boolean' %}true{% else %}{{property.example}}{% endif %}{% if not loop.last %},{% endif %}{%~ endfor ~%}{% set break = true %}{%- else -%}{% set continue = true %}{%- endif -%}{%~ endfor -%}
         );
-        {%~ elseif (method.responseModel and method.responseModel == 'any') or (method | getReturn == 'array') ~%}
+        {%~ elseif (method.responseModel and method.responseModel == 'any') or (method | getReturn(spec) == 'array') ~%}
         $data = array();
         {%~ else ~%}
         $data = '';
@@ -57,7 +57,12 @@ final class {{service.name | caseUcfirst}}Test extends TestCase {
             {% if parameter.enumName %}{% if parameter.type == 'array' %}array({{ parameter.enumName | caseUcfirst }}::{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}()){% else %}{{ parameter.enumName | caseUcfirst }}::{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}(){% endif %}{% elseif parameter.type == 'object' %}array(){% elseif parameter.type == 'array' %}array(){% elseif parameter.type == 'file' %}InputFile::withData('', "image/png"){% elseif parameter.type == 'boolean' %}true{% elseif parameter.type == 'string' %}"{% if parameter.example is not empty %}{{parameter.example | escapeDollarSign}}{% endif %}"{% elseif parameter.type == 'integer' and parameter['x-example'] is empty %}1{% elseif parameter.type == 'number' and parameter['x-example'] is empty %}1.0{% else %}{{parameter.example}}{%~ endif ~%}{% if not loop.last %},{% endif %}{%~ endfor ~%}
         );
 
+        {% set responseModels = method | getResponseModels(spec) %}
+        {% if responseModels | length > 0 %}
+        $this->assertInstanceOf({{ responseModels[0] }}::class, $response);
+        {% else %}
         $this->assertSame($data, $response);
+        {% endif %}
     }
 
 {% endif %}
