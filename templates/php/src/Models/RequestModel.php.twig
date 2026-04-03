@@ -66,10 +66,22 @@ readonly class {{ requestModel.name | caseUcfirst | overrideIdentifier }}
      * {{ requestModel.name | caseUcfirst }} constructor.
      *
 {% for property in requiredProperties %}
-     * @param {{ property | typeName }}{{ property.required ? '' : '|null' }} ${{ property.name | caseCamel | escapeKeyword }} {{ property.description | lower }}
+{% set paramDocType = property | typeName %}
+{% if property.type == 'array' and property.sub_schema %}
+{% set paramDocType = 'list<' ~ (property.sub_schema | caseUcfirst | overrideIdentifier) ~ '>' %}
+{% elseif property.type == 'array' and (property.enumValues is not empty or property.enumName is not empty) %}
+{% set paramDocType = 'list<' ~ ((property.enumName ?? property.name) | caseUcfirst | overrideIdentifier) ~ '>' %}
+{% endif %}
+     * @param {{ paramDocType | raw }} ${{ property.name | caseCamel | escapeKeyword }} {{ property.description | lower }}
 {% endfor %}
 {% for property in optionalProperties %}
-     * @param {{ property | typeName }}|null ${{ property.name | caseCamel | escapeKeyword }} {{ property.description | lower }}
+{% set paramDocType = property | typeName %}
+{% if property.type == 'array' and property.sub_schema %}
+{% set paramDocType = 'list<' ~ (property.sub_schema | caseUcfirst | overrideIdentifier) ~ '>' %}
+{% elseif property.type == 'array' and (property.enumValues is not empty or property.enumName is not empty) %}
+{% set paramDocType = 'list<' ~ ((property.enumName ?? property.name) | caseUcfirst | overrideIdentifier) ~ '>' %}
+{% endif %}
+     * @param {{ paramDocType | raw }}|null ${{ property.name | caseCamel | escapeKeyword }} {{ property.description | lower }}
 {% endfor %}
      */
     public function __construct(
