@@ -198,6 +198,11 @@ abstract class Base extends TestCase
         'custom_id'
     ];
 
+    protected const ADDITIONAL_PROPERTIES_RESPONSES = [
+        '{"theme":"dark","timezone":"UTC"}',
+        '{"$id":"row1","custom":"value","nested":{"enabled":true}}',
+    ];
+
     protected const CHANNEL_HELPER_RESPONSES = [
         'databases.db1.collections.col1.documents',
         'databases.db1.collections.col1.documents.doc1',

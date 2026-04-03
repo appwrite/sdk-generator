@@ -2,8 +2,10 @@
 
 namespace {{ spec.namespace | caseNamespace }}\Models;
 
+{% set requiredProperties = definition.properties | filter((property) => property.required) %}
+{% set optionalProperties = definition.properties | filter((property) => not property.required) %}
 {% set enumImports = [] %}
-{% for property in requestModel.properties %}
+{% for property in definition.properties %}
 {% if property.enumValues is not empty or property.enumName is not empty %}
 {% set enumName = property.enumName ?? property.name %}
 {% if enumName not in enumImports %}
@@ -15,18 +17,17 @@ namespace {{ spec.namespace | caseNamespace }}\Models;
 use {{ spec.namespace | caseNamespace }}\Enums\{{ enumName | caseUcfirst | overrideIdentifier }};
 {% endfor %}
 {% if enumImports is not empty %}
+
 {% endif %}
-{% set requiredProperties = requestModel.properties | filter((property) => property.required) %}
-{% set optionalProperties = requestModel.properties | filter((property) => not property.required) %}
 /**
- * {{ requestModel.description | unescape | raw }}
+ * {{ definition.description | unescape | raw }}
  */
-readonly class {{ requestModel.name | caseUcfirst | overrideIdentifier }}
+readonly class {{ definition.name | caseUcfirst | overrideIdentifier }}
 {
     use ArraySerializable;
 
 {% set fieldMappings = [] %}
-{% for property in requestModel.properties %}
+{% for property in definition.properties %}
 {% set propertyName = property.name | caseCamel | escapeKeyword %}
 {% if propertyName != property.name %}
 {% set fieldMappings = fieldMappings|merge([{ property: propertyName, field: property.name }]) %}
@@ -44,7 +45,7 @@ readonly class {{ requestModel.name | caseUcfirst | overrideIdentifier }}
 
 {% endif %}
 {% set arrayTypes = [] %}
-{% for property in requestModel.properties %}
+{% for property in definition.properties %}
 {% if property.type == 'array' and property.sub_schema %}
 {% set arrayTypes = arrayTypes|merge([{ property: property.name | caseCamel | escapeKeyword, type: property.sub_schema | caseUcfirst | overrideIdentifier }]) %}
 {% elseif property.type == 'array' and (property.enumValues is not empty or property.enumName is not empty) %}
@@ -62,8 +63,12 @@ readonly class {{ requestModel.name | caseUcfirst | overrideIdentifier }}
     ];
 
 {% endif %}
+{% if definition.additionalProperties %}
+    private const ADDITIONAL_PROPERTIES = true;
+
+{% endif %}
     /**
-     * {{ requestModel.name | caseUcfirst }} constructor.
+     * {{ definition.name | caseUcfirst }} constructor.
      *
 {% for property in requiredProperties %}
 {% set paramDocType = property | typeName %}
@@ -83,14 +88,20 @@ readonly class {{ requestModel.name | caseUcfirst | overrideIdentifier }}
 {% endif %}
      * @param {{ paramDocType | raw }}|null ${{ property.name | caseCamel | escapeKeyword }} {{ property.description | unescape | lower | raw }}
 {% endfor %}
+{% if definition.additionalProperties %}
+     * @param array<string, mixed> $data Additional properties.
+{% endif %}
      */
     public function __construct(
 {% for property in requiredProperties %}
-        public {{ property | typeName }} ${{ property.name | caseCamel | escapeKeyword }}{{ (not loop.last or optionalProperties is not empty) ? ',' : '' }}
+        public {{ property | typeName }} ${{ property.name | caseCamel | escapeKeyword }}{{ (not loop.last or optionalProperties is not empty or definition.additionalProperties) ? ',' : '' }}
 {% endfor %}
 {% for property in optionalProperties %}
-        public ?{{ property | typeName }} ${{ property.name | caseCamel | escapeKeyword }} = null{{ loop.last ? '' : ',' }}
+        public ?{{ property | typeName }} ${{ property.name | caseCamel | escapeKeyword }} = null{{ (not loop.last or definition.additionalProperties) ? ',' : '' }}
 {% endfor %}
+{% if definition.additionalProperties %}
+        public array $data = []
+{% endif %}
     ) {
     }
 }

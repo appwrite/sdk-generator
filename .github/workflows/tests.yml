@@ -34,7 +34,7 @@ jobs:
           Node16,
           Node18,
           Node20,
-          PHP80,
+          PHP82,
           PHP83,
           Python39,
           Python310,
