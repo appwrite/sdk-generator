@@ -535,6 +535,115 @@ class PHP extends Language
         return $output;
     }
 
+    protected function getMockDefinitionPayload(string $definitionName, array $spec, int $indentLevel = 2): string
+    {
+        $definition = null;
+
+        foreach ($spec['definitions'] ?? [] as $candidate) {
+            if (($candidate['name'] ?? null) === $definitionName) {
+                $definition = $candidate;
+                break;
+            }
+        }
+
+        if ($definition === null) {
+            return 'array()';
+        }
+
+        $properties = array_values(array_filter(
+            $definition['properties'] ?? [],
+            fn (array $property) => (bool)($property['required'] ?? false)
+        ));
+
+        if (empty($properties)) {
+            return 'array()';
+        }
+
+        $itemIndent = str_repeat('    ', $indentLevel);
+        $closingIndent = str_repeat('    ', max(0, $indentLevel - 1));
+        $lines = ['array('];
+
+        foreach ($properties as $index => $property) {
+            $lines[] = $itemIndent
+                . '"' . $this->escapePhpString((string)($property['name'] ?? '')) . '" => '
+                . $this->getMockPropertyValue($property, $spec, $indentLevel + 1)
+                . ($index < count($properties) - 1 ? ',' : '');
+        }
+
+        $lines[] = $closingIndent . ')';
+
+        return implode("\n", $lines);
+    }
+
+    protected function getMockPropertyValue(array $property, array $spec, int $indentLevel): string
+    {
+        if (!empty($property['sub_schema'])) {
+            if (($property['type'] ?? null) === self::TYPE_ARRAY) {
+                $itemIndent = str_repeat('    ', $indentLevel);
+                $closingIndent = str_repeat('    ', max(0, $indentLevel - 1));
+
+                return "array(\n"
+                    . $itemIndent . $this->getMockDefinitionPayload((string)$property['sub_schema'], $spec, $indentLevel + 1) . "\n"
+                    . $closingIndent . ')';
+            }
+
+            return $this->getMockDefinitionPayload((string)$property['sub_schema'], $spec, $indentLevel);
+        }
+
+        if (!empty($property['enum'])) {
+            return '"' . $this->escapePhpString((string)$property['enum'][0]) . '"';
+        }
+
+        return match ($property['type'] ?? null) {
+            self::TYPE_OBJECT, self::TYPE_ARRAY => 'array()',
+            self::TYPE_BOOLEAN => 'true',
+            self::TYPE_INTEGER => (($property['x-example'] ?? null) === null && ($property['example'] ?? null) === null)
+                ? '1'
+                : $this->formatPhpLiteral($property['example'] ?? $property['x-example']),
+            self::TYPE_NUMBER => (($property['x-example'] ?? null) === null && ($property['example'] ?? null) === null)
+                ? '1.0'
+                : $this->formatPhpLiteral($property['example'] ?? $property['x-example']),
+            self::TYPE_STRING => '"' . $this->escapePhpString(
+                (string)(
+                    ($property['example'] ?? null) !== null && ($property['example'] ?? '') !== ''
+                        ? $property['example']
+                        : '[' . strtoupper((string)($property['name'] ?? '')) . ']'
+                )
+            ) . '"',
+            default => $this->formatPhpLiteral($property['example'] ?? null),
+        };
+    }
+
+    protected function formatPhpLiteral(mixed $value): string
+    {
+        if (is_string($value)) {
+            return '"' . $this->escapePhpString($value) . '"';
+        }
+
+        if (is_bool($value)) {
+            return $value ? 'true' : 'false';
+        }
+
+        if ($value === null) {
+            return 'null';
+        }
+
+        if (is_array($value)) {
+            return empty($value) ? 'array()' : var_export($value, true);
+        }
+
+        return (string)$value;
+    }
+
+    protected function escapePhpString(string $value): string
+    {
+        $value = str_replace('\\', '\\\\', $value);
+        $value = str_replace('"', '\\"', $value);
+        $value = str_replace('$', '\\$', $value);
+
+        return $value;
+    }
+
     protected function getReturn(array $method, array $spec = []): string
     {
         if (($method['emptyResponse'] ?? true) || $method['type'] === 'location' || $method['type'] === 'webAuth') {
@@ -589,6 +698,9 @@ class PHP extends Language
             }),
             new TwigFilter('getResponseModels', function ($value, array $spec = []) {
                 return $this->getResponseModels($value, $spec);
+            }),
+            new TwigFilter('mockDefinitionPayload', function (string $definitionName, array $spec, int $indentLevel = 2) {
+                return $this->getMockDefinitionPayload($definitionName, $spec, $indentLevel);
             }),
             new TwigFilter('methodParameters', function ($value) {
                 return $this->getMethodParameters($value);
