@@ -74,7 +74,7 @@ final class {{ service.name | caseUcfirst }}Test extends TestCase
     public function testMethod{{ method.name | caseUcfirst }}(): void
     {
 {% if responseModels | length > 0 %}
-        $data = {{ responseDefinitionName | mockDefinitionPayload(spec, 2) -}};
+        $data = {{ responseDefinitionName | mockDefinitionPayload(spec, 3) | raw -}};
 {% elseif (method.responseModel and method.responseModel == 'any') or (method | getReturn(spec) == 'array') %}
         $data = array();
 {% else %}

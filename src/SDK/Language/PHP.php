@@ -701,7 +701,7 @@ class PHP extends Language
             }),
             new TwigFilter('mockDefinitionPayload', function (string $definitionName, array $spec, int $indentLevel = 2) {
                 return $this->getMockDefinitionPayload($definitionName, $spec, $indentLevel);
-            }),
+            }, ['is_safe' => ['html']]),
             new TwigFilter('methodParameters', function ($value) {
                 return $this->getMethodParameters($value);
             }),
