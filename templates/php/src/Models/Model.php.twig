@@ -20,7 +20,7 @@ use {{ spec.namespace | caseNamespace }}\Enums\{{ enumName | caseUcfirst | overr
 
 {% endif %}
 /**
- * {{ definition.description }}
+ * {{ definition.description | unescape | raw }}
  */
 readonly class {{ definition.name | caseUcfirst | overrideIdentifier }}
 {
@@ -77,7 +77,7 @@ readonly class {{ definition.name | caseUcfirst | overrideIdentifier }}
 {% elseif property.type == 'array' and (property.enumValues is not empty or property.enumName is not empty) %}
 {% set paramDocType = 'list<' ~ ((property.enumName ?? property.name) | caseUcfirst | overrideIdentifier) ~ '>' %}
 {% endif %}
-     * @param {{ paramDocType | raw }} ${{ property.name | caseCamel | escapeKeyword }} {{ property.description | lower }}
+     * @param {{ paramDocType | raw }} ${{ property.name | caseCamel | escapeKeyword }} {{ property.description | unescape | lower | raw }}
 {% endfor %}
 {% for property in optionalProperties %}
 {% set paramDocType = property | typeName %}
@@ -86,7 +86,7 @@ readonly class {{ definition.name | caseUcfirst | overrideIdentifier }}
 {% elseif property.type == 'array' and (property.enumValues is not empty or property.enumName is not empty) %}
 {% set paramDocType = 'list<' ~ ((property.enumName ?? property.name) | caseUcfirst | overrideIdentifier) ~ '>' %}
 {% endif %}
-     * @param {{ paramDocType | raw }}|null ${{ property.name | caseCamel | escapeKeyword }} {{ property.description | lower }}
+     * @param {{ paramDocType | raw }}|null ${{ property.name | caseCamel | escapeKeyword }} {{ property.description | unescape | lower | raw }}
 {% endfor %}
 {% if definition.additionalProperties %}
      * @param array<string, mixed> $data Additional properties.

@@ -19,7 +19,7 @@ use {{ spec.namespace | caseNamespace }}\Enums\{{ enumName | caseUcfirst | overr
 {% set requiredProperties = requestModel.properties | filter((property) => property.required) %}
 {% set optionalProperties = requestModel.properties | filter((property) => not property.required) %}
 /**
- * {{ requestModel.description }}
+ * {{ requestModel.description | unescape | raw }}
  */
 readonly class {{ requestModel.name | caseUcfirst | overrideIdentifier }}
 {
@@ -72,7 +72,7 @@ readonly class {{ requestModel.name | caseUcfirst | overrideIdentifier }}
 {% elseif property.type == 'array' and (property.enumValues is not empty or property.enumName is not empty) %}
 {% set paramDocType = 'list<' ~ ((property.enumName ?? property.name) | caseUcfirst | overrideIdentifier) ~ '>' %}
 {% endif %}
-     * @param {{ paramDocType | raw }} ${{ property.name | caseCamel | escapeKeyword }} {{ property.description | lower }}
+     * @param {{ paramDocType | raw }} ${{ property.name | caseCamel | escapeKeyword }} {{ property.description | unescape | lower | raw }}
 {% endfor %}
 {% for property in optionalProperties %}
 {% set paramDocType = property | typeName %}
@@ -81,7 +81,7 @@ readonly class {{ requestModel.name | caseUcfirst | overrideIdentifier }}
 {% elseif property.type == 'array' and (property.enumValues is not empty or property.enumName is not empty) %}
 {% set paramDocType = 'list<' ~ ((property.enumName ?? property.name) | caseUcfirst | overrideIdentifier) ~ '>' %}
 {% endif %}
-     * @param {{ paramDocType | raw }}|null ${{ property.name | caseCamel | escapeKeyword }} {{ property.description | lower }}
+     * @param {{ paramDocType | raw }}|null ${{ property.name | caseCamel | escapeKeyword }} {{ property.description | unescape | lower | raw }}
 {% endfor %}
      */
     public function __construct(
