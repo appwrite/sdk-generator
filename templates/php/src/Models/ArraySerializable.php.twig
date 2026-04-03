@@ -101,6 +101,16 @@ trait ArraySerializable
             $arrayType = static::getArrayTypes()[$name] ?? null;
 
             if ($arrayType === null) {
+                foreach ($value as $item) {
+                    if (is_array($item) || is_object($item)) {
+                        @trigger_error(
+                            'Array property "' . $name . '" on ' . static::class . ' contains structured values but has no ARRAY_TYPES mapping. Values will remain unhydrated.',
+                            E_USER_WARNING
+                        );
+                        break;
+                    }
+                }
+
                 return $value;
             }
 

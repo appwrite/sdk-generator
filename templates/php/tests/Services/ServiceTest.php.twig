@@ -65,10 +65,12 @@ final class {{ service.name | caseUcfirst }}Test extends TestCase
 {# Skip deprecated methods that have namespace collisions with non-deprecated methods #}
 {% else %}
 {% set responseModels = method | getResponseModels(spec) %}
-{% set rawResponseModelNames = method.responseModels | filter((modelName) => modelName is not empty and modelName != 'any') %}
+{% set filteredResponseModelNames = method.responseModels | filter((modelName) => modelName is not empty and modelName != 'any') %}
+{% set responseDefinitionName = '' %}
+{% if filteredResponseModelNames is not empty %}
+{% set responseDefinitionName = filteredResponseModelNames | first %}
+{% elseif method.responseModel and method.responseModel != 'any' %}
 {% set responseDefinitionName = method.responseModel %}
-{% if rawResponseModelNames is not empty %}
-{% set responseDefinitionName = rawResponseModelNames | first %}
 {% endif %}
 {% set requiredParameters = method.parameters.all | filter((param) => param.required) %}
     public function testMethod{{ method.name | caseUcfirst }}(): void

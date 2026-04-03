@@ -306,7 +306,7 @@ class PHP extends Language
     {
         $segments = explode('\\', $namespace);
         $segments = array_map(function ($segment) {
-            return ucfirst($this->toCamelCase($segment));
+            return $this->toPascalCase($segment);
         }, $segments);
 
         return implode('\\', $segments);
@@ -726,14 +726,14 @@ class PHP extends Language
             new TwigFilter('caseNamespace', function ($value) {
                 $segments = explode('\\', $value);
                 $segments = array_map(function ($segment) {
-                    return ucfirst($this->toCamelCase($segment));
+                    return $this->toPascalCase($segment);
                 }, $segments);
                 return implode('\\', $segments);
             }),
             new TwigFilter('caseNamespacePath', function ($value) {
                 $segments = explode('\\', $value);
                 $segments = array_map(function ($segment) {
-                    return ucfirst($this->toCamelCase($segment));
+                    return $this->toPascalCase($segment);
                 }, $segments);
                 return implode('/', $segments);
             }),
