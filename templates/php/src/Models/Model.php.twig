@@ -218,7 +218,7 @@ class {{ definition.name | caseUcfirst | overrideIdentifier }}
     {
         return [
             {%~ for property in definition.properties %}
-            '{{ property.name }}' => {% if property.sub_schema %}{% if property.type == 'array' %}array_map(static fn ($item) => $item->toArray(), $this->{{ property.name | caseCamel | escapeKeyword }} ?? []){% else %}$this->{{ property.name | caseCamel | escapeKeyword }}?->toArray(){% endif %}{% elseif property.enum %}$this->{{ property.name | caseCamel | escapeKeyword }}{% if not property.required %}?{% endif %}->__toString(){% else %}$this->{{ property.name | caseCamel | escapeKeyword }}{% endif %}{% if not loop.last or definition.additionalProperties %},{% endif %}
+            '{{ property.name }}' => {% if property.sub_schema %}{% if property.type == 'array' %}{% if property.required %}array_map(static fn ($item) => $item->toArray(), $this->{{ property.name | caseCamel | escapeKeyword }}){% else %}$this->{{ property.name | caseCamel | escapeKeyword }} === null ? null : array_map(static fn ($item) => $item->toArray(), $this->{{ property.name | caseCamel | escapeKeyword }}){% endif %}{% else %}$this->{{ property.name | caseCamel | escapeKeyword }}?->toArray(){% endif %}{% elseif property.enum %}$this->{{ property.name | caseCamel | escapeKeyword }}{% if not property.required %}?{% endif %}->__toString(){% else %}$this->{{ property.name | caseCamel | escapeKeyword }}{% endif %}{% if not loop.last or definition.additionalProperties %},{% endif %}
             {%~ endfor %}
             {%~ if definition.additionalProperties %}
             'data' => $this->data

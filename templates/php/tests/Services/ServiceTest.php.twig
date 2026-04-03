@@ -1,3 +1,40 @@
+{% import _self as helper %}
+{% macro mockDefinitionPayload(definitionName, spec) %}
+{% import _self as helper %}
+array(
+    {%- for definition in spec.definitions | filter((item) => item.name == definitionName) -%}
+        {%- for property in definition.properties | filter((param) => param.required) -%}
+        "{{ property.name | escapeDollarSign }}" => {{ helper.mockPropertyValue(property, spec) }}{% if not loop.last %},{% endif %}
+        {%- endfor -%}
+    {%- endfor -%}
+)
+{% endmacro %}
+{% macro mockPropertyValue(property, spec) %}
+{% import _self as helper %}
+{% if property.sub_schema %}
+    {% if property.type == 'array' %}
+array({{ helper.mockDefinitionPayload(property.sub_schema, spec) }})
+    {% else %}
+{{ helper.mockDefinitionPayload(property.sub_schema, spec) }}
+    {% endif %}
+{% elseif property.enum %}
+"{{ (property.enum | first) | escapeDollarSign }}"
+{% elseif property.type == 'object' %}
+array()
+{% elseif property.type == 'array' %}
+array()
+{% elseif property.type == 'boolean' %}
+true
+{% elseif property.type == 'integer' and property['x-example'] is empty and property.example is empty %}
+1
+{% elseif property.type == 'number' and property['x-example'] is empty and property.example is empty %}
+1.0
+{% elseif property.type == 'string' %}
+"{% if property.example is not empty %}{{ property.example | escapeDollarSign }}{% else %}[{{ property.name | upper }}]{% endif %}"
+{% else %}
+{{ property.example }}
+{% endif %}
+{% endmacro %}
 <?php
 
 namespace {{ spec.namespace | caseNamespace }}\Services;
@@ -40,8 +77,12 @@ final class {{service.name | caseUcfirst}}Test extends TestCase {
 {% else %}
     public function testMethod{{method.name | caseUcfirst}}(): void {
         {% set responseModels = method | getResponseModels(spec) %}
+        {% set responseModelName = method.responseModel %}
+        {% if method.responseModels is not empty %}
+        {% set responseModelName = method.responseModels | first %}
+        {% endif %}
         {%~ if responseModels | length > 0 ~%}
-        $data = Mockery::mock({{ responseModels[0] }}::class);
+        $data = {{ helper.mockDefinitionPayload(responseModelName, spec) }};
         {%~ elseif method.responseModel and method.responseModel != 'any' ~%}
         $data = array(
             {%- for definition in spec.definitions ~%}{%~ if definition.name == method.responseModel -%}{%~ for property in definition.properties | filter((param) => param.required) ~%}
@@ -62,7 +103,6 @@ final class {{service.name | caseUcfirst}}Test extends TestCase {
 
         {% if responseModels | length > 0 %}
         $this->assertInstanceOf({{ responseModels[0] }}::class, $response);
-        $this->assertSame($data, $response);
         {% else %}
         $this->assertSame($data, $response);
         {% endif %}
