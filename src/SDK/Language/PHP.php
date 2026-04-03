@@ -270,6 +270,11 @@ class PHP extends Language
                 'template'      => 'php/src/Service.php.twig',
             ],
             [
+                'scope'         => 'default',
+                'destination'   => '/src/{{ spec.namespace | caseNamespacePath }}/Models/ArraySerializable.php',
+                'template'      => 'php/src/Models/ArraySerializable.php.twig',
+            ],
+            [
                 'scope'         => 'service',
                 'destination'   => '/src/{{ spec.namespace | caseNamespacePath }}/Services/{{service.name | caseUcfirst}}.php',
                 'template'      => 'php/src/Services/Service.php.twig',

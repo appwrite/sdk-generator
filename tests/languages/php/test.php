@@ -49,75 +49,75 @@ echo "x-sdk-name: {$sdkHeaders['x-sdk-name']}; x-sdk-platform: {$sdkHeaders['x-s
 // Foo Service
 
 $response = $foo->get('string', 123, ['string in array']);
-echo $response->getResult() . "\n";
+echo $response->result . "\n";
 
 $response = $foo->post('string', 123, ['string in array']);
-echo $response->getResult() . "\n";
+echo $response->result . "\n";
 
 $response = $foo->put('string', 123, ['string in array']);
-echo $response->getResult() . "\n";
+echo $response->result . "\n";
 
 $response = $foo->patch('string', 123, ['string in array']);
-echo $response->getResult() . "\n";
+echo $response->result . "\n";
 
 $response = $foo->delete('string', 123, ['string in array']);
-echo $response->getResult() . "\n";
+echo $response->result . "\n";
 
 // Bar Service
 
 $response = $bar->get('string', 123, ['string in array']);
-echo $response->getResult() . "\n";
+echo $response->result . "\n";
 
 $response = $bar->post('string', 123, ['string in array']);
-echo $response->getResult() . "\n";
+echo $response->result . "\n";
 
 $response = $bar->put('string', 123, ['string in array']);
-echo $response->getResult() . "\n";
+echo $response->result . "\n";
 
 $response = $bar->patch('string', 123, ['string in array']);
-echo $response->getResult() . "\n";
+echo $response->result . "\n";
 
 $response = $bar->delete('string', 123, ['string in array']);
-echo $response->getResult() . "\n";
+echo $response->result . "\n";
 
 $response = $general->redirect();
 echo $response['result'] . "\n";
 
 $response = $general->getUnion();
-echo $response->getResult() . "\n";
+echo $response->result . "\n";
 
 $response = $general->getUnion('stub');
-echo $response->getData() . "\n";
-echo $response->getType() . "\n";
+echo $response->data . "\n";
+echo $response->type . "\n";
 
 $data = file_get_contents(__DIR__ . '/../../resources/file.png');
 $response = $general->upload('string', 123, ['string in array'], InputFile::withData($data, 'image/png', 'file.png'));
-echo $response->getResult() . "\n";
+echo $response->result . "\n";
 
 $data = file_get_contents(__DIR__ . '/../../resources/large_file.mp4');
 $response = $general->upload('string', 123, ['string in array'], InputFile::withData($data, 'video/mp4', 'large_file.mp4'));
-echo $response->getResult() . "\n";
+echo $response->result . "\n";
 
 $response = $general->upload('string', 123, ['string in array'], InputFile::withPath(__DIR__ .'/../../resources/file.png'));
-echo $response->getResult() . "\n";
+echo $response->result . "\n";
 
 $response = $general->upload('string', 123, ['string in array'], InputFile::withPath(__DIR__ .'/../../resources/large_file.mp4'));
-echo $response->getResult() . "\n";
+echo $response->result . "\n";
 
 $response = $general->enum(MockType::FIRST());
-echo $response->getResult() . "\n";
+echo $response->result . "\n";
 
 // Request model tests
 $player = new Player('player1', 'John Doe', 100);
 $response = $general->createPlayer($player);
-echo $response->getResult() . "\n";
+echo $response->result . "\n";
 
 $players = [
     new Player('player1', 'John Doe', 100),
     new Player('player2', 'Jane Doe', 200),
 ];
 $response = $general->createPlayers($players);
-echo $response->getResult() . "\n";
+echo $response->result . "\n";
 
 try {
     $response = $general->error400();
@@ -283,4 +283,4 @@ echo Operator::dateSubDays(3) . "\n";
 echo Operator::dateSetNow() . "\n";
 
 $response = $general->headers();
-echo $response->getResult() . "\n";
+echo $response->result . "\n";

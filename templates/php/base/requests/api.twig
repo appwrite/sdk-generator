@@ -8,7 +8,20 @@
 {% set responseModels = method | getResponseModels(spec) %}
 {% if responseModels | length > 0 %}
 
-        return $this->parseResponse($response, [{% for responseModel in responseModels %}{{ responseModel }}::class{% if not loop.last %}, {% endif %}{% endfor %}]);
+        return $this->parseResponse(
+            $response,
+            [{% for responseModel in responseModels %}{{ responseModel }}::class{{ loop.last ? '' : ', ' }}{% endfor %}]
+{% if responseModels | length > 1 %},
+            [
+{% for modelName in method.responseModels %}
+                {{ responseModels[loop.index0] }}::class => [
+                    'required' => [{% for propertyName, property in spec.definitions[modelName].properties %}{% if property.required %}'{{ propertyName }}'{{ loop.last ? '' : ', ' }}{% endif %}{% endfor %}],
+                    'all' => [{% for propertyName, property in spec.definitions[modelName].properties %}'{{ propertyName }}'{{ loop.last ? '' : ', ' }}{% endfor %}],
+                ]{{ loop.last ? '' : ',' }}
+{% endfor %}
+            ]
+{% endif %}
+        );
 {% else %}
 
         return $response;
