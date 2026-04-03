@@ -1,6 +1,7 @@
 {% for parameter in method.parameters.all %}
 {% if parameter.type == 'file' %}
 {% set responseModels = method | getResponseModels(spec) %}
+{% set filteredResponseModelNames = method.responseModels | filter((modelName) => modelName is not empty and modelName != 'any') %}
         $size = 0;
         $mimeType = null;
         $postedName = null;
@@ -19,7 +20,20 @@
     {% endfor %}
                     ], $apiParams);
 {% if responseModels | length > 0 %}
-                return $this->parseResponse($response, [{% for responseModel in responseModels %}{{ responseModel }}::class{% if not loop.last %}, {% endif %}{% endfor %}]);
+                return $this->parseResponse(
+                    $response,
+                    [{% for responseModel in responseModels %}{{ responseModel }}::class{{ loop.last ? '' : ', ' }}{% endfor %}]
+{% if responseModels | length > 1 %},
+                    [
+{% for modelName in filteredResponseModelNames %}
+                        {{ responseModels[loop.index0] }}::class => [
+                            'required' => [{% for propertyName, property in spec.definitions[modelName].properties %}{% if property.required %}'{{ propertyName }}'{{ loop.last ? '' : ', ' }}{% endif %}{% endfor %}],
+                            'all' => [{% for propertyName, property in spec.definitions[modelName].properties %}'{{ propertyName }}'{{ loop.last ? '' : ', ' }}{% endfor %}],
+                        ]{{ loop.last ? '' : ',' }}
+{% endfor %}
+                    ]
+{% endif %}
+                );
 {% else %}
                 return $response;
 {% endif %}
@@ -40,7 +54,20 @@
     {% endfor %}
                     ], $apiParams);
 {% if responseModels | length > 0 %}
-                return $this->parseResponse($response, [{% for responseModel in responseModels %}{{ responseModel }}::class{% if not loop.last %}, {% endif %}{% endfor %}]);
+                return $this->parseResponse(
+                    $response,
+                    [{% for responseModel in responseModels %}{{ responseModel }}::class{{ loop.last ? '' : ', ' }}{% endfor %}]
+{% if responseModels | length > 1 %},
+                    [
+{% for modelName in filteredResponseModelNames %}
+                        {{ responseModels[loop.index0] }}::class => [
+                            'required' => [{% for propertyName, property in spec.definitions[modelName].properties %}{% if property.required %}'{{ propertyName }}'{{ loop.last ? '' : ', ' }}{% endif %}{% endfor %}],
+                            'all' => [{% for propertyName, property in spec.definitions[modelName].properties %}'{{ propertyName }}'{{ loop.last ? '' : ', ' }}{% endfor %}],
+                        ]{{ loop.last ? '' : ',' }}
+{% endfor %}
+                    ]
+{% endif %}
+                );
 {% else %}
                 return $response;
 {% endif %}
@@ -101,7 +128,20 @@
             @fclose($handle);
         }
 {% if responseModels | length > 0 %}
-        return $this->parseResponse($response, [{% for responseModel in responseModels %}{{ responseModel }}::class{% if not loop.last %}, {% endif %}{% endfor %}]);
+        return $this->parseResponse(
+            $response,
+            [{% for responseModel in responseModels %}{{ responseModel }}::class{{ loop.last ? '' : ', ' }}{% endfor %}]
+{% if responseModels | length > 1 %},
+            [
+{% for modelName in filteredResponseModelNames %}
+                {{ responseModels[loop.index0] }}::class => [
+                    'required' => [{% for propertyName, property in spec.definitions[modelName].properties %}{% if property.required %}'{{ propertyName }}'{{ loop.last ? '' : ', ' }}{% endif %}{% endfor %}],
+                    'all' => [{% for propertyName, property in spec.definitions[modelName].properties %}'{{ propertyName }}'{{ loop.last ? '' : ', ' }}{% endfor %}],
+                ]{{ loop.last ? '' : ',' }}
+{% endfor %}
+            ]
+{% endif %}
+        );
 {% else %}
         return $response;
 {% endif %}
