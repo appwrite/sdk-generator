@@ -2,6 +2,8 @@
 
 namespace {{ spec.namespace | caseNamespace }}\Models;
 
+{% set requiredProperties = definition.properties | filter((property) => property.required) %}
+{% set optionalProperties = definition.properties | filter((property) => not property.required) %}
 {% set enumImports = [] %}
 {% for property in definition.properties %}
 {% if property.enumValues is not empty or property.enumName is not empty %}
@@ -15,9 +17,8 @@ namespace {{ spec.namespace | caseNamespace }}\Models;
 use {{ spec.namespace | caseNamespace }}\Enums\{{ enumName | caseUcfirst | overrideIdentifier }};
 {% endfor %}
 {% if enumImports is not empty %}
+
 {% endif %}
-{% set requiredProperties = definition.properties | filter((property) => property.required) %}
-{% set optionalProperties = definition.properties | filter((property) => not property.required) %}
 /**
  * {{ definition.description }}
  */
