@@ -9,20 +9,22 @@ trait ArraySerializable
      */
     public static function from(array $data): static
     {
-        $reflection = new \ReflectionClass(static::class);
-        $constructor = $reflection->getConstructor();
+        $parameters = static::getConstructorParameters();
 
-        if ($constructor === null) {
+        if ($parameters === []) {
             return new static();
         }
 
         $arguments = [];
+        $additionalProperties = static::hasAdditionalProperties()
+            ? static::extractAdditionalProperties($data, $parameters)
+            : [];
 
-        foreach ($constructor->getParameters() as $parameter) {
+        foreach ($parameters as $parameter) {
             $name = $parameter->getName();
 
             if ($name === 'data' && static::hasAdditionalProperties()) {
-                $arguments[$name] = isset($data['data']) && is_array($data['data']) ? $data['data'] : $data;
+                $arguments[$name] = $additionalProperties;
                 continue;
             }
 
@@ -51,6 +53,14 @@ trait ArraySerializable
         $result = [];
 
         foreach (get_object_vars($this) as $name => $value) {
+            if ($name === 'data' && static::hasAdditionalProperties()) {
+                foreach (static::serializeAdditionalProperties($value) as $field => $fieldValue) {
+                    $result[$field] = $fieldValue;
+                }
+
+                continue;
+            }
+
             $field = static::getFieldMap()[$name] ?? $name;
             $result[$field] = static::serializeValue($value);
         }
@@ -77,6 +87,73 @@ trait ArraySerializable
     private static function hasAdditionalProperties(): bool
     {
         return defined(static::class . '::ADDITIONAL_PROPERTIES') && static::ADDITIONAL_PROPERTIES;
+    }
+
+    /**
+     * @return array<int, \ReflectionParameter>
+     */
+    private static function getConstructorParameters(): array
+    {
+        /** @var array<class-string, array<int, \ReflectionParameter>> $cache */
+        static $cache = [];
+
+        if (isset($cache[static::class])) {
+            return $cache[static::class];
+        }
+
+        $reflection = new \ReflectionClass(static::class);
+        $constructor = $reflection->getConstructor();
+
+        if ($constructor === null) {
+            $cache[static::class] = [];
+            return [];
+        }
+
+        return $cache[static::class] = $constructor->getParameters();
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     * @param array<int, \ReflectionParameter> $parameters
+     * @return array<string, mixed>
+     */
+    private static function extractAdditionalProperties(array $data, array $parameters): array
+    {
+        if (isset($data['data']) && is_array($data['data'])) {
+            return $data['data'];
+        }
+
+        $knownFields = [];
+
+        foreach ($parameters as $parameter) {
+            $name = $parameter->getName();
+
+            if ($name === 'data') {
+                continue;
+            }
+
+            $knownFields[] = static::getFieldMap()[$name] ?? $name;
+        }
+
+        return array_diff_key($data, array_flip($knownFields));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function serializeAdditionalProperties(mixed $value): array
+    {
+        if (!is_array($value)) {
+            return [];
+        }
+
+        $result = [];
+
+        foreach ($value as $field => $fieldValue) {
+            $result[$field] = static::serializeValue($fieldValue);
+        }
+
+        return $result;
     }
 
     private static function hydrateValue(string $name, mixed $value, \ReflectionParameter $parameter): mixed

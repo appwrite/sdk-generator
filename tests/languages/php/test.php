@@ -34,6 +34,35 @@ use Appwrite\Services\Bar;
 use Appwrite\Services\Foo;
 use Appwrite\Services\General;
 
+readonly class AdditionalPropsDataOnly
+{
+    use \Appwrite\Models\ArraySerializable;
+
+    private const ADDITIONAL_PROPERTIES = true;
+
+    public function __construct(
+        public array $data = []
+    ) {
+    }
+}
+
+readonly class AdditionalPropsMapped
+{
+    use \Appwrite\Models\ArraySerializable;
+
+    private const FIELD_MAP = [
+        'id' => '$id',
+    ];
+
+    private const ADDITIONAL_PROPERTIES = true;
+
+    public function __construct(
+        public string $id,
+        public array $data = []
+    ) {
+    }
+}
+
 $client = (new Client())
     ->addHeader("Origin", "http://localhost")
     ->setSelfSigned();
@@ -254,6 +283,20 @@ echo Permission::create(Role::label('admin')) . "\n";
 // ID helper tests
 echo ID::unique() . "\n";
 echo ID::custom('custom_id') . "\n";
+
+// additionalProperties round-trip tests
+$preferences = AdditionalPropsDataOnly::from([
+    'theme' => 'dark',
+    'timezone' => 'UTC',
+]);
+echo json_encode($preferences->toArray(), JSON_THROW_ON_ERROR) . "\n";
+
+$row = AdditionalPropsMapped::from([
+    '$id' => 'row1',
+    'custom' => 'value',
+    'nested' => ['enabled' => true],
+]);
+echo json_encode($row->toArray(), JSON_THROW_ON_ERROR) . "\n";
 
 // Operator helper tests
 echo Operator::increment() . "\n";
