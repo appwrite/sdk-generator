@@ -26,10 +26,10 @@ use {{ spec.namespace | caseNamespace }}\Models\{{ parameter.model | caseUcfirst
 
 class {{ service.name | caseUcfirst }} extends Service
 {
-     public function __construct(Client $client)
-     {
-         parent::__construct($client);
-     }
+    public function __construct(Client $client)
+    {
+        parent::__construct($client);
+    }
 
 {% set nonDeprecatedMethodNames = [] %}
 {% for method in service.methods %}
