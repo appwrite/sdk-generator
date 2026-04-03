@@ -42,7 +42,11 @@ abstract class Service
             }
         }
 
-        return $this->hydrateModel($bestModel ?? $models[0], $response);
+        if ($bestScore < 0 || $bestModel === null) {
+            throw new \UnexpectedValueException('Unable to match response to any expected response model.');
+        }
+
+        return $this->hydrateModel($bestModel, $response);
     }
 
     /**

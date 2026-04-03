@@ -61,6 +61,7 @@ final class {{service.name | caseUcfirst}}Test extends TestCase {
         );
 
         {% if responseModels | length > 0 %}
+        $this->assertInstanceOf({{ responseModels[0] }}::class, $response);
         $this->assertSame($data, $response);
         {% else %}
         $this->assertSame($data, $response);
