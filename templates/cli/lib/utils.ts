@@ -3,7 +3,6 @@ import os from "os";
 import path from "path";
 import net from "net";
 import childProcess from "child_process";
-import { fetch } from "undici";
 import type { Models } from "@appwrite.io/console";
 import { z } from "zod";
 import { globalConfig } from "./config.js";
@@ -188,7 +187,9 @@ export async function getLatestVersion(
   try {
     const timeoutMs = options.timeoutMs;
     const signal =
-      typeof timeoutMs === "number" ? AbortSignal.timeout(timeoutMs) : undefined;
+      typeof timeoutMs === "number"
+        ? AbortSignal.timeout(timeoutMs)
+        : undefined;
 
     const response = await fetch(NPM_REGISTRY_URL, { signal });
     if (!response.ok) {
