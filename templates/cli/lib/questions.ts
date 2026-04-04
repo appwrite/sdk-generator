@@ -262,8 +262,10 @@ export const questionsInitProject: Question[] = [
       );
 
       const choices = projects.map((project: any) => {
+        const label = `${project.name} (${project["$id"]})`;
         return {
-          name: `${project.name} (${project["$id"]})`,
+          name: label,
+          short: label,
           value: {
             $id: project["$id"],
             region: project.region || "",
