@@ -61,7 +61,7 @@ function shouldWriteUpdateNoticeToStderr(): boolean {
     return process.argv.some((arg) => ['-j', '--json', '-R', '--raw'].includes(arg));
 }
 
-async function maybeShowDailyUpdateNotice(): Promise<void> {
+async function maybeShowUpdateNotice(): Promise<void> {
     try {
         const latestVersion = await getCachedUpdateNotification(version);
 
@@ -71,7 +71,7 @@ async function maybeShowDailyUpdateNotice(): Promise<void> {
 
         writeUpdateAvailableNotice(version, latestVersion, shouldWriteUpdateNoticeToStderr());
     } catch (_error) {
-        // Daily update checks should never affect command execution.
+        // Update checks should never affect command execution.
     }
 }
 
@@ -108,7 +108,7 @@ if (process.argv.includes('-v') || process.argv.includes('--version')) {
     })();
 } else {
     void (async () => {
-        await maybeShowDailyUpdateNotice();
+        await maybeShowUpdateNotice();
 
         program
             .description(commandDescriptions['main'])

@@ -12,6 +12,7 @@ import {
   NPM_REGISTRY_URL,
   DEFAULT_ENDPOINT,
   EXECUTABLE_NAME,
+  UPDATE_CHECK_INTERVAL_MS,
 } from "./constants.js";
 
 export const createSettingsObject = (project: Models.Project): SettingsType => {
@@ -63,20 +64,44 @@ export const getErrorMessage = (error: unknown): string => {
 };
 
 type UpdateCheckCache = {
-  checkedOn?: string;
+  checkedAt?: string;
   latestVersion?: string;
+  notifiedAt?: string;
+  checkedOn?: string;
   notifiedOn?: string;
 };
 
 const UPDATE_CHECK_FILE_NAME = "update-check.json";
 const DEFAULT_UPDATE_CHECK_TIMEOUT_MS = 250;
 
-const getLocalDateStamp = (date: Date = new Date()): string => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
+const getCurrentTimestamp = (): string => {
+  return new Date().toISOString();
+};
 
-  return `${year}-${month}-${day}`;
+const normalizeLegacyDate = (dateStamp?: string): string | undefined => {
+  if (typeof dateStamp !== "string" || dateStamp.trim() === "") {
+    return undefined;
+  }
+
+  const parsed = new Date(`${dateStamp}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) {
+    return undefined;
+  }
+
+  return parsed.toISOString();
+};
+
+const isWithinUpdateInterval = (timestamp?: string): boolean => {
+  if (typeof timestamp !== "string" || timestamp.trim() === "") {
+    return false;
+  }
+
+  const parsedTimestamp = new Date(timestamp).getTime();
+  if (Number.isNaN(parsedTimestamp)) {
+    return false;
+  }
+
+  return Date.now() - parsedTimestamp < UPDATE_CHECK_INTERVAL_MS;
 };
 
 const getCliConfigDirectory = (): string => {
@@ -109,14 +134,18 @@ const readUpdateCheckCache = (): UpdateCheckCache | null => {
     }
 
     return {
-      checkedOn:
-        typeof parsed.checkedOn === "string" ? parsed.checkedOn : undefined,
+      checkedAt:
+        typeof parsed.checkedAt === "string"
+          ? parsed.checkedAt
+          : normalizeLegacyDate(parsed.checkedOn),
       latestVersion:
         typeof parsed.latestVersion === "string"
           ? parsed.latestVersion
           : undefined,
-      notifiedOn:
-        typeof parsed.notifiedOn === "string" ? parsed.notifiedOn : undefined,
+      notifiedAt:
+        typeof parsed.notifiedAt === "string"
+          ? parsed.notifiedAt
+          : normalizeLegacyDate(parsed.notifiedOn),
     };
   } catch (_error) {
     return null;
@@ -140,13 +169,13 @@ export const syncVersionCheckCache = (
   currentVersion: string,
   latestVersion: string,
 ): void => {
-  const today = getLocalDateStamp();
+  const now = getCurrentTimestamp();
   const updateAvailable = compareVersions(currentVersion, latestVersion) > 0;
 
   writeUpdateCheckCache({
-    checkedOn: today,
+    checkedAt: now,
     latestVersion,
-    notifiedOn: updateAvailable ? today : undefined,
+    notifiedAt: updateAvailable ? now : undefined,
   });
 };
 
@@ -193,18 +222,18 @@ export function compareVersions(current: string, latest: string): number {
 export async function getCachedUpdateNotification(
   currentVersion: string,
 ): Promise<string | null> {
-  const today = getLocalDateStamp();
+  const now = getCurrentTimestamp();
   const cache = readUpdateCheckCache();
 
-  if (cache?.checkedOn === today) {
+  if (isWithinUpdateInterval(cache?.checkedAt)) {
     const hasFreshUpdate =
       typeof cache.latestVersion === "string" &&
       compareVersions(currentVersion, cache.latestVersion) > 0;
 
-    if (hasFreshUpdate && cache.notifiedOn !== today) {
+    if (hasFreshUpdate && !isWithinUpdateInterval(cache?.notifiedAt)) {
       writeUpdateCheckCache({
         ...cache,
-        notifiedOn: today,
+        notifiedAt: now,
       });
 
       return cache.latestVersion ?? null;
@@ -220,9 +249,9 @@ export async function getCachedUpdateNotification(
     const updateAvailable = compareVersions(currentVersion, latestVersion) > 0;
 
     writeUpdateCheckCache({
-      checkedOn: today,
+      checkedAt: now,
       latestVersion,
-      notifiedOn: updateAvailable ? today : undefined,
+      notifiedAt: updateAvailable ? now : undefined,
     });
 
     return updateAvailable ? latestVersion : null;
@@ -232,10 +261,10 @@ export async function getCachedUpdateNotification(
       typeof cachedVersion === "string" &&
       compareVersions(currentVersion, cachedVersion) > 0;
 
-    if (hasCachedUpdate && cache?.notifiedOn !== today) {
+    if (hasCachedUpdate && !isWithinUpdateInterval(cache?.notifiedAt)) {
       writeUpdateCheckCache({
         ...cache,
-        notifiedOn: today,
+        notifiedAt: now,
       });
 
       return cachedVersion;
