@@ -440,6 +440,15 @@ export const questionsPushSitesCode: Question[] = [
   },
 ];
 
+export const questionsPushSitesActivate: Question[] = [
+  {
+    type: "confirm",
+    name: "activate",
+    message: "Do you want to activate the deployment after it is ready?",
+    default: true,
+  },
+];
+
 export const questionsCreateFunction: Question[] = [
   {
     type: "input",
