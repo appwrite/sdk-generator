@@ -40,10 +40,16 @@ import { {{ service.name }} } from './lib/commands/services/{{ service.name | ca
 const { version } = packageJson;
 inquirer.registerPrompt('search-list', inquirerSearchList);
 
-function writeUpdateAvailableNotice(latestVersion: string, toStderr: boolean = false): void {
+function writeUpdateAvailableNotice(currentVersion: string, latestVersion: string, toStderr: boolean = false): void {
     const stream = toStderr ? process.stderr : process.stdout;
 
-    stream.write(chalk.yellow(`\n⚠️  A newer version is available: ${chalk.bold(latestVersion)}`) + '\n');
+    stream.write(
+        chalk.yellow(
+            `\n⚠️  A newer version is available: ${chalk.bold(currentVersion)} ${chalk.bold('→')} ${chalk.bold(
+                latestVersion
+            )}`
+        ) + '\n'
+    );
     stream.write(
         chalk.cyan(
             `💡 Run '${chalk.bold('{{ language.params.executableName|caseLower }} update')}' to update to the latest version.`
@@ -63,7 +69,7 @@ async function maybeShowDailyUpdateNotice(): Promise<void> {
             return;
         }
 
-        writeUpdateAvailableNotice(latestVersion, shouldWriteUpdateNoticeToStderr());
+        writeUpdateAvailableNotice(version, latestVersion, shouldWriteUpdateNoticeToStderr());
     } catch (_error) {
         // Daily update checks should never affect command execution.
     }
@@ -81,7 +87,7 @@ async function checkVersion(): Promise<void> {
         const comparison = compareVersions(version, latestVersion);
 
         if (comparison > 0) {
-            writeUpdateAvailableNotice(latestVersion);
+            writeUpdateAvailableNotice(version, latestVersion);
         } else if (comparison === 0) {
             process.stdout.write(chalk.green('\n✅ You are running the latest version!') + '\n');
         } else {
