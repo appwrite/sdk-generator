@@ -261,14 +261,16 @@ export async function getCachedUpdateNotification(
       timeoutMs: DEFAULT_UPDATE_CHECK_TIMEOUT_MS,
     });
     const updateAvailable = compareVersions(currentVersion, latestVersion) > 0;
+    const alreadyNotifiedRecently = isWithinUpdateInterval(cache?.notifiedAt);
 
     tryWriteUpdateCheckCache({
       checkedAt: now,
       latestVersion,
-      notifiedAt: updateAvailable ? now : undefined,
+      notifiedAt:
+        updateAvailable && !alreadyNotifiedRecently ? now : cache?.notifiedAt,
     });
 
-    return updateAvailable ? latestVersion : null;
+    return updateAvailable && !alreadyNotifiedRecently ? latestVersion : null;
   } catch (_error) {
     const cachedVersion = cache?.latestVersion;
     const hasCachedUpdate =
