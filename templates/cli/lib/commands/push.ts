@@ -150,6 +150,23 @@ interface PushCollectionState extends PushCollectionInput {
   isNewlyCreated?: boolean;
 }
 
+const normalizeIgnoreRules = (value: unknown): string[] => {
+  if (Array.isArray(value)) {
+    return value.filter(
+      (rule): rule is string => typeof rule === "string" && rule.length > 0,
+    );
+  }
+
+  if (typeof value === "string" && value.length > 0) {
+    return value
+      .split(/\r?\n/)
+      .map((rule) => rule.trim())
+      .filter((rule) => rule.length > 0);
+  }
+
+  return [];
+};
+
 export class Push {
   private projectClient: Client;
   private consoleClient: Client;
@@ -913,6 +930,7 @@ export class Push {
 
           const result = await pushDeployment({
             resourcePath: func.path,
+            extraIgnoreRules: normalizeIgnoreRules(func.ignore),
             createDeployment: async (codeFile) => {
               return await functionsServiceDeploy.createDeployment({
                 functionId: func["$id"],
