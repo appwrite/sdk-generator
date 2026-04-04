@@ -49,6 +49,14 @@ interface Question {
 const whenOverride = (answers: Answers): boolean =>
   answers.override === undefined ? true : answers.override;
 
+const validateNonNegativeInteger = (value: string): boolean | string => {
+  if (!/^\d+$/.test(value)) {
+    return "Please enter a non-negative integer.";
+  }
+
+  return true;
+};
+
 const getIgnores = (runtime: string): string[] => {
   const language = runtime.split("-").slice(0, -1).join("-");
 
@@ -1227,5 +1235,12 @@ export const questionsCreateSite: Question[] = [
       });
       return choices;
     },
+  },
+  {
+    type: "input",
+    name: "deploymentRetention",
+    message: "How many deployments would you like to retain?",
+    default: "0",
+    validate: validateNonNegativeInteger,
   },
 ];

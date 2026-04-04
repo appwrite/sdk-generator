@@ -810,6 +810,7 @@ const initSite = async (): Promise<void> => {
     fallbackFile: templateDetails.frameworks[0].fallbackFile || "",
     buildSpecification: answers.buildSpecification,
     runtimeSpecification: answers.runtimeSpecification,
+    deploymentRetention: Number(answers.deploymentRetention),
     enabled: true,
     timeout: 30,
     logging: true,
