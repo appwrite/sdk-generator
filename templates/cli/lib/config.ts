@@ -36,7 +36,7 @@ import type {
   GlobalConfigData,
 } from "./types.js";
 import { createSettingsObject } from "./utils.js";
-import { EXECUTABLE_NAME } from "./constants.js";
+import { EXECUTABLE_NAME, TOP_LEVEL_RESOURCE_ARRAY_KEYS } from "./constants.js";
 import { JSONBig } from "./json.js";
 
 /**
@@ -85,19 +85,6 @@ const CONFIG_KEY_ORDER = [
   "topics",
   "messages",
 ];
-
-const TOP_LEVEL_RESOURCE_ARRAY_KEYS = new Set([
-  "functions",
-  "sites",
-  "databases",
-  "collections",
-  "tablesDB",
-  "tables",
-  "buckets",
-  "teams",
-  "topics",
-  "messages",
-]);
 
 function orderConfigKeys<T extends Record<string, any>>(data: T): T {
   const ordered: Record<string, any> = {};
