@@ -141,10 +141,16 @@ impl Client {
     /// Set the API endpoint
     pub fn set_endpoint<S: Into<String>>(&self, endpoint: S) -> Result<Self> {
         let endpoint = endpoint.into();
-        if !endpoint.starts_with("http://") && !endpoint.starts_with("https://") {
+        let parsed = url::Url::parse(&endpoint).map_err(|e| {{ spec.title | caseUcfirst }}Error::new(
+            400,
+            format!("Invalid endpoint URL: {}", e),
+            None,
+            String::new(),
+        ))?;
+        if parsed.scheme() != "http" && parsed.scheme() != "https" {
             return Err({{ spec.title | caseUcfirst }}Error::new(
                 400,
-                format!("Invalid endpoint URL: {}", endpoint),
+                format!("Invalid endpoint URL scheme '{}': must be http or https", parsed.scheme()),
                 None,
                 String::new(),
             ));
@@ -160,9 +166,7 @@ impl Client {
     /// Set the project ID
     pub fn set_project<S: Into<String>>(&self, project: S) -> Result<Self> {
         let project = project.into();
-        let value = project.parse().map_err(|_| {{ spec.title | caseUcfirst }}Error::new(
-            400, "Invalid header value for x-appwrite-project", None, String::new(),
-        ))?;
+        let value: reqwest::header::HeaderValue = project.parse()?;
         self.state.rcu(|state| {
             let mut next = (**state).clone();
             next.config.headers.insert("x-appwrite-project", value.clone());
@@ -174,9 +178,7 @@ impl Client {
     /// Set the API key
     pub fn set_key<S: Into<String>>(&self, key: S) -> Result<Self> {
         let key = key.into();
-        let value = key.parse().map_err(|_| {{ spec.title | caseUcfirst }}Error::new(
-            400, "Invalid header value for x-appwrite-key", None, String::new(),
-        ))?;
+        let value: reqwest::header::HeaderValue = key.parse()?;
         self.state.rcu(|state| {
             let mut next = (**state).clone();
             next.config.headers.insert("x-appwrite-key", value.clone());
@@ -188,9 +190,7 @@ impl Client {
     /// Set the JWT token
     pub fn set_jwt<S: Into<String>>(&self, jwt: S) -> Result<Self> {
         let jwt = jwt.into();
-        let value = jwt.parse().map_err(|_| {{ spec.title | caseUcfirst }}Error::new(
-            400, "Invalid header value for x-appwrite-jwt", None, String::new(),
-        ))?;
+        let value: reqwest::header::HeaderValue = jwt.parse()?;
         self.state.rcu(|state| {
             let mut next = (**state).clone();
             next.config.headers.insert("x-appwrite-jwt", value.clone());
@@ -202,9 +202,7 @@ impl Client {
     /// Set the locale
     pub fn set_locale<S: Into<String>>(&self, locale: S) -> Result<Self> {
         let locale = locale.into();
-        let value = locale.parse().map_err(|_| {{ spec.title | caseUcfirst }}Error::new(
-            400, "Invalid header value for x-appwrite-locale", None, String::new(),
-        ))?;
+        let value: reqwest::header::HeaderValue = locale.parse()?;
         self.state.rcu(|state| {
             let mut next = (**state).clone();
             next.config.headers.insert("x-appwrite-locale", value.clone());
@@ -216,9 +214,7 @@ impl Client {
     /// Set the session
     pub fn set_session<S: Into<String>>(&self, session: S) -> Result<Self> {
         let session = session.into();
-        let value = session.parse().map_err(|_| {{ spec.title | caseUcfirst }}Error::new(
-            400, "Invalid header value for x-appwrite-session", None, String::new(),
-        ))?;
+        let value: reqwest::header::HeaderValue = session.parse()?;
         self.state.rcu(|state| {
             let mut next = (**state).clone();
             next.config.headers.insert("x-appwrite-session", value.clone());
