@@ -68,6 +68,9 @@ class ServiceTest {
             .setProject("123456")
             .addHeader("Origin", "http://localhost")
             .setSelfSigned(true)
+        val sdkHeaders = client.getHeaders()
+
+        writeToFile("x-sdk-name: ${sdkHeaders["x-sdk-name"]}; x-sdk-platform: ${sdkHeaders["x-sdk-platform"]}; x-sdk-language: ${sdkHeaders["x-sdk-language"]}; x-sdk-version: ${sdkHeaders["x-sdk-version"]}")
 
         runBlocking {
             val ping = client.ping()

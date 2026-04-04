@@ -127,8 +127,8 @@ class Web extends JS
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'rollup.config.js',
-                'template'      => '/web/rollup.config.js.twig',
+                'destination'   => 'rollup.config.mjs',
+                'template'      => '/web/rollup.config.mjs.twig',
             ],
             [
                 'scope'         => 'default',
@@ -149,6 +149,16 @@ class Web extends JS
                 'scope'         => 'enum',
                 'destination'   => 'src/enums/{{ enum.name | caseKebab }}.ts',
                 'template'      => 'web/src/enums/enum.ts.twig',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => '.gitignore',
+                'template'      => 'web/.gitignore',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'package-lock.json',
+                'template'      => 'web/package-lock.json.twig',
             ],
         ];
     }

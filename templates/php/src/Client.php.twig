@@ -185,6 +185,16 @@ class Client
         return $this;
     }
 
+    /**
+     * Get the request headers.
+     *
+     * @return array
+     */
+    public function getHeaders(): array
+    {
+        return $this->headers;
+    }
+
 {% if spec.global.headers | hasBearerAuth %}
     /**
      * Get authorization header, generating a new JWT if needed

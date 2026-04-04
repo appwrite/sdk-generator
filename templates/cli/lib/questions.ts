@@ -49,6 +49,14 @@ interface Question {
 const whenOverride = (answers: Answers): boolean =>
   answers.override === undefined ? true : answers.override;
 
+const validateNonNegativeInteger = (value: string): boolean | string => {
+  if (!/^\d+$/.test(value)) {
+    return "Please enter a non-negative integer.";
+  }
+
+  return true;
+};
+
 const getIgnores = (runtime: string): string[] => {
   const language = runtime.split("-").slice(0, -1).join("-");
 
@@ -227,14 +235,16 @@ export const questionsInitProject: Question[] = [
     name: "project",
     message: "What would you like to name your project?",
     default: "My Awesome Project",
-    when: (answer: Answers) => answer.start !== "existing",
+    when: (answer: Answers) =>
+      whenOverride(answer) && answer.start !== "existing",
   },
   {
     type: "input",
     name: "id",
     message: "What ID would you like to have for your project?",
     default: "unique()",
-    when: (answer: Answers) => answer.start !== "existing",
+    when: (answer: Answers) =>
+      whenOverride(answer) && answer.start !== "existing",
   },
   {
     type: "search-list",
@@ -251,7 +261,8 @@ export const questionsInitProject: Question[] = [
       ];
 
       const { projects } = await paginate(
-        async (args) => (await getProjectsService()).list(args.queries as string[]),
+        async (args) =>
+          (await getProjectsService()).list(args.queries as string[]),
         { parseOutput: false },
         100,
         "projects",
@@ -259,8 +270,10 @@ export const questionsInitProject: Question[] = [
       );
 
       const choices = projects.map((project: any) => {
+        const label = `${project.name} (${project["$id"]})`;
         return {
-          name: `${project.name} (${project["$id"]})`,
+          name: label,
+          short: label,
           value: {
             $id: project["$id"],
             region: project.region || "",
@@ -301,6 +314,7 @@ export const questionsInitProject: Question[] = [
         }));
     },
     when: (answer: Answers) => {
+      if (!whenOverride(answer)) return false;
       if (answer.start === "existing") return false;
       return isCloud();
     },
@@ -423,6 +437,15 @@ export const questionsPushSitesCode: Question[] = [
     type: "confirm",
     name: "override",
     message: "Do you want to create a deployment for your sites?",
+  },
+];
+
+export const questionsPushSitesActivate: Question[] = [
+  {
+    type: "confirm",
+    name: "activate",
+    message: "Do you want to activate the deployment after it is ready?",
+    default: true,
   },
 ];
 
@@ -900,6 +923,7 @@ export const questionsInitResources: Question[] = [
     choices: [
       { name: "Function", value: "function" },
       { name: "Site", value: "site" },
+      { name: "Skill", value: "skill" },
       { name: "Table", value: "table" },
       { name: "Bucket", value: "bucket" },
       { name: "Team", value: "team" },
@@ -1220,5 +1244,12 @@ export const questionsCreateSite: Question[] = [
       });
       return choices;
     },
+  },
+  {
+    type: "input",
+    name: "deploymentRetention",
+    message: "How many deployments would you like to retain? (0 = unlimited)",
+    default: "0",
+    validate: validateNonNegativeInteger,
   },
 ];

@@ -23,6 +23,8 @@ client.add_header('Origin', 'http://localhost')
 client.set_self_signed()
 
 print("\nTest Started")
+sdk_headers = client.get_headers()
+print(f"x-sdk-name: {sdk_headers['x-sdk-name']}; x-sdk-platform: {sdk_headers['x-sdk-platform']}; x-sdk-language: {sdk_headers['x-sdk-language']}; x-sdk-version: {sdk_headers['x-sdk-version']}")
 
 # Foo Tests
 

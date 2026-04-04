@@ -156,6 +156,18 @@ class Client {
     return this;
   }
 
+  /**
+   * Get Headers
+   *
+   * Returns a copy of the current request headers, including any
+   * authentication headers. Handle with care.
+   *
+   * @returns {Headers}
+   */
+  getHeaders(): Headers {
+    return { ...this.headers };
+  }
+
   async call<T = unknown>(
     method: string,
     path: string = "",

@@ -198,6 +198,11 @@ abstract class Base extends TestCase
         'custom_id'
     ];
 
+    protected const ADDITIONAL_PROPERTIES_RESPONSES = [
+        '{"theme":"dark","timezone":"UTC"}',
+        '{"$id":"row1","custom":"value","nested":{"enabled":true}}',
+    ];
+
     protected const CHANNEL_HELPER_RESPONSES = [
         'databases.db1.collections.col1.documents',
         'databases.db1.collections.col1.documents.doc1',
@@ -268,15 +273,18 @@ abstract class Base extends TestCase
 
     public function setUp(): void
     {
-        $headers = "x-sdk-name: {$this->sdkName}; x-sdk-platform: {$this->sdkPlatform}; x-sdk-language: {$this->sdkLanguage}; x-sdk-version: {$this->version}";
-
-        $this->expectedOutput[] = $headers;
+        \array_unshift($this->expectedOutput, $this->getExpectedSdkHeaders());
 
         \exec('
             cd ./mock-server && \
             docker compose build && \
             docker compose up -d --force-recreate
         ');
+    }
+
+    protected function getExpectedSdkHeaders(): string
+    {
+        return "x-sdk-name: {$this->sdkName}; x-sdk-platform: {$this->sdkPlatform}; x-sdk-language: {$this->sdkLanguage}; x-sdk-version: {$this->version}";
     }
 
     public function tearDown(): void

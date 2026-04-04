@@ -205,6 +205,11 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'bun.lock',
+                'template'      => 'cli/bun.lock.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'LICENSE.md',
                 'template'      => 'cli/LICENSE.md.twig',
             ],
@@ -217,6 +222,11 @@ class CLI extends Node
                 'scope'         => 'default',
                 'destination'   => 'package.json',
                 'template'      => 'cli/package.json.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'package-lock.json',
+                'template'      => 'cli/package-lock.json.twig',
             ],
             [
                 'scope'         => 'copy',

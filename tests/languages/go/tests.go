@@ -22,7 +22,15 @@ func main() {
 		appwrite.WithTimeout(60 * time.Second),
 	)
 	client.AddHeader("Origin", "http://localhost")
+	sdkHeaders := client.GetHeaders()
 	fmt.Print("\n\nTest Started\n")
+	fmt.Printf(
+		"x-sdk-name: %s; x-sdk-platform: %s; x-sdk-language: %s; x-sdk-version: %s\n",
+		sdkHeaders["x-sdk-name"],
+		sdkHeaders["x-sdk-platform"],
+		sdkHeaders["x-sdk-language"],
+		sdkHeaders["x-sdk-version"],
+	)
 	testFooService(client, stringInArray)
 	testBarService(client, stringInArray)
 	testGeneralService(client, stringInArray)

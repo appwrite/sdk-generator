@@ -176,6 +176,13 @@ class Client @JvmOverloads constructor(
     }
 
     /**
+     * Get the current request headers used for Appwrite API calls.
+     *
+     * @return a copy of the current request headers
+     */
+    fun getHeaders(): Map<String, String> = headers.toMap()
+
+    /**
      * Sends a "ping" request to Appwrite to verify connectivity.
      *
      * @return String

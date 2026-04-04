@@ -38,6 +38,7 @@ import {
   questionsPushFunctions,
   questionsPushFunctionsCode,
   questionsPushSites,
+  questionsPushSitesActivate,
   questionsPushSitesCode,
   questionsGetEntrypoint,
   questionsPushCollections,
@@ -55,6 +56,7 @@ import {
   error,
   commandDescriptions,
   drawTable,
+  parseBool,
 } from "../parser.js";
 import {
   getProxyService,
@@ -110,6 +112,7 @@ export interface PushOptions {
   siteOptions?: {
     async?: boolean;
     code?: boolean;
+    activate?: boolean;
     withVariables?: boolean;
   };
   tableOptions?: {
@@ -121,6 +124,7 @@ interface PushSiteOptions {
   siteId?: string;
   async?: boolean;
   code?: boolean;
+  activate?: boolean;
   withVariables?: boolean;
 }
 
@@ -149,6 +153,23 @@ interface PushCollectionState extends PushCollectionInput {
   isExisted?: boolean;
   isNewlyCreated?: boolean;
 }
+
+const normalizeIgnoreRules = (value: unknown): string[] => {
+  if (Array.isArray(value)) {
+    return value.filter(
+      (rule): rule is string => typeof rule === "string" && rule.length > 0,
+    );
+  }
+
+  if (typeof value === "string" && value.length > 0) {
+    return value
+      .split(/\r?\n/)
+      .map((rule) => rule.trim())
+      .filter((rule) => rule.length > 0);
+  }
+
+  return [];
+};
 
 export class Push {
   private projectClient: Client;
@@ -913,6 +934,7 @@ export class Push {
 
           const result = await pushDeployment({
             resourcePath: func.path,
+            extraIgnoreRules: normalizeIgnoreRules(func.ignore),
             createDeployment: async (codeFile) => {
               return await functionsServiceDeploy.createDeployment({
                 functionId: func["$id"],
@@ -1050,6 +1072,7 @@ export class Push {
     options: {
       async?: boolean;
       code?: boolean;
+      activate?: boolean;
       withVariables?: boolean;
     } = {},
   ): Promise<{
@@ -1058,7 +1081,8 @@ export class Push {
     failedDeployments: any[];
     errors: any[];
   }> {
-    const { async: asyncDeploy, code, withVariables } = options;
+    const { async: asyncDeploy, code, activate = true, withVariables } =
+      options;
 
     Spinner.start(false);
     let successfullyPushed = 0;
@@ -1070,7 +1094,6 @@ export class Push {
       sites.map(async (site: any) => {
         let response: any = {};
 
-        const ignore = site.ignore ? "appwrite.config.json" : ".gitignore";
         let siteExists = false;
         let deploymentCreated = false;
 
@@ -1078,7 +1101,7 @@ export class Push {
           status: "",
           resource: site.name,
           id: site["$id"],
-          end: `Ignoring using: ${ignore}`,
+          end: "Ignoring using: .gitignore",
         });
 
         updaterRow.update({ status: "Getting" }).startSpinner(SPINNER_DOTS);
@@ -1275,7 +1298,7 @@ export class Push {
                 buildCommand: site.buildCommand,
                 outputDirectory: site.outputDirectory,
                 code: codeFile,
-                activate: true,
+                activate: asyncDeploy ? activate : false,
               });
             },
             pollForStatus: false,
@@ -1335,6 +1358,21 @@ export class Push {
 
               const status = response["status"];
               if (status === "ready") {
+                if (activate) {
+                  updaterRow.update({
+                    status: "Activating",
+                    end: "Setting active deployment...",
+                  });
+
+                  const sitesServiceActivate = await getSitesService(
+                    this.projectClient,
+                  );
+                  await sitesServiceActivate.updateSiteDeployment({
+                    siteId: site["$id"],
+                    deploymentId,
+                  });
+                }
+
                 successfullyDeployed++;
 
                 let url = "";
@@ -1354,7 +1392,10 @@ export class Push {
                   url = `https://${res.rules[0].domain}`;
                 }
 
-                updaterRow.update({ status: "Deployed", end: url });
+                updaterRow.update({
+                  status: activate ? "Deployed" : "Built",
+                  end: url,
+                });
 
                 break;
               } else if (status === "failed") {
@@ -1765,9 +1806,19 @@ const pushResources = async ({
     const sites = localConfig.getSites();
     let allowSitesCodePush: boolean | null =
       cliConfig.force === true ? true : null;
+    let activateSitesDeployment: boolean | undefined =
+      cliConfig.force === true ? true : undefined;
     if (sites.length > 0 && allowSitesCodePush === null) {
       const codeAnswer = await inquirer.prompt(questionsPushSitesCode);
       allowSitesCodePush = codeAnswer.override;
+    }
+    if (
+      sites.length > 0 &&
+      allowSitesCodePush === true &&
+      activateSitesDeployment === undefined
+    ) {
+      const activateAnswer = await inquirer.prompt(questionsPushSitesActivate);
+      activateSitesDeployment = activateAnswer.activate;
     }
 
     const pushInstance = await createPushInstance({
@@ -1803,7 +1854,11 @@ const pushResources = async ({
         code: allowFunctionsCodePush === true,
         withVariables: false,
       },
-      siteOptions: { code: allowSitesCodePush === true, withVariables: false },
+      siteOptions: {
+        code: allowSitesCodePush === true,
+        activate: activateSitesDeployment ?? true,
+        withVariables: false,
+      },
     });
   } else {
     const actions: Record<string, (options?: any) => Promise<void>> = {
@@ -1898,6 +1953,7 @@ const pushSite = async ({
   siteId,
   async: asyncDeploy,
   code,
+  activate,
   withVariables,
 }: PushSiteOptions = {}): Promise<void> => {
   process.chdir(localConfig.configDirectoryPath);
@@ -1976,6 +2032,12 @@ const pushSite = async ({
   }
 
   const shouldPushCode = code !== false && allowCodePush === true;
+  let shouldActivate = activate;
+
+  if (shouldPushCode && shouldActivate === undefined) {
+    const activateAnswer = await inquirer.prompt(questionsPushSitesActivate);
+    shouldActivate = activateAnswer.activate;
+  }
 
   log("Pushing sites ...");
 
@@ -1983,6 +2045,7 @@ const pushSite = async ({
   const result = await pushInstance.pushSites(sites, {
     async: asyncDeploy,
     code: shouldPushCode,
+    activate: shouldActivate ?? true,
     withVariables,
   });
 
@@ -2651,6 +2714,12 @@ push
   .option(`-f, --site-id <site-id>`, `ID of site to run`)
   .option(`-A, --async`, `Don't wait for sites deployments status`)
   .option("--no-code", "Don't push the site's code")
+  .option(
+    "--activate [value]",
+    "Activate the site's deployment after it is ready.",
+    (value: string | undefined) =>
+      value === undefined ? true : parseBool(value),
+  )
   .option("--with-variables", `Push site variables.`)
   .action(actionRunner(pushSite));
 

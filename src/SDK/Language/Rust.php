@@ -278,12 +278,20 @@ class Rust extends Language
      */
     public function getTypeName(array $parameter, array $spec = []): string
     {
+        $isArray = (($parameter["type"] ?? null) === self::TYPE_ARRAY);
+
         // Handle enum types
-        if (isset($parameter["enumName"])) {
+        if (!$isArray && isset($parameter["enumName"])) {
             return "crate::enums::" . ucfirst($parameter["enumName"]);
         }
-        if (!empty($parameter["enumValues"])) {
+        if (!$isArray && !empty($parameter["enumValues"])) {
             return "crate::enums::" . ucfirst($parameter["name"]);
+        }
+        if ($isArray && isset($parameter["enumName"])) {
+            return "Vec<crate::enums::" . ucfirst($parameter["enumName"]) . ">";
+        }
+        if ($isArray && !empty($parameter["enumValues"])) {
+            return "Vec<crate::enums::" . ucfirst($parameter["name"]) . ">";
         }
 
         if (
@@ -542,6 +550,10 @@ class Rust extends Language
      */
     protected function getPropertyType(array $property, array $spec, string $generic = "serde_json::Value"): string
     {
+        if (\array_key_exists("sub_schemas", $property) && !empty($property["sub_schemas"])) {
+            return $property["type"] === "array" ? "Vec<serde_json::Value>" : "serde_json::Value";
+        }
+
         if (\array_key_exists("sub_schema", $property)) {
             $type = "crate::models::" . ucfirst($property["sub_schema"]);
 

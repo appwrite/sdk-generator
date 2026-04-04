@@ -16,6 +16,8 @@ void main() async {
   client.setSelfSigned();
 
   print('\nTest Started');
+  final sdkHeaders = client.getHeaders();
+  print("x-sdk-name: ${sdkHeaders['x-sdk-name']}; x-sdk-platform: ${sdkHeaders['x-sdk-platform']}; x-sdk-language: ${sdkHeaders['x-sdk-language']}; x-sdk-version: ${sdkHeaders['x-sdk-version']}");
 
   // Ping pong test
   client.setProject('123456');

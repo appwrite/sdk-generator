@@ -32,7 +32,7 @@ jobs:
 
       - name: Install dependencies and build for Linux and Windows
         run: |
-          bun install
+          bun install --frozen-lockfile
           bun run linux-x64
           bun run linux-arm64
           bun run mac-x64

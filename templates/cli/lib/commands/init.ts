@@ -30,7 +30,13 @@ import {
   commandDescriptions,
 } from "../parser.js";
 import { sdkForConsole } from "../sdks.js";
-import { isCloud } from "../utils.js";
+import {
+  isCloud,
+  hasSkillsInstalled,
+  fetchAvailableSkills,
+  detectProjectSkills,
+  placeSkills,
+} from "../utils.js";
 import { Account, UseCases, AppwriteException } from "@appwrite.io/console";
 import { DEFAULT_ENDPOINT, EXECUTABLE_NAME } from "../constants.js";
 
@@ -80,10 +86,22 @@ interface SiteTemplateDetails {
   variables?: SiteTemplateVariable[];
 }
 
+const getSafeDirectoryName = (value: string, fallback: string): string => {
+  const normalized = value
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  return normalized || fallback;
+};
+
 const initResources = async (): Promise<void> => {
   const actions: Record<string, InitResourceAction> = {
     function: initFunction,
     site: initSite,
+    skill: initSkill,
     table: initTable,
     bucket: initBucket,
     team: initTeam,
@@ -132,7 +150,8 @@ const initProject = async ({
   if (!organizationId && !projectId && !projectName) {
     answers = await inquirer.prompt(questionsInitProject);
     if (answers.override === false) {
-      process.exit(1);
+      log("No changes made. Existing project configuration was kept.");
+      return;
     }
   } else {
     const selectedOrganization =
@@ -252,6 +271,30 @@ const initProject = async ({
   hint(
     `Next you can use '${EXECUTABLE_NAME} init' to create resources in your project, or use '${EXECUTABLE_NAME} pull' and '${EXECUTABLE_NAME} push' to synchronize your project.`,
   );
+
+  if (!hasSkillsInstalled(localConfig.configDirectoryPath)) {
+    try {
+      const skillsCwd = localConfig.configDirectoryPath;
+      log("Setting up Appwrite agent skills ...");
+      const { skills, tempDir } = fetchAvailableSkills();
+      try {
+        const detected = detectProjectSkills(skillsCwd, skills);
+        if (detected.length > 0) {
+          const names = detected.map((s) => s.dirName);
+          placeSkills(skillsCwd, tempDir, names, [".agents", ".claude"], true);
+          success(
+            `Installed ${names.length} agent skill${names.length === 1 ? "" : "s"} based on your project: ${detected.map((s) => s.name).join(", ")}`,
+          );
+        }
+      } finally {
+        fs.rmSync(tempDir, { recursive: true, force: true });
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      error(`Failed to install agent skills: ${msg}`);
+      hint(`You can install them later with '${EXECUTABLE_NAME} init skill'.`);
+    }
+  }
 };
 
 const initBucket = async (): Promise<void> => {
@@ -368,6 +411,75 @@ const initTopic = async (): Promise<void> => {
   );
 };
 
+const initSkill = async (): Promise<void> => {
+  process.chdir(localConfig.configDirectoryPath);
+  const cwd = process.cwd();
+
+  log("Fetching available Appwrite agent skills ...");
+  const { skills, tempDir } = fetchAvailableSkills();
+
+  try {
+    const { selectedSkills } = await inquirer.prompt([
+      {
+        type: "checkbox",
+        name: "selectedSkills",
+        message: "Which skills would you like to install?",
+        choices: skills.map((skill) => ({
+          name: skill.name,
+          value: skill.dirName,
+          checked: false,
+        })),
+        validate: (value: string[]) =>
+          value.length > 0 || "Please select at least one skill.",
+      },
+    ]);
+
+    const { selectedAgents } = await inquirer.prompt([
+      {
+        type: "checkbox",
+        name: "selectedAgents",
+        message: "Which agent directories would you like to install to?",
+        choices: [
+          { name: ".agents", value: ".agents", checked: true },
+          { name: ".claude", value: ".claude", checked: false },
+        ],
+        validate: (value: string[]) =>
+          value.length > 0 || "Please select at least one agent directory.",
+      },
+    ]);
+
+    const { installMethod } = await inquirer.prompt([
+      {
+        type: "list",
+        name: "installMethod",
+        message: "How would you like to install the skills?",
+        choices: [
+          {
+            name: "Symlink (recommended) — single source of truth, easy to update",
+            value: "symlink",
+          },
+          {
+            name: "Copy — independent copies in each agent directory",
+            value: "copy",
+          },
+        ],
+      },
+    ]);
+
+    const useSymlinks = installMethod === "symlink";
+    placeSkills(cwd, tempDir, selectedSkills, selectedAgents, useSymlinks);
+
+    success(
+      `${selectedSkills.length} skill${selectedSkills.length === 1 ? "" : "s"} installed successfully.`,
+    );
+    hint(
+      `Agent skills are automatically discovered by AI coding agents like Claude Code, Cursor, and GitHub Copilot.`,
+    );
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+};
+
 const initFunction = async (): Promise<void> => {
   process.chdir(localConfig.configDirectoryPath);
 
@@ -383,13 +495,14 @@ const initFunction = async (): Promise<void> => {
 
   const functionId = answers.id === "unique()" ? ID.unique() : answers.id;
   const functionName = answers.name;
-  const functionDir = path.join(functionFolder, functionName);
+  const functionDirectoryName = getSafeDirectoryName(functionName, functionId);
+  const functionDir = path.join(functionFolder, functionDirectoryName);
   const templatesDir = path.join(functionFolder, `${functionId}-templates`);
   const runtimeDir = path.join(templatesDir, answers.runtime.name);
 
   if (fs.existsSync(functionDir)) {
     throw new Error(
-      `( ${functionName} ) already exists in the current directory. Please choose another name.`,
+      `( ${functionDirectoryName} ) already exists in the current directory. Please choose another name.`,
     );
   }
 
@@ -501,7 +614,7 @@ const initFunction = async (): Promise<void> => {
   const readmePath = path.join(
     process.cwd(),
     "functions",
-    functionName,
+    functionDirectoryName,
     "README.md",
   );
   const readmeFile = fs.readFileSync(readmePath).toString();
@@ -526,7 +639,7 @@ const initFunction = async (): Promise<void> => {
     entrypoint: answers.runtime.entrypoint || "",
     commands: answers.runtime.commands || "",
     ignore: answers.runtime.ignore || null,
-    path: `functions/${functionName}`,
+    path: `functions/${functionDirectoryName}`,
   };
 
   localConfig.addFunction(data);
@@ -550,12 +663,13 @@ const initSite = async (): Promise<void> => {
 
   const siteId = answers.id === "unique()" ? ID.unique() : answers.id;
   const siteName = answers.name;
-  const siteDir = path.join(siteFolder, siteName);
+  const siteDirectoryName = getSafeDirectoryName(siteName, siteId);
+  const siteDir = path.join(siteFolder, siteDirectoryName);
   const templatesDir = path.join(siteFolder, `${siteId}-templates`);
 
   if (fs.existsSync(siteDir)) {
     throw new Error(
-      `( ${siteName} ) already exists in the current directory. Please choose another name.`,
+      `( ${siteDirectoryName} ) already exists in the current directory. Please choose another name.`,
     );
   }
 
@@ -672,30 +786,17 @@ const initSite = async (): Promise<void> => {
 
   fs.rmSync(templatesDir, { recursive: true, force: true });
 
-  const readmePath = path.join(process.cwd(), "sites", siteName, "README.md");
+  const readmePath = path.join(
+    process.cwd(),
+    "sites",
+    siteDirectoryName,
+    "README.md",
+  );
   const readmeFile = fs.readFileSync(readmePath).toString();
   const newReadmeFile = readmeFile.split("\n");
   newReadmeFile[0] = `# ${answers.name}`;
   newReadmeFile.splice(1, 2);
   fs.writeFileSync(readmePath, newReadmeFile.join("\n"));
-
-  const vars: Record<string, string> = {};
-  for (const variable of templateDetails.variables ?? []) {
-    let value = variable.value ?? "";
-    const replacements: Record<string, string> = {
-      "{apiEndpoint}": globalConfig.getEndpoint(),
-      "{projectId}": localConfig.getProject().projectId ?? "",
-      "{projectName}": localConfig.getProject().projectName ?? "",
-    };
-
-    for (const placeholder in replacements) {
-      if (value.includes(placeholder)) {
-        value = value.replace(placeholder, replacements[placeholder]);
-      }
-    }
-
-    vars[variable.name] = value;
-  }
 
   const data = {
     $id: siteId,
@@ -709,12 +810,11 @@ const initSite = async (): Promise<void> => {
     fallbackFile: templateDetails.frameworks[0].fallbackFile || "",
     buildSpecification: answers.buildSpecification,
     runtimeSpecification: answers.runtimeSpecification,
+    deploymentRetention: Number(answers.deploymentRetention),
     enabled: true,
     timeout: 30,
     logging: true,
-    ignore: answers.framework.ignore || null,
-    path: `sites/${siteName}`,
-    vars: vars,
+    path: `sites/${siteDirectoryName}`,
   };
 
   if (!data.buildRuntime) {
@@ -769,6 +869,12 @@ init
   .alias("sites")
   .description("Init a new Appwrite site")
   .action(actionRunner(initSite));
+
+init
+  .command("skill")
+  .alias("skills")
+  .description("Install Appwrite agent skills for AI coding agents")
+  .action(actionRunner(initSkill));
 
 init
   .command("bucket")

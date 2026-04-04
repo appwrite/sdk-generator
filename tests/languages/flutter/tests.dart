@@ -57,6 +57,8 @@ void main() async {
   await Future.delayed(Duration(seconds: 5));
   client.addHeader('Origin', 'http://localhost');
   print('\nTest Started');
+  final sdkHeaders = client.getHeaders();
+  print("x-sdk-name: ${sdkHeaders['x-sdk-name']}; x-sdk-platform: ${sdkHeaders['x-sdk-platform']}; x-sdk-language: ${sdkHeaders['x-sdk-language']}; x-sdk-version: ${sdkHeaders['x-sdk-version']}");
 
   // Ping pong tests
   client.setProject('123456');

@@ -285,6 +285,28 @@ impl Client {
         self.clone()
     }
 
+    /// Get a copy of the current request headers
+    pub fn get_headers(&self) -> HashMap<String, String> {
+        let state = self.state.load();
+
+        state
+            .config
+            .headers
+            .iter()
+            .filter_map(|(key, value)| match value.to_str() {
+                Ok(value) => Some((key.as_str().to_string(), value.to_string())),
+                Err(_) => {
+                    debug_assert!(
+                        false,
+                        "Non-UTF-8 header value found for key {}",
+                        key.as_str()
+                    );
+                    None
+                }
+            })
+            .collect()
+    }
+
     /// Get the current endpoint
     pub fn endpoint(&self) -> String {
         let state = self.state.load();
@@ -641,11 +663,7 @@ impl Client {
 
         if file_size <= chunk_size as u64 {
             let state = self.state.load_full();
-            let url = if let Some(id) = &options.upload_id {
-                format!("{}{}/{}", state.config.endpoint, path, id)
-            } else {
-                format!("{}{}", state.config.endpoint, path)
-            };
+            let url = format!("{}{}", state.config.endpoint, path);
 
             let result = self.single_file_upload(&url, headers, params, param_name, &input_file).await?;
 

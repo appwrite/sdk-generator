@@ -135,6 +135,11 @@ class ClientIO extends ClientBase with ClientMixin {
     return this;
   }
 
+  @override
+  Map<String, String> getHeaders() {
+    return Map<String, String>.from(_headers!);
+  }
+
   Future init() async {
     if (_initProgress) return;
     _initProgress = true;

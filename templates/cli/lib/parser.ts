@@ -1,3 +1,8 @@
+// @ts-expect-error BigInt toJSON polyfill for JSON.stringify support
+BigInt.prototype.toJSON = function () {
+  return this.toString();
+};
+
 import chalk from "chalk";
 import { InvalidArgumentError } from "commander";
 import Table from "cli-table3";
@@ -18,14 +23,32 @@ import {
 const cliConfig: CliConfig = {
   verbose: false,
   json: false,
+  raw: false,
+  showSecrets: false,
   force: false,
   all: false,
   ids: [],
   report: false,
   reportData: {},
+  displayFields: [],
 };
 
 type JsonObject = Record<string, unknown>;
+
+const HIDDEN_VALUE = "[hidden]";
+const SENSITIVE_KEYS = new Set([
+  "secret",
+  "apikey",
+  "accesstoken",
+  "refreshtoken",
+  "password",
+  "jwt",
+  "clientsecret",
+  "secretkey",
+  "sessionsecret",
+]);
+let renderDepth = 0;
+let redactionApplied = false;
 
 interface ReportDataPayload {
   data?: {
@@ -54,99 +77,355 @@ const extractReportCommandArgs = (value: unknown): string[] => {
   return reportData.data.args;
 };
 
-export const parse = (data: JsonObject): void => {
-  if (cliConfig.json) {
-    drawJSON(data);
-    return;
+const beginRender = (): void => {
+  if (renderDepth === 0) {
+    redactionApplied = false;
   }
 
-  for (const key in data) {
-    if (data[key] === null) {
-      console.log(`${chalk.yellow.bold(key)} : null`);
-    } else if (Array.isArray(data[key])) {
-      console.log(`${chalk.yellow.bold.underline(key)}`);
-      if (typeof data[key][0] === "object") {
-        drawTable(data[key]);
-      } else {
-        drawJSON(data[key]);
-      }
-    } else if (typeof data[key] === "object") {
-      if (data[key]?.constructor?.name === "BigNumber") {
-        console.log(`${chalk.yellow.bold(key)} : ${data[key]}`);
-      } else {
-        console.log(`${chalk.yellow.bold.underline(key)}`);
-        const tableRow = toJsonObject(data[key]) ?? {};
-        drawTable([tableRow]);
-      }
+  renderDepth++;
+};
+
+const endRender = (): void => {
+  renderDepth = Math.max(0, renderDepth - 1);
+
+  if (renderDepth === 0 && redactionApplied && !cliConfig.showSecrets) {
+    const message =
+      "Sensitive values were redacted. Pass --show-secrets to display them.";
+
+    if (cliConfig.json || cliConfig.raw) {
+      console.error(`${chalk.cyan.bold("♥ Hint:")} ${chalk.cyan(message)}`);
     } else {
-      console.log(`${chalk.yellow.bold(key)} : ${data[key]}`);
+      hint(message);
     }
   }
 };
 
-export const drawTable = (data: Array<JsonObject | null | undefined>): void => {
-  if (data.length == 0) {
-    console.log("[]");
-    return;
+const withRender = <T>(callback: () => T): T => {
+  beginRender();
+
+  try {
+    return callback();
+  } finally {
+    endRender();
+  }
+};
+
+const isSensitiveKey = (key: string): boolean => {
+  const normalizedKey = key.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+  return SENSITIVE_KEYS.has(normalizedKey);
+};
+
+const maskSensitiveString = (value: string): string => {
+  if (value.length <= 16) {
+    return HIDDEN_VALUE;
   }
 
-  const rows = data.map((item): JsonObject => toJsonObject(item) ?? {});
-
-  // Create an object with all the keys in it
-  const obj = rows.reduce((res, item) => ({ ...res, ...item }), {});
-  // Get those keys as an array
-  const keys = Object.keys(obj);
-  if (keys.length === 0) {
-    drawJSON(data);
-    return;
+  const separatorIndex = value.indexOf("_");
+  if (separatorIndex > 0 && separatorIndex < value.length - 9) {
+    const prefix = value.slice(0, separatorIndex + 1);
+    const tail = value.slice(-4);
+    return `${prefix}${HIDDEN_VALUE}${tail}`;
   }
-  // Create an object with all keys set to the default value ''
-  const def = keys.reduce((result: Record<string, string>, key) => {
-    result[key] = "-";
+
+  return `${HIDDEN_VALUE}${value.slice(-4)}`;
+};
+
+const maskSensitiveData = (value: unknown, key?: string): unknown => {
+  if (key && isSensitiveKey(key) && !cliConfig.showSecrets) {
+    redactionApplied = true;
+
+    if (typeof value === "string") {
+      return maskSensitiveString(value);
+    }
+
+    if (value == null) {
+      return value;
+    }
+
+    return HIDDEN_VALUE;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => maskSensitiveData(item));
+  }
+
+  if (value && typeof value === "object") {
+    if (value?.constructor?.name === "BigNumber") {
+      return String(value);
+    }
+
+    const result: JsonObject = {};
+    for (const childKey of Object.keys(value as JsonObject)) {
+      const childValue = (value as JsonObject)[childKey];
+      if (typeof childValue === "function") continue;
+      result[childKey] = maskSensitiveData(childValue, childKey);
+    }
+
     return result;
-  }, {});
-  // Use object destructuring to replace all default values with the ones we have
-  const normalizedData = rows.map((item) => ({ ...def, ...item }));
+  }
 
-  const columns = Object.keys(normalizedData[0]);
+  return value;
+};
 
-  const table = new Table({
-    head: columns.map((c) => chalk.cyan.italic.bold(c)),
-    chars: {
-      top: " ",
-      "top-mid": " ",
-      "top-left": " ",
-      "top-right": " ",
-      bottom: " ",
-      "bottom-mid": " ",
-      "bottom-left": " ",
-      "bottom-right": " ",
-      left: " ",
-      "left-mid": " ",
-      mid: chalk.cyan("─"),
-      "mid-mid": chalk.cyan("┼"),
-      right: " ",
-      "right-mid": " ",
-      middle: chalk.cyan("│"),
-    },
-  });
+const filterObject = (obj: JsonObject): JsonObject => {
+  const result: JsonObject = {};
+  for (const key of Object.keys(obj)) {
+    const value = obj[key];
+    if (typeof value === "function") continue;
+    if (value == null) continue;
+    if (value?.constructor?.name === "BigNumber") {
+      result[key] = String(value);
+      continue;
+    }
+    if (typeof value === "object") continue;
+    if (typeof value === "string" && value.trim() === "") continue;
+    result[key] = value;
+  }
+  return result;
+};
 
-  normalizedData.forEach((row) => {
-    const rowValues: string[] = [];
-    for (const key of columns) {
-      if (row[key] == null) {
-        rowValues.push("-");
-      } else if (Array.isArray(row[key])) {
-        rowValues.push(JSON.stringify(row[key]));
-      } else if (typeof row[key] === "object") {
-        rowValues.push(JSON.stringify(row[key]));
-      } else {
-        rowValues.push(String(row[key]));
+const applyDisplayFilter = (rows: JsonObject[]): JsonObject[] => {
+  if (cliConfig.displayFields.length === 0) {
+    return rows;
+  }
+
+  return rows.map((row) => {
+    const filtered: JsonObject = {};
+
+    for (const key of cliConfig.displayFields) {
+      if (Object.prototype.hasOwnProperty.call(row, key)) {
+        filtered[key] = row[key];
       }
     }
-    table.push(rowValues);
+
+    return Object.keys(filtered).length > 0 ? filtered : row;
   });
-  console.log(table.toString());
+};
+
+const filterData = (data: JsonObject): JsonObject => {
+  const result: JsonObject = {};
+  for (const key of Object.keys(data)) {
+    const value = data[key];
+    if (typeof value === "function") continue;
+    if (value == null) continue;
+    if (value?.constructor?.name === "BigNumber") {
+      result[key] = String(value);
+      continue;
+    }
+    if (Array.isArray(value)) {
+      result[key] = value.map((item) => {
+        if (item?.constructor?.name === "BigNumber") return String(item);
+        return item && typeof item === "object" && !Array.isArray(item)
+          ? filterObject(item as JsonObject)
+          : item;
+      });
+    } else if (typeof value === "object") {
+      continue;
+    } else if (typeof value === "string" && value.trim() === "") {
+      continue;
+    } else {
+      result[key] = value;
+    }
+  }
+  return result;
+};
+
+export const parse = (data: JsonObject): void => {
+  withRender(() => {
+    const sanitizedData = maskSensitiveData(data) as JsonObject;
+
+    if (cliConfig.raw) {
+      drawJSON(sanitizedData);
+      return;
+    }
+
+    if (cliConfig.json) {
+      drawJSON(filterData(sanitizedData));
+      return;
+    }
+
+    const keys = Object.keys(sanitizedData).filter(
+      (k) => typeof sanitizedData[k] !== "function",
+    );
+    let printedScalar = false;
+
+    for (const key of keys) {
+      const value = sanitizedData[key];
+      if (value == null) continue;
+      if (typeof value === "string" && value.trim() === "") continue;
+      if (Array.isArray(value)) {
+        if (value.length === 0) continue;
+        if (
+          value.every(
+            (item) =>
+              item &&
+              typeof item === "object" &&
+              !Array.isArray(item) &&
+              Object.keys(item).length === 0,
+          )
+        )
+          continue;
+        console.log();
+        console.log(`${chalk.yellow.bold.underline(key)}`);
+        if (typeof value[0] === "object") {
+          drawTable(value);
+        } else {
+          drawJSON(value);
+        }
+        console.log();
+        printedScalar = false;
+      } else if (typeof value === "object") {
+        if (value?.constructor?.name === "BigNumber") {
+          console.log(`${chalk.yellow.bold(key)} : ${value}`);
+          printedScalar = true;
+        } else {
+          const tableRow = toJsonObject(value) ?? {};
+          if (Object.keys(tableRow).length === 0) continue;
+          console.log();
+          console.log(`${chalk.yellow.bold.underline(key)}`);
+          drawTable([tableRow]);
+          console.log();
+          printedScalar = false;
+        }
+      } else {
+        console.log(`${chalk.yellow.bold(key)} : ${value}`);
+        printedScalar = true;
+      }
+    }
+  });
+};
+
+const MAX_COL_WIDTH = 40;
+
+const formatCellValue = (value: unknown): string => {
+  if (value == null) return "-";
+  if (Array.isArray(value)) {
+    if (value.length === 0) return "[]";
+    return `[${value.length} items]`;
+  }
+  if (typeof value === "object") {
+    if (value?.constructor?.name === "BigNumber") return String(value);
+    const keys = Object.keys(value as Record<string, unknown>);
+    if (keys.length === 0) return "{}";
+    return `{${keys.length} keys}`;
+  }
+  const str = String(value);
+  if (str.length > MAX_COL_WIDTH) {
+    return str.slice(0, MAX_COL_WIDTH - 1) + "…";
+  }
+  return str;
+};
+
+export const drawTable = (data: Array<JsonObject | null | undefined>): void => {
+  withRender(() => {
+    if (data.length == 0) {
+      console.log("[]");
+      return;
+    }
+
+    const rows = applyDisplayFilter(
+      data.map((item): JsonObject => {
+        const maskedItem = maskSensitiveData(item);
+        return toJsonObject(maskedItem) ?? {};
+      }),
+    );
+
+    // Create an object with all the keys in it
+    const obj = rows.reduce((res, item) => ({ ...res, ...item }), {});
+    // Get those keys as an array
+    const allKeys = Object.keys(obj);
+    if (allKeys.length === 0) {
+      drawJSON(data);
+      return;
+    }
+
+    // If too many columns, show condensed key-value output with only scalar, non-empty fields
+    const maxColumns = 6;
+    if (allKeys.length > maxColumns) {
+      // Collect visible entries per row to compute alignment
+      const rowEntries = rows.map((row) => {
+        const entries: Array<[string, string]> = [];
+        for (const key of Object.keys(row)) {
+          const value = row[key];
+          if (typeof value === "function") continue;
+          if (value == null) continue;
+          if (value?.constructor?.name === "BigNumber") {
+            entries.push([key, String(value)]);
+            continue;
+          }
+          if (typeof value === "object") continue;
+          if (typeof value === "string" && value.trim() === "") continue;
+          entries.push([key, String(value)]);
+        }
+        return entries;
+      });
+
+      const flatEntries = rowEntries.flat();
+      if (flatEntries.length === 0) {
+        drawJSON(data);
+        return;
+      }
+
+      const maxKeyLen = Math.max(...flatEntries.map(([key]) => key.length));
+
+      const separatorLen = Math.min(
+        maxKeyLen + 2 + MAX_COL_WIDTH,
+        process.stdout.columns || 80,
+      );
+
+      rowEntries.forEach((entries, idx) => {
+        if (idx > 0) console.log(chalk.cyan("─".repeat(separatorLen)));
+        for (const [key, value] of entries) {
+          const paddedKey = key.padEnd(maxKeyLen);
+          console.log(`${chalk.yellow.bold(paddedKey)}  ${value}`);
+        }
+      });
+      return;
+    }
+
+    const columns = allKeys;
+
+    // Create an object with all keys set to the default value ''
+    const def = allKeys.reduce((result: Record<string, string>, key) => {
+      result[key] = "-";
+      return result;
+    }, {});
+    // Use object destructuring to replace all default values with the ones we have
+    const normalizedData = rows.map((item) => ({ ...def, ...item }));
+
+    const table = new Table({
+      head: columns.map((c) => chalk.cyan.italic.bold(c)),
+      colWidths: columns.map(() => null) as (number | null)[],
+      wordWrap: false,
+      chars: {
+        "top": " ",
+        "top-mid": " ",
+        "top-left": " ",
+        "top-right": " ",
+        "bottom": " ",
+        "bottom-mid": " ",
+        "bottom-left": " ",
+        "bottom-right": " ",
+        "left": " ",
+        "left-mid": " ",
+        "mid": chalk.cyan("─"),
+        "mid-mid": chalk.cyan("┼"),
+        "right": " ",
+        "right-mid": " ",
+        "middle": chalk.cyan("│"),
+      },
+    });
+
+    normalizedData.forEach((row) => {
+      const rowValues: string[] = [];
+      for (const key of columns) {
+        rowValues.push(formatCellValue(row[key]));
+      }
+      table.push(rowValues);
+    });
+    console.log(table.toString());
+  });
 };
 
 export const drawJSON = (data: unknown): void => {
@@ -281,7 +560,7 @@ export const commandDescriptions: Record<string, string> = {
   avatars: `The avatars command aims to help you complete everyday tasks related to your app image, icons, and avatars.`,
   databases: `(Legacy) The databases command allows you to create structured collections of documents and query and filter lists of documents.`,
   "tables-db": `The tables-db command allows you to create structured tables of columns and query and filter lists of rows.`,
-  init: `The init command provides a convenient wrapper for creating and initializing projects, functions, collections, buckets, teams, and messaging-topics in ${SDK_TITLE}.`,
+  init: `The init command provides a convenient wrapper for creating and initializing projects, functions, collections, buckets, teams, messaging-topics, and agent skills in ${SDK_TITLE}.`,
   push: `The push command provides a convenient wrapper for pushing your functions, collections, buckets, teams, and messaging-topics.`,
   run: `The run command allows you to run the project locally to allow easy development and quick debugging.`,
   functions: `The functions command allows you to view, create, and manage your Cloud Functions.`,
@@ -291,7 +570,7 @@ export const commandDescriptions: Record<string, string> = {
   locale: `The locale command allows you to customize your app based on your users' location.`,
   sites: `The sites command allows you to view, create and manage your Appwrite Sites.`,
   storage: `The storage command allows you to manage your project files.`,
-  teams: `The teams command allows you to group users of your project to enable them to share read and write access to your project resources.`,
+  teams: `The teams command allows you to group users of your project to enable them to share read and write access to your project resources. Requires a linked project. To manage console-level teams, use the 'organizations' command instead.`,
   update: `The update command allows you to update the ${SDK_TITLE} CLI to the latest version.`,
   users: `The users command allows you to manage your project users.`,
   projects: `The projects command allows you to manage your projects, add platforms, manage API keys, Dev Keys etc.`,
