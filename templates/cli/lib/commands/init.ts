@@ -780,24 +780,6 @@ const initSite = async (): Promise<void> => {
   newReadmeFile.splice(1, 2);
   fs.writeFileSync(readmePath, newReadmeFile.join("\n"));
 
-  const vars: Record<string, string> = {};
-  for (const variable of templateDetails.variables ?? []) {
-    let value = variable.value ?? "";
-    const replacements: Record<string, string> = {
-      "{apiEndpoint}": globalConfig.getEndpoint(),
-      "{projectId}": localConfig.getProject().projectId ?? "",
-      "{projectName}": localConfig.getProject().projectName ?? "",
-    };
-
-    for (const placeholder in replacements) {
-      if (value.includes(placeholder)) {
-        value = value.replace(placeholder, replacements[placeholder]);
-      }
-    }
-
-    vars[variable.name] = value;
-  }
-
   const data = {
     $id: siteId,
     name: answers.name,
@@ -815,7 +797,6 @@ const initSite = async (): Promise<void> => {
     logging: true,
     ignore: answers.framework.ignore || null,
     path: `sites/${siteName}`,
-    vars: vars,
   };
 
   if (!data.buildRuntime) {

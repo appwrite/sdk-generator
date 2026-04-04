@@ -86,6 +86,19 @@ const CONFIG_KEY_ORDER = [
   "messages",
 ];
 
+const TOP_LEVEL_RESOURCE_ARRAY_KEYS = new Set([
+  "functions",
+  "sites",
+  "databases",
+  "collections",
+  "tablesDB",
+  "tables",
+  "buckets",
+  "teams",
+  "topics",
+  "messages",
+]);
+
 function orderConfigKeys<T extends Record<string, any>>(data: T): T {
   const ordered: Record<string, any> = {};
 
@@ -102,6 +115,41 @@ function orderConfigKeys<T extends Record<string, any>>(data: T): T {
   }
 
   return ordered as T;
+}
+
+function pruneEmptyTopLevelResourceArrays<T extends Record<string, any>>(
+  data: T,
+): T {
+  const sanitized = { ...data };
+
+  for (const key of TOP_LEVEL_RESOURCE_ARRAY_KEYS) {
+    if (Array.isArray(sanitized[key]) && sanitized[key].length === 0) {
+      delete sanitized[key];
+    }
+  }
+
+  return sanitized as T;
+}
+
+function pruneDeprecatedSiteFields<T extends Record<string, any>>(data: T): T {
+  const sanitized = { ...data };
+
+  if (Array.isArray(sanitized.sites)) {
+    sanitized.sites = sanitized.sites.map((site) => {
+      if (
+        site &&
+        typeof site === "object" &&
+        "vars" in (site as Record<string, any>)
+      ) {
+        const { vars: _vars, ...rest } = site as Record<string, any>;
+        return rest;
+      }
+
+      return site;
+    });
+  }
+
+  return sanitized as T;
 }
 
 function whitelistKeys<T = any>(
@@ -276,7 +324,9 @@ class Local extends Config<ConfigType> {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
-    const orderedData = orderConfigKeys(this.data);
+    const orderedData = orderConfigKeys(
+      pruneEmptyTopLevelResourceArrays(pruneDeprecatedSiteFields(this.data)),
+    );
     fs.writeFileSync(this.path, JSONBig.stringify(orderedData, null, 4), {
       mode: 0o600,
     });
