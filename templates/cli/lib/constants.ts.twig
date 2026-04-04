@@ -20,3 +20,31 @@ export const GITHUB_RELEASES_URL = `https://github.com/${GITHUB_REPO}/releases`;
 
 // API
 export const DEFAULT_ENDPOINT = '{{ spec.endpoint }}';
+
+// Config resources
+export const CONFIG_RESOURCE_KEYS = [
+{% for service in spec.services %}
+{% if service.name == 'functions' %}
+  "functions",
+{% elseif service.name == 'sites' %}
+  "sites",
+{% elseif service.name == 'databases' %}
+  "databases",
+{% elseif service.name == 'tablesDB' %}
+  "tablesDB",
+  "tables",
+{% elseif service.name == 'storage' %}
+  "buckets",
+{% elseif service.name == 'teams' %}
+  "teams",
+{% elseif service.name == 'messaging' %}
+  "topics",
+  "messages",
+{% endif %}
+{% endfor %}
+  "collections",
+] as const;
+
+export const TOP_LEVEL_RESOURCE_ARRAY_KEYS = new Set<string>(
+  CONFIG_RESOURCE_KEYS,
+);

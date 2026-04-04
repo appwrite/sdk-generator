@@ -151,7 +151,6 @@ const SiteSchema = z
     deploymentRetention: z.number().optional(),
     startCommand: z.string().optional(),
     vars: z.record(z.string(), z.string()).optional(),
-    ignore: z.string().optional(),
   })
   .strict();
 
