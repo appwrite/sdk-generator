@@ -11,7 +11,12 @@ import inquirer from 'inquirer';
 
 import packageJson from './package.json' with { type: 'json' };
 import { commandDescriptions, cliConfig } from './lib/parser.js';
-import { getLatestVersion, compareVersions } from './lib/utils.js';
+import {
+    getLatestVersion,
+    compareVersions,
+    getCachedUpdateNotification,
+    syncVersionCheckCache,
+} from './lib/utils.js';
 import inquirerSearchList from 'inquirer-search-list';
 
 import { client } from './lib/commands/generic.js';
@@ -34,6 +39,46 @@ import { {{ service.name }} } from './lib/commands/services/{{ service.name | ca
 
 const { version } = packageJson;
 inquirer.registerPrompt('search-list', inquirerSearchList);
+const VERSION_CHECK_TIMEOUT_MS = 5000;
+
+function writeUpdateAvailableNotice(currentVersion: string, latestVersion: string, toStderr: boolean = false): void {
+    const stream = toStderr ? process.stderr : process.stdout;
+
+    stream.write(
+        chalk.yellow(
+            `\n⚠️  A newer version is available: ${chalk.bold(currentVersion)} ${chalk.bold('→')} ${chalk.bold(
+                latestVersion
+            )}`
+        ) + '\n'
+    );
+    stream.write(
+        chalk.cyan(
+            `💡 Run '${chalk.bold('{{ language.params.executableName|caseLower }} update')}' to update to the latest version.`
+        ) + '\n'
+    );
+}
+
+function shouldWriteUpdateNoticeToStderr(): boolean {
+    return process.argv.some((arg) => ['-j', '--json', '-R', '--raw'].includes(arg));
+}
+
+async function maybeShowUpdateNotice(): Promise<void> {
+{% if sdk.test == "true" %}
+    return;
+{% else %}
+    try {
+        const latestVersion = await getCachedUpdateNotification(version);
+
+        if (!latestVersion) {
+            return;
+        }
+
+        writeUpdateAvailableNotice(version, latestVersion, shouldWriteUpdateNoticeToStderr());
+    } catch (_error) {
+        // Update checks should never affect command execution.
+    }
+{% endif %}
+}
 
 /**
  * Check for updates and show version information
@@ -41,20 +86,16 @@ inquirer.registerPrompt('search-list', inquirerSearchList);
 async function checkVersion(): Promise<void> {
     process.stdout.write(chalk.bold(`{{ language.params.executableName|caseLower }} version ${version}`) + '\n');
 
+{% if sdk.test == "true" %}
+    return;
+{% else %}
     try {
-        const latestVersion = await getLatestVersion();
+        const latestVersion = await getLatestVersion({ timeoutMs: VERSION_CHECK_TIMEOUT_MS });
+        syncVersionCheckCache(version, latestVersion);
         const comparison = compareVersions(version, latestVersion);
 
         if (comparison > 0) {
-            // Current version is older than latest
-            process.stdout.write(
-                chalk.yellow(`\n⚠️  A newer version is available: ${chalk.bold(latestVersion)}`) + '\n'
-            );
-            process.stdout.write(
-                chalk.cyan(
-                    `💡 Run '${chalk.bold('{{ language.params.executableName|caseLower }} update')}' to update to the latest version.`
-                ) + '\n'
-            );
+            writeUpdateAvailableNotice(version, latestVersion);
         } else if (comparison === 0) {
             process.stdout.write(chalk.green('\n✅ You are running the latest version!') + '\n');
         } else {
@@ -65,6 +106,7 @@ async function checkVersion(): Promise<void> {
         // Silently fail version check, just show current version
         process.stdout.write(chalk.gray('\n(Unable to check for updates)') + '\n');
     }
+{% endif %}
 }
 
 // Intercept version flag before Commander.js processes it
@@ -74,76 +116,80 @@ if (process.argv.includes('-v') || process.argv.includes('--version')) {
         process.exit(0);
     })();
 } else {
-    program
-        .description(commandDescriptions['main'])
-        .configureHelp({
-            helpWidth: process.stdout.columns || 80,
-            sortSubcommands: true,
-        })
-        .helpOption('-h, --help', 'Display help for command')
-        .version(version, '-v, --version', 'Output the version number')
-        .option('-V, --verbose', 'Show complete error log')
-        .option('-j, --json', 'Output filtered JSON without empty values')
-        .option('-R, --raw', 'Output full JSON response (secrets still redacted unless --show-secrets is set)')
-        .option('--show-secrets', 'Display sensitive values like secrets and tokens in output')
-        .hook('preAction', migrate)
-        .option('-f,--force', 'Flag to confirm all warnings')
-        .option('-a,--all', 'Flag to push all resources')
-        .option('--id [id...]', 'Flag to pass a list of ids for a given action')
-        .option('--report', 'Enable reporting in case of CLI errors')
-        .hook('preAction', (_thisCommand, actionCommand) => {
-            const commandConfig = actionCommand as typeof actionCommand & {
-                outputFields?: string[];
-            };
-            cliConfig.displayFields = Array.isArray(commandConfig.outputFields)
-                ? commandConfig.outputFields
-                : [];
-        })
-        .on('option:json', () => {
-            cliConfig.json = true;
-        })
-        .on('option:raw', () => {
-            cliConfig.raw = true;
-        })
-        .on('option:show-secrets', () => {
-            cliConfig.showSecrets = true;
-        })
-        .on('option:verbose', () => {
-            cliConfig.verbose = true;
-        })
-        .on('option:report', function () {
-            cliConfig.report = true;
-            cliConfig.reportData = { data: this };
-        })
-        .on('option:force', () => {
-            cliConfig.force = true;
-        })
-        .on('option:all', () => {
-            cliConfig.all = true;
-        })
-        .on('option:id', function () {
-            cliConfig.ids = (this.opts().id as string[]);
-        })
-        .showSuggestionAfterError()
+    void (async () => {
+        await maybeShowUpdateNotice();
+
+        program
+            .description(commandDescriptions['main'])
+            .configureHelp({
+                helpWidth: process.stdout.columns || 80,
+                sortSubcommands: true,
+            })
+            .helpOption('-h, --help', 'Display help for command')
+            .version(version, '-v, --version', 'Output the version number')
+            .option('-V, --verbose', 'Show complete error log')
+            .option('-j, --json', 'Output filtered JSON without empty values')
+            .option('-R, --raw', 'Output full JSON response (secrets still redacted unless --show-secrets is set)')
+            .option('--show-secrets', 'Display sensitive values like secrets and tokens in output')
+            .hook('preAction', migrate)
+            .option('-f,--force', 'Flag to confirm all warnings')
+            .option('-a,--all', 'Flag to push all resources')
+            .option('--id [id...]', 'Flag to pass a list of ids for a given action')
+            .option('--report', 'Enable reporting in case of CLI errors')
+            .hook('preAction', (_thisCommand, actionCommand) => {
+                const commandConfig = actionCommand as typeof actionCommand & {
+                    outputFields?: string[];
+                };
+                cliConfig.displayFields = Array.isArray(commandConfig.outputFields)
+                    ? commandConfig.outputFields
+                    : [];
+            })
+            .on('option:json', () => {
+                cliConfig.json = true;
+            })
+            .on('option:raw', () => {
+                cliConfig.raw = true;
+            })
+            .on('option:show-secrets', () => {
+                cliConfig.showSecrets = true;
+            })
+            .on('option:verbose', () => {
+                cliConfig.verbose = true;
+            })
+            .on('option:report', function () {
+                cliConfig.report = true;
+                cliConfig.reportData = { data: this };
+            })
+            .on('option:force', () => {
+                cliConfig.force = true;
+            })
+            .on('option:all', () => {
+                cliConfig.all = true;
+            })
+            .on('option:id', function () {
+                cliConfig.ids = (this.opts().id as string[]);
+            })
+            .showSuggestionAfterError()
 {% if sdk.test != "true" %}
-        .addCommand(whoami)
-        .addCommand(register)
-        .addCommand(login)
-        .addCommand(init)
-        .addCommand(pull)
-        .addCommand(push)
-        .addCommand(types)
-        .addCommand(deploy)
-        .addCommand(run)
-        .addCommand(update)
-        .addCommand(generate)
-        .addCommand(logout)
+            .addCommand(whoami)
+            .addCommand(register)
+            .addCommand(login)
+            .addCommand(init)
+            .addCommand(pull)
+            .addCommand(push)
+            .addCommand(types)
+            .addCommand(deploy)
+            .addCommand(run)
+            .addCommand(update)
+            .addCommand(generate)
+            .addCommand(logout)
 {% endif %}
 {% for service in spec.services %}
-        .addCommand({{ service.name }})
+            .addCommand({{ service.name }})
 {% endfor %}
-        .addCommand(client)
-        .parse(process.argv);
+            .addCommand(client)
+            .parse(process.argv);
 
-    process.stdout.columns = oldWidth;
+        process.stdout.columns = oldWidth;
+    })();
 }

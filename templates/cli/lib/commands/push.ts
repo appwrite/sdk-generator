@@ -1081,8 +1081,12 @@ export class Push {
     failedDeployments: any[];
     errors: any[];
   }> {
-    const { async: asyncDeploy, code, activate = true, withVariables } =
-      options;
+    const {
+      async: asyncDeploy,
+      code,
+      activate = true,
+      withVariables,
+    } = options;
 
     Spinner.start(false);
     let successfullyPushed = 0;
