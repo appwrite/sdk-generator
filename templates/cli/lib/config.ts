@@ -138,10 +138,13 @@ function pruneDeprecatedSiteFields<T extends Record<string, any>>(data: T): T {
     sanitized.sites = sanitized.sites.map((site) => {
       if (
         site &&
-        typeof site === "object" &&
-        "vars" in (site as Record<string, any>)
+        typeof site === "object"
       ) {
-        const { vars: _vars, ...rest } = site as Record<string, any>;
+        const {
+          vars: _vars,
+          ignore: _ignore,
+          ...rest
+        } = site as Record<string, any>;
         return rest;
       }
 

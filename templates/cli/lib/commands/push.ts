@@ -1070,7 +1070,6 @@ export class Push {
       sites.map(async (site: any) => {
         let response: any = {};
 
-        const ignore = site.ignore ? "appwrite.config.json" : ".gitignore";
         let siteExists = false;
         let deploymentCreated = false;
 
@@ -1078,7 +1077,7 @@ export class Push {
           status: "",
           resource: site.name,
           id: site["$id"],
-          end: `Ignoring using: ${ignore}`,
+          end: "Ignoring using: .gitignore",
         });
 
         updaterRow.update({ status: "Getting" }).startSpinner(SPINNER_DOTS);

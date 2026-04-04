@@ -813,7 +813,6 @@ const initSite = async (): Promise<void> => {
     enabled: true,
     timeout: 30,
     logging: true,
-    ignore: answers.framework.ignore || null,
     path: `sites/${siteDirectoryName}`,
   };
 
