@@ -1248,7 +1248,7 @@ export const questionsCreateSite: Question[] = [
   {
     type: "input",
     name: "deploymentRetention",
-    message: "How many deployments would you like to retain?",
+    message: "How many deployments would you like to retain? (0 = unlimited)",
     default: "0",
     validate: validateNonNegativeInteger,
   },

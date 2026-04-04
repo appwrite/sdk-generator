@@ -11,6 +11,11 @@ const ignore: typeof ignoreModule =
   ignoreModule;
 const POLL_DEBOUNCE = 2000; // Milliseconds
 
+interface IgnoreMatcher {
+  baseDir: string;
+  ignorer: ReturnType<typeof ignore>;
+}
+
 interface DeploymentListResult {
   total: number;
   deployments: Array<{
@@ -31,38 +36,96 @@ function listDeployableFiles(
   dirPath: string,
   extraIgnoreRules: string[] = [],
 ): string[] {
-  const ignorer = ignore();
-  ignorer.add(".git");
+  const normalizePath = (value: string): string =>
+    value.split(path.sep).join("/");
 
-  const gitignorePath = path.join(dirPath, ".gitignore");
-  if (fs.existsSync(gitignorePath)) {
-    ignorer.add(fs.readFileSync(gitignorePath, "utf8"));
-  }
+  const createMatcher = (baseDir: string, rules: string[]): IgnoreMatcher => {
+    const ignorer = ignore();
+    ignorer.add(rules);
+    return {
+      baseDir,
+      ignorer,
+    };
+  };
 
-  if (extraIgnoreRules.length > 0) {
-    ignorer.add(extraIgnoreRules);
-  }
+  const loadMatcher = (
+    baseDir: string,
+    extraRules: string[] = [],
+  ): IgnoreMatcher | null => {
+    const rules = [...extraRules];
+    const gitignorePath = path.join(dirPath, baseDir, ".gitignore");
 
-  const files: string[] = [];
+    if (fs.existsSync(gitignorePath)) {
+      rules.push(fs.readFileSync(gitignorePath, "utf8"));
+    }
 
-  const walk = (relativeDir = ""): void => {
-    const absoluteDir = path.join(dirPath, relativeDir);
+    if (rules.length === 0) {
+      return null;
+    }
 
-    for (const entry of fs.readdirSync(absoluteDir, { withFileTypes: true })) {
-      const relativePath = path
-        .join(relativeDir, entry.name)
-        .split(path.sep)
-        .join("/");
+    return createMatcher(baseDir, rules);
+  };
 
+  const isIgnored = (
+    relativePath: string,
+    matchers: IgnoreMatcher[],
+    isDirectory: boolean,
+  ): boolean => {
+    let ignored = false;
+
+    for (const matcher of matchers) {
       if (
-        ignorer.ignores(relativePath) ||
-        (entry.isDirectory() && ignorer.ignores(`${relativePath}/`))
+        matcher.baseDir !== "" &&
+        relativePath !== matcher.baseDir &&
+        !relativePath.startsWith(`${matcher.baseDir}/`)
       ) {
         continue;
       }
 
+      const localPath = normalizePath(
+        matcher.baseDir === ""
+          ? relativePath
+          : path.relative(matcher.baseDir, relativePath),
+      );
+
+      const result = matcher.ignorer.test(
+        isDirectory ? `${localPath}/` : localPath,
+      );
+
+      if (result.ignored) {
+        ignored = true;
+      } else if (result.unignored) {
+        ignored = false;
+      }
+    }
+
+    return ignored;
+  };
+
+  const rootMatcher = createMatcher("", [".git", ...extraIgnoreRules]);
+  const rootGitignoreMatcher = loadMatcher("");
+  const rootMatchers = rootGitignoreMatcher
+    ? [rootMatcher, rootGitignoreMatcher]
+    : [rootMatcher];
+
+  const files: string[] = [];
+
+  const walk = (relativeDir = "", inheritedMatchers = rootMatchers): void => {
+    const absoluteDir = path.join(dirPath, relativeDir);
+    const localMatcher = relativeDir === "" ? null : loadMatcher(relativeDir);
+    const activeMatchers = localMatcher
+      ? [...inheritedMatchers, localMatcher]
+      : inheritedMatchers;
+
+    for (const entry of fs.readdirSync(absoluteDir, { withFileTypes: true })) {
+      const relativePath = normalizePath(path.join(relativeDir, entry.name));
+
+      if (isIgnored(relativePath, activeMatchers, entry.isDirectory())) {
+        continue;
+      }
+
       if (entry.isDirectory()) {
-        walk(relativePath);
+        walk(relativePath, activeMatchers);
       } else {
         files.push(relativePath);
       }
