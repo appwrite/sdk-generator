@@ -8,7 +8,11 @@ import type { Models } from "@appwrite.io/console";
 import { z } from "zod";
 import { globalConfig } from "./config.js";
 import type { SettingsType } from "./commands/config.js";
-import { NPM_REGISTRY_URL, DEFAULT_ENDPOINT } from "./constants.js";
+import {
+  NPM_REGISTRY_URL,
+  DEFAULT_ENDPOINT,
+  EXECUTABLE_NAME,
+} from "./constants.js";
 
 export const createSettingsObject = (project: Models.Project): SettingsType => {
   return {
@@ -58,12 +62,106 @@ export const getErrorMessage = (error: unknown): string => {
   return String(error);
 };
 
+type UpdateCheckCache = {
+  checkedOn?: string;
+  latestVersion?: string;
+  notifiedOn?: string;
+};
+
+const UPDATE_CHECK_FILE_NAME = "update-check.json";
+const DEFAULT_UPDATE_CHECK_TIMEOUT_MS = 250;
+
+const getLocalDateStamp = (date: Date = new Date()): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+};
+
+const getCliConfigDirectory = (): string => {
+  const xdgConfigHome = process.env.XDG_CONFIG_HOME?.trim();
+  if (xdgConfigHome) {
+    return path.join(xdgConfigHome, EXECUTABLE_NAME);
+  }
+
+  if (process.platform === "win32") {
+    return path.join(
+      process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming"),
+      EXECUTABLE_NAME,
+    );
+  }
+
+  return path.join(os.homedir(), ".config", EXECUTABLE_NAME);
+};
+
+const getUpdateCheckCachePath = (): string => {
+  return path.join(getCliConfigDirectory(), UPDATE_CHECK_FILE_NAME);
+};
+
+const readUpdateCheckCache = (): UpdateCheckCache | null => {
+  try {
+    const raw = fs.readFileSync(getUpdateCheckCachePath(), "utf8");
+    const parsed = JSON.parse(raw) as UpdateCheckCache;
+
+    if (!parsed || typeof parsed !== "object") {
+      return null;
+    }
+
+    return {
+      checkedOn:
+        typeof parsed.checkedOn === "string" ? parsed.checkedOn : undefined,
+      latestVersion:
+        typeof parsed.latestVersion === "string"
+          ? parsed.latestVersion
+          : undefined,
+      notifiedOn:
+        typeof parsed.notifiedOn === "string" ? parsed.notifiedOn : undefined,
+    };
+  } catch (_error) {
+    return null;
+  }
+};
+
+const writeUpdateCheckCache = (cache: UpdateCheckCache): void => {
+  const cachePath = getUpdateCheckCachePath();
+  const cacheDir = path.dirname(cachePath);
+
+  if (!fs.existsSync(cacheDir)) {
+    fs.mkdirSync(cacheDir, { recursive: true });
+  }
+
+  fs.writeFileSync(cachePath, JSON.stringify(cache, null, 2), {
+    mode: 0o600,
+  });
+};
+
+export const syncVersionCheckCache = (
+  currentVersion: string,
+  latestVersion: string,
+): void => {
+  const today = getLocalDateStamp();
+  const updateAvailable = compareVersions(currentVersion, latestVersion) > 0;
+
+  writeUpdateCheckCache({
+    checkedOn: today,
+    latestVersion,
+    notifiedOn: updateAvailable ? today : undefined,
+  });
+};
+
 /**
  * Get the latest version from npm registry
  */
-export async function getLatestVersion(): Promise<string> {
+export async function getLatestVersion(
+  options: { timeoutMs?: number } = {},
+): Promise<string> {
   try {
-    const response = await fetch(NPM_REGISTRY_URL);
+    const timeoutMs = options.timeoutMs;
+    const signal =
+      typeof timeoutMs === "number" ? AbortSignal.timeout(timeoutMs) : undefined;
+
+    const response = await fetch(NPM_REGISTRY_URL, { signal });
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}`);
     }
@@ -90,6 +188,61 @@ export function compareVersions(current: string, latest: string): number {
   }
 
   return 0; // Same version
+}
+
+export async function getCachedUpdateNotification(
+  currentVersion: string,
+): Promise<string | null> {
+  const today = getLocalDateStamp();
+  const cache = readUpdateCheckCache();
+
+  if (cache?.checkedOn === today) {
+    const hasFreshUpdate =
+      typeof cache.latestVersion === "string" &&
+      compareVersions(currentVersion, cache.latestVersion) > 0;
+
+    if (hasFreshUpdate && cache.notifiedOn !== today) {
+      writeUpdateCheckCache({
+        ...cache,
+        notifiedOn: today,
+      });
+
+      return cache.latestVersion ?? null;
+    }
+
+    return null;
+  }
+
+  try {
+    const latestVersion = await getLatestVersion({
+      timeoutMs: DEFAULT_UPDATE_CHECK_TIMEOUT_MS,
+    });
+    const updateAvailable = compareVersions(currentVersion, latestVersion) > 0;
+
+    writeUpdateCheckCache({
+      checkedOn: today,
+      latestVersion,
+      notifiedOn: updateAvailable ? today : undefined,
+    });
+
+    return updateAvailable ? latestVersion : null;
+  } catch (_error) {
+    const cachedVersion = cache?.latestVersion;
+    const hasCachedUpdate =
+      typeof cachedVersion === "string" &&
+      compareVersions(currentVersion, cachedVersion) > 0;
+
+    if (hasCachedUpdate && cache?.notifiedOn !== today) {
+      writeUpdateCheckCache({
+        ...cache,
+        notifiedOn: today,
+      });
+
+      return cachedVersion;
+    }
+
+    return null;
+  }
 }
 
 export function getAllFiles(folder: string): string[] {
