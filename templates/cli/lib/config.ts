@@ -119,7 +119,7 @@ function pruneEmptyTopLevelResourceArrays<T extends Record<string, any>>(
 }
 
 function pruneDeprecatedSiteFields<T extends Record<string, any>>(data: T): T {
-  const sanitized = { ...data };
+  const sanitized: Record<string, any> = { ...data };
 
   if (Array.isArray(sanitized.sites)) {
     sanitized.sites = sanitized.sites.map((site) => {
