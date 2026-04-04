@@ -39,6 +39,7 @@ import { {{ service.name }} } from './lib/commands/services/{{ service.name | ca
 
 const { version } = packageJson;
 inquirer.registerPrompt('search-list', inquirerSearchList);
+const VERSION_CHECK_TIMEOUT_MS = 5000;
 
 function writeUpdateAvailableNotice(currentVersion: string, latestVersion: string, toStderr: boolean = false): void {
     const stream = toStderr ? process.stderr : process.stdout;
@@ -62,6 +63,9 @@ function shouldWriteUpdateNoticeToStderr(): boolean {
 }
 
 async function maybeShowUpdateNotice(): Promise<void> {
+{% if sdk.test == "true" %}
+    return;
+{% else %}
     try {
         const latestVersion = await getCachedUpdateNotification(version);
 
@@ -73,6 +77,7 @@ async function maybeShowUpdateNotice(): Promise<void> {
     } catch (_error) {
         // Update checks should never affect command execution.
     }
+{% endif %}
 }
 
 /**
@@ -81,8 +86,11 @@ async function maybeShowUpdateNotice(): Promise<void> {
 async function checkVersion(): Promise<void> {
     process.stdout.write(chalk.bold(`{{ language.params.executableName|caseLower }} version ${version}`) + '\n');
 
+{% if sdk.test == "true" %}
+    return;
+{% else %}
     try {
-        const latestVersion = await getLatestVersion();
+        const latestVersion = await getLatestVersion({ timeoutMs: VERSION_CHECK_TIMEOUT_MS });
         syncVersionCheckCache(version, latestVersion);
         const comparison = compareVersions(version, latestVersion);
 
@@ -98,6 +106,7 @@ async function checkVersion(): Promise<void> {
         // Silently fail version check, just show current version
         process.stdout.write(chalk.gray('\n(Unable to check for updates)') + '\n');
     }
+{% endif %}
 }
 
 // Intercept version flag before Commander.js processes it

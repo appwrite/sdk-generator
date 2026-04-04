@@ -82,7 +82,7 @@ const normalizeLegacyDate = (dateStamp?: string): string | undefined => {
     return undefined;
   }
 
-  const parsed = new Date(`${dateStamp}T00:00:00`);
+  const parsed = new Date(`${dateStamp}T00:00:00Z`);
   if (Number.isNaN(parsed.getTime())) {
     return undefined;
   }
@@ -164,17 +164,26 @@ const writeUpdateCheckCache = (cache: UpdateCheckCache): void => {
   });
 };
 
+const tryWriteUpdateCheckCache = (cache: UpdateCheckCache): void => {
+  try {
+    writeUpdateCheckCache(cache);
+  } catch (_error) {
+    // Ignore cache write failures so notifications still work on restricted filesystems.
+  }
+};
+
 export const syncVersionCheckCache = (
   currentVersion: string,
   latestVersion: string,
 ): void => {
   const now = getCurrentTimestamp();
+  const existingCache = readUpdateCheckCache();
   const updateAvailable = compareVersions(currentVersion, latestVersion) > 0;
 
-  writeUpdateCheckCache({
+  tryWriteUpdateCheckCache({
     checkedAt: now,
     latestVersion,
-    notifiedAt: updateAvailable ? now : undefined,
+    notifiedAt: updateAvailable ? now : existingCache?.notifiedAt,
   });
 };
 
@@ -227,12 +236,16 @@ export async function getCachedUpdateNotification(
   const cache = readUpdateCheckCache();
 
   if (isWithinUpdateInterval(cache?.checkedAt)) {
+    if (!cache) {
+      return null;
+    }
+
     const hasFreshUpdate =
       typeof cache.latestVersion === "string" &&
       compareVersions(currentVersion, cache.latestVersion) > 0;
 
     if (hasFreshUpdate && !isWithinUpdateInterval(cache?.notifiedAt)) {
-      writeUpdateCheckCache({
+      tryWriteUpdateCheckCache({
         ...cache,
         notifiedAt: now,
       });
@@ -249,7 +262,7 @@ export async function getCachedUpdateNotification(
     });
     const updateAvailable = compareVersions(currentVersion, latestVersion) > 0;
 
-    writeUpdateCheckCache({
+    tryWriteUpdateCheckCache({
       checkedAt: now,
       latestVersion,
       notifiedAt: updateAvailable ? now : undefined,
@@ -263,7 +276,7 @@ export async function getCachedUpdateNotification(
       compareVersions(currentVersion, cachedVersion) > 0;
 
     if (hasCachedUpdate && !isWithinUpdateInterval(cache?.notifiedAt)) {
-      writeUpdateCheckCache({
+      tryWriteUpdateCheckCache({
         ...cache,
         notifiedAt: now,
       });
