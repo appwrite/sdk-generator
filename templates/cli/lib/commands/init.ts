@@ -86,6 +86,17 @@ interface SiteTemplateDetails {
   variables?: SiteTemplateVariable[];
 }
 
+const getSafeDirectoryName = (value: string, fallback: string): string => {
+  const normalized = value
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  return normalized || fallback;
+};
+
 const initResources = async (): Promise<void> => {
   const actions: Record<string, InitResourceAction> = {
     function: initFunction,
@@ -484,13 +495,14 @@ const initFunction = async (): Promise<void> => {
 
   const functionId = answers.id === "unique()" ? ID.unique() : answers.id;
   const functionName = answers.name;
-  const functionDir = path.join(functionFolder, functionName);
+  const functionDirectoryName = getSafeDirectoryName(functionName, functionId);
+  const functionDir = path.join(functionFolder, functionDirectoryName);
   const templatesDir = path.join(functionFolder, `${functionId}-templates`);
   const runtimeDir = path.join(templatesDir, answers.runtime.name);
 
   if (fs.existsSync(functionDir)) {
     throw new Error(
-      `( ${functionName} ) already exists in the current directory. Please choose another name.`,
+      `( ${functionDirectoryName} ) already exists in the current directory. Please choose another name.`,
     );
   }
 
@@ -602,7 +614,7 @@ const initFunction = async (): Promise<void> => {
   const readmePath = path.join(
     process.cwd(),
     "functions",
-    functionName,
+    functionDirectoryName,
     "README.md",
   );
   const readmeFile = fs.readFileSync(readmePath).toString();
@@ -627,7 +639,7 @@ const initFunction = async (): Promise<void> => {
     entrypoint: answers.runtime.entrypoint || "",
     commands: answers.runtime.commands || "",
     ignore: answers.runtime.ignore || null,
-    path: `functions/${functionName}`,
+    path: `functions/${functionDirectoryName}`,
   };
 
   localConfig.addFunction(data);
@@ -651,12 +663,13 @@ const initSite = async (): Promise<void> => {
 
   const siteId = answers.id === "unique()" ? ID.unique() : answers.id;
   const siteName = answers.name;
-  const siteDir = path.join(siteFolder, siteName);
+  const siteDirectoryName = getSafeDirectoryName(siteName, siteId);
+  const siteDir = path.join(siteFolder, siteDirectoryName);
   const templatesDir = path.join(siteFolder, `${siteId}-templates`);
 
   if (fs.existsSync(siteDir)) {
     throw new Error(
-      `( ${siteName} ) already exists in the current directory. Please choose another name.`,
+      `( ${siteDirectoryName} ) already exists in the current directory. Please choose another name.`,
     );
   }
 
@@ -773,7 +786,12 @@ const initSite = async (): Promise<void> => {
 
   fs.rmSync(templatesDir, { recursive: true, force: true });
 
-  const readmePath = path.join(process.cwd(), "sites", siteName, "README.md");
+  const readmePath = path.join(
+    process.cwd(),
+    "sites",
+    siteDirectoryName,
+    "README.md",
+  );
   const readmeFile = fs.readFileSync(readmePath).toString();
   const newReadmeFile = readmeFile.split("\n");
   newReadmeFile[0] = `# ${answers.name}`;
@@ -796,7 +814,7 @@ const initSite = async (): Promise<void> => {
     timeout: 30,
     logging: true,
     ignore: answers.framework.ignore || null,
-    path: `sites/${siteName}`,
+    path: `sites/${siteDirectoryName}`,
   };
 
   if (!data.buildRuntime) {
