@@ -305,11 +305,11 @@ export class Pull {
 
       result.push(functionConfig);
 
-      if (!fs.existsSync(absoluteFuncPath)) {
-        fs.mkdirSync(absoluteFuncPath, { recursive: true });
-      }
-
       if (options.code !== false) {
+        if (!fs.existsSync(absoluteFuncPath)) {
+          fs.mkdirSync(absoluteFuncPath, { recursive: true });
+        }
+
         await downloadDeploymentCode({
           resourceId: func["$id"],
           resourcePath: absoluteFuncPath,
@@ -407,11 +407,11 @@ export class Pull {
 
       result.push(siteConfig);
 
-      if (!fs.existsSync(absoluteSitePath)) {
-        fs.mkdirSync(absoluteSitePath, { recursive: true });
-      }
-
       if (options.code !== false) {
+        if (!fs.existsSync(absoluteSitePath)) {
+          fs.mkdirSync(absoluteSitePath, { recursive: true });
+        }
+
         await downloadDeploymentCode({
           resourceId: site["$id"],
           resourcePath: absoluteSitePath,
