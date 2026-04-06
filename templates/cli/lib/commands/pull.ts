@@ -45,7 +45,11 @@ import {
   BucketSchema,
   TopicSchema,
 } from "./config.js";
-import { createSettingsObject, filterBySchema } from "../utils.js";
+import {
+  createSettingsObject,
+  filterBySchema,
+  getSafeDirectoryName,
+} from "../utils.js";
 import { ProjectNotInitializedError } from "./errors.js";
 import type { SettingsType, FunctionType, SiteType } from "./config.js";
 import { downloadDeploymentCode } from "./utils/deployment.js";
@@ -280,7 +284,7 @@ export class Pull {
     for (const func of functions) {
       this.log(`Pulling function ${chalk.bold(func.name)} ...`);
 
-      const funcPath = `functions/${func.name}`;
+      const funcPath = `functions/${getSafeDirectoryName(func.name, func.$id)}`;
       const absoluteFuncPath = path.resolve(this.configDirectoryPath, funcPath);
       const holdingVars = func.vars || [];
 
@@ -381,7 +385,7 @@ export class Pull {
     for (const site of sites) {
       this.log(`Pulling site ${chalk.bold(site.name)} ...`);
 
-      const sitePath = `sites/${site.name}`;
+      const sitePath = `sites/${getSafeDirectoryName(site.name, site.$id)}`;
       const absoluteSitePath = path.resolve(this.configDirectoryPath, sitePath);
       const holdingVars = site.vars || [];
 
@@ -788,7 +792,7 @@ const pullFunctions = async ({
       ).functions
     : (await inquirer.prompt(questionsPullFunctions)).functions;
 
-  let allowCodePull: boolean | null = cliConfig.force === true ? true : null;
+  let allowCodePull: boolean | null = null;
   if (code !== false && allowCodePull === null) {
     const codeAnswer = await inquirer.prompt(questionsPullFunctionsCode);
     allowCodePull = codeAnswer.override;
@@ -837,7 +841,7 @@ const pullSites = async ({
       ).sites
     : (await inquirer.prompt(questionsPullSites)).sites;
 
-  let allowCodePull: boolean | null = cliConfig.force === true ? true : null;
+  let allowCodePull: boolean | null = null;
   if (code !== false && allowCodePull === null) {
     const codeAnswer = await inquirer.prompt(questionsPullSitesCode);
     allowCodePull = codeAnswer.override;
