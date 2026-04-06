@@ -46,6 +46,11 @@ interface Question {
   mask?: string;
 }
 
+interface AppwriteResource {
+  $id?: string;
+  [key: string]: any;
+}
+
 const whenOverride = (answers: Answers): boolean =>
   answers.override === undefined ? true : answers.override;
 
@@ -162,6 +167,19 @@ const getInstallCommand = (runtime: string): string | undefined => {
   return undefined;
 };
 
+const dedupeResourcesById = <T extends AppwriteResource>(resources: T[]): T[] => {
+  const seen = new Set<string>();
+
+  return resources.filter((resource) => {
+    if (!resource.$id || seen.has(resource.$id)) {
+      return false;
+    }
+
+    seen.add(resource.$id);
+    return true;
+  });
+};
+
 export const questionsInitProject: Question[] = [
   {
     type: "confirm",
@@ -269,7 +287,7 @@ export const questionsInitProject: Question[] = [
         queries,
       );
 
-      const choices = projects.map((project: any) => {
+      const choices = dedupeResourcesById(projects).map((project: any) => {
         const label = `${project.name} (${project["$id"]})`;
         return {
           name: label,
