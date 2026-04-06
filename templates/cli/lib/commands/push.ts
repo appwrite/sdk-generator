@@ -1068,7 +1068,7 @@ export class Push {
                 const projectSlug = region
                   ? `project-${region}-${projectId}`
                   : `project-${projectId}`;
-                const consoleUrl = `${globalConfig.getEndpoint().slice(0, -3)}/console/${projectSlug}/functions/function-${func["$id"]}/deployment-${deploymentId}`;
+                const consoleUrl = `${endpoint.replace(/\/v1\/?$/, '')}/console/${projectSlug}/functions/function-${func["$id"]}/deployment-${deploymentId}`;
 
                 updaterRow.stopSpinner();
                 updaterRow.update({
@@ -1482,7 +1482,7 @@ export class Push {
                 const projectSlug = region
                   ? `project-${region}-${projectId}`
                   : `project-${projectId}`;
-                const consoleUrl = `${globalConfig.getEndpoint().slice(0, -3)}/console/${projectSlug}/sites/site-${site["$id"]}/deployments/deployment-${deploymentId}`;
+                const consoleUrl = `${endpoint.replace(/\/v1\/?$/, '')}/console/${projectSlug}/sites/site-${site["$id"]}/deployments/deployment-${deploymentId}`;
 
                 updaterRow.stopSpinner();
                 updaterRow.update({
