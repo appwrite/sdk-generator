@@ -30,12 +30,12 @@ package {{ service.name | caseLower }}
 import (
 	"encoding/json"
 	"errors"
-	"github.com/{{sdk.gitUserName}}/sdk-for-go/client"
+	"{{ sdk | goPackagePath }}/client"
 {% if requireModelsPkg %}
-	"github.com/{{sdk.gitUserName}}/sdk-for-go/models"
+	"{{ sdk | goPackagePath }}/models"
 {% endif %}
 {% if requireFilesPkg %}
-	"github.com/{{sdk.gitUserName}}/sdk-for-go/file"
+	"{{ sdk | goPackagePath }}/file"
 {% endif %}
 {% if requireUrlPkg %}
 	"net/url"

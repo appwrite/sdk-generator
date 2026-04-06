@@ -9,10 +9,10 @@ package main
 
 import (
     "fmt"
-    "github.com/{{ sdk.gitUserName|url_encode }}/{{ sdk.gitRepoName|url_encode }}/client"
-    "github.com/{{ sdk.gitUserName|url_encode }}/{{ sdk.gitRepoName|url_encode }}/{{ service.name | caseLower }}"
+    "{{ sdk | goPackagePath }}/client"
+    "{{ sdk | goPackagePath }}/{{ service.name | caseLower }}"
 {% if requireFilesPkg %}
-	"github.com/{{sdk.gitUserName}}/sdk-for-go/file"
+	"{{ sdk | goPackagePath }}/file"
 {% endif %}
 )
 

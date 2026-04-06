@@ -5,14 +5,14 @@ import (
 	"path"
 	"time"
 
-	"github.com/repoowner/sdk-for-go/appwrite"
-	"github.com/repoowner/sdk-for-go/client"
-	"github.com/repoowner/sdk-for-go/file"
-	"github.com/repoowner/sdk-for-go/id"
-	"github.com/repoowner/sdk-for-go/operator"
-	"github.com/repoowner/sdk-for-go/permission"
-	"github.com/repoowner/sdk-for-go/query"
-	"github.com/repoowner/sdk-for-go/role"
+	"github.com/repoowner/reponame/v2/appwrite"
+	"github.com/repoowner/reponame/v2/client"
+	"github.com/repoowner/reponame/v2/file"
+	"github.com/repoowner/reponame/v2/id"
+	"github.com/repoowner/reponame/v2/operator"
+	"github.com/repoowner/reponame/v2/permission"
+	"github.com/repoowner/reponame/v2/query"
+	"github.com/repoowner/reponame/v2/role"
 )
 
 func main() {
