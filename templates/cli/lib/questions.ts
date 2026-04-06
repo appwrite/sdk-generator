@@ -171,11 +171,14 @@ const dedupeResourcesById = <T extends AppwriteResource>(resources: T[]): T[] =>
   const seen = new Set<string>();
 
   return resources.filter((resource) => {
-    if (!resource.$id || seen.has(resource.$id)) {
-      return false;
+    if (resource.$id) {
+      if (seen.has(resource.$id)) {
+        return false;
+      }
+
+      seen.add(resource.$id);
     }
 
-    seen.add(resource.$id);
     return true;
   });
 };
