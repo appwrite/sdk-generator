@@ -394,8 +394,13 @@ class Go extends Language
     {
         $user = $sdk['gitUserName'] ?? '';
         $repo = $sdk['gitRepoName'] ?? 'sdk-for-go';
+        $suffix = $this->getMajorVersionSuffix($sdk['version'] ?? '');
 
-        return 'github.com/' . $user . '/' . $repo . $this->getMajorVersionSuffix($sdk['version'] ?? '');
+        if ($user === '') {
+            return $repo . $suffix;
+        }
+
+        return 'github.com/' . $user . '/' . $repo . $suffix;
     }
 
     protected function getMajorVersionSuffix(string $version): string
