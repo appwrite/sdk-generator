@@ -31,7 +31,7 @@ go mod init <YOUR_MODULE_NAME>
 To install using `go get`:
 
 ```bash
-go get github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName }}
+go get {{ sdk | goPackagePath }}
 ```
 
 ## Testing the SDK
@@ -59,8 +59,8 @@ go get github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName }}
 		"os"
 		"time"
 
-		"github.com/{{sdk.gitUserName}}/{{ sdk.gitRepoName|url_encode }}/appwrite"
-		"github.com/{{sdk.gitUserName}}/{{ sdk.gitRepoName|url_encode }}/id"
+		"{{ sdk | goPackagePath }}/appwrite"
+		"{{ sdk | goPackagePath }}/id"
 	)
 
 	func main() {
