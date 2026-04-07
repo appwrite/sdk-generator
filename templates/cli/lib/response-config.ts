@@ -254,7 +254,10 @@ const paymentMethodStatus = (row: JsonObject): string => {
     return "status: expired";
   }
 
-  if ("providerMethodId" in row || "last4" in row) {
+  if (
+    isPresent(valueFrom(row, "providerMethodId")) ||
+    isPresent(valueFrom(row, "last4"))
+  ) {
     return "status: active";
   }
 

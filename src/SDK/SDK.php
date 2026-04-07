@@ -971,7 +971,7 @@ class SDK
                                 'webAuth' => $this->hasWebAuth($methods),
                             ],
                             'methods' => $methods,
-                            'isConsoleOnly' => $this->isConsoleOnly($key, $methods),
+                            'isConsoleOnly' => $this->isConsoleOnly($key),
                         ];
 
                         if ($this->exclude($file, $params)) {
@@ -1015,7 +1015,7 @@ class SDK
                                 'location' => $this->hasLocation($methods),
                                 'webAuth' => $this->hasWebAuth($methods),
                             ],
-                            'isConsoleOnly' => $this->isConsoleOnly($key, $methods),
+                            'isConsoleOnly' => $this->isConsoleOnly($key),
                         ];
 
                         foreach ($methods as $method) {
@@ -1275,12 +1275,8 @@ class SDK
         return false;
     }
 
-    protected function isConsoleOnly(string $serviceName, array $methods): bool
+    protected function isConsoleOnly(string $serviceName): bool
     {
-        if (empty($methods)) {
-            return false;
-        }
-
         $consoleOnlyServices = [
             'account',
             'locale',
