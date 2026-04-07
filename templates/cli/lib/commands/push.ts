@@ -1068,7 +1068,7 @@ export class Push {
                 const projectSlug = region
                   ? `project-${region}-${projectId}`
                   : `project-${projectId}`;
-                const consoleUrl = `${endpoint.replace(/\/v1\/?$/, '')}/console/${projectSlug}/functions/function-${func["$id"]}/deployment-${deploymentId}`;
+                const consoleUrl = `${endpoint.replace(/\/v1\/?$/, "")}/console/${projectSlug}/functions/function-${func["$id"]}/deployment-${deploymentId}`;
 
                 updaterRow.stopSpinner();
                 updaterRow.update({
@@ -1482,7 +1482,7 @@ export class Push {
                 const projectSlug = region
                   ? `project-${region}-${projectId}`
                   : `project-${projectId}`;
-                const consoleUrl = `${endpoint.replace(/\/v1\/?$/, '')}/console/${projectSlug}/sites/site-${site["$id"]}/deployments/deployment-${deploymentId}`;
+                const consoleUrl = `${endpoint.replace(/\/v1\/?$/, "")}/console/${projectSlug}/sites/site-${site["$id"]}/deployments/deployment-${deploymentId}`;
 
                 updaterRow.stopSpinner();
                 updaterRow.update({
@@ -2187,7 +2187,7 @@ const pushSite = async ({
     const projectSlug = region
       ? `project-${region}-${projectId}`
       : `project-${projectId}`;
-    const failUrl = `${endpoint.replace(/\/v1\/?$/, '')}/console/${projectSlug}/sites/site-${$id}/deployments/deployment-${deployment}`;
+    const failUrl = `${endpoint.replace(/\/v1\/?$/, "")}/console/${projectSlug}/sites/site-${$id}/deployments/deployment-${deployment}`;
 
     error(
       `Deployment of ${name} has failed. Check at ${failUrl} for more details\n`,
@@ -2338,7 +2338,7 @@ const pushFunction = async ({
     const projectSlug = region
       ? `project-${region}-${projectId}`
       : `project-${projectId}`;
-    const failUrl = `${endpoint.replace(/\/v1\/?$/, '')}/console/${projectSlug}/functions/function-${$id}/deployment-${deployment}`;
+    const failUrl = `${endpoint.replace(/\/v1\/?$/, "")}/console/${projectSlug}/functions/function-${$id}/deployment-${deployment}`;
 
     error(
       `Deployment of ${name} has failed. Check at ${failUrl} for more details\n`,
