@@ -8,6 +8,7 @@ open class Realtime : Service {
     private let TYPE_ERROR = "error"
     private let TYPE_EVENT = "event"
     private let TYPE_PONG = "pong"
+    private let TYPE_RESPONSE = "response"
     private let DEBOUNCE_NANOS = 1_000_000
     private let HEARTBEAT_INTERVAL: UInt64 = 20_000_000_000 // 20 seconds in nanoseconds
 
@@ -19,6 +20,7 @@ open class Realtime : Service {
     private var slotToSubscriptionId = [Int: String]()
     // Inverse map: subscriptionId -> slot index (for O(1) lookup)
     private var subscriptionIdToSlot = [String: Int]()
+    private var pendingSubscribeSlots = [Int]()
     private var heartbeatTask: Task<Void, Swift.Error>? = nil
 
     let connectSync = DispatchQueue(label: "ConnectSync")
@@ -68,46 +70,13 @@ open class Realtime : Service {
     }
 
     private func createSocket() async throws {
-        // Rebuild activeChannels from all slots
-        var allChannels = Set<String>()
-        for subscription in activeSubscriptions.values {
-            allChannels.formUnion(subscription.channels)
-        }
-
-        guard allChannels.count > 0 else {
+        guard activeSubscriptions.count > 0 else {
             reconnect = false
             try await closeSocket()
             return
         }
 
-        var queryParams = "project=\(client.config["project"]!)"
-
-        for channel in allChannels {
-            let encodedChannel = channel.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? channel
-            queryParams += "&channels[]=\(encodedChannel)"
-        }
-
-        // Build query string from slots → channels → queries
-        // Format: channel[slot][]=query (each query sent as separate parameter)
-        // For each slot, repeat its queries under each channel it subscribes to
-        // Example: slot 1 → channels [tests, prod], queries [q1, q2]
-        //   Produces: tests[1][]=q1&tests[1][]=q2&prod[1][]=q1&prod[1][]=q2
-        let selectAllQuery = Query.select(["*"])
-        for (slot, subscription) in activeSubscriptions {
-            // Get queries array - each query is a separate string
-            let queries = activeSubscriptionQueries[slot] ?? []
-            let queryArray = queries.isEmpty ? [selectAllQuery] : queries
-            
-            // Repeat this slot's queries under each channel it subscribes to
-            // Each query is sent as a separate parameter: channel[slot][]=q1&channel[slot][]=q2
-            for channel in subscription.channels {
-                let encodedChannel = channel.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? channel
-                for query in queryArray {
-                    let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
-                    queryParams += "&\(encodedChannel)[\(slot)][]=\(encodedQuery)"
-                }
-            }
-        }
+        let queryParams = "project=\(client.config["project"]!)"
 
         let url = "\(client.endPointRealtime!)/realtime?\(queryParams)"
 
@@ -123,6 +92,42 @@ open class Realtime : Service {
         )
 
         try await socketClient?.connect()
+    }
+
+    private func sendSubscribeMessage() {
+        guard let ws = socketClient, ws.isConnected else {
+            return
+        }
+
+        var rows = [[String: Any]]()
+        pendingSubscribeSlots.removeAll()
+
+        for (slot, subscription) in activeSubscriptions {
+            let storedQueries = activeSubscriptionQueries[slot] ?? []
+            let queries = storedQueries.isEmpty ? [#"{"method":"select","values":["*"]}"#] : storedQueries
+            var row: [String: Any] = [
+                "channels": Array(subscription.channels),
+                "queries": queries
+            ]
+            if let knownSubscriptionId = slotToSubscriptionId[slot] ?? slotToSubscriptionId[slot - 1] {
+                row["subscriptionId"] = knownSubscriptionId
+            }
+            rows.append(row)
+            pendingSubscribeSlots.append(slot)
+        }
+
+        if rows.isEmpty {
+            return
+        }
+
+        let payload: [String: Any] = [
+            "type": "subscribe",
+            "data": rows
+        ]
+        if let data = try? JSONSerialization.data(withJSONObject: payload),
+           let text = String(data: data, encoding: .utf8) {
+            ws.send(text: text)
+        }
     }
 
     private func closeSocket() async throws {
@@ -243,7 +248,11 @@ open class Realtime : Service {
         try await Task.sleep(nanoseconds: UInt64(DEBOUNCE_NANOS))
 
         if self.subCallDepth == 1 {
-            try await self.createSocket()
+            if let ws = self.socketClient, ws.isConnected {
+                self.sendSubscribeMessage()
+            } else {
+                try await self.createSocket()
+            }
         }
 
         connectSync.sync {
@@ -258,7 +267,16 @@ open class Realtime : Service {
             if let sid = subscriptionId {
                 self.subscriptionIdToSlot[sid] = nil
             }
-            try await self.createSocket()
+            if self.activeSubscriptions.isEmpty {
+                self.reconnect = false
+                try await self.closeSocket()
+                return
+            }
+            if let ws = self.socketClient, ws.isConnected {
+                self.sendSubscribeMessage()
+            } else {
+                try await self.createSocket()
+            }
         }
     }
 
@@ -275,20 +293,47 @@ extension Realtime: WebSocketClientDelegate {
     }
     
     private func handleResponseConnected(from json: [String: Any]) {
-        guard let data = json["data"] as? [String: Any],
-              let subscriptions = data["subscriptions"] as? [String: String] else {
+        guard let data = json["data"] as? [String: Any] else {
             return
         }
         
-        // Store subscription ID mappings from backend
-        // Format: { "0": "sub_a1f9", "1": "sub_b83c", ... }
-        slotToSubscriptionId.removeAll()
-        subscriptionIdToSlot.removeAll()
-        for (slotStr, subscriptionId) in subscriptions {
-            if let slot = Int(slotStr) {
-                slotToSubscriptionId[slot] = subscriptionId
-                subscriptionIdToSlot[subscriptionId] = slot
+        if let subscriptions = data["subscriptions"] as? [String: String] {
+            // Store subscription ID mappings from backend.
+            // Try direct slot first, then slot+1 for zero-based server maps.
+            for (slotStr, subscriptionId) in subscriptions {
+                if let slot = Int(slotStr) {
+                    let targetSlot: Int
+                    if activeSubscriptions[slot] != nil {
+                        targetSlot = slot
+                    } else if activeSubscriptions[slot + 1] != nil {
+                        targetSlot = slot + 1
+                    } else {
+                        targetSlot = slot
+                    }
+                    slotToSubscriptionId[targetSlot] = subscriptionId
+                    subscriptionIdToSlot[subscriptionId] = targetSlot
+                }
             }
+        }
+
+        sendSubscribeMessage()
+    }
+
+    private func handleResponseAction(from json: [String: Any]) {
+        guard let data = json["data"] as? [String: Any],
+              data["to"] as? String == "subscribe",
+              let subscriptions = data["subscriptions"] as? [[String: Any]] else {
+            return
+        }
+
+        for (index, item) in subscriptions.enumerated() {
+            guard index < pendingSubscribeSlots.count,
+                  let subscriptionId = item["subscriptionId"] as? String else {
+                continue
+            }
+            let slot = pendingSubscribeSlots[index]
+            slotToSubscriptionId[slot] = subscriptionId
+            subscriptionIdToSlot[subscriptionId] = slot
         }
     }
 
@@ -308,6 +353,8 @@ extension Realtime: WebSocketClientDelegate {
             }
         case "connected":
             handleResponseConnected(from: json)
+        case TYPE_RESPONSE:
+            handleResponseAction(from: json)
         case TYPE_EVENT:
             handleResponseEvent(from: json)
         case TYPE_PONG:
