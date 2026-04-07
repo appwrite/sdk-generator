@@ -54,6 +54,20 @@ export const createSettingsObject = (project: Models.Project): SettingsType => {
   };
 };
 
+export const getSafeDirectoryName = (
+  value: string,
+  fallback: string,
+): string => {
+  const normalized = value
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  return normalized || fallback;
+};
+
 export const getErrorMessage = (error: unknown): string => {
   if (error instanceof Error) {
     return error.message;
