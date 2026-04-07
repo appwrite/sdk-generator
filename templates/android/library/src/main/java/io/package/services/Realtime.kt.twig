@@ -46,7 +46,8 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         private val slotToSubscriptionId = ConcurrentHashMap<Int, String>()
         // Inverse map: subscriptionId -> slot index (for O(1) lookup)
         private val subscriptionIdToSlot = ConcurrentHashMap<String, Int>()
-        private val pendingSubscribeSlots = mutableListOf<Int>()
+        // Queue of slot snapshots per in-flight subscribe message (FIFO with server responses).
+        private val pendingSubscribeSlotsQueue = ArrayDeque<List<Int>>()
 
         private var reconnectAttempts = 0
         private val subscriptionsCounter = AtomicInteger(0)
@@ -106,9 +107,9 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
     private fun sendSubscribeMessage() {
         val ws = socket ?: return
         val rows = mutableListOf<Map<String, Any>>()
+        val slotsForMessage = mutableListOf<Int>()
 
         synchronized(subscriptionLock) {
-            pendingSubscribeSlots.clear()
             activeSubscriptions.forEach { (slot, subscription) ->
                 val queries = subscription.queries
                 val row = mutableMapOf<String, Any>(
@@ -120,12 +121,16 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
                     row["subscriptionId"] = knownSubscriptionId
                 }
                 rows.add(row)
-                pendingSubscribeSlots.add(slot)
+                slotsForMessage.add(slot)
             }
         }
 
         if (rows.isEmpty()) {
             return
+        }
+
+        synchronized(subscriptionLock) {
+            pendingSubscribeSlotsQueue.addLast(slotsForMessage.toList())
         }
 
         ws.send(mapOf("type" to "subscribe", "data" to rows).toJson())
@@ -317,8 +322,9 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
             val subscriptions = actionData["subscriptions"] as? List<*> ?: return
 
             synchronized(subscriptionLock) {
+                val pendingSlots = pendingSubscribeSlotsQueue.removeFirstOrNull() ?: return
                 subscriptions.forEachIndexed { index, item ->
-                    val slot = pendingSubscribeSlots.getOrNull(index) ?: return@forEachIndexed
+                    val slot = pendingSlots.getOrNull(index) ?: return@forEachIndexed
                     val row = item as? Map<*, *> ?: return@forEachIndexed
                     val subscriptionId = row["subscriptionId"] as? String ?: return@forEachIndexed
                     slotToSubscriptionId[slot] = subscriptionId
