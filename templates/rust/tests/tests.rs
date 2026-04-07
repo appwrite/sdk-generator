@@ -135,7 +135,13 @@ async fn test_general_service(client: &Client, string_in_array: &[String]) -> Re
     }
 
     match Client::new().set_endpoint("htp://cloud.appwrite.io/v1") {
-        Ok(_) => println!("ERROR: Expected validation failure for invalid endpoint but got Ok"),
+        Ok(_) => {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                "Expected validation failure for invalid endpoint but got Ok",
+            )
+            .into())
+        },
         Err(e) => println!("{}", e.message),
     }
 

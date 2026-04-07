@@ -168,7 +168,8 @@ impl Client {
     /// Set the project ID
     pub fn set_project<S: Into<String>>(&self, project: S) -> Result<Self> {
         let project = project.into();
-        let value: reqwest::header::HeaderValue = project.parse()?;
+        let value: reqwest::header::HeaderValue = project.parse()
+            .map_err(|e| {{ spec.title | caseUcfirst }}Error::new(400, format!("Invalid header value for x-appwrite-project: {}", e), None, String::new()))?;
         self.state.rcu(|state| {
             let mut next = (**state).clone();
             next.config.headers.insert("x-appwrite-project", value.clone());
@@ -180,7 +181,8 @@ impl Client {
     /// Set the API key
     pub fn set_key<S: Into<String>>(&self, key: S) -> Result<Self> {
         let key = key.into();
-        let value: reqwest::header::HeaderValue = key.parse()?;
+        let value: reqwest::header::HeaderValue = key.parse()
+            .map_err(|e| {{ spec.title | caseUcfirst }}Error::new(400, format!("Invalid header value for x-appwrite-key: {}", e), None, String::new()))?;
         self.state.rcu(|state| {
             let mut next = (**state).clone();
             next.config.headers.insert("x-appwrite-key", value.clone());
@@ -192,7 +194,8 @@ impl Client {
     /// Set the JWT token
     pub fn set_jwt<S: Into<String>>(&self, jwt: S) -> Result<Self> {
         let jwt = jwt.into();
-        let value: reqwest::header::HeaderValue = jwt.parse()?;
+        let value: reqwest::header::HeaderValue = jwt.parse()
+            .map_err(|e| {{ spec.title | caseUcfirst }}Error::new(400, format!("Invalid header value for x-appwrite-jwt: {}", e), None, String::new()))?;
         self.state.rcu(|state| {
             let mut next = (**state).clone();
             next.config.headers.insert("x-appwrite-jwt", value.clone());
@@ -204,7 +207,8 @@ impl Client {
     /// Set the locale
     pub fn set_locale<S: Into<String>>(&self, locale: S) -> Result<Self> {
         let locale = locale.into();
-        let value: reqwest::header::HeaderValue = locale.parse()?;
+        let value: reqwest::header::HeaderValue = locale.parse()
+            .map_err(|e| {{ spec.title | caseUcfirst }}Error::new(400, format!("Invalid header value for x-appwrite-locale: {}", e), None, String::new()))?;
         self.state.rcu(|state| {
             let mut next = (**state).clone();
             next.config.headers.insert("x-appwrite-locale", value.clone());
@@ -216,7 +220,8 @@ impl Client {
     /// Set the session
     pub fn set_session<S: Into<String>>(&self, session: S) -> Result<Self> {
         let session = session.into();
-        let value: reqwest::header::HeaderValue = session.parse()?;
+        let value: reqwest::header::HeaderValue = session.parse()
+            .map_err(|e| {{ spec.title | caseUcfirst }}Error::new(400, format!("Invalid header value for x-appwrite-session: {}", e), None, String::new()))?;
         self.state.rcu(|state| {
             let mut next = (**state).clone();
             next.config.headers.insert("x-appwrite-session", value.clone());
