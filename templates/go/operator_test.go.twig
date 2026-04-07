@@ -1,15 +1,13 @@
 {% autoescape false %}
-package operator_test
+package operator
 
 import (
 	"encoding/json"
 	"testing"
-
-	appwriteoperator "{{ sdk | goPackagePath }}/operator"
 )
 
 func TestIncrement(t *testing.T) {
-	q := appwriteoperator.Increment(1)
+	q := Increment(1)
 	var data map[string]interface{}
 	if err := json.Unmarshal([]byte(q), &data); err != nil {
 		t.Fatal(err)
@@ -25,7 +23,7 @@ func TestIncrement(t *testing.T) {
 }
 
 func TestDecrement(t *testing.T) {
-	q := appwriteoperator.Decrement(1, 0)
+	q := Decrement(1, 0)
 	var data map[string]interface{}
 	if err := json.Unmarshal([]byte(q), &data); err != nil {
 		t.Fatal(err)
@@ -44,7 +42,7 @@ func TestDecrement(t *testing.T) {
 }
 
 func TestMultiply(t *testing.T) {
-	q := appwriteoperator.Multiply(2)
+	q := Multiply(2)
 	var data map[string]interface{}
 	if err := json.Unmarshal([]byte(q), &data); err != nil {
 		t.Fatal(err)
@@ -60,7 +58,7 @@ func TestMultiply(t *testing.T) {
 }
 
 func TestDivide(t *testing.T) {
-	q := appwriteoperator.Divide(2)
+	q := Divide(2)
 	var data map[string]interface{}
 	if err := json.Unmarshal([]byte(q), &data); err != nil {
 		t.Fatal(err)
@@ -72,7 +70,7 @@ func TestDivide(t *testing.T) {
 }
 
 func TestArrayAppend(t *testing.T) {
-	q := appwriteoperator.ArrayAppend([]interface{}{"a", "b"})
+	q := ArrayAppend([]interface{}{"a", "b"})
 	var data map[string]interface{}
 	if err := json.Unmarshal([]byte(q), &data); err != nil {
 		t.Fatal(err)
@@ -88,7 +86,7 @@ func TestArrayAppend(t *testing.T) {
 }
 
 func TestArrayRemove(t *testing.T) {
-	q := appwriteoperator.ArrayRemove("item")
+	q := ArrayRemove("item")
 	var data map[string]interface{}
 	if err := json.Unmarshal([]byte(q), &data); err != nil {
 		t.Fatal(err)
@@ -104,7 +102,7 @@ func TestArrayRemove(t *testing.T) {
 }
 
 func TestStringConcat(t *testing.T) {
-	q := appwriteoperator.StringConcat("suffix")
+	q := StringConcat("suffix")
 	var data map[string]interface{}
 	if err := json.Unmarshal([]byte(q), &data); err != nil {
 		t.Fatal(err)

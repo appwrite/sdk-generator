@@ -2,7 +2,7 @@
 {%- macro render_property_value(definitions, property, spec) -%}
     {%- if property.sub_schema and definitions[property.sub_schema] -%}
         {%- if property.type == 'array' -%}
-            []sdkmodels.{{ property.sub_schema | caseUcfirst }}{
+            []{{ property.sub_schema | caseUcfirst }}{
                 {{- _self.render_struct_init(definitions, definitions[property.sub_schema], spec) -}},
             }
         {%- else -%}
@@ -34,19 +34,17 @@
 {%- endmacro -%}
 
 {%- macro render_struct_init(definitions, definition, spec) -%}
-    sdkmodels.{{ definition.name | caseUcfirst }}{
+    {{ definition.name | caseUcfirst }}{
         {%- for property in definition.properties | filter(p => p.required) %}
         {{ property.name | caseUcfirst | escapeKeyword }}: {{ _self.render_property_value(definitions, property, spec) }},
         {%- endfor %}
     }
 {%- endmacro -%}
-package models_test
+package models
 
 import (
     "encoding/json"
     "testing"
-
-    sdkmodels "{{ sdk | goPackagePath }}/models"
 )
 
 func Test{{ definition.name | caseUcfirst }}Model(t *testing.T) {
@@ -57,7 +55,7 @@ func Test{{ definition.name | caseUcfirst }}Model(t *testing.T) {
         t.Fatal(err)
     }
 
-    var result sdkmodels.{{ definition.name | caseUcfirst }}
+    var result {{ definition.name | caseUcfirst }}
     err = json.Unmarshal(data, &result)
     if err != nil {
         t.Fatal(err)

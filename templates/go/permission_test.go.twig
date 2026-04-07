@@ -1,39 +1,37 @@
 {% autoescape false %}
-package permission_test
+package permission
 
 import (
 	"testing"
-
-	appwritepermission "{{ sdk | goPackagePath }}/permission"
 )
 
 func TestRead(t *testing.T) {
-	if appwritepermission.Read("any") != "read(\"any\")" {
-		t.Errorf("Expected read(\"any\"), got %s", appwritepermission.Read("any"))
+	if Read("any") != "read(\"any\")" {
+		t.Errorf("Expected read(\"any\"), got %s", Read("any"))
 	}
 }
 
 func TestWrite(t *testing.T) {
-	if appwritepermission.Write("any") != "write(\"any\")" {
-		t.Errorf("Expected write(\"any\"), got %s", appwritepermission.Write("any"))
+	if Write("any") != "write(\"any\")" {
+		t.Errorf("Expected write(\"any\"), got %s", Write("any"))
 	}
 }
 
 func TestCreate(t *testing.T) {
-	if appwritepermission.Create("any") != "create(\"any\")" {
-		t.Errorf("Expected create(\"any\"), got %s", appwritepermission.Create("any"))
+	if Create("any") != "create(\"any\")" {
+		t.Errorf("Expected create(\"any\"), got %s", Create("any"))
 	}
 }
 
 func TestUpdate(t *testing.T) {
-	if appwritepermission.Update("any") != "update(\"any\")" {
-		t.Errorf("Expected update(\"any\"), got %s", appwritepermission.Update("any"))
+	if Update("any") != "update(\"any\")" {
+		t.Errorf("Expected update(\"any\"), got %s", Update("any"))
 	}
 }
 
 func TestDelete(t *testing.T) {
-	if appwritepermission.Delete("any") != "delete(\"any\")" {
-		t.Errorf("Expected delete(\"any\"), got %s", appwritepermission.Delete("any"))
+	if Delete("any") != "delete(\"any\")" {
+		t.Errorf("Expected delete(\"any\"), got %s", Delete("any"))
 	}
 }
 {% endautoescape %}
