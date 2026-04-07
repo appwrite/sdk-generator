@@ -322,7 +322,10 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
             val subscriptions = actionData["subscriptions"] as? List<*> ?: return
 
             synchronized(subscriptionLock) {
-                val pendingSlots = pendingSubscribeSlotsQueue.removeFirstOrNull() ?: return
+                if (pendingSubscribeSlotsQueue.isEmpty()) {
+                    return
+                }
+                val pendingSlots = pendingSubscribeSlotsQueue.removeFirst()
                 subscriptions.forEachIndexed { index, item ->
                     val slot = pendingSlots.getOrNull(index) ?: return@forEachIndexed
                     val row = item as? Map<*, *> ?: return@forEachIndexed

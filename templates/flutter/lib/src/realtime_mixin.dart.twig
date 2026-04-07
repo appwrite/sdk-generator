@@ -158,7 +158,6 @@ mixin RealtimeMixin {
             }
             break;
           case 'pong':
-            debugPrint('Received heartbeat response from realtime server');
             break;
           case 'event':
             final messageData = data.data as Map<String, dynamic>;
