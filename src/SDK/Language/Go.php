@@ -384,7 +384,34 @@ class Go extends Language
             new TwigFilter('caseEnumKey', function (string $value) {
                 return $this->toUpperSnakeCase($value);
             }),
+            new TwigFilter('goPackagePath', function (array $sdk) {
+                return $this->getPackagePath($sdk);
+            }),
         ];
+    }
+
+    protected function getPackagePath(array $sdk): string
+    {
+        $user = $sdk['gitUserName'] ?? '';
+        $repo = $sdk['gitRepoName'] ?? 'sdk-for-go';
+        $suffix = $this->getMajorVersionSuffix($sdk['version'] ?? '');
+
+        if ($user === '') {
+            return $repo . $suffix;
+        }
+
+        return 'github.com/' . $user . '/' . $repo . $suffix;
+    }
+
+    protected function getMajorVersionSuffix(string $version): string
+    {
+        if (!\preg_match('/^v?(?<major>\d+)/', $version, $matches)) {
+            return '';
+        }
+
+        $major = (int) ($matches['major'] ?? 0);
+
+        return $major >= 2 ? '/v' . $major : '';
     }
 
     protected function getPropertyType(array $property, array $spec, string $generic = 'map[string]interface{}'): string

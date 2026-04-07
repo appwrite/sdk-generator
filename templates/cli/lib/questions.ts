@@ -396,6 +396,15 @@ export const questionsPushFunctionsCode: Question[] = [
   },
 ];
 
+export const questionsPushFunctionsActivate: Question[] = [
+  {
+    type: "confirm",
+    name: "activate",
+    message: "Do you want to activate the deployment after it is ready?",
+    default: true,
+  },
+];
+
 export const questionsPullSites: Question[] = [
   {
     type: "checkbox",

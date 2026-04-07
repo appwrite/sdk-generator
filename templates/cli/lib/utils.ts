@@ -3,12 +3,16 @@ import os from "os";
 import path from "path";
 import net from "net";
 import childProcess from "child_process";
-import { fetch } from "undici";
 import type { Models } from "@appwrite.io/console";
 import { z } from "zod";
 import { globalConfig } from "./config.js";
 import type { SettingsType } from "./commands/config.js";
-import { NPM_REGISTRY_URL, DEFAULT_ENDPOINT } from "./constants.js";
+import {
+  NPM_REGISTRY_URL,
+  DEFAULT_ENDPOINT,
+  EXECUTABLE_NAME,
+  UPDATE_CHECK_INTERVAL_MS,
+} from "./constants.js";
 
 export const createSettingsObject = (project: Models.Project): SettingsType => {
   return {
@@ -50,6 +54,20 @@ export const createSettingsObject = (project: Models.Project): SettingsType => {
   };
 };
 
+export const getSafeDirectoryName = (
+  value: string,
+  fallback: string,
+): string => {
+  const normalized = value
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  return normalized || fallback;
+};
+
 export const getErrorMessage = (error: unknown): string => {
   if (error instanceof Error) {
     return error.message;
@@ -58,12 +76,145 @@ export const getErrorMessage = (error: unknown): string => {
   return String(error);
 };
 
+type UpdateCheckCache = {
+  checkedAt?: string;
+  latestVersion?: string;
+  notifiedAt?: string;
+  checkedOn?: string;
+  notifiedOn?: string;
+};
+
+const UPDATE_CHECK_FILE_NAME = "update-check.json";
+const DEFAULT_UPDATE_CHECK_TIMEOUT_MS = 250;
+
+const getCurrentTimestamp = (): string => {
+  return new Date().toISOString();
+};
+
+const normalizeLegacyDate = (dateStamp?: string): string | undefined => {
+  if (typeof dateStamp !== "string" || dateStamp.trim() === "") {
+    return undefined;
+  }
+
+  const parsed = new Date(`${dateStamp}T00:00:00Z`);
+  if (Number.isNaN(parsed.getTime())) {
+    return undefined;
+  }
+
+  return parsed.toISOString();
+};
+
+const isWithinUpdateInterval = (timestamp?: string): boolean => {
+  if (typeof timestamp !== "string" || timestamp.trim() === "") {
+    return false;
+  }
+
+  const parsedTimestamp = new Date(timestamp).getTime();
+  if (Number.isNaN(parsedTimestamp)) {
+    return false;
+  }
+
+  return Date.now() - parsedTimestamp < UPDATE_CHECK_INTERVAL_MS;
+};
+
+const getCliConfigDirectory = (): string => {
+  const xdgConfigHome = process.env.XDG_CONFIG_HOME?.trim();
+  if (xdgConfigHome) {
+    return path.join(xdgConfigHome, EXECUTABLE_NAME);
+  }
+
+  if (process.platform === "win32") {
+    return path.join(
+      process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming"),
+      EXECUTABLE_NAME,
+    );
+  }
+
+  return path.join(os.homedir(), ".config", EXECUTABLE_NAME);
+};
+
+const getUpdateCheckCachePath = (): string => {
+  return path.join(getCliConfigDirectory(), UPDATE_CHECK_FILE_NAME);
+};
+
+const readUpdateCheckCache = (): UpdateCheckCache | null => {
+  try {
+    const raw = fs.readFileSync(getUpdateCheckCachePath(), "utf8");
+    const parsed = JSON.parse(raw) as UpdateCheckCache;
+
+    if (!parsed || typeof parsed !== "object") {
+      return null;
+    }
+
+    return {
+      checkedAt:
+        typeof parsed.checkedAt === "string"
+          ? parsed.checkedAt
+          : normalizeLegacyDate(parsed.checkedOn),
+      latestVersion:
+        typeof parsed.latestVersion === "string"
+          ? parsed.latestVersion
+          : undefined,
+      notifiedAt:
+        typeof parsed.notifiedAt === "string"
+          ? parsed.notifiedAt
+          : normalizeLegacyDate(parsed.notifiedOn),
+    };
+  } catch (_error) {
+    return null;
+  }
+};
+
+const writeUpdateCheckCache = (cache: UpdateCheckCache): void => {
+  const cachePath = getUpdateCheckCachePath();
+  const cacheDir = path.dirname(cachePath);
+
+  if (!fs.existsSync(cacheDir)) {
+    fs.mkdirSync(cacheDir, { recursive: true });
+  }
+
+  fs.writeFileSync(cachePath, JSON.stringify(cache, null, 2), {
+    mode: 0o600,
+  });
+};
+
+const tryWriteUpdateCheckCache = (cache: UpdateCheckCache): void => {
+  try {
+    writeUpdateCheckCache(cache);
+  } catch (_error) {
+    // Ignore cache write failures so notifications still work on restricted filesystems.
+  }
+};
+
+export const syncVersionCheckCache = (
+  currentVersion: string,
+  latestVersion: string,
+): void => {
+  const now = getCurrentTimestamp();
+  const existingCache = readUpdateCheckCache();
+  const updateAvailable = compareVersions(currentVersion, latestVersion) > 0;
+
+  tryWriteUpdateCheckCache({
+    checkedAt: now,
+    latestVersion,
+    notifiedAt: updateAvailable ? now : existingCache?.notifiedAt,
+  });
+};
+
 /**
  * Get the latest version from npm registry
  */
-export async function getLatestVersion(): Promise<string> {
+export async function getLatestVersion(
+  options: { timeoutMs?: number } = {},
+): Promise<string> {
   try {
-    const response = await fetch(NPM_REGISTRY_URL);
+    const timeoutMs = options.timeoutMs;
+    const signal =
+      typeof timeoutMs === "number"
+        ? AbortSignal.timeout(timeoutMs)
+        : undefined;
+
+    const response = await fetch(NPM_REGISTRY_URL, { signal });
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}`);
     }
@@ -90,6 +241,67 @@ export function compareVersions(current: string, latest: string): number {
   }
 
   return 0; // Same version
+}
+
+export async function getCachedUpdateNotification(
+  currentVersion: string,
+): Promise<string | null> {
+  const now = getCurrentTimestamp();
+  const cache = readUpdateCheckCache();
+
+  if (isWithinUpdateInterval(cache?.checkedAt)) {
+    if (!cache) {
+      return null;
+    }
+
+    const hasFreshUpdate =
+      typeof cache.latestVersion === "string" &&
+      compareVersions(currentVersion, cache.latestVersion) > 0;
+
+    if (hasFreshUpdate && !isWithinUpdateInterval(cache?.notifiedAt)) {
+      tryWriteUpdateCheckCache({
+        ...cache,
+        notifiedAt: now,
+      });
+
+      return cache.latestVersion ?? null;
+    }
+
+    return null;
+  }
+
+  try {
+    const latestVersion = await getLatestVersion({
+      timeoutMs: DEFAULT_UPDATE_CHECK_TIMEOUT_MS,
+    });
+    const updateAvailable = compareVersions(currentVersion, latestVersion) > 0;
+    const alreadyNotifiedRecently = isWithinUpdateInterval(cache?.notifiedAt);
+
+    tryWriteUpdateCheckCache({
+      checkedAt: now,
+      latestVersion,
+      notifiedAt:
+        updateAvailable && !alreadyNotifiedRecently ? now : cache?.notifiedAt,
+    });
+
+    return updateAvailable && !alreadyNotifiedRecently ? latestVersion : null;
+  } catch (_error) {
+    const cachedVersion = cache?.latestVersion;
+    const hasCachedUpdate =
+      typeof cachedVersion === "string" &&
+      compareVersions(currentVersion, cachedVersion) > 0;
+
+    if (hasCachedUpdate && !isWithinUpdateInterval(cache?.notifiedAt)) {
+      tryWriteUpdateCheckCache({
+        ...cache,
+        notifiedAt: now,
+      });
+
+      return cachedVersion;
+    }
+
+    return null;
+  }
 }
 
 export function getAllFiles(folder: string): string[] {

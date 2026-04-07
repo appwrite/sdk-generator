@@ -41,7 +41,9 @@ function listDeployableFiles(
 
   const createMatcher = (baseDir: string, rules: string[]): IgnoreMatcher => {
     const ignorer = ignore();
-    ignorer.add(rules);
+    for (const rule of rules) {
+      ignorer.add(rule);
+    }
     return {
       baseDir,
       ignorer,

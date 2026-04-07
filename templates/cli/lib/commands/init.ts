@@ -32,6 +32,7 @@ import {
 import { sdkForConsole } from "../sdks.js";
 import {
   isCloud,
+  getSafeDirectoryName,
   hasSkillsInstalled,
   fetchAvailableSkills,
   detectProjectSkills,
@@ -85,17 +86,6 @@ interface SiteTemplateDetails {
   frameworks: SiteTemplateFramework[];
   variables?: SiteTemplateVariable[];
 }
-
-const getSafeDirectoryName = (value: string, fallback: string): string => {
-  const normalized = value
-    .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-
-  return normalized || fallback;
-};
 
 const initResources = async (): Promise<void> => {
   const actions: Record<string, InitResourceAction> = {
@@ -639,6 +629,7 @@ const initFunction = async (): Promise<void> => {
     entrypoint: answers.runtime.entrypoint || "",
     commands: answers.runtime.commands || "",
     ignore: answers.runtime.ignore || null,
+    deploymentRetention: 0,
     path: `functions/${functionDirectoryName}`,
   };
 

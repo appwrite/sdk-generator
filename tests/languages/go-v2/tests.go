@@ -5,14 +5,14 @@ import (
 	"path"
 	"time"
 
-	"github.com/repoowner/reponame/appwrite"
-	"github.com/repoowner/reponame/client"
-	"github.com/repoowner/reponame/file"
-	"github.com/repoowner/reponame/id"
-	"github.com/repoowner/reponame/operator"
-	"github.com/repoowner/reponame/permission"
-	"github.com/repoowner/reponame/query"
-	"github.com/repoowner/reponame/role"
+	"github.com/repoowner/reponame/v2/appwrite"
+	"github.com/repoowner/reponame/v2/client"
+	"github.com/repoowner/reponame/v2/file"
+	"github.com/repoowner/reponame/v2/id"
+	"github.com/repoowner/reponame/v2/operator"
+	"github.com/repoowner/reponame/v2/permission"
+	"github.com/repoowner/reponame/v2/query"
+	"github.com/repoowner/reponame/v2/role"
 )
 
 func main() {
