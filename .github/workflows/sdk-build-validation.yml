@@ -144,8 +144,6 @@ jobs:
         if: matrix.sdk == 'go'
         uses: actions/setup-go@v5
         with:
-          # Keep this in sync with templates/go/go.mod.twig so module-mode go test/build
-          # uses a toolchain that satisfies the generated SDK's minimum Go version.
           go-version: '1.22.5'
 
       - name: Setup .NET
