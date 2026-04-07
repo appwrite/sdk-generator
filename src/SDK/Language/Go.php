@@ -135,36 +135,36 @@ class Go extends Language
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'id/id_test.go',
+                'destination'   => 'tests/id/id_test.go',
                 'template'      => 'go/id_test.go.twig',
             ],
 
             [
                 'scope'         => 'default',
-                'destination'   => 'role/role_test.go',
+                'destination'   => 'tests/role/role_test.go',
                 'template'      => 'go/role_test.go.twig',
             ],
 
             [
                 'scope'         => 'default',
-                'destination'   => 'permission/permission_test.go',
+                'destination'   => 'tests/permission/permission_test.go',
                 'template'      => 'go/permission_test.go.twig',
             ],
 
             [
                 'scope'         => 'default',
-                'destination'   => 'query/query_test.go',
+                'destination'   => 'tests/query/query_test.go',
                 'template'      => 'go/query_test.go.twig',
             ],
 
             [
                 'scope'         => 'default',
-                'destination'   => 'operator/operator_test.go',
+                'destination'   => 'tests/operator/operator_test.go',
                 'template'      => 'go/operator_test.go.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'client/client_test.go',
+                'destination'   => 'tests/client/client_test.go',
                 'template'      => 'go/client_test.go.twig',
             ],
             [
@@ -174,7 +174,7 @@ class Go extends Language
             ],
             [
                 'scope'         => 'service',
-                'destination'   => '{{ service.name | caseLower}}/{{service.name | caseSnake}}_test.go',
+                'destination'   => 'tests/services/{{service.name | caseSnake}}_test.go',
                 'template'      => 'go/services/service_test.go.twig',
             ],
             [
@@ -189,7 +189,7 @@ class Go extends Language
             ],
             [
                 'scope'         => 'definition',
-                'destination'   => 'models/{{ definition.name | caseSnake }}_test.go',
+                'destination'   => 'tests/models/{{ definition.name | caseSnake }}_test.go',
                 'template'      => 'go/models/model_test.go.twig',
             ],
             [

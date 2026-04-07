@@ -1,13 +1,15 @@
 {% autoescape false %}
-package query
+package query_test
 
 import (
 	"encoding/json"
 	"testing"
+
+	appwritequery "{{ sdk | goPackagePath }}/query"
 )
 
 func TestEqual(t *testing.T) {
-	q := Equal("attr", "val")
+	q := appwritequery.Equal("attr", "val")
 	var data map[string]interface{}
 	if err := json.Unmarshal([]byte(q), &data); err != nil {
 		t.Fatal(err)
@@ -26,7 +28,7 @@ func TestEqual(t *testing.T) {
 }
 
 func TestNotEqual(t *testing.T) {
-	q := NotEqual("attr", 123)
+	q := appwritequery.NotEqual("attr", 123)
 	var data map[string]interface{}
 	if err := json.Unmarshal([]byte(q), &data); err != nil {
 		t.Fatal(err)
@@ -42,7 +44,7 @@ func TestNotEqual(t *testing.T) {
 }
 
 func TestBetween(t *testing.T) {
-	q := Between("attr", 1, 10)
+	q := appwritequery.Between("attr", 1, 10)
 	var data map[string]interface{}
 	if err := json.Unmarshal([]byte(q), &data); err != nil {
 		t.Fatal(err)
@@ -61,7 +63,7 @@ func TestBetween(t *testing.T) {
 }
 
 func TestSelect(t *testing.T) {
-	q := Select([]interface{}{"attr1", "attr2"})
+	q := appwritequery.Select([]interface{}{"attr1", "attr2"})
 	var data map[string]interface{}
 	if err := json.Unmarshal([]byte(q), &data); err != nil {
 		t.Fatal(err)
@@ -77,7 +79,7 @@ func TestSelect(t *testing.T) {
 }
 
 func TestOrderAsc(t *testing.T) {
-	q := OrderAsc("attr")
+	q := appwritequery.OrderAsc("attr")
 	var data map[string]interface{}
 	if err := json.Unmarshal([]byte(q), &data); err != nil {
 		t.Fatal(err)
@@ -92,7 +94,7 @@ func TestOrderAsc(t *testing.T) {
 }
 
 func TestLimit(t *testing.T) {
-	q := Limit(25)
+	q := appwritequery.Limit(25)
 	var data map[string]interface{}
 	if err := json.Unmarshal([]byte(q), &data); err != nil {
 		t.Fatal(err)
@@ -108,9 +110,9 @@ func TestLimit(t *testing.T) {
 }
 
 func TestOr(t *testing.T) {
-	q1 := Equal("name", "Alice")
-	q2 := Equal("name", "Bob")
-	q := Or([]string{q1, q2})
+	q1 := appwritequery.Equal("name", "Alice")
+	q2 := appwritequery.Equal("name", "Bob")
+	q := appwritequery.Or([]string{q1, q2})
 
 	var data map[string]interface{}
 	if err := json.Unmarshal([]byte(q), &data); err != nil {

@@ -48,7 +48,7 @@
 		{%- endif -%}
 	{%- endif -%}
 {% endmacro %}
-package {{ service.name | caseLower }}
+package services_test
 
 import (
 {% if requireJsonPkg %}	"encoding/json"
@@ -59,7 +59,8 @@ import (
 {% endif %}
 	"{{ sdk | goPackagePath }}/client"
 {% if requireFilesPkg %}	"{{ sdk | goPackagePath }}/file"
-{% endif %})
+{% endif %}	{{ service.name | caseLower }} "{{ sdk | goPackagePath }}/{{ service.name | caseLower }}"
+)
 
 func Test{{ service.name | caseUcfirst }}(t *testing.T) {
 	{%- if requireOsPkg %}
@@ -133,7 +134,7 @@ func Test{{ service.name | caseUcfirst }}(t *testing.T) {
 		c.Endpoint = ts.URL
 		c.Client = ts.Client()
 
-		srv := New(c)
+		srv := {{ service.name | caseLower }}.New(c)
 		
 		{% set params="" %}
 		{%- for parameter in method.parameters.all | filter((param) => param.required) -%}

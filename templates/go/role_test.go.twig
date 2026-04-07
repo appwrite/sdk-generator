@@ -1,58 +1,60 @@
 {% autoescape false %}
-package role
+package role_test
 
 import (
 	"testing"
+
+	appwriterole "{{ sdk | goPackagePath }}/role"
 )
 
 func TestAny(t *testing.T) {
-	if Any() != "any" {
-		t.Errorf("Expected any, got %s", Any())
+	if appwriterole.Any() != "any" {
+		t.Errorf("Expected any, got %s", appwriterole.Any())
 	}
 }
 
 func TestUser(t *testing.T) {
-	if User("custom", "") != "user:custom" {
-		t.Errorf("Expected user:custom, got %s", User("custom", ""))
+	if appwriterole.User("custom", "") != "user:custom" {
+		t.Errorf("Expected user:custom, got %s", appwriterole.User("custom", ""))
 	}
-	if User("custom", "status") != "user:custom/status" {
-		t.Errorf("Expected user:custom/status, got %s", User("custom", "status"))
+	if appwriterole.User("custom", "status") != "user:custom/status" {
+		t.Errorf("Expected user:custom/status, got %s", appwriterole.User("custom", "status"))
 	}
 }
 
 func TestUsers(t *testing.T) {
-	if Users("") != "users" {
-		t.Errorf("Expected users, got %s", Users(""))
+	if appwriterole.Users("") != "users" {
+		t.Errorf("Expected users, got %s", appwriterole.Users(""))
 	}
-	if Users("status") != "users/status" {
-		t.Errorf("Expected users/status, got %s", Users("status"))
+	if appwriterole.Users("status") != "users/status" {
+		t.Errorf("Expected users/status, got %s", appwriterole.Users("status"))
 	}
 }
 
 func TestGuests(t *testing.T) {
-	if Guests() != "guests" {
-		t.Errorf("Expected guests, got %s", Guests())
+	if appwriterole.Guests() != "guests" {
+		t.Errorf("Expected guests, got %s", appwriterole.Guests())
 	}
 }
 
 func TestTeam(t *testing.T) {
-	if Team("custom", "") != "team:custom" {
-		t.Errorf("Expected team:custom, got %s", Team("custom", ""))
+	if appwriterole.Team("custom", "") != "team:custom" {
+		t.Errorf("Expected team:custom, got %s", appwriterole.Team("custom", ""))
 	}
-	if Team("custom", "owner") != "team:custom/owner" {
-		t.Errorf("Expected team:custom/owner, got %s", Team("custom", "owner"))
+	if appwriterole.Team("custom", "owner") != "team:custom/owner" {
+		t.Errorf("Expected team:custom/owner, got %s", appwriterole.Team("custom", "owner"))
 	}
 }
 
 func TestMember(t *testing.T) {
-	if Member("custom") != "member:custom" {
-		t.Errorf("Expected member:custom, got %s", Member("custom"))
+	if appwriterole.Member("custom") != "member:custom" {
+		t.Errorf("Expected member:custom, got %s", appwriterole.Member("custom"))
 	}
 }
 
 func TestLabel(t *testing.T) {
-	if Label("admin") != "label:admin" {
-		t.Errorf("Expected label:admin, got %s", Label("admin"))
+	if appwriterole.Label("admin") != "label:admin" {
+		t.Errorf("Expected label:admin, got %s", appwriterole.Label("admin"))
 	}
 }
 {% endautoescape %}

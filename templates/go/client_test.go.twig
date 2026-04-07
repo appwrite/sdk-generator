@@ -1,12 +1,14 @@
 {% autoescape false %}
-package client
+package client_test
 
 import (
 	"testing"
+
+	sdkclient "{{ sdk | goPackagePath }}/client"
 )
 
 func TestSetProject(t *testing.T) {
-	c := New()
+	c := sdkclient.New()
 	c.Headers["x-appwrite-project"] = "test_project"
 	if c.Headers["x-appwrite-project"] != "test_project" {
 		t.Errorf("Expected test_project, got %s", c.Headers["x-appwrite-project"])
@@ -14,7 +16,7 @@ func TestSetProject(t *testing.T) {
 }
 
 func TestSetEndPoint(t *testing.T) {
-	c := New()
+	c := sdkclient.New()
 	c.Endpoint = "https://example.com/v1"
 	if c.Endpoint != "https://example.com/v1" {
 		t.Errorf("Expected https://example.com/v1, got %s", c.Endpoint)
@@ -22,7 +24,7 @@ func TestSetEndPoint(t *testing.T) {
 }
 
 func TestAddHeader(t *testing.T) {
-	c := New()
+	c := sdkclient.New()
 	c.AddHeader("custom", "value")
 	if c.Headers["custom"] != "value" {
 		t.Errorf("Expected value, got %s", c.Headers["custom"])
@@ -30,7 +32,7 @@ func TestAddHeader(t *testing.T) {
 }
 
 func TestSetSelfSigned(t *testing.T) {
-	c := New()
+	c := sdkclient.New()
 	c.SelfSigned = true
 	if !c.SelfSigned {
 		t.Errorf("Expected SelfSigned to be true")
