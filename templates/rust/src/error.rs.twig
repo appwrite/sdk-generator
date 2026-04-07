@@ -75,6 +75,12 @@ impl From<reqwest::header::InvalidHeaderValue> for {{ spec.title | caseUcfirst }
     }
 }
 
+impl From<reqwest::header::InvalidHeaderName> for {{ spec.title | caseUcfirst }}Error {
+    fn from(err: reqwest::header::InvalidHeaderName) -> Self {
+        Self::new(400, format!("Invalid header name: {}", err), None, String::new())
+    }
+}
+
 /// {{ spec.title }} specific error response structure
 #[derive(Debug, serde::Deserialize)]
 pub struct ErrorResponse {

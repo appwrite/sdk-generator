@@ -264,23 +264,21 @@ impl Client {
     }
 
     /// Add a custom header
-    pub fn add_header<K: AsRef<str>, V: AsRef<str>>(&self, key: K, value: V) -> Self {
+    pub fn add_header<K: AsRef<str>, V: AsRef<str>>(&self, key: K, value: V) -> Result<Self> {
         use reqwest::header::{HeaderName, HeaderValue};
 
         let key = key.as_ref().to_string();
         let value = value.as_ref().to_string();
 
+        let header_name: HeaderName = key.parse()?;
+        let header_value: HeaderValue = value.parse()?;
+
         self.state.rcu(|state| {
             let mut next = (**state).clone();
-            if let (Ok(header_name), Ok(header_value)) = (
-                key.parse::<HeaderName>(),
-                value.parse::<HeaderValue>(),
-            ) {
-                next.config.headers.insert(header_name, header_value);
-            }
+            next.config.headers.insert(header_name.clone(), header_value.clone());
             Arc::new(next)
         });
-        self.clone()
+        Ok(self.clone())
     }
 
     /// Get a copy of the current request headers

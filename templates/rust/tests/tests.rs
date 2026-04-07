@@ -11,7 +11,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .set_endpoint("http://mockapi/v1")?
         .set_project("appwrite")?
         .set_key("apikey")?
-        .add_header("Origin", "http://localhost");
+        .add_header("Origin", "http://localhost")?;
 
     println!("\n\nTest Started");
     let sdk_headers = client.get_headers();
