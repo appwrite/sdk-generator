@@ -609,9 +609,7 @@ class Client {
             this.realtime.pendingSubscribeSlots = [];
 
             this.realtime.subscriptions.forEach((sub, slot) => {
-                const queries = sub.queries && sub.queries.length > 0
-                    ? sub.queries
-                    : [Query.select(['*']).toString()];
+                const queries = sub.queries ?? [];
 
                 const row: RealtimeRequestSubscribe = {
                     channels: sub.channels,

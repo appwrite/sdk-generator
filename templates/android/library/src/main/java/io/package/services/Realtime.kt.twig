@@ -109,11 +109,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         synchronized(subscriptionLock) {
             pendingSubscribeSlots.clear()
             activeSubscriptions.forEach { (slot, subscription) ->
-                val queries = if (subscription.queries.isEmpty()) {
-                    setOf("""{"method":"select","values":["*"]}""")
-                } else {
-                    subscription.queries
-                }
+                val queries = subscription.queries
                 val row = mutableMapOf<String, Any>(
                     "channels" to subscription.channels.toList(),
                     "queries" to queries.toList()

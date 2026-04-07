@@ -103,8 +103,7 @@ open class Realtime : Service {
         pendingSubscribeSlots.removeAll()
 
         for (slot, subscription) in activeSubscriptions {
-            let storedQueries = activeSubscriptionQueries[slot] ?? []
-            let queries = storedQueries.isEmpty ? [#"{"method":"select","values":["*"]}"#] : storedQueries
+            let queries = activeSubscriptionQueries[slot] ?? []
             var row: [String: Any] = [
                 "channels": Array(subscription.channels),
                 "queries": queries

@@ -255,9 +255,7 @@ mixin RealtimeMixin {
     for (var entry in _subscriptions.entries) {
       final slot = entry.key;
       final subscription = entry.value;
-      final queries = subscription.queries.isNotEmpty
-          ? subscription.queries
-          : ['{"method":"select","values":["*"]}'];
+      final queries = subscription.queries;
       final row = <String, dynamic>{
         'channels': subscription.channels,
         'queries': queries,
