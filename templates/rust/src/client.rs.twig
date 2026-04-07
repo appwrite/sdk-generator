@@ -88,10 +88,12 @@ impl Client {
     /// Create a new {{ spec.title }} client
     pub fn new() -> Self {
         let mut headers = HeaderMap::new();
-        // SAFETY: Header values below are compile-time constants from the SDK spec and always valid ASCII.
+        // SAFETY: Spec-defined header values are compile-time constants and always valid ASCII.
 {% for key, header in spec.global.defaultHeaders %}
         headers.insert("{{ key }}", "{{ header }}".parse().unwrap());
 {% endfor %}
+        // SAFETY: SDK metadata values are also compile-time constants; OS/ARCH are
+        // guaranteed-valid ASCII from std::env::consts.
         headers.insert("user-agent", format!("{{ spec.title }}RustSDK/{{ sdk.version }} ({}; {})", std::env::consts::OS, std::env::consts::ARCH).parse().unwrap());
         headers.insert("x-sdk-name", "{{ sdk.name }}".parse().unwrap());
         headers.insert("x-sdk-platform", "{{ sdk.platform }}".parse().unwrap());
