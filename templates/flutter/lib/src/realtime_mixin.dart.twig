@@ -103,10 +103,10 @@ mixin RealtimeMixin {
             // Store subscription ID mappings from backend
             // Format: { "0": "sub_a1f9", "1": "sub_b83c", ... }.
             // Try direct slot first, then slot+1 for zero-based server maps.
-            if (data.data['subscriptions'] != null) {
-              final subscriptions = data.data['subscriptions'] as Map<String, dynamic>;
-              subscriptions.forEach((slotStr, subscriptionId) {
-                final slot = int.tryParse(slotStr);
+            final rawSubscriptions = data.data['subscriptions'];
+            if (rawSubscriptions is Map) {
+              rawSubscriptions.forEach((slotStr, subscriptionId) {
+                final slot = int.tryParse(slotStr.toString());
                 if (slot != null) {
                   final directSlotExists = _subscriptions.containsKey(slot);
                   final shiftedSlot = slot + 1;
