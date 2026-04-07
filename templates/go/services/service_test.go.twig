@@ -55,6 +55,7 @@ import (
 	"testing"
 {% if requireOsPkg %}	"os"
 {% endif %}
+
 	"{{ sdk | goPackagePath }}/client"
 {% if requireFilesPkg %}	"{{ sdk | goPackagePath }}/file"
 {%- endif %}
@@ -70,8 +71,17 @@ func Test{{ service.name | caseUcfirst }}(t *testing.T) {
 	_, _ = tmpFile.WriteString("test content")
 	_ = tmpFile.Close()
 {% endif %}
+	newTestClient := func(ts *httptest.Server) client.Client {
+		c := client.New()
+		c.Endpoint = ts.URL
+		c.Client = ts.Client()
+		return c
+	}
 
 {% for method in service.methods %}
+{% if not loop.first %}
+
+{% endif %}
 	t.Run("Test {{ method.name | caseUcfirst }}", func(t *testing.T) {
 {% if method.type == 'webAuth' %}
 {% if (method | returnType(spec, spec.title | caseLower)) == 'bool' %}
@@ -133,11 +143,7 @@ func Test{{ service.name | caseUcfirst }}(t *testing.T) {
 		}))
 		defer ts.Close()
 
-		c := client.New()
-		c.Endpoint = ts.URL
-		c.Client = ts.Client()
-
-		srv := New(c)
+		srv := New(newTestClient(ts))
 
 {% set params = '' %}
 {% for parameter in method.parameters.all | filter((param) => param.required) %}
