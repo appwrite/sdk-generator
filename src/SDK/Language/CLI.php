@@ -335,6 +335,11 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'lib/response-config.ts',
+                'template'      => 'cli/lib/response-config.ts',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'lib/questions.ts',
                 'template'      => 'cli/lib/questions.ts',
             ],
