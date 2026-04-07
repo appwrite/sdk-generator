@@ -57,7 +57,7 @@ import (
 {% endif %}
 	"{{ sdk | goPackagePath }}/client"
 {% if requireFilesPkg %}	"{{ sdk | goPackagePath }}/file"
-{% endif %}
+{%- endif %}
 )
 
 func Test{{ service.name | caseUcfirst }}(t *testing.T) {
