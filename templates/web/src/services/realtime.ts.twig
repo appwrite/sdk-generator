@@ -279,7 +279,7 @@ export class Realtime {
     }
 
     private getKnownSubscriptionId(slot: number): string | undefined {
-        return this.slotToSubscriptionId.get(slot) ?? this.slotToSubscriptionId.get(slot - 1);
+        return this.slotToSubscriptionId.get(slot);
     }
 
     private sendSubscribeMessage(): void {

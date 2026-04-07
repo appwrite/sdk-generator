@@ -390,7 +390,7 @@ class Client {
                     channels: sub.channels,
                     queries
                 };
-                const knownSubscriptionId = this.realtime.slotToSubscriptionId.get(slot) ?? this.realtime.slotToSubscriptionId.get(slot - 1);
+                const knownSubscriptionId = this.realtime.slotToSubscriptionId.get(slot);
                 if (knownSubscriptionId) {
                     row.subscriptionId = knownSubscriptionId;
                 }

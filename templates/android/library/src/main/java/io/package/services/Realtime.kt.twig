@@ -114,7 +114,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
                     "channels" to subscription.channels.toList(),
                     "queries" to queries.toList()
                 )
-                val knownSubscriptionId = slotToSubscriptionId[slot] ?: slotToSubscriptionId[slot - 1]
+                val knownSubscriptionId = slotToSubscriptionId[slot]
                 if (!knownSubscriptionId.isNullOrEmpty()) {
                     row["subscriptionId"] = knownSubscriptionId
                 }

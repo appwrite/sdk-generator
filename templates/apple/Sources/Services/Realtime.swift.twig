@@ -108,7 +108,7 @@ open class Realtime : Service {
                 "channels": Array(subscription.channels),
                 "queries": queries
             ]
-            if let knownSubscriptionId = slotToSubscriptionId[slot] ?? slotToSubscriptionId[slot - 1] {
+            if let knownSubscriptionId = slotToSubscriptionId[slot] {
                 row["subscriptionId"] = knownSubscriptionId
             }
             rows.append(row)

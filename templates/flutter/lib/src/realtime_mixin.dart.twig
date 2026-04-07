@@ -245,7 +245,7 @@ mixin RealtimeMixin {
   }
 
   void _sendSubscribeMessage() {
-    if (_websok == null) {
+    if (_websok == null || _websok?.closeCode != null) {
       return;
     }
 
@@ -260,7 +260,7 @@ mixin RealtimeMixin {
         'channels': subscription.channels,
         'queries': queries,
       };
-      final knownSubscriptionId = _slotToSubscriptionId[slot] ?? _slotToSubscriptionId[slot - 1];
+      final knownSubscriptionId = _slotToSubscriptionId[slot];
       if (knownSubscriptionId != null && knownSubscriptionId.isNotEmpty) {
         row['subscriptionId'] = knownSubscriptionId;
       }

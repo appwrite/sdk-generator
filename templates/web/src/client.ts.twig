@@ -616,7 +616,7 @@ class Client {
                     queries
                 };
 
-                const knownSubscriptionId = this.realtime.slotToSubscriptionId.get(slot) ?? this.realtime.slotToSubscriptionId.get(slot - 1);
+                const knownSubscriptionId = this.realtime.slotToSubscriptionId.get(slot);
                 if (knownSubscriptionId) {
                     row.subscriptionId = knownSubscriptionId;
                 }
@@ -811,6 +811,16 @@ class Client {
             if (subscriptionId) {
                 this.realtime.subscriptionIdToSlot.delete(subscriptionId);
             }
+            // Remove channels that are no longer referenced by any active subscription.
+            const stillUsed = new Set<string>();
+            this.realtime.subscriptions.forEach(sub => {
+                sub.channels.forEach(channel => stillUsed.add(channel));
+            });
+            this.realtime.channels.forEach(channel => {
+                if (!stillUsed.has(channel)) {
+                    this.realtime.channels.delete(channel);
+                }
+            });
             this.realtime.connect();
         }
     }
