@@ -1,174 +1,183 @@
 {% autoescape false %}
 {%- set requireFilesPkg = false -%}
-{%- set requireJsonPkg = false -%}
 {%- set requireOsPkg = false -%}
 {%- for method in service.methods -%}
-	{%- if method.type != 'location' -%}
-		{%- set requireJsonPkg = true -%}
-	{%- endif -%}
-	{%- for parameter in method.parameters.all -%}
-		{%- if "file.InputFile" in (parameter | typeName) -%}
-			{%- set requireFilesPkg = true -%}
-			{%- set requireOsPkg = true -%}
-		{%- endif -%}
-	{%- endfor -%}
+    {%- for parameter in method.parameters.all -%}
+        {%- if "file.InputFile" in (parameter | typeName) -%}
+            {%- set requireFilesPkg = true -%}
+            {%- set requireOsPkg = true -%}
+        {%- endif -%}
+    {%- endfor -%}
 {%- endfor -%}
-{% macro render_mock_data(definitions, property, spec) %}
-	{%- if property.sub_schema and definitions[property.sub_schema] -%}
-		{%- if property.type == 'array' -%}
-			[]map[string]interface{}{
-				{
-					{%- for prop in definitions[property.sub_schema].properties | filter(p => p.required) %}
-					"{{ prop.name | replace({'"': '\\"', '\\': '\\\\'}) }}": {{ _self.render_mock_data(definitions, prop, spec) }},
-					{%- endfor %}
-				},
-			}
-		{%- else -%}
-			map[string]interface{}{
-				{%- for prop in definitions[property.sub_schema].properties | filter(p => p.required) %}
-				"{{ prop.name | replace({'"': '\\"', '\\': '\\\\'}) }}": {{ _self.render_mock_data(definitions, prop, spec) }},
-				{%- endfor %}
-			}
-		{%- endif -%}
-	{%- else -%}
-		{%- if property.type == 'object' -%}
-			map[string]interface{}{}
-		{%- elseif property.type == 'array' -%}
-			[]interface{}{}
-		{%- elseif property.type == 'string' -%}
-			"{{ (property.example | default('string')) | replace({'"': '\\"', '\\': '\\\\'}) }}"
-		{%- elseif property.type == 'boolean' -%}
-			true
-		{%- elseif property.type == 'integer' -%}
-			{{ property.example | default(1) }}
-		{%- elseif property.type == 'number' -%}
-			{{ property.example | default(1.0) }}
-		{%- else -%}
-			{{ (property.example is empty) ? "nil" : property.example }}
-		{%- endif -%}
-	{%- endif -%}
-{% endmacro %}
+{% macro render_json_value(definitions, property, spec, indent = '') -%}
+{%- import _self as helper -%}
+{%- set childIndent = indent ~ '    ' -%}
+{%- if property.sub_schema and definitions[property.sub_schema] -%}
+    {%- set requiredProps = definitions[property.sub_schema].properties | filter(p => p.required) -%}
+    {%- if property.type == 'array' -%}
+[
+{{ childIndent }}{
+{% for prop in requiredProps %}
+{{ childIndent }}    "{{ prop.name | replace({'"': '\\"', '\\': '\\\\'}) }}": {{ helper.render_json_value(definitions, prop, spec, childIndent ~ '    ') | trim | raw }}{% if not loop.last %},{% endif %}{{ "\n" -}}
+{% endfor %}
+{{ childIndent }}}
+{{ indent }}]
+    {%- else -%}
+{
+{% for prop in requiredProps %}
+{{ indent }}    "{{ prop.name | replace({'"': '\\"', '\\': '\\\\'}) }}": {{ helper.render_json_value(definitions, prop, spec, indent ~ '    ') | trim | raw }}{% if not loop.last %},{% endif %}{{ "\n" -}}
+{% endfor %}
+{{ indent }}}
+    {%- endif -%}
+{%- else -%}
+    {%- if property.type == 'object' -%}
+{}
+    {%- elseif property.type == 'array' -%}
+[]
+    {%- elseif property.type == 'string' -%}
+"{{ (property.example | default('string')) | replace({'"': '\\"', '\\': '\\\\'}) }}"
+    {%- elseif property.type == 'boolean' -%}
+true
+    {%- elseif property.type == 'integer' -%}
+{{ property.example | default(1) }}
+    {%- elseif property.type == 'number' -%}
+{{ property.example | default(1.0) }}
+    {%- else -%}
+{{ (property.example is empty) ? "null" : property.example }}
+    {%- endif -%}
+{%- endif -%}
+{%- endmacro %}
 package {{ service.name | caseLower }}
 
 import (
-{% if requireJsonPkg %}	"encoding/json"
-{% endif %}	"net/http"
+	"net/http"
 	"net/http/httptest"
 	"testing"
 {% if requireOsPkg %}	"os"
 {% endif %}
+
 	"{{ sdk | goPackagePath }}/client"
 {% if requireFilesPkg %}	"{{ sdk | goPackagePath }}/file"
-{% endif %})
+{%- endif %}
+)
 
 func Test{{ service.name | caseUcfirst }}(t *testing.T) {
-	{%- if requireOsPkg %}
+{% if requireOsPkg %}
 	tmpFile, err := os.CreateTemp("", "test")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer os.Remove(tmpFile.Name())
-	tmpFile.WriteString("test content")
-	tmpFile.Close()
-	{%- endif %}
+	_, _ = tmpFile.WriteString("test content")
+	_ = tmpFile.Close()
+{% endif %}
+	newTestClient := func(ts *httptest.Server) client.Client {
+		c := client.New()
+		c.Endpoint = ts.URL
+		c.Client = ts.Client()
+		return c
+	}
 
-	{% for method in service.methods %}
+{% for method in service.methods %}
+{% if not loop.first %}
+
+{% endif %}
 	t.Run("Test {{ method.name | caseUcfirst }}", func(t *testing.T) {
-		{%- if method.type == 'webAuth' %}
-		{%- if (method | returnType(spec, spec.title | caseLower)) == 'bool' %}
-		mockData := true
-		{%- else %}
-		mockData := "https://example.com"
-		{%- endif %}
-		{%- elseif method.type == 'location' %}
+{% if method.type == 'webAuth' %}
+{% if (method | returnType(spec, spec.title | caseLower)) == 'bool' %}
+		mockResponse := `true`
+{% else %}
+		mockResponse := `"https://example.com"`
+{% endif %}
+{% elseif method.type == 'location' %}
 		mockData := []byte("image_data")
-		{%- else %}
-		{%- if method.responseModel and method.responseModel != 'any' %}
-		{%- for definition in spec.definitions -%}
-			{%- if definition.name == method.responseModel -%}
-		mockData := map[string]interface{}{
-			{%- for property in definition.properties | filter((param) => param.required) %}
-			"{{ property.name | replace({'"': '\\"', '\\': '\\\\'}) }}": {{ _self.render_mock_data(spec.definitions, property, spec) }},
-			{%- endfor %}
-		}
-				{%- set break = true -%}
-			{%- endif -%}
-		{%- endfor %}
-		{%- else %}
-		mockData := map[string]interface{}{"message": "success"}
-		{%- endif %}
-		{%- endif %}
+{% else %}
+{% if method.responseModel and method.responseModel != 'any' %}
+{% for definition in spec.definitions %}
+{% if definition.name == method.responseModel %}
+		mockResponse := `
+{
+{% for property in definition.properties | filter((param) => param.required) %}
+    "{{ property.name | replace({'"': '\\"', '\\': '\\\\'}) }}": {{ _self.render_json_value(spec.definitions, property, spec, '    ') | trim | raw }}{% if not loop.last %},{% endif %}{{ "\n" -}}
+{% endfor %}
+}
+`
+{% endif %}
+{% endfor %}
+{% else %}
+		mockResponse := `
+{
+    "message": "success"
+}
+`
+{% endif %}
+{% endif %}
 
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			{% set methodUsesFile = false %}
-			{%- for parameter in method.parameters.all -%}
-				{%- if "file.InputFile" in (parameter | typeName) -%}
-					{%- set methodUsesFile = true -%}
-				{%- endif -%}
-			{%- endfor -%}
-			{% if methodUsesFile and method.method | upper != 'GET' -%}
+{% set methodUsesFile = false %}
+{% for parameter in method.parameters.all %}
+{% if "file.InputFile" in (parameter | typeName) %}
+{% set methodUsesFile = true %}
+{% endif %}
+{% endfor %}
+{% if methodUsesFile and method.method | upper != 'GET' %}
 			if r.Method == "GET" && "{{ method.method | upper }}" != "GET" {
 				// Handle file upload resume check
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusOK)
-				w.Write([]byte(`{"chunksUploaded": 0}`))
+				_, _ = w.Write([]byte(`{"chunksUploaded": 0}`))
 				return
 			}
-			{% endif -%}
+{% endif %}
 			if r.Method != "{{ method.method | upper }}" {
 				t.Errorf("Expected method {{ method.method | upper }}, got %s", r.Method)
 			}
-			
+
 			w.Header().Set("Content-Type", {% if method.type == 'location' %}"image/png"{% else %}"application/json"{% endif %})
 			w.WriteHeader(http.StatusOK)
-			{% if method.type == 'location' %}
-			w.Write(mockData)
-			{% else %}
-			json.NewEncoder(w).Encode(mockData)
-			{% endif %}
+{% if method.type == 'location' %}
+			_, _ = w.Write(mockData)
+{% else %}
+			_, _ = w.Write([]byte(mockResponse))
+{% endif %}
 		}))
 		defer ts.Close()
 
-		c := client.New()
-		c.Endpoint = ts.URL
-		c.Client = ts.Client()
+		srv := New(newTestClient(ts))
 
-		srv := New(c)
-		
-		{% set params="" %}
-		{%- for parameter in method.parameters.all | filter((param) => param.required) -%}
-			{%- set val = "" -%}
-			{%- set type = (parameter | typeName) -%}
-			{%- if "file.InputFile" in type -%}
-				{%- set val = "file.NewInputFile(tmpFile.Name(), \"test.txt\")" -%}
-			{%- elseif parameter.type == 'object' -%}
-				{%- set val = "map[string]interface{}{}" -%}
-			{%- elseif parameter.type == 'array' -%}
-				{%- if parameter.items.type == 'string' -%}
-					{%- set val = "[]string{}" -%}
-				{%- else -%}
-					{%- set val = type ~ "{}" -%}
-				{%- endif -%}
-			{%- elseif parameter.type == 'boolean' -%}
-				{%- set val = "true" -%}
-			{%- elseif parameter.type == 'string' -%}
-				{%- set val = "\"" ~ (parameter.example | replace({'"': '\\"', '\\': '\\\\'})) ~ "\"" -%}
-			{%- elseif parameter.type == 'integer' -%}
-				{%- set val = "1" -%}
-			{%- elseif parameter.type == 'number' -%}
-				{%- set val = "1.0" -%}
-			{%- else -%}
-				{%- set val = parameter.example -%}
-			{%- endif -%}
-			{% set params = params ~ val -%}
-			{%- if not loop.last %}{% set params = params ~ ", " %}{% endif -%}
-		{%- endfor -%}
-
+{% set params = '' %}
+{% for parameter in method.parameters.all | filter((param) => param.required) %}
+{% set val = '' %}
+{% set type = (parameter | typeName) %}
+{% if "file.InputFile" in type %}
+{% set val = 'file.NewInputFile(tmpFile.Name(), "test.txt")' %}
+{% elseif parameter.type == 'object' %}
+{% set val = 'map[string]interface{}{}' %}
+{% elseif parameter.type == 'array' %}
+{% if parameter.items.type == 'string' %}
+{% set val = '[]string{}' %}
+{% else %}
+{% set val = type ~ '{}' %}
+{% endif %}
+{% elseif parameter.type == 'boolean' %}
+{% set val = 'true' %}
+{% elseif parameter.type == 'string' %}
+{% set val = '"' ~ (parameter.example | replace({'"': '\\"', '\\': '\\\\'})) ~ '"' %}
+{% elseif parameter.type == 'integer' %}
+{% set val = '1' %}
+{% elseif parameter.type == 'number' %}
+{% set val = '1.0' %}
+{% else %}
+{% set val = parameter.example %}
+{% endif %}
+{% set params = params ~ val %}
+{% if not loop.last %}{% set params = params ~ ', ' %}{% endif %}
+{% endfor %}
 		_, err := srv.{{ method.name | caseUcfirst }}({{ params }})
 		if err != nil {
 			t.Errorf("Method {{ method.name | caseUcfirst }} failed: %v", err)
 		}
 	})
-	{% endfor %}
+{% endfor %}
 }
 {% endautoescape %}
