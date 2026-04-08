@@ -203,6 +203,11 @@ abstract class Base extends TestCase
         '{"$id":"row1","custom":"value","nested":{"enabled":true}}',
     ];
 
+    protected const CLI_CONSOLE_URL_RESPONSES = [
+        'https://cloud.appwrite.io/console/project-sgp-chirag-project-prod/sites/site-chirag-profile-website/deployments/deployment-123',
+        'https://cloud.appwrite.io/console/project-sgp-chirag-project-prod/functions/function-sample-function/deployment-123',
+    ];
+
     protected const CHANNEL_HELPER_RESPONSES = [
         'databases.db1.collections.col1.documents',
         'databases.db1.collections.col1.documents.doc1',
