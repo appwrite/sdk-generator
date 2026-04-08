@@ -6,13 +6,15 @@ on:
 
 permissions:
   id-token: write
-  contents: read
+  contents: write
 
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_TOKEN }}
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
@@ -66,3 +68,81 @@ jobs:
           GHR_PATH: build/
           GHR_REPLACE: false
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+
+      - name: Update Homebrew formula checksums
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          TARGET_COMMITISH: ${{ github.event.release.target_commitish }}
+        run: |
+          set -euo pipefail
+
+          TARGET_BRANCH="$TARGET_COMMITISH"
+          if ! git ls-remote --exit-code --heads origin "$TARGET_BRANCH" >/dev/null 2>&1; then
+            TARGET_BRANCH="master"
+          fi
+
+          git fetch origin "$TARGET_BRANCH"
+          git switch -C "$TARGET_BRANCH" "origin/$TARGET_BRANCH"
+
+          FORMULA_PATH="$(find Formula -maxdepth 1 -name '*.rb' | head -n 1)"
+          if [ -z "$FORMULA_PATH" ]; then
+            echo "Formula file not found"
+            exit 1
+          fi
+
+          EXECUTABLE_NAME="$(basename "$FORMULA_PATH" .rb)"
+          export FORMULA_PATH RELEASE_TAG EXECUTABLE_NAME
+          export MAC_ARM64_SHA256="$(sha256sum "build/${EXECUTABLE_NAME}-cli-darwin-arm64" | awk '{print $1}')"
+          export MAC_X64_SHA256="$(sha256sum "build/${EXECUTABLE_NAME}-cli-darwin-x64" | awk '{print $1}')"
+          export LINUX_ARM64_SHA256="$(sha256sum "build/${EXECUTABLE_NAME}-cli-linux-arm64" | awk '{print $1}')"
+          export LINUX_X64_SHA256="$(sha256sum "build/${EXECUTABLE_NAME}-cli-linux-x64" | awk '{print $1}')"
+
+          python3 <<'PY'
+          import os
+          import re
+          from pathlib import Path
+
+          formula_path = Path(os.environ["FORMULA_PATH"])
+          executable = os.environ["EXECUTABLE_NAME"]
+          release_tag = os.environ["RELEASE_TAG"]
+          checksums = {
+              f"{executable}-cli-darwin-arm64": os.environ["MAC_ARM64_SHA256"],
+              f"{executable}-cli-darwin-x64": os.environ["MAC_X64_SHA256"],
+              f"{executable}-cli-linux-arm64": os.environ["LINUX_ARM64_SHA256"],
+              f"{executable}-cli-linux-x64": os.environ["LINUX_X64_SHA256"],
+          }
+
+          text = formula_path.read_text()
+          text, count = re.subn(
+              r'^(  version ")([^"]+)(")$',
+              rf'\g<1>{release_tag}\g<3>',
+              text,
+              count=1,
+              flags=re.MULTILINE,
+          )
+          if count != 1:
+              raise SystemExit("Failed to update formula version")
+
+          for artifact, checksum in checksums.items():
+              pattern = re.compile(
+                  rf'({re.escape(artifact)}"\n\s+sha256 ")([0-9a-f]{{64}})(")'
+              )
+              text, count = pattern.subn(rf'\g<1>{checksum}\g<3>', text, count=1)
+              if count != 1:
+                  raise SystemExit(f"Failed to update checksum for {artifact}")
+
+          formula_path.write_text(text)
+          PY
+
+          ruby -c "$FORMULA_PATH"
+
+          if git diff --quiet -- "$FORMULA_PATH"; then
+            echo "Homebrew formula already up to date"
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$FORMULA_PATH"
+          git commit -m "chore: update Homebrew formula for ${RELEASE_TAG}"
+          git push origin "$TARGET_BRANCH"
