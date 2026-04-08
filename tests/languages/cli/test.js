@@ -115,6 +115,14 @@ console.log(
     "123",
   ),
 );
+console.log(
+  getSiteDeploymentConsoleUrl(
+    "https://abc.example.com/v1",
+    "self-hosted-project",
+    "docs",
+    "456",
+  ),
+);
 
 output = execSync(
   "bun ./dist/cli.cjs general upload --x string  --y 123 --z string in array --file ../../resources/file.png",

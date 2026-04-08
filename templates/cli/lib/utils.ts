@@ -104,7 +104,7 @@ export const getConsoleProjectSlug = (
   try {
     const hostname = new URL(endpoint).hostname;
 
-    if (!isCloudHostname) {
+    if (!isCloudHostname(hostname)) {
       return `project-${projectId}`;
     }
 
