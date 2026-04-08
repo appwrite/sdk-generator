@@ -28,6 +28,8 @@ import {
   createSettingsObject,
   checkDeployConditions,
   arrayEqualsUnordered,
+  getFunctionDeploymentConsoleUrl,
+  getSiteDeploymentConsoleUrl,
 } from "../utils.js";
 import { Spinner, SPINNER_DOTS } from "../spinner.js";
 import { paginate } from "../paginate.js";
@@ -1056,19 +1058,13 @@ export class Push {
                 );
                 const endpoint =
                   localConfig.getEndpoint() || globalConfig.getEndpoint();
-                let region = "";
-                try {
-                  const hostname = new URL(endpoint).hostname;
-                  const firstSubdomain = hostname.split(".")[0];
-                  if (firstSubdomain.length === 3) {
-                    region = firstSubdomain;
-                  }
-                } catch {}
                 const projectId = localConfig.getProject().projectId;
-                const projectSlug = region
-                  ? `project-${region}-${projectId}`
-                  : `project-${projectId}`;
-                const consoleUrl = `${endpoint.replace(/\/v1\/?$/, "")}/console/${projectSlug}/functions/function-${func["$id"]}/deployment-${deploymentId}`;
+                const consoleUrl = getFunctionDeploymentConsoleUrl(
+                  endpoint,
+                  projectId,
+                  func["$id"],
+                  deploymentId,
+                );
 
                 updaterRow.stopSpinner();
                 updaterRow.update({
@@ -1470,19 +1466,13 @@ export class Push {
                 );
                 const endpoint =
                   localConfig.getEndpoint() || globalConfig.getEndpoint();
-                let region = "";
-                try {
-                  const hostname = new URL(endpoint).hostname;
-                  const firstSubdomain = hostname.split(".")[0];
-                  if (firstSubdomain.length === 3) {
-                    region = firstSubdomain;
-                  }
-                } catch {}
                 const projectId = localConfig.getProject().projectId;
-                const projectSlug = region
-                  ? `project-${region}-${projectId}`
-                  : `project-${projectId}`;
-                const consoleUrl = `${endpoint.replace(/\/v1\/?$/, "")}/console/${projectSlug}/sites/site-${site["$id"]}/deployments/deployment-${deploymentId}`;
+                const consoleUrl = getSiteDeploymentConsoleUrl(
+                  endpoint,
+                  projectId,
+                  site["$id"],
+                  deploymentId,
+                );
 
                 updaterRow.stopSpinner();
                 updaterRow.update({
@@ -2176,18 +2166,12 @@ const pushSite = async ({
     const { name, deployment, $id } = failed;
     const projectId = localConfig.getProject().projectId;
     const endpoint = localConfig.getEndpoint() || globalConfig.getEndpoint();
-    let region = "";
-    try {
-      const hostname = new URL(endpoint).hostname;
-      const firstSubdomain = hostname.split(".")[0];
-      if (firstSubdomain.length === 3) {
-        region = firstSubdomain;
-      }
-    } catch {}
-    const projectSlug = region
-      ? `project-${region}-${projectId}`
-      : `project-${projectId}`;
-    const failUrl = `${endpoint.replace(/\/v1\/?$/, "")}/console/${projectSlug}/sites/site-${$id}/deployments/deployment-${deployment}`;
+    const failUrl = getSiteDeploymentConsoleUrl(
+      endpoint,
+      projectId,
+      $id,
+      deployment,
+    );
 
     error(
       `Deployment of ${name} has failed. Check at ${failUrl} for more details\n`,
@@ -2327,18 +2311,12 @@ const pushFunction = async ({
     const { name, deployment, $id } = failed;
     const projectId = localConfig.getProject().projectId;
     const endpoint = localConfig.getEndpoint() || globalConfig.getEndpoint();
-    let region = "";
-    try {
-      const hostname = new URL(endpoint).hostname;
-      const firstSubdomain = hostname.split(".")[0];
-      if (firstSubdomain.length === 3) {
-        region = firstSubdomain;
-      }
-    } catch {}
-    const projectSlug = region
-      ? `project-${region}-${projectId}`
-      : `project-${projectId}`;
-    const failUrl = `${endpoint.replace(/\/v1\/?$/, "")}/console/${projectSlug}/functions/function-${$id}/deployment-${deployment}`;
+    const failUrl = getFunctionDeploymentConsoleUrl(
+      endpoint,
+      projectId,
+      $id,
+      deployment,
+    );
 
     error(
       `Deployment of ${name} has failed. Check at ${failUrl} for more details\n`,
