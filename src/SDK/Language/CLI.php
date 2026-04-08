@@ -70,6 +70,10 @@ class CLI extends Node
         'executableName' => 'executable',
         'logo' => '',
         'logoUnescaped' => '',
+        'homebrewMacArm64Sha256' => '0000000000000000000000000000000000000000000000000000000000000000',
+        'homebrewMacX64Sha256' => '0000000000000000000000000000000000000000000000000000000000000000',
+        'homebrewLinuxArm64Sha256' => '0000000000000000000000000000000000000000000000000000000000000000',
+        'homebrewLinuxX64Sha256' => '0000000000000000000000000000000000000000000000000000000000000000',
     ];
 
     /**
@@ -146,6 +150,18 @@ class CLI extends Node
     public function setLogoUnescaped(string $logo): self
     {
         $this->setParam('logoUnescaped', $logo);
+
+        return $this;
+    }
+
+    /**
+     * @param string $key
+     * @param string $sha256
+     * @return $this
+     */
+    public function setHomebrewSha256(string $key, string $sha256): self
+    {
+        $this->setParam($key, $sha256);
 
         return $this;
     }

@@ -20,8 +20,26 @@ class {{ spec.title| caseUcfirst }} < Formula
     "#{OS.mac? ? "mac" : "linux"}-#{binary_arch}"
   end
 
-  url "https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/releases/download/#{version}/#{binary_name}"
-  sha256 :no_check
+  # Release automation injects per-target SHA256 values when publishing binaries.
+  on_macos do
+    if Hardware::CPU.arm?
+      url "https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/releases/download/#{version}/{{ language.params.executableName }}-cli-darwin-arm64"
+      sha256 "{{ language.params.homebrewMacArm64Sha256 }}"
+    else
+      url "https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/releases/download/#{version}/{{ language.params.executableName }}-cli-darwin-x64"
+      sha256 "{{ language.params.homebrewMacX64Sha256 }}"
+    end
+  end
+
+  on_linux do
+    if Hardware::CPU.arm?
+      url "https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/releases/download/#{version}/{{ language.params.executableName }}-cli-linux-arm64"
+      sha256 "{{ language.params.homebrewLinuxArm64Sha256 }}"
+    else
+      url "https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/releases/download/#{version}/{{ language.params.executableName }}-cli-linux-x64"
+      sha256 "{{ language.params.homebrewLinuxX64Sha256 }}"
+    end
+  end
 
   head "https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}.git", branch: "master" do
     depends_on "bun" => :build

@@ -57,7 +57,6 @@ const isInstalledViaHomebrew = (): boolean => {
     return (
       scriptPath.includes("/opt/homebrew/") ||
       scriptPath.includes("/usr/local/Cellar/") ||
-      scriptPath.includes("/usr/local/bin/") ||
       scriptPath.includes("/home/linuxbrew/.linuxbrew/") ||
       scriptPath.includes("/linuxbrew/.linuxbrew/")
     );
