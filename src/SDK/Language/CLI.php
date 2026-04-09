@@ -155,6 +155,9 @@ class CLI extends Node
     }
 
     /**
+     * Override a generated Homebrew formula checksum placeholder when a release
+     * build already knows the target binary SHA256.
+     *
      * @param string $key
      * @param string $sha256
      * @return $this

@@ -9,7 +9,10 @@ class {{ spec.title| caseUcfirst }} < Formula
   end
 
   def self.binary_os
-    OS.mac? ? "darwin" : "linux"
+    return "darwin" if OS.mac?
+    return "linux" if OS.linux?
+
+    raise "Homebrew formula is only supported on macOS and Linux"
   end
 
   def self.binary_name
@@ -17,7 +20,10 @@ class {{ spec.title| caseUcfirst }} < Formula
   end
 
   def self.build_target
-    "#{OS.mac? ? "mac" : "linux"}-#{binary_arch}"
+    return "mac-#{binary_arch}" if OS.mac?
+    return "linux-#{binary_arch}" if OS.linux?
+
+    raise "Homebrew formula is only supported on macOS and Linux"
   end
 
   # Release automation injects per-target SHA256 values when publishing binaries.

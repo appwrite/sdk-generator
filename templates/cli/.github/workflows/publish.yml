@@ -97,42 +97,32 @@ jobs:
           export LINUX_ARM64_SHA256="$(sha256sum "build/${EXECUTABLE_NAME}-cli-linux-arm64" | awk '{print $1}')"
           export LINUX_X64_SHA256="$(sha256sum "build/${EXECUTABLE_NAME}-cli-linux-x64" | awk '{print $1}')"
 
-          python3 <<'PY'
-          import os
-          import re
-          from pathlib import Path
-
-          formula_path = Path(os.environ["FORMULA_PATH"])
-          executable = os.environ["EXECUTABLE_NAME"]
-          release_tag = os.environ["RELEASE_TAG"]
+          ruby <<'RUBY'
+          formula_path = ENV.fetch("FORMULA_PATH")
+          executable = ENV.fetch("EXECUTABLE_NAME")
+          release_tag = ENV.fetch("RELEASE_TAG")
           checksums = {
-              f"{executable}-cli-darwin-arm64": os.environ["MAC_ARM64_SHA256"],
-              f"{executable}-cli-darwin-x64": os.environ["MAC_X64_SHA256"],
-              f"{executable}-cli-linux-arm64": os.environ["LINUX_ARM64_SHA256"],
-              f"{executable}-cli-linux-x64": os.environ["LINUX_X64_SHA256"],
+            "#{executable}-cli-darwin-arm64" => ENV.fetch("MAC_ARM64_SHA256"),
+            "#{executable}-cli-darwin-x64" => ENV.fetch("MAC_X64_SHA256"),
+            "#{executable}-cli-linux-arm64" => ENV.fetch("LINUX_ARM64_SHA256"),
+            "#{executable}-cli-linux-x64" => ENV.fetch("LINUX_X64_SHA256"),
           }
 
-          text = formula_path.read_text()
-          text, count = re.subn(
-              r'^(  version ")([^"]+)(")$',
-              rf'\g<1>{release_tag}\g<3>',
-              text,
-              count=1,
-              flags=re.MULTILINE,
-          )
-          if count != 1:
-              raise SystemExit("Failed to update formula version")
+          text = File.read(formula_path)
 
-          for artifact, checksum in checksums.items():
-              pattern = re.compile(
-                  rf'({re.escape(artifact)}"\n\s+sha256 ")([0-9a-f]{{64}})(")'
-              )
-              text, count = pattern.subn(rf'\g<1>{checksum}\g<3>', text, count=1)
-              if count != 1:
-                  raise SystemExit(f"Failed to update checksum for {artifact}")
+          unless text.sub!(/^(\s*version ")([^"]+)(")$/) { "#{$1}#{release_tag}#{$3}" }
+            abort("Failed to update formula version")
+          end
 
-          formula_path.write_text(text)
-          PY
+          checksums.each do |artifact, checksum|
+            pattern = /(\Q#{artifact}\E"\n\s+sha256 ")([0-9a-f]{64})(")/
+            unless text.sub!(pattern) { "#{$1}#{checksum}#{$3}" }
+              abort("Failed to update checksum for #{artifact}")
+            end
+          end
+
+          File.write(formula_path, text)
+          RUBY
 
           ruby -c "$FORMULA_PATH"
 
