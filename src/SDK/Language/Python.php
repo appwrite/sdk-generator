@@ -751,8 +751,10 @@ class Python extends Language
      * @param array $spec
      * @return string
      */
-    protected function getResponseModelExample(string $model, array $spec): string
+    protected function getResponseModelExample(?string $model, array $spec): mixed
     {
+        if (!$model) return [];
+
         $modelDef = $spec['definitions'][$model];
 
         $result = [];
@@ -761,23 +763,16 @@ class Python extends Language
                 continue;
             }
 
-            if ($property['type'] === 'object') {
-                echo $property;
-                return '';
-            }
-
             $result[$property['name']] = match ($property['type']) {
-                'object' => $this->getResponseModelExample($property['sub_schema'], $spec),
-                'array' => [],
+                'object' => (array_key_exists('sub_schema', $property) && $property['sub_schema']) ? ((object) $this->getResponseModelExample($property['sub_schema'], $spec)) : new \stdClass(),
+                'array' => array(),
                 'string' => $property['example'] ?? '',
                 'boolean' => true,
-                default => $property['example'],
+                default => $property['example'] ?? null,
             };
         }
 
-        $json = json_encode($result, JSON_PRETTY_PRINT);
-
-        return str_replace('true', "True", $json);
+	return $result;
     }
 
     public function getFilters(): array
@@ -870,7 +865,11 @@ class Python extends Language
                 return $this->getRequestModelExample($parameter, $spec, $serviceName);
             }),
             new TwigFilter('responseModelExample', function (string $model, array $spec) {
-                return $this->getResponseModelExample($model, $spec);
+                $result = $this->getResponseModelExample($model, $spec);
+
+		$json = json_encode($result, JSON_PRETTY_PRINT);
+
+		return str_replace([ 'true', 'false', 'null' ], [ "True", "False", "None" ], $json);
             })
         ];
     }
