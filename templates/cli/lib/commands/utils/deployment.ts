@@ -2,10 +2,19 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import { create, extract } from "tar";
+import ignoreModule from "ignore";
 import { Client, AppwriteException } from "@appwrite.io/console";
 import { error } from "../../parser.js";
 
+const ignore: typeof ignoreModule =
+  (ignoreModule as unknown as { default?: typeof ignoreModule }).default ??
+  ignoreModule;
 const POLL_DEBOUNCE = 2000; // Milliseconds
+
+interface IgnoreMatcher {
+  baseDir: string;
+  ignorer: ReturnType<typeof ignore>;
+}
 
 interface DeploymentListResult {
   total: number;
@@ -23,11 +32,127 @@ interface DeploymentDetails {
 /**
  * Package a directory into a tar.gz File object for deployment
  */
-async function packageDirectory(dirPath: string): Promise<File> {
+function listDeployableFiles(
+  dirPath: string,
+  extraIgnoreRules: string[] = [],
+): string[] {
+  const normalizePath = (value: string): string =>
+    value.split(path.sep).join("/");
+
+  const createMatcher = (baseDir: string, rules: string[]): IgnoreMatcher => {
+    const ignorer = ignore();
+    for (const rule of rules) {
+      ignorer.add(rule);
+    }
+    return {
+      baseDir,
+      ignorer,
+    };
+  };
+
+  const loadMatcher = (
+    baseDir: string,
+    extraRules: string[] = [],
+  ): IgnoreMatcher | null => {
+    const rules = [...extraRules];
+    const gitignorePath = path.join(dirPath, baseDir, ".gitignore");
+
+    if (fs.existsSync(gitignorePath)) {
+      rules.push(fs.readFileSync(gitignorePath, "utf8"));
+    }
+
+    if (rules.length === 0) {
+      return null;
+    }
+
+    return createMatcher(baseDir, rules);
+  };
+
+  const isIgnored = (
+    relativePath: string,
+    matchers: IgnoreMatcher[],
+    isDirectory: boolean,
+  ): boolean => {
+    let ignored = false;
+
+    for (const matcher of matchers) {
+      if (
+        matcher.baseDir !== "" &&
+        relativePath !== matcher.baseDir &&
+        !relativePath.startsWith(`${matcher.baseDir}/`)
+      ) {
+        continue;
+      }
+
+      const localPath = normalizePath(
+        matcher.baseDir === ""
+          ? relativePath
+          : path.relative(matcher.baseDir, relativePath),
+      );
+
+      const result = matcher.ignorer.test(
+        isDirectory ? `${localPath}/` : localPath,
+      );
+
+      if (result.ignored) {
+        ignored = true;
+      } else if (result.unignored) {
+        ignored = false;
+      }
+    }
+
+    return ignored;
+  };
+
+  const rootMatcher = createMatcher("", [".git", ...extraIgnoreRules]);
+  const rootGitignoreMatcher = loadMatcher("");
+  const rootMatchers = rootGitignoreMatcher
+    ? [rootMatcher, rootGitignoreMatcher]
+    : [rootMatcher];
+
+  const files: string[] = [];
+
+  const walk = (relativeDir = "", inheritedMatchers = rootMatchers): void => {
+    const absoluteDir = path.join(dirPath, relativeDir);
+    const localMatcher = relativeDir === "" ? null : loadMatcher(relativeDir);
+    const activeMatchers = localMatcher
+      ? [...inheritedMatchers, localMatcher]
+      : inheritedMatchers;
+
+    for (const entry of fs.readdirSync(absoluteDir, { withFileTypes: true })) {
+      const relativePath = normalizePath(path.join(relativeDir, entry.name));
+
+      if (isIgnored(relativePath, activeMatchers, entry.isDirectory())) {
+        continue;
+      }
+
+      if (entry.isDirectory()) {
+        walk(relativePath, activeMatchers);
+      } else {
+        files.push(relativePath);
+      }
+    }
+  };
+
+  walk();
+  return files;
+}
+
+async function packageDirectory(
+  dirPath: string,
+  extraIgnoreRules: string[] = [],
+): Promise<File> {
   const tempFile = path.join(
     os.tmpdir(),
     `appwrite-deploy-${Date.now()}.tar.gz`,
   );
+  const files = listDeployableFiles(dirPath, extraIgnoreRules);
+
+  if (files.length === 0) {
+    throw new Error(
+      `No deployable files found at path: ${dirPath}. Check your .gitignore and ignore rules.`,
+    );
+  }
 
   await create(
     {
@@ -35,7 +160,7 @@ async function packageDirectory(dirPath: string): Promise<File> {
       file: tempFile,
       cwd: dirPath,
     },
-    ["."],
+    files,
   );
 
   try {
@@ -160,6 +285,7 @@ export async function downloadDeploymentCode(params: {
 export interface PushDeploymentParams {
   resourcePath: string;
   createDeployment: (codeFile: File) => Promise<DeploymentDetails>;
+  extraIgnoreRules?: string[];
   getDeployment?: (deploymentId: string) => Promise<DeploymentDetails>;
   pollForStatus?: boolean;
   onStatusUpdate?: (status: string) => void;
@@ -181,13 +307,14 @@ export async function pushDeployment(
   const {
     resourcePath,
     createDeployment,
+    extraIgnoreRules = [],
     getDeployment,
     pollForStatus = false,
     onStatusUpdate,
   } = params;
 
   // Package the directory
-  const codeFile = await packageDirectory(resourcePath);
+  const codeFile = await packageDirectory(resourcePath, extraIgnoreRules);
 
   // Create the deployment
   let deployment = await createDeployment(codeFile);

@@ -144,7 +144,7 @@ jobs:
         if: matrix.sdk == 'go'
         uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
+          go-version: '1.22.5'
 
       - name: Setup .NET
         if: matrix.sdk == 'dotnet'
@@ -179,7 +179,7 @@ jobs:
               ;;
             react-native)
               npm ci
-              npm run build || echo "No build script, checking syntax only"
+              npm run build
               ;;
             flutter)
               flutter pub get
@@ -219,6 +219,7 @@ jobs:
             go)
               go mod tidy || true
               go build ./...
+              go test ./...
               ;;
             dotnet)
               dotnet build

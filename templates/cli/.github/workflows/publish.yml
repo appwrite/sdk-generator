@@ -6,13 +6,15 @@ on:
 
 permissions:
   id-token: write
-  contents: read
+  contents: write
 
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_TOKEN }}
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
@@ -43,11 +45,11 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '24.14.1'
           registry-url: 'https://registry.npmjs.org'
 
-      - name: Update npm to latest version for OIDC support
-        run: npm install -g npm@latest
+      - name: Pin npm for trusted publishing
+        run: npm install -g npm@11.10.0
 
       - name: Determine release tag
         id: release_tag
@@ -66,3 +68,71 @@ jobs:
           GHR_PATH: build/
           GHR_REPLACE: false
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+
+      - name: Update Homebrew formula checksums
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          TARGET_COMMITISH: ${{ github.event.release.target_commitish }}
+        run: |
+          set -euo pipefail
+
+          TARGET_BRANCH="$TARGET_COMMITISH"
+          if ! git ls-remote --exit-code --heads origin "$TARGET_BRANCH" >/dev/null 2>&1; then
+            TARGET_BRANCH="master"
+          fi
+
+          git fetch origin "$TARGET_BRANCH"
+          git switch -C "$TARGET_BRANCH" "origin/$TARGET_BRANCH"
+
+          FORMULA_PATH="$(find Formula -maxdepth 1 -name '*.rb' | head -n 1)"
+          if [ -z "$FORMULA_PATH" ]; then
+            echo "Formula file not found"
+            exit 1
+          fi
+
+          EXECUTABLE_NAME="$(basename "$FORMULA_PATH" .rb)"
+          export FORMULA_PATH RELEASE_TAG EXECUTABLE_NAME
+          export MAC_ARM64_SHA256="$(sha256sum "build/${EXECUTABLE_NAME}-cli-darwin-arm64" | awk '{print $1}')"
+          export MAC_X64_SHA256="$(sha256sum "build/${EXECUTABLE_NAME}-cli-darwin-x64" | awk '{print $1}')"
+          export LINUX_ARM64_SHA256="$(sha256sum "build/${EXECUTABLE_NAME}-cli-linux-arm64" | awk '{print $1}')"
+          export LINUX_X64_SHA256="$(sha256sum "build/${EXECUTABLE_NAME}-cli-linux-x64" | awk '{print $1}')"
+
+          ruby <<'RUBY'
+          formula_path = ENV.fetch("FORMULA_PATH")
+          executable = ENV.fetch("EXECUTABLE_NAME")
+          release_tag = ENV.fetch("RELEASE_TAG")
+          checksums = {
+            "#{executable}-cli-darwin-arm64" => ENV.fetch("MAC_ARM64_SHA256"),
+            "#{executable}-cli-darwin-x64" => ENV.fetch("MAC_X64_SHA256"),
+            "#{executable}-cli-linux-arm64" => ENV.fetch("LINUX_ARM64_SHA256"),
+            "#{executable}-cli-linux-x64" => ENV.fetch("LINUX_X64_SHA256"),
+          }
+
+          text = File.read(formula_path)
+
+          unless text.sub!(/^(\s*version ")([^"]+)(")$/) { "#{$1}#{release_tag}#{$3}" }
+            abort("Failed to update formula version")
+          end
+
+          checksums.each do |artifact, checksum|
+            pattern = /(\Q#{artifact}\E"\n\s+sha256 ")([0-9a-f]{64})(")/
+            unless text.sub!(pattern) { "#{$1}#{checksum}#{$3}" }
+              abort("Failed to update checksum for #{artifact}")
+            end
+          end
+
+          File.write(formula_path, text)
+          RUBY
+
+          ruby -c "$FORMULA_PATH"
+
+          if git diff --quiet -- "$FORMULA_PATH"; then
+            echo "Homebrew formula already up to date"
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$FORMULA_PATH"
+          git commit -m "chore: update Homebrew formula for ${RELEASE_TAG}"
+          git push origin "$TARGET_BRANCH"

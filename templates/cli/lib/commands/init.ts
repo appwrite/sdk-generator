@@ -32,6 +32,7 @@ import {
 import { sdkForConsole } from "../sdks.js";
 import {
   isCloud,
+  getSafeDirectoryName,
   hasSkillsInstalled,
   fetchAvailableSkills,
   detectProjectSkills,
@@ -484,13 +485,14 @@ const initFunction = async (): Promise<void> => {
 
   const functionId = answers.id === "unique()" ? ID.unique() : answers.id;
   const functionName = answers.name;
-  const functionDir = path.join(functionFolder, functionName);
+  const functionDirectoryName = getSafeDirectoryName(functionName, functionId);
+  const functionDir = path.join(functionFolder, functionDirectoryName);
   const templatesDir = path.join(functionFolder, `${functionId}-templates`);
   const runtimeDir = path.join(templatesDir, answers.runtime.name);
 
   if (fs.existsSync(functionDir)) {
     throw new Error(
-      `( ${functionName} ) already exists in the current directory. Please choose another name.`,
+      `( ${functionDirectoryName} ) already exists in the current directory. Please choose another name.`,
     );
   }
 
@@ -602,7 +604,7 @@ const initFunction = async (): Promise<void> => {
   const readmePath = path.join(
     process.cwd(),
     "functions",
-    functionName,
+    functionDirectoryName,
     "README.md",
   );
   const readmeFile = fs.readFileSync(readmePath).toString();
@@ -627,7 +629,8 @@ const initFunction = async (): Promise<void> => {
     entrypoint: answers.runtime.entrypoint || "",
     commands: answers.runtime.commands || "",
     ignore: answers.runtime.ignore || null,
-    path: `functions/${functionName}`,
+    deploymentRetention: 0,
+    path: `functions/${functionDirectoryName}`,
   };
 
   localConfig.addFunction(data);
@@ -651,12 +654,13 @@ const initSite = async (): Promise<void> => {
 
   const siteId = answers.id === "unique()" ? ID.unique() : answers.id;
   const siteName = answers.name;
-  const siteDir = path.join(siteFolder, siteName);
+  const siteDirectoryName = getSafeDirectoryName(siteName, siteId);
+  const siteDir = path.join(siteFolder, siteDirectoryName);
   const templatesDir = path.join(siteFolder, `${siteId}-templates`);
 
   if (fs.existsSync(siteDir)) {
     throw new Error(
-      `( ${siteName} ) already exists in the current directory. Please choose another name.`,
+      `( ${siteDirectoryName} ) already exists in the current directory. Please choose another name.`,
     );
   }
 
@@ -773,30 +777,17 @@ const initSite = async (): Promise<void> => {
 
   fs.rmSync(templatesDir, { recursive: true, force: true });
 
-  const readmePath = path.join(process.cwd(), "sites", siteName, "README.md");
+  const readmePath = path.join(
+    process.cwd(),
+    "sites",
+    siteDirectoryName,
+    "README.md",
+  );
   const readmeFile = fs.readFileSync(readmePath).toString();
   const newReadmeFile = readmeFile.split("\n");
   newReadmeFile[0] = `# ${answers.name}`;
   newReadmeFile.splice(1, 2);
   fs.writeFileSync(readmePath, newReadmeFile.join("\n"));
-
-  const vars: Record<string, string> = {};
-  for (const variable of templateDetails.variables ?? []) {
-    let value = variable.value ?? "";
-    const replacements: Record<string, string> = {
-      "{apiEndpoint}": globalConfig.getEndpoint(),
-      "{projectId}": localConfig.getProject().projectId ?? "",
-      "{projectName}": localConfig.getProject().projectName ?? "",
-    };
-
-    for (const placeholder in replacements) {
-      if (value.includes(placeholder)) {
-        value = value.replace(placeholder, replacements[placeholder]);
-      }
-    }
-
-    vars[variable.name] = value;
-  }
 
   const data = {
     $id: siteId,
@@ -810,12 +801,11 @@ const initSite = async (): Promise<void> => {
     fallbackFile: templateDetails.frameworks[0].fallbackFile || "",
     buildSpecification: answers.buildSpecification,
     runtimeSpecification: answers.runtimeSpecification,
+    deploymentRetention: Number(answers.deploymentRetention),
     enabled: true,
     timeout: 30,
     logging: true,
-    ignore: answers.framework.ignore || null,
-    path: `sites/${siteName}`,
-    vars: vars,
+    path: `sites/${siteDirectoryName}`,
   };
 
   if (!data.buildRuntime) {

@@ -107,8 +107,8 @@ class ReactNative extends Web
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'rollup.config.js',
-                'template'      => '/react-native/rollup.config.js.twig',
+                'destination'   => 'rollup.config.mjs',
+                'template'      => '/react-native/rollup.config.mjs.twig',
             ],
             [
                 'scope'         => 'default',

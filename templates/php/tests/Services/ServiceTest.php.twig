@@ -1,3 +1,29 @@
+{% import _self as helper %}
+{% macro mockParameterValue(parameter) -%}
+{%- if parameter.enumName -%}
+{%- if parameter.type == 'array' -%}
+array({{ parameter.enumName | caseUcfirst }}::{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}())
+{%- else -%}
+{{ parameter.enumName | caseUcfirst }}::{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}()
+{%- endif -%}
+{%- elseif parameter.type == 'object' -%}
+array()
+{%- elseif parameter.type == 'array' -%}
+array()
+{%- elseif parameter.type == 'file' -%}
+InputFile::withData('', 'image/png')
+{%- elseif parameter.type == 'boolean' -%}
+true
+{%- elseif parameter.type == 'string' -%}
+"{% if parameter.example is not empty %}{{ parameter.example | escapeDollarSign }}{% endif %}"
+{%- elseif parameter.type == 'integer' and parameter['x-example'] is empty -%}
+1
+{%- elseif parameter.type == 'number' and parameter['x-example'] is empty -%}
+1.0
+{%- else -%}
+{{ parameter.example }}
+{%- endif -%}
+{%- endmacro %}
 <?php
 
 namespace {{ spec.namespace | caseNamespace }}\Services;
@@ -9,20 +35,20 @@ use PHPUnit\Framework\TestCase;
 {% set added = [] %}
 {% for method in service.methods %}
 {% for parameter in method.parameters.all %}
-{% if parameter.enumName is not empty %}
-{% if parameter.enumName not in added %}
+{% if parameter.enumName is not empty and parameter.enumName not in added %}
 use {{ spec.namespace | caseNamespace }}\Enums\{{ parameter.enumName | caseUcfirst }};
 {% set added = added|merge([parameter.enumName]) %}
 {% endif %}
-{% endif %}
 {% endfor %}
 {% endfor %}
 
-final class {{service.name | caseUcfirst}}Test extends TestCase {
+final class {{ service.name | caseUcfirst }}Test extends TestCase
+{
     private $client;
-    private ${{service.name | caseCamel}};
+    private ${{ service.name | caseCamel }};
 
-    protected function setUp(): void {
+    protected function setUp(): void
+    {
         $this->client = Mockery::mock(Client::class);
         $this->{{ service.name | caseCamel }} = new {{ service.name | caseUcfirst }}($this->client);
     }
@@ -38,26 +64,44 @@ final class {{service.name | caseUcfirst}}Test extends TestCase {
 {% if method.deprecated and methodNameLower in nonDeprecatedMethodNames %}
 {# Skip deprecated methods that have namespace collisions with non-deprecated methods #}
 {% else %}
-    public function testMethod{{method.name | caseUcfirst}}(): void {
-        {%~ if method.responseModel and method.responseModel != 'any' ~%}
-        $data = array(
-            {%- for definition in spec.definitions ~%}{%~ if definition.name == method.responseModel -%}{%~ for property in definition.properties | filter((param) => param.required) ~%}
-            "{{property.name | escapeDollarSign}}" => {% if property.type == 'object' %}array(){% elseif property.type == 'array' %}array(){% elseif property.type == 'string' %}"{{property.example | escapeDollarSign}}"{% elseif property.type == 'boolean' %}true{% else %}{{property.example}}{% endif %}{% if not loop.last %},{% endif %}{%~ endfor ~%}{% set break = true %}{%- else -%}{% set continue = true %}{%- endif -%}{%~ endfor -%}
-        );
-        {%~ elseif (method.responseModel and method.responseModel == 'any') or (method | getReturn == 'array') ~%}
+{% set responseModels = method | getResponseModels(spec) %}
+{% set filteredResponseModelNames = method.responseModels | filter((modelName) => modelName is not empty and modelName != 'any') %}
+{% set responseDefinitionName = '' %}
+{% if filteredResponseModelNames is not empty %}
+{% set responseDefinitionName = filteredResponseModelNames | first %}
+{% elseif method.responseModel and method.responseModel != 'any' %}
+{% set responseDefinitionName = method.responseModel %}
+{% endif %}
+{% set requiredParameters = method.parameters.all | filter((param) => param.required) %}
+    public function testMethod{{ method.name | caseUcfirst }}(): void
+    {
+{% if responseModels | length > 0 %}
+        $data = {{ responseDefinitionName | mockDefinitionPayload(spec, 3) | raw -}};
+{% elseif (method.responseModel and method.responseModel == 'any') or (method | getReturn(spec) == 'array') %}
         $data = array();
-        {%~ else ~%}
+{% else %}
         $data = '';
-        {%~ endif ~%}
+{% endif %}
+
         $this->client
             ->allows()->call(Mockery::any(), Mockery::any(), Mockery::any(), Mockery::any(){% if method.type == 'webAuth' %}, Mockery::any(){% endif %})
             ->andReturn($data);
 
-        $response = $this->{{service.name | caseCamel}}->{{method.name | caseCamel}}({%~ for parameter in method.parameters.all | filter((param) => param.required) ~%}
-            {% if parameter.enumName %}{% if parameter.type == 'array' %}array({{ parameter.enumName | caseUcfirst }}::{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}()){% else %}{{ parameter.enumName | caseUcfirst }}::{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}(){% endif %}{% elseif parameter.type == 'object' %}array(){% elseif parameter.type == 'array' %}array(){% elseif parameter.type == 'file' %}InputFile::withData('', "image/png"){% elseif parameter.type == 'boolean' %}true{% elseif parameter.type == 'string' %}"{% if parameter.example is not empty %}{{parameter.example | escapeDollarSign}}{% endif %}"{% elseif parameter.type == 'integer' and parameter['x-example'] is empty %}1{% elseif parameter.type == 'number' and parameter['x-example'] is empty %}1.0{% else %}{{parameter.example}}{%~ endif ~%}{% if not loop.last %},{% endif %}{%~ endfor ~%}
+{% if requiredParameters | length > 0 %}
+        $response = $this->{{ service.name | caseCamel }}->{{ method.name | caseCamel }}(
+{% for parameter in requiredParameters %}
+            {{ helper.mockParameterValue(parameter) }}{{ loop.last ? '' : ',' }}
+{% endfor %}
         );
+{% else %}
+        $response = $this->{{ service.name | caseCamel }}->{{ method.name | caseCamel }}();
+{% endif %}
 
+{% if responseModels | length > 0 %}
+        $this->assertInstanceOf({{ responseModels[0] }}::class, $response);
+{% else %}
         $this->assertSame($data, $response);
+{% endif %}
     }
 
 {% endif %}

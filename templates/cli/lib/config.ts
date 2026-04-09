@@ -36,7 +36,7 @@ import type {
   GlobalConfigData,
 } from "./types.js";
 import { createSettingsObject } from "./utils.js";
-import { EXECUTABLE_NAME } from "./constants.js";
+import { EXECUTABLE_NAME, TOP_LEVEL_RESOURCE_ARRAY_KEYS } from "./constants.js";
 import { JSONBig } from "./json.js";
 
 /**
@@ -102,6 +102,41 @@ function orderConfigKeys<T extends Record<string, any>>(data: T): T {
   }
 
   return ordered as T;
+}
+
+function pruneEmptyTopLevelResourceArrays<T extends Record<string, any>>(
+  data: T,
+): T {
+  const sanitized = { ...data };
+
+  for (const key of TOP_LEVEL_RESOURCE_ARRAY_KEYS) {
+    if (Array.isArray(sanitized[key]) && sanitized[key].length === 0) {
+      delete sanitized[key];
+    }
+  }
+
+  return sanitized as T;
+}
+
+function pruneDeprecatedSiteFields<T extends Record<string, any>>(data: T): T {
+  const sanitized: Record<string, any> = { ...data };
+
+  if (Array.isArray(sanitized.sites)) {
+    sanitized.sites = sanitized.sites.map((site) => {
+      if (site && typeof site === "object") {
+        const {
+          vars: _vars,
+          ignore: _ignore,
+          ...rest
+        } = site as Record<string, any>;
+        return rest;
+      }
+
+      return site;
+    });
+  }
+
+  return sanitized as T;
 }
 
 function whitelistKeys<T = any>(
@@ -276,7 +311,9 @@ class Local extends Config<ConfigType> {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
-    const orderedData = orderConfigKeys(this.data);
+    const orderedData = orderConfigKeys(
+      pruneEmptyTopLevelResourceArrays(pruneDeprecatedSiteFields(this.data)),
+    );
     fs.writeFileSync(this.path, JSONBig.stringify(orderedData, null, 4), {
       mode: 0o600,
     });

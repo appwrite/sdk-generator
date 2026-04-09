@@ -198,6 +198,17 @@ abstract class Base extends TestCase
         'custom_id'
     ];
 
+    protected const ADDITIONAL_PROPERTIES_RESPONSES = [
+        '{"theme":"dark","timezone":"UTC"}',
+        '{"$id":"row1","custom":"value","nested":{"enabled":true}}',
+    ];
+
+    protected const CLI_CONSOLE_URL_RESPONSES = [
+        'https://cloud.appwrite.io/console/project-sgp-chirag-project-prod/sites/site-chirag-profile-website/deployments/deployment-123',
+        'https://cloud.appwrite.io/console/project-sgp-chirag-project-prod/functions/function-sample-function/deployment-123',
+        'https://abc.example.com/console/project-self-hosted-project/sites/site-docs/deployments/deployment-456',
+    ];
+
     protected const CHANNEL_HELPER_RESPONSES = [
         'databases.db1.collections.col1.documents',
         'databases.db1.collections.col1.documents.doc1',

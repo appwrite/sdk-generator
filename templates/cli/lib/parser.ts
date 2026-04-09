@@ -19,6 +19,7 @@ import {
   SDK_LOGO,
   EXECUTABLE_NAME,
 } from "./constants.js";
+import { renderStructuredCollection } from "./response-config.js";
 
 const cliConfig: CliConfig = {
   verbose: false,
@@ -49,6 +50,7 @@ const SENSITIVE_KEYS = new Set([
 ]);
 let renderDepth = 0;
 let redactionApplied = false;
+let renderedRedactionApplied = false;
 
 interface ReportDataPayload {
   data?: {
@@ -62,6 +64,12 @@ const toJsonObject = (value: unknown): JsonObject | null => {
   }
 
   return null;
+};
+
+const isNormalViewHiddenKey = (key: string): boolean =>
+  key.startsWith("$") && key !== "$id";
+const printSpacerLine = (): void => {
+  process.stdout.write(" \n");
 };
 
 const extractReportCommandArgs = (value: unknown): string[] => {
@@ -80,6 +88,7 @@ const extractReportCommandArgs = (value: unknown): string[] => {
 const beginRender = (): void => {
   if (renderDepth === 0) {
     redactionApplied = false;
+    renderedRedactionApplied = false;
   }
 
   renderDepth++;
@@ -88,7 +97,12 @@ const beginRender = (): void => {
 const endRender = (): void => {
   renderDepth = Math.max(0, renderDepth - 1);
 
-  if (renderDepth === 0 && redactionApplied && !cliConfig.showSecrets) {
+  const shouldShowRedactionHint =
+    cliConfig.json || cliConfig.raw
+      ? redactionApplied
+      : renderedRedactionApplied;
+
+  if (renderDepth === 0 && shouldShowRedactionHint && !cliConfig.showSecrets) {
     const message =
       "Sensitive values were redacted. Pass --show-secrets to display them.";
 
@@ -113,7 +127,10 @@ const withRender = <T>(callback: () => T): T => {
 const isSensitiveKey = (key: string): boolean => {
   const normalizedKey = key.toLowerCase().replace(/[^a-z0-9]/g, "");
 
-  return SENSITIVE_KEYS.has(normalizedKey);
+  return [...SENSITIVE_KEYS].some(
+    (sensitiveKey) =>
+      normalizedKey === sensitiveKey || normalizedKey.endsWith(sensitiveKey),
+  );
 };
 
 const maskSensitiveString = (value: string): string => {
@@ -131,9 +148,15 @@ const maskSensitiveString = (value: string): string => {
   return `${HIDDEN_VALUE}${value.slice(-4)}`;
 };
 
-const maskSensitiveData = (value: unknown, key?: string): unknown => {
+const maskSensitiveData = (
+  value: unknown,
+  key?: string,
+  trackRedaction: boolean = true,
+): unknown => {
   if (key && isSensitiveKey(key) && !cliConfig.showSecrets) {
-    redactionApplied = true;
+    if (trackRedaction) {
+      redactionApplied = true;
+    }
 
     if (typeof value === "string") {
       return maskSensitiveString(value);
@@ -147,7 +170,9 @@ const maskSensitiveData = (value: unknown, key?: string): unknown => {
   }
 
   if (Array.isArray(value)) {
-    return value.map((item) => maskSensitiveData(item));
+    return value.map((item) =>
+      maskSensitiveData(item, undefined, trackRedaction),
+    );
   }
 
   if (value && typeof value === "object") {
@@ -159,7 +184,11 @@ const maskSensitiveData = (value: unknown, key?: string): unknown => {
     for (const childKey of Object.keys(value as JsonObject)) {
       const childValue = (value as JsonObject)[childKey];
       if (typeof childValue === "function") continue;
-      result[childKey] = maskSensitiveData(childValue, childKey);
+      result[childKey] = maskSensitiveData(
+        childValue,
+        childKey,
+        trackRedaction,
+      );
     }
 
     return result;
@@ -231,29 +260,47 @@ const filterData = (data: JsonObject): JsonObject => {
   return result;
 };
 
-export const parse = (data: JsonObject): void => {
+export const parse = (data: unknown): void => {
   withRender(() => {
-    const sanitizedData = maskSensitiveData(data) as JsonObject;
+    if (data == null || (typeof data === "string" && data.trim() === "")) {
+      if (!cliConfig.json && !cliConfig.raw) {
+        success("Request completed successfully.");
+      }
+      return;
+    }
 
     if (cliConfig.raw) {
+      const sanitizedData = maskSensitiveData(data) as JsonObject;
       drawJSON(sanitizedData);
       return;
     }
 
     if (cliConfig.json) {
+      const sanitizedData = maskSensitiveData(data) as JsonObject;
       drawJSON(filterData(sanitizedData));
       return;
     }
 
-    const keys = Object.keys(sanitizedData).filter(
-      (k) => typeof sanitizedData[k] !== "function",
+    const sanitizedData = maskSensitiveData(data, undefined, false);
+
+    const objectData = toJsonObject(sanitizedData);
+    if (!objectData) {
+      console.log(String(sanitizedData));
+      return;
+    }
+
+    const keys = Object.keys(objectData).filter(
+      (k) => typeof objectData[k] !== "function",
     );
-    let printedScalar = false;
+    const scalarEntries: Array<[string, string]> = [];
+    const sections: Array<{ key: string; value: unknown }> = [];
 
     for (const key of keys) {
-      const value = sanitizedData[key];
+      if (isNormalViewHiddenKey(key)) continue;
+      const value = objectData[key];
       if (value == null) continue;
       if (typeof value === "string" && value.trim() === "") continue;
+
       if (Array.isArray(value)) {
         if (value.length === 0) continue;
         if (
@@ -266,42 +313,94 @@ export const parse = (data: JsonObject): void => {
           )
         )
           continue;
-        console.log();
-        console.log(`${chalk.yellow.bold.underline(key)}`);
-        if (typeof value[0] === "object") {
-          drawTable(value);
-        } else {
-          drawJSON(value);
-        }
-        console.log();
-        printedScalar = false;
+        sections.push({ key, value });
       } else if (typeof value === "object") {
         if (value?.constructor?.name === "BigNumber") {
-          console.log(`${chalk.yellow.bold(key)} : ${value}`);
-          printedScalar = true;
+          scalarEntries.push([key, String(value)]);
         } else {
           const tableRow = toJsonObject(value) ?? {};
           if (Object.keys(tableRow).length === 0) continue;
-          console.log();
-          console.log(`${chalk.yellow.bold.underline(key)}`);
-          drawTable([tableRow]);
-          console.log();
-          printedScalar = false;
+          sections.push({ key, value: tableRow });
         }
       } else {
-        console.log(`${chalk.yellow.bold(key)} : ${value}`);
-        printedScalar = true;
+        scalarEntries.push([key, formatKeyValue(key, value)]);
       }
+    }
+
+    let hasOutput = false;
+
+    if (scalarEntries.length > 0) {
+      drawKeyValueEntries(scalarEntries);
+      hasOutput = true;
+    }
+
+    for (const section of sections) {
+      if (hasOutput) {
+        printSpacerLine();
+      }
+
+      if (Array.isArray(section.value)) {
+        const sectionTitle =
+          typeof section.value[0] === "object"
+            ? `${section.key} (${section.value.length})`
+            : section.key;
+        console.log(`${chalk.yellow.bold.underline(sectionTitle)}`);
+
+        if (typeof section.value[0] === "object") {
+          drawTable(section.value, { indent: "  ", sectionName: section.key });
+        } else {
+          drawScalarArray(section.value, { indent: "  " });
+        }
+      } else {
+        console.log(`${chalk.yellow.bold.underline(section.key)}`);
+        drawTable([section.value as JsonObject], {
+          indent: "  ",
+          sectionName: section.key,
+        });
+      }
+
+      hasOutput = true;
     }
   });
 };
 
 const MAX_COL_WIDTH = 40;
+const MAX_COLUMNS = 6;
+
+type NamedTableOptions = {
+  indent?: string;
+  sectionName?: string;
+};
+
+type EntryRenderOptions = {
+  indent?: string;
+};
 
 const formatCellValue = (value: unknown): string => {
   if (value == null) return "-";
+  if (
+    !cliConfig.showSecrets &&
+    typeof value === "string" &&
+    value.includes(HIDDEN_VALUE)
+  ) {
+    renderedRedactionApplied = true;
+  }
   if (Array.isArray(value)) {
     if (value.length === 0) return "[]";
+    if (
+      value.every(
+        (item) =>
+          item == null ||
+          typeof item === "string" ||
+          typeof item === "number" ||
+          typeof item === "boolean",
+      )
+    ) {
+      const joinedValue = value.map((item) => String(item)).join(", ");
+      if (joinedValue.length <= MAX_COL_WIDTH) {
+        return joinedValue;
+      }
+    }
     return `[${value.length} items]`;
   }
   if (typeof value === "object") {
@@ -317,7 +416,149 @@ const formatCellValue = (value: unknown): string => {
   return str;
 };
 
-export const drawTable = (data: Array<JsonObject | null | undefined>): void => {
+const formatKeyValue = (key: string, value: unknown): string => {
+  if (key === "status" && typeof value === "boolean") {
+    return value ? "active" : "inactive";
+  }
+
+  return String(value);
+};
+
+const toScalarEntries = (row: JsonObject): Array<[string, string]> => {
+  const entries: Array<[string, string]> = [];
+
+  for (const key of Object.keys(row)) {
+    if (isNormalViewHiddenKey(key)) continue;
+    const value = row[key];
+    if (typeof value === "function") continue;
+    if (value == null) continue;
+    if (value?.constructor?.name === "BigNumber") {
+      entries.push([key, String(value)]);
+      continue;
+    }
+    if (typeof value === "object") continue;
+    if (typeof value === "string" && value.trim() === "") continue;
+    entries.push([key, formatKeyValue(key, value)]);
+  }
+
+  return entries;
+};
+
+const toDisplayEntries = (row: JsonObject): Array<[string, string]> => {
+  const entries: Array<[string, string]> = [];
+
+  for (const key of Object.keys(row)) {
+    if (isNormalViewHiddenKey(key)) continue;
+    const value = row[key];
+    if (typeof value === "function") continue;
+    if (value == null) continue;
+    if (typeof value === "string" && value.trim() === "") continue;
+    entries.push([key, formatCellValue(value)]);
+  }
+
+  return entries;
+};
+
+const drawScalarArray = (
+  values: unknown[],
+  options: EntryRenderOptions = {},
+): void => {
+  if (values.length === 0) {
+    console.log(`${options.indent ?? ""}[]`);
+    return;
+  }
+
+  const indent = options.indent ?? "";
+  const displayValues = values.map((value) => formatCellValue(value));
+  const joinedValues = displayValues.join(", ");
+
+  if (joinedValues.length <= 80) {
+    console.log(`${indent}${joinedValues}`);
+    return;
+  }
+
+  displayValues.forEach((value, idx) => {
+    console.log(`${indent}[${idx + 1}] ${value}`);
+  });
+};
+
+const drawKeyValueEntries = (
+  entries: Array<[string, string]>,
+  options: EntryRenderOptions = {},
+): void => {
+  if (entries.length === 0) return;
+
+  const indent = options.indent ?? "";
+  const maxKeyLen = Math.max(...entries.map(([key]) => key.length));
+
+  for (const [key, value] of entries) {
+    const paddedKey = key.padEnd(maxKeyLen);
+    if (!cliConfig.showSecrets && value.includes(HIDDEN_VALUE)) {
+      renderedRedactionApplied = true;
+    }
+    console.log(`${indent}${chalk.yellow.bold(paddedKey)}  ${value}`);
+  }
+};
+
+const drawNamedObjectCollection = (
+  rows: JsonObject[],
+  options: NamedTableOptions = {},
+): boolean => {
+  if (renderStructuredCollection(options.sectionName, rows, options)) {
+    return true;
+  }
+
+  const scalarEntries = rows.map((row) => toScalarEntries(row));
+  const flatScalarEntries = scalarEntries.flat();
+
+  if (flatScalarEntries.length > 0) {
+    scalarEntries.forEach((entries, idx) => {
+      if (idx > 0) {
+        console.log();
+      }
+
+      if (rows.length > 1) {
+        const indent = options.indent ?? "";
+        console.log(`${indent}${chalk.cyan.bold(`[${idx + 1}]`)}`);
+      }
+
+      drawKeyValueEntries(entries, {
+        indent: rows.length > 1 ? `${options.indent ?? ""}  ` : options.indent,
+      });
+    });
+
+    return true;
+  }
+
+  const displayEntries = rows.map((row) => toDisplayEntries(row));
+  const flatDisplayEntries = displayEntries.flat();
+
+  if (flatDisplayEntries.length === 0) {
+    return false;
+  }
+
+  displayEntries.forEach((entries, idx) => {
+    if (idx > 0) {
+      console.log();
+    }
+
+    if (rows.length > 1) {
+      const indent = options.indent ?? "";
+      console.log(`${indent}${chalk.cyan.bold(`[${idx + 1}]`)}`);
+    }
+
+    drawKeyValueEntries(entries, {
+      indent: rows.length > 1 ? `${options.indent ?? ""}  ` : options.indent,
+    });
+  });
+
+  return true;
+};
+
+export const drawTable = (
+  data: Array<JsonObject | null | undefined>,
+  options: NamedTableOptions = {},
+): void => {
   withRender(() => {
     if (data.length == 0) {
       console.log("[]");
@@ -326,8 +567,16 @@ export const drawTable = (data: Array<JsonObject | null | undefined>): void => {
 
     const rows = applyDisplayFilter(
       data.map((item): JsonObject => {
-        const maskedItem = maskSensitiveData(item);
-        return toJsonObject(maskedItem) ?? {};
+        const maskedItem = maskSensitiveData(item, undefined, false);
+        const row = toJsonObject(maskedItem) ?? {};
+        const visibleRow: JsonObject = {};
+
+        for (const key of Object.keys(row)) {
+          if (isNormalViewHiddenKey(key)) continue;
+          visibleRow[key] = row[key];
+        }
+
+        return visibleRow;
       }),
     );
 
@@ -341,47 +590,15 @@ export const drawTable = (data: Array<JsonObject | null | undefined>): void => {
     }
 
     // If too many columns, show condensed key-value output with only scalar, non-empty fields
-    const maxColumns = 6;
-    if (allKeys.length > maxColumns) {
-      // Collect visible entries per row to compute alignment
-      const rowEntries = rows.map((row) => {
-        const entries: Array<[string, string]> = [];
-        for (const key of Object.keys(row)) {
-          const value = row[key];
-          if (typeof value === "function") continue;
-          if (value == null) continue;
-          if (value?.constructor?.name === "BigNumber") {
-            entries.push([key, String(value)]);
-            continue;
-          }
-          if (typeof value === "object") continue;
-          if (typeof value === "string" && value.trim() === "") continue;
-          entries.push([key, String(value)]);
-        }
-        return entries;
-      });
-
-      const flatEntries = rowEntries.flat();
-      if (flatEntries.length === 0) {
-        drawJSON(data);
+    if (allKeys.length > MAX_COLUMNS) {
+      if (drawNamedObjectCollection(rows, options)) {
         return;
       }
 
-      const maxKeyLen = Math.max(...flatEntries.map(([key]) => key.length));
-
-      const separatorLen = Math.min(
-        maxKeyLen + 2 + MAX_COL_WIDTH,
-        process.stdout.columns || 80,
-      );
-
-      rowEntries.forEach((entries, idx) => {
-        if (idx > 0) console.log(chalk.cyan("─".repeat(separatorLen)));
-        for (const [key, value] of entries) {
-          const paddedKey = key.padEnd(maxKeyLen);
-          console.log(`${chalk.yellow.bold(paddedKey)}  ${value}`);
-        }
-      });
-      return;
+      if (rows.every((row) => toScalarEntries(row).length === 0)) {
+        drawJSON(data);
+        return;
+      }
     }
 
     const columns = allKeys;
@@ -399,21 +616,21 @@ export const drawTable = (data: Array<JsonObject | null | undefined>): void => {
       colWidths: columns.map(() => null) as (number | null)[],
       wordWrap: false,
       chars: {
-        "top": " ",
+        top: " ",
         "top-mid": " ",
         "top-left": " ",
         "top-right": " ",
-        "bottom": " ",
+        bottom: " ",
         "bottom-mid": " ",
         "bottom-left": " ",
         "bottom-right": " ",
-        "left": " ",
+        left: " ",
         "left-mid": " ",
-        "mid": chalk.cyan("─"),
+        mid: chalk.cyan("─"),
         "mid-mid": chalk.cyan("┼"),
-        "right": " ",
+        right: " ",
         "right-mid": " ",
-        "middle": chalk.cyan("│"),
+        middle: chalk.cyan("│"),
       },
     });
 

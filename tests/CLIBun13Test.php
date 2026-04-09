@@ -28,6 +28,7 @@ class CLIBun13Test extends Base
         ...Base::FOO_RESPONSES,
         ...Base::BAR_RESPONSES,
         ...Base::GENERAL_RESPONSES,
+        ...Base::CLI_CONSOLE_URL_RESPONSES,
         ...Base::UPLOAD_RESPONSES,
     ];
 

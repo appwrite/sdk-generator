@@ -175,6 +175,20 @@ try {
   /  _  \ |_) | |_) \ V  V /| |  | | ||  __/ / /___/ /___/\/ /_
   \_/ \_/ .__/| .__/ \_/\_/ |_|  |_|\__\___| \____/\____/\____/
         |_|   |_|                                                ");
+        // Generated formulas start with placeholder checksums. The generated CLI
+        // publish workflow rewrites them after the native release binaries exist.
+        foreach ([
+            'APPWRITE_CLI_HOMEBREW_MAC_ARM64_SHA256' => 'homebrewMacArm64Sha256',
+            'APPWRITE_CLI_HOMEBREW_MAC_X64_SHA256' => 'homebrewMacX64Sha256',
+            'APPWRITE_CLI_HOMEBREW_LINUX_ARM64_SHA256' => 'homebrewLinuxArm64Sha256',
+            'APPWRITE_CLI_HOMEBREW_LINUX_X64_SHA256' => 'homebrewLinuxX64Sha256',
+        ] as $envKey => $paramKey) {
+            $sha256 = getenv($envKey);
+
+            if ($sha256 !== false && $sha256 !== '') {
+                $language->setHomebrewSha256($paramKey, $sha256);
+            }
+        }
 
         $sdk  = new SDK($language, new Swagger2($spec));
         $sdk->setTest(false);

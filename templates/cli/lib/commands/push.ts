@@ -28,6 +28,8 @@ import {
   createSettingsObject,
   checkDeployConditions,
   arrayEqualsUnordered,
+  getFunctionDeploymentConsoleUrl,
+  getSiteDeploymentConsoleUrl,
 } from "../utils.js";
 import { Spinner, SPINNER_DOTS } from "../spinner.js";
 import { paginate } from "../paginate.js";
@@ -37,7 +39,9 @@ import {
   questionsPushTeams,
   questionsPushFunctions,
   questionsPushFunctionsCode,
+  questionsPushFunctionsActivate,
   questionsPushSites,
+  questionsPushSitesActivate,
   questionsPushSitesCode,
   questionsGetEntrypoint,
   questionsPushCollections,
@@ -55,6 +59,7 @@ import {
   error,
   commandDescriptions,
   drawTable,
+  parseBool,
 } from "../parser.js";
 import {
   getProxyService,
@@ -105,11 +110,13 @@ export interface PushOptions {
   functionOptions?: {
     async?: boolean;
     code?: boolean;
+    activate?: boolean;
     withVariables?: boolean;
   };
   siteOptions?: {
     async?: boolean;
     code?: boolean;
+    activate?: boolean;
     withVariables?: boolean;
   };
   tableOptions?: {
@@ -121,6 +128,7 @@ interface PushSiteOptions {
   siteId?: string;
   async?: boolean;
   code?: boolean;
+  activate?: boolean;
   withVariables?: boolean;
 }
 
@@ -128,6 +136,7 @@ interface PushFunctionOptions {
   functionId?: string;
   async?: boolean;
   code?: boolean;
+  activate?: boolean;
   withVariables?: boolean;
 }
 
@@ -149,6 +158,23 @@ interface PushCollectionState extends PushCollectionInput {
   isExisted?: boolean;
   isNewlyCreated?: boolean;
 }
+
+const normalizeIgnoreRules = (value: unknown): string[] => {
+  if (Array.isArray(value)) {
+    return value.filter(
+      (rule): rule is string => typeof rule === "string" && rule.length > 0,
+    );
+  }
+
+  if (typeof value === "string" && value.length > 0) {
+    return value
+      .split(/\r?\n/)
+      .map((rule) => rule.trim())
+      .filter((rule) => rule.length > 0);
+  }
+
+  return [];
+};
 
 export class Push {
   private projectClient: Client;
@@ -689,6 +715,7 @@ export class Push {
     options: {
       async?: boolean;
       code?: boolean;
+      activate?: boolean;
       withVariables?: boolean;
     } = {},
   ): Promise<{
@@ -697,13 +724,23 @@ export class Push {
     failedDeployments: any[];
     errors: any[];
   }> {
-    const { async: asyncDeploy, code, withVariables } = options;
+    const {
+      async: asyncDeploy,
+      code,
+      activate = true,
+      withVariables,
+    } = options;
 
     Spinner.start(false);
     let successfullyPushed = 0;
     let successfullyDeployed = 0;
     const failedDeployments: any[] = [];
     const errors: any[] = [];
+    const deploymentLogs: {
+      url: string;
+      consoleUrl: string;
+      elapsed: string;
+    }[] = [];
 
     await Promise.all(
       functions.map(async (func: any) => {
@@ -905,6 +942,7 @@ export class Push {
           return;
         }
 
+        const deployStartTime = Date.now();
         try {
           updaterRow.update({ status: "Pushing" }).replaceSpinner(SPINNER_DOTS);
           const functionsServiceDeploy = await getFunctionsService(
@@ -913,13 +951,14 @@ export class Push {
 
           const result = await pushDeployment({
             resourcePath: func.path,
+            extraIgnoreRules: normalizeIgnoreRules(func.ignore),
             createDeployment: async (codeFile) => {
               return await functionsServiceDeploy.createDeployment({
                 functionId: func["$id"],
                 entrypoint: func.entrypoint,
                 commands: func.commands,
                 code: codeFile,
-                activate: true,
+                activate,
               });
             },
             pollForStatus: false,
@@ -980,6 +1019,21 @@ export class Push {
 
               const status = response["status"];
               if (status === "ready") {
+                if (activate) {
+                  updaterRow.update({
+                    status: "Activating",
+                    end: "Setting active deployment...",
+                  });
+
+                  const functionsServiceActivate = await getFunctionsService(
+                    this.projectClient,
+                  );
+                  await functionsServiceActivate.updateFunctionDeployment({
+                    functionId: func["$id"],
+                    deploymentId,
+                  });
+                }
+
                 successfullyDeployed++;
 
                 let url = "";
@@ -999,7 +1053,26 @@ export class Push {
                   url = `https://${res.rules[0].domain}`;
                 }
 
-                updaterRow.update({ status: "Deployed", end: url });
+                const elapsed = ((Date.now() - deployStartTime) / 1000).toFixed(
+                  1,
+                );
+                const endpoint =
+                  localConfig.getEndpoint() || globalConfig.getEndpoint();
+                const projectId = localConfig.getProject().projectId;
+                const consoleUrl = getFunctionDeploymentConsoleUrl(
+                  endpoint,
+                  projectId,
+                  func["$id"],
+                  deploymentId,
+                );
+
+                updaterRow.stopSpinner();
+                updaterRow.update({
+                  status: activate ? "Deployed" : "Built",
+                  end: "",
+                });
+
+                deploymentLogs.push({ url, consoleUrl, elapsed });
 
                 break;
               } else if (status === "failed") {
@@ -1037,6 +1110,14 @@ export class Push {
 
     Spinner.stop();
 
+    for (const dl of deploymentLogs) {
+      if (dl.url) {
+        this.log(`  ${chalk.cyan("→")} ${dl.url}`);
+      }
+      this.log(`  ${chalk.cyan("→")} ${dl.consoleUrl}`);
+      this.success(`Successfully deployed in ${chalk.bold(dl.elapsed + "s")}`);
+    }
+
     return {
       successfullyPushed,
       successfullyDeployed,
@@ -1050,6 +1131,7 @@ export class Push {
     options: {
       async?: boolean;
       code?: boolean;
+      activate?: boolean;
       withVariables?: boolean;
     } = {},
   ): Promise<{
@@ -1058,19 +1140,28 @@ export class Push {
     failedDeployments: any[];
     errors: any[];
   }> {
-    const { async: asyncDeploy, code, withVariables } = options;
+    const {
+      async: asyncDeploy,
+      code,
+      activate = true,
+      withVariables,
+    } = options;
 
     Spinner.start(false);
     let successfullyPushed = 0;
     let successfullyDeployed = 0;
     const failedDeployments: any[] = [];
     const errors: any[] = [];
+    const deploymentLogs: {
+      url: string;
+      consoleUrl: string;
+      elapsed: string;
+    }[] = [];
 
     await Promise.all(
       sites.map(async (site: any) => {
         let response: any = {};
 
-        const ignore = site.ignore ? "appwrite.config.json" : ".gitignore";
         let siteExists = false;
         let deploymentCreated = false;
 
@@ -1078,7 +1169,7 @@ export class Push {
           status: "",
           resource: site.name,
           id: site["$id"],
-          end: `Ignoring using: ${ignore}`,
+          end: "Ignoring using: .gitignore",
         });
 
         updaterRow.update({ status: "Getting" }).startSpinner(SPINNER_DOTS);
@@ -1262,6 +1353,7 @@ export class Push {
           return;
         }
 
+        const deployStartTime = Date.now();
         try {
           updaterRow.update({ status: "Pushing" }).replaceSpinner(SPINNER_DOTS);
           const sitesServiceDeploy = await getSitesService(this.projectClient);
@@ -1275,7 +1367,7 @@ export class Push {
                 buildCommand: site.buildCommand,
                 outputDirectory: site.outputDirectory,
                 code: codeFile,
-                activate: true,
+                activate,
               });
             },
             pollForStatus: false,
@@ -1335,6 +1427,21 @@ export class Push {
 
               const status = response["status"];
               if (status === "ready") {
+                if (activate) {
+                  updaterRow.update({
+                    status: "Activating",
+                    end: "Setting active deployment...",
+                  });
+
+                  const sitesServiceActivate = await getSitesService(
+                    this.projectClient,
+                  );
+                  await sitesServiceActivate.updateSiteDeployment({
+                    siteId: site["$id"],
+                    deploymentId,
+                  });
+                }
+
                 successfullyDeployed++;
 
                 let url = "";
@@ -1354,7 +1461,26 @@ export class Push {
                   url = `https://${res.rules[0].domain}`;
                 }
 
-                updaterRow.update({ status: "Deployed", end: url });
+                const elapsed = ((Date.now() - deployStartTime) / 1000).toFixed(
+                  1,
+                );
+                const endpoint =
+                  localConfig.getEndpoint() || globalConfig.getEndpoint();
+                const projectId = localConfig.getProject().projectId;
+                const consoleUrl = getSiteDeploymentConsoleUrl(
+                  endpoint,
+                  projectId,
+                  site["$id"],
+                  deploymentId,
+                );
+
+                updaterRow.stopSpinner();
+                updaterRow.update({
+                  status: activate ? "Deployed" : "Built",
+                  end: "",
+                });
+
+                deploymentLogs.push({ url, consoleUrl, elapsed });
 
                 break;
               } else if (status === "failed") {
@@ -1391,6 +1517,14 @@ export class Push {
     );
 
     Spinner.stop();
+
+    for (const dl of deploymentLogs) {
+      if (dl.url) {
+        this.log(`  ${chalk.cyan("→")} ${dl.url}`);
+      }
+      this.log(`  ${chalk.cyan("→")} ${dl.consoleUrl}`);
+      this.success(`Successfully deployed in ${chalk.bold(dl.elapsed + "s")}`);
+    }
 
     return {
       successfullyPushed,
@@ -1757,17 +1891,39 @@ const pushResources = async ({
     const functions = localConfig.getFunctions();
     let allowFunctionsCodePush: boolean | null =
       cliConfig.force === true ? true : null;
+    let activateFunctionsDeployment: boolean | undefined =
+      cliConfig.force === true ? true : undefined;
     if (functions.length > 0 && allowFunctionsCodePush === null) {
       const codeAnswer = await inquirer.prompt(questionsPushFunctionsCode);
       allowFunctionsCodePush = codeAnswer.override;
+    }
+    if (
+      functions.length > 0 &&
+      allowFunctionsCodePush === true &&
+      activateFunctionsDeployment === undefined
+    ) {
+      const activateAnswer = await inquirer.prompt(
+        questionsPushFunctionsActivate,
+      );
+      activateFunctionsDeployment = activateAnswer.activate;
     }
 
     const sites = localConfig.getSites();
     let allowSitesCodePush: boolean | null =
       cliConfig.force === true ? true : null;
+    let activateSitesDeployment: boolean | undefined =
+      cliConfig.force === true ? true : undefined;
     if (sites.length > 0 && allowSitesCodePush === null) {
       const codeAnswer = await inquirer.prompt(questionsPushSitesCode);
       allowSitesCodePush = codeAnswer.override;
+    }
+    if (
+      sites.length > 0 &&
+      allowSitesCodePush === true &&
+      activateSitesDeployment === undefined
+    ) {
+      const activateAnswer = await inquirer.prompt(questionsPushSitesActivate);
+      activateSitesDeployment = activateAnswer.activate;
     }
 
     const pushInstance = await createPushInstance({
@@ -1801,9 +1957,14 @@ const pushResources = async ({
       skipDeprecated,
       functionOptions: {
         code: allowFunctionsCodePush === true,
+        activate: activateFunctionsDeployment ?? true,
         withVariables: false,
       },
-      siteOptions: { code: allowSitesCodePush === true, withVariables: false },
+      siteOptions: {
+        code: allowSitesCodePush === true,
+        activate: activateSitesDeployment ?? true,
+        withVariables: false,
+      },
     });
   } else {
     const actions: Record<string, (options?: any) => Promise<void>> = {
@@ -1898,6 +2059,7 @@ const pushSite = async ({
   siteId,
   async: asyncDeploy,
   code,
+  activate,
   withVariables,
 }: PushSiteOptions = {}): Promise<void> => {
   process.chdir(localConfig.configDirectoryPath);
@@ -1976,6 +2138,12 @@ const pushSite = async ({
   }
 
   const shouldPushCode = code !== false && allowCodePush === true;
+  let shouldActivate = activate;
+
+  if (shouldPushCode && shouldActivate === undefined) {
+    const activateAnswer = await inquirer.prompt(questionsPushSitesActivate);
+    shouldActivate = activateAnswer.activate;
+  }
 
   log("Pushing sites ...");
 
@@ -1983,6 +2151,7 @@ const pushSite = async ({
   const result = await pushInstance.pushSites(sites, {
     async: asyncDeploy,
     code: shouldPushCode,
+    activate: shouldActivate ?? true,
     withVariables,
   });
 
@@ -1997,18 +2166,12 @@ const pushSite = async ({
     const { name, deployment, $id } = failed;
     const projectId = localConfig.getProject().projectId;
     const endpoint = localConfig.getEndpoint() || globalConfig.getEndpoint();
-    let region = "";
-    try {
-      const hostname = new URL(endpoint).hostname;
-      const firstSubdomain = hostname.split(".")[0];
-      if (firstSubdomain.length === 3) {
-        region = firstSubdomain;
-      }
-    } catch {}
-    const projectSlug = region
-      ? `project-${region}-${projectId}`
-      : `project-${projectId}`;
-    const failUrl = `${globalConfig.getEndpoint().slice(0, -3)}/console/${projectSlug}/sites/site-${$id}/deployments/deployment-${deployment}`;
+    const failUrl = getSiteDeploymentConsoleUrl(
+      endpoint,
+      projectId,
+      $id,
+      deployment,
+    );
 
     error(
       `Deployment of ${name} has failed. Check at ${failUrl} for more details\n`,
@@ -2040,6 +2203,7 @@ const pushFunction = async ({
   functionId,
   async: asyncDeploy,
   code,
+  activate,
   withVariables,
 }: PushFunctionOptions = {}): Promise<void> => {
   process.chdir(localConfig.configDirectoryPath);
@@ -2117,6 +2281,14 @@ const pushFunction = async ({
   }
 
   const shouldPushCode = code !== false && allowCodePush === true;
+  let shouldActivate = activate;
+
+  if (shouldPushCode && shouldActivate === undefined) {
+    const activateAnswer = await inquirer.prompt(
+      questionsPushFunctionsActivate,
+    );
+    shouldActivate = activateAnswer.activate;
+  }
 
   log("Pushing functions ...");
 
@@ -2124,6 +2296,7 @@ const pushFunction = async ({
   const result = await pushInstance.pushFunctions(functions, {
     async: asyncDeploy,
     code: shouldPushCode,
+    activate: shouldActivate ?? true,
     withVariables,
   });
 
@@ -2138,18 +2311,12 @@ const pushFunction = async ({
     const { name, deployment, $id } = failed;
     const projectId = localConfig.getProject().projectId;
     const endpoint = localConfig.getEndpoint() || globalConfig.getEndpoint();
-    let region = "";
-    try {
-      const hostname = new URL(endpoint).hostname;
-      const firstSubdomain = hostname.split(".")[0];
-      if (firstSubdomain.length === 3) {
-        region = firstSubdomain;
-      }
-    } catch {}
-    const projectSlug = region
-      ? `project-${region}-${projectId}`
-      : `project-${projectId}`;
-    const failUrl = `${globalConfig.getEndpoint().slice(0, -3)}/console/${projectSlug}/functions/function-${$id}/deployment-${deployment}`;
+    const failUrl = getFunctionDeploymentConsoleUrl(
+      endpoint,
+      projectId,
+      $id,
+      deployment,
+    );
 
     error(
       `Deployment of ${name} has failed. Check at ${failUrl} for more details\n`,
@@ -2641,6 +2808,12 @@ push
   .option(`-f, --function-id <function-id>`, `ID of function to run`)
   .option(`-A, --async`, `Don't wait for functions deployments status`)
   .option("--no-code", "Don't push the function's code")
+  .option(
+    "--activate [value]",
+    "Activate the function's deployment after it is ready.",
+    (value: string | undefined) =>
+      value === undefined ? true : parseBool(value),
+  )
   .option("--with-variables", `Push function variables.`)
   .action(actionRunner(pushFunction));
 
@@ -2651,6 +2824,12 @@ push
   .option(`-f, --site-id <site-id>`, `ID of site to run`)
   .option(`-A, --async`, `Don't wait for sites deployments status`)
   .option("--no-code", "Don't push the site's code")
+  .option(
+    "--activate [value]",
+    "Activate the site's deployment after it is ready.",
+    (value: string | undefined) =>
+      value === undefined ? true : parseBool(value),
+  )
   .option("--with-variables", `Push site variables.`)
   .action(actionRunner(pushSite));
 
