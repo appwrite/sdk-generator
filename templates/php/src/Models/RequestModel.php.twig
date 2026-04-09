@@ -21,7 +21,7 @@ use {{ spec.namespace | caseNamespace }}\Enums\{{ enumName | caseUcfirst | overr
 /**
  * {{ requestModel.description | unescape | raw }}
  */
-readonly class {{ requestModel.name | caseUcfirst | overrideIdentifier }}
+class {{ requestModel.name | caseUcfirst | overrideIdentifier }}
 {
     use ArraySerializable;
 

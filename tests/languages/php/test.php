@@ -147,6 +147,8 @@ $players = [
 ];
 $response = $general->createPlayers($players);
 echo $response->result . "\n";
+echo (new ReflectionProperty(Player::class, 'score'))->isReadOnly() ? "request-model-readonly\n" : "request-model-mutable\n";
+echo (new ReflectionProperty(\Appwrite\Models\Mock::class, 'result'))->isReadOnly() ? "response-model-readonly\n" : "response-model-mutable\n";
 
 try {
     $response = $general->error400();

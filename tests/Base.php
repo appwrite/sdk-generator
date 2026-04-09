@@ -62,6 +62,11 @@ abstract class Base extends TestCase
         'POST:/v1/mock/tests/general/models/array:passed',
     ];
 
+    protected const DTO_MUTABILITY_RESPONSES = [
+        'request-model-mutable',
+        'response-model-readonly',
+    ];
+
     protected const UNION_RESPONSES = [
         'GET:/v1/mock/tests/union:passed',
         'test-data',
