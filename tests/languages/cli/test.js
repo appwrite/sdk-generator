@@ -1,5 +1,9 @@
 const { execSync } = require("child_process");
 const Client = require("./lib/client.ts").default;
+const {
+  getFunctionDeploymentConsoleUrl,
+  getSiteDeploymentConsoleUrl,
+} = require("./lib/utils.ts");
 
 const extractFirstValue = (output) => {
   const firstLine = output
@@ -94,6 +98,31 @@ console.log(extractFirstValue(output));
 // General
 output = execSync("bun ./dist/cli.cjs general redirect", { stdio: "pipe" }).toString();
 console.log(extractFirstValue(output));
+
+console.log(
+  getSiteDeploymentConsoleUrl(
+    "https://sgp.cloud.appwrite.io/v1",
+    "chirag-project-prod",
+    "chirag-profile-website",
+    "123",
+  ),
+);
+console.log(
+  getFunctionDeploymentConsoleUrl(
+    "https://sgp.cloud.appwrite.io/v1",
+    "chirag-project-prod",
+    "sample-function",
+    "123",
+  ),
+);
+console.log(
+  getSiteDeploymentConsoleUrl(
+    "https://abc.example.com/v1",
+    "self-hosted-project",
+    "docs",
+    "456",
+  ),
+);
 
 output = execSync(
   "bun ./dist/cli.cjs general upload --x string  --y 123 --z string in array --file ../../resources/file.png",
