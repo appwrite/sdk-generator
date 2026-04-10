@@ -753,7 +753,7 @@ class Python extends Language
      */
     protected function getResponseModelExample(?string $model, array $spec): mixed
     {
-        if (!$model) return [];
+        if (!$model) return (object) [];
 
         $modelDef = $spec['definitions'][$model];
 
@@ -768,11 +768,13 @@ class Python extends Language
                 'array' => array(),
                 'string' => $property['example'] ?? '',
                 'boolean' => true,
+		'float' => (float) $property['example'],
+		'integer' => (float) $property['example'],
                 default => $property['example'] ?? null,
             };
         }
 
-	return $result;
+	return (object) $result;
     }
 
     public function getFilters(): array
@@ -867,7 +869,7 @@ class Python extends Language
             new TwigFilter('responseModelExample', function (string $model, array $spec) {
                 $result = $this->getResponseModelExample($model, $spec);
 
-		$json = json_encode($result, JSON_PRETTY_PRINT);
+		$json = json_encode($result, JSON_PRETTY_PRINT | JSON_PRESERVE_ZERO_FRACTION);
 
 		return str_replace([ 'true', 'false', 'null' ], [ "True", "False", "None" ], $json);
             })

@@ -35,6 +35,9 @@ class {{ service.name | caseUcfirst }}ServiceTest(unittest.TestCase):
         )
 
         {%~ if method.type != 'webAuth' and method.responseModel and method.responseModel != 'any' %}
+        {%~ if method.responseModel == 'row' or method.responseModel == 'document' or method.responseModel == 'preferences' %}
+        data['data'] = {}
+        {%~ endif  %}
         self.assertEqual(response.to_dict(), data)
         {%~ else %}
         self.assertEqual(response, data)
