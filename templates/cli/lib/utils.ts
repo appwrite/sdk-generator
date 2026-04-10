@@ -68,6 +68,15 @@ export const getSafeDirectoryName = (
   return normalized || fallback;
 };
 
+type SiteBuildConfig = {
+  framework?: string;
+  adapter?: string;
+};
+
+export const siteRequiresBuildCommand = (site: SiteBuildConfig): boolean => {
+  return !(site.framework === "other" && site.adapter === "static");
+};
+
 export const getErrorMessage = (error: unknown): string => {
   if (error instanceof Error) {
     return error.message;
