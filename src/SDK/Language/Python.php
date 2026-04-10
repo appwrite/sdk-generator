@@ -768,13 +768,13 @@ class Python extends Language
                 'array' => array(),
                 'string' => $property['example'] ?? '',
                 'boolean' => true,
-		'float' => (float) $property['example'],
-		'integer' => (float) $property['example'],
+                'float' => (float) $property['example'],
+                'integer' => (float) $property['example'],
                 default => $property['example'] ?? null,
             };
         }
 
-	return (object) $result;
+        return (object) $result;
     }
 
     public function getFilters(): array
@@ -868,10 +868,9 @@ class Python extends Language
             }),
             new TwigFilter('responseModelExample', function (string $model, array $spec) {
                 $result = $this->getResponseModelExample($model, $spec);
+                $json = json_encode($result, JSON_PRETTY_PRINT | JSON_PRESERVE_ZERO_FRACTION);
 
-		$json = json_encode($result, JSON_PRETTY_PRINT | JSON_PRESERVE_ZERO_FRACTION);
-
-		return str_replace([ 'true', 'false', 'null' ], [ "True", "False", "None" ], $json);
+                return str_replace([ 'true', 'false', 'null' ], [ "True", "False", "None" ], $json);
             })
         ];
     }
