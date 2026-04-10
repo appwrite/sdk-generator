@@ -33,6 +33,7 @@ import { sdkForConsole } from "../sdks.js";
 import {
   isCloud,
   getSafeDirectoryName,
+  siteRequiresBuildCommand,
   hasSkillsInstalled,
   fetchAvailableSkills,
   detectProjectSkills,
@@ -820,7 +821,7 @@ const initSite = async (): Promise<void> => {
     );
   }
 
-  if (!data.buildCommand) {
+  if (!data.buildCommand && siteRequiresBuildCommand(data)) {
     log(
       `Build command for this framework not found. You will be asked to configure the build command when you first push the site.`,
     );

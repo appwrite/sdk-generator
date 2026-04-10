@@ -1097,6 +1097,20 @@ export const questionsGetEntrypoint: Question[] = [
   },
 ];
 
+export const questionsGetBuildCommand: Question[] = [
+  {
+    type: "input",
+    name: "buildCommand",
+    message: "Enter the build command",
+    validate(value: string) {
+      if (!value) {
+        return "Please enter your build command";
+      }
+      return true;
+    },
+  },
+];
+
 export const questionsPushTeams: Question[] = [
   {
     type: "checkbox",

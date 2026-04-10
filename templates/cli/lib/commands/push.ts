@@ -30,6 +30,7 @@ import {
   arrayEqualsUnordered,
   getFunctionDeploymentConsoleUrl,
   getSiteDeploymentConsoleUrl,
+  siteRequiresBuildCommand,
 } from "../utils.js";
 import { Spinner, SPINNER_DOTS } from "../spinner.js";
 import { paginate } from "../paginate.js";
@@ -43,6 +44,7 @@ import {
   questionsPushSites,
   questionsPushSitesActivate,
   questionsPushSitesCode,
+  questionsGetBuildCommand,
   questionsGetEntrypoint,
   questionsPushCollections,
   questionsPushTables,
@@ -2107,10 +2109,10 @@ const pushSite = async ({
   log("Validating sites ...");
   // Validation is done BEFORE pushing so the deployment process can be run in async with progress update
   for (const site of sites) {
-    if (!site.buildCommand) {
+    if (!site.buildCommand && siteRequiresBuildCommand(site)) {
       log(`Site ${site.name} is missing build command.`);
-      const answers = await inquirer.prompt(questionsGetEntrypoint);
-      site.buildCommand = answers.entrypoint;
+      const answers = await inquirer.prompt(questionsGetBuildCommand);
+      site.buildCommand = answers.buildCommand;
       localConfig.addSite(site);
     }
   }
