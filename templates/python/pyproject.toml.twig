@@ -17,7 +17,6 @@ maintainers = [
 ]
 dependencies = [
   "requests",
-  "requests_mock==1.11.0",
   "pydantic>=2,<3",
 ]
 classifiers = [
@@ -31,6 +30,11 @@ classifiers = [
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
+]
+
+[project.optional-dependencies]
+test = [
+  "requests_mock==1.11.0",
 ]
 
 [project.urls]

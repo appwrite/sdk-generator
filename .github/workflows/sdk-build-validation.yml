@@ -201,7 +201,7 @@ jobs:
               composer test
               ;;
             python)
-              pip install -e .
+              pip install -e .[test]
               python -m compileall appwrite/
               python -m unittest
               ;;
