@@ -906,7 +906,9 @@ export class Push {
     } = options;
 
     Spinner.start(false);
-    const deploymentLogsController = createDeploymentLogsController(logs);
+    const deploymentLogsController = createDeploymentLogsController(
+      logs && !asyncDeploy,
+    );
     let successfullyPushed = 0;
     let successfullyDeployed = 0;
     const failedDeployments: FailedDeployment[] = [];
@@ -1190,6 +1192,16 @@ export class Push {
                   onDeploymentUpdate: (deployment) => {
                     deploymentLogPrinter.ingest(deployment);
                   },
+                  onClose: () => {
+                    currentDeploymentEnd =
+                      "Log stream disconnected; polling status...";
+                    updaterRow.update({
+                      end: withDeploymentLogsHint(
+                        currentDeploymentEnd,
+                        deploymentLogsController,
+                      ),
+                    });
+                  },
                 })
               : null;
             let currentDeploymentEnd = deploymentWatcher
@@ -1406,7 +1418,9 @@ export class Push {
     } = options;
 
     Spinner.start(false);
-    const deploymentLogsController = createDeploymentLogsController(logs);
+    const deploymentLogsController = createDeploymentLogsController(
+      logs && !asyncDeploy,
+    );
     let successfullyPushed = 0;
     let successfullyDeployed = 0;
     const failedDeployments: FailedDeployment[] = [];
@@ -1687,6 +1701,16 @@ export class Push {
                   event: `sites.${site["$id"]}.deployments.${deploymentId}.update`,
                   onDeploymentUpdate: (deployment) => {
                     deploymentLogPrinter.ingest(deployment);
+                  },
+                  onClose: () => {
+                    currentDeploymentEnd =
+                      "Log stream disconnected; polling status...";
+                    updaterRow.update({
+                      end: withDeploymentLogsHint(
+                        currentDeploymentEnd,
+                        deploymentLogsController,
+                      ),
+                    });
                   },
                 })
               : null;

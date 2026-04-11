@@ -50,6 +50,7 @@ interface WatchDeploymentUpdatesParams {
   endpoint: string;
   event: string;
   onDeploymentUpdate: (deployment: DeploymentDetails) => void;
+  onClose?: () => void;
 }
 
 interface DeploymentLogPrinter {
@@ -298,12 +299,24 @@ export async function watchDeploymentUpdates(
   }
 
   let closed = false;
+  let closingExplicitly = false;
+  let hasNotifiedClose = false;
+
+  const notifyClose = (): void => {
+    if (hasNotifiedClose) {
+      return;
+    }
+
+    hasNotifiedClose = true;
+    params.onClose?.();
+  };
 
   const close = async (): Promise<void> => {
     if (closed) {
       return;
     }
 
+    closingExplicitly = true;
     closed = true;
 
     await new Promise<void>((resolve) => {
@@ -369,11 +382,15 @@ export async function watchDeploymentUpdates(
   });
 
   socket.addEventListener("error", () => {
+    notifyClose();
     void close();
   });
 
   socket.addEventListener("close", () => {
     closed = true;
+    if (!closingExplicitly) {
+      notifyClose();
+    }
   });
 
   return { close };
