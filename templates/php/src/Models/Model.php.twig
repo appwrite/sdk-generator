@@ -132,12 +132,12 @@ readonly class {{ definition.name | caseUcfirst | overrideIdentifier }}
                         static fn (mixed $item): mixed => static::hydrateTypedValue({{ property.sub_schema | caseUcfirst | overrideIdentifier }}::class, $item),
                         $data['{{ property.name }}']
                     )
-                    : $data['{{ property.name }}']{% elseif property.sub_schema %}static::hydrateTypedValue({{ property.sub_schema | caseUcfirst | overrideIdentifier }}::class, $data['{{ property.name }}']){% elseif property.type == 'array' and (property.enumValues is not empty or property.enumName is not empty) %}is_array($data['{{ property.name }}'])
+                    : $data['{{ property.name }}']{% elseif property.sub_schema %}static::hydrateTypedValue({{ property.sub_schema | caseUcfirst | overrideIdentifier }}::class, $data['{{ property.name }}'], true){% elseif property.type == 'array' and (property.enumValues is not empty or property.enumName is not empty) %}is_array($data['{{ property.name }}'])
                     ? array_map(
                         static fn (mixed $item): mixed => static::hydrateTypedValue({{ (property.enumName ?? property.name) | caseUcfirst | overrideIdentifier }}::class, $item),
                         $data['{{ property.name }}']
                     )
-                    : $data['{{ property.name }}']{% elseif property.enumValues is not empty or property.enumName is not empty %}static::hydrateTypedValue({{ (property.enumName ?? property.name) | caseUcfirst | overrideIdentifier }}::class, $data['{{ property.name }}']){% else %}$data['{{ property.name }}']{% endif %}
+                    : $data['{{ property.name }}']{% elseif property.enumValues is not empty or property.enumName is not empty %}static::hydrateTypedValue({{ (property.enumName ?? property.name) | caseUcfirst | overrideIdentifier }}::class, $data['{{ property.name }}'], true){% else %}$data['{{ property.name }}']{% endif %}
                 : null{{ (not loop.last or definition.additionalProperties) ? ',' : '' }}
 {% endfor %}
 {% if definition.additionalProperties %}

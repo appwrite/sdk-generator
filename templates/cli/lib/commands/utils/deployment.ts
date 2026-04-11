@@ -3,8 +3,12 @@ import os from "os";
 import path from "path";
 import { create, extract } from "tar";
 import ignoreModule from "ignore";
+import chalk from "chalk";
+import { Agent, WebSocket } from "undici";
 import { Client, AppwriteException } from "@appwrite.io/console";
 import { error } from "../../parser.js";
+import { globalConfig } from "../../config.js";
+import { Spinner } from "../../spinner.js";
 
 const ignore: typeof ignoreModule =
   (ignoreModule as unknown as { default?: typeof ignoreModule }).default ??
@@ -27,6 +31,369 @@ interface DeploymentDetails {
   $id: string;
   status: string;
   [key: string]: unknown;
+}
+
+interface RealtimeEnvelope {
+  type?: string;
+  data?: {
+    events?: string[];
+    payload?: DeploymentDetails;
+    user?: unknown;
+  };
+}
+
+interface DeploymentUpdateSubscription {
+  close: () => Promise<void>;
+}
+
+interface WatchDeploymentUpdatesParams {
+  endpoint: string;
+  event: string;
+  onDeploymentUpdate: (deployment: DeploymentDetails) => void;
+  onClose?: () => void;
+}
+
+interface DeploymentLogPrinter {
+  ingest: (deployment: DeploymentDetails) => void;
+  flush: () => void;
+  complete: () => void;
+  getLastLogs: () => string;
+  hasPrintedLogs: () => boolean;
+}
+
+interface DeploymentLogPrinterOptions {
+  heading?: string;
+  label?: string;
+  showPrefix?: boolean;
+  isVisible?: () => boolean;
+}
+
+interface ClosableDispatcher {
+  close?: () => Promise<void>;
+  destroy?: () => Promise<void> | void;
+}
+
+function getCookieHeader(cookie: string): string | null {
+  const [pair = ""] = cookie.split(";", 1);
+  const sanitized = pair.trim();
+
+  return sanitized.length > 0 ? sanitized : null;
+}
+
+function getSessionSecret(cookieHeader: string | null): string | null {
+  if (!cookieHeader) {
+    return null;
+  }
+
+  const separatorIndex = cookieHeader.indexOf("=");
+  if (separatorIndex === -1) {
+    return null;
+  }
+
+  const value = cookieHeader.slice(separatorIndex + 1);
+  if (value.length === 0) {
+    return null;
+  }
+
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+function getRealtimeUrl(endpoint: string): string {
+  const realtimeEndpoint = endpoint
+    .replace("https://", "wss://")
+    .replace("http://", "ws://");
+  const url = new URL(`${realtimeEndpoint}/realtime`);
+  url.searchParams.set("project", "console");
+  url.searchParams.append("channels[]", "console");
+
+  return url.toString();
+}
+
+function getMessageData(rawData: unknown): string | null {
+  if (typeof rawData === "string") {
+    return rawData;
+  }
+
+  if (rawData instanceof ArrayBuffer) {
+    return Buffer.from(rawData).toString("utf8");
+  }
+
+  if (ArrayBuffer.isView(rawData)) {
+    return Buffer.from(
+      rawData.buffer,
+      rawData.byteOffset,
+      rawData.byteLength,
+    ).toString("utf8");
+  }
+
+  return null;
+}
+
+function writeLogChunk(
+  label: string | undefined,
+  chunk: string,
+  showPrefix: boolean,
+  includePartial: boolean = false,
+): string {
+  if (chunk.length === 0) {
+    return "";
+  }
+
+  const prefix = showPrefix && label ? `${chalk.cyan(`[${label}]`)} ` : "";
+  const printableChunk =
+    includePartial || chunk.endsWith("\n")
+      ? chunk
+      : chunk.slice(0, chunk.lastIndexOf("\n") + 1);
+
+  if (printableChunk.length === 0) {
+    return "";
+  }
+
+  const normalizedChunk = printableChunk.replace(/\r\n/g, "\n");
+  const lines = normalizedChunk.split("\n");
+  if (normalizedChunk.endsWith("\n")) {
+    lines.pop();
+  }
+
+  for (const line of lines) {
+    Spinner.log(`${prefix}${line}`);
+  }
+
+  return printableChunk;
+}
+
+export function createDeploymentLogPrinter(
+  options: DeploymentLogPrinterOptions = {},
+): DeploymentLogPrinter {
+  let lastLogs = "";
+  let lastPrintedLogs = "";
+  let hasPrintedHeader = false;
+  let hasPrintedLogs = false;
+  const {
+    heading = "Build logs",
+    label,
+    showPrefix = false,
+    isVisible = () => true,
+  } = options;
+
+  const flush = (includePartial: boolean = false): void => {
+    if (!isVisible() || lastLogs.length === 0 || lastLogs === lastPrintedLogs) {
+      return;
+    }
+
+    if (!hasPrintedHeader) {
+      Spinner.log("");
+      Spinner.log(chalk.cyan.bold(heading));
+      Spinner.log("");
+      hasPrintedHeader = true;
+    }
+
+    if (lastPrintedLogs.length > 0 && lastLogs.startsWith(lastPrintedLogs)) {
+      const printedChunk = writeLogChunk(
+        label,
+        lastLogs.slice(lastPrintedLogs.length),
+        showPrefix,
+        includePartial,
+      );
+      if (printedChunk.length === 0) {
+        return;
+      }
+      lastPrintedLogs += printedChunk;
+      hasPrintedLogs = true;
+      return;
+    }
+
+    if (lastPrintedLogs.startsWith(lastLogs)) {
+      lastPrintedLogs = lastLogs;
+      return;
+    }
+
+    const printedChunk = writeLogChunk(
+      label,
+      lastLogs,
+      showPrefix,
+      includePartial,
+    );
+    if (printedChunk.length === 0) {
+      return;
+    }
+    lastPrintedLogs = printedChunk;
+    hasPrintedLogs = true;
+  };
+
+  return {
+    ingest(deployment: DeploymentDetails): void {
+      const currentLogs =
+        typeof deployment["buildLogs"] === "string"
+          ? deployment["buildLogs"]
+          : "";
+
+      if (currentLogs.length === 0 || currentLogs === lastLogs) {
+        return;
+      }
+
+      lastLogs = currentLogs;
+      flush();
+    },
+
+    flush(): void {
+      flush();
+    },
+
+    complete(): void {
+      flush(true);
+    },
+
+    getLastLogs(): string {
+      return lastLogs;
+    },
+
+    hasPrintedLogs(): boolean {
+      return hasPrintedLogs;
+    },
+  };
+}
+
+async function closeDispatcher(dispatcher: ClosableDispatcher): Promise<void> {
+  if (typeof dispatcher.close === "function") {
+    await dispatcher.close();
+    return;
+  }
+
+  if (typeof dispatcher.destroy === "function") {
+    await dispatcher.destroy();
+  }
+}
+
+export async function watchDeploymentUpdates(
+  params: WatchDeploymentUpdatesParams,
+): Promise<DeploymentUpdateSubscription | null> {
+  const cookieHeader = getCookieHeader(globalConfig.getCookie());
+  if (!cookieHeader) {
+    return null;
+  }
+
+  const sessionSecret = getSessionSecret(cookieHeader);
+  const selfSigned = globalConfig.getSelfSigned();
+  const dispatcher = new Agent({
+    connect: {
+      rejectUnauthorized: !selfSigned,
+    },
+  });
+
+  let socket: WebSocket;
+  try {
+    socket = new WebSocket(getRealtimeUrl(params.endpoint), {
+      headers: {
+        cookie: cookieHeader,
+      },
+      dispatcher,
+    });
+  } catch {
+    await closeDispatcher(dispatcher);
+    return null;
+  }
+
+  let closed = false;
+  let closingExplicitly = false;
+  let hasNotifiedClose = false;
+
+  const notifyClose = (): void => {
+    if (hasNotifiedClose) {
+      return;
+    }
+
+    hasNotifiedClose = true;
+    params.onClose?.();
+  };
+
+  const close = async (): Promise<void> => {
+    if (closed) {
+      return;
+    }
+
+    closingExplicitly = true;
+    closed = true;
+
+    await new Promise<void>((resolve) => {
+      if (socket.readyState >= WebSocket.CLOSING) {
+        resolve();
+        return;
+      }
+
+      const cleanup = (): void => {
+        socket.removeEventListener("close", cleanup);
+        resolve();
+      };
+
+      socket.addEventListener("close", cleanup, { once: true });
+      socket.close(1000, "done");
+    });
+
+    await closeDispatcher(dispatcher);
+  };
+
+  socket.addEventListener("message", (event: unknown) => {
+    const data = getMessageData((event as { data?: unknown }).data);
+    if (!data) {
+      return;
+    }
+
+    let message: RealtimeEnvelope;
+    try {
+      message = JSON.parse(data) as RealtimeEnvelope;
+    } catch {
+      return;
+    }
+
+    if (
+      message.type === "connected" &&
+      sessionSecret &&
+      !message.data?.user &&
+      socket.readyState === WebSocket.OPEN
+    ) {
+      socket.send(
+        JSON.stringify({
+          type: "authentication",
+          data: {
+            session: sessionSecret,
+          },
+        }),
+      );
+      return;
+    }
+
+    if (message.type !== "event") {
+      return;
+    }
+
+    if (
+      !message.data?.events?.includes(params.event) ||
+      !message.data.payload
+    ) {
+      return;
+    }
+
+    params.onDeploymentUpdate(message.data.payload);
+  });
+
+  socket.addEventListener("error", () => {
+    notifyClose();
+    void close();
+  });
+
+  socket.addEventListener("close", () => {
+    closed = true;
+    if (!closingExplicitly) {
+      notifyClose();
+    }
+  });
+
+  return { close };
 }
 
 /**

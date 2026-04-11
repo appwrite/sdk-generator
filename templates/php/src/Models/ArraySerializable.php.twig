@@ -175,7 +175,7 @@ trait ArraySerializable
         $type = $parameter->getType();
 
         if ($type instanceof \ReflectionNamedType && !$type->isBuiltin()) {
-            return static::hydrateTypedValue($type->getName(), $value);
+            return static::hydrateTypedValue($type->getName(), $value, $type->allowsNull());
         }
 
         if ($type instanceof \ReflectionNamedType && $type->getName() === 'array' && is_array($value)) {
@@ -213,10 +213,14 @@ trait ArraySerializable
         return static::hydrateTypedValue($type, $value);
     }
 
-    private static function hydrateTypedValue(string $type, mixed $value): mixed
+    private static function hydrateTypedValue(string $type, mixed $value, bool $allowsNull = false): mixed
     {
         if ($value === null || !method_exists($type, 'from')) {
             return $value;
+        }
+
+        if ($allowsNull && $value === '') {
+            return null;
         }
 
         return is_array($value) ? $type::from($value) : $type::from((string) $value);
