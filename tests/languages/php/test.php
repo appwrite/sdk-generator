@@ -385,18 +385,20 @@ $enumPayload = EnumPayload::from([
     'status' => 'active',
     'captain' => ['id' => 'captain1', 'name' => 'Captain One', 'score' => 300],
     'statuses' => ['active', 'inactive'],
+    'history' => ['queued', 'running'],
     'players' => [
         ['id' => 'player1', 'name' => 'John Doe', 'score' => 100],
     ],
 ]);
 echo json_encode($enumPayload->toArray(), JSON_THROW_ON_ERROR) . "\n";
-echo get_class($enumPayload->status) . '|' . get_class($enumPayload->statuses[0]) . '|' . get_class($enumPayload->captain) . '|' . get_class($enumPayload->players[0]) . "\n";
+echo get_class($enumPayload->status) . '|' . get_class($enumPayload->statuses[0]) . '|' . get_class($enumPayload->history[0]) . '|' . get_class($enumPayload->captain) . '|' . get_class($enumPayload->players[0]) . "\n";
 
 $enumResult = EnumResult::from([
     'default' => 'inactive',
     'status' => 'pending',
     'captain' => ['id' => 'captain2', 'name' => 'Captain Two', 'score' => 400],
     'statuses' => ['pending', 'active'],
+    'history' => ['done', 'queued'],
     'players' => [
         ['id' => 'player2', 'name' => 'Jane Doe', 'score' => 200],
     ],
@@ -404,7 +406,7 @@ $enumResult = EnumResult::from([
     'nested' => ['enabled' => true],
 ]);
 echo json_encode($enumResult->toArray(), JSON_THROW_ON_ERROR) . "\n";
-echo get_class($enumResult->status) . '|' . get_class($enumResult->statuses[0]) . '|' . get_class($enumResult->captain) . '|' . get_class($enumResult->players[0]) . "\n";
+echo get_class($enumResult->status) . '|' . get_class($enumResult->statuses[0]) . '|' . get_class($enumResult->history[0]) . '|' . get_class($enumResult->captain) . '|' . get_class($enumResult->players[0]) . "\n";
 
 // Operator helper tests
 echo Operator::increment() . "\n";

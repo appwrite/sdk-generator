@@ -25,25 +25,6 @@ use {{ spec.namespace | caseNamespace }}\Enums\{{ enumName | caseUcfirst | overr
 readonly class {{ definition.name | caseUcfirst | overrideIdentifier }}
 {
     use ArraySerializable;
-
-{% set fieldMappings = [] %}
-{% for property in definition.properties %}
-{% set propertyName = property.name | caseCamel | escapeKeyword %}
-{% if propertyName != property.name %}
-{% set fieldMappings = fieldMappings|merge([{ property: propertyName, field: property.name }]) %}
-{% endif %}
-{% endfor %}
-{% if fieldMappings is not empty %}
-    /**
-     * @var array<string, string>
-     */
-    private const FIELD_MAP = [
-{% for mapping in fieldMappings %}
-        '{{ mapping.property }}' => '{{ mapping.field }}'{{ loop.last ? '' : ',' }}
-{% endfor %}
-    ];
-
-{% endif %}
 {% if definition.additionalProperties %}
     private const ADDITIONAL_PROPERTIES = true;
 

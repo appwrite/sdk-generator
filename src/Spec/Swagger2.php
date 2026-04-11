@@ -667,7 +667,9 @@ class Swagger2 extends Spec
 
                     // array of enums
                     if ((($property['type'] ?? null) === 'array') && isset($property['items']['enum'])) {
-                        $enumName = $property['x-enum-name'] ?? ucfirst($modelName) . ucfirst($propertyName);
+                        $enumName = $property['items']['x-enum-name']
+                            ?? $property['enumName']
+                            ?? ucfirst($modelName) . ucfirst($propertyName);
 
                         if (!isset($list[$enumName])) {
                             $list[$enumName] = [

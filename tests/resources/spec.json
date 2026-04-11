@@ -2553,6 +2553,19 @@
             "x-enum-name": "FixtureStatus"
           }
         },
+        "history": {
+          "type": "array",
+          "description": "Fixture history state changes.",
+          "items": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "running",
+              "done"
+            ],
+            "x-enum-name": "FixtureHistoryStatus"
+          }
+        },
         "players": {
           "type": "array",
           "description": "Fixture players.",
@@ -2565,6 +2578,7 @@
         "status",
         "captain",
         "statuses",
+        "history",
         "players"
       ]
     },
@@ -2606,6 +2620,19 @@
             "x-enum-name": "FixtureStatus"
           }
         },
+        "history": {
+          "type": "array",
+          "description": "Fixture history state changes.",
+          "items": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "running",
+              "done"
+            ],
+            "x-enum-name": "FixtureHistoryStatus"
+          }
+        },
         "players": {
           "type": "array",
           "description": "Fixture players.",
@@ -2618,6 +2645,7 @@
         "status",
         "captain",
         "statuses",
+        "history",
         "players"
       ]
     },
