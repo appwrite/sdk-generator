@@ -1,0 +1,43 @@
+<svg width="1152" height="768" viewBox="0 0 1152 768" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1152" height="768" rx="16" fill="#111418"/>
+  <rect x="24" y="24" width="1104" height="720" rx="12" fill="#151A1F" stroke="#232B34"/>
+  <circle cx="56" cy="56" r="8" fill="#FF5F56"/>
+  <circle cx="80" cy="56" r="8" fill="#FFBD2E"/>
+  <circle cx="104" cy="56" r="8" fill="#27C93F"/>
+  <text x="140" y="62" fill="#8FA3B8" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="18">appwrite-cli push site</text>
+
+  <g font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="17">
+    <text x="42" y="112" fill="#A7F3D0">? Which sites would you like to push? Testing deployment logs (testing-deployment-logs)</text>
+    <text x="42" y="140" fill="#7DD3FC">ℹ Info: Validating sites ...</text>
+    <text x="42" y="168" fill="#7DD3FC">ℹ Info: Checking for changes ...</text>
+    <text x="42" y="212" fill="#A7F3D0">? Do you want to create a deployment for your sites? Yes</text>
+    <text x="42" y="240" fill="#A7F3D0">? Do you want to activate the deployment after it is ready? Yes</text>
+    <text x="42" y="268" fill="#7DD3FC">ℹ Info: Pushing sites ...</text>
+
+    <text x="42" y="320" fill="#D1D5DB" font-weight="700">Build logs</text>
+
+    <text x="42" y="360" fill="#9CA3AF">[13:54:09] [open-runtimes] Environment preparation started.</text>
+    <text x="42" y="386" fill="#9CA3AF">[13:54:09] [open-runtimes] Environment preparation finished.</text>
+    <text x="42" y="412" fill="#9CA3AF">[13:54:09] [open-runtimes] Build command execution started.</text>
+
+    <text x="42" y="454" fill="#E5E7EB">added 28 packages, and audited 29 packages in 3s</text>
+    <text x="42" y="496" fill="#E5E7EB">7 packages are looking for funding</text>
+    <text x="42" y="522" fill="#E5E7EB">  run `npm fund` for details</text>
+    <text x="42" y="564" fill="#E5E7EB">2 high severity vulnerabilities</text>
+    <text x="42" y="606" fill="#E5E7EB">To address all issues, run:</text>
+    <text x="42" y="632" fill="#E5E7EB">  npm audit fix</text>
+    <text x="42" y="674" fill="#E5E7EB">&gt; starter-for-js@0.0.0 build</text>
+    <text x="42" y="700" fill="#E5E7EB">&gt; vite build</text>
+
+    <text x="588" y="360" fill="#4ADE80">vite v6.2.0 building for production...</text>
+    <text x="588" y="386" fill="#4ADE80">transforming...</text>
+    <text x="588" y="412" fill="#D1D5DB">✓ 7 modules transformed.</text>
+    <text x="588" y="438" fill="#D1D5DB">rendering chunks...</text>
+    <text x="588" y="464" fill="#D1D5DB">computing gzip size...</text>
+    <text x="588" y="504" fill="#9CA3AF">dist/assets/index-D4bHiO3k.css   39.49 kB │ gzip: 8.99 kB</text>
+    <text x="588" y="530" fill="#9CA3AF">dist/assets/index-BCiwvRPY.js    15.77 kB │ gzip: 6.48 kB</text>
+    <text x="588" y="572" fill="#4ADE80">✓ built in 572ms</text>
+
+    <text x="42" y="730" fill="#22C55E">✓ Realtime build logs streamed in the CLI during deployment</text>
+  </g>
+</svg>
