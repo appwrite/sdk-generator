@@ -100,9 +100,11 @@ mixin RealtimeMixin {
             
             // Store subscription ID mappings from backend
             // Format: { "0": "sub_a1f9", "1": "sub_b83c", ... }
+            // Appwrite 1.9 sends subscriptions as an empty List instead of a Map,
+            // so guard with a type check to avoid a cast crash.
             _slotToSubscriptionId.clear();
             _subscriptionIdToSlot.clear();
-            if (data.data['subscriptions'] != null) {
+            if (data.data['subscriptions'] is Map) {
               final subscriptions = data.data['subscriptions'] as Map<String, dynamic>;
               subscriptions.forEach((slotStr, subscriptionId) {
                 final slot = int.tryParse(slotStr);
@@ -141,13 +143,27 @@ mixin RealtimeMixin {
               break;
             }
 
-            // Iterate over all matching subscriptionIds and call callback for each
-            for (var subscriptionId in subscriptions) {
-              // O(1) lookup using subscriptionId
-              final slot = _subscriptionIdToSlot[subscriptionId];
-              if (slot != null) {
-                final subscription = _subscriptions[slot];
-                if (subscription != null) {
+            if (_subscriptionIdToSlot.isNotEmpty) {
+              // Preferred path: route by subscriptionId (O(1) lookup)
+              for (var subscriptionId in subscriptions) {
+                final slot = _subscriptionIdToSlot[subscriptionId];
+                if (slot != null) {
+                  final subscription = _subscriptions[slot];
+                  if (subscription != null) {
+                    subscription.controller.add(message);
+                  }
+                }
+              }
+            } else {
+              // Fallback: Appwrite 1.9 does not assign subscription IDs, so
+              // route events by matching the event's channels against each
+              // subscription's registered channels.
+              final eventChannels = (messageData['channels'] as List<dynamic>?)
+                  ?.map((x) => x.toString())
+                  .toSet() ?? <String>{};
+              for (var entry in _subscriptions.entries) {
+                final subscription = entry.value;
+                if (subscription.channels.any((ch) => eventChannels.contains(ch))) {
                   subscription.controller.add(message);
                 }
               }
@@ -155,9 +171,11 @@ mixin RealtimeMixin {
             break;
         }
       }, onDone: () {
+        debugPrint('Realtime WebSocket closed: code=${_websok?.closeCode}, reason=${_websok?.closeReason}');
         _stopHeartbeat();
         _retry();
       }, onError: (err, stack) {
+        debugPrint('Realtime WebSocket stream error: $err');
         _stopHeartbeat();
         for (var subscription in _subscriptions.values) {
           subscription.controller.addError(err, stack);
@@ -224,23 +242,20 @@ mixin RealtimeMixin {
       queryParams += "&channels[]=$encodedChannel";
     }
 
-    // Hardcode the select query string since Query is not accessible in this mixin
-    // This is equivalent to Query.select(["*"]) which returns: {"method":"select","values":["*"]}
-    final selectAllQuery = '{"method":"select","values":["*"]}';
     for (var entry in _subscriptions.entries) {
       final slot = entry.key;
       final subscription = entry.value;
-      
-      // Get queries array - each query is a separate string
-      final queries = subscription.queries.isEmpty ? [selectAllQuery] : subscription.queries;
-      
-      // Repeat this slot's queries under each channel it subscribes to
-      // Each query is sent as a separate parameter: channel[slot][]=q1&channel[slot][]=q2
-      for (var channel in subscription.channels) {
-        final encodedChannel = Uri.encodeComponent(channel);
-        for (var query in queries) {
-          final encodedQuery = Uri.encodeComponent(query);
-          queryParams += "&$encodedChannel[$slot][]=$encodedQuery";
+
+      // Only include query params when queries are explicitly provided
+      if (subscription.queries.isNotEmpty) {
+        // Repeat this slot's queries under each channel it subscribes to
+        // Each query is sent as a separate parameter: channel[slot][]=q1&channel[slot][]=q2
+        for (var channel in subscription.channels) {
+          final encodedChannel = Uri.encodeComponent(channel);
+          for (var query in subscription.queries) {
+            final encodedQuery = Uri.encodeComponent(query);
+            queryParams += "&$encodedChannel[$slot][]=$encodedQuery";
+          }
         }
       }
     }
@@ -304,6 +319,7 @@ mixin RealtimeMixin {
   // Channels are automatically rebuilt from remaining slots in _createSocket()
 
   void handleError(RealtimeResponse response) {
+    debugPrint('Realtime server error: code=${response.data['code']}, message=${response.data['message']}');
     if (response.data['code'] == status.policyViolation) {
       throw {{spec.title | caseUcfirst}}Exception(response.data["message"], response.data["code"]);
     } else {
