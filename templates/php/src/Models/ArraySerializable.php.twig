@@ -165,6 +165,10 @@ trait ArraySerializable
         $type = $parameter->getType();
 
         if ($type instanceof \ReflectionNamedType && !$type->isBuiltin()) {
+            if ($type->allowsNull() && $value === '') {
+                return null;
+            }
+
             $typeName = $type->getName();
 
             if (!method_exists($typeName, 'from')) {
