@@ -29,7 +29,10 @@ use Appwrite\Role;
 use Appwrite\ID;
 use Appwrite\Operator;
 use Appwrite\Condition;
+use Appwrite\Enums\FixtureStatus;
 use Appwrite\Enums\MockType;
+use Appwrite\Models\EnumPayload;
+use Appwrite\Models\EnumResult;
 use Appwrite\Services\Bar;
 use Appwrite\Services\Foo;
 use Appwrite\Services\General;
@@ -38,11 +41,64 @@ readonly class AdditionalPropsDataOnly
 {
     use \Appwrite\Models\ArraySerializable;
 
-    private const ADDITIONAL_PROPERTIES = true;
-
     public function __construct(
         public array $data = []
     ) {
+    }
+
+    public static function from(array $data): static
+    {
+        return new static(
+            data: static::extractAdditionalPropertiesFromFields($data, []),
+        );
+    }
+
+    public function toArray(): array
+    {
+        return static::serializeAdditionalProperties($this->data);
+    }
+}
+
+readonly class AdditionalPropsDataFieldMapped
+{
+    use \Appwrite\Models\ArraySerializable;
+
+    public function __construct(
+        public array $payload,
+        public string $status,
+        public array $data = []
+    ) {
+    }
+
+    public static function from(array $data): static
+    {
+        if (!array_key_exists('data', $data)) {
+            throw new \InvalidArgumentException('Missing required field "data" for ' . static::class . '.');
+        }
+
+        if (!array_key_exists('status', $data)) {
+            throw new \InvalidArgumentException('Missing required field "status" for ' . static::class . '.');
+        }
+
+        return new static(
+            payload: $data['data'],
+            status: $data['status'],
+            data: static::extractAdditionalPropertiesFromFields($data, ['data', 'status']),
+        );
+    }
+
+    public function toArray(): array
+    {
+        $result = [
+            'data' => static::serializeValue($this->payload),
+            'status' => static::serializeValue($this->status),
+        ];
+
+        foreach (static::serializeAdditionalProperties($this->data) as $field => $value) {
+            $result[$field] = $value;
+        }
+
+        return $result;
     }
 }
 
@@ -50,16 +106,35 @@ readonly class AdditionalPropsMapped
 {
     use \Appwrite\Models\ArraySerializable;
 
-    private const FIELD_MAP = [
-        'id' => '$id',
-    ];
-
-    private const ADDITIONAL_PROPERTIES = true;
-
     public function __construct(
         public string $id,
         public array $data = []
     ) {
+    }
+
+    public static function from(array $data): static
+    {
+        if (!array_key_exists('$id', $data)) {
+            throw new \InvalidArgumentException('Missing required field "$id" for ' . static::class . '.');
+        }
+
+        return new static(
+            id: $data['$id'],
+            data: static::extractAdditionalPropertiesFromFields($data, ['$id']),
+        );
+    }
+
+    public function toArray(): array
+    {
+        $result = [
+            '$id' => static::serializeValue($this->id),
+        ];
+
+        foreach (static::serializeAdditionalProperties($this->data) as $field => $value) {
+            $result[$field] = $value;
+        }
+
+        return $result;
     }
 }
 
@@ -297,6 +372,42 @@ $row = AdditionalPropsMapped::from([
     'nested' => ['enabled' => true],
 ]);
 echo json_encode($row->toArray(), JSON_THROW_ON_ERROR) . "\n";
+
+$dataFieldPayload = AdditionalPropsDataFieldMapped::from([
+    'status' => 'ok',
+    'data' => ['enabled' => true],
+    'extra' => 'kept',
+]);
+echo json_encode($dataFieldPayload->toArray(), JSON_THROW_ON_ERROR) . "\n";
+
+$enumPayload = EnumPayload::from([
+    'default' => 'active',
+    'status' => 'active',
+    'captain' => ['id' => 'captain1', 'name' => 'Captain One', 'score' => 300],
+    'statuses' => ['active', 'inactive'],
+    'history' => ['queued', 'running'],
+    'requestOnlyHistory' => ['queued', 'approved'],
+    'players' => [
+        ['id' => 'player1', 'name' => 'John Doe', 'score' => 100],
+    ],
+]);
+echo json_encode($enumPayload->toArray(), JSON_THROW_ON_ERROR) . "\n";
+echo get_class($enumPayload->status) . '|' . get_class($enumPayload->statuses[0]) . '|' . get_class($enumPayload->history[0]) . '|' . get_class($enumPayload->requestOnlyHistory[0]) . '|' . get_class($enumPayload->captain) . '|' . get_class($enumPayload->players[0]) . "\n";
+
+$enumResult = EnumResult::from([
+    'default' => 'inactive',
+    'status' => 'pending',
+    'captain' => ['id' => 'captain2', 'name' => 'Captain Two', 'score' => 400],
+    'statuses' => ['pending', 'active'],
+    'history' => ['done', 'queued'],
+    'players' => [
+        ['id' => 'player2', 'name' => 'Jane Doe', 'score' => 200],
+    ],
+    'custom' => FixtureStatus::INACTIVE()->jsonSerialize(),
+    'nested' => ['enabled' => true],
+]);
+echo json_encode($enumResult->toArray(), JSON_THROW_ON_ERROR) . "\n";
+echo get_class($enumResult->status) . '|' . get_class($enumResult->statuses[0]) . '|' . get_class($enumResult->history[0]) . '|' . get_class($enumResult->captain) . '|' . get_class($enumResult->players[0]) . "\n";
 
 // Operator helper tests
 echo Operator::increment() . "\n";

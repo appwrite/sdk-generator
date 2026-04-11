@@ -6,133 +6,13 @@ trait ArraySerializable
 {
     /**
      * @param array<string, mixed> $data
-     */
-    public static function from(array $data): static
-    {
-        $parameters = static::getConstructorParameters();
-
-        if ($parameters === []) {
-            return new static();
-        }
-
-        $arguments = [];
-        $additionalProperties = static::hasAdditionalProperties()
-            ? static::extractAdditionalProperties($data, $parameters)
-            : [];
-
-        foreach ($parameters as $parameter) {
-            $name = $parameter->getName();
-
-            if ($name === 'data' && static::hasAdditionalProperties()) {
-                $arguments[$name] = $additionalProperties;
-                continue;
-            }
-
-            $field = static::getFieldMap()[$name] ?? $name;
-
-            if (!array_key_exists($field, $data)) {
-                if ($parameter->isDefaultValueAvailable()) {
-                    $arguments[$name] = $parameter->getDefaultValue();
-                    continue;
-                }
-
-                throw new \InvalidArgumentException('Missing required field "' . $field . '" for ' . static::class . '.');
-            }
-
-            $arguments[$name] = static::hydrateValue($name, $data[$field], $parameter);
-        }
-
-        return new static(...$arguments);
-    }
-
-    /**
+     * @param array<int, string> $knownFields
      * @return array<string, mixed>
      */
-    public function toArray(): array
+    private static function extractAdditionalPropertiesFromFields(array $data, array $knownFields): array
     {
-        $result = [];
-
-        foreach (get_object_vars($this) as $name => $value) {
-            if ($name === 'data' && static::hasAdditionalProperties()) {
-                foreach (static::serializeAdditionalProperties($value) as $field => $fieldValue) {
-                    $result[$field] = $fieldValue;
-                }
-
-                continue;
-            }
-
-            $field = static::getFieldMap()[$name] ?? $name;
-            $result[$field] = static::serializeValue($value);
-        }
-
-        return $result;
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    private static function getFieldMap(): array
-    {
-        return defined(static::class . '::FIELD_MAP') ? static::FIELD_MAP : [];
-    }
-
-    /**
-     * @return array<string, class-string>
-     */
-    private static function getArrayTypes(): array
-    {
-        return defined(static::class . '::ARRAY_TYPES') ? static::ARRAY_TYPES : [];
-    }
-
-    private static function hasAdditionalProperties(): bool
-    {
-        return defined(static::class . '::ADDITIONAL_PROPERTIES') && static::ADDITIONAL_PROPERTIES;
-    }
-
-    /**
-     * @return array<int, \ReflectionParameter>
-     */
-    private static function getConstructorParameters(): array
-    {
-        /** @var array<class-string, array<int, \ReflectionParameter>> $cache */
-        static $cache = [];
-
-        if (isset($cache[static::class])) {
-            return $cache[static::class];
-        }
-
-        $reflection = new \ReflectionClass(static::class);
-        $constructor = $reflection->getConstructor();
-
-        if ($constructor === null) {
-            $cache[static::class] = [];
-            return [];
-        }
-
-        return $cache[static::class] = $constructor->getParameters();
-    }
-
-    /**
-     * @param array<string, mixed> $data
-     * @param array<int, \ReflectionParameter> $parameters
-     * @return array<string, mixed>
-     */
-    private static function extractAdditionalProperties(array $data, array $parameters): array
-    {
-        if (isset($data['data']) && is_array($data['data'])) {
+        if (!\in_array('data', $knownFields, true) && isset($data['data']) && is_array($data['data'])) {
             return $data['data'];
-        }
-
-        $knownFields = [];
-
-        foreach ($parameters as $parameter) {
-            $name = $parameter->getName();
-
-            if ($name === 'data') {
-                continue;
-            }
-
-            $knownFields[] = static::getFieldMap()[$name] ?? $name;
         }
 
         return array_diff_key($data, array_flip($knownFields));
@@ -156,58 +36,14 @@ trait ArraySerializable
         return $result;
     }
 
-    private static function hydrateValue(string $name, mixed $value, \ReflectionParameter $parameter): mixed
-    {
-        if ($value === null) {
-            return null;
-        }
-
-        $type = $parameter->getType();
-
-        if ($type instanceof \ReflectionNamedType && !$type->isBuiltin()) {
-            $typeName = $type->getName();
-
-            if (!method_exists($typeName, 'from')) {
-                return $value;
-            }
-
-            if ($type->allowsNull() && $value === '') {
-                return null;
-            }
-
-            return is_array($value) ? $typeName::from($value) : $typeName::from((string) $value);
-        }
-
-        if ($type instanceof \ReflectionNamedType && $type->getName() === 'array' && is_array($value)) {
-            $arrayType = static::getArrayTypes()[$name] ?? null;
-
-            if ($arrayType === null) {
-                foreach ($value as $item) {
-                    if (is_array($item) || is_object($item)) {
-                        @trigger_error(
-                            'Array property "' . $name . '" on ' . static::class . ' contains structured values but has no ARRAY_TYPES mapping. Values will remain unhydrated.',
-                            E_USER_WARNING
-                        );
-                        break;
-                    }
-                }
-
-                return $value;
-            }
-
-            return array_map(
-                static fn (mixed $item): mixed => static::hydrateArrayItem($arrayType, $item),
-                $value
-            );
-        }
-
-        return $value;
-    }
-
-    private static function hydrateArrayItem(string $type, mixed $value): mixed
+    private static function hydrateTypedValue(string $type, mixed $value, bool $allowsNull = false): mixed
     {
         if ($value === null || !method_exists($type, 'from')) {
             return $value;
+        }
+
+        if ($allowsNull && $value === '') {
+            return null;
         }
 
         return is_array($value) ? $type::from($value) : $type::from((string) $value);
