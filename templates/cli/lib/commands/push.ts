@@ -1333,14 +1333,18 @@ export class Push {
               }
           } catch (e: any) {
             errors.push(e);
+            deploymentLogPrinter.complete();
+            if (deploymentLogPrinter.hasPrintedLogs()) {
+              Spinner.log("");
+            }
             updaterRow.fail({
               errorMessage:
                 e.message ?? "Unknown error occurred. Please try again",
-              });
-            } finally {
-              unsubscribeToggle();
-              await deploymentWatcher?.close();
-            }
+            });
+          } finally {
+            unsubscribeToggle();
+            await deploymentWatcher?.close();
+          }
           }
 
           updaterRow.stopSpinner();
@@ -1827,14 +1831,18 @@ export class Push {
               }
           } catch (e: any) {
             errors.push(e);
+            deploymentLogPrinter.complete();
+            if (deploymentLogPrinter.hasPrintedLogs()) {
+              Spinner.log("");
+            }
             updaterRow.fail({
               errorMessage:
                 e.message ?? "Unknown error occurred. Please try again",
-              });
-            } finally {
-              unsubscribeToggle();
-              await deploymentWatcher?.close();
-            }
+            });
+          } finally {
+            unsubscribeToggle();
+            await deploymentWatcher?.close();
+          }
           }
 
           updaterRow.stopSpinner();

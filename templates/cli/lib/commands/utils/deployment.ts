@@ -154,7 +154,9 @@ function writeLogChunk(
 
   const normalizedChunk = printableChunk.replace(/\r\n/g, "\n");
   const lines = normalizedChunk.split("\n");
-  lines.pop();
+  if (normalizedChunk.endsWith("\n")) {
+    lines.pop();
+  }
 
   for (const line of lines) {
     Spinner.log(`${prefix}${line}`);
