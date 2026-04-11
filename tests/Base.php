@@ -205,8 +205,8 @@ abstract class Base extends TestCase
     ];
 
     protected const MODEL_SERIALIZATION_RESPONSES = [
-        '{"default":"active","status":"active","captain":{"id":"captain1","name":"Captain One","score":300},"statuses":["active","inactive"],"history":["queued","running"],"players":[{"id":"player1","name":"John Doe","score":100}]}',
-        'Appwrite\\Enums\\FixtureStatus|Appwrite\\Enums\\FixtureStatus|Appwrite\\Enums\\FixtureHistoryStatus|Appwrite\\Models\\Player|Appwrite\\Models\\Player',
+        '{"default":"active","status":"active","captain":{"id":"captain1","name":"Captain One","score":300},"statuses":["active","inactive"],"history":["queued","running"],"requestOnlyHistory":["queued","approved"],"players":[{"id":"player1","name":"John Doe","score":100}]}',
+        'Appwrite\\Enums\\FixtureStatus|Appwrite\\Enums\\FixtureStatus|Appwrite\\Enums\\FixtureHistoryStatus|Appwrite\\Enums\\FixtureRequestHistoryStatus|Appwrite\\Models\\Player|Appwrite\\Models\\Player',
         '{"default":"inactive","status":"pending","captain":{"id":"captain2","name":"Captain Two","score":400},"statuses":["pending","active"],"history":["done","queued"],"players":[{"id":"player2","name":"Jane Doe","score":200}],"custom":"inactive","nested":{"enabled":true}}',
         'Appwrite\\Enums\\FixtureStatus|Appwrite\\Enums\\FixtureStatus|Appwrite\\Enums\\FixtureHistoryStatus|Appwrite\\Models\\Player|Appwrite\\Models\\Player',
     ];

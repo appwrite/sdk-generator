@@ -689,10 +689,55 @@ class Swagger2 extends Spec
     /**
      * @return array
      */
+    public function getRequestModelEnums(): array
+    {
+        $list = [];
+
+        foreach ($this->getRequestModels() as $modelName => $model) {
+            if (!isset($model['properties']) || !is_array($model['properties'])) {
+                continue;
+            }
+
+            foreach ($model['properties'] as $propertyName => $property) {
+                if (isset($property['enum'])) {
+                    $enumName = $property['enumName'] ?? ucfirst($modelName) . ucfirst($propertyName);
+
+                    if (!isset($list[$enumName])) {
+                        $list[$enumName] = [
+                            'name' => $enumName,
+                            'enum' => $property['enum'],
+                            'keys' => $property['enumKeys'] ?? [],
+                        ];
+                    }
+                }
+
+                if ((($property['type'] ?? null) === 'array') && isset($property['enumValues'])) {
+                    $enumName = $property['enumName'] ?? ucfirst($modelName) . ucfirst($propertyName);
+
+                    if (!isset($list[$enumName])) {
+                        $list[$enumName] = [
+                            'name' => $enumName,
+                            'enum' => $property['enumValues'],
+                            'keys' => $property['enumKeys'] ?? [],
+                        ];
+                    }
+                }
+            }
+        }
+
+        return \array_values($list);
+    }
+
+    /**
+     * @return array
+     */
     public function getAllEnums(): array
     {
         $list = [];
         foreach ($this->getRequestEnums() as $enum) {
+            $list[$enum['name']] = $enum;
+        }
+        foreach ($this->getRequestModelEnums() as $enum) {
             $list[$enum['name']] = $enum;
         }
         foreach ($this->getResponseEnums() as $enum) {

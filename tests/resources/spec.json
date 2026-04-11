@@ -2566,6 +2566,19 @@
             "x-enum-name": "FixtureHistoryStatus"
           }
         },
+        "requestOnlyHistory": {
+          "type": "array",
+          "description": "Fixture request-only history state changes.",
+          "items": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "approved",
+              "rejected"
+            ],
+            "x-enum-name": "FixtureRequestHistoryStatus"
+          }
+        },
         "players": {
           "type": "array",
           "description": "Fixture players.",
@@ -2579,6 +2592,7 @@
         "captain",
         "statuses",
         "history",
+        "requestOnlyHistory",
         "players"
       ]
     },

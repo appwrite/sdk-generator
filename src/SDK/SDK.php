@@ -712,13 +712,63 @@ class SDK
     /**
      * @return array
      */
-    protected function getFilteredAllEnums(?array $filteredRequestEnums = null, ?array $filteredResponseEnums = null): array
+    protected function getFilteredRequestModelEnums(?array $filteredRequestModels = null): array
     {
+        $filteredRequestModels ??= $this->getFilteredRequestModels();
+        $list = [];
+
+        foreach ($filteredRequestModels as $modelName => $model) {
+            foreach ($model['properties'] ?? [] as $propertyName => $property) {
+                if (isset($property['enum'])) {
+                    $enumName = $property['enumName'] ?? ucfirst((string)$modelName) . ucfirst((string)$propertyName);
+
+                    $this->mergeEnumValues(
+                        $list,
+                        $enumName,
+                        $property['enum'],
+                        $property['enumKeys'] ?? []
+                    );
+                }
+
+                if ((($property['type'] ?? null) === 'array') && isset($property['enumValues'])) {
+                    $enumName = $property['enumName'] ?? ucfirst((string)$modelName) . ucfirst((string)$propertyName);
+
+                    $this->mergeEnumValues(
+                        $list,
+                        $enumName,
+                        $property['enumValues'],
+                        $property['enumKeys'] ?? []
+                    );
+                }
+            }
+        }
+
+        return \array_values($list);
+    }
+
+    /**
+     * @return array
+     */
+    protected function getFilteredAllEnums(
+        ?array $filteredRequestEnums = null,
+        ?array $filteredRequestModelEnums = null,
+        ?array $filteredResponseEnums = null
+    ): array {
         $filteredRequestEnums ??= $this->getFilteredRequestEnums();
+        $filteredRequestModelEnums ??= $this->getFilteredRequestModelEnums();
         $filteredResponseEnums ??= $this->getFilteredResponseEnums();
         $list = [];
 
         foreach ($filteredRequestEnums as $enum) {
+            $this->mergeEnumValues(
+                $list,
+                $enum['name'],
+                $enum['enum'],
+                $enum['keys'] ?? []
+            );
+        }
+
+        foreach ($filteredRequestModelEnums as $enum) {
             $this->mergeEnumValues(
                 $list,
                 $enum['name'],
@@ -901,8 +951,13 @@ class SDK
         $filteredDefinitions = $filteredModelData['definitions'];
         $filteredRequestModels = $filteredModelData['requestModels'];
         $filteredRequestEnums = $this->getFilteredRequestEnums($filteredServices);
+        $filteredRequestModelEnums = $this->getFilteredRequestModelEnums($filteredRequestModels);
         $filteredResponseEnums = $this->getFilteredResponseEnums($filteredDefinitions);
-        $filteredAllEnums = $this->getFilteredAllEnums($filteredRequestEnums, $filteredResponseEnums);
+        $filteredAllEnums = $this->getFilteredAllEnums(
+            $filteredRequestEnums,
+            $filteredRequestModelEnums,
+            $filteredResponseEnums
+        );
 
         $params = [
             'spec' => [
@@ -921,6 +976,7 @@ class SDK
                 'contactEmail' => $this->spec->getContactEmail(),
                 'services' => $filteredServices,
                 'requestEnums' => $filteredRequestEnums,
+                'requestModelEnums' => $filteredRequestModelEnums,
                 'responseEnums' => $filteredResponseEnums,
                 'allEnums' => $filteredAllEnums,
                 'definitions' => $filteredDefinitions,

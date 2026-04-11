@@ -386,12 +386,13 @@ $enumPayload = EnumPayload::from([
     'captain' => ['id' => 'captain1', 'name' => 'Captain One', 'score' => 300],
     'statuses' => ['active', 'inactive'],
     'history' => ['queued', 'running'],
+    'requestOnlyHistory' => ['queued', 'approved'],
     'players' => [
         ['id' => 'player1', 'name' => 'John Doe', 'score' => 100],
     ],
 ]);
 echo json_encode($enumPayload->toArray(), JSON_THROW_ON_ERROR) . "\n";
-echo get_class($enumPayload->status) . '|' . get_class($enumPayload->statuses[0]) . '|' . get_class($enumPayload->history[0]) . '|' . get_class($enumPayload->captain) . '|' . get_class($enumPayload->players[0]) . "\n";
+echo get_class($enumPayload->status) . '|' . get_class($enumPayload->statuses[0]) . '|' . get_class($enumPayload->history[0]) . '|' . get_class($enumPayload->requestOnlyHistory[0]) . '|' . get_class($enumPayload->captain) . '|' . get_class($enumPayload->players[0]) . "\n";
 
 $enumResult = EnumResult::from([
     'default' => 'inactive',
