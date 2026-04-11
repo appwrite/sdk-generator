@@ -24,6 +24,7 @@ use {{ spec.namespace | caseNamespace }}\Enums\{{ enumName | caseUcfirst | overr
 readonly class {{ requestModel.name | caseUcfirst | overrideIdentifier }}
 {
     use ArraySerializable;
+
     /**
      * {{ requestModel.name | caseUcfirst }} constructor.
      *

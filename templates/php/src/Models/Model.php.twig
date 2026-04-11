@@ -25,6 +25,7 @@ use {{ spec.namespace | caseNamespace }}\Enums\{{ enumName | caseUcfirst | overr
 readonly class {{ definition.name | caseUcfirst | overrideIdentifier }}
 {
     use ArraySerializable;
+
 {% if definition.additionalProperties %}
     private const ADDITIONAL_PROPERTIES = true;
 
@@ -107,8 +108,8 @@ readonly class {{ definition.name | caseUcfirst | overrideIdentifier }}
                 : $data['{{ property.name }}']{% elseif property.enumValues is not empty or property.enumName is not empty %}static::hydrateTypedValue({{ (property.enumName ?? property.name) | caseUcfirst | overrideIdentifier }}::class, $data['{{ property.name }}']){% else %}$data['{{ property.name }}']{% endif %}{{ (not loop.last or optionalProperties is not empty or definition.additionalProperties) ? ',' : '' }}
 {% endfor %}
 {% for property in optionalProperties %}
-            {{ property.name | caseCamel }}: array_key_exists('{{ property.name }}', $data)
 {% if property.type == 'array' and property.sub_schema %}
+            {{ property.name | caseCamel }}: array_key_exists('{{ property.name }}', $data)
                 ? (
                     is_array($data['{{ property.name }}'])
                         ? array_map(
@@ -117,9 +118,8 @@ readonly class {{ definition.name | caseUcfirst | overrideIdentifier }}
                         )
                         : $data['{{ property.name }}']
                 )
-{% elseif property.sub_schema %}
-                ? static::hydrateTypedValue({{ property.sub_schema | caseUcfirst | overrideIdentifier }}::class, $data['{{ property.name }}'], true)
 {% elseif property.type == 'array' and (property.enumValues is not empty or property.enumName is not empty) %}
+            {{ property.name | caseCamel }}: array_key_exists('{{ property.name }}', $data)
                 ? (
                     is_array($data['{{ property.name }}'])
                         ? array_map(
@@ -128,12 +128,16 @@ readonly class {{ definition.name | caseUcfirst | overrideIdentifier }}
                         )
                         : $data['{{ property.name }}']
                 )
+{% elseif property.sub_schema %}
+            {{ property.name | caseCamel }}: array_key_exists('{{ property.name }}', $data) ? static::hydrateTypedValue({{ property.sub_schema | caseUcfirst | overrideIdentifier }}::class, $data['{{ property.name }}'], true) : null{{ (not loop.last or definition.additionalProperties) ? ',' : '' }}
 {% elseif property.enumValues is not empty or property.enumName is not empty %}
-                ? static::hydrateTypedValue({{ (property.enumName ?? property.name) | caseUcfirst | overrideIdentifier }}::class, $data['{{ property.name }}'], true)
+            {{ property.name | caseCamel }}: array_key_exists('{{ property.name }}', $data) ? static::hydrateTypedValue({{ (property.enumName ?? property.name) | caseUcfirst | overrideIdentifier }}::class, $data['{{ property.name }}'], true) : null{{ (not loop.last or definition.additionalProperties) ? ',' : '' }}
 {% else %}
-                ? $data['{{ property.name }}']
+            {{ property.name | caseCamel }}: array_key_exists('{{ property.name }}', $data) ? $data['{{ property.name }}'] : null{{ (not loop.last or definition.additionalProperties) ? ',' : '' }}
 {% endif %}
+{% if property.type == 'array' and (property.sub_schema or property.enumValues is not empty or property.enumName is not empty) %}
                 : null{{ (not loop.last or definition.additionalProperties) ? ',' : '' }}
+{% endif %}
 {% endfor %}
 {% if definition.additionalProperties %}
             data: $additionalProperties
