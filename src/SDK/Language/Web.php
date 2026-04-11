@@ -242,6 +242,9 @@ class Web extends JS
             return 'Models.' . $this->toPascalCase($parameter['array']['model']) . '[]';
         }
         if (!empty($parameter['model'])) {
+            if ($parameter['model'] === 'any') {
+                return $parameter['type'] === self::TYPE_ARRAY ? 'Record<string, any>[]' : 'Record<string, any>';
+            }
             $modelType = 'Models.' . $this->toPascalCase($parameter['model']);
             return $parameter['type'] === self::TYPE_ARRAY ? $modelType . '[]' : $modelType;
         }
