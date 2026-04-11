@@ -41,11 +41,21 @@ readonly class AdditionalPropsDataOnly
 {
     use \Appwrite\Models\ArraySerializable;
 
-    private const ADDITIONAL_PROPERTIES = true;
-
     public function __construct(
         public array $data = []
     ) {
+    }
+
+    public static function from(array $data): static
+    {
+        return new static(
+            data: static::extractAdditionalPropertiesFromFields($data, []),
+        );
+    }
+
+    public function toArray(): array
+    {
+        return static::serializeAdditionalProperties($this->data);
     }
 }
 
@@ -53,17 +63,42 @@ readonly class AdditionalPropsDataFieldMapped
 {
     use \Appwrite\Models\ArraySerializable;
 
-    private const FIELD_MAP = [
-        'payload' => 'data',
-    ];
-
-    private const ADDITIONAL_PROPERTIES = true;
-
     public function __construct(
         public array $payload,
         public string $status,
         public array $data = []
     ) {
+    }
+
+    public static function from(array $data): static
+    {
+        if (!array_key_exists('data', $data)) {
+            throw new \InvalidArgumentException('Missing required field "data" for ' . static::class . '.');
+        }
+
+        if (!array_key_exists('status', $data)) {
+            throw new \InvalidArgumentException('Missing required field "status" for ' . static::class . '.');
+        }
+
+        return new static(
+            payload: $data['data'],
+            status: $data['status'],
+            data: static::extractAdditionalPropertiesFromFields($data, ['data', 'status']),
+        );
+    }
+
+    public function toArray(): array
+    {
+        $result = [
+            'data' => static::serializeValue($this->payload),
+            'status' => static::serializeValue($this->status),
+        ];
+
+        foreach (static::serializeAdditionalProperties($this->data) as $field => $value) {
+            $result[$field] = $value;
+        }
+
+        return $result;
     }
 }
 
@@ -71,16 +106,35 @@ readonly class AdditionalPropsMapped
 {
     use \Appwrite\Models\ArraySerializable;
 
-    private const FIELD_MAP = [
-        'id' => '$id',
-    ];
-
-    private const ADDITIONAL_PROPERTIES = true;
-
     public function __construct(
         public string $id,
         public array $data = []
     ) {
+    }
+
+    public static function from(array $data): static
+    {
+        if (!array_key_exists('$id', $data)) {
+            throw new \InvalidArgumentException('Missing required field "$id" for ' . static::class . '.');
+        }
+
+        return new static(
+            id: $data['$id'],
+            data: static::extractAdditionalPropertiesFromFields($data, ['$id']),
+        );
+    }
+
+    public function toArray(): array
+    {
+        $result = [
+            '$id' => static::serializeValue($this->id),
+        ];
+
+        foreach (static::serializeAdditionalProperties($this->data) as $field => $value) {
+            $result[$field] = $value;
+        }
+
+        return $result;
     }
 }
 
