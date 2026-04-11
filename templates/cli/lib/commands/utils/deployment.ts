@@ -84,7 +84,12 @@ function getSessionSecret(cookieHeader: string | null): string | null {
     return null;
   }
 
-  const [, value = ""] = cookieHeader.split("=", 2);
+  const separatorIndex = cookieHeader.indexOf("=");
+  if (separatorIndex === -1) {
+    return null;
+  }
+
+  const value = cookieHeader.slice(separatorIndex + 1);
   if (value.length === 0) {
     return null;
   }
