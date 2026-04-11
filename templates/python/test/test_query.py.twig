@@ -2,13 +2,11 @@ import unittest
 
 from appwrite.query import Query
 
-
 class BasicFilterQueryTest:
     def __init__(self, description: str, value, expected_values: str):
         self.description = description
         self.value = value
         self.expected_values = expected_values
-
 
 tests = [
     BasicFilterQueryTest('with a string', 's', '["s"]'),
@@ -18,7 +16,6 @@ tests = [
     BasicFilterQueryTest('with a bool', False, '[false]'),
     BasicFilterQueryTest('with a list', ['a', 'b', 'c'], '["a","b","c"]'),
 ]
-
 
 class TestQueryMethods(unittest.TestCase):
 

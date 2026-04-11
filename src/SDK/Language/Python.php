@@ -753,7 +753,9 @@ class Python extends Language
      */
     protected function getResponseModelExample(?string $model, array $spec): mixed
     {
-        if (!$model) return (object) [];
+        if (!$model) {
+            return (object) [];
+        }
 
         $modelDef = $spec['definitions'][$model];
 
