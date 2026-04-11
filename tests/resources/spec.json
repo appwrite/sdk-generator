@@ -2536,6 +2536,10 @@
           ],
           "x-enum-name": "FixtureStatus"
         },
+        "captain": {
+          "$ref": "#\/definitions\/player",
+          "description": "Fixture captain."
+        },
         "statuses": {
           "type": "array",
           "description": "Fixture status history.",
@@ -2559,6 +2563,7 @@
       },
       "required": [
         "status",
+        "captain",
         "statuses",
         "players"
       ]
@@ -2584,6 +2589,10 @@
           ],
           "x-enum-name": "FixtureStatus"
         },
+        "captain": {
+          "$ref": "#\/definitions\/player",
+          "description": "Fixture captain."
+        },
         "statuses": {
           "type": "array",
           "description": "Fixture status history.",
@@ -2607,6 +2616,7 @@
       },
       "required": [
         "status",
+        "captain",
         "statuses",
         "players"
       ]

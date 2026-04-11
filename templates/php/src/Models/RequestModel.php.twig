@@ -43,25 +43,6 @@ readonly class {{ requestModel.name | caseUcfirst | overrideIdentifier }}
     ];
 
 {% endif %}
-{% set arrayTypes = [] %}
-{% for property in requestModel.properties %}
-{% if property.type == 'array' and property.sub_schema %}
-{% set arrayTypes = arrayTypes|merge([{ property: property.name | caseCamel | escapeKeyword, type: property.sub_schema | caseUcfirst | overrideIdentifier }]) %}
-{% elseif property.type == 'array' and (property.enumValues is not empty or property.enumName is not empty) %}
-{% set arrayTypes = arrayTypes|merge([{ property: property.name | caseCamel | escapeKeyword, type: (property.enumName ?? property.name) | caseUcfirst | overrideIdentifier }]) %}
-{% endif %}
-{% endfor %}
-{% if arrayTypes is not empty %}
-    /**
-     * @var array<string, class-string>
-     */
-    private const ARRAY_TYPES = [
-{% for mapping in arrayTypes %}
-        '{{ mapping.property }}' => {{ mapping.type }}::class{{ loop.last ? '' : ',' }}
-{% endfor %}
-    ];
-
-{% endif %}
     /**
      * {{ requestModel.name | caseUcfirst }} constructor.
      *
@@ -115,7 +96,7 @@ readonly class {{ requestModel.name | caseUcfirst | overrideIdentifier }}
                     static fn (mixed $item): mixed => static::hydrateTypedValue({{ property.sub_schema | caseUcfirst | overrideIdentifier }}::class, $item),
                     $data['{{ property.name }}']
                 )
-                : $data['{{ property.name }}']{% elseif property.type == 'array' and (property.enumValues is not empty or property.enumName is not empty) %}is_array($data['{{ property.name }}'])
+                : $data['{{ property.name }}']{% elseif property.sub_schema %}static::hydrateTypedValue({{ property.sub_schema | caseUcfirst | overrideIdentifier }}::class, $data['{{ property.name }}']){% elseif property.type == 'array' and (property.enumValues is not empty or property.enumName is not empty) %}is_array($data['{{ property.name }}'])
                 ? array_map(
                     static fn (mixed $item): mixed => static::hydrateTypedValue({{ (property.enumName ?? property.name) | caseUcfirst | overrideIdentifier }}::class, $item),
                     $data['{{ property.name }}']
@@ -129,7 +110,7 @@ readonly class {{ requestModel.name | caseUcfirst | overrideIdentifier }}
                         static fn (mixed $item): mixed => static::hydrateTypedValue({{ property.sub_schema | caseUcfirst | overrideIdentifier }}::class, $item),
                         $data['{{ property.name }}']
                     )
-                    : $data['{{ property.name }}']{% elseif property.type == 'array' and (property.enumValues is not empty or property.enumName is not empty) %}is_array($data['{{ property.name }}'])
+                    : $data['{{ property.name }}']{% elseif property.sub_schema %}static::hydrateTypedValue({{ property.sub_schema | caseUcfirst | overrideIdentifier }}::class, $data['{{ property.name }}']){% elseif property.type == 'array' and (property.enumValues is not empty or property.enumName is not empty) %}is_array($data['{{ property.name }}'])
                     ? array_map(
                         static fn (mixed $item): mixed => static::hydrateTypedValue({{ (property.enumName ?? property.name) | caseUcfirst | overrideIdentifier }}::class, $item),
                         $data['{{ property.name }}']

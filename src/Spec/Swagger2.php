@@ -520,6 +520,10 @@ class Swagger2 extends Spec
                     $model['properties'][$name]['description'] = $def['description'] ?? '';
                     $model['properties'][$name]['example'] = $def['x-example'] ?? null;
                     $model['properties'][$name]['required'] =  in_array($name, $model['required']);
+                    if (isset($def['$ref'])) {
+                        $model['properties'][$name]['sub_schema'] = str_replace('#/definitions/', '', $def['$ref']);
+                    }
+
                     if (isset($def['items']['$ref'])) {
                         //nested model
                         $model['properties'][$name]['sub_schema'] = str_replace('#/definitions/', '', $def['items']['$ref']);
@@ -578,6 +582,10 @@ class Swagger2 extends Spec
                     $model['properties'][$name]['description'] = $def['description'] ?? '';
                     $model['properties'][$name]['example'] = $def['x-example'] ?? null;
                     $model['properties'][$name]['required'] = in_array($name, $model['required']);
+                    if (isset($def['$ref'])) {
+                        $model['properties'][$name]['sub_schema'] = str_replace('#/definitions/', '', $def['$ref']);
+                    }
+
                     if (isset($def['items']['$ref'])) {
                         $model['properties'][$name]['sub_schema'] = str_replace('#/definitions/', '', $def['items']['$ref']);
                     }

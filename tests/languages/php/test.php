@@ -49,6 +49,24 @@ readonly class AdditionalPropsDataOnly
     }
 }
 
+readonly class AdditionalPropsDataFieldMapped
+{
+    use \Appwrite\Models\ArraySerializable;
+
+    private const FIELD_MAP = [
+        'payload' => 'data',
+    ];
+
+    private const ADDITIONAL_PROPERTIES = true;
+
+    public function __construct(
+        public array $payload,
+        public string $status,
+        public array $data = []
+    ) {
+    }
+}
+
 readonly class AdditionalPropsMapped
 {
     use \Appwrite\Models\ArraySerializable;
@@ -301,20 +319,29 @@ $row = AdditionalPropsMapped::from([
 ]);
 echo json_encode($row->toArray(), JSON_THROW_ON_ERROR) . "\n";
 
+$dataFieldPayload = AdditionalPropsDataFieldMapped::from([
+    'status' => 'ok',
+    'data' => ['enabled' => true],
+    'extra' => 'kept',
+]);
+echo json_encode($dataFieldPayload->toArray(), JSON_THROW_ON_ERROR) . "\n";
+
 $enumPayload = EnumPayload::from([
     'default' => 'active',
     'status' => 'active',
+    'captain' => ['id' => 'captain1', 'name' => 'Captain One', 'score' => 300],
     'statuses' => ['active', 'inactive'],
     'players' => [
         ['id' => 'player1', 'name' => 'John Doe', 'score' => 100],
     ],
 ]);
 echo json_encode($enumPayload->toArray(), JSON_THROW_ON_ERROR) . "\n";
-echo get_class($enumPayload->status) . '|' . get_class($enumPayload->statuses[0]) . '|' . get_class($enumPayload->players[0]) . "\n";
+echo get_class($enumPayload->status) . '|' . get_class($enumPayload->statuses[0]) . '|' . get_class($enumPayload->captain) . '|' . get_class($enumPayload->players[0]) . "\n";
 
 $enumResult = EnumResult::from([
     'default' => 'inactive',
     'status' => 'pending',
+    'captain' => ['id' => 'captain2', 'name' => 'Captain Two', 'score' => 400],
     'statuses' => ['pending', 'active'],
     'players' => [
         ['id' => 'player2', 'name' => 'Jane Doe', 'score' => 200],
@@ -323,7 +350,7 @@ $enumResult = EnumResult::from([
     'nested' => ['enabled' => true],
 ]);
 echo json_encode($enumResult->toArray(), JSON_THROW_ON_ERROR) . "\n";
-echo get_class($enumResult->status) . '|' . get_class($enumResult->statuses[0]) . '|' . get_class($enumResult->players[0]) . "\n";
+echo get_class($enumResult->status) . '|' . get_class($enumResult->statuses[0]) . '|' . get_class($enumResult->captain) . '|' . get_class($enumResult->players[0]) . "\n";
 
 // Operator helper tests
 echo Operator::increment() . "\n";

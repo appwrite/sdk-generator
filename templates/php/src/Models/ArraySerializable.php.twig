@@ -141,7 +141,7 @@ trait ArraySerializable
      */
     private static function extractAdditionalPropertiesFromFields(array $data, array $knownFields): array
     {
-        if (isset($data['data']) && is_array($data['data'])) {
+        if (!\in_array('data', $knownFields, true) && isset($data['data']) && is_array($data['data'])) {
             return $data['data'];
         }
 
