@@ -171,7 +171,7 @@ mixin RealtimeMixin {
             break;
         }
       }, onDone: () {
-        debugPrint('Realtime WebSocket closed: code=${_websok?.closeCode}, reason=${_websok?.closeReason}');
+        if (kDebugMode) debugPrint('Realtime WebSocket closed: code=${_websok?.closeCode}, reason=${_websok?.closeReason}');
         _stopHeartbeat();
         _retry();
       }, onError: (err, stack) {
