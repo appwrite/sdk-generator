@@ -200,8 +200,12 @@ function createDeploymentLogsController(
 
   const onKeypress = (
     input: string,
-    key: { ctrl?: boolean; meta?: boolean; name?: string },
+    key: { ctrl?: boolean; meta?: boolean; name?: string } | undefined,
   ): void => {
+    if (!key) {
+      return;
+    }
+
     if (key.ctrl && key.name === "c") {
       cleanup();
       process.kill(process.pid, "SIGINT");
