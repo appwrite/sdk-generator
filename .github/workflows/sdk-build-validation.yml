@@ -93,6 +93,16 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Install npm dependencies
+        if: matrix.sdk == 'web' || matrix.sdk == 'node' || matrix.sdk == 'react-native' || matrix.sdk == 'cli'
+        working-directory: examples/${{ matrix.sdk }}
+        run: npm ci
+
+      - name: Audit npm dependencies
+        if: matrix.sdk == 'web' || matrix.sdk == 'node' || matrix.sdk == 'react-native' || matrix.sdk == 'cli'
+        working-directory: examples/${{ matrix.sdk }}
+        run: npm audit --audit-level=critical
+
       - name: Setup Bun
         if: matrix.sdk == 'cli'
         uses: oven-sh/setup-bun@v2
@@ -161,7 +171,6 @@ jobs:
         run: |
           case "${{ matrix.sdk }}" in
             web)
-              npm ci
               npm run build
               ;;
             cli)
@@ -173,12 +182,10 @@ jobs:
               bun run windows-x64
               bun run windows-arm64
 
-              npm ci
               npm run build
               node dist/cli.cjs --help
               ;;
             react-native)
-              npm ci
               npm run build
               ;;
             flutter)
@@ -208,7 +215,6 @@ jobs:
               bundle install
               ;;
             node)
-              npm ci
               npm run build
               npm run test
               ;;
