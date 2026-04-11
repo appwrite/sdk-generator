@@ -55,6 +55,7 @@ interface WatchDeploymentUpdatesParams {
 interface DeploymentLogPrinter {
   ingest: (deployment: DeploymentDetails) => void;
   flush: () => void;
+  complete: () => void;
   getLastLogs: () => string;
   hasPrintedLogs: () => boolean;
 }
@@ -130,15 +131,17 @@ function writeLogChunk(
   label: string | undefined,
   chunk: string,
   showPrefix: boolean,
+  includePartial: boolean = false,
 ): string {
   if (chunk.length === 0) {
     return "";
   }
 
   const prefix = showPrefix && label ? `${chalk.cyan(`[${label}]`)} ` : "";
-  const printableChunk = chunk.endsWith("\n")
-    ? chunk
-    : chunk.slice(0, chunk.lastIndexOf("\n") + 1);
+  const printableChunk =
+    includePartial || chunk.endsWith("\n")
+      ? chunk
+      : chunk.slice(0, chunk.lastIndexOf("\n") + 1);
 
   if (printableChunk.length === 0) {
     return "";
@@ -169,7 +172,7 @@ export function createDeploymentLogPrinter(
     isVisible = () => true,
   } = options;
 
-  const flush = (): void => {
+  const flush = (includePartial: boolean = false): void => {
     if (!isVisible() || lastLogs.length === 0 || lastLogs === lastPrintedLogs) {
       return;
     }
@@ -186,6 +189,7 @@ export function createDeploymentLogPrinter(
         label,
         lastLogs.slice(lastPrintedLogs.length),
         showPrefix,
+        includePartial,
       );
       if (printedChunk.length === 0) {
         return;
@@ -200,7 +204,12 @@ export function createDeploymentLogPrinter(
       return;
     }
 
-    const printedChunk = writeLogChunk(label, lastLogs, showPrefix);
+    const printedChunk = writeLogChunk(
+      label,
+      lastLogs,
+      showPrefix,
+      includePartial,
+    );
     if (printedChunk.length === 0) {
       return;
     }
@@ -225,6 +234,10 @@ export function createDeploymentLogPrinter(
 
     flush(): void {
       flush();
+    },
+
+    complete(): void {
+      flush(true);
     },
 
     getLastLogs(): string {

@@ -1213,7 +1213,7 @@ export class Push {
 
               while (true) {
                 if (Date.now() > timeoutDeadline) {
-                  unsubscribeToggle();
+                  deploymentLogPrinter.complete();
                   failedDeployments.push({
                     name: func["name"],
                     $id: func["$id"],
@@ -1248,10 +1248,13 @@ export class Push {
 
                 if (status === "ready") {
                   if (activate) {
-                    unsubscribeToggle();
+                    currentDeploymentEnd = "Setting active deployment...";
                     updaterRow.update({
                       status: "Activating",
-                      end: "Setting active deployment...",
+                      end: withDeploymentLogsHint(
+                        currentDeploymentEnd,
+                        deploymentLogsController,
+                      ),
                     });
 
                     const functionsServiceActivate = await getFunctionsService(
@@ -1282,10 +1285,10 @@ export class Push {
                     url = `https://${res.rules[0].domain}`;
                   }
 
+                  deploymentLogPrinter.complete();
                   if (deploymentLogPrinter.hasPrintedLogs()) {
                     Spinner.log("");
                   }
-                  unsubscribeToggle();
                   updaterRow.stopSpinner();
                   updaterRow.update({
                     status: activate ? "Deployed" : "Built",
@@ -1296,7 +1299,7 @@ export class Push {
 
                   break;
                 } else if (status === "failed") {
-                  unsubscribeToggle();
+                  deploymentLogPrinter.complete();
                   failedDeployments.push({
                     name: func["name"],
                     $id: func["$id"],
@@ -1328,12 +1331,11 @@ export class Push {
                   setTimeout(resolve, POLL_DEBOUNCE),
                 );
               }
-            } catch (e: any) {
-              errors.push(e);
-              unsubscribeToggle();
-              updaterRow.fail({
-                errorMessage:
-                  e.message ?? "Unknown error occurred. Please try again",
+          } catch (e: any) {
+            errors.push(e);
+            updaterRow.fail({
+              errorMessage:
+                e.message ?? "Unknown error occurred. Please try again",
               });
             } finally {
               unsubscribeToggle();
@@ -1705,7 +1707,7 @@ export class Push {
 
               while (true) {
                 if (Date.now() > timeoutDeadline) {
-                  unsubscribeToggle();
+                  deploymentLogPrinter.complete();
                   failedDeployments.push({
                     name: site["name"],
                     $id: site["$id"],
@@ -1740,10 +1742,13 @@ export class Push {
 
                 if (status === "ready") {
                   if (activate) {
-                    unsubscribeToggle();
+                    currentDeploymentEnd = "Setting active deployment...";
                     updaterRow.update({
                       status: "Activating",
-                      end: "Setting active deployment...",
+                      end: withDeploymentLogsHint(
+                        currentDeploymentEnd,
+                        deploymentLogsController,
+                      ),
                     });
 
                     const sitesServiceActivate = await getSitesService(
@@ -1774,10 +1779,10 @@ export class Push {
                     url = `https://${res.rules[0].domain}`;
                   }
 
+                  deploymentLogPrinter.complete();
                   if (deploymentLogPrinter.hasPrintedLogs()) {
                     Spinner.log("");
                   }
-                  unsubscribeToggle();
                   updaterRow.stopSpinner();
                   updaterRow.update({
                     status: activate ? "Deployed" : "Built",
@@ -1788,7 +1793,7 @@ export class Push {
 
                   break;
                 } else if (status === "failed") {
-                  unsubscribeToggle();
+                  deploymentLogPrinter.complete();
                   failedDeployments.push({
                     name: site["name"],
                     $id: site["$id"],
@@ -1820,12 +1825,11 @@ export class Push {
                   setTimeout(resolve, POLL_DEBOUNCE),
                 );
               }
-            } catch (e: any) {
-              errors.push(e);
-              unsubscribeToggle();
-              updaterRow.fail({
-                errorMessage:
-                  e.message ?? "Unknown error occurred. Please try again",
+          } catch (e: any) {
+            errors.push(e);
+            updaterRow.fail({
+              errorMessage:
+                e.message ?? "Unknown error occurred. Please try again",
               });
             } finally {
               unsubscribeToggle();
