@@ -540,6 +540,10 @@ class Swagger2 extends Spec
                         $model['properties'][$name]['enum'] = $def['enum'];
                         $model['properties'][$name]['enumName'] = $def['x-enum-name'] ?? ucfirst($key) . ucfirst($name);
                         $model['properties'][$name]['enumKeys'] = $def['x-enum-keys'] ?? [];
+                    } elseif (($model['properties'][$name]['type'] ?? null) === 'array' && isset($def['items']['enum'])) {
+                        $model['properties'][$name]['enumValues'] = $def['items']['enum'];
+                        $model['properties'][$name]['enumName'] = $def['items']['x-enum-name'] ?? ucfirst($key) . ucfirst($name);
+                        $model['properties'][$name]['enumKeys'] = $def['items']['x-enum-keys'] ?? [];
                     }
                 }
             }
@@ -590,6 +594,10 @@ class Swagger2 extends Spec
                         $model['properties'][$name]['enum'] = $def['enum'];
                         $model['properties'][$name]['enumName'] = $def['x-enum-name'] ?? ucfirst($key) . ucfirst($name);
                         $model['properties'][$name]['enumKeys'] = $def['x-enum-keys'] ?? [];
+                    } elseif (($model['properties'][$name]['type'] ?? null) === 'array' && isset($def['items']['enum'])) {
+                        $model['properties'][$name]['enumValues'] = $def['items']['enum'];
+                        $model['properties'][$name]['enumName'] = $def['items']['x-enum-name'] ?? ucfirst($key) . ucfirst($name);
+                        $model['properties'][$name]['enumKeys'] = $def['items']['x-enum-keys'] ?? [];
                     }
                 }
             }

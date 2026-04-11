@@ -29,7 +29,10 @@ use Appwrite\Role;
 use Appwrite\ID;
 use Appwrite\Operator;
 use Appwrite\Condition;
+use Appwrite\Enums\FixtureStatus;
 use Appwrite\Enums\MockType;
+use Appwrite\Models\EnumPayload;
+use Appwrite\Models\EnumResult;
 use Appwrite\Services\Bar;
 use Appwrite\Services\Foo;
 use Appwrite\Services\General;
@@ -297,6 +300,30 @@ $row = AdditionalPropsMapped::from([
     'nested' => ['enabled' => true],
 ]);
 echo json_encode($row->toArray(), JSON_THROW_ON_ERROR) . "\n";
+
+$enumPayload = EnumPayload::from([
+    'default' => 'active',
+    'status' => 'active',
+    'statuses' => ['active', 'inactive'],
+    'players' => [
+        ['id' => 'player1', 'name' => 'John Doe', 'score' => 100],
+    ],
+]);
+echo json_encode($enumPayload->toArray(), JSON_THROW_ON_ERROR) . "\n";
+echo get_class($enumPayload->status) . '|' . get_class($enumPayload->statuses[0]) . '|' . get_class($enumPayload->players[0]) . "\n";
+
+$enumResult = EnumResult::from([
+    'default' => 'inactive',
+    'status' => 'pending',
+    'statuses' => ['pending', 'active'],
+    'players' => [
+        ['id' => 'player2', 'name' => 'Jane Doe', 'score' => 200],
+    ],
+    'custom' => FixtureStatus::INACTIVE()->jsonSerialize(),
+    'nested' => ['enabled' => true],
+]);
+echo json_encode($enumResult->toArray(), JSON_THROW_ON_ERROR) . "\n";
+echo get_class($enumResult->status) . '|' . get_class($enumResult->statuses[0]) . '|' . get_class($enumResult->players[0]) . "\n";
 
 // Operator helper tests
 echo Operator::increment() . "\n";

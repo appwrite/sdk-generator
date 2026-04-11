@@ -119,10 +119,6 @@ trait ArraySerializable
      */
     private static function extractAdditionalProperties(array $data, array $parameters): array
     {
-        if (isset($data['data']) && is_array($data['data'])) {
-            return $data['data'];
-        }
-
         $knownFields = [];
 
         foreach ($parameters as $parameter) {
@@ -133,6 +129,20 @@ trait ArraySerializable
             }
 
             $knownFields[] = static::getFieldMap()[$name] ?? $name;
+        }
+
+        return static::extractAdditionalPropertiesFromFields($data, $knownFields);
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     * @param array<int, string> $knownFields
+     * @return array<string, mixed>
+     */
+    private static function extractAdditionalPropertiesFromFields(array $data, array $knownFields): array
+    {
+        if (isset($data['data']) && is_array($data['data'])) {
+            return $data['data'];
         }
 
         return array_diff_key($data, array_flip($knownFields));
@@ -165,13 +175,7 @@ trait ArraySerializable
         $type = $parameter->getType();
 
         if ($type instanceof \ReflectionNamedType && !$type->isBuiltin()) {
-            $typeName = $type->getName();
-
-            if (!method_exists($typeName, 'from')) {
-                return $value;
-            }
-
-            return is_array($value) ? $typeName::from($value) : $typeName::from((string) $value);
+            return static::hydrateTypedValue($type->getName(), $value);
         }
 
         if ($type instanceof \ReflectionNamedType && $type->getName() === 'array' && is_array($value)) {
@@ -201,6 +205,15 @@ trait ArraySerializable
     }
 
     private static function hydrateArrayItem(string $type, mixed $value): mixed
+    {
+        if ($value === null) {
+            return $value;
+        }
+
+        return static::hydrateTypedValue($type, $value);
+    }
+
+    private static function hydrateTypedValue(string $type, mixed $value): mixed
     {
         if ($value === null || !method_exists($type, 'from')) {
             return $value;

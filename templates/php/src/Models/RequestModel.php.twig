@@ -93,4 +93,67 @@ readonly class {{ requestModel.name | caseUcfirst | overrideIdentifier }}
 {% endfor %}
     ) {
     }
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    public static function from(array $data): static
+    {
+{% if requiredProperties is empty and optionalProperties is empty %}
+        return new static();
+{% else %}
+{% for property in requiredProperties %}
+        if (!array_key_exists('{{ property.name }}', $data)) {
+            throw new \InvalidArgumentException('Missing required field "{{ property.name }}" for ' . static::class . '.');
+        }
+{% endfor %}
+
+        return new static(
+{% for property in requiredProperties %}
+            {{ property.name | caseCamel | escapeKeyword }}: {% if property.type == 'array' and property.sub_schema %}is_array($data['{{ property.name }}'])
+                ? array_map(
+                    static fn (mixed $item): mixed => static::hydrateTypedValue({{ property.sub_schema | caseUcfirst | overrideIdentifier }}::class, $item),
+                    $data['{{ property.name }}']
+                )
+                : $data['{{ property.name }}']{% elseif property.type == 'array' and (property.enumValues is not empty or property.enumName is not empty) %}is_array($data['{{ property.name }}'])
+                ? array_map(
+                    static fn (mixed $item): mixed => static::hydrateTypedValue({{ (property.enumName ?? property.name) | caseUcfirst | overrideIdentifier }}::class, $item),
+                    $data['{{ property.name }}']
+                )
+                : $data['{{ property.name }}']{% elseif property.enumValues is not empty or property.enumName is not empty %}static::hydrateTypedValue({{ (property.enumName ?? property.name) | caseUcfirst | overrideIdentifier }}::class, $data['{{ property.name }}']){% else %}$data['{{ property.name }}']{% endif %}{{ (not loop.last or optionalProperties is not empty) ? ',' : '' }}
+{% endfor %}
+{% for property in optionalProperties %}
+            {{ property.name | caseCamel | escapeKeyword }}: array_key_exists('{{ property.name }}', $data)
+                ? {% if property.type == 'array' and property.sub_schema %}is_array($data['{{ property.name }}'])
+                    ? array_map(
+                        static fn (mixed $item): mixed => static::hydrateTypedValue({{ property.sub_schema | caseUcfirst | overrideIdentifier }}::class, $item),
+                        $data['{{ property.name }}']
+                    )
+                    : $data['{{ property.name }}']{% elseif property.type == 'array' and (property.enumValues is not empty or property.enumName is not empty) %}is_array($data['{{ property.name }}'])
+                    ? array_map(
+                        static fn (mixed $item): mixed => static::hydrateTypedValue({{ (property.enumName ?? property.name) | caseUcfirst | overrideIdentifier }}::class, $item),
+                        $data['{{ property.name }}']
+                    )
+                    : $data['{{ property.name }}']{% elseif property.enumValues is not empty or property.enumName is not empty %}static::hydrateTypedValue({{ (property.enumName ?? property.name) | caseUcfirst | overrideIdentifier }}::class, $data['{{ property.name }}']){% else %}$data['{{ property.name }}']{% endif %}
+                : null{{ loop.last ? '' : ',' }}
+{% endfor %}
+        );
+{% endif %}
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toArray(): array
+    {
+{% if requestModel.properties is empty %}
+        return [];
+{% else %}
+        return [
+{% for property in requestModel.properties %}
+            '{{ property.name }}' => static::serializeValue($this->{{ property.name | caseCamel | escapeKeyword }}){{ loop.last ? '' : ',' }}
+{% endfor %}
+        ];
+{% endif %}
+    }
 }

@@ -29,6 +29,7 @@ class PHP82Test extends Base
         ...Base::PERMISSION_HELPER_RESPONSES,
         ...Base::ID_HELPER_RESPONSES,
         ...Base::ADDITIONAL_PROPERTIES_RESPONSES,
+        ...Base::MODEL_SERIALIZATION_RESPONSES,
         ...Base::OPERATOR_HELPER_RESPONSES
     ];
 }

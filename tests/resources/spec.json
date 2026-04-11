@@ -674,6 +674,81 @@
         ]
       }
     },
+    "\/mock\/tests\/general\/templated-models": {
+      "post": {
+        "summary": "Create Enum Payload",
+        "operationId": "generalCreateEnumPayload",
+        "consumes": [
+          "application\/json"
+        ],
+        "produces": [
+          "application\/json"
+        ],
+        "tags": [
+          "general"
+        ],
+        "description": "Fixture-only method used to generate enum-heavy request and response models.",
+        "responses": {
+          "200": {
+            "description": "Enum result",
+            "schema": {
+              "$ref": "#\/definitions\/enumResult"
+            }
+          }
+        },
+        "x-appwrite": {
+          "method": "createEnumPayload",
+          "weight": 302,
+          "cookies": false,
+          "type": "",
+          "demo": "general\/create-enum-payload.md",
+          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterCreate enum-heavy fixture models.",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "platforms": [
+            "client",
+            "server",
+            "server"
+          ],
+          "packaging": false,
+          "offline-model": "",
+          "offline-key": "",
+          "offline-response-key": "$id",
+          "auth": {
+            "Project": []
+          }
+        },
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "payload",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "payload": {
+                  "type": "object",
+                  "description": "Enum-heavy payload object.",
+                  "x-model": "enumPayload",
+                  "default": null
+                }
+              },
+              "required": [
+                "payload"
+              ]
+            }
+          }
+        ]
+      }
+    },
     "\/mock\/tests\/general\/excluded-method": {
       "post": {
         "summary": "Create Excluded General Fixture",
@@ -2438,6 +2513,102 @@
         "id",
         "name",
         "score"
+      ]
+    },
+    "enumPayload": {
+      "description": "Enum payload",
+      "type": "object",
+      "x-request-model": true,
+      "properties": {
+        "default": {
+          "type": "string",
+          "description": "Default status label.",
+          "x-example": "active"
+        },
+        "status": {
+          "type": "string",
+          "description": "Primary fixture status.",
+          "x-example": "active",
+          "enum": [
+            "active",
+            "inactive",
+            "pending"
+          ],
+          "x-enum-name": "FixtureStatus"
+        },
+        "statuses": {
+          "type": "array",
+          "description": "Fixture status history.",
+          "items": {
+            "type": "string",
+            "enum": [
+              "active",
+              "inactive",
+              "pending"
+            ],
+            "x-enum-name": "FixtureStatus"
+          }
+        },
+        "players": {
+          "type": "array",
+          "description": "Fixture players.",
+          "items": {
+            "$ref": "#\/definitions\/player"
+          }
+        }
+      },
+      "required": [
+        "status",
+        "statuses",
+        "players"
+      ]
+    },
+    "enumResult": {
+      "description": "Enum result",
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "default": {
+          "type": "string",
+          "description": "Default status label.",
+          "x-example": "active"
+        },
+        "status": {
+          "type": "string",
+          "description": "Primary fixture status.",
+          "x-example": "active",
+          "enum": [
+            "active",
+            "inactive",
+            "pending"
+          ],
+          "x-enum-name": "FixtureStatus"
+        },
+        "statuses": {
+          "type": "array",
+          "description": "Fixture status history.",
+          "items": {
+            "type": "string",
+            "enum": [
+              "active",
+              "inactive",
+              "pending"
+            ],
+            "x-enum-name": "FixtureStatus"
+          }
+        },
+        "players": {
+          "type": "array",
+          "description": "Fixture players.",
+          "items": {
+            "$ref": "#\/definitions\/player"
+          }
+        }
+      },
+      "required": [
+        "status",
+        "statuses",
+        "players"
       ]
     },
     "zzexcludedpayload": {
