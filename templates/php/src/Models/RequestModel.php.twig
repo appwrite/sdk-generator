@@ -34,7 +34,7 @@ readonly class {{ requestModel.name | caseUcfirst | overrideIdentifier }}
 {% elseif property.type == 'array' and (property.enumValues is not empty or property.enumName is not empty) %}
 {% set paramDocType = 'list<' ~ ((property.enumName ?? property.name) | caseUcfirst | overrideIdentifier) ~ '>' %}
 {% endif %}
-     * @param {{ paramDocType | raw }} ${{ property.name | caseCamel | escapeKeyword }} {{ property.description | unescape | lower | raw }}
+     * @param {{ paramDocType | raw }} ${{ property.name | caseCamel }} {{ property.description | unescape | lower | raw }}
 {% endfor %}
 {% for property in optionalProperties %}
 {% set paramDocType = property | typeName %}
@@ -43,15 +43,15 @@ readonly class {{ requestModel.name | caseUcfirst | overrideIdentifier }}
 {% elseif property.type == 'array' and (property.enumValues is not empty or property.enumName is not empty) %}
 {% set paramDocType = 'list<' ~ ((property.enumName ?? property.name) | caseUcfirst | overrideIdentifier) ~ '>' %}
 {% endif %}
-     * @param {{ paramDocType | raw }}|null ${{ property.name | caseCamel | escapeKeyword }} {{ property.description | unescape | lower | raw }}
+     * @param {{ paramDocType | raw }}|null ${{ property.name | caseCamel }} {{ property.description | unescape | lower | raw }}
 {% endfor %}
      */
     public function __construct(
 {% for property in requiredProperties %}
-        public {{ property | typeName }} ${{ property.name | caseCamel | escapeKeyword }}{{ (not loop.last or optionalProperties is not empty) ? ',' : '' }}
+        public {{ property | typeName }} ${{ property.name | caseCamel }}{{ (not loop.last or optionalProperties is not empty) ? ',' : '' }}
 {% endfor %}
 {% for property in optionalProperties %}
-        public ?{{ property | typeName }} ${{ property.name | caseCamel | escapeKeyword }} = null{{ loop.last ? '' : ',' }}
+        public ?{{ property | typeName }} ${{ property.name | caseCamel }} = null{{ loop.last ? '' : ',' }}
 {% endfor %}
     ) {
     }
@@ -72,7 +72,7 @@ readonly class {{ requestModel.name | caseUcfirst | overrideIdentifier }}
 
         return new static(
 {% for property in requiredProperties %}
-            {{ property.name | caseCamel | escapeKeyword }}: {% if property.type == 'array' and property.sub_schema %}is_array($data['{{ property.name }}'])
+            {{ property.name | caseCamel }}: {% if property.type == 'array' and property.sub_schema %}is_array($data['{{ property.name }}'])
                 ? array_map(
                     static fn (mixed $item): mixed => static::hydrateTypedValue({{ property.sub_schema | caseUcfirst | overrideIdentifier }}::class, $item),
                     $data['{{ property.name }}']
@@ -85,7 +85,7 @@ readonly class {{ requestModel.name | caseUcfirst | overrideIdentifier }}
                 : $data['{{ property.name }}']{% elseif property.enumValues is not empty or property.enumName is not empty %}static::hydrateTypedValue({{ (property.enumName ?? property.name) | caseUcfirst | overrideIdentifier }}::class, $data['{{ property.name }}']){% else %}$data['{{ property.name }}']{% endif %}{{ (not loop.last or optionalProperties is not empty) ? ',' : '' }}
 {% endfor %}
 {% for property in optionalProperties %}
-            {{ property.name | caseCamel | escapeKeyword }}: array_key_exists('{{ property.name }}', $data)
+            {{ property.name | caseCamel }}: array_key_exists('{{ property.name }}', $data)
                 ? {% if property.type == 'array' and property.sub_schema %}is_array($data['{{ property.name }}'])
                     ? array_map(
                         static fn (mixed $item): mixed => static::hydrateTypedValue({{ property.sub_schema | caseUcfirst | overrideIdentifier }}::class, $item),
@@ -113,7 +113,7 @@ readonly class {{ requestModel.name | caseUcfirst | overrideIdentifier }}
 {% else %}
         return [
 {% for property in requestModel.properties %}
-            '{{ property.name }}' => static::serializeValue($this->{{ property.name | caseCamel | escapeKeyword }}){{ loop.last ? '' : ',' }}
+            '{{ property.name }}' => static::serializeValue($this->{{ property.name | caseCamel }}){{ loop.last ? '' : ',' }}
 {% endfor %}
         ];
 {% endif %}

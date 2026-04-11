@@ -39,7 +39,7 @@ readonly class {{ definition.name | caseUcfirst | overrideIdentifier }}
 {% elseif property.type == 'array' and (property.enumValues is not empty or property.enumName is not empty) %}
 {% set paramDocType = 'list<' ~ ((property.enumName ?? property.name) | caseUcfirst | overrideIdentifier) ~ '>' %}
 {% endif %}
-     * @param {{ paramDocType | raw }} ${{ property.name | caseCamel | escapeKeyword }} {{ property.description | unescape | lower | raw }}
+     * @param {{ paramDocType | raw }} ${{ property.name | caseCamel }} {{ property.description | unescape | lower | raw }}
 {% endfor %}
 {% for property in optionalProperties %}
 {% set paramDocType = property | typeName %}
@@ -48,7 +48,7 @@ readonly class {{ definition.name | caseUcfirst | overrideIdentifier }}
 {% elseif property.type == 'array' and (property.enumValues is not empty or property.enumName is not empty) %}
 {% set paramDocType = 'list<' ~ ((property.enumName ?? property.name) | caseUcfirst | overrideIdentifier) ~ '>' %}
 {% endif %}
-     * @param {{ paramDocType | raw }}|null ${{ property.name | caseCamel | escapeKeyword }} {{ property.description | unescape | lower | raw }}
+     * @param {{ paramDocType | raw }}|null ${{ property.name | caseCamel }} {{ property.description | unescape | lower | raw }}
 {% endfor %}
 {% if definition.additionalProperties %}
      * @param array<string, mixed> $data Additional properties.
@@ -56,10 +56,10 @@ readonly class {{ definition.name | caseUcfirst | overrideIdentifier }}
      */
     public function __construct(
 {% for property in requiredProperties %}
-        public {{ property | typeName }} ${{ property.name | caseCamel | escapeKeyword }}{{ (not loop.last or optionalProperties is not empty or definition.additionalProperties) ? ',' : '' }}
+        public {{ property | typeName }} ${{ property.name | caseCamel }}{{ (not loop.last or optionalProperties is not empty or definition.additionalProperties) ? ',' : '' }}
 {% endfor %}
 {% for property in optionalProperties %}
-        public ?{{ property | typeName }} ${{ property.name | caseCamel | escapeKeyword }} = null{{ (not loop.last or definition.additionalProperties) ? ',' : '' }}
+        public ?{{ property | typeName }} ${{ property.name | caseCamel }} = null{{ (not loop.last or definition.additionalProperties) ? ',' : '' }}
 {% endfor %}
 {% if definition.additionalProperties %}
         public array $data = []
@@ -94,7 +94,7 @@ readonly class {{ definition.name | caseUcfirst | overrideIdentifier }}
 
         return new static(
 {% for property in requiredProperties %}
-            {{ property.name | caseCamel | escapeKeyword }}: {% if property.type == 'array' and property.sub_schema %}is_array($data['{{ property.name }}'])
+            {{ property.name | caseCamel }}: {% if property.type == 'array' and property.sub_schema %}is_array($data['{{ property.name }}'])
                 ? array_map(
                     static fn (mixed $item): mixed => static::hydrateTypedValue({{ property.sub_schema | caseUcfirst | overrideIdentifier }}::class, $item),
                     $data['{{ property.name }}']
@@ -107,7 +107,7 @@ readonly class {{ definition.name | caseUcfirst | overrideIdentifier }}
                 : $data['{{ property.name }}']{% elseif property.enumValues is not empty or property.enumName is not empty %}static::hydrateTypedValue({{ (property.enumName ?? property.name) | caseUcfirst | overrideIdentifier }}::class, $data['{{ property.name }}']){% else %}$data['{{ property.name }}']{% endif %}{{ (not loop.last or optionalProperties is not empty or definition.additionalProperties) ? ',' : '' }}
 {% endfor %}
 {% for property in optionalProperties %}
-            {{ property.name | caseCamel | escapeKeyword }}: array_key_exists('{{ property.name }}', $data)
+            {{ property.name | caseCamel }}: array_key_exists('{{ property.name }}', $data)
                 ? {% if property.type == 'array' and property.sub_schema %}is_array($data['{{ property.name }}'])
                     ? array_map(
                         static fn (mixed $item): mixed => static::hydrateTypedValue({{ property.sub_schema | caseUcfirst | overrideIdentifier }}::class, $item),
@@ -138,7 +138,7 @@ readonly class {{ definition.name | caseUcfirst | overrideIdentifier }}
 {% else %}
         $result = [
 {% for property in definition.properties %}
-            '{{ property.name }}' => static::serializeValue($this->{{ property.name | caseCamel | escapeKeyword }}){{ loop.last ? '' : ',' }}
+            '{{ property.name }}' => static::serializeValue($this->{{ property.name | caseCamel }}){{ loop.last ? '' : ',' }}
 {% endfor %}
         ];
 {% if definition.additionalProperties %}
