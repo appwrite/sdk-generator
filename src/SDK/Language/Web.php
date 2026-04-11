@@ -307,6 +307,10 @@ class Web extends JS
 
     protected function populateGenerics(string $model, array $spec, array &$generics, bool $skipFirst = false)
     {
+        if (!array_key_exists($model, $spec['definitions'])) {
+            return;
+        }
+
         if (!$skipFirst && $spec['definitions'][$model]['additionalProperties']) {
             $generics[] = $this->toPascalCase($model);
         }
