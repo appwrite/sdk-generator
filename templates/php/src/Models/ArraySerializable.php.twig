@@ -171,6 +171,10 @@ trait ArraySerializable
                 return $value;
             }
 
+            if ($type->allowsNull() && $value === '') {
+                return null;
+            }
+
             return is_array($value) ? $typeName::from($value) : $typeName::from((string) $value);
         }
 
