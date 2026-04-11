@@ -444,6 +444,10 @@ class Web extends JS
     public function getSubSchema(array $property, array $spec, string $methodName = ''): string
     {
         if (array_key_exists('sub_schema', $property)) {
+            if ($property['sub_schema'] === 'any') {
+                return $property['type'] === 'array' ? 'Record<string, any>[]' : 'Record<string, any>';
+            }
+
             $ret = '';
             $generics = [];
             $this->populateGenerics($property['sub_schema'], $spec, $generics);
