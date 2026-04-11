@@ -183,10 +183,31 @@ function createDeploymentLogsController(
     };
   }
 
+  let isClosed = false;
+
+  const cleanup = (): void => {
+    if (isClosed) {
+      return;
+    }
+
+    isClosed = true;
+    stdin.off("keypress", onKeypress);
+    if (shouldRestoreRawMode) {
+      stdin.setRawMode(false);
+    }
+    stdin.pause();
+  };
+
   const onKeypress = (
     input: string,
     key: { ctrl?: boolean; meta?: boolean; name?: string },
   ): void => {
+    if (key.ctrl && key.name === "c") {
+      cleanup();
+      process.kill(process.pid, "SIGINT");
+      return;
+    }
+
     const pressedKey = (key.name ?? input ?? "").toLowerCase();
     if (pressedKey !== "l" || key.ctrl || key.meta) {
       return;
@@ -233,13 +254,7 @@ function createDeploymentLogsController(
         printer.flush();
       }
     },
-    close: (): void => {
-      stdin.off("keypress", onKeypress);
-      if (shouldRestoreRawMode) {
-        stdin.setRawMode(false);
-      }
-      stdin.pause();
-    },
+    close: cleanup,
   };
 }
 

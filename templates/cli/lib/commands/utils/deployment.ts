@@ -130,28 +130,29 @@ function writeLogChunk(
   label: string | undefined,
   chunk: string,
   showPrefix: boolean,
-): void {
+): string {
   if (chunk.length === 0) {
-    return;
+    return "";
   }
 
   const prefix = showPrefix && label ? `${chalk.cyan(`[${label}]`)} ` : "";
-  const normalizedChunk = chunk.replace(/\r\n/g, "\n");
-  const endsWithNewLine = normalizedChunk.endsWith("\n");
-  const lines = normalizedChunk.split("\n");
+  const printableChunk = chunk.endsWith("\n")
+    ? chunk
+    : chunk.slice(0, chunk.lastIndexOf("\n") + 1);
 
-  if (!endsWithNewLine) {
-    const lastLine = lines.pop();
-    if (lastLine !== undefined) {
-      lines.push(lastLine);
-    }
-  } else {
-    lines.pop();
+  if (printableChunk.length === 0) {
+    return "";
   }
+
+  const normalizedChunk = printableChunk.replace(/\r\n/g, "\n");
+  const lines = normalizedChunk.split("\n");
+  lines.pop();
 
   for (const line of lines) {
     Spinner.log(`${prefix}${line}`);
   }
+
+  return printableChunk;
 }
 
 export function createDeploymentLogPrinter(
@@ -181,8 +182,15 @@ export function createDeploymentLogPrinter(
     }
 
     if (lastPrintedLogs.length > 0 && lastLogs.startsWith(lastPrintedLogs)) {
-      writeLogChunk(label, lastLogs.slice(lastPrintedLogs.length), showPrefix);
-      lastPrintedLogs = lastLogs;
+      const printedChunk = writeLogChunk(
+        label,
+        lastLogs.slice(lastPrintedLogs.length),
+        showPrefix,
+      );
+      if (printedChunk.length === 0) {
+        return;
+      }
+      lastPrintedLogs += printedChunk;
       hasPrintedLogs = true;
       return;
     }
@@ -192,8 +200,11 @@ export function createDeploymentLogPrinter(
       return;
     }
 
-    writeLogChunk(label, lastLogs, showPrefix);
-    lastPrintedLogs = lastLogs;
+    const printedChunk = writeLogChunk(label, lastLogs, showPrefix);
+    if (printedChunk.length === 0) {
+      return;
+    }
+    lastPrintedLogs = printedChunk;
     hasPrintedLogs = true;
   };
 
@@ -270,7 +281,6 @@ export async function watchDeploymentUpdates(
 
   const close = async (): Promise<void> => {
     if (closed) {
-      await closeDispatcher(dispatcher);
       return;
     }
 
