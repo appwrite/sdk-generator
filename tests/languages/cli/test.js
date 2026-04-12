@@ -1,5 +1,10 @@
 const { execSync } = require("child_process");
+const fs = require("fs");
+const path = require("path");
 const Client = require("./lib/client.ts").default;
+const {
+  TypeScriptDatabasesGenerator,
+} = require("./lib/commands/generators/typescript/databases.ts");
 const {
   getFunctionDeploymentConsoleUrl,
   getSiteDeploymentConsoleUrl,
@@ -144,3 +149,53 @@ execSync("bun ./dist/cli.cjs general empty", { stdio: "pipe" });
 
 output = execSync("bun ./dist/cli.cjs general headers", { stdio: "pipe" }).toString();
 console.log(extractFirstValue(output));
+
+// Type generation regression: generated concrete row query helpers must compile on TS 5.9+
+fs.rmSync(path.join(process.cwd(), "generated"), { recursive: true, force: true });
+
+void (async () => {
+  const generator = new TypeScriptDatabasesGenerator();
+  const result = await generator.generate(
+    {
+      projectId: "console",
+      endpoint: "http://mockapi/v1",
+      tables: [
+        {
+          $id: "inspections-payment-transfers",
+          databaseId: "payments-db",
+          name: "inspectionsPaymentTransfers",
+          rowSecurity: true,
+          columns: [
+            {
+              key: "status",
+              type: "string",
+              size: 255,
+              required: true,
+              default: null,
+            },
+            {
+              key: "amount",
+              type: "integer",
+              required: false,
+              default: null,
+            },
+          ],
+        },
+      ],
+    },
+    {
+      appwriteImportSource: "@appwrite.io/console",
+      importExtension: ".js",
+    },
+  );
+
+  await generator.writeFiles(path.join(process.cwd(), "generated"), result);
+
+  execSync(
+    "./node_modules/.bin/tsc --pretty false --noEmit --strict --exactOptionalPropertyTypes --skipLibCheck --module NodeNext --moduleResolution NodeNext generated/appwrite/types.ts",
+    { stdio: "pipe" },
+  );
+  console.log("CLI_TYPEGEN:passed");
+})().catch((error) => {
+  throw error;
+});

@@ -30,6 +30,8 @@ class CLIBun10Test extends Base
         ...Base::GENERAL_RESPONSES,
         ...Base::CLI_CONSOLE_URL_RESPONSES,
         ...Base::UPLOAD_RESPONSES,
+        ...Base::CLI_HEADERS_RESPONSES,
+        ...Base::CLI_TYPEGEN_RESPONSES,
     ];
 
     public function getLanguage(): Language
