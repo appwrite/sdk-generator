@@ -2011,7 +2011,7 @@ export class Push {
                 ),
               });
 
-              const timeoutDeadline = Date.now() + DEPLOYMENT_TIMEOUT_MS;
+              let timeoutDeadline = Date.now() + DEPLOYMENT_TIMEOUT_MS;
 
               while (true) {
                 if (Date.now() > timeoutDeadline) {
