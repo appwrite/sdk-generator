@@ -175,7 +175,7 @@ jobs:
               bun run windows-arm64
 
               npm ci
-              npm audit --audit-level=high
+              npm audit --audit-level=moderate
               npm run build
               node dist/cli.cjs --help
               ;;
