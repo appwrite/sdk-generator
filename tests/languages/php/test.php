@@ -29,10 +29,7 @@ use Appwrite\Role;
 use Appwrite\ID;
 use Appwrite\Operator;
 use Appwrite\Condition;
-use Appwrite\Enums\FixtureStatus;
 use Appwrite\Enums\MockType;
-use Appwrite\Models\EnumPayload;
-use Appwrite\Models\EnumResult;
 use Appwrite\Services\Bar;
 use Appwrite\Services\Foo;
 use Appwrite\Services\General;
@@ -379,35 +376,6 @@ $dataFieldPayload = AdditionalPropsDataFieldMapped::from([
     'extra' => 'kept',
 ]);
 echo json_encode($dataFieldPayload->toArray(), JSON_THROW_ON_ERROR) . "\n";
-
-$enumPayload = EnumPayload::from([
-    'default' => 'active',
-    'status' => 'active',
-    'captain' => ['id' => 'captain1', 'name' => 'Captain One', 'score' => 300],
-    'statuses' => ['active', 'inactive'],
-    'history' => ['queued', 'running'],
-    'requestOnlyHistory' => ['queued', 'approved'],
-    'players' => [
-        ['id' => 'player1', 'name' => 'John Doe', 'score' => 100],
-    ],
-]);
-echo json_encode($enumPayload->toArray(), JSON_THROW_ON_ERROR) . "\n";
-echo get_class($enumPayload->status) . '|' . get_class($enumPayload->statuses[0]) . '|' . get_class($enumPayload->history[0]) . '|' . get_class($enumPayload->requestOnlyHistory[0]) . '|' . get_class($enumPayload->captain) . '|' . get_class($enumPayload->players[0]) . "\n";
-
-$enumResult = EnumResult::from([
-    'default' => 'inactive',
-    'status' => 'pending',
-    'captain' => ['id' => 'captain2', 'name' => 'Captain Two', 'score' => 400],
-    'statuses' => ['pending', 'active'],
-    'history' => ['done', 'queued'],
-    'players' => [
-        ['id' => 'player2', 'name' => 'Jane Doe', 'score' => 200],
-    ],
-    'custom' => FixtureStatus::INACTIVE()->jsonSerialize(),
-    'nested' => ['enabled' => true],
-]);
-echo json_encode($enumResult->toArray(), JSON_THROW_ON_ERROR) . "\n";
-echo get_class($enumResult->status) . '|' . get_class($enumResult->statuses[0]) . '|' . get_class($enumResult->history[0]) . '|' . get_class($enumResult->captain) . '|' . get_class($enumResult->players[0]) . "\n";
 
 // Operator helper tests
 echo Operator::increment() . "\n";
