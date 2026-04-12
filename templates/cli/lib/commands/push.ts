@@ -200,7 +200,7 @@ function hasSiteDeploymentScreenshots(
   const { screenshotLight, screenshotDark } =
     getSiteDeploymentScreenshots(deployment);
 
-  return Boolean(screenshotLight && screenshotDark);
+  return Boolean(screenshotLight || screenshotDark);
 }
 
 function shouldRenderSiteTerminalPreview(): boolean {
@@ -233,12 +233,14 @@ async function renderImageBufferToTerminalPreview(
   const originalTermProgram = process.env.TERM_PROGRAM;
   const originalTermProgramVersion = process.env.TERM_PROGRAM_VERSION;
   const originalKonsoleVersion = process.env.KONSOLE_VERSION;
+  const originalKittyWindowId = process.env.KITTY_WINDOW_ID;
 
   // Force terminal-image's ANSI fallback so the preview is portable and can
   // be framed consistently in the deploy summary.
   delete process.env.TERM_PROGRAM;
   delete process.env.TERM_PROGRAM_VERSION;
   delete process.env.KONSOLE_VERSION;
+  delete process.env.KITTY_WINDOW_ID;
 
   try {
     return await terminalImage.buffer(buffer, {
@@ -263,6 +265,12 @@ async function renderImageBufferToTerminalPreview(
       delete process.env.KONSOLE_VERSION;
     } else {
       process.env.KONSOLE_VERSION = originalKonsoleVersion;
+    }
+
+    if (originalKittyWindowId === undefined) {
+      delete process.env.KITTY_WINDOW_ID;
+    } else {
+      process.env.KITTY_WINDOW_ID = originalKittyWindowId;
     }
   }
 }
@@ -1494,7 +1502,7 @@ export class Push {
                 ),
               });
 
-              const timeoutDeadline = Date.now() + DEPLOYMENT_TIMEOUT_MS;
+              let timeoutDeadline = Date.now() + DEPLOYMENT_TIMEOUT_MS;
 
               while (true) {
                 if (Date.now() > timeoutDeadline) {
@@ -2068,6 +2076,11 @@ export class Push {
 
                   if (!screenshotsReady) {
                     readyWithoutScreenshotsSince ??= Date.now();
+                    timeoutDeadline = Math.max(
+                      timeoutDeadline,
+                      readyWithoutScreenshotsSince +
+                        SITE_SCREENSHOT_FINALIZATION_TIMEOUT_MS,
+                    );
 
                     if (
                       Date.now() - readyWithoutScreenshotsSince <
