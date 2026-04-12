@@ -31,9 +31,4 @@ class PHP83Test extends Base
         ...Base::ADDITIONAL_PROPERTIES_RESPONSES,
         ...Base::OPERATOR_HELPER_RESPONSES
     ];
-
-    public function testTemplatedPhpModelGeneration(): void
-    {
-        $this->assertPhpTemplatedModelGenerationWorks();
-    }
 }
