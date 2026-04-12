@@ -162,7 +162,7 @@ jobs:
           case "${{ matrix.sdk }}" in
             web)
               npm ci
-              npm audit --audit-level=moderate
+              npm audit --audit-level=high
               npm run build
               ;;
             cli)
@@ -175,13 +175,13 @@ jobs:
               bun run windows-arm64
 
               npm ci
-              npm audit --audit-level=moderate
+              npm audit --audit-level=high
               npm run build
               node dist/cli.cjs --help
               ;;
             react-native)
               npm ci
-              npm audit --audit-level=moderate
+              npm audit --audit-level=high
               npm run build
               ;;
             flutter)
@@ -212,7 +212,7 @@ jobs:
               ;;
             node)
               npm ci
-              npm audit --audit-level=moderate
+              npm audit --audit-level=high
               npm run build
               npm run test
               ;;
