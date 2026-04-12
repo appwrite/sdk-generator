@@ -5,7 +5,6 @@ import { stripVTControlCharacters } from "node:util";
 import { parse as parseDotenv } from "dotenv";
 import chalk from "chalk";
 import inquirer from "inquirer";
-import terminalImage from "terminal-image";
 import { Command } from "commander";
 import ID from "../id.js";
 import { EXECUTABLE_NAME } from "../constants.js";
@@ -118,6 +117,12 @@ const WAITING_JOKE_THRESHOLD_MS = 30 * 1000; // 30 seconds
 const WAITING_JOKE_URL = "https://xkcd.com/303/";
 const ANSI_RESET = "\u001B[0m";
 
+type TerminalImageModule = typeof import("terminal-image");
+
+let terminalImageModulePromise:
+  | Promise<TerminalImageModule["default"]>
+  | undefined;
+
 function getDeploymentProgressText(
   status: string,
   waitingSince: number | null,
@@ -135,6 +140,14 @@ function getDeploymentProgressText(
 
 function getDeploymentTimeoutErrorMessage(): string {
   return `Deployment got stuck for more than ${DEPLOYMENT_TIMEOUT_MINUTES} minutes`;
+}
+
+async function getTerminalImage() {
+  terminalImageModulePromise ??= import("terminal-image").then(
+    (module) => module.default,
+  );
+
+  return terminalImageModulePromise;
 }
 
 function getErrorMessage(error: unknown): string {
@@ -230,6 +243,7 @@ function getSiteTerminalPreviewHeight(): number {
 async function renderImageBufferToTerminalPreview(
   buffer: Buffer,
 ): Promise<string> {
+  const terminalImage = await getTerminalImage();
   const originalTermProgram = process.env.TERM_PROGRAM;
   const originalTermProgramVersion = process.env.TERM_PROGRAM_VERSION;
   const originalKonsoleVersion = process.env.KONSOLE_VERSION;
