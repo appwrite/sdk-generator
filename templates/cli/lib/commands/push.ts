@@ -276,6 +276,7 @@ export interface PushOptions {
   tables?: boolean;
   buckets?: boolean;
   teams?: boolean;
+  webhooks?: boolean;
   topics?: boolean;
   skipDeprecated?: boolean;
   skipConfirmation?: boolean;
