@@ -12,6 +12,7 @@ import {
   Storage,
   TablesDB,
   Teams,
+  Webhooks,
   Client,
   Query,
   Models,
@@ -44,6 +45,7 @@ import {
   IndexTableSchema,
   BucketSchema,
   TopicSchema,
+  WebhookSchema,
 } from "./config.js";
 import {
   createSettingsObject,
@@ -64,6 +66,7 @@ export interface PullOptions {
   tables?: boolean;
   buckets?: boolean;
   teams?: boolean;
+  webhooks?: boolean;
   topics?: boolean;
   skipDeprecated?: boolean;
   withVariables?: boolean;
@@ -211,6 +214,11 @@ export class Pull {
     if (shouldPullAll || options.teams) {
       const teams = await this.pullTeams();
       updatedConfig.teams = teams;
+    }
+
+    if (shouldPullAll || options.webhooks) {
+      const webhooks = await this.pullWebhooks();
+      updatedConfig.webhooks = webhooks;
     }
 
     if (shouldPullAll || options.topics) {
@@ -673,6 +681,46 @@ export class Pull {
   }
 
   /**
+   * Pull webhooks from the project
+   */
+  public async pullWebhooks(): Promise<any[]> {
+    this.log("Fetching webhooks ...");
+
+    const webhooksService = new Webhooks(this.projectClient);
+
+    const fetchResponse = await webhooksService.list({
+      queries: [Query.limit(1)],
+    });
+
+    if (fetchResponse["webhooks"].length <= 0) {
+      this.log("No webhooks found.");
+      this.success(`Successfully pulled ${chalk.bold(0)} webhooks.`);
+      return [];
+    }
+
+    const { webhooks } = await paginate(
+      async (args) =>
+        new Webhooks(this.projectClient).list(args.queries as string[]),
+      {},
+      100,
+      "webhooks",
+    );
+
+    const filteredWebhooks: any[] = [];
+
+    for (const webhook of webhooks) {
+      this.log(`Pulling webhook ${chalk.bold(webhook.name)} ...`);
+      filteredWebhooks.push(filterBySchema(webhook, WebhookSchema));
+    }
+
+    this.success(
+      `Successfully pulled ${chalk.bold(filteredWebhooks.length)} webhooks.`,
+    );
+
+    return filteredWebhooks;
+  }
+
+  /**
    * Pull messaging topics from the project
    */
   public async pullMessagingTopics(): Promise<any[]> {
@@ -736,6 +784,7 @@ export const pullResources = async ({
     tables: pullTable,
     buckets: pullBucket,
     teams: pullTeam,
+    webhooks: pullWebhook,
     messages: pullMessagingTopic,
   };
 
@@ -958,6 +1007,29 @@ const pullTeam = async (): Promise<void> => {
   localConfig.set("teams", teams);
 };
 
+const pullWebhook = async (): Promise<void> => {
+  const pullInstance = await createPullInstance();
+  const webhooks = await pullInstance.pullWebhooks();
+
+  const localWebhooks = localConfig.getWebhooks();
+  const remoteWebhookIds = new Set(webhooks.map((w: any) => w.$id));
+  const webhooksToRemove = localWebhooks.filter(
+    (w: any) => !remoteWebhookIds.has(w.$id),
+  );
+
+  if (webhooksToRemove.length > 0) {
+    warn(
+      `The following webhooks exist locally but not remotely and will be removed: ${webhooksToRemove.map((w: any) => w.name || w.$id).join(", ")}`,
+    );
+    if ((await getConfirmation()) !== true) {
+      log("Pull cancelled.");
+      return;
+    }
+  }
+
+  localConfig.set("webhooks", webhooks);
+};
+
 const pullMessagingTopic = async (): Promise<void> => {
   const pullInstance = await createPullInstance();
   const topics = await pullInstance.pullMessagingTopics();
@@ -1051,6 +1123,12 @@ pull
   .alias("teams")
   .description("Pull your Appwrite teams")
   .action(actionRunner(pullTeam));
+
+pull
+  .command("webhook")
+  .alias("webhooks")
+  .description("Pull your Appwrite webhooks")
+  .action(actionRunner(pullWebhook));
 
 pull
   .command("topic")

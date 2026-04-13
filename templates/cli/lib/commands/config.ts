@@ -382,6 +382,23 @@ const TeamSchema = z
   .strict();
 
 // ============================================================================
+// Webhooks
+// ============================================================================
+
+const WebhookSchema = z
+  .object({
+    $id: z.string(),
+    name: z.string(),
+    url: z.string(),
+    events: z.array(z.string()),
+    enabled: z.boolean().optional(),
+    tls: z.boolean().optional(),
+    authUsername: z.string().optional(),
+    authPassword: z.string().optional(),
+  })
+  .strict();
+
+// ============================================================================
 // Messages
 // ============================================================================
 
@@ -434,6 +451,7 @@ const ConfigSchema = z
     topics: z.array(z.lazy(() => TopicSchema)).optional(),
     teams: z.array(z.lazy(() => TeamSchema)).optional(),
     buckets: z.array(z.lazy(() => BucketSchema)).optional(),
+    webhooks: z.array(z.lazy(() => WebhookSchema)).optional(),
     messages: z.array(z.lazy(() => MessageSchema)).optional(),
   })
   .strict()
@@ -458,6 +476,7 @@ export type TopicType = z.infer<typeof TopicSchema>;
 export type TeamType = z.infer<typeof TeamSchema>;
 export type MessageType = z.infer<typeof MessageSchema>;
 export type BucketType = z.infer<typeof BucketSchema>;
+export type WebhookType = z.infer<typeof WebhookSchema>;
 
 // ============================================================================
 // Schema Exports
@@ -498,4 +517,7 @@ export {
 
   /** Buckets */
   BucketSchema,
+
+  /** Webhooks */
+  WebhookSchema,
 };

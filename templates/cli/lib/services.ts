@@ -13,6 +13,7 @@ import {
   Storage,
   TablesDB,
   Teams,
+  Webhooks,
 } from "@appwrite.io/console";
 
 export const getConsoleService = async (sdk?: Client): Promise<Console> => {
@@ -75,4 +76,9 @@ export const getTablesDBService = async (sdk?: Client): Promise<TablesDB> => {
 export const getTeamsService = async (sdk?: Client): Promise<Teams> => {
   const client = !sdk ? await sdkForProject() : sdk;
   return new Teams(client);
+};
+
+export const getWebhooksService = async (sdk?: Client): Promise<Webhooks> => {
+  const client = !sdk ? await sdkForProject() : sdk;
+  return new Webhooks(client);
 };
