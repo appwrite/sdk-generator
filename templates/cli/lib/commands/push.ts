@@ -82,7 +82,7 @@ import {
 } from "../services.js";
 import { sdkForProject, sdkForConsole } from "../sdks.js";
 import {
-  ApiService,
+  ProtocolService,
   AuthMethod,
   AppwriteException,
   Client,
@@ -638,9 +638,9 @@ export class Push {
     if (settings.services) {
       this.log("Applying service statuses ...");
       for (const [service, status] of Object.entries(settings.services)) {
-        await projectsService.updateServiceStatus({
+        await projectsService.updateProtocolStatus({
           projectId: projectId,
-          service: service as ApiService,
+          protocol: service as ProtocolService,
           status: status,
         });
       }
