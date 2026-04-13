@@ -43,7 +43,7 @@ export const getOrganizationsService = async (
 };
 
 export const getProjectService = async (sdk?: Client): Promise<Project> => {
-  const client = !sdk ? await sdkForConsole() : sdk;
+  const client = !sdk ? await sdkForProject() : sdk;
   return new Project(client);
 };
 

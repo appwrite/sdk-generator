@@ -625,12 +625,7 @@ export class Push {
   }): Promise<void> {
     const projectsService = await getProjectsService(this.consoleClient);
     const projectId = config.projectId;
-    const projectScopedClient = new Client()
-      .setEndpoint(this.consoleClient.config.endpoint)
-      .setProject(projectId)
-      .setCookie(this.consoleClient.config.cookie)
-      .setSelfSigned(this.consoleClient.config.selfSigned);
-    const projectService = await getProjectService(projectScopedClient);
+    const projectService = await getProjectService();
     const projectName = config.projectName;
     const settings = config.settings ?? {};
 
