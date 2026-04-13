@@ -6,6 +6,7 @@ import {
   Functions,
   Messaging,
   Organizations,
+  Project,
   Projects,
   Proxy,
   Sites,
@@ -39,6 +40,11 @@ export const getOrganizationsService = async (
 ): Promise<Organizations> => {
   const client = !sdk ? await sdkForProject() : sdk;
   return new Organizations(client);
+};
+
+export const getProjectService = async (sdk?: Client): Promise<Project> => {
+  const client = !sdk ? await sdkForConsole() : sdk;
+  return new Project(client);
 };
 
 export const getProjectsService = async (sdk?: Client): Promise<Projects> => {

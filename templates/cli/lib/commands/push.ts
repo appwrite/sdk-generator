@@ -78,11 +78,12 @@ import {
   getStorageService,
   getMessagingService,
   getTeamsService,
+  getProjectService,
   getProjectsService,
 } from "../services.js";
 import { sdkForProject, sdkForConsole } from "../sdks.js";
 import {
-  ProtocolService,
+  ServiceId,
   AuthMethod,
   AppwriteException,
   Client,
@@ -623,6 +624,7 @@ export class Push {
     settings?: SettingsType;
   }): Promise<void> {
     const projectsService = await getProjectsService(this.consoleClient);
+    const projectService = await getProjectService(this.consoleClient);
     const projectId = config.projectId;
     const projectName = config.projectName;
     const settings = config.settings ?? {};
@@ -638,10 +640,9 @@ export class Push {
     if (settings.services) {
       this.log("Applying service statuses ...");
       for (const [service, status] of Object.entries(settings.services)) {
-        await projectsService.updateProtocolStatus({
-          projectId: projectId,
-          protocol: service as ProtocolService,
-          status: status,
+        await projectService.updateServiceStatus({
+          serviceId: service as ServiceId,
+          enabled: status,
         });
       }
     }
