@@ -192,7 +192,7 @@ void (async () => {
   await generator.writeFiles(path.join(process.cwd(), "generated"), result);
 
   execSync(
-    "./node_modules/.bin/tsc --pretty false --noEmit --strict --exactOptionalPropertyTypes --skipLibCheck --module NodeNext --moduleResolution NodeNext generated/appwrite/types.ts",
+    "bun ./node_modules/typescript/bin/tsc --pretty false --noEmit --strict --exactOptionalPropertyTypes --skipLibCheck --module NodeNext --moduleResolution NodeNext generated/appwrite/types.ts",
     { stdio: "pipe" },
   );
   console.log("CLI_TYPEGEN:passed");
