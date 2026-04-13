@@ -30,6 +30,11 @@ export const createSettingsObject = (project: Models.Project): SettingsType => {
       graphql: project.serviceStatusForGraphql,
       messaging: project.serviceStatusForMessaging,
     },
+    protocols: {
+      rest: project.protocolStatusForRest,
+      graphql: project.protocolStatusForGraphql,
+      websocket: project.protocolStatusForWebsocket,
+    },
     auth: {
       methods: {
         jwt: project.authJWT,

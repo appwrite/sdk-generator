@@ -84,6 +84,7 @@ import {
 import { sdkForProject, sdkForConsole } from "../sdks.js";
 import {
   ServiceId,
+  ProtocolId,
   AuthMethod,
   AppwriteException,
   Client,
@@ -642,6 +643,16 @@ export class Push {
       for (const [service, status] of Object.entries(settings.services)) {
         await projectService.updateServiceStatus({
           serviceId: service as ServiceId,
+          enabled: status,
+        });
+      }
+    }
+
+    if (settings.protocols) {
+      this.log("Applying protocol statuses ...");
+      for (const [protocol, status] of Object.entries(settings.protocols)) {
+        await projectService.updateProtocolStatus({
+          protocolId: protocol as ProtocolId,
           enabled: status,
         });
       }

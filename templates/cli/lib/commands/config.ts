@@ -94,6 +94,14 @@ const SettingsSchema = z
       })
       .strict()
       .optional(),
+    protocols: z
+      .object({
+        rest: z.boolean().optional(),
+        graphql: z.boolean().optional(),
+        websocket: z.boolean().optional(),
+      })
+      .strict()
+      .optional(),
     auth: z
       .object({
         methods: z
