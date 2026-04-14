@@ -894,8 +894,6 @@ export class Push {
             events: webhook.events,
             enabled: webhook.enabled,
             tls: webhook.tls,
-            ...(webhook.authUsername ? { authUsername: webhook.authUsername } : {}),
-            ...(webhook.authPassword ? { authPassword: webhook.authPassword } : {}),
           });
         } catch (e: unknown) {
           if (e instanceof AppwriteException && Number(e.code) === 404) {
@@ -906,8 +904,6 @@ export class Push {
               events: webhook.events,
               enabled: webhook.enabled,
               tls: webhook.tls,
-              ...(webhook.authUsername ? { authUsername: webhook.authUsername } : {}),
-              ...(webhook.authPassword ? { authPassword: webhook.authPassword } : {}),
             });
           } else {
             throw e;

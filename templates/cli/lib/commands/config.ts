@@ -393,8 +393,6 @@ const WebhookSchema = z
     events: z.array(z.string()),
     enabled: z.boolean().optional(),
     tls: z.boolean().optional(),
-    authUsername: z.string().optional(),
-    authPassword: z.string().optional(),
   })
   .strict();
 
