@@ -34,6 +34,17 @@ The `destination` string in each `getFiles()` entry supports Twig expressions an
 'destination' => 'src/Services/{{ service.name | caseCamel }}.php',
 ```
 
+### Rule 6: Never modify lock file templates directly
+
+Lock file templates (`package-lock.json.twig`, `bun.lock.twig`) contain Twig expressions that get corrupted if you copy a raw lock file over them. Always use the update script:
+
+```bash
+./scripts/update-lockfiles.sh cli    # update CLI lock files only
+./scripts/update-lockfiles.sh all    # update all TS-based SDK lock files
+```
+
+The script strips Twig expressions before running `npm install`/`bun install`, then restores them automatically. Never run `cp package-lock.json package-lock.json.twig` or edit these files by hand.
+
 ## Repository at a Glance
 
 - **Purpose:** Generate Appwrite SDKs for ~16 languages from Swagger/OpenAPI specs using Twig templates
