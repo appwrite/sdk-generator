@@ -343,6 +343,7 @@ export const questionsPullResources: Question[] = [
       { name: `Tables ${chalk.blackBright(`(TablesDB)`)}`, value: "tables" },
       { name: `Buckets ${chalk.blackBright(`(Storage)`)}`, value: "buckets" },
       { name: `Teams ${chalk.blackBright(`(Auth)`)}`, value: "teams" },
+      { name: `Webhooks ${chalk.blackBright(`(Project)`)}`, value: "webhooks" },
       { name: `Topics ${chalk.blackBright(`(Messaging)`)}`, value: "messages" },
       {
         name: `Collections ${chalk.blackBright(`(Legacy Databases)`)}`,
@@ -915,6 +916,7 @@ export const questionsPushResources: Question[] = [
       { name: `Tables ${chalk.blackBright(`(TablesDB)`)}`, value: "tables" },
       { name: `Buckets ${chalk.blackBright(`(Storage)`)}`, value: "buckets" },
       { name: `Teams ${chalk.blackBright(`(Auth)`)}`, value: "teams" },
+      { name: `Webhooks ${chalk.blackBright(`(Project)`)}`, value: "webhooks" },
       { name: `Topics ${chalk.blackBright(`(Messaging)`)}`, value: "messages" },
       {
         name: `Collections ${chalk.blackBright(`(Legacy Databases)`)}`,
@@ -1126,6 +1128,27 @@ export const questionsPushTeams: Question[] = [
         return {
           name: `${team.name} (${team["$id"]})`,
           value: team.$id,
+        };
+      });
+    },
+  },
+];
+
+export const questionsPushWebhooks: Question[] = [
+  {
+    type: "checkbox",
+    name: "webhooks",
+    message: "Which webhooks would you like to push?",
+    validate: (value: any) => validateRequired("webhook", value),
+    when: () => localConfig.getWebhooks().length > 0,
+    choices: () => {
+      const webhooks = localConfig.getWebhooks();
+      checkDeployConditions(localConfig);
+
+      return webhooks.map((webhook: any) => {
+        return {
+          name: `${webhook.name} (${webhook["$id"]})`,
+          value: webhook.$id,
         };
       });
     },

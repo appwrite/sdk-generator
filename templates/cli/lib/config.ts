@@ -14,6 +14,7 @@ import type {
   TableType,
   TeamType,
   TopicType,
+  WebhookType,
 } from "./commands/config.js";
 import {
   SiteSchema,
@@ -28,6 +29,7 @@ import {
   TopicSchema,
   TeamSchema,
   BucketSchema,
+  WebhookSchema,
 } from "./commands/config.js";
 import type {
   SessionData,
@@ -64,6 +66,7 @@ const KeysTable = getSchemaKeys(TableSchema);
 const KeysStorage = getSchemaKeys(BucketSchema);
 const KeysTopics = getSchemaKeys(TopicSchema);
 const KeysTeams = getSchemaKeys(TeamSchema);
+const KeysWebhooks = getSchemaKeys(WebhookSchema);
 const KeysAttributes = getSchemaKeys(AttributeSchema);
 const KeysColumns = getSchemaKeys(ColumnSchema);
 const KeyIndexes = getSchemaKeys(IndexSchema);
@@ -685,6 +688,46 @@ class Local extends Config<ConfigType> {
     this.set("teams", teams);
   }
 
+  getWebhooks(): WebhookType[] {
+    if (!this.has("webhooks")) {
+      return [];
+    }
+    return this.get("webhooks") ?? [];
+  }
+
+  getWebhook($id: string): WebhookType | Record<string, never> {
+    if (!this.has("webhooks")) {
+      return {};
+    }
+
+    const webhooks = this.get("webhooks") ?? [];
+    for (let i = 0; i < webhooks.length; i++) {
+      if (webhooks[i]["$id"] == $id) {
+        return webhooks[i];
+      }
+    }
+
+    return {};
+  }
+
+  addWebhook(props: WebhookType): void {
+    props = whitelistKeys(props, KeysWebhooks);
+    if (!this.has("webhooks")) {
+      this.set("webhooks", []);
+    }
+
+    const webhooks = this.get("webhooks") ?? [];
+    for (let i = 0; i < webhooks.length; i++) {
+      if (webhooks[i]["$id"] == props["$id"]) {
+        webhooks[i] = props;
+        this.set("webhooks", webhooks);
+        return;
+      }
+    }
+    webhooks.push(props);
+    this.set("webhooks", webhooks);
+  }
+
   getProject(): {
     projectId?: string;
     projectName?: string;
@@ -920,6 +963,7 @@ export {
   KeysTopics,
   KeysStorage,
   KeysTeams,
+  KeysWebhooks,
   KeysCollection,
   KeysTable,
   whitelistKeys,
