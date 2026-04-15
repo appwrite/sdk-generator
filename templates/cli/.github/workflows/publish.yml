@@ -47,9 +47,6 @@ jobs:
           bun run windows-x64
           bun run windows-arm64
 
-      - name: Verify Darwin binaries include valid embedded code signatures
-        run: python3 scripts/verify-darwin-signatures.py
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:

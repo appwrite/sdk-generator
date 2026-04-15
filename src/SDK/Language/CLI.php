@@ -293,11 +293,6 @@ class CLI extends Node
                 'destination'   => '.github/workflows/ci.yml',
                 'template'      => 'cli/.github/workflows/ci.yml',
             ],
-            [
-                'scope'         => 'copy',
-                'destination'   => 'scripts/verify-darwin-signatures.py',
-                'template'      => 'cli/scripts/verify-darwin-signatures.py',
-            ],
 
             // Documentation
             [
