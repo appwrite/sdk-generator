@@ -578,9 +578,6 @@ class Rust extends Language
             new TwigFilter("caseEnumKey", function (string $value) {
                 return $this->toPascalCase($value);
             }),
-            new TwigFilter("enumExample", function (array $param, string $prefix = "") {
-                return $this->getEnumExample($param, $prefix);
-            }, ["is_safe" => ["html"]]),
             new TwigFilter("docsArgumentExample", function (array $param, string $crateName) {
                 return $this->getDocsArgumentExample($param, $crateName);
             }, ["is_safe" => ["html"]]),
