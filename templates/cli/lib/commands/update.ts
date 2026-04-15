@@ -7,6 +7,7 @@ import chalk from "chalk";
 import inquirer from "inquirer";
 import { success, log, warn, error, hint, actionRunner } from "../parser.js";
 import {
+  detectInstallationMethod,
   getLatestVersionForInstallation,
   compareVersions,
   getErrorMessage,
@@ -21,125 +22,6 @@ import packageJson from "../../package.json" with { type: "json" };
 const { version } = packageJson;
 
 type ExecCommandOptions = Exclude<Parameters<typeof spawn>[2], undefined>;
-type InstallationMethod = "npm" | "homebrew" | "standalone";
-
-const WINDOWS_EXECUTABLE_NAME = `${EXECUTABLE_NAME.toLowerCase()}.exe`;
-
-const getExecutablePaths = (): {
-  execPath: string;
-  realExecPath: string;
-  scriptPath: string;
-} => {
-  const execPath = process.execPath;
-  const scriptPath = process.argv[1] ?? "";
-
-  try {
-    return {
-      execPath,
-      realExecPath: fs.realpathSync.native(execPath),
-      scriptPath,
-    };
-  } catch (_error) {
-    return {
-      execPath,
-      realExecPath: execPath,
-      scriptPath,
-    };
-  }
-};
-
-const isExecutableName = (candidatePath: string): boolean => {
-  const basename = path.basename(candidatePath).toLowerCase();
-  return (
-    basename === EXECUTABLE_NAME.toLowerCase() ||
-    basename === WINDOWS_EXECUTABLE_NAME
-  );
-};
-
-const isHomebrewManagedPath = (candidatePath: string): boolean => {
-  return (
-    candidatePath.includes("/opt/homebrew/") ||
-    candidatePath.includes("/usr/local/Cellar/") ||
-    candidatePath.includes("/home/linuxbrew/.linuxbrew/") ||
-    candidatePath.includes("/linuxbrew/.linuxbrew/")
-  );
-};
-
-/**
- * Check if the CLI was installed via npm
- */
-const isInstalledViaNpm = (): boolean => {
-  try {
-    const { scriptPath } = getExecutablePaths();
-
-    if (
-      scriptPath.includes("node_modules") &&
-      scriptPath.includes(NPM_PACKAGE_NAME)
-    ) {
-      return true;
-    }
-
-    if (
-      scriptPath.includes("/usr/local/lib/node_modules/") ||
-      scriptPath.includes("/opt/homebrew/lib/node_modules/") ||
-      scriptPath.includes("/.npm-global/") ||
-      scriptPath.includes("/node_modules/.bin/") ||
-      scriptPath.includes("/.nvm/versions/node/")
-    ) {
-      return true;
-    }
-
-    return false;
-  } catch (_e) {
-    return false;
-  }
-};
-
-/**
- * Check if the CLI was installed via Homebrew
- */
-const isInstalledViaHomebrew = (): boolean => {
-  try {
-    const { execPath, realExecPath, scriptPath } = getExecutablePaths();
-    const runtimeCandidates = [execPath, realExecPath].filter(isExecutableName);
-
-    return [scriptPath, ...runtimeCandidates].some(isHomebrewManagedPath);
-  } catch (_e) {
-    return false;
-  }
-};
-
-/**
- * Check if the CLI was installed via install script or native binary download
- */
-const isInstalledViaStandaloneBinary = (): boolean => {
-  if (isInstalledViaNpm() || isInstalledViaHomebrew()) {
-    return false;
-  }
-
-  try {
-    const { execPath, realExecPath } = getExecutablePaths();
-    return [execPath, realExecPath].some(isExecutableName);
-  } catch (_e) {
-    return false;
-  }
-};
-
-const detectInstallationMethod = (): InstallationMethod | null => {
-  if (isInstalledViaNpm()) {
-    return "npm";
-  }
-
-  if (isInstalledViaHomebrew()) {
-    return "homebrew";
-  }
-
-  if (isInstalledViaStandaloneBinary()) {
-    return "standalone";
-  }
-
-  return null;
-};
 
 const getStandaloneBinaryArtifactName = (): string => {
   const platform =
@@ -169,7 +51,7 @@ const getStandaloneBinaryArtifactName = (): string => {
 };
 
 const getStandaloneBinaryTargetPath = (): string => {
-  const { execPath } = getExecutablePaths();
+  const execPath = process.execPath;
 
   try {
     if (fs.lstatSync(execPath).isSymbolicLink()) {
