@@ -196,13 +196,10 @@ const quoteShellArgument = (value: string): string => {
 };
 
 const downloadStandaloneBinary = async (
-  latestVersion: string,
   destinationPath: string,
 ): Promise<void> => {
   const artifact = getStandaloneBinaryArtifactName();
-  const response = await fetch(
-    `${GITHUB_RELEASES_URL}/download/${latestVersion}/${artifact}`,
-  );
+  const response = await fetch(`${GITHUB_RELEASES_URL}/latest/download/${artifact}`);
 
   if (!response.ok) {
     throw new Error(
@@ -318,7 +315,7 @@ const updateViaStandaloneBinary = async (
     : path.join(os.tmpdir(), tempName);
 
   try {
-    await downloadStandaloneBinary(latestVersion, tempPath);
+    await downloadStandaloneBinary(tempPath);
 
     if (writableDirectory) {
       fs.renameSync(tempPath, targetPath);
@@ -374,7 +371,7 @@ const showManualInstructions = (latestVersion: string): void => {
 
       log(`${chalk.bold("Option 3: Install Script / Standalone Binary")}`);
       console.log(
-        `  curl -fsSL ${GITHUB_RELEASES_URL}/download/${latestVersion}/${artifact} -o ${tempPath}`,
+        `  curl -fsSL ${GITHUB_RELEASES_URL}/latest/download/${artifact} -o ${tempPath}`,
       );
       console.log(`  chmod +x ${tempPath}`);
       console.log(`  sudo mv -f ${tempPath} ${targetPath}`);
@@ -385,7 +382,7 @@ const showManualInstructions = (latestVersion: string): void => {
   }
 
   log(`${chalk.bold("Option 4: Download Binary")}`);
-  console.log(`  Visit: ${GITHUB_RELEASES_URL}/tag/${latestVersion}`);
+  console.log(`  Visit: ${GITHUB_RELEASES_URL}/latest`);
 };
 
 /**
