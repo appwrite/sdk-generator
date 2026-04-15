@@ -135,6 +135,15 @@ const isExecutableName = (candidatePath: string): boolean => {
   );
 };
 
+const isHomebrewManagedPath = (candidatePath: string): boolean => {
+  return (
+    candidatePath.includes("/opt/homebrew/") ||
+    candidatePath.includes("/usr/local/Cellar/") ||
+    candidatePath.includes("/home/linuxbrew/.linuxbrew/") ||
+    candidatePath.includes("/linuxbrew/.linuxbrew/")
+  );
+};
+
 const isInstalledViaNpm = (): boolean => {
   try {
     const { scriptPath } = getExecutablePaths();
@@ -165,15 +174,9 @@ const isInstalledViaNpm = (): boolean => {
 const isInstalledViaHomebrew = (): boolean => {
   try {
     const { execPath, realExecPath, scriptPath } = getExecutablePaths();
-    const candidates = [scriptPath, execPath, realExecPath];
+    const runtimeCandidates = [execPath, realExecPath].filter(isExecutableName);
 
-    return candidates.some(
-      (candidate) =>
-        candidate.includes("/opt/homebrew/") ||
-        candidate.includes("/usr/local/Cellar/") ||
-        candidate.includes("/home/linuxbrew/.linuxbrew/") ||
-        candidate.includes("/linuxbrew/.linuxbrew/"),
-    );
+    return [scriptPath, ...runtimeCandidates].some(isHomebrewManagedPath);
   } catch (_error) {
     return false;
   }
@@ -218,7 +221,9 @@ const normalizeHomebrewVersion = (version: string): string => {
   return version.split("_")[0].trim();
 };
 
-const getHomebrewLatestVersion = async (): Promise<string> => {
+const getHomebrewLatestVersion = async (
+  options: { timeoutMs?: number } = {},
+): Promise<string> => {
   try {
     const output = childProcess.execFileSync(
       "brew",
@@ -226,6 +231,7 @@ const getHomebrewLatestVersion = async (): Promise<string> => {
       {
         encoding: "utf8",
         stdio: ["ignore", "pipe", "pipe"],
+        timeout: options.timeoutMs,
         env: {
           ...process.env,
           HOMEBREW_NO_AUTO_UPDATE: "1",
@@ -487,7 +493,7 @@ export async function getLatestVersionForInstallation(
 ): Promise<string> {
   switch (getLatestVersionSource(method)) {
     case "homebrew":
-      return getHomebrewLatestVersion();
+      return getHomebrewLatestVersion(options);
     case "npm":
     default:
       return getLatestVersion(options);

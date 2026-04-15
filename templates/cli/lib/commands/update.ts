@@ -56,6 +56,15 @@ const isExecutableName = (candidatePath: string): boolean => {
   );
 };
 
+const isHomebrewManagedPath = (candidatePath: string): boolean => {
+  return (
+    candidatePath.includes("/opt/homebrew/") ||
+    candidatePath.includes("/usr/local/Cellar/") ||
+    candidatePath.includes("/home/linuxbrew/.linuxbrew/") ||
+    candidatePath.includes("/linuxbrew/.linuxbrew/")
+  );
+};
+
 /**
  * Check if the CLI was installed via npm
  */
@@ -92,15 +101,9 @@ const isInstalledViaNpm = (): boolean => {
 const isInstalledViaHomebrew = (): boolean => {
   try {
     const { execPath, realExecPath, scriptPath } = getExecutablePaths();
-    const candidates = [scriptPath, execPath, realExecPath];
+    const runtimeCandidates = [execPath, realExecPath].filter(isExecutableName);
 
-    return candidates.some(
-      (candidate) =>
-        candidate.includes("/opt/homebrew/") ||
-        candidate.includes("/usr/local/Cellar/") ||
-        candidate.includes("/home/linuxbrew/.linuxbrew/") ||
-        candidate.includes("/linuxbrew/.linuxbrew/"),
-    );
+    return [scriptPath, ...runtimeCandidates].some(isHomebrewManagedPath);
   } catch (_e) {
     return false;
   }
