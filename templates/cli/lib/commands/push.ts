@@ -16,6 +16,7 @@ import {
   KeysTopics,
   KeysStorage,
   KeysTeams,
+  KeysWebhooks,
   KeysCollection,
   KeysTable,
 } from "../config.js";
@@ -55,6 +56,7 @@ import {
   questionsPushCollections,
   questionsPushTables,
   questionsPushMessagingTopics,
+  questionsPushWebhooks,
   questionsPushResources,
 } from "../questions.js";
 import {
@@ -79,11 +81,14 @@ import {
   getStorageService,
   getMessagingService,
   getTeamsService,
+  getWebhooksService,
+  getProjectService,
   getProjectsService,
 } from "../services.js";
 import { sdkForProject, sdkForConsole } from "../sdks.js";
 import {
-  ApiService,
+  ServiceId,
+  ProtocolId,
   AuthMethod,
   AppwriteException,
   Client,
@@ -562,6 +567,7 @@ export interface PushOptions {
   tables?: boolean;
   buckets?: boolean;
   teams?: boolean;
+  webhooks?: boolean;
   topics?: boolean;
   skipDeprecated?: boolean;
   skipConfirmation?: boolean;
@@ -766,6 +772,26 @@ export class Push {
         }
       }
 
+      // Push webhooks
+      if (
+        (shouldPushAll || options.webhooks) &&
+        config.webhooks &&
+        config.webhooks.length > 0
+      ) {
+        try {
+          this.log("Pushing webhooks ...");
+          const result = await this.pushWebhooks(config.webhooks);
+          this.success(
+            `Successfully pushed ${chalk.bold(result.successfullyPushed)} webhooks.`,
+          );
+          results.webhooks = result;
+          allErrors.push(...result.errors);
+        } catch (e: any) {
+          allErrors.push(e);
+          results.webhooks = { successfullyPushed: 0, errors: [e] };
+        }
+      }
+
       // Push messaging topics
       if (
         (shouldPushAll || options.topics) &&
@@ -915,6 +941,7 @@ export class Push {
   }): Promise<void> {
     const projectsService = await getProjectsService(this.consoleClient);
     const projectId = config.projectId;
+    const projectService = await getProjectService();
     const projectName = config.projectName;
     const settings = config.settings ?? {};
 
@@ -929,10 +956,19 @@ export class Push {
     if (settings.services) {
       this.log("Applying service statuses ...");
       for (const [service, status] of Object.entries(settings.services)) {
-        await projectsService.updateServiceStatus({
-          projectId: projectId,
-          service: service as ApiService,
-          status: status,
+        await projectService.updateServiceStatus({
+          serviceId: service as ServiceId,
+          enabled: status,
+        });
+      }
+    }
+
+    if (settings.protocols) {
+      this.log("Applying protocol statuses ...");
+      for (const [protocol, status] of Object.entries(settings.protocols)) {
+        await projectService.updateProtocolStatus({
+          protocolId: protocol as ProtocolId,
+          enabled: status,
         });
       }
     }
@@ -1119,6 +1155,56 @@ export class Push {
       } catch (e: any) {
         errors.push(e);
         this.error(`Failed to push team ${team["name"]}: ${e.message}`);
+      }
+    }
+
+    return {
+      successfullyPushed,
+      errors,
+    };
+  }
+
+  public async pushWebhooks(webhooks: any[]): Promise<{
+    successfullyPushed: number;
+    errors: any[];
+  }> {
+    let successfullyPushed = 0;
+    const errors: any[] = [];
+
+    for (const webhook of webhooks) {
+      try {
+        this.log(`Pushing webhook ${chalk.bold(webhook["name"])} ...`);
+        const webhooksService = await getWebhooksService(this.projectClient);
+
+        try {
+          await webhooksService.get({ webhookId: webhook["$id"] });
+          await webhooksService.update({
+            webhookId: webhook["$id"],
+            name: webhook.name,
+            url: webhook.url,
+            events: webhook.events,
+            enabled: webhook.enabled,
+            tls: webhook.tls,
+          });
+        } catch (e: unknown) {
+          if (e instanceof AppwriteException && Number(e.code) === 404) {
+            await webhooksService.create({
+              webhookId: webhook["$id"],
+              url: webhook.url,
+              name: webhook.name,
+              events: webhook.events,
+              enabled: webhook.enabled,
+              tls: webhook.tls,
+            });
+          } else {
+            throw e;
+          }
+        }
+
+        successfullyPushed++;
+      } catch (e: any) {
+        errors.push(e);
+        this.error(`Failed to push webhook ${webhook["name"]}: ${e.message}`);
       }
     }
 
@@ -2714,6 +2800,7 @@ const pushResources = async ({
       tablesDB: localConfig.getTablesDBs(),
       buckets: localConfig.getBuckets(),
       teams: localConfig.getTeams(),
+      webhooks: localConfig.getWebhooks(),
       topics: localConfig.getMessagingTopics(),
     };
 
@@ -3518,6 +3605,70 @@ const pushTeam = async (): Promise<void> => {
   }
 };
 
+const pushWebhook = async (): Promise<void> => {
+  const webhookIds: string[] = [];
+  const configWebhooks = localConfig.getWebhooks();
+
+  if (cliConfig.all) {
+    checkDeployConditions(localConfig);
+    webhookIds.push(...configWebhooks.map((w: any) => w.$id));
+  }
+
+  if (webhookIds.length === 0) {
+    const answers = await inquirer.prompt(questionsPushWebhooks);
+    if (answers.webhooks) {
+      webhookIds.push(...answers.webhooks);
+    }
+  }
+
+  if (webhookIds.length === 0) {
+    log("No webhooks found.");
+    hint(
+      `Use '${EXECUTABLE_NAME} pull webhooks' to synchronize existing ones.`,
+    );
+    return;
+  }
+
+  const webhooks: any[] = [];
+
+  for (const webhookId of webhookIds) {
+    const idWebhooks = configWebhooks.filter((w: any) => w.$id === webhookId);
+    webhooks.push(...idWebhooks);
+  }
+
+  if (
+    !(await approveChanges(
+      webhooks,
+      async (args: any) => {
+        const webhooksService = await getWebhooksService();
+        return await webhooksService.get({ webhookId: args.webhookId });
+      },
+      KeysWebhooks,
+      "webhookId",
+      "webhooks",
+    ))
+  ) {
+    return;
+  }
+
+  log("Pushing webhooks ...");
+
+  const pushInstance = await createPushInstance();
+  const result = await pushInstance.pushWebhooks(webhooks);
+
+  const { successfullyPushed, errors } = result;
+
+  if (successfullyPushed === 0) {
+    error("No webhooks were pushed.");
+  } else {
+    success(`Successfully pushed ${successfullyPushed} webhooks.`);
+  }
+
+  if (cliConfig.verbose) {
+    errors.forEach((e) => console.error(e));
+  }
+};
+
 const pushMessagingTopic = async (): Promise<void> => {
   const topicsIds: string[] = [];
   const configTopics = localConfig.getMessagingTopics();
@@ -3673,6 +3824,12 @@ push
   .alias("teams")
   .description("Push teams in the current project.")
   .action(actionRunner(pushTeam));
+
+push
+  .command("webhook")
+  .alias("webhooks")
+  .description("Push webhooks in the current project.")
+  .action(actionRunner(pushWebhook));
 
 push
   .command("topic")

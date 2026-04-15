@@ -115,7 +115,7 @@ jobs:
           end
 
           checksums.each do |artifact, checksum|
-            pattern = /(\Q#{artifact}\E"\n\s+sha256 ")([0-9a-f]{64})(")/
+            pattern = /(#{Regexp.escape(artifact)}"\n\s+sha256 ")([0-9a-f]{64})(")/
             unless text.sub!(pattern) { "#{$1}#{checksum}#{$3}" }
               abort("Failed to update checksum for #{artifact}")
             end

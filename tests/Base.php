@@ -210,6 +210,14 @@ abstract class Base extends TestCase
         'https://abc.example.com/console/project-self-hosted-project/sites/site-docs/deployments/deployment-456',
     ];
 
+    protected const CLI_HEADERS_RESPONSES = [
+        'x-sdk-name: cli; x-sdk-platform: server; x-sdk-language: cli; x-sdk-version: 0.0.1',
+    ];
+
+    protected const CLI_TYPEGEN_RESPONSES = [
+        'CLI_TYPEGEN:passed',
+    ];
+
     protected const CHANNEL_HELPER_RESPONSES = [
         'databases.db1.collections.col1.documents',
         'databases.db1.collections.col1.documents.doc1',
