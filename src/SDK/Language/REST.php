@@ -2,6 +2,8 @@
 
 namespace Appwrite\SDK\Language;
 
+use Twig\TwigFunction;
+
 class REST extends HTTP
 {
     /**
@@ -147,5 +149,35 @@ class REST extends HTTP
             'template'      => '/rest/docs/example.md.twig',
           ],
         ];
+    }
+
+    public function getFunctions(): array
+    {
+        return [
+            new TwigFunction('restExampleBodyParameters', function (array $service, array $method): array {
+                return $this->getExampleBodyParameters($service, $method);
+            }),
+        ];
+    }
+
+    /**
+     * Keep the team membership REST example focused on the copy-pasteable
+     * invite-by-email flow. The docs pipeline derives cURL snippets from this
+     * output and trims placeholder-only alternatives later on.
+     */
+    public function getExampleBodyParameters(array $service, array $method): array
+    {
+        $parameters = $method['parameters']['body'] ?? [];
+
+        if (($service['name'] ?? null) !== 'teams' || ($method['name'] ?? null) !== 'createMembership') {
+            return $parameters;
+        }
+
+        $preferred = ['email', 'roles', 'url'];
+        $filtered = \array_values(\array_filter($parameters, function (array $parameter) use ($preferred): bool {
+            return \in_array($parameter['name'] ?? null, $preferred, true);
+        }));
+
+        return empty($filtered) ? $parameters : $filtered;
     }
 }

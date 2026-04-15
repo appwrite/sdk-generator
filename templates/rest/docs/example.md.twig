@@ -15,10 +15,11 @@ Host: {{ spec.host }}
 {% endfor %}
 {% for key, header in method.headers %}
 {% if header == 'application/json' %}
+{% set bodyParameters = restExampleBodyParameters(service, method) %}
 
-{% if method.parameters.body %}
+{% if bodyParameters %}
 {
-{% for parameter in method.parameters.body %}
+{% for parameter in bodyParameters %}
   "{{ parameter.name }}": {{ parameter | paramExample }}{% if not loop.last %},{% endif ~%}
 {% endfor %}
 }
