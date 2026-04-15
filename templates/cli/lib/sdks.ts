@@ -10,9 +10,11 @@ import {
 
 export const sdkForConsole = async (
   requiresAuth: boolean = true,
+  endpointOverride?: string,
 ): Promise<Client> => {
   const client = new Client();
-  const endpoint = globalConfig.getEndpoint() || DEFAULT_ENDPOINT;
+  const endpoint =
+    endpointOverride || globalConfig.getEndpoint() || DEFAULT_ENDPOINT;
   const cookie = globalConfig.getCookie();
   const selfSigned = globalConfig.getSelfSigned();
 

@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import readline from "node:readline";
+import { stripVTControlCharacters } from "node:util";
 import { parse as parseDotenv } from "dotenv";
 import chalk from "chalk";
 import inquirer from "inquirer";
@@ -91,6 +92,7 @@ import {
   AuthMethod,
   AppwriteException,
   Client,
+  ImageFormat,
   Query,
 } from "@appwrite.io/console";
 import { Pools } from "./utils/pools.js";
@@ -108,8 +110,23 @@ const DEPLOYMENT_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
 const DEPLOYMENT_TIMEOUT_MINUTES = Math.round(
   DEPLOYMENT_TIMEOUT_MS / (60 * 1000),
 );
+const SITE_SCREENSHOT_FINALIZATION_TIMEOUT_MS = 30 * 1000; // 30 seconds
+const SITE_SCREENSHOT_BUCKET_ID = "screenshots";
+const SITE_SCREENSHOT_PREVIEW_WIDTH = 480;
+const SITE_SCREENSHOT_PREVIEW_HEIGHT = 270;
+const SITE_TERMINAL_PREVIEW_TARGET_WIDTH = 72;
+const SITE_TERMINAL_PREVIEW_MAX_WIDTH = 80;
+const SITE_TERMINAL_PREVIEW_MAX_HEIGHT = 22;
+const SITE_TERMINAL_PREVIEW_MIN_HEIGHT = 8;
 const WAITING_JOKE_THRESHOLD_MS = 30 * 1000; // 30 seconds
 const WAITING_JOKE_URL = "https://xkcd.com/303/";
+const ANSI_RESET = "\u001B[0m";
+
+type TerminalImageModule = typeof import("terminal-image");
+
+let terminalImageModulePromise:
+  | Promise<TerminalImageModule["default"]>
+  | undefined;
 
 function getDeploymentProgressText(
   status: string,
@@ -130,12 +147,286 @@ function getDeploymentTimeoutErrorMessage(): string {
   return `Deployment got stuck for more than ${DEPLOYMENT_TIMEOUT_MINUTES} minutes`;
 }
 
+async function getTerminalImage() {
+  terminalImageModulePromise ??= import("terminal-image").then(
+    (module) => module.default,
+  );
+
+  return terminalImageModulePromise;
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message.trim().length > 0) {
+    return error.message.trim();
+  }
+
+  if (Array.isArray(error)) {
+    const messages = error
+      .map((entry) => getErrorMessage(entry))
+      .filter((entry) => entry !== "Unknown error");
+
+    if (messages.length > 0) {
+      return messages.join("; ");
+    }
+  }
+
+  if (typeof error === "string" && error.trim().length > 0) {
+    return error.trim();
+  }
+
+  if (error && typeof error === "object") {
+    const objectMessage = Reflect.get(error, "message");
+
+    if (typeof objectMessage === "string" && objectMessage.trim().length > 0) {
+      return objectMessage.trim();
+    }
+
+    try {
+      return JSON.stringify(error);
+    } catch (_serializationError) {
+      // Ignore serialization failures and fall through to a generic message.
+    }
+  }
+
+  return "Unknown error";
+}
+
+function getSiteDeploymentScreenshots(deployment: Record<string, unknown>): {
+  screenshotLight?: string;
+  screenshotDark?: string;
+} {
+  const screenshotLight =
+    typeof deployment["screenshotLight"] === "string" &&
+    deployment["screenshotLight"].trim().length > 0
+      ? deployment["screenshotLight"]
+      : undefined;
+  const screenshotDark =
+    typeof deployment["screenshotDark"] === "string" &&
+    deployment["screenshotDark"].trim().length > 0
+      ? deployment["screenshotDark"]
+      : undefined;
+
+  return {
+    screenshotLight,
+    screenshotDark,
+  };
+}
+
+function hasSiteDeploymentScreenshots(
+  deployment: Record<string, unknown>,
+): boolean {
+  const { screenshotLight, screenshotDark } =
+    getSiteDeploymentScreenshots(deployment);
+
+  return Boolean(screenshotLight || screenshotDark);
+}
+
+function shouldRenderSiteTerminalPreview(): boolean {
+  return Boolean(process.stdout.isTTY) && !cliConfig.json && !cliConfig.raw;
+}
+
+function getSiteTerminalPreviewWidth(): number {
+  const columns = process.stdout.columns ?? 80;
+  return Math.max(
+    16,
+    Math.min(
+      columns - 4,
+      SITE_TERMINAL_PREVIEW_TARGET_WIDTH,
+      SITE_TERMINAL_PREVIEW_MAX_WIDTH,
+    ),
+  );
+}
+
+function getSiteTerminalPreviewHeight(): number {
+  const rows = process.stdout.rows ?? 24;
+  return Math.max(
+    SITE_TERMINAL_PREVIEW_MIN_HEIGHT,
+    Math.min(rows - 10, SITE_TERMINAL_PREVIEW_MAX_HEIGHT),
+  );
+}
+
+async function renderImageBufferToTerminalPreview(
+  buffer: Buffer,
+): Promise<string> {
+  const terminalImage = await getTerminalImage();
+  const originalTermProgram = process.env.TERM_PROGRAM;
+  const originalTermProgramVersion = process.env.TERM_PROGRAM_VERSION;
+  const originalKonsoleVersion = process.env.KONSOLE_VERSION;
+  const originalKittyWindowId = process.env.KITTY_WINDOW_ID;
+
+  // Force terminal-image's ANSI fallback so the preview is portable and can
+  // be framed consistently in the deploy summary.
+  delete process.env.TERM_PROGRAM;
+  delete process.env.TERM_PROGRAM_VERSION;
+  delete process.env.KONSOLE_VERSION;
+  delete process.env.KITTY_WINDOW_ID;
+
+  try {
+    return await terminalImage.buffer(buffer, {
+      width: getSiteTerminalPreviewWidth(),
+      height: getSiteTerminalPreviewHeight(),
+      preserveAspectRatio: true,
+    });
+  } finally {
+    if (originalTermProgram === undefined) {
+      delete process.env.TERM_PROGRAM;
+    } else {
+      process.env.TERM_PROGRAM = originalTermProgram;
+    }
+
+    if (originalTermProgramVersion === undefined) {
+      delete process.env.TERM_PROGRAM_VERSION;
+    } else {
+      process.env.TERM_PROGRAM_VERSION = originalTermProgramVersion;
+    }
+
+    if (originalKonsoleVersion === undefined) {
+      delete process.env.KONSOLE_VERSION;
+    } else {
+      process.env.KONSOLE_VERSION = originalKonsoleVersion;
+    }
+
+    if (originalKittyWindowId === undefined) {
+      delete process.env.KITTY_WINDOW_ID;
+    } else {
+      process.env.KITTY_WINDOW_ID = originalKittyWindowId;
+    }
+  }
+}
+
+async function fetchSiteScreenshotPreview(params: {
+  renderer: SiteTerminalPreviewRenderer;
+  fileId: string;
+}): Promise<string> {
+  const previewUrl = params.renderer.storageService.getFilePreview({
+    bucketId: SITE_SCREENSHOT_BUCKET_ID,
+    fileId: params.fileId,
+    width: SITE_SCREENSHOT_PREVIEW_WIDTH,
+    height: SITE_SCREENSHOT_PREVIEW_HEIGHT,
+    output: ImageFormat.Png,
+  });
+
+  const imageData = await params.renderer.consoleClient.call(
+    "get",
+    new URL(previewUrl),
+    {},
+    {},
+    "arrayBuffer",
+  );
+
+  if (!(imageData instanceof ArrayBuffer)) {
+    throw new Error("Failed to download the site screenshot preview.");
+  }
+
+  return renderImageBufferToTerminalPreview(Buffer.from(imageData));
+}
+
+function frameTerminalPreview(preview: string): string {
+  const lines = preview.split("\n").map((line) => line.replace(/\s+$/, ""));
+
+  while (
+    lines.length > 0 &&
+    stripVTControlCharacters(lines[0]).trim().length === 0
+  ) {
+    lines.shift();
+  }
+
+  while (
+    lines.length > 0 &&
+    stripVTControlCharacters(lines[lines.length - 1]).trim().length === 0
+  ) {
+    lines.pop();
+  }
+
+  if (lines.length === 0) {
+    return "";
+  }
+
+  const contentWidth = Math.max(
+    ...lines.map((line) => stripVTControlCharacters(line).length),
+  );
+  const border = `+-${"-".repeat(contentWidth)}-+`;
+
+  return [
+    border,
+    ...lines.map((line) => {
+      const visibleWidth = stripVTControlCharacters(line).length;
+
+      return `| ${line}${ANSI_RESET}${" ".repeat(contentWidth - visibleWidth)} |`;
+    }),
+    border,
+  ].join("\n");
+}
+
+async function renderSiteTerminalPreview(params: {
+  renderer: SiteTerminalPreviewRenderer;
+  screenshotLight?: string;
+  screenshotDark?: string;
+}): Promise<SiteTerminalPreviewResult> {
+  const warnings = new Set<string>();
+  const candidates: Array<{
+    fileId?: string;
+    label: "dark" | "light";
+  }> = [
+    { fileId: params.screenshotDark, label: "dark" },
+    { fileId: params.screenshotLight, label: "light" },
+  ];
+
+  for (const candidate of candidates) {
+    const { fileId, label } = candidate;
+
+    if (!fileId) {
+      continue;
+    }
+
+    try {
+      const preview = await fetchSiteScreenshotPreview({
+        renderer: params.renderer,
+        fileId,
+      });
+
+      return {
+        preview: frameTerminalPreview(preview),
+        warnings: [],
+      };
+    } catch (previewError) {
+      warnings.add(
+        `${label === "dark" ? "Dark mode" : "Light mode"} screenshot: ${getErrorMessage(previewError)}`,
+      );
+    }
+  }
+
+  return {
+    preview: undefined,
+    warnings: [...warnings],
+  };
+}
+
 interface FailedDeployment {
   name: string;
   $id: string;
   deployment: string;
   reason?: "failed" | "timeout";
   consoleUrl?: string;
+}
+
+interface SiteDeploymentSummary {
+  name: string;
+  url: string;
+  consoleUrl: string;
+  screenshotLight?: string;
+  screenshotDark?: string;
+  screenshotsPending?: boolean;
+}
+
+interface SiteTerminalPreviewRenderer {
+  consoleClient: Client;
+  storageService: Awaited<ReturnType<typeof getStorageService>>;
+}
+
+interface SiteTerminalPreviewResult {
+  preview?: string;
+  warnings: string[];
 }
 
 type DeploymentLogPrinterHandle = ReturnType<typeof createDeploymentLogPrinter>;
@@ -1311,7 +1602,7 @@ export class Push {
                 ),
               });
 
-              const timeoutDeadline = Date.now() + DEPLOYMENT_TIMEOUT_MS;
+              let timeoutDeadline = Date.now() + DEPLOYMENT_TIMEOUT_MS;
 
               while (true) {
                 if (Date.now() > timeoutDeadline) {
@@ -1433,20 +1724,20 @@ export class Push {
                   setTimeout(resolve, POLL_DEBOUNCE),
                 );
               }
-          } catch (e: any) {
-            errors.push(e);
-            deploymentLogPrinter.complete();
-            if (deploymentLogPrinter.hasPrintedLogs()) {
-              Spinner.log("");
+            } catch (e: any) {
+              errors.push(e);
+              deploymentLogPrinter.complete();
+              if (deploymentLogPrinter.hasPrintedLogs()) {
+                Spinner.log("");
+              }
+              updaterRow.fail({
+                errorMessage:
+                  e.message ?? "Unknown error occurred. Please try again",
+              });
+            } finally {
+              unsubscribeToggle();
+              await deploymentWatcher?.close();
             }
-            updaterRow.fail({
-              errorMessage:
-                e.message ?? "Unknown error occurred. Please try again",
-            });
-          } finally {
-            unsubscribeToggle();
-            await deploymentWatcher?.close();
-          }
           }
 
           updaterRow.stopSpinner();
@@ -1511,10 +1802,7 @@ export class Push {
     let successfullyDeployed = 0;
     const failedDeployments: FailedDeployment[] = [];
     const errors: any[] = [];
-    const deploymentLogs: {
-      url: string;
-      consoleUrl: string;
-    }[] = [];
+    const deploymentLogs: SiteDeploymentSummary[] = [];
 
     try {
       await Promise.all(
@@ -1774,6 +2062,8 @@ export class Push {
               deploymentId,
             );
             let waitingSince: number | null = null;
+            let readyWithoutScreenshotsSince: number | null = null;
+            let activationApplied = false;
             const deploymentLogPrinter = createDeploymentLogPrinter({
               label: `site:${site.name}`,
               showPrefix: sites.length > 1,
@@ -1821,7 +2111,7 @@ export class Push {
                 ),
               });
 
-              const timeoutDeadline = Date.now() + DEPLOYMENT_TIMEOUT_MS;
+              let timeoutDeadline = Date.now() + DEPLOYMENT_TIMEOUT_MS;
 
               while (true) {
                 if (Date.now() > timeoutDeadline) {
@@ -1859,7 +2149,12 @@ export class Push {
                 }
 
                 if (status === "ready") {
-                  if (activate) {
+                  const { screenshotLight, screenshotDark } =
+                    getSiteDeploymentScreenshots(response);
+                  const screenshotsReady =
+                    hasSiteDeploymentScreenshots(response);
+
+                  if (activate && !activationApplied) {
                     currentDeploymentEnd = "Setting active deployment...";
                     updaterRow.update({
                       status: "Activating",
@@ -1876,6 +2171,35 @@ export class Push {
                       siteId: site["$id"],
                       deploymentId,
                     });
+                    activationApplied = true;
+                  }
+
+                  if (!screenshotsReady) {
+                    readyWithoutScreenshotsSince ??= Date.now();
+                    timeoutDeadline = Math.max(
+                      timeoutDeadline,
+                      readyWithoutScreenshotsSince +
+                        SITE_SCREENSHOT_FINALIZATION_TIMEOUT_MS,
+                    );
+
+                    if (
+                      Date.now() - readyWithoutScreenshotsSince <
+                      SITE_SCREENSHOT_FINALIZATION_TIMEOUT_MS
+                    ) {
+                      currentDeploymentEnd = "Finalizing deployment preview...";
+                      updaterRow.update({
+                        status: "Finalizing",
+                        end: withDeploymentLogsHint(
+                          currentDeploymentEnd,
+                          deploymentLogsController,
+                        ),
+                      });
+
+                      await new Promise((resolve) =>
+                        setTimeout(resolve, POLL_DEBOUNCE),
+                      );
+                      continue;
+                    }
                   }
 
                   successfullyDeployed++;
@@ -1907,7 +2231,14 @@ export class Push {
                     end: "",
                   });
 
-                  deploymentLogs.push({ url, consoleUrl });
+                  deploymentLogs.push({
+                    name: site.name,
+                    url,
+                    consoleUrl,
+                    screenshotLight,
+                    screenshotDark,
+                    screenshotsPending: !screenshotsReady,
+                  });
 
                   break;
                 } else if (status === "failed") {
@@ -1943,20 +2274,20 @@ export class Push {
                   setTimeout(resolve, POLL_DEBOUNCE),
                 );
               }
-          } catch (e: any) {
-            errors.push(e);
-            deploymentLogPrinter.complete();
-            if (deploymentLogPrinter.hasPrintedLogs()) {
-              Spinner.log("");
+            } catch (e: any) {
+              errors.push(e);
+              deploymentLogPrinter.complete();
+              if (deploymentLogPrinter.hasPrintedLogs()) {
+                Spinner.log("");
+              }
+              updaterRow.fail({
+                errorMessage:
+                  e.message ?? "Unknown error occurred. Please try again",
+              });
+            } finally {
+              unsubscribeToggle();
+              await deploymentWatcher?.close();
             }
-            updaterRow.fail({
-              errorMessage:
-                e.message ?? "Unknown error occurred. Please try again",
-            });
-          } finally {
-            unsubscribeToggle();
-            await deploymentWatcher?.close();
-          }
           }
 
           updaterRow.stopSpinner();
@@ -1968,17 +2299,88 @@ export class Push {
     }
 
     if (deploymentLogs.length > 0) {
+      let sitePreviewRenderer: SiteTerminalPreviewRenderer | null = null;
+      let sitePreviewSetupWarning: string | null = null;
+      const emittedPreviewWarnings = new Set<string>();
+
+      if (
+        shouldRenderSiteTerminalPreview() &&
+        deploymentLogs.some(
+          (deploymentLog) =>
+            deploymentLog.screenshotLight || deploymentLog.screenshotDark,
+        )
+      ) {
+        try {
+          const consoleClient = await sdkForConsole(
+            true,
+            localConfig.getEndpoint() || globalConfig.getEndpoint(),
+          );
+          sitePreviewRenderer = {
+            consoleClient,
+            storageService: await getStorageService(consoleClient),
+          };
+        } catch (previewSetupError) {
+          sitePreviewSetupWarning = getErrorMessage(previewSetupError);
+        }
+      }
+
       process.stdout.write("\n");
-      deploymentLogs.forEach((dl, index) => {
+      for (const [index, dl] of deploymentLogs.entries()) {
         if (index > 0) {
           process.stdout.write("\n");
+        }
+
+        if (deploymentLogs.length > 1) {
+          process.stdout.write(`${chalk.cyan.bold(`Site: ${dl.name}`)}\n`);
+        }
+
+        if (dl.screenshotsPending) {
+          hint(
+            "Deployment is ready, but screenshot generation is still finalizing. Open the deployment page to view it once it is available.",
+          );
+        }
+
+        if (sitePreviewRenderer && (dl.screenshotLight || dl.screenshotDark)) {
+          const preview = await renderSiteTerminalPreview({
+            renderer: sitePreviewRenderer,
+            screenshotLight: dl.screenshotLight,
+            screenshotDark: dl.screenshotDark,
+          });
+
+          if (preview.preview) {
+            process.stdout.write(
+              `\n${chalk.cyan.bold("Screenshot preview")}\n\n`,
+            );
+            process.stdout.write(`${preview.preview}\n\n`);
+          }
+
+          for (const previewWarning of preview.warnings) {
+            const warningMessage = `Screenshot preview unavailable: ${previewWarning}`;
+
+            if (emittedPreviewWarnings.has(warningMessage)) {
+              continue;
+            }
+
+            emittedPreviewWarnings.add(warningMessage);
+            hint(warningMessage);
+          }
+        } else if (
+          sitePreviewSetupWarning &&
+          (dl.screenshotLight || dl.screenshotDark)
+        ) {
+          const warningMessage = `Screenshot preview unavailable: ${sitePreviewSetupWarning}`;
+
+          if (!emittedPreviewWarnings.has(warningMessage)) {
+            emittedPreviewWarnings.add(warningMessage);
+            hint(warningMessage);
+          }
         }
 
         if (dl.url) {
           this.log(`Preview link: ${chalk.cyan(dl.url)}`);
         }
         this.log(`Deployment page: ${chalk.cyan(dl.consoleUrl)}`);
-      });
+      }
       process.stdout.write("\n");
     }
 
