@@ -68,7 +68,9 @@ namespace {{ spec.title | caseUcfirst }}
                 }
             }
 
-            return bestMatch != null ? bestMatch.Hydrate(response) : response;
+            return bestMatch != null
+                ? bestMatch.Hydrate(response)
+                : throw new System.Exception("Unable to match response to any expected response model");
         }
     }
 }

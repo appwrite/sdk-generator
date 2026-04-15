@@ -36,10 +36,9 @@ class Service:
         self,
         response: Any,
         model: Optional[Type[ModelType]] = None,
-        union_models: Optional[Tuple[Type[AppwriteModel], ...]] = None,
         union_dispatch: Optional[Tuple[UnionDispatchEntry, ...]] = None
     ) -> Any:
-        if model is None and not union_models and not union_dispatch:
+        if model is None and not union_dispatch:
             return response
 
         if not isinstance(response, dict):
@@ -76,11 +75,5 @@ class Service:
                 raise AppwriteException(
                     f'Unable to parse response into {best_model.__name__}: {error}'
                 ) from error
-
-        for union_model in union_models or ():
-            try:
-                return union_model.model_validate(response)
-            except ValidationError:
-                continue
 
         raise AppwriteException('Unable to parse response into any known model')

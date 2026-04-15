@@ -77,13 +77,14 @@ func parseUnionResponse(bytes []byte, dispatch []unionResponseDispatch) (models.
 	}
 
 	bestScore := -1
-	var bestModel models.Model
+	var bestDispatch *unionResponseDispatch
 	responseKeys := make(map[string]struct{}, len(response))
 	for key := range response {
 		responseKeys[key] = struct{}{}
 	}
 
-	for _, candidate := range dispatch {
+	for i := range dispatch {
+		candidate := &dispatch[i]
 		missingRequiredField := false
 		for _, field := range candidate.required {
 			if _, ok := responseKeys[field]; !ok {
@@ -104,21 +105,16 @@ func parseUnionResponse(bytes []byte, dispatch []unionResponseDispatch) (models.
 		}
 
 		if score > bestScore {
-			model, err := candidate.hydrate(bytes)
-			if err != nil {
-				return nil, err
-			}
-
 			bestScore = score
-			bestModel = model
+			bestDispatch = candidate
 		}
 	}
 
-	if bestModel == nil {
+	if bestDispatch == nil {
 		return nil, errors.New("unable to match response to any expected response model")
 	}
 
-	return bestModel, nil
+	return bestDispatch.hydrate(bytes)
 }
 {% endif %}
 
