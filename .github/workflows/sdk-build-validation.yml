@@ -10,6 +10,11 @@ jobs:
   generate-and-build:
     name: ${{ matrix.sdk }} (${{ matrix.platform }})
     runs-on: ubuntu-latest
+    env:
+      # Bun 1.3.12 has a sig_size calculation bug in macho.zig that truncates the
+      # LC_CODE_SIGNATURE blob on cross-compiled Darwin binaries (oven-sh/bun#29120).
+      # Unpin once a Bun release includes the upstream fix (oven-sh/bun#29122).
+      CLI_BUN_VERSION: '1.3.11'
     strategy:
       fail-fast: false
       matrix:
@@ -97,7 +102,7 @@ jobs:
         if: matrix.sdk == 'cli'
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 'latest'
+          bun-version: ${{ env.CLI_BUN_VERSION }}
 
       - name: Setup Flutter
         if: matrix.sdk == 'flutter'
@@ -237,6 +242,11 @@ jobs:
               exit 1
               ;;
           esac
+
+      - name: Verify CLI Darwin binaries include valid embedded code signatures
+        if: matrix.sdk == 'cli'
+        working-directory: examples/cli
+        run: python3 ../../scripts/verify-darwin-signatures.py
 
       - name: Verify npm package entry points
         if: matrix.sdk == 'web' || matrix.sdk == 'node' || matrix.sdk == 'react-native' || matrix.sdk == 'cli'
