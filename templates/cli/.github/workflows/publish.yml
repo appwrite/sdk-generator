@@ -12,9 +12,10 @@ jobs:
   build-and-publish:
     runs-on: ubuntu-latest
     env:
-      # Bun 1.3.12 started producing unsigned Darwin binaries when cross-compiling
-      # from Linux, which macOS kills on launch. Keep releases on the last known-good
-      # toolchain until upstream fixes the regression.
+      # Bun 1.3.12 has a sig_size calculation bug in macho.zig that truncates the
+      # LC_CODE_SIGNATURE blob on cross-compiled Darwin binaries, so macOS kills
+      # them on launch (oven-sh/bun#29120). Unpin once a Bun release includes the
+      # upstream fix (oven-sh/bun#29122).
       CLI_BUN_VERSION: '1.3.11'
     steps:
       - uses: actions/checkout@v4
