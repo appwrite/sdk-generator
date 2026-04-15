@@ -2,7 +2,7 @@ package {{ sdk.namespace | caseDot }}.services
 
 import {{ sdk.namespace | caseDot }}.Client
 
-internal data class UnionResponseModelDispatch(
+data class UnionResponseModelDispatch(
     val required: List<String>,
     val all: List<String>,
     val hydrate: (Map<String, Any>) -> Any
@@ -28,6 +28,6 @@ abstract class Service(val client: Client) {
             }
         }
 
-        return bestMatch?.hydrate(responseMap) ?: response
+        return bestMatch?.let { it.hydrate(responseMap) } ?: response
     }
 }
