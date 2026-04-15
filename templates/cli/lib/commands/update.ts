@@ -64,6 +64,15 @@ const getStandaloneBinaryTargetPath = (): string => {
   return execPath;
 };
 
+const isExpectedStandaloneBinaryPath = (candidatePath: string): boolean => {
+  const basename = path.basename(candidatePath).toLowerCase();
+  const expectedName = EXECUTABLE_NAME.toLowerCase();
+
+  return (
+    basename === expectedName || basename === `${expectedName}.exe`
+  );
+};
+
 const isDirectoryWritable = (directoryPath: string): boolean => {
   try {
     fs.accessSync(directoryPath, fs.constants.W_OK);
@@ -189,6 +198,13 @@ const updateViaStandaloneBinary = async (
   }
 
   const targetPath = getStandaloneBinaryTargetPath();
+  if (!isExpectedStandaloneBinaryPath(targetPath)) {
+    console.log("");
+    error("Could not determine the standalone binary path.");
+    hint(`Download the latest release manually at: ${GITHUB_RELEASES_URL}`);
+    return;
+  }
+
   const targetDir = path.dirname(targetPath);
   const tempName = `${path.basename(targetPath)}.tmp-${process.pid}`;
   const writableDirectory = isDirectoryWritable(targetDir);
@@ -249,6 +265,9 @@ const showManualInstructions = (latestVersion: string): void => {
     try {
       const artifact = getStandaloneBinaryArtifactName();
       const targetPath = getStandaloneBinaryTargetPath();
+      if (!isExpectedStandaloneBinaryPath(targetPath)) {
+        throw new Error("Could not determine the standalone binary path.");
+      }
       const tempPath = path.join(os.tmpdir(), path.basename(targetPath));
 
       log(`${chalk.bold("Option 3: Install Script / Standalone Binary")}`);
@@ -271,10 +290,14 @@ const showManualInstructions = (latestVersion: string): void => {
  * Show interactive menu for choosing update method
  */
 const chooseUpdateMethod = async (latestVersion: string): Promise<void> => {
+  const canOfferStandaloneUpdate =
+    process.platform !== "win32" &&
+    isExpectedStandaloneBinaryPath(getStandaloneBinaryTargetPath());
+
   const choices = [
     { name: "NPM", value: "npm" },
     { name: "Homebrew", value: "homebrew" },
-    ...(process.platform === "win32"
+    ...(!canOfferStandaloneUpdate
       ? []
       : [
           {
