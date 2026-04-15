@@ -691,6 +691,24 @@ class Rust extends Language
         return $baseType;
     }
 
+    /**
+     * Snake-case using the same algorithm as the caseSnake Twig filter (SDK.php),
+     * so PHP-generated variable references match template-generated declarations.
+     */
+    protected function toCaseSnake(string $value): string
+    {
+        preg_match_all('!([A-Za-z][A-Z0-9]*(?=$|[A-Z][a-z0-9])|[A-Za-z][a-z0-9]+)!', $value, $matches);
+        $ret = $matches[0];
+
+        foreach ($ret as &$match) {
+            $match = $match == strtoupper($match)
+                ? strtolower($match)
+                : lcfirst($match);
+        }
+
+        return implode('_', $ret);
+    }
+
     protected function formatArrayItemExample(mixed $value, array $items = []): string
     {
         $itemType = $items["type"] ?? null;
@@ -715,7 +733,7 @@ class Rust extends Language
         $enumValues = $param["enumValues"] ?? [];
 
         if (empty($enumValues)) {
-            return "";
+            return $this->getParamExample($param);
         }
 
         $enumKeys = $param["enumKeys"] ?? [];
@@ -774,7 +792,7 @@ class Rust extends Language
     protected function getDocsArgumentExample(array $param, string $crateName): string
     {
         if (($param["type"] ?? "") === self::TYPE_FILE) {
-            $value = $this->toSnakeCase($param["name"] ?? "file");
+            $value = $this->toCaseSnake($param["name"] ?? "file");
 
             if (isset($this->getIdentifierOverrides()[$value])) {
                 $value = $this->getIdentifierOverrides()[$value];
