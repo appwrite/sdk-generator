@@ -153,6 +153,11 @@ class Rust extends Language
                 "template" => "rust/README.md.twig",
             ],
             [
+                "scope" => "method",
+                "destination" => "docs/examples/{{service.name | caseLower}}/{{method.name | caseKebab}}.md",
+                "template" => "rust/docs/example.md.twig",
+            ],
+            [
                 "scope" => "default",
                 "destination" => "CHANGELOG.md",
                 "template" => "rust/CHANGELOG.md.twig",
@@ -465,6 +470,32 @@ class Rust extends Language
                     $output .= "serde_json::json!({})";
                     break;
                 case self::TYPE_ARRAY:
+                    if (\is_string($example) && $this->isPermissionString($example)) {
+                        return $this->getPermissionExample($example);
+                    }
+
+                    $items = $param["items"] ?? $param["array"] ?? [];
+
+                    if (\is_string($example) && $example !== "") {
+                        $decoded = json_decode($example, true);
+
+                        if (\is_array($decoded)) {
+                            $formatted = array_map(
+                                fn ($value) => $this->formatArrayItemExample($value, $items),
+                                $decoded,
+                            );
+
+                            return "vec![" . implode(", ", $formatted) . "]";
+                        }
+                    } elseif (\is_array($example)) {
+                        $formatted = array_map(
+                            fn ($value) => $this->formatArrayItemExample($value, $items),
+                            $example,
+                        );
+
+                        return "vec![" . implode(", ", $formatted) . "]";
+                    }
+
                     if (preg_match('/^\[(.*)]$/s', $example, $match)) {
                         $example = $match[1];
                     }
@@ -477,6 +508,37 @@ class Rust extends Language
         }
 
         return $output;
+    }
+
+    public function getPermissionExample(string $example): string
+    {
+        $permissions = [];
+
+        foreach ($this->extractPermissionParts($example) as $permission) {
+            $action = $this->transformPermissionAction($permission["action"]);
+            $roleName = $this->transformPermissionRole($permission["role"]);
+            $roleId = $permission["id"] ?? null;
+            $innerRole = $permission["innerRole"] ?? null;
+
+            if ($roleId === null && str_contains($roleName, "/")) {
+                [$roleName, $innerRole] = explode("/", $roleName, 2);
+            }
+
+            $roleExpr = match ($roleName) {
+                "any" => "Role::any()",
+                "guests" => "Role::guests()",
+                "users" => "Role::users(" . ($innerRole !== null ? 'Some("' . addslashes($innerRole) . '")' : "None") . ")",
+                "user" => 'Role::user("' . addslashes((string)$roleId) . '", ' . ($innerRole !== null ? 'Some("' . addslashes($innerRole) . '")' : "None") . ")",
+                "team" => 'Role::team("' . addslashes((string)$roleId) . '", ' . ($innerRole !== null ? 'Some("' . addslashes($innerRole) . '")' : "None") . ")",
+                "member" => 'Role::member("' . addslashes((string)$roleId) . '")',
+                "label" => 'Role::label("' . addslashes((string)$roleId) . '")',
+                default => 'Role::from("' . addslashes($roleName) . '")',
+            };
+
+            $permissions[] = "Permission::{$action}({$roleExpr}).to_string()";
+        }
+
+        return $this->getArrayOf(implode(", ", $permissions));
     }
 
     /**
@@ -516,6 +578,9 @@ class Rust extends Language
             new TwigFilter("caseEnumKey", function (string $value) {
                 return $this->toPascalCase($value);
             }),
+            new TwigFilter("docsArgumentExample", function (array $param, string $crateName) {
+                return $this->getDocsArgumentExample($param, $crateName);
+            }, ["is_safe" => ["html"]]),
             new TwigFilter("inputType", function (
                 array $property,
                 array $spec = [],
@@ -621,6 +686,125 @@ class Rust extends Language
 
         // Default: return base type as-is
         return $baseType;
+    }
+
+    /**
+     * Snake-case using the same algorithm as the caseSnake Twig filter (SDK.php),
+     * so PHP-generated variable references match template-generated declarations.
+     */
+    protected function toCaseSnake(string $value): string
+    {
+        preg_match_all('!([A-Za-z][A-Z0-9]*(?=$|[A-Z][a-z0-9])|[A-Za-z][a-z0-9]+)!', $value, $matches);
+        $ret = $matches[0];
+
+        foreach ($ret as &$match) {
+            $match = $match == strtoupper($match)
+                ? strtolower($match)
+                : lcfirst($match);
+        }
+
+        return implode('_', $ret);
+    }
+
+    protected function formatArrayItemExample(mixed $value, array $items = []): string
+    {
+        $itemType = $items["type"] ?? null;
+
+        return match ($itemType) {
+            self::TYPE_INTEGER, self::TYPE_NUMBER => (string)$value,
+            self::TYPE_BOOLEAN => $value ? "true" : "false",
+            self::TYPE_OBJECT => "serde_json::json!(" . json_encode($value, JSON_UNESCAPED_SLASHES) . ")",
+            self::TYPE_STRING => '"' . addslashes((string)$value) . '"' . ".into()",
+            default => match (true) {
+                \is_string($value) => '"' . addslashes($value) . '"' . ".into()",
+                \is_bool($value) => $value ? "true" : "false",
+                \is_int($value), \is_float($value) => (string)$value,
+                \is_array($value) => "serde_json::json!(" . json_encode($value, JSON_UNESCAPED_SLASHES) . ")",
+                default => "serde_json::Value::Null",
+            },
+        };
+    }
+
+    protected function getEnumExample(array $param, string $prefix = ""): string
+    {
+        $enumValues = $param["enumValues"] ?? [];
+
+        if (empty($enumValues)) {
+            return $this->getParamExample($param);
+        }
+
+        $enumKeys = $param["enumKeys"] ?? [];
+        $enumName = $this->toPascalCase($param["enumName"] ?? $param["name"] ?? "");
+        $example = $param["example"] ?? null;
+        $isArray = ($param["type"] ?? "") === self::TYPE_ARRAY;
+
+        $resolveKey = function ($value) use ($enumValues, $enumKeys) {
+            $index = array_search($value, $enumValues, true);
+
+            if ($index !== false && isset($enumKeys[$index]) && $enumKeys[$index] !== "") {
+                return $this->toPascalCase($enumKeys[$index]);
+            }
+
+            if ($index !== false && isset($enumValues[$index])) {
+                return $this->toPascalCase($enumValues[$index]);
+            }
+
+            $fallback = $enumKeys[0] ?? $enumValues[0] ?? $value;
+
+            return $this->toPascalCase((string)$fallback);
+        };
+
+        $enumPath = $prefix . $enumName . "::";
+
+        if ($isArray) {
+            $values = [];
+
+            if (\is_string($example) && $example !== "") {
+                $decoded = json_decode($example, true);
+
+                if (\is_array($decoded)) {
+                    $values = $decoded;
+                }
+            } elseif (\is_array($example)) {
+                $values = $example;
+            }
+
+            if (empty($values)) {
+                $values = [$enumValues[0]];
+            }
+
+            $items = array_map(
+                fn ($value) => $enumPath . $resolveKey($value),
+                $values,
+            );
+
+            return "vec![" . implode(", ", $items) . "]";
+        }
+
+        $value = ($example !== null && $example !== "") ? $example : $enumValues[0];
+
+        return $enumPath . $resolveKey($value);
+    }
+
+    protected function getDocsArgumentExample(array $param, string $crateName): string
+    {
+        if (($param["type"] ?? "") === self::TYPE_FILE) {
+            $value = $this->toCaseSnake($param["name"] ?? "file");
+
+            if (isset($this->getIdentifierOverrides()[$value])) {
+                $value = $this->getIdentifierOverrides()[$value];
+            }
+
+            return ($param["required"] ?? false) ? $value : "Some({$value})";
+        }
+
+        if (!empty($param["enumValues"]) || !empty($param["enumName"])) {
+            $value = $this->getEnumExample($param, $crateName . "::enums::");
+        } else {
+            $value = $this->getParamExample($param);
+        }
+
+        return ($param["required"] ?? false) ? $value : "Some({$value})";
     }
 
     /**
