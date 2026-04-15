@@ -40,6 +40,8 @@ open class Service {
             }
         }
 
-        return bestMatch?.hydrate(responseMap) ?? response
+        return bestMatch?.hydrate(responseMap) ?? {
+            fatalError("Unable to match response to any expected response model")
+        }()
     }
 }

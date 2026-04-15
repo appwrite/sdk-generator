@@ -33,7 +33,7 @@ module {{spec.title | caseUcfirst}}
                 end
             end
 
-            return response if best_model.nil?
+            raise Exception, "Unable to match response to any expected response model" if best_model.nil?
 
             hydrate_response(best_model, response)
         end
