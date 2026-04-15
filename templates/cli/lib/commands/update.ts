@@ -7,7 +7,7 @@ import chalk from "chalk";
 import inquirer from "inquirer";
 import { success, log, warn, error, hint, actionRunner } from "../parser.js";
 import {
-  getLatestVersion,
+  getLatestVersionForInstallation,
   compareVersions,
   getErrorMessage,
 } from "../utils.js";
@@ -438,7 +438,10 @@ interface UpdateOptions {
  */
 const updateCli = async ({ manual }: UpdateOptions = {}): Promise<void> => {
   try {
-    const latestVersion = await getLatestVersion();
+    const installationMethod = detectInstallationMethod();
+    const latestVersion = await getLatestVersionForInstallation(
+      installationMethod,
+    );
 
     const comparison = compareVersions(version, latestVersion);
 
@@ -464,8 +467,6 @@ const updateCli = async ({ manual }: UpdateOptions = {}): Promise<void> => {
       showManualInstructions(latestVersion);
       return;
     }
-
-    const installationMethod = detectInstallationMethod();
 
     switch (installationMethod) {
       case "npm":
