@@ -177,6 +177,12 @@ class SDK
         $this->twig->addFilter(new TwigFilter('typeName', function ($value, $spec = []) {
             return $this->language->getTypeName($value, $spec);
         }, ['is_safe' => ['html']]));
+        $this->twig->addFilter(new TwigFilter('getValidResponseModels', function ($value) {
+            return $this->getValidResponseModels($value);
+        }));
+        $this->twig->addFilter(new TwigFilter('getUnionDispatch', function ($value, array $spec = []) {
+            return $this->getUnionDispatch($value, $spec);
+        }));
         $this->twig->addFilter(new TwigFilter('paramDefault', function ($value) {
             return $this->language->getParamDefault($value);
         }, ['is_safe' => ['html']]));
@@ -1430,5 +1436,69 @@ class SDK
         $str = lcfirst($str);
 
         return $str;
+    }
+
+    /**
+     * @param array $method
+     * @return array<int, string>
+     */
+    protected function getValidResponseModels(array $method): array
+    {
+        $responseModels = [];
+
+        foreach ($method['responseModels'] ?? [] as $modelName) {
+            if (empty($modelName) || $modelName === 'any' || \in_array($modelName, $responseModels, true)) {
+                continue;
+            }
+
+            $responseModels[] = $modelName;
+        }
+
+        if (
+            empty($responseModels)
+            && !empty($method['responseModel'])
+            && $method['responseModel'] !== 'any'
+        ) {
+            $responseModels[] = $method['responseModel'];
+        }
+
+        return $responseModels;
+    }
+
+    /**
+     * @param array $method
+     * @param array $spec
+     * @return array<string, array{required: array<int, string>, all: array<int, string>}>
+     */
+    protected function getUnionDispatch(array $method, array $spec = []): array
+    {
+        $dispatch = [];
+
+        foreach ($method['responseModels'] ?? [] as $modelName) {
+            if (empty($modelName) || $modelName === 'any' || isset($dispatch[$modelName])) {
+                continue;
+            }
+
+            $definition = $spec['definitions'][$modelName] ?? null;
+
+            if ($definition === null || !\is_array($definition['properties'] ?? null)) {
+                continue;
+            }
+
+            $dispatch[$modelName] = [
+                'required' => [],
+                'all' => [],
+            ];
+
+            foreach ($definition['properties'] as $propertyName => $property) {
+                $dispatch[$modelName]['all'][] = $propertyName;
+
+                if (!empty($property['required'])) {
+                    $dispatch[$modelName]['required'][] = $propertyName;
+                }
+            }
+        }
+
+        return $dispatch;
     }
 }

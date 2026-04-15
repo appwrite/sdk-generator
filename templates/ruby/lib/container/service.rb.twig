@@ -3,5 +3,47 @@ module {{spec.title | caseUcfirst}}
         def initialize(client)
             @client = client
         end
+
+        protected
+
+        def parse_response(response, models = [], dispatch = {})
+            return response unless response.is_a?(Hash) && !models.empty?
+
+            if models.length == 1
+                return hydrate_response(models[0], response)
+            end
+
+            return response if dispatch.empty?
+
+            best_model = nil
+            best_score = -1
+            response_keys = response.keys
+
+            dispatch.each do |model, metadata|
+                required_fields = metadata[:required] || []
+                all_fields = metadata[:all] || []
+
+                next unless required_fields.all? { |field| response_keys.include?(field) }
+
+                score = all_fields.count { |field| response_keys.include?(field) }
+
+                if score > best_score
+                    best_score = score
+                    best_model = model
+                end
+            end
+
+            return response if best_model.nil?
+
+            hydrate_response(best_model, response)
+        end
+
+        private
+
+        def hydrate_response(model, response)
+            return response unless model.respond_to?("from")
+
+            model.from(map: response)
+        end
     end 
 end

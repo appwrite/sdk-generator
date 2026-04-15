@@ -168,6 +168,11 @@ class Go extends Language
                 'template'      => 'go/client_test.go.twig',
             ],
             [
+                'scope'         => 'default',
+                'destination'   => 'models/model_interface.go',
+                'template'      => 'go/models/model_interface.go.twig',
+            ],
+            [
                 'scope'         => 'service',
                 'destination'   => '{{ service.name | caseLower}}/{{service.name | caseSnake}}.go',
                 'template'      => 'go/services/service.go.twig',
@@ -442,7 +447,7 @@ class Go extends Language
             \array_key_exists('responseModels', $method)
             && \count($method['responseModels']) > 1
         ) {
-            return 'interface{}';
+            return 'models.Model';
         }
 
         // Check for missing or generic response model

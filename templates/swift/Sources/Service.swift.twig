@@ -1,3 +1,9 @@
+internal struct UnionResponseModelDispatch {
+    let required: [String]
+    let all: [String]
+    let hydrate: ([String: Any]) -> Any
+}
+
 open class Service {
 
     internal var client: Client
@@ -5,5 +11,35 @@ open class Service {
     public init(_ client: Client)
     {
         self.client = client
+    }
+
+    internal func parseResponse(_ response: Any, dispatch: [UnionResponseModelDispatch]) -> Any {
+        guard let responseMap = response as? [String: Any], !dispatch.isEmpty else {
+            return response
+        }
+
+        let responseKeys = Set(responseMap.keys)
+        var bestMatch: UnionResponseModelDispatch?
+        var bestScore = -1
+
+        for candidate in dispatch {
+            let hasRequiredFields = candidate.required.allSatisfy { responseKeys.contains($0) }
+            if !hasRequiredFields {
+                continue
+            }
+
+            let score = candidate.all.reduce(into: 0) { result, field in
+                if responseKeys.contains(field) {
+                    result += 1
+                }
+            }
+
+            if score > bestScore {
+                bestScore = score
+                bestMatch = candidate
+            }
+        }
+
+        return bestMatch?.hydrate(responseMap) ?? response
     }
 }

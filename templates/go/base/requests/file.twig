@@ -12,20 +12,61 @@
 {% endif %}
 {% endfor %}
 
-    resp, err := srv.client.FileUpload(path, headers, params, paramName, uploadId)
-    if err != nil {
+	resp, err := srv.client.FileUpload(path, headers, params, paramName, uploadId)
+	if err != nil {
 		return nil, err
 	}
-	var parsed {{ method | returnType(spec, spec.title | caseLower) }}
 	if strings.HasPrefix(resp.Type, "application/json") {
+{% if method | returnType(spec, spec.title | caseLower) == 'models.Model' %}
+{% set unionDispatch = method | getUnionDispatch(spec) %}
+		parsed, err := parseUnionResponse([]byte(resp.Result.(string)), []unionResponseDispatch{
+{% for modelName, metadata in unionDispatch %}
+			{
+				required: []string{
+{% for field in metadata.required %}
+					"{{ field }}",
+{% endfor %}
+				},
+				all: []string{
+{% for field in metadata.all %}
+					"{{ field }}",
+{% endfor %}
+				},
+				hydrate: func(bytes []byte) (models.Model, error) {
+					parsed := models.{{ modelName | caseUcfirst }}{}.New(bytes)
+					if err := json.Unmarshal(bytes, parsed); err != nil {
+						return nil, err
+					}
+					return parsed, nil
+				},
+			}{% if not loop.last %},
+{% endif %}
+{% endfor %}
+		})
+		if err != nil {
+			return nil, err
+		}
+		return parsed, nil
+{% else %}
+		var parsed {{ method | returnType(spec, spec.title | caseLower) }}
 		err = json.Unmarshal([]byte(resp.Result.(string)), &parsed)
 		if err != nil {
 			return nil, err
 		}
 		return &parsed, nil
+{% endif %}
 	}
+{% if method | returnType(spec, spec.title | caseLower) == 'models.Model' %}
+	parsed, ok := resp.Result.(models.Model)
+	if !ok {
+		return nil, errors.New("unexpected response type")
+	}
+	return parsed, nil
+{% else %}
+	var parsed {{ method | returnType(spec, spec.title | caseLower) }}
 	parsed, ok := resp.Result.({{ method | returnType(spec, spec.title | caseLower) }})
 	if !ok {
 		return nil, errors.New("unexpected response type")
 	}
 	return &parsed, nil
+{% endif %}

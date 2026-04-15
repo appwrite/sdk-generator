@@ -69,6 +69,20 @@ open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
         let converter: (Any) -> {{ method | returnType(spec) | raw }} = { response in
             {%~ if method.responseModel == 'any' %}
             return response
+            {%~ elseif (method | getValidResponseModels)|length > 1 %}
+            return self.parseResponse(
+                response,
+                dispatch: [
+{% set unionDispatch = method | getUnionDispatch(spec) %}
+{% for modelName, metadata in unionDispatch %}
+                    UnionResponseModelDispatch(
+                        required: [{% for field in metadata.required %}"{{ field }}"{% if not loop.last %}, {% endif %}{% endfor %}],
+                        all: [{% for field in metadata.all %}"{{ field }}"{% if not loop.last %}, {% endif %}{% endfor %}],
+                        hydrate: { {{ spec.title | caseUcfirst}}Models.{{ modelName | caseUcfirst }}.from(map: $0) }
+                    ){% if not loop.last %},{% endif %}{{ "\n" }}
+{% endfor %}
+                ]
+            )
             {%~ else %}
             return {{ spec.title | caseUcfirst}}Models.{{method.responseModel | caseUcfirst}}.from(map: response as! [String: Any])
             {%~ endif %}

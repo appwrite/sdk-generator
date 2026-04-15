@@ -2,11 +2,73 @@ namespace {{ spec.title | caseUcfirst }}
 {
     public abstract class Service
     {
+        protected sealed class UnionResponseModelDispatch
+        {
+            public string[] Required { get; }
+            public string[] All { get; }
+            public System.Func<System.Collections.Generic.Dictionary<string, object>, object> Hydrate { get; }
+
+            public UnionResponseModelDispatch(
+                string[] required,
+                string[] all,
+                System.Func<System.Collections.Generic.Dictionary<string, object>, object> hydrate
+            )
+            {
+                Required = required;
+                All = all;
+                Hydrate = hydrate;
+            }
+        }
+
         protected readonly Client _client;
 
         public Service(Client client)
         {
             this._client = client;
+        }
+
+        protected static object ParseResponse(
+            System.Collections.Generic.Dictionary<string, object> response,
+            System.Collections.Generic.IEnumerable<UnionResponseModelDispatch> dispatch
+        )
+        {
+            UnionResponseModelDispatch bestMatch = null;
+            var bestScore = -1;
+
+            foreach (var candidate in dispatch)
+            {
+                var hasRequiredFields = true;
+                foreach (var field in candidate.Required)
+                {
+                    if (!response.ContainsKey(field))
+                    {
+                        hasRequiredFields = false;
+                        break;
+                    }
+                }
+
+                if (!hasRequiredFields)
+                {
+                    continue;
+                }
+
+                var score = 0;
+                foreach (var field in candidate.All)
+                {
+                    if (response.ContainsKey(field))
+                    {
+                        score++;
+                    }
+                }
+
+                if (score > bestScore)
+                {
+                    bestScore = score;
+                    bestMatch = candidate;
+                }
+            }
+
+            return bestMatch != null ? bestMatch.Hydrate(response) : response;
         }
     }
 }

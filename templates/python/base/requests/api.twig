@@ -7,14 +7,28 @@
 {% endfor %}
         }, api_params{% if method.type == 'webAuth' %}, response_type='location'{% endif %})
 {% if method.responseModels is defined and method.responseModels|length > 1 %}
-{% set validResponseModels = [] %}
-{% for responseModel in method.responseModels %}
-{% if responseModel and responseModel != 'any' %}
-{% set validResponseModels = validResponseModels|merge([responseModel]) %}
-{% endif %}
-{% endfor %}
+{% set unionDispatch = method | getUnionDispatch(spec) %}
 
-        return self._parse_response(response, union_models=({% for responseModel in validResponseModels %}{% if (responseModel | caseUcfirst) == (service.name | caseUcfirst) %}{{ responseModel | caseUcfirst }}Model{% else %}{{ responseModel | caseUcfirst }}{% endif %}, {% endfor %}))
+        return self._parse_response(
+            response,
+            union_dispatch=(
+{% for modelName, metadata in unionDispatch %}
+                (
+                    {% if (modelName | caseUcfirst) == (service.name | caseUcfirst) %}{{ modelName | caseUcfirst }}Model{% else %}{{ modelName | caseUcfirst }}{% endif %},
+                    (
+{% for field in metadata.required %}
+                        '{{ field }}',
+{% endfor %}
+                    ),
+                    (
+{% for field in metadata.all %}
+                        '{{ field }}',
+{% endfor %}
+                    ),
+                ){% if not loop.last %},{% endif %}{{ "\n" }}
+{% endfor %}
+            ),
+        )
 {% elseif method.responseModel and method.responseModel != 'any' %}
 {% set isGenericResponse = method.responseModel | hasGenericType(spec) %}
 {% if isGenericResponse %}

@@ -8,6 +8,7 @@ from .exception import AppwriteException
 from .models.base_model import AppwriteModel
 
 ModelType = TypeVar('ModelType', bound=AppwriteModel)
+UnionDispatchEntry = Tuple[Type[AppwriteModel], Tuple[str, ...], Tuple[str, ...]]
 
 class Service:
     def __init__(self, client: Client):
@@ -35,9 +36,10 @@ class Service:
         self,
         response: Any,
         model: Optional[Type[ModelType]] = None,
-        union_models: Optional[Tuple[Type[AppwriteModel], ...]] = None
+        union_models: Optional[Tuple[Type[AppwriteModel], ...]] = None,
+        union_dispatch: Optional[Tuple[UnionDispatchEntry, ...]] = None
     ) -> Any:
-        if model is None and not union_models:
+        if model is None and not union_models and not union_dispatch:
             return response
 
         if not isinstance(response, dict):
@@ -49,6 +51,30 @@ class Service:
             except ValidationError as error:
                 raise AppwriteException(
                     f'Unable to parse response into {model.__name__}: {error}'
+                ) from error
+
+        if union_dispatch:
+            response_keys = set(response.keys())
+            best_model: Optional[Type[AppwriteModel]] = None
+            best_score = -1
+
+            for union_model, required_fields, all_fields in union_dispatch:
+                if any(field not in response_keys for field in required_fields):
+                    continue
+
+                score = sum(1 for field in all_fields if field in response_keys)
+                if score > best_score:
+                    best_score = score
+                    best_model = union_model
+
+            if best_model is None:
+                raise AppwriteException('Unable to match response to any known model')
+
+            try:
+                return best_model.model_validate(response)
+            except ValidationError as error:
+                raise AppwriteException(
+                    f'Unable to parse response into {best_model.__name__}: {error}'
                 ) from error
 
         for union_model in union_models or ():

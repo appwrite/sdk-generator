@@ -81,6 +81,20 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
         val converter: (Any) -> {{ method | returnType(spec, sdk.namespace | caseDot) | raw }} = {
         {%~ if method.responseModel == 'any' %}
             it
+        {%~ elseif (method | getValidResponseModels)|length > 1 %}
+            parseResponse(
+                it,
+                listOf(
+{% set unionDispatch = method | getUnionDispatch(spec) %}
+{% for modelName, metadata in unionDispatch %}
+                    UnionResponseModelDispatch(
+                        required = listOf({% for field in metadata.required %}"{{ field }}"{% if not loop.last %}, {% endif %}{% endfor %}),
+                        all = listOf({% for field in metadata.all %}"{{ field }}"{% if not loop.last %}, {% endif %}{% endfor %}),
+                        hydrate = { map -> {{ sdk.namespace | caseDot }}.models.{{ modelName | caseUcfirst }}.from(map = map) }
+                    ){% if not loop.last %},{% endif %}{{ "\n" }}
+{% endfor %}
+                ),
+            )
         {%~ else %}
             {{ sdk.namespace | caseDot }}.models.{{ method.responseModel | caseUcfirst }}.from(map = it as Map<String, Any>{% if method.responseModel | hasGenericType(spec) %}, nestedType{% endif %})
         {%~ endif %}

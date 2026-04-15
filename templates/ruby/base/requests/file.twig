@@ -6,6 +6,35 @@
 
 {% endif %}
 {% endfor %}
+{% set responseModels = method | getValidResponseModels %}
+{% set unionDispatch = method | getUnionDispatch(spec) %}
+{% if responseModels|length > 1 %}
+            response = @client.chunked_upload(
+                path: api_path,
+                headers: api_headers,
+                params: api_params,
+                param_name: param_name,
+                id_param_name: id_param_name,
+                on_progress: on_progress,
+            )
+
+            parse_response(
+                response,
+                [
+{% for responseModel in responseModels %}
+                    Models::{{ responseModel | caseUcfirst }}{% if not loop.last %},{% endif %}{{ "\n" }}
+{% endfor %}
+                ],
+                {
+{% for modelName, metadata in unionDispatch %}
+                    Models::{{ modelName | caseUcfirst }} => {
+                        required: [{% for field in metadata.required %}'{{ field }}'{% if not loop.last %}, {% endif %}{% endfor %}],
+                        all: [{% for field in metadata.all %}'{{ field }}'{% if not loop.last %}, {% endif %}{% endfor %}],
+                    }{% if not loop.last %},{% endif %}{{ "\n" }}
+{% endfor %}
+                }
+            )
+{% else %}
             @client.chunked_upload(
                 path: api_path,
                 headers: api_headers,
@@ -17,3 +46,4 @@
                 response_type: Models::{{method.responseModel | caseUcfirst}}
 {% endif %}
             )
+{% endif %}

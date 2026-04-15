@@ -10,4 +10,17 @@
 
     final res = await client.call(HttpMethod.{{ method.method | caseLower }}, path: apiPath, params: apiParams, headers: apiHeaders);
 
-    return {% if method.responseModel and method.responseModel != 'any' and not (method.responseModels|length > 1) %}models.{{method.responseModel | caseUcfirst | overrideIdentifier}}.fromMap(res.data){% else %}res.data{% endif %};
+{% set responseModels = method | getValidResponseModels %}
+{% set unionDispatch = method | getUnionDispatch(spec) %}
+    return {% if responseModels|length > 1 %}parseResponse(
+      res.data,
+      [
+{% for modelName, metadata in unionDispatch %}
+        UnionResponseModel(
+          requiredFields: [{% for field in metadata.required %}'{{ field | escapeDollarSign }}'{% if not loop.last %}, {% endif %}{% endfor %}],
+          allFields: [{% for field in metadata.all %}'{{ field | escapeDollarSign }}'{% if not loop.last %}, {% endif %}{% endfor %}],
+          hydrate: models.{{ modelName | caseUcfirst | overrideIdentifier }}.fromMap,
+        ){% if not loop.last %},{% endif %}{{ "\n" }}
+{% endfor %}
+      ],
+    ){% elseif method.responseModel and method.responseModel != 'any' %}models.{{method.responseModel | caseUcfirst | overrideIdentifier}}.fromMap(res.data){% else %}res.data{% endif %};

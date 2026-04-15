@@ -65,10 +65,10 @@ final class {{ service.name | caseUcfirst }}Test extends TestCase
 {# Skip deprecated methods that have namespace collisions with non-deprecated methods #}
 {% else %}
 {% set responseModels = method | getResponseModels(spec) %}
-{% set filteredResponseModelNames = method.responseModels | filter((modelName) => modelName is not empty and modelName != 'any') %}
+{% set filteredResponseModelNames = method | getValidResponseModels %}
 {% set responseDefinitionName = '' %}
 {% if filteredResponseModelNames is not empty %}
-{% set responseDefinitionName = filteredResponseModelNames | first %}
+{% set responseDefinitionName = filteredResponseModelNames | last %}
 {% elseif method.responseModel and method.responseModel != 'any' %}
 {% set responseDefinitionName = method.responseModel %}
 {% endif %}
@@ -98,7 +98,7 @@ final class {{ service.name | caseUcfirst }}Test extends TestCase
 {% endif %}
 
 {% if responseModels | length > 0 %}
-        $this->assertInstanceOf({{ responseModels[0] }}::class, $response);
+        $this->assertInstanceOf({{ responseModels | last }}::class, $response);
 {% else %}
         $this->assertSame($data, $response);
 {% endif %}

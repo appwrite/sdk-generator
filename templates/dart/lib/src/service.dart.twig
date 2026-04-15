@@ -1,7 +1,51 @@
+import '../models.dart' as models;
 import 'client.dart';
+
+class UnionResponseModel {
+  final List<String> requiredFields;
+  final List<String> allFields;
+  final models.Model Function(Map<String, dynamic>) hydrate;
+
+  const UnionResponseModel({
+    required this.requiredFields,
+    required this.allFields,
+    required this.hydrate,
+  });
+}
 
 class Service {
   final Client client;
 
   const Service(this.client);
+
+  models.Model parseResponse(
+    dynamic response,
+    List<UnionResponseModel> dispatch,
+  ) {
+    if (response is! Map<String, dynamic>) {
+      throw StateError('Unable to match response to any expected response model.');
+    }
+
+    UnionResponseModel? bestMatch;
+    var bestScore = -1;
+    final responseKeys = response.keys.toSet();
+
+    for (final candidate in dispatch) {
+      if (!candidate.requiredFields.every(responseKeys.contains)) {
+        continue;
+      }
+
+      final score = candidate.allFields.where(responseKeys.contains).length;
+      if (score > bestScore) {
+        bestScore = score;
+        bestMatch = candidate;
+      }
+    }
+
+    if (bestMatch == null) {
+      throw StateError('Unable to match response to any expected response model.');
+    }
+
+    return bestMatch.hydrate(response);
+  }
 }

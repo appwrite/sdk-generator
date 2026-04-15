@@ -5,7 +5,38 @@
 	if strings.HasPrefix(resp.Type, "application/json") {
 		bytes := []byte(resp.Result.(string))
 
-{%~ if method | returnType(spec, spec.title | caseLower) != 'interface{}' and method | returnType(spec, spec.title | caseLower) != '[]byte' and method | returnType(spec, spec.title | caseLower) != 'bool' %}
+{%~ if method | returnType(spec, spec.title | caseLower) == 'models.Model' %}
+{% set unionDispatch = method | getUnionDispatch(spec) %}
+		parsed, err := parseUnionResponse(bytes, []unionResponseDispatch{
+{% for modelName, metadata in unionDispatch %}
+			{
+				required: []string{
+{% for field in metadata.required %}
+					"{{ field }}",
+{% endfor %}
+				},
+				all: []string{
+{% for field in metadata.all %}
+					"{{ field }}",
+{% endfor %}
+				},
+				hydrate: func(bytes []byte) (models.Model, error) {
+					parsed := models.{{ modelName | caseUcfirst }}{}.New(bytes)
+					if err := json.Unmarshal(bytes, parsed); err != nil {
+						return nil, err
+					}
+					return parsed, nil
+				},
+			}{% if not loop.last %},
+{% endif %}
+{% endfor %}
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		return parsed, nil
+{%~ elseif method | returnType(spec, spec.title | caseLower) != 'interface{}' and method | returnType(spec, spec.title | caseLower) != '[]byte' and method | returnType(spec, spec.title | caseLower) != 'bool' %}
 		parsed := {{ method | returnType(spec, spec.title | caseLower) }}{}.New(bytes)
 
 		err = json.Unmarshal(bytes, parsed)
@@ -24,9 +55,17 @@
 		return &parsed, nil
 {%~ endif %}
 	}
+{% if method | returnType(spec, spec.title | caseLower) == 'models.Model' %}
+	parsed, ok := resp.Result.(models.Model)
+	if !ok {
+		return nil, errors.New("unexpected response type")
+	}
+	return parsed, nil
+{% else %}
 	var parsed {{ method | returnType(spec, spec.title | caseLower) }}
 	parsed, ok := resp.Result.({{ method | returnType(spec, spec.title | caseLower) }})
 	if !ok {
 		return nil, errors.New("unexpected response type")
 	}
 	return &parsed, nil
+{% endif %}

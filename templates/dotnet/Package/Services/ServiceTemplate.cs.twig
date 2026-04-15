@@ -42,7 +42,31 @@ namespace {{ spec.title | caseUcfirst }}.Services
             {%~ if method.responseModel %}
             static {{ utils.resultType(spec.title, method) }} Convert(Dictionary<string, object> it) =>
             {%~ if method.responseModel == 'any' or method.responseModels|length > 1 %}
+                {%~ if (method | getValidResponseModels)|length > 1 %}
+                ParseResponse(it, new[]
+                {
+{% set unionDispatch = method | getUnionDispatch(spec) %}
+{% for modelName, metadata in unionDispatch %}
+                    new UnionResponseModelDispatch(
+                        new[]
+                        {
+{% for field in metadata.required %}
+                            "{{ field }}",
+{% endfor %}
+                        },
+                        new[]
+                        {
+{% for field in metadata.all %}
+                            "{{ field }}",
+{% endfor %}
+                        },
+                        map => {{ spec.title | caseUcfirst }}.Models.{{ modelName | caseUcfirst | overrideIdentifier }}.From(map: map)
+                    ){% if not loop.last %},{% endif %}{{ "\n" }}
+{% endfor %}
+                });
+                {%~ else %}
                 it;
+                {%~ endif %}
             {%~ else %}
                 {{ utils.resultType(spec.title, method) }}.From(map: it);
             {%~ endif %}

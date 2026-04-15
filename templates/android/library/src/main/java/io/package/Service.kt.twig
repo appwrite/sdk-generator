@@ -2,9 +2,37 @@ package {{ sdk.namespace | caseDot }}
 
 import {{ sdk.namespace | caseDot }}.Client
 
+internal data class UnionResponseModelDispatch(
+    val required: List<String>,
+    val all: List<String>,
+    val hydrate: (Map<String, Any>) -> Any
+)
+
 /**
  * Abstract class for services.
  *
  * @param client The Appwrite client.
  */
-abstract class Service(val client: Client)
+abstract class Service(val client: Client) {
+    @Suppress("UNCHECKED_CAST")
+    protected fun parseResponse(response: Any, dispatch: List<UnionResponseModelDispatch>): Any {
+        val responseMap = response as? Map<String, Any> ?: return response
+        var bestMatch: UnionResponseModelDispatch? = null
+        var bestScore = -1
+        val responseKeys = responseMap.keys
+
+        dispatch.forEach { candidate ->
+            if (!candidate.required.all(responseKeys::contains)) {
+                return@forEach
+            }
+
+            val score = candidate.all.count(responseKeys::contains)
+            if (score > bestScore) {
+                bestScore = score
+                bestMatch = candidate
+            }
+        }
+
+        return bestMatch?.hydrate(responseMap) ?: response
+    }
+}

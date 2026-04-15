@@ -57,6 +57,71 @@ func New(clt client.Client) *{{ service.name | caseUcfirst }} {
 	}
 }
 
+{% set hasUnionResponses = false %}
+{% for method in service.methods %}
+{% if (method | getValidResponseModels)|length > 1 %}
+{% set hasUnionResponses = true %}
+{% endif %}
+{% endfor %}
+{% if hasUnionResponses %}
+type unionResponseDispatch struct {
+	required []string
+	all      []string
+	hydrate  func([]byte) (models.Model, error)
+}
+
+func parseUnionResponse(bytes []byte, dispatch []unionResponseDispatch) (models.Model, error) {
+	var response map[string]interface{}
+	if err := json.Unmarshal(bytes, &response); err != nil {
+		return nil, err
+	}
+
+	bestScore := -1
+	var bestModel models.Model
+	responseKeys := make(map[string]struct{}, len(response))
+	for key := range response {
+		responseKeys[key] = struct{}{}
+	}
+
+	for _, candidate := range dispatch {
+		missingRequiredField := false
+		for _, field := range candidate.required {
+			if _, ok := responseKeys[field]; !ok {
+				missingRequiredField = true
+				break
+			}
+		}
+
+		if missingRequiredField {
+			continue
+		}
+
+		score := 0
+		for _, field := range candidate.all {
+			if _, ok := responseKeys[field]; ok {
+				score++
+			}
+		}
+
+		if score > bestScore {
+			model, err := candidate.hydrate(bytes)
+			if err != nil {
+				return nil, err
+			}
+
+			bestScore = score
+			bestModel = model
+		}
+	}
+
+	if bestModel == nil {
+		return nil, errors.New("unable to match response to any expected response model")
+	}
+
+	return bestModel, nil
+}
+{% endif %}
+
 {% for method in service.methods %}
 {% if method.parameters.all|filter(v => not v.required)|length > 0 %}
 type {{ (method.name ~ "Options") | caseUcfirst }} struct {
@@ -116,7 +181,8 @@ func (srv *{{ service.name | caseUcfirst }}) With{{ method.name | caseUcfirst }}
 // Deprecated: This API has been deprecated.
 {%~ endif %}
 {% endif %}
-func (srv *{{ service.name | caseUcfirst }}) {{ method.name | caseUcfirst }}({{ params }})(*{{ method | returnType(spec, spec.title | caseLower) }}, error) {
+{% set returnType = method | returnType(spec, spec.title | caseLower) %}
+func (srv *{{ service.name | caseUcfirst }}) {{ method.name | caseUcfirst }}({{ params }})({% if returnType == 'models.Model' %}{{ returnType }}{% else %}*{{ returnType }}{% endif %}, error) {
 {% if method.parameters.path|length > 0 %}
 	r := strings.NewReplacer({% for parameter in method.parameters.path %}"{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}", {{ parameter.name | caseUcfirst }}{% if not loop.last %}, {% endif %}{% endfor %})
 	path := r.Replace("{{ method.path }}")
