@@ -97,7 +97,7 @@ verifyMacOSCodeSignature() {
     fi
 
     printf "${GREEN}🔏 Verifying macOS code signature ${NC}\n"
-    if ! codesign -dv --verbose=4 ${{ spec.title | upper }}_TEMP_NAME >/dev/null 2>&1; then
+    if ! codesign -dv ${{ spec.title | upper }}_TEMP_NAME >/dev/null 2>&1; then
         printf "${RED}❌ Downloaded macOS binary is missing an embedded code signature. macOS will kill it on launch. ${NC}\n"
         printf "${RED}❌ Please retry once the release artifact is refreshed, or use Homebrew/npm as a temporary workaround. ${NC}\n"
         rm -f ${{ spec.title | upper }}_TEMP_NAME
