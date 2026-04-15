@@ -48,7 +48,7 @@
     "mac-x64": "bun build cli.ts --compile --sourcemap=inline --target=bun-darwin-x64 --outfile build/appwrite-cli-darwin-x64",
     "mac-arm64": "bun build cli.ts --compile --sourcemap=inline --target=bun-darwin-arm64 --outfile build/appwrite-cli-darwin-arm64",
     "windows-x64": "bun build cli.ts --compile --sourcemap=inline --target=bun-windows-x64 --outfile build/appwrite-cli-win-x64.exe",
-    "windows-arm64": "esbuild cli.ts --bundle --loader:.hbs=text --platform=node --target=node18 --format=esm --external:fsevents --outfile=dist/bundle-win-arm64.mjs && pkg dist/bundle-win-arm64.mjs -t node18-win-arm64 -o build/appwrite-cli-win-arm64.exe"
+    "windows-arm64": "esbuild cli.ts --bundle --loader:.hbs=text --platform=node --target=node18 --format=esm --external:fsevents --external:terminal-image --outfile=dist/bundle-win-arm64.mjs && pkg dist/bundle-win-arm64.mjs -t node18-win-arm64 -o build/appwrite-cli-win-arm64.exe"
   },
   "dependencies": {
     "@appwrite.io/console": "~9.1.0",
