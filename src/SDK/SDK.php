@@ -600,7 +600,7 @@ class SDK
                 continue;
             }
 
-            $methods = $this->getFilteredMethods($allMethods);
+            $methods = $this->getFilteredMethods($allMethods, $serviceName);
 
             if (empty($methods)) {
                 continue;
@@ -617,11 +617,12 @@ class SDK
 
     /**
      * @param array $methods
+     * @param string $serviceName
      * @return array
      */
-    protected function getFilteredMethods(array $methods): array
+    protected function getFilteredMethods(array $methods, string $serviceName = ''): array
     {
-        return \array_values(\array_filter($methods, fn (array $method) => !$this->isMethodExcluded($method)));
+        return \array_values(\array_filter($methods, fn (array $method) => !$this->isMethodExcluded($method, $serviceName)));
     }
 
     /**
@@ -1152,14 +1153,23 @@ class SDK
 
     /**
      * @param array $method
+     * @param string $serviceName
      * @return bool
      */
-    protected function isMethodExcluded(array $method): bool
+    protected function isMethodExcluded(array $method, string $serviceName = ''): bool
     {
         $excludeIndex = $this->getExcludeIndex();
+        $methodName = $method['name'] ?? '';
 
-        return isset($excludeIndex['methods'][$method['name'] ?? ''])
-            || isset($excludeIndex['types'][$method['type'] ?? '']);
+        if (isset($excludeIndex['methods'][$methodName])) {
+            $scope = $excludeIndex['methods'][$methodName];
+            // true = global exclusion, string = service-scoped exclusion
+            if ($scope === true || $scope === $serviceName) {
+                return true;
+            }
+        }
+
+        return isset($excludeIndex['types'][$method['type'] ?? '']);
     }
 
     /**
@@ -1199,7 +1209,9 @@ class SDK
 
         foreach ($this->excludeRules['methods'] ?? [] as $method) {
             if (isset($method['name'])) {
-                $this->excludeIndex['methods'][$method['name']] = true;
+                // When 'service' is set, only exclude the method from that service.
+                // Otherwise, exclude it globally (true).
+                $this->excludeIndex['methods'][$method['name']] = $method['service'] ?? true;
             }
 
             if (isset($method['type'])) {
@@ -1244,10 +1256,15 @@ class SDK
         }
 
         $methods = [];
+        $scopedMethods = [];
         $types = [];
         foreach ($exclude['methods'] ?? [] as $method) {
             if (isset($method['name'])) {
-                $methods[] = $method['name'];
+                if (isset($method['service'])) {
+                    $scopedMethods[] = $method;
+                } else {
+                    $methods[] = $method['name'];
+                }
             }
             if (isset($method['type'])) {
                 $types[] = $method['type'];
@@ -1273,6 +1290,14 @@ class SDK
 
         if (\in_array($params['method']['name'] ?? '', $methods)) {
             return true;
+        }
+
+        $currentMethodName = $params['method']['name'] ?? '';
+        $currentServiceName = $params['service']['name'] ?? '';
+        foreach ($scopedMethods as $scopedMethod) {
+            if ($scopedMethod['name'] === $currentMethodName && $scopedMethod['service'] === $currentServiceName) {
+                return true;
+            }
         }
 
         if (\in_array($params['method']['type'] ?? '', $types)) {
