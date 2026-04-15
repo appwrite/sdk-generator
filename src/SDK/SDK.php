@@ -1162,10 +1162,11 @@ class SDK
         $methodName = $method['name'] ?? '';
 
         if (isset($excludeIndex['methods'][$methodName])) {
-            $scope = $excludeIndex['methods'][$methodName];
-            // true = global exclusion, string = service-scoped exclusion
-            if ($scope === true || $scope === $serviceName) {
-                return true;
+            foreach ($excludeIndex['methods'][$methodName] as $scope) {
+                // true = global exclusion, string = service-scoped exclusion
+                if ($scope === true || $scope === $serviceName) {
+                    return true;
+                }
             }
         }
 
@@ -1211,7 +1212,7 @@ class SDK
             if (isset($method['name'])) {
                 // When 'service' is set, only exclude the method from that service.
                 // Otherwise, exclude it globally (true).
-                $this->excludeIndex['methods'][$method['name']] = $method['service'] ?? true;
+                $this->excludeIndex['methods'][$method['name']][] = $method['service'] ?? true;
             }
 
             if (isset($method['type'])) {
