@@ -94,6 +94,11 @@ interface InitProjectNextStep {
   description: string;
 }
 
+interface InitProjectStepOptions {
+  start: "new" | "existing";
+  autoPulled: boolean;
+}
+
 const extractSelectionId = (value: string): string => {
   const match = value.match(/\(([^()]+)\)$/);
   return match ? match[1] : value;
@@ -135,6 +140,83 @@ const printInitProjectNextSteps = (steps: InitProjectNextStep[]): void => {
       `    ${chalk.cyan(step.command)}${spacing}${step.description}`,
     );
   }
+};
+
+const getLocalInitProjectResourceState = () => {
+  const functions = localConfig.getFunctions();
+  const sites = localConfig.getSites();
+  const collections = localConfig.getCollections();
+  const tables = localConfig.getTables();
+  const buckets = localConfig.getBuckets();
+  const teams = localConfig.getTeams();
+  const webhooks = localConfig.getWebhooks();
+  const topics = localConfig.getMessagingTopics();
+
+  return {
+    hasFunctions: functions.length > 0,
+    hasResources:
+      functions.length > 0 ||
+      sites.length > 0 ||
+      collections.length > 0 ||
+      tables.length > 0 ||
+      buckets.length > 0 ||
+      teams.length > 0 ||
+      webhooks.length > 0 ||
+      topics.length > 0,
+  };
+};
+
+const getInitProjectNextSteps = ({
+  start,
+  autoPulled,
+}: InitProjectStepOptions): InitProjectNextStep[] => {
+  const { hasFunctions, hasResources } = getLocalInitProjectResourceState();
+  const nextSteps: InitProjectNextStep[] = [];
+
+  if (start === "existing" && !autoPulled) {
+    nextSteps.push(
+      {
+        command: `${EXECUTABLE_NAME} pull`,
+        description: "Choose a resource to sync",
+      },
+      {
+        command: `${EXECUTABLE_NAME} init`,
+        description: "Create a new resource",
+      },
+    );
+
+    return nextSteps;
+  }
+
+  if (start === "new") {
+    nextSteps.push({
+      command: `${EXECUTABLE_NAME} init`,
+      description: "Create your first resource",
+    });
+
+    return nextSteps;
+  }
+
+  nextSteps.push({
+    command: `${EXECUTABLE_NAME} init`,
+    description: "Create another resource",
+  });
+
+  if (hasFunctions) {
+    nextSteps.push({
+      command: `${EXECUTABLE_NAME} run function`,
+      description: "Run a pulled function locally",
+    });
+  }
+
+  if (hasResources) {
+    nextSteps.push({
+      command: `${EXECUTABLE_NAME} push`,
+      description: "Deploy your local edits",
+    });
+  }
+
+  return nextSteps;
 };
 
 const installInitProjectSkills = async (): Promise<void> => {
@@ -344,25 +426,10 @@ const initProject = async ({
     await installInitProjectSkills();
   }
 
-  const nextSteps: InitProjectNextStep[] = [];
-
-  if (answers.start === "existing" && !autoPulled) {
-    nextSteps.push({
-      command: `${EXECUTABLE_NAME} pull all`,
-      description: "Sync existing resources",
-    });
-  }
-
-  nextSteps.push(
-    {
-      command: `${EXECUTABLE_NAME} init`,
-      description: "Create new resources",
-    },
-    {
-      command: `${EXECUTABLE_NAME} push`,
-      description: "Deploy local changes",
-    },
-  );
+  const nextSteps = getInitProjectNextSteps({
+    start: answers.start,
+    autoPulled,
+  });
 
   printInitProjectNextSteps(nextSteps);
 };
