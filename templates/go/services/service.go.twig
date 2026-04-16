@@ -20,7 +20,7 @@
 {% endfor %}
 {%- for method in service.methods -%}
 {%- if (method | returnType(spec, spec.title | caseLower)) starts with "models" -%}
-			{%- set requireModelsPkg = true -%}
+		{%- set requireModelsPkg = true -%}
 	{%- endif -%}
 {% for parameter in method.parameters.all %}
 	{%- if (parameter | typeName) ends with "InputFile"  -%}
@@ -47,7 +47,7 @@ import (
 	"net/url"
 {% endif %}
 {% if requireFmtPkg or hasDiscriminatedUnionResponses %}
-		"fmt"
+	"fmt"
 {% endif %}
 	"strings"
 )
@@ -62,9 +62,6 @@ func New(clt client.Client) *{{ service.name | caseUcfirst }} {
 		client: clt,
 	}
 }
-
-{% if hasUnionResponses %}
-{% endif %}
 
 {% for method in service.methods %}
 {% if method.parameters.all|filter(v => not v.required)|length > 0 %}
