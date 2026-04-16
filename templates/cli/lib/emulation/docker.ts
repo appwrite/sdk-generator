@@ -52,6 +52,17 @@ function assertDockerSuccess(
   );
 }
 
+function getDockerExitMessage(
+  code: number | null,
+  signal: NodeJS.Signals | null,
+): string {
+  if (signal) {
+    return `Docker process exited with signal ${signal}.`;
+  }
+
+  return `Docker process exited with code ${code ?? "unknown"}.`;
+}
+
 export async function dockerStop(id: string): Promise<void> {
   const stopProcess = childProcess.spawn("docker", ["rm", "--force", id], {
     stdio: "pipe",
@@ -219,6 +230,8 @@ export async function dockerBuild(
 
     await dockerStop(id);
   } finally {
+    await dockerStop(id);
+
     // Clean up interval if still running
     if (killInterval !== undefined) {
       clearInterval(killInterval);
@@ -297,23 +310,26 @@ export async function dockerStart(
     process.stderr.write(chalk.blackBright(data));
   });
 
-  let started = false;
-  const startProcessExit = waitForProcessClose(startProcess).then(
-    ({ code, signal }) => {
-      if (!started) {
-        assertDockerSuccess(
-          code,
-          signal,
-          `Unable to start function '${func.name}'.`,
-        );
-      }
-    },
-  );
+  const startProcessExit = waitForProcessClose(startProcess);
   void startProcessExit.catch(() => {});
 
   try {
-    await Promise.race([waitUntilPortOpen(port), startProcessExit]);
-    started = true;
+    const result = await Promise.race([
+      waitUntilPortOpen(port).then(() => ({
+        type: "port-open" as const,
+      })),
+      startProcessExit.then(({ code, signal }) => ({
+        type: "process-exit" as const,
+        code,
+        signal,
+      })),
+    ]);
+
+    if (result.type === "process-exit") {
+      throw new Error(
+        `Function container exited before opening port ${port}. ${getDockerExitMessage(result.code, result.signal)}`,
+      );
+    }
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     error(`Failed to start function with error: ${message}`);

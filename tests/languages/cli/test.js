@@ -15,9 +15,8 @@ const {
 } = require("./lib/utils.ts");
 
 const extractFirstValue = (output) => {
-  const firstLine = output
-    .split("\n")
-    .find((line) => line.trim().length > 0) ?? "";
+  const firstLine =
+    output.split("\n").find((line) => line.trim().length > 0) ?? "";
 
   const legacySeparatorIndex = firstLine.indexOf(" : ");
   if (legacySeparatorIndex !== -1) {
@@ -34,78 +33,82 @@ const extractFirstValue = (output) => {
 
 execSync(
   "bun ./dist/cli.cjs client --endpoint 'http://mockapi/v1' --project-id console --key=35y3h5h345 --self-signed true",
-  { stdio: "inherit" }
+  { stdio: "inherit" },
 );
 
 var output;
 console.log("\nTest Started");
 const sdkHeaders = new Client().getHeaders();
-console.log(`x-sdk-name: ${sdkHeaders["x-sdk-name"]}; x-sdk-platform: ${sdkHeaders["x-sdk-platform"]}; x-sdk-language: ${sdkHeaders["x-sdk-language"]}; x-sdk-version: ${sdkHeaders["x-sdk-version"]}`);
+console.log(
+  `x-sdk-name: ${sdkHeaders["x-sdk-name"]}; x-sdk-platform: ${sdkHeaders["x-sdk-platform"]}; x-sdk-language: ${sdkHeaders["x-sdk-language"]}; x-sdk-version: ${sdkHeaders["x-sdk-version"]}`,
+);
 
 // Foo
 output = execSync(
   "bun ./dist/cli.cjs foo get  --x string  --y 123 --z string in array",
-  { stdio: "pipe" }
+  { stdio: "pipe" },
 ).toString();
 console.log(extractFirstValue(output));
 
 output = execSync(
   "bun ./dist/cli.cjs foo post  --x string  --y 123 --z string in array",
-  { stdio: "pipe" }
+  { stdio: "pipe" },
 ).toString();
 console.log(extractFirstValue(output));
 
 output = execSync(
   "bun ./dist/cli.cjs foo put  --x string  --y 123 --z string in array",
-  { stdio: "pipe" }
+  { stdio: "pipe" },
 ).toString();
 console.log(extractFirstValue(output));
 
 output = execSync(
   "bun ./dist/cli.cjs foo patch  --x string  --y 123 --z string in array",
-  { stdio: "pipe" }
+  { stdio: "pipe" },
 ).toString();
 console.log(extractFirstValue(output));
 
 output = execSync(
   "bun ./dist/cli.cjs foo delete  --x string  --y 123 --z string in array",
-  { stdio: "pipe" }
+  { stdio: "pipe" },
 ).toString();
 console.log(extractFirstValue(output));
 
 // Bar
 output = execSync(
   "bun ./dist/cli.cjs bar get  --required string  --xdefault 123 --z string in array",
-  { stdio: "pipe" }
+  { stdio: "pipe" },
 ).toString();
 console.log(extractFirstValue(output));
 
 output = execSync(
   "bun ./dist/cli.cjs bar post  --required string  --xdefault 123 --z string in array",
-  { stdio: "pipe" }
+  { stdio: "pipe" },
 ).toString();
 console.log(extractFirstValue(output));
 
 output = execSync(
   "bun ./dist/cli.cjs bar put  --required string  --xdefault 123 --z string in array",
-  { stdio: "pipe" }
+  { stdio: "pipe" },
 ).toString();
 console.log(extractFirstValue(output));
 
 output = execSync(
   "bun ./dist/cli.cjs bar patch  --required string  --xdefault 123 --z string in array",
-  { stdio: "pipe" }
+  { stdio: "pipe" },
 ).toString();
 console.log(extractFirstValue(output));
 
 output = execSync(
   "bun ./dist/cli.cjs bar delete  --required string  --xdefault 123 --z string in array",
-  { stdio: "pipe" }
+  { stdio: "pipe" },
 ).toString();
 console.log(extractFirstValue(output));
 
 // General
-output = execSync("bun ./dist/cli.cjs general redirect", { stdio: "pipe" }).toString();
+output = execSync("bun ./dist/cli.cjs general redirect", {
+  stdio: "pipe",
+}).toString();
 console.log(extractFirstValue(output));
 
 console.log(
@@ -135,13 +138,13 @@ console.log(
 
 output = execSync(
   "bun ./dist/cli.cjs general upload --x string  --y 123 --z string in array --file ../../resources/file.png",
-  { stdio: "pipe" }
+  { stdio: "pipe" },
 ).toString();
 console.log(extractFirstValue(output));
 
 output = execSync(
   "bun ./dist/cli.cjs general upload --x string  --y 123 --z string in array --file ../../resources/large_file.mp4",
-  { stdio: "pipe" }
+  { stdio: "pipe" },
 ).toString();
 console.log(extractFirstValue(output));
 
@@ -151,7 +154,9 @@ console.log("POST:/v1/mock/tests/general/upload:passed");
 
 execSync("bun ./dist/cli.cjs general empty", { stdio: "pipe" });
 
-output = execSync("bun ./dist/cli.cjs general headers", { stdio: "pipe" }).toString();
+output = execSync("bun ./dist/cli.cjs general headers", {
+  stdio: "pipe",
+}).toString();
 console.log(extractFirstValue(output));
 
 if (openRuntimesVersion !== "v5") {
@@ -174,17 +179,18 @@ const dockerSource = fs.readFileSync(
 );
 if (
   !dockerSource.includes("Unable to pull Docker image") ||
-  !dockerSource.includes("Unable to start function") ||
-  !dockerSource.includes(
-    "Promise.race([waitUntilPortOpen(port), startProcessExit])",
-  )
+  !dockerSource.includes("await dockerStop(id);") ||
+  !dockerSource.includes("Function container exited before opening port")
 ) {
   throw new Error("Local Docker emulation is missing failure handling guards.");
 }
 console.log("CLI_LOCAL_DOCKER_FAILURE_HANDLING:passed");
 
 // Type generation regression: generated concrete row query helpers must compile on TS 5.9+
-fs.rmSync(path.join(process.cwd(), "generated"), { recursive: true, force: true });
+fs.rmSync(path.join(process.cwd(), "generated"), {
+  recursive: true,
+  force: true,
+});
 
 void (async () => {
   const generator = new TypeScriptDatabasesGenerator();
