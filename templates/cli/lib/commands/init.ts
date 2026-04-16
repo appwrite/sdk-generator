@@ -139,6 +139,7 @@ const printInitProjectNextSteps = (steps: InitProjectNextStep[]): void => {
 
 const installInitProjectSkills = async (): Promise<void> => {
   if (hasSkillsInstalled(localConfig.configDirectoryPath)) {
+    log("Agent skills already found. Skipping installation.");
     return;
   }
 
