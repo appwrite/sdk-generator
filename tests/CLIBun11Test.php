@@ -31,6 +31,7 @@ class CLIBun11Test extends Base
         ...Base::CLI_CONSOLE_URL_RESPONSES,
         ...Base::UPLOAD_RESPONSES,
         ...Base::CLI_HEADERS_RESPONSES,
+        ...Base::CLI_LOCAL_FUNCTION_EMULATION_RESPONSES,
         ...Base::CLI_TYPEGEN_RESPONSES,
     ];
 

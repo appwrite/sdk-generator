@@ -4,7 +4,7 @@ import { log } from "../parser.js";
 import { sdkForConsole, sdkForProject } from "../sdks.js";
 import { Projects, Scopes, Users } from "@appwrite.io/console";
 
-export const openRuntimesVersion = "v4";
+export const openRuntimesVersion = "v5";
 
 export const runtimeNames: Record<string, string> = {
   node: "Node.js",
@@ -31,67 +31,67 @@ interface SystemTool {
 export const systemTools: Record<string, SystemTool> = {
   node: {
     isCompiled: false,
-    startCommand: "sh helpers/server.sh",
+    startCommand: "bash helpers/server.sh",
     dependencyFiles: ["package.json", "package-lock.json"],
   },
   php: {
     isCompiled: false,
-    startCommand: "sh helpers/server.sh",
+    startCommand: "bash helpers/server.sh",
     dependencyFiles: ["composer.json", "composer.lock"],
   },
   ruby: {
     isCompiled: false,
-    startCommand: "sh helpers/server.sh",
+    startCommand: "bash helpers/server.sh",
     dependencyFiles: ["Gemfile", "Gemfile.lock"],
   },
   python: {
     isCompiled: false,
-    startCommand: "sh helpers/server.sh",
+    startCommand: "bash helpers/server.sh",
     dependencyFiles: ["requirements.txt", "requirements.lock"],
   },
   "python-ml": {
     isCompiled: false,
-    startCommand: "sh helpers/server.sh",
+    startCommand: "bash helpers/server.sh",
     dependencyFiles: ["requirements.txt", "requirements.lock"],
   },
   deno: {
     isCompiled: false,
-    startCommand: "sh helpers/server.sh",
+    startCommand: "bash helpers/server.sh",
     dependencyFiles: [],
   },
   dart: {
     isCompiled: true,
-    startCommand: "sh helpers/server.sh",
+    startCommand: "bash helpers/server.sh",
     dependencyFiles: [],
   },
   dotnet: {
     isCompiled: true,
-    startCommand: "sh helpers/server.sh",
+    startCommand: "bash helpers/server.sh",
     dependencyFiles: [],
   },
   java: {
     isCompiled: true,
-    startCommand: "sh helpers/server.sh",
+    startCommand: "bash helpers/server.sh",
     dependencyFiles: [],
   },
   swift: {
     isCompiled: true,
-    startCommand: "sh helpers/server.sh",
+    startCommand: "bash helpers/server.sh",
     dependencyFiles: [],
   },
   kotlin: {
     isCompiled: true,
-    startCommand: "sh helpers/server.sh",
+    startCommand: "bash helpers/server.sh",
     dependencyFiles: [],
   },
   bun: {
     isCompiled: false,
-    startCommand: "sh helpers/server.sh",
+    startCommand: "bash helpers/server.sh",
     dependencyFiles: ["package.json", "package-lock.json", "bun.lockb"],
   },
   go: {
     isCompiled: true,
-    startCommand: "sh helpers/server.sh",
+    startCommand: "bash helpers/server.sh",
     dependencyFiles: [],
   },
 };
