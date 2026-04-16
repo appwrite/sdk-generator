@@ -94,11 +94,16 @@ interface InitProjectNextStep {
   description: string;
 }
 
+const extractSelectionId = (value: string): string => {
+  const match = value.match(/\(([^()]+)\)$/);
+  return match ? match[1] : value;
+};
+
 const getExistingProjectSummary = async (
   projectId: string,
 ): Promise<ExistingProjectSummary> => {
   const projectsService = await getProjectsService();
-  const project = await projectsService.get(projectId);
+  const project = await projectsService.get(extractSelectionId(projectId));
 
   return {
     $id: project.$id,
@@ -188,6 +193,9 @@ const initProject = async ({
       log("No changes made. Existing project configuration was kept.");
       return;
     }
+    if (typeof answers.organization === "string") {
+      answers.organization = extractSelectionId(answers.organization);
+    }
   } else {
     const selectedOrganization =
       organizationId ??
@@ -197,10 +205,12 @@ const initProject = async ({
     const selectedProjectId =
       projectId ?? (await inquirer.prompt([questionsInitProject[4]])).id;
 
+    const normalizedOrganization = extractSelectionId(selectedOrganization);
+
     answers = {
       start: "existing",
       project: selectedProjectId,
-      organization: selectedOrganization,
+      organization: normalizedOrganization,
     };
 
     try {
@@ -288,6 +298,7 @@ const initProject = async ({
     const autopullAnswers: InitProjectAutopullAnswer = await inquirer.prompt(
       questionsInitProjectAutopull,
     );
+    console.log("");
     printInitProjectSuccess("Project linked → appwrite.config.json");
     if (autopullAnswers.autopull) {
       autoPulled = true;
@@ -298,6 +309,7 @@ const initProject = async ({
       });
     }
   } else {
+    console.log("");
     printInitProjectSuccess("Project created → appwrite.config.json");
   }
 

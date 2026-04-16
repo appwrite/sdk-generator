@@ -57,6 +57,14 @@ const validateNonNegativeInteger = (value: string): boolean | string => {
   return true;
 };
 
+const buildSelectionLabel = (name: string, id: string): string =>
+  `${name} (${id})`;
+
+const extractSelectionId = (value: string): string => {
+  const match = value.match(/\(([^()]+)\)$/);
+  return match ? match[1] : value;
+};
+
 const getIgnores = (runtime: string): string[] => {
   const language = runtime.split("-").slice(0, -1).join("-");
 
@@ -214,9 +222,10 @@ export const questionsInitProject: Question[] = [
           );
 
       const choices = teams.map((team: any, _idx: number) => {
+        const label = buildSelectionLabel(team.name, team["$id"]);
         return {
-          name: `${team.name} (${team["$id"]})`,
-          value: team["$id"],
+          name: label,
+          value: label,
         };
       });
 
@@ -255,7 +264,7 @@ export const questionsInitProject: Question[] = [
         JSON.stringify({
           method: "equal",
           attribute: "teamId",
-          values: [answers.organization],
+          values: [extractSelectionId(answers.organization)],
         }),
         JSON.stringify({ method: "orderDesc", attribute: "$id" }),
       ];
@@ -270,11 +279,10 @@ export const questionsInitProject: Question[] = [
       );
 
       const choices = projects.map((project: any) => {
-        const label = `${project.name} (${project["$id"]})`;
+        const label = buildSelectionLabel(project.name, project["$id"]);
         return {
           name: label,
-          short: label,
-          value: project["$id"],
+          value: label,
         };
       });
 
