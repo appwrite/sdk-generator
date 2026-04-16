@@ -263,7 +263,7 @@ const initProject = async ({
       answers.region,
     );
 
-    localConfig.setProject(response["$id"]);
+    localConfig.setProject(response["$id"], response.name ?? "");
     if (answers.region) {
       localConfig.setEndpoint(
         `https://${answers.region}.${url.host}${url.pathname}`,
@@ -284,7 +284,7 @@ const initProject = async ({
         break;
     }
 
-    localConfig.setProject(selectedProject.$id);
+    localConfig.setProject(selectedProject.$id, selectedProject.name ?? "");
 
     if (isCloud() && selectedProject.region) {
       localConfig.setEndpoint(

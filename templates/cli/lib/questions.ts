@@ -65,6 +65,16 @@ const extractSelectionId = (value: string): string => {
   return match ? match[1] : value;
 };
 
+const getInitProjectOverrideMessage = (): string => {
+  const projectName = localConfig.getProject().projectName;
+
+  if (projectName) {
+    return `A project is already linked to this directory (${projectName}). Override?`;
+  }
+
+  return "A project is already linked to this directory. Override?";
+};
+
 const getIgnores = (runtime: string): string[] => {
   const language = runtime.split("-").slice(0, -1).join("-");
 
@@ -174,7 +184,7 @@ export const questionsInitProject: Question[] = [
   {
     type: "confirm",
     name: "override",
-    message: `An ${SDK_TITLE} project ( ${localConfig.getProject()["projectId"]} ) is already associated with the current directory. Would you like to override it?`,
+    message: getInitProjectOverrideMessage(),
     when() {
       return Object.keys(localConfig.getProject()).length !== 0;
     },
