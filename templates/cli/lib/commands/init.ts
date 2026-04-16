@@ -3,6 +3,7 @@ import path from "path";
 import childProcess from "child_process";
 import { Command } from "commander";
 import inquirer from "inquirer";
+import chalk from "chalk";
 import { getProjectsService, getSitesService } from "../services.js";
 import { pullResources } from "./pull.js";
 import ID from "../id.js";
@@ -88,6 +89,164 @@ interface SiteTemplateDetails {
   variables?: SiteTemplateVariable[];
 }
 
+interface InitProjectNextStep {
+  command: string;
+  description: string;
+}
+
+interface InitProjectStepOptions {
+  start: "new" | "existing";
+  autoPulled: boolean;
+}
+
+const extractSelectionId = (value: string): string => {
+  const match = value.match(/\(([^()]+)\)$/);
+  return match ? match[1] : value;
+};
+
+const getExistingProjectSummary = async (
+  projectId: string,
+): Promise<ExistingProjectSummary> => {
+  const projectsService = await getProjectsService();
+  const project = await projectsService.get(extractSelectionId(projectId));
+
+  return {
+    $id: project.$id,
+    name: project.name,
+    region: project.region || "",
+  };
+};
+
+const printInitProjectSuccess = (message: string): void => {
+  console.log(`${chalk.green.bold("✓")} ${chalk.green(message)}`);
+};
+
+const printInitProjectNextSteps = (steps: InitProjectNextStep[]): void => {
+  if (steps.length === 0) {
+    return;
+  }
+
+  const longestCommand = steps.reduce(
+    (longest, step) => Math.max(longest, step.command.length),
+    0,
+  );
+
+  console.log("");
+  console.log("  Next steps:");
+
+  for (const step of steps) {
+    const spacing = " ".repeat(longestCommand - step.command.length + 4);
+    console.log(
+      `    ${chalk.cyan(step.command)}${spacing}${step.description}`,
+    );
+  }
+};
+
+const getLocalInitProjectResourceState = () => {
+  const functions = localConfig.getFunctions();
+  const sites = localConfig.getSites();
+  const collections = localConfig.getCollections();
+  const tables = localConfig.getTables();
+  const buckets = localConfig.getBuckets();
+  const teams = localConfig.getTeams();
+  const webhooks = localConfig.getWebhooks();
+  const topics = localConfig.getMessagingTopics();
+
+  return {
+    hasFunctions: functions.length > 0,
+    hasResources:
+      functions.length > 0 ||
+      sites.length > 0 ||
+      collections.length > 0 ||
+      tables.length > 0 ||
+      buckets.length > 0 ||
+      teams.length > 0 ||
+      webhooks.length > 0 ||
+      topics.length > 0,
+  };
+};
+
+const getInitProjectNextSteps = ({
+  start,
+  autoPulled,
+}: InitProjectStepOptions): InitProjectNextStep[] => {
+  const { hasFunctions, hasResources } = getLocalInitProjectResourceState();
+  const nextSteps: InitProjectNextStep[] = [];
+
+  if (start === "existing" && !autoPulled) {
+    nextSteps.push(
+      {
+        command: `${EXECUTABLE_NAME} pull`,
+        description: "Choose a resource to sync",
+      },
+      {
+        command: `${EXECUTABLE_NAME} init`,
+        description: "Create a new resource",
+      },
+    );
+
+    return nextSteps;
+  }
+
+  if (start === "new") {
+    nextSteps.push({
+      command: `${EXECUTABLE_NAME} init`,
+      description: "Create your first resource",
+    });
+
+    return nextSteps;
+  }
+
+  nextSteps.push({
+    command: `${EXECUTABLE_NAME} init`,
+    description: "Create another resource",
+  });
+
+  if (hasFunctions) {
+    nextSteps.push({
+      command: `${EXECUTABLE_NAME} run function`,
+      description: "Run a pulled function locally",
+    });
+  }
+
+  if (hasResources) {
+    nextSteps.push({
+      command: `${EXECUTABLE_NAME} push`,
+      description: "Deploy your local edits",
+    });
+  }
+
+  return nextSteps;
+};
+
+const installInitProjectSkills = async (): Promise<void> => {
+  if (hasSkillsInstalled(localConfig.configDirectoryPath)) {
+    log("Agent skills already found. Skipping installation.");
+    return;
+  }
+
+  try {
+    const skillsCwd = localConfig.configDirectoryPath;
+    const { skills, tempDir } = fetchAvailableSkills();
+    try {
+      const detected = detectProjectSkills(skillsCwd, skills);
+      if (detected.length > 0) {
+        const names = detected.map((s) => s.dirName);
+        placeSkills(skillsCwd, tempDir, names, [".agents", ".claude"], true);
+        printInitProjectSuccess(
+          `Installed ${names.length} agent skill${names.length === 1 ? "" : "s"}: ${detected.map((s) => s.name).join(", ")}`,
+        );
+      }
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    error(`Failed to install agent skills: ${msg}`);
+    hint(`You can install them later with '${EXECUTABLE_NAME} init skill'.`);
+  }
+};
+
 const initResources = async (): Promise<void> => {
   const actions: Record<string, InitResourceAction> = {
     function: initFunction,
@@ -144,6 +303,9 @@ const initProject = async ({
       log("No changes made. Existing project configuration was kept.");
       return;
     }
+    if (typeof answers.organization === "string") {
+      answers.organization = extractSelectionId(answers.organization);
+    }
   } else {
     const selectedOrganization =
       organizationId ??
@@ -153,17 +315,16 @@ const initProject = async ({
     const selectedProjectId =
       projectId ?? (await inquirer.prompt([questionsInitProject[4]])).id;
 
+    const normalizedOrganization = extractSelectionId(selectedOrganization);
+
     answers = {
       start: "existing",
       project: selectedProjectId,
-      organization: selectedOrganization,
+      organization: normalizedOrganization,
     };
 
     try {
-      const projectsService = await getProjectsService();
-      const existingProject: ExistingProjectSummary =
-        await projectsService.get(selectedProjectId);
-      answers.project = existingProject;
+      answers.project = await getExistingProjectSummary(selectedProjectId);
     } catch (e) {
       if (e instanceof AppwriteException && e.code === 404) {
         answers = {
@@ -176,6 +337,10 @@ const initProject = async ({
         throw e;
       }
     }
+  }
+
+  if (answers.start === "existing" && typeof answers.project === "string") {
+    answers.project = await getExistingProjectSummary(answers.project);
   }
 
   localConfig.clear(); // Clear the config to avoid any conflicts
@@ -208,7 +373,7 @@ const initProject = async ({
       answers.region,
     );
 
-    localConfig.setProject(response["$id"]);
+    localConfig.setProject(response["$id"], response.name ?? "");
     if (answers.region) {
       localConfig.setEndpoint(
         `https://${answers.region}.${url.host}${url.pathname}`,
@@ -229,7 +394,7 @@ const initProject = async ({
         break;
     }
 
-    localConfig.setProject(selectedProject.$id);
+    localConfig.setProject(selectedProject.$id, selectedProject.name ?? "");
 
     if (isCloud() && selectedProject.region) {
       localConfig.setEndpoint(
@@ -238,54 +403,35 @@ const initProject = async ({
     }
   }
 
-  success(
-    `Project successfully ${answers.start === "existing" ? "linked" : "created"}. Details are now stored in appwrite.config.json file.`,
-  );
-
+  let autoPulled = false;
   if (answers.start === "existing") {
     const autopullAnswers: InitProjectAutopullAnswer = await inquirer.prompt(
       questionsInitProjectAutopull,
     );
+    console.log("");
+    printInitProjectSuccess("Project linked → appwrite.config.json");
+    await installInitProjectSkills();
     if (autopullAnswers.autopull) {
+      console.log("");
+      autoPulled = true;
       cliConfig.all = true;
       cliConfig.force = true;
       await pullResources({
         skipDeprecated: true,
       });
-    } else {
-      log(
-        `You can run '${EXECUTABLE_NAME} pull all' to synchronize all of your existing resources.`,
-      );
     }
+  } else {
+    console.log("");
+    printInitProjectSuccess("Project created → appwrite.config.json");
+    await installInitProjectSkills();
   }
 
-  hint(
-    `Next you can use '${EXECUTABLE_NAME} init' to create resources in your project, or use '${EXECUTABLE_NAME} pull' and '${EXECUTABLE_NAME} push' to synchronize your project.`,
-  );
+  const nextSteps = getInitProjectNextSteps({
+    start: answers.start,
+    autoPulled,
+  });
 
-  if (!hasSkillsInstalled(localConfig.configDirectoryPath)) {
-    try {
-      const skillsCwd = localConfig.configDirectoryPath;
-      log("Setting up Appwrite agent skills ...");
-      const { skills, tempDir } = fetchAvailableSkills();
-      try {
-        const detected = detectProjectSkills(skillsCwd, skills);
-        if (detected.length > 0) {
-          const names = detected.map((s) => s.dirName);
-          placeSkills(skillsCwd, tempDir, names, [".agents", ".claude"], true);
-          success(
-            `Installed ${names.length} agent skill${names.length === 1 ? "" : "s"} based on your project: ${detected.map((s) => s.name).join(", ")}`,
-          );
-        }
-      } finally {
-        fs.rmSync(tempDir, { recursive: true, force: true });
-      }
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      error(`Failed to install agent skills: ${msg}`);
-      hint(`You can install them later with '${EXECUTABLE_NAME} init skill'.`);
-    }
-  }
+  printInitProjectNextSteps(nextSteps);
 };
 
 const initBucket = async (): Promise<void> => {

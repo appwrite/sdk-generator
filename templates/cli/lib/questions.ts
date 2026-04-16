@@ -57,6 +57,24 @@ const validateNonNegativeInteger = (value: string): boolean | string => {
   return true;
 };
 
+const buildSelectionLabel = (name: string, id: string): string =>
+  `${name} (${id})`;
+
+const extractSelectionId = (value: string): string => {
+  const match = value.match(/\(([^()]+)\)$/);
+  return match ? match[1] : value;
+};
+
+const getInitProjectOverrideMessage = (): string => {
+  const projectName = localConfig.getProject().projectName;
+
+  if (projectName) {
+    return `A project is already linked to this directory (${projectName}). Override?`;
+  }
+
+  return "A project is already linked to this directory. Override?";
+};
+
 const getIgnores = (runtime: string): string[] => {
   const language = runtime.split("-").slice(0, -1).join("-");
 
@@ -166,7 +184,7 @@ export const questionsInitProject: Question[] = [
   {
     type: "confirm",
     name: "override",
-    message: `An ${SDK_TITLE} project ( ${localConfig.getProject()["projectId"]} ) is already associated with the current directory. Would you like to override it?`,
+    message: getInitProjectOverrideMessage(),
     when() {
       return Object.keys(localConfig.getProject()).length !== 0;
     },
@@ -175,14 +193,14 @@ export const questionsInitProject: Question[] = [
     type: "list",
     name: "start",
     when: whenOverride,
-    message: "How would you like to start?",
+    message: "Select a setup method:",
     choices: [
       {
-        name: "Create new project",
+        name: "Create a new project",
         value: "new",
       },
       {
-        name: "Link directory to an existing project",
+        name: "Link this directory to an existing project",
         value: "existing",
       },
     ],
@@ -190,7 +208,7 @@ export const questionsInitProject: Question[] = [
   {
     type: "search-list",
     name: "organization",
-    message: "Choose your organization",
+    message: "Choose your organization:",
     choices: async () => {
       const client = await sdkForConsole(true);
       const { teams } = isCloud()
@@ -214,9 +232,10 @@ export const questionsInitProject: Question[] = [
           );
 
       const choices = teams.map((team: any, _idx: number) => {
+        const label = buildSelectionLabel(team.name, team["$id"]);
         return {
-          name: `${team.name} (${team["$id"]})`,
-          value: team["$id"],
+          name: label,
+          value: label,
         };
       });
 
@@ -249,13 +268,13 @@ export const questionsInitProject: Question[] = [
   {
     type: "search-list",
     name: "project",
-    message: `Choose your ${SDK_TITLE} project.`,
+    message: "Choose your project:",
     choices: async (answers: Answers) => {
       const queries = [
         JSON.stringify({
           method: "equal",
           attribute: "teamId",
-          values: [answers.organization],
+          values: [extractSelectionId(answers.organization)],
         }),
         JSON.stringify({ method: "orderDesc", attribute: "$id" }),
       ];
@@ -270,14 +289,10 @@ export const questionsInitProject: Question[] = [
       );
 
       const choices = projects.map((project: any) => {
-        const label = `${project.name} (${project["$id"]})`;
+        const label = buildSelectionLabel(project.name, project["$id"]);
         return {
           name: label,
-          short: label,
-          value: {
-            $id: project["$id"],
-            region: project.region || "",
-          },
+          value: label,
         };
       });
 
@@ -325,7 +340,7 @@ export const questionsInitProjectAutopull: Question[] = [
   {
     type: "confirm",
     name: "autopull",
-    message: `Would you like to pull all resources from the project you just linked?`,
+    message: "Pull all resources from this project?",
   },
 ];
 
