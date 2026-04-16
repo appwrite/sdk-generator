@@ -14,7 +14,7 @@
 {% if responseModels | length > 1 and hasResponseDiscriminator %}
 
         if (!is_array($response)) {
-            return $response;
+            throw new \UnexpectedValueException('Expected array response when hydrating a response model.');
         }
 {% for modelName, conditions in responseDiscriminator %}
 
