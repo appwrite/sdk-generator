@@ -3,6 +3,7 @@ import path from "path";
 import childProcess from "child_process";
 import { Command } from "commander";
 import inquirer from "inquirer";
+import chalk from "chalk";
 import { getProjectsService, getSitesService } from "../services.js";
 import { pullResources } from "./pull.js";
 import ID from "../id.js";
@@ -88,6 +89,48 @@ interface SiteTemplateDetails {
   variables?: SiteTemplateVariable[];
 }
 
+interface InitProjectNextStep {
+  command: string;
+  description: string;
+}
+
+const getExistingProjectSummary = async (
+  projectId: string,
+): Promise<ExistingProjectSummary> => {
+  const projectsService = await getProjectsService();
+  const project = await projectsService.get(projectId);
+
+  return {
+    $id: project.$id,
+    name: project.name,
+    region: project.region || "",
+  };
+};
+
+const printInitProjectSuccess = (message: string): void => {
+  console.log(`${chalk.green.bold("✓")} ${chalk.green(message)}`);
+};
+
+const printInitProjectNextSteps = (steps: InitProjectNextStep[]): void => {
+  if (steps.length === 0) {
+    return;
+  }
+
+  const longestCommand = steps.reduce(
+    (longest, step) => Math.max(longest, step.command.length),
+    0,
+  );
+
+  console.log("");
+  console.log("  Next steps:");
+
+  for (const step of steps) {
+    console.log(
+      `    ${chalk.cyan(step.command.padEnd(longestCommand + 4))}${step.description}`,
+    );
+  }
+};
+
 const initResources = async (): Promise<void> => {
   const actions: Record<string, InitResourceAction> = {
     function: initFunction,
@@ -160,10 +203,7 @@ const initProject = async ({
     };
 
     try {
-      const projectsService = await getProjectsService();
-      const existingProject: ExistingProjectSummary =
-        await projectsService.get(selectedProjectId);
-      answers.project = existingProject;
+      answers.project = await getExistingProjectSummary(selectedProjectId);
     } catch (e) {
       if (e instanceof AppwriteException && e.code === 404) {
         answers = {
@@ -176,6 +216,10 @@ const initProject = async ({
         throw e;
       }
     }
+  }
+
+  if (answers.start === "existing" && typeof answers.project === "string") {
+    answers.project = await getExistingProjectSummary(answers.project);
   }
 
   localConfig.clear(); // Clear the config to avoid any conflicts
@@ -238,43 +282,36 @@ const initProject = async ({
     }
   }
 
-  success(
-    `Project successfully ${answers.start === "existing" ? "linked" : "created"}. Details are now stored in appwrite.config.json file.`,
+  printInitProjectSuccess(
+    `Project ${answers.start === "existing" ? "linked" : "created"} → appwrite.config.json`,
   );
 
+  let autoPulled = false;
   if (answers.start === "existing") {
     const autopullAnswers: InitProjectAutopullAnswer = await inquirer.prompt(
       questionsInitProjectAutopull,
     );
     if (autopullAnswers.autopull) {
+      autoPulled = true;
       cliConfig.all = true;
       cliConfig.force = true;
       await pullResources({
         skipDeprecated: true,
       });
-    } else {
-      log(
-        `You can run '${EXECUTABLE_NAME} pull all' to synchronize all of your existing resources.`,
-      );
     }
   }
-
-  hint(
-    `Next you can use '${EXECUTABLE_NAME} init' to create resources in your project, or use '${EXECUTABLE_NAME} pull' and '${EXECUTABLE_NAME} push' to synchronize your project.`,
-  );
 
   if (!hasSkillsInstalled(localConfig.configDirectoryPath)) {
     try {
       const skillsCwd = localConfig.configDirectoryPath;
-      log("Setting up Appwrite agent skills ...");
       const { skills, tempDir } = fetchAvailableSkills();
       try {
         const detected = detectProjectSkills(skillsCwd, skills);
         if (detected.length > 0) {
           const names = detected.map((s) => s.dirName);
           placeSkills(skillsCwd, tempDir, names, [".agents", ".claude"], true);
-          success(
-            `Installed ${names.length} agent skill${names.length === 1 ? "" : "s"} based on your project: ${detected.map((s) => s.name).join(", ")}`,
+          printInitProjectSuccess(
+            `Installed ${names.length} agent skill${names.length === 1 ? "" : "s"}: ${detected.map((s) => s.name).join(", ")}`,
           );
         }
       } finally {
@@ -286,6 +323,28 @@ const initProject = async ({
       hint(`You can install them later with '${EXECUTABLE_NAME} init skill'.`);
     }
   }
+
+  const nextSteps: InitProjectNextStep[] = [];
+
+  if (answers.start === "existing" && !autoPulled) {
+    nextSteps.push({
+      command: `${EXECUTABLE_NAME} pull all`,
+      description: "Sync existing resources",
+    });
+  }
+
+  nextSteps.push(
+    {
+      command: `${EXECUTABLE_NAME} init`,
+      description: "Create new resources",
+    },
+    {
+      command: `${EXECUTABLE_NAME} push`,
+      description: "Deploy local changes",
+    },
+  );
+
+  printInitProjectNextSteps(nextSteps);
 };
 
 const initBucket = async (): Promise<void> => {

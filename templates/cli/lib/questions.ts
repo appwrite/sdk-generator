@@ -175,14 +175,14 @@ export const questionsInitProject: Question[] = [
     type: "list",
     name: "start",
     when: whenOverride,
-    message: "How would you like to start?",
+    message: "Select a setup method:",
     choices: [
       {
-        name: "Create new project",
+        name: "Create a new project",
         value: "new",
       },
       {
-        name: "Link directory to an existing project",
+        name: "Link this directory to an existing project",
         value: "existing",
       },
     ],
@@ -190,7 +190,7 @@ export const questionsInitProject: Question[] = [
   {
     type: "search-list",
     name: "organization",
-    message: "Choose your organization",
+    message: "Choose your organization:",
     choices: async () => {
       const client = await sdkForConsole(true);
       const { teams } = isCloud()
@@ -249,7 +249,7 @@ export const questionsInitProject: Question[] = [
   {
     type: "search-list",
     name: "project",
-    message: `Choose your ${SDK_TITLE} project.`,
+    message: "Choose your project:",
     choices: async (answers: Answers) => {
       const queries = [
         JSON.stringify({
@@ -274,10 +274,7 @@ export const questionsInitProject: Question[] = [
         return {
           name: label,
           short: label,
-          value: {
-            $id: project["$id"],
-            region: project.region || "",
-          },
+          value: project["$id"],
         };
       });
 
@@ -325,7 +322,7 @@ export const questionsInitProjectAutopull: Question[] = [
   {
     type: "confirm",
     name: "autopull",
-    message: `Would you like to pull all resources from the project you just linked?`,
+    message: "Pull all resources from this project?",
   },
 ];
 
