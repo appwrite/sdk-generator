@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, Optional, Tuple, Type, TypeVar
+from typing import Any, Optional, Type, TypeVar
 
 from pydantic import ValidationError
 
@@ -34,27 +34,17 @@ class Service:
     def _parse_response(
         self,
         response: Any,
-        model: Optional[Type[ModelType]] = None,
-        union_models: Optional[Tuple[Type[AppwriteModel], ...]] = None
+        model: Optional[Type[ModelType]] = None
     ) -> Any:
-        if model is None and not union_models:
+        if model is None:
             return response
 
         if not isinstance(response, dict):
             return response
 
-        if model is not None:
-            try:
-                return model.model_validate(response)
-            except ValidationError as error:
-                raise AppwriteException(
-                    f'Unable to parse response into {model.__name__}: {error}'
-                ) from error
-
-        for union_model in union_models or ():
-            try:
-                return union_model.model_validate(response)
-            except ValidationError:
-                continue
-
-        raise AppwriteException('Unable to parse response into any known model')
+        try:
+            return model.model_validate(response)
+        except ValidationError as error:
+            raise AppwriteException(
+                f'Unable to parse response into {model.__name__}: {error}'
+            ) from error

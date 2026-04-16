@@ -2086,12 +2086,19 @@
             "schema": {
               "x-oneOf": [
                 {
-                  "$ref": "#\/definitions\/mock"
+                  "$ref": "#\/definitions\/unionMock"
                 },
                 {
-                  "$ref": "#\/definitions\/stub"
+                  "$ref": "#\/definitions\/unionStub"
                 }
-              ]
+              ],
+              "x-discriminator": {
+                "propertyName": "type",
+                "mapping": {
+                  "mock": "#\/definitions\/unionMock",
+                  "stub": "#\/definitions\/unionStub"
+                }
+              }
             }
           }
         },
@@ -2413,6 +2420,26 @@
         "result"
       ]
     },
+    "unionMock": {
+      "description": "Mock",
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Mock type.",
+          "x-example": "mock"
+        },
+        "result": {
+          "type": "string",
+          "description": "Result message.",
+          "x-example": "Success"
+        }
+      },
+      "required": [
+        "type",
+        "result"
+      ]
+    },
     "player": {
       "description": "Player",
       "type": "object",
@@ -2547,7 +2574,7 @@
         "status"
       ]
     },
-    "stub": {
+    "unionStub": {
       "description": "Stub",
       "type": "object",
       "additionalProperties": false,

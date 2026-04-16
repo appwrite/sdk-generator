@@ -12,20 +12,56 @@
 {% endif %}
 {% endfor %}
 
-    resp, err := srv.client.FileUpload(path, headers, params, paramName, uploadId)
-    if err != nil {
+	resp, err := srv.client.FileUpload(path, headers, params, paramName, uploadId)
+	if err != nil {
 		return nil, err
 	}
-	var parsed {{ method | returnType(spec, spec.title | caseLower) }}
 	if strings.HasPrefix(resp.Type, "application/json") {
+{% if method | returnType(spec, spec.title | caseLower) == 'models.Model' %}
+{% set hasResponseDiscriminator = method.responseDiscriminator is defined and method.responseDiscriminator is not empty %}
+{% set responseDiscriminator = method.responseDiscriminator ?? {} %}
+{% if hasResponseDiscriminator %}
+		var response map[string]interface{}
+		if err := json.Unmarshal([]byte(resp.Result.(string)), &response); err != nil {
+			return nil, err
+		}
+{% for modelName, conditions in responseDiscriminator %}
+		if {% for field, expectedValue in conditions %}fmt.Sprint(response["{{ field }}"]) == "{{ expectedValue }}"{% if not loop.last %} && {% endif %}{% endfor %} {
+			parsed := models.{{ modelName | caseUcfirst }}{}.New([]byte(resp.Result.(string)))
+			if err := json.Unmarshal([]byte(resp.Result.(string)), parsed); err != nil {
+				return nil, err
+			}
+			return parsed, nil
+		}
+{% endfor %}
+		return nil, errors.New("unable to match response to any expected response model")
+{% else %}
+		parsed := models.{{ method.responseModel | caseUcfirst }}{}.New([]byte(resp.Result.(string)))
+		if err := json.Unmarshal([]byte(resp.Result.(string)), parsed); err != nil {
+			return nil, err
+		}
+		return parsed, nil
+{% endif %}
+{% else %}
+		var parsed {{ method | returnType(spec, spec.title | caseLower) }}
 		err = json.Unmarshal([]byte(resp.Result.(string)), &parsed)
 		if err != nil {
 			return nil, err
 		}
 		return &parsed, nil
+{% endif %}
 	}
+{% if method | returnType(spec, spec.title | caseLower) == 'models.Model' %}
+	parsed, ok := resp.Result.(models.Model)
+	if !ok {
+		return nil, errors.New("unexpected response type")
+	}
+	return parsed, nil
+{% else %}
+	var parsed {{ method | returnType(spec, spec.title | caseLower) }}
 	parsed, ok := resp.Result.({{ method | returnType(spec, spec.title | caseLower) }})
 	if !ok {
 		return nil, errors.New("unexpected response type")
 	}
 	return &parsed, nil
+{% endif %}

@@ -65,10 +65,11 @@ final class {{ service.name | caseUcfirst }}Test extends TestCase
 {# Skip deprecated methods that have namespace collisions with non-deprecated methods #}
 {% else %}
 {% set responseModels = method | getResponseModels(spec) %}
-{% set filteredResponseModelNames = method.responseModels | filter((modelName) => modelName is not empty and modelName != 'any') %}
+{% set filteredResponseModelNames = method | getValidResponseModels %}
+{% set responseDiscriminator = method.responseDiscriminator ?? {} %}
 {% set responseDefinitionName = '' %}
 {% if filteredResponseModelNames is not empty %}
-{% set responseDefinitionName = filteredResponseModelNames | first %}
+{% set responseDefinitionName = filteredResponseModelNames | last %}
 {% elseif method.responseModel and method.responseModel != 'any' %}
 {% set responseDefinitionName = method.responseModel %}
 {% endif %}
@@ -76,7 +77,18 @@ final class {{ service.name | caseUcfirst }}Test extends TestCase
     public function testMethod{{ method.name | caseUcfirst }}(): void
     {
 {% if responseModels | length > 0 %}
+{% if responseModels | length > 1 and responseDefinitionName and responseDiscriminator[responseDefinitionName] is defined %}
+        $data = array_replace(
+            {{ responseDefinitionName | mockDefinitionPayload(spec, 4) | raw -}},
+            array(
+{% for field, expectedValue in responseDiscriminator[responseDefinitionName] %}
+                "{{ field }}" => "{{ expectedValue }}"{{ loop.last ? '' : ',' }}
+{% endfor %}
+            )
+        );
+{% else %}
         $data = {{ responseDefinitionName | mockDefinitionPayload(spec, 3) | raw -}};
+{% endif %}
 {% elseif (method.responseModel and method.responseModel == 'any') or (method | getReturn(spec) == 'array') %}
         $data = array();
 {% else %}
@@ -98,7 +110,7 @@ final class {{ service.name | caseUcfirst }}Test extends TestCase
 {% endif %}
 
 {% if responseModels | length > 0 %}
-        $this->assertInstanceOf({{ responseModels[0] }}::class, $response);
+        $this->assertInstanceOf({{ responseModels | last }}::class, $response);
 {% else %}
         $this->assertSame($data, $response);
 {% endif %}
