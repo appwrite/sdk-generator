@@ -4,16 +4,19 @@ namespace {{ spec.title | caseUcfirst }}
     {
         protected sealed class UnionResponseModelDispatch
         {
+            public System.Collections.Generic.Dictionary<string, string> Conditions { get; }
             public string[] Required { get; }
             public string[] All { get; }
             public System.Func<System.Collections.Generic.Dictionary<string, object>, object> Hydrate { get; }
 
             public UnionResponseModelDispatch(
+                System.Collections.Generic.Dictionary<string, string> conditions,
                 string[] required,
                 string[] all,
                 System.Func<System.Collections.Generic.Dictionary<string, object>, object> hydrate
             )
             {
+                Conditions = conditions;
                 Required = required;
                 All = all;
                 Hydrate = hydrate;
@@ -37,27 +40,51 @@ namespace {{ spec.title | caseUcfirst }}
 
             foreach (var candidate in dispatch)
             {
-                var hasRequiredFields = true;
-                foreach (var field in candidate.Required)
+                int score;
+
+                if (candidate.Conditions.Count > 0)
                 {
-                    if (!response.ContainsKey(field))
+                    var matches = true;
+                    foreach (var condition in candidate.Conditions)
                     {
-                        hasRequiredFields = false;
-                        break;
+                        if (!response.TryGetValue(condition.Key, out var actual) || actual?.ToString() != condition.Value)
+                        {
+                            matches = false;
+                            break;
+                        }
                     }
-                }
 
-                if (!hasRequiredFields)
-                {
-                    continue;
-                }
-
-                var score = 0;
-                foreach (var field in candidate.All)
-                {
-                    if (response.ContainsKey(field))
+                    if (!matches)
                     {
-                        score++;
+                        continue;
+                    }
+
+                    score = candidate.Conditions.Count;
+                }
+                else
+                {
+                    var hasRequiredFields = true;
+                    foreach (var field in candidate.Required)
+                    {
+                        if (!response.ContainsKey(field))
+                        {
+                            hasRequiredFields = false;
+                            break;
+                        }
+                    }
+
+                    if (!hasRequiredFields)
+                    {
+                        continue;
+                    }
+
+                    score = 0;
+                    foreach (var field in candidate.All)
+                    {
+                        if (response.ContainsKey(field))
+                        {
+                            score++;
+                        }
                     }
                 }
 

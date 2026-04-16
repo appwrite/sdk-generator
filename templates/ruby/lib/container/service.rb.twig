@@ -20,12 +20,19 @@ module {{spec.title | caseUcfirst}}
             response_keys = response.keys
 
             dispatch.each do |model, metadata|
+                conditions = metadata[:conditions] || {}
                 required_fields = metadata[:required] || []
                 all_fields = metadata[:all] || []
 
-                next unless required_fields.all? { |field| response_keys.include?(field) }
+                if conditions.any?
+                    next unless conditions.all? { |field, expected| response[field] == expected }
 
-                score = all_fields.count { |field| response_keys.include?(field) }
+                    score = conditions.length
+                else
+                    next unless required_fields.all? { |field| response_keys.include?(field) }
+
+                    score = all_fields.count { |field| response_keys.include?(field) }
+                end
 
                 if score > best_score
                     best_score = score

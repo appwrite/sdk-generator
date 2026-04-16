@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, Optional, Tuple, Type, TypeVar
+from typing import Any, Dict, Optional, Tuple, Type, TypeVar
 
 from pydantic import ValidationError
 
@@ -8,7 +8,12 @@ from .exception import AppwriteException
 from .models.base_model import AppwriteModel
 
 ModelType = TypeVar('ModelType', bound=AppwriteModel)
-UnionDispatchEntry = Tuple[Type[AppwriteModel], Tuple[str, ...], Tuple[str, ...]]
+UnionDispatchEntry = Tuple[
+    Type[AppwriteModel],
+    Dict[str, Any],
+    Tuple[str, ...],
+    Tuple[str, ...]
+]
 
 class Service:
     def __init__(self, client: Client):
@@ -57,11 +62,18 @@ class Service:
             best_model: Optional[Type[AppwriteModel]] = None
             best_score = -1
 
-            for union_model, required_fields, all_fields in union_dispatch:
-                if any(field not in response_keys for field in required_fields):
-                    continue
+            for union_model, conditions, required_fields, all_fields in union_dispatch:
+                if conditions:
+                    if any(response.get(field) != expected for field, expected in conditions.items()):
+                        continue
 
-                score = sum(1 for field in all_fields if field in response_keys)
+                    score = len(conditions)
+                else:
+                    if any(field not in response_keys for field in required_fields):
+                        continue
+
+                    score = sum(1 for field in all_fields if field in response_keys)
+
                 if score > best_score:
                     best_score = score
                     best_model = union_model

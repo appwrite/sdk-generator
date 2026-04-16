@@ -151,6 +151,7 @@ class Swagger2 extends Spec
 
         $responseModel = '';
         $responseModels = [];
+        $responseDiscriminator = [];
         $responses = $method['responses'];
         $emptyResponse = true;
         foreach ($responses as $code => $desc) {
@@ -168,9 +169,11 @@ class Swagger2 extends Spec
             // check for union types
             if (isset($desc['schema']['x-oneOf'])) {
                 $responseModels = \array_map(
-                    fn($schema) => str_replace('#/definitions/', '', $schema['$ref']),
+                    fn($schema) => $this->normalizeSchemaRef($schema['$ref'] ?? ''),
                     $desc['schema']['x-oneOf']
                 );
+
+                $responseDiscriminator = $this->parseUnionDiscriminator($desc['schema']);
 
                 // set to first model
                 // for backward compatibility
@@ -207,6 +210,7 @@ class Swagger2 extends Spec
             'emptyResponse' => $emptyResponse,
             'responseModel' => $responseModel,
             'responseModels' => $responseModels,
+            'responseDiscriminator' => $responseDiscriminator,
         ];
 
         if ($method['x-appwrite']['deprecated'] ?? false) {
@@ -321,6 +325,88 @@ class Swagger2 extends Spec
         });
 
         return $output;
+    }
+
+    protected function normalizeSchemaRef(string $ref): string
+    {
+        return str_replace(
+            ['#/definitions/', '#/components/schemas/'],
+            '',
+            $ref
+        );
+    }
+
+    protected function parseUnionDiscriminator(array $schema): array
+    {
+        $discriminator = $schema['x-discriminator'] ?? $schema['discriminator'] ?? null;
+
+        if (!\is_array($discriminator)) {
+            return [];
+        }
+
+        $cases = [];
+        $mapping = [];
+
+        if (\is_array($discriminator['x-mapping'] ?? null)) {
+            foreach ($discriminator['x-mapping'] as $ref => $conditions) {
+                if (!\is_array($conditions)) {
+                    continue;
+                }
+
+                $modelName = $this->normalizeSchemaRef((string) $ref);
+
+                if ($modelName === '') {
+                    continue;
+                }
+
+                $mapping[$modelName] = \array_filter(
+                    $conditions,
+                    fn($value) => $value !== null
+                );
+            }
+        }
+
+        if (
+            empty($mapping)
+            && isset($discriminator['propertyName'], $discriminator['mapping'])
+            && \is_array($discriminator['mapping'])
+        ) {
+            foreach ($discriminator['mapping'] as $value => $ref) {
+                $modelName = $this->normalizeSchemaRef((string) $ref);
+
+                if ($modelName === '') {
+                    continue;
+                }
+
+                $mapping[$modelName] = [
+                    $discriminator['propertyName'] => $value,
+                ];
+            }
+        }
+
+        if (empty($mapping)) {
+            return [];
+        }
+
+        foreach ($schema['x-oneOf'] ?? [] as $unionSchema) {
+            $modelName = $this->normalizeSchemaRef($unionSchema['$ref'] ?? '');
+
+            if ($modelName === '' || !isset($mapping[$modelName])) {
+                continue;
+            }
+
+            $cases[$modelName] = $mapping[$modelName];
+        }
+
+        if (empty($cases)) {
+            $cases = $mapping;
+        }
+
+        uksort($cases, function (string $left, string $right) use ($cases): int {
+            return \count($cases[$right]) <=> \count($cases[$left]);
+        });
+
+        return $cases;
     }
 
     /**

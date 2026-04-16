@@ -34,6 +34,7 @@
       [
 {% for modelName, metadata in unionDispatch %}
         UnionResponseModel(
+          conditions: {% if metadata.conditions %}{ {% for field, expectedValue in metadata.conditions %}'{{ field | escapeDollarSign }}': '{{ expectedValue | escapeDollarSign }}'{% if not loop.last %}, {% endif %}{% endfor %} }{% else %}{}{% endif %},
           requiredFields: [{% for field in metadata.required %}'{{ field | escapeDollarSign }}'{% if not loop.last %}, {% endif %}{% endfor %}],
           allFields: [{% for field in metadata.all %}'{{ field | escapeDollarSign }}'{% if not loop.last %}, {% endif %}{% endfor %}],
           hydrate: models.{{ modelName | caseUcfirst | overrideIdentifier }}.fromMap,

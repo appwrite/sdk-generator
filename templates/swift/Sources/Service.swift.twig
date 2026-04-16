@@ -1,4 +1,5 @@
 internal struct UnionResponseModelDispatch {
+    let conditions: [String: String]
     let required: [String]
     let all: [String]
     let hydrate: ([String: Any]) -> Any
@@ -23,14 +24,32 @@ open class Service {
         var bestScore = -1
 
         for candidate in dispatch {
-            let hasRequiredFields = candidate.required.allSatisfy { responseKeys.contains($0) }
-            if !hasRequiredFields {
-                continue
-            }
+            let score: Int
 
-            let score = candidate.all.reduce(into: 0) { result, field in
-                if responseKeys.contains(field) {
-                    result += 1
+            if !candidate.conditions.isEmpty {
+                let matches = candidate.conditions.allSatisfy { key, expected in
+                    guard let actual = responseMap[key] else {
+                        return false
+                    }
+
+                    return String(describing: actual) == expected
+                }
+
+                if !matches {
+                    continue
+                }
+
+                score = candidate.conditions.count
+            } else {
+                let hasRequiredFields = candidate.required.allSatisfy { responseKeys.contains($0) }
+                if !hasRequiredFields {
+                    continue
+                }
+
+                score = candidate.all.reduce(into: 0) { result, field in
+                    if responseKeys.contains(field) {
+                        result += 1
+                    }
                 }
             }
 

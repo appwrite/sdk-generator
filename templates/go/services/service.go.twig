@@ -12,10 +12,16 @@
 {%- set requireFmtPkg = true -%}
 {%- endif -%}
 {%- endfor -%}
+{% set hasUnionResponses = false %}
+{% for method in service.methods %}
+{% if (method | getValidResponseModels)|length > 1 %}
+{% set hasUnionResponses = true %}
+{% endif %}
+{% endfor %}
 {%- for method in service.methods -%}
 {%- if (method | returnType(spec, spec.title | caseLower)) starts with "models" -%}
-		{%- set requireModelsPkg = true -%}
-{%- endif -%}
+			{%- set requireModelsPkg = true -%}
+	{%- endif -%}
 {% for parameter in method.parameters.all %}
 	{%- if (parameter | typeName) ends with "InputFile"  -%}
 		{%- set requireFilesPkg = true -%}
@@ -40,8 +46,8 @@ import (
 {% if requireUrlPkg %}
 	"net/url"
 {% endif %}
-{% if requireFmtPkg %}
-	"fmt"
+{% if requireFmtPkg or hasUnionResponses %}
+		"fmt"
 {% endif %}
 	"strings"
 )
@@ -57,14 +63,9 @@ func New(clt client.Client) *{{ service.name | caseUcfirst }} {
 	}
 }
 
-{% set hasUnionResponses = false %}
-{% for method in service.methods %}
-{% if (method | getValidResponseModels)|length > 1 %}
-{% set hasUnionResponses = true %}
-{% endif %}
-{% endfor %}
-{% if hasUnionResponses %}
+	{% if hasUnionResponses %}
 type unionResponseDispatch struct {
+	conditions map[string]string
 	required []string
 	all      []string
 	hydrate  func([]byte) (models.Model, error)
@@ -85,22 +86,40 @@ func parseUnionResponse(bytes []byte, dispatch []unionResponseDispatch) (models.
 
 	for i := range dispatch {
 		candidate := &dispatch[i]
-		missingRequiredField := false
-		for _, field := range candidate.required {
-			if _, ok := responseKeys[field]; !ok {
-				missingRequiredField = true
-				break
-			}
-		}
-
-		if missingRequiredField {
-			continue
-		}
-
 		score := 0
-		for _, field := range candidate.all {
-			if _, ok := responseKeys[field]; ok {
+
+		if len(candidate.conditions) > 0 {
+			matches := true
+			for field, expected := range candidate.conditions {
+				actual, ok := response[field]
+				if !ok || fmt.Sprint(actual) != expected {
+					matches = false
+					break
+				}
+
 				score++
+			}
+
+			if !matches {
+				continue
+			}
+		} else {
+			missingRequiredField := false
+			for _, field := range candidate.required {
+				if _, ok := responseKeys[field]; !ok {
+					missingRequiredField = true
+					break
+				}
+			}
+
+			if missingRequiredField {
+				continue
+			}
+
+			for _, field := range candidate.all {
+				if _, ok := responseKeys[field]; ok {
+					score++
+				}
 			}
 		}
 

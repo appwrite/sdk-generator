@@ -1468,11 +1468,31 @@ class SDK
     /**
      * @param array $method
      * @param array $spec
-     * @return array<string, array{required: array<int, string>, all: array<int, string>}>
+     * @return array<string, array{
+     *     conditions: array<string, scalar|null>,
+     *     required: array<int, string>,
+     *     all: array<int, string>
+     * }>
      */
     protected function getUnionDispatch(array $method, array $spec = []): array
     {
         $dispatch = [];
+
+        foreach ($method['responseDiscriminator'] ?? [] as $modelName => $conditions) {
+            if (empty($modelName) || $modelName === 'any' || isset($dispatch[$modelName])) {
+                continue;
+            }
+
+            $dispatch[$modelName] = [
+                'conditions' => \is_array($conditions) ? $conditions : [],
+                'required' => [],
+                'all' => [],
+            ];
+        }
+
+        if (!empty($dispatch)) {
+            return $dispatch;
+        }
 
         foreach ($method['responseModels'] ?? [] as $modelName) {
             if (empty($modelName) || $modelName === 'any' || isset($dispatch[$modelName])) {
@@ -1486,6 +1506,7 @@ class SDK
             }
 
             $dispatch[$modelName] = [
+                'conditions' => [],
                 'required' => [],
                 'all' => [],
             ];

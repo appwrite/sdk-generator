@@ -578,6 +578,7 @@ App::get('/v1/mock/tests/union')
             ]);
         } else {
             $response->json([
+                'type' => 'mock',
                 'result' => 'GET:/v1/mock/tests/union:passed',
             ]);
         }

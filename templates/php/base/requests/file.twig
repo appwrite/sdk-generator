@@ -2,6 +2,7 @@
 {% if parameter.type == 'file' %}
 {% set responseModels = method | getResponseModels(spec) %}
 {% set filteredResponseModelNames = method.responseModels | filter((modelName) => modelName is not empty and modelName != 'any') %}
+{% set unionDispatch = method | getUnionDispatch(spec) %}
         $size = 0;
         $mimeType = null;
         $postedName = null;
@@ -26,10 +27,11 @@
 {% if responseModels | length > 1 %},
                     [
 {% for modelName in filteredResponseModelNames %}
-                        {{ responseModels[loop.index0] }}::class => [
-                            'required' => [{% for propertyName, property in spec.definitions[modelName].properties %}{% if property.required %}'{{ propertyName }}'{{ loop.last ? '' : ', ' }}{% endif %}{% endfor %}],
-                            'all' => [{% for propertyName, property in spec.definitions[modelName].properties %}'{{ propertyName }}'{{ loop.last ? '' : ', ' }}{% endfor %}],
-                        ]{{ loop.last ? '' : ',' }}
+                    {{ responseModels[loop.index0] }}::class => [
+                        'conditions' => [{% for field, expectedValue in unionDispatch[modelName].conditions %}'{{ field }}' => '{{ expectedValue }}'{{ loop.last ? '' : ', ' }}{% endfor %}],
+                        'required' => [{% for field in unionDispatch[modelName].required %}'{{ field }}'{{ loop.last ? '' : ', ' }}{% endfor %}],
+                        'all' => [{% for field in unionDispatch[modelName].all %}'{{ field }}'{{ loop.last ? '' : ', ' }}{% endfor %}],
+                    ]{{ loop.last ? '' : ',' }}
 {% endfor %}
                     ]
 {% endif %}
@@ -61,8 +63,9 @@
                     [
 {% for modelName in filteredResponseModelNames %}
                         {{ responseModels[loop.index0] }}::class => [
-                            'required' => [{% for propertyName, property in spec.definitions[modelName].properties %}{% if property.required %}'{{ propertyName }}'{{ loop.last ? '' : ', ' }}{% endif %}{% endfor %}],
-                            'all' => [{% for propertyName, property in spec.definitions[modelName].properties %}'{{ propertyName }}'{{ loop.last ? '' : ', ' }}{% endfor %}],
+                            'conditions' => [{% for field, expectedValue in unionDispatch[modelName].conditions %}'{{ field }}' => '{{ expectedValue }}'{{ loop.last ? '' : ', ' }}{% endfor %}],
+                            'required' => [{% for field in unionDispatch[modelName].required %}'{{ field }}'{{ loop.last ? '' : ', ' }}{% endfor %}],
+                            'all' => [{% for field in unionDispatch[modelName].all %}'{{ field }}'{{ loop.last ? '' : ', ' }}{% endfor %}],
                         ]{{ loop.last ? '' : ',' }}
 {% endfor %}
                     ]
@@ -135,8 +138,9 @@
             [
 {% for modelName in filteredResponseModelNames %}
                 {{ responseModels[loop.index0] }}::class => [
-                    'required' => [{% for propertyName, property in spec.definitions[modelName].properties %}{% if property.required %}'{{ propertyName }}'{{ loop.last ? '' : ', ' }}{% endif %}{% endfor %}],
-                    'all' => [{% for propertyName, property in spec.definitions[modelName].properties %}'{{ propertyName }}'{{ loop.last ? '' : ', ' }}{% endfor %}],
+                    'conditions' => [{% for field, expectedValue in unionDispatch[modelName].conditions %}'{{ field }}' => '{{ expectedValue }}'{{ loop.last ? '' : ', ' }}{% endfor %}],
+                    'required' => [{% for field in unionDispatch[modelName].required %}'{{ field }}'{{ loop.last ? '' : ', ' }}{% endfor %}],
+                    'all' => [{% for field in unionDispatch[modelName].all %}'{{ field }}'{{ loop.last ? '' : ', ' }}{% endfor %}],
                 ]{{ loop.last ? '' : ',' }}
 {% endfor %}
             ]

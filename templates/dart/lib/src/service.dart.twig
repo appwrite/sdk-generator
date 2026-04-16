@@ -2,11 +2,13 @@ import '../models.dart' as models;
 import 'client.dart';
 
 class UnionResponseModel {
+  final Map<String, dynamic> conditions;
   final List<String> requiredFields;
   final List<String> allFields;
   final models.Model Function(Map<String, dynamic>) hydrate;
 
   const UnionResponseModel({
+    required this.conditions,
     required this.requiredFields,
     required this.allFields,
     required this.hydrate,
@@ -26,11 +28,26 @@ models.Model parseResponse(
   final responseKeys = response.keys.toSet();
 
   for (final candidate in dispatch) {
-    if (!candidate.requiredFields.every(responseKeys.contains)) {
-      continue;
+    late final int score;
+
+    if (candidate.conditions.isNotEmpty) {
+      final matches = candidate.conditions.entries.every(
+        (entry) => response[entry.key] == entry.value,
+      );
+
+      if (!matches) {
+        continue;
+      }
+
+      score = candidate.conditions.length;
+    } else {
+      if (!candidate.requiredFields.every(responseKeys.contains)) {
+        continue;
+      }
+
+      score = candidate.allFields.where(responseKeys.contains).length;
     }
 
-    final score = candidate.allFields.where(responseKeys.contains).length;
     if (score > bestScore) {
       bestScore = score;
       bestMatch = candidate;

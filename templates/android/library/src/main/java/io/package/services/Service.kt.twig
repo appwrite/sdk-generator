@@ -156,6 +156,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
 {% set unionDispatch = method | getUnionDispatch(spec) %}
 {% for modelName, metadata in unionDispatch %}
                     UnionResponseModelDispatch(
+                        conditions = mapOf({% for field, expectedValue in metadata.conditions %}"{{ field | escapeDollarSign }}" to "{{ expectedValue | escapeDollarSign }}"{% if not loop.last %}, {% endif %}{% endfor %}),
                         required = listOf({% for field in metadata.required %}"{{ field | escapeDollarSign }}"{% if not loop.last %}, {% endif %}{% endfor %}),
                         all = listOf({% for field in metadata.all %}"{{ field | escapeDollarSign }}"{% if not loop.last %}, {% endif %}{% endfor %}),
                         hydrate = { map -> {{sdk.namespace | caseDot}}.models.{{ modelName | caseUcfirst }}.from(map = map) }

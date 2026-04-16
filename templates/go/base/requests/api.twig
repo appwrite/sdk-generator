@@ -10,6 +10,11 @@
 		parsed, err := parseUnionResponse(bytes, []unionResponseDispatch{
 {% for modelName, metadata in unionDispatch %}
 			{
+				conditions: map[string]string{
+{% for field, expectedValue in metadata.conditions %}
+					"{{ field }}": "{{ expectedValue }}",
+{% endfor %}
+				},
 				required: []string{
 {% for field in metadata.required %}
 					"{{ field }}",

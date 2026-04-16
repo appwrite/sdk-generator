@@ -3,6 +3,7 @@ package {{ sdk.namespace | caseDot }}
 import {{ sdk.namespace | caseDot }}.Client
 
 data class UnionResponseModelDispatch(
+    val conditions: Map<String, String>,
     val required: List<String>,
     val all: List<String>,
     val hydrate: (Map<String, Any>) -> Any
@@ -22,11 +23,20 @@ abstract class Service(val client: Client) {
         val responseKeys = responseMap.keys
 
         dispatch.forEach { candidate ->
-            if (!candidate.required.all(responseKeys::contains)) {
-                return@forEach
+            val score = if (candidate.conditions.isNotEmpty()) {
+                if (!candidate.conditions.all { (key, expected) -> responseMap[key]?.toString() == expected }) {
+                    return@forEach
+                }
+
+                candidate.conditions.size
+            } else {
+                if (!candidate.required.all(responseKeys::contains)) {
+                    return@forEach
+                }
+
+                candidate.all.count(responseKeys::contains)
             }
 
-            val score = candidate.all.count(responseKeys::contains)
             if (score > bestScore) {
                 bestScore = score
                 bestMatch = candidate
