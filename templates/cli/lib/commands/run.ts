@@ -251,10 +251,22 @@ const runFunction = async ({
 
   await dockerPull(func);
 
+  let hasShownRuntimeLogsHeader = false;
+  const showRuntimeLogsHeader = (): void => {
+    if (hasShownRuntimeLogsHeader) {
+      return;
+    }
+
+    hasShownRuntimeLogsHeader = true;
+    log("Runtime logs:");
+  };
+
   new Tail(logsPath).on("line", function (data: string) {
+    showRuntimeLogsHeader();
     process.stdout.write(chalk.white(`${data}\n`));
   });
   new Tail(errorsPath).on("line", function (data: string) {
+    showRuntimeLogsHeader();
     process.stdout.write(chalk.white(`${data}\n`));
   });
 

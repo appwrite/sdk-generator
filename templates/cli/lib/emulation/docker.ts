@@ -465,7 +465,9 @@ export async function dockerStart(
     return;
   }
 
+  process.stdout.write("\n");
   success(`Visit http://localhost:${port}/ to execute your function.`);
+  process.stdout.write("\n");
 }
 
 export async function dockerCleanup(functionId: string): Promise<void> {

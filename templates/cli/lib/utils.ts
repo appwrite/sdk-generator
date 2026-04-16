@@ -452,7 +452,10 @@ export const syncVersionCheckCache = (
 ): void => {
   const now = getCurrentTimestamp();
   const source = getLatestVersionSource();
-  const existingCache = getCacheForVersionSource(readUpdateCheckCache(), source);
+  const existingCache = getCacheForVersionSource(
+    readUpdateCheckCache(),
+    source,
+  );
   const updateAvailable = compareVersions(currentVersion, latestVersion) > 0;
 
   tryWriteUpdateCheckCache({

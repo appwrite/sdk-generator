@@ -68,9 +68,7 @@ const isExpectedStandaloneBinaryPath = (candidatePath: string): boolean => {
   const basename = path.basename(candidatePath).toLowerCase();
   const expectedName = EXECUTABLE_NAME.toLowerCase();
 
-  return (
-    basename === expectedName || basename === `${expectedName}.exe`
-  );
+  return basename === expectedName || basename === `${expectedName}.exe`;
 };
 
 const isDirectoryWritable = (directoryPath: string): boolean => {
@@ -90,7 +88,9 @@ const downloadStandaloneBinary = async (
   destinationPath: string,
 ): Promise<void> => {
   const artifact = getStandaloneBinaryArtifactName();
-  const response = await fetch(`${GITHUB_RELEASES_URL}/latest/download/${artifact}`);
+  const response = await fetch(
+    `${GITHUB_RELEASES_URL}/latest/download/${artifact}`,
+  );
 
   if (!response.ok) {
     throw new Error(
@@ -344,9 +344,8 @@ interface UpdateOptions {
 const updateCli = async ({ manual }: UpdateOptions = {}): Promise<void> => {
   try {
     const installationMethod = detectInstallationMethod();
-    const latestVersion = await getLatestVersionForInstallation(
-      installationMethod,
-    );
+    const latestVersion =
+      await getLatestVersionForInstallation(installationMethod);
 
     const comparison = compareVersions(version, latestVersion);
 
