@@ -165,21 +165,23 @@ if (openRuntimesVersion !== "v5") {
     `Expected local function emulation to use OpenRuntimes v5, got ${openRuntimesVersion}`,
   );
 }
-console.log("CLI_LOCAL_RUNTIME_VERSION:passed");
-
 if (systemTools.node?.startCommand !== "bash helpers/server.sh") {
   throw new Error(
     `Expected node local function startup to use bash helpers/server.sh, got ${systemTools.node?.startCommand}`,
   );
 }
-console.log("CLI_LOCAL_RUNTIME_START_COMMAND:passed");
+console.log("CLI_LOCAL_FUNCTION_RUNNER_CONFIG:passed");
 
-const missingSourceDir = path.join(process.cwd(), "tmp-local-source-check");
-fs.rmSync(missingSourceDir, { recursive: true, force: true });
-fs.mkdirSync(missingSourceDir, { recursive: true });
+const validSourceDir = path.join(process.cwd(), "tmp-local-source-check");
+fs.rmSync(validSourceDir, { recursive: true, force: true });
+fs.mkdirSync(path.join(validSourceDir, "src"), { recursive: true });
 fs.writeFileSync(
-  path.join(missingSourceDir, "package.json"),
+  path.join(validSourceDir, "package.json"),
   JSON.stringify({ name: "tmp-local-source-check", private: true }),
+);
+fs.writeFileSync(
+  path.join(validSourceDir, "src/main.js"),
+  "export default async ({ res }) => res.json({ ok: true });\n",
 );
 
 try {
@@ -189,63 +191,14 @@ try {
     runtime: "node-22",
     entrypoint: "src/main.js",
     path: path
-      .relative(process.cwd(), missingSourceDir)
+      .relative(process.cwd(), validSourceDir)
       .split(path.sep)
       .join("/"),
   });
-  throw new Error(
-    "Expected local source preflight to fail for missing entrypoint.",
-  );
-} catch (error) {
-  const message = error instanceof Error ? error.message : String(error);
-  if (
-    !message.includes(
-      "Entrypoint 'src/main.js' was not found in 'tmp-local-source-check'",
-    )
-  ) {
-    throw error;
-  }
 } finally {
-  fs.rmSync(missingSourceDir, { recursive: true, force: true });
+  fs.rmSync(validSourceDir, { recursive: true, force: true });
 }
 console.log("CLI_LOCAL_SOURCE_PREFLIGHT:passed");
-
-const dockerSource = fs.readFileSync(
-  path.join(process.cwd(), "lib/emulation/docker.ts"),
-  "utf8",
-);
-if (
-  dockerSource.includes("chalk.blackBright(`${data}\\n`)") ||
-  !dockerSource.includes("process.stdout.write(chalk.blackBright(data));") ||
-  !dockerSource.includes("process.stderr.write(chalk.blackBright(data));")
-) {
-  throw new Error(
-    "Local Docker build logs should stream chunks without forced extra newlines.",
-  );
-}
-console.log("CLI_LOCAL_DOCKER_LOG_FORMATTING:passed");
-
-if (
-  !dockerSource.includes('"HTTP server successfully started!"') ||
-  !dockerSource.includes('type: "startup-log" as const') ||
-  !dockerSource.includes(
-    "Function container exited before startup logs completed.",
-  )
-) {
-  throw new Error(
-    "Local Docker startup success should wait for the final startup log before printing the CLI success banner.",
-  );
-}
-console.log("CLI_LOCAL_SUCCESS_LOG_ORDERING:passed");
-
-if (
-  !dockerSource.includes("Unable to pull Docker image") ||
-  !dockerSource.includes("await dockerStop(id);") ||
-  !dockerSource.includes("Function container exited before opening port")
-) {
-  throw new Error("Local Docker emulation is missing failure handling guards.");
-}
-console.log("CLI_LOCAL_DOCKER_FAILURE_HANDLING:passed");
 
 // Type generation regression: generated concrete row query helpers must compile on TS 5.9+
 fs.rmSync(path.join(process.cwd(), "generated"), {

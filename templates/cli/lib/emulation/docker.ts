@@ -46,13 +46,15 @@ function getFunctionFiles(func: FunctionType): {
 }
 
 export function assertFunctionSourceCode(func: FunctionType): void {
-  const { functionDir, files, ignorer } = getFunctionFiles(func);
+  const functionDir = path.join(localConfig.getDirname(), func.path);
 
   if (!fs.existsSync(functionDir)) {
     throw new Error(
       `Function path '${func.path}' was not found. Add your source code before running locally.`,
     );
   }
+
+  const { files, ignorer } = getFunctionFiles(func);
 
   if (!func.entrypoint) {
     throw new Error(
@@ -251,12 +253,25 @@ export async function dockerBuild(
       },
     });
 
+    let hasPrintedBuildSeparator = false;
+    const writeBuildChunk = (
+      stream: NodeJS.WriteStream,
+      data: Buffer | string,
+    ): void => {
+      if (!hasPrintedBuildSeparator) {
+        stream.write("\n");
+        hasPrintedBuildSeparator = true;
+      }
+
+      stream.write(chalk.blackBright(data));
+    };
+
     buildProcess.stdout.on("data", (data) => {
-      process.stdout.write(chalk.blackBright(data));
+      writeBuildChunk(process.stdout, data);
     });
 
     buildProcess.stderr.on("data", (data) => {
-      process.stderr.write(chalk.blackBright(data));
+      writeBuildChunk(process.stderr, data);
     });
 
     killInterval = setInterval(() => {

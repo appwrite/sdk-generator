@@ -133,7 +133,7 @@ const runFunction = async ({
   };
 
   drawTable([settings]);
-  log(
+  hint(
     "If you wish to change your local settings, update the appwrite.config.json file and rerun the 'appwrite run' command.",
   );
   hint(
@@ -389,8 +389,10 @@ const runFunction = async ({
     return;
   }
 
+  process.stdout.write("\n");
   log("Starting function using Docker ...");
   hint("Function automatically restarts when you edit your code.");
+  process.stdout.write("\n");
   await dockerStart(func, allVariables, portNum!);
 
   Queue.unlock();
