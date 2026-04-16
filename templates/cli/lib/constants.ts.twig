@@ -39,6 +39,8 @@ export const CONFIG_RESOURCE_KEYS = [
   "buckets",
 {% elseif service.name == 'teams' %}
   "teams",
+{% elseif service.name == 'webhooks' %}
+  "webhooks",
 {% elseif service.name == 'messaging' %}
   "topics",
   "messages",
