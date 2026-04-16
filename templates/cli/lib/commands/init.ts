@@ -283,15 +283,12 @@ const initProject = async ({
     }
   }
 
-  printInitProjectSuccess(
-    `Project ${answers.start === "existing" ? "linked" : "created"} → appwrite.config.json`,
-  );
-
   let autoPulled = false;
   if (answers.start === "existing") {
     const autopullAnswers: InitProjectAutopullAnswer = await inquirer.prompt(
       questionsInitProjectAutopull,
     );
+    printInitProjectSuccess("Project linked → appwrite.config.json");
     if (autopullAnswers.autopull) {
       autoPulled = true;
       cliConfig.all = true;
@@ -300,6 +297,8 @@ const initProject = async ({
         skipDeprecated: true,
       });
     }
+  } else {
+    printInitProjectSuccess("Project created → appwrite.config.json");
   }
 
   if (!hasSkillsInstalled(localConfig.configDirectoryPath)) {
