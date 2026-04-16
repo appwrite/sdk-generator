@@ -13,6 +13,45 @@ import { openRuntimesVersion, systemTools, Queue } from "./utils.js";
 import { getAllFiles } from "../utils.js";
 import type { FunctionType } from "../commands/config.js";
 
+function getRuntimeImageName(func: FunctionType): string {
+  const runtimeChunks = func.runtime.split("-");
+  const runtimeVersion = runtimeChunks.pop();
+  const runtimeName = runtimeChunks.join("-");
+
+  return `openruntimes/${runtimeName}:${openRuntimesVersion}-${runtimeVersion}`;
+}
+
+async function waitForProcessClose(
+  process: childProcess.ChildProcessWithoutNullStreams,
+): Promise<{ code: number | null; signal: NodeJS.Signals | null }> {
+  return new Promise((resolve, reject) => {
+    process.once("error", reject);
+    process.once("close", (code, signal) => {
+      resolve({ code, signal });
+    });
+  });
+}
+
+function assertDockerSuccess(
+  code: number | null,
+  signal: NodeJS.Signals | null,
+  errorMessage: string,
+): void {
+  if (code === 0) {
+    return;
+  }
+
+  if (signal) {
+    throw new Error(
+      `${errorMessage} Docker process exited with signal ${signal}.`,
+    );
+  }
+
+  throw new Error(
+    `${errorMessage} Docker process exited with code ${code ?? "unknown"}.`,
+  );
+}
+
 export async function dockerStop(id: string): Promise<void> {
   const stopProcess = childProcess.spawn("docker", ["rm", "--force", id], {
     stdio: "pipe",
@@ -28,10 +67,7 @@ export async function dockerStop(id: string): Promise<void> {
 }
 
 export async function dockerPull(func: FunctionType): Promise<void> {
-  const runtimeChunks = func.runtime.split("-");
-  const runtimeVersion = runtimeChunks.pop();
-  const runtimeName = runtimeChunks.join("-");
-  const imageName = `openruntimes/${runtimeName}:${openRuntimesVersion}-${runtimeVersion}`;
+  const imageName = getRuntimeImageName(func);
 
   log("Verifying Docker image ...");
 
@@ -43,19 +79,19 @@ export async function dockerPull(func: FunctionType): Promise<void> {
     },
   });
 
-  await new Promise<void>((res) => {
-    pullProcess.on("close", res);
-  });
+  const { code, signal } = await waitForProcessClose(pullProcess);
+  assertDockerSuccess(
+    code,
+    signal,
+    `Unable to pull Docker image '${imageName}'.`,
+  );
 }
 
 export async function dockerBuild(
   func: FunctionType,
   variables: Record<string, string>,
 ): Promise<void> {
-  const runtimeChunks = func.runtime.split("-");
-  const runtimeVersion = runtimeChunks.pop();
-  const runtimeName = runtimeChunks.join("-");
-  const imageName = `openruntimes/${runtimeName}:${openRuntimesVersion}-${runtimeVersion}`;
+  const imageName = getRuntimeImageName(func);
 
   const functionDir = path.join(localConfig.getDirname(), func.path);
 
@@ -134,9 +170,7 @@ export async function dockerBuild(
       }
     }, 100);
 
-    await new Promise<void>((res) => {
-      buildProcess.on("close", res);
-    });
+    const { code, signal } = await waitForProcessClose(buildProcess);
 
     clearInterval(killInterval);
     killInterval = undefined;
@@ -145,6 +179,12 @@ export async function dockerBuild(
       await dockerStop(id);
       return;
     }
+
+    assertDockerSuccess(
+      code,
+      signal,
+      `Unable to build function '${func.name}'.`,
+    );
 
     const copyPath = path.join(
       localConfig.getDirname(),
@@ -170,9 +210,12 @@ export async function dockerBuild(
       },
     );
 
-    await new Promise<void>((res) => {
-      copyProcess.on("close", res);
-    });
+    const copyResult = await waitForProcessClose(copyProcess);
+    assertDockerSuccess(
+      copyResult.code,
+      copyResult.signal,
+      `Unable to copy built bundle for function '${func.name}'.`,
+    );
 
     await dockerStop(id);
   } finally {
@@ -204,10 +247,8 @@ export async function dockerStart(
   // Pack function files
   const functionDir = path.join(localConfig.getDirname(), func.path);
 
-  const runtimeChunks = func.runtime.split("-");
-  const runtimeVersion = runtimeChunks.pop();
-  const runtimeName = runtimeChunks.join("-");
-  const imageName = `openruntimes/${runtimeName}:${openRuntimesVersion}-${runtimeVersion}`;
+  const imageName = getRuntimeImageName(func);
+  const runtimeName = func.runtime.split("-").slice(0, -1).join("-");
 
   const tool = systemTools[runtimeName];
 
@@ -253,11 +294,26 @@ export async function dockerStart(
   });
 
   startProcess.stderr.on("data", (data) => {
-    process.stdout.write(chalk.blackBright(data));
+    process.stderr.write(chalk.blackBright(data));
   });
 
+  let started = false;
+  const startProcessExit = waitForProcessClose(startProcess).then(
+    ({ code, signal }) => {
+      if (!started) {
+        assertDockerSuccess(
+          code,
+          signal,
+          `Unable to start function '${func.name}'.`,
+        );
+      }
+    },
+  );
+  void startProcessExit.catch(() => {});
+
   try {
-    await waitUntilPortOpen(port);
+    await Promise.race([waitUntilPortOpen(port), startProcessExit]);
+    started = true;
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     error(`Failed to start function with error: ${message}`);
