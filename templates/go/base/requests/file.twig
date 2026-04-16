@@ -18,7 +18,25 @@
 	}
 	if strings.HasPrefix(resp.Type, "application/json") {
 {% if method | returnType(spec, spec.title | caseLower) == 'models.Model' %}
+{% set hasResponseDiscriminator = method.responseDiscriminator is defined and method.responseDiscriminator is not empty %}
+{% set responseDiscriminator = method.responseDiscriminator ?? {} %}
 {% set unionDispatch = method | getUnionDispatch(spec) %}
+{% if hasResponseDiscriminator %}
+		var response map[string]interface{}
+		if err := json.Unmarshal([]byte(resp.Result.(string)), &response); err != nil {
+			return nil, err
+		}
+{% for modelName, conditions in responseDiscriminator %}
+		if {% for field, expectedValue in conditions %}fmt.Sprint(response["{{ field }}"]) == "{{ expectedValue }}"{% if not loop.last %} && {% endif %}{% endfor %} {
+			parsed := models.{{ modelName | caseUcfirst }}{}.New([]byte(resp.Result.(string)))
+			if err := json.Unmarshal([]byte(resp.Result.(string)), parsed); err != nil {
+				return nil, err
+			}
+			return parsed, nil
+		}
+{% endfor %}
+		return nil, errors.New("unable to match response to any expected response model")
+{% else %}
 		parsed, err := parseUnionResponse([]byte(resp.Result.(string)), []unionResponseDispatch{
 {% for modelName, metadata in unionDispatch %}
 			{
@@ -52,6 +70,7 @@
 			return nil, err
 		}
 		return parsed, nil
+{% endif %}
 {% else %}
 		var parsed {{ method | returnType(spec, spec.title | caseLower) }}
 		err = json.Unmarshal([]byte(resp.Result.(string)), &parsed)

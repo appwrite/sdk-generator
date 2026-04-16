@@ -7,8 +7,24 @@
         );
 {% set responseModels = method | getResponseModels(spec) %}
 {% set filteredResponseModelNames = method.responseModels | filter((modelName) => modelName is not empty and modelName != 'any') %}
+{% set hasResponseDiscriminator = method.responseDiscriminator is defined and method.responseDiscriminator is not empty %}
+{% set responseDiscriminator = method.responseDiscriminator ?? {} %}
 {% set unionDispatch = method | getUnionDispatch(spec) %}
 {% if responseModels | length > 0 %}
+{% if responseModels | length > 1 and hasResponseDiscriminator %}
+
+        if (!is_array($response)) {
+            return $response;
+        }
+{% for modelName in filteredResponseModelNames %}
+
+        if ({% for field, expectedValue in responseDiscriminator[modelName] %}($response['{{ field }}'] ?? null) == '{{ expectedValue }}'{% if not loop.last %} && {% endif %}{% endfor %}) {
+            return {{ responseModels[loop.index0] }}::from($response);
+        }
+{% endfor %}
+
+        throw new \UnexpectedValueException('Unable to match response to any expected response model.');
+{% else %}
 
         return $this->parseResponse(
             $response,
@@ -25,6 +41,7 @@
             ]
 {% endif %}
         );
+{% endif %}
 {% else %}
 
         return $response;

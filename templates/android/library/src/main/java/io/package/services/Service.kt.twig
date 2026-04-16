@@ -150,10 +150,22 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
         {%~ if method.responseModel == 'any' %}
             it
         {%~ elseif (method | getValidResponseModels)|length > 1 %}
+{% set hasResponseDiscriminator = method.responseDiscriminator is defined and method.responseDiscriminator is not empty %}
+{% set responseDiscriminator = method.responseDiscriminator ?? {} %}
+{% set unionDispatch = method | getUnionDispatch(spec) %}
+        {%~ if hasResponseDiscriminator %}
+            val responseMap = it as? Map<String, Any>
+                ?: throw Exception("Unable to match response to any expected response model")
+            when {
+{% for modelName, conditions in responseDiscriminator %}
+                {% for field, expectedValue in conditions %}responseMap["{{ field | escapeDollarSign }}"]?.toString() == "{{ expectedValue | escapeDollarSign }}"{% if not loop.last %} && {% endif %}{% endfor %} -> {{sdk.namespace | caseDot}}.models.{{ modelName | caseUcfirst }}.from(map = responseMap)
+{% endfor %}
+                else -> throw Exception("Unable to match response to any expected response model")
+            }
+        {%~ else %}
             parseResponse(
                 it,
                 listOf(
-{% set unionDispatch = method | getUnionDispatch(spec) %}
 {% for modelName, metadata in unionDispatch %}
                     UnionResponseModelDispatch(
                         conditions = mapOf({% for field, expectedValue in metadata.conditions %}"{{ field | escapeDollarSign }}" to "{{ expectedValue | escapeDollarSign }}"{% if not loop.last %}, {% endif %}{% endfor %}),
@@ -164,6 +176,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
 {% endfor %}
                 ),
             )
+        {%~ endif %}
         {%~ else %}
             @Suppress("UNCHECKED_CAST")
             {{sdk.namespace | caseDot}}.models.{{ method.responseModel | caseUcfirst }}.from(map = it as Map<String, Any>{% if method.responseModel | hasGenericType(spec) %}, nestedType{% endif %})

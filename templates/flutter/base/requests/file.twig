@@ -28,8 +28,23 @@
           );
 
 {% set responseModels = method | getValidResponseModels %}
+{% set hasResponseDiscriminator = method.responseDiscriminator is defined and method.responseDiscriminator is not empty %}
+{% set responseDiscriminator = method.responseDiscriminator ?? {} %}
 {% set unionDispatch = method | getUnionDispatch(spec) %}
-        return {% if responseModels|length > 1 %}parseResponse(
+        return {% if responseModels|length > 1 and hasResponseDiscriminator %}() {
+          if (res.data is! Map<String, dynamic>) {
+            throw StateError('Unable to match response to any expected response model.');
+          }
+
+          final response = res.data as Map<String, dynamic>;
+{% for modelName, conditions in responseDiscriminator %}
+          if ({% for field, expectedValue in conditions %}response['{{ field | escapeDollarSign }}'] == '{{ expectedValue | escapeDollarSign }}'{% if not loop.last %} && {% endif %}{% endfor %}) {
+            return models.{{ modelName | caseUcfirst | overrideIdentifier }}.fromMap(response);
+          }
+{% endfor %}
+
+          throw StateError('Unable to match response to any expected response model.');
+        }(){% elseif responseModels|length > 1 %}parseResponse(
           res.data,
           [
 {% for modelName, metadata in unionDispatch %}

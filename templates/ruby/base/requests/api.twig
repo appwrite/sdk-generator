@@ -1,4 +1,6 @@
 {% set responseModels = method | getValidResponseModels %}
+{% set hasResponseDiscriminator = method.responseDiscriminator is defined and method.responseDiscriminator is not empty %}
+{% set responseDiscriminator = method.responseDiscriminator ?? {} %}
 {% set unionDispatch = method | getUnionDispatch(spec) %}
 {% if responseModels|length > 1 %}
             response = @client.call(
@@ -11,6 +13,17 @@
                 {%~ endif %}
             )
 
+{% if hasResponseDiscriminator %}
+            return response unless response.is_a?(Hash)
+{% for modelName, conditions in responseDiscriminator %}
+
+            if {% for field, expectedValue in conditions %}response['{{ field }}'] == '{{ expectedValue }}'{% if not loop.last %} && {% endif %}{% endfor %}{{ "\n" }}
+                return Models::{{ modelName | caseUcfirst }}.from(map: response)
+            end
+{% endfor %}
+
+            raise Exception, "Unable to match response to any expected response model"
+{% else %}
             parse_response(
                 response,
                 [
@@ -32,6 +45,7 @@
 {% endfor %}
                 }
             )
+{% endif %}
 {% else %}
             @client.call(
                 method: '{{ method.method | caseUpper }}',

@@ -70,10 +70,23 @@ open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
             {%~ if method.responseModel == 'any' %}
             return response
             {%~ elseif (method | getValidResponseModels)|length > 1 %}
+{% set hasResponseDiscriminator = method.responseDiscriminator is defined and method.responseDiscriminator is not empty %}
+{% set responseDiscriminator = method.responseDiscriminator ?? {} %}
+{% set unionDispatch = method | getUnionDispatch(spec) %}
+            {%~ if hasResponseDiscriminator %}
+            guard let responseMap = response as? [String: Any] else {
+                fatalError("Unable to match response to any expected response model")
+            }
+{% for modelName, conditions in responseDiscriminator %}
+            if {% for field, expectedValue in conditions %}String(describing: responseMap["{{ field }}"] ?? "") == "{{ expectedValue }}"{% if not loop.last %} && {% endif %}{% endfor %} {
+                return {{ spec.title | caseUcfirst}}Models.{{ modelName | caseUcfirst }}.from(map: responseMap)
+            }
+{% endfor %}
+            fatalError("Unable to match response to any expected response model")
+            {%~ else %}
             return self.parseResponse(
                 response,
                 dispatch: [
-{% set unionDispatch = method | getUnionDispatch(spec) %}
 {% for modelName, metadata in unionDispatch %}
                     UnionResponseModelDispatch(
                         conditions: {% if metadata.conditions %}[{% for field, expectedValue in metadata.conditions %}"{{ field }}": "{{ expectedValue }}"{% if not loop.last %}, {% endif %}{% endfor %}]{% else %}[:]{% endif %},
@@ -84,6 +97,7 @@ open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
 {% endfor %}
                 ]
             )
+            {%~ endif %}
             {%~ else %}
             return {{ spec.title | caseUcfirst}}Models.{{method.responseModel | caseUcfirst}}.from(map: response as! [String: Any])
             {%~ endif %}
