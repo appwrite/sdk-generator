@@ -27,9 +27,9 @@
                 if (!is_array($response)) {
                     return $response;
                 }
-{% for modelName in filteredResponseModelNames %}
-                if ({% for field, expectedValue in responseDiscriminator[modelName] %}($response['{{ field }}'] ?? null) == '{{ expectedValue }}'{% if not loop.last %} && {% endif %}{% endfor %}) {
-                    return {{ responseModels[loop.index0] }}::from($response);
+{% for modelName, conditions in responseDiscriminator %}
+                if ({% for field, expectedValue in conditions %}($response['{{ field }}'] ?? null) == '{{ expectedValue }}'{% if not loop.last %} && {% endif %}{% endfor %}) {
+                    return \Appwrite\Models\{{ modelName | caseUcfirst }}::from($response);
                 }
 {% endfor %}
                 throw new \UnexpectedValueException('Unable to match response to any expected response model.');
@@ -74,9 +74,9 @@
                 if (!is_array($response)) {
                     return $response;
                 }
-{% for modelName in filteredResponseModelNames %}
-                if ({% for field, expectedValue in responseDiscriminator[modelName] %}($response['{{ field }}'] ?? null) == '{{ expectedValue }}'{% if not loop.last %} && {% endif %}{% endfor %}) {
-                    return {{ responseModels[loop.index0] }}::from($response);
+{% for modelName, conditions in responseDiscriminator %}
+                if ({% for field, expectedValue in conditions %}($response['{{ field }}'] ?? null) == '{{ expectedValue }}'{% if not loop.last %} && {% endif %}{% endfor %}) {
+                    return \Appwrite\Models\{{ modelName | caseUcfirst }}::from($response);
                 }
 {% endfor %}
                 throw new \UnexpectedValueException('Unable to match response to any expected response model.');
@@ -161,9 +161,9 @@
         if (!is_array($response)) {
             return $response;
         }
-{% for modelName in filteredResponseModelNames %}
-        if ({% for field, expectedValue in responseDiscriminator[modelName] %}($response['{{ field }}'] ?? null) == '{{ expectedValue }}'{% if not loop.last %} && {% endif %}{% endfor %}) {
-            return {{ responseModels[loop.index0] }}::from($response);
+{% for modelName, conditions in responseDiscriminator %}
+        if ({% for field, expectedValue in conditions %}($response['{{ field }}'] ?? null) == '{{ expectedValue }}'{% if not loop.last %} && {% endif %}{% endfor %}) {
+            return \Appwrite\Models\{{ modelName | caseUcfirst }}::from($response);
         }
 {% endfor %}
         throw new \UnexpectedValueException('Unable to match response to any expected response model.');

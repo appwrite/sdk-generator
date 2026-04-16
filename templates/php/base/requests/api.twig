@@ -16,10 +16,10 @@
         if (!is_array($response)) {
             return $response;
         }
-{% for modelName in filteredResponseModelNames %}
+{% for modelName, conditions in responseDiscriminator %}
 
-        if ({% for field, expectedValue in responseDiscriminator[modelName] %}($response['{{ field }}'] ?? null) == '{{ expectedValue }}'{% if not loop.last %} && {% endif %}{% endfor %}) {
-            return {{ responseModels[loop.index0] }}::from($response);
+        if ({% for field, expectedValue in conditions %}($response['{{ field }}'] ?? null) == '{{ expectedValue }}'{% if not loop.last %} && {% endif %}{% endfor %}) {
+            return \Appwrite\Models\{{ modelName | caseUcfirst }}::from($response);
         }
 {% endfor %}
 
