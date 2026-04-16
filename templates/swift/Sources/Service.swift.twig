@@ -14,9 +14,13 @@ open class Service {
         self.client = client
     }
 
-    internal func parseResponse(_ response: Any, dispatch: [UnionResponseModelDispatch]) -> Any {
-        guard let responseMap = response as? [String: Any], !dispatch.isEmpty else {
-            return response
+    internal func parseResponse(_ response: Any, dispatch: [UnionResponseModelDispatch]) throws -> Any {
+        guard let responseMap = response as? [String: Any] else {
+            throw AppwriteError(message: "Expected object response when hydrating a response model")
+        }
+
+        guard !dispatch.isEmpty else {
+            throw AppwriteError(message: "Unable to match response to any expected response model")
         }
 
         let responseKeys = Set(responseMap.keys)
@@ -59,8 +63,10 @@ open class Service {
             }
         }
 
-        return bestMatch?.hydrate(responseMap) ?? {
-            fatalError("Unable to match response to any expected response model")
-        }()
+        guard let bestMatch = bestMatch else {
+            throw AppwriteError(message: "Unable to match response to any expected response model")
+        }
+
+        return bestMatch.hydrate(responseMap)
     }
 }

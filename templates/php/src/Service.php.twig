@@ -48,7 +48,7 @@ abstract class Service
                 $score = 0;
 
                 foreach ($conditions as $field => $expectedValue) {
-                    if (!array_key_exists($field, $response) || $response[$field] != $expectedValue) {
+                    if (!array_key_exists($field, $response) || $response[$field] !== $expectedValue) {
                         $matches = false;
                         break;
                     }

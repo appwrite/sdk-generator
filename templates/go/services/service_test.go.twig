@@ -99,6 +99,7 @@ func Test{{ service.name | caseUcfirst }}(t *testing.T) {
 		mockData := []byte("image_data")
 {% else %}
 {% set responseModels = method | getValidResponseModels %}
+{% set responseDiscriminator = method.responseDiscriminator ?? {} %}
 {% set responseModelName = '' %}
 {% if responseModels|length > 1 %}
 {% set responseModelName = responseModels|last %}
@@ -108,10 +109,11 @@ func Test{{ service.name | caseUcfirst }}(t *testing.T) {
 {% if responseModelName %}
 {% for definition in spec.definitions %}
 {% if definition.name == responseModelName %}
+{% set discriminatorConditions = responseDiscriminator[responseModelName] ?? {} %}
 		mockResponse := `
 {
 {% for property in definition.properties | filter((param) => param.required) %}
-    "{{ property.name | replace({'"': '\\"', '\\': '\\\\'}) }}": {{ _self.render_json_value(spec.definitions, property, spec, '    ') | trim | raw }}{% if not loop.last %},{% endif %}{{ "\n" -}}
+    "{{ property.name | replace({'"': '\\"', '\\': '\\\\'}) }}": {% if discriminatorConditions[property.name] is defined %}"{{ discriminatorConditions[property.name] | replace({'"': '\\"', '\\': '\\\\'}) }}"{% else %}{{ _self.render_json_value(spec.definitions, property, spec, '    ') | trim | raw }}{% endif %}{% if not loop.last %},{% endif %}{{ "\n" -}}
 {% endfor %}
 }
 `

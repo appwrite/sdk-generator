@@ -66,7 +66,7 @@ open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
         {%~ endif %}
 
         {%~ if method.responseModel %}
-        let converter: (Any) -> {{ method | returnType(spec) | raw }} = { response in
+        let converter: (Any) throws -> {{ method | returnType(spec) | raw }} = { response in
             {%~ if method.responseModel == 'any' %}
             return response
             {%~ elseif (method | getValidResponseModels)|length > 1 %}
@@ -75,16 +75,16 @@ open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
 {% set unionDispatch = method | getUnionDispatch(spec) %}
             {%~ if hasResponseDiscriminator %}
             guard let responseMap = response as? [String: Any] else {
-                fatalError("Unable to match response to any expected response model")
+                throw AppwriteError(message: "Expected object response when hydrating a response model")
             }
 {% for modelName, conditions in responseDiscriminator %}
             if {% for field, expectedValue in conditions %}String(describing: responseMap["{{ field }}"] ?? "") == "{{ expectedValue }}"{% if not loop.last %} && {% endif %}{% endfor %} {
                 return {{ spec.title | caseUcfirst}}Models.{{ modelName | caseUcfirst }}.from(map: responseMap)
             }
 {% endfor %}
-            fatalError("Unable to match response to any expected response model")
+            throw AppwriteError(message: "Unable to match response to any expected response model")
             {%~ else %}
-            return self.parseResponse(
+            return try self.parseResponse(
                 response,
                 dispatch: [
 {% for modelName, metadata in unionDispatch %}

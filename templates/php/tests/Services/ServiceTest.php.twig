@@ -66,6 +66,7 @@ final class {{ service.name | caseUcfirst }}Test extends TestCase
 {% else %}
 {% set responseModels = method | getResponseModels(spec) %}
 {% set filteredResponseModelNames = method | getValidResponseModels %}
+{% set responseDiscriminator = method.responseDiscriminator ?? {} %}
 {% set responseDefinitionName = '' %}
 {% if filteredResponseModelNames is not empty %}
 {% set responseDefinitionName = filteredResponseModelNames | last %}
@@ -76,7 +77,18 @@ final class {{ service.name | caseUcfirst }}Test extends TestCase
     public function testMethod{{ method.name | caseUcfirst }}(): void
     {
 {% if responseModels | length > 0 %}
+{% if responseModels | length > 1 and responseDefinitionName and responseDiscriminator[responseDefinitionName] is defined %}
+        $data = array_replace(
+            {{ responseDefinitionName | mockDefinitionPayload(spec, 4) | raw -}},
+            array(
+{% for field, expectedValue in responseDiscriminator[responseDefinitionName] %}
+                "{{ field }}" => "{{ expectedValue }}"{{ loop.last ? '' : ',' }}
+{% endfor %}
+            )
+        );
+{% else %}
         $data = {{ responseDefinitionName | mockDefinitionPayload(spec, 3) | raw -}};
+{% endif %}
 {% elseif (method.responseModel and method.responseModel == 'any') or (method | getReturn(spec) == 'array') %}
         $data = array();
 {% else %}

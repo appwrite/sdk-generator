@@ -63,7 +63,7 @@ func New(clt client.Client) *{{ service.name | caseUcfirst }} {
 	}
 }
 
-	{% if hasUnionResponses %}
+{% if hasUnionResponses %}
 type unionResponseDispatch struct {
 	conditions map[string]string
 	required []string

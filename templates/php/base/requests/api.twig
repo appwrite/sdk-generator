@@ -6,7 +6,6 @@
 
         );
 {% set responseModels = method | getResponseModels(spec) %}
-{% set filteredResponseModelNames = method.responseModels | filter((modelName) => modelName is not empty and modelName != 'any') %}
 {% set hasResponseDiscriminator = method.responseDiscriminator is defined and method.responseDiscriminator is not empty %}
 {% set responseDiscriminator = method.responseDiscriminator ?? {} %}
 {% set unionDispatch = method | getUnionDispatch(spec) %}
@@ -18,7 +17,7 @@
         }
 {% for modelName, conditions in responseDiscriminator %}
 
-        if ({% for field, expectedValue in conditions %}($response['{{ field }}'] ?? null) == '{{ expectedValue }}'{% if not loop.last %} && {% endif %}{% endfor %}) {
+        if ({% for field, expectedValue in conditions %}($response['{{ field }}'] ?? null) === '{{ expectedValue }}'{% if not loop.last %} && {% endif %}{% endfor %}) {
             return \Appwrite\Models\{{ modelName | caseUcfirst }}::from($response);
         }
 {% endfor %}
@@ -31,11 +30,11 @@
             [{% for responseModel in responseModels %}{{ responseModel }}::class{{ loop.last ? '' : ', ' }}{% endfor %}]
 {% if responseModels | length > 1 %},
             [
-{% for modelName in filteredResponseModelNames %}
-                {{ responseModels[loop.index0] }}::class => [
-                    'conditions' => [{% for field, expectedValue in unionDispatch[modelName].conditions %}'{{ field }}' => '{{ expectedValue }}'{{ loop.last ? '' : ', ' }}{% endfor %}],
-                    'required' => [{% for field in unionDispatch[modelName].required %}'{{ field }}'{{ loop.last ? '' : ', ' }}{% endfor %}],
-                    'all' => [{% for field in unionDispatch[modelName].all %}'{{ field }}'{{ loop.last ? '' : ', ' }}{% endfor %}],
+{% for modelName, metadata in unionDispatch %}
+                \Appwrite\Models\{{ modelName | caseUcfirst }}::class => [
+                    'conditions' => [{% for field, expectedValue in metadata.conditions %}'{{ field }}' => '{{ expectedValue }}'{{ loop.last ? '' : ', ' }}{% endfor %}],
+                    'required' => [{% for field in metadata.required %}'{{ field }}'{{ loop.last ? '' : ', ' }}{% endfor %}],
+                    'all' => [{% for field in metadata.all %}'{{ field }}'{{ loop.last ? '' : ', ' }}{% endfor %}],
                 ]{{ loop.last ? '' : ',' }}
 {% endfor %}
             ]

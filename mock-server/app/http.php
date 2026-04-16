@@ -574,7 +574,6 @@ App::get('/v1/mock/tests/union')
             $response->json([
                 'data' => 'test-data',
                 'type' => 'stub',
-                'result' => 'GET:/v1/mock/tests/union:passed',
             ]);
         } else {
             $response->json([
