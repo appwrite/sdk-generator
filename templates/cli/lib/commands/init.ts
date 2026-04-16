@@ -137,6 +137,33 @@ const printInitProjectNextSteps = (steps: InitProjectNextStep[]): void => {
   }
 };
 
+const installInitProjectSkills = async (): Promise<void> => {
+  if (hasSkillsInstalled(localConfig.configDirectoryPath)) {
+    return;
+  }
+
+  try {
+    const skillsCwd = localConfig.configDirectoryPath;
+    const { skills, tempDir } = fetchAvailableSkills();
+    try {
+      const detected = detectProjectSkills(skillsCwd, skills);
+      if (detected.length > 0) {
+        const names = detected.map((s) => s.dirName);
+        placeSkills(skillsCwd, tempDir, names, [".agents", ".claude"], true);
+        printInitProjectSuccess(
+          `Installed ${names.length} agent skill${names.length === 1 ? "" : "s"}: ${detected.map((s) => s.name).join(", ")}`,
+        );
+      }
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    error(`Failed to install agent skills: ${msg}`);
+    hint(`You can install them later with '${EXECUTABLE_NAME} init skill'.`);
+  }
+};
+
 const initResources = async (): Promise<void> => {
   const actions: Record<string, InitResourceAction> = {
     function: initFunction,
@@ -300,6 +327,7 @@ const initProject = async ({
     );
     console.log("");
     printInitProjectSuccess("Project linked → appwrite.config.json");
+    await installInitProjectSkills();
     if (autopullAnswers.autopull) {
       console.log("");
       autoPulled = true;
@@ -312,29 +340,7 @@ const initProject = async ({
   } else {
     console.log("");
     printInitProjectSuccess("Project created → appwrite.config.json");
-  }
-
-  if (!hasSkillsInstalled(localConfig.configDirectoryPath)) {
-    try {
-      const skillsCwd = localConfig.configDirectoryPath;
-      const { skills, tempDir } = fetchAvailableSkills();
-      try {
-        const detected = detectProjectSkills(skillsCwd, skills);
-        if (detected.length > 0) {
-          const names = detected.map((s) => s.dirName);
-          placeSkills(skillsCwd, tempDir, names, [".agents", ".claude"], true);
-          printInitProjectSuccess(
-            `Installed ${names.length} agent skill${names.length === 1 ? "" : "s"}: ${detected.map((s) => s.name).join(", ")}`,
-          );
-        }
-      } finally {
-        fs.rmSync(tempDir, { recursive: true, force: true });
-      }
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      error(`Failed to install agent skills: ${msg}`);
-      hint(`You can install them later with '${EXECUTABLE_NAME} init skill'.`);
-    }
+    await installInitProjectSkills();
   }
 
   const nextSteps: InitProjectNextStep[] = [];
