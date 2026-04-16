@@ -301,6 +301,7 @@ const initProject = async ({
     console.log("");
     printInitProjectSuccess("Project linked → appwrite.config.json");
     if (autopullAnswers.autopull) {
+      console.log("");
       autoPulled = true;
       cliConfig.all = true;
       cliConfig.force = true;
