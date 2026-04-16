@@ -13,6 +13,75 @@ import { openRuntimesVersion, systemTools, Queue } from "./utils.js";
 import { getAllFiles } from "../utils.js";
 import type { FunctionType } from "../commands/config.js";
 
+function getFunctionIgnorer(
+  func: FunctionType,
+  functionDir: string,
+): ignoreModule.Ignore {
+  const ignorer = ignore();
+  ignorer.add(".appwrite");
+
+  if (func.ignore) {
+    ignorer.add(func.ignore);
+  } else if (fs.existsSync(path.join(functionDir, ".gitignore"))) {
+    ignorer.add(
+      fs.readFileSync(path.join(functionDir, ".gitignore")).toString(),
+    );
+  }
+
+  return ignorer;
+}
+
+function getFunctionFiles(func: FunctionType): {
+  functionDir: string;
+  files: string[];
+  ignorer: ignoreModule.Ignore;
+} {
+  const functionDir = path.join(localConfig.getDirname(), func.path);
+  const ignorer = getFunctionIgnorer(func, functionDir);
+  const files = getAllFiles(functionDir)
+    .map((file) => path.relative(functionDir, file))
+    .filter((file) => !ignorer.ignores(file));
+
+  return { functionDir, files, ignorer };
+}
+
+export function assertFunctionSourceCode(func: FunctionType): void {
+  const { functionDir, files, ignorer } = getFunctionFiles(func);
+
+  if (!fs.existsSync(functionDir)) {
+    throw new Error(
+      `Function path '${func.path}' was not found. Add your source code before running locally.`,
+    );
+  }
+
+  if (!func.entrypoint) {
+    throw new Error(
+      `Function '${func.name}' is missing an entrypoint. Update appwrite.config.json before running locally.`,
+    );
+  }
+
+  const normalizedEntrypoint = path.normalize(func.entrypoint);
+  const relativeEntrypoint = normalizedEntrypoint.split(path.sep).join("/");
+
+  if (ignorer.ignores(relativeEntrypoint)) {
+    throw new Error(
+      `Entrypoint '${func.entrypoint}' is ignored by your local ignore rules. Update appwrite.config.json or your ignore file before running locally.`,
+    );
+  }
+
+  if (!fs.existsSync(path.join(functionDir, normalizedEntrypoint))) {
+    throw new Error(
+      `Entrypoint '${func.entrypoint}' was not found in '${func.path}'. Add your source code before running locally.`,
+    );
+  }
+
+  if (files.length === 0) {
+    throw new Error(
+      `No source files were found in '${func.path}'. Add your source code before running locally.`,
+    );
+  }
+}
+
 function getRuntimeImageName(func: FunctionType): string {
   const runtimeChunks = func.runtime.split("-");
   const runtimeVersion = runtimeChunks.pop();
@@ -104,23 +173,9 @@ export async function dockerBuild(
 ): Promise<void> {
   const imageName = getRuntimeImageName(func);
 
-  const functionDir = path.join(localConfig.getDirname(), func.path);
+  const { functionDir, files } = getFunctionFiles(func);
 
   const id = func.$id;
-
-  const ignorer = ignore();
-  ignorer.add(".appwrite");
-  if (func.ignore) {
-    ignorer.add(func.ignore);
-  } else if (fs.existsSync(path.join(functionDir, ".gitignore"))) {
-    ignorer.add(
-      fs.readFileSync(path.join(functionDir, ".gitignore")).toString(),
-    );
-  }
-
-  const files = getAllFiles(functionDir)
-    .map((file) => path.relative(functionDir, file))
-    .filter((file) => !ignorer.ignores(file));
   const tmpBuildPath = path.join(functionDir, ".appwrite/tmp-build");
   if (!fs.existsSync(tmpBuildPath)) {
     fs.mkdirSync(tmpBuildPath, { recursive: true });
@@ -163,11 +218,11 @@ export async function dockerBuild(
     });
 
     buildProcess.stdout.on("data", (data) => {
-      process.stdout.write(chalk.blackBright(`${data}\n`));
+      process.stdout.write(chalk.blackBright(data));
     });
 
     buildProcess.stderr.on("data", (data) => {
-      process.stderr.write(chalk.blackBright(`${data}\n`));
+      process.stderr.write(chalk.blackBright(data));
     });
 
     killInterval = setInterval(() => {

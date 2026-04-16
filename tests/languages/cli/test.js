@@ -6,6 +6,7 @@ const {
   openRuntimesVersion,
   systemTools,
 } = require("./lib/emulation/utils.ts");
+const { assertFunctionSourceCode } = require("./lib/emulation/docker.ts");
 const {
   TypeScriptDatabasesGenerator,
 } = require("./lib/commands/generators/typescript/databases.ts");
@@ -173,10 +174,57 @@ if (systemTools.node?.startCommand !== "bash helpers/server.sh") {
 }
 console.log("CLI_LOCAL_RUNTIME_START_COMMAND:passed");
 
+const missingSourceDir = path.join(process.cwd(), "tmp-local-source-check");
+fs.rmSync(missingSourceDir, { recursive: true, force: true });
+fs.mkdirSync(missingSourceDir, { recursive: true });
+fs.writeFileSync(
+  path.join(missingSourceDir, "package.json"),
+  JSON.stringify({ name: "tmp-local-source-check", private: true }),
+);
+
+try {
+  assertFunctionSourceCode({
+    $id: "tmp-local-source-check",
+    name: "Tmp Local Source Check",
+    runtime: "node-22",
+    entrypoint: "src/main.js",
+    path: path
+      .relative(process.cwd(), missingSourceDir)
+      .split(path.sep)
+      .join("/"),
+  });
+  throw new Error(
+    "Expected local source preflight to fail for missing entrypoint.",
+  );
+} catch (error) {
+  const message = error instanceof Error ? error.message : String(error);
+  if (
+    !message.includes(
+      "Entrypoint 'src/main.js' was not found in 'tmp-local-source-check'",
+    )
+  ) {
+    throw error;
+  }
+} finally {
+  fs.rmSync(missingSourceDir, { recursive: true, force: true });
+}
+console.log("CLI_LOCAL_SOURCE_PREFLIGHT:passed");
+
 const dockerSource = fs.readFileSync(
   path.join(process.cwd(), "lib/emulation/docker.ts"),
   "utf8",
 );
+if (
+  dockerSource.includes("chalk.blackBright(`${data}\\n`)") ||
+  !dockerSource.includes("process.stdout.write(chalk.blackBright(data));") ||
+  !dockerSource.includes("process.stderr.write(chalk.blackBright(data));")
+) {
+  throw new Error(
+    "Local Docker build logs should stream chunks without forced extra newlines.",
+  );
+}
+console.log("CLI_LOCAL_DOCKER_LOG_FORMATTING:passed");
+
 if (
   !dockerSource.includes("Unable to pull Docker image") ||
   !dockerSource.includes("await dockerStop(id);") ||

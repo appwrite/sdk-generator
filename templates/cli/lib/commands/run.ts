@@ -42,6 +42,7 @@ import {
   dockerStart,
   dockerBuild,
   dockerPull,
+  assertFunctionSourceCode,
 } from "../emulation/docker.js";
 import { Scopes } from "@appwrite.io/console";
 
@@ -138,6 +139,8 @@ const runFunction = async ({
   hint(
     "Permissions, events, CRON and timeouts don't apply when running locally.",
   );
+
+  assertFunctionSourceCode(func);
 
   await dockerCleanup(func.$id);
 
@@ -291,6 +294,7 @@ const runFunction = async ({
 
     try {
       await dockerStop(func.$id);
+      assertFunctionSourceCode(func);
 
       const dependencyFile = files.find((filePath: string) =>
         tool.dependencyFiles.includes(filePath),
@@ -369,7 +373,7 @@ const runFunction = async ({
         await dockerStart(func, allVariables, portNum!);
       }
     } catch (err) {
-      console.error(err);
+      error(`Failed to reload function with error: ${getErrorMessage(err)}`);
     } finally {
       Queue.unlock();
     }
