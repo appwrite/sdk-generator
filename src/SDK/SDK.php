@@ -180,9 +180,6 @@ class SDK
         $this->twig->addFilter(new TwigFilter('getValidResponseModels', function ($value) {
             return $this->getValidResponseModels($value);
         }));
-        $this->twig->addFilter(new TwigFilter('getUnionDispatch', function ($value, array $spec = []) {
-            return $this->getUnionDispatch($value, $spec);
-        }));
         $this->twig->addFilter(new TwigFilter('paramDefault', function ($value) {
             return $this->language->getParamDefault($value);
         }, ['is_safe' => ['html']]));
@@ -1463,50 +1460,5 @@ class SDK
         }
 
         return $responseModels;
-    }
-
-    /**
-     * Build legacy union dispatch metadata for unions that still do not expose a
-     * discriminator in the spec.
-     *
-     * @param array $method
-     * @param array $spec
-     * @return array<string, array{
-     *     conditions: array<string, scalar|null>,
-     *     required: array<int, string>,
-     *     all: array<int, string>
-     * }>
-     */
-    protected function getUnionDispatch(array $method, array $spec = []): array
-    {
-        $dispatch = [];
-
-        foreach ($method['responseModels'] ?? [] as $modelName) {
-            if (empty($modelName) || $modelName === 'any' || isset($dispatch[$modelName])) {
-                continue;
-            }
-
-            $definition = $spec['definitions'][$modelName] ?? null;
-
-            if ($definition === null || !\is_array($definition['properties'] ?? null)) {
-                continue;
-            }
-
-            $dispatch[$modelName] = [
-                'conditions' => [],
-                'required' => [],
-                'all' => [],
-            ];
-
-            foreach ($definition['properties'] as $propertyName => $property) {
-                $dispatch[$modelName]['all'][] = $propertyName;
-
-                if (!empty($property['required'])) {
-                    $dispatch[$modelName]['required'][] = $propertyName;
-                }
-            }
-        }
-
-        return $dispatch;
     }
 }

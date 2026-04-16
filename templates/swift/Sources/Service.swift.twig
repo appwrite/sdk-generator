@@ -1,10 +1,3 @@
-internal struct UnionResponseModelDispatch {
-    let conditions: [String: String]
-    let required: [String]
-    let all: [String]
-    let hydrate: ([String: Any]) -> Any
-}
-
 open class Service {
 
     internal var client: Client
@@ -12,61 +5,5 @@ open class Service {
     public init(_ client: Client)
     {
         self.client = client
-    }
-
-    internal func parseResponse(_ response: Any, dispatch: [UnionResponseModelDispatch]) throws -> Any {
-        guard let responseMap = response as? [String: Any] else {
-            throw AppwriteError(message: "Expected object response when hydrating a response model")
-        }
-
-        guard !dispatch.isEmpty else {
-            throw AppwriteError(message: "Unable to match response to any expected response model")
-        }
-
-        let responseKeys = Set(responseMap.keys)
-        var bestMatch: UnionResponseModelDispatch?
-        var bestScore = -1
-
-        for candidate in dispatch {
-            let score: Int
-
-            if !candidate.conditions.isEmpty {
-                let matches = candidate.conditions.allSatisfy { key, expected in
-                    guard let actual = responseMap[key] else {
-                        return false
-                    }
-
-                    return String(describing: actual) == expected
-                }
-
-                if !matches {
-                    continue
-                }
-
-                score = candidate.conditions.count
-            } else {
-                let hasRequiredFields = candidate.required.allSatisfy { responseKeys.contains($0) }
-                if !hasRequiredFields {
-                    continue
-                }
-
-                score = candidate.all.reduce(into: 0) { result, field in
-                    if responseKeys.contains(field) {
-                        result += 1
-                    }
-                }
-            }
-
-            if score > bestScore {
-                bestScore = score
-                bestMatch = candidate
-            }
-        }
-
-        guard let bestMatch = bestMatch else {
-            throw AppwriteError(message: "Unable to match response to any expected response model")
-        }
-
-        return bestMatch.hydrate(responseMap)
     }
 }

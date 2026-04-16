@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, Dict, Optional, Tuple, Type, TypeVar
+from typing import Any, Optional, Type, TypeVar
 
 from pydantic import ValidationError
 
@@ -8,12 +8,6 @@ from .exception import AppwriteException
 from .models.base_model import AppwriteModel
 
 ModelType = TypeVar('ModelType', bound=AppwriteModel)
-UnionDispatchEntry = Tuple[
-    Type[AppwriteModel],
-    Dict[str, Any],
-    Tuple[str, ...],
-    Tuple[str, ...]
-]
 
 class Service:
     def __init__(self, client: Client):
@@ -40,10 +34,9 @@ class Service:
     def _parse_response(
         self,
         response: Any,
-        model: Optional[Type[ModelType]] = None,
-        union_dispatch: Optional[Tuple[UnionDispatchEntry, ...]] = None
+        model: Optional[Type[ModelType]] = None
     ) -> Any:
-        if model is None and not union_dispatch:
+        if model is None:
             return response
 
         if not isinstance(response, dict):
@@ -55,37 +48,6 @@ class Service:
             except ValidationError as error:
                 raise AppwriteException(
                     f'Unable to parse response into {model.__name__}: {error}'
-                ) from error
-
-        if union_dispatch:
-            response_keys = set(response.keys())
-            best_model: Optional[Type[AppwriteModel]] = None
-            best_score = -1
-
-            for union_model, conditions, required_fields, all_fields in union_dispatch:
-                if conditions:
-                    if any(response.get(field) != expected for field, expected in conditions.items()):
-                        continue
-
-                    score = len(conditions)
-                else:
-                    if any(field not in response_keys for field in required_fields):
-                        continue
-
-                    score = sum(1 for field in all_fields if field in response_keys)
-
-                if score > best_score:
-                    best_score = score
-                    best_model = union_model
-
-            if best_model is None:
-                raise AppwriteException('Unable to match response to any known model')
-
-            try:
-                return best_model.model_validate(response)
-            except ValidationError as error:
-                raise AppwriteException(
-                    f'Unable to parse response into {best_model.__name__}: {error}'
                 ) from error
 
         raise AppwriteException('Unable to parse response into any known model')

@@ -12,10 +12,10 @@
 {%- set requireFmtPkg = true -%}
 {%- endif -%}
 {%- endfor -%}
-{% set hasUnionResponses = false %}
+{% set hasDiscriminatedUnionResponses = false %}
 {% for method in service.methods %}
-{% if (method | getValidResponseModels)|length > 1 %}
-{% set hasUnionResponses = true %}
+{% if (method | getValidResponseModels)|length > 1 and method.responseDiscriminator is defined and method.responseDiscriminator is not empty %}
+{% set hasDiscriminatedUnionResponses = true %}
 {% endif %}
 {% endfor %}
 {%- for method in service.methods -%}
@@ -46,7 +46,7 @@ import (
 {% if requireUrlPkg %}
 	"net/url"
 {% endif %}
-{% if requireFmtPkg or hasUnionResponses %}
+{% if requireFmtPkg or hasDiscriminatedUnionResponses %}
 		"fmt"
 {% endif %}
 	"strings"
@@ -64,77 +64,6 @@ func New(clt client.Client) *{{ service.name | caseUcfirst }} {
 }
 
 {% if hasUnionResponses %}
-type unionResponseDispatch struct {
-	conditions map[string]string
-	required []string
-	all      []string
-	hydrate  func([]byte) (models.Model, error)
-}
-
-func parseUnionResponse(bytes []byte, dispatch []unionResponseDispatch) (models.Model, error) {
-	var response map[string]interface{}
-	if err := json.Unmarshal(bytes, &response); err != nil {
-		return nil, err
-	}
-
-	bestScore := -1
-	var bestDispatch *unionResponseDispatch
-	responseKeys := make(map[string]struct{}, len(response))
-	for key := range response {
-		responseKeys[key] = struct{}{}
-	}
-
-	for i := range dispatch {
-		candidate := &dispatch[i]
-		score := 0
-
-		if len(candidate.conditions) > 0 {
-			matches := true
-			for field, expected := range candidate.conditions {
-				actual, ok := response[field]
-				if !ok || fmt.Sprint(actual) != expected {
-					matches = false
-					break
-				}
-
-				score++
-			}
-
-			if !matches {
-				continue
-			}
-		} else {
-			missingRequiredField := false
-			for _, field := range candidate.required {
-				if _, ok := responseKeys[field]; !ok {
-					missingRequiredField = true
-					break
-				}
-			}
-
-			if missingRequiredField {
-				continue
-			}
-
-			for _, field := range candidate.all {
-				if _, ok := responseKeys[field]; ok {
-					score++
-				}
-			}
-		}
-
-		if score > bestScore {
-			bestScore = score
-			bestDispatch = candidate
-		}
-	}
-
-	if bestDispatch == nil {
-		return nil, errors.New("unable to match response to any expected response model")
-	}
-
-	return bestDispatch.hydrate(bytes)
-}
 {% endif %}
 
 {% for method in service.methods %}

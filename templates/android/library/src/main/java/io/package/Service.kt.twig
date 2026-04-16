@@ -2,48 +2,9 @@ package {{ sdk.namespace | caseDot }}
 
 import {{ sdk.namespace | caseDot }}.Client
 
-data class UnionResponseModelDispatch(
-    val conditions: Map<String, String>,
-    val required: List<String>,
-    val all: List<String>,
-    val hydrate: (Map<String, Any>) -> Any
-)
-
 /**
  * Abstract class for services.
  *
  * @param client The Appwrite client.
  */
-abstract class Service(val client: Client) {
-    @Suppress("UNCHECKED_CAST")
-    protected fun parseResponse(response: Any, dispatch: List<UnionResponseModelDispatch>): Any {
-        val responseMap = response as? Map<String, Any> ?: return response
-        var bestMatch: UnionResponseModelDispatch? = null
-        var bestScore = -1
-        val responseKeys = responseMap.keys
-
-        dispatch.forEach { candidate ->
-            val score = if (candidate.conditions.isNotEmpty()) {
-                if (!candidate.conditions.all { (key, expected) -> responseMap[key]?.toString() == expected }) {
-                    return@forEach
-                }
-
-                candidate.conditions.size
-            } else {
-                if (!candidate.required.all(responseKeys::contains)) {
-                    return@forEach
-                }
-
-                candidate.all.count(responseKeys::contains)
-            }
-
-            if (score > bestScore) {
-                bestScore = score
-                bestMatch = candidate
-            }
-        }
-
-        return bestMatch?.let { it.hydrate(responseMap) }
-            ?: throw Exception("Unable to match response to any expected response model")
-    }
-}
+abstract class Service(val client: Client)

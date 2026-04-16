@@ -1,66 +1,6 @@
 import '../models.dart' as models;
 import 'client.dart';
 
-class UnionResponseModel {
-  final Map<String, dynamic> conditions;
-  final List<String> requiredFields;
-  final List<String> allFields;
-  final models.Model Function(Map<String, dynamic>) hydrate;
-
-  const UnionResponseModel({
-    required this.conditions,
-    required this.requiredFields,
-    required this.allFields,
-    required this.hydrate,
-  });
-}
-
-models.Model parseResponse(
-  dynamic response,
-  List<UnionResponseModel> dispatch,
-) {
-  if (response is! Map<String, dynamic>) {
-    throw StateError('Unable to match response to any expected response model.');
-  }
-
-  UnionResponseModel? bestMatch;
-  var bestScore = -1;
-  final responseKeys = response.keys.toSet();
-
-  for (final candidate in dispatch) {
-    late final int score;
-
-    if (candidate.conditions.isNotEmpty) {
-      final matches = candidate.conditions.entries.every(
-        (entry) => response[entry.key] == entry.value,
-      );
-
-      if (!matches) {
-        continue;
-      }
-
-      score = candidate.conditions.length;
-    } else {
-      if (!candidate.requiredFields.every(responseKeys.contains)) {
-        continue;
-      }
-
-      score = candidate.allFields.where(responseKeys.contains).length;
-    }
-
-    if (score > bestScore) {
-      bestScore = score;
-      bestMatch = candidate;
-    }
-  }
-
-  if (bestMatch == null) {
-    throw StateError('Unable to match response to any expected response model.');
-  }
-
-  return bestMatch.hydrate(response);
-}
-
 class Service {
   final Client client;
 

@@ -42,7 +42,6 @@ namespace {{ spec.title | caseUcfirst }}.Services
             {%~ if method.responseModel %}
 {% set hasResponseDiscriminator = method.responseDiscriminator is defined and method.responseDiscriminator is not empty %}
 {% set responseDiscriminator = method.responseDiscriminator ?? {} %}
-{% set unionDispatch = method | getUnionDispatch(spec) %}
             static {{ utils.resultType(spec.title, method) }} Convert(Dictionary<string, object> it)
             {
             {%~ if method.responseModel == 'any' or method.responseModels|length > 1 %}
@@ -56,32 +55,7 @@ namespace {{ spec.title | caseUcfirst }}.Services
 {% endfor %}
                 throw new System.Exception("Unable to match response to any expected response model");
                     {%~ else %}
-                return ParseResponse(it, new[]
-                {
-{% for modelName, metadata in unionDispatch %}
-                    new UnionResponseModelDispatch(
-                        new System.Collections.Generic.Dictionary<string, string>
-                        {
-{% for field, expectedValue in metadata.conditions %}
-                            ["{{ field }}"] = "{{ expectedValue }}",
-{% endfor %}
-                        },
-                        new[]
-                        {
-{% for field in metadata.required %}
-                            "{{ field }}",
-{% endfor %}
-                        },
-                        new[]
-                        {
-{% for field in metadata.all %}
-                            "{{ field }}",
-{% endfor %}
-                        },
-                        map => {{ spec.title | caseUcfirst }}.Models.{{ modelName | caseUcfirst | overrideIdentifier }}.From(map: map)
-                    ){% if not loop.last %},{% endif %}{{ "\n" }}
-{% endfor %}
-                });
+                return {{ spec.title | caseUcfirst }}.Models.{{ method.responseModel | caseUcfirst | overrideIdentifier }}.From(map: it);
                     {%~ endif %}
                 {%~ else %}
                 return it;
