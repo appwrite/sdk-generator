@@ -218,6 +218,12 @@ abstract class Base extends TestCase
         'CLI_TYPEGEN:passed',
     ];
 
+    protected const CLI_LOCAL_FUNCTION_EMULATION_RESPONSES = [
+        'CLI_LOCAL_RUNTIME_VERSION:passed',
+        'CLI_LOCAL_RUNTIME_START_COMMAND:passed',
+        'CLI_LOCAL_DOCKER_FAILURE_HANDLING:passed',
+    ];
+
     protected const CHANNEL_HELPER_RESPONSES = [
         'databases.db1.collections.col1.documents',
         'databases.db1.collections.col1.documents.doc1',

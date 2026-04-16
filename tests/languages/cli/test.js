@@ -3,6 +3,10 @@ const fs = require("fs");
 const path = require("path");
 const Client = require("./lib/client.ts").default;
 const {
+  openRuntimesVersion,
+  systemTools,
+} = require("./lib/emulation/utils.ts");
+const {
   TypeScriptDatabasesGenerator,
 } = require("./lib/commands/generators/typescript/databases.ts");
 const {
@@ -149,6 +153,35 @@ execSync("bun ./dist/cli.cjs general empty", { stdio: "pipe" });
 
 output = execSync("bun ./dist/cli.cjs general headers", { stdio: "pipe" }).toString();
 console.log(extractFirstValue(output));
+
+if (openRuntimesVersion !== "v5") {
+  throw new Error(
+    `Expected local function emulation to use OpenRuntimes v5, got ${openRuntimesVersion}`,
+  );
+}
+console.log("CLI_LOCAL_RUNTIME_VERSION:passed");
+
+if (systemTools.node?.startCommand !== "bash helpers/server.sh") {
+  throw new Error(
+    `Expected node local function startup to use bash helpers/server.sh, got ${systemTools.node?.startCommand}`,
+  );
+}
+console.log("CLI_LOCAL_RUNTIME_START_COMMAND:passed");
+
+const dockerSource = fs.readFileSync(
+  path.join(process.cwd(), "lib/emulation/docker.ts"),
+  "utf8",
+);
+if (
+  !dockerSource.includes("Unable to pull Docker image") ||
+  !dockerSource.includes("Unable to start function") ||
+  !dockerSource.includes(
+    "Promise.race([waitUntilPortOpen(port), startProcessExit])",
+  )
+) {
+  throw new Error("Local Docker emulation is missing failure handling guards.");
+}
+console.log("CLI_LOCAL_DOCKER_FAILURE_HANDLING:passed");
 
 // Type generation regression: generated concrete row query helpers must compile on TS 5.9+
 fs.rmSync(path.join(process.cwd(), "generated"), { recursive: true, force: true });
