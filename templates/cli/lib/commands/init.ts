@@ -125,8 +125,9 @@ const printInitProjectNextSteps = (steps: InitProjectNextStep[]): void => {
   console.log("  Next steps:");
 
   for (const step of steps) {
+    const spacing = " ".repeat(longestCommand - step.command.length + 4);
     console.log(
-      `    ${chalk.cyan(step.command.padEnd(longestCommand + 4))}${step.description}`,
+      `    ${chalk.cyan(step.command)}${spacing}${step.description}`,
     );
   }
 };
