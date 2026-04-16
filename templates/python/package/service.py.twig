@@ -42,12 +42,9 @@ class Service:
         if not isinstance(response, dict):
             return response
 
-        if model is not None:
-            try:
-                return model.model_validate(response)
-            except ValidationError as error:
-                raise AppwriteException(
-                    f'Unable to parse response into {model.__name__}: {error}'
-                ) from error
-
-        raise AppwriteException('Unable to parse response into any known model')
+        try:
+            return model.model_validate(response)
+        except ValidationError as error:
+            raise AppwriteException(
+                f'Unable to parse response into {model.__name__}: {error}'
+            ) from error
