@@ -223,6 +223,7 @@ abstract class Base extends TestCase
         'CLI_LOCAL_RUNTIME_START_COMMAND:passed',
         'CLI_LOCAL_SOURCE_PREFLIGHT:passed',
         'CLI_LOCAL_DOCKER_LOG_FORMATTING:passed',
+        'CLI_LOCAL_SUCCESS_LOG_ORDERING:passed',
         'CLI_LOCAL_DOCKER_FAILURE_HANDLING:passed',
     ];
 

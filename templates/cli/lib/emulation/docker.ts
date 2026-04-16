@@ -132,6 +132,40 @@ function getDockerExitMessage(
   return `Docker process exited with code ${code ?? "unknown"}.`;
 }
 
+function waitForProcessOutput(
+  process: childProcess.ChildProcessWithoutNullStreams,
+  needle: string,
+): Promise<void> {
+  return new Promise((resolve) => {
+    let output = "";
+
+    const onData = (data: Buffer): void => {
+      output += data.toString();
+
+      if (output.includes(needle)) {
+        cleanup();
+        resolve();
+      }
+
+      if (output.length > needle.length * 4) {
+        output = output.slice(-needle.length * 4);
+      }
+    };
+
+    const cleanup = (): void => {
+      process.stdout.off("data", onData);
+      process.stderr.off("data", onData);
+      process.off("close", cleanup);
+      process.off("error", cleanup);
+    };
+
+    process.stdout.on("data", onData);
+    process.stderr.on("data", onData);
+    process.once("close", cleanup);
+    process.once("error", cleanup);
+  });
+}
+
 export async function dockerStop(id: string): Promise<void> {
   const stopProcess = childProcess.spawn("docker", ["rm", "--force", id], {
     stdio: "pipe",
@@ -367,6 +401,11 @@ export async function dockerStart(
 
   const startProcessExit = waitForProcessClose(startProcess);
   void startProcessExit.catch(() => {});
+  const startupLogDetected = waitForProcessOutput(
+    startProcess,
+    "HTTP server successfully started!",
+  );
+  void startupLogDetected.catch(() => {});
 
   try {
     const result = await Promise.race([
@@ -383,6 +422,26 @@ export async function dockerStart(
     if (result.type === "process-exit") {
       throw new Error(
         `Function container exited before opening port ${port}. ${getDockerExitMessage(result.code, result.signal)}`,
+      );
+    }
+
+    const postStartupResult = await Promise.race([
+      startupLogDetected.then(() => ({
+        type: "startup-log" as const,
+      })),
+      startProcessExit.then(({ code, signal }) => ({
+        type: "process-exit" as const,
+        code,
+        signal,
+      })),
+      new Promise<{ type: "timeout" }>((resolve) => {
+        setTimeout(() => resolve({ type: "timeout" }), 1500);
+      }),
+    ]);
+
+    if (postStartupResult.type === "process-exit") {
+      throw new Error(
+        `Function container exited before startup logs completed. ${getDockerExitMessage(postStartupResult.code, postStartupResult.signal)}`,
       );
     }
   } catch (err: unknown) {

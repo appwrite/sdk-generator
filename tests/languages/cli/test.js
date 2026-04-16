@@ -226,6 +226,19 @@ if (
 console.log("CLI_LOCAL_DOCKER_LOG_FORMATTING:passed");
 
 if (
+  !dockerSource.includes('"HTTP server successfully started!"') ||
+  !dockerSource.includes('type: "startup-log" as const') ||
+  !dockerSource.includes(
+    "Function container exited before startup logs completed.",
+  )
+) {
+  throw new Error(
+    "Local Docker startup success should wait for the final startup log before printing the CLI success banner.",
+  );
+}
+console.log("CLI_LOCAL_SUCCESS_LOG_ORDERING:passed");
+
+if (
   !dockerSource.includes("Unable to pull Docker image") ||
   !dockerSource.includes("await dockerStop(id);") ||
   !dockerSource.includes("Function container exited before opening port")
