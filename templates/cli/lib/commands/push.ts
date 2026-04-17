@@ -147,6 +147,59 @@ function getDeploymentTimeoutErrorMessage(): string {
   return `Deployment got stuck for more than ${DEPLOYMENT_TIMEOUT_MINUTES} minutes`;
 }
 
+function getDeploymentProgressSignature(
+  deployment: Record<string, unknown>,
+): string {
+  const status =
+    typeof deployment["status"] === "string" ? deployment["status"] : "";
+  const buildLogs =
+    typeof deployment["buildLogs"] === "string"
+      ? deployment["buildLogs"]
+      : "";
+  const updatedAt =
+    typeof deployment["$updatedAt"] === "string"
+      ? deployment["$updatedAt"]
+      : "";
+  const { screenshotLight, screenshotDark } =
+    getSiteDeploymentScreenshots(deployment);
+
+  return JSON.stringify({
+    status,
+    updatedAt,
+    buildLogsLength: buildLogs.length,
+    buildLogsTail: buildLogs.slice(-200),
+    screenshotLight: screenshotLight ?? "",
+    screenshotDark: screenshotDark ?? "",
+  });
+}
+
+function createDeploymentTimeoutTracker(
+  deployment: Record<string, unknown>,
+): {
+  touch: (deployment: Record<string, unknown>) => void;
+  hasTimedOut: () => boolean;
+} {
+  let lastActivityAt = Date.now();
+  let lastSignature: string | null = null;
+
+  const touch = (nextDeployment: Record<string, unknown>): void => {
+    const nextSignature = getDeploymentProgressSignature(nextDeployment);
+    if (nextSignature === lastSignature) {
+      return;
+    }
+
+    lastSignature = nextSignature;
+    lastActivityAt = Date.now();
+  };
+
+  touch(deployment);
+
+  return {
+    touch,
+    hasTimedOut: () => Date.now() - lastActivityAt > DEPLOYMENT_TIMEOUT_MS,
+  };
+}
+
 async function getTerminalImage() {
   terminalImageModulePromise ??= import("terminal-image").then(
     (module) => module.default,
@@ -1555,6 +1608,8 @@ export class Push {
               deploymentId,
             );
             let waitingSince: number | null = null;
+            const deploymentTimeoutTracker =
+              createDeploymentTimeoutTracker(response);
             const deploymentLogPrinter = createDeploymentLogPrinter({
               label: `function:${func.name}`,
               showPrefix: functions.length > 1,
@@ -1567,6 +1622,7 @@ export class Push {
                     localConfig.getEndpoint() || globalConfig.getEndpoint(),
                   event: `functions.${func["$id"]}.deployments.${deploymentId}.update`,
                   onDeploymentUpdate: (deployment) => {
+                    deploymentTimeoutTracker.touch(deployment);
                     deploymentLogPrinter.ingest(deployment);
                   },
                   onClose: () => {
@@ -1602,10 +1658,8 @@ export class Push {
                 ),
               });
 
-              let timeoutDeadline = Date.now() + DEPLOYMENT_TIMEOUT_MS;
-
               while (true) {
-                if (Date.now() > timeoutDeadline) {
+                if (deploymentTimeoutTracker.hasTimedOut()) {
                   deploymentLogPrinter.complete();
                   failedDeployments.push({
                     name: func["name"],
@@ -1630,6 +1684,7 @@ export class Push {
                   functionId: func["$id"],
                   deploymentId: deploymentId,
                 });
+                deploymentTimeoutTracker.touch(response);
                 deploymentLogPrinter.ingest(response);
 
                 const status = response["status"];
@@ -2064,6 +2119,8 @@ export class Push {
             let waitingSince: number | null = null;
             let readyWithoutScreenshotsSince: number | null = null;
             let activationApplied = false;
+            const deploymentTimeoutTracker =
+              createDeploymentTimeoutTracker(response);
             const deploymentLogPrinter = createDeploymentLogPrinter({
               label: `site:${site.name}`,
               showPrefix: sites.length > 1,
@@ -2076,6 +2133,7 @@ export class Push {
                     localConfig.getEndpoint() || globalConfig.getEndpoint(),
                   event: `sites.${site["$id"]}.deployments.${deploymentId}.update`,
                   onDeploymentUpdate: (deployment) => {
+                    deploymentTimeoutTracker.touch(deployment);
                     deploymentLogPrinter.ingest(deployment);
                   },
                   onClose: () => {
@@ -2111,10 +2169,8 @@ export class Push {
                 ),
               });
 
-              let timeoutDeadline = Date.now() + DEPLOYMENT_TIMEOUT_MS;
-
               while (true) {
-                if (Date.now() > timeoutDeadline) {
+                if (deploymentTimeoutTracker.hasTimedOut()) {
                   deploymentLogPrinter.complete();
                   failedDeployments.push({
                     name: site["name"],
@@ -2139,6 +2195,7 @@ export class Push {
                   siteId: site["$id"],
                   deploymentId: deploymentId,
                 });
+                deploymentTimeoutTracker.touch(response);
                 deploymentLogPrinter.ingest(response);
 
                 const status = response["status"];
@@ -2176,11 +2233,6 @@ export class Push {
 
                   if (!screenshotsReady) {
                     readyWithoutScreenshotsSince ??= Date.now();
-                    timeoutDeadline = Math.max(
-                      timeoutDeadline,
-                      readyWithoutScreenshotsSince +
-                        SITE_SCREENSHOT_FINALIZATION_TIMEOUT_MS,
-                    );
 
                     if (
                       Date.now() - readyWithoutScreenshotsSince <
