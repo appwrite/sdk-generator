@@ -21,6 +21,8 @@ using namespace appwrite;
 
 // Included only when compiled with -DAPPWRITE_RUN_INTEGRATION
 // (set by test.sh, not by the build-validation CI step)
+// Included only when compiled with -DAPPWRITE_RUN_INTEGRATION
+// (set by test.sh, not by the build-validation CI step)
 extern int runIntegration(Client& client);
 
 #endif
@@ -28,8 +30,9 @@ extern int runIntegration(Client& client);
 int main() {
 #ifdef APPWRITE_RUN_INTEGRATION
     Client client;
+    const char* mock_endpoint = std::getenv("APPWRITE_MOCK_ENDPOINT");
     client
-        .setEndpoint("http://mockapi/v1")
+        .setEndpoint(mock_endpoint ? mock_endpoint : "http://mockapi/v1")
         .addHeader("Origin", "http://localhost")
         .setProject("123456");
     return runIntegration(client);

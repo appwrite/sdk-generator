@@ -12,11 +12,12 @@ cp /app/tests/resources/large_file.mp4 /tmp/cpp-sdk/tests/resources/large_file.m
 cd /tmp/cpp-sdk || exit 1
 
 # Build SDK and integration test binary
-cmake -S . -B build -DAPPWRITE_BUILD_TESTS=ON
+cmake -S . -B build -DAPPWRITE_BUILD_TESTS=ON -DAPPWRITE_RUN_INTEGRATION=ON
 cmake --build build
 
 # Run unit tests (model serialization, helper classes)
 ./build/test_appwrite
 
 # Run integration test from the project root so relative paths resolve correctly
+export APPWRITE_MOCK_ENDPOINT=http://mockapi:80
 ./build/integration_test

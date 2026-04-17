@@ -56,7 +56,13 @@ if(APPWRITE_BUILD_TESTS)
     )
     target_link_libraries(test_appwrite PRIVATE ${PROJECT_NAME} GTest::gtest)
     
-    add_executable(integration_test tests/integration.cpp)
+    add_executable(integration_test 
+        tests/integration.cpp
+        tests/integration_logic.cpp
+    )
+    if(APPWRITE_RUN_INTEGRATION)
+        target_compile_definitions(integration_test PRIVATE APPWRITE_RUN_INTEGRATION)
+    endif()
     target_link_libraries(integration_test PRIVATE ${PROJECT_NAME} nlohmann_json::nlohmann_json)
 
     add_test(NAME sdk_tests COMMAND test_appwrite)
