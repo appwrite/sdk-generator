@@ -1,0 +1,35 @@
+name: Publish Release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  publish:
+    name: Tag and publish release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup C++ build environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake libcurl4-openssl-dev
+
+      - name: Build and validate SDK
+        run: |
+          cmake -S . -B build -DAPPWRITE_BUILD_TESTS=ON
+          cmake --build build
+          ctest --test-dir build --output-on-failure
+
+      - name: Create GitHub Release archive
+        run: |
+          git archive --format=tar.gz --prefix={{ sdk.gitRepoName }}/ HEAD \
+            > {{ sdk.gitRepoName }}-{{ '${{ github.ref_name }}' }}.tar.gz
+
+      - name: Upload release artifact
+        uses: softprops/action-gh-release@v2
+        with:
+          files: {{ sdk.gitRepoName }}-{{ '${{ github.ref_name }}' }}.tar.gz
