@@ -256,8 +256,22 @@ class SDK
             if ($value === null) {
                 return '';
             }
-            // Convert markdown links [text](url) -> text
-            $value = preg_replace('/\[([^\]]+)\]\([^)]+\)/', '$1', $value);
+            // Convert markdown links.
+            // Absolute URLs (http/https) are preserved as "text (url)" so users
+            // can copy or click them; relative links like "/docs/..." are
+            // useless in a terminal, so we drop the URL and keep just the text.
+            $value = preg_replace_callback(
+                '/\[([^\]]+)\]\(([^)]+)\)/',
+                function ($m) {
+                    $text = $m[1];
+                    $url = trim($m[2]);
+                    if (preg_match('/^https?:\/\//i', $url)) {
+                        return $text . ' (' . $url . ')';
+                    }
+                    return $text;
+                },
+                $value
+            );
             // Remove bold **text** -> text
             $value = preg_replace('/\*\*([^*]+)\*\*/', '$1', $value);
             // Remove bold __text__ -> text
