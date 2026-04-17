@@ -11,6 +11,7 @@
 #include <charconv>
 #include <cmath>
 #include <stdexcept>
+#include <mutex>
 #include <initializer_list>
 #include <span>
 #include <fstream>
@@ -82,9 +83,16 @@ public:
     Id(const char* value) : value_(value) {}
 
     static Id custom(std::string id) { return Id(std::move(id)); }
-    // Returns the sentinel "unique()" — the Appwrite server interprets this
-    // to generate a unique ID server-side rather than using a client value.
-    static Id unique() { return Id("unique()"); }
+    static Id unique() {
+        static constexpr std::string_view hex = "0123456789abcdef";
+        static std::mt19937 rng{std::random_device{}()};
+        static std::uniform_int_distribution<int> dist{0, 15};
+        static std::mutex m;
+        std::string id(20, '0');
+        std::lock_guard lock(m);
+        for (char& c : id) c = hex[dist(rng)];
+        return Id(id);
+    }
 
     [[nodiscard]] const std::string& str() const { return value_; }
     operator const std::string&() const { return value_; }
