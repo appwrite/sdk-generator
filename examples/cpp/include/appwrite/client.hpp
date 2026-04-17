@@ -434,7 +434,7 @@ private:
     static void verify(const cpr::Response& r) {
         if (r.status_code == 0) throw NetworkException(r.error.message);
         if (r.status_code >= 400) {
-            std::string msg = "Server Error";
+            std::string msg = r.text; // fallback: raw body (e.g. text/plain responses)
             try {
                 auto j = nlohmann::json::parse(r.text);
                 if (j.contains("message")) msg = j["message"];
