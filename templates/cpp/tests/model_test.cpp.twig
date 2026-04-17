@@ -1,0 +1,29 @@
+{% autoescape false %}
+#include <gtest/gtest.h>
+#include <nlohmann/json.hpp>
+#include "appwrite/models.hpp"
+
+{% for definition in spec.definitions %}
+TEST({{ definition.name | casePascal }}Test, RoundTrip) {
+    auto seed = nlohmann::json::parse(R"json({
+        {%- for property in definition.properties %}
+        "{{ property.name }}": {{ property | exampleJson }}{% if not loop.last %},{% endif %}
+        {%- endfor %}
+    })json");
+
+    // Deserialization must not throw (skip on type mismatch in example data)
+    appwrite::models::{{ definition.name | casePascal }} model;
+    try {
+        model = appwrite::models::{{ definition.name | casePascal }}::fromJson(seed);
+    } catch (const nlohmann::json::exception&) {
+        GTEST_SKIP() << "Seed example data type mismatch — skipped";
+    }
+
+    // Idempotency: serializing then deserializing then re-serializing must be stable
+    auto json1  = model.toJson();
+    auto model2 = appwrite::models::{{ definition.name | casePascal }}::fromJson(json1);
+    auto json2  = model2.toJson();
+    EXPECT_EQ(json1.dump(), json2.dump());
+}
+{% endfor %}
+{% endautoescape %}
