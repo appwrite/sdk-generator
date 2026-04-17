@@ -79,19 +79,19 @@ export const {{ service.name | caseCamel }} = new Command("{{ service.name | cas
 {% set commandVar = service.name | caseCamel ~ method.name | caseUcfirst ~ 'Command' %}
 const {{ commandVar }} = {{ service.name | caseCamel }}
   .command(`{{ commandName }}`)
-  .description(`{{ method.description | replace({'`': '\\`'}) | raw }}`)
+  .description(`{{ method.description | stripMarkdown | replace({'`': '\\`'}) | raw }}`)
 {% for parameter in method.parameters.all %}
 {% set opt = getCliOption(parameter) %}
 {% if opt.customParserCode is defined %}
   .{{ opt.method }}(
     `{{ opt.syntax | raw }}`,
-    `{{ parameter.description | replace({'`': '\\`'}) | raw }}`,
+    `{{ parameter.description | stripMarkdown | replace({'`': '\\`'}) | raw }}`,
     {{ opt.customParserCode | raw }},
   )
 {% elseif opt.parser %}
-  .{{ opt.method }}(`{{ opt.syntax | raw }}`, `{{ parameter.description | replace({'`': '\\`'}) | raw }}`, {{ opt.parser }})
+  .{{ opt.method }}(`{{ opt.syntax | raw }}`, `{{ parameter.description | stripMarkdown | replace({'`': '\\`'}) | raw }}`, {{ opt.parser }})
 {% else %}
-  .{{ opt.method }}(`{{ opt.syntax | raw }}`, `{{ parameter.description | replace({'`': '\\`'}) | raw }}`)
+  .{{ opt.method }}(`{{ opt.syntax | raw }}`, `{{ parameter.description | stripMarkdown | replace({'`': '\\`'}) | raw }}`)
 {% endif %}
 {% endfor %}
 {% if method.type == 'location' %}

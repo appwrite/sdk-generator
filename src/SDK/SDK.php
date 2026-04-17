@@ -252,6 +252,34 @@ class SDK
         $this->twig->addFilter(new TwigFilter('hasPermissionParam', function ($value) {
             return $this->language->hasPermissionParam($value);
         }));
+        $this->twig->addFilter(new TwigFilter('stripMarkdown', function ($value) {
+            if ($value === null) {
+                return '';
+            }
+            // Convert markdown links.
+            // Absolute URLs (http/https) are preserved as "text (url)" so users
+            // can copy or click them; relative links like "/docs/..." are
+            // useless in a terminal, so we drop the URL and keep just the text.
+            $value = preg_replace_callback(
+                '/\[([^\]]+)\]\(([^)]+)\)/',
+                function ($m) {
+                    $text = $m[1];
+                    $url = trim($m[2]);
+                    if (preg_match('/^https?:\/\//i', $url)) {
+                        return $text . ' (' . $url . ')';
+                    }
+                    return $text;
+                },
+                $value
+            );
+            // Remove bold **text** -> text (lazy to keep adjacent bold spans
+            // separate; . doesn't cross newlines by default)
+            $value = preg_replace('/\*\*(.+?)\*\*/', '$1', $value);
+            // Remove bold __text__ -> text (lazy so inner underscores like
+            // __user_id__ match correctly)
+            $value = preg_replace('/__(.+?)__/', '$1', $value);
+            return $value;
+        }));
     }
 
     /**
