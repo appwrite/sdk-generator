@@ -33,6 +33,7 @@ import {
   arrayEqualsUnordered,
   getFunctionDeploymentConsoleUrl,
   getSiteDeploymentConsoleUrl,
+  mapWithConcurrencyLimit,
   siteRequiresBuildCommand,
 } from "../utils.js";
 import { Spinner, SPINNER_DOTS } from "../spinner.js";
@@ -121,6 +122,8 @@ const SITE_TERMINAL_PREVIEW_MIN_HEIGHT = 8;
 const WAITING_JOKE_THRESHOLD_MS = 30 * 1000; // 30 seconds
 const WAITING_JOKE_URL = "https://xkcd.com/303/";
 const ANSI_RESET = "\u001B[0m";
+const RESOURCE_SYNC_CONCURRENCY = 10;
+const DEPLOYMENT_PUSH_CONCURRENCY = 3;
 
 type TerminalImageModule = typeof import("terminal-image");
 
@@ -1349,8 +1352,10 @@ export class Push {
     }[] = [];
 
     try {
-      await Promise.all(
-        functions.map(async (func: any) => {
+      await mapWithConcurrencyLimit(
+        functions,
+        DEPLOYMENT_PUSH_CONCURRENCY,
+        async (func: any) => {
           let response: any = {};
 
           const ignore = func.ignore ? "appwrite.config.json" : ".gitignore";
@@ -1479,8 +1484,10 @@ export class Push {
               functionId: func["$id"],
             });
 
-            await Promise.all(
-              variables.map(async (variable: any) => {
+            await mapWithConcurrencyLimit(
+              variables,
+              RESOURCE_SYNC_CONCURRENCY,
+              async (variable: any) => {
                 const functionsServiceDel = await getFunctionsService(
                   this.projectClient,
                 );
@@ -1488,7 +1495,7 @@ export class Push {
                   functionId: func["$id"],
                   variableId: variable["$id"],
                 });
-              }),
+              },
             );
 
             const envFileLocation = `${func["path"]}/.env`;
@@ -1505,8 +1512,10 @@ export class Push {
             } catch (_error) {
               envVariables = [];
             }
-            await Promise.all(
-              envVariables.map(async (variable) => {
+            await mapWithConcurrencyLimit(
+              envVariables,
+              RESOURCE_SYNC_CONCURRENCY,
+              async (variable) => {
                 const functionsServiceCreate = await getFunctionsService(
                   this.projectClient,
                 );
@@ -1516,7 +1525,7 @@ export class Push {
                   value: variable.value,
                   secret: false,
                 });
-              }),
+              },
             );
           }
 
@@ -1796,7 +1805,7 @@ export class Push {
           }
 
           updaterRow.stopSpinner();
-        }),
+        },
       );
     } finally {
       deploymentLogsController.close();
@@ -1860,8 +1869,10 @@ export class Push {
     const deploymentLogs: SiteDeploymentSummary[] = [];
 
     try {
-      await Promise.all(
-        sites.map(async (site: any) => {
+      await mapWithConcurrencyLimit(
+        sites,
+        DEPLOYMENT_PUSH_CONCURRENCY,
+        async (site: any) => {
           let response: any = {};
 
           let siteExists = false;
@@ -1989,8 +2000,10 @@ export class Push {
               siteId: site["$id"],
             });
 
-            await Promise.all(
-              variables.map(async (variable: any) => {
+            await mapWithConcurrencyLimit(
+              variables,
+              RESOURCE_SYNC_CONCURRENCY,
+              async (variable: any) => {
                 const sitesServiceDel = await getSitesService(
                   this.projectClient,
                 );
@@ -1998,7 +2011,7 @@ export class Push {
                   siteId: site["$id"],
                   variableId: variable["$id"],
                 });
-              }),
+              },
             );
 
             const envFileLocation = `${site["path"]}/.env`;
@@ -2015,8 +2028,10 @@ export class Push {
             } catch (_error) {
               envVariables = [];
             }
-            await Promise.all(
-              envVariables.map(async (variable) => {
+            await mapWithConcurrencyLimit(
+              envVariables,
+              RESOURCE_SYNC_CONCURRENCY,
+              async (variable) => {
                 const sitesServiceCreate = await getSitesService(
                   this.projectClient,
                 );
@@ -2026,7 +2041,7 @@ export class Push {
                   value: variable.value,
                   secret: false,
                 });
-              }),
+              },
             );
           }
 
@@ -2343,7 +2358,7 @@ export class Push {
           }
 
           updaterRow.stopSpinner();
-        }),
+        },
       );
     } finally {
       deploymentLogsController.close();
@@ -2464,8 +2479,10 @@ export class Push {
     const errors: any[] = [];
 
     // Parallel tables actions
-    await Promise.all(
-      tables.map(async (table: any) => {
+    await mapWithConcurrencyLimit(
+      tables,
+      RESOURCE_SYNC_CONCURRENCY,
+      async (table: any) => {
         try {
           const tablesService = await getTablesDBService(this.projectClient);
           const remoteTable = await tablesService.getTable({
@@ -2524,7 +2541,7 @@ export class Push {
             throw e;
           }
         }
-      }),
+      },
     );
 
     // Serialize attribute actions
@@ -2612,8 +2629,10 @@ export class Push {
     );
 
     // Parallel db actions
-    await Promise.all(
-      databases.map(async (databaseId) => {
+    await mapWithConcurrencyLimit(
+      databases,
+      RESOURCE_SYNC_CONCURRENCY,
+      async (databaseId) => {
         const databasesService = await getDatabasesService(this.projectClient);
         try {
           const database = await databasesService.get(databaseId);
@@ -2642,12 +2661,14 @@ export class Push {
             throw err;
           }
         }
-      }),
+      },
     );
 
     // Parallel collection actions
-    await Promise.all(
-      collectionsWithState.map(async (collection) => {
+    await mapWithConcurrencyLimit(
+      collectionsWithState,
+      RESOURCE_SYNC_CONCURRENCY,
+      async (collection) => {
         try {
           const databasesService = await getDatabasesService(
             this.projectClient,
@@ -2696,7 +2717,7 @@ export class Push {
             throw e;
           }
         }
-      }),
+      },
     );
 
     let numberOfCollections = 0;

@@ -91,6 +91,38 @@ export const getErrorMessage = (error: unknown): string => {
   return String(error);
 };
 
+export async function mapWithConcurrencyLimit<T, R>(
+  items: T[],
+  limit: number,
+  mapper: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
+  if (items.length === 0) {
+    return [];
+  }
+
+  const normalizedLimit = Math.max(1, Math.floor(limit));
+  const workerCount = Math.min(normalizedLimit, items.length);
+  const results = new Array<R>(items.length);
+  let nextIndex = 0;
+
+  await Promise.all(
+    Array.from({ length: workerCount }, async () => {
+      while (true) {
+        const currentIndex = nextIndex;
+        nextIndex += 1;
+
+        if (currentIndex >= items.length) {
+          return;
+        }
+
+        results[currentIndex] = await mapper(items[currentIndex], currentIndex);
+      }
+    }),
+  );
+
+  return results;
+}
+
 export type InstallationMethod = "npm" | "homebrew" | "standalone";
 type LatestVersionSource = "npm" | "homebrew";
 type HomebrewInfoResponse = {

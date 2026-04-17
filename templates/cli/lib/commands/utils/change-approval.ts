@@ -3,10 +3,13 @@ import inquirer from "inquirer";
 import { AppwriteException } from "@appwrite.io/console";
 import { cliConfig, success, warn, log, drawTable } from "../../parser.js";
 import { whitelistKeys } from "../../config.js";
+import { mapWithConcurrencyLimit } from "../../utils.js";
 import {
   questionPushChanges,
   questionPushChangesConfirmation,
 } from "../../questions.js";
+
+const CHANGE_APPROVAL_CONCURRENCY = 10;
 
 /**
  * Check if a value is considered empty
@@ -125,8 +128,10 @@ export const approveChanges = async (
   log("Checking for changes ...");
   const changes: Array<Record<string, unknown>> = [];
 
-  await Promise.all(
-    resource.map(async (localResource) => {
+  await mapWithConcurrencyLimit(
+    resource,
+    CHANGE_APPROVAL_CONCURRENCY,
+    async (localResource) => {
       try {
         const options: Record<string, unknown> = {
           [resourceName]: localResource["$id"],
@@ -176,7 +181,7 @@ export const approveChanges = async (
           e instanceof AppwriteException && Number(e.code) === 404;
         if (!isNotFound) throw e;
       }
-    }),
+    },
   );
 
   if (changes.length === 0) {
