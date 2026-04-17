@@ -272,10 +272,12 @@ class SDK
                 },
                 $value
             );
-            // Remove bold **text** -> text
-            $value = preg_replace('/\*\*([^*]+)\*\*/', '$1', $value);
-            // Remove bold __text__ -> text
-            $value = preg_replace('/__([^_]+)__/', '$1', $value);
+            // Remove bold **text** -> text (lazy to keep adjacent bold spans
+            // separate; . doesn't cross newlines by default)
+            $value = preg_replace('/\*\*(.+?)\*\*/', '$1', $value);
+            // Remove bold __text__ -> text (lazy so inner underscores like
+            // __user_id__ match correctly)
+            $value = preg_replace('/__(.+?)__/', '$1', $value);
             return $value;
         }));
     }
