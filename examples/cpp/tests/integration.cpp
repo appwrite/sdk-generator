@@ -28,15 +28,6 @@ extern int runIntegration(Client& client);
 #endif
 
 int main() {
-#ifdef APPWRITE_RUN_INTEGRATION
-    Client client;
-    const char* mock_endpoint = std::getenv("APPWRITE_MOCK_ENDPOINT");
-    client
-        .setEndpoint(mock_endpoint ? mock_endpoint : "http://mockapi/v1")
-        .addHeader("Origin", "http://localhost")
-        .setProject("123456");
-    return runIntegration(client);
-#else
     // == Standalone helper verification ==
     // These don't need a running server — they only test local string-building logic.
 
@@ -47,11 +38,6 @@ int main() {
               << "x-sdk-platform: " << (headers.count("x-sdk-platform") ? headers.at("x-sdk-platform") : "") << "; "
               << "x-sdk-language: " << (headers.count("x-sdk-language") ? headers.at("x-sdk-language") : "") << "; "
               << "x-sdk-version: " << (headers.count("x-sdk-version") ? headers.at("x-sdk-version") : "") << "\n";
-
-    auto printResult = [](const std::string& method, const std::string& path, auto const& res) {
-        std::cout << method << ":" << path << (res ? ":passed" : ":failed") << "\n";
-    };
-    (void)printResult;
 
     // == QUERY_HELPER_RESPONSES ==
     std::cout << Query::equal("released", true) << "\n";
@@ -146,6 +132,13 @@ int main() {
     std::cout << ID::unique().str() << "\n";
     std::cout << ID::custom("custom_id").str() << "\n";
 
+#ifdef APPWRITE_RUN_INTEGRATION
+    const char* mock_endpoint = std::getenv("APPWRITE_MOCK_ENDPOINT");
+    client
+        .setEndpoint(mock_endpoint ? mock_endpoint : "http://mockapi/v1")
+        .setProject("123456");
+    return runIntegration(client);
+#else
     return 0;
 #endif
 }

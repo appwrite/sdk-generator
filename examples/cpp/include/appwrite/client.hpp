@@ -401,7 +401,15 @@ private:
         if (m == "GET") {
             cpr::Parameters params;
             for (auto const& [k, v] : pms.items()) {
-                if (v.is_string()) {
+                if (v.is_array()) {
+                    for (auto const& item : v) {
+                        if (item.is_string()) {
+                            params.Add(cpr::Parameter(k + "[]", item.template get<std::string>()));
+                        } else {
+                            params.Add(cpr::Parameter(k + "[]", item.dump()));
+                        }
+                    }
+                } else if (v.is_string()) {
                     params.Add(cpr::Parameter(k, v.template get<std::string>()));
                 } else {
                     params.Add(cpr::Parameter(k, v.dump()));
