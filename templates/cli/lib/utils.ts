@@ -12,6 +12,7 @@ import {
   NPM_PACKAGE_NAME,
   DEFAULT_ENDPOINT,
   EXECUTABLE_NAME,
+  HOMEBREW_FORMULA,
   UPDATE_CHECK_INTERVAL_MS,
 } from "./constants.js";
 
@@ -102,7 +103,9 @@ type HomebrewInfoResponse = {
 };
 
 const WINDOWS_EXECUTABLE_NAME = `${EXECUTABLE_NAME.toLowerCase()}.exe`;
-const HOMEBREW_FORMULA_NAME = EXECUTABLE_NAME.toLowerCase();
+// Prefer the fully-qualified `<tap>/<formula>` reference so `brew info` resolves
+// to the Appwrite tap even if another tap ever registers the `appwrite` name.
+const HOMEBREW_FORMULA_NAME = HOMEBREW_FORMULA;
 
 const getExecutablePaths = (): {
   execPath: string;

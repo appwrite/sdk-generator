@@ -15,6 +15,8 @@ import {
 import {
   EXECUTABLE_NAME,
   GITHUB_RELEASES_URL,
+  HOMEBREW_FORMULA,
+  HOMEBREW_TAP,
   NPM_PACKAGE_NAME,
   SDK_TITLE,
 } from "../constants.js";
@@ -164,10 +166,10 @@ const updateViaNpm = async (): Promise<void> => {
  */
 const updateViaHomebrew = async (): Promise<void> => {
   try {
-    await execCommand("brew", ["upgrade", "appwrite"]);
+    await execCommand("brew", ["upgrade", HOMEBREW_FORMULA]);
     console.log("");
     success("Updated to latest version via Homebrew!");
-    hint("Run 'appwrite --version' to verify the new version.");
+    hint(`Run '${EXECUTABLE_NAME} --version' to verify the new version.`);
   } catch (e: unknown) {
     const message = getErrorMessage(e);
 
@@ -177,11 +179,13 @@ const updateViaHomebrew = async (): Promise<void> => {
     ) {
       console.log("");
       success("Latest version is already installed via Homebrew!");
-      hint("The CLI is up to date. Run 'appwrite --version' to verify.");
+      hint(
+        `The CLI is up to date. Run '${EXECUTABLE_NAME} --version' to verify.`,
+      );
     } else {
       console.log("");
       error(`Failed to update via Homebrew: ${message}`);
-      hint("Try running: brew upgrade appwrite");
+      hint(`Try running: brew upgrade ${HOMEBREW_FORMULA}`);
     }
   }
 };
@@ -258,7 +262,8 @@ const showManualInstructions = (latestVersion: string): void => {
   console.log("");
 
   log(`${chalk.bold("Option 2: Homebrew")}`);
-  console.log(`  brew upgrade appwrite`);
+  console.log(`  brew upgrade ${HOMEBREW_FORMULA}`);
+  console.log(`  # (first time: brew tap ${HOMEBREW_TAP})`);
   console.log("");
 
   if (process.platform !== "win32") {

@@ -50,12 +50,12 @@ If you do not have `npm` installed, you can always install the prebuilt binaries
 $ wget -q {{ sdk.url }}/cli/install.sh  -O - | /bin/bash
 ```
 
-### MacOS via [Homebrew](https://brew.sh)
+### MacOS / Linux via [Homebrew](https://brew.sh)
 ```bash
-$ brew install {{ language.params.executableName }} 
+$ brew install {{ language.params.homebrewTapOwner }}/{{ language.params.homebrewTapName }}/{{ language.params.executableName }}
 ```
 
-Homebrew installs the native binary for your platform.
+The formula lives in the [`{{ language.params.homebrewTapOwner }}/homebrew-{{ language.params.homebrewTapName }}`](https://github.com/{{ language.params.homebrewTapOwner }}/homebrew-{{ language.params.homebrewTapName }}) tap and Homebrew will download the native binary that matches your platform.
 
 ### Windows
 Via Powershell
