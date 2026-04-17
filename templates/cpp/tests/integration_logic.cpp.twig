@@ -22,7 +22,7 @@ static void printResult(const Result<nlohmann::json>& res, const char* label) {
     if (res) {
         std::cout << res.value().at("result").get<std::string>() << "\n";
     } else {
-        try { std::rethrow_exception(std::get<std::exception_ptr>(res)); }
+        try { res.value(); }
         catch (const std::exception& e) { std::cerr << label << " failed: " << e.what() << "\n"; }
         catch (...) { std::cerr << label << " failed (unknown)\n"; }
     }
