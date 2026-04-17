@@ -174,20 +174,15 @@ function getDeploymentProgressSignature(
 }
 
 function createDeploymentTimeoutTracker(
-  deployment?: Record<string, unknown>,
+  deployment: Record<string, unknown>,
 ): {
-  touch: (deployment?: Record<string, unknown>) => void;
+  touch: (deployment: Record<string, unknown>) => void;
   hasTimedOut: () => boolean;
 } {
   let lastActivityAt = Date.now();
   let lastSignature: string | null = null;
 
-  const touch = (nextDeployment?: Record<string, unknown>): void => {
-    if (!nextDeployment) {
-      lastActivityAt = Date.now();
-      return;
-    }
-
+  const touch = (nextDeployment: Record<string, unknown>): void => {
     const nextSignature = getDeploymentProgressSignature(nextDeployment);
     if (nextSignature === lastSignature) {
       return;
