@@ -35,11 +35,13 @@ int runIntegration(appwrite::Client& client) {
         if (gen_res) std::cout << gen_res.value().at("result").get<std::string>() << "\n";
 
         // 4. UPLOAD (Chunked)
-        std::string path = "tests/resources/large_file.mp4";
-        appwrite::InputFile file = appwrite::InputFile::fromPath(path);
-        nlohmann::json upload_pms = { {"file", path} };
+        // upload_pms must NOT contain the file key — fileUpload injects it via
+        // the fk / InputFile buffer. Including it would add a duplicate text
+        // part and corrupt the multipart body.
+        appwrite::InputFile file = appwrite::InputFile::fromPath("tests/resources/large_file.mp4");
+        nlohmann::json upload_pms = nlohmann::json::object();
         
-        auto upload_res = client.fileUpload<nlohmann::json>("POST", "/upload", "file", std::move(file), {}, upload_pms, nullptr);
+        auto upload_res = client.fileUpload<nlohmann::json>("POST", "/v1/mock/tests/general/upload", "file", std::move(file), {}, upload_pms, nullptr);
         if (upload_res) std::cout << upload_res.value().at("result").get<std::string>() << "\n";
 
         // 5. DOWNLOAD
