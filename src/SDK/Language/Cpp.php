@@ -555,8 +555,12 @@ class Cpp extends Language
                     $decoded = is_string($default) ? json_decode($default, true) : $default;
                     if (is_array($decoded)) {
                         $items = array_map(function ($v) {
-                            if (is_bool($v)) return $v ? 'true' : 'false';
-                            if (is_numeric($v)) return (string)$v;
+                            if (is_bool($v)) {
+                                return $v ? 'true' : 'false';
+                            }
+                            if (is_numeric($v)) {
+                                return (string)$v;
+                            }
                             return '"' . addslashes((string) $v) . '"';
                         }, $decoded);
                         $output .= $vecType . '{' . implode(', ', $items) . '}';
@@ -621,10 +625,12 @@ class Cpp extends Language
                     $decoded = is_string($example) ? json_decode($example, true) : $example;
                     if (is_array($decoded)) {
                         $items = array_map(function ($v) {
-                            if (is_bool($v))
+                            if (is_bool($v)) {
                                 return $v ? 'true' : 'false';
-                            if (is_numeric($v))
+                            }
+                            if (is_numeric($v)) {
                                 return $v;
+                            }
                             return '"' . addslashes((string) $v) . '"';
                         }, $decoded);
                         $output .= '{' . implode(', ', $items) . '}';
