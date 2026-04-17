@@ -17,6 +17,7 @@ jobs:
       # them on launch (oven-sh/bun#29120). Unpin once a Bun release includes the
       # upstream fix (oven-sh/bun#29122).
       CLI_BUN_VERSION: '1.3.11'
+      HOMEBREW_TAP_REPO: appwrite/homebrew-appwrite
     steps:
       - uses: actions/checkout@v4
         with:
@@ -75,33 +76,34 @@ jobs:
           GHR_REPLACE: false
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
 
-      - name: Update Homebrew formula checksums
+      - name: Check out Homebrew tap
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.HOMEBREW_TAP_REPO }}
+          token: ${{ secrets.HOMEBREW_TAP_GH_TOKEN }}
+          path: homebrew-tap
+          fetch-depth: 0
+
+      - name: Update Homebrew formula in tap
+        id: tap
+        working-directory: homebrew-tap
         env:
           RELEASE_TAG: ${{ github.event.release.tag_name }}
-          TARGET_COMMITISH: ${{ github.event.release.target_commitish }}
         run: |
           set -euo pipefail
 
-          TARGET_BRANCH="$TARGET_COMMITISH"
-          if ! git ls-remote --exit-code --heads origin "$TARGET_BRANCH" >/dev/null 2>&1; then
-            TARGET_BRANCH="master"
-          fi
-
-          git fetch origin "$TARGET_BRANCH"
-          git switch -C "$TARGET_BRANCH" "origin/$TARGET_BRANCH"
-
           FORMULA_PATH="$(find Formula -maxdepth 1 -name '*.rb' | head -n 1)"
           if [ -z "$FORMULA_PATH" ]; then
-            echo "Formula file not found"
+            echo "No formula found in Homebrew tap"
             exit 1
           fi
-
           EXECUTABLE_NAME="$(basename "$FORMULA_PATH" .rb)"
-          export FORMULA_PATH RELEASE_TAG EXECUTABLE_NAME
-          export MAC_ARM64_SHA256="$(sha256sum "build/${EXECUTABLE_NAME}-cli-darwin-arm64" | awk '{print $1}')"
-          export MAC_X64_SHA256="$(sha256sum "build/${EXECUTABLE_NAME}-cli-darwin-x64" | awk '{print $1}')"
-          export LINUX_ARM64_SHA256="$(sha256sum "build/${EXECUTABLE_NAME}-cli-linux-arm64" | awk '{print $1}')"
-          export LINUX_X64_SHA256="$(sha256sum "build/${EXECUTABLE_NAME}-cli-linux-x64" | awk '{print $1}')"
+
+          export FORMULA_PATH EXECUTABLE_NAME
+          export MAC_ARM64_SHA256="$(sha256sum "../build/${EXECUTABLE_NAME}-cli-darwin-arm64" | awk '{print $1}')"
+          export MAC_X64_SHA256="$(sha256sum "../build/${EXECUTABLE_NAME}-cli-darwin-x64" | awk '{print $1}')"
+          export LINUX_ARM64_SHA256="$(sha256sum "../build/${EXECUTABLE_NAME}-cli-linux-arm64" | awk '{print $1}')"
+          export LINUX_X64_SHA256="$(sha256sum "../build/${EXECUTABLE_NAME}-cli-linux-x64" | awk '{print $1}')"
 
           ruby <<'RUBY'
           formula_path = ENV.fetch("FORMULA_PATH")
@@ -132,13 +134,49 @@ jobs:
 
           ruby -c "$FORMULA_PATH"
 
+          {
+            echo "executable=${EXECUTABLE_NAME}"
+            echo "formula_path=${FORMULA_PATH}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Open pull request on Homebrew tap
+        working-directory: homebrew-tap
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          EXECUTABLE_NAME: ${{ steps.tap.outputs.executable }}
+          FORMULA_PATH: ${{ steps.tap.outputs.formula_path }}
+          SOURCE_REPO: ${{ github.repository }}
+          SERVER_URL: ${{ github.server_url }}
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_GH_TOKEN }}
+        run: |
+          set -euo pipefail
+
           if git diff --quiet -- "$FORMULA_PATH"; then
-            echo "Homebrew formula already up to date"
+            echo "Homebrew formula already up to date for ${RELEASE_TAG}"
             exit 0
           fi
 
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          BASE_BRANCH="$(gh repo view --json defaultBranchRef --jq '.defaultBranchRef.name')"
+          BRANCH="release/${EXECUTABLE_NAME}-${RELEASE_TAG}"
+
+          git config user.name "appwrite-bot"
+          git config user.email "bot@appwrite.io"
+
+          git checkout -B "$BRANCH"
           git add "$FORMULA_PATH"
-          git commit -m "chore: update Homebrew formula for ${RELEASE_TAG}"
-          git push origin "$TARGET_BRANCH"
+          git commit -m "${EXECUTABLE_NAME} ${RELEASE_TAG}"
+          git push -f -u origin "$BRANCH"
+
+          PR_TITLE="${EXECUTABLE_NAME} ${RELEASE_TAG}"
+          PR_BODY=$(printf 'Automated formula update for the `%s` CLI release [`%s`](%s/%s/releases/tag/%s).\n\nOpened automatically by the `%s` publish workflow after release binaries were uploaded.' "$EXECUTABLE_NAME" "$RELEASE_TAG" "$SERVER_URL" "$SOURCE_REPO" "$RELEASE_TAG" "${SOURCE_REPO#*/}")
+
+          EXISTING_PR="$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number' || true)"
+          if [ -n "$EXISTING_PR" ]; then
+            gh pr edit "$EXISTING_PR" --title "$PR_TITLE" --body "$PR_BODY"
+          else
+            gh pr create \
+              --title "$PR_TITLE" \
+              --body "$PR_BODY" \
+              --base "$BASE_BRANCH" \
+              --head "$BRANCH"
+          fi

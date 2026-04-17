@@ -12,6 +12,7 @@ import {
   NPM_PACKAGE_NAME,
   DEFAULT_ENDPOINT,
   EXECUTABLE_NAME,
+  HOMEBREW_FORMULA,
   UPDATE_CHECK_INTERVAL_MS,
 } from "./constants.js";
 
@@ -102,7 +103,6 @@ type HomebrewInfoResponse = {
 };
 
 const WINDOWS_EXECUTABLE_NAME = `${EXECUTABLE_NAME.toLowerCase()}.exe`;
-const HOMEBREW_FORMULA_NAME = EXECUTABLE_NAME.toLowerCase();
 
 const getExecutablePaths = (): {
   execPath: string;
@@ -227,7 +227,7 @@ const getHomebrewLatestVersion = async (
   try {
     const output = childProcess.execFileSync(
       "brew",
-      ["info", "--json=v2", HOMEBREW_FORMULA_NAME],
+      ["info", "--json=v2", HOMEBREW_FORMULA],
       {
         encoding: "utf8",
         stdio: ["ignore", "pipe", "pipe"],

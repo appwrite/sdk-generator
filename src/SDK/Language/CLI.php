@@ -70,10 +70,8 @@ class CLI extends Node
         'executableName' => 'executable',
         'logo' => '',
         'logoUnescaped' => '',
-        'homebrewMacArm64Sha256' => '0000000000000000000000000000000000000000000000000000000000000000',
-        'homebrewMacX64Sha256' => '0000000000000000000000000000000000000000000000000000000000000000',
-        'homebrewLinuxArm64Sha256' => '0000000000000000000000000000000000000000000000000000000000000000',
-        'homebrewLinuxX64Sha256' => '0000000000000000000000000000000000000000000000000000000000000000',
+        'homebrewTapOwner' => 'appwrite',
+        'homebrewTapName' => 'appwrite',
     ];
 
     /**
@@ -155,16 +153,16 @@ class CLI extends Node
     }
 
     /**
-     * Override a generated Homebrew formula checksum placeholder when a release
-     * build already knows the target binary SHA256.
+     * Configure the Homebrew tap (`<owner>/homebrew-<name>`) hosting the CLI formula.
      *
-     * @param string $key
-     * @param string $sha256
+     * @param string $owner Tap owner (e.g. "appwrite")
+     * @param string $name  Tap short name without the `homebrew-` prefix
      * @return $this
      */
-    public function setHomebrewSha256(string $key, string $sha256): self
+    public function setHomebrewTap(string $owner, string $name): self
     {
-        $this->setParam($key, $sha256);
+        $this->setParam('homebrewTapOwner', $owner);
+        $this->setParam('homebrewTapName', $name);
 
         return $this;
     }
@@ -299,13 +297,6 @@ class CLI extends Node
                 'scope'         => 'method',
                 'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseKebab}}.md',
                 'template'      => 'cli/docs/example.md.twig',
-            ],
-
-            // Distribution - Formula (Homebrew)
-            [
-                'scope'         => 'method',
-                'destination'   => 'Formula/{{ language.params.executableName }}.rb',
-                'template'      => 'cli/Formula/formula.rb.twig',
             ],
 
             // Distribution - Scoop (Windows)
