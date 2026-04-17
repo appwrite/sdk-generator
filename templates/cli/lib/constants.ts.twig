@@ -12,8 +12,7 @@ export const EXECUTABLE_NAME = '{{ language.params.executableName }}';
 // 1 day
 export const UPDATE_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
-// Homebrew — fully-qualified `<owner>/<tap>/<formula>` reference so self-update
-// lookups resolve to the Appwrite tap even if another formula ever shares the name.
+// Homebrew — fully-qualified `<owner>/<tap>/<formula>` reference
 export const HOMEBREW_TAP = '{{ language.params.homebrewTapOwner }}/{{ language.params.homebrewTapName }}';
 export const HOMEBREW_FORMULA = `${HOMEBREW_TAP}/{{ language.params.executableName|caseLower }}`;
 

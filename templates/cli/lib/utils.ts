@@ -103,9 +103,6 @@ type HomebrewInfoResponse = {
 };
 
 const WINDOWS_EXECUTABLE_NAME = `${EXECUTABLE_NAME.toLowerCase()}.exe`;
-// Prefer the fully-qualified `<tap>/<formula>` reference so `brew info` resolves
-// to the Appwrite tap even if another tap ever registers the `appwrite` name.
-const HOMEBREW_FORMULA_NAME = HOMEBREW_FORMULA;
 
 const getExecutablePaths = (): {
   execPath: string;
@@ -230,7 +227,7 @@ const getHomebrewLatestVersion = async (
   try {
     const output = childProcess.execFileSync(
       "brew",
-      ["info", "--json=v2", HOMEBREW_FORMULA_NAME],
+      ["info", "--json=v2", HOMEBREW_FORMULA],
       {
         encoding: "utf8",
         stdio: ["ignore", "pipe", "pipe"],

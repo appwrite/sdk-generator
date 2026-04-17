@@ -17,6 +17,7 @@ jobs:
       # them on launch (oven-sh/bun#29120). Unpin once a Bun release includes the
       # upstream fix (oven-sh/bun#29122).
       CLI_BUN_VERSION: '1.3.11'
+      HOMEBREW_TAP_REPO: appwrite/homebrew-appwrite
     steps:
       - uses: actions/checkout@v4
         with:
@@ -75,51 +76,35 @@ jobs:
           GHR_REPLACE: false
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
 
-      # The Homebrew formula lives in the dedicated tap repo appwrite/homebrew-appwrite.
-      # On every release we compute the native binary checksums, update the formula in
-      # the tap, and open a pull request back to the tap so maintainers (or automation)
-      # can publish the new version.
-      - name: Compute native binary checksums
-        id: checksums
-        env:
-          EXECUTABLE_NAME: appwrite
-        run: |
-          set -euo pipefail
-          {
-            echo "executable=${EXECUTABLE_NAME}"
-            echo "mac_arm64=$(sha256sum "build/${EXECUTABLE_NAME}-cli-darwin-arm64" | awk '{print $1}')"
-            echo "mac_x64=$(sha256sum "build/${EXECUTABLE_NAME}-cli-darwin-x64" | awk '{print $1}')"
-            echo "linux_arm64=$(sha256sum "build/${EXECUTABLE_NAME}-cli-linux-arm64" | awk '{print $1}')"
-            echo "linux_x64=$(sha256sum "build/${EXECUTABLE_NAME}-cli-linux-x64" | awk '{print $1}')"
-          } >> "$GITHUB_OUTPUT"
-
-      - name: Check out homebrew-appwrite tap
+      - name: Check out Homebrew tap
         uses: actions/checkout@v4
         with:
-          repository: appwrite/homebrew-appwrite
+          repository: ${{ env.HOMEBREW_TAP_REPO }}
           token: ${{ secrets.HOMEBREW_TAP_GH_TOKEN }}
-          path: homebrew-appwrite
+          path: homebrew-tap
           fetch-depth: 0
 
       - name: Update Homebrew formula in tap
-        working-directory: homebrew-appwrite
+        id: tap
+        working-directory: homebrew-tap
         env:
           RELEASE_TAG: ${{ github.event.release.tag_name }}
-          EXECUTABLE_NAME: ${{ steps.checksums.outputs.executable }}
-          MAC_ARM64_SHA256: ${{ steps.checksums.outputs.mac_arm64 }}
-          MAC_X64_SHA256: ${{ steps.checksums.outputs.mac_x64 }}
-          LINUX_ARM64_SHA256: ${{ steps.checksums.outputs.linux_arm64 }}
-          LINUX_X64_SHA256: ${{ steps.checksums.outputs.linux_x64 }}
         run: |
           set -euo pipefail
 
-          FORMULA_PATH="Formula/${EXECUTABLE_NAME}.rb"
-          if [ ! -f "$FORMULA_PATH" ]; then
-            echo "Formula not found at $FORMULA_PATH in homebrew-appwrite"
+          FORMULA_PATH="$(find Formula -maxdepth 1 -name '*.rb' | head -n 1)"
+          if [ -z "$FORMULA_PATH" ]; then
+            echo "No formula found in Homebrew tap"
             exit 1
           fi
+          EXECUTABLE_NAME="$(basename "$FORMULA_PATH" .rb)"
 
-          export FORMULA_PATH
+          export FORMULA_PATH EXECUTABLE_NAME
+          export MAC_ARM64_SHA256="$(sha256sum "../build/${EXECUTABLE_NAME}-cli-darwin-arm64" | awk '{print $1}')"
+          export MAC_X64_SHA256="$(sha256sum "../build/${EXECUTABLE_NAME}-cli-darwin-x64" | awk '{print $1}')"
+          export LINUX_ARM64_SHA256="$(sha256sum "../build/${EXECUTABLE_NAME}-cli-linux-arm64" | awk '{print $1}')"
+          export LINUX_X64_SHA256="$(sha256sum "../build/${EXECUTABLE_NAME}-cli-linux-x64" | awk '{print $1}')"
+
           ruby <<'RUBY'
           formula_path = ENV.fetch("FORMULA_PATH")
           executable = ENV.fetch("EXECUTABLE_NAME")
@@ -149,16 +134,23 @@ jobs:
 
           ruby -c "$FORMULA_PATH"
 
-      - name: Open pull request on homebrew-appwrite
-        working-directory: homebrew-appwrite
+          {
+            echo "executable=${EXECUTABLE_NAME}"
+            echo "formula_path=${FORMULA_PATH}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Open pull request on Homebrew tap
+        working-directory: homebrew-tap
         env:
           RELEASE_TAG: ${{ github.event.release.tag_name }}
-          EXECUTABLE_NAME: ${{ steps.checksums.outputs.executable }}
+          EXECUTABLE_NAME: ${{ steps.tap.outputs.executable }}
+          FORMULA_PATH: ${{ steps.tap.outputs.formula_path }}
+          SOURCE_REPO: ${{ github.repository }}
+          SERVER_URL: ${{ github.server_url }}
           GH_TOKEN: ${{ secrets.HOMEBREW_TAP_GH_TOKEN }}
         run: |
           set -euo pipefail
 
-          FORMULA_PATH="Formula/${EXECUTABLE_NAME}.rb"
           if git diff --quiet -- "$FORMULA_PATH"; then
             echo "Homebrew formula already up to date for ${RELEASE_TAG}"
             exit 0
@@ -176,7 +168,7 @@ jobs:
           git push -f -u origin "$BRANCH"
 
           PR_TITLE="${EXECUTABLE_NAME} ${RELEASE_TAG}"
-          PR_BODY=$(printf 'Automated formula update for the `%s` CLI release [`%s`](https://github.com/appwrite/sdk-for-cli/releases/tag/%s).\n\nOpened automatically by the `sdk-for-cli` publish workflow after release binaries were uploaded.' "$EXECUTABLE_NAME" "$RELEASE_TAG" "$RELEASE_TAG")
+          PR_BODY=$(printf 'Automated formula update for the `%s` CLI release [`%s`](%s/%s/releases/tag/%s).\n\nOpened automatically by the `%s` publish workflow after release binaries were uploaded.' "$EXECUTABLE_NAME" "$RELEASE_TAG" "$SERVER_URL" "$SOURCE_REPO" "$RELEASE_TAG" "${SOURCE_REPO#*/}")
 
           EXISTING_PR="$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number' || true)"
           if [ -n "$EXISTING_PR" ]; then

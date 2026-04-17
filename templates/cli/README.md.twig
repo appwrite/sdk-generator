@@ -55,7 +55,7 @@ $ wget -q {{ sdk.url }}/cli/install.sh  -O - | /bin/bash
 $ brew install {{ language.params.homebrewTapOwner }}/{{ language.params.homebrewTapName }}/{{ language.params.executableName }}
 ```
 
-The formula lives in the [`{{ language.params.homebrewTapOwner }}/homebrew-{{ language.params.homebrewTapName }}`](https://github.com/{{ language.params.homebrewTapOwner }}/homebrew-{{ language.params.homebrewTapName }}) tap and Homebrew will download the native binary that matches your platform.
+Homebrew pulls the formula from the [`{{ language.params.homebrewTapOwner }}/homebrew-{{ language.params.homebrewTapName }}`](https://github.com/{{ language.params.homebrewTapOwner }}/homebrew-{{ language.params.homebrewTapName }}) tap and downloads the native binary for your platform.
 
 ### Windows
 Via Powershell

@@ -16,7 +16,6 @@ import {
   EXECUTABLE_NAME,
   GITHUB_RELEASES_URL,
   HOMEBREW_FORMULA,
-  HOMEBREW_TAP,
   NPM_PACKAGE_NAME,
   SDK_TITLE,
 } from "../constants.js";
@@ -263,7 +262,6 @@ const showManualInstructions = (latestVersion: string): void => {
 
   log(`${chalk.bold("Option 2: Homebrew")}`);
   console.log(`  brew upgrade ${HOMEBREW_FORMULA}`);
-  console.log(`  # (first time: brew tap ${HOMEBREW_TAP})`);
   console.log("");
 
   if (process.platform !== "win32") {

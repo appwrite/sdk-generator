@@ -70,9 +70,6 @@ class CLI extends Node
         'executableName' => 'executable',
         'logo' => '',
         'logoUnescaped' => '',
-        // Homebrew tap that hosts the CLI formula. The tap lives at
-        // `github.com/<homebrewTapOwner>/homebrew-<homebrewTapName>` and users
-        // install the formula via `brew install <owner>/<name>/<executable>`.
         'homebrewTapOwner' => 'appwrite',
         'homebrewTapName' => 'appwrite',
     ];
@@ -156,12 +153,10 @@ class CLI extends Node
     }
 
     /**
-     * Configure the Homebrew tap that hosts the CLI formula.
-     * The tap is addressed as `<owner>/<name>` in Homebrew and resolves to the
-     * repository `github.com/<owner>/homebrew-<name>`.
+     * Configure the Homebrew tap (`<owner>/homebrew-<name>`) hosting the CLI formula.
      *
-     * @param string $owner GitHub organization or user (e.g. "appwrite")
-     * @param string $name  Tap short name without `homebrew-` prefix (e.g. "appwrite")
+     * @param string $owner Tap owner (e.g. "appwrite")
+     * @param string $name  Tap short name without the `homebrew-` prefix
      * @return $this
      */
     public function setHomebrewTap(string $owner, string $name): self
