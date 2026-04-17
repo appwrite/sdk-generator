@@ -252,6 +252,18 @@ class SDK
         $this->twig->addFilter(new TwigFilter('hasPermissionParam', function ($value) {
             return $this->language->hasPermissionParam($value);
         }));
+        $this->twig->addFilter(new TwigFilter('stripMarkdown', function ($value) {
+            if ($value === null) {
+                return '';
+            }
+            // Convert markdown links [text](url) -> text
+            $value = preg_replace('/\[([^\]]+)\]\([^)]+\)/', '$1', $value);
+            // Remove bold **text** -> text
+            $value = preg_replace('/\*\*([^*]+)\*\*/', '$1', $value);
+            // Remove bold __text__ -> text
+            $value = preg_replace('/__([^_]+)__/', '$1', $value);
+            return $value;
+        }));
     }
 
     /**
