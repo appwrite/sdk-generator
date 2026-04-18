@@ -157,26 +157,54 @@ struct Row {
     /** @brief Deserialize from JSON */
     static Row fromJson(const nlohmann::json& j) {
         Row obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("$id") && !j["$id"].is_null()) {
-            obj.id = j["$id"].get<std::string>();
+        if (j.contains("$id")) {
+            if (j["$id"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$id' is null");
+            } else {
+                obj.id = j["$id"].get<std::string>();
+            }
         }
-        if (j.contains("$sequence") && !j["$sequence"].is_null()) {
-            obj.sequence = j["$sequence"].get<std::string>();
+        if (j.contains("$sequence")) {
+            if (j["$sequence"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$sequence' is null");
+            } else {
+                obj.sequence = j["$sequence"].get<std::string>();
+            }
         }
-        if (j.contains("$tableId") && !j["$tableId"].is_null()) {
-            obj.tableId = j["$tableId"].get<std::string>();
+        if (j.contains("$tableId")) {
+            if (j["$tableId"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$tableId' is null");
+            } else {
+                obj.tableId = j["$tableId"].get<std::string>();
+            }
         }
-        if (j.contains("$databaseId") && !j["$databaseId"].is_null()) {
-            obj.databaseId = j["$databaseId"].get<std::string>();
+        if (j.contains("$databaseId")) {
+            if (j["$databaseId"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$databaseId' is null");
+            } else {
+                obj.databaseId = j["$databaseId"].get<std::string>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("$permissions") && !j["$permissions"].is_null()) {
-            obj.permissions = j["$permissions"].get<std::vector<std::string>>();
+        if (j.contains("$permissions")) {
+            if (j["$permissions"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$permissions' is null");
+            } else {
+                obj.permissions = j["$permissions"].get<std::vector<std::string>>();
+            }
         }
         return obj;
     }
@@ -230,14 +258,22 @@ struct RowList {
     /** @brief Deserialize from JSON */
     static RowList fromJson(const nlohmann::json& j) {
         RowList obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("total") && !j["total"].is_null()) {
-            obj.total = j["total"].get<int64_t>();
+        if (j.contains("total")) {
+            if (j["total"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'total' is null");
+            } else {
+                obj.total = j["total"].get<int64_t>();
+            }
         }
-        if (j.contains("rows") && !j["rows"].is_null()) {
-                                        for (auto& item : j["rows"]) {
-                                obj.rows.push_back(Row::fromJson(item));
-                            }
-                    }
+        if (j.contains("rows")) {
+            if (j["rows"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'rows' is null");
+            } else {
+                                            for (auto& item : j["rows"]) {
+                                    obj.rows.push_back(Row::fromJson(item));
+                                }
+                        }
+        }
         return obj;
     }
 
@@ -287,26 +323,54 @@ struct Document {
     /** @brief Deserialize from JSON */
     static Document fromJson(const nlohmann::json& j) {
         Document obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("$id") && !j["$id"].is_null()) {
-            obj.id = j["$id"].get<std::string>();
+        if (j.contains("$id")) {
+            if (j["$id"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$id' is null");
+            } else {
+                obj.id = j["$id"].get<std::string>();
+            }
         }
-        if (j.contains("$sequence") && !j["$sequence"].is_null()) {
-            obj.sequence = j["$sequence"].get<std::string>();
+        if (j.contains("$sequence")) {
+            if (j["$sequence"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$sequence' is null");
+            } else {
+                obj.sequence = j["$sequence"].get<std::string>();
+            }
         }
-        if (j.contains("$collectionId") && !j["$collectionId"].is_null()) {
-            obj.collectionId = j["$collectionId"].get<std::string>();
+        if (j.contains("$collectionId")) {
+            if (j["$collectionId"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$collectionId' is null");
+            } else {
+                obj.collectionId = j["$collectionId"].get<std::string>();
+            }
         }
-        if (j.contains("$databaseId") && !j["$databaseId"].is_null()) {
-            obj.databaseId = j["$databaseId"].get<std::string>();
+        if (j.contains("$databaseId")) {
+            if (j["$databaseId"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$databaseId' is null");
+            } else {
+                obj.databaseId = j["$databaseId"].get<std::string>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("$permissions") && !j["$permissions"].is_null()) {
-            obj.permissions = j["$permissions"].get<std::vector<std::string>>();
+        if (j.contains("$permissions")) {
+            if (j["$permissions"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$permissions' is null");
+            } else {
+                obj.permissions = j["$permissions"].get<std::vector<std::string>>();
+            }
         }
         return obj;
     }
@@ -360,14 +424,22 @@ struct DocumentList {
     /** @brief Deserialize from JSON */
     static DocumentList fromJson(const nlohmann::json& j) {
         DocumentList obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("total") && !j["total"].is_null()) {
-            obj.total = j["total"].get<int64_t>();
+        if (j.contains("total")) {
+            if (j["total"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'total' is null");
+            } else {
+                obj.total = j["total"].get<int64_t>();
+            }
         }
-        if (j.contains("documents") && !j["documents"].is_null()) {
-                                        for (auto& item : j["documents"]) {
-                                obj.documents.push_back(Document::fromJson(item));
-                            }
-                    }
+        if (j.contains("documents")) {
+            if (j["documents"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'documents' is null");
+            } else {
+                                            for (auto& item : j["documents"]) {
+                                    obj.documents.push_back(Document::fromJson(item));
+                                }
+                        }
+        }
         return obj;
     }
 
@@ -423,35 +495,75 @@ struct ColumnIndex {
     /** @brief Deserialize from JSON */
     static ColumnIndex fromJson(const nlohmann::json& j) {
         ColumnIndex obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("$id") && !j["$id"].is_null()) {
-            obj.id = j["$id"].get<std::string>();
+        if (j.contains("$id")) {
+            if (j["$id"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$id' is null");
+            } else {
+                obj.id = j["$id"].get<std::string>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("key") && !j["key"].is_null()) {
-            obj.key = j["key"].get<std::string>();
+        if (j.contains("key")) {
+            if (j["key"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'key' is null");
+            } else {
+                obj.key = j["key"].get<std::string>();
+            }
         }
-        if (j.contains("type") && !j["type"].is_null()) {
-            obj.type = j["type"].get<std::string>();
+        if (j.contains("type")) {
+            if (j["type"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'type' is null");
+            } else {
+                obj.type = j["type"].get<std::string>();
+            }
         }
-        if (j.contains("status") && !j["status"].is_null()) {
-            obj.status = j["status"].get<std::string>();
+        if (j.contains("status")) {
+            if (j["status"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'status' is null");
+            } else {
+                obj.status = j["status"].get<std::string>();
+            }
         }
-        if (j.contains("error") && !j["error"].is_null()) {
-            obj.error = j["error"].get<std::string>();
+        if (j.contains("error")) {
+            if (j["error"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'error' is null");
+            } else {
+                obj.error = j["error"].get<std::string>();
+            }
         }
-        if (j.contains("columns") && !j["columns"].is_null()) {
-            obj.columns = j["columns"].get<std::vector<std::string>>();
+        if (j.contains("columns")) {
+            if (j["columns"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'columns' is null");
+            } else {
+                obj.columns = j["columns"].get<std::vector<std::string>>();
+            }
         }
-        if (j.contains("lengths") && !j["lengths"].is_null()) {
-            obj.lengths = j["lengths"].get<std::vector<int64_t>>();
+        if (j.contains("lengths")) {
+            if (j["lengths"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'lengths' is null");
+            } else {
+                obj.lengths = j["lengths"].get<std::vector<int64_t>>();
+            }
         }
-        if (j.contains("orders") && !j["orders"].is_null()) {
-            obj.orders = j["orders"].get<std::optional<std::vector<std::string>>>();
+        if (j.contains("orders")) {
+            if (j["orders"].is_null()) {
+                obj.orders = std::nullopt;
+            } else {
+                obj.orders = j["orders"].get<std::optional<std::vector<std::string>>>();
+            }
         }
         return obj;
     }
@@ -534,43 +646,91 @@ struct Table {
     /** @brief Deserialize from JSON */
     static Table fromJson(const nlohmann::json& j) {
         Table obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("$id") && !j["$id"].is_null()) {
-            obj.id = j["$id"].get<std::string>();
+        if (j.contains("$id")) {
+            if (j["$id"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$id' is null");
+            } else {
+                obj.id = j["$id"].get<std::string>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("$permissions") && !j["$permissions"].is_null()) {
-            obj.permissions = j["$permissions"].get<std::vector<std::string>>();
+        if (j.contains("$permissions")) {
+            if (j["$permissions"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$permissions' is null");
+            } else {
+                obj.permissions = j["$permissions"].get<std::vector<std::string>>();
+            }
         }
-        if (j.contains("databaseId") && !j["databaseId"].is_null()) {
-            obj.databaseId = j["databaseId"].get<std::string>();
+        if (j.contains("databaseId")) {
+            if (j["databaseId"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'databaseId' is null");
+            } else {
+                obj.databaseId = j["databaseId"].get<std::string>();
+            }
         }
-        if (j.contains("name") && !j["name"].is_null()) {
-            obj.name = j["name"].get<std::string>();
+        if (j.contains("name")) {
+            if (j["name"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'name' is null");
+            } else {
+                obj.name = j["name"].get<std::string>();
+            }
         }
-        if (j.contains("enabled") && !j["enabled"].is_null()) {
-            obj.enabled = j["enabled"].get<bool>();
+        if (j.contains("enabled")) {
+            if (j["enabled"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'enabled' is null");
+            } else {
+                obj.enabled = j["enabled"].get<bool>();
+            }
         }
-        if (j.contains("rowSecurity") && !j["rowSecurity"].is_null()) {
-            obj.rowSecurity = j["rowSecurity"].get<bool>();
+        if (j.contains("rowSecurity")) {
+            if (j["rowSecurity"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'rowSecurity' is null");
+            } else {
+                obj.rowSecurity = j["rowSecurity"].get<bool>();
+            }
         }
-        if (j.contains("columns") && !j["columns"].is_null()) {
-            obj.columns = j["columns"].get<std::vector<std::string>>();
+        if (j.contains("columns")) {
+            if (j["columns"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'columns' is null");
+            } else {
+                obj.columns = j["columns"].get<std::vector<std::string>>();
+            }
         }
-        if (j.contains("indexes") && !j["indexes"].is_null()) {
-                                        for (auto& item : j["indexes"]) {
-                                obj.indexes.push_back(ColumnIndex::fromJson(item));
-                            }
-                    }
-        if (j.contains("bytesMax") && !j["bytesMax"].is_null()) {
-            obj.bytesMax = j["bytesMax"].get<int64_t>();
+        if (j.contains("indexes")) {
+            if (j["indexes"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'indexes' is null");
+            } else {
+                                            for (auto& item : j["indexes"]) {
+                                    obj.indexes.push_back(ColumnIndex::fromJson(item));
+                                }
+                        }
         }
-        if (j.contains("bytesUsed") && !j["bytesUsed"].is_null()) {
-            obj.bytesUsed = j["bytesUsed"].get<int64_t>();
+        if (j.contains("bytesMax")) {
+            if (j["bytesMax"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'bytesMax' is null");
+            } else {
+                obj.bytesMax = j["bytesMax"].get<int64_t>();
+            }
+        }
+        if (j.contains("bytesUsed")) {
+            if (j["bytesUsed"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'bytesUsed' is null");
+            } else {
+                obj.bytesUsed = j["bytesUsed"].get<int64_t>();
+            }
         }
         return obj;
     }
@@ -641,14 +801,22 @@ struct TableList {
     /** @brief Deserialize from JSON */
     static TableList fromJson(const nlohmann::json& j) {
         TableList obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("total") && !j["total"].is_null()) {
-            obj.total = j["total"].get<int64_t>();
+        if (j.contains("total")) {
+            if (j["total"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'total' is null");
+            } else {
+                obj.total = j["total"].get<int64_t>();
+            }
         }
-        if (j.contains("tables") && !j["tables"].is_null()) {
-                                        for (auto& item : j["tables"]) {
-                                obj.tables.push_back(Table::fromJson(item));
-                            }
-                    }
+        if (j.contains("tables")) {
+            if (j["tables"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'tables' is null");
+            } else {
+                                            for (auto& item : j["tables"]) {
+                                    obj.tables.push_back(Table::fromJson(item));
+                                }
+                        }
+        }
         return obj;
     }
 
@@ -704,35 +872,75 @@ struct Index {
     /** @brief Deserialize from JSON */
     static Index fromJson(const nlohmann::json& j) {
         Index obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("$id") && !j["$id"].is_null()) {
-            obj.id = j["$id"].get<std::string>();
+        if (j.contains("$id")) {
+            if (j["$id"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$id' is null");
+            } else {
+                obj.id = j["$id"].get<std::string>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("key") && !j["key"].is_null()) {
-            obj.key = j["key"].get<std::string>();
+        if (j.contains("key")) {
+            if (j["key"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'key' is null");
+            } else {
+                obj.key = j["key"].get<std::string>();
+            }
         }
-        if (j.contains("type") && !j["type"].is_null()) {
-            obj.type = j["type"].get<std::string>();
+        if (j.contains("type")) {
+            if (j["type"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'type' is null");
+            } else {
+                obj.type = j["type"].get<std::string>();
+            }
         }
-        if (j.contains("status") && !j["status"].is_null()) {
-            obj.status = j["status"].get<appwrite::enums::IndexStatus>();
+        if (j.contains("status")) {
+            if (j["status"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'status' is null");
+            } else {
+                obj.status = j["status"].get<appwrite::enums::IndexStatus>();
+            }
         }
-        if (j.contains("error") && !j["error"].is_null()) {
-            obj.error = j["error"].get<std::string>();
+        if (j.contains("error")) {
+            if (j["error"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'error' is null");
+            } else {
+                obj.error = j["error"].get<std::string>();
+            }
         }
-        if (j.contains("attributes") && !j["attributes"].is_null()) {
-            obj.attributes = j["attributes"].get<std::vector<std::string>>();
+        if (j.contains("attributes")) {
+            if (j["attributes"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'attributes' is null");
+            } else {
+                obj.attributes = j["attributes"].get<std::vector<std::string>>();
+            }
         }
-        if (j.contains("lengths") && !j["lengths"].is_null()) {
-            obj.lengths = j["lengths"].get<std::vector<int64_t>>();
+        if (j.contains("lengths")) {
+            if (j["lengths"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'lengths' is null");
+            } else {
+                obj.lengths = j["lengths"].get<std::vector<int64_t>>();
+            }
         }
-        if (j.contains("orders") && !j["orders"].is_null()) {
-            obj.orders = j["orders"].get<std::optional<std::vector<std::string>>>();
+        if (j.contains("orders")) {
+            if (j["orders"].is_null()) {
+                obj.orders = std::nullopt;
+            } else {
+                obj.orders = j["orders"].get<std::optional<std::vector<std::string>>>();
+            }
         }
         return obj;
     }
@@ -815,43 +1023,91 @@ struct Collection {
     /** @brief Deserialize from JSON */
     static Collection fromJson(const nlohmann::json& j) {
         Collection obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("$id") && !j["$id"].is_null()) {
-            obj.id = j["$id"].get<std::string>();
+        if (j.contains("$id")) {
+            if (j["$id"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$id' is null");
+            } else {
+                obj.id = j["$id"].get<std::string>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("$permissions") && !j["$permissions"].is_null()) {
-            obj.permissions = j["$permissions"].get<std::vector<std::string>>();
+        if (j.contains("$permissions")) {
+            if (j["$permissions"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$permissions' is null");
+            } else {
+                obj.permissions = j["$permissions"].get<std::vector<std::string>>();
+            }
         }
-        if (j.contains("databaseId") && !j["databaseId"].is_null()) {
-            obj.databaseId = j["databaseId"].get<std::string>();
+        if (j.contains("databaseId")) {
+            if (j["databaseId"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'databaseId' is null");
+            } else {
+                obj.databaseId = j["databaseId"].get<std::string>();
+            }
         }
-        if (j.contains("name") && !j["name"].is_null()) {
-            obj.name = j["name"].get<std::string>();
+        if (j.contains("name")) {
+            if (j["name"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'name' is null");
+            } else {
+                obj.name = j["name"].get<std::string>();
+            }
         }
-        if (j.contains("enabled") && !j["enabled"].is_null()) {
-            obj.enabled = j["enabled"].get<bool>();
+        if (j.contains("enabled")) {
+            if (j["enabled"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'enabled' is null");
+            } else {
+                obj.enabled = j["enabled"].get<bool>();
+            }
         }
-        if (j.contains("documentSecurity") && !j["documentSecurity"].is_null()) {
-            obj.documentSecurity = j["documentSecurity"].get<bool>();
+        if (j.contains("documentSecurity")) {
+            if (j["documentSecurity"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'documentSecurity' is null");
+            } else {
+                obj.documentSecurity = j["documentSecurity"].get<bool>();
+            }
         }
-        if (j.contains("attributes") && !j["attributes"].is_null()) {
-            obj.attributes = j["attributes"].get<std::vector<std::string>>();
+        if (j.contains("attributes")) {
+            if (j["attributes"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'attributes' is null");
+            } else {
+                obj.attributes = j["attributes"].get<std::vector<std::string>>();
+            }
         }
-        if (j.contains("indexes") && !j["indexes"].is_null()) {
-                                        for (auto& item : j["indexes"]) {
-                                obj.indexes.push_back(Index::fromJson(item));
-                            }
-                    }
-        if (j.contains("bytesMax") && !j["bytesMax"].is_null()) {
-            obj.bytesMax = j["bytesMax"].get<int64_t>();
+        if (j.contains("indexes")) {
+            if (j["indexes"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'indexes' is null");
+            } else {
+                                            for (auto& item : j["indexes"]) {
+                                    obj.indexes.push_back(Index::fromJson(item));
+                                }
+                        }
         }
-        if (j.contains("bytesUsed") && !j["bytesUsed"].is_null()) {
-            obj.bytesUsed = j["bytesUsed"].get<int64_t>();
+        if (j.contains("bytesMax")) {
+            if (j["bytesMax"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'bytesMax' is null");
+            } else {
+                obj.bytesMax = j["bytesMax"].get<int64_t>();
+            }
+        }
+        if (j.contains("bytesUsed")) {
+            if (j["bytesUsed"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'bytesUsed' is null");
+            } else {
+                obj.bytesUsed = j["bytesUsed"].get<int64_t>();
+            }
         }
         return obj;
     }
@@ -922,14 +1178,22 @@ struct CollectionList {
     /** @brief Deserialize from JSON */
     static CollectionList fromJson(const nlohmann::json& j) {
         CollectionList obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("total") && !j["total"].is_null()) {
-            obj.total = j["total"].get<int64_t>();
+        if (j.contains("total")) {
+            if (j["total"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'total' is null");
+            } else {
+                obj.total = j["total"].get<int64_t>();
+            }
         }
-        if (j.contains("collections") && !j["collections"].is_null()) {
-                                        for (auto& item : j["collections"]) {
-                                obj.collections.push_back(Collection::fromJson(item));
-                            }
-                    }
+        if (j.contains("collections")) {
+            if (j["collections"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'collections' is null");
+            } else {
+                                            for (auto& item : j["collections"]) {
+                                    obj.collections.push_back(Collection::fromJson(item));
+                                }
+                        }
+        }
         return obj;
     }
 
@@ -981,34 +1245,66 @@ struct Database {
     /** @brief Deserialize from JSON */
     static Database fromJson(const nlohmann::json& j) {
         Database obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("$id") && !j["$id"].is_null()) {
-            obj.id = j["$id"].get<std::string>();
+        if (j.contains("$id")) {
+            if (j["$id"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$id' is null");
+            } else {
+                obj.id = j["$id"].get<std::string>();
+            }
         }
-        if (j.contains("name") && !j["name"].is_null()) {
-            obj.name = j["name"].get<std::string>();
+        if (j.contains("name")) {
+            if (j["name"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'name' is null");
+            } else {
+                obj.name = j["name"].get<std::string>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("enabled") && !j["enabled"].is_null()) {
-            obj.enabled = j["enabled"].get<bool>();
+        if (j.contains("enabled")) {
+            if (j["enabled"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'enabled' is null");
+            } else {
+                obj.enabled = j["enabled"].get<bool>();
+            }
         }
-        if (j.contains("type") && !j["type"].is_null()) {
-            obj.type = j["type"].get<appwrite::enums::DatabaseType>();
+        if (j.contains("type")) {
+            if (j["type"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'type' is null");
+            } else {
+                obj.type = j["type"].get<appwrite::enums::DatabaseType>();
+            }
         }
-        if (j.contains("policies") && !j["policies"].is_null()) {
-                                        for (auto& item : j["policies"]) {
-                                obj.policies.push_back(Index::fromJson(item));
-                            }
-                    }
-        if (j.contains("archives") && !j["archives"].is_null()) {
-                                        for (auto& item : j["archives"]) {
-                                obj.archives.push_back(Collection::fromJson(item));
-                            }
-                    }
+        if (j.contains("policies")) {
+            if (j["policies"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'policies' is null");
+            } else {
+                                            for (auto& item : j["policies"]) {
+                                    obj.policies.push_back(Index::fromJson(item));
+                                }
+                        }
+        }
+        if (j.contains("archives")) {
+            if (j["archives"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'archives' is null");
+            } else {
+                                            for (auto& item : j["archives"]) {
+                                    obj.archives.push_back(Collection::fromJson(item));
+                                }
+                        }
+        }
         return obj;
     }
 
@@ -1068,14 +1364,22 @@ struct DatabaseList {
     /** @brief Deserialize from JSON */
     static DatabaseList fromJson(const nlohmann::json& j) {
         DatabaseList obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("total") && !j["total"].is_null()) {
-            obj.total = j["total"].get<int64_t>();
+        if (j.contains("total")) {
+            if (j["total"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'total' is null");
+            } else {
+                obj.total = j["total"].get<int64_t>();
+            }
         }
-        if (j.contains("databases") && !j["databases"].is_null()) {
-                                        for (auto& item : j["databases"]) {
-                                obj.databases.push_back(Database::fromJson(item));
-                            }
-                    }
+        if (j.contains("databases")) {
+            if (j["databases"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'databases' is null");
+            } else {
+                                            for (auto& item : j["databases"]) {
+                                    obj.databases.push_back(Database::fromJson(item));
+                                }
+                        }
+        }
         return obj;
     }
 
@@ -1115,14 +1419,22 @@ struct IndexList {
     /** @brief Deserialize from JSON */
     static IndexList fromJson(const nlohmann::json& j) {
         IndexList obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("total") && !j["total"].is_null()) {
-            obj.total = j["total"].get<int64_t>();
+        if (j.contains("total")) {
+            if (j["total"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'total' is null");
+            } else {
+                obj.total = j["total"].get<int64_t>();
+            }
         }
-        if (j.contains("indexes") && !j["indexes"].is_null()) {
-                                        for (auto& item : j["indexes"]) {
-                                obj.indexes.push_back(Index::fromJson(item));
-                            }
-                    }
+        if (j.contains("indexes")) {
+            if (j["indexes"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'indexes' is null");
+            } else {
+                                            for (auto& item : j["indexes"]) {
+                                    obj.indexes.push_back(Index::fromJson(item));
+                                }
+                        }
+        }
         return obj;
     }
 
@@ -1162,14 +1474,22 @@ struct ColumnIndexList {
     /** @brief Deserialize from JSON */
     static ColumnIndexList fromJson(const nlohmann::json& j) {
         ColumnIndexList obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("total") && !j["total"].is_null()) {
-            obj.total = j["total"].get<int64_t>();
+        if (j.contains("total")) {
+            if (j["total"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'total' is null");
+            } else {
+                obj.total = j["total"].get<int64_t>();
+            }
         }
-        if (j.contains("indexes") && !j["indexes"].is_null()) {
-                                        for (auto& item : j["indexes"]) {
-                                obj.indexes.push_back(ColumnIndex::fromJson(item));
-                            }
-                    }
+        if (j.contains("indexes")) {
+            if (j["indexes"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'indexes' is null");
+            } else {
+                                            for (auto& item : j["indexes"]) {
+                                    obj.indexes.push_back(ColumnIndex::fromJson(item));
+                                }
+                        }
+        }
         return obj;
     }
 
@@ -1251,32 +1571,68 @@ struct Target {
     /** @brief Deserialize from JSON */
     static Target fromJson(const nlohmann::json& j) {
         Target obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("$id") && !j["$id"].is_null()) {
-            obj.id = j["$id"].get<std::string>();
+        if (j.contains("$id")) {
+            if (j["$id"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$id' is null");
+            } else {
+                obj.id = j["$id"].get<std::string>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("name") && !j["name"].is_null()) {
-            obj.name = j["name"].get<std::string>();
+        if (j.contains("name")) {
+            if (j["name"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'name' is null");
+            } else {
+                obj.name = j["name"].get<std::string>();
+            }
         }
-        if (j.contains("userId") && !j["userId"].is_null()) {
-            obj.userId = j["userId"].get<std::string>();
+        if (j.contains("userId")) {
+            if (j["userId"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'userId' is null");
+            } else {
+                obj.userId = j["userId"].get<std::string>();
+            }
         }
-        if (j.contains("providerId") && !j["providerId"].is_null()) {
-            obj.providerId = j["providerId"].get<std::optional<std::string>>();
+        if (j.contains("providerId")) {
+            if (j["providerId"].is_null()) {
+                obj.providerId = std::nullopt;
+            } else {
+                obj.providerId = j["providerId"].get<std::optional<std::string>>();
+            }
         }
-        if (j.contains("providerType") && !j["providerType"].is_null()) {
-            obj.providerType = j["providerType"].get<std::string>();
+        if (j.contains("providerType")) {
+            if (j["providerType"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'providerType' is null");
+            } else {
+                obj.providerType = j["providerType"].get<std::string>();
+            }
         }
-        if (j.contains("identifier") && !j["identifier"].is_null()) {
-            obj.identifier = j["identifier"].get<std::string>();
+        if (j.contains("identifier")) {
+            if (j["identifier"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'identifier' is null");
+            } else {
+                obj.identifier = j["identifier"].get<std::string>();
+            }
         }
-        if (j.contains("expired") && !j["expired"].is_null()) {
-            obj.expired = j["expired"].get<bool>();
+        if (j.contains("expired")) {
+            if (j["expired"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'expired' is null");
+            } else {
+                obj.expired = j["expired"].get<bool>();
+            }
         }
         return obj;
     }
@@ -1374,70 +1730,154 @@ struct User {
     /** @brief Deserialize from JSON */
     static User fromJson(const nlohmann::json& j) {
         User obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("$id") && !j["$id"].is_null()) {
-            obj.id = j["$id"].get<std::string>();
+        if (j.contains("$id")) {
+            if (j["$id"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$id' is null");
+            } else {
+                obj.id = j["$id"].get<std::string>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("name") && !j["name"].is_null()) {
-            obj.name = j["name"].get<std::string>();
+        if (j.contains("name")) {
+            if (j["name"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'name' is null");
+            } else {
+                obj.name = j["name"].get<std::string>();
+            }
         }
-        if (j.contains("password") && !j["password"].is_null()) {
-            obj.password = j["password"].get<std::optional<std::string>>();
+        if (j.contains("password")) {
+            if (j["password"].is_null()) {
+                obj.password = std::nullopt;
+            } else {
+                obj.password = j["password"].get<std::optional<std::string>>();
+            }
         }
-        if (j.contains("hash") && !j["hash"].is_null()) {
-            obj.hash = j["hash"].get<std::optional<std::string>>();
+        if (j.contains("hash")) {
+            if (j["hash"].is_null()) {
+                obj.hash = std::nullopt;
+            } else {
+                obj.hash = j["hash"].get<std::optional<std::string>>();
+            }
         }
-        if (j.contains("hashOptions") && !j["hashOptions"].is_null()) {
-            obj.hashOptions = j["hashOptions"].get<std::optional<nlohmann::json>>();
+        if (j.contains("hashOptions")) {
+            if (j["hashOptions"].is_null()) {
+                obj.hashOptions = std::nullopt;
+            } else {
+                obj.hashOptions = j["hashOptions"].get<std::optional<nlohmann::json>>();
+            }
         }
-        if (j.contains("registration") && !j["registration"].is_null()) {
-            obj.registration = j["registration"].get<std::string>();
+        if (j.contains("registration")) {
+            if (j["registration"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'registration' is null");
+            } else {
+                obj.registration = j["registration"].get<std::string>();
+            }
         }
-        if (j.contains("status") && !j["status"].is_null()) {
-            obj.status = j["status"].get<bool>();
+        if (j.contains("status")) {
+            if (j["status"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'status' is null");
+            } else {
+                obj.status = j["status"].get<bool>();
+            }
         }
-        if (j.contains("labels") && !j["labels"].is_null()) {
-            obj.labels = j["labels"].get<std::vector<std::string>>();
+        if (j.contains("labels")) {
+            if (j["labels"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'labels' is null");
+            } else {
+                obj.labels = j["labels"].get<std::vector<std::string>>();
+            }
         }
-        if (j.contains("passwordUpdate") && !j["passwordUpdate"].is_null()) {
-            obj.passwordUpdate = j["passwordUpdate"].get<std::string>();
+        if (j.contains("passwordUpdate")) {
+            if (j["passwordUpdate"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'passwordUpdate' is null");
+            } else {
+                obj.passwordUpdate = j["passwordUpdate"].get<std::string>();
+            }
         }
-        if (j.contains("email") && !j["email"].is_null()) {
-            obj.email = j["email"].get<std::string>();
+        if (j.contains("email")) {
+            if (j["email"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'email' is null");
+            } else {
+                obj.email = j["email"].get<std::string>();
+            }
         }
-        if (j.contains("phone") && !j["phone"].is_null()) {
-            obj.phone = j["phone"].get<std::string>();
+        if (j.contains("phone")) {
+            if (j["phone"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'phone' is null");
+            } else {
+                obj.phone = j["phone"].get<std::string>();
+            }
         }
-        if (j.contains("emailVerification") && !j["emailVerification"].is_null()) {
-            obj.emailVerification = j["emailVerification"].get<bool>();
+        if (j.contains("emailVerification")) {
+            if (j["emailVerification"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'emailVerification' is null");
+            } else {
+                obj.emailVerification = j["emailVerification"].get<bool>();
+            }
         }
-        if (j.contains("phoneVerification") && !j["phoneVerification"].is_null()) {
-            obj.phoneVerification = j["phoneVerification"].get<bool>();
+        if (j.contains("phoneVerification")) {
+            if (j["phoneVerification"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'phoneVerification' is null");
+            } else {
+                obj.phoneVerification = j["phoneVerification"].get<bool>();
+            }
         }
-        if (j.contains("mfa") && !j["mfa"].is_null()) {
-            obj.mfa = j["mfa"].get<bool>();
+        if (j.contains("mfa")) {
+            if (j["mfa"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'mfa' is null");
+            } else {
+                obj.mfa = j["mfa"].get<bool>();
+            }
         }
-        if (j.contains("prefs") && !j["prefs"].is_null()) {
-                        obj.prefs = Preferences::fromJson(j["prefs"]);
-                    }
-        if (j.contains("targets") && !j["targets"].is_null()) {
-                                        for (auto& item : j["targets"]) {
-                                obj.targets.push_back(Target::fromJson(item));
-                            }
-                    }
-        if (j.contains("accessedAt") && !j["accessedAt"].is_null()) {
-            obj.accessedAt = j["accessedAt"].get<std::string>();
+        if (j.contains("prefs")) {
+            if (j["prefs"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'prefs' is null");
+            } else {
+                            obj.prefs = Preferences::fromJson(j["prefs"]);
+                        }
         }
-        if (j.contains("impersonator") && !j["impersonator"].is_null()) {
-            obj.impersonator = j["impersonator"].get<std::optional<bool>>();
+        if (j.contains("targets")) {
+            if (j["targets"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'targets' is null");
+            } else {
+                                            for (auto& item : j["targets"]) {
+                                    obj.targets.push_back(Target::fromJson(item));
+                                }
+                        }
         }
-        if (j.contains("impersonatorUserId") && !j["impersonatorUserId"].is_null()) {
-            obj.impersonatorUserId = j["impersonatorUserId"].get<std::optional<std::string>>();
+        if (j.contains("accessedAt")) {
+            if (j["accessedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'accessedAt' is null");
+            } else {
+                obj.accessedAt = j["accessedAt"].get<std::string>();
+            }
+        }
+        if (j.contains("impersonator")) {
+            if (j["impersonator"].is_null()) {
+                obj.impersonator = std::nullopt;
+            } else {
+                obj.impersonator = j["impersonator"].get<std::optional<bool>>();
+            }
+        }
+        if (j.contains("impersonatorUserId")) {
+            if (j["impersonatorUserId"].is_null()) {
+                obj.impersonatorUserId = std::nullopt;
+            } else {
+                obj.impersonatorUserId = j["impersonatorUserId"].get<std::optional<std::string>>();
+            }
         }
         return obj;
     }
@@ -1535,14 +1975,22 @@ struct UserList {
     /** @brief Deserialize from JSON */
     static UserList fromJson(const nlohmann::json& j) {
         UserList obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("total") && !j["total"].is_null()) {
-            obj.total = j["total"].get<int64_t>();
+        if (j.contains("total")) {
+            if (j["total"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'total' is null");
+            } else {
+                obj.total = j["total"].get<int64_t>();
+            }
         }
-        if (j.contains("users") && !j["users"].is_null()) {
-                                        for (auto& item : j["users"]) {
-                                obj.users.push_back(User::fromJson(item));
-                            }
-                    }
+        if (j.contains("users")) {
+            if (j["users"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'users' is null");
+            } else {
+                                            for (auto& item : j["users"]) {
+                                    obj.users.push_back(User::fromJson(item));
+                                }
+                        }
+        }
         return obj;
     }
 
@@ -1636,92 +2084,208 @@ struct Session {
     /** @brief Deserialize from JSON */
     static Session fromJson(const nlohmann::json& j) {
         Session obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("$id") && !j["$id"].is_null()) {
-            obj.id = j["$id"].get<std::string>();
+        if (j.contains("$id")) {
+            if (j["$id"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$id' is null");
+            } else {
+                obj.id = j["$id"].get<std::string>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("userId") && !j["userId"].is_null()) {
-            obj.userId = j["userId"].get<std::string>();
+        if (j.contains("userId")) {
+            if (j["userId"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'userId' is null");
+            } else {
+                obj.userId = j["userId"].get<std::string>();
+            }
         }
-        if (j.contains("expire") && !j["expire"].is_null()) {
-            obj.expire = j["expire"].get<std::string>();
+        if (j.contains("expire")) {
+            if (j["expire"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'expire' is null");
+            } else {
+                obj.expire = j["expire"].get<std::string>();
+            }
         }
-        if (j.contains("provider") && !j["provider"].is_null()) {
-            obj.provider = j["provider"].get<std::string>();
+        if (j.contains("provider")) {
+            if (j["provider"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'provider' is null");
+            } else {
+                obj.provider = j["provider"].get<std::string>();
+            }
         }
-        if (j.contains("providerUid") && !j["providerUid"].is_null()) {
-            obj.providerUid = j["providerUid"].get<std::string>();
+        if (j.contains("providerUid")) {
+            if (j["providerUid"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'providerUid' is null");
+            } else {
+                obj.providerUid = j["providerUid"].get<std::string>();
+            }
         }
-        if (j.contains("providerAccessToken") && !j["providerAccessToken"].is_null()) {
-            obj.providerAccessToken = j["providerAccessToken"].get<std::string>();
+        if (j.contains("providerAccessToken")) {
+            if (j["providerAccessToken"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'providerAccessToken' is null");
+            } else {
+                obj.providerAccessToken = j["providerAccessToken"].get<std::string>();
+            }
         }
-        if (j.contains("providerAccessTokenExpiry") && !j["providerAccessTokenExpiry"].is_null()) {
-            obj.providerAccessTokenExpiry = j["providerAccessTokenExpiry"].get<std::string>();
+        if (j.contains("providerAccessTokenExpiry")) {
+            if (j["providerAccessTokenExpiry"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'providerAccessTokenExpiry' is null");
+            } else {
+                obj.providerAccessTokenExpiry = j["providerAccessTokenExpiry"].get<std::string>();
+            }
         }
-        if (j.contains("providerRefreshToken") && !j["providerRefreshToken"].is_null()) {
-            obj.providerRefreshToken = j["providerRefreshToken"].get<std::string>();
+        if (j.contains("providerRefreshToken")) {
+            if (j["providerRefreshToken"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'providerRefreshToken' is null");
+            } else {
+                obj.providerRefreshToken = j["providerRefreshToken"].get<std::string>();
+            }
         }
-        if (j.contains("ip") && !j["ip"].is_null()) {
-            obj.ip = j["ip"].get<std::string>();
+        if (j.contains("ip")) {
+            if (j["ip"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'ip' is null");
+            } else {
+                obj.ip = j["ip"].get<std::string>();
+            }
         }
-        if (j.contains("osCode") && !j["osCode"].is_null()) {
-            obj.osCode = j["osCode"].get<std::string>();
+        if (j.contains("osCode")) {
+            if (j["osCode"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'osCode' is null");
+            } else {
+                obj.osCode = j["osCode"].get<std::string>();
+            }
         }
-        if (j.contains("osName") && !j["osName"].is_null()) {
-            obj.osName = j["osName"].get<std::string>();
+        if (j.contains("osName")) {
+            if (j["osName"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'osName' is null");
+            } else {
+                obj.osName = j["osName"].get<std::string>();
+            }
         }
-        if (j.contains("osVersion") && !j["osVersion"].is_null()) {
-            obj.osVersion = j["osVersion"].get<std::string>();
+        if (j.contains("osVersion")) {
+            if (j["osVersion"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'osVersion' is null");
+            } else {
+                obj.osVersion = j["osVersion"].get<std::string>();
+            }
         }
-        if (j.contains("clientType") && !j["clientType"].is_null()) {
-            obj.clientType = j["clientType"].get<std::string>();
+        if (j.contains("clientType")) {
+            if (j["clientType"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'clientType' is null");
+            } else {
+                obj.clientType = j["clientType"].get<std::string>();
+            }
         }
-        if (j.contains("clientCode") && !j["clientCode"].is_null()) {
-            obj.clientCode = j["clientCode"].get<std::string>();
+        if (j.contains("clientCode")) {
+            if (j["clientCode"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'clientCode' is null");
+            } else {
+                obj.clientCode = j["clientCode"].get<std::string>();
+            }
         }
-        if (j.contains("clientName") && !j["clientName"].is_null()) {
-            obj.clientName = j["clientName"].get<std::string>();
+        if (j.contains("clientName")) {
+            if (j["clientName"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'clientName' is null");
+            } else {
+                obj.clientName = j["clientName"].get<std::string>();
+            }
         }
-        if (j.contains("clientVersion") && !j["clientVersion"].is_null()) {
-            obj.clientVersion = j["clientVersion"].get<std::string>();
+        if (j.contains("clientVersion")) {
+            if (j["clientVersion"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'clientVersion' is null");
+            } else {
+                obj.clientVersion = j["clientVersion"].get<std::string>();
+            }
         }
-        if (j.contains("clientEngine") && !j["clientEngine"].is_null()) {
-            obj.clientEngine = j["clientEngine"].get<std::string>();
+        if (j.contains("clientEngine")) {
+            if (j["clientEngine"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'clientEngine' is null");
+            } else {
+                obj.clientEngine = j["clientEngine"].get<std::string>();
+            }
         }
-        if (j.contains("clientEngineVersion") && !j["clientEngineVersion"].is_null()) {
-            obj.clientEngineVersion = j["clientEngineVersion"].get<std::string>();
+        if (j.contains("clientEngineVersion")) {
+            if (j["clientEngineVersion"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'clientEngineVersion' is null");
+            } else {
+                obj.clientEngineVersion = j["clientEngineVersion"].get<std::string>();
+            }
         }
-        if (j.contains("deviceName") && !j["deviceName"].is_null()) {
-            obj.deviceName = j["deviceName"].get<std::string>();
+        if (j.contains("deviceName")) {
+            if (j["deviceName"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'deviceName' is null");
+            } else {
+                obj.deviceName = j["deviceName"].get<std::string>();
+            }
         }
-        if (j.contains("deviceBrand") && !j["deviceBrand"].is_null()) {
-            obj.deviceBrand = j["deviceBrand"].get<std::string>();
+        if (j.contains("deviceBrand")) {
+            if (j["deviceBrand"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'deviceBrand' is null");
+            } else {
+                obj.deviceBrand = j["deviceBrand"].get<std::string>();
+            }
         }
-        if (j.contains("deviceModel") && !j["deviceModel"].is_null()) {
-            obj.deviceModel = j["deviceModel"].get<std::string>();
+        if (j.contains("deviceModel")) {
+            if (j["deviceModel"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'deviceModel' is null");
+            } else {
+                obj.deviceModel = j["deviceModel"].get<std::string>();
+            }
         }
-        if (j.contains("countryCode") && !j["countryCode"].is_null()) {
-            obj.countryCode = j["countryCode"].get<std::string>();
+        if (j.contains("countryCode")) {
+            if (j["countryCode"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'countryCode' is null");
+            } else {
+                obj.countryCode = j["countryCode"].get<std::string>();
+            }
         }
-        if (j.contains("countryName") && !j["countryName"].is_null()) {
-            obj.countryName = j["countryName"].get<std::string>();
+        if (j.contains("countryName")) {
+            if (j["countryName"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'countryName' is null");
+            } else {
+                obj.countryName = j["countryName"].get<std::string>();
+            }
         }
-        if (j.contains("current") && !j["current"].is_null()) {
-            obj.current = j["current"].get<bool>();
+        if (j.contains("current")) {
+            if (j["current"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'current' is null");
+            } else {
+                obj.current = j["current"].get<bool>();
+            }
         }
-        if (j.contains("factors") && !j["factors"].is_null()) {
-            obj.factors = j["factors"].get<std::vector<std::string>>();
+        if (j.contains("factors")) {
+            if (j["factors"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'factors' is null");
+            } else {
+                obj.factors = j["factors"].get<std::vector<std::string>>();
+            }
         }
-        if (j.contains("secret") && !j["secret"].is_null()) {
-            obj.secret = j["secret"].get<std::string>();
+        if (j.contains("secret")) {
+            if (j["secret"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'secret' is null");
+            } else {
+                obj.secret = j["secret"].get<std::string>();
+            }
         }
-        if (j.contains("mfaUpdatedAt") && !j["mfaUpdatedAt"].is_null()) {
-            obj.mfaUpdatedAt = j["mfaUpdatedAt"].get<std::string>();
+        if (j.contains("mfaUpdatedAt")) {
+            if (j["mfaUpdatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'mfaUpdatedAt' is null");
+            } else {
+                obj.mfaUpdatedAt = j["mfaUpdatedAt"].get<std::string>();
+            }
         }
         return obj;
     }
@@ -1841,14 +2405,22 @@ struct SessionList {
     /** @brief Deserialize from JSON */
     static SessionList fromJson(const nlohmann::json& j) {
         SessionList obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("total") && !j["total"].is_null()) {
-            obj.total = j["total"].get<int64_t>();
+        if (j.contains("total")) {
+            if (j["total"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'total' is null");
+            } else {
+                obj.total = j["total"].get<int64_t>();
+            }
         }
-        if (j.contains("sessions") && !j["sessions"].is_null()) {
-                                        for (auto& item : j["sessions"]) {
-                                obj.sessions.push_back(Session::fromJson(item));
-                            }
-                    }
+        if (j.contains("sessions")) {
+            if (j["sessions"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'sessions' is null");
+            } else {
+                                            for (auto& item : j["sessions"]) {
+                                    obj.sessions.push_back(Session::fromJson(item));
+                                }
+                        }
+        }
         return obj;
     }
 
@@ -1904,35 +2476,75 @@ struct Identity {
     /** @brief Deserialize from JSON */
     static Identity fromJson(const nlohmann::json& j) {
         Identity obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("$id") && !j["$id"].is_null()) {
-            obj.id = j["$id"].get<std::string>();
+        if (j.contains("$id")) {
+            if (j["$id"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$id' is null");
+            } else {
+                obj.id = j["$id"].get<std::string>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("userId") && !j["userId"].is_null()) {
-            obj.userId = j["userId"].get<std::string>();
+        if (j.contains("userId")) {
+            if (j["userId"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'userId' is null");
+            } else {
+                obj.userId = j["userId"].get<std::string>();
+            }
         }
-        if (j.contains("provider") && !j["provider"].is_null()) {
-            obj.provider = j["provider"].get<std::string>();
+        if (j.contains("provider")) {
+            if (j["provider"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'provider' is null");
+            } else {
+                obj.provider = j["provider"].get<std::string>();
+            }
         }
-        if (j.contains("providerUid") && !j["providerUid"].is_null()) {
-            obj.providerUid = j["providerUid"].get<std::string>();
+        if (j.contains("providerUid")) {
+            if (j["providerUid"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'providerUid' is null");
+            } else {
+                obj.providerUid = j["providerUid"].get<std::string>();
+            }
         }
-        if (j.contains("providerEmail") && !j["providerEmail"].is_null()) {
-            obj.providerEmail = j["providerEmail"].get<std::string>();
+        if (j.contains("providerEmail")) {
+            if (j["providerEmail"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'providerEmail' is null");
+            } else {
+                obj.providerEmail = j["providerEmail"].get<std::string>();
+            }
         }
-        if (j.contains("providerAccessToken") && !j["providerAccessToken"].is_null()) {
-            obj.providerAccessToken = j["providerAccessToken"].get<std::string>();
+        if (j.contains("providerAccessToken")) {
+            if (j["providerAccessToken"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'providerAccessToken' is null");
+            } else {
+                obj.providerAccessToken = j["providerAccessToken"].get<std::string>();
+            }
         }
-        if (j.contains("providerAccessTokenExpiry") && !j["providerAccessTokenExpiry"].is_null()) {
-            obj.providerAccessTokenExpiry = j["providerAccessTokenExpiry"].get<std::string>();
+        if (j.contains("providerAccessTokenExpiry")) {
+            if (j["providerAccessTokenExpiry"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'providerAccessTokenExpiry' is null");
+            } else {
+                obj.providerAccessTokenExpiry = j["providerAccessTokenExpiry"].get<std::string>();
+            }
         }
-        if (j.contains("providerRefreshToken") && !j["providerRefreshToken"].is_null()) {
-            obj.providerRefreshToken = j["providerRefreshToken"].get<std::string>();
+        if (j.contains("providerRefreshToken")) {
+            if (j["providerRefreshToken"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'providerRefreshToken' is null");
+            } else {
+                obj.providerRefreshToken = j["providerRefreshToken"].get<std::string>();
+            }
         }
         return obj;
     }
@@ -1995,14 +2607,22 @@ struct IdentityList {
     /** @brief Deserialize from JSON */
     static IdentityList fromJson(const nlohmann::json& j) {
         IdentityList obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("total") && !j["total"].is_null()) {
-            obj.total = j["total"].get<int64_t>();
+        if (j.contains("total")) {
+            if (j["total"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'total' is null");
+            } else {
+                obj.total = j["total"].get<int64_t>();
+            }
         }
-        if (j.contains("identities") && !j["identities"].is_null()) {
-                                        for (auto& item : j["identities"]) {
-                                obj.identities.push_back(Identity::fromJson(item));
-                            }
-                    }
+        if (j.contains("identities")) {
+            if (j["identities"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'identities' is null");
+            } else {
+                                            for (auto& item : j["identities"]) {
+                                    obj.identities.push_back(Identity::fromJson(item));
+                                }
+                        }
+        }
         return obj;
     }
 
@@ -2082,71 +2702,159 @@ struct Log {
     /** @brief Deserialize from JSON */
     static Log fromJson(const nlohmann::json& j) {
         Log obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("event") && !j["event"].is_null()) {
-            obj.event = j["event"].get<std::string>();
+        if (j.contains("event")) {
+            if (j["event"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'event' is null");
+            } else {
+                obj.event = j["event"].get<std::string>();
+            }
         }
-        if (j.contains("userId") && !j["userId"].is_null()) {
-            obj.userId = j["userId"].get<std::string>();
+        if (j.contains("userId")) {
+            if (j["userId"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'userId' is null");
+            } else {
+                obj.userId = j["userId"].get<std::string>();
+            }
         }
-        if (j.contains("userEmail") && !j["userEmail"].is_null()) {
-            obj.userEmail = j["userEmail"].get<std::string>();
+        if (j.contains("userEmail")) {
+            if (j["userEmail"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'userEmail' is null");
+            } else {
+                obj.userEmail = j["userEmail"].get<std::string>();
+            }
         }
-        if (j.contains("userName") && !j["userName"].is_null()) {
-            obj.userName = j["userName"].get<std::string>();
+        if (j.contains("userName")) {
+            if (j["userName"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'userName' is null");
+            } else {
+                obj.userName = j["userName"].get<std::string>();
+            }
         }
-        if (j.contains("mode") && !j["mode"].is_null()) {
-            obj.mode = j["mode"].get<std::string>();
+        if (j.contains("mode")) {
+            if (j["mode"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'mode' is null");
+            } else {
+                obj.mode = j["mode"].get<std::string>();
+            }
         }
-        if (j.contains("userType") && !j["userType"].is_null()) {
-            obj.userType = j["userType"].get<std::string>();
+        if (j.contains("userType")) {
+            if (j["userType"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'userType' is null");
+            } else {
+                obj.userType = j["userType"].get<std::string>();
+            }
         }
-        if (j.contains("ip") && !j["ip"].is_null()) {
-            obj.ip = j["ip"].get<std::string>();
+        if (j.contains("ip")) {
+            if (j["ip"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'ip' is null");
+            } else {
+                obj.ip = j["ip"].get<std::string>();
+            }
         }
-        if (j.contains("time") && !j["time"].is_null()) {
-            obj.time = j["time"].get<std::string>();
+        if (j.contains("time")) {
+            if (j["time"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'time' is null");
+            } else {
+                obj.time = j["time"].get<std::string>();
+            }
         }
-        if (j.contains("osCode") && !j["osCode"].is_null()) {
-            obj.osCode = j["osCode"].get<std::string>();
+        if (j.contains("osCode")) {
+            if (j["osCode"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'osCode' is null");
+            } else {
+                obj.osCode = j["osCode"].get<std::string>();
+            }
         }
-        if (j.contains("osName") && !j["osName"].is_null()) {
-            obj.osName = j["osName"].get<std::string>();
+        if (j.contains("osName")) {
+            if (j["osName"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'osName' is null");
+            } else {
+                obj.osName = j["osName"].get<std::string>();
+            }
         }
-        if (j.contains("osVersion") && !j["osVersion"].is_null()) {
-            obj.osVersion = j["osVersion"].get<std::string>();
+        if (j.contains("osVersion")) {
+            if (j["osVersion"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'osVersion' is null");
+            } else {
+                obj.osVersion = j["osVersion"].get<std::string>();
+            }
         }
-        if (j.contains("clientType") && !j["clientType"].is_null()) {
-            obj.clientType = j["clientType"].get<std::string>();
+        if (j.contains("clientType")) {
+            if (j["clientType"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'clientType' is null");
+            } else {
+                obj.clientType = j["clientType"].get<std::string>();
+            }
         }
-        if (j.contains("clientCode") && !j["clientCode"].is_null()) {
-            obj.clientCode = j["clientCode"].get<std::string>();
+        if (j.contains("clientCode")) {
+            if (j["clientCode"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'clientCode' is null");
+            } else {
+                obj.clientCode = j["clientCode"].get<std::string>();
+            }
         }
-        if (j.contains("clientName") && !j["clientName"].is_null()) {
-            obj.clientName = j["clientName"].get<std::string>();
+        if (j.contains("clientName")) {
+            if (j["clientName"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'clientName' is null");
+            } else {
+                obj.clientName = j["clientName"].get<std::string>();
+            }
         }
-        if (j.contains("clientVersion") && !j["clientVersion"].is_null()) {
-            obj.clientVersion = j["clientVersion"].get<std::string>();
+        if (j.contains("clientVersion")) {
+            if (j["clientVersion"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'clientVersion' is null");
+            } else {
+                obj.clientVersion = j["clientVersion"].get<std::string>();
+            }
         }
-        if (j.contains("clientEngine") && !j["clientEngine"].is_null()) {
-            obj.clientEngine = j["clientEngine"].get<std::string>();
+        if (j.contains("clientEngine")) {
+            if (j["clientEngine"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'clientEngine' is null");
+            } else {
+                obj.clientEngine = j["clientEngine"].get<std::string>();
+            }
         }
-        if (j.contains("clientEngineVersion") && !j["clientEngineVersion"].is_null()) {
-            obj.clientEngineVersion = j["clientEngineVersion"].get<std::string>();
+        if (j.contains("clientEngineVersion")) {
+            if (j["clientEngineVersion"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'clientEngineVersion' is null");
+            } else {
+                obj.clientEngineVersion = j["clientEngineVersion"].get<std::string>();
+            }
         }
-        if (j.contains("deviceName") && !j["deviceName"].is_null()) {
-            obj.deviceName = j["deviceName"].get<std::string>();
+        if (j.contains("deviceName")) {
+            if (j["deviceName"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'deviceName' is null");
+            } else {
+                obj.deviceName = j["deviceName"].get<std::string>();
+            }
         }
-        if (j.contains("deviceBrand") && !j["deviceBrand"].is_null()) {
-            obj.deviceBrand = j["deviceBrand"].get<std::string>();
+        if (j.contains("deviceBrand")) {
+            if (j["deviceBrand"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'deviceBrand' is null");
+            } else {
+                obj.deviceBrand = j["deviceBrand"].get<std::string>();
+            }
         }
-        if (j.contains("deviceModel") && !j["deviceModel"].is_null()) {
-            obj.deviceModel = j["deviceModel"].get<std::string>();
+        if (j.contains("deviceModel")) {
+            if (j["deviceModel"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'deviceModel' is null");
+            } else {
+                obj.deviceModel = j["deviceModel"].get<std::string>();
+            }
         }
-        if (j.contains("countryCode") && !j["countryCode"].is_null()) {
-            obj.countryCode = j["countryCode"].get<std::string>();
+        if (j.contains("countryCode")) {
+            if (j["countryCode"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'countryCode' is null");
+            } else {
+                obj.countryCode = j["countryCode"].get<std::string>();
+            }
         }
-        if (j.contains("countryName") && !j["countryName"].is_null()) {
-            obj.countryName = j["countryName"].get<std::string>();
+        if (j.contains("countryName")) {
+            if (j["countryName"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'countryName' is null");
+            } else {
+                obj.countryName = j["countryName"].get<std::string>();
+            }
         }
         return obj;
     }
@@ -2245,14 +2953,22 @@ struct LogList {
     /** @brief Deserialize from JSON */
     static LogList fromJson(const nlohmann::json& j) {
         LogList obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("total") && !j["total"].is_null()) {
-            obj.total = j["total"].get<int64_t>();
+        if (j.contains("total")) {
+            if (j["total"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'total' is null");
+            } else {
+                obj.total = j["total"].get<int64_t>();
+            }
         }
-        if (j.contains("logs") && !j["logs"].is_null()) {
-                                        for (auto& item : j["logs"]) {
-                                obj.logs.push_back(Log::fromJson(item));
-                            }
-                    }
+        if (j.contains("logs")) {
+            if (j["logs"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'logs' is null");
+            } else {
+                                            for (auto& item : j["logs"]) {
+                                    obj.logs.push_back(Log::fromJson(item));
+                                }
+                        }
+        }
         return obj;
     }
 
@@ -2314,44 +3030,96 @@ struct File {
     /** @brief Deserialize from JSON */
     static File fromJson(const nlohmann::json& j) {
         File obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("$id") && !j["$id"].is_null()) {
-            obj.id = j["$id"].get<std::string>();
+        if (j.contains("$id")) {
+            if (j["$id"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$id' is null");
+            } else {
+                obj.id = j["$id"].get<std::string>();
+            }
         }
-        if (j.contains("bucketId") && !j["bucketId"].is_null()) {
-            obj.bucketId = j["bucketId"].get<std::string>();
+        if (j.contains("bucketId")) {
+            if (j["bucketId"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'bucketId' is null");
+            } else {
+                obj.bucketId = j["bucketId"].get<std::string>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("$permissions") && !j["$permissions"].is_null()) {
-            obj.permissions = j["$permissions"].get<std::vector<std::string>>();
+        if (j.contains("$permissions")) {
+            if (j["$permissions"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$permissions' is null");
+            } else {
+                obj.permissions = j["$permissions"].get<std::vector<std::string>>();
+            }
         }
-        if (j.contains("name") && !j["name"].is_null()) {
-            obj.name = j["name"].get<std::string>();
+        if (j.contains("name")) {
+            if (j["name"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'name' is null");
+            } else {
+                obj.name = j["name"].get<std::string>();
+            }
         }
-        if (j.contains("signature") && !j["signature"].is_null()) {
-            obj.signature = j["signature"].get<std::string>();
+        if (j.contains("signature")) {
+            if (j["signature"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'signature' is null");
+            } else {
+                obj.signature = j["signature"].get<std::string>();
+            }
         }
-        if (j.contains("mimeType") && !j["mimeType"].is_null()) {
-            obj.mimeType = j["mimeType"].get<std::string>();
+        if (j.contains("mimeType")) {
+            if (j["mimeType"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'mimeType' is null");
+            } else {
+                obj.mimeType = j["mimeType"].get<std::string>();
+            }
         }
-        if (j.contains("sizeOriginal") && !j["sizeOriginal"].is_null()) {
-            obj.sizeOriginal = j["sizeOriginal"].get<int64_t>();
+        if (j.contains("sizeOriginal")) {
+            if (j["sizeOriginal"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'sizeOriginal' is null");
+            } else {
+                obj.sizeOriginal = j["sizeOriginal"].get<int64_t>();
+            }
         }
-        if (j.contains("chunksTotal") && !j["chunksTotal"].is_null()) {
-            obj.chunksTotal = j["chunksTotal"].get<int64_t>();
+        if (j.contains("chunksTotal")) {
+            if (j["chunksTotal"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'chunksTotal' is null");
+            } else {
+                obj.chunksTotal = j["chunksTotal"].get<int64_t>();
+            }
         }
-        if (j.contains("chunksUploaded") && !j["chunksUploaded"].is_null()) {
-            obj.chunksUploaded = j["chunksUploaded"].get<int64_t>();
+        if (j.contains("chunksUploaded")) {
+            if (j["chunksUploaded"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'chunksUploaded' is null");
+            } else {
+                obj.chunksUploaded = j["chunksUploaded"].get<int64_t>();
+            }
         }
-        if (j.contains("encryption") && !j["encryption"].is_null()) {
-            obj.encryption = j["encryption"].get<bool>();
+        if (j.contains("encryption")) {
+            if (j["encryption"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'encryption' is null");
+            } else {
+                obj.encryption = j["encryption"].get<bool>();
+            }
         }
-        if (j.contains("compression") && !j["compression"].is_null()) {
-            obj.compression = j["compression"].get<std::string>();
+        if (j.contains("compression")) {
+            if (j["compression"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'compression' is null");
+            } else {
+                obj.compression = j["compression"].get<std::string>();
+            }
         }
         return obj;
     }
@@ -2423,14 +3191,22 @@ struct FileList {
     /** @brief Deserialize from JSON */
     static FileList fromJson(const nlohmann::json& j) {
         FileList obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("total") && !j["total"].is_null()) {
-            obj.total = j["total"].get<int64_t>();
+        if (j.contains("total")) {
+            if (j["total"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'total' is null");
+            } else {
+                obj.total = j["total"].get<int64_t>();
+            }
         }
-        if (j.contains("files") && !j["files"].is_null()) {
-                                        for (auto& item : j["files"]) {
-                                obj.files.push_back(File::fromJson(item));
-                            }
-                    }
+        if (j.contains("files")) {
+            if (j["files"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'files' is null");
+            } else {
+                                            for (auto& item : j["files"]) {
+                                    obj.files.push_back(File::fromJson(item));
+                                }
+                        }
+        }
         return obj;
     }
 
@@ -2494,47 +3270,103 @@ struct Bucket {
     /** @brief Deserialize from JSON */
     static Bucket fromJson(const nlohmann::json& j) {
         Bucket obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("$id") && !j["$id"].is_null()) {
-            obj.id = j["$id"].get<std::string>();
+        if (j.contains("$id")) {
+            if (j["$id"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$id' is null");
+            } else {
+                obj.id = j["$id"].get<std::string>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("$permissions") && !j["$permissions"].is_null()) {
-            obj.permissions = j["$permissions"].get<std::vector<std::string>>();
+        if (j.contains("$permissions")) {
+            if (j["$permissions"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$permissions' is null");
+            } else {
+                obj.permissions = j["$permissions"].get<std::vector<std::string>>();
+            }
         }
-        if (j.contains("fileSecurity") && !j["fileSecurity"].is_null()) {
-            obj.fileSecurity = j["fileSecurity"].get<bool>();
+        if (j.contains("fileSecurity")) {
+            if (j["fileSecurity"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'fileSecurity' is null");
+            } else {
+                obj.fileSecurity = j["fileSecurity"].get<bool>();
+            }
         }
-        if (j.contains("name") && !j["name"].is_null()) {
-            obj.name = j["name"].get<std::string>();
+        if (j.contains("name")) {
+            if (j["name"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'name' is null");
+            } else {
+                obj.name = j["name"].get<std::string>();
+            }
         }
-        if (j.contains("enabled") && !j["enabled"].is_null()) {
-            obj.enabled = j["enabled"].get<bool>();
+        if (j.contains("enabled")) {
+            if (j["enabled"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'enabled' is null");
+            } else {
+                obj.enabled = j["enabled"].get<bool>();
+            }
         }
-        if (j.contains("maximumFileSize") && !j["maximumFileSize"].is_null()) {
-            obj.maximumFileSize = j["maximumFileSize"].get<int64_t>();
+        if (j.contains("maximumFileSize")) {
+            if (j["maximumFileSize"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'maximumFileSize' is null");
+            } else {
+                obj.maximumFileSize = j["maximumFileSize"].get<int64_t>();
+            }
         }
-        if (j.contains("allowedFileExtensions") && !j["allowedFileExtensions"].is_null()) {
-            obj.allowedFileExtensions = j["allowedFileExtensions"].get<std::vector<std::string>>();
+        if (j.contains("allowedFileExtensions")) {
+            if (j["allowedFileExtensions"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'allowedFileExtensions' is null");
+            } else {
+                obj.allowedFileExtensions = j["allowedFileExtensions"].get<std::vector<std::string>>();
+            }
         }
-        if (j.contains("compression") && !j["compression"].is_null()) {
-            obj.compression = j["compression"].get<std::string>();
+        if (j.contains("compression")) {
+            if (j["compression"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'compression' is null");
+            } else {
+                obj.compression = j["compression"].get<std::string>();
+            }
         }
-        if (j.contains("encryption") && !j["encryption"].is_null()) {
-            obj.encryption = j["encryption"].get<bool>();
+        if (j.contains("encryption")) {
+            if (j["encryption"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'encryption' is null");
+            } else {
+                obj.encryption = j["encryption"].get<bool>();
+            }
         }
-        if (j.contains("antivirus") && !j["antivirus"].is_null()) {
-            obj.antivirus = j["antivirus"].get<bool>();
+        if (j.contains("antivirus")) {
+            if (j["antivirus"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'antivirus' is null");
+            } else {
+                obj.antivirus = j["antivirus"].get<bool>();
+            }
         }
-        if (j.contains("transformations") && !j["transformations"].is_null()) {
-            obj.transformations = j["transformations"].get<bool>();
+        if (j.contains("transformations")) {
+            if (j["transformations"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'transformations' is null");
+            } else {
+                obj.transformations = j["transformations"].get<bool>();
+            }
         }
-        if (j.contains("totalSize") && !j["totalSize"].is_null()) {
-            obj.totalSize = j["totalSize"].get<int64_t>();
+        if (j.contains("totalSize")) {
+            if (j["totalSize"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'totalSize' is null");
+            } else {
+                obj.totalSize = j["totalSize"].get<int64_t>();
+            }
         }
         return obj;
     }
@@ -2609,14 +3441,22 @@ struct BucketList {
     /** @brief Deserialize from JSON */
     static BucketList fromJson(const nlohmann::json& j) {
         BucketList obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("total") && !j["total"].is_null()) {
-            obj.total = j["total"].get<int64_t>();
+        if (j.contains("total")) {
+            if (j["total"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'total' is null");
+            } else {
+                obj.total = j["total"].get<int64_t>();
+            }
         }
-        if (j.contains("buckets") && !j["buckets"].is_null()) {
-                                        for (auto& item : j["buckets"]) {
-                                obj.buckets.push_back(Bucket::fromJson(item));
-                            }
-                    }
+        if (j.contains("buckets")) {
+            if (j["buckets"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'buckets' is null");
+            } else {
+                                            for (auto& item : j["buckets"]) {
+                                    obj.buckets.push_back(Bucket::fromJson(item));
+                                }
+                        }
+        }
         return obj;
     }
 
@@ -2664,24 +3504,48 @@ struct Team {
     /** @brief Deserialize from JSON */
     static Team fromJson(const nlohmann::json& j) {
         Team obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("$id") && !j["$id"].is_null()) {
-            obj.id = j["$id"].get<std::string>();
+        if (j.contains("$id")) {
+            if (j["$id"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$id' is null");
+            } else {
+                obj.id = j["$id"].get<std::string>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("name") && !j["name"].is_null()) {
-            obj.name = j["name"].get<std::string>();
+        if (j.contains("name")) {
+            if (j["name"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'name' is null");
+            } else {
+                obj.name = j["name"].get<std::string>();
+            }
         }
-        if (j.contains("total") && !j["total"].is_null()) {
-            obj.total = j["total"].get<int64_t>();
+        if (j.contains("total")) {
+            if (j["total"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'total' is null");
+            } else {
+                obj.total = j["total"].get<int64_t>();
+            }
         }
-        if (j.contains("prefs") && !j["prefs"].is_null()) {
-                        obj.prefs = Preferences::fromJson(j["prefs"]);
-                    }
+        if (j.contains("prefs")) {
+            if (j["prefs"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'prefs' is null");
+            } else {
+                            obj.prefs = Preferences::fromJson(j["prefs"]);
+                        }
+        }
         return obj;
     }
 
@@ -2731,14 +3595,22 @@ struct TeamList {
     /** @brief Deserialize from JSON */
     static TeamList fromJson(const nlohmann::json& j) {
         TeamList obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("total") && !j["total"].is_null()) {
-            obj.total = j["total"].get<int64_t>();
+        if (j.contains("total")) {
+            if (j["total"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'total' is null");
+            } else {
+                obj.total = j["total"].get<int64_t>();
+            }
         }
-        if (j.contains("teams") && !j["teams"].is_null()) {
-                                        for (auto& item : j["teams"]) {
-                                obj.teams.push_back(Team::fromJson(item));
-                            }
-                    }
+        if (j.contains("teams")) {
+            if (j["teams"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'teams' is null");
+            } else {
+                                            for (auto& item : j["teams"]) {
+                                    obj.teams.push_back(Team::fromJson(item));
+                                }
+                        }
+        }
         return obj;
     }
 
@@ -2800,44 +3672,96 @@ struct Membership {
     /** @brief Deserialize from JSON */
     static Membership fromJson(const nlohmann::json& j) {
         Membership obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("$id") && !j["$id"].is_null()) {
-            obj.id = j["$id"].get<std::string>();
+        if (j.contains("$id")) {
+            if (j["$id"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$id' is null");
+            } else {
+                obj.id = j["$id"].get<std::string>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("userId") && !j["userId"].is_null()) {
-            obj.userId = j["userId"].get<std::string>();
+        if (j.contains("userId")) {
+            if (j["userId"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'userId' is null");
+            } else {
+                obj.userId = j["userId"].get<std::string>();
+            }
         }
-        if (j.contains("userName") && !j["userName"].is_null()) {
-            obj.userName = j["userName"].get<std::string>();
+        if (j.contains("userName")) {
+            if (j["userName"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'userName' is null");
+            } else {
+                obj.userName = j["userName"].get<std::string>();
+            }
         }
-        if (j.contains("userEmail") && !j["userEmail"].is_null()) {
-            obj.userEmail = j["userEmail"].get<std::string>();
+        if (j.contains("userEmail")) {
+            if (j["userEmail"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'userEmail' is null");
+            } else {
+                obj.userEmail = j["userEmail"].get<std::string>();
+            }
         }
-        if (j.contains("teamId") && !j["teamId"].is_null()) {
-            obj.teamId = j["teamId"].get<std::string>();
+        if (j.contains("teamId")) {
+            if (j["teamId"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'teamId' is null");
+            } else {
+                obj.teamId = j["teamId"].get<std::string>();
+            }
         }
-        if (j.contains("teamName") && !j["teamName"].is_null()) {
-            obj.teamName = j["teamName"].get<std::string>();
+        if (j.contains("teamName")) {
+            if (j["teamName"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'teamName' is null");
+            } else {
+                obj.teamName = j["teamName"].get<std::string>();
+            }
         }
-        if (j.contains("invited") && !j["invited"].is_null()) {
-            obj.invited = j["invited"].get<std::string>();
+        if (j.contains("invited")) {
+            if (j["invited"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'invited' is null");
+            } else {
+                obj.invited = j["invited"].get<std::string>();
+            }
         }
-        if (j.contains("joined") && !j["joined"].is_null()) {
-            obj.joined = j["joined"].get<std::string>();
+        if (j.contains("joined")) {
+            if (j["joined"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'joined' is null");
+            } else {
+                obj.joined = j["joined"].get<std::string>();
+            }
         }
-        if (j.contains("confirm") && !j["confirm"].is_null()) {
-            obj.confirm = j["confirm"].get<bool>();
+        if (j.contains("confirm")) {
+            if (j["confirm"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'confirm' is null");
+            } else {
+                obj.confirm = j["confirm"].get<bool>();
+            }
         }
-        if (j.contains("mfa") && !j["mfa"].is_null()) {
-            obj.mfa = j["mfa"].get<bool>();
+        if (j.contains("mfa")) {
+            if (j["mfa"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'mfa' is null");
+            } else {
+                obj.mfa = j["mfa"].get<bool>();
+            }
         }
-        if (j.contains("roles") && !j["roles"].is_null()) {
-            obj.roles = j["roles"].get<std::vector<std::string>>();
+        if (j.contains("roles")) {
+            if (j["roles"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'roles' is null");
+            } else {
+                obj.roles = j["roles"].get<std::vector<std::string>>();
+            }
         }
         return obj;
     }
@@ -2909,14 +3833,22 @@ struct MembershipList {
     /** @brief Deserialize from JSON */
     static MembershipList fromJson(const nlohmann::json& j) {
         MembershipList obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("total") && !j["total"].is_null()) {
-            obj.total = j["total"].get<int64_t>();
+        if (j.contains("total")) {
+            if (j["total"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'total' is null");
+            } else {
+                obj.total = j["total"].get<int64_t>();
+            }
         }
-        if (j.contains("memberships") && !j["memberships"].is_null()) {
-                                        for (auto& item : j["memberships"]) {
-                                obj.memberships.push_back(Membership::fromJson(item));
-                            }
-                    }
+        if (j.contains("memberships")) {
+            if (j["memberships"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'memberships' is null");
+            } else {
+                                            for (auto& item : j["memberships"]) {
+                                    obj.memberships.push_back(Membership::fromJson(item));
+                                }
+                        }
+        }
         return obj;
     }
 
@@ -2968,29 +3900,61 @@ struct Variable {
     /** @brief Deserialize from JSON */
     static Variable fromJson(const nlohmann::json& j) {
         Variable obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("$id") && !j["$id"].is_null()) {
-            obj.id = j["$id"].get<std::string>();
+        if (j.contains("$id")) {
+            if (j["$id"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$id' is null");
+            } else {
+                obj.id = j["$id"].get<std::string>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("key") && !j["key"].is_null()) {
-            obj.key = j["key"].get<std::string>();
+        if (j.contains("key")) {
+            if (j["key"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'key' is null");
+            } else {
+                obj.key = j["key"].get<std::string>();
+            }
         }
-        if (j.contains("value") && !j["value"].is_null()) {
-            obj.value = j["value"].get<std::string>();
+        if (j.contains("value")) {
+            if (j["value"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'value' is null");
+            } else {
+                obj.value = j["value"].get<std::string>();
+            }
         }
-        if (j.contains("secret") && !j["secret"].is_null()) {
-            obj.secret = j["secret"].get<bool>();
+        if (j.contains("secret")) {
+            if (j["secret"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'secret' is null");
+            } else {
+                obj.secret = j["secret"].get<bool>();
+            }
         }
-        if (j.contains("resourceType") && !j["resourceType"].is_null()) {
-            obj.resourceType = j["resourceType"].get<std::string>();
+        if (j.contains("resourceType")) {
+            if (j["resourceType"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'resourceType' is null");
+            } else {
+                obj.resourceType = j["resourceType"].get<std::string>();
+            }
         }
-        if (j.contains("resourceId") && !j["resourceId"].is_null()) {
-            obj.resourceId = j["resourceId"].get<std::string>();
+        if (j.contains("resourceId")) {
+            if (j["resourceId"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'resourceId' is null");
+            } else {
+                obj.resourceId = j["resourceId"].get<std::string>();
+            }
         }
         return obj;
     }
@@ -3103,97 +4067,217 @@ struct Function {
     /** @brief Deserialize from JSON */
     static Function fromJson(const nlohmann::json& j) {
         Function obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("$id") && !j["$id"].is_null()) {
-            obj.id = j["$id"].get<std::string>();
+        if (j.contains("$id")) {
+            if (j["$id"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$id' is null");
+            } else {
+                obj.id = j["$id"].get<std::string>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("execute") && !j["execute"].is_null()) {
-            obj.execute = j["execute"].get<std::vector<std::string>>();
+        if (j.contains("execute")) {
+            if (j["execute"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'execute' is null");
+            } else {
+                obj.execute = j["execute"].get<std::vector<std::string>>();
+            }
         }
-        if (j.contains("name") && !j["name"].is_null()) {
-            obj.name = j["name"].get<std::string>();
+        if (j.contains("name")) {
+            if (j["name"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'name' is null");
+            } else {
+                obj.name = j["name"].get<std::string>();
+            }
         }
-        if (j.contains("enabled") && !j["enabled"].is_null()) {
-            obj.enabled = j["enabled"].get<bool>();
+        if (j.contains("enabled")) {
+            if (j["enabled"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'enabled' is null");
+            } else {
+                obj.enabled = j["enabled"].get<bool>();
+            }
         }
-        if (j.contains("live") && !j["live"].is_null()) {
-            obj.live = j["live"].get<bool>();
+        if (j.contains("live")) {
+            if (j["live"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'live' is null");
+            } else {
+                obj.live = j["live"].get<bool>();
+            }
         }
-        if (j.contains("logging") && !j["logging"].is_null()) {
-            obj.logging = j["logging"].get<bool>();
+        if (j.contains("logging")) {
+            if (j["logging"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'logging' is null");
+            } else {
+                obj.logging = j["logging"].get<bool>();
+            }
         }
-        if (j.contains("runtime") && !j["runtime"].is_null()) {
-            obj.runtime = j["runtime"].get<std::string>();
+        if (j.contains("runtime")) {
+            if (j["runtime"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'runtime' is null");
+            } else {
+                obj.runtime = j["runtime"].get<std::string>();
+            }
         }
-        if (j.contains("deploymentRetention") && !j["deploymentRetention"].is_null()) {
-            obj.deploymentRetention = j["deploymentRetention"].get<int64_t>();
+        if (j.contains("deploymentRetention")) {
+            if (j["deploymentRetention"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'deploymentRetention' is null");
+            } else {
+                obj.deploymentRetention = j["deploymentRetention"].get<int64_t>();
+            }
         }
-        if (j.contains("deploymentId") && !j["deploymentId"].is_null()) {
-            obj.deploymentId = j["deploymentId"].get<std::string>();
+        if (j.contains("deploymentId")) {
+            if (j["deploymentId"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'deploymentId' is null");
+            } else {
+                obj.deploymentId = j["deploymentId"].get<std::string>();
+            }
         }
-        if (j.contains("deploymentCreatedAt") && !j["deploymentCreatedAt"].is_null()) {
-            obj.deploymentCreatedAt = j["deploymentCreatedAt"].get<std::string>();
+        if (j.contains("deploymentCreatedAt")) {
+            if (j["deploymentCreatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'deploymentCreatedAt' is null");
+            } else {
+                obj.deploymentCreatedAt = j["deploymentCreatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("latestDeploymentId") && !j["latestDeploymentId"].is_null()) {
-            obj.latestDeploymentId = j["latestDeploymentId"].get<std::string>();
+        if (j.contains("latestDeploymentId")) {
+            if (j["latestDeploymentId"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'latestDeploymentId' is null");
+            } else {
+                obj.latestDeploymentId = j["latestDeploymentId"].get<std::string>();
+            }
         }
-        if (j.contains("latestDeploymentCreatedAt") && !j["latestDeploymentCreatedAt"].is_null()) {
-            obj.latestDeploymentCreatedAt = j["latestDeploymentCreatedAt"].get<std::string>();
+        if (j.contains("latestDeploymentCreatedAt")) {
+            if (j["latestDeploymentCreatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'latestDeploymentCreatedAt' is null");
+            } else {
+                obj.latestDeploymentCreatedAt = j["latestDeploymentCreatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("latestDeploymentStatus") && !j["latestDeploymentStatus"].is_null()) {
-            obj.latestDeploymentStatus = j["latestDeploymentStatus"].get<std::string>();
+        if (j.contains("latestDeploymentStatus")) {
+            if (j["latestDeploymentStatus"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'latestDeploymentStatus' is null");
+            } else {
+                obj.latestDeploymentStatus = j["latestDeploymentStatus"].get<std::string>();
+            }
         }
-        if (j.contains("scopes") && !j["scopes"].is_null()) {
-            obj.scopes = j["scopes"].get<std::vector<std::string>>();
+        if (j.contains("scopes")) {
+            if (j["scopes"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'scopes' is null");
+            } else {
+                obj.scopes = j["scopes"].get<std::vector<std::string>>();
+            }
         }
-        if (j.contains("vars") && !j["vars"].is_null()) {
-                                        for (auto& item : j["vars"]) {
-                                obj.vars.push_back(Variable::fromJson(item));
-                            }
-                    }
-        if (j.contains("events") && !j["events"].is_null()) {
-            obj.events = j["events"].get<std::vector<std::string>>();
+        if (j.contains("vars")) {
+            if (j["vars"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'vars' is null");
+            } else {
+                                            for (auto& item : j["vars"]) {
+                                    obj.vars.push_back(Variable::fromJson(item));
+                                }
+                        }
         }
-        if (j.contains("schedule") && !j["schedule"].is_null()) {
-            obj.schedule = j["schedule"].get<std::string>();
+        if (j.contains("events")) {
+            if (j["events"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'events' is null");
+            } else {
+                obj.events = j["events"].get<std::vector<std::string>>();
+            }
         }
-        if (j.contains("timeout") && !j["timeout"].is_null()) {
-            obj.timeout = j["timeout"].get<int64_t>();
+        if (j.contains("schedule")) {
+            if (j["schedule"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'schedule' is null");
+            } else {
+                obj.schedule = j["schedule"].get<std::string>();
+            }
         }
-        if (j.contains("entrypoint") && !j["entrypoint"].is_null()) {
-            obj.entrypoint = j["entrypoint"].get<std::string>();
+        if (j.contains("timeout")) {
+            if (j["timeout"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'timeout' is null");
+            } else {
+                obj.timeout = j["timeout"].get<int64_t>();
+            }
         }
-        if (j.contains("commands") && !j["commands"].is_null()) {
-            obj.commands = j["commands"].get<std::string>();
+        if (j.contains("entrypoint")) {
+            if (j["entrypoint"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'entrypoint' is null");
+            } else {
+                obj.entrypoint = j["entrypoint"].get<std::string>();
+            }
         }
-        if (j.contains("version") && !j["version"].is_null()) {
-            obj.version = j["version"].get<std::string>();
+        if (j.contains("commands")) {
+            if (j["commands"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'commands' is null");
+            } else {
+                obj.commands = j["commands"].get<std::string>();
+            }
         }
-        if (j.contains("installationId") && !j["installationId"].is_null()) {
-            obj.installationId = j["installationId"].get<std::string>();
+        if (j.contains("version")) {
+            if (j["version"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'version' is null");
+            } else {
+                obj.version = j["version"].get<std::string>();
+            }
         }
-        if (j.contains("providerRepositoryId") && !j["providerRepositoryId"].is_null()) {
-            obj.providerRepositoryId = j["providerRepositoryId"].get<std::string>();
+        if (j.contains("installationId")) {
+            if (j["installationId"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'installationId' is null");
+            } else {
+                obj.installationId = j["installationId"].get<std::string>();
+            }
         }
-        if (j.contains("providerBranch") && !j["providerBranch"].is_null()) {
-            obj.providerBranch = j["providerBranch"].get<std::string>();
+        if (j.contains("providerRepositoryId")) {
+            if (j["providerRepositoryId"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'providerRepositoryId' is null");
+            } else {
+                obj.providerRepositoryId = j["providerRepositoryId"].get<std::string>();
+            }
         }
-        if (j.contains("providerRootDirectory") && !j["providerRootDirectory"].is_null()) {
-            obj.providerRootDirectory = j["providerRootDirectory"].get<std::string>();
+        if (j.contains("providerBranch")) {
+            if (j["providerBranch"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'providerBranch' is null");
+            } else {
+                obj.providerBranch = j["providerBranch"].get<std::string>();
+            }
         }
-        if (j.contains("providerSilentMode") && !j["providerSilentMode"].is_null()) {
-            obj.providerSilentMode = j["providerSilentMode"].get<bool>();
+        if (j.contains("providerRootDirectory")) {
+            if (j["providerRootDirectory"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'providerRootDirectory' is null");
+            } else {
+                obj.providerRootDirectory = j["providerRootDirectory"].get<std::string>();
+            }
         }
-        if (j.contains("buildSpecification") && !j["buildSpecification"].is_null()) {
-            obj.buildSpecification = j["buildSpecification"].get<std::string>();
+        if (j.contains("providerSilentMode")) {
+            if (j["providerSilentMode"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'providerSilentMode' is null");
+            } else {
+                obj.providerSilentMode = j["providerSilentMode"].get<bool>();
+            }
         }
-        if (j.contains("runtimeSpecification") && !j["runtimeSpecification"].is_null()) {
-            obj.runtimeSpecification = j["runtimeSpecification"].get<std::string>();
+        if (j.contains("buildSpecification")) {
+            if (j["buildSpecification"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'buildSpecification' is null");
+            } else {
+                obj.buildSpecification = j["buildSpecification"].get<std::string>();
+            }
+        }
+        if (j.contains("runtimeSpecification")) {
+            if (j["runtimeSpecification"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'runtimeSpecification' is null");
+            } else {
+                obj.runtimeSpecification = j["runtimeSpecification"].get<std::string>();
+            }
         }
         return obj;
     }
@@ -3318,14 +4402,22 @@ struct FunctionList {
     /** @brief Deserialize from JSON */
     static FunctionList fromJson(const nlohmann::json& j) {
         FunctionList obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("total") && !j["total"].is_null()) {
-            obj.total = j["total"].get<int64_t>();
+        if (j.contains("total")) {
+            if (j["total"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'total' is null");
+            } else {
+                obj.total = j["total"].get<int64_t>();
+            }
         }
-        if (j.contains("functions") && !j["functions"].is_null()) {
-                                        for (auto& item : j["functions"]) {
-                                obj.functions.push_back(Function::fromJson(item));
-                            }
-                    }
+        if (j.contains("functions")) {
+            if (j["functions"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'functions' is null");
+            } else {
+                                            for (auto& item : j["functions"]) {
+                                    obj.functions.push_back(Function::fromJson(item));
+                                }
+                        }
+        }
         return obj;
     }
 
@@ -3369,17 +4461,33 @@ struct TemplateRuntime {
     /** @brief Deserialize from JSON */
     static TemplateRuntime fromJson(const nlohmann::json& j) {
         TemplateRuntime obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("name") && !j["name"].is_null()) {
-            obj.name = j["name"].get<std::string>();
+        if (j.contains("name")) {
+            if (j["name"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'name' is null");
+            } else {
+                obj.name = j["name"].get<std::string>();
+            }
         }
-        if (j.contains("commands") && !j["commands"].is_null()) {
-            obj.commands = j["commands"].get<std::string>();
+        if (j.contains("commands")) {
+            if (j["commands"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'commands' is null");
+            } else {
+                obj.commands = j["commands"].get<std::string>();
+            }
         }
-        if (j.contains("entrypoint") && !j["entrypoint"].is_null()) {
-            obj.entrypoint = j["entrypoint"].get<std::string>();
+        if (j.contains("entrypoint")) {
+            if (j["entrypoint"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'entrypoint' is null");
+            } else {
+                obj.entrypoint = j["entrypoint"].get<std::string>();
+            }
         }
-        if (j.contains("providerRootDirectory") && !j["providerRootDirectory"].is_null()) {
-            obj.providerRootDirectory = j["providerRootDirectory"].get<std::string>();
+        if (j.contains("providerRootDirectory")) {
+            if (j["providerRootDirectory"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'providerRootDirectory' is null");
+            } else {
+                obj.providerRootDirectory = j["providerRootDirectory"].get<std::string>();
+            }
         }
         return obj;
     }
@@ -3434,26 +4542,54 @@ struct TemplateVariable {
     /** @brief Deserialize from JSON */
     static TemplateVariable fromJson(const nlohmann::json& j) {
         TemplateVariable obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("name") && !j["name"].is_null()) {
-            obj.name = j["name"].get<std::string>();
+        if (j.contains("name")) {
+            if (j["name"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'name' is null");
+            } else {
+                obj.name = j["name"].get<std::string>();
+            }
         }
-        if (j.contains("description") && !j["description"].is_null()) {
-            obj.description = j["description"].get<std::string>();
+        if (j.contains("description")) {
+            if (j["description"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'description' is null");
+            } else {
+                obj.description = j["description"].get<std::string>();
+            }
         }
-        if (j.contains("value") && !j["value"].is_null()) {
-            obj.value = j["value"].get<std::string>();
+        if (j.contains("value")) {
+            if (j["value"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'value' is null");
+            } else {
+                obj.value = j["value"].get<std::string>();
+            }
         }
-        if (j.contains("secret") && !j["secret"].is_null()) {
-            obj.secret = j["secret"].get<bool>();
+        if (j.contains("secret")) {
+            if (j["secret"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'secret' is null");
+            } else {
+                obj.secret = j["secret"].get<bool>();
+            }
         }
-        if (j.contains("placeholder") && !j["placeholder"].is_null()) {
-            obj.placeholder = j["placeholder"].get<std::string>();
+        if (j.contains("placeholder")) {
+            if (j["placeholder"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'placeholder' is null");
+            } else {
+                obj.placeholder = j["placeholder"].get<std::string>();
+            }
         }
-        if (j.contains("required") && !j["required"].is_null()) {
-            obj.required = j["required"].get<bool>();
+        if (j.contains("required")) {
+            if (j["required"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'required' is null");
+            } else {
+                obj.required = j["required"].get<bool>();
+            }
         }
-        if (j.contains("type") && !j["type"].is_null()) {
-            obj.type = j["type"].get<std::string>();
+        if (j.contains("type")) {
+            if (j["type"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'type' is null");
+            } else {
+                obj.type = j["type"].get<std::string>();
+            }
         }
         return obj;
     }
@@ -3537,60 +4673,128 @@ struct TemplateFunction {
     /** @brief Deserialize from JSON */
     static TemplateFunction fromJson(const nlohmann::json& j) {
         TemplateFunction obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("icon") && !j["icon"].is_null()) {
-            obj.icon = j["icon"].get<std::string>();
+        if (j.contains("icon")) {
+            if (j["icon"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'icon' is null");
+            } else {
+                obj.icon = j["icon"].get<std::string>();
+            }
         }
-        if (j.contains("id") && !j["id"].is_null()) {
-            obj.id = j["id"].get<std::string>();
+        if (j.contains("id")) {
+            if (j["id"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'id' is null");
+            } else {
+                obj.id = j["id"].get<std::string>();
+            }
         }
-        if (j.contains("name") && !j["name"].is_null()) {
-            obj.name = j["name"].get<std::string>();
+        if (j.contains("name")) {
+            if (j["name"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'name' is null");
+            } else {
+                obj.name = j["name"].get<std::string>();
+            }
         }
-        if (j.contains("tagline") && !j["tagline"].is_null()) {
-            obj.tagline = j["tagline"].get<std::string>();
+        if (j.contains("tagline")) {
+            if (j["tagline"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'tagline' is null");
+            } else {
+                obj.tagline = j["tagline"].get<std::string>();
+            }
         }
-        if (j.contains("permissions") && !j["permissions"].is_null()) {
-            obj.permissions = j["permissions"].get<std::vector<std::string>>();
+        if (j.contains("permissions")) {
+            if (j["permissions"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'permissions' is null");
+            } else {
+                obj.permissions = j["permissions"].get<std::vector<std::string>>();
+            }
         }
-        if (j.contains("events") && !j["events"].is_null()) {
-            obj.events = j["events"].get<std::vector<std::string>>();
+        if (j.contains("events")) {
+            if (j["events"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'events' is null");
+            } else {
+                obj.events = j["events"].get<std::vector<std::string>>();
+            }
         }
-        if (j.contains("cron") && !j["cron"].is_null()) {
-            obj.cron = j["cron"].get<std::string>();
+        if (j.contains("cron")) {
+            if (j["cron"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'cron' is null");
+            } else {
+                obj.cron = j["cron"].get<std::string>();
+            }
         }
-        if (j.contains("timeout") && !j["timeout"].is_null()) {
-            obj.timeout = j["timeout"].get<int64_t>();
+        if (j.contains("timeout")) {
+            if (j["timeout"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'timeout' is null");
+            } else {
+                obj.timeout = j["timeout"].get<int64_t>();
+            }
         }
-        if (j.contains("useCases") && !j["useCases"].is_null()) {
-            obj.useCases = j["useCases"].get<std::vector<std::string>>();
+        if (j.contains("useCases")) {
+            if (j["useCases"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'useCases' is null");
+            } else {
+                obj.useCases = j["useCases"].get<std::vector<std::string>>();
+            }
         }
-        if (j.contains("runtimes") && !j["runtimes"].is_null()) {
-                                        for (auto& item : j["runtimes"]) {
-                                obj.runtimes.push_back(TemplateRuntime::fromJson(item));
-                            }
-                    }
-        if (j.contains("instructions") && !j["instructions"].is_null()) {
-            obj.instructions = j["instructions"].get<std::string>();
+        if (j.contains("runtimes")) {
+            if (j["runtimes"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'runtimes' is null");
+            } else {
+                                            for (auto& item : j["runtimes"]) {
+                                    obj.runtimes.push_back(TemplateRuntime::fromJson(item));
+                                }
+                        }
         }
-        if (j.contains("vcsProvider") && !j["vcsProvider"].is_null()) {
-            obj.vcsProvider = j["vcsProvider"].get<std::string>();
+        if (j.contains("instructions")) {
+            if (j["instructions"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'instructions' is null");
+            } else {
+                obj.instructions = j["instructions"].get<std::string>();
+            }
         }
-        if (j.contains("providerRepositoryId") && !j["providerRepositoryId"].is_null()) {
-            obj.providerRepositoryId = j["providerRepositoryId"].get<std::string>();
+        if (j.contains("vcsProvider")) {
+            if (j["vcsProvider"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'vcsProvider' is null");
+            } else {
+                obj.vcsProvider = j["vcsProvider"].get<std::string>();
+            }
         }
-        if (j.contains("providerOwner") && !j["providerOwner"].is_null()) {
-            obj.providerOwner = j["providerOwner"].get<std::string>();
+        if (j.contains("providerRepositoryId")) {
+            if (j["providerRepositoryId"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'providerRepositoryId' is null");
+            } else {
+                obj.providerRepositoryId = j["providerRepositoryId"].get<std::string>();
+            }
         }
-        if (j.contains("providerVersion") && !j["providerVersion"].is_null()) {
-            obj.providerVersion = j["providerVersion"].get<std::string>();
+        if (j.contains("providerOwner")) {
+            if (j["providerOwner"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'providerOwner' is null");
+            } else {
+                obj.providerOwner = j["providerOwner"].get<std::string>();
+            }
         }
-        if (j.contains("variables") && !j["variables"].is_null()) {
-                                        for (auto& item : j["variables"]) {
-                                obj.variables.push_back(TemplateVariable::fromJson(item));
-                            }
-                    }
-        if (j.contains("scopes") && !j["scopes"].is_null()) {
-            obj.scopes = j["scopes"].get<std::vector<std::string>>();
+        if (j.contains("providerVersion")) {
+            if (j["providerVersion"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'providerVersion' is null");
+            } else {
+                obj.providerVersion = j["providerVersion"].get<std::string>();
+            }
+        }
+        if (j.contains("variables")) {
+            if (j["variables"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'variables' is null");
+            } else {
+                                            for (auto& item : j["variables"]) {
+                                    obj.variables.push_back(TemplateVariable::fromJson(item));
+                                }
+                        }
+        }
+        if (j.contains("scopes")) {
+            if (j["scopes"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'scopes' is null");
+            } else {
+                obj.scopes = j["scopes"].get<std::vector<std::string>>();
+            }
         }
         return obj;
     }
@@ -3678,14 +4882,22 @@ struct TemplateFunctionList {
     /** @brief Deserialize from JSON */
     static TemplateFunctionList fromJson(const nlohmann::json& j) {
         TemplateFunctionList obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("total") && !j["total"].is_null()) {
-            obj.total = j["total"].get<int64_t>();
+        if (j.contains("total")) {
+            if (j["total"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'total' is null");
+            } else {
+                obj.total = j["total"].get<int64_t>();
+            }
         }
-        if (j.contains("templates") && !j["templates"].is_null()) {
-                                        for (auto& item : j["templates"]) {
-                                obj.templates.push_back(TemplateFunction::fromJson(item));
-                            }
-                    }
+        if (j.contains("templates")) {
+            if (j["templates"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'templates' is null");
+            } else {
+                                            for (auto& item : j["templates"]) {
+                                    obj.templates.push_back(TemplateFunction::fromJson(item));
+                                }
+                        }
+        }
         return obj;
     }
 
@@ -3737,29 +4949,61 @@ struct Runtime {
     /** @brief Deserialize from JSON */
     static Runtime fromJson(const nlohmann::json& j) {
         Runtime obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("$id") && !j["$id"].is_null()) {
-            obj.id = j["$id"].get<std::string>();
+        if (j.contains("$id")) {
+            if (j["$id"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$id' is null");
+            } else {
+                obj.id = j["$id"].get<std::string>();
+            }
         }
-        if (j.contains("key") && !j["key"].is_null()) {
-            obj.key = j["key"].get<std::string>();
+        if (j.contains("key")) {
+            if (j["key"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'key' is null");
+            } else {
+                obj.key = j["key"].get<std::string>();
+            }
         }
-        if (j.contains("name") && !j["name"].is_null()) {
-            obj.name = j["name"].get<std::string>();
+        if (j.contains("name")) {
+            if (j["name"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'name' is null");
+            } else {
+                obj.name = j["name"].get<std::string>();
+            }
         }
-        if (j.contains("version") && !j["version"].is_null()) {
-            obj.version = j["version"].get<std::string>();
+        if (j.contains("version")) {
+            if (j["version"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'version' is null");
+            } else {
+                obj.version = j["version"].get<std::string>();
+            }
         }
-        if (j.contains("base") && !j["base"].is_null()) {
-            obj.base = j["base"].get<std::string>();
+        if (j.contains("base")) {
+            if (j["base"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'base' is null");
+            } else {
+                obj.base = j["base"].get<std::string>();
+            }
         }
-        if (j.contains("image") && !j["image"].is_null()) {
-            obj.image = j["image"].get<std::string>();
+        if (j.contains("image")) {
+            if (j["image"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'image' is null");
+            } else {
+                obj.image = j["image"].get<std::string>();
+            }
         }
-        if (j.contains("logo") && !j["logo"].is_null()) {
-            obj.logo = j["logo"].get<std::string>();
+        if (j.contains("logo")) {
+            if (j["logo"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'logo' is null");
+            } else {
+                obj.logo = j["logo"].get<std::string>();
+            }
         }
-        if (j.contains("supports") && !j["supports"].is_null()) {
-            obj.supports = j["supports"].get<std::vector<std::string>>();
+        if (j.contains("supports")) {
+            if (j["supports"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'supports' is null");
+            } else {
+                obj.supports = j["supports"].get<std::vector<std::string>>();
+            }
         }
         return obj;
     }
@@ -3816,14 +5060,22 @@ struct RuntimeList {
     /** @brief Deserialize from JSON */
     static RuntimeList fromJson(const nlohmann::json& j) {
         RuntimeList obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("total") && !j["total"].is_null()) {
-            obj.total = j["total"].get<int64_t>();
+        if (j.contains("total")) {
+            if (j["total"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'total' is null");
+            } else {
+                obj.total = j["total"].get<int64_t>();
+            }
         }
-        if (j.contains("runtimes") && !j["runtimes"].is_null()) {
-                                        for (auto& item : j["runtimes"]) {
-                                obj.runtimes.push_back(Runtime::fromJson(item));
-                            }
-                    }
+        if (j.contains("runtimes")) {
+            if (j["runtimes"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'runtimes' is null");
+            } else {
+                                            for (auto& item : j["runtimes"]) {
+                                    obj.runtimes.push_back(Runtime::fromJson(item));
+                                }
+                        }
+        }
         return obj;
     }
 
@@ -3913,86 +5165,194 @@ struct Deployment {
     /** @brief Deserialize from JSON */
     static Deployment fromJson(const nlohmann::json& j) {
         Deployment obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("$id") && !j["$id"].is_null()) {
-            obj.id = j["$id"].get<std::string>();
+        if (j.contains("$id")) {
+            if (j["$id"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$id' is null");
+            } else {
+                obj.id = j["$id"].get<std::string>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("type") && !j["type"].is_null()) {
-            obj.type = j["type"].get<std::string>();
+        if (j.contains("type")) {
+            if (j["type"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'type' is null");
+            } else {
+                obj.type = j["type"].get<std::string>();
+            }
         }
-        if (j.contains("resourceId") && !j["resourceId"].is_null()) {
-            obj.resourceId = j["resourceId"].get<std::string>();
+        if (j.contains("resourceId")) {
+            if (j["resourceId"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'resourceId' is null");
+            } else {
+                obj.resourceId = j["resourceId"].get<std::string>();
+            }
         }
-        if (j.contains("resourceType") && !j["resourceType"].is_null()) {
-            obj.resourceType = j["resourceType"].get<std::string>();
+        if (j.contains("resourceType")) {
+            if (j["resourceType"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'resourceType' is null");
+            } else {
+                obj.resourceType = j["resourceType"].get<std::string>();
+            }
         }
-        if (j.contains("entrypoint") && !j["entrypoint"].is_null()) {
-            obj.entrypoint = j["entrypoint"].get<std::string>();
+        if (j.contains("entrypoint")) {
+            if (j["entrypoint"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'entrypoint' is null");
+            } else {
+                obj.entrypoint = j["entrypoint"].get<std::string>();
+            }
         }
-        if (j.contains("sourceSize") && !j["sourceSize"].is_null()) {
-            obj.sourceSize = j["sourceSize"].get<int64_t>();
+        if (j.contains("sourceSize")) {
+            if (j["sourceSize"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'sourceSize' is null");
+            } else {
+                obj.sourceSize = j["sourceSize"].get<int64_t>();
+            }
         }
-        if (j.contains("buildSize") && !j["buildSize"].is_null()) {
-            obj.buildSize = j["buildSize"].get<int64_t>();
+        if (j.contains("buildSize")) {
+            if (j["buildSize"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'buildSize' is null");
+            } else {
+                obj.buildSize = j["buildSize"].get<int64_t>();
+            }
         }
-        if (j.contains("totalSize") && !j["totalSize"].is_null()) {
-            obj.totalSize = j["totalSize"].get<int64_t>();
+        if (j.contains("totalSize")) {
+            if (j["totalSize"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'totalSize' is null");
+            } else {
+                obj.totalSize = j["totalSize"].get<int64_t>();
+            }
         }
-        if (j.contains("buildId") && !j["buildId"].is_null()) {
-            obj.buildId = j["buildId"].get<std::string>();
+        if (j.contains("buildId")) {
+            if (j["buildId"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'buildId' is null");
+            } else {
+                obj.buildId = j["buildId"].get<std::string>();
+            }
         }
-        if (j.contains("activate") && !j["activate"].is_null()) {
-            obj.activate = j["activate"].get<bool>();
+        if (j.contains("activate")) {
+            if (j["activate"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'activate' is null");
+            } else {
+                obj.activate = j["activate"].get<bool>();
+            }
         }
-        if (j.contains("screenshotLight") && !j["screenshotLight"].is_null()) {
-            obj.screenshotLight = j["screenshotLight"].get<std::string>();
+        if (j.contains("screenshotLight")) {
+            if (j["screenshotLight"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'screenshotLight' is null");
+            } else {
+                obj.screenshotLight = j["screenshotLight"].get<std::string>();
+            }
         }
-        if (j.contains("screenshotDark") && !j["screenshotDark"].is_null()) {
-            obj.screenshotDark = j["screenshotDark"].get<std::string>();
+        if (j.contains("screenshotDark")) {
+            if (j["screenshotDark"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'screenshotDark' is null");
+            } else {
+                obj.screenshotDark = j["screenshotDark"].get<std::string>();
+            }
         }
-        if (j.contains("status") && !j["status"].is_null()) {
-            obj.status = j["status"].get<appwrite::enums::DeploymentStatus>();
+        if (j.contains("status")) {
+            if (j["status"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'status' is null");
+            } else {
+                obj.status = j["status"].get<appwrite::enums::DeploymentStatus>();
+            }
         }
-        if (j.contains("buildLogs") && !j["buildLogs"].is_null()) {
-            obj.buildLogs = j["buildLogs"].get<std::string>();
+        if (j.contains("buildLogs")) {
+            if (j["buildLogs"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'buildLogs' is null");
+            } else {
+                obj.buildLogs = j["buildLogs"].get<std::string>();
+            }
         }
-        if (j.contains("buildDuration") && !j["buildDuration"].is_null()) {
-            obj.buildDuration = j["buildDuration"].get<int64_t>();
+        if (j.contains("buildDuration")) {
+            if (j["buildDuration"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'buildDuration' is null");
+            } else {
+                obj.buildDuration = j["buildDuration"].get<int64_t>();
+            }
         }
-        if (j.contains("providerRepositoryName") && !j["providerRepositoryName"].is_null()) {
-            obj.providerRepositoryName = j["providerRepositoryName"].get<std::string>();
+        if (j.contains("providerRepositoryName")) {
+            if (j["providerRepositoryName"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'providerRepositoryName' is null");
+            } else {
+                obj.providerRepositoryName = j["providerRepositoryName"].get<std::string>();
+            }
         }
-        if (j.contains("providerRepositoryOwner") && !j["providerRepositoryOwner"].is_null()) {
-            obj.providerRepositoryOwner = j["providerRepositoryOwner"].get<std::string>();
+        if (j.contains("providerRepositoryOwner")) {
+            if (j["providerRepositoryOwner"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'providerRepositoryOwner' is null");
+            } else {
+                obj.providerRepositoryOwner = j["providerRepositoryOwner"].get<std::string>();
+            }
         }
-        if (j.contains("providerRepositoryUrl") && !j["providerRepositoryUrl"].is_null()) {
-            obj.providerRepositoryUrl = j["providerRepositoryUrl"].get<std::string>();
+        if (j.contains("providerRepositoryUrl")) {
+            if (j["providerRepositoryUrl"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'providerRepositoryUrl' is null");
+            } else {
+                obj.providerRepositoryUrl = j["providerRepositoryUrl"].get<std::string>();
+            }
         }
-        if (j.contains("providerCommitHash") && !j["providerCommitHash"].is_null()) {
-            obj.providerCommitHash = j["providerCommitHash"].get<std::string>();
+        if (j.contains("providerCommitHash")) {
+            if (j["providerCommitHash"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'providerCommitHash' is null");
+            } else {
+                obj.providerCommitHash = j["providerCommitHash"].get<std::string>();
+            }
         }
-        if (j.contains("providerCommitAuthorUrl") && !j["providerCommitAuthorUrl"].is_null()) {
-            obj.providerCommitAuthorUrl = j["providerCommitAuthorUrl"].get<std::string>();
+        if (j.contains("providerCommitAuthorUrl")) {
+            if (j["providerCommitAuthorUrl"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'providerCommitAuthorUrl' is null");
+            } else {
+                obj.providerCommitAuthorUrl = j["providerCommitAuthorUrl"].get<std::string>();
+            }
         }
-        if (j.contains("providerCommitAuthor") && !j["providerCommitAuthor"].is_null()) {
-            obj.providerCommitAuthor = j["providerCommitAuthor"].get<std::string>();
+        if (j.contains("providerCommitAuthor")) {
+            if (j["providerCommitAuthor"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'providerCommitAuthor' is null");
+            } else {
+                obj.providerCommitAuthor = j["providerCommitAuthor"].get<std::string>();
+            }
         }
-        if (j.contains("providerCommitMessage") && !j["providerCommitMessage"].is_null()) {
-            obj.providerCommitMessage = j["providerCommitMessage"].get<std::string>();
+        if (j.contains("providerCommitMessage")) {
+            if (j["providerCommitMessage"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'providerCommitMessage' is null");
+            } else {
+                obj.providerCommitMessage = j["providerCommitMessage"].get<std::string>();
+            }
         }
-        if (j.contains("providerCommitUrl") && !j["providerCommitUrl"].is_null()) {
-            obj.providerCommitUrl = j["providerCommitUrl"].get<std::string>();
+        if (j.contains("providerCommitUrl")) {
+            if (j["providerCommitUrl"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'providerCommitUrl' is null");
+            } else {
+                obj.providerCommitUrl = j["providerCommitUrl"].get<std::string>();
+            }
         }
-        if (j.contains("providerBranch") && !j["providerBranch"].is_null()) {
-            obj.providerBranch = j["providerBranch"].get<std::string>();
+        if (j.contains("providerBranch")) {
+            if (j["providerBranch"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'providerBranch' is null");
+            } else {
+                obj.providerBranch = j["providerBranch"].get<std::string>();
+            }
         }
-        if (j.contains("providerBranchUrl") && !j["providerBranchUrl"].is_null()) {
-            obj.providerBranchUrl = j["providerBranchUrl"].get<std::string>();
+        if (j.contains("providerBranchUrl")) {
+            if (j["providerBranchUrl"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'providerBranchUrl' is null");
+            } else {
+                obj.providerBranchUrl = j["providerBranchUrl"].get<std::string>();
+            }
         }
         return obj;
     }
@@ -4106,14 +5466,22 @@ struct DeploymentList {
     /** @brief Deserialize from JSON */
     static DeploymentList fromJson(const nlohmann::json& j) {
         DeploymentList obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("total") && !j["total"].is_null()) {
-            obj.total = j["total"].get<int64_t>();
+        if (j.contains("total")) {
+            if (j["total"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'total' is null");
+            } else {
+                obj.total = j["total"].get<int64_t>();
+            }
         }
-        if (j.contains("deployments") && !j["deployments"].is_null()) {
-                                        for (auto& item : j["deployments"]) {
-                                obj.deployments.push_back(Deployment::fromJson(item));
-                            }
-                    }
+        if (j.contains("deployments")) {
+            if (j["deployments"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'deployments' is null");
+            } else {
+                                            for (auto& item : j["deployments"]) {
+                                    obj.deployments.push_back(Deployment::fromJson(item));
+                                }
+                        }
+        }
         return obj;
     }
 
@@ -4153,11 +5521,19 @@ struct Headers {
     /** @brief Deserialize from JSON */
     static Headers fromJson(const nlohmann::json& j) {
         Headers obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("name") && !j["name"].is_null()) {
-            obj.name = j["name"].get<std::string>();
+        if (j.contains("name")) {
+            if (j["name"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'name' is null");
+            } else {
+                obj.name = j["name"].get<std::string>();
+            }
         }
-        if (j.contains("value") && !j["value"].is_null()) {
-            obj.value = j["value"].get<std::string>();
+        if (j.contains("value")) {
+            if (j["value"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'value' is null");
+            } else {
+                obj.value = j["value"].get<std::string>();
+            }
         }
         return obj;
     }
@@ -4228,63 +5604,135 @@ struct Execution {
     /** @brief Deserialize from JSON */
     static Execution fromJson(const nlohmann::json& j) {
         Execution obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("$id") && !j["$id"].is_null()) {
-            obj.id = j["$id"].get<std::string>();
+        if (j.contains("$id")) {
+            if (j["$id"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$id' is null");
+            } else {
+                obj.id = j["$id"].get<std::string>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("$permissions") && !j["$permissions"].is_null()) {
-            obj.permissions = j["$permissions"].get<std::vector<std::string>>();
+        if (j.contains("$permissions")) {
+            if (j["$permissions"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$permissions' is null");
+            } else {
+                obj.permissions = j["$permissions"].get<std::vector<std::string>>();
+            }
         }
-        if (j.contains("functionId") && !j["functionId"].is_null()) {
-            obj.functionId = j["functionId"].get<std::string>();
+        if (j.contains("functionId")) {
+            if (j["functionId"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'functionId' is null");
+            } else {
+                obj.functionId = j["functionId"].get<std::string>();
+            }
         }
-        if (j.contains("deploymentId") && !j["deploymentId"].is_null()) {
-            obj.deploymentId = j["deploymentId"].get<std::string>();
+        if (j.contains("deploymentId")) {
+            if (j["deploymentId"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'deploymentId' is null");
+            } else {
+                obj.deploymentId = j["deploymentId"].get<std::string>();
+            }
         }
-        if (j.contains("trigger") && !j["trigger"].is_null()) {
-            obj.trigger = j["trigger"].get<appwrite::enums::ExecutionTrigger>();
+        if (j.contains("trigger")) {
+            if (j["trigger"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'trigger' is null");
+            } else {
+                obj.trigger = j["trigger"].get<appwrite::enums::ExecutionTrigger>();
+            }
         }
-        if (j.contains("status") && !j["status"].is_null()) {
-            obj.status = j["status"].get<appwrite::enums::ExecutionStatus>();
+        if (j.contains("status")) {
+            if (j["status"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'status' is null");
+            } else {
+                obj.status = j["status"].get<appwrite::enums::ExecutionStatus>();
+            }
         }
-        if (j.contains("requestMethod") && !j["requestMethod"].is_null()) {
-            obj.requestMethod = j["requestMethod"].get<std::string>();
+        if (j.contains("requestMethod")) {
+            if (j["requestMethod"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'requestMethod' is null");
+            } else {
+                obj.requestMethod = j["requestMethod"].get<std::string>();
+            }
         }
-        if (j.contains("requestPath") && !j["requestPath"].is_null()) {
-            obj.requestPath = j["requestPath"].get<std::string>();
+        if (j.contains("requestPath")) {
+            if (j["requestPath"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'requestPath' is null");
+            } else {
+                obj.requestPath = j["requestPath"].get<std::string>();
+            }
         }
-        if (j.contains("requestHeaders") && !j["requestHeaders"].is_null()) {
-                                        for (auto& item : j["requestHeaders"]) {
-                                obj.requestHeaders.push_back(Headers::fromJson(item));
-                            }
-                    }
-        if (j.contains("responseStatusCode") && !j["responseStatusCode"].is_null()) {
-            obj.responseStatusCode = j["responseStatusCode"].get<int64_t>();
+        if (j.contains("requestHeaders")) {
+            if (j["requestHeaders"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'requestHeaders' is null");
+            } else {
+                                            for (auto& item : j["requestHeaders"]) {
+                                    obj.requestHeaders.push_back(Headers::fromJson(item));
+                                }
+                        }
         }
-        if (j.contains("responseBody") && !j["responseBody"].is_null()) {
-            obj.responseBody = j["responseBody"].get<std::string>();
+        if (j.contains("responseStatusCode")) {
+            if (j["responseStatusCode"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'responseStatusCode' is null");
+            } else {
+                obj.responseStatusCode = j["responseStatusCode"].get<int64_t>();
+            }
         }
-        if (j.contains("responseHeaders") && !j["responseHeaders"].is_null()) {
-                                        for (auto& item : j["responseHeaders"]) {
-                                obj.responseHeaders.push_back(Headers::fromJson(item));
-                            }
-                    }
-        if (j.contains("logs") && !j["logs"].is_null()) {
-            obj.logs = j["logs"].get<std::string>();
+        if (j.contains("responseBody")) {
+            if (j["responseBody"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'responseBody' is null");
+            } else {
+                obj.responseBody = j["responseBody"].get<std::string>();
+            }
         }
-        if (j.contains("errors") && !j["errors"].is_null()) {
-            obj.errors = j["errors"].get<std::string>();
+        if (j.contains("responseHeaders")) {
+            if (j["responseHeaders"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'responseHeaders' is null");
+            } else {
+                                            for (auto& item : j["responseHeaders"]) {
+                                    obj.responseHeaders.push_back(Headers::fromJson(item));
+                                }
+                        }
         }
-        if (j.contains("duration") && !j["duration"].is_null()) {
-            obj.duration = j["duration"].get<double>();
+        if (j.contains("logs")) {
+            if (j["logs"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'logs' is null");
+            } else {
+                obj.logs = j["logs"].get<std::string>();
+            }
         }
-        if (j.contains("scheduledAt") && !j["scheduledAt"].is_null()) {
-            obj.scheduledAt = j["scheduledAt"].get<std::optional<std::string>>();
+        if (j.contains("errors")) {
+            if (j["errors"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'errors' is null");
+            } else {
+                obj.errors = j["errors"].get<std::string>();
+            }
+        }
+        if (j.contains("duration")) {
+            if (j["duration"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'duration' is null");
+            } else {
+                obj.duration = j["duration"].get<double>();
+            }
+        }
+        if (j.contains("scheduledAt")) {
+            if (j["scheduledAt"].is_null()) {
+                obj.scheduledAt = std::nullopt;
+            } else {
+                obj.scheduledAt = j["scheduledAt"].get<std::optional<std::string>>();
+            }
         }
         return obj;
     }
@@ -4375,14 +5823,22 @@ struct ExecutionList {
     /** @brief Deserialize from JSON */
     static ExecutionList fromJson(const nlohmann::json& j) {
         ExecutionList obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("total") && !j["total"].is_null()) {
-            obj.total = j["total"].get<int64_t>();
+        if (j.contains("total")) {
+            if (j["total"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'total' is null");
+            } else {
+                obj.total = j["total"].get<int64_t>();
+            }
         }
-        if (j.contains("executions") && !j["executions"].is_null()) {
-                                        for (auto& item : j["executions"]) {
-                                obj.executions.push_back(Execution::fromJson(item));
-                            }
-                    }
+        if (j.contains("executions")) {
+            if (j["executions"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'executions' is null");
+            } else {
+                                            for (auto& item : j["executions"]) {
+                                    obj.executions.push_back(Execution::fromJson(item));
+                                }
+                        }
+        }
         return obj;
     }
 
@@ -4444,44 +5900,96 @@ struct Webhook {
     /** @brief Deserialize from JSON */
     static Webhook fromJson(const nlohmann::json& j) {
         Webhook obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("$id") && !j["$id"].is_null()) {
-            obj.id = j["$id"].get<std::string>();
+        if (j.contains("$id")) {
+            if (j["$id"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$id' is null");
+            } else {
+                obj.id = j["$id"].get<std::string>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("name") && !j["name"].is_null()) {
-            obj.name = j["name"].get<std::string>();
+        if (j.contains("name")) {
+            if (j["name"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'name' is null");
+            } else {
+                obj.name = j["name"].get<std::string>();
+            }
         }
-        if (j.contains("url") && !j["url"].is_null()) {
-            obj.url = j["url"].get<std::string>();
+        if (j.contains("url")) {
+            if (j["url"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'url' is null");
+            } else {
+                obj.url = j["url"].get<std::string>();
+            }
         }
-        if (j.contains("events") && !j["events"].is_null()) {
-            obj.events = j["events"].get<std::vector<std::string>>();
+        if (j.contains("events")) {
+            if (j["events"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'events' is null");
+            } else {
+                obj.events = j["events"].get<std::vector<std::string>>();
+            }
         }
-        if (j.contains("tls") && !j["tls"].is_null()) {
-            obj.tls = j["tls"].get<bool>();
+        if (j.contains("tls")) {
+            if (j["tls"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'tls' is null");
+            } else {
+                obj.tls = j["tls"].get<bool>();
+            }
         }
-        if (j.contains("authUsername") && !j["authUsername"].is_null()) {
-            obj.authUsername = j["authUsername"].get<std::string>();
+        if (j.contains("authUsername")) {
+            if (j["authUsername"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'authUsername' is null");
+            } else {
+                obj.authUsername = j["authUsername"].get<std::string>();
+            }
         }
-        if (j.contains("authPassword") && !j["authPassword"].is_null()) {
-            obj.authPassword = j["authPassword"].get<std::string>();
+        if (j.contains("authPassword")) {
+            if (j["authPassword"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'authPassword' is null");
+            } else {
+                obj.authPassword = j["authPassword"].get<std::string>();
+            }
         }
-        if (j.contains("secret") && !j["secret"].is_null()) {
-            obj.secret = j["secret"].get<std::string>();
+        if (j.contains("secret")) {
+            if (j["secret"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'secret' is null");
+            } else {
+                obj.secret = j["secret"].get<std::string>();
+            }
         }
-        if (j.contains("enabled") && !j["enabled"].is_null()) {
-            obj.enabled = j["enabled"].get<bool>();
+        if (j.contains("enabled")) {
+            if (j["enabled"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'enabled' is null");
+            } else {
+                obj.enabled = j["enabled"].get<bool>();
+            }
         }
-        if (j.contains("logs") && !j["logs"].is_null()) {
-            obj.logs = j["logs"].get<std::string>();
+        if (j.contains("logs")) {
+            if (j["logs"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'logs' is null");
+            } else {
+                obj.logs = j["logs"].get<std::string>();
+            }
         }
-        if (j.contains("attempts") && !j["attempts"].is_null()) {
-            obj.attempts = j["attempts"].get<int64_t>();
+        if (j.contains("attempts")) {
+            if (j["attempts"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'attempts' is null");
+            } else {
+                obj.attempts = j["attempts"].get<int64_t>();
+            }
         }
         return obj;
     }
@@ -4553,14 +6061,22 @@ struct WebhookList {
     /** @brief Deserialize from JSON */
     static WebhookList fromJson(const nlohmann::json& j) {
         WebhookList obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("total") && !j["total"].is_null()) {
-            obj.total = j["total"].get<int64_t>();
+        if (j.contains("total")) {
+            if (j["total"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'total' is null");
+            } else {
+                obj.total = j["total"].get<int64_t>();
+            }
         }
-        if (j.contains("webhooks") && !j["webhooks"].is_null()) {
-                                        for (auto& item : j["webhooks"]) {
-                                obj.webhooks.push_back(Webhook::fromJson(item));
-                            }
-                    }
+        if (j.contains("webhooks")) {
+            if (j["webhooks"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'webhooks' is null");
+            } else {
+                                            for (auto& item : j["webhooks"]) {
+                                    obj.webhooks.push_back(Webhook::fromJson(item));
+                                }
+                        }
+        }
         return obj;
     }
 
@@ -4614,32 +6130,68 @@ struct Key {
     /** @brief Deserialize from JSON */
     static Key fromJson(const nlohmann::json& j) {
         Key obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("$id") && !j["$id"].is_null()) {
-            obj.id = j["$id"].get<std::string>();
+        if (j.contains("$id")) {
+            if (j["$id"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$id' is null");
+            } else {
+                obj.id = j["$id"].get<std::string>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("name") && !j["name"].is_null()) {
-            obj.name = j["name"].get<std::string>();
+        if (j.contains("name")) {
+            if (j["name"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'name' is null");
+            } else {
+                obj.name = j["name"].get<std::string>();
+            }
         }
-        if (j.contains("expire") && !j["expire"].is_null()) {
-            obj.expire = j["expire"].get<std::string>();
+        if (j.contains("expire")) {
+            if (j["expire"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'expire' is null");
+            } else {
+                obj.expire = j["expire"].get<std::string>();
+            }
         }
-        if (j.contains("scopes") && !j["scopes"].is_null()) {
-            obj.scopes = j["scopes"].get<std::vector<std::string>>();
+        if (j.contains("scopes")) {
+            if (j["scopes"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'scopes' is null");
+            } else {
+                obj.scopes = j["scopes"].get<std::vector<std::string>>();
+            }
         }
-        if (j.contains("secret") && !j["secret"].is_null()) {
-            obj.secret = j["secret"].get<std::string>();
+        if (j.contains("secret")) {
+            if (j["secret"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'secret' is null");
+            } else {
+                obj.secret = j["secret"].get<std::string>();
+            }
         }
-        if (j.contains("accessedAt") && !j["accessedAt"].is_null()) {
-            obj.accessedAt = j["accessedAt"].get<std::string>();
+        if (j.contains("accessedAt")) {
+            if (j["accessedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'accessedAt' is null");
+            } else {
+                obj.accessedAt = j["accessedAt"].get<std::string>();
+            }
         }
-        if (j.contains("sdks") && !j["sdks"].is_null()) {
-            obj.sdks = j["sdks"].get<std::vector<std::string>>();
+        if (j.contains("sdks")) {
+            if (j["sdks"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'sdks' is null");
+            } else {
+                obj.sdks = j["sdks"].get<std::vector<std::string>>();
+            }
         }
         return obj;
     }
@@ -4699,14 +6251,22 @@ struct KeyList {
     /** @brief Deserialize from JSON */
     static KeyList fromJson(const nlohmann::json& j) {
         KeyList obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("total") && !j["total"].is_null()) {
-            obj.total = j["total"].get<int64_t>();
+        if (j.contains("total")) {
+            if (j["total"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'total' is null");
+            } else {
+                obj.total = j["total"].get<int64_t>();
+            }
         }
-        if (j.contains("keys") && !j["keys"].is_null()) {
-                                        for (auto& item : j["keys"]) {
-                                obj.keys.push_back(Key::fromJson(item));
-                            }
-                    }
+        if (j.contains("keys")) {
+            if (j["keys"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'keys' is null");
+            } else {
+                                            for (auto& item : j["keys"]) {
+                                    obj.keys.push_back(Key::fromJson(item));
+                                }
+                        }
+        }
         return obj;
     }
 
@@ -4746,14 +6306,22 @@ struct VariableList {
     /** @brief Deserialize from JSON */
     static VariableList fromJson(const nlohmann::json& j) {
         VariableList obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("total") && !j["total"].is_null()) {
-            obj.total = j["total"].get<int64_t>();
+        if (j.contains("total")) {
+            if (j["total"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'total' is null");
+            } else {
+                obj.total = j["total"].get<int64_t>();
+            }
         }
-        if (j.contains("variables") && !j["variables"].is_null()) {
-                                        for (auto& item : j["variables"]) {
-                                obj.variables.push_back(Variable::fromJson(item));
-                            }
-                    }
+        if (j.contains("variables")) {
+            if (j["variables"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'variables' is null");
+            } else {
+                                            for (auto& item : j["variables"]) {
+                                    obj.variables.push_back(Variable::fromJson(item));
+                                }
+                        }
+        }
         return obj;
     }
 
@@ -4793,14 +6361,22 @@ struct TargetList {
     /** @brief Deserialize from JSON */
     static TargetList fromJson(const nlohmann::json& j) {
         TargetList obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("total") && !j["total"].is_null()) {
-            obj.total = j["total"].get<int64_t>();
+        if (j.contains("total")) {
+            if (j["total"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'total' is null");
+            } else {
+                obj.total = j["total"].get<int64_t>();
+            }
         }
-        if (j.contains("targets") && !j["targets"].is_null()) {
-                                        for (auto& item : j["targets"]) {
-                                obj.targets.push_back(Target::fromJson(item));
-                            }
-                    }
+        if (j.contains("targets")) {
+            if (j["targets"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'targets' is null");
+            } else {
+                                            for (auto& item : j["targets"]) {
+                                    obj.targets.push_back(Target::fromJson(item));
+                                }
+                        }
+        }
         return obj;
     }
 
@@ -4848,23 +6424,47 @@ struct Transaction {
     /** @brief Deserialize from JSON */
     static Transaction fromJson(const nlohmann::json& j) {
         Transaction obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("$id") && !j["$id"].is_null()) {
-            obj.id = j["$id"].get<std::string>();
+        if (j.contains("$id")) {
+            if (j["$id"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$id' is null");
+            } else {
+                obj.id = j["$id"].get<std::string>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("status") && !j["status"].is_null()) {
-            obj.status = j["status"].get<std::string>();
+        if (j.contains("status")) {
+            if (j["status"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'status' is null");
+            } else {
+                obj.status = j["status"].get<std::string>();
+            }
         }
-        if (j.contains("operations") && !j["operations"].is_null()) {
-            obj.operations = j["operations"].get<int64_t>();
+        if (j.contains("operations")) {
+            if (j["operations"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'operations' is null");
+            } else {
+                obj.operations = j["operations"].get<int64_t>();
+            }
         }
-        if (j.contains("expiresAt") && !j["expiresAt"].is_null()) {
-            obj.expiresAt = j["expiresAt"].get<std::string>();
+        if (j.contains("expiresAt")) {
+            if (j["expiresAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'expiresAt' is null");
+            } else {
+                obj.expiresAt = j["expiresAt"].get<std::string>();
+            }
         }
         return obj;
     }
@@ -4915,14 +6515,22 @@ struct TransactionList {
     /** @brief Deserialize from JSON */
     static TransactionList fromJson(const nlohmann::json& j) {
         TransactionList obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("total") && !j["total"].is_null()) {
-            obj.total = j["total"].get<int64_t>();
+        if (j.contains("total")) {
+            if (j["total"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'total' is null");
+            } else {
+                obj.total = j["total"].get<int64_t>();
+            }
         }
-        if (j.contains("transactions") && !j["transactions"].is_null()) {
-                                        for (auto& item : j["transactions"]) {
-                                obj.transactions.push_back(Transaction::fromJson(item));
-                            }
-                    }
+        if (j.contains("transactions")) {
+            if (j["transactions"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'transactions' is null");
+            } else {
+                                            for (auto& item : j["transactions"]) {
+                                    obj.transactions.push_back(Transaction::fromJson(item));
+                                }
+                        }
+        }
         return obj;
     }
 
@@ -4966,17 +6574,33 @@ struct Specification {
     /** @brief Deserialize from JSON */
     static Specification fromJson(const nlohmann::json& j) {
         Specification obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("memory") && !j["memory"].is_null()) {
-            obj.memory = j["memory"].get<int64_t>();
+        if (j.contains("memory")) {
+            if (j["memory"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'memory' is null");
+            } else {
+                obj.memory = j["memory"].get<int64_t>();
+            }
         }
-        if (j.contains("cpus") && !j["cpus"].is_null()) {
-            obj.cpus = j["cpus"].get<double>();
+        if (j.contains("cpus")) {
+            if (j["cpus"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'cpus' is null");
+            } else {
+                obj.cpus = j["cpus"].get<double>();
+            }
         }
-        if (j.contains("enabled") && !j["enabled"].is_null()) {
-            obj.enabled = j["enabled"].get<bool>();
+        if (j.contains("enabled")) {
+            if (j["enabled"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'enabled' is null");
+            } else {
+                obj.enabled = j["enabled"].get<bool>();
+            }
         }
-        if (j.contains("slug") && !j["slug"].is_null()) {
-            obj.slug = j["slug"].get<std::string>();
+        if (j.contains("slug")) {
+            if (j["slug"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'slug' is null");
+            } else {
+                obj.slug = j["slug"].get<std::string>();
+            }
         }
         return obj;
     }
@@ -5021,14 +6645,22 @@ struct SpecificationList {
     /** @brief Deserialize from JSON */
     static SpecificationList fromJson(const nlohmann::json& j) {
         SpecificationList obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("total") && !j["total"].is_null()) {
-            obj.total = j["total"].get<int64_t>();
+        if (j.contains("total")) {
+            if (j["total"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'total' is null");
+            } else {
+                obj.total = j["total"].get<int64_t>();
+            }
         }
-        if (j.contains("specifications") && !j["specifications"].is_null()) {
-                                        for (auto& item : j["specifications"]) {
-                                obj.specifications.push_back(Specification::fromJson(item));
-                            }
-                    }
+        if (j.contains("specifications")) {
+            if (j["specifications"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'specifications' is null");
+            } else {
+                                            for (auto& item : j["specifications"]) {
+                                    obj.specifications.push_back(Specification::fromJson(item));
+                                }
+                        }
+        }
         return obj;
     }
 
@@ -5068,11 +6700,19 @@ struct AttributeList {
     /** @brief Deserialize from JSON */
     static AttributeList fromJson(const nlohmann::json& j) {
         AttributeList obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("total") && !j["total"].is_null()) {
-            obj.total = j["total"].get<int64_t>();
+        if (j.contains("total")) {
+            if (j["total"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'total' is null");
+            } else {
+                obj.total = j["total"].get<int64_t>();
+            }
         }
-        if (j.contains("attributes") && !j["attributes"].is_null()) {
-            obj.attributes = j["attributes"].get<std::vector<std::string>>();
+        if (j.contains("attributes")) {
+            if (j["attributes"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'attributes' is null");
+            } else {
+                obj.attributes = j["attributes"].get<std::vector<std::string>>();
+            }
         }
         return obj;
     }
@@ -5129,38 +6769,82 @@ struct AttributeString {
     /** @brief Deserialize from JSON */
     static AttributeString fromJson(const nlohmann::json& j) {
         AttributeString obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("key") && !j["key"].is_null()) {
-            obj.key = j["key"].get<std::string>();
+        if (j.contains("key")) {
+            if (j["key"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'key' is null");
+            } else {
+                obj.key = j["key"].get<std::string>();
+            }
         }
-        if (j.contains("type") && !j["type"].is_null()) {
-            obj.type = j["type"].get<std::string>();
+        if (j.contains("type")) {
+            if (j["type"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'type' is null");
+            } else {
+                obj.type = j["type"].get<std::string>();
+            }
         }
-        if (j.contains("status") && !j["status"].is_null()) {
-            obj.status = j["status"].get<appwrite::enums::AttributeStatus>();
+        if (j.contains("status")) {
+            if (j["status"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'status' is null");
+            } else {
+                obj.status = j["status"].get<appwrite::enums::AttributeStatus>();
+            }
         }
-        if (j.contains("error") && !j["error"].is_null()) {
-            obj.error = j["error"].get<std::string>();
+        if (j.contains("error")) {
+            if (j["error"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'error' is null");
+            } else {
+                obj.error = j["error"].get<std::string>();
+            }
         }
-        if (j.contains("required") && !j["required"].is_null()) {
-            obj.required = j["required"].get<bool>();
+        if (j.contains("required")) {
+            if (j["required"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'required' is null");
+            } else {
+                obj.required = j["required"].get<bool>();
+            }
         }
-        if (j.contains("array") && !j["array"].is_null()) {
-            obj.array = j["array"].get<std::optional<bool>>();
+        if (j.contains("array")) {
+            if (j["array"].is_null()) {
+                obj.array = std::nullopt;
+            } else {
+                obj.array = j["array"].get<std::optional<bool>>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("size") && !j["size"].is_null()) {
-            obj.size = j["size"].get<int64_t>();
+        if (j.contains("size")) {
+            if (j["size"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'size' is null");
+            } else {
+                obj.size = j["size"].get<int64_t>();
+            }
         }
-        if (j.contains("default") && !j["default"].is_null()) {
-            obj.default_ = j["default"].get<std::optional<std::string>>();
+        if (j.contains("default")) {
+            if (j["default"].is_null()) {
+                obj.default_ = std::nullopt;
+            } else {
+                obj.default_ = j["default"].get<std::optional<std::string>>();
+            }
         }
-        if (j.contains("encrypt") && !j["encrypt"].is_null()) {
-            obj.encrypt = j["encrypt"].get<std::optional<bool>>();
+        if (j.contains("encrypt")) {
+            if (j["encrypt"].is_null()) {
+                obj.encrypt = std::nullopt;
+            } else {
+                obj.encrypt = j["encrypt"].get<std::optional<bool>>();
+            }
         }
         return obj;
     }
@@ -5244,38 +6928,82 @@ struct AttributeInteger {
     /** @brief Deserialize from JSON */
     static AttributeInteger fromJson(const nlohmann::json& j) {
         AttributeInteger obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("key") && !j["key"].is_null()) {
-            obj.key = j["key"].get<std::string>();
+        if (j.contains("key")) {
+            if (j["key"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'key' is null");
+            } else {
+                obj.key = j["key"].get<std::string>();
+            }
         }
-        if (j.contains("type") && !j["type"].is_null()) {
-            obj.type = j["type"].get<std::string>();
+        if (j.contains("type")) {
+            if (j["type"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'type' is null");
+            } else {
+                obj.type = j["type"].get<std::string>();
+            }
         }
-        if (j.contains("status") && !j["status"].is_null()) {
-            obj.status = j["status"].get<appwrite::enums::AttributeStatus>();
+        if (j.contains("status")) {
+            if (j["status"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'status' is null");
+            } else {
+                obj.status = j["status"].get<appwrite::enums::AttributeStatus>();
+            }
         }
-        if (j.contains("error") && !j["error"].is_null()) {
-            obj.error = j["error"].get<std::string>();
+        if (j.contains("error")) {
+            if (j["error"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'error' is null");
+            } else {
+                obj.error = j["error"].get<std::string>();
+            }
         }
-        if (j.contains("required") && !j["required"].is_null()) {
-            obj.required = j["required"].get<bool>();
+        if (j.contains("required")) {
+            if (j["required"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'required' is null");
+            } else {
+                obj.required = j["required"].get<bool>();
+            }
         }
-        if (j.contains("array") && !j["array"].is_null()) {
-            obj.array = j["array"].get<std::optional<bool>>();
+        if (j.contains("array")) {
+            if (j["array"].is_null()) {
+                obj.array = std::nullopt;
+            } else {
+                obj.array = j["array"].get<std::optional<bool>>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("min") && !j["min"].is_null()) {
-            obj.min = j["min"].get<std::optional<int64_t>>();
+        if (j.contains("min")) {
+            if (j["min"].is_null()) {
+                obj.min = std::nullopt;
+            } else {
+                obj.min = j["min"].get<std::optional<int64_t>>();
+            }
         }
-        if (j.contains("max") && !j["max"].is_null()) {
-            obj.max = j["max"].get<std::optional<int64_t>>();
+        if (j.contains("max")) {
+            if (j["max"].is_null()) {
+                obj.max = std::nullopt;
+            } else {
+                obj.max = j["max"].get<std::optional<int64_t>>();
+            }
         }
-        if (j.contains("default") && !j["default"].is_null()) {
-            obj.default_ = j["default"].get<std::optional<int64_t>>();
+        if (j.contains("default")) {
+            if (j["default"].is_null()) {
+                obj.default_ = std::nullopt;
+            } else {
+                obj.default_ = j["default"].get<std::optional<int64_t>>();
+            }
         }
         return obj;
     }
@@ -5359,38 +7087,82 @@ struct AttributeFloat {
     /** @brief Deserialize from JSON */
     static AttributeFloat fromJson(const nlohmann::json& j) {
         AttributeFloat obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("key") && !j["key"].is_null()) {
-            obj.key = j["key"].get<std::string>();
+        if (j.contains("key")) {
+            if (j["key"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'key' is null");
+            } else {
+                obj.key = j["key"].get<std::string>();
+            }
         }
-        if (j.contains("type") && !j["type"].is_null()) {
-            obj.type = j["type"].get<std::string>();
+        if (j.contains("type")) {
+            if (j["type"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'type' is null");
+            } else {
+                obj.type = j["type"].get<std::string>();
+            }
         }
-        if (j.contains("status") && !j["status"].is_null()) {
-            obj.status = j["status"].get<appwrite::enums::AttributeStatus>();
+        if (j.contains("status")) {
+            if (j["status"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'status' is null");
+            } else {
+                obj.status = j["status"].get<appwrite::enums::AttributeStatus>();
+            }
         }
-        if (j.contains("error") && !j["error"].is_null()) {
-            obj.error = j["error"].get<std::string>();
+        if (j.contains("error")) {
+            if (j["error"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'error' is null");
+            } else {
+                obj.error = j["error"].get<std::string>();
+            }
         }
-        if (j.contains("required") && !j["required"].is_null()) {
-            obj.required = j["required"].get<bool>();
+        if (j.contains("required")) {
+            if (j["required"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'required' is null");
+            } else {
+                obj.required = j["required"].get<bool>();
+            }
         }
-        if (j.contains("array") && !j["array"].is_null()) {
-            obj.array = j["array"].get<std::optional<bool>>();
+        if (j.contains("array")) {
+            if (j["array"].is_null()) {
+                obj.array = std::nullopt;
+            } else {
+                obj.array = j["array"].get<std::optional<bool>>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("min") && !j["min"].is_null()) {
-            obj.min = j["min"].get<std::optional<double>>();
+        if (j.contains("min")) {
+            if (j["min"].is_null()) {
+                obj.min = std::nullopt;
+            } else {
+                obj.min = j["min"].get<std::optional<double>>();
+            }
         }
-        if (j.contains("max") && !j["max"].is_null()) {
-            obj.max = j["max"].get<std::optional<double>>();
+        if (j.contains("max")) {
+            if (j["max"].is_null()) {
+                obj.max = std::nullopt;
+            } else {
+                obj.max = j["max"].get<std::optional<double>>();
+            }
         }
-        if (j.contains("default") && !j["default"].is_null()) {
-            obj.default_ = j["default"].get<std::optional<double>>();
+        if (j.contains("default")) {
+            if (j["default"].is_null()) {
+                obj.default_ = std::nullopt;
+            } else {
+                obj.default_ = j["default"].get<std::optional<double>>();
+            }
         }
         return obj;
     }
@@ -5470,32 +7242,68 @@ struct AttributeBoolean {
     /** @brief Deserialize from JSON */
     static AttributeBoolean fromJson(const nlohmann::json& j) {
         AttributeBoolean obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("key") && !j["key"].is_null()) {
-            obj.key = j["key"].get<std::string>();
+        if (j.contains("key")) {
+            if (j["key"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'key' is null");
+            } else {
+                obj.key = j["key"].get<std::string>();
+            }
         }
-        if (j.contains("type") && !j["type"].is_null()) {
-            obj.type = j["type"].get<std::string>();
+        if (j.contains("type")) {
+            if (j["type"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'type' is null");
+            } else {
+                obj.type = j["type"].get<std::string>();
+            }
         }
-        if (j.contains("status") && !j["status"].is_null()) {
-            obj.status = j["status"].get<appwrite::enums::AttributeStatus>();
+        if (j.contains("status")) {
+            if (j["status"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'status' is null");
+            } else {
+                obj.status = j["status"].get<appwrite::enums::AttributeStatus>();
+            }
         }
-        if (j.contains("error") && !j["error"].is_null()) {
-            obj.error = j["error"].get<std::string>();
+        if (j.contains("error")) {
+            if (j["error"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'error' is null");
+            } else {
+                obj.error = j["error"].get<std::string>();
+            }
         }
-        if (j.contains("required") && !j["required"].is_null()) {
-            obj.required = j["required"].get<bool>();
+        if (j.contains("required")) {
+            if (j["required"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'required' is null");
+            } else {
+                obj.required = j["required"].get<bool>();
+            }
         }
-        if (j.contains("array") && !j["array"].is_null()) {
-            obj.array = j["array"].get<std::optional<bool>>();
+        if (j.contains("array")) {
+            if (j["array"].is_null()) {
+                obj.array = std::nullopt;
+            } else {
+                obj.array = j["array"].get<std::optional<bool>>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("default") && !j["default"].is_null()) {
-            obj.default_ = j["default"].get<std::optional<bool>>();
+        if (j.contains("default")) {
+            if (j["default"].is_null()) {
+                obj.default_ = std::nullopt;
+            } else {
+                obj.default_ = j["default"].get<std::optional<bool>>();
+            }
         }
         return obj;
     }
@@ -5571,35 +7379,75 @@ struct AttributeEmail {
     /** @brief Deserialize from JSON */
     static AttributeEmail fromJson(const nlohmann::json& j) {
         AttributeEmail obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("key") && !j["key"].is_null()) {
-            obj.key = j["key"].get<std::string>();
+        if (j.contains("key")) {
+            if (j["key"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'key' is null");
+            } else {
+                obj.key = j["key"].get<std::string>();
+            }
         }
-        if (j.contains("type") && !j["type"].is_null()) {
-            obj.type = j["type"].get<std::string>();
+        if (j.contains("type")) {
+            if (j["type"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'type' is null");
+            } else {
+                obj.type = j["type"].get<std::string>();
+            }
         }
-        if (j.contains("status") && !j["status"].is_null()) {
-            obj.status = j["status"].get<appwrite::enums::AttributeStatus>();
+        if (j.contains("status")) {
+            if (j["status"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'status' is null");
+            } else {
+                obj.status = j["status"].get<appwrite::enums::AttributeStatus>();
+            }
         }
-        if (j.contains("error") && !j["error"].is_null()) {
-            obj.error = j["error"].get<std::string>();
+        if (j.contains("error")) {
+            if (j["error"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'error' is null");
+            } else {
+                obj.error = j["error"].get<std::string>();
+            }
         }
-        if (j.contains("required") && !j["required"].is_null()) {
-            obj.required = j["required"].get<bool>();
+        if (j.contains("required")) {
+            if (j["required"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'required' is null");
+            } else {
+                obj.required = j["required"].get<bool>();
+            }
         }
-        if (j.contains("array") && !j["array"].is_null()) {
-            obj.array = j["array"].get<std::optional<bool>>();
+        if (j.contains("array")) {
+            if (j["array"].is_null()) {
+                obj.array = std::nullopt;
+            } else {
+                obj.array = j["array"].get<std::optional<bool>>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("format") && !j["format"].is_null()) {
-            obj.format = j["format"].get<std::string>();
+        if (j.contains("format")) {
+            if (j["format"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'format' is null");
+            } else {
+                obj.format = j["format"].get<std::string>();
+            }
         }
-        if (j.contains("default") && !j["default"].is_null()) {
-            obj.default_ = j["default"].get<std::optional<std::string>>();
+        if (j.contains("default")) {
+            if (j["default"].is_null()) {
+                obj.default_ = std::nullopt;
+            } else {
+                obj.default_ = j["default"].get<std::optional<std::string>>();
+            }
         }
         return obj;
     }
@@ -5680,38 +7528,82 @@ struct AttributeEnum {
     /** @brief Deserialize from JSON */
     static AttributeEnum fromJson(const nlohmann::json& j) {
         AttributeEnum obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("key") && !j["key"].is_null()) {
-            obj.key = j["key"].get<std::string>();
+        if (j.contains("key")) {
+            if (j["key"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'key' is null");
+            } else {
+                obj.key = j["key"].get<std::string>();
+            }
         }
-        if (j.contains("type") && !j["type"].is_null()) {
-            obj.type = j["type"].get<std::string>();
+        if (j.contains("type")) {
+            if (j["type"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'type' is null");
+            } else {
+                obj.type = j["type"].get<std::string>();
+            }
         }
-        if (j.contains("status") && !j["status"].is_null()) {
-            obj.status = j["status"].get<appwrite::enums::AttributeStatus>();
+        if (j.contains("status")) {
+            if (j["status"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'status' is null");
+            } else {
+                obj.status = j["status"].get<appwrite::enums::AttributeStatus>();
+            }
         }
-        if (j.contains("error") && !j["error"].is_null()) {
-            obj.error = j["error"].get<std::string>();
+        if (j.contains("error")) {
+            if (j["error"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'error' is null");
+            } else {
+                obj.error = j["error"].get<std::string>();
+            }
         }
-        if (j.contains("required") && !j["required"].is_null()) {
-            obj.required = j["required"].get<bool>();
+        if (j.contains("required")) {
+            if (j["required"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'required' is null");
+            } else {
+                obj.required = j["required"].get<bool>();
+            }
         }
-        if (j.contains("array") && !j["array"].is_null()) {
-            obj.array = j["array"].get<std::optional<bool>>();
+        if (j.contains("array")) {
+            if (j["array"].is_null()) {
+                obj.array = std::nullopt;
+            } else {
+                obj.array = j["array"].get<std::optional<bool>>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("elements") && !j["elements"].is_null()) {
-            obj.elements = j["elements"].get<std::vector<std::string>>();
+        if (j.contains("elements")) {
+            if (j["elements"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'elements' is null");
+            } else {
+                obj.elements = j["elements"].get<std::vector<std::string>>();
+            }
         }
-        if (j.contains("format") && !j["format"].is_null()) {
-            obj.format = j["format"].get<std::string>();
+        if (j.contains("format")) {
+            if (j["format"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'format' is null");
+            } else {
+                obj.format = j["format"].get<std::string>();
+            }
         }
-        if (j.contains("default") && !j["default"].is_null()) {
-            obj.default_ = j["default"].get<std::optional<std::string>>();
+        if (j.contains("default")) {
+            if (j["default"].is_null()) {
+                obj.default_ = std::nullopt;
+            } else {
+                obj.default_ = j["default"].get<std::optional<std::string>>();
+            }
         }
         return obj;
     }
@@ -5793,35 +7685,75 @@ struct AttributeIp {
     /** @brief Deserialize from JSON */
     static AttributeIp fromJson(const nlohmann::json& j) {
         AttributeIp obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("key") && !j["key"].is_null()) {
-            obj.key = j["key"].get<std::string>();
+        if (j.contains("key")) {
+            if (j["key"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'key' is null");
+            } else {
+                obj.key = j["key"].get<std::string>();
+            }
         }
-        if (j.contains("type") && !j["type"].is_null()) {
-            obj.type = j["type"].get<std::string>();
+        if (j.contains("type")) {
+            if (j["type"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'type' is null");
+            } else {
+                obj.type = j["type"].get<std::string>();
+            }
         }
-        if (j.contains("status") && !j["status"].is_null()) {
-            obj.status = j["status"].get<appwrite::enums::AttributeStatus>();
+        if (j.contains("status")) {
+            if (j["status"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'status' is null");
+            } else {
+                obj.status = j["status"].get<appwrite::enums::AttributeStatus>();
+            }
         }
-        if (j.contains("error") && !j["error"].is_null()) {
-            obj.error = j["error"].get<std::string>();
+        if (j.contains("error")) {
+            if (j["error"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'error' is null");
+            } else {
+                obj.error = j["error"].get<std::string>();
+            }
         }
-        if (j.contains("required") && !j["required"].is_null()) {
-            obj.required = j["required"].get<bool>();
+        if (j.contains("required")) {
+            if (j["required"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'required' is null");
+            } else {
+                obj.required = j["required"].get<bool>();
+            }
         }
-        if (j.contains("array") && !j["array"].is_null()) {
-            obj.array = j["array"].get<std::optional<bool>>();
+        if (j.contains("array")) {
+            if (j["array"].is_null()) {
+                obj.array = std::nullopt;
+            } else {
+                obj.array = j["array"].get<std::optional<bool>>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("format") && !j["format"].is_null()) {
-            obj.format = j["format"].get<std::string>();
+        if (j.contains("format")) {
+            if (j["format"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'format' is null");
+            } else {
+                obj.format = j["format"].get<std::string>();
+            }
         }
-        if (j.contains("default") && !j["default"].is_null()) {
-            obj.default_ = j["default"].get<std::optional<std::string>>();
+        if (j.contains("default")) {
+            if (j["default"].is_null()) {
+                obj.default_ = std::nullopt;
+            } else {
+                obj.default_ = j["default"].get<std::optional<std::string>>();
+            }
         }
         return obj;
     }
@@ -5900,35 +7832,75 @@ struct AttributeUrl {
     /** @brief Deserialize from JSON */
     static AttributeUrl fromJson(const nlohmann::json& j) {
         AttributeUrl obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("key") && !j["key"].is_null()) {
-            obj.key = j["key"].get<std::string>();
+        if (j.contains("key")) {
+            if (j["key"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'key' is null");
+            } else {
+                obj.key = j["key"].get<std::string>();
+            }
         }
-        if (j.contains("type") && !j["type"].is_null()) {
-            obj.type = j["type"].get<std::string>();
+        if (j.contains("type")) {
+            if (j["type"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'type' is null");
+            } else {
+                obj.type = j["type"].get<std::string>();
+            }
         }
-        if (j.contains("status") && !j["status"].is_null()) {
-            obj.status = j["status"].get<appwrite::enums::AttributeStatus>();
+        if (j.contains("status")) {
+            if (j["status"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'status' is null");
+            } else {
+                obj.status = j["status"].get<appwrite::enums::AttributeStatus>();
+            }
         }
-        if (j.contains("error") && !j["error"].is_null()) {
-            obj.error = j["error"].get<std::string>();
+        if (j.contains("error")) {
+            if (j["error"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'error' is null");
+            } else {
+                obj.error = j["error"].get<std::string>();
+            }
         }
-        if (j.contains("required") && !j["required"].is_null()) {
-            obj.required = j["required"].get<bool>();
+        if (j.contains("required")) {
+            if (j["required"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'required' is null");
+            } else {
+                obj.required = j["required"].get<bool>();
+            }
         }
-        if (j.contains("array") && !j["array"].is_null()) {
-            obj.array = j["array"].get<std::optional<bool>>();
+        if (j.contains("array")) {
+            if (j["array"].is_null()) {
+                obj.array = std::nullopt;
+            } else {
+                obj.array = j["array"].get<std::optional<bool>>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("format") && !j["format"].is_null()) {
-            obj.format = j["format"].get<std::string>();
+        if (j.contains("format")) {
+            if (j["format"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'format' is null");
+            } else {
+                obj.format = j["format"].get<std::string>();
+            }
         }
-        if (j.contains("default") && !j["default"].is_null()) {
-            obj.default_ = j["default"].get<std::optional<std::string>>();
+        if (j.contains("default")) {
+            if (j["default"].is_null()) {
+                obj.default_ = std::nullopt;
+            } else {
+                obj.default_ = j["default"].get<std::optional<std::string>>();
+            }
         }
         return obj;
     }
@@ -6007,35 +7979,75 @@ struct AttributeDatetime {
     /** @brief Deserialize from JSON */
     static AttributeDatetime fromJson(const nlohmann::json& j) {
         AttributeDatetime obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("key") && !j["key"].is_null()) {
-            obj.key = j["key"].get<std::string>();
+        if (j.contains("key")) {
+            if (j["key"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'key' is null");
+            } else {
+                obj.key = j["key"].get<std::string>();
+            }
         }
-        if (j.contains("type") && !j["type"].is_null()) {
-            obj.type = j["type"].get<std::string>();
+        if (j.contains("type")) {
+            if (j["type"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'type' is null");
+            } else {
+                obj.type = j["type"].get<std::string>();
+            }
         }
-        if (j.contains("status") && !j["status"].is_null()) {
-            obj.status = j["status"].get<appwrite::enums::AttributeStatus>();
+        if (j.contains("status")) {
+            if (j["status"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'status' is null");
+            } else {
+                obj.status = j["status"].get<appwrite::enums::AttributeStatus>();
+            }
         }
-        if (j.contains("error") && !j["error"].is_null()) {
-            obj.error = j["error"].get<std::string>();
+        if (j.contains("error")) {
+            if (j["error"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'error' is null");
+            } else {
+                obj.error = j["error"].get<std::string>();
+            }
         }
-        if (j.contains("required") && !j["required"].is_null()) {
-            obj.required = j["required"].get<bool>();
+        if (j.contains("required")) {
+            if (j["required"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'required' is null");
+            } else {
+                obj.required = j["required"].get<bool>();
+            }
         }
-        if (j.contains("array") && !j["array"].is_null()) {
-            obj.array = j["array"].get<std::optional<bool>>();
+        if (j.contains("array")) {
+            if (j["array"].is_null()) {
+                obj.array = std::nullopt;
+            } else {
+                obj.array = j["array"].get<std::optional<bool>>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("format") && !j["format"].is_null()) {
-            obj.format = j["format"].get<std::string>();
+        if (j.contains("format")) {
+            if (j["format"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'format' is null");
+            } else {
+                obj.format = j["format"].get<std::string>();
+            }
         }
-        if (j.contains("default") && !j["default"].is_null()) {
-            obj.default_ = j["default"].get<std::optional<std::string>>();
+        if (j.contains("default")) {
+            if (j["default"].is_null()) {
+                obj.default_ = std::nullopt;
+            } else {
+                obj.default_ = j["default"].get<std::optional<std::string>>();
+            }
         }
         return obj;
     }
@@ -6122,47 +8134,103 @@ struct AttributeRelationship {
     /** @brief Deserialize from JSON */
     static AttributeRelationship fromJson(const nlohmann::json& j) {
         AttributeRelationship obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("key") && !j["key"].is_null()) {
-            obj.key = j["key"].get<std::string>();
+        if (j.contains("key")) {
+            if (j["key"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'key' is null");
+            } else {
+                obj.key = j["key"].get<std::string>();
+            }
         }
-        if (j.contains("type") && !j["type"].is_null()) {
-            obj.type = j["type"].get<std::string>();
+        if (j.contains("type")) {
+            if (j["type"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'type' is null");
+            } else {
+                obj.type = j["type"].get<std::string>();
+            }
         }
-        if (j.contains("status") && !j["status"].is_null()) {
-            obj.status = j["status"].get<appwrite::enums::AttributeStatus>();
+        if (j.contains("status")) {
+            if (j["status"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'status' is null");
+            } else {
+                obj.status = j["status"].get<appwrite::enums::AttributeStatus>();
+            }
         }
-        if (j.contains("error") && !j["error"].is_null()) {
-            obj.error = j["error"].get<std::string>();
+        if (j.contains("error")) {
+            if (j["error"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'error' is null");
+            } else {
+                obj.error = j["error"].get<std::string>();
+            }
         }
-        if (j.contains("required") && !j["required"].is_null()) {
-            obj.required = j["required"].get<bool>();
+        if (j.contains("required")) {
+            if (j["required"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'required' is null");
+            } else {
+                obj.required = j["required"].get<bool>();
+            }
         }
-        if (j.contains("array") && !j["array"].is_null()) {
-            obj.array = j["array"].get<std::optional<bool>>();
+        if (j.contains("array")) {
+            if (j["array"].is_null()) {
+                obj.array = std::nullopt;
+            } else {
+                obj.array = j["array"].get<std::optional<bool>>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("relatedCollection") && !j["relatedCollection"].is_null()) {
-            obj.relatedCollection = j["relatedCollection"].get<std::string>();
+        if (j.contains("relatedCollection")) {
+            if (j["relatedCollection"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'relatedCollection' is null");
+            } else {
+                obj.relatedCollection = j["relatedCollection"].get<std::string>();
+            }
         }
-        if (j.contains("relationType") && !j["relationType"].is_null()) {
-            obj.relationType = j["relationType"].get<std::string>();
+        if (j.contains("relationType")) {
+            if (j["relationType"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'relationType' is null");
+            } else {
+                obj.relationType = j["relationType"].get<std::string>();
+            }
         }
-        if (j.contains("twoWay") && !j["twoWay"].is_null()) {
-            obj.twoWay = j["twoWay"].get<bool>();
+        if (j.contains("twoWay")) {
+            if (j["twoWay"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'twoWay' is null");
+            } else {
+                obj.twoWay = j["twoWay"].get<bool>();
+            }
         }
-        if (j.contains("twoWayKey") && !j["twoWayKey"].is_null()) {
-            obj.twoWayKey = j["twoWayKey"].get<std::string>();
+        if (j.contains("twoWayKey")) {
+            if (j["twoWayKey"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'twoWayKey' is null");
+            } else {
+                obj.twoWayKey = j["twoWayKey"].get<std::string>();
+            }
         }
-        if (j.contains("onDelete") && !j["onDelete"].is_null()) {
-            obj.onDelete = j["onDelete"].get<std::string>();
+        if (j.contains("onDelete")) {
+            if (j["onDelete"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'onDelete' is null");
+            } else {
+                obj.onDelete = j["onDelete"].get<std::string>();
+            }
         }
-        if (j.contains("side") && !j["side"].is_null()) {
-            obj.side = j["side"].get<std::string>();
+        if (j.contains("side")) {
+            if (j["side"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'side' is null");
+            } else {
+                obj.side = j["side"].get<std::string>();
+            }
         }
         return obj;
     }
@@ -6251,32 +8319,68 @@ struct AttributePoint {
     /** @brief Deserialize from JSON */
     static AttributePoint fromJson(const nlohmann::json& j) {
         AttributePoint obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("key") && !j["key"].is_null()) {
-            obj.key = j["key"].get<std::string>();
+        if (j.contains("key")) {
+            if (j["key"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'key' is null");
+            } else {
+                obj.key = j["key"].get<std::string>();
+            }
         }
-        if (j.contains("type") && !j["type"].is_null()) {
-            obj.type = j["type"].get<std::string>();
+        if (j.contains("type")) {
+            if (j["type"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'type' is null");
+            } else {
+                obj.type = j["type"].get<std::string>();
+            }
         }
-        if (j.contains("status") && !j["status"].is_null()) {
-            obj.status = j["status"].get<appwrite::enums::AttributeStatus>();
+        if (j.contains("status")) {
+            if (j["status"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'status' is null");
+            } else {
+                obj.status = j["status"].get<appwrite::enums::AttributeStatus>();
+            }
         }
-        if (j.contains("error") && !j["error"].is_null()) {
-            obj.error = j["error"].get<std::string>();
+        if (j.contains("error")) {
+            if (j["error"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'error' is null");
+            } else {
+                obj.error = j["error"].get<std::string>();
+            }
         }
-        if (j.contains("required") && !j["required"].is_null()) {
-            obj.required = j["required"].get<bool>();
+        if (j.contains("required")) {
+            if (j["required"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'required' is null");
+            } else {
+                obj.required = j["required"].get<bool>();
+            }
         }
-        if (j.contains("array") && !j["array"].is_null()) {
-            obj.array = j["array"].get<std::optional<bool>>();
+        if (j.contains("array")) {
+            if (j["array"].is_null()) {
+                obj.array = std::nullopt;
+            } else {
+                obj.array = j["array"].get<std::optional<bool>>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("default") && !j["default"].is_null()) {
-            obj.default_ = j["default"].get<std::optional<std::vector<std::string>>>();
+        if (j.contains("default")) {
+            if (j["default"].is_null()) {
+                obj.default_ = std::nullopt;
+            } else {
+                obj.default_ = j["default"].get<std::optional<std::vector<std::string>>>();
+            }
         }
         return obj;
     }
@@ -6350,32 +8454,68 @@ struct AttributeLine {
     /** @brief Deserialize from JSON */
     static AttributeLine fromJson(const nlohmann::json& j) {
         AttributeLine obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("key") && !j["key"].is_null()) {
-            obj.key = j["key"].get<std::string>();
+        if (j.contains("key")) {
+            if (j["key"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'key' is null");
+            } else {
+                obj.key = j["key"].get<std::string>();
+            }
         }
-        if (j.contains("type") && !j["type"].is_null()) {
-            obj.type = j["type"].get<std::string>();
+        if (j.contains("type")) {
+            if (j["type"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'type' is null");
+            } else {
+                obj.type = j["type"].get<std::string>();
+            }
         }
-        if (j.contains("status") && !j["status"].is_null()) {
-            obj.status = j["status"].get<appwrite::enums::AttributeStatus>();
+        if (j.contains("status")) {
+            if (j["status"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'status' is null");
+            } else {
+                obj.status = j["status"].get<appwrite::enums::AttributeStatus>();
+            }
         }
-        if (j.contains("error") && !j["error"].is_null()) {
-            obj.error = j["error"].get<std::string>();
+        if (j.contains("error")) {
+            if (j["error"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'error' is null");
+            } else {
+                obj.error = j["error"].get<std::string>();
+            }
         }
-        if (j.contains("required") && !j["required"].is_null()) {
-            obj.required = j["required"].get<bool>();
+        if (j.contains("required")) {
+            if (j["required"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'required' is null");
+            } else {
+                obj.required = j["required"].get<bool>();
+            }
         }
-        if (j.contains("array") && !j["array"].is_null()) {
-            obj.array = j["array"].get<std::optional<bool>>();
+        if (j.contains("array")) {
+            if (j["array"].is_null()) {
+                obj.array = std::nullopt;
+            } else {
+                obj.array = j["array"].get<std::optional<bool>>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("default") && !j["default"].is_null()) {
-            obj.default_ = j["default"].get<std::optional<std::vector<std::string>>>();
+        if (j.contains("default")) {
+            if (j["default"].is_null()) {
+                obj.default_ = std::nullopt;
+            } else {
+                obj.default_ = j["default"].get<std::optional<std::vector<std::string>>>();
+            }
         }
         return obj;
     }
@@ -6449,32 +8589,68 @@ struct AttributePolygon {
     /** @brief Deserialize from JSON */
     static AttributePolygon fromJson(const nlohmann::json& j) {
         AttributePolygon obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("key") && !j["key"].is_null()) {
-            obj.key = j["key"].get<std::string>();
+        if (j.contains("key")) {
+            if (j["key"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'key' is null");
+            } else {
+                obj.key = j["key"].get<std::string>();
+            }
         }
-        if (j.contains("type") && !j["type"].is_null()) {
-            obj.type = j["type"].get<std::string>();
+        if (j.contains("type")) {
+            if (j["type"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'type' is null");
+            } else {
+                obj.type = j["type"].get<std::string>();
+            }
         }
-        if (j.contains("status") && !j["status"].is_null()) {
-            obj.status = j["status"].get<appwrite::enums::AttributeStatus>();
+        if (j.contains("status")) {
+            if (j["status"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'status' is null");
+            } else {
+                obj.status = j["status"].get<appwrite::enums::AttributeStatus>();
+            }
         }
-        if (j.contains("error") && !j["error"].is_null()) {
-            obj.error = j["error"].get<std::string>();
+        if (j.contains("error")) {
+            if (j["error"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'error' is null");
+            } else {
+                obj.error = j["error"].get<std::string>();
+            }
         }
-        if (j.contains("required") && !j["required"].is_null()) {
-            obj.required = j["required"].get<bool>();
+        if (j.contains("required")) {
+            if (j["required"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'required' is null");
+            } else {
+                obj.required = j["required"].get<bool>();
+            }
         }
-        if (j.contains("array") && !j["array"].is_null()) {
-            obj.array = j["array"].get<std::optional<bool>>();
+        if (j.contains("array")) {
+            if (j["array"].is_null()) {
+                obj.array = std::nullopt;
+            } else {
+                obj.array = j["array"].get<std::optional<bool>>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("default") && !j["default"].is_null()) {
-            obj.default_ = j["default"].get<std::optional<std::vector<std::string>>>();
+        if (j.contains("default")) {
+            if (j["default"].is_null()) {
+                obj.default_ = std::nullopt;
+            } else {
+                obj.default_ = j["default"].get<std::optional<std::vector<std::string>>>();
+            }
         }
         return obj;
     }
@@ -6552,38 +8728,82 @@ struct AttributeVarchar {
     /** @brief Deserialize from JSON */
     static AttributeVarchar fromJson(const nlohmann::json& j) {
         AttributeVarchar obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("key") && !j["key"].is_null()) {
-            obj.key = j["key"].get<std::string>();
+        if (j.contains("key")) {
+            if (j["key"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'key' is null");
+            } else {
+                obj.key = j["key"].get<std::string>();
+            }
         }
-        if (j.contains("type") && !j["type"].is_null()) {
-            obj.type = j["type"].get<std::string>();
+        if (j.contains("type")) {
+            if (j["type"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'type' is null");
+            } else {
+                obj.type = j["type"].get<std::string>();
+            }
         }
-        if (j.contains("status") && !j["status"].is_null()) {
-            obj.status = j["status"].get<appwrite::enums::AttributeStatus>();
+        if (j.contains("status")) {
+            if (j["status"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'status' is null");
+            } else {
+                obj.status = j["status"].get<appwrite::enums::AttributeStatus>();
+            }
         }
-        if (j.contains("error") && !j["error"].is_null()) {
-            obj.error = j["error"].get<std::string>();
+        if (j.contains("error")) {
+            if (j["error"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'error' is null");
+            } else {
+                obj.error = j["error"].get<std::string>();
+            }
         }
-        if (j.contains("required") && !j["required"].is_null()) {
-            obj.required = j["required"].get<bool>();
+        if (j.contains("required")) {
+            if (j["required"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'required' is null");
+            } else {
+                obj.required = j["required"].get<bool>();
+            }
         }
-        if (j.contains("array") && !j["array"].is_null()) {
-            obj.array = j["array"].get<std::optional<bool>>();
+        if (j.contains("array")) {
+            if (j["array"].is_null()) {
+                obj.array = std::nullopt;
+            } else {
+                obj.array = j["array"].get<std::optional<bool>>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("size") && !j["size"].is_null()) {
-            obj.size = j["size"].get<int64_t>();
+        if (j.contains("size")) {
+            if (j["size"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'size' is null");
+            } else {
+                obj.size = j["size"].get<int64_t>();
+            }
         }
-        if (j.contains("default") && !j["default"].is_null()) {
-            obj.default_ = j["default"].get<std::optional<std::string>>();
+        if (j.contains("default")) {
+            if (j["default"].is_null()) {
+                obj.default_ = std::nullopt;
+            } else {
+                obj.default_ = j["default"].get<std::optional<std::string>>();
+            }
         }
-        if (j.contains("encrypt") && !j["encrypt"].is_null()) {
-            obj.encrypt = j["encrypt"].get<std::optional<bool>>();
+        if (j.contains("encrypt")) {
+            if (j["encrypt"].is_null()) {
+                obj.encrypt = std::nullopt;
+            } else {
+                obj.encrypt = j["encrypt"].get<std::optional<bool>>();
+            }
         }
         return obj;
     }
@@ -6665,35 +8885,75 @@ struct AttributeText {
     /** @brief Deserialize from JSON */
     static AttributeText fromJson(const nlohmann::json& j) {
         AttributeText obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("key") && !j["key"].is_null()) {
-            obj.key = j["key"].get<std::string>();
+        if (j.contains("key")) {
+            if (j["key"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'key' is null");
+            } else {
+                obj.key = j["key"].get<std::string>();
+            }
         }
-        if (j.contains("type") && !j["type"].is_null()) {
-            obj.type = j["type"].get<std::string>();
+        if (j.contains("type")) {
+            if (j["type"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'type' is null");
+            } else {
+                obj.type = j["type"].get<std::string>();
+            }
         }
-        if (j.contains("status") && !j["status"].is_null()) {
-            obj.status = j["status"].get<appwrite::enums::AttributeStatus>();
+        if (j.contains("status")) {
+            if (j["status"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'status' is null");
+            } else {
+                obj.status = j["status"].get<appwrite::enums::AttributeStatus>();
+            }
         }
-        if (j.contains("error") && !j["error"].is_null()) {
-            obj.error = j["error"].get<std::string>();
+        if (j.contains("error")) {
+            if (j["error"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'error' is null");
+            } else {
+                obj.error = j["error"].get<std::string>();
+            }
         }
-        if (j.contains("required") && !j["required"].is_null()) {
-            obj.required = j["required"].get<bool>();
+        if (j.contains("required")) {
+            if (j["required"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'required' is null");
+            } else {
+                obj.required = j["required"].get<bool>();
+            }
         }
-        if (j.contains("array") && !j["array"].is_null()) {
-            obj.array = j["array"].get<std::optional<bool>>();
+        if (j.contains("array")) {
+            if (j["array"].is_null()) {
+                obj.array = std::nullopt;
+            } else {
+                obj.array = j["array"].get<std::optional<bool>>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("default") && !j["default"].is_null()) {
-            obj.default_ = j["default"].get<std::optional<std::string>>();
+        if (j.contains("default")) {
+            if (j["default"].is_null()) {
+                obj.default_ = std::nullopt;
+            } else {
+                obj.default_ = j["default"].get<std::optional<std::string>>();
+            }
         }
-        if (j.contains("encrypt") && !j["encrypt"].is_null()) {
-            obj.encrypt = j["encrypt"].get<std::optional<bool>>();
+        if (j.contains("encrypt")) {
+            if (j["encrypt"].is_null()) {
+                obj.encrypt = std::nullopt;
+            } else {
+                obj.encrypt = j["encrypt"].get<std::optional<bool>>();
+            }
         }
         return obj;
     }
@@ -6772,35 +9032,75 @@ struct AttributeMediumtext {
     /** @brief Deserialize from JSON */
     static AttributeMediumtext fromJson(const nlohmann::json& j) {
         AttributeMediumtext obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("key") && !j["key"].is_null()) {
-            obj.key = j["key"].get<std::string>();
+        if (j.contains("key")) {
+            if (j["key"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'key' is null");
+            } else {
+                obj.key = j["key"].get<std::string>();
+            }
         }
-        if (j.contains("type") && !j["type"].is_null()) {
-            obj.type = j["type"].get<std::string>();
+        if (j.contains("type")) {
+            if (j["type"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'type' is null");
+            } else {
+                obj.type = j["type"].get<std::string>();
+            }
         }
-        if (j.contains("status") && !j["status"].is_null()) {
-            obj.status = j["status"].get<appwrite::enums::AttributeStatus>();
+        if (j.contains("status")) {
+            if (j["status"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'status' is null");
+            } else {
+                obj.status = j["status"].get<appwrite::enums::AttributeStatus>();
+            }
         }
-        if (j.contains("error") && !j["error"].is_null()) {
-            obj.error = j["error"].get<std::string>();
+        if (j.contains("error")) {
+            if (j["error"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'error' is null");
+            } else {
+                obj.error = j["error"].get<std::string>();
+            }
         }
-        if (j.contains("required") && !j["required"].is_null()) {
-            obj.required = j["required"].get<bool>();
+        if (j.contains("required")) {
+            if (j["required"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'required' is null");
+            } else {
+                obj.required = j["required"].get<bool>();
+            }
         }
-        if (j.contains("array") && !j["array"].is_null()) {
-            obj.array = j["array"].get<std::optional<bool>>();
+        if (j.contains("array")) {
+            if (j["array"].is_null()) {
+                obj.array = std::nullopt;
+            } else {
+                obj.array = j["array"].get<std::optional<bool>>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("default") && !j["default"].is_null()) {
-            obj.default_ = j["default"].get<std::optional<std::string>>();
+        if (j.contains("default")) {
+            if (j["default"].is_null()) {
+                obj.default_ = std::nullopt;
+            } else {
+                obj.default_ = j["default"].get<std::optional<std::string>>();
+            }
         }
-        if (j.contains("encrypt") && !j["encrypt"].is_null()) {
-            obj.encrypt = j["encrypt"].get<std::optional<bool>>();
+        if (j.contains("encrypt")) {
+            if (j["encrypt"].is_null()) {
+                obj.encrypt = std::nullopt;
+            } else {
+                obj.encrypt = j["encrypt"].get<std::optional<bool>>();
+            }
         }
         return obj;
     }
@@ -6879,35 +9179,75 @@ struct AttributeLongtext {
     /** @brief Deserialize from JSON */
     static AttributeLongtext fromJson(const nlohmann::json& j) {
         AttributeLongtext obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("key") && !j["key"].is_null()) {
-            obj.key = j["key"].get<std::string>();
+        if (j.contains("key")) {
+            if (j["key"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'key' is null");
+            } else {
+                obj.key = j["key"].get<std::string>();
+            }
         }
-        if (j.contains("type") && !j["type"].is_null()) {
-            obj.type = j["type"].get<std::string>();
+        if (j.contains("type")) {
+            if (j["type"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'type' is null");
+            } else {
+                obj.type = j["type"].get<std::string>();
+            }
         }
-        if (j.contains("status") && !j["status"].is_null()) {
-            obj.status = j["status"].get<appwrite::enums::AttributeStatus>();
+        if (j.contains("status")) {
+            if (j["status"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'status' is null");
+            } else {
+                obj.status = j["status"].get<appwrite::enums::AttributeStatus>();
+            }
         }
-        if (j.contains("error") && !j["error"].is_null()) {
-            obj.error = j["error"].get<std::string>();
+        if (j.contains("error")) {
+            if (j["error"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'error' is null");
+            } else {
+                obj.error = j["error"].get<std::string>();
+            }
         }
-        if (j.contains("required") && !j["required"].is_null()) {
-            obj.required = j["required"].get<bool>();
+        if (j.contains("required")) {
+            if (j["required"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'required' is null");
+            } else {
+                obj.required = j["required"].get<bool>();
+            }
         }
-        if (j.contains("array") && !j["array"].is_null()) {
-            obj.array = j["array"].get<std::optional<bool>>();
+        if (j.contains("array")) {
+            if (j["array"].is_null()) {
+                obj.array = std::nullopt;
+            } else {
+                obj.array = j["array"].get<std::optional<bool>>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("default") && !j["default"].is_null()) {
-            obj.default_ = j["default"].get<std::optional<std::string>>();
+        if (j.contains("default")) {
+            if (j["default"].is_null()) {
+                obj.default_ = std::nullopt;
+            } else {
+                obj.default_ = j["default"].get<std::optional<std::string>>();
+            }
         }
-        if (j.contains("encrypt") && !j["encrypt"].is_null()) {
-            obj.encrypt = j["encrypt"].get<std::optional<bool>>();
+        if (j.contains("encrypt")) {
+            if (j["encrypt"].is_null()) {
+                obj.encrypt = std::nullopt;
+            } else {
+                obj.encrypt = j["encrypt"].get<std::optional<bool>>();
+            }
         }
         return obj;
     }
@@ -6970,11 +9310,19 @@ struct ColumnList {
     /** @brief Deserialize from JSON */
     static ColumnList fromJson(const nlohmann::json& j) {
         ColumnList obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("total") && !j["total"].is_null()) {
-            obj.total = j["total"].get<int64_t>();
+        if (j.contains("total")) {
+            if (j["total"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'total' is null");
+            } else {
+                obj.total = j["total"].get<int64_t>();
+            }
         }
-        if (j.contains("columns") && !j["columns"].is_null()) {
-            obj.columns = j["columns"].get<std::vector<std::string>>();
+        if (j.contains("columns")) {
+            if (j["columns"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'columns' is null");
+            } else {
+                obj.columns = j["columns"].get<std::vector<std::string>>();
+            }
         }
         return obj;
     }
@@ -7031,38 +9379,82 @@ struct ColumnString {
     /** @brief Deserialize from JSON */
     static ColumnString fromJson(const nlohmann::json& j) {
         ColumnString obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("key") && !j["key"].is_null()) {
-            obj.key = j["key"].get<std::string>();
+        if (j.contains("key")) {
+            if (j["key"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'key' is null");
+            } else {
+                obj.key = j["key"].get<std::string>();
+            }
         }
-        if (j.contains("type") && !j["type"].is_null()) {
-            obj.type = j["type"].get<std::string>();
+        if (j.contains("type")) {
+            if (j["type"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'type' is null");
+            } else {
+                obj.type = j["type"].get<std::string>();
+            }
         }
-        if (j.contains("status") && !j["status"].is_null()) {
-            obj.status = j["status"].get<appwrite::enums::ColumnStatus>();
+        if (j.contains("status")) {
+            if (j["status"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'status' is null");
+            } else {
+                obj.status = j["status"].get<appwrite::enums::ColumnStatus>();
+            }
         }
-        if (j.contains("error") && !j["error"].is_null()) {
-            obj.error = j["error"].get<std::string>();
+        if (j.contains("error")) {
+            if (j["error"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'error' is null");
+            } else {
+                obj.error = j["error"].get<std::string>();
+            }
         }
-        if (j.contains("required") && !j["required"].is_null()) {
-            obj.required = j["required"].get<bool>();
+        if (j.contains("required")) {
+            if (j["required"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'required' is null");
+            } else {
+                obj.required = j["required"].get<bool>();
+            }
         }
-        if (j.contains("array") && !j["array"].is_null()) {
-            obj.array = j["array"].get<std::optional<bool>>();
+        if (j.contains("array")) {
+            if (j["array"].is_null()) {
+                obj.array = std::nullopt;
+            } else {
+                obj.array = j["array"].get<std::optional<bool>>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("size") && !j["size"].is_null()) {
-            obj.size = j["size"].get<int64_t>();
+        if (j.contains("size")) {
+            if (j["size"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'size' is null");
+            } else {
+                obj.size = j["size"].get<int64_t>();
+            }
         }
-        if (j.contains("default") && !j["default"].is_null()) {
-            obj.default_ = j["default"].get<std::optional<std::string>>();
+        if (j.contains("default")) {
+            if (j["default"].is_null()) {
+                obj.default_ = std::nullopt;
+            } else {
+                obj.default_ = j["default"].get<std::optional<std::string>>();
+            }
         }
-        if (j.contains("encrypt") && !j["encrypt"].is_null()) {
-            obj.encrypt = j["encrypt"].get<std::optional<bool>>();
+        if (j.contains("encrypt")) {
+            if (j["encrypt"].is_null()) {
+                obj.encrypt = std::nullopt;
+            } else {
+                obj.encrypt = j["encrypt"].get<std::optional<bool>>();
+            }
         }
         return obj;
     }
@@ -7146,38 +9538,82 @@ struct ColumnInteger {
     /** @brief Deserialize from JSON */
     static ColumnInteger fromJson(const nlohmann::json& j) {
         ColumnInteger obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("key") && !j["key"].is_null()) {
-            obj.key = j["key"].get<std::string>();
+        if (j.contains("key")) {
+            if (j["key"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'key' is null");
+            } else {
+                obj.key = j["key"].get<std::string>();
+            }
         }
-        if (j.contains("type") && !j["type"].is_null()) {
-            obj.type = j["type"].get<std::string>();
+        if (j.contains("type")) {
+            if (j["type"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'type' is null");
+            } else {
+                obj.type = j["type"].get<std::string>();
+            }
         }
-        if (j.contains("status") && !j["status"].is_null()) {
-            obj.status = j["status"].get<appwrite::enums::ColumnStatus>();
+        if (j.contains("status")) {
+            if (j["status"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'status' is null");
+            } else {
+                obj.status = j["status"].get<appwrite::enums::ColumnStatus>();
+            }
         }
-        if (j.contains("error") && !j["error"].is_null()) {
-            obj.error = j["error"].get<std::string>();
+        if (j.contains("error")) {
+            if (j["error"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'error' is null");
+            } else {
+                obj.error = j["error"].get<std::string>();
+            }
         }
-        if (j.contains("required") && !j["required"].is_null()) {
-            obj.required = j["required"].get<bool>();
+        if (j.contains("required")) {
+            if (j["required"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'required' is null");
+            } else {
+                obj.required = j["required"].get<bool>();
+            }
         }
-        if (j.contains("array") && !j["array"].is_null()) {
-            obj.array = j["array"].get<std::optional<bool>>();
+        if (j.contains("array")) {
+            if (j["array"].is_null()) {
+                obj.array = std::nullopt;
+            } else {
+                obj.array = j["array"].get<std::optional<bool>>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("min") && !j["min"].is_null()) {
-            obj.min = j["min"].get<std::optional<int64_t>>();
+        if (j.contains("min")) {
+            if (j["min"].is_null()) {
+                obj.min = std::nullopt;
+            } else {
+                obj.min = j["min"].get<std::optional<int64_t>>();
+            }
         }
-        if (j.contains("max") && !j["max"].is_null()) {
-            obj.max = j["max"].get<std::optional<int64_t>>();
+        if (j.contains("max")) {
+            if (j["max"].is_null()) {
+                obj.max = std::nullopt;
+            } else {
+                obj.max = j["max"].get<std::optional<int64_t>>();
+            }
         }
-        if (j.contains("default") && !j["default"].is_null()) {
-            obj.default_ = j["default"].get<std::optional<int64_t>>();
+        if (j.contains("default")) {
+            if (j["default"].is_null()) {
+                obj.default_ = std::nullopt;
+            } else {
+                obj.default_ = j["default"].get<std::optional<int64_t>>();
+            }
         }
         return obj;
     }
@@ -7261,38 +9697,82 @@ struct ColumnFloat {
     /** @brief Deserialize from JSON */
     static ColumnFloat fromJson(const nlohmann::json& j) {
         ColumnFloat obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("key") && !j["key"].is_null()) {
-            obj.key = j["key"].get<std::string>();
+        if (j.contains("key")) {
+            if (j["key"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'key' is null");
+            } else {
+                obj.key = j["key"].get<std::string>();
+            }
         }
-        if (j.contains("type") && !j["type"].is_null()) {
-            obj.type = j["type"].get<std::string>();
+        if (j.contains("type")) {
+            if (j["type"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'type' is null");
+            } else {
+                obj.type = j["type"].get<std::string>();
+            }
         }
-        if (j.contains("status") && !j["status"].is_null()) {
-            obj.status = j["status"].get<appwrite::enums::ColumnStatus>();
+        if (j.contains("status")) {
+            if (j["status"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'status' is null");
+            } else {
+                obj.status = j["status"].get<appwrite::enums::ColumnStatus>();
+            }
         }
-        if (j.contains("error") && !j["error"].is_null()) {
-            obj.error = j["error"].get<std::string>();
+        if (j.contains("error")) {
+            if (j["error"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'error' is null");
+            } else {
+                obj.error = j["error"].get<std::string>();
+            }
         }
-        if (j.contains("required") && !j["required"].is_null()) {
-            obj.required = j["required"].get<bool>();
+        if (j.contains("required")) {
+            if (j["required"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'required' is null");
+            } else {
+                obj.required = j["required"].get<bool>();
+            }
         }
-        if (j.contains("array") && !j["array"].is_null()) {
-            obj.array = j["array"].get<std::optional<bool>>();
+        if (j.contains("array")) {
+            if (j["array"].is_null()) {
+                obj.array = std::nullopt;
+            } else {
+                obj.array = j["array"].get<std::optional<bool>>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("min") && !j["min"].is_null()) {
-            obj.min = j["min"].get<std::optional<double>>();
+        if (j.contains("min")) {
+            if (j["min"].is_null()) {
+                obj.min = std::nullopt;
+            } else {
+                obj.min = j["min"].get<std::optional<double>>();
+            }
         }
-        if (j.contains("max") && !j["max"].is_null()) {
-            obj.max = j["max"].get<std::optional<double>>();
+        if (j.contains("max")) {
+            if (j["max"].is_null()) {
+                obj.max = std::nullopt;
+            } else {
+                obj.max = j["max"].get<std::optional<double>>();
+            }
         }
-        if (j.contains("default") && !j["default"].is_null()) {
-            obj.default_ = j["default"].get<std::optional<double>>();
+        if (j.contains("default")) {
+            if (j["default"].is_null()) {
+                obj.default_ = std::nullopt;
+            } else {
+                obj.default_ = j["default"].get<std::optional<double>>();
+            }
         }
         return obj;
     }
@@ -7372,32 +9852,68 @@ struct ColumnBoolean {
     /** @brief Deserialize from JSON */
     static ColumnBoolean fromJson(const nlohmann::json& j) {
         ColumnBoolean obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("key") && !j["key"].is_null()) {
-            obj.key = j["key"].get<std::string>();
+        if (j.contains("key")) {
+            if (j["key"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'key' is null");
+            } else {
+                obj.key = j["key"].get<std::string>();
+            }
         }
-        if (j.contains("type") && !j["type"].is_null()) {
-            obj.type = j["type"].get<std::string>();
+        if (j.contains("type")) {
+            if (j["type"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'type' is null");
+            } else {
+                obj.type = j["type"].get<std::string>();
+            }
         }
-        if (j.contains("status") && !j["status"].is_null()) {
-            obj.status = j["status"].get<appwrite::enums::ColumnStatus>();
+        if (j.contains("status")) {
+            if (j["status"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'status' is null");
+            } else {
+                obj.status = j["status"].get<appwrite::enums::ColumnStatus>();
+            }
         }
-        if (j.contains("error") && !j["error"].is_null()) {
-            obj.error = j["error"].get<std::string>();
+        if (j.contains("error")) {
+            if (j["error"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'error' is null");
+            } else {
+                obj.error = j["error"].get<std::string>();
+            }
         }
-        if (j.contains("required") && !j["required"].is_null()) {
-            obj.required = j["required"].get<bool>();
+        if (j.contains("required")) {
+            if (j["required"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'required' is null");
+            } else {
+                obj.required = j["required"].get<bool>();
+            }
         }
-        if (j.contains("array") && !j["array"].is_null()) {
-            obj.array = j["array"].get<std::optional<bool>>();
+        if (j.contains("array")) {
+            if (j["array"].is_null()) {
+                obj.array = std::nullopt;
+            } else {
+                obj.array = j["array"].get<std::optional<bool>>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("default") && !j["default"].is_null()) {
-            obj.default_ = j["default"].get<std::optional<bool>>();
+        if (j.contains("default")) {
+            if (j["default"].is_null()) {
+                obj.default_ = std::nullopt;
+            } else {
+                obj.default_ = j["default"].get<std::optional<bool>>();
+            }
         }
         return obj;
     }
@@ -7473,35 +9989,75 @@ struct ColumnEmail {
     /** @brief Deserialize from JSON */
     static ColumnEmail fromJson(const nlohmann::json& j) {
         ColumnEmail obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("key") && !j["key"].is_null()) {
-            obj.key = j["key"].get<std::string>();
+        if (j.contains("key")) {
+            if (j["key"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'key' is null");
+            } else {
+                obj.key = j["key"].get<std::string>();
+            }
         }
-        if (j.contains("type") && !j["type"].is_null()) {
-            obj.type = j["type"].get<std::string>();
+        if (j.contains("type")) {
+            if (j["type"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'type' is null");
+            } else {
+                obj.type = j["type"].get<std::string>();
+            }
         }
-        if (j.contains("status") && !j["status"].is_null()) {
-            obj.status = j["status"].get<appwrite::enums::ColumnStatus>();
+        if (j.contains("status")) {
+            if (j["status"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'status' is null");
+            } else {
+                obj.status = j["status"].get<appwrite::enums::ColumnStatus>();
+            }
         }
-        if (j.contains("error") && !j["error"].is_null()) {
-            obj.error = j["error"].get<std::string>();
+        if (j.contains("error")) {
+            if (j["error"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'error' is null");
+            } else {
+                obj.error = j["error"].get<std::string>();
+            }
         }
-        if (j.contains("required") && !j["required"].is_null()) {
-            obj.required = j["required"].get<bool>();
+        if (j.contains("required")) {
+            if (j["required"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'required' is null");
+            } else {
+                obj.required = j["required"].get<bool>();
+            }
         }
-        if (j.contains("array") && !j["array"].is_null()) {
-            obj.array = j["array"].get<std::optional<bool>>();
+        if (j.contains("array")) {
+            if (j["array"].is_null()) {
+                obj.array = std::nullopt;
+            } else {
+                obj.array = j["array"].get<std::optional<bool>>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("format") && !j["format"].is_null()) {
-            obj.format = j["format"].get<std::string>();
+        if (j.contains("format")) {
+            if (j["format"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'format' is null");
+            } else {
+                obj.format = j["format"].get<std::string>();
+            }
         }
-        if (j.contains("default") && !j["default"].is_null()) {
-            obj.default_ = j["default"].get<std::optional<std::string>>();
+        if (j.contains("default")) {
+            if (j["default"].is_null()) {
+                obj.default_ = std::nullopt;
+            } else {
+                obj.default_ = j["default"].get<std::optional<std::string>>();
+            }
         }
         return obj;
     }
@@ -7582,38 +10138,82 @@ struct ColumnEnum {
     /** @brief Deserialize from JSON */
     static ColumnEnum fromJson(const nlohmann::json& j) {
         ColumnEnum obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("key") && !j["key"].is_null()) {
-            obj.key = j["key"].get<std::string>();
+        if (j.contains("key")) {
+            if (j["key"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'key' is null");
+            } else {
+                obj.key = j["key"].get<std::string>();
+            }
         }
-        if (j.contains("type") && !j["type"].is_null()) {
-            obj.type = j["type"].get<std::string>();
+        if (j.contains("type")) {
+            if (j["type"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'type' is null");
+            } else {
+                obj.type = j["type"].get<std::string>();
+            }
         }
-        if (j.contains("status") && !j["status"].is_null()) {
-            obj.status = j["status"].get<appwrite::enums::ColumnStatus>();
+        if (j.contains("status")) {
+            if (j["status"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'status' is null");
+            } else {
+                obj.status = j["status"].get<appwrite::enums::ColumnStatus>();
+            }
         }
-        if (j.contains("error") && !j["error"].is_null()) {
-            obj.error = j["error"].get<std::string>();
+        if (j.contains("error")) {
+            if (j["error"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'error' is null");
+            } else {
+                obj.error = j["error"].get<std::string>();
+            }
         }
-        if (j.contains("required") && !j["required"].is_null()) {
-            obj.required = j["required"].get<bool>();
+        if (j.contains("required")) {
+            if (j["required"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'required' is null");
+            } else {
+                obj.required = j["required"].get<bool>();
+            }
         }
-        if (j.contains("array") && !j["array"].is_null()) {
-            obj.array = j["array"].get<std::optional<bool>>();
+        if (j.contains("array")) {
+            if (j["array"].is_null()) {
+                obj.array = std::nullopt;
+            } else {
+                obj.array = j["array"].get<std::optional<bool>>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("elements") && !j["elements"].is_null()) {
-            obj.elements = j["elements"].get<std::vector<std::string>>();
+        if (j.contains("elements")) {
+            if (j["elements"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'elements' is null");
+            } else {
+                obj.elements = j["elements"].get<std::vector<std::string>>();
+            }
         }
-        if (j.contains("format") && !j["format"].is_null()) {
-            obj.format = j["format"].get<std::string>();
+        if (j.contains("format")) {
+            if (j["format"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'format' is null");
+            } else {
+                obj.format = j["format"].get<std::string>();
+            }
         }
-        if (j.contains("default") && !j["default"].is_null()) {
-            obj.default_ = j["default"].get<std::optional<std::string>>();
+        if (j.contains("default")) {
+            if (j["default"].is_null()) {
+                obj.default_ = std::nullopt;
+            } else {
+                obj.default_ = j["default"].get<std::optional<std::string>>();
+            }
         }
         return obj;
     }
@@ -7695,35 +10295,75 @@ struct ColumnIp {
     /** @brief Deserialize from JSON */
     static ColumnIp fromJson(const nlohmann::json& j) {
         ColumnIp obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("key") && !j["key"].is_null()) {
-            obj.key = j["key"].get<std::string>();
+        if (j.contains("key")) {
+            if (j["key"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'key' is null");
+            } else {
+                obj.key = j["key"].get<std::string>();
+            }
         }
-        if (j.contains("type") && !j["type"].is_null()) {
-            obj.type = j["type"].get<std::string>();
+        if (j.contains("type")) {
+            if (j["type"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'type' is null");
+            } else {
+                obj.type = j["type"].get<std::string>();
+            }
         }
-        if (j.contains("status") && !j["status"].is_null()) {
-            obj.status = j["status"].get<appwrite::enums::ColumnStatus>();
+        if (j.contains("status")) {
+            if (j["status"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'status' is null");
+            } else {
+                obj.status = j["status"].get<appwrite::enums::ColumnStatus>();
+            }
         }
-        if (j.contains("error") && !j["error"].is_null()) {
-            obj.error = j["error"].get<std::string>();
+        if (j.contains("error")) {
+            if (j["error"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'error' is null");
+            } else {
+                obj.error = j["error"].get<std::string>();
+            }
         }
-        if (j.contains("required") && !j["required"].is_null()) {
-            obj.required = j["required"].get<bool>();
+        if (j.contains("required")) {
+            if (j["required"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'required' is null");
+            } else {
+                obj.required = j["required"].get<bool>();
+            }
         }
-        if (j.contains("array") && !j["array"].is_null()) {
-            obj.array = j["array"].get<std::optional<bool>>();
+        if (j.contains("array")) {
+            if (j["array"].is_null()) {
+                obj.array = std::nullopt;
+            } else {
+                obj.array = j["array"].get<std::optional<bool>>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("format") && !j["format"].is_null()) {
-            obj.format = j["format"].get<std::string>();
+        if (j.contains("format")) {
+            if (j["format"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'format' is null");
+            } else {
+                obj.format = j["format"].get<std::string>();
+            }
         }
-        if (j.contains("default") && !j["default"].is_null()) {
-            obj.default_ = j["default"].get<std::optional<std::string>>();
+        if (j.contains("default")) {
+            if (j["default"].is_null()) {
+                obj.default_ = std::nullopt;
+            } else {
+                obj.default_ = j["default"].get<std::optional<std::string>>();
+            }
         }
         return obj;
     }
@@ -7802,35 +10442,75 @@ struct ColumnUrl {
     /** @brief Deserialize from JSON */
     static ColumnUrl fromJson(const nlohmann::json& j) {
         ColumnUrl obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("key") && !j["key"].is_null()) {
-            obj.key = j["key"].get<std::string>();
+        if (j.contains("key")) {
+            if (j["key"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'key' is null");
+            } else {
+                obj.key = j["key"].get<std::string>();
+            }
         }
-        if (j.contains("type") && !j["type"].is_null()) {
-            obj.type = j["type"].get<std::string>();
+        if (j.contains("type")) {
+            if (j["type"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'type' is null");
+            } else {
+                obj.type = j["type"].get<std::string>();
+            }
         }
-        if (j.contains("status") && !j["status"].is_null()) {
-            obj.status = j["status"].get<appwrite::enums::ColumnStatus>();
+        if (j.contains("status")) {
+            if (j["status"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'status' is null");
+            } else {
+                obj.status = j["status"].get<appwrite::enums::ColumnStatus>();
+            }
         }
-        if (j.contains("error") && !j["error"].is_null()) {
-            obj.error = j["error"].get<std::string>();
+        if (j.contains("error")) {
+            if (j["error"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'error' is null");
+            } else {
+                obj.error = j["error"].get<std::string>();
+            }
         }
-        if (j.contains("required") && !j["required"].is_null()) {
-            obj.required = j["required"].get<bool>();
+        if (j.contains("required")) {
+            if (j["required"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'required' is null");
+            } else {
+                obj.required = j["required"].get<bool>();
+            }
         }
-        if (j.contains("array") && !j["array"].is_null()) {
-            obj.array = j["array"].get<std::optional<bool>>();
+        if (j.contains("array")) {
+            if (j["array"].is_null()) {
+                obj.array = std::nullopt;
+            } else {
+                obj.array = j["array"].get<std::optional<bool>>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("format") && !j["format"].is_null()) {
-            obj.format = j["format"].get<std::string>();
+        if (j.contains("format")) {
+            if (j["format"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'format' is null");
+            } else {
+                obj.format = j["format"].get<std::string>();
+            }
         }
-        if (j.contains("default") && !j["default"].is_null()) {
-            obj.default_ = j["default"].get<std::optional<std::string>>();
+        if (j.contains("default")) {
+            if (j["default"].is_null()) {
+                obj.default_ = std::nullopt;
+            } else {
+                obj.default_ = j["default"].get<std::optional<std::string>>();
+            }
         }
         return obj;
     }
@@ -7909,35 +10589,75 @@ struct ColumnDatetime {
     /** @brief Deserialize from JSON */
     static ColumnDatetime fromJson(const nlohmann::json& j) {
         ColumnDatetime obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("key") && !j["key"].is_null()) {
-            obj.key = j["key"].get<std::string>();
+        if (j.contains("key")) {
+            if (j["key"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'key' is null");
+            } else {
+                obj.key = j["key"].get<std::string>();
+            }
         }
-        if (j.contains("type") && !j["type"].is_null()) {
-            obj.type = j["type"].get<std::string>();
+        if (j.contains("type")) {
+            if (j["type"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'type' is null");
+            } else {
+                obj.type = j["type"].get<std::string>();
+            }
         }
-        if (j.contains("status") && !j["status"].is_null()) {
-            obj.status = j["status"].get<appwrite::enums::ColumnStatus>();
+        if (j.contains("status")) {
+            if (j["status"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'status' is null");
+            } else {
+                obj.status = j["status"].get<appwrite::enums::ColumnStatus>();
+            }
         }
-        if (j.contains("error") && !j["error"].is_null()) {
-            obj.error = j["error"].get<std::string>();
+        if (j.contains("error")) {
+            if (j["error"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'error' is null");
+            } else {
+                obj.error = j["error"].get<std::string>();
+            }
         }
-        if (j.contains("required") && !j["required"].is_null()) {
-            obj.required = j["required"].get<bool>();
+        if (j.contains("required")) {
+            if (j["required"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'required' is null");
+            } else {
+                obj.required = j["required"].get<bool>();
+            }
         }
-        if (j.contains("array") && !j["array"].is_null()) {
-            obj.array = j["array"].get<std::optional<bool>>();
+        if (j.contains("array")) {
+            if (j["array"].is_null()) {
+                obj.array = std::nullopt;
+            } else {
+                obj.array = j["array"].get<std::optional<bool>>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("format") && !j["format"].is_null()) {
-            obj.format = j["format"].get<std::string>();
+        if (j.contains("format")) {
+            if (j["format"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'format' is null");
+            } else {
+                obj.format = j["format"].get<std::string>();
+            }
         }
-        if (j.contains("default") && !j["default"].is_null()) {
-            obj.default_ = j["default"].get<std::optional<std::string>>();
+        if (j.contains("default")) {
+            if (j["default"].is_null()) {
+                obj.default_ = std::nullopt;
+            } else {
+                obj.default_ = j["default"].get<std::optional<std::string>>();
+            }
         }
         return obj;
     }
@@ -8024,47 +10744,103 @@ struct ColumnRelationship {
     /** @brief Deserialize from JSON */
     static ColumnRelationship fromJson(const nlohmann::json& j) {
         ColumnRelationship obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("key") && !j["key"].is_null()) {
-            obj.key = j["key"].get<std::string>();
+        if (j.contains("key")) {
+            if (j["key"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'key' is null");
+            } else {
+                obj.key = j["key"].get<std::string>();
+            }
         }
-        if (j.contains("type") && !j["type"].is_null()) {
-            obj.type = j["type"].get<std::string>();
+        if (j.contains("type")) {
+            if (j["type"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'type' is null");
+            } else {
+                obj.type = j["type"].get<std::string>();
+            }
         }
-        if (j.contains("status") && !j["status"].is_null()) {
-            obj.status = j["status"].get<appwrite::enums::ColumnStatus>();
+        if (j.contains("status")) {
+            if (j["status"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'status' is null");
+            } else {
+                obj.status = j["status"].get<appwrite::enums::ColumnStatus>();
+            }
         }
-        if (j.contains("error") && !j["error"].is_null()) {
-            obj.error = j["error"].get<std::string>();
+        if (j.contains("error")) {
+            if (j["error"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'error' is null");
+            } else {
+                obj.error = j["error"].get<std::string>();
+            }
         }
-        if (j.contains("required") && !j["required"].is_null()) {
-            obj.required = j["required"].get<bool>();
+        if (j.contains("required")) {
+            if (j["required"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'required' is null");
+            } else {
+                obj.required = j["required"].get<bool>();
+            }
         }
-        if (j.contains("array") && !j["array"].is_null()) {
-            obj.array = j["array"].get<std::optional<bool>>();
+        if (j.contains("array")) {
+            if (j["array"].is_null()) {
+                obj.array = std::nullopt;
+            } else {
+                obj.array = j["array"].get<std::optional<bool>>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("relatedTable") && !j["relatedTable"].is_null()) {
-            obj.relatedTable = j["relatedTable"].get<std::string>();
+        if (j.contains("relatedTable")) {
+            if (j["relatedTable"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'relatedTable' is null");
+            } else {
+                obj.relatedTable = j["relatedTable"].get<std::string>();
+            }
         }
-        if (j.contains("relationType") && !j["relationType"].is_null()) {
-            obj.relationType = j["relationType"].get<std::string>();
+        if (j.contains("relationType")) {
+            if (j["relationType"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'relationType' is null");
+            } else {
+                obj.relationType = j["relationType"].get<std::string>();
+            }
         }
-        if (j.contains("twoWay") && !j["twoWay"].is_null()) {
-            obj.twoWay = j["twoWay"].get<bool>();
+        if (j.contains("twoWay")) {
+            if (j["twoWay"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'twoWay' is null");
+            } else {
+                obj.twoWay = j["twoWay"].get<bool>();
+            }
         }
-        if (j.contains("twoWayKey") && !j["twoWayKey"].is_null()) {
-            obj.twoWayKey = j["twoWayKey"].get<std::string>();
+        if (j.contains("twoWayKey")) {
+            if (j["twoWayKey"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'twoWayKey' is null");
+            } else {
+                obj.twoWayKey = j["twoWayKey"].get<std::string>();
+            }
         }
-        if (j.contains("onDelete") && !j["onDelete"].is_null()) {
-            obj.onDelete = j["onDelete"].get<std::string>();
+        if (j.contains("onDelete")) {
+            if (j["onDelete"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'onDelete' is null");
+            } else {
+                obj.onDelete = j["onDelete"].get<std::string>();
+            }
         }
-        if (j.contains("side") && !j["side"].is_null()) {
-            obj.side = j["side"].get<std::string>();
+        if (j.contains("side")) {
+            if (j["side"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'side' is null");
+            } else {
+                obj.side = j["side"].get<std::string>();
+            }
         }
         return obj;
     }
@@ -8153,32 +10929,68 @@ struct ColumnPoint {
     /** @brief Deserialize from JSON */
     static ColumnPoint fromJson(const nlohmann::json& j) {
         ColumnPoint obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("key") && !j["key"].is_null()) {
-            obj.key = j["key"].get<std::string>();
+        if (j.contains("key")) {
+            if (j["key"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'key' is null");
+            } else {
+                obj.key = j["key"].get<std::string>();
+            }
         }
-        if (j.contains("type") && !j["type"].is_null()) {
-            obj.type = j["type"].get<std::string>();
+        if (j.contains("type")) {
+            if (j["type"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'type' is null");
+            } else {
+                obj.type = j["type"].get<std::string>();
+            }
         }
-        if (j.contains("status") && !j["status"].is_null()) {
-            obj.status = j["status"].get<appwrite::enums::ColumnStatus>();
+        if (j.contains("status")) {
+            if (j["status"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'status' is null");
+            } else {
+                obj.status = j["status"].get<appwrite::enums::ColumnStatus>();
+            }
         }
-        if (j.contains("error") && !j["error"].is_null()) {
-            obj.error = j["error"].get<std::string>();
+        if (j.contains("error")) {
+            if (j["error"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'error' is null");
+            } else {
+                obj.error = j["error"].get<std::string>();
+            }
         }
-        if (j.contains("required") && !j["required"].is_null()) {
-            obj.required = j["required"].get<bool>();
+        if (j.contains("required")) {
+            if (j["required"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'required' is null");
+            } else {
+                obj.required = j["required"].get<bool>();
+            }
         }
-        if (j.contains("array") && !j["array"].is_null()) {
-            obj.array = j["array"].get<std::optional<bool>>();
+        if (j.contains("array")) {
+            if (j["array"].is_null()) {
+                obj.array = std::nullopt;
+            } else {
+                obj.array = j["array"].get<std::optional<bool>>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("default") && !j["default"].is_null()) {
-            obj.default_ = j["default"].get<std::optional<std::vector<std::string>>>();
+        if (j.contains("default")) {
+            if (j["default"].is_null()) {
+                obj.default_ = std::nullopt;
+            } else {
+                obj.default_ = j["default"].get<std::optional<std::vector<std::string>>>();
+            }
         }
         return obj;
     }
@@ -8252,32 +11064,68 @@ struct ColumnLine {
     /** @brief Deserialize from JSON */
     static ColumnLine fromJson(const nlohmann::json& j) {
         ColumnLine obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("key") && !j["key"].is_null()) {
-            obj.key = j["key"].get<std::string>();
+        if (j.contains("key")) {
+            if (j["key"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'key' is null");
+            } else {
+                obj.key = j["key"].get<std::string>();
+            }
         }
-        if (j.contains("type") && !j["type"].is_null()) {
-            obj.type = j["type"].get<std::string>();
+        if (j.contains("type")) {
+            if (j["type"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'type' is null");
+            } else {
+                obj.type = j["type"].get<std::string>();
+            }
         }
-        if (j.contains("status") && !j["status"].is_null()) {
-            obj.status = j["status"].get<appwrite::enums::ColumnStatus>();
+        if (j.contains("status")) {
+            if (j["status"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'status' is null");
+            } else {
+                obj.status = j["status"].get<appwrite::enums::ColumnStatus>();
+            }
         }
-        if (j.contains("error") && !j["error"].is_null()) {
-            obj.error = j["error"].get<std::string>();
+        if (j.contains("error")) {
+            if (j["error"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'error' is null");
+            } else {
+                obj.error = j["error"].get<std::string>();
+            }
         }
-        if (j.contains("required") && !j["required"].is_null()) {
-            obj.required = j["required"].get<bool>();
+        if (j.contains("required")) {
+            if (j["required"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'required' is null");
+            } else {
+                obj.required = j["required"].get<bool>();
+            }
         }
-        if (j.contains("array") && !j["array"].is_null()) {
-            obj.array = j["array"].get<std::optional<bool>>();
+        if (j.contains("array")) {
+            if (j["array"].is_null()) {
+                obj.array = std::nullopt;
+            } else {
+                obj.array = j["array"].get<std::optional<bool>>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("default") && !j["default"].is_null()) {
-            obj.default_ = j["default"].get<std::optional<std::vector<std::string>>>();
+        if (j.contains("default")) {
+            if (j["default"].is_null()) {
+                obj.default_ = std::nullopt;
+            } else {
+                obj.default_ = j["default"].get<std::optional<std::vector<std::string>>>();
+            }
         }
         return obj;
     }
@@ -8351,32 +11199,68 @@ struct ColumnPolygon {
     /** @brief Deserialize from JSON */
     static ColumnPolygon fromJson(const nlohmann::json& j) {
         ColumnPolygon obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("key") && !j["key"].is_null()) {
-            obj.key = j["key"].get<std::string>();
+        if (j.contains("key")) {
+            if (j["key"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'key' is null");
+            } else {
+                obj.key = j["key"].get<std::string>();
+            }
         }
-        if (j.contains("type") && !j["type"].is_null()) {
-            obj.type = j["type"].get<std::string>();
+        if (j.contains("type")) {
+            if (j["type"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'type' is null");
+            } else {
+                obj.type = j["type"].get<std::string>();
+            }
         }
-        if (j.contains("status") && !j["status"].is_null()) {
-            obj.status = j["status"].get<appwrite::enums::ColumnStatus>();
+        if (j.contains("status")) {
+            if (j["status"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'status' is null");
+            } else {
+                obj.status = j["status"].get<appwrite::enums::ColumnStatus>();
+            }
         }
-        if (j.contains("error") && !j["error"].is_null()) {
-            obj.error = j["error"].get<std::string>();
+        if (j.contains("error")) {
+            if (j["error"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'error' is null");
+            } else {
+                obj.error = j["error"].get<std::string>();
+            }
         }
-        if (j.contains("required") && !j["required"].is_null()) {
-            obj.required = j["required"].get<bool>();
+        if (j.contains("required")) {
+            if (j["required"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'required' is null");
+            } else {
+                obj.required = j["required"].get<bool>();
+            }
         }
-        if (j.contains("array") && !j["array"].is_null()) {
-            obj.array = j["array"].get<std::optional<bool>>();
+        if (j.contains("array")) {
+            if (j["array"].is_null()) {
+                obj.array = std::nullopt;
+            } else {
+                obj.array = j["array"].get<std::optional<bool>>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("default") && !j["default"].is_null()) {
-            obj.default_ = j["default"].get<std::optional<std::vector<std::string>>>();
+        if (j.contains("default")) {
+            if (j["default"].is_null()) {
+                obj.default_ = std::nullopt;
+            } else {
+                obj.default_ = j["default"].get<std::optional<std::vector<std::string>>>();
+            }
         }
         return obj;
     }
@@ -8454,38 +11338,82 @@ struct ColumnVarchar {
     /** @brief Deserialize from JSON */
     static ColumnVarchar fromJson(const nlohmann::json& j) {
         ColumnVarchar obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("key") && !j["key"].is_null()) {
-            obj.key = j["key"].get<std::string>();
+        if (j.contains("key")) {
+            if (j["key"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'key' is null");
+            } else {
+                obj.key = j["key"].get<std::string>();
+            }
         }
-        if (j.contains("type") && !j["type"].is_null()) {
-            obj.type = j["type"].get<std::string>();
+        if (j.contains("type")) {
+            if (j["type"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'type' is null");
+            } else {
+                obj.type = j["type"].get<std::string>();
+            }
         }
-        if (j.contains("status") && !j["status"].is_null()) {
-            obj.status = j["status"].get<appwrite::enums::ColumnStatus>();
+        if (j.contains("status")) {
+            if (j["status"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'status' is null");
+            } else {
+                obj.status = j["status"].get<appwrite::enums::ColumnStatus>();
+            }
         }
-        if (j.contains("error") && !j["error"].is_null()) {
-            obj.error = j["error"].get<std::string>();
+        if (j.contains("error")) {
+            if (j["error"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'error' is null");
+            } else {
+                obj.error = j["error"].get<std::string>();
+            }
         }
-        if (j.contains("required") && !j["required"].is_null()) {
-            obj.required = j["required"].get<bool>();
+        if (j.contains("required")) {
+            if (j["required"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'required' is null");
+            } else {
+                obj.required = j["required"].get<bool>();
+            }
         }
-        if (j.contains("array") && !j["array"].is_null()) {
-            obj.array = j["array"].get<std::optional<bool>>();
+        if (j.contains("array")) {
+            if (j["array"].is_null()) {
+                obj.array = std::nullopt;
+            } else {
+                obj.array = j["array"].get<std::optional<bool>>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("size") && !j["size"].is_null()) {
-            obj.size = j["size"].get<int64_t>();
+        if (j.contains("size")) {
+            if (j["size"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'size' is null");
+            } else {
+                obj.size = j["size"].get<int64_t>();
+            }
         }
-        if (j.contains("default") && !j["default"].is_null()) {
-            obj.default_ = j["default"].get<std::optional<std::string>>();
+        if (j.contains("default")) {
+            if (j["default"].is_null()) {
+                obj.default_ = std::nullopt;
+            } else {
+                obj.default_ = j["default"].get<std::optional<std::string>>();
+            }
         }
-        if (j.contains("encrypt") && !j["encrypt"].is_null()) {
-            obj.encrypt = j["encrypt"].get<std::optional<bool>>();
+        if (j.contains("encrypt")) {
+            if (j["encrypt"].is_null()) {
+                obj.encrypt = std::nullopt;
+            } else {
+                obj.encrypt = j["encrypt"].get<std::optional<bool>>();
+            }
         }
         return obj;
     }
@@ -8567,35 +11495,75 @@ struct ColumnText {
     /** @brief Deserialize from JSON */
     static ColumnText fromJson(const nlohmann::json& j) {
         ColumnText obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("key") && !j["key"].is_null()) {
-            obj.key = j["key"].get<std::string>();
+        if (j.contains("key")) {
+            if (j["key"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'key' is null");
+            } else {
+                obj.key = j["key"].get<std::string>();
+            }
         }
-        if (j.contains("type") && !j["type"].is_null()) {
-            obj.type = j["type"].get<std::string>();
+        if (j.contains("type")) {
+            if (j["type"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'type' is null");
+            } else {
+                obj.type = j["type"].get<std::string>();
+            }
         }
-        if (j.contains("status") && !j["status"].is_null()) {
-            obj.status = j["status"].get<appwrite::enums::ColumnStatus>();
+        if (j.contains("status")) {
+            if (j["status"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'status' is null");
+            } else {
+                obj.status = j["status"].get<appwrite::enums::ColumnStatus>();
+            }
         }
-        if (j.contains("error") && !j["error"].is_null()) {
-            obj.error = j["error"].get<std::string>();
+        if (j.contains("error")) {
+            if (j["error"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'error' is null");
+            } else {
+                obj.error = j["error"].get<std::string>();
+            }
         }
-        if (j.contains("required") && !j["required"].is_null()) {
-            obj.required = j["required"].get<bool>();
+        if (j.contains("required")) {
+            if (j["required"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'required' is null");
+            } else {
+                obj.required = j["required"].get<bool>();
+            }
         }
-        if (j.contains("array") && !j["array"].is_null()) {
-            obj.array = j["array"].get<std::optional<bool>>();
+        if (j.contains("array")) {
+            if (j["array"].is_null()) {
+                obj.array = std::nullopt;
+            } else {
+                obj.array = j["array"].get<std::optional<bool>>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("default") && !j["default"].is_null()) {
-            obj.default_ = j["default"].get<std::optional<std::string>>();
+        if (j.contains("default")) {
+            if (j["default"].is_null()) {
+                obj.default_ = std::nullopt;
+            } else {
+                obj.default_ = j["default"].get<std::optional<std::string>>();
+            }
         }
-        if (j.contains("encrypt") && !j["encrypt"].is_null()) {
-            obj.encrypt = j["encrypt"].get<std::optional<bool>>();
+        if (j.contains("encrypt")) {
+            if (j["encrypt"].is_null()) {
+                obj.encrypt = std::nullopt;
+            } else {
+                obj.encrypt = j["encrypt"].get<std::optional<bool>>();
+            }
         }
         return obj;
     }
@@ -8674,35 +11642,75 @@ struct ColumnMediumtext {
     /** @brief Deserialize from JSON */
     static ColumnMediumtext fromJson(const nlohmann::json& j) {
         ColumnMediumtext obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("key") && !j["key"].is_null()) {
-            obj.key = j["key"].get<std::string>();
+        if (j.contains("key")) {
+            if (j["key"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'key' is null");
+            } else {
+                obj.key = j["key"].get<std::string>();
+            }
         }
-        if (j.contains("type") && !j["type"].is_null()) {
-            obj.type = j["type"].get<std::string>();
+        if (j.contains("type")) {
+            if (j["type"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'type' is null");
+            } else {
+                obj.type = j["type"].get<std::string>();
+            }
         }
-        if (j.contains("status") && !j["status"].is_null()) {
-            obj.status = j["status"].get<appwrite::enums::ColumnStatus>();
+        if (j.contains("status")) {
+            if (j["status"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'status' is null");
+            } else {
+                obj.status = j["status"].get<appwrite::enums::ColumnStatus>();
+            }
         }
-        if (j.contains("error") && !j["error"].is_null()) {
-            obj.error = j["error"].get<std::string>();
+        if (j.contains("error")) {
+            if (j["error"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'error' is null");
+            } else {
+                obj.error = j["error"].get<std::string>();
+            }
         }
-        if (j.contains("required") && !j["required"].is_null()) {
-            obj.required = j["required"].get<bool>();
+        if (j.contains("required")) {
+            if (j["required"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'required' is null");
+            } else {
+                obj.required = j["required"].get<bool>();
+            }
         }
-        if (j.contains("array") && !j["array"].is_null()) {
-            obj.array = j["array"].get<std::optional<bool>>();
+        if (j.contains("array")) {
+            if (j["array"].is_null()) {
+                obj.array = std::nullopt;
+            } else {
+                obj.array = j["array"].get<std::optional<bool>>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("default") && !j["default"].is_null()) {
-            obj.default_ = j["default"].get<std::optional<std::string>>();
+        if (j.contains("default")) {
+            if (j["default"].is_null()) {
+                obj.default_ = std::nullopt;
+            } else {
+                obj.default_ = j["default"].get<std::optional<std::string>>();
+            }
         }
-        if (j.contains("encrypt") && !j["encrypt"].is_null()) {
-            obj.encrypt = j["encrypt"].get<std::optional<bool>>();
+        if (j.contains("encrypt")) {
+            if (j["encrypt"].is_null()) {
+                obj.encrypt = std::nullopt;
+            } else {
+                obj.encrypt = j["encrypt"].get<std::optional<bool>>();
+            }
         }
         return obj;
     }
@@ -8781,35 +11789,75 @@ struct ColumnLongtext {
     /** @brief Deserialize from JSON */
     static ColumnLongtext fromJson(const nlohmann::json& j) {
         ColumnLongtext obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("key") && !j["key"].is_null()) {
-            obj.key = j["key"].get<std::string>();
+        if (j.contains("key")) {
+            if (j["key"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'key' is null");
+            } else {
+                obj.key = j["key"].get<std::string>();
+            }
         }
-        if (j.contains("type") && !j["type"].is_null()) {
-            obj.type = j["type"].get<std::string>();
+        if (j.contains("type")) {
+            if (j["type"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'type' is null");
+            } else {
+                obj.type = j["type"].get<std::string>();
+            }
         }
-        if (j.contains("status") && !j["status"].is_null()) {
-            obj.status = j["status"].get<appwrite::enums::ColumnStatus>();
+        if (j.contains("status")) {
+            if (j["status"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'status' is null");
+            } else {
+                obj.status = j["status"].get<appwrite::enums::ColumnStatus>();
+            }
         }
-        if (j.contains("error") && !j["error"].is_null()) {
-            obj.error = j["error"].get<std::string>();
+        if (j.contains("error")) {
+            if (j["error"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'error' is null");
+            } else {
+                obj.error = j["error"].get<std::string>();
+            }
         }
-        if (j.contains("required") && !j["required"].is_null()) {
-            obj.required = j["required"].get<bool>();
+        if (j.contains("required")) {
+            if (j["required"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'required' is null");
+            } else {
+                obj.required = j["required"].get<bool>();
+            }
         }
-        if (j.contains("array") && !j["array"].is_null()) {
-            obj.array = j["array"].get<std::optional<bool>>();
+        if (j.contains("array")) {
+            if (j["array"].is_null()) {
+                obj.array = std::nullopt;
+            } else {
+                obj.array = j["array"].get<std::optional<bool>>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("default") && !j["default"].is_null()) {
-            obj.default_ = j["default"].get<std::optional<std::string>>();
+        if (j.contains("default")) {
+            if (j["default"].is_null()) {
+                obj.default_ = std::nullopt;
+            } else {
+                obj.default_ = j["default"].get<std::optional<std::string>>();
+            }
         }
-        if (j.contains("encrypt") && !j["encrypt"].is_null()) {
-            obj.encrypt = j["encrypt"].get<std::optional<bool>>();
+        if (j.contains("encrypt")) {
+            if (j["encrypt"].is_null()) {
+                obj.encrypt = std::nullopt;
+            } else {
+                obj.encrypt = j["encrypt"].get<std::optional<bool>>();
+            }
         }
         return obj;
     }
@@ -8870,8 +11918,12 @@ struct AlgoMd5 {
     /** @brief Deserialize from JSON */
     static AlgoMd5 fromJson(const nlohmann::json& j) {
         AlgoMd5 obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("type") && !j["type"].is_null()) {
-            obj.type = j["type"].get<std::string>();
+        if (j.contains("type")) {
+            if (j["type"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'type' is null");
+            } else {
+                obj.type = j["type"].get<std::string>();
+            }
         }
         return obj;
     }
@@ -8905,8 +11957,12 @@ struct AlgoSha {
     /** @brief Deserialize from JSON */
     static AlgoSha fromJson(const nlohmann::json& j) {
         AlgoSha obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("type") && !j["type"].is_null()) {
-            obj.type = j["type"].get<std::string>();
+        if (j.contains("type")) {
+            if (j["type"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'type' is null");
+            } else {
+                obj.type = j["type"].get<std::string>();
+            }
         }
         return obj;
     }
@@ -8940,8 +11996,12 @@ struct AlgoPhpass {
     /** @brief Deserialize from JSON */
     static AlgoPhpass fromJson(const nlohmann::json& j) {
         AlgoPhpass obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("type") && !j["type"].is_null()) {
-            obj.type = j["type"].get<std::string>();
+        if (j.contains("type")) {
+            if (j["type"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'type' is null");
+            } else {
+                obj.type = j["type"].get<std::string>();
+            }
         }
         return obj;
     }
@@ -8975,8 +12035,12 @@ struct AlgoBcrypt {
     /** @brief Deserialize from JSON */
     static AlgoBcrypt fromJson(const nlohmann::json& j) {
         AlgoBcrypt obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("type") && !j["type"].is_null()) {
-            obj.type = j["type"].get<std::string>();
+        if (j.contains("type")) {
+            if (j["type"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'type' is null");
+            } else {
+                obj.type = j["type"].get<std::string>();
+            }
         }
         return obj;
     }
@@ -9018,20 +12082,40 @@ struct AlgoScrypt {
     /** @brief Deserialize from JSON */
     static AlgoScrypt fromJson(const nlohmann::json& j) {
         AlgoScrypt obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("type") && !j["type"].is_null()) {
-            obj.type = j["type"].get<std::string>();
+        if (j.contains("type")) {
+            if (j["type"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'type' is null");
+            } else {
+                obj.type = j["type"].get<std::string>();
+            }
         }
-        if (j.contains("costCpu") && !j["costCpu"].is_null()) {
-            obj.costCpu = j["costCpu"].get<int64_t>();
+        if (j.contains("costCpu")) {
+            if (j["costCpu"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'costCpu' is null");
+            } else {
+                obj.costCpu = j["costCpu"].get<int64_t>();
+            }
         }
-        if (j.contains("costMemory") && !j["costMemory"].is_null()) {
-            obj.costMemory = j["costMemory"].get<int64_t>();
+        if (j.contains("costMemory")) {
+            if (j["costMemory"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'costMemory' is null");
+            } else {
+                obj.costMemory = j["costMemory"].get<int64_t>();
+            }
         }
-        if (j.contains("costParallel") && !j["costParallel"].is_null()) {
-            obj.costParallel = j["costParallel"].get<int64_t>();
+        if (j.contains("costParallel")) {
+            if (j["costParallel"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'costParallel' is null");
+            } else {
+                obj.costParallel = j["costParallel"].get<int64_t>();
+            }
         }
-        if (j.contains("length") && !j["length"].is_null()) {
-            obj.length = j["length"].get<int64_t>();
+        if (j.contains("length")) {
+            if (j["length"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'length' is null");
+            } else {
+                obj.length = j["length"].get<int64_t>();
+            }
         }
         return obj;
     }
@@ -9083,17 +12167,33 @@ struct AlgoScryptModified {
     /** @brief Deserialize from JSON */
     static AlgoScryptModified fromJson(const nlohmann::json& j) {
         AlgoScryptModified obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("type") && !j["type"].is_null()) {
-            obj.type = j["type"].get<std::string>();
+        if (j.contains("type")) {
+            if (j["type"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'type' is null");
+            } else {
+                obj.type = j["type"].get<std::string>();
+            }
         }
-        if (j.contains("salt") && !j["salt"].is_null()) {
-            obj.salt = j["salt"].get<std::string>();
+        if (j.contains("salt")) {
+            if (j["salt"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'salt' is null");
+            } else {
+                obj.salt = j["salt"].get<std::string>();
+            }
         }
-        if (j.contains("saltSeparator") && !j["saltSeparator"].is_null()) {
-            obj.saltSeparator = j["saltSeparator"].get<std::string>();
+        if (j.contains("saltSeparator")) {
+            if (j["saltSeparator"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'saltSeparator' is null");
+            } else {
+                obj.saltSeparator = j["saltSeparator"].get<std::string>();
+            }
         }
-        if (j.contains("signerKey") && !j["signerKey"].is_null()) {
-            obj.signerKey = j["signerKey"].get<std::string>();
+        if (j.contains("signerKey")) {
+            if (j["signerKey"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'signerKey' is null");
+            } else {
+                obj.signerKey = j["signerKey"].get<std::string>();
+            }
         }
         return obj;
     }
@@ -9142,17 +12242,33 @@ struct AlgoArgon2 {
     /** @brief Deserialize from JSON */
     static AlgoArgon2 fromJson(const nlohmann::json& j) {
         AlgoArgon2 obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("type") && !j["type"].is_null()) {
-            obj.type = j["type"].get<std::string>();
+        if (j.contains("type")) {
+            if (j["type"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'type' is null");
+            } else {
+                obj.type = j["type"].get<std::string>();
+            }
         }
-        if (j.contains("memoryCost") && !j["memoryCost"].is_null()) {
-            obj.memoryCost = j["memoryCost"].get<int64_t>();
+        if (j.contains("memoryCost")) {
+            if (j["memoryCost"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'memoryCost' is null");
+            } else {
+                obj.memoryCost = j["memoryCost"].get<int64_t>();
+            }
         }
-        if (j.contains("timeCost") && !j["timeCost"].is_null()) {
-            obj.timeCost = j["timeCost"].get<int64_t>();
+        if (j.contains("timeCost")) {
+            if (j["timeCost"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'timeCost' is null");
+            } else {
+                obj.timeCost = j["timeCost"].get<int64_t>();
+            }
         }
-        if (j.contains("threads") && !j["threads"].is_null()) {
-            obj.threads = j["threads"].get<int64_t>();
+        if (j.contains("threads")) {
+            if (j["threads"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'threads' is null");
+            } else {
+                obj.threads = j["threads"].get<int64_t>();
+            }
         }
         return obj;
     }
@@ -9205,23 +12321,47 @@ struct Token {
     /** @brief Deserialize from JSON */
     static Token fromJson(const nlohmann::json& j) {
         Token obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("$id") && !j["$id"].is_null()) {
-            obj.id = j["$id"].get<std::string>();
+        if (j.contains("$id")) {
+            if (j["$id"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$id' is null");
+            } else {
+                obj.id = j["$id"].get<std::string>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("userId") && !j["userId"].is_null()) {
-            obj.userId = j["userId"].get<std::string>();
+        if (j.contains("userId")) {
+            if (j["userId"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'userId' is null");
+            } else {
+                obj.userId = j["userId"].get<std::string>();
+            }
         }
-        if (j.contains("secret") && !j["secret"].is_null()) {
-            obj.secret = j["secret"].get<std::string>();
+        if (j.contains("secret")) {
+            if (j["secret"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'secret' is null");
+            } else {
+                obj.secret = j["secret"].get<std::string>();
+            }
         }
-        if (j.contains("expire") && !j["expire"].is_null()) {
-            obj.expire = j["expire"].get<std::string>();
+        if (j.contains("expire")) {
+            if (j["expire"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'expire' is null");
+            } else {
+                obj.expire = j["expire"].get<std::string>();
+            }
         }
-        if (j.contains("phrase") && !j["phrase"].is_null()) {
-            obj.phrase = j["phrase"].get<std::string>();
+        if (j.contains("phrase")) {
+            if (j["phrase"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'phrase' is null");
+            } else {
+                obj.phrase = j["phrase"].get<std::string>();
+            }
         }
         return obj;
     }
@@ -9270,8 +12410,12 @@ struct Jwt {
     /** @brief Deserialize from JSON */
     static Jwt fromJson(const nlohmann::json& j) {
         Jwt obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("jwt") && !j["jwt"].is_null()) {
-            obj.jwt = j["jwt"].get<std::string>();
+        if (j.contains("jwt")) {
+            if (j["jwt"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'jwt' is null");
+            } else {
+                obj.jwt = j["jwt"].get<std::string>();
+            }
         }
         return obj;
     }
@@ -9307,11 +12451,19 @@ struct Metric {
     /** @brief Deserialize from JSON */
     static Metric fromJson(const nlohmann::json& j) {
         Metric obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("value") && !j["value"].is_null()) {
-            obj.value = j["value"].get<int64_t>();
+        if (j.contains("value")) {
+            if (j["value"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'value' is null");
+            } else {
+                obj.value = j["value"].get<int64_t>();
+            }
         }
-        if (j.contains("date") && !j["date"].is_null()) {
-            obj.date = j["date"].get<std::string>();
+        if (j.contains("date")) {
+            if (j["date"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'date' is null");
+            } else {
+                obj.date = j["date"].get<std::string>();
+            }
         }
         return obj;
     }
@@ -9380,73 +12532,141 @@ struct UsageDatabases {
     /** @brief Deserialize from JSON */
     static UsageDatabases fromJson(const nlohmann::json& j) {
         UsageDatabases obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("range") && !j["range"].is_null()) {
-            obj.range = j["range"].get<std::string>();
+        if (j.contains("range")) {
+            if (j["range"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'range' is null");
+            } else {
+                obj.range = j["range"].get<std::string>();
+            }
         }
-        if (j.contains("databasesTotal") && !j["databasesTotal"].is_null()) {
-            obj.databasesTotal = j["databasesTotal"].get<int64_t>();
+        if (j.contains("databasesTotal")) {
+            if (j["databasesTotal"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'databasesTotal' is null");
+            } else {
+                obj.databasesTotal = j["databasesTotal"].get<int64_t>();
+            }
         }
-        if (j.contains("collectionsTotal") && !j["collectionsTotal"].is_null()) {
-            obj.collectionsTotal = j["collectionsTotal"].get<int64_t>();
+        if (j.contains("collectionsTotal")) {
+            if (j["collectionsTotal"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'collectionsTotal' is null");
+            } else {
+                obj.collectionsTotal = j["collectionsTotal"].get<int64_t>();
+            }
         }
-        if (j.contains("tablesTotal") && !j["tablesTotal"].is_null()) {
-            obj.tablesTotal = j["tablesTotal"].get<int64_t>();
+        if (j.contains("tablesTotal")) {
+            if (j["tablesTotal"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'tablesTotal' is null");
+            } else {
+                obj.tablesTotal = j["tablesTotal"].get<int64_t>();
+            }
         }
-        if (j.contains("documentsTotal") && !j["documentsTotal"].is_null()) {
-            obj.documentsTotal = j["documentsTotal"].get<int64_t>();
+        if (j.contains("documentsTotal")) {
+            if (j["documentsTotal"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'documentsTotal' is null");
+            } else {
+                obj.documentsTotal = j["documentsTotal"].get<int64_t>();
+            }
         }
-        if (j.contains("rowsTotal") && !j["rowsTotal"].is_null()) {
-            obj.rowsTotal = j["rowsTotal"].get<int64_t>();
+        if (j.contains("rowsTotal")) {
+            if (j["rowsTotal"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'rowsTotal' is null");
+            } else {
+                obj.rowsTotal = j["rowsTotal"].get<int64_t>();
+            }
         }
-        if (j.contains("storageTotal") && !j["storageTotal"].is_null()) {
-            obj.storageTotal = j["storageTotal"].get<int64_t>();
+        if (j.contains("storageTotal")) {
+            if (j["storageTotal"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'storageTotal' is null");
+            } else {
+                obj.storageTotal = j["storageTotal"].get<int64_t>();
+            }
         }
-        if (j.contains("databasesReadsTotal") && !j["databasesReadsTotal"].is_null()) {
-            obj.databasesReadsTotal = j["databasesReadsTotal"].get<int64_t>();
+        if (j.contains("databasesReadsTotal")) {
+            if (j["databasesReadsTotal"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'databasesReadsTotal' is null");
+            } else {
+                obj.databasesReadsTotal = j["databasesReadsTotal"].get<int64_t>();
+            }
         }
-        if (j.contains("databasesWritesTotal") && !j["databasesWritesTotal"].is_null()) {
-            obj.databasesWritesTotal = j["databasesWritesTotal"].get<int64_t>();
+        if (j.contains("databasesWritesTotal")) {
+            if (j["databasesWritesTotal"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'databasesWritesTotal' is null");
+            } else {
+                obj.databasesWritesTotal = j["databasesWritesTotal"].get<int64_t>();
+            }
         }
-        if (j.contains("databases") && !j["databases"].is_null()) {
-                                        for (auto& item : j["databases"]) {
-                                obj.databases.push_back(Metric::fromJson(item));
-                            }
-                    }
-        if (j.contains("collections") && !j["collections"].is_null()) {
-                                        for (auto& item : j["collections"]) {
-                                obj.collections.push_back(Metric::fromJson(item));
-                            }
-                    }
-        if (j.contains("tables") && !j["tables"].is_null()) {
-                                        for (auto& item : j["tables"]) {
-                                obj.tables.push_back(Metric::fromJson(item));
-                            }
-                    }
-        if (j.contains("documents") && !j["documents"].is_null()) {
-                                        for (auto& item : j["documents"]) {
-                                obj.documents.push_back(Metric::fromJson(item));
-                            }
-                    }
-        if (j.contains("rows") && !j["rows"].is_null()) {
-                                        for (auto& item : j["rows"]) {
-                                obj.rows.push_back(Metric::fromJson(item));
-                            }
-                    }
-        if (j.contains("storage") && !j["storage"].is_null()) {
-                                        for (auto& item : j["storage"]) {
-                                obj.storage.push_back(Metric::fromJson(item));
-                            }
-                    }
-        if (j.contains("databasesReads") && !j["databasesReads"].is_null()) {
-                                        for (auto& item : j["databasesReads"]) {
-                                obj.databasesReads.push_back(Metric::fromJson(item));
-                            }
-                    }
-        if (j.contains("databasesWrites") && !j["databasesWrites"].is_null()) {
-                                        for (auto& item : j["databasesWrites"]) {
-                                obj.databasesWrites.push_back(Metric::fromJson(item));
-                            }
-                    }
+        if (j.contains("databases")) {
+            if (j["databases"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'databases' is null");
+            } else {
+                                            for (auto& item : j["databases"]) {
+                                    obj.databases.push_back(Metric::fromJson(item));
+                                }
+                        }
+        }
+        if (j.contains("collections")) {
+            if (j["collections"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'collections' is null");
+            } else {
+                                            for (auto& item : j["collections"]) {
+                                    obj.collections.push_back(Metric::fromJson(item));
+                                }
+                        }
+        }
+        if (j.contains("tables")) {
+            if (j["tables"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'tables' is null");
+            } else {
+                                            for (auto& item : j["tables"]) {
+                                    obj.tables.push_back(Metric::fromJson(item));
+                                }
+                        }
+        }
+        if (j.contains("documents")) {
+            if (j["documents"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'documents' is null");
+            } else {
+                                            for (auto& item : j["documents"]) {
+                                    obj.documents.push_back(Metric::fromJson(item));
+                                }
+                        }
+        }
+        if (j.contains("rows")) {
+            if (j["rows"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'rows' is null");
+            } else {
+                                            for (auto& item : j["rows"]) {
+                                    obj.rows.push_back(Metric::fromJson(item));
+                                }
+                        }
+        }
+        if (j.contains("storage")) {
+            if (j["storage"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'storage' is null");
+            } else {
+                                            for (auto& item : j["storage"]) {
+                                    obj.storage.push_back(Metric::fromJson(item));
+                                }
+                        }
+        }
+        if (j.contains("databasesReads")) {
+            if (j["databasesReads"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'databasesReads' is null");
+            } else {
+                                            for (auto& item : j["databasesReads"]) {
+                                    obj.databasesReads.push_back(Metric::fromJson(item));
+                                }
+                        }
+        }
+        if (j.contains("databasesWrites")) {
+            if (j["databasesWrites"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'databasesWrites' is null");
+            } else {
+                                            for (auto& item : j["databasesWrites"]) {
+                                    obj.databasesWrites.push_back(Metric::fromJson(item));
+                                }
+                        }
+        }
         return obj;
     }
 
@@ -9571,65 +12791,125 @@ struct UsageDatabase {
     /** @brief Deserialize from JSON */
     static UsageDatabase fromJson(const nlohmann::json& j) {
         UsageDatabase obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("range") && !j["range"].is_null()) {
-            obj.range = j["range"].get<std::string>();
+        if (j.contains("range")) {
+            if (j["range"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'range' is null");
+            } else {
+                obj.range = j["range"].get<std::string>();
+            }
         }
-        if (j.contains("collectionsTotal") && !j["collectionsTotal"].is_null()) {
-            obj.collectionsTotal = j["collectionsTotal"].get<int64_t>();
+        if (j.contains("collectionsTotal")) {
+            if (j["collectionsTotal"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'collectionsTotal' is null");
+            } else {
+                obj.collectionsTotal = j["collectionsTotal"].get<int64_t>();
+            }
         }
-        if (j.contains("tablesTotal") && !j["tablesTotal"].is_null()) {
-            obj.tablesTotal = j["tablesTotal"].get<int64_t>();
+        if (j.contains("tablesTotal")) {
+            if (j["tablesTotal"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'tablesTotal' is null");
+            } else {
+                obj.tablesTotal = j["tablesTotal"].get<int64_t>();
+            }
         }
-        if (j.contains("documentsTotal") && !j["documentsTotal"].is_null()) {
-            obj.documentsTotal = j["documentsTotal"].get<int64_t>();
+        if (j.contains("documentsTotal")) {
+            if (j["documentsTotal"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'documentsTotal' is null");
+            } else {
+                obj.documentsTotal = j["documentsTotal"].get<int64_t>();
+            }
         }
-        if (j.contains("rowsTotal") && !j["rowsTotal"].is_null()) {
-            obj.rowsTotal = j["rowsTotal"].get<int64_t>();
+        if (j.contains("rowsTotal")) {
+            if (j["rowsTotal"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'rowsTotal' is null");
+            } else {
+                obj.rowsTotal = j["rowsTotal"].get<int64_t>();
+            }
         }
-        if (j.contains("storageTotal") && !j["storageTotal"].is_null()) {
-            obj.storageTotal = j["storageTotal"].get<int64_t>();
+        if (j.contains("storageTotal")) {
+            if (j["storageTotal"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'storageTotal' is null");
+            } else {
+                obj.storageTotal = j["storageTotal"].get<int64_t>();
+            }
         }
-        if (j.contains("databaseReadsTotal") && !j["databaseReadsTotal"].is_null()) {
-            obj.databaseReadsTotal = j["databaseReadsTotal"].get<int64_t>();
+        if (j.contains("databaseReadsTotal")) {
+            if (j["databaseReadsTotal"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'databaseReadsTotal' is null");
+            } else {
+                obj.databaseReadsTotal = j["databaseReadsTotal"].get<int64_t>();
+            }
         }
-        if (j.contains("databaseWritesTotal") && !j["databaseWritesTotal"].is_null()) {
-            obj.databaseWritesTotal = j["databaseWritesTotal"].get<int64_t>();
+        if (j.contains("databaseWritesTotal")) {
+            if (j["databaseWritesTotal"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'databaseWritesTotal' is null");
+            } else {
+                obj.databaseWritesTotal = j["databaseWritesTotal"].get<int64_t>();
+            }
         }
-        if (j.contains("collections") && !j["collections"].is_null()) {
-                                        for (auto& item : j["collections"]) {
-                                obj.collections.push_back(Metric::fromJson(item));
-                            }
-                    }
-        if (j.contains("tables") && !j["tables"].is_null()) {
-                                        for (auto& item : j["tables"]) {
-                                obj.tables.push_back(Metric::fromJson(item));
-                            }
-                    }
-        if (j.contains("documents") && !j["documents"].is_null()) {
-                                        for (auto& item : j["documents"]) {
-                                obj.documents.push_back(Metric::fromJson(item));
-                            }
-                    }
-        if (j.contains("rows") && !j["rows"].is_null()) {
-                                        for (auto& item : j["rows"]) {
-                                obj.rows.push_back(Metric::fromJson(item));
-                            }
-                    }
-        if (j.contains("storage") && !j["storage"].is_null()) {
-                                        for (auto& item : j["storage"]) {
-                                obj.storage.push_back(Metric::fromJson(item));
-                            }
-                    }
-        if (j.contains("databaseReads") && !j["databaseReads"].is_null()) {
-                                        for (auto& item : j["databaseReads"]) {
-                                obj.databaseReads.push_back(Metric::fromJson(item));
-                            }
-                    }
-        if (j.contains("databaseWrites") && !j["databaseWrites"].is_null()) {
-                                        for (auto& item : j["databaseWrites"]) {
-                                obj.databaseWrites.push_back(Metric::fromJson(item));
-                            }
-                    }
+        if (j.contains("collections")) {
+            if (j["collections"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'collections' is null");
+            } else {
+                                            for (auto& item : j["collections"]) {
+                                    obj.collections.push_back(Metric::fromJson(item));
+                                }
+                        }
+        }
+        if (j.contains("tables")) {
+            if (j["tables"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'tables' is null");
+            } else {
+                                            for (auto& item : j["tables"]) {
+                                    obj.tables.push_back(Metric::fromJson(item));
+                                }
+                        }
+        }
+        if (j.contains("documents")) {
+            if (j["documents"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'documents' is null");
+            } else {
+                                            for (auto& item : j["documents"]) {
+                                    obj.documents.push_back(Metric::fromJson(item));
+                                }
+                        }
+        }
+        if (j.contains("rows")) {
+            if (j["rows"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'rows' is null");
+            } else {
+                                            for (auto& item : j["rows"]) {
+                                    obj.rows.push_back(Metric::fromJson(item));
+                                }
+                        }
+        }
+        if (j.contains("storage")) {
+            if (j["storage"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'storage' is null");
+            } else {
+                                            for (auto& item : j["storage"]) {
+                                    obj.storage.push_back(Metric::fromJson(item));
+                                }
+                        }
+        }
+        if (j.contains("databaseReads")) {
+            if (j["databaseReads"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'databaseReads' is null");
+            } else {
+                                            for (auto& item : j["databaseReads"]) {
+                                    obj.databaseReads.push_back(Metric::fromJson(item));
+                                }
+                        }
+        }
+        if (j.contains("databaseWrites")) {
+            if (j["databaseWrites"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'databaseWrites' is null");
+            } else {
+                                            for (auto& item : j["databaseWrites"]) {
+                                    obj.databaseWrites.push_back(Metric::fromJson(item));
+                                }
+                        }
+        }
         return obj;
     }
 
@@ -9722,17 +13002,29 @@ struct UsageTable {
     /** @brief Deserialize from JSON */
     static UsageTable fromJson(const nlohmann::json& j) {
         UsageTable obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("range") && !j["range"].is_null()) {
-            obj.range = j["range"].get<std::string>();
+        if (j.contains("range")) {
+            if (j["range"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'range' is null");
+            } else {
+                obj.range = j["range"].get<std::string>();
+            }
         }
-        if (j.contains("rowsTotal") && !j["rowsTotal"].is_null()) {
-            obj.rowsTotal = j["rowsTotal"].get<int64_t>();
+        if (j.contains("rowsTotal")) {
+            if (j["rowsTotal"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'rowsTotal' is null");
+            } else {
+                obj.rowsTotal = j["rowsTotal"].get<int64_t>();
+            }
         }
-        if (j.contains("rows") && !j["rows"].is_null()) {
-                                        for (auto& item : j["rows"]) {
-                                obj.rows.push_back(Metric::fromJson(item));
-                            }
-                    }
+        if (j.contains("rows")) {
+            if (j["rows"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'rows' is null");
+            } else {
+                                            for (auto& item : j["rows"]) {
+                                    obj.rows.push_back(Metric::fromJson(item));
+                                }
+                        }
+        }
         return obj;
     }
 
@@ -9777,17 +13069,29 @@ struct UsageCollection {
     /** @brief Deserialize from JSON */
     static UsageCollection fromJson(const nlohmann::json& j) {
         UsageCollection obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("range") && !j["range"].is_null()) {
-            obj.range = j["range"].get<std::string>();
+        if (j.contains("range")) {
+            if (j["range"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'range' is null");
+            } else {
+                obj.range = j["range"].get<std::string>();
+            }
         }
-        if (j.contains("documentsTotal") && !j["documentsTotal"].is_null()) {
-            obj.documentsTotal = j["documentsTotal"].get<int64_t>();
+        if (j.contains("documentsTotal")) {
+            if (j["documentsTotal"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'documentsTotal' is null");
+            } else {
+                obj.documentsTotal = j["documentsTotal"].get<int64_t>();
+            }
         }
-        if (j.contains("documents") && !j["documents"].is_null()) {
-                                        for (auto& item : j["documents"]) {
-                                obj.documents.push_back(Metric::fromJson(item));
-                            }
-                    }
+        if (j.contains("documents")) {
+            if (j["documents"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'documents' is null");
+            } else {
+                                            for (auto& item : j["documents"]) {
+                                    obj.documents.push_back(Metric::fromJson(item));
+                                }
+                        }
+        }
         return obj;
     }
 
@@ -9836,25 +13140,45 @@ struct UsageUsers {
     /** @brief Deserialize from JSON */
     static UsageUsers fromJson(const nlohmann::json& j) {
         UsageUsers obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("range") && !j["range"].is_null()) {
-            obj.range = j["range"].get<std::string>();
+        if (j.contains("range")) {
+            if (j["range"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'range' is null");
+            } else {
+                obj.range = j["range"].get<std::string>();
+            }
         }
-        if (j.contains("usersTotal") && !j["usersTotal"].is_null()) {
-            obj.usersTotal = j["usersTotal"].get<int64_t>();
+        if (j.contains("usersTotal")) {
+            if (j["usersTotal"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'usersTotal' is null");
+            } else {
+                obj.usersTotal = j["usersTotal"].get<int64_t>();
+            }
         }
-        if (j.contains("sessionsTotal") && !j["sessionsTotal"].is_null()) {
-            obj.sessionsTotal = j["sessionsTotal"].get<int64_t>();
+        if (j.contains("sessionsTotal")) {
+            if (j["sessionsTotal"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'sessionsTotal' is null");
+            } else {
+                obj.sessionsTotal = j["sessionsTotal"].get<int64_t>();
+            }
         }
-        if (j.contains("users") && !j["users"].is_null()) {
-                                        for (auto& item : j["users"]) {
-                                obj.users.push_back(Metric::fromJson(item));
-                            }
-                    }
-        if (j.contains("sessions") && !j["sessions"].is_null()) {
-                                        for (auto& item : j["sessions"]) {
-                                obj.sessions.push_back(Metric::fromJson(item));
-                            }
-                    }
+        if (j.contains("users")) {
+            if (j["users"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'users' is null");
+            } else {
+                                            for (auto& item : j["users"]) {
+                                    obj.users.push_back(Metric::fromJson(item));
+                                }
+                        }
+        }
+        if (j.contains("sessions")) {
+            if (j["sessions"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'sessions' is null");
+            } else {
+                                            for (auto& item : j["sessions"]) {
+                                    obj.sessions.push_back(Metric::fromJson(item));
+                                }
+                        }
+        }
         return obj;
     }
 
@@ -9915,33 +13239,61 @@ struct UsageStorage {
     /** @brief Deserialize from JSON */
     static UsageStorage fromJson(const nlohmann::json& j) {
         UsageStorage obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("range") && !j["range"].is_null()) {
-            obj.range = j["range"].get<std::string>();
+        if (j.contains("range")) {
+            if (j["range"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'range' is null");
+            } else {
+                obj.range = j["range"].get<std::string>();
+            }
         }
-        if (j.contains("bucketsTotal") && !j["bucketsTotal"].is_null()) {
-            obj.bucketsTotal = j["bucketsTotal"].get<int64_t>();
+        if (j.contains("bucketsTotal")) {
+            if (j["bucketsTotal"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'bucketsTotal' is null");
+            } else {
+                obj.bucketsTotal = j["bucketsTotal"].get<int64_t>();
+            }
         }
-        if (j.contains("filesTotal") && !j["filesTotal"].is_null()) {
-            obj.filesTotal = j["filesTotal"].get<int64_t>();
+        if (j.contains("filesTotal")) {
+            if (j["filesTotal"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'filesTotal' is null");
+            } else {
+                obj.filesTotal = j["filesTotal"].get<int64_t>();
+            }
         }
-        if (j.contains("filesStorageTotal") && !j["filesStorageTotal"].is_null()) {
-            obj.filesStorageTotal = j["filesStorageTotal"].get<int64_t>();
+        if (j.contains("filesStorageTotal")) {
+            if (j["filesStorageTotal"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'filesStorageTotal' is null");
+            } else {
+                obj.filesStorageTotal = j["filesStorageTotal"].get<int64_t>();
+            }
         }
-        if (j.contains("buckets") && !j["buckets"].is_null()) {
-                                        for (auto& item : j["buckets"]) {
-                                obj.buckets.push_back(Metric::fromJson(item));
-                            }
-                    }
-        if (j.contains("files") && !j["files"].is_null()) {
-                                        for (auto& item : j["files"]) {
-                                obj.files.push_back(Metric::fromJson(item));
-                            }
-                    }
-        if (j.contains("storage") && !j["storage"].is_null()) {
-                                        for (auto& item : j["storage"]) {
-                                obj.storage.push_back(Metric::fromJson(item));
-                            }
-                    }
+        if (j.contains("buckets")) {
+            if (j["buckets"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'buckets' is null");
+            } else {
+                                            for (auto& item : j["buckets"]) {
+                                    obj.buckets.push_back(Metric::fromJson(item));
+                                }
+                        }
+        }
+        if (j.contains("files")) {
+            if (j["files"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'files' is null");
+            } else {
+                                            for (auto& item : j["files"]) {
+                                    obj.files.push_back(Metric::fromJson(item));
+                                }
+                        }
+        }
+        if (j.contains("storage")) {
+            if (j["storage"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'storage' is null");
+            } else {
+                                            for (auto& item : j["storage"]) {
+                                    obj.storage.push_back(Metric::fromJson(item));
+                                }
+                        }
+        }
         return obj;
     }
 
@@ -10010,32 +13362,60 @@ struct UsageBuckets {
     /** @brief Deserialize from JSON */
     static UsageBuckets fromJson(const nlohmann::json& j) {
         UsageBuckets obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("range") && !j["range"].is_null()) {
-            obj.range = j["range"].get<std::string>();
+        if (j.contains("range")) {
+            if (j["range"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'range' is null");
+            } else {
+                obj.range = j["range"].get<std::string>();
+            }
         }
-        if (j.contains("filesTotal") && !j["filesTotal"].is_null()) {
-            obj.filesTotal = j["filesTotal"].get<int64_t>();
+        if (j.contains("filesTotal")) {
+            if (j["filesTotal"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'filesTotal' is null");
+            } else {
+                obj.filesTotal = j["filesTotal"].get<int64_t>();
+            }
         }
-        if (j.contains("filesStorageTotal") && !j["filesStorageTotal"].is_null()) {
-            obj.filesStorageTotal = j["filesStorageTotal"].get<int64_t>();
+        if (j.contains("filesStorageTotal")) {
+            if (j["filesStorageTotal"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'filesStorageTotal' is null");
+            } else {
+                obj.filesStorageTotal = j["filesStorageTotal"].get<int64_t>();
+            }
         }
-        if (j.contains("files") && !j["files"].is_null()) {
-                                        for (auto& item : j["files"]) {
-                                obj.files.push_back(Metric::fromJson(item));
-                            }
-                    }
-        if (j.contains("storage") && !j["storage"].is_null()) {
-                                        for (auto& item : j["storage"]) {
-                                obj.storage.push_back(Metric::fromJson(item));
-                            }
-                    }
-        if (j.contains("imageTransformations") && !j["imageTransformations"].is_null()) {
-                                        for (auto& item : j["imageTransformations"]) {
-                                obj.imageTransformations.push_back(Metric::fromJson(item));
-                            }
-                    }
-        if (j.contains("imageTransformationsTotal") && !j["imageTransformationsTotal"].is_null()) {
-            obj.imageTransformationsTotal = j["imageTransformationsTotal"].get<int64_t>();
+        if (j.contains("files")) {
+            if (j["files"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'files' is null");
+            } else {
+                                            for (auto& item : j["files"]) {
+                                    obj.files.push_back(Metric::fromJson(item));
+                                }
+                        }
+        }
+        if (j.contains("storage")) {
+            if (j["storage"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'storage' is null");
+            } else {
+                                            for (auto& item : j["storage"]) {
+                                    obj.storage.push_back(Metric::fromJson(item));
+                                }
+                        }
+        }
+        if (j.contains("imageTransformations")) {
+            if (j["imageTransformations"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'imageTransformations' is null");
+            } else {
+                                            for (auto& item : j["imageTransformations"]) {
+                                    obj.imageTransformations.push_back(Metric::fromJson(item));
+                                }
+                        }
+        }
+        if (j.contains("imageTransformationsTotal")) {
+            if (j["imageTransformationsTotal"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'imageTransformationsTotal' is null");
+            } else {
+                obj.imageTransformationsTotal = j["imageTransformationsTotal"].get<int64_t>();
+            }
         }
         return obj;
     }
@@ -10141,105 +13521,205 @@ struct UsageFunctions {
     /** @brief Deserialize from JSON */
     static UsageFunctions fromJson(const nlohmann::json& j) {
         UsageFunctions obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("range") && !j["range"].is_null()) {
-            obj.range = j["range"].get<std::string>();
+        if (j.contains("range")) {
+            if (j["range"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'range' is null");
+            } else {
+                obj.range = j["range"].get<std::string>();
+            }
         }
-        if (j.contains("functionsTotal") && !j["functionsTotal"].is_null()) {
-            obj.functionsTotal = j["functionsTotal"].get<int64_t>();
+        if (j.contains("functionsTotal")) {
+            if (j["functionsTotal"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'functionsTotal' is null");
+            } else {
+                obj.functionsTotal = j["functionsTotal"].get<int64_t>();
+            }
         }
-        if (j.contains("deploymentsTotal") && !j["deploymentsTotal"].is_null()) {
-            obj.deploymentsTotal = j["deploymentsTotal"].get<int64_t>();
+        if (j.contains("deploymentsTotal")) {
+            if (j["deploymentsTotal"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'deploymentsTotal' is null");
+            } else {
+                obj.deploymentsTotal = j["deploymentsTotal"].get<int64_t>();
+            }
         }
-        if (j.contains("deploymentsStorageTotal") && !j["deploymentsStorageTotal"].is_null()) {
-            obj.deploymentsStorageTotal = j["deploymentsStorageTotal"].get<int64_t>();
+        if (j.contains("deploymentsStorageTotal")) {
+            if (j["deploymentsStorageTotal"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'deploymentsStorageTotal' is null");
+            } else {
+                obj.deploymentsStorageTotal = j["deploymentsStorageTotal"].get<int64_t>();
+            }
         }
-        if (j.contains("buildsTotal") && !j["buildsTotal"].is_null()) {
-            obj.buildsTotal = j["buildsTotal"].get<int64_t>();
+        if (j.contains("buildsTotal")) {
+            if (j["buildsTotal"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'buildsTotal' is null");
+            } else {
+                obj.buildsTotal = j["buildsTotal"].get<int64_t>();
+            }
         }
-        if (j.contains("buildsStorageTotal") && !j["buildsStorageTotal"].is_null()) {
-            obj.buildsStorageTotal = j["buildsStorageTotal"].get<int64_t>();
+        if (j.contains("buildsStorageTotal")) {
+            if (j["buildsStorageTotal"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'buildsStorageTotal' is null");
+            } else {
+                obj.buildsStorageTotal = j["buildsStorageTotal"].get<int64_t>();
+            }
         }
-        if (j.contains("buildsTimeTotal") && !j["buildsTimeTotal"].is_null()) {
-            obj.buildsTimeTotal = j["buildsTimeTotal"].get<int64_t>();
+        if (j.contains("buildsTimeTotal")) {
+            if (j["buildsTimeTotal"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'buildsTimeTotal' is null");
+            } else {
+                obj.buildsTimeTotal = j["buildsTimeTotal"].get<int64_t>();
+            }
         }
-        if (j.contains("buildsMbSecondsTotal") && !j["buildsMbSecondsTotal"].is_null()) {
-            obj.buildsMbSecondsTotal = j["buildsMbSecondsTotal"].get<int64_t>();
+        if (j.contains("buildsMbSecondsTotal")) {
+            if (j["buildsMbSecondsTotal"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'buildsMbSecondsTotal' is null");
+            } else {
+                obj.buildsMbSecondsTotal = j["buildsMbSecondsTotal"].get<int64_t>();
+            }
         }
-        if (j.contains("executionsTotal") && !j["executionsTotal"].is_null()) {
-            obj.executionsTotal = j["executionsTotal"].get<int64_t>();
+        if (j.contains("executionsTotal")) {
+            if (j["executionsTotal"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'executionsTotal' is null");
+            } else {
+                obj.executionsTotal = j["executionsTotal"].get<int64_t>();
+            }
         }
-        if (j.contains("executionsTimeTotal") && !j["executionsTimeTotal"].is_null()) {
-            obj.executionsTimeTotal = j["executionsTimeTotal"].get<int64_t>();
+        if (j.contains("executionsTimeTotal")) {
+            if (j["executionsTimeTotal"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'executionsTimeTotal' is null");
+            } else {
+                obj.executionsTimeTotal = j["executionsTimeTotal"].get<int64_t>();
+            }
         }
-        if (j.contains("executionsMbSecondsTotal") && !j["executionsMbSecondsTotal"].is_null()) {
-            obj.executionsMbSecondsTotal = j["executionsMbSecondsTotal"].get<int64_t>();
+        if (j.contains("executionsMbSecondsTotal")) {
+            if (j["executionsMbSecondsTotal"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'executionsMbSecondsTotal' is null");
+            } else {
+                obj.executionsMbSecondsTotal = j["executionsMbSecondsTotal"].get<int64_t>();
+            }
         }
-        if (j.contains("functions") && !j["functions"].is_null()) {
-                                        for (auto& item : j["functions"]) {
-                                obj.functions.push_back(Metric::fromJson(item));
-                            }
-                    }
-        if (j.contains("deployments") && !j["deployments"].is_null()) {
-                                        for (auto& item : j["deployments"]) {
-                                obj.deployments.push_back(Metric::fromJson(item));
-                            }
-                    }
-        if (j.contains("deploymentsStorage") && !j["deploymentsStorage"].is_null()) {
-                                        for (auto& item : j["deploymentsStorage"]) {
-                                obj.deploymentsStorage.push_back(Metric::fromJson(item));
-                            }
-                    }
-        if (j.contains("buildsSuccessTotal") && !j["buildsSuccessTotal"].is_null()) {
-            obj.buildsSuccessTotal = j["buildsSuccessTotal"].get<int64_t>();
+        if (j.contains("functions")) {
+            if (j["functions"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'functions' is null");
+            } else {
+                                            for (auto& item : j["functions"]) {
+                                    obj.functions.push_back(Metric::fromJson(item));
+                                }
+                        }
         }
-        if (j.contains("buildsFailedTotal") && !j["buildsFailedTotal"].is_null()) {
-            obj.buildsFailedTotal = j["buildsFailedTotal"].get<int64_t>();
+        if (j.contains("deployments")) {
+            if (j["deployments"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'deployments' is null");
+            } else {
+                                            for (auto& item : j["deployments"]) {
+                                    obj.deployments.push_back(Metric::fromJson(item));
+                                }
+                        }
         }
-        if (j.contains("builds") && !j["builds"].is_null()) {
-                                        for (auto& item : j["builds"]) {
-                                obj.builds.push_back(Metric::fromJson(item));
-                            }
-                    }
-        if (j.contains("buildsStorage") && !j["buildsStorage"].is_null()) {
-                                        for (auto& item : j["buildsStorage"]) {
-                                obj.buildsStorage.push_back(Metric::fromJson(item));
-                            }
-                    }
-        if (j.contains("buildsTime") && !j["buildsTime"].is_null()) {
-                                        for (auto& item : j["buildsTime"]) {
-                                obj.buildsTime.push_back(Metric::fromJson(item));
-                            }
-                    }
-        if (j.contains("buildsMbSeconds") && !j["buildsMbSeconds"].is_null()) {
-                                        for (auto& item : j["buildsMbSeconds"]) {
-                                obj.buildsMbSeconds.push_back(Metric::fromJson(item));
-                            }
-                    }
-        if (j.contains("executions") && !j["executions"].is_null()) {
-                                        for (auto& item : j["executions"]) {
-                                obj.executions.push_back(Metric::fromJson(item));
-                            }
-                    }
-        if (j.contains("executionsTime") && !j["executionsTime"].is_null()) {
-                                        for (auto& item : j["executionsTime"]) {
-                                obj.executionsTime.push_back(Metric::fromJson(item));
-                            }
-                    }
-        if (j.contains("executionsMbSeconds") && !j["executionsMbSeconds"].is_null()) {
-                                        for (auto& item : j["executionsMbSeconds"]) {
-                                obj.executionsMbSeconds.push_back(Metric::fromJson(item));
-                            }
-                    }
-        if (j.contains("buildsSuccess") && !j["buildsSuccess"].is_null()) {
-                                        for (auto& item : j["buildsSuccess"]) {
-                                obj.buildsSuccess.push_back(Metric::fromJson(item));
-                            }
-                    }
-        if (j.contains("buildsFailed") && !j["buildsFailed"].is_null()) {
-                                        for (auto& item : j["buildsFailed"]) {
-                                obj.buildsFailed.push_back(Metric::fromJson(item));
-                            }
-                    }
+        if (j.contains("deploymentsStorage")) {
+            if (j["deploymentsStorage"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'deploymentsStorage' is null");
+            } else {
+                                            for (auto& item : j["deploymentsStorage"]) {
+                                    obj.deploymentsStorage.push_back(Metric::fromJson(item));
+                                }
+                        }
+        }
+        if (j.contains("buildsSuccessTotal")) {
+            if (j["buildsSuccessTotal"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'buildsSuccessTotal' is null");
+            } else {
+                obj.buildsSuccessTotal = j["buildsSuccessTotal"].get<int64_t>();
+            }
+        }
+        if (j.contains("buildsFailedTotal")) {
+            if (j["buildsFailedTotal"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'buildsFailedTotal' is null");
+            } else {
+                obj.buildsFailedTotal = j["buildsFailedTotal"].get<int64_t>();
+            }
+        }
+        if (j.contains("builds")) {
+            if (j["builds"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'builds' is null");
+            } else {
+                                            for (auto& item : j["builds"]) {
+                                    obj.builds.push_back(Metric::fromJson(item));
+                                }
+                        }
+        }
+        if (j.contains("buildsStorage")) {
+            if (j["buildsStorage"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'buildsStorage' is null");
+            } else {
+                                            for (auto& item : j["buildsStorage"]) {
+                                    obj.buildsStorage.push_back(Metric::fromJson(item));
+                                }
+                        }
+        }
+        if (j.contains("buildsTime")) {
+            if (j["buildsTime"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'buildsTime' is null");
+            } else {
+                                            for (auto& item : j["buildsTime"]) {
+                                    obj.buildsTime.push_back(Metric::fromJson(item));
+                                }
+                        }
+        }
+        if (j.contains("buildsMbSeconds")) {
+            if (j["buildsMbSeconds"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'buildsMbSeconds' is null");
+            } else {
+                                            for (auto& item : j["buildsMbSeconds"]) {
+                                    obj.buildsMbSeconds.push_back(Metric::fromJson(item));
+                                }
+                        }
+        }
+        if (j.contains("executions")) {
+            if (j["executions"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'executions' is null");
+            } else {
+                                            for (auto& item : j["executions"]) {
+                                    obj.executions.push_back(Metric::fromJson(item));
+                                }
+                        }
+        }
+        if (j.contains("executionsTime")) {
+            if (j["executionsTime"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'executionsTime' is null");
+            } else {
+                                            for (auto& item : j["executionsTime"]) {
+                                    obj.executionsTime.push_back(Metric::fromJson(item));
+                                }
+                        }
+        }
+        if (j.contains("executionsMbSeconds")) {
+            if (j["executionsMbSeconds"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'executionsMbSeconds' is null");
+            } else {
+                                            for (auto& item : j["executionsMbSeconds"]) {
+                                    obj.executionsMbSeconds.push_back(Metric::fromJson(item));
+                                }
+                        }
+        }
+        if (j.contains("buildsSuccess")) {
+            if (j["buildsSuccess"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'buildsSuccess' is null");
+            } else {
+                                            for (auto& item : j["buildsSuccess"]) {
+                                    obj.buildsSuccess.push_back(Metric::fromJson(item));
+                                }
+                        }
+        }
+        if (j.contains("buildsFailed")) {
+            if (j["buildsFailed"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'buildsFailed' is null");
+            } else {
+                                            for (auto& item : j["buildsFailed"]) {
+                                    obj.buildsFailed.push_back(Metric::fromJson(item));
+                                }
+                        }
+        }
         return obj;
     }
 
@@ -10414,100 +13894,196 @@ struct UsageFunction {
     /** @brief Deserialize from JSON */
     static UsageFunction fromJson(const nlohmann::json& j) {
         UsageFunction obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("range") && !j["range"].is_null()) {
-            obj.range = j["range"].get<std::string>();
+        if (j.contains("range")) {
+            if (j["range"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'range' is null");
+            } else {
+                obj.range = j["range"].get<std::string>();
+            }
         }
-        if (j.contains("deploymentsTotal") && !j["deploymentsTotal"].is_null()) {
-            obj.deploymentsTotal = j["deploymentsTotal"].get<int64_t>();
+        if (j.contains("deploymentsTotal")) {
+            if (j["deploymentsTotal"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'deploymentsTotal' is null");
+            } else {
+                obj.deploymentsTotal = j["deploymentsTotal"].get<int64_t>();
+            }
         }
-        if (j.contains("deploymentsStorageTotal") && !j["deploymentsStorageTotal"].is_null()) {
-            obj.deploymentsStorageTotal = j["deploymentsStorageTotal"].get<int64_t>();
+        if (j.contains("deploymentsStorageTotal")) {
+            if (j["deploymentsStorageTotal"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'deploymentsStorageTotal' is null");
+            } else {
+                obj.deploymentsStorageTotal = j["deploymentsStorageTotal"].get<int64_t>();
+            }
         }
-        if (j.contains("buildsTotal") && !j["buildsTotal"].is_null()) {
-            obj.buildsTotal = j["buildsTotal"].get<int64_t>();
+        if (j.contains("buildsTotal")) {
+            if (j["buildsTotal"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'buildsTotal' is null");
+            } else {
+                obj.buildsTotal = j["buildsTotal"].get<int64_t>();
+            }
         }
-        if (j.contains("buildsSuccessTotal") && !j["buildsSuccessTotal"].is_null()) {
-            obj.buildsSuccessTotal = j["buildsSuccessTotal"].get<int64_t>();
+        if (j.contains("buildsSuccessTotal")) {
+            if (j["buildsSuccessTotal"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'buildsSuccessTotal' is null");
+            } else {
+                obj.buildsSuccessTotal = j["buildsSuccessTotal"].get<int64_t>();
+            }
         }
-        if (j.contains("buildsFailedTotal") && !j["buildsFailedTotal"].is_null()) {
-            obj.buildsFailedTotal = j["buildsFailedTotal"].get<int64_t>();
+        if (j.contains("buildsFailedTotal")) {
+            if (j["buildsFailedTotal"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'buildsFailedTotal' is null");
+            } else {
+                obj.buildsFailedTotal = j["buildsFailedTotal"].get<int64_t>();
+            }
         }
-        if (j.contains("buildsStorageTotal") && !j["buildsStorageTotal"].is_null()) {
-            obj.buildsStorageTotal = j["buildsStorageTotal"].get<int64_t>();
+        if (j.contains("buildsStorageTotal")) {
+            if (j["buildsStorageTotal"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'buildsStorageTotal' is null");
+            } else {
+                obj.buildsStorageTotal = j["buildsStorageTotal"].get<int64_t>();
+            }
         }
-        if (j.contains("buildsTimeTotal") && !j["buildsTimeTotal"].is_null()) {
-            obj.buildsTimeTotal = j["buildsTimeTotal"].get<int64_t>();
+        if (j.contains("buildsTimeTotal")) {
+            if (j["buildsTimeTotal"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'buildsTimeTotal' is null");
+            } else {
+                obj.buildsTimeTotal = j["buildsTimeTotal"].get<int64_t>();
+            }
         }
-        if (j.contains("buildsTimeAverage") && !j["buildsTimeAverage"].is_null()) {
-            obj.buildsTimeAverage = j["buildsTimeAverage"].get<int64_t>();
+        if (j.contains("buildsTimeAverage")) {
+            if (j["buildsTimeAverage"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'buildsTimeAverage' is null");
+            } else {
+                obj.buildsTimeAverage = j["buildsTimeAverage"].get<int64_t>();
+            }
         }
-        if (j.contains("buildsMbSecondsTotal") && !j["buildsMbSecondsTotal"].is_null()) {
-            obj.buildsMbSecondsTotal = j["buildsMbSecondsTotal"].get<int64_t>();
+        if (j.contains("buildsMbSecondsTotal")) {
+            if (j["buildsMbSecondsTotal"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'buildsMbSecondsTotal' is null");
+            } else {
+                obj.buildsMbSecondsTotal = j["buildsMbSecondsTotal"].get<int64_t>();
+            }
         }
-        if (j.contains("executionsTotal") && !j["executionsTotal"].is_null()) {
-            obj.executionsTotal = j["executionsTotal"].get<int64_t>();
+        if (j.contains("executionsTotal")) {
+            if (j["executionsTotal"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'executionsTotal' is null");
+            } else {
+                obj.executionsTotal = j["executionsTotal"].get<int64_t>();
+            }
         }
-        if (j.contains("executionsTimeTotal") && !j["executionsTimeTotal"].is_null()) {
-            obj.executionsTimeTotal = j["executionsTimeTotal"].get<int64_t>();
+        if (j.contains("executionsTimeTotal")) {
+            if (j["executionsTimeTotal"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'executionsTimeTotal' is null");
+            } else {
+                obj.executionsTimeTotal = j["executionsTimeTotal"].get<int64_t>();
+            }
         }
-        if (j.contains("executionsMbSecondsTotal") && !j["executionsMbSecondsTotal"].is_null()) {
-            obj.executionsMbSecondsTotal = j["executionsMbSecondsTotal"].get<int64_t>();
+        if (j.contains("executionsMbSecondsTotal")) {
+            if (j["executionsMbSecondsTotal"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'executionsMbSecondsTotal' is null");
+            } else {
+                obj.executionsMbSecondsTotal = j["executionsMbSecondsTotal"].get<int64_t>();
+            }
         }
-        if (j.contains("deployments") && !j["deployments"].is_null()) {
-                                        for (auto& item : j["deployments"]) {
-                                obj.deployments.push_back(Metric::fromJson(item));
-                            }
-                    }
-        if (j.contains("deploymentsStorage") && !j["deploymentsStorage"].is_null()) {
-                                        for (auto& item : j["deploymentsStorage"]) {
-                                obj.deploymentsStorage.push_back(Metric::fromJson(item));
-                            }
-                    }
-        if (j.contains("builds") && !j["builds"].is_null()) {
-                                        for (auto& item : j["builds"]) {
-                                obj.builds.push_back(Metric::fromJson(item));
-                            }
-                    }
-        if (j.contains("buildsStorage") && !j["buildsStorage"].is_null()) {
-                                        for (auto& item : j["buildsStorage"]) {
-                                obj.buildsStorage.push_back(Metric::fromJson(item));
-                            }
-                    }
-        if (j.contains("buildsTime") && !j["buildsTime"].is_null()) {
-                                        for (auto& item : j["buildsTime"]) {
-                                obj.buildsTime.push_back(Metric::fromJson(item));
-                            }
-                    }
-        if (j.contains("buildsMbSeconds") && !j["buildsMbSeconds"].is_null()) {
-                                        for (auto& item : j["buildsMbSeconds"]) {
-                                obj.buildsMbSeconds.push_back(Metric::fromJson(item));
-                            }
-                    }
-        if (j.contains("executions") && !j["executions"].is_null()) {
-                                        for (auto& item : j["executions"]) {
-                                obj.executions.push_back(Metric::fromJson(item));
-                            }
-                    }
-        if (j.contains("executionsTime") && !j["executionsTime"].is_null()) {
-                                        for (auto& item : j["executionsTime"]) {
-                                obj.executionsTime.push_back(Metric::fromJson(item));
-                            }
-                    }
-        if (j.contains("executionsMbSeconds") && !j["executionsMbSeconds"].is_null()) {
-                                        for (auto& item : j["executionsMbSeconds"]) {
-                                obj.executionsMbSeconds.push_back(Metric::fromJson(item));
-                            }
-                    }
-        if (j.contains("buildsSuccess") && !j["buildsSuccess"].is_null()) {
-                                        for (auto& item : j["buildsSuccess"]) {
-                                obj.buildsSuccess.push_back(Metric::fromJson(item));
-                            }
-                    }
-        if (j.contains("buildsFailed") && !j["buildsFailed"].is_null()) {
-                                        for (auto& item : j["buildsFailed"]) {
-                                obj.buildsFailed.push_back(Metric::fromJson(item));
-                            }
-                    }
+        if (j.contains("deployments")) {
+            if (j["deployments"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'deployments' is null");
+            } else {
+                                            for (auto& item : j["deployments"]) {
+                                    obj.deployments.push_back(Metric::fromJson(item));
+                                }
+                        }
+        }
+        if (j.contains("deploymentsStorage")) {
+            if (j["deploymentsStorage"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'deploymentsStorage' is null");
+            } else {
+                                            for (auto& item : j["deploymentsStorage"]) {
+                                    obj.deploymentsStorage.push_back(Metric::fromJson(item));
+                                }
+                        }
+        }
+        if (j.contains("builds")) {
+            if (j["builds"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'builds' is null");
+            } else {
+                                            for (auto& item : j["builds"]) {
+                                    obj.builds.push_back(Metric::fromJson(item));
+                                }
+                        }
+        }
+        if (j.contains("buildsStorage")) {
+            if (j["buildsStorage"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'buildsStorage' is null");
+            } else {
+                                            for (auto& item : j["buildsStorage"]) {
+                                    obj.buildsStorage.push_back(Metric::fromJson(item));
+                                }
+                        }
+        }
+        if (j.contains("buildsTime")) {
+            if (j["buildsTime"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'buildsTime' is null");
+            } else {
+                                            for (auto& item : j["buildsTime"]) {
+                                    obj.buildsTime.push_back(Metric::fromJson(item));
+                                }
+                        }
+        }
+        if (j.contains("buildsMbSeconds")) {
+            if (j["buildsMbSeconds"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'buildsMbSeconds' is null");
+            } else {
+                                            for (auto& item : j["buildsMbSeconds"]) {
+                                    obj.buildsMbSeconds.push_back(Metric::fromJson(item));
+                                }
+                        }
+        }
+        if (j.contains("executions")) {
+            if (j["executions"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'executions' is null");
+            } else {
+                                            for (auto& item : j["executions"]) {
+                                    obj.executions.push_back(Metric::fromJson(item));
+                                }
+                        }
+        }
+        if (j.contains("executionsTime")) {
+            if (j["executionsTime"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'executionsTime' is null");
+            } else {
+                                            for (auto& item : j["executionsTime"]) {
+                                    obj.executionsTime.push_back(Metric::fromJson(item));
+                                }
+                        }
+        }
+        if (j.contains("executionsMbSeconds")) {
+            if (j["executionsMbSeconds"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'executionsMbSeconds' is null");
+            } else {
+                                            for (auto& item : j["executionsMbSeconds"]) {
+                                    obj.executionsMbSeconds.push_back(Metric::fromJson(item));
+                                }
+                        }
+        }
+        if (j.contains("buildsSuccess")) {
+            if (j["buildsSuccess"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'buildsSuccess' is null");
+            } else {
+                                            for (auto& item : j["buildsSuccess"]) {
+                                    obj.buildsSuccess.push_back(Metric::fromJson(item));
+                                }
+                        }
+        }
+        if (j.contains("buildsFailed")) {
+            if (j["buildsFailed"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'buildsFailed' is null");
+            } else {
+                                            for (auto& item : j["buildsFailed"]) {
+                                    obj.buildsFailed.push_back(Metric::fromJson(item));
+                                }
+                        }
+        }
         return obj;
     }
 
@@ -10637,17 +14213,33 @@ struct MfaChallenge {
     /** @brief Deserialize from JSON */
     static MfaChallenge fromJson(const nlohmann::json& j) {
         MfaChallenge obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("$id") && !j["$id"].is_null()) {
-            obj.id = j["$id"].get<std::string>();
+        if (j.contains("$id")) {
+            if (j["$id"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$id' is null");
+            } else {
+                obj.id = j["$id"].get<std::string>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("userId") && !j["userId"].is_null()) {
-            obj.userId = j["userId"].get<std::string>();
+        if (j.contains("userId")) {
+            if (j["userId"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'userId' is null");
+            } else {
+                obj.userId = j["userId"].get<std::string>();
+            }
         }
-        if (j.contains("expire") && !j["expire"].is_null()) {
-            obj.expire = j["expire"].get<std::string>();
+        if (j.contains("expire")) {
+            if (j["expire"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'expire' is null");
+            } else {
+                obj.expire = j["expire"].get<std::string>();
+            }
         }
         return obj;
     }
@@ -10690,8 +14282,12 @@ struct MfaRecoveryCodes {
     /** @brief Deserialize from JSON */
     static MfaRecoveryCodes fromJson(const nlohmann::json& j) {
         MfaRecoveryCodes obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("recoveryCodes") && !j["recoveryCodes"].is_null()) {
-            obj.recoveryCodes = j["recoveryCodes"].get<std::vector<std::string>>();
+        if (j.contains("recoveryCodes")) {
+            if (j["recoveryCodes"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'recoveryCodes' is null");
+            } else {
+                obj.recoveryCodes = j["recoveryCodes"].get<std::vector<std::string>>();
+            }
         }
         return obj;
     }
@@ -10727,11 +14323,19 @@ struct MfaType {
     /** @brief Deserialize from JSON */
     static MfaType fromJson(const nlohmann::json& j) {
         MfaType obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("secret") && !j["secret"].is_null()) {
-            obj.secret = j["secret"].get<std::string>();
+        if (j.contains("secret")) {
+            if (j["secret"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'secret' is null");
+            } else {
+                obj.secret = j["secret"].get<std::string>();
+            }
         }
-        if (j.contains("uri") && !j["uri"].is_null()) {
-            obj.uri = j["uri"].get<std::string>();
+        if (j.contains("uri")) {
+            if (j["uri"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'uri' is null");
+            } else {
+                obj.uri = j["uri"].get<std::string>();
+            }
         }
         return obj;
     }
@@ -10774,17 +14378,33 @@ struct MfaFactors {
     /** @brief Deserialize from JSON */
     static MfaFactors fromJson(const nlohmann::json& j) {
         MfaFactors obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("totp") && !j["totp"].is_null()) {
-            obj.totp = j["totp"].get<bool>();
+        if (j.contains("totp")) {
+            if (j["totp"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'totp' is null");
+            } else {
+                obj.totp = j["totp"].get<bool>();
+            }
         }
-        if (j.contains("phone") && !j["phone"].is_null()) {
-            obj.phone = j["phone"].get<bool>();
+        if (j.contains("phone")) {
+            if (j["phone"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'phone' is null");
+            } else {
+                obj.phone = j["phone"].get<bool>();
+            }
         }
-        if (j.contains("email") && !j["email"].is_null()) {
-            obj.email = j["email"].get<bool>();
+        if (j.contains("email")) {
+            if (j["email"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'email' is null");
+            } else {
+                obj.email = j["email"].get<bool>();
+            }
         }
-        if (j.contains("recoveryCode") && !j["recoveryCode"].is_null()) {
-            obj.recoveryCode = j["recoveryCode"].get<bool>();
+        if (j.contains("recoveryCode")) {
+            if (j["recoveryCode"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'recoveryCode' is null");
+            } else {
+                obj.recoveryCode = j["recoveryCode"].get<bool>();
+            }
         }
         return obj;
     }
@@ -10841,29 +14461,61 @@ struct BillingAddress {
     /** @brief Deserialize from JSON */
     static BillingAddress fromJson(const nlohmann::json& j) {
         BillingAddress obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("$id") && !j["$id"].is_null()) {
-            obj.id = j["$id"].get<std::string>();
+        if (j.contains("$id")) {
+            if (j["$id"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$id' is null");
+            } else {
+                obj.id = j["$id"].get<std::string>();
+            }
         }
-        if (j.contains("userId") && !j["userId"].is_null()) {
-            obj.userId = j["userId"].get<std::string>();
+        if (j.contains("userId")) {
+            if (j["userId"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'userId' is null");
+            } else {
+                obj.userId = j["userId"].get<std::string>();
+            }
         }
-        if (j.contains("streetAddress") && !j["streetAddress"].is_null()) {
-            obj.streetAddress = j["streetAddress"].get<std::string>();
+        if (j.contains("streetAddress")) {
+            if (j["streetAddress"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'streetAddress' is null");
+            } else {
+                obj.streetAddress = j["streetAddress"].get<std::string>();
+            }
         }
-        if (j.contains("addressLine2") && !j["addressLine2"].is_null()) {
-            obj.addressLine2 = j["addressLine2"].get<std::string>();
+        if (j.contains("addressLine2")) {
+            if (j["addressLine2"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'addressLine2' is null");
+            } else {
+                obj.addressLine2 = j["addressLine2"].get<std::string>();
+            }
         }
-        if (j.contains("country") && !j["country"].is_null()) {
-            obj.country = j["country"].get<std::string>();
+        if (j.contains("country")) {
+            if (j["country"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'country' is null");
+            } else {
+                obj.country = j["country"].get<std::string>();
+            }
         }
-        if (j.contains("city") && !j["city"].is_null()) {
-            obj.city = j["city"].get<std::string>();
+        if (j.contains("city")) {
+            if (j["city"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'city' is null");
+            } else {
+                obj.city = j["city"].get<std::string>();
+            }
         }
-        if (j.contains("state") && !j["state"].is_null()) {
-            obj.state = j["state"].get<std::string>();
+        if (j.contains("state")) {
+            if (j["state"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'state' is null");
+            } else {
+                obj.state = j["state"].get<std::string>();
+            }
         }
-        if (j.contains("postalCode") && !j["postalCode"].is_null()) {
-            obj.postalCode = j["postalCode"].get<std::string>();
+        if (j.contains("postalCode")) {
+            if (j["postalCode"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'postalCode' is null");
+            } else {
+                obj.postalCode = j["postalCode"].get<std::string>();
+            }
         }
         return obj;
     }
@@ -10932,29 +14584,61 @@ struct Coupon {
     /** @brief Deserialize from JSON */
     static Coupon fromJson(const nlohmann::json& j) {
         Coupon obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("$id") && !j["$id"].is_null()) {
-            obj.id = j["$id"].get<std::string>();
+        if (j.contains("$id")) {
+            if (j["$id"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$id' is null");
+            } else {
+                obj.id = j["$id"].get<std::string>();
+            }
         }
-        if (j.contains("code") && !j["code"].is_null()) {
-            obj.code = j["code"].get<std::string>();
+        if (j.contains("code")) {
+            if (j["code"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'code' is null");
+            } else {
+                obj.code = j["code"].get<std::string>();
+            }
         }
-        if (j.contains("credits") && !j["credits"].is_null()) {
-            obj.credits = j["credits"].get<double>();
+        if (j.contains("credits")) {
+            if (j["credits"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'credits' is null");
+            } else {
+                obj.credits = j["credits"].get<double>();
+            }
         }
-        if (j.contains("expiration") && !j["expiration"].is_null()) {
-            obj.expiration = j["expiration"].get<std::string>();
+        if (j.contains("expiration")) {
+            if (j["expiration"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'expiration' is null");
+            } else {
+                obj.expiration = j["expiration"].get<std::string>();
+            }
         }
-        if (j.contains("validity") && !j["validity"].is_null()) {
-            obj.validity = j["validity"].get<int64_t>();
+        if (j.contains("validity")) {
+            if (j["validity"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'validity' is null");
+            } else {
+                obj.validity = j["validity"].get<int64_t>();
+            }
         }
-        if (j.contains("campaign") && !j["campaign"].is_null()) {
-            obj.campaign = j["campaign"].get<std::string>();
+        if (j.contains("campaign")) {
+            if (j["campaign"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'campaign' is null");
+            } else {
+                obj.campaign = j["campaign"].get<std::string>();
+            }
         }
-        if (j.contains("status") && !j["status"].is_null()) {
-            obj.status = j["status"].get<std::string>();
+        if (j.contains("status")) {
+            if (j["status"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'status' is null");
+            } else {
+                obj.status = j["status"].get<std::string>();
+            }
         }
-        if (j.contains("onlyNewOrgs") && !j["onlyNewOrgs"].is_null()) {
-            obj.onlyNewOrgs = j["onlyNewOrgs"].get<bool>();
+        if (j.contains("onlyNewOrgs")) {
+            if (j["onlyNewOrgs"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'onlyNewOrgs' is null");
+            } else {
+                obj.onlyNewOrgs = j["onlyNewOrgs"].get<bool>();
+            }
         }
         return obj;
     }
@@ -11019,23 +14703,47 @@ struct UsageResources {
     /** @brief Deserialize from JSON */
     static UsageResources fromJson(const nlohmann::json& j) {
         UsageResources obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("name") && !j["name"].is_null()) {
-            obj.name = j["name"].get<std::string>();
+        if (j.contains("name")) {
+            if (j["name"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'name' is null");
+            } else {
+                obj.name = j["name"].get<std::string>();
+            }
         }
-        if (j.contains("value") && !j["value"].is_null()) {
-            obj.value = j["value"].get<int64_t>();
+        if (j.contains("value")) {
+            if (j["value"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'value' is null");
+            } else {
+                obj.value = j["value"].get<int64_t>();
+            }
         }
-        if (j.contains("amount") && !j["amount"].is_null()) {
-            obj.amount = j["amount"].get<double>();
+        if (j.contains("amount")) {
+            if (j["amount"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'amount' is null");
+            } else {
+                obj.amount = j["amount"].get<double>();
+            }
         }
-        if (j.contains("rate") && !j["rate"].is_null()) {
-            obj.rate = j["rate"].get<double>();
+        if (j.contains("rate")) {
+            if (j["rate"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'rate' is null");
+            } else {
+                obj.rate = j["rate"].get<double>();
+            }
         }
-        if (j.contains("desc") && !j["desc"].is_null()) {
-            obj.desc = j["desc"].get<std::string>();
+        if (j.contains("desc")) {
+            if (j["desc"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'desc' is null");
+            } else {
+                obj.desc = j["desc"].get<std::string>();
+            }
         }
-        if (j.contains("resourceId") && !j["resourceId"].is_null()) {
-            obj.resourceId = j["resourceId"].get<std::string>();
+        if (j.contains("resourceId")) {
+            if (j["resourceId"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'resourceId' is null");
+            } else {
+                obj.resourceId = j["resourceId"].get<std::string>();
+            }
         }
         return obj;
     }
@@ -11126,73 +14834,161 @@ struct Invoice {
     /** @brief Deserialize from JSON */
     static Invoice fromJson(const nlohmann::json& j) {
         Invoice obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("$id") && !j["$id"].is_null()) {
-            obj.id = j["$id"].get<std::string>();
+        if (j.contains("$id")) {
+            if (j["$id"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$id' is null");
+            } else {
+                obj.id = j["$id"].get<std::string>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("$permissions") && !j["$permissions"].is_null()) {
-            obj.permissions = j["$permissions"].get<std::vector<std::string>>();
+        if (j.contains("$permissions")) {
+            if (j["$permissions"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$permissions' is null");
+            } else {
+                obj.permissions = j["$permissions"].get<std::vector<std::string>>();
+            }
         }
-        if (j.contains("teamId") && !j["teamId"].is_null()) {
-            obj.teamId = j["teamId"].get<std::string>();
+        if (j.contains("teamId")) {
+            if (j["teamId"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'teamId' is null");
+            } else {
+                obj.teamId = j["teamId"].get<std::string>();
+            }
         }
-        if (j.contains("aggregationId") && !j["aggregationId"].is_null()) {
-            obj.aggregationId = j["aggregationId"].get<std::string>();
+        if (j.contains("aggregationId")) {
+            if (j["aggregationId"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'aggregationId' is null");
+            } else {
+                obj.aggregationId = j["aggregationId"].get<std::string>();
+            }
         }
-        if (j.contains("plan") && !j["plan"].is_null()) {
-            obj.plan = j["plan"].get<std::string>();
+        if (j.contains("plan")) {
+            if (j["plan"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'plan' is null");
+            } else {
+                obj.plan = j["plan"].get<std::string>();
+            }
         }
-        if (j.contains("usage") && !j["usage"].is_null()) {
-                                        for (auto& item : j["usage"]) {
-                                obj.usage.push_back(UsageResources::fromJson(item));
-                            }
-                    }
-        if (j.contains("amount") && !j["amount"].is_null()) {
-            obj.amount = j["amount"].get<double>();
+        if (j.contains("usage")) {
+            if (j["usage"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'usage' is null");
+            } else {
+                                            for (auto& item : j["usage"]) {
+                                    obj.usage.push_back(UsageResources::fromJson(item));
+                                }
+                        }
         }
-        if (j.contains("tax") && !j["tax"].is_null()) {
-            obj.tax = j["tax"].get<double>();
+        if (j.contains("amount")) {
+            if (j["amount"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'amount' is null");
+            } else {
+                obj.amount = j["amount"].get<double>();
+            }
         }
-        if (j.contains("taxAmount") && !j["taxAmount"].is_null()) {
-            obj.taxAmount = j["taxAmount"].get<double>();
+        if (j.contains("tax")) {
+            if (j["tax"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'tax' is null");
+            } else {
+                obj.tax = j["tax"].get<double>();
+            }
         }
-        if (j.contains("vat") && !j["vat"].is_null()) {
-            obj.vat = j["vat"].get<double>();
+        if (j.contains("taxAmount")) {
+            if (j["taxAmount"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'taxAmount' is null");
+            } else {
+                obj.taxAmount = j["taxAmount"].get<double>();
+            }
         }
-        if (j.contains("vatAmount") && !j["vatAmount"].is_null()) {
-            obj.vatAmount = j["vatAmount"].get<double>();
+        if (j.contains("vat")) {
+            if (j["vat"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'vat' is null");
+            } else {
+                obj.vat = j["vat"].get<double>();
+            }
         }
-        if (j.contains("grossAmount") && !j["grossAmount"].is_null()) {
-            obj.grossAmount = j["grossAmount"].get<double>();
+        if (j.contains("vatAmount")) {
+            if (j["vatAmount"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'vatAmount' is null");
+            } else {
+                obj.vatAmount = j["vatAmount"].get<double>();
+            }
         }
-        if (j.contains("creditsUsed") && !j["creditsUsed"].is_null()) {
-            obj.creditsUsed = j["creditsUsed"].get<double>();
+        if (j.contains("grossAmount")) {
+            if (j["grossAmount"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'grossAmount' is null");
+            } else {
+                obj.grossAmount = j["grossAmount"].get<double>();
+            }
         }
-        if (j.contains("currency") && !j["currency"].is_null()) {
-            obj.currency = j["currency"].get<std::string>();
+        if (j.contains("creditsUsed")) {
+            if (j["creditsUsed"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'creditsUsed' is null");
+            } else {
+                obj.creditsUsed = j["creditsUsed"].get<double>();
+            }
         }
-        if (j.contains("clientSecret") && !j["clientSecret"].is_null()) {
-            obj.clientSecret = j["clientSecret"].get<std::string>();
+        if (j.contains("currency")) {
+            if (j["currency"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'currency' is null");
+            } else {
+                obj.currency = j["currency"].get<std::string>();
+            }
         }
-        if (j.contains("status") && !j["status"].is_null()) {
-            obj.status = j["status"].get<std::string>();
+        if (j.contains("clientSecret")) {
+            if (j["clientSecret"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'clientSecret' is null");
+            } else {
+                obj.clientSecret = j["clientSecret"].get<std::string>();
+            }
         }
-        if (j.contains("lastError") && !j["lastError"].is_null()) {
-            obj.lastError = j["lastError"].get<std::string>();
+        if (j.contains("status")) {
+            if (j["status"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'status' is null");
+            } else {
+                obj.status = j["status"].get<std::string>();
+            }
         }
-        if (j.contains("dueAt") && !j["dueAt"].is_null()) {
-            obj.dueAt = j["dueAt"].get<std::string>();
+        if (j.contains("lastError")) {
+            if (j["lastError"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'lastError' is null");
+            } else {
+                obj.lastError = j["lastError"].get<std::string>();
+            }
         }
-        if (j.contains("from") && !j["from"].is_null()) {
-            obj.from = j["from"].get<std::string>();
+        if (j.contains("dueAt")) {
+            if (j["dueAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'dueAt' is null");
+            } else {
+                obj.dueAt = j["dueAt"].get<std::string>();
+            }
         }
-        if (j.contains("to") && !j["to"].is_null()) {
-            obj.to = j["to"].get<std::string>();
+        if (j.contains("from")) {
+            if (j["from"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'from' is null");
+            } else {
+                obj.from = j["from"].get<std::string>();
+            }
+        }
+        if (j.contains("to")) {
+            if (j["to"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'to' is null");
+            } else {
+                obj.to = j["to"].get<std::string>();
+            }
         }
         return obj;
     }
@@ -11329,65 +15125,145 @@ struct PaymentMethod {
     /** @brief Deserialize from JSON */
     static PaymentMethod fromJson(const nlohmann::json& j) {
         PaymentMethod obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("$id") && !j["$id"].is_null()) {
-            obj.id = j["$id"].get<std::string>();
+        if (j.contains("$id")) {
+            if (j["$id"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$id' is null");
+            } else {
+                obj.id = j["$id"].get<std::string>();
+            }
         }
-        if (j.contains("$createdAt") && !j["$createdAt"].is_null()) {
-            obj.createdAt = j["$createdAt"].get<std::string>();
+        if (j.contains("$createdAt")) {
+            if (j["$createdAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$createdAt' is null");
+            } else {
+                obj.createdAt = j["$createdAt"].get<std::string>();
+            }
         }
-        if (j.contains("$updatedAt") && !j["$updatedAt"].is_null()) {
-            obj.updatedAt = j["$updatedAt"].get<std::string>();
+        if (j.contains("$updatedAt")) {
+            if (j["$updatedAt"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$updatedAt' is null");
+            } else {
+                obj.updatedAt = j["$updatedAt"].get<std::string>();
+            }
         }
-        if (j.contains("$permissions") && !j["$permissions"].is_null()) {
-            obj.permissions = j["$permissions"].get<std::vector<std::string>>();
+        if (j.contains("$permissions")) {
+            if (j["$permissions"].is_null()) {
+                throw appwrite::DeserializationException("Required field '$permissions' is null");
+            } else {
+                obj.permissions = j["$permissions"].get<std::vector<std::string>>();
+            }
         }
-        if (j.contains("providerMethodId") && !j["providerMethodId"].is_null()) {
-            obj.providerMethodId = j["providerMethodId"].get<std::string>();
+        if (j.contains("providerMethodId")) {
+            if (j["providerMethodId"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'providerMethodId' is null");
+            } else {
+                obj.providerMethodId = j["providerMethodId"].get<std::string>();
+            }
         }
-        if (j.contains("clientSecret") && !j["clientSecret"].is_null()) {
-            obj.clientSecret = j["clientSecret"].get<std::string>();
+        if (j.contains("clientSecret")) {
+            if (j["clientSecret"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'clientSecret' is null");
+            } else {
+                obj.clientSecret = j["clientSecret"].get<std::string>();
+            }
         }
-        if (j.contains("providerUserId") && !j["providerUserId"].is_null()) {
-            obj.providerUserId = j["providerUserId"].get<std::string>();
+        if (j.contains("providerUserId")) {
+            if (j["providerUserId"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'providerUserId' is null");
+            } else {
+                obj.providerUserId = j["providerUserId"].get<std::string>();
+            }
         }
-        if (j.contains("userId") && !j["userId"].is_null()) {
-            obj.userId = j["userId"].get<std::string>();
+        if (j.contains("userId")) {
+            if (j["userId"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'userId' is null");
+            } else {
+                obj.userId = j["userId"].get<std::string>();
+            }
         }
-        if (j.contains("expiryMonth") && !j["expiryMonth"].is_null()) {
-            obj.expiryMonth = j["expiryMonth"].get<int64_t>();
+        if (j.contains("expiryMonth")) {
+            if (j["expiryMonth"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'expiryMonth' is null");
+            } else {
+                obj.expiryMonth = j["expiryMonth"].get<int64_t>();
+            }
         }
-        if (j.contains("expiryYear") && !j["expiryYear"].is_null()) {
-            obj.expiryYear = j["expiryYear"].get<int64_t>();
+        if (j.contains("expiryYear")) {
+            if (j["expiryYear"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'expiryYear' is null");
+            } else {
+                obj.expiryYear = j["expiryYear"].get<int64_t>();
+            }
         }
-        if (j.contains("last4") && !j["last4"].is_null()) {
-            obj.last4 = j["last4"].get<std::string>();
+        if (j.contains("last4")) {
+            if (j["last4"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'last4' is null");
+            } else {
+                obj.last4 = j["last4"].get<std::string>();
+            }
         }
-        if (j.contains("brand") && !j["brand"].is_null()) {
-            obj.brand = j["brand"].get<std::string>();
+        if (j.contains("brand")) {
+            if (j["brand"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'brand' is null");
+            } else {
+                obj.brand = j["brand"].get<std::string>();
+            }
         }
-        if (j.contains("name") && !j["name"].is_null()) {
-            obj.name = j["name"].get<std::string>();
+        if (j.contains("name")) {
+            if (j["name"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'name' is null");
+            } else {
+                obj.name = j["name"].get<std::string>();
+            }
         }
-        if (j.contains("mandateId") && !j["mandateId"].is_null()) {
-            obj.mandateId = j["mandateId"].get<std::string>();
+        if (j.contains("mandateId")) {
+            if (j["mandateId"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'mandateId' is null");
+            } else {
+                obj.mandateId = j["mandateId"].get<std::string>();
+            }
         }
-        if (j.contains("country") && !j["country"].is_null()) {
-            obj.country = j["country"].get<std::string>();
+        if (j.contains("country")) {
+            if (j["country"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'country' is null");
+            } else {
+                obj.country = j["country"].get<std::string>();
+            }
         }
-        if (j.contains("state") && !j["state"].is_null()) {
-            obj.state = j["state"].get<std::string>();
+        if (j.contains("state")) {
+            if (j["state"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'state' is null");
+            } else {
+                obj.state = j["state"].get<std::string>();
+            }
         }
-        if (j.contains("lastError") && !j["lastError"].is_null()) {
-            obj.lastError = j["lastError"].get<std::string>();
+        if (j.contains("lastError")) {
+            if (j["lastError"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'lastError' is null");
+            } else {
+                obj.lastError = j["lastError"].get<std::string>();
+            }
         }
-        if (j.contains("default") && !j["default"].is_null()) {
-            obj.default_ = j["default"].get<bool>();
+        if (j.contains("default")) {
+            if (j["default"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'default' is null");
+            } else {
+                obj.default_ = j["default"].get<bool>();
+            }
         }
-        if (j.contains("expired") && !j["expired"].is_null()) {
-            obj.expired = j["expired"].get<bool>();
+        if (j.contains("expired")) {
+            if (j["expired"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'expired' is null");
+            } else {
+                obj.expired = j["expired"].get<bool>();
+            }
         }
-        if (j.contains("failed") && !j["failed"].is_null()) {
-            obj.failed = j["failed"].get<bool>();
+        if (j.contains("failed")) {
+            if (j["failed"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'failed' is null");
+            } else {
+                obj.failed = j["failed"].get<bool>();
+            }
         }
         return obj;
     }
@@ -11480,14 +15356,22 @@ struct InvoiceList {
     /** @brief Deserialize from JSON */
     static InvoiceList fromJson(const nlohmann::json& j) {
         InvoiceList obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("total") && !j["total"].is_null()) {
-            obj.total = j["total"].get<int64_t>();
+        if (j.contains("total")) {
+            if (j["total"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'total' is null");
+            } else {
+                obj.total = j["total"].get<int64_t>();
+            }
         }
-        if (j.contains("invoices") && !j["invoices"].is_null()) {
-                                        for (auto& item : j["invoices"]) {
-                                obj.invoices.push_back(Invoice::fromJson(item));
-                            }
-                    }
+        if (j.contains("invoices")) {
+            if (j["invoices"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'invoices' is null");
+            } else {
+                                            for (auto& item : j["invoices"]) {
+                                    obj.invoices.push_back(Invoice::fromJson(item));
+                                }
+                        }
+        }
         return obj;
     }
 
@@ -11527,14 +15411,22 @@ struct BillingAddressList {
     /** @brief Deserialize from JSON */
     static BillingAddressList fromJson(const nlohmann::json& j) {
         BillingAddressList obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("total") && !j["total"].is_null()) {
-            obj.total = j["total"].get<int64_t>();
+        if (j.contains("total")) {
+            if (j["total"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'total' is null");
+            } else {
+                obj.total = j["total"].get<int64_t>();
+            }
         }
-        if (j.contains("billingAddresses") && !j["billingAddresses"].is_null()) {
-                                        for (auto& item : j["billingAddresses"]) {
-                                obj.billingAddresses.push_back(BillingAddress::fromJson(item));
-                            }
-                    }
+        if (j.contains("billingAddresses")) {
+            if (j["billingAddresses"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'billingAddresses' is null");
+            } else {
+                                            for (auto& item : j["billingAddresses"]) {
+                                    obj.billingAddresses.push_back(BillingAddress::fromJson(item));
+                                }
+                        }
+        }
         return obj;
     }
 
@@ -11574,14 +15466,22 @@ struct PaymentMethodList {
     /** @brief Deserialize from JSON */
     static PaymentMethodList fromJson(const nlohmann::json& j) {
         PaymentMethodList obj{}; // value-init: zeroes bools, ints, enums
-        if (j.contains("total") && !j["total"].is_null()) {
-            obj.total = j["total"].get<int64_t>();
+        if (j.contains("total")) {
+            if (j["total"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'total' is null");
+            } else {
+                obj.total = j["total"].get<int64_t>();
+            }
         }
-        if (j.contains("paymentMethods") && !j["paymentMethods"].is_null()) {
-                                        for (auto& item : j["paymentMethods"]) {
-                                obj.paymentMethods.push_back(PaymentMethod::fromJson(item));
-                            }
-                    }
+        if (j.contains("paymentMethods")) {
+            if (j["paymentMethods"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'paymentMethods' is null");
+            } else {
+                                            for (auto& item : j["paymentMethods"]) {
+                                    obj.paymentMethods.push_back(PaymentMethod::fromJson(item));
+                                }
+                        }
+        }
         return obj;
     }
 

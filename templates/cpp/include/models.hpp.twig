@@ -48,25 +48,33 @@ struct {{ definition.name | casePascal }} {
     static {{ definition.name | casePascal }} fromJson(const nlohmann::json& j) {
         {{ definition.name | casePascal }} obj{}; // value-init: zeroes bools, ints, enums
 {% for property in definition.properties %}
-        if (j.contains("{{ property.name }}") && !j["{{ property.name }}"].is_null()) {
+        if (j.contains("{{ property.name }}")) {
+            if (j["{{ property.name }}"].is_null()) {
+{% if property.required %}
+                throw appwrite::DeserializationException("Required field '{{ property.name }}' is null");
+{% else %}
+                obj.{{ property.name | caseCamel | escapeKeyword }} = std::nullopt;
+{% endif %}
+            } else {
 {% if property.sub_schema %}
             {% if property.type == 'array' %}
                 {% if not property.required %}
-            obj.{{ property.name | caseCamel | escapeKeyword }} = std::vector<{{ property.sub_schema | casePascal }}>{};
+                obj.{{ property.name | caseCamel | escapeKeyword }} = std::vector<{{ property.sub_schema | casePascal }}>{};
                 {% endif %}
-            for (auto& item : j["{{ property.name }}"]) {
+                for (auto& item : j["{{ property.name }}"]) {
                 {% if not property.required %}
-                obj.{{ property.name | caseCamel | escapeKeyword }}->push_back({{ property.sub_schema | casePascal }}::fromJson(item));
+                    obj.{{ property.name | caseCamel | escapeKeyword }}->push_back({{ property.sub_schema | casePascal }}::fromJson(item));
                 {% else %}
-                obj.{{ property.name | caseCamel | escapeKeyword }}.push_back({{ property.sub_schema | casePascal }}::fromJson(item));
+                    obj.{{ property.name | caseCamel | escapeKeyword }}.push_back({{ property.sub_schema | casePascal }}::fromJson(item));
                 {% endif %}
-            }
+                }
             {% else %}
-            obj.{{ property.name | caseCamel | escapeKeyword }} = {{ property.sub_schema | casePascal }}::fromJson(j["{{ property.name }}"]);
+                obj.{{ property.name | caseCamel | escapeKeyword }} = {{ property.sub_schema | casePascal }}::fromJson(j["{{ property.name }}"]);
             {% endif %}
 {% else %}
-            obj.{{ property.name | caseCamel | escapeKeyword }} = j["{{ property.name }}"].get<{{ property | propertyType(spec) }}>();
+                obj.{{ property.name | caseCamel | escapeKeyword }} = j["{{ property.name }}"].get<{{ property | propertyType(spec) }}>();
 {% endif %}
+            }
         }
 {% endfor %}
         return obj;

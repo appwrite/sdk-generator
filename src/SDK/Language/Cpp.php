@@ -236,6 +236,11 @@ class Cpp extends Language
             ],
             [
                 'scope' => 'default',
+                'destination' => 'include/appwrite/appwrite.hpp',
+                'template' => 'cpp/include/appwrite.hpp.twig',
+            ],
+            [
+                'scope' => 'default',
                 'destination' => 'tests/tests.cpp',
                 'template' => 'cpp/tests/tests_main.cpp.twig',
             ],

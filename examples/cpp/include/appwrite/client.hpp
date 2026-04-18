@@ -529,9 +529,11 @@ private:
     SocketFactory socketFactory_;
 
     // Dispatches a synchronous callable onto the thread pool and returns a
-    // Task<T> that is resolved when the callable completes. This avoids the
-    // co_await *pool pattern, which caused a double-resume race between
-    // Task::get() and the pool-queued continuation (undefined behaviour).
+    // Task<T>. The Task uses std::future internally, so calling .get() or
+    // co_await blocks the calling thread until the HTTP response arrives.
+    // True non-blocking I/O would require an event-loop runtime (Asio, libuv)
+    // which is out of scope for this SDK. The thread-pool model still provides
+    // concurrency — multiple async calls proceed in parallel on separate threads.
     template <typename T, typename F>
     Task<T> dispatchAsync(F func) const {
         auto promise = std::make_shared<std::promise<T>>();
