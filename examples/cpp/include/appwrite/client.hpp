@@ -410,9 +410,9 @@ private:
                 if (v.is_array()) {
                     for (auto const& item : v) {
                         if (item.is_string()) {
-                            params.Add(cpr::Parameter(k, item.template get<std::string>()));
+                            params.Add(cpr::Parameter(k + "[]", item.template get<std::string>()));
                         } else {
-                            params.Add(cpr::Parameter(k, item.dump()));
+                            params.Add(cpr::Parameter(k + "[]", item.dump()));
                         }
                     }
                 } else if (v.is_string()) {
@@ -444,9 +444,9 @@ private:
             } else if (val.is_array()) {
                 for (auto const& item : val) {
                     if (item.is_string()) {
-                        multipart.parts.emplace_back(key, item.template get<std::string>());
+                        multipart.parts.emplace_back(key + "[]", item.template get<std::string>());
                     } else {
-                        multipart.parts.emplace_back(key, item.dump());
+                        multipart.parts.emplace_back(key + "[]", item.dump());
                     }
                 }
             } else {
