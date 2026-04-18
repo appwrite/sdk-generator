@@ -223,6 +223,10 @@ abstract class Base extends TestCase
         'CLI_LOCAL_SOURCE_PREFLIGHT:passed',
     ];
 
+    protected const CLI_RUNTIME_RENDERING_RESPONSES = [
+        'CLI_RUNTIME_RENDERING:passed',
+    ];
+
     protected const CHANNEL_HELPER_RESPONSES = [
         'databases.db1.collections.col1.documents',
         'databases.db1.collections.col1.documents.doc1',

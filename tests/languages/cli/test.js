@@ -2,6 +2,7 @@ const { execSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 const Client = require("./lib/client.ts").default;
+const { parse } = require("./lib/parser.ts");
 const {
   openRuntimesVersion,
   systemTools,
@@ -30,6 +31,37 @@ const extractFirstValue = (output) => {
   }
 
   return firstLine.trim();
+};
+
+const stripAnsi = (value) => value.replace(/\u001b\[[0-9;]*m/g, "");
+
+const captureStdout = (callback) => {
+  const originalWrite = process.stdout.write.bind(process.stdout);
+  const originalConsoleLog = console.log.bind(console);
+  let output = "";
+
+  console.log = (...args) => {
+    output += `${args.join(" ")}\n`;
+  };
+
+  process.stdout.write = (chunk, encoding, cb) => {
+    output += Buffer.isBuffer(chunk) ? chunk.toString() : String(chunk);
+
+    if (typeof cb === "function") {
+      cb();
+    }
+
+    return true;
+  };
+
+  try {
+    callback();
+  } finally {
+    console.log = originalConsoleLog;
+    process.stdout.write = originalWrite;
+  }
+
+  return stripAnsi(output).replace(/\r/g, "");
 };
 
 execSync(
@@ -199,6 +231,88 @@ try {
   fs.rmSync(validSourceDir, { recursive: true, force: true });
 }
 console.log("CLI_LOCAL_SOURCE_PREFLIGHT:passed");
+
+const runtimeRenderingOutput = captureStdout(() =>
+  parse({
+    total: 4,
+    runtimes: [
+      {
+        $id: "node-16.0",
+        key: "node",
+        name: "Node.js",
+        version: "16.0",
+        base: "node:16.20.2-alpine3.18",
+        image: "openruntimes/node:v5-16.0",
+        logo: "node.png",
+      },
+      {
+        $id: "node-18.0",
+        key: "node",
+        name: "Node.js",
+        version: "18.0",
+        base: "node:18.20.4-alpine3.20",
+        image: "openruntimes/node:v5-18.0",
+        logo: "node.png",
+      },
+      {
+        $id: "python-3.12",
+        key: "python",
+        name: "Python",
+        version: "3.12",
+        base: "python:3.12.6-alpine3.20",
+        image: "openruntimes/python:v5-3.12",
+        logo: "python.png",
+      },
+      {
+        $id: "flutter-3.41",
+        key: "flutter",
+        name: "Flutter",
+        version: "3.41",
+        base: "ghcr.io/cirruslabs/flutter:3.41.0",
+        image: "openruntimes/flutter:v5-3.41",
+        logo: "flutter.png",
+      },
+    ],
+  }),
+)
+  .split("\n")
+  .map((line) => line.replace(/\s+$/g, ""))
+  .join("\n");
+
+for (const expectedToken of [
+  "total  4",
+  "runtimes (4)",
+  "runtime",
+  "id",
+  "base",
+  "image",
+  "[1] Node.js 16.0",
+  "node-16.0",
+  "openruntimes/node:v5-16.0",
+  "ghcr.io/cirruslabs/flutter:3.41.0",
+]) {
+  if (!runtimeRenderingOutput.includes(expectedToken)) {
+    throw new Error(
+      `Expected runtime rendering to include ${JSON.stringify(expectedToken)}.\n${runtimeRenderingOutput}`,
+    );
+  }
+}
+
+for (const forbiddenToken of [
+  "$id      ",
+  "key      ",
+  "name     ",
+  "version  ",
+  "logo     ",
+]) {
+  if (runtimeRenderingOutput.includes(forbiddenToken)) {
+    throw new Error(
+      `Expected runtime rendering to omit ${JSON.stringify(forbiddenToken)}.\n${runtimeRenderingOutput}`,
+    );
+  }
+}
+
+console.log("CLI_RUNTIME_RENDERING:passed");
 
 // Type generation regression: generated concrete row query helpers must compile on TS 5.9+
 fs.rmSync(path.join(process.cwd(), "generated"), {
