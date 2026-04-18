@@ -35,7 +35,10 @@ const extractFirstValue = (output) => {
 
 const stripAnsi = (value) => value.replace(/\u001b\[[0-9;]*m/g, "");
 
-const captureStdout = (callback) => {
+// Sync-only capture helper. The callback must complete all writes before it
+// returns, and async callbacks are rejected explicitly to avoid misleading
+// "missing token" assertions when output arrives later.
+const captureStdoutSync = (callback) => {
   const originalWrite = process.stdout.write.bind(process.stdout);
   const originalConsoleLog = console.log.bind(console);
   let output = "";
@@ -55,7 +58,11 @@ const captureStdout = (callback) => {
   };
 
   try {
-    callback();
+    const result = callback();
+
+    if (result && typeof result.then === "function") {
+      throw new Error("captureStdoutSync only supports synchronous callbacks.");
+    }
   } finally {
     console.log = originalConsoleLog;
     process.stdout.write = originalWrite;
@@ -232,7 +239,7 @@ try {
 }
 console.log("CLI_LOCAL_SOURCE_PREFLIGHT:passed");
 
-const runtimeRenderingOutput = captureStdout(() =>
+const runtimeRenderingOutput = captureStdoutSync(() =>
   parse({
     total: 4,
     runtimes: [
