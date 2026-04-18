@@ -105,7 +105,7 @@ public:
         std::unordered_map<std::string, std::string> headers = {
             {"X-Appwrite-Response-Format", "1.9.1"},
             {"x-sdk-name", "NAME"},
-            {"x-sdk-platform", "console"},
+            {"x-sdk-platform", "server"},
             {"x-sdk-language", "cpp"},
             {"x-sdk-version", "0.0.1"},
         };
@@ -363,7 +363,7 @@ public:
     }
 
 private:
-    std::shared_ptr<const Config> cfg_{std::make_shared<Config>()};
+    mutable std::shared_ptr<const Config> cfg_{std::make_shared<Config>()};
     mutable std::mutex cfg_mutex_;
 
     ConfigPtr get_cfg() const {
@@ -410,9 +410,9 @@ private:
                 if (v.is_array()) {
                     for (auto const& item : v) {
                         if (item.is_string()) {
-                            params.Add(cpr::Parameter(k + "[]", item.template get<std::string>()));
+                            params.Add(cpr::Parameter(k, item.template get<std::string>()));
                         } else {
-                            params.Add(cpr::Parameter(k + "[]", item.dump()));
+                            params.Add(cpr::Parameter(k, item.dump()));
                         }
                     }
                 } else if (v.is_string()) {
@@ -444,9 +444,9 @@ private:
             } else if (val.is_array()) {
                 for (auto const& item : val) {
                     if (item.is_string()) {
-                        multipart.parts.emplace_back(key + "[]", item.template get<std::string>());
+                        multipart.parts.emplace_back(key, item.template get<std::string>());
                     } else {
-                        multipart.parts.emplace_back(key + "[]", item.dump());
+                        multipart.parts.emplace_back(key, item.dump());
                     }
                 }
             } else {
@@ -460,16 +460,18 @@ private:
         if (r.status_code == 0) throw NetworkException(r.error.message);
         if (r.status_code >= 400) {
             std::string msg = r.text; // fallback: raw body (e.g. text/plain responses)
+            std::string type = "";
             try {
                 auto j = nlohmann::json::parse(r.text);
                 if (j.contains("message")) msg = j["message"];
+                if (j.contains("type"))    type = j["type"];
             } catch (...) {}
-            throw ServerException(msg, r.status_code, "", r.text);
+            throw ServerException(msg, r.status_code, std::move(type), r.text);
         }
     }
 
     template <typename T>
-    Result<T> upload_chunks(ConfigPtr c, std::string_view m, std::string_view p,
+    Result<T> upload_chunks(ConfigPtr c, std::string m, std::string p,
                             const std::unordered_map<std::string, std::string>& h,
                             const nlohmann::json& pms, const std::string& fk,
                             const InputFile& file, const ProgressCallback& cb,
@@ -506,12 +508,12 @@ private:
                 chunksUploaded++;
 
                 if (cb) {
-                    cb({
-                        0,
-                        (double)off / (double)size * 100.0,
-                        off,
-                        chunksTotal,
-                        chunksUploaded
+                    cb(InputFile::Progress{
+                        .id = 0,
+                        .progress = (double)off / (double)size * 100.0,
+                        .sizeUploaded = off,
+                        .chunksTotal = chunksTotal,
+                        .chunksUploaded = chunksUploaded
                     });
                 }
             }
@@ -552,7 +554,13 @@ private:
         // Use a shared_ptr so the future survives until Task::get() is called.
         auto shared = std::make_shared<std::future<T>>(std::move(fut));
         return [](std::shared_ptr<std::future<T>> f) -> Task<T> {
-            co_return f->get();
+            try {
+                co_return f->get();
+            } catch (const AppwriteException& e) {
+                co_return T::Err(e);
+            } catch (const std::exception& e) {
+                co_return T::Err(AppwriteException(e.what()));
+            }
         }(std::move(shared));
     }
 };

@@ -37,8 +37,7 @@ target_link_libraries(my_app PRIVATE {{ sdk.name | caseSnake }})
 ### Initialization
 
 ```cpp
-#include <appwrite/client.hpp>
-#include <appwrite/services.hpp>
+#include <appwrite/appwrite.hpp>
 
 appwrite::Client client;
 client
@@ -75,7 +74,7 @@ appwrite::Task<appwrite::Result<appwrite::models::UserList>> run(appwrite::Clien
 ### Using Query Builder
 
 ```cpp
-#include <appwrite/core.hpp>
+#include <appwrite/appwrite.hpp>
 
 auto queries = {
     appwrite::Query::equal("status", "active"),
@@ -88,7 +87,7 @@ auto queries = {
 ### Permissions
 
 ```cpp
-#include <appwrite/core.hpp>
+#include <appwrite/appwrite.hpp>
 
 std::vector<std::string> permissions = {
     appwrite::Permission::read(appwrite::Role::any()),
@@ -99,7 +98,7 @@ std::vector<std::string> permissions = {
 ### Realtime Subscriptions
 
 ```cpp
-#include <appwrite/services.hpp>
+#include <appwrite/appwrite.hpp>
 
 appwrite::services::Realtime realtime(client);
 
@@ -115,8 +114,7 @@ sub.unsubscribe();
 ### File Uploads
 
 ```cpp
-#include <appwrite/core.hpp>
-#include <appwrite/services.hpp>
+#include <appwrite/appwrite.hpp>
 
 appwrite::services::Storage storage(client);
 

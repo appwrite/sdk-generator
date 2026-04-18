@@ -6,9 +6,7 @@
  *   ./build/basic_usage
  */
 #include <iostream>
-#include <appwrite/client.hpp>
-#include <appwrite/services.hpp>
-#include <appwrite/core.hpp>
+#include <appwrite/appwrite.hpp>
 
 int main() {
     // Initialize the client
