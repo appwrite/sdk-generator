@@ -29,12 +29,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 The Account service allows you to authenticate and manage a user account.
 - `get()` - Get the currently logged in user.
 - `create()` - Use this endpoint to allow a new user to register a new account in your project. After the user registration completes successfully, you can use the [/account/verfication](https://appwrite.io/docs/references/cloud/client-web/account#createVerification) route to start verifying the user email address. To allow the new user to login to their new account, you need to create a new [account session](https://appwrite.io/docs/references/cloud/client-web/account#createEmailSession).
+- `delete()` - Delete the currently logged in user.
+- `listBillingAddresses()` - List all billing addresses for a user.
+- `createBillingAddress()` - Add a new billing address to a user&#039;s account.
+- `getBillingAddress()` - Get a specific billing address for a user using it&#039;s ID.
+- `updateBillingAddress()` - Update a specific billing address using it&#039;s ID.
+- `deleteBillingAddress()` - Delete a specific billing address using it&#039;s ID.
+- `getCoupon()` - Get coupon details for an account.
 - `updateEmail()` - Update currently logged in user account email address. After changing user address, the user confirmation status will get reset. A new confirmation email is not sent automatically however you can use the send confirmation email endpoint again to send the confirmation email. For security measures, user password is required to complete this request.
 This endpoint can also be used to convert an anonymous account to a normal one, by passing an email address and a new password.
 
 - `listIdentities()` - Get the list of identities for the currently logged in user.
 - `deleteIdentity()` - Delete an identity by its unique ID.
+- `listInvoices()` - List all invoices tied to an account.
 - `createJWT()` - Use this endpoint to create a JSON Web Token. You can use the resulting JWT to authenticate on behalf of the current user when working with the Appwrite server-side API and SDKs. The JWT secret is valid for 15 minutes from its creation and will be invalid if the user will logout in that time frame.
+- `listKeys()` - Get a list of all API keys from the current account.
+- `createKey()` - Create a new account API key.
+- `getKey()` - Get a key by its unique ID. This endpoint returns details about a specific API key in your account including it&#039;s scopes.
+- `updateKey()` - Update a key by its unique ID. Use this endpoint to update the name, scopes, or expiration time of an API key.
+- `deleteKey()` - Delete a key by its unique ID. Once deleted, the key can no longer be used to authenticate API calls.
 - `listLogs()` - Get the list of latest security activity logs for the currently logged in user. Each log returns user IP address, location and date and time of log.
 - `updateMFA()` - Enable or disable MFA on an account.
 - `createMfaAuthenticator()` - Add an authenticator app to be used as an MFA factor. Verify the authenticator using the [verify authenticator](/docs/references/cloud/client-web/account#updateMfaAuthenticator) method.
@@ -57,6 +70,13 @@ This endpoint can also be used to convert an anonymous account to a normal one, 
 - `updateMFARecoveryCodes()` - Regenerate recovery codes that can be used as backup for MFA flow. Before regenerating codes, they must be first generated using [createMfaRecoveryCodes](/docs/references/cloud/client-web/account#createMfaRecoveryCodes) method. An OTP challenge is required to regenreate recovery codes.
 - `updateName()` - Update currently logged in user account name.
 - `updatePassword()` - Update currently logged in user password. For validation, user is required to pass in the new password, and the old password. For users created with OAuth, Team Invites and Magic URL, oldPassword is optional.
+- `listPaymentMethods()` - List payment methods for this account.
+- `createPaymentMethod()` - Create a new payment method for the current user account.
+- `getPaymentMethod()` - Get a specific payment method for the user.
+- `updatePaymentMethod()` - Update a new payment method for the current user account.
+- `deletePaymentMethod()` - Delete a specific payment method from a user&#039;s account.
+- `updatePaymentMethodProvider()` - Update payment method provider.
+- `updatePaymentMethodMandateOptions()` - Update payment method mandate options.
 - `updatePhone()` - Update the currently logged in user&#039;s phone number. After updating the phone number, the phone verification status will be reset. A confirmation SMS is not sent automatically, however you can use the [POST /account/verification/phone](https://appwrite.io/docs/references/cloud/client-web/account#createPhoneVerification) endpoint to send a confirmation SMS.
 - `getPrefs()` - Get the preferences as a key-value object for the currently logged in user.
 - `updatePrefs()` - Update currently logged in user account preferences. The object you pass is stored as is, and replaces any previous value. The maximum allowed prefs size is 64kB and throws error if exceeded.
@@ -71,12 +91,21 @@ Please note that in order to avoid a [Redirect Attack](https://github.com/OWASP/
 
 A user is limited to 10 active sessions at a time by default. [Learn more about session limits](https://appwrite.io/docs/authentication-security#limits).
 - `updateMagicURLSession()` - Use this endpoint to create a session from token. Provide the **userId** and **secret** parameters from the successful response of authentication flows initiated by token creation. For example, magic URL and phone login.
+- `createOAuth2Session()` - Allow the user to login to their account using the OAuth2 provider of their choice. Each OAuth2 provider should be enabled from the Appwrite console first. Use the success and failure arguments to provide a redirect URL&#039;s back to your app when login is completed.
+
+If there is already an active session, the new session will be attached to the logged-in account. If there are no active sessions, the server will attempt to look for a user with the same email address as the email received from the OAuth2 provider and attach the new session to the existing user. If no matching user is found - the server will create a new user.
+
+A user is limited to 10 active sessions at a time by default. [Learn more about session limits](https://appwrite.io/docs/authentication-security#limits).
+
 - `updatePhoneSession()` - Use this endpoint to create a session from token. Provide the **userId** and **secret** parameters from the successful response of authentication flows initiated by token creation. For example, magic URL and phone login.
 - `createSession()` - Use this endpoint to create a session from token. Provide the **userId** and **secret** parameters from the successful response of authentication flows initiated by token creation. For example, magic URL and phone login.
 - `getSession()` - Use this endpoint to get a logged in user&#039;s session using a Session ID. Inputting &#039;current&#039; will return the current session being used.
 - `updateSession()` - Use this endpoint to extend a session&#039;s length. Extending a session is useful when session expiry is short. If the session was created using an OAuth provider, this endpoint refreshes the access token from the provider.
 - `deleteSession()` - Logout the user. Use &#039;current&#039; as the session ID to logout on this device, use a session ID to logout on another device. If you&#039;re looking to logout the user on all devices, use [Delete Sessions](https://appwrite.io/docs/references/cloud/client-web/account#deleteSessions) instead.
 - `updateStatus()` - Block the currently logged in user account. Behind the scene, the user record is not deleted but permanently blocked from any access. To completely delete a user, use the Users API instead.
+- `createPushTarget()` - Use this endpoint to register a device for push notifications. Provide a target ID (custom or generated using ID.unique()), a device identifier (usually a device token), and optionally specify which provider should send notifications to this target. The target is automatically linked to the current session and includes device information like brand and model.
+- `updatePushTarget()` - Update the currently logged in user&#039;s push notification target. You can modify the target&#039;s identifier (device token) and provider ID (token, email, phone etc.). The target must exist and belong to the current user. If you change the provider ID, notifications will be sent through the new messaging provider instead.
+- `deletePushTarget()` - Delete a push notification target for the currently logged in user. After deletion, the device will no longer receive push notifications. The target must exist and belong to the current user.
 - `createEmailToken()` - Sends the user an email with a secret key for creating a session. If the email address has never been used, a **new account is created** using the provided `userId`. Otherwise, if the email address is already attached to an account, the **user ID is ignored**. Then, the user will receive an email with the one-time password. Use the returned user ID and secret and submit a request to the [POST /v1/account/sessions/token](https://appwrite.io/docs/references/cloud/client-web/account#createSession) endpoint to complete the login process. The secret sent to the user&#039;s email is valid for 15 minutes.
 
 A user is limited to 10 active sessions at a time by default. [Learn more about session limits](https://appwrite.io/docs/authentication-security#limits).
@@ -117,6 +146,7 @@ The Databases service allows you to create structured collections of documents, 
 - `updateTransaction()` - Update a transaction, to either commit or roll back its operations.
 - `deleteTransaction()` - Delete a transaction by its unique ID.
 - `createOperations()` - Create multiple operations in a single transaction.
+- `listUsage()` - List usage metrics and statistics for all databases in the project. You can view the total number of databases, collections, documents, and storage usage. The response includes both current totals and historical data over time. Use the optional range parameter to specify the time window for historical data: 24h (last 24 hours), 30d (last 30 days), or 90d (last 90 days). If not specified, range defaults to 30 days.
 - `get()` - Get a database by its unique ID. This endpoint response returns a JSON object with the database metadata.
 - `update()` - Update a database by its unique ID.
 - `delete()` - Delete a database by its unique ID. Only API keys with with databases.write scope can delete a database.
@@ -198,6 +228,7 @@ The Databases service allows you to create structured collections of documents, 
 - `upsertDocument()` - Create or update a Document. Before using this route, you should create a new collection resource using either a [server integration](https://appwrite.io/docs/server/databases#databasesCreateCollection) API or directly from your database console.
 - `updateDocument()` - Update a document by its unique ID. Using the patch method you can pass only specific fields that will get updated.
 - `deleteDocument()` - Delete a document by its unique ID.
+- `listDocumentLogs()` - Get the document activity logs list by its unique ID.
 - `decrementDocumentAttribute()` - Decrement a specific attribute of a document by a given value.
 - `incrementDocumentAttribute()` - Increment a specific attribute of a document by a given value.
 - `listIndexes()` - List indexes in the collection.
@@ -205,6 +236,10 @@ The Databases service allows you to create structured collections of documents, 
 Attributes can be `key`, `fulltext`, and `unique`.
 - `getIndex()` - Get an index by its unique ID.
 - `deleteIndex()` - Delete an index.
+- `listCollectionLogs()` - Get the collection activity logs list by its unique ID.
+- `getCollectionUsage()` - Get usage metrics and statistics for a collection. Returning the total number of documents. The response includes both current totals and historical data over time. Use the optional range parameter to specify the time window for historical data: 24h (last 24 hours), 30d (last 30 days), or 90d (last 90 days). If not specified, range defaults to 30 days.
+- `listLogs()` - Get the database activity logs list by its unique ID.
+- `getUsage()` - Get usage metrics and statistics for a database. You can view the total number of collections, documents, and storage usage. The response includes both current totals and historical data over time. Use the optional range parameter to specify the time window for historical data: 24h (last 24 hours), 30d (last 30 days), or 90d (last 90 days). If not specified, range defaults to 30 days.
 
 #### Functions
 The Functions Service allows you view, create and manage your Cloud Functions.
@@ -212,6 +247,9 @@ The Functions Service allows you view, create and manage your Cloud Functions.
 - `create()` - Create a new function. You can pass a list of [permissions](https://appwrite.io/docs/permissions) to allow different project users or team with access to execute the function using the client API.
 - `listRuntimes()` - Get a list of all runtimes that are currently active on your instance.
 - `listSpecifications()` - List allowed function specifications for this instance.
+- `listTemplates()` - List available function templates. You can use template details in [createFunction](/docs/references/cloud/server-nodejs/functions#create) method.
+- `getTemplate()` - Get a function template using ID. You can use template details in [createFunction](/docs/references/cloud/server-nodejs/functions#create) method.
+- `listUsage()` - Get usage metrics and statistics for all functions in the project. View statistics including total deployments, builds, logs, storage usage, and compute time. The response includes both current totals and historical data for each metric. Use the optional range parameter to specify the time window for historical data: 24h (last 24 hours), 30d (last 30 days), or 90d (last 90 days). If not specified, defaults to 30 days.
 - `get()` - Get a function by its unique ID.
 - `update()` - Update function by its unique ID.
 - `delete()` - Delete a function by its unique ID.
@@ -237,6 +275,7 @@ This endpoint lets you create deployment from a branch, commit, or a tag.
 - `createExecution()` - Trigger a function execution. The returned object will return you the current execution status. You can ping the `Get Execution` endpoint to get updates on the current execution status. Once this endpoint is called, your function execution process will start asynchronously.
 - `getExecution()` - Get a function execution log by its unique ID.
 - `deleteExecution()` - Delete a function execution by its unique ID.
+- `getUsage()` - Get usage metrics and statistics for a for a specific function. View statistics including total deployments, builds, executions, storage usage, and compute time. The response includes both current totals and historical data for each metric. Use the optional range parameter to specify the time window for historical data: 24h (last 24 hours), 30d (last 30 days), or 90d (last 90 days). If not specified, defaults to 30 days.
 - `listVariables()` - Get a list of all variables of a specific function.
 - `createVariable()` - Create a new function environment variable. These variables can be accessed in the function at runtime as environment variables.
 - `getVariable()` - Get a variable by its unique ID.
@@ -265,6 +304,10 @@ If you&#039;re creating a new file using one of the Appwrite SDKs, all the chunk
 - `getFileDownload()` - Get a file content by its unique ID. The endpoint response return with a &#039;Content-Disposition: attachment&#039; header that tells the browser to start downloading the file to user downloads directory.
 - `getFilePreview()` - Get a file preview image. Currently, this method supports preview for image files (jpg, png, and gif), other supported formats, like pdf, docs, slides, and spreadsheets, will return the file icon image. You can also pass query string arguments for cutting and resizing your preview image. Preview is supported only for image files smaller than 10MB.
 - `getFileView()` - Get a file content by its unique ID. This endpoint is similar to the download method but returns with no  &#039;Content-Disposition: attachment&#039; header.
+- `getUsage()` - Get usage metrics and statistics for all buckets in the project. You can view the total number of buckets, files, storage usage. The response includes both current totals and historical data over time. Use the optional range parameter to specify the time window for historical data: 24h (last 24 hours), 30d (last 30 days), or 90d (last 90 days). If not specified, range defaults to 30 days.
+
+- `getBucketUsage()` - Get usage metrics and statistics a specific bucket in the project. You can view the total number of files, storage usage. The response includes both current totals and historical data over time. Use the optional range parameter to specify the time window for historical data: 24h (last 24 hours), 30d (last 30 days), or 90d (last 90 days). If not specified, range defaults to 30 days.
+
 
 #### TablesDB
 
@@ -277,6 +320,7 @@ If you&#039;re creating a new file using one of the Appwrite SDKs, all the chunk
 - `updateTransaction()` - Update a transaction, to either commit or roll back its operations.
 - `deleteTransaction()` - Delete a transaction by its unique ID.
 - `createOperations()` - Create multiple operations in a single transaction.
+- `listUsage()` - List usage metrics and statistics for all databases in the project. You can view the total number of databases, tables, rows, and storage usage. The response includes both current totals and historical data over time. Use the optional range parameter to specify the time window for historical data: 24h (last 24 hours), 30d (last 30 days), or 90d (last 90 days). If not specified, range defaults to 30 days.
 - `get()` - Get a database by its unique ID. This endpoint response returns a JSON object with the database metadata.
 - `update()` - Update a database by its unique ID.
 - `delete()` - Delete a database by its unique ID. Only API keys with with databases.write scope can delete a database.
@@ -351,6 +395,7 @@ If you&#039;re creating a new file using one of the Appwrite SDKs, all the chunk
 Type can be `key`, `fulltext`, or `unique`.
 - `getIndex()` - Get index by ID.
 - `deleteIndex()` - Delete an index.
+- `listTableLogs()` - Get the table activity logs list by its unique ID.
 - `listRows()` - Get a list of all the user&#039;s rows in a given table. You can use the query params to filter your results.
 - `createRow()` - Create a new Row. Before using this route, you should create a new table resource using either a [server integration](https://appwrite.io/docs/references/cloud/server-dart/tablesDB#createTable) API or directly from your database console.
 - `createRows()` - Create new Rows. Before using this route, you should create a new table resource using either a [server integration](https://appwrite.io/docs/references/cloud/server-dart/tablesDB#createTable) API or directly from your database console.
@@ -362,8 +407,11 @@ Type can be `key`, `fulltext`, or `unique`.
 - `upsertRow()` - Create or update a Row. Before using this route, you should create a new table resource using either a [server integration](https://appwrite.io/docs/references/cloud/server-dart/tablesDB#createTable) API or directly from your database console.
 - `updateRow()` - Update a row by its unique ID. Using the patch method you can pass only specific fields that will get updated.
 - `deleteRow()` - Delete a row by its unique ID.
+- `listRowLogs()` - Get the row activity logs list by its unique ID.
 - `decrementRowColumn()` - Decrement a specific column of a row by a given value.
 - `incrementRowColumn()` - Increment a specific column of a row by a given value.
+- `getTableUsage()` - Get usage metrics and statistics for a table. Returning the total number of rows. The response includes both current totals and historical data over time. Use the optional range parameter to specify the time window for historical data: 24h (last 24 hours), 30d (last 30 days), or 90d (last 90 days). If not specified, range defaults to 30 days.
+- `getUsage()` - Get usage metrics and statistics for a database. You can view the total number of tables, rows, and storage usage. The response includes both current totals and historical data over time. Use the optional range parameter to specify the time window for historical data: 24h (last 24 hours), 30d (last 30 days), or 90d (last 90 days). If not specified, range defaults to 30 days.
 
 #### Teams
 The Teams service allows you to group users of your project and to enable them to share read and write access to your project resources
@@ -372,6 +420,7 @@ The Teams service allows you to group users of your project and to enable them t
 - `get()` - Get a team by its ID. All team members have read access for this resource.
 - `updateName()` - Update the team&#039;s name by its unique ID.
 - `delete()` - Delete a team using its ID. Only team members with the owner role can delete the team.
+- `listLogs()` - Get the team activity logs list by its unique ID.
 - `listMemberships()` - Use this endpoint to list a team&#039;s members using the team&#039;s ID. All team members have read access to this endpoint. Hide sensitive attributes from the response by toggling membership privacy in the Console.
 - `createMembership()` - Invite a new member to join your team. Provide an ID for existing users, or invite unregistered users using an email or phone number. If initiated from a Client SDK, Appwrite will send an email or sms with a link to join the team to the invited user, and an account will be created for them if one doesn&#039;t exist. If initiated from a Server SDK, the new member will be added automatically to the team.
 
@@ -405,6 +454,8 @@ The Users service allows you to manage your project users.
 - `createScryptUser()` - Create a new user. Password provided must be hashed with the [Scrypt](https://github.com/Tarsnap/scrypt) algorithm. Use the [POST /users](https://appwrite.io/docs/server/users#usersCreate) endpoint to create users with a plain text password.
 - `createScryptModifiedUser()` - Create a new user. Password provided must be hashed with the [Scrypt Modified](https://gist.github.com/Meldiron/eecf84a0225eccb5a378d45bb27462cc) algorithm. Use the [POST /users](https://appwrite.io/docs/server/users#usersCreate) endpoint to create users with a plain text password.
 - `createSHAUser()` - Create a new user. Password provided must be hashed with the [SHA](https://en.wikipedia.org/wiki/Secure_Hash_Algorithm) algorithm. Use the [POST /users](https://appwrite.io/docs/server/users#usersCreate) endpoint to create users with a plain text password.
+- `getUsage()` - Get usage metrics and statistics for all users in the project. You can view the total number of users and sessions. The response includes both current totals and historical data over time. Use the optional range parameter to specify the time window for historical data: 24h (last 24 hours), 30d (last 30 days), or 90d (last 90 days). If not specified, range defaults to 30 days.
+
 - `get()` - Get a user by its unique ID.
 - `delete()` - Delete a user by its unique ID, thereby releasing it&#039;s ID. Since ID is released and can be reused, all user-related resources like documents or storage files should be deleted before user deletion. If you want to keep ID reserved, use the [updateStatus](https://appwrite.io/docs/server/users#usersUpdateStatus) endpoint instead.
 - `updateEmail()` - Update the user email by its unique ID.
@@ -477,10 +528,12 @@ If you want to generate a token for a custom authentication flow, use the [POST 
 - `TeamList` - Teams List
 - `MembershipList` - Memberships List
 - `FunctionList` - Functions List
+- `TemplateFunctionList` - Function Templates List
 - `RuntimeList` - Runtimes List
 - `DeploymentList` - Deployments List
 - `ExecutionList` - Executions List
 - `WebhookList` - Webhooks List
+- `KeyList` - API Keys List
 - `VariableList` - Variables List
 - `TargetList` - Target list
 - `TransactionList` - Transaction List
@@ -547,11 +600,25 @@ If you want to generate a token for a custom authentication flow, use the [POST 
 - `Team` - Team
 - `Membership` - Membership
 - `Function` - Function
+- `TemplateFunction` - Template Function
+- `TemplateRuntime` - Template Runtime
+- `TemplateVariable` - Template Variable
 - `Runtime` - Runtime
 - `Deployment` - Deployment
 - `Execution` - Execution
 - `Webhook` - Webhook
+- `Key` - Key
 - `Variable` - Variable
+- `Metric` - Metric
+- `UsageDatabases` - UsageDatabases
+- `UsageDatabase` - UsageDatabase
+- `UsageTable` - UsageTable
+- `UsageCollection` - UsageCollection
+- `UsageUsers` - UsageUsers
+- `UsageStorage` - StorageUsage
+- `UsageBuckets` - UsageBuckets
+- `UsageFunctions` - UsageFunctions
+- `UsageFunction` - UsageFunction
 - `Headers` - Headers
 - `Specification` - Specification
 - `MfaChallenge` - MFA Challenge
@@ -560,6 +627,14 @@ If you want to generate a token for a custom authentication flow, use the [POST 
 - `MfaFactors` - MFAFactors
 - `Transaction` - Transaction
 - `Target` - Target
+- `BillingAddress` - BillingAddress
+- `Coupon` - Coupon
+- `Invoice` - Invoice
+- `PaymentMethod` - paymentMethod
+- `UsageResources` - UsageResource
+- `InvoiceList` - Billing invoices list
+- `BillingAddressList` - Billing address list
+- `PaymentMethodList` - Payment methods list
 
 ### Dependencies
 - [cpr](https://github.com/libcpr/cpr) 1.10.5+ for HTTP client

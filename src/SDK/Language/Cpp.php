@@ -529,6 +529,9 @@ class Cpp extends Language
                 }
                 break;
             case self::TYPE_STRING:
+                if (!$required && $default === '') {
+                    return ' = std::nullopt';
+                }
                 $output .= '"' . addslashes((string) $default) . '"';
                 break;
             case self::TYPE_OBJECT:

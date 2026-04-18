@@ -21,8 +21,7 @@ using namespace appwrite;
 
 // Included only when compiled with -DAPPWRITE_RUN_INTEGRATION
 // (set by test.sh, not by the build-validation CI step)
-// Included only when compiled with -DAPPWRITE_RUN_INTEGRATION
-// (set by test.sh, not by the build-validation CI step)
+
 extern int runIntegration(Client& client);
 
 #endif
@@ -38,6 +37,15 @@ int main() {
               << "x-sdk-platform: " << (headers.count("x-sdk-platform") ? headers.at("x-sdk-platform") : "") << "; "
               << "x-sdk-language: " << (headers.count("x-sdk-language") ? headers.at("x-sdk-language") : "") << "; "
               << "x-sdk-version: " << (headers.count("x-sdk-version") ? headers.at("x-sdk-version") : "") << "\n";
+
+    int integration_result = 0;
+#ifdef APPWRITE_RUN_INTEGRATION
+    const char* mock_endpoint = std::getenv("APPWRITE_MOCK_ENDPOINT");
+    client
+        .setEndpoint(mock_endpoint ? mock_endpoint : "http://mockapi/v1")
+        .setProject("123456");
+    integration_result = runIntegration(client);
+#endif
 
     // == QUERY_HELPER_RESPONSES ==
     std::cout << Query::equal("released", true) << "\n";
@@ -132,13 +140,5 @@ int main() {
     std::cout << ID::unique().str() << "\n";
     std::cout << ID::custom("custom_id").str() << "\n";
 
-#ifdef APPWRITE_RUN_INTEGRATION
-    const char* mock_endpoint = std::getenv("APPWRITE_MOCK_ENDPOINT");
-    client
-        .setEndpoint(mock_endpoint ? mock_endpoint : "http://mockapi/v1")
-        .setProject("123456");
-    return runIntegration(client);
-#else
-    return 0;
-#endif
+    return integration_result;
 }
