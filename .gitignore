@@ -31,3 +31,5 @@ templates/cli/bun.lock
 
 # exclude demo folder
 demo/
+integration_output.log
+temp_master_workflow.yml
