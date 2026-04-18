@@ -16,6 +16,7 @@ tests/tmp
 
 # exception to the rule
 !examples/.gitkeep 
+!examples/cpp/
 
 **/.DS_Store
 templates/swift/example/.build
