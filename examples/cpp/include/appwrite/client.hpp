@@ -104,7 +104,7 @@ public:
         std::string endpoint = "https://cloud.appwrite.io/v1";
         std::unordered_map<std::string, std::string> headers = {
             {"X-Appwrite-Response-Format", "1.9.1"},
-            {"x-sdk-name", "NAME"},
+            {"x-sdk-name", "cpp"},
             {"x-sdk-platform", "server"},
             {"x-sdk-language", "cpp"},
             {"x-sdk-version", "0.0.1"},

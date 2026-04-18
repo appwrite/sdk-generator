@@ -1,4 +1,4 @@
-# NAME
+# cpp
 
 **The official C++ SDK for Appwrite.**
 
@@ -23,13 +23,13 @@ Add the following to your `CMakeLists.txt`:
 ```cmake
 include(FetchContent)
 FetchContent_Declare(
-    name
+    cpp
     GIT_REPOSITORY https://github.com/repoowner/sdk-for-cpp.git
     GIT_TAG        v0.0.1
 )
-FetchContent_MakeAvailable(name)
+FetchContent_MakeAvailable(cpp)
 
-target_link_libraries(my_app PRIVATE name)
+target_link_libraries(my_app PRIVATE cpp)
 ```
 
 ## 🛠 Usage

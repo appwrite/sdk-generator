@@ -351,6 +351,7 @@ try {
     if (!$requestedSdk || $requestedSdk === 'cpp') {
         $sdk = new SDK(new Cpp(), new Swagger2($spec));
         configureSDK($sdk, [
+            'name' => 'cpp',
             'version' => '0.0.1',
             'platform' => $platform,
             'namespace' => 'appwrite',
