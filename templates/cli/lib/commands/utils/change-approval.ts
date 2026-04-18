@@ -59,6 +59,22 @@ interface ObjectChange {
 }
 
 type ComparableValue = boolean | number | string | unknown[] | undefined;
+const LOCAL_ONLY_RESOURCE_KEYS = new Set(["ignore", "path"]);
+
+const getComparableKeys = (
+  remote: Record<string, ComparableValue>,
+  local: Record<string, ComparableValue>,
+  skipKeys: string[],
+): string[] => {
+  const skippedKeys = new Set([
+    ...skipKeys,
+    ...Array.from(LOCAL_ONLY_RESOURCE_KEYS),
+  ]);
+
+  return [...new Set([...Object.keys(remote), ...Object.keys(local)])].filter(
+    (key) => !skippedKeys.has(key),
+  );
+};
 
 export const getObjectChanges = <T extends Record<string, unknown>>(
   remote: T,
@@ -71,35 +87,37 @@ export const getObjectChanges = <T extends Record<string, unknown>>(
   const remoteNested = remote[index];
   const localNested = local[index];
 
-  if (
+  const remoteObj =
     remoteNested &&
-    localNested &&
     typeof remoteNested === "object" &&
-    !Array.isArray(remoteNested) &&
+    !Array.isArray(remoteNested)
+      ? (remoteNested as Record<string, ComparableValue>)
+      : {};
+  const localObj =
+    localNested &&
     typeof localNested === "object" &&
     !Array.isArray(localNested)
-  ) {
-    const remoteObj = remoteNested as Record<string, ComparableValue>;
-    const localObj = localNested as Record<string, ComparableValue>;
+      ? (localNested as Record<string, ComparableValue>)
+      : {};
 
-    for (const [service, status] of Object.entries(remoteObj)) {
-      const localValue = localObj[service];
-      let valuesEqual = false;
+  for (const key of getComparableKeys(remoteObj, localObj, [])) {
+    const remoteValue = remoteObj[key];
+    const localValue = localObj[key];
+    let valuesEqual = false;
 
-      if (Array.isArray(status) && Array.isArray(localValue)) {
-        valuesEqual = JSON.stringify(status) === JSON.stringify(localValue);
-      } else {
-        valuesEqual = status === localValue;
-      }
+    if (Array.isArray(remoteValue) && Array.isArray(localValue)) {
+      valuesEqual = JSON.stringify(remoteValue) === JSON.stringify(localValue);
+    } else {
+      valuesEqual = remoteValue === localValue;
+    }
 
-      if (!valuesEqual) {
-        changes.push({
-          group: what,
-          setting: service,
-          remote: chalk.red(String(status ?? "")),
-          local: chalk.green(String(localValue ?? "")),
-        });
-      }
+    if (!valuesEqual) {
+      changes.push({
+        group: what,
+        setting: key,
+        remote: chalk.red(String(remoteValue ?? "")),
+        local: chalk.green(String(localValue ?? "")),
+      });
     }
   }
 
@@ -137,19 +155,26 @@ export const approveChanges = async (
         }
 
         const remoteResource = await resourceGetFunction(options);
+        const remoteComparable = whitelistKeys(
+          remoteResource,
+          keys,
+        ) as Record<string, ComparableValue>;
+        const localComparable = whitelistKeys(
+          localResource,
+          keys,
+        ) as Record<string, ComparableValue>;
 
-        for (const [key, value] of Object.entries(
-          whitelistKeys(remoteResource, keys),
+        for (const key of getComparableKeys(
+          remoteComparable,
+          localComparable,
+          skipKeys,
         )) {
-          if (skipKeys.includes(key)) {
+          const value = remoteComparable[key];
+          const localValue = localComparable[key];
+
+          if (isEmpty(value) && isEmpty(localValue)) {
             continue;
           }
-
-          if (isEmpty(value) && isEmpty(localResource[key])) {
-            continue;
-          }
-
-          const localValue = localResource[key];
 
           if (Array.isArray(value) && Array.isArray(localValue)) {
             if (JSON.stringify(value) !== JSON.stringify(localValue)) {
