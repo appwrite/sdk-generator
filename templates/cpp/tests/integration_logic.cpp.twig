@@ -119,9 +119,15 @@ int runIntegration(Client& client) {
         {
             try {
                 Client badClient;
-                badClient.setProject("123456")
+                auto res = badClient.setProject("123456")
                          .setEndpoint("htp://cloud.appwrite.io/v1")
                          .call<nlohmann::json>("GET", "/v1/mock/tests/foo", {}, {});
+                if (res.isErr()) {
+                    try { res.value(); }
+                    catch (const AppwriteException& e) {
+                        std::cout << e.what() << "\n";
+                    }
+                }
             } catch (const AppwriteException& e) {
                 std::cout << e.what() << "\n";
             } catch (const std::exception& e) {

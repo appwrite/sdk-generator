@@ -394,7 +394,7 @@ private:
             cpr::Session s;
             init(s, c, m, p, h, pms, no_redir);
             cpr::Response r = runSession(s, m);
-            if (r.status_code == 0 || r.status_code >= 500) {
+            if (r.status_code == 0) {
                 if (attempt < c.retryOptions.maxRetries) {
                     attempt++;
                     std::this_thread::sleep_for(c.retryOptions.retryDelay);

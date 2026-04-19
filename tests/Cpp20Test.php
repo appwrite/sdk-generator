@@ -28,4 +28,6 @@ class Cpp20Test extends Base
         ...Base::PERMISSION_HELPER_RESPONSES,
         ...Base::ID_HELPER_RESPONSES,
     ];
+
+    public function setUp(): void {}
 }
