@@ -804,13 +804,19 @@ const initSite = async (): Promise<void> => {
     );
   }
 
-  if (
-    answers.downloadTemplate &&
-    siteDirExists &&
-    fs.readdirSync(siteDir).length > 0
-  ) {
+  const siteDirIsEmpty = siteDirExists
+    ? fs.readdirSync(siteDir).length === 0
+    : true;
+
+  if (answers.downloadTemplate && siteDirExists && !siteDirIsEmpty) {
     throw new Error(
       `( ${sitePath} ) already exists and is not empty. Please choose another path.`,
+    );
+  }
+
+  if (!answers.downloadTemplate && siteDirExists && !siteDirIsEmpty) {
+    hint(
+      `Using existing non-empty site directory '${sitePath}'. No starter template code will be downloaded.`,
     );
   }
 
@@ -842,46 +848,48 @@ const initSite = async (): Promise<void> => {
 
   const templateFramework = templateDetails?.frameworks[0];
 
+  const createdSiteDir = !siteDirExists;
   if (!siteDirExists) {
     fs.mkdirSync(siteDir, { recursive: true, mode: 0o777 });
   }
 
   if (answers.downloadTemplate) {
-    if (!templateDetails || !templateFramework) {
-      throw new Error(
-        `No starter template found for framework ${answers.framework.key}`,
-      );
-    }
+    try {
+      if (!templateDetails || !templateFramework) {
+        throw new Error(
+          `No starter template found for framework ${answers.framework.key}`,
+        );
+      }
 
-    if (!fs.existsSync(siteFolder)) {
-      fs.mkdirSync(siteFolder, {
-        recursive: true,
-      });
-    }
+      if (!fs.existsSync(siteFolder)) {
+        fs.mkdirSync(siteFolder, {
+          recursive: true,
+        });
+      }
 
-    fs.mkdirSync(templatesDir, { mode: 0o777 });
-    const repo = `https://github.com/${templateDetails.providerOwner}/${templateDetails.providerRepositoryId}`;
-    const selected = {
-      template: templateFramework.providerRootDirectory,
-    };
+      fs.mkdirSync(templatesDir, { mode: 0o777 });
+      const repo = `https://github.com/${templateDetails.providerOwner}/${templateDetails.providerRepositoryId}`;
+      const selected = {
+        template: templateFramework.providerRootDirectory,
+      };
 
-    let dirSetupCommands = "";
+      let dirSetupCommands = "";
 
-    const sparse = selected.template.startsWith("./")
-      ? selected.template.substring(2)
-      : selected.template;
+      const sparse = selected.template.startsWith("./")
+        ? selected.template.substring(2)
+        : selected.template;
 
-    log("Fetching site code ...");
+      log("Fetching site code ...");
 
-    if (selected.template === "./") {
-      dirSetupCommands = `
+      if (selected.template === "./") {
+        dirSetupCommands = `
               cd ${templatesDir}
               git init
               git remote add origin ${repo}
               git config --global init.defaultBranch main
           `.trim();
-    } else {
-      dirSetupCommands = `
+      } else {
+        dirSetupCommands = `
               cd ${templatesDir}
               git init
               git remote add origin ${repo}
@@ -891,75 +899,82 @@ const initSite = async (): Promise<void> => {
               git config --add remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'
               git config remote.origin.tagopt --no-tags
           `.trim();
-    }
-    const windowsGitCloneCommands = `
+      }
+      const windowsGitCloneCommands = `
               $tag = (git ls-remote --tags origin "${templateDetails.providerVersion}" | Select-Object -Last 1) -replace '.*refs/tags/', ''
               git fetch --depth=1 origin "refs/tags/$tag"
               git checkout FETCH_HEAD
               `.trim();
-    const unixGitCloneCommands = `
+      const unixGitCloneCommands = `
               git fetch --depth=1 origin refs/tags/$(git ls-remote --tags origin "${templateDetails.providerVersion}" | tail -n 1 | awk -F '/' '{print $3}')
               git checkout FETCH_HEAD
               `.trim();
 
-    let usedShell = null;
-    if (process.platform === "win32") {
-      dirSetupCommands = dirSetupCommands + "\n" + windowsGitCloneCommands;
-      usedShell = "powershell.exe";
-    } else {
-      dirSetupCommands = dirSetupCommands + "\n" + unixGitCloneCommands;
-    }
-
-    /*  Execute the child process but do not print any std output */
-    try {
-      childProcess.execSync(dirSetupCommands, {
-        stdio: "pipe",
-        cwd: templatesDir,
-        shell: usedShell,
-      });
-    } catch (err) {
-      /* Specialised errors with recommended actions to take */
-      const errorMessage = err instanceof Error ? err.message : String(err);
-      if (errorMessage.includes("error: unknown option")) {
-        throw new Error(
-          `${errorMessage} \n\nSuggestion: Try updating your git to the latest version, then trying to run this command again.`,
-        );
-      } else if (
-        errorMessage.includes(
-          "is not recognized as an internal or external command,",
-        ) ||
-        errorMessage.includes("command not found")
-      ) {
-        throw new Error(
-          `${errorMessage} \n\nSuggestion: It appears that git is not installed, try installing git then trying to run this command again.`,
-        );
+      let usedShell = null;
+      if (process.platform === "win32") {
+        dirSetupCommands = dirSetupCommands + "\n" + windowsGitCloneCommands;
+        usedShell = "powershell.exe";
       } else {
-        throw err;
+        dirSetupCommands = dirSetupCommands + "\n" + unixGitCloneCommands;
       }
-    }
 
-    fs.rmSync(path.join(templatesDir, ".git"), {
-      recursive: true,
-      force: true,
-    });
+      /*  Execute the child process but do not print any std output */
+      try {
+        childProcess.execSync(dirSetupCommands, {
+          stdio: "pipe",
+          cwd: templatesDir,
+          shell: usedShell,
+        });
+      } catch (err) {
+        /* Specialised errors with recommended actions to take */
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        if (errorMessage.includes("error: unknown option")) {
+          throw new Error(
+            `${errorMessage} \n\nSuggestion: Try updating your git to the latest version, then trying to run this command again.`,
+          );
+        } else if (
+          errorMessage.includes(
+            "is not recognized as an internal or external command,",
+          ) ||
+          errorMessage.includes("command not found")
+        ) {
+          throw new Error(
+            `${errorMessage} \n\nSuggestion: It appears that git is not installed, try installing git then trying to run this command again.`,
+          );
+        } else {
+          throw err;
+        }
+      }
 
-    fs.cpSync(
-      selected.template === "./"
-        ? templatesDir
-        : path.join(templatesDir, selected.template),
-      siteDir,
-      { recursive: true, force: true },
-    );
+      fs.rmSync(path.join(templatesDir, ".git"), {
+        recursive: true,
+        force: true,
+      });
 
-    fs.rmSync(templatesDir, { recursive: true, force: true });
+      fs.cpSync(
+        selected.template === "./"
+          ? templatesDir
+          : path.join(templatesDir, selected.template),
+        siteDir,
+        { recursive: true, force: true },
+      );
 
-    const readmePath = path.join(siteDir, "README.md");
-    if (fs.existsSync(readmePath)) {
-      const readmeFile = fs.readFileSync(readmePath).toString();
-      const newReadmeFile = readmeFile.split("\n");
-      newReadmeFile[0] = `# ${answers.name}`;
-      newReadmeFile.splice(1, 2);
-      fs.writeFileSync(readmePath, newReadmeFile.join("\n"));
+      fs.rmSync(templatesDir, { recursive: true, force: true });
+
+      const readmePath = path.join(siteDir, "README.md");
+      if (fs.existsSync(readmePath)) {
+        const readmeFile = fs.readFileSync(readmePath).toString();
+        const newReadmeFile = readmeFile.split("\n");
+        newReadmeFile[0] = `# ${answers.name}`;
+        newReadmeFile.splice(1, 2);
+        fs.writeFileSync(readmePath, newReadmeFile.join("\n"));
+      }
+    } catch (err) {
+      fs.rmSync(templatesDir, { recursive: true, force: true });
+      if (createdSiteDir) {
+        fs.rmSync(siteDir, { recursive: true, force: true });
+      }
+      throw err;
     }
   }
 
@@ -976,7 +991,6 @@ const initSite = async (): Promise<void> => {
     buildSpecification: answers.buildSpecification,
     runtimeSpecification: answers.runtimeSpecification,
     deploymentRetention: Number(answers.deploymentRetention),
-    enabled: true,
     timeout: 30,
     logging: true,
     path: sitePath,

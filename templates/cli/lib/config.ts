@@ -128,6 +128,7 @@ function pruneDeprecatedSiteFields<T extends Record<string, any>>(data: T): T {
     sanitized.sites = sanitized.sites.map((site) => {
       if (site && typeof site === "object") {
         const {
+          enabled: _enabled,
           vars: _vars,
           ignore: _ignore,
           ...rest
@@ -358,7 +359,10 @@ class Local extends Config<ConfigType> {
     if (!this.has("sites")) {
       return [];
     }
-    return this.get("sites") ?? [];
+    return ((this.get("sites") ?? []) as Record<string, any>[]).map((site) => {
+      const { enabled: _enabled, vars: _vars, ignore: _ignore, ...rest } = site;
+      return rest;
+    }) as SiteType[];
   }
 
   getSite($id: string): SiteType | Record<string, never> {
@@ -366,7 +370,7 @@ class Local extends Config<ConfigType> {
       return {};
     }
 
-    const sites = this.get("sites") ?? [];
+    const sites = this.getSites();
     for (let i = 0; i < sites.length; i++) {
       if (sites[i]["$id"] == $id) {
         return sites[i];

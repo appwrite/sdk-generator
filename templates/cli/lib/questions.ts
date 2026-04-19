@@ -1330,7 +1330,7 @@ export const questionsCreateSite: Question[] = [
     type: "input",
     name: "deploymentRetention",
     message:
-      "How many days would you like to retain deployments? (0 = unlimited days)",
+      "How many days would you like to keep non-active deployments? (0 = keep all deployments)",
     default: "0",
     validate: validateNonNegativeInteger,
   },

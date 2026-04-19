@@ -402,7 +402,6 @@ export class Pull {
         name: site.name,
         path: sitePath,
         framework: site.framework,
-        enabled: site.enabled,
         logging: site.logging,
         timeout: site.timeout,
         buildRuntime: site.buildRuntime,
