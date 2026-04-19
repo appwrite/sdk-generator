@@ -350,6 +350,16 @@ public:
                 auto resp = runSession(s, m);
                 verify(resp);
 
+                if (cb) {
+                    cb(InputFile::Progress{
+                        .id = 0,
+                        .progress = 100.0,
+                        .sizeUploaded = file.size(),
+                        .chunksTotal = 1,
+                        .chunksUploaded = 1
+                    });
+                }
+
                 auto j = nlohmann::json::parse(resp.text);
                 if constexpr (std::is_same_v<T, nlohmann::json>) return Result<T>::Ok(j);
                 else return Result<T>::Ok(T::fromJson(j));

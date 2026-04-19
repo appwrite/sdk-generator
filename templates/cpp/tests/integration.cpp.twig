@@ -43,7 +43,7 @@ int main() {
 #ifdef APPWRITE_RUN_INTEGRATION
     const char* mock_endpoint = std::getenv("APPWRITE_MOCK_ENDPOINT");
     client
-        .setEndpoint(mock_endpoint ? mock_endpoint : "http://mockapi/v1")
+        .setEndpoint(mock_endpoint ? mock_endpoint : "http://mockapi")
         .setProject("123456");
     integration_result = runIntegration(client);
 #endif

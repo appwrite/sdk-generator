@@ -111,7 +111,7 @@ int runIntegration(Client& client) {
                 try { res.value(); }
                 catch (const AppwriteException& e) {
                     std::cout << e.what() << "\n";
-                    std::cout << e.what() << "\n";
+                    std::cout << e.response() << "\n";
                 }
             }
         }
