@@ -31,7 +31,13 @@ class Cpp20Test extends Base
 
     public function setUp(): void
     {
-        // Start mock server (optimized: skip build)
+        // Run $build commands manually (parent::setUp() also prepends SDK headers
+        // which this test does not emit, so we cannot call parent::setUp() directly)
+        foreach ($this->build as $command) {
+            \exec($command);
+        }
+
+        // Start mock server
         \exec('cd ./mock-server && docker compose up -d --force-recreate');
 
         // Wait for mock server to be ready
@@ -40,9 +46,7 @@ class Cpp20Test extends Base
         while ($attempts < $maxAttempts) {
             $output = [];
             $resultCode = 0;
-            // Use curl -sf for a standard, robust health check from within the container
             \exec('docker exec mockapi curl -sf http://localhost/v1/health/version 2>/dev/null', $output, $resultCode);
-
             if ($resultCode === 0 && !empty($output)) {
                 return;
             }

@@ -258,7 +258,9 @@ public:
         return internal::build("distanceEqual", attribute, {"[" + internal::point(lat, lon) + "," + internal::dbl_str(distance) + ",true]"});
     }
     static std::string distanceEqual(std::string_view attribute, double lat1, double lon1, double lat2, double lon2, double distance) {
-        return internal::build("distanceEqual", attribute, {"[" + (std::string)"[" + internal::point(lat1, lon1) + "," + internal::point(lat2, lon2) + "]," + internal::dbl_str(distance) + ",true]"});
+        return internal::build("distanceEqual", attribute, {
+            "[[" + internal::point(lat1, lon1) + "," + internal::point(lat2, lon2) + "]," + internal::dbl_str(distance) + ",true]"
+        });
     }
     static std::string distanceNotEqual(std::string_view attribute, double lat, double lon, double distance) {
         return internal::build("distanceNotEqual", attribute, {"[" + internal::point(lat, lon) + "," + internal::dbl_str(distance) + ",true]"});
