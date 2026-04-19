@@ -116,7 +116,7 @@ public:
         return std::get<T>(data_);
     }
 
-    const AppwriteException& error() const {
+    AppwriteException error() const {
         if (isOk()) throw AppwriteException("Result is Ok, no error available");
         try { std::rethrow_exception(std::get<std::exception_ptr>(data_)); }
         catch (const AppwriteException& e) { return e; }
