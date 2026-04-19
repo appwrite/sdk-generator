@@ -274,6 +274,23 @@ TEST(FunctionListTest, RoundTrip) {
     auto json2  = model2.toJson();
     EXPECT_EQ(json1.dump(), json2.dump());
 }
+TEST(TemplateFunctionListTest, RoundTrip) {
+    auto seed = nlohmann::json::parse(R"json({        "total": 5,        "templates": [{}]    })json");
+
+    // Deserialization must not throw (skip on type mismatch in example data)
+    appwrite::models::TemplateFunctionList model;
+    try {
+        model = appwrite::models::TemplateFunctionList::fromJson(seed);
+    } catch (const nlohmann::json::exception&) {
+        GTEST_SKIP() << "Seed example data type mismatch — skipped";
+    }
+
+    // Idempotency: serializing then deserializing then re-serializing must be stable
+    auto json1  = model.toJson();
+    auto model2 = appwrite::models::TemplateFunctionList::fromJson(json1);
+    auto json2  = model2.toJson();
+    EXPECT_EQ(json1.dump(), json2.dump());
+}
 TEST(RuntimeListTest, RoundTrip) {
     auto seed = nlohmann::json::parse(R"json({        "total": 5,        "runtimes": [{}]    })json");
 
@@ -339,6 +356,23 @@ TEST(WebhookListTest, RoundTrip) {
     // Idempotency: serializing then deserializing then re-serializing must be stable
     auto json1  = model.toJson();
     auto model2 = appwrite::models::WebhookList::fromJson(json1);
+    auto json2  = model2.toJson();
+    EXPECT_EQ(json1.dump(), json2.dump());
+}
+TEST(KeyListTest, RoundTrip) {
+    auto seed = nlohmann::json::parse(R"json({        "total": 5,        "keys": [{}]    })json");
+
+    // Deserialization must not throw (skip on type mismatch in example data)
+    appwrite::models::KeyList model;
+    try {
+        model = appwrite::models::KeyList::fromJson(seed);
+    } catch (const nlohmann::json::exception&) {
+        GTEST_SKIP() << "Seed example data type mismatch — skipped";
+    }
+
+    // Idempotency: serializing then deserializing then re-serializing must be stable
+    auto json1  = model.toJson();
+    auto model2 = appwrite::models::KeyList::fromJson(json1);
     auto json2  = model2.toJson();
     EXPECT_EQ(json1.dump(), json2.dump());
 }
@@ -1464,6 +1498,57 @@ TEST(FunctionTest, RoundTrip) {
     auto json2  = model2.toJson();
     EXPECT_EQ(json1.dump(), json2.dump());
 }
+TEST(TemplateFunctionTest, RoundTrip) {
+    auto seed = nlohmann::json::parse(R"json({        "icon": "icon-lightning-bolt",        "id": "starter",        "name": "Starter function",        "tagline": "A simple function to get started.",        "permissions": ["any"],        "events": ["account.create"],        "cron": "0 0 * * *",        "timeout": 300,        "useCases": ["Starter"],        "runtimes": [{}],        "instructions": "For documentation and instructions check out <link>.",        "vcsProvider": "github",        "providerRepositoryId": "templates",        "providerOwner": "appwrite",        "providerVersion": "main",        "variables": [{}],        "scopes": ["users.read"]    })json");
+
+    // Deserialization must not throw (skip on type mismatch in example data)
+    appwrite::models::TemplateFunction model;
+    try {
+        model = appwrite::models::TemplateFunction::fromJson(seed);
+    } catch (const nlohmann::json::exception&) {
+        GTEST_SKIP() << "Seed example data type mismatch — skipped";
+    }
+
+    // Idempotency: serializing then deserializing then re-serializing must be stable
+    auto json1  = model.toJson();
+    auto model2 = appwrite::models::TemplateFunction::fromJson(json1);
+    auto json2  = model2.toJson();
+    EXPECT_EQ(json1.dump(), json2.dump());
+}
+TEST(TemplateRuntimeTest, RoundTrip) {
+    auto seed = nlohmann::json::parse(R"json({        "name": "node-19.0",        "commands": "npm install",        "entrypoint": "index.js",        "providerRootDirectory": "node\/starter"    })json");
+
+    // Deserialization must not throw (skip on type mismatch in example data)
+    appwrite::models::TemplateRuntime model;
+    try {
+        model = appwrite::models::TemplateRuntime::fromJson(seed);
+    } catch (const nlohmann::json::exception&) {
+        GTEST_SKIP() << "Seed example data type mismatch — skipped";
+    }
+
+    // Idempotency: serializing then deserializing then re-serializing must be stable
+    auto json1  = model.toJson();
+    auto model2 = appwrite::models::TemplateRuntime::fromJson(json1);
+    auto json2  = model2.toJson();
+    EXPECT_EQ(json1.dump(), json2.dump());
+}
+TEST(TemplateVariableTest, RoundTrip) {
+    auto seed = nlohmann::json::parse(R"json({        "name": "APPWRITE_DATABASE_ID",        "description": "The ID of the Appwrite database that contains the collection to sync.",        "value": "512",        "secret": false,        "placeholder": "64a55...7b912",        "required": false,        "type": "password"    })json");
+
+    // Deserialization must not throw (skip on type mismatch in example data)
+    appwrite::models::TemplateVariable model;
+    try {
+        model = appwrite::models::TemplateVariable::fromJson(seed);
+    } catch (const nlohmann::json::exception&) {
+        GTEST_SKIP() << "Seed example data type mismatch — skipped";
+    }
+
+    // Idempotency: serializing then deserializing then re-serializing must be stable
+    auto json1  = model.toJson();
+    auto model2 = appwrite::models::TemplateVariable::fromJson(json1);
+    auto json2  = model2.toJson();
+    EXPECT_EQ(json1.dump(), json2.dump());
+}
 TEST(RuntimeTest, RoundTrip) {
     auto seed = nlohmann::json::parse(R"json({        "$id": "python-3.8",        "key": "python",        "name": "Python",        "version": "3.8",        "base": "python:3.8-alpine",        "image": "appwrite\\\/runtime-for-python:3.8",        "logo": "python.png",        "supports": ["amd64"]    })json");
 
@@ -1532,6 +1617,23 @@ TEST(WebhookTest, RoundTrip) {
     auto json2  = model2.toJson();
     EXPECT_EQ(json1.dump(), json2.dump());
 }
+TEST(KeyTest, RoundTrip) {
+    auto seed = nlohmann::json::parse(R"json({        "$id": "5e5ea5c16897e",        "$createdAt": "2020-10-15T06:38:00.000+00:00",        "$updatedAt": "2020-10-15T06:38:00.000+00:00",        "name": "My API Key",        "expire": "2020-10-15T06:38:00.000+00:00",        "scopes": ["users.read"],        "secret": "919c2d18fb5d4...a2ae413da83346ad2",        "accessedAt": "2020-10-15T06:38:00.000+00:00",        "sdks": ["appwrite:flutter"]    })json");
+
+    // Deserialization must not throw (skip on type mismatch in example data)
+    appwrite::models::Key model;
+    try {
+        model = appwrite::models::Key::fromJson(seed);
+    } catch (const nlohmann::json::exception&) {
+        GTEST_SKIP() << "Seed example data type mismatch — skipped";
+    }
+
+    // Idempotency: serializing then deserializing then re-serializing must be stable
+    auto json1  = model.toJson();
+    auto model2 = appwrite::models::Key::fromJson(json1);
+    auto json2  = model2.toJson();
+    EXPECT_EQ(json1.dump(), json2.dump());
+}
 TEST(VariableTest, RoundTrip) {
     auto seed = nlohmann::json::parse(R"json({        "$id": "5e5ea5c16897e",        "$createdAt": "2020-10-15T06:38:00.000+00:00",        "$updatedAt": "2020-10-15T06:38:00.000+00:00",        "key": "API_KEY",        "value": "myPa$$word1",        "secret": false,        "resourceType": "function",        "resourceId": "myAwesomeFunction"    })json");
 
@@ -1546,6 +1648,176 @@ TEST(VariableTest, RoundTrip) {
     // Idempotency: serializing then deserializing then re-serializing must be stable
     auto json1  = model.toJson();
     auto model2 = appwrite::models::Variable::fromJson(json1);
+    auto json2  = model2.toJson();
+    EXPECT_EQ(json1.dump(), json2.dump());
+}
+TEST(MetricTest, RoundTrip) {
+    auto seed = nlohmann::json::parse(R"json({        "value": 1,        "date": "2020-10-15T06:38:00.000+00:00"    })json");
+
+    // Deserialization must not throw (skip on type mismatch in example data)
+    appwrite::models::Metric model;
+    try {
+        model = appwrite::models::Metric::fromJson(seed);
+    } catch (const nlohmann::json::exception&) {
+        GTEST_SKIP() << "Seed example data type mismatch — skipped";
+    }
+
+    // Idempotency: serializing then deserializing then re-serializing must be stable
+    auto json1  = model.toJson();
+    auto model2 = appwrite::models::Metric::fromJson(json1);
+    auto json2  = model2.toJson();
+    EXPECT_EQ(json1.dump(), json2.dump());
+}
+TEST(UsageDatabasesTest, RoundTrip) {
+    auto seed = nlohmann::json::parse(R"json({        "range": "30d",        "databasesTotal": 0,        "collectionsTotal": 0,        "tablesTotal": 0,        "documentsTotal": 0,        "rowsTotal": 0,        "storageTotal": 0,        "databasesReadsTotal": 0,        "databasesWritesTotal": 0,        "databases": [{}],        "collections": [{}],        "tables": [{}],        "documents": [{}],        "rows": [{}],        "storage": [{}],        "databasesReads": [{}],        "databasesWrites": [{}]    })json");
+
+    // Deserialization must not throw (skip on type mismatch in example data)
+    appwrite::models::UsageDatabases model;
+    try {
+        model = appwrite::models::UsageDatabases::fromJson(seed);
+    } catch (const nlohmann::json::exception&) {
+        GTEST_SKIP() << "Seed example data type mismatch — skipped";
+    }
+
+    // Idempotency: serializing then deserializing then re-serializing must be stable
+    auto json1  = model.toJson();
+    auto model2 = appwrite::models::UsageDatabases::fromJson(json1);
+    auto json2  = model2.toJson();
+    EXPECT_EQ(json1.dump(), json2.dump());
+}
+TEST(UsageDatabaseTest, RoundTrip) {
+    auto seed = nlohmann::json::parse(R"json({        "range": "30d",        "collectionsTotal": 0,        "tablesTotal": 0,        "documentsTotal": 0,        "rowsTotal": 0,        "storageTotal": 0,        "databaseReadsTotal": 0,        "databaseWritesTotal": 0,        "collections": [{}],        "tables": [{}],        "documents": [{}],        "rows": [{}],        "storage": [{}],        "databaseReads": [{}],        "databaseWrites": [{}]    })json");
+
+    // Deserialization must not throw (skip on type mismatch in example data)
+    appwrite::models::UsageDatabase model;
+    try {
+        model = appwrite::models::UsageDatabase::fromJson(seed);
+    } catch (const nlohmann::json::exception&) {
+        GTEST_SKIP() << "Seed example data type mismatch — skipped";
+    }
+
+    // Idempotency: serializing then deserializing then re-serializing must be stable
+    auto json1  = model.toJson();
+    auto model2 = appwrite::models::UsageDatabase::fromJson(json1);
+    auto json2  = model2.toJson();
+    EXPECT_EQ(json1.dump(), json2.dump());
+}
+TEST(UsageTableTest, RoundTrip) {
+    auto seed = nlohmann::json::parse(R"json({        "range": "30d",        "rowsTotal": 0,        "rows": [{}]    })json");
+
+    // Deserialization must not throw (skip on type mismatch in example data)
+    appwrite::models::UsageTable model;
+    try {
+        model = appwrite::models::UsageTable::fromJson(seed);
+    } catch (const nlohmann::json::exception&) {
+        GTEST_SKIP() << "Seed example data type mismatch — skipped";
+    }
+
+    // Idempotency: serializing then deserializing then re-serializing must be stable
+    auto json1  = model.toJson();
+    auto model2 = appwrite::models::UsageTable::fromJson(json1);
+    auto json2  = model2.toJson();
+    EXPECT_EQ(json1.dump(), json2.dump());
+}
+TEST(UsageCollectionTest, RoundTrip) {
+    auto seed = nlohmann::json::parse(R"json({        "range": "30d",        "documentsTotal": 0,        "documents": [{}]    })json");
+
+    // Deserialization must not throw (skip on type mismatch in example data)
+    appwrite::models::UsageCollection model;
+    try {
+        model = appwrite::models::UsageCollection::fromJson(seed);
+    } catch (const nlohmann::json::exception&) {
+        GTEST_SKIP() << "Seed example data type mismatch — skipped";
+    }
+
+    // Idempotency: serializing then deserializing then re-serializing must be stable
+    auto json1  = model.toJson();
+    auto model2 = appwrite::models::UsageCollection::fromJson(json1);
+    auto json2  = model2.toJson();
+    EXPECT_EQ(json1.dump(), json2.dump());
+}
+TEST(UsageUsersTest, RoundTrip) {
+    auto seed = nlohmann::json::parse(R"json({        "range": "30d",        "usersTotal": 0,        "sessionsTotal": 0,        "users": [{}],        "sessions": [{}]    })json");
+
+    // Deserialization must not throw (skip on type mismatch in example data)
+    appwrite::models::UsageUsers model;
+    try {
+        model = appwrite::models::UsageUsers::fromJson(seed);
+    } catch (const nlohmann::json::exception&) {
+        GTEST_SKIP() << "Seed example data type mismatch — skipped";
+    }
+
+    // Idempotency: serializing then deserializing then re-serializing must be stable
+    auto json1  = model.toJson();
+    auto model2 = appwrite::models::UsageUsers::fromJson(json1);
+    auto json2  = model2.toJson();
+    EXPECT_EQ(json1.dump(), json2.dump());
+}
+TEST(UsageStorageTest, RoundTrip) {
+    auto seed = nlohmann::json::parse(R"json({        "range": "30d",        "bucketsTotal": 0,        "filesTotal": 0,        "filesStorageTotal": 0,        "buckets": [{}],        "files": [{}],        "storage": [{}]    })json");
+
+    // Deserialization must not throw (skip on type mismatch in example data)
+    appwrite::models::UsageStorage model;
+    try {
+        model = appwrite::models::UsageStorage::fromJson(seed);
+    } catch (const nlohmann::json::exception&) {
+        GTEST_SKIP() << "Seed example data type mismatch — skipped";
+    }
+
+    // Idempotency: serializing then deserializing then re-serializing must be stable
+    auto json1  = model.toJson();
+    auto model2 = appwrite::models::UsageStorage::fromJson(json1);
+    auto json2  = model2.toJson();
+    EXPECT_EQ(json1.dump(), json2.dump());
+}
+TEST(UsageBucketsTest, RoundTrip) {
+    auto seed = nlohmann::json::parse(R"json({        "range": "30d",        "filesTotal": 0,        "filesStorageTotal": 0,        "files": [{}],        "storage": [{}],        "imageTransformations": [{}],        "imageTransformationsTotal": 0    })json");
+
+    // Deserialization must not throw (skip on type mismatch in example data)
+    appwrite::models::UsageBuckets model;
+    try {
+        model = appwrite::models::UsageBuckets::fromJson(seed);
+    } catch (const nlohmann::json::exception&) {
+        GTEST_SKIP() << "Seed example data type mismatch — skipped";
+    }
+
+    // Idempotency: serializing then deserializing then re-serializing must be stable
+    auto json1  = model.toJson();
+    auto model2 = appwrite::models::UsageBuckets::fromJson(json1);
+    auto json2  = model2.toJson();
+    EXPECT_EQ(json1.dump(), json2.dump());
+}
+TEST(UsageFunctionsTest, RoundTrip) {
+    auto seed = nlohmann::json::parse(R"json({        "range": "30d",        "functionsTotal": 0,        "deploymentsTotal": 0,        "deploymentsStorageTotal": 0,        "buildsTotal": 0,        "buildsStorageTotal": 0,        "buildsTimeTotal": 0,        "buildsMbSecondsTotal": 0,        "executionsTotal": 0,        "executionsTimeTotal": 0,        "executionsMbSecondsTotal": 0,        "functions": [{}],        "deployments": [{}],        "deploymentsStorage": [{}],        "buildsSuccessTotal": 0,        "buildsFailedTotal": 0,        "builds": [{}],        "buildsStorage": [{}],        "buildsTime": [{}],        "buildsMbSeconds": [{}],        "executions": [{}],        "executionsTime": [{}],        "executionsMbSeconds": [{}],        "buildsSuccess": [{}],        "buildsFailed": [{}]    })json");
+
+    // Deserialization must not throw (skip on type mismatch in example data)
+    appwrite::models::UsageFunctions model;
+    try {
+        model = appwrite::models::UsageFunctions::fromJson(seed);
+    } catch (const nlohmann::json::exception&) {
+        GTEST_SKIP() << "Seed example data type mismatch — skipped";
+    }
+
+    // Idempotency: serializing then deserializing then re-serializing must be stable
+    auto json1  = model.toJson();
+    auto model2 = appwrite::models::UsageFunctions::fromJson(json1);
+    auto json2  = model2.toJson();
+    EXPECT_EQ(json1.dump(), json2.dump());
+}
+TEST(UsageFunctionTest, RoundTrip) {
+    auto seed = nlohmann::json::parse(R"json({        "range": "30d",        "deploymentsTotal": 0,        "deploymentsStorageTotal": 0,        "buildsTotal": 0,        "buildsSuccessTotal": 0,        "buildsFailedTotal": 0,        "buildsStorageTotal": 0,        "buildsTimeTotal": 0,        "buildsTimeAverage": 0,        "buildsMbSecondsTotal": 0,        "executionsTotal": 0,        "executionsTimeTotal": 0,        "executionsMbSecondsTotal": 0,        "deployments": [{}],        "deploymentsStorage": [{}],        "builds": [{}],        "buildsStorage": [{}],        "buildsTime": [{}],        "buildsMbSeconds": [{}],        "executions": [{}],        "executionsTime": [{}],        "executionsMbSeconds": [{}],        "buildsSuccess": [{}],        "buildsFailed": [{}]    })json");
+
+    // Deserialization must not throw (skip on type mismatch in example data)
+    appwrite::models::UsageFunction model;
+    try {
+        model = appwrite::models::UsageFunction::fromJson(seed);
+    } catch (const nlohmann::json::exception&) {
+        GTEST_SKIP() << "Seed example data type mismatch — skipped";
+    }
+
+    // Idempotency: serializing then deserializing then re-serializing must be stable
+    auto json1  = model.toJson();
+    auto model2 = appwrite::models::UsageFunction::fromJson(json1);
     auto json2  = model2.toJson();
     EXPECT_EQ(json1.dump(), json2.dump());
 }
@@ -1682,6 +1954,142 @@ TEST(TargetTest, RoundTrip) {
     // Idempotency: serializing then deserializing then re-serializing must be stable
     auto json1  = model.toJson();
     auto model2 = appwrite::models::Target::fromJson(json1);
+    auto json2  = model2.toJson();
+    EXPECT_EQ(json1.dump(), json2.dump());
+}
+TEST(BillingAddressTest, RoundTrip) {
+    auto seed = nlohmann::json::parse(R"json({        "$id": "eu-fr",        "userId": "5e5ea5c16897e",        "streetAddress": "13th Avenue",        "addressLine2": "",        "country": "USA",        "city": "",        "state": "",        "postalCode": ""    })json");
+
+    // Deserialization must not throw (skip on type mismatch in example data)
+    appwrite::models::BillingAddress model;
+    try {
+        model = appwrite::models::BillingAddress::fromJson(seed);
+    } catch (const nlohmann::json::exception&) {
+        GTEST_SKIP() << "Seed example data type mismatch — skipped";
+    }
+
+    // Idempotency: serializing then deserializing then re-serializing must be stable
+    auto json1  = model.toJson();
+    auto model2 = appwrite::models::BillingAddress::fromJson(json1);
+    auto json2  = model2.toJson();
+    EXPECT_EQ(json1.dump(), json2.dump());
+}
+TEST(CouponTest, RoundTrip) {
+    auto seed = nlohmann::json::parse(R"json({        "$id": "NEWBONUS",        "code": "NEWBONUS",        "credits": 50,        "expiration": "2020-10-15T06:38:00.000+00:00",        "validity": 180,        "campaign": "AppwriteHeroes",        "status": "disabled",        "onlyNewOrgs": true    })json");
+
+    // Deserialization must not throw (skip on type mismatch in example data)
+    appwrite::models::Coupon model;
+    try {
+        model = appwrite::models::Coupon::fromJson(seed);
+    } catch (const nlohmann::json::exception&) {
+        GTEST_SKIP() << "Seed example data type mismatch — skipped";
+    }
+
+    // Idempotency: serializing then deserializing then re-serializing must be stable
+    auto json1  = model.toJson();
+    auto model2 = appwrite::models::Coupon::fromJson(json1);
+    auto json2  = model2.toJson();
+    EXPECT_EQ(json1.dump(), json2.dump());
+}
+TEST(InvoiceTest, RoundTrip) {
+    auto seed = nlohmann::json::parse(R"json({        "$id": "5e5ea5c16897e",        "$createdAt": "2020-10-15T06:38:00.000+00:00",        "$updatedAt": "2020-10-15T06:38:00.000+00:00",        "$permissions": ["read(\"any\")"],        "teamId": "5e5ea5c16897e",        "aggregationId": "5e5ea5c16897e",        "plan": "tier-1",        "usage": [{}],        "amount": 50,        "tax": 17,        "taxAmount": 12.5,        "vat": 17,        "vatAmount": 12.5,        "grossAmount": 12.5,        "creditsUsed": 30,        "currency": "USD",        "clientSecret": "pi_daslfasdfkla_asdkfl",        "status": "succeeded",        "lastError": "Your card has insufficient balance.",        "dueAt": "2020-10-15T06:38:00.000+00:00",        "from": "2020-10-15T06:38:00.000+00:00",        "to": "2020-10-15T06:38:00.000+00:00"    })json");
+
+    // Deserialization must not throw (skip on type mismatch in example data)
+    appwrite::models::Invoice model;
+    try {
+        model = appwrite::models::Invoice::fromJson(seed);
+    } catch (const nlohmann::json::exception&) {
+        GTEST_SKIP() << "Seed example data type mismatch — skipped";
+    }
+
+    // Idempotency: serializing then deserializing then re-serializing must be stable
+    auto json1  = model.toJson();
+    auto model2 = appwrite::models::Invoice::fromJson(json1);
+    auto json2  = model2.toJson();
+    EXPECT_EQ(json1.dump(), json2.dump());
+}
+TEST(PaymentMethodTest, RoundTrip) {
+    auto seed = nlohmann::json::parse(R"json({        "$id": "5e5ea5c16897e",        "$createdAt": "2020-10-15T06:38:00.000+00:00",        "$updatedAt": "2020-10-15T06:38:00.000+00:00",        "$permissions": ["read(\"any\")"],        "providerMethodId": "abdk3ed3sdkfj",        "clientSecret": "seti_ddfe",        "providerUserId": "abdk3ed3sdkfj",        "userId": "5e5ea5c16897e",        "expiryMonth": 2,        "expiryYear": 2024,        "last4": "4242",        "brand": "visa",        "name": "John Doe",        "mandateId": "yxc",        "country": "de",        "state": "",        "lastError": "Your card has insufficient funds.",        "default": false,        "expired": false,        "failed": false    })json");
+
+    // Deserialization must not throw (skip on type mismatch in example data)
+    appwrite::models::PaymentMethod model;
+    try {
+        model = appwrite::models::PaymentMethod::fromJson(seed);
+    } catch (const nlohmann::json::exception&) {
+        GTEST_SKIP() << "Seed example data type mismatch — skipped";
+    }
+
+    // Idempotency: serializing then deserializing then re-serializing must be stable
+    auto json1  = model.toJson();
+    auto model2 = appwrite::models::PaymentMethod::fromJson(json1);
+    auto json2  = model2.toJson();
+    EXPECT_EQ(json1.dump(), json2.dump());
+}
+TEST(UsageResourcesTest, RoundTrip) {
+    auto seed = nlohmann::json::parse(R"json({        "name": "",        "value": 0,        "amount": 500,        "rate": 12.5,        "desc": "Your monthly recurring Pro plan.",        "resourceId": ""    })json");
+
+    // Deserialization must not throw (skip on type mismatch in example data)
+    appwrite::models::UsageResources model;
+    try {
+        model = appwrite::models::UsageResources::fromJson(seed);
+    } catch (const nlohmann::json::exception&) {
+        GTEST_SKIP() << "Seed example data type mismatch — skipped";
+    }
+
+    // Idempotency: serializing then deserializing then re-serializing must be stable
+    auto json1  = model.toJson();
+    auto model2 = appwrite::models::UsageResources::fromJson(json1);
+    auto json2  = model2.toJson();
+    EXPECT_EQ(json1.dump(), json2.dump());
+}
+TEST(InvoiceListTest, RoundTrip) {
+    auto seed = nlohmann::json::parse(R"json({        "total": 5,        "invoices": [{}]    })json");
+
+    // Deserialization must not throw (skip on type mismatch in example data)
+    appwrite::models::InvoiceList model;
+    try {
+        model = appwrite::models::InvoiceList::fromJson(seed);
+    } catch (const nlohmann::json::exception&) {
+        GTEST_SKIP() << "Seed example data type mismatch — skipped";
+    }
+
+    // Idempotency: serializing then deserializing then re-serializing must be stable
+    auto json1  = model.toJson();
+    auto model2 = appwrite::models::InvoiceList::fromJson(json1);
+    auto json2  = model2.toJson();
+    EXPECT_EQ(json1.dump(), json2.dump());
+}
+TEST(BillingAddressListTest, RoundTrip) {
+    auto seed = nlohmann::json::parse(R"json({        "total": 5,        "billingAddresses": [{}]    })json");
+
+    // Deserialization must not throw (skip on type mismatch in example data)
+    appwrite::models::BillingAddressList model;
+    try {
+        model = appwrite::models::BillingAddressList::fromJson(seed);
+    } catch (const nlohmann::json::exception&) {
+        GTEST_SKIP() << "Seed example data type mismatch — skipped";
+    }
+
+    // Idempotency: serializing then deserializing then re-serializing must be stable
+    auto json1  = model.toJson();
+    auto model2 = appwrite::models::BillingAddressList::fromJson(json1);
+    auto json2  = model2.toJson();
+    EXPECT_EQ(json1.dump(), json2.dump());
+}
+TEST(PaymentMethodListTest, RoundTrip) {
+    auto seed = nlohmann::json::parse(R"json({        "total": 5,        "paymentMethods": [{}]    })json");
+
+    // Deserialization must not throw (skip on type mismatch in example data)
+    appwrite::models::PaymentMethodList model;
+    try {
+        model = appwrite::models::PaymentMethodList::fromJson(seed);
+    } catch (const nlohmann::json::exception&) {
+        GTEST_SKIP() << "Seed example data type mismatch — skipped";
+    }
+
+    // Idempotency: serializing then deserializing then re-serializing must be stable
+    auto json1  = model.toJson();
+    auto model2 = appwrite::models::PaymentMethodList::fromJson(json1);
     auto json2  = model2.toJson();
     EXPECT_EQ(json1.dump(), json2.dump());
 }

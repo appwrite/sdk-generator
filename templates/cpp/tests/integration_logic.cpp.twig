@@ -116,7 +116,18 @@ int runIntegration(Client& client) {
             }
         }
 
-        std::cout << "Invalid endpoint URL: htp://cloud.appwrite.io/v1\n";
+        {
+            try {
+                Client badClient;
+                badClient.setProject("123456")
+                         .setEndpoint("htp://cloud.appwrite.io/v1")
+                         .call<nlohmann::json>("GET", "/v1/mock/tests/foo", {}, {});
+            } catch (const AppwriteException& e) {
+                std::cout << e.what() << "\n";
+            } catch (const std::exception& e) {
+                std::cout << e.what() << "\n";
+            }
+        }
 
         return 0;
     } catch (const std::exception& ex) {

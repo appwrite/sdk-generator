@@ -243,15 +243,7 @@ private:
     std::vector<uint8_t> data_;
 };
 
-/**
- * @brief Represents a Realtime event payload.
- */
-struct RealtimeResponse {
-    std::string event;
-    std::vector<std::string> channels;
-    nlohmann::json data;
-    std::string timestamp;
-};
+
 
 /**
  * @brief Interface for a Realtime Socket Backend.

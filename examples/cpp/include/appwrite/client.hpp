@@ -105,7 +105,7 @@ public:
         std::unordered_map<std::string, std::string> headers = {
             {"X-Appwrite-Response-Format", "1.9.1"},
             {"x-sdk-name", "cpp"},
-            {"x-sdk-platform", "server"},
+            {"x-sdk-platform", "console"},
             {"x-sdk-language", "cpp"},
             {"x-sdk-version", "0.0.1"},
         };
@@ -124,7 +124,7 @@ public:
 
     Client& setEndpoint(std::string endpoint) {
         if (endpoint.find("http://") != 0 && endpoint.find("https://") != 0) {
-            throw std::invalid_argument("Invalid endpoint URL: " + endpoint);
+            throw AppwriteException("Invalid endpoint URL: " + endpoint);
         }
         auto next = *get_cfg();
         next.endpoint = std::move(endpoint);
@@ -559,6 +559,7 @@ private:
 
     // Builds a Task<T> that wraps a std::future. Task::get() blocks until the
     // future is ready, keeping the interface identical to a coroutine Task.
+    // Note: T must be a Result<U> specialization for T::Err to be valid.
     template <typename T>
     static Task<T> makeResolvedTask(std::future<T> fut) {
         // Use a shared_ptr so the future survives until Task::get() is called.

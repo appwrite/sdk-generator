@@ -30,14 +30,14 @@ int main() {
     // == Standalone helper verification ==
     // These don't need a running server — they only test local string-building logic.
 
-    std::cout << "Test Started\n";
+    std::cout << "Test Started" << std::endl;
 
     Client client;
     auto headers = client.getHeaders();
     std::cout << "x-sdk-name: " << (headers.count("x-sdk-name") ? headers.at("x-sdk-name") : "") << "; "
               << "x-sdk-platform: " << (headers.count("x-sdk-platform") ? headers.at("x-sdk-platform") : "") << "; "
               << "x-sdk-language: " << (headers.count("x-sdk-language") ? headers.at("x-sdk-language") : "") << "; "
-              << "x-sdk-version: " << (headers.count("x-sdk-version") ? headers.at("x-sdk-version") : "") << "\n";
+              << "x-sdk-version: " << (headers.count("x-sdk-version") ? headers.at("x-sdk-version") : "") << std::endl;
 
     int integration_result = 0;
 #ifdef APPWRITE_RUN_INTEGRATION

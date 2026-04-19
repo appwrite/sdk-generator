@@ -63,9 +63,30 @@ public:
 };
 
 {% endfor %}
+
+} // namespace services
+
+/**
+ * @brief Response payload received from the Appwrite Realtime service.
+ */
+struct RealtimeResponse {
+    std::string event;
+    std::string timestamp;
+    std::vector<std::string> channels;
+    nlohmann::json data;
+};
+
+namespace services {
+
 /**
  * @brief Realtime Service for subscribing to Appwrite events.
+ *
+ * @note WebSocket support requires a SocketBackend implementation.
+ *       Enable by defining APPWRITE_ENABLE_REALTIME and providing
+ *       a SocketBackend implementation before including this header.
  */
+#ifdef APPWRITE_ENABLE_REALTIME
+
 class Realtime : public Service {
 public:
     using MessageCallback = std::function<void(const RealtimeResponse&)>;
@@ -155,6 +176,36 @@ private:
         } catch (...) {}
     }
 };
+
+#else
+
+class Realtime : public Service {
+public:
+    using MessageCallback = std::function<void(const RealtimeResponse&)>;
+
+    struct Subscription {
+        std::string id;
+        std::vector<std::string> channels;
+        void unsubscribe() {}
+    };
+
+    explicit Realtime(Client& client) : Service(client) {}
+
+    template <typename T = void>
+    Subscription subscribe(
+        std::vector<std::string> /*channels*/,
+        MessageCallback /*callback*/
+    ) {
+        static_assert(
+            !std::is_same_v<T, void>,
+            "Realtime requires APPWRITE_ENABLE_REALTIME. "
+            "Define it and provide a SocketBackend before including services.hpp."
+        );
+        return {};
+    }
+};
+
+#endif // APPWRITE_ENABLE_REALTIME
 
 } // namespace services
 } // namespace appwrite
