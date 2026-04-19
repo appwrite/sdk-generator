@@ -797,6 +797,7 @@ const initSite = async (): Promise<void> => {
   const siteFolder = path.join(process.cwd(), "sites");
   const templatesDir = path.join(siteFolder, `${siteId}-templates`);
   const siteDirExists = fs.existsSync(siteDir);
+  const siteFolderExists = fs.existsSync(siteFolder);
 
   if (siteDirExists && !fs.statSync(siteDir).isDirectory()) {
     throw new Error(
@@ -973,6 +974,13 @@ const initSite = async (): Promise<void> => {
       fs.rmSync(templatesDir, { recursive: true, force: true });
       if (createdSiteDir) {
         fs.rmSync(siteDir, { recursive: true, force: true });
+      }
+      if (
+        !siteFolderExists &&
+        fs.existsSync(siteFolder) &&
+        fs.readdirSync(siteFolder).length === 0
+      ) {
+        fs.rmSync(siteFolder, { recursive: true, force: true });
       }
       throw err;
     }

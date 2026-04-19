@@ -1,3 +1,5 @@
+import fs from "fs";
+import path from "path";
 import chalk from "chalk";
 import { localConfig, globalConfig } from "./config.js";
 import { sdkForConsole } from "./sdks.js";
@@ -68,6 +70,25 @@ const getDefaultSitePath = (answers: Answers): string => {
   );
 
   return `sites/${siteDirectoryName}`;
+};
+
+const validateSitePath = (value: unknown): boolean | string => {
+  const required = validateRequired("site path", value);
+  if (required !== true) {
+    return required;
+  }
+
+  const sitePath = String(value).trim();
+  const absoluteSitePath = path.resolve(process.cwd(), sitePath);
+
+  if (
+    fs.existsSync(absoluteSitePath) &&
+    !fs.statSync(absoluteSitePath).isDirectory()
+  ) {
+    return "Site path already exists and is not a directory.";
+  }
+
+  return true;
 };
 
 const buildSelectionLabel = (name: string, id: string): string =>
@@ -1274,7 +1295,7 @@ export const questionsCreateSite: Question[] = [
     name: "path",
     message: "What local path would you like to use for your site?",
     default: getDefaultSitePath,
-    validate: (value: unknown) => validateRequired("site path", value),
+    validate: validateSitePath,
   },
   {
     type: "list",
