@@ -297,11 +297,13 @@ public:
             if (r.status_code == 0) throw NetworkException(r.error.message);
             if (r.status_code >= 400) {
                 std::string msg = "Server Error";
+                std::string type = "";
                 try {
                     auto j = nlohmann::json::parse(r.text);
                     if (j.contains("message")) msg = j["message"];
+                    if (j.contains("type"))    type = j["type"];
                 } catch (...) {}
-                throw ServerException(msg, r.status_code, "", r.text);
+                throw ServerException(msg, r.status_code, std::move(type), r.text);
             }
             if (r.status_code >= 300 && r.status_code < 400 && r.header.contains("Location")) {
                 return Result<std::string>::Ok(r.header["Location"]);
