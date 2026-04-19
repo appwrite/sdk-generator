@@ -34,3 +34,4 @@ templates/cli/bun.lock
 demo/
 integration_output.log
 temp_master_workflow.yml
+examples/*/build/

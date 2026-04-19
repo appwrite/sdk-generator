@@ -29,5 +29,10 @@ class Cpp20Test extends Base
         ...Base::ID_HELPER_RESPONSES,
     ];
 
-    public function setUp(): void {}
+    public function setUp(): void
+    {
+        // Start mock server (required for integration) but skip Base's header-prepend
+        // because the C++ integration_test does not print an x-sdk-name header line.
+        \exec('cd ./mock-server && docker compose build && docker compose up -d --force-recreate');
+    }
 }

@@ -43,6 +43,7 @@ target_link_libraries(${PROJECT_NAME} INTERFACE
 
 # Automated Tests
 option(APPWRITE_BUILD_TESTS "Build automated tests" OFF)
+option(APPWRITE_RUN_INTEGRATION "Run integration tests" OFF)
 if(APPWRITE_BUILD_TESTS)
     enable_testing()
     find_package(GTest QUIET)
