@@ -98,6 +98,7 @@ class AgentSkills extends Language
             'python',
             'ruby',
             'go',
+            'rust',
             'dotnet',
             'cli',
         ];

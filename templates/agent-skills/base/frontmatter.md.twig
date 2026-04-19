@@ -1,4 +1,4 @@
 ---
-name: {{ spec.title | caseLower }}-{{ lang }}
+name: {{ skillName | default(spec.title | caseLower ~ '-' ~ lang) }}
 description: {{ langDescription }}
 ---
