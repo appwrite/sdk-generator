@@ -26,6 +26,7 @@ class ClaudePlugin extends AgentSkills
             'python',
             'ruby',
             'go',
+            'rust',
             'dotnet',
             'cli',
         ];

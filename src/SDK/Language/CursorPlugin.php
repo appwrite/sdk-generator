@@ -99,6 +99,7 @@ class CursorPlugin extends Language
             'python',
             'ruby',
             'go',
+            'rust',
             'dotnet',
             'cli',
         ];
