@@ -3,7 +3,11 @@ import { localConfig, globalConfig } from "./config.js";
 import { sdkForConsole } from "./sdks.js";
 import { validateRequired } from "./validations.js";
 import { paginate } from "./paginate.js";
-import { checkDeployConditions, isCloud } from "./utils.js";
+import {
+  checkDeployConditions,
+  getSafeDirectoryName,
+  isCloud,
+} from "./utils.js";
 import { Account, Client } from "@appwrite.io/console";
 import {
   getOrganizationsService,
@@ -55,6 +59,15 @@ const validateNonNegativeInteger = (value: string): boolean | string => {
   }
 
   return true;
+};
+
+const getDefaultSitePath = (answers: Answers): string => {
+  const siteDirectoryName = getSafeDirectoryName(
+    String(answers.name ?? ""),
+    "my-awesome-site",
+  );
+
+  return `sites/${siteDirectoryName}`;
 };
 
 const buildSelectionLabel = (name: string, id: string): string =>
@@ -1257,6 +1270,13 @@ export const questionsCreateSite: Question[] = [
     default: "unique()",
   },
   {
+    type: "input",
+    name: "path",
+    message: "What local path would you like to use for your site?",
+    default: getDefaultSitePath,
+    validate: (value: unknown) => validateRequired("site path", value),
+  },
+  {
     type: "list",
     name: "framework",
     message: "What framework would you like to use?",
@@ -1309,8 +1329,15 @@ export const questionsCreateSite: Question[] = [
   {
     type: "input",
     name: "deploymentRetention",
-    message: "How many deployments would you like to retain? (0 = unlimited)",
+    message:
+      "How many days would you like to retain deployments? (0 = unlimited days)",
     default: "0",
     validate: validateNonNegativeInteger,
+  },
+  {
+    type: "confirm",
+    name: "downloadTemplate",
+    message: "Do you want to download the starter template code?",
+    default: false,
   },
 ];
