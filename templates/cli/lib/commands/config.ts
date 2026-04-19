@@ -144,7 +144,6 @@ const SiteSchema = z
     path: z.string().optional(),
     $id: z.string(),
     name: z.string(),
-    enabled: z.boolean().optional(),
     logging: z.boolean().optional(),
     timeout: z.union([z.number(), z.bigint()]).optional(),
     framework: z.string().optional(),

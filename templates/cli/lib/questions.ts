@@ -1,9 +1,15 @@
+import fs from "fs";
+import path from "path";
 import chalk from "chalk";
 import { localConfig, globalConfig } from "./config.js";
 import { sdkForConsole } from "./sdks.js";
 import { validateRequired } from "./validations.js";
 import { paginate } from "./paginate.js";
-import { checkDeployConditions, isCloud } from "./utils.js";
+import {
+  checkDeployConditions,
+  getSafeDirectoryName,
+  isCloud,
+} from "./utils.js";
 import { Account, Client } from "@appwrite.io/console";
 import {
   getOrganizationsService,
@@ -52,6 +58,34 @@ const whenOverride = (answers: Answers): boolean =>
 const validateNonNegativeInteger = (value: string): boolean | string => {
   if (!/^\d+$/.test(value)) {
     return "Please enter a non-negative integer.";
+  }
+
+  return true;
+};
+
+const getDefaultSitePath = (answers: Answers): string => {
+  const siteDirectoryName = getSafeDirectoryName(
+    String(answers.name ?? ""),
+    "my-awesome-site",
+  );
+
+  return `sites/${siteDirectoryName}`;
+};
+
+const validateSitePath = (value: unknown): boolean | string => {
+  const required = validateRequired("site path", value);
+  if (required !== true) {
+    return required;
+  }
+
+  const sitePath = String(value).trim();
+  const absoluteSitePath = path.resolve(process.cwd(), sitePath);
+
+  if (
+    fs.existsSync(absoluteSitePath) &&
+    !fs.statSync(absoluteSitePath).isDirectory()
+  ) {
+    return "Site path already exists and is not a directory.";
   }
 
   return true;
@@ -1257,6 +1291,13 @@ export const questionsCreateSite: Question[] = [
     default: "unique()",
   },
   {
+    type: "input",
+    name: "path",
+    message: "What local path would you like to use for your site?",
+    default: getDefaultSitePath,
+    validate: validateSitePath,
+  },
+  {
     type: "list",
     name: "framework",
     message: "What framework would you like to use?",
@@ -1309,8 +1350,15 @@ export const questionsCreateSite: Question[] = [
   {
     type: "input",
     name: "deploymentRetention",
-    message: "How many deployments would you like to retain? (0 = unlimited)",
+    message:
+      "How many days would you like to keep non-active deployments? (0 = keep all deployments)",
     default: "0",
     validate: validateNonNegativeInteger,
+  },
+  {
+    type: "confirm",
+    name: "downloadTemplate",
+    message: "Do you want to download the starter template code?",
+    default: false,
   },
 ];
