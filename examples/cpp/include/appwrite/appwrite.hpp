@@ -1,0 +1,14 @@
+#pragma once
+
+/**
+ * Appwrite C++ SDK — single-header entry point.
+ * Include this file to use the full SDK.
+ *
+ *   #include <appwrite/appwrite.hpp>
+ *   using namespace appwrite;
+ */
+#include "base.hpp"
+#include "core.hpp"
+#include "models.hpp"
+#include "services.hpp"
+#include "enums/enums.hpp"

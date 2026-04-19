@@ -1,0 +1,149 @@
+#ifdef APPWRITE_RUN_INTEGRATION
+#include <iostream>
+#include <string>
+#include <vector>
+#include <nlohmann/json.hpp>
+#include <appwrite/client.hpp>
+#include <appwrite/services.hpp>
+
+using namespace appwrite;
+
+static nlohmann::json fooParams() {
+    return {
+        {"x", "string"},
+        {"y", 123},
+        {"z", nlohmann::json::array({"string in array"})}
+    };
+}
+
+static nlohmann::json barParams() {
+    return {
+        {"required", "string"},
+        {"default", 123},
+        {"z", nlohmann::json::array({"string in array"})}
+    };
+}
+
+static void printResult(const Result<nlohmann::json>& res, const char* label) {
+    if (res) {
+        std::cout << res.value().at("result").get<std::string>() << "\n";
+    } else {
+        try { res.value(); }
+        catch (const std::exception& e) { std::cerr << label << " failed: " << e.what() << "\n"; }
+        catch (...) { std::cerr << label << " failed (unknown)\n"; }
+    }
+}
+
+int runIntegration(Client& client) {
+    try {
+        // ===== FOO_RESPONSES (5) =====
+        printResult(client.call<nlohmann::json>("GET",    "/v1/mock/tests/foo", {}, fooParams()), "GET /foo");
+        printResult(client.call<nlohmann::json>("POST",   "/v1/mock/tests/foo", {}, fooParams()), "POST /foo");
+        printResult(client.call<nlohmann::json>("PUT",    "/v1/mock/tests/foo", {}, fooParams()), "PUT /foo");
+        printResult(client.call<nlohmann::json>("PATCH",  "/v1/mock/tests/foo", {}, fooParams()), "PATCH /foo");
+        printResult(client.call<nlohmann::json>("DELETE", "/v1/mock/tests/foo", {}, fooParams()), "DELETE /foo");
+
+        // ===== BAR_RESPONSES (5) =====
+        printResult(client.call<nlohmann::json>("GET",    "/v1/mock/tests/bar", {}, barParams()), "GET /bar");
+        printResult(client.call<nlohmann::json>("POST",   "/v1/mock/tests/bar", {}, barParams()), "POST /bar");
+        printResult(client.call<nlohmann::json>("PUT",    "/v1/mock/tests/bar", {}, barParams()), "PUT /bar");
+        printResult(client.call<nlohmann::json>("PATCH",  "/v1/mock/tests/bar", {}, barParams()), "PATCH /bar");
+        printResult(client.call<nlohmann::json>("DELETE", "/v1/mock/tests/bar", {}, barParams()), "DELETE /bar");
+
+        // ===== GENERAL_RESPONSES (1) =====
+        printResult(client.call<nlohmann::json>("GET", "/v1/mock/tests/general/redirect", {}, {}), "GET /redirect");
+
+        // ===== UPLOAD_RESPONSES (4) =====
+        nlohmann::json upload_pms = {
+            {"x", "string"},
+            {"y", 123},
+            {"z", nlohmann::json::array({"string in array"})}
+        };
+
+        static const char* resource_dir = []() {
+            const char* d = std::getenv("APPWRITE_RESOURCE_DIR");
+            return d ? d : "tests/resources";
+        }();
+
+        for (int i = 0; i < 2; ++i) {
+            auto f = InputFile::fromPath(std::string(resource_dir) + "/file.png");
+            printResult(
+                client.fileUpload<nlohmann::json>(
+                    "POST", "/v1/mock/tests/general/upload", "file",
+                    std::move(f), {}, upload_pms, nullptr),
+                "small upload");
+        }
+        for (int i = 0; i < 2; ++i) {
+            auto f = InputFile::fromPath(std::string(resource_dir) + "/large_file.mp4");
+            printResult(
+                client.fileUpload<nlohmann::json>(
+                    "POST", "/v1/mock/tests/general/upload", "file",
+                    std::move(f), {}, upload_pms, nullptr),
+                "large upload");
+        }
+
+        // ===== DOWNLOAD_RESPONSES (1) =====
+        auto dl = client.callBytes("GET", "/v1/mock/tests/general/download", {}, {});
+        if (dl) {
+            const auto& bytes = dl.value().data();
+            std::cout << std::string(bytes.begin(), bytes.end()) << "\n";
+        }
+
+        // ===== EXCEPTION_RESPONSES (7) =====
+        {
+            auto res = client.call<nlohmann::json>("GET", "/v1/mock/tests/general/400-error", {}, {});
+            if (res.isErr()) {
+                try { res.value(); }
+                catch (const AppwriteException& e) {
+                    std::cout << e.what() << "\n";
+                    std::cout << e.response() << "\n";
+                }
+            }
+        }
+        {
+            auto res = client.call<nlohmann::json>("GET", "/v1/mock/tests/general/500-error", {}, {});
+            if (res.isErr()) {
+                try { res.value(); }
+                catch (const AppwriteException& e) {
+                    std::cout << e.what() << "\n";
+                    std::cout << e.response() << "\n";
+                }
+            }
+        }
+        {
+            auto res = client.call<nlohmann::json>("GET", "/v1/mock/tests/general/502-error", {}, {});
+            if (res.isErr()) {
+                try { res.value(); }
+                catch (const AppwriteException& e) {
+                    std::cout << e.what() << "\n";
+                    std::cout << e.response() << "\n";
+                }
+            }
+        }
+
+        {
+            try {
+                Client badClient;
+                auto res = badClient.setProject("123456")
+                         .setEndpoint("htp://cloud.appwrite.io/v1")
+                         .call<nlohmann::json>("GET", "/v1/mock/tests/foo", {}, {});
+                if (res.isErr()) {
+                    try { res.value(); }
+                    catch (const AppwriteException& e) {
+                        std::cout << e.what() << "\n";
+                    }
+                }
+            } catch (const AppwriteException& e) {
+                std::cout << e.what() << "\n";
+            } catch (const std::exception& e) {
+                std::cout << e.what() << "\n";
+            }
+        }
+
+        return 0;
+    } catch (const std::exception& ex) {
+        std::cerr << "Fatal integration error: " << ex.what() << "\n";
+        return 1;
+    }
+}
+#endif

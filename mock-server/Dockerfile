@@ -16,7 +16,7 @@ RUN composer install --ignore-platform-reqs --optimize-autoloader \
 
 FROM phpswoole/swoole:5.1.2-php8.3-alpine as final
 
-RUN apk add docker
+RUN apk add docker curl
 
 ENV _APP_REDIS_HOST=redis \
     _APP_REDIS_PORT=6379
