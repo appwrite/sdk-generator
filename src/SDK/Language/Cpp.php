@@ -395,9 +395,9 @@ class Cpp extends Language
     private function getReturnTypeInternal(array $method, array $spec, string $namespace = 'appwrite', bool $async = false): string
     {
         $raw = $this->getRawReturnTypeInternal($method, $spec, $namespace);
-        $result = 'Result<' . $raw . '>';
+        $result = $namespace . '::Result<' . $raw . '>';
 
-        return $async ? 'Task<' . $result . '>' : $result;
+        return $async ? $namespace . '::Task<' . $result . '>' : $result;
     }
 
     private function getRawReturnTypeInternal(array $method, array $spec, string $namespace = 'appwrite'): string
@@ -478,6 +478,10 @@ class Cpp extends Language
         $output = ' = ';
 
         if (isset($parameter['enumValues']) && !empty($parameter['enumValues'])) {
+            if (!$required && ($default === null || $default === '')) {
+                return ' = std::nullopt';
+            }
+
             $enumValues = $parameter['enumValues'];
             $enumKeys = $parameter['enumKeys'] ?? [];
             $enumName = $this->toPascalCase($parameter['enumName'] ?? $parameter['name'] ?? '');

@@ -34,9 +34,9 @@ public:
     /**
      * Get the currently logged in user.
      *
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Result<appwrite::models::User> get(    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::User> get(    ) {
                 std::string path_ = std::format("/account");
         
         nlohmann::json params = nlohmann::json::object();
@@ -49,9 +49,9 @@ public:
     /**
      * Get the currently logged in user.
      *
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Task<Result<appwrite::models::User>> getAsync(    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::User>> getAsync(    ) {
                 std::string path_ = std::format("/account");
         
         nlohmann::json params = nlohmann::json::object();
@@ -73,9 +73,9 @@ public:
      * @param email User email.
      * @param password New user password. Must be between 8 and 256 chars.
      * @param name User name. Max length: 128 chars.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Result<appwrite::models::User> create(        std::string_view userId,         std::string_view email,         std::string_view password,         std::optional<std::string_view> name = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::User> create(        std::string_view userId,         std::string_view email,         std::string_view password,         std::optional<std::string_view> name = std::nullopt    ) {
                 std::string path_ = std::format("/account");
         
         nlohmann::json params = nlohmann::json::object();
@@ -104,9 +104,9 @@ public:
      * @param email User email.
      * @param password New user password. Must be between 8 and 256 chars.
      * @param name User name. Max length: 128 chars.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Task<Result<appwrite::models::User>> createAsync(        std::string_view userId,         std::string_view email,         std::string_view password,         std::optional<std::string_view> name = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::User>> createAsync(        std::string_view userId,         std::string_view email,         std::string_view password,         std::optional<std::string_view> name = std::nullopt    ) {
                 std::string path_ = std::format("/account");
         
         nlohmann::json params = nlohmann::json::object();
@@ -133,9 +133,9 @@ This endpoint can also
      *
      * @param email User email.
      * @param password User password. Must be at least 8 chars.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Result<appwrite::models::User> updateEmail(        std::string_view email,         std::string_view password    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::User> updateEmail(        std::string_view email,         std::string_view password    ) {
                 std::string path_ = std::format("/account/email");
         
         nlohmann::json params = nlohmann::json::object();
@@ -159,9 +159,9 @@ This endpoint can also
      *
      * @param email User email.
      * @param password User password. Must be at least 8 chars.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Task<Result<appwrite::models::User>> updateEmailAsync(        std::string_view email,         std::string_view password    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::User>> updateEmailAsync(        std::string_view email,         std::string_view password    ) {
                 std::string path_ = std::format("/account/email");
         
         nlohmann::json params = nlohmann::json::object();
@@ -177,9 +177,9 @@ This endpoint can also
      *
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of 100 queries are allowed, each 4096 characters long. You may filter on the following attributes: userId, provider, providerUid, providerEmail, providerAccessTokenExpiry
      * @param total When set to false, the total count returned will be 0 and will not be calculated.
-     * @return Result<appwrite::models::IdentityList>
+     * @return appwrite::Result<appwrite::models::IdentityList>
      */
-    [[nodiscard]] Result<appwrite::models::IdentityList> listIdentities(        std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<bool> total = true    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::IdentityList> listIdentities(        std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<bool> total = true    ) {
                 std::string path_ = std::format("/account/identities");
         
         nlohmann::json params = nlohmann::json::object();
@@ -200,9 +200,9 @@ This endpoint can also
      *
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of 100 queries are allowed, each 4096 characters long. You may filter on the following attributes: userId, provider, providerUid, providerEmail, providerAccessTokenExpiry
      * @param total When set to false, the total count returned will be 0 and will not be calculated.
-     * @return Result<appwrite::models::IdentityList>
+     * @return appwrite::Result<appwrite::models::IdentityList>
      */
-    [[nodiscard]] Task<Result<appwrite::models::IdentityList>> listIdentitiesAsync(        std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<bool> total = true    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::IdentityList>> listIdentitiesAsync(        std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<bool> total = true    ) {
                 std::string path_ = std::format("/account/identities");
         
         nlohmann::json params = nlohmann::json::object();
@@ -221,9 +221,9 @@ This endpoint can also
      * Delete an identity by its unique ID.
      *
      * @param identityId Identity ID.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Result<void> deleteIdentity(        std::string_view identityId    ) {
+    [[nodiscard]] appwrite::Result<void> deleteIdentity(        std::string_view identityId    ) {
                 std::string path_ = std::format("/account/identities/{}", identityId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -237,9 +237,9 @@ This endpoint can also
      * Delete an identity by its unique ID.
      *
      * @param identityId Identity ID.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Task<Result<void>> deleteIdentityAsync(        std::string_view identityId    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<void>> deleteIdentityAsync(        std::string_view identityId    ) {
                 std::string path_ = std::format("/account/identities/{}", identityId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -256,9 +256,9 @@ This endpoint can also
      * frame.
      *
      * @param duration Time in seconds before JWT expires. Default duration is 900 seconds, and maximum is 3600 seconds.
-     * @return Result<appwrite::models::Jwt>
+     * @return appwrite::Result<appwrite::models::Jwt>
      */
-    [[nodiscard]] Result<appwrite::models::Jwt> createJWT(        std::optional<int64_t> duration = 900    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Jwt> createJWT(        std::optional<int64_t> duration = 900    ) {
                 std::string path_ = std::format("/account/jwts");
         
         nlohmann::json params = nlohmann::json::object();
@@ -279,9 +279,9 @@ This endpoint can also
      * frame.
      *
      * @param duration Time in seconds before JWT expires. Default duration is 900 seconds, and maximum is 3600 seconds.
-     * @return Result<appwrite::models::Jwt>
+     * @return appwrite::Result<appwrite::models::Jwt>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Jwt>> createJWTAsync(        std::optional<int64_t> duration = 900    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Jwt>> createJWTAsync(        std::optional<int64_t> duration = 900    ) {
                 std::string path_ = std::format("/account/jwts");
         
         nlohmann::json params = nlohmann::json::object();
@@ -299,9 +299,9 @@ This endpoint can also
      *
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Only supported methods are limit and offset
      * @param total When set to false, the total count returned will be 0 and will not be calculated.
-     * @return Result<appwrite::models::LogList>
+     * @return appwrite::Result<appwrite::models::LogList>
      */
-    [[nodiscard]] Result<appwrite::models::LogList> listLogs(        std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<bool> total = true    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::LogList> listLogs(        std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<bool> total = true    ) {
                 std::string path_ = std::format("/account/logs");
         
         nlohmann::json params = nlohmann::json::object();
@@ -323,9 +323,9 @@ This endpoint can also
      *
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Only supported methods are limit and offset
      * @param total When set to false, the total count returned will be 0 and will not be calculated.
-     * @return Result<appwrite::models::LogList>
+     * @return appwrite::Result<appwrite::models::LogList>
      */
-    [[nodiscard]] Task<Result<appwrite::models::LogList>> listLogsAsync(        std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<bool> total = true    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::LogList>> listLogsAsync(        std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<bool> total = true    ) {
                 std::string path_ = std::format("/account/logs");
         
         nlohmann::json params = nlohmann::json::object();
@@ -344,9 +344,9 @@ This endpoint can also
      * Enable or disable MFA on an account.
      *
      * @param mfa Enable or disable MFA.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Result<appwrite::models::User> updateMFA(        bool mfa    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::User> updateMFA(        bool mfa    ) {
                 std::string path_ = std::format("/account/mfa");
         
         nlohmann::json params = nlohmann::json::object();
@@ -361,9 +361,9 @@ This endpoint can also
      * Enable or disable MFA on an account.
      *
      * @param mfa Enable or disable MFA.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Task<Result<appwrite::models::User>> updateMFAAsync(        bool mfa    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::User>> updateMFAAsync(        bool mfa    ) {
                 std::string path_ = std::format("/account/mfa");
         
         nlohmann::json params = nlohmann::json::object();
@@ -380,9 +380,9 @@ This endpoint can also
      * method.
      *
      * @param type Type of authenticator. Must be `totp`
-     * @return Result<appwrite::models::MfaType>
+     * @return appwrite::Result<appwrite::models::MfaType>
      */
-    [[nodiscard]] Result<appwrite::models::MfaType> createMfaAuthenticator(        appwrite::enums::AuthenticatorType type    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::MfaType> createMfaAuthenticator(        appwrite::enums::AuthenticatorType type    ) {
                 std::string path_ = std::format("/account/mfa/authenticators/{}", appwrite::enums::toString(type));
         
         nlohmann::json params = nlohmann::json::object();
@@ -399,9 +399,9 @@ This endpoint can also
      * method.
      *
      * @param type Type of authenticator. Must be `totp`
-     * @return Result<appwrite::models::MfaType>
+     * @return appwrite::Result<appwrite::models::MfaType>
      */
-    [[nodiscard]] Task<Result<appwrite::models::MfaType>> createMfaAuthenticatorAsync(        appwrite::enums::AuthenticatorType type    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::MfaType>> createMfaAuthenticatorAsync(        appwrite::enums::AuthenticatorType type    ) {
                 std::string path_ = std::format("/account/mfa/authenticators/{}", appwrite::enums::toString(type));
         
         nlohmann::json params = nlohmann::json::object();
@@ -417,9 +417,9 @@ This endpoint can also
      * method.
      *
      * @param type Type of authenticator. Must be `totp`
-     * @return Result<appwrite::models::MfaType>
+     * @return appwrite::Result<appwrite::models::MfaType>
      */
-    [[nodiscard]] Result<appwrite::models::MfaType> createMFAAuthenticator(        appwrite::enums::AuthenticatorType type    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::MfaType> createMFAAuthenticator(        appwrite::enums::AuthenticatorType type    ) {
                 std::string path_ = std::format("/account/mfa/authenticators/{}", appwrite::enums::toString(type));
         
         nlohmann::json params = nlohmann::json::object();
@@ -436,9 +436,9 @@ This endpoint can also
      * method.
      *
      * @param type Type of authenticator. Must be `totp`
-     * @return Result<appwrite::models::MfaType>
+     * @return appwrite::Result<appwrite::models::MfaType>
      */
-    [[nodiscard]] Task<Result<appwrite::models::MfaType>> createMFAAuthenticatorAsync(        appwrite::enums::AuthenticatorType type    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::MfaType>> createMFAAuthenticatorAsync(        appwrite::enums::AuthenticatorType type    ) {
                 std::string path_ = std::format("/account/mfa/authenticators/{}", appwrite::enums::toString(type));
         
         nlohmann::json params = nlohmann::json::object();
@@ -454,9 +454,9 @@ This endpoint can also
      *
      * @param type Type of authenticator.
      * @param otp Valid verification token.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Result<appwrite::models::User> updateMfaAuthenticator(        appwrite::enums::AuthenticatorType type,         std::string_view otp    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::User> updateMfaAuthenticator(        appwrite::enums::AuthenticatorType type,         std::string_view otp    ) {
                 std::string path_ = std::format("/account/mfa/authenticators/{}", appwrite::enums::toString(type));
         
         nlohmann::json params = nlohmann::json::object();
@@ -474,9 +474,9 @@ This endpoint can also
      *
      * @param type Type of authenticator.
      * @param otp Valid verification token.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Task<Result<appwrite::models::User>> updateMfaAuthenticatorAsync(        appwrite::enums::AuthenticatorType type,         std::string_view otp    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::User>> updateMfaAuthenticatorAsync(        appwrite::enums::AuthenticatorType type,         std::string_view otp    ) {
                 std::string path_ = std::format("/account/mfa/authenticators/{}", appwrite::enums::toString(type));
         
         nlohmann::json params = nlohmann::json::object();
@@ -493,9 +493,9 @@ This endpoint can also
      *
      * @param type Type of authenticator.
      * @param otp Valid verification token.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Result<appwrite::models::User> updateMFAAuthenticator(        appwrite::enums::AuthenticatorType type,         std::string_view otp    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::User> updateMFAAuthenticator(        appwrite::enums::AuthenticatorType type,         std::string_view otp    ) {
                 std::string path_ = std::format("/account/mfa/authenticators/{}", appwrite::enums::toString(type));
         
         nlohmann::json params = nlohmann::json::object();
@@ -513,9 +513,9 @@ This endpoint can also
      *
      * @param type Type of authenticator.
      * @param otp Valid verification token.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Task<Result<appwrite::models::User>> updateMFAAuthenticatorAsync(        appwrite::enums::AuthenticatorType type,         std::string_view otp    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::User>> updateMFAAuthenticatorAsync(        appwrite::enums::AuthenticatorType type,         std::string_view otp    ) {
                 std::string path_ = std::format("/account/mfa/authenticators/{}", appwrite::enums::toString(type));
         
         nlohmann::json params = nlohmann::json::object();
@@ -529,9 +529,9 @@ This endpoint can also
      * Delete an authenticator for a user by ID.
      *
      * @param type Type of authenticator.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Result<void> deleteMfaAuthenticator(        appwrite::enums::AuthenticatorType type    ) {
+    [[nodiscard]] appwrite::Result<void> deleteMfaAuthenticator(        appwrite::enums::AuthenticatorType type    ) {
                 std::string path_ = std::format("/account/mfa/authenticators/{}", appwrite::enums::toString(type));
         
         nlohmann::json params = nlohmann::json::object();
@@ -545,9 +545,9 @@ This endpoint can also
      * Delete an authenticator for a user by ID.
      *
      * @param type Type of authenticator.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Task<Result<void>> deleteMfaAuthenticatorAsync(        appwrite::enums::AuthenticatorType type    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<void>> deleteMfaAuthenticatorAsync(        appwrite::enums::AuthenticatorType type    ) {
                 std::string path_ = std::format("/account/mfa/authenticators/{}", appwrite::enums::toString(type));
         
         nlohmann::json params = nlohmann::json::object();
@@ -560,9 +560,9 @@ This endpoint can also
      * Delete an authenticator for a user by ID.
      *
      * @param type Type of authenticator.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Result<void> deleteMFAAuthenticator(        appwrite::enums::AuthenticatorType type    ) {
+    [[nodiscard]] appwrite::Result<void> deleteMFAAuthenticator(        appwrite::enums::AuthenticatorType type    ) {
                 std::string path_ = std::format("/account/mfa/authenticators/{}", appwrite::enums::toString(type));
         
         nlohmann::json params = nlohmann::json::object();
@@ -576,9 +576,9 @@ This endpoint can also
      * Delete an authenticator for a user by ID.
      *
      * @param type Type of authenticator.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Task<Result<void>> deleteMFAAuthenticatorAsync(        appwrite::enums::AuthenticatorType type    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<void>> deleteMFAAuthenticatorAsync(        appwrite::enums::AuthenticatorType type    ) {
                 std::string path_ = std::format("/account/mfa/authenticators/{}", appwrite::enums::toString(type));
         
         nlohmann::json params = nlohmann::json::object();
@@ -593,9 +593,9 @@ This endpoint can also
      * method.
      *
      * @param factor Factor used for verification. Must be one of following: `email`, `phone`, `totp`, `recoveryCode`.
-     * @return Result<appwrite::models::MfaChallenge>
+     * @return appwrite::Result<appwrite::models::MfaChallenge>
      */
-    [[nodiscard]] Result<appwrite::models::MfaChallenge> createMfaChallenge(        appwrite::enums::AuthenticationFactor factor    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::MfaChallenge> createMfaChallenge(        appwrite::enums::AuthenticationFactor factor    ) {
                 std::string path_ = std::format("/account/mfa/challenges");
         
         nlohmann::json params = nlohmann::json::object();
@@ -612,9 +612,9 @@ This endpoint can also
      * method.
      *
      * @param factor Factor used for verification. Must be one of following: `email`, `phone`, `totp`, `recoveryCode`.
-     * @return Result<appwrite::models::MfaChallenge>
+     * @return appwrite::Result<appwrite::models::MfaChallenge>
      */
-    [[nodiscard]] Task<Result<appwrite::models::MfaChallenge>> createMfaChallengeAsync(        appwrite::enums::AuthenticationFactor factor    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::MfaChallenge>> createMfaChallengeAsync(        appwrite::enums::AuthenticationFactor factor    ) {
                 std::string path_ = std::format("/account/mfa/challenges");
         
         nlohmann::json params = nlohmann::json::object();
@@ -630,9 +630,9 @@ This endpoint can also
      * method.
      *
      * @param factor Factor used for verification. Must be one of following: `email`, `phone`, `totp`, `recoveryCode`.
-     * @return Result<appwrite::models::MfaChallenge>
+     * @return appwrite::Result<appwrite::models::MfaChallenge>
      */
-    [[nodiscard]] Result<appwrite::models::MfaChallenge> createMFAChallenge(        appwrite::enums::AuthenticationFactor factor    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::MfaChallenge> createMFAChallenge(        appwrite::enums::AuthenticationFactor factor    ) {
                 std::string path_ = std::format("/account/mfa/challenges");
         
         nlohmann::json params = nlohmann::json::object();
@@ -649,9 +649,9 @@ This endpoint can also
      * method.
      *
      * @param factor Factor used for verification. Must be one of following: `email`, `phone`, `totp`, `recoveryCode`.
-     * @return Result<appwrite::models::MfaChallenge>
+     * @return appwrite::Result<appwrite::models::MfaChallenge>
      */
-    [[nodiscard]] Task<Result<appwrite::models::MfaChallenge>> createMFAChallengeAsync(        appwrite::enums::AuthenticationFactor factor    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::MfaChallenge>> createMFAChallengeAsync(        appwrite::enums::AuthenticationFactor factor    ) {
                 std::string path_ = std::format("/account/mfa/challenges");
         
         nlohmann::json params = nlohmann::json::object();
@@ -670,9 +670,9 @@ This endpoint can also
      *
      * @param challengeId ID of the challenge.
      * @param otp Valid verification token.
-     * @return Result<appwrite::models::Session>
+     * @return appwrite::Result<appwrite::models::Session>
      */
-    [[nodiscard]] Result<appwrite::models::Session> updateMfaChallenge(        std::string_view challengeId,         std::string_view otp    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Session> updateMfaChallenge(        std::string_view challengeId,         std::string_view otp    ) {
                 std::string path_ = std::format("/account/mfa/challenges");
         
         nlohmann::json params = nlohmann::json::object();
@@ -693,9 +693,9 @@ This endpoint can also
      *
      * @param challengeId ID of the challenge.
      * @param otp Valid verification token.
-     * @return Result<appwrite::models::Session>
+     * @return appwrite::Result<appwrite::models::Session>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Session>> updateMfaChallengeAsync(        std::string_view challengeId,         std::string_view otp    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Session>> updateMfaChallengeAsync(        std::string_view challengeId,         std::string_view otp    ) {
                 std::string path_ = std::format("/account/mfa/challenges");
         
         nlohmann::json params = nlohmann::json::object();
@@ -715,9 +715,9 @@ This endpoint can also
      *
      * @param challengeId ID of the challenge.
      * @param otp Valid verification token.
-     * @return Result<appwrite::models::Session>
+     * @return appwrite::Result<appwrite::models::Session>
      */
-    [[nodiscard]] Result<appwrite::models::Session> updateMFAChallenge(        std::string_view challengeId,         std::string_view otp    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Session> updateMFAChallenge(        std::string_view challengeId,         std::string_view otp    ) {
                 std::string path_ = std::format("/account/mfa/challenges");
         
         nlohmann::json params = nlohmann::json::object();
@@ -738,9 +738,9 @@ This endpoint can also
      *
      * @param challengeId ID of the challenge.
      * @param otp Valid verification token.
-     * @return Result<appwrite::models::Session>
+     * @return appwrite::Result<appwrite::models::Session>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Session>> updateMFAChallengeAsync(        std::string_view challengeId,         std::string_view otp    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Session>> updateMFAChallengeAsync(        std::string_view challengeId,         std::string_view otp    ) {
                 std::string path_ = std::format("/account/mfa/challenges");
         
         nlohmann::json params = nlohmann::json::object();
@@ -754,9 +754,9 @@ This endpoint can also
     /**
      * List the factors available on the account to be used as a MFA challange.
      *
-     * @return Result<appwrite::models::MfaFactors>
+     * @return appwrite::Result<appwrite::models::MfaFactors>
      */
-    [[nodiscard]] Result<appwrite::models::MfaFactors> listMfaFactors(    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::MfaFactors> listMfaFactors(    ) {
                 std::string path_ = std::format("/account/mfa/factors");
         
         nlohmann::json params = nlohmann::json::object();
@@ -769,9 +769,9 @@ This endpoint can also
     /**
      * List the factors available on the account to be used as a MFA challange.
      *
-     * @return Result<appwrite::models::MfaFactors>
+     * @return appwrite::Result<appwrite::models::MfaFactors>
      */
-    [[nodiscard]] Task<Result<appwrite::models::MfaFactors>> listMfaFactorsAsync(    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::MfaFactors>> listMfaFactorsAsync(    ) {
                 std::string path_ = std::format("/account/mfa/factors");
         
         nlohmann::json params = nlohmann::json::object();
@@ -783,9 +783,9 @@ This endpoint can also
     /**
      * List the factors available on the account to be used as a MFA challange.
      *
-     * @return Result<appwrite::models::MfaFactors>
+     * @return appwrite::Result<appwrite::models::MfaFactors>
      */
-    [[nodiscard]] Result<appwrite::models::MfaFactors> listMFAFactors(    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::MfaFactors> listMFAFactors(    ) {
                 std::string path_ = std::format("/account/mfa/factors");
         
         nlohmann::json params = nlohmann::json::object();
@@ -798,9 +798,9 @@ This endpoint can also
     /**
      * List the factors available on the account to be used as a MFA challange.
      *
-     * @return Result<appwrite::models::MfaFactors>
+     * @return appwrite::Result<appwrite::models::MfaFactors>
      */
-    [[nodiscard]] Task<Result<appwrite::models::MfaFactors>> listMFAFactorsAsync(    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::MfaFactors>> listMFAFactorsAsync(    ) {
                 std::string path_ = std::format("/account/mfa/factors");
         
         nlohmann::json params = nlohmann::json::object();
@@ -815,9 +815,9 @@ This endpoint can also
      * [createMfaRecoveryCodes](/docs/references/cloud/client-web/account#createMfaRecoveryCodes)
      * method. An OTP challenge is required to read recovery codes.
      *
-     * @return Result<appwrite::models::MfaRecoveryCodes>
+     * @return appwrite::Result<appwrite::models::MfaRecoveryCodes>
      */
-    [[nodiscard]] Result<appwrite::models::MfaRecoveryCodes> getMfaRecoveryCodes(    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::MfaRecoveryCodes> getMfaRecoveryCodes(    ) {
                 std::string path_ = std::format("/account/mfa/recovery-codes");
         
         nlohmann::json params = nlohmann::json::object();
@@ -833,9 +833,9 @@ This endpoint can also
      * [createMfaRecoveryCodes](/docs/references/cloud/client-web/account#createMfaRecoveryCodes)
      * method. An OTP challenge is required to read recovery codes.
      *
-     * @return Result<appwrite::models::MfaRecoveryCodes>
+     * @return appwrite::Result<appwrite::models::MfaRecoveryCodes>
      */
-    [[nodiscard]] Task<Result<appwrite::models::MfaRecoveryCodes>> getMfaRecoveryCodesAsync(    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::MfaRecoveryCodes>> getMfaRecoveryCodesAsync(    ) {
                 std::string path_ = std::format("/account/mfa/recovery-codes");
         
         nlohmann::json params = nlohmann::json::object();
@@ -850,9 +850,9 @@ This endpoint can also
      * [createMfaRecoveryCodes](/docs/references/cloud/client-web/account#createMfaRecoveryCodes)
      * method. An OTP challenge is required to read recovery codes.
      *
-     * @return Result<appwrite::models::MfaRecoveryCodes>
+     * @return appwrite::Result<appwrite::models::MfaRecoveryCodes>
      */
-    [[nodiscard]] Result<appwrite::models::MfaRecoveryCodes> getMFARecoveryCodes(    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::MfaRecoveryCodes> getMFARecoveryCodes(    ) {
                 std::string path_ = std::format("/account/mfa/recovery-codes");
         
         nlohmann::json params = nlohmann::json::object();
@@ -868,9 +868,9 @@ This endpoint can also
      * [createMfaRecoveryCodes](/docs/references/cloud/client-web/account#createMfaRecoveryCodes)
      * method. An OTP challenge is required to read recovery codes.
      *
-     * @return Result<appwrite::models::MfaRecoveryCodes>
+     * @return appwrite::Result<appwrite::models::MfaRecoveryCodes>
      */
-    [[nodiscard]] Task<Result<appwrite::models::MfaRecoveryCodes>> getMFARecoveryCodesAsync(    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::MfaRecoveryCodes>> getMFARecoveryCodesAsync(    ) {
                 std::string path_ = std::format("/account/mfa/recovery-codes");
         
         nlohmann::json params = nlohmann::json::object();
@@ -886,9 +886,9 @@ This endpoint can also
      * [createMfaChallenge](/docs/references/cloud/client-web/account#createMfaChallenge)
      * method.
      *
-     * @return Result<appwrite::models::MfaRecoveryCodes>
+     * @return appwrite::Result<appwrite::models::MfaRecoveryCodes>
      */
-    [[nodiscard]] Result<appwrite::models::MfaRecoveryCodes> createMfaRecoveryCodes(    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::MfaRecoveryCodes> createMfaRecoveryCodes(    ) {
                 std::string path_ = std::format("/account/mfa/recovery-codes");
         
         nlohmann::json params = nlohmann::json::object();
@@ -905,9 +905,9 @@ This endpoint can also
      * [createMfaChallenge](/docs/references/cloud/client-web/account#createMfaChallenge)
      * method.
      *
-     * @return Result<appwrite::models::MfaRecoveryCodes>
+     * @return appwrite::Result<appwrite::models::MfaRecoveryCodes>
      */
-    [[nodiscard]] Task<Result<appwrite::models::MfaRecoveryCodes>> createMfaRecoveryCodesAsync(    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::MfaRecoveryCodes>> createMfaRecoveryCodesAsync(    ) {
                 std::string path_ = std::format("/account/mfa/recovery-codes");
         
         nlohmann::json params = nlohmann::json::object();
@@ -923,9 +923,9 @@ This endpoint can also
      * [createMfaChallenge](/docs/references/cloud/client-web/account#createMfaChallenge)
      * method.
      *
-     * @return Result<appwrite::models::MfaRecoveryCodes>
+     * @return appwrite::Result<appwrite::models::MfaRecoveryCodes>
      */
-    [[nodiscard]] Result<appwrite::models::MfaRecoveryCodes> createMFARecoveryCodes(    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::MfaRecoveryCodes> createMFARecoveryCodes(    ) {
                 std::string path_ = std::format("/account/mfa/recovery-codes");
         
         nlohmann::json params = nlohmann::json::object();
@@ -942,9 +942,9 @@ This endpoint can also
      * [createMfaChallenge](/docs/references/cloud/client-web/account#createMfaChallenge)
      * method.
      *
-     * @return Result<appwrite::models::MfaRecoveryCodes>
+     * @return appwrite::Result<appwrite::models::MfaRecoveryCodes>
      */
-    [[nodiscard]] Task<Result<appwrite::models::MfaRecoveryCodes>> createMFARecoveryCodesAsync(    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::MfaRecoveryCodes>> createMFARecoveryCodesAsync(    ) {
                 std::string path_ = std::format("/account/mfa/recovery-codes");
         
         nlohmann::json params = nlohmann::json::object();
@@ -959,9 +959,9 @@ This endpoint can also
      * [createMfaRecoveryCodes](/docs/references/cloud/client-web/account#createMfaRecoveryCodes)
      * method. An OTP challenge is required to regenreate recovery codes.
      *
-     * @return Result<appwrite::models::MfaRecoveryCodes>
+     * @return appwrite::Result<appwrite::models::MfaRecoveryCodes>
      */
-    [[nodiscard]] Result<appwrite::models::MfaRecoveryCodes> updateMfaRecoveryCodes(    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::MfaRecoveryCodes> updateMfaRecoveryCodes(    ) {
                 std::string path_ = std::format("/account/mfa/recovery-codes");
         
         nlohmann::json params = nlohmann::json::object();
@@ -977,9 +977,9 @@ This endpoint can also
      * [createMfaRecoveryCodes](/docs/references/cloud/client-web/account#createMfaRecoveryCodes)
      * method. An OTP challenge is required to regenreate recovery codes.
      *
-     * @return Result<appwrite::models::MfaRecoveryCodes>
+     * @return appwrite::Result<appwrite::models::MfaRecoveryCodes>
      */
-    [[nodiscard]] Task<Result<appwrite::models::MfaRecoveryCodes>> updateMfaRecoveryCodesAsync(    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::MfaRecoveryCodes>> updateMfaRecoveryCodesAsync(    ) {
                 std::string path_ = std::format("/account/mfa/recovery-codes");
         
         nlohmann::json params = nlohmann::json::object();
@@ -994,9 +994,9 @@ This endpoint can also
      * [createMfaRecoveryCodes](/docs/references/cloud/client-web/account#createMfaRecoveryCodes)
      * method. An OTP challenge is required to regenreate recovery codes.
      *
-     * @return Result<appwrite::models::MfaRecoveryCodes>
+     * @return appwrite::Result<appwrite::models::MfaRecoveryCodes>
      */
-    [[nodiscard]] Result<appwrite::models::MfaRecoveryCodes> updateMFARecoveryCodes(    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::MfaRecoveryCodes> updateMFARecoveryCodes(    ) {
                 std::string path_ = std::format("/account/mfa/recovery-codes");
         
         nlohmann::json params = nlohmann::json::object();
@@ -1012,9 +1012,9 @@ This endpoint can also
      * [createMfaRecoveryCodes](/docs/references/cloud/client-web/account#createMfaRecoveryCodes)
      * method. An OTP challenge is required to regenreate recovery codes.
      *
-     * @return Result<appwrite::models::MfaRecoveryCodes>
+     * @return appwrite::Result<appwrite::models::MfaRecoveryCodes>
      */
-    [[nodiscard]] Task<Result<appwrite::models::MfaRecoveryCodes>> updateMFARecoveryCodesAsync(    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::MfaRecoveryCodes>> updateMFARecoveryCodesAsync(    ) {
                 std::string path_ = std::format("/account/mfa/recovery-codes");
         
         nlohmann::json params = nlohmann::json::object();
@@ -1027,9 +1027,9 @@ This endpoint can also
      * Update currently logged in user account name.
      *
      * @param name User name. Max length: 128 chars.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Result<appwrite::models::User> updateName(        std::string_view name    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::User> updateName(        std::string_view name    ) {
                 std::string path_ = std::format("/account/name");
         
         nlohmann::json params = nlohmann::json::object();
@@ -1044,9 +1044,9 @@ This endpoint can also
      * Update currently logged in user account name.
      *
      * @param name User name. Max length: 128 chars.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Task<Result<appwrite::models::User>> updateNameAsync(        std::string_view name    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::User>> updateNameAsync(        std::string_view name    ) {
                 std::string path_ = std::format("/account/name");
         
         nlohmann::json params = nlohmann::json::object();
@@ -1063,9 +1063,9 @@ This endpoint can also
      *
      * @param password New user password. Must be at least 8 chars.
      * @param oldPassword Current user password. Must be at least 8 chars.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Result<appwrite::models::User> updatePassword(        std::string_view password,         std::optional<std::string_view> oldPassword = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::User> updatePassword(        std::string_view password,         std::optional<std::string_view> oldPassword = std::nullopt    ) {
                 std::string path_ = std::format("/account/password");
         
         nlohmann::json params = nlohmann::json::object();
@@ -1086,9 +1086,9 @@ This endpoint can also
      *
      * @param password New user password. Must be at least 8 chars.
      * @param oldPassword Current user password. Must be at least 8 chars.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Task<Result<appwrite::models::User>> updatePasswordAsync(        std::string_view password,         std::optional<std::string_view> oldPassword = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::User>> updatePasswordAsync(        std::string_view password,         std::optional<std::string_view> oldPassword = std::nullopt    ) {
                 std::string path_ = std::format("/account/password");
         
         nlohmann::json params = nlohmann::json::object();
@@ -1110,9 +1110,9 @@ This endpoint can also
      *
      * @param phone Phone number. Format this number with a leading '+' and a country code, e.g., +16175551212.
      * @param password User password. Must be at least 8 chars.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Result<appwrite::models::User> updatePhone(        std::string_view phone,         std::string_view password    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::User> updatePhone(        std::string_view phone,         std::string_view password    ) {
                 std::string path_ = std::format("/account/phone");
         
         nlohmann::json params = nlohmann::json::object();
@@ -1133,9 +1133,9 @@ This endpoint can also
      *
      * @param phone Phone number. Format this number with a leading '+' and a country code, e.g., +16175551212.
      * @param password User password. Must be at least 8 chars.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Task<Result<appwrite::models::User>> updatePhoneAsync(        std::string_view phone,         std::string_view password    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::User>> updatePhoneAsync(        std::string_view phone,         std::string_view password    ) {
                 std::string path_ = std::format("/account/phone");
         
         nlohmann::json params = nlohmann::json::object();
@@ -1149,9 +1149,9 @@ This endpoint can also
     /**
      * Get the preferences as a key-value object for the currently logged in user.
      *
-     * @return Result<appwrite::models::Preferences>
+     * @return appwrite::Result<appwrite::models::Preferences>
      */
-    [[nodiscard]] Result<appwrite::models::Preferences> getPrefs(    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Preferences> getPrefs(    ) {
                 std::string path_ = std::format("/account/prefs");
         
         nlohmann::json params = nlohmann::json::object();
@@ -1164,9 +1164,9 @@ This endpoint can also
     /**
      * Get the preferences as a key-value object for the currently logged in user.
      *
-     * @return Result<appwrite::models::Preferences>
+     * @return appwrite::Result<appwrite::models::Preferences>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Preferences>> getPrefsAsync(    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Preferences>> getPrefsAsync(    ) {
                 std::string path_ = std::format("/account/prefs");
         
         nlohmann::json params = nlohmann::json::object();
@@ -1181,9 +1181,9 @@ This endpoint can also
      * size is 64kB and throws error if exceeded.
      *
      * @param prefs Prefs key-value JSON object.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Result<appwrite::models::User> updatePrefs(        const nlohmann::json& prefs = nlohmann::json::object()    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::User> updatePrefs(        const nlohmann::json& prefs = nlohmann::json::object()    ) {
                 std::string path_ = std::format("/account/prefs");
         
         nlohmann::json params = nlohmann::json::object();
@@ -1200,9 +1200,9 @@ This endpoint can also
      * size is 64kB and throws error if exceeded.
      *
      * @param prefs Prefs key-value JSON object.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Task<Result<appwrite::models::User>> updatePrefsAsync(        const nlohmann::json& prefs = nlohmann::json::object()    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::User>> updatePrefsAsync(        const nlohmann::json& prefs = nlohmann::json::object()    ) {
                 std::string path_ = std::format("/account/prefs");
         
         nlohmann::json params = nlohmann::json::object();
@@ -1224,9 +1224,9 @@ This endpoint can also
      *
      * @param email User email.
      * @param url URL to redirect the user back to your app from the recovery email. Only URLs from hostnames in your project platform list are allowed. This requirement helps to prevent an [open redirect](https://cheatsheetseries.owasp.org/cheatsheets/Unvalidated_Redirects_and_Forwards_Cheat_Sheet.html) attack against your project API.
-     * @return Result<appwrite::models::Token>
+     * @return appwrite::Result<appwrite::models::Token>
      */
-    [[nodiscard]] Result<appwrite::models::Token> createRecovery(        std::string_view email,         std::string_view url    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Token> createRecovery(        std::string_view email,         std::string_view url    ) {
                 std::string path_ = std::format("/account/recovery");
         
         nlohmann::json params = nlohmann::json::object();
@@ -1250,9 +1250,9 @@ This endpoint can also
      *
      * @param email User email.
      * @param url URL to redirect the user back to your app from the recovery email. Only URLs from hostnames in your project platform list are allowed. This requirement helps to prevent an [open redirect](https://cheatsheetseries.owasp.org/cheatsheets/Unvalidated_Redirects_and_Forwards_Cheat_Sheet.html) attack against your project API.
-     * @return Result<appwrite::models::Token>
+     * @return appwrite::Result<appwrite::models::Token>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Token>> createRecoveryAsync(        std::string_view email,         std::string_view url    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Token>> createRecoveryAsync(        std::string_view email,         std::string_view url    ) {
                 std::string path_ = std::format("/account/recovery");
         
         nlohmann::json params = nlohmann::json::object();
@@ -1278,9 +1278,9 @@ Please note that in order to avoid a [Redirect
      * @param userId User ID.
      * @param secret Valid reset token.
      * @param password New user password. Must be between 8 and 256 chars.
-     * @return Result<appwrite::models::Token>
+     * @return appwrite::Result<appwrite::models::Token>
      */
-    [[nodiscard]] Result<appwrite::models::Token> updateRecovery(        std::string_view userId,         std::string_view secret,         std::string_view password    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Token> updateRecovery(        std::string_view userId,         std::string_view secret,         std::string_view password    ) {
                 std::string path_ = std::format("/account/recovery");
         
         nlohmann::json params = nlohmann::json::object();
@@ -1308,9 +1308,9 @@ Please note that in order to avoid a [Redirect
      * @param userId User ID.
      * @param secret Valid reset token.
      * @param password New user password. Must be between 8 and 256 chars.
-     * @return Result<appwrite::models::Token>
+     * @return appwrite::Result<appwrite::models::Token>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Token>> updateRecoveryAsync(        std::string_view userId,         std::string_view secret,         std::string_view password    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Token>> updateRecoveryAsync(        std::string_view userId,         std::string_view secret,         std::string_view password    ) {
                 std::string path_ = std::format("/account/recovery");
         
         nlohmann::json params = nlohmann::json::object();
@@ -1326,9 +1326,9 @@ Please note that in order to avoid a [Redirect
      * Get the list of active sessions across different devices for the currently
      * logged in user.
      *
-     * @return Result<appwrite::models::SessionList>
+     * @return appwrite::Result<appwrite::models::SessionList>
      */
-    [[nodiscard]] Result<appwrite::models::SessionList> listSessions(    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::SessionList> listSessions(    ) {
                 std::string path_ = std::format("/account/sessions");
         
         nlohmann::json params = nlohmann::json::object();
@@ -1342,9 +1342,9 @@ Please note that in order to avoid a [Redirect
      * Get the list of active sessions across different devices for the currently
      * logged in user.
      *
-     * @return Result<appwrite::models::SessionList>
+     * @return appwrite::Result<appwrite::models::SessionList>
      */
-    [[nodiscard]] Task<Result<appwrite::models::SessionList>> listSessionsAsync(    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::SessionList>> listSessionsAsync(    ) {
                 std::string path_ = std::format("/account/sessions");
         
         nlohmann::json params = nlohmann::json::object();
@@ -1357,9 +1357,9 @@ Please note that in order to avoid a [Redirect
      * Delete all sessions from the user account and remove any sessions cookies
      * from the end client.
      *
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Result<void> deleteSessions(    ) {
+    [[nodiscard]] appwrite::Result<void> deleteSessions(    ) {
                 std::string path_ = std::format("/account/sessions");
         
         nlohmann::json params = nlohmann::json::object();
@@ -1373,9 +1373,9 @@ Please note that in order to avoid a [Redirect
      * Delete all sessions from the user account and remove any sessions cookies
      * from the end client.
      *
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Task<Result<void>> deleteSessionsAsync(    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<void>> deleteSessionsAsync(    ) {
                 std::string path_ = std::format("/account/sessions");
         
         nlohmann::json params = nlohmann::json::object();
@@ -1393,9 +1393,9 @@ Please note that in order to avoid a [Redirect
      * or create an [OAuth2
      * session](https://appwrite.io/docs/references/cloud/client-web/account#CreateOAuth2Session).
      *
-     * @return Result<appwrite::models::Session>
+     * @return appwrite::Result<appwrite::models::Session>
      */
-    [[nodiscard]] Result<appwrite::models::Session> createAnonymousSession(    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Session> createAnonymousSession(    ) {
                 std::string path_ = std::format("/account/sessions/anonymous");
         
         nlohmann::json params = nlohmann::json::object();
@@ -1414,9 +1414,9 @@ Please note that in order to avoid a [Redirect
      * or create an [OAuth2
      * session](https://appwrite.io/docs/references/cloud/client-web/account#CreateOAuth2Session).
      *
-     * @return Result<appwrite::models::Session>
+     * @return appwrite::Result<appwrite::models::Session>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Session>> createAnonymousSessionAsync(    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Session>> createAnonymousSessionAsync(    ) {
                 std::string path_ = std::format("/account/sessions/anonymous");
         
         nlohmann::json params = nlohmann::json::object();
@@ -1436,9 +1436,9 @@ A
      *
      * @param email User email.
      * @param password User password. Must be at least 8 chars.
-     * @return Result<appwrite::models::Session>
+     * @return appwrite::Result<appwrite::models::Session>
      */
-    [[nodiscard]] Result<appwrite::models::Session> createEmailPasswordSession(        std::string_view email,         std::string_view password    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Session> createEmailPasswordSession(        std::string_view email,         std::string_view password    ) {
                 std::string path_ = std::format("/account/sessions/email");
         
         nlohmann::json params = nlohmann::json::object();
@@ -1461,9 +1461,9 @@ A
      *
      * @param email User email.
      * @param password User password. Must be at least 8 chars.
-     * @return Result<appwrite::models::Session>
+     * @return appwrite::Result<appwrite::models::Session>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Session>> createEmailPasswordSessionAsync(        std::string_view email,         std::string_view password    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Session>> createEmailPasswordSessionAsync(        std::string_view email,         std::string_view password    ) {
                 std::string path_ = std::format("/account/sessions/email");
         
         nlohmann::json params = nlohmann::json::object();
@@ -1481,9 +1481,9 @@ A
      *
      * @param userId User ID. Choose a custom ID or generate a random ID with `ID.unique()`. Valid chars are a-z, A-Z, 0-9, period, hyphen, and underscore. Can't start with a special char. Max length is 36 chars.
      * @param secret Valid verification token.
-     * @return Result<appwrite::models::Session>
+     * @return appwrite::Result<appwrite::models::Session>
      */
-    [[nodiscard]] Result<appwrite::models::Session> updateMagicURLSession(        std::string_view userId,         std::string_view secret    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Session> updateMagicURLSession(        std::string_view userId,         std::string_view secret    ) {
                 std::string path_ = std::format("/account/sessions/magic-url");
         
         nlohmann::json params = nlohmann::json::object();
@@ -1502,9 +1502,9 @@ A
      *
      * @param userId User ID. Choose a custom ID or generate a random ID with `ID.unique()`. Valid chars are a-z, A-Z, 0-9, period, hyphen, and underscore. Can't start with a special char. Max length is 36 chars.
      * @param secret Valid verification token.
-     * @return Result<appwrite::models::Session>
+     * @return appwrite::Result<appwrite::models::Session>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Session>> updateMagicURLSessionAsync(        std::string_view userId,         std::string_view secret    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Session>> updateMagicURLSessionAsync(        std::string_view userId,         std::string_view secret    ) {
                 std::string path_ = std::format("/account/sessions/magic-url");
         
         nlohmann::json params = nlohmann::json::object();
@@ -1522,9 +1522,9 @@ A
      *
      * @param userId User ID. Choose a custom ID or generate a random ID with `ID.unique()`. Valid chars are a-z, A-Z, 0-9, period, hyphen, and underscore. Can't start with a special char. Max length is 36 chars.
      * @param secret Valid verification token.
-     * @return Result<appwrite::models::Session>
+     * @return appwrite::Result<appwrite::models::Session>
      */
-    [[nodiscard]] Result<appwrite::models::Session> updatePhoneSession(        std::string_view userId,         std::string_view secret    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Session> updatePhoneSession(        std::string_view userId,         std::string_view secret    ) {
                 std::string path_ = std::format("/account/sessions/phone");
         
         nlohmann::json params = nlohmann::json::object();
@@ -1543,9 +1543,9 @@ A
      *
      * @param userId User ID. Choose a custom ID or generate a random ID with `ID.unique()`. Valid chars are a-z, A-Z, 0-9, period, hyphen, and underscore. Can't start with a special char. Max length is 36 chars.
      * @param secret Valid verification token.
-     * @return Result<appwrite::models::Session>
+     * @return appwrite::Result<appwrite::models::Session>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Session>> updatePhoneSessionAsync(        std::string_view userId,         std::string_view secret    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Session>> updatePhoneSessionAsync(        std::string_view userId,         std::string_view secret    ) {
                 std::string path_ = std::format("/account/sessions/phone");
         
         nlohmann::json params = nlohmann::json::object();
@@ -1563,9 +1563,9 @@ A
      *
      * @param userId User ID. Choose a custom ID or generate a random ID with `ID.unique()`. Valid chars are a-z, A-Z, 0-9, period, hyphen, and underscore. Can't start with a special char. Max length is 36 chars.
      * @param secret Secret of a token generated by login methods. For example, the `createMagicURLToken` or `createPhoneToken` methods.
-     * @return Result<appwrite::models::Session>
+     * @return appwrite::Result<appwrite::models::Session>
      */
-    [[nodiscard]] Result<appwrite::models::Session> createSession(        std::string_view userId,         std::string_view secret    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Session> createSession(        std::string_view userId,         std::string_view secret    ) {
                 std::string path_ = std::format("/account/sessions/token");
         
         nlohmann::json params = nlohmann::json::object();
@@ -1584,9 +1584,9 @@ A
      *
      * @param userId User ID. Choose a custom ID or generate a random ID with `ID.unique()`. Valid chars are a-z, A-Z, 0-9, period, hyphen, and underscore. Can't start with a special char. Max length is 36 chars.
      * @param secret Secret of a token generated by login methods. For example, the `createMagicURLToken` or `createPhoneToken` methods.
-     * @return Result<appwrite::models::Session>
+     * @return appwrite::Result<appwrite::models::Session>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Session>> createSessionAsync(        std::string_view userId,         std::string_view secret    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Session>> createSessionAsync(        std::string_view userId,         std::string_view secret    ) {
                 std::string path_ = std::format("/account/sessions/token");
         
         nlohmann::json params = nlohmann::json::object();
@@ -1602,9 +1602,9 @@ A
      * Inputting 'current' will return the current session being used.
      *
      * @param sessionId Session ID. Use the string 'current' to get the current device session.
-     * @return Result<appwrite::models::Session>
+     * @return appwrite::Result<appwrite::models::Session>
      */
-    [[nodiscard]] Result<appwrite::models::Session> getSession(        std::string_view sessionId    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Session> getSession(        std::string_view sessionId    ) {
                 std::string path_ = std::format("/account/sessions/{}", sessionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -1619,9 +1619,9 @@ A
      * Inputting 'current' will return the current session being used.
      *
      * @param sessionId Session ID. Use the string 'current' to get the current device session.
-     * @return Result<appwrite::models::Session>
+     * @return appwrite::Result<appwrite::models::Session>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Session>> getSessionAsync(        std::string_view sessionId    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Session>> getSessionAsync(        std::string_view sessionId    ) {
                 std::string path_ = std::format("/account/sessions/{}", sessionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -1636,9 +1636,9 @@ A
      * OAuth provider, this endpoint refreshes the access token from the provider.
      *
      * @param sessionId Session ID. Use the string 'current' to update the current device session.
-     * @return Result<appwrite::models::Session>
+     * @return appwrite::Result<appwrite::models::Session>
      */
-    [[nodiscard]] Result<appwrite::models::Session> updateSession(        std::string_view sessionId    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Session> updateSession(        std::string_view sessionId    ) {
                 std::string path_ = std::format("/account/sessions/{}", sessionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -1654,9 +1654,9 @@ A
      * OAuth provider, this endpoint refreshes the access token from the provider.
      *
      * @param sessionId Session ID. Use the string 'current' to update the current device session.
-     * @return Result<appwrite::models::Session>
+     * @return appwrite::Result<appwrite::models::Session>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Session>> updateSessionAsync(        std::string_view sessionId    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Session>> updateSessionAsync(        std::string_view sessionId    ) {
                 std::string path_ = std::format("/account/sessions/{}", sessionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -1673,9 +1673,9 @@ A
      * instead.
      *
      * @param sessionId Session ID. Use the string 'current' to delete the current device session.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Result<void> deleteSession(        std::string_view sessionId    ) {
+    [[nodiscard]] appwrite::Result<void> deleteSession(        std::string_view sessionId    ) {
                 std::string path_ = std::format("/account/sessions/{}", sessionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -1693,9 +1693,9 @@ A
      * instead.
      *
      * @param sessionId Session ID. Use the string 'current' to delete the current device session.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Task<Result<void>> deleteSessionAsync(        std::string_view sessionId    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<void>> deleteSessionAsync(        std::string_view sessionId    ) {
                 std::string path_ = std::format("/account/sessions/{}", sessionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -1709,9 +1709,9 @@ A
      * record is not deleted but permanently blocked from any access. To
      * completely delete a user, use the Users API instead.
      *
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Result<appwrite::models::User> updateStatus(    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::User> updateStatus(    ) {
                 std::string path_ = std::format("/account/status");
         
         nlohmann::json params = nlohmann::json::object();
@@ -1726,9 +1726,9 @@ A
      * record is not deleted but permanently blocked from any access. To
      * completely delete a user, use the Users API instead.
      *
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Task<Result<appwrite::models::User>> updateStatusAsync(    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::User>> updateStatusAsync(    ) {
                 std::string path_ = std::format("/account/status");
         
         nlohmann::json params = nlohmann::json::object();
@@ -1755,9 +1755,9 @@ A user is limited to 10 active sessions at a time
      * @param userId User ID. Choose a custom ID or generate a random ID with `ID.unique()`. Valid chars are a-z, A-Z, 0-9, period, hyphen, and underscore. Can't start with a special char. Max length is 36 chars. If the email address has never been used, a new account is created using the provided userId. Otherwise, if the email address is already attached to an account, the user ID is ignored.
      * @param email User email.
      * @param phrase Toggle for security phrase. If enabled, email will be send with a randomly generated phrase and the phrase will also be included in the response. Confirming phrases match increases the security of your authentication flow.
-     * @return Result<appwrite::models::Token>
+     * @return appwrite::Result<appwrite::models::Token>
      */
-    [[nodiscard]] Result<appwrite::models::Token> createEmailToken(        std::string_view userId,         std::string_view email,         std::optional<bool> phrase = false    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Token> createEmailToken(        std::string_view userId,         std::string_view email,         std::optional<bool> phrase = false    ) {
                 std::string path_ = std::format("/account/tokens/email");
         
         nlohmann::json params = nlohmann::json::object();
@@ -1790,9 +1790,9 @@ A user is limited to 10 active sessions at a time
      * @param userId User ID. Choose a custom ID or generate a random ID with `ID.unique()`. Valid chars are a-z, A-Z, 0-9, period, hyphen, and underscore. Can't start with a special char. Max length is 36 chars. If the email address has never been used, a new account is created using the provided userId. Otherwise, if the email address is already attached to an account, the user ID is ignored.
      * @param email User email.
      * @param phrase Toggle for security phrase. If enabled, email will be send with a randomly generated phrase and the phrase will also be included in the response. Confirming phrases match increases the security of your authentication flow.
-     * @return Result<appwrite::models::Token>
+     * @return appwrite::Result<appwrite::models::Token>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Token>> createEmailTokenAsync(        std::string_view userId,         std::string_view email,         std::optional<bool> phrase = false    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Token>> createEmailTokenAsync(        std::string_view userId,         std::string_view email,         std::optional<bool> phrase = false    ) {
                 std::string path_ = std::format("/account/tokens/email");
         
         nlohmann::json params = nlohmann::json::object();
@@ -1825,9 +1825,9 @@ A user is limited to 10 active sessions at a
      * @param email User email.
      * @param url URL to redirect the user back to your app from the magic URL login. Only URLs from hostnames in your project platform list are allowed. This requirement helps to prevent an [open redirect](https://cheatsheetseries.owasp.org/cheatsheets/Unvalidated_Redirects_and_Forwards_Cheat_Sheet.html) attack against your project API.
      * @param phrase Toggle for security phrase. If enabled, email will be send with a randomly generated phrase and the phrase will also be included in the response. Confirming phrases match increases the security of your authentication flow.
-     * @return Result<appwrite::models::Token>
+     * @return appwrite::Result<appwrite::models::Token>
      */
-    [[nodiscard]] Result<appwrite::models::Token> createMagicURLToken(        std::string_view userId,         std::string_view email,         std::optional<std::string_view> url = std::nullopt,         std::optional<bool> phrase = false    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Token> createMagicURLToken(        std::string_view userId,         std::string_view email,         std::optional<std::string_view> url = std::nullopt,         std::optional<bool> phrase = false    ) {
                 std::string path_ = std::format("/account/tokens/magic-url");
         
         nlohmann::json params = nlohmann::json::object();
@@ -1864,9 +1864,9 @@ A user is limited to 10 active sessions at a
      * @param email User email.
      * @param url URL to redirect the user back to your app from the magic URL login. Only URLs from hostnames in your project platform list are allowed. This requirement helps to prevent an [open redirect](https://cheatsheetseries.owasp.org/cheatsheets/Unvalidated_Redirects_and_Forwards_Cheat_Sheet.html) attack against your project API.
      * @param phrase Toggle for security phrase. If enabled, email will be send with a randomly generated phrase and the phrase will also be included in the response. Confirming phrases match increases the security of your authentication flow.
-     * @return Result<appwrite::models::Token>
+     * @return appwrite::Result<appwrite::models::Token>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Token>> createMagicURLTokenAsync(        std::string_view userId,         std::string_view email,         std::optional<std::string_view> url = std::nullopt,         std::optional<bool> phrase = false    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Token>> createMagicURLTokenAsync(        std::string_view userId,         std::string_view email,         std::optional<std::string_view> url = std::nullopt,         std::optional<bool> phrase = false    ) {
                 std::string path_ = std::format("/account/tokens/magic-url");
         
         nlohmann::json params = nlohmann::json::object();
@@ -1904,9 +1904,9 @@ A user is limited to 10 active sessions at a time by default.
      * @param success URL to redirect back to your app after a successful login attempt.  Only URLs from hostnames in your project's platform list are allowed. This requirement helps to prevent an [open redirect](https://cheatsheetseries.owasp.org/cheatsheets/Unvalidated_Redirects_and_Forwards_Cheat_Sheet.html) attack against your project API.
      * @param failure URL to redirect back to your app after a failed login attempt.  Only URLs from hostnames in your project's platform list are allowed. This requirement helps to prevent an [open redirect](https://cheatsheetseries.owasp.org/cheatsheets/Unvalidated_Redirects_and_Forwards_Cheat_Sheet.html) attack against your project API.
      * @param scopes A list of custom OAuth2 scopes. Check each provider internal docs for a list of supported scopes. Maximum of 100 scopes are allowed, each 4096 characters long.
-     * @return Result<std::string>
+     * @return appwrite::Result<std::string>
      */
-    [[nodiscard]] Result<std::string> createOAuth2Token(        appwrite::enums::OAuthProvider provider,         std::optional<std::string_view> success = std::nullopt,         std::optional<std::string_view> failure = std::nullopt,         std::optional<std::vector<std::string>> scopes = std::vector<std::string>{}    ) {
+    [[nodiscard]] appwrite::Result<std::string> createOAuth2Token(        appwrite::enums::OAuthProvider provider,         std::optional<std::string_view> success = std::nullopt,         std::optional<std::string_view> failure = std::nullopt,         std::optional<std::vector<std::string>> scopes = std::vector<std::string>{}    ) {
                 std::string path_ = std::format("/account/tokens/oauth2/{}", appwrite::enums::toString(provider));
         
         nlohmann::json params = nlohmann::json::object();
@@ -1946,9 +1946,9 @@ A user is limited to 10 active sessions at a time by default.
      * @param success URL to redirect back to your app after a successful login attempt.  Only URLs from hostnames in your project's platform list are allowed. This requirement helps to prevent an [open redirect](https://cheatsheetseries.owasp.org/cheatsheets/Unvalidated_Redirects_and_Forwards_Cheat_Sheet.html) attack against your project API.
      * @param failure URL to redirect back to your app after a failed login attempt.  Only URLs from hostnames in your project's platform list are allowed. This requirement helps to prevent an [open redirect](https://cheatsheetseries.owasp.org/cheatsheets/Unvalidated_Redirects_and_Forwards_Cheat_Sheet.html) attack against your project API.
      * @param scopes A list of custom OAuth2 scopes. Check each provider internal docs for a list of supported scopes. Maximum of 100 scopes are allowed, each 4096 characters long.
-     * @return Result<std::string>
+     * @return appwrite::Result<std::string>
      */
-    [[nodiscard]] Task<Result<std::string>> createOAuth2TokenAsync(        appwrite::enums::OAuthProvider provider,         std::optional<std::string_view> success = std::nullopt,         std::optional<std::string_view> failure = std::nullopt,         std::optional<std::vector<std::string>> scopes = std::vector<std::string>{}    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<std::string>> createOAuth2TokenAsync(        appwrite::enums::OAuthProvider provider,         std::optional<std::string_view> success = std::nullopt,         std::optional<std::string_view> failure = std::nullopt,         std::optional<std::vector<std::string>> scopes = std::vector<std::string>{}    ) {
                 std::string path_ = std::format("/account/tokens/oauth2/{}", appwrite::enums::toString(provider));
         
         nlohmann::json params = nlohmann::json::object();
@@ -1980,9 +1980,9 @@ A user is limited to 10 active sessions at a time
      *
      * @param userId Unique Id. Choose a custom ID or generate a random ID with `ID.unique()`. Valid chars are a-z, A-Z, 0-9, period, hyphen, and underscore. Can't start with a special char. Max length is 36 chars. If the phone number has never been used, a new account is created using the provided userId. Otherwise, if the phone number is already attached to an account, the user ID is ignored.
      * @param phone Phone number. Format this number with a leading '+' and a country code, e.g., +16175551212.
-     * @return Result<appwrite::models::Token>
+     * @return appwrite::Result<appwrite::models::Token>
      */
-    [[nodiscard]] Result<appwrite::models::Token> createPhoneToken(        std::string_view userId,         std::string_view phone    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Token> createPhoneToken(        std::string_view userId,         std::string_view phone    ) {
                 std::string path_ = std::format("/account/tokens/phone");
         
         nlohmann::json params = nlohmann::json::object();
@@ -2008,9 +2008,9 @@ A user is limited to 10 active sessions at a time
      *
      * @param userId Unique Id. Choose a custom ID or generate a random ID with `ID.unique()`. Valid chars are a-z, A-Z, 0-9, period, hyphen, and underscore. Can't start with a special char. Max length is 36 chars. If the phone number has never been used, a new account is created using the provided userId. Otherwise, if the phone number is already attached to an account, the user ID is ignored.
      * @param phone Phone number. Format this number with a leading '+' and a country code, e.g., +16175551212.
-     * @return Result<appwrite::models::Token>
+     * @return appwrite::Result<appwrite::models::Token>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Token>> createPhoneTokenAsync(        std::string_view userId,         std::string_view phone    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Token>> createPhoneTokenAsync(        std::string_view userId,         std::string_view phone    ) {
                 std::string path_ = std::format("/account/tokens/phone");
         
         nlohmann::json params = nlohmann::json::object();
@@ -2039,9 +2039,9 @@ Please note that in order to avoid a [Redirect
      * adding your platforms in the console interface.
      *
      * @param url URL to redirect the user back to your app from the verification email. Only URLs from hostnames in your project platform list are allowed. This requirement helps to prevent an [open redirect](https://cheatsheetseries.owasp.org/cheatsheets/Unvalidated_Redirects_and_Forwards_Cheat_Sheet.html) attack against your project API.
-     * @return Result<appwrite::models::Token>
+     * @return appwrite::Result<appwrite::models::Token>
      */
-    [[nodiscard]] Result<appwrite::models::Token> createEmailVerification(        std::string_view url    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Token> createEmailVerification(        std::string_view url    ) {
                 std::string path_ = std::format("/account/verifications/email");
         
         nlohmann::json params = nlohmann::json::object();
@@ -2070,9 +2070,9 @@ Please note that in order to avoid a [Redirect
      * adding your platforms in the console interface.
      *
      * @param url URL to redirect the user back to your app from the verification email. Only URLs from hostnames in your project platform list are allowed. This requirement helps to prevent an [open redirect](https://cheatsheetseries.owasp.org/cheatsheets/Unvalidated_Redirects_and_Forwards_Cheat_Sheet.html) attack against your project API.
-     * @return Result<appwrite::models::Token>
+     * @return appwrite::Result<appwrite::models::Token>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Token>> createEmailVerificationAsync(        std::string_view url    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Token>> createEmailVerificationAsync(        std::string_view url    ) {
                 std::string path_ = std::format("/account/verifications/email");
         
         nlohmann::json params = nlohmann::json::object();
@@ -2100,9 +2100,9 @@ Please note that in order to avoid a [Redirect
      * adding your platforms in the console interface.
      *
      * @param url URL to redirect the user back to your app from the verification email. Only URLs from hostnames in your project platform list are allowed. This requirement helps to prevent an [open redirect](https://cheatsheetseries.owasp.org/cheatsheets/Unvalidated_Redirects_and_Forwards_Cheat_Sheet.html) attack against your project API.
-     * @return Result<appwrite::models::Token>
+     * @return appwrite::Result<appwrite::models::Token>
      */
-    [[nodiscard]] Result<appwrite::models::Token> createVerification(        std::string_view url    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Token> createVerification(        std::string_view url    ) {
                 std::string path_ = std::format("/account/verifications/email");
         
         nlohmann::json params = nlohmann::json::object();
@@ -2131,9 +2131,9 @@ Please note that in order to avoid a [Redirect
      * adding your platforms in the console interface.
      *
      * @param url URL to redirect the user back to your app from the verification email. Only URLs from hostnames in your project platform list are allowed. This requirement helps to prevent an [open redirect](https://cheatsheetseries.owasp.org/cheatsheets/Unvalidated_Redirects_and_Forwards_Cheat_Sheet.html) attack against your project API.
-     * @return Result<appwrite::models::Token>
+     * @return appwrite::Result<appwrite::models::Token>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Token>> createVerificationAsync(        std::string_view url    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Token>> createVerificationAsync(        std::string_view url    ) {
                 std::string path_ = std::format("/account/verifications/email");
         
         nlohmann::json params = nlohmann::json::object();
@@ -2151,9 +2151,9 @@ Please note that in order to avoid a [Redirect
      *
      * @param userId User ID.
      * @param secret Valid verification token.
-     * @return Result<appwrite::models::Token>
+     * @return appwrite::Result<appwrite::models::Token>
      */
-    [[nodiscard]] Result<appwrite::models::Token> updateEmailVerification(        std::string_view userId,         std::string_view secret    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Token> updateEmailVerification(        std::string_view userId,         std::string_view secret    ) {
                 std::string path_ = std::format("/account/verifications/email");
         
         nlohmann::json params = nlohmann::json::object();
@@ -2173,9 +2173,9 @@ Please note that in order to avoid a [Redirect
      *
      * @param userId User ID.
      * @param secret Valid verification token.
-     * @return Result<appwrite::models::Token>
+     * @return appwrite::Result<appwrite::models::Token>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Token>> updateEmailVerificationAsync(        std::string_view userId,         std::string_view secret    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Token>> updateEmailVerificationAsync(        std::string_view userId,         std::string_view secret    ) {
                 std::string path_ = std::format("/account/verifications/email");
         
         nlohmann::json params = nlohmann::json::object();
@@ -2194,9 +2194,9 @@ Please note that in order to avoid a [Redirect
      *
      * @param userId User ID.
      * @param secret Valid verification token.
-     * @return Result<appwrite::models::Token>
+     * @return appwrite::Result<appwrite::models::Token>
      */
-    [[nodiscard]] Result<appwrite::models::Token> updateVerification(        std::string_view userId,         std::string_view secret    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Token> updateVerification(        std::string_view userId,         std::string_view secret    ) {
                 std::string path_ = std::format("/account/verifications/email");
         
         nlohmann::json params = nlohmann::json::object();
@@ -2216,9 +2216,9 @@ Please note that in order to avoid a [Redirect
      *
      * @param userId User ID.
      * @param secret Valid verification token.
-     * @return Result<appwrite::models::Token>
+     * @return appwrite::Result<appwrite::models::Token>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Token>> updateVerificationAsync(        std::string_view userId,         std::string_view secret    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Token>> updateVerificationAsync(        std::string_view userId,         std::string_view secret    ) {
                 std::string path_ = std::format("/account/verifications/email");
         
         nlohmann::json params = nlohmann::json::object();
@@ -2239,9 +2239,9 @@ Please note that in order to avoid a [Redirect
      * The verification code sent to the user's phone number is valid for 15
      * minutes.
      *
-     * @return Result<appwrite::models::Token>
+     * @return appwrite::Result<appwrite::models::Token>
      */
-    [[nodiscard]] Result<appwrite::models::Token> createPhoneVerification(    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Token> createPhoneVerification(    ) {
                 std::string path_ = std::format("/account/verifications/phone");
         
         nlohmann::json params = nlohmann::json::object();
@@ -2261,9 +2261,9 @@ Please note that in order to avoid a [Redirect
      * The verification code sent to the user's phone number is valid for 15
      * minutes.
      *
-     * @return Result<appwrite::models::Token>
+     * @return appwrite::Result<appwrite::models::Token>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Token>> createPhoneVerificationAsync(    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Token>> createPhoneVerificationAsync(    ) {
                 std::string path_ = std::format("/account/verifications/phone");
         
         nlohmann::json params = nlohmann::json::object();
@@ -2280,9 +2280,9 @@ Please note that in order to avoid a [Redirect
      *
      * @param userId User ID.
      * @param secret Valid verification token.
-     * @return Result<appwrite::models::Token>
+     * @return appwrite::Result<appwrite::models::Token>
      */
-    [[nodiscard]] Result<appwrite::models::Token> updatePhoneVerification(        std::string_view userId,         std::string_view secret    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Token> updatePhoneVerification(        std::string_view userId,         std::string_view secret    ) {
                 std::string path_ = std::format("/account/verifications/phone");
         
         nlohmann::json params = nlohmann::json::object();
@@ -2302,9 +2302,9 @@ Please note that in order to avoid a [Redirect
      *
      * @param userId User ID.
      * @param secret Valid verification token.
-     * @return Result<appwrite::models::Token>
+     * @return appwrite::Result<appwrite::models::Token>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Token>> updatePhoneVerificationAsync(        std::string_view userId,         std::string_view secret    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Token>> updatePhoneVerificationAsync(        std::string_view userId,         std::string_view secret    ) {
                 std::string path_ = std::format("/account/verifications/phone");
         
         nlohmann::json params = nlohmann::json::object();
@@ -2331,9 +2331,9 @@ public:
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of 100 queries are allowed, each 4096 characters long. You may filter on the following attributes: name
      * @param search Search term to filter your list results. Max length: 256 chars.
      * @param total When set to false, the total count returned will be 0 and will not be calculated.
-     * @return Result<appwrite::models::DatabaseList>
+     * @return appwrite::Result<appwrite::models::DatabaseList>
      */
-    [[nodiscard]] Result<appwrite::models::DatabaseList> list(        std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> search = std::nullopt,         std::optional<bool> total = true    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::DatabaseList> list(        std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> search = std::nullopt,         std::optional<bool> total = true    ) {
                 std::string path_ = std::format("/databases");
         
         nlohmann::json params = nlohmann::json::object();
@@ -2359,9 +2359,9 @@ public:
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of 100 queries are allowed, each 4096 characters long. You may filter on the following attributes: name
      * @param search Search term to filter your list results. Max length: 256 chars.
      * @param total When set to false, the total count returned will be 0 and will not be calculated.
-     * @return Result<appwrite::models::DatabaseList>
+     * @return appwrite::Result<appwrite::models::DatabaseList>
      */
-    [[nodiscard]] Task<Result<appwrite::models::DatabaseList>> listAsync(        std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> search = std::nullopt,         std::optional<bool> total = true    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::DatabaseList>> listAsync(        std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> search = std::nullopt,         std::optional<bool> total = true    ) {
                 std::string path_ = std::format("/databases");
         
         nlohmann::json params = nlohmann::json::object();
@@ -2385,9 +2385,9 @@ public:
      * @param databaseId Unique Id. Choose a custom ID or generate a random ID with `ID.unique()`. Valid chars are a-z, A-Z, 0-9, period, hyphen, and underscore. Can't start with a special char. Max length is 36 chars.
      * @param name Database name. Max length: 128 chars.
      * @param enabled Is the database enabled? When set to 'disabled', users cannot access the database but Server SDKs with an API key can still read and write to the database. No data is lost when this is toggled.
-     * @return Result<appwrite::models::Database>
+     * @return appwrite::Result<appwrite::models::Database>
      */
-    [[nodiscard]] Result<appwrite::models::Database> create(        std::string_view databaseId,         std::string_view name,         std::optional<bool> enabled = true    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Database> create(        std::string_view databaseId,         std::string_view name,         std::optional<bool> enabled = true    ) {
                 std::string path_ = std::format("/databases");
         
         nlohmann::json params = nlohmann::json::object();
@@ -2408,9 +2408,9 @@ public:
      * @param databaseId Unique Id. Choose a custom ID or generate a random ID with `ID.unique()`. Valid chars are a-z, A-Z, 0-9, period, hyphen, and underscore. Can't start with a special char. Max length is 36 chars.
      * @param name Database name. Max length: 128 chars.
      * @param enabled Is the database enabled? When set to 'disabled', users cannot access the database but Server SDKs with an API key can still read and write to the database. No data is lost when this is toggled.
-     * @return Result<appwrite::models::Database>
+     * @return appwrite::Result<appwrite::models::Database>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Database>> createAsync(        std::string_view databaseId,         std::string_view name,         std::optional<bool> enabled = true    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Database>> createAsync(        std::string_view databaseId,         std::string_view name,         std::optional<bool> enabled = true    ) {
                 std::string path_ = std::format("/databases");
         
         nlohmann::json params = nlohmann::json::object();
@@ -2428,9 +2428,9 @@ public:
      * List transactions across all databases.
      *
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries).
-     * @return Result<appwrite::models::TransactionList>
+     * @return appwrite::Result<appwrite::models::TransactionList>
      */
-    [[nodiscard]] Result<appwrite::models::TransactionList> listTransactions(        std::optional<std::vector<std::string>> queries = std::vector<std::string>{}    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::TransactionList> listTransactions(        std::optional<std::vector<std::string>> queries = std::vector<std::string>{}    ) {
                 std::string path_ = std::format("/databases/transactions");
         
         nlohmann::json params = nlohmann::json::object();
@@ -2447,9 +2447,9 @@ public:
      * List transactions across all databases.
      *
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries).
-     * @return Result<appwrite::models::TransactionList>
+     * @return appwrite::Result<appwrite::models::TransactionList>
      */
-    [[nodiscard]] Task<Result<appwrite::models::TransactionList>> listTransactionsAsync(        std::optional<std::vector<std::string>> queries = std::vector<std::string>{}    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::TransactionList>> listTransactionsAsync(        std::optional<std::vector<std::string>> queries = std::vector<std::string>{}    ) {
                 std::string path_ = std::format("/databases/transactions");
         
         nlohmann::json params = nlohmann::json::object();
@@ -2465,9 +2465,9 @@ public:
      * Create a new transaction.
      *
      * @param ttl Seconds before the transaction expires.
-     * @return Result<appwrite::models::Transaction>
+     * @return appwrite::Result<appwrite::models::Transaction>
      */
-    [[nodiscard]] Result<appwrite::models::Transaction> createTransaction(        std::optional<int64_t> ttl = 300    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Transaction> createTransaction(        std::optional<int64_t> ttl = 300    ) {
                 std::string path_ = std::format("/databases/transactions");
         
         nlohmann::json params = nlohmann::json::object();
@@ -2484,9 +2484,9 @@ public:
      * Create a new transaction.
      *
      * @param ttl Seconds before the transaction expires.
-     * @return Result<appwrite::models::Transaction>
+     * @return appwrite::Result<appwrite::models::Transaction>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Transaction>> createTransactionAsync(        std::optional<int64_t> ttl = 300    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Transaction>> createTransactionAsync(        std::optional<int64_t> ttl = 300    ) {
                 std::string path_ = std::format("/databases/transactions");
         
         nlohmann::json params = nlohmann::json::object();
@@ -2502,9 +2502,9 @@ public:
      * Get a transaction by its unique ID.
      *
      * @param transactionId Transaction ID.
-     * @return Result<appwrite::models::Transaction>
+     * @return appwrite::Result<appwrite::models::Transaction>
      */
-    [[nodiscard]] Result<appwrite::models::Transaction> getTransaction(        std::string_view transactionId    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Transaction> getTransaction(        std::string_view transactionId    ) {
                 std::string path_ = std::format("/databases/transactions/{}", transactionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -2518,9 +2518,9 @@ public:
      * Get a transaction by its unique ID.
      *
      * @param transactionId Transaction ID.
-     * @return Result<appwrite::models::Transaction>
+     * @return appwrite::Result<appwrite::models::Transaction>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Transaction>> getTransactionAsync(        std::string_view transactionId    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Transaction>> getTransactionAsync(        std::string_view transactionId    ) {
                 std::string path_ = std::format("/databases/transactions/{}", transactionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -2535,9 +2535,9 @@ public:
      * @param transactionId Transaction ID.
      * @param commit Commit transaction?
      * @param rollback Rollback transaction?
-     * @return Result<appwrite::models::Transaction>
+     * @return appwrite::Result<appwrite::models::Transaction>
      */
-    [[nodiscard]] Result<appwrite::models::Transaction> updateTransaction(        std::string_view transactionId,         std::optional<bool> commit = false,         std::optional<bool> rollback = false    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Transaction> updateTransaction(        std::string_view transactionId,         std::optional<bool> commit = false,         std::optional<bool> rollback = false    ) {
                 std::string path_ = std::format("/databases/transactions/{}", transactionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -2559,9 +2559,9 @@ public:
      * @param transactionId Transaction ID.
      * @param commit Commit transaction?
      * @param rollback Rollback transaction?
-     * @return Result<appwrite::models::Transaction>
+     * @return appwrite::Result<appwrite::models::Transaction>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Transaction>> updateTransactionAsync(        std::string_view transactionId,         std::optional<bool> commit = false,         std::optional<bool> rollback = false    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Transaction>> updateTransactionAsync(        std::string_view transactionId,         std::optional<bool> commit = false,         std::optional<bool> rollback = false    ) {
                 std::string path_ = std::format("/databases/transactions/{}", transactionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -2580,9 +2580,9 @@ public:
      * Delete a transaction by its unique ID.
      *
      * @param transactionId Transaction ID.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Result<void> deleteTransaction(        std::string_view transactionId    ) {
+    [[nodiscard]] appwrite::Result<void> deleteTransaction(        std::string_view transactionId    ) {
                 std::string path_ = std::format("/databases/transactions/{}", transactionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -2596,9 +2596,9 @@ public:
      * Delete a transaction by its unique ID.
      *
      * @param transactionId Transaction ID.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Task<Result<void>> deleteTransactionAsync(        std::string_view transactionId    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<void>> deleteTransactionAsync(        std::string_view transactionId    ) {
                 std::string path_ = std::format("/databases/transactions/{}", transactionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -2612,9 +2612,9 @@ public:
      *
      * @param transactionId Transaction ID.
      * @param operations Array of staged operations.
-     * @return Result<appwrite::models::Transaction>
+     * @return appwrite::Result<appwrite::models::Transaction>
      */
-    [[nodiscard]] Result<appwrite::models::Transaction> createOperations(        std::string_view transactionId,         std::optional<std::vector<nlohmann::json>> operations = std::vector<nlohmann::json>{}    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Transaction> createOperations(        std::string_view transactionId,         std::optional<std::vector<nlohmann::json>> operations = std::vector<nlohmann::json>{}    ) {
                 std::string path_ = std::format("/databases/transactions/{}/operations", transactionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -2632,9 +2632,9 @@ public:
      *
      * @param transactionId Transaction ID.
      * @param operations Array of staged operations.
-     * @return Result<appwrite::models::Transaction>
+     * @return appwrite::Result<appwrite::models::Transaction>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Transaction>> createOperationsAsync(        std::string_view transactionId,         std::optional<std::vector<nlohmann::json>> operations = std::vector<nlohmann::json>{}    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Transaction>> createOperationsAsync(        std::string_view transactionId,         std::optional<std::vector<nlohmann::json>> operations = std::vector<nlohmann::json>{}    ) {
                 std::string path_ = std::format("/databases/transactions/{}/operations", transactionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -2651,9 +2651,9 @@ public:
      * object with the database metadata.
      *
      * @param databaseId Database ID.
-     * @return Result<appwrite::models::Database>
+     * @return appwrite::Result<appwrite::models::Database>
      */
-    [[nodiscard]] Result<appwrite::models::Database> get(        std::string_view databaseId    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Database> get(        std::string_view databaseId    ) {
                 std::string path_ = std::format("/databases/{}", databaseId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -2668,9 +2668,9 @@ public:
      * object with the database metadata.
      *
      * @param databaseId Database ID.
-     * @return Result<appwrite::models::Database>
+     * @return appwrite::Result<appwrite::models::Database>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Database>> getAsync(        std::string_view databaseId    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Database>> getAsync(        std::string_view databaseId    ) {
                 std::string path_ = std::format("/databases/{}", databaseId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -2685,9 +2685,9 @@ public:
      * @param databaseId Database ID.
      * @param name Database name. Max length: 128 chars.
      * @param enabled Is database enabled? When set to 'disabled', users cannot access the database but Server SDKs with an API key can still read and write to the database. No data is lost when this is toggled.
-     * @return Result<appwrite::models::Database>
+     * @return appwrite::Result<appwrite::models::Database>
      */
-    [[nodiscard]] Result<appwrite::models::Database> update(        std::string_view databaseId,         std::optional<std::string_view> name = std::nullopt,         std::optional<bool> enabled = true    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Database> update(        std::string_view databaseId,         std::optional<std::string_view> name = std::nullopt,         std::optional<bool> enabled = true    ) {
                 std::string path_ = std::format("/databases/{}", databaseId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -2709,9 +2709,9 @@ public:
      * @param databaseId Database ID.
      * @param name Database name. Max length: 128 chars.
      * @param enabled Is database enabled? When set to 'disabled', users cannot access the database but Server SDKs with an API key can still read and write to the database. No data is lost when this is toggled.
-     * @return Result<appwrite::models::Database>
+     * @return appwrite::Result<appwrite::models::Database>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Database>> updateAsync(        std::string_view databaseId,         std::optional<std::string_view> name = std::nullopt,         std::optional<bool> enabled = true    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Database>> updateAsync(        std::string_view databaseId,         std::optional<std::string_view> name = std::nullopt,         std::optional<bool> enabled = true    ) {
                 std::string path_ = std::format("/databases/{}", databaseId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -2731,9 +2731,9 @@ public:
      * scope can delete a database.
      *
      * @param databaseId Database ID.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Result<void> delete_(        std::string_view databaseId    ) {
+    [[nodiscard]] appwrite::Result<void> delete_(        std::string_view databaseId    ) {
                 std::string path_ = std::format("/databases/{}", databaseId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -2748,9 +2748,9 @@ public:
      * scope can delete a database.
      *
      * @param databaseId Database ID.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Task<Result<void>> delete_Async(        std::string_view databaseId    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<void>> delete_Async(        std::string_view databaseId    ) {
                 std::string path_ = std::format("/databases/{}", databaseId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -2767,9 +2767,9 @@ public:
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of 100 queries are allowed, each 4096 characters long. You may filter on the following attributes: name, enabled, documentSecurity
      * @param search Search term to filter your list results. Max length: 256 chars.
      * @param total When set to false, the total count returned will be 0 and will not be calculated.
-     * @return Result<appwrite::models::CollectionList>
+     * @return appwrite::Result<appwrite::models::CollectionList>
      */
-    [[nodiscard]] Result<appwrite::models::CollectionList> listCollections(        std::string_view databaseId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> search = std::nullopt,         std::optional<bool> total = true    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::CollectionList> listCollections(        std::string_view databaseId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> search = std::nullopt,         std::optional<bool> total = true    ) {
                 std::string path_ = std::format("/databases/{}/collections", databaseId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -2796,9 +2796,9 @@ public:
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of 100 queries are allowed, each 4096 characters long. You may filter on the following attributes: name, enabled, documentSecurity
      * @param search Search term to filter your list results. Max length: 256 chars.
      * @param total When set to false, the total count returned will be 0 and will not be calculated.
-     * @return Result<appwrite::models::CollectionList>
+     * @return appwrite::Result<appwrite::models::CollectionList>
      */
-    [[nodiscard]] Task<Result<appwrite::models::CollectionList>> listCollectionsAsync(        std::string_view databaseId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> search = std::nullopt,         std::optional<bool> total = true    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::CollectionList>> listCollectionsAsync(        std::string_view databaseId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> search = std::nullopt,         std::optional<bool> total = true    ) {
                 std::string path_ = std::format("/databases/{}/collections", databaseId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -2830,9 +2830,9 @@ public:
      * @param enabled Is collection enabled? When set to 'disabled', users cannot access the collection but Server SDKs with and API key can still read and write to the collection. No data is lost when this is toggled.
      * @param attributes Array of attribute definitions to create. Each attribute should contain: key (string), type (string: string, integer, float, boolean, datetime), size (integer, required for string type), required (boolean, optional), default (mixed, optional), array (boolean, optional), and type-specific options.
      * @param indexes Array of index definitions to create. Each index should contain: key (string), type (string: key, fulltext, unique, spatial), attributes (array of attribute keys), orders (array of ASC/DESC, optional), and lengths (array of integers, optional).
-     * @return Result<appwrite::models::Collection>
+     * @return appwrite::Result<appwrite::models::Collection>
      */
-    [[nodiscard]] Result<appwrite::models::Collection> createCollection(        std::string_view databaseId,         std::string_view collectionId,         std::string_view name,         std::optional<std::vector<std::string>> permissions = std::nullopt,         std::optional<bool> documentSecurity = false,         std::optional<bool> enabled = true,         std::optional<std::vector<nlohmann::json>> attributes = std::vector<nlohmann::json>{},         std::optional<std::vector<nlohmann::json>> indexes = std::vector<nlohmann::json>{}    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Collection> createCollection(        std::string_view databaseId,         std::string_view collectionId,         std::string_view name,         std::optional<std::vector<std::string>> permissions = std::nullopt,         std::optional<bool> documentSecurity = false,         std::optional<bool> enabled = true,         std::optional<std::vector<nlohmann::json>> attributes = std::vector<nlohmann::json>{},         std::optional<std::vector<nlohmann::json>> indexes = std::vector<nlohmann::json>{}    ) {
                 std::string path_ = std::format("/databases/{}/collections", databaseId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -2873,9 +2873,9 @@ public:
      * @param enabled Is collection enabled? When set to 'disabled', users cannot access the collection but Server SDKs with and API key can still read and write to the collection. No data is lost when this is toggled.
      * @param attributes Array of attribute definitions to create. Each attribute should contain: key (string), type (string: string, integer, float, boolean, datetime), size (integer, required for string type), required (boolean, optional), default (mixed, optional), array (boolean, optional), and type-specific options.
      * @param indexes Array of index definitions to create. Each index should contain: key (string), type (string: key, fulltext, unique, spatial), attributes (array of attribute keys), orders (array of ASC/DESC, optional), and lengths (array of integers, optional).
-     * @return Result<appwrite::models::Collection>
+     * @return appwrite::Result<appwrite::models::Collection>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Collection>> createCollectionAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view name,         std::optional<std::vector<std::string>> permissions = std::nullopt,         std::optional<bool> documentSecurity = false,         std::optional<bool> enabled = true,         std::optional<std::vector<nlohmann::json>> attributes = std::vector<nlohmann::json>{},         std::optional<std::vector<nlohmann::json>> indexes = std::vector<nlohmann::json>{}    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Collection>> createCollectionAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view name,         std::optional<std::vector<std::string>> permissions = std::nullopt,         std::optional<bool> documentSecurity = false,         std::optional<bool> enabled = true,         std::optional<std::vector<nlohmann::json>> attributes = std::vector<nlohmann::json>{},         std::optional<std::vector<nlohmann::json>> indexes = std::vector<nlohmann::json>{}    ) {
                 std::string path_ = std::format("/databases/{}/collections", databaseId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -2907,9 +2907,9 @@ public:
      *
      * @param databaseId Database ID.
      * @param collectionId Collection ID.
-     * @return Result<appwrite::models::Collection>
+     * @return appwrite::Result<appwrite::models::Collection>
      */
-    [[nodiscard]] Result<appwrite::models::Collection> getCollection(        std::string_view databaseId,         std::string_view collectionId    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Collection> getCollection(        std::string_view databaseId,         std::string_view collectionId    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -2925,9 +2925,9 @@ public:
      *
      * @param databaseId Database ID.
      * @param collectionId Collection ID.
-     * @return Result<appwrite::models::Collection>
+     * @return appwrite::Result<appwrite::models::Collection>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Collection>> getCollectionAsync(        std::string_view databaseId,         std::string_view collectionId    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Collection>> getCollectionAsync(        std::string_view databaseId,         std::string_view collectionId    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -2946,9 +2946,9 @@ public:
      * @param documentSecurity Enables configuring permissions for individual documents. A user needs one of document or collection level permissions to access a document. [Learn more about permissions](https://appwrite.io/docs/permissions).
      * @param enabled Is collection enabled? When set to 'disabled', users cannot access the collection but Server SDKs with and API key can still read and write to the collection. No data is lost when this is toggled.
      * @param purge When true, purge all cached list responses for this collection as part of the update. Use this to force readers to see fresh data immediately instead of waiting for the cache TTL to expire.
-     * @return Result<appwrite::models::Collection>
+     * @return appwrite::Result<appwrite::models::Collection>
      */
-    [[nodiscard]] Result<appwrite::models::Collection> updateCollection(        std::string_view databaseId,         std::string_view collectionId,         std::optional<std::string_view> name = std::nullopt,         std::optional<std::vector<std::string>> permissions = std::nullopt,         std::optional<bool> documentSecurity = false,         std::optional<bool> enabled = true,         std::optional<bool> purge = false    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Collection> updateCollection(        std::string_view databaseId,         std::string_view collectionId,         std::optional<std::string_view> name = std::nullopt,         std::optional<std::vector<std::string>> permissions = std::nullopt,         std::optional<bool> documentSecurity = false,         std::optional<bool> enabled = true,         std::optional<bool> purge = false    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -2983,9 +2983,9 @@ public:
      * @param documentSecurity Enables configuring permissions for individual documents. A user needs one of document or collection level permissions to access a document. [Learn more about permissions](https://appwrite.io/docs/permissions).
      * @param enabled Is collection enabled? When set to 'disabled', users cannot access the collection but Server SDKs with and API key can still read and write to the collection. No data is lost when this is toggled.
      * @param purge When true, purge all cached list responses for this collection as part of the update. Use this to force readers to see fresh data immediately instead of waiting for the cache TTL to expire.
-     * @return Result<appwrite::models::Collection>
+     * @return appwrite::Result<appwrite::models::Collection>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Collection>> updateCollectionAsync(        std::string_view databaseId,         std::string_view collectionId,         std::optional<std::string_view> name = std::nullopt,         std::optional<std::vector<std::string>> permissions = std::nullopt,         std::optional<bool> documentSecurity = false,         std::optional<bool> enabled = true,         std::optional<bool> purge = false    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Collection>> updateCollectionAsync(        std::string_view databaseId,         std::string_view collectionId,         std::optional<std::string_view> name = std::nullopt,         std::optional<std::vector<std::string>> permissions = std::nullopt,         std::optional<bool> documentSecurity = false,         std::optional<bool> enabled = true,         std::optional<bool> purge = false    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -3015,9 +3015,9 @@ public:
      *
      * @param databaseId Database ID.
      * @param collectionId Collection ID.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Result<void> deleteCollection(        std::string_view databaseId,         std::string_view collectionId    ) {
+    [[nodiscard]] appwrite::Result<void> deleteCollection(        std::string_view databaseId,         std::string_view collectionId    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -3033,9 +3033,9 @@ public:
      *
      * @param databaseId Database ID.
      * @param collectionId Collection ID.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Task<Result<void>> deleteCollectionAsync(        std::string_view databaseId,         std::string_view collectionId    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<void>> deleteCollectionAsync(        std::string_view databaseId,         std::string_view collectionId    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -3051,9 +3051,9 @@ public:
      * @param collectionId Collection ID.
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of 100 queries are allowed, each 4096 characters long. You may filter on the following attributes: key, type, size, required, array, status, error
      * @param total When set to false, the total count returned will be 0 and will not be calculated.
-     * @return Result<appwrite::models::AttributeList>
+     * @return appwrite::Result<appwrite::models::AttributeList>
      */
-    [[nodiscard]] Result<appwrite::models::AttributeList> listAttributes(        std::string_view databaseId,         std::string_view collectionId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<bool> total = true    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::AttributeList> listAttributes(        std::string_view databaseId,         std::string_view collectionId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<bool> total = true    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -3076,9 +3076,9 @@ public:
      * @param collectionId Collection ID.
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of 100 queries are allowed, each 4096 characters long. You may filter on the following attributes: key, type, size, required, array, status, error
      * @param total When set to false, the total count returned will be 0 and will not be calculated.
-     * @return Result<appwrite::models::AttributeList>
+     * @return appwrite::Result<appwrite::models::AttributeList>
      */
-    [[nodiscard]] Task<Result<appwrite::models::AttributeList>> listAttributesAsync(        std::string_view databaseId,         std::string_view collectionId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<bool> total = true    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::AttributeList>> listAttributesAsync(        std::string_view databaseId,         std::string_view collectionId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<bool> total = true    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -3102,9 +3102,9 @@ public:
      * @param required Is attribute required?
      * @param default_ Default value for attribute when not provided. Cannot be set when attribute is required.
      * @param array Is attribute an array?
-     * @return Result<appwrite::models::AttributeBoolean>
+     * @return appwrite::Result<appwrite::models::AttributeBoolean>
      */
-    [[nodiscard]] Result<appwrite::models::AttributeBoolean> createBooleanAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<bool> default_ = std::nullopt,         std::optional<bool> array = false    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::AttributeBoolean> createBooleanAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<bool> default_ = std::nullopt,         std::optional<bool> array = false    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/boolean", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -3131,9 +3131,9 @@ public:
      * @param required Is attribute required?
      * @param default_ Default value for attribute when not provided. Cannot be set when attribute is required.
      * @param array Is attribute an array?
-     * @return Result<appwrite::models::AttributeBoolean>
+     * @return appwrite::Result<appwrite::models::AttributeBoolean>
      */
-    [[nodiscard]] Task<Result<appwrite::models::AttributeBoolean>> createBooleanAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<bool> default_ = std::nullopt,         std::optional<bool> array = false    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::AttributeBoolean>> createBooleanAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<bool> default_ = std::nullopt,         std::optional<bool> array = false    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/boolean", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -3160,9 +3160,9 @@ public:
      * @param required Is attribute required?
      * @param default_ Default value for attribute when not provided. Cannot be set when attribute is required.
      * @param newKey New attribute key.
-     * @return Result<appwrite::models::AttributeBoolean>
+     * @return appwrite::Result<appwrite::models::AttributeBoolean>
      */
-    [[nodiscard]] Result<appwrite::models::AttributeBoolean> updateBooleanAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         bool default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::AttributeBoolean> updateBooleanAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         bool default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/boolean/{}", databaseId, collectionId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -3187,9 +3187,9 @@ public:
      * @param required Is attribute required?
      * @param default_ Default value for attribute when not provided. Cannot be set when attribute is required.
      * @param newKey New attribute key.
-     * @return Result<appwrite::models::AttributeBoolean>
+     * @return appwrite::Result<appwrite::models::AttributeBoolean>
      */
-    [[nodiscard]] Task<Result<appwrite::models::AttributeBoolean>> updateBooleanAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         bool default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::AttributeBoolean>> updateBooleanAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         bool default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/boolean/{}", databaseId, collectionId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -3212,9 +3212,9 @@ public:
      * @param required Is attribute required?
      * @param default_ Default value for the attribute in [ISO 8601](https://www.iso.org/iso-8601-date-and-time-format.html) format. Cannot be set when attribute is required.
      * @param array Is attribute an array?
-     * @return Result<appwrite::models::AttributeDatetime>
+     * @return appwrite::Result<appwrite::models::AttributeDatetime>
      */
-    [[nodiscard]] Result<appwrite::models::AttributeDatetime> createDatetimeAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::AttributeDatetime> createDatetimeAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/datetime", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -3241,9 +3241,9 @@ public:
      * @param required Is attribute required?
      * @param default_ Default value for the attribute in [ISO 8601](https://www.iso.org/iso-8601-date-and-time-format.html) format. Cannot be set when attribute is required.
      * @param array Is attribute an array?
-     * @return Result<appwrite::models::AttributeDatetime>
+     * @return appwrite::Result<appwrite::models::AttributeDatetime>
      */
-    [[nodiscard]] Task<Result<appwrite::models::AttributeDatetime>> createDatetimeAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::AttributeDatetime>> createDatetimeAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/datetime", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -3270,9 +3270,9 @@ public:
      * @param required Is attribute required?
      * @param default_ Default value for attribute when not provided. Cannot be set when attribute is required.
      * @param newKey New attribute key.
-     * @return Result<appwrite::models::AttributeDatetime>
+     * @return appwrite::Result<appwrite::models::AttributeDatetime>
      */
-    [[nodiscard]] Result<appwrite::models::AttributeDatetime> updateDatetimeAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::AttributeDatetime> updateDatetimeAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/datetime/{}", databaseId, collectionId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -3297,9 +3297,9 @@ public:
      * @param required Is attribute required?
      * @param default_ Default value for attribute when not provided. Cannot be set when attribute is required.
      * @param newKey New attribute key.
-     * @return Result<appwrite::models::AttributeDatetime>
+     * @return appwrite::Result<appwrite::models::AttributeDatetime>
      */
-    [[nodiscard]] Task<Result<appwrite::models::AttributeDatetime>> updateDatetimeAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::AttributeDatetime>> updateDatetimeAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/datetime/{}", databaseId, collectionId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -3322,9 +3322,9 @@ public:
      * @param required Is attribute required?
      * @param default_ Default value for attribute when not provided. Cannot be set when attribute is required.
      * @param array Is attribute an array?
-     * @return Result<appwrite::models::AttributeEmail>
+     * @return appwrite::Result<appwrite::models::AttributeEmail>
      */
-    [[nodiscard]] Result<appwrite::models::AttributeEmail> createEmailAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::AttributeEmail> createEmailAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/email", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -3351,9 +3351,9 @@ public:
      * @param required Is attribute required?
      * @param default_ Default value for attribute when not provided. Cannot be set when attribute is required.
      * @param array Is attribute an array?
-     * @return Result<appwrite::models::AttributeEmail>
+     * @return appwrite::Result<appwrite::models::AttributeEmail>
      */
-    [[nodiscard]] Task<Result<appwrite::models::AttributeEmail>> createEmailAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::AttributeEmail>> createEmailAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/email", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -3380,9 +3380,9 @@ public:
      * @param required Is attribute required?
      * @param default_ Default value for attribute when not provided. Cannot be set when attribute is required.
      * @param newKey New Attribute Key.
-     * @return Result<appwrite::models::AttributeEmail>
+     * @return appwrite::Result<appwrite::models::AttributeEmail>
      */
-    [[nodiscard]] Result<appwrite::models::AttributeEmail> updateEmailAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::AttributeEmail> updateEmailAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/email/{}", databaseId, collectionId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -3407,9 +3407,9 @@ public:
      * @param required Is attribute required?
      * @param default_ Default value for attribute when not provided. Cannot be set when attribute is required.
      * @param newKey New Attribute Key.
-     * @return Result<appwrite::models::AttributeEmail>
+     * @return appwrite::Result<appwrite::models::AttributeEmail>
      */
-    [[nodiscard]] Task<Result<appwrite::models::AttributeEmail>> updateEmailAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::AttributeEmail>> updateEmailAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/email/{}", databaseId, collectionId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -3434,9 +3434,9 @@ public:
      * @param required Is attribute required?
      * @param default_ Default value for attribute when not provided. Cannot be set when attribute is required.
      * @param array Is attribute an array?
-     * @return Result<appwrite::models::AttributeEnum>
+     * @return appwrite::Result<appwrite::models::AttributeEnum>
      */
-    [[nodiscard]] Result<appwrite::models::AttributeEnum> createEnumAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         std::vector<std::string> elements,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::AttributeEnum> createEnumAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         std::vector<std::string> elements,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/enum", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -3466,9 +3466,9 @@ public:
      * @param required Is attribute required?
      * @param default_ Default value for attribute when not provided. Cannot be set when attribute is required.
      * @param array Is attribute an array?
-     * @return Result<appwrite::models::AttributeEnum>
+     * @return appwrite::Result<appwrite::models::AttributeEnum>
      */
-    [[nodiscard]] Task<Result<appwrite::models::AttributeEnum>> createEnumAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         std::vector<std::string> elements,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::AttributeEnum>> createEnumAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         std::vector<std::string> elements,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/enum", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -3497,9 +3497,9 @@ public:
      * @param required Is attribute required?
      * @param default_ Default value for attribute when not provided. Cannot be set when attribute is required.
      * @param newKey New Attribute Key.
-     * @return Result<appwrite::models::AttributeEnum>
+     * @return appwrite::Result<appwrite::models::AttributeEnum>
      */
-    [[nodiscard]] Result<appwrite::models::AttributeEnum> updateEnumAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         std::vector<std::string> elements,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::AttributeEnum> updateEnumAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         std::vector<std::string> elements,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/enum/{}", databaseId, collectionId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -3526,9 +3526,9 @@ public:
      * @param required Is attribute required?
      * @param default_ Default value for attribute when not provided. Cannot be set when attribute is required.
      * @param newKey New Attribute Key.
-     * @return Result<appwrite::models::AttributeEnum>
+     * @return appwrite::Result<appwrite::models::AttributeEnum>
      */
-    [[nodiscard]] Task<Result<appwrite::models::AttributeEnum>> updateEnumAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         std::vector<std::string> elements,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::AttributeEnum>> updateEnumAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         std::vector<std::string> elements,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/enum/{}", databaseId, collectionId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -3555,9 +3555,9 @@ public:
      * @param max Maximum value.
      * @param default_ Default value. Cannot be set when required.
      * @param array Is attribute an array?
-     * @return Result<appwrite::models::AttributeFloat>
+     * @return appwrite::Result<appwrite::models::AttributeFloat>
      */
-    [[nodiscard]] Result<appwrite::models::AttributeFloat> createFloatAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<double> min = std::nullopt,         std::optional<double> max = std::nullopt,         std::optional<double> default_ = std::nullopt,         std::optional<bool> array = false    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::AttributeFloat> createFloatAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<double> min = std::nullopt,         std::optional<double> max = std::nullopt,         std::optional<double> default_ = std::nullopt,         std::optional<bool> array = false    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/float", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -3593,9 +3593,9 @@ public:
      * @param max Maximum value.
      * @param default_ Default value. Cannot be set when required.
      * @param array Is attribute an array?
-     * @return Result<appwrite::models::AttributeFloat>
+     * @return appwrite::Result<appwrite::models::AttributeFloat>
      */
-    [[nodiscard]] Task<Result<appwrite::models::AttributeFloat>> createFloatAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<double> min = std::nullopt,         std::optional<double> max = std::nullopt,         std::optional<double> default_ = std::nullopt,         std::optional<bool> array = false    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::AttributeFloat>> createFloatAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<double> min = std::nullopt,         std::optional<double> max = std::nullopt,         std::optional<double> default_ = std::nullopt,         std::optional<bool> array = false    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/float", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -3630,9 +3630,9 @@ public:
      * @param min Minimum value.
      * @param max Maximum value.
      * @param newKey New Attribute Key.
-     * @return Result<appwrite::models::AttributeFloat>
+     * @return appwrite::Result<appwrite::models::AttributeFloat>
      */
-    [[nodiscard]] Result<appwrite::models::AttributeFloat> updateFloatAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         double default_,         std::optional<double> min = std::nullopt,         std::optional<double> max = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::AttributeFloat> updateFloatAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         double default_,         std::optional<double> min = std::nullopt,         std::optional<double> max = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/float/{}", databaseId, collectionId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -3665,9 +3665,9 @@ public:
      * @param min Minimum value.
      * @param max Maximum value.
      * @param newKey New Attribute Key.
-     * @return Result<appwrite::models::AttributeFloat>
+     * @return appwrite::Result<appwrite::models::AttributeFloat>
      */
-    [[nodiscard]] Task<Result<appwrite::models::AttributeFloat>> updateFloatAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         double default_,         std::optional<double> min = std::nullopt,         std::optional<double> max = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::AttributeFloat>> updateFloatAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         double default_,         std::optional<double> min = std::nullopt,         std::optional<double> max = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/float/{}", databaseId, collectionId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -3699,9 +3699,9 @@ public:
      * @param max Maximum value
      * @param default_ Default value. Cannot be set when attribute is required.
      * @param array Is attribute an array?
-     * @return Result<appwrite::models::AttributeInteger>
+     * @return appwrite::Result<appwrite::models::AttributeInteger>
      */
-    [[nodiscard]] Result<appwrite::models::AttributeInteger> createIntegerAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<int64_t> min = std::nullopt,         std::optional<int64_t> max = std::nullopt,         std::optional<int64_t> default_ = std::nullopt,         std::optional<bool> array = false    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::AttributeInteger> createIntegerAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<int64_t> min = std::nullopt,         std::optional<int64_t> max = std::nullopt,         std::optional<int64_t> default_ = std::nullopt,         std::optional<bool> array = false    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/integer", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -3737,9 +3737,9 @@ public:
      * @param max Maximum value
      * @param default_ Default value. Cannot be set when attribute is required.
      * @param array Is attribute an array?
-     * @return Result<appwrite::models::AttributeInteger>
+     * @return appwrite::Result<appwrite::models::AttributeInteger>
      */
-    [[nodiscard]] Task<Result<appwrite::models::AttributeInteger>> createIntegerAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<int64_t> min = std::nullopt,         std::optional<int64_t> max = std::nullopt,         std::optional<int64_t> default_ = std::nullopt,         std::optional<bool> array = false    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::AttributeInteger>> createIntegerAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<int64_t> min = std::nullopt,         std::optional<int64_t> max = std::nullopt,         std::optional<int64_t> default_ = std::nullopt,         std::optional<bool> array = false    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/integer", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -3774,9 +3774,9 @@ public:
      * @param min Minimum value
      * @param max Maximum value
      * @param newKey New Attribute Key.
-     * @return Result<appwrite::models::AttributeInteger>
+     * @return appwrite::Result<appwrite::models::AttributeInteger>
      */
-    [[nodiscard]] Result<appwrite::models::AttributeInteger> updateIntegerAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         int64_t default_,         std::optional<int64_t> min = std::nullopt,         std::optional<int64_t> max = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::AttributeInteger> updateIntegerAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         int64_t default_,         std::optional<int64_t> min = std::nullopt,         std::optional<int64_t> max = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/integer/{}", databaseId, collectionId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -3809,9 +3809,9 @@ public:
      * @param min Minimum value
      * @param max Maximum value
      * @param newKey New Attribute Key.
-     * @return Result<appwrite::models::AttributeInteger>
+     * @return appwrite::Result<appwrite::models::AttributeInteger>
      */
-    [[nodiscard]] Task<Result<appwrite::models::AttributeInteger>> updateIntegerAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         int64_t default_,         std::optional<int64_t> min = std::nullopt,         std::optional<int64_t> max = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::AttributeInteger>> updateIntegerAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         int64_t default_,         std::optional<int64_t> min = std::nullopt,         std::optional<int64_t> max = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/integer/{}", databaseId, collectionId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -3840,9 +3840,9 @@ public:
      * @param required Is attribute required?
      * @param default_ Default value. Cannot be set when attribute is required.
      * @param array Is attribute an array?
-     * @return Result<appwrite::models::AttributeIp>
+     * @return appwrite::Result<appwrite::models::AttributeIp>
      */
-    [[nodiscard]] Result<appwrite::models::AttributeIp> createIpAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::AttributeIp> createIpAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/ip", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -3869,9 +3869,9 @@ public:
      * @param required Is attribute required?
      * @param default_ Default value. Cannot be set when attribute is required.
      * @param array Is attribute an array?
-     * @return Result<appwrite::models::AttributeIp>
+     * @return appwrite::Result<appwrite::models::AttributeIp>
      */
-    [[nodiscard]] Task<Result<appwrite::models::AttributeIp>> createIpAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::AttributeIp>> createIpAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/ip", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -3898,9 +3898,9 @@ public:
      * @param required Is attribute required?
      * @param default_ Default value. Cannot be set when attribute is required.
      * @param newKey New Attribute Key.
-     * @return Result<appwrite::models::AttributeIp>
+     * @return appwrite::Result<appwrite::models::AttributeIp>
      */
-    [[nodiscard]] Result<appwrite::models::AttributeIp> updateIpAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::AttributeIp> updateIpAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/ip/{}", databaseId, collectionId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -3925,9 +3925,9 @@ public:
      * @param required Is attribute required?
      * @param default_ Default value. Cannot be set when attribute is required.
      * @param newKey New Attribute Key.
-     * @return Result<appwrite::models::AttributeIp>
+     * @return appwrite::Result<appwrite::models::AttributeIp>
      */
-    [[nodiscard]] Task<Result<appwrite::models::AttributeIp>> updateIpAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::AttributeIp>> updateIpAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/ip/{}", databaseId, collectionId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -3949,9 +3949,9 @@ public:
      * @param key Attribute Key.
      * @param required Is attribute required?
      * @param default_ Default value for attribute when not provided, two-dimensional array of coordinate pairs, [[longitude, latitude], [longitude, latitude], …], listing the vertices of the line in order. Cannot be set when attribute is required.
-     * @return Result<appwrite::models::AttributeLine>
+     * @return appwrite::Result<appwrite::models::AttributeLine>
      */
-    [[nodiscard]] Result<appwrite::models::AttributeLine> createLineAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<std::vector<std::string>> default_ = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::AttributeLine> createLineAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<std::vector<std::string>> default_ = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/line", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -3974,9 +3974,9 @@ public:
      * @param key Attribute Key.
      * @param required Is attribute required?
      * @param default_ Default value for attribute when not provided, two-dimensional array of coordinate pairs, [[longitude, latitude], [longitude, latitude], …], listing the vertices of the line in order. Cannot be set when attribute is required.
-     * @return Result<appwrite::models::AttributeLine>
+     * @return appwrite::Result<appwrite::models::AttributeLine>
      */
-    [[nodiscard]] Task<Result<appwrite::models::AttributeLine>> createLineAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<std::vector<std::string>> default_ = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::AttributeLine>> createLineAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<std::vector<std::string>> default_ = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/line", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -4000,9 +4000,9 @@ public:
      * @param required Is attribute required?
      * @param default_ Default value for attribute when not provided, two-dimensional array of coordinate pairs, [[longitude, latitude], [longitude, latitude], …], listing the vertices of the line in order. Cannot be set when attribute is required.
      * @param newKey New attribute key.
-     * @return Result<appwrite::models::AttributeLine>
+     * @return appwrite::Result<appwrite::models::AttributeLine>
      */
-    [[nodiscard]] Result<appwrite::models::AttributeLine> updateLineAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<std::vector<std::string>> default_ = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::AttributeLine> updateLineAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<std::vector<std::string>> default_ = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/line/{}", databaseId, collectionId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -4029,9 +4029,9 @@ public:
      * @param required Is attribute required?
      * @param default_ Default value for attribute when not provided, two-dimensional array of coordinate pairs, [[longitude, latitude], [longitude, latitude], …], listing the vertices of the line in order. Cannot be set when attribute is required.
      * @param newKey New attribute key.
-     * @return Result<appwrite::models::AttributeLine>
+     * @return appwrite::Result<appwrite::models::AttributeLine>
      */
-    [[nodiscard]] Task<Result<appwrite::models::AttributeLine>> updateLineAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<std::vector<std::string>> default_ = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::AttributeLine>> updateLineAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<std::vector<std::string>> default_ = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/line/{}", databaseId, collectionId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -4057,9 +4057,9 @@ public:
      * @param default_ Default value for attribute when not provided. Cannot be set when attribute is required.
      * @param array Is attribute an array?
      * @param encrypt Toggle encryption for the attribute. Encryption enhances security by not storing any plain text values in the database. However, encrypted attributes cannot be queried.
-     * @return Result<appwrite::models::AttributeLongtext>
+     * @return appwrite::Result<appwrite::models::AttributeLongtext>
      */
-    [[nodiscard]] Result<appwrite::models::AttributeLongtext> createLongtextAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false,         std::optional<bool> encrypt = false    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::AttributeLongtext> createLongtextAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false,         std::optional<bool> encrypt = false    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/longtext", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -4090,9 +4090,9 @@ public:
      * @param default_ Default value for attribute when not provided. Cannot be set when attribute is required.
      * @param array Is attribute an array?
      * @param encrypt Toggle encryption for the attribute. Encryption enhances security by not storing any plain text values in the database. However, encrypted attributes cannot be queried.
-     * @return Result<appwrite::models::AttributeLongtext>
+     * @return appwrite::Result<appwrite::models::AttributeLongtext>
      */
-    [[nodiscard]] Task<Result<appwrite::models::AttributeLongtext>> createLongtextAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false,         std::optional<bool> encrypt = false    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::AttributeLongtext>> createLongtextAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false,         std::optional<bool> encrypt = false    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/longtext", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -4122,9 +4122,9 @@ public:
      * @param required Is attribute required?
      * @param default_ Default value for attribute when not provided. Cannot be set when attribute is required.
      * @param newKey New Attribute Key.
-     * @return Result<appwrite::models::AttributeLongtext>
+     * @return appwrite::Result<appwrite::models::AttributeLongtext>
      */
-    [[nodiscard]] Result<appwrite::models::AttributeLongtext> updateLongtextAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::AttributeLongtext> updateLongtextAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/longtext/{}", databaseId, collectionId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -4149,9 +4149,9 @@ public:
      * @param required Is attribute required?
      * @param default_ Default value for attribute when not provided. Cannot be set when attribute is required.
      * @param newKey New Attribute Key.
-     * @return Result<appwrite::models::AttributeLongtext>
+     * @return appwrite::Result<appwrite::models::AttributeLongtext>
      */
-    [[nodiscard]] Task<Result<appwrite::models::AttributeLongtext>> updateLongtextAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::AttributeLongtext>> updateLongtextAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/longtext/{}", databaseId, collectionId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -4175,9 +4175,9 @@ public:
      * @param default_ Default value for attribute when not provided. Cannot be set when attribute is required.
      * @param array Is attribute an array?
      * @param encrypt Toggle encryption for the attribute. Encryption enhances security by not storing any plain text values in the database. However, encrypted attributes cannot be queried.
-     * @return Result<appwrite::models::AttributeMediumtext>
+     * @return appwrite::Result<appwrite::models::AttributeMediumtext>
      */
-    [[nodiscard]] Result<appwrite::models::AttributeMediumtext> createMediumtextAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false,         std::optional<bool> encrypt = false    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::AttributeMediumtext> createMediumtextAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false,         std::optional<bool> encrypt = false    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/mediumtext", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -4208,9 +4208,9 @@ public:
      * @param default_ Default value for attribute when not provided. Cannot be set when attribute is required.
      * @param array Is attribute an array?
      * @param encrypt Toggle encryption for the attribute. Encryption enhances security by not storing any plain text values in the database. However, encrypted attributes cannot be queried.
-     * @return Result<appwrite::models::AttributeMediumtext>
+     * @return appwrite::Result<appwrite::models::AttributeMediumtext>
      */
-    [[nodiscard]] Task<Result<appwrite::models::AttributeMediumtext>> createMediumtextAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false,         std::optional<bool> encrypt = false    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::AttributeMediumtext>> createMediumtextAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false,         std::optional<bool> encrypt = false    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/mediumtext", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -4240,9 +4240,9 @@ public:
      * @param required Is attribute required?
      * @param default_ Default value for attribute when not provided. Cannot be set when attribute is required.
      * @param newKey New Attribute Key.
-     * @return Result<appwrite::models::AttributeMediumtext>
+     * @return appwrite::Result<appwrite::models::AttributeMediumtext>
      */
-    [[nodiscard]] Result<appwrite::models::AttributeMediumtext> updateMediumtextAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::AttributeMediumtext> updateMediumtextAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/mediumtext/{}", databaseId, collectionId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -4267,9 +4267,9 @@ public:
      * @param required Is attribute required?
      * @param default_ Default value for attribute when not provided. Cannot be set when attribute is required.
      * @param newKey New Attribute Key.
-     * @return Result<appwrite::models::AttributeMediumtext>
+     * @return appwrite::Result<appwrite::models::AttributeMediumtext>
      */
-    [[nodiscard]] Task<Result<appwrite::models::AttributeMediumtext>> updateMediumtextAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::AttributeMediumtext>> updateMediumtextAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/mediumtext/{}", databaseId, collectionId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -4291,9 +4291,9 @@ public:
      * @param key Attribute Key.
      * @param required Is attribute required?
      * @param default_ Default value for attribute when not provided, array of two numbers [longitude, latitude], representing a single coordinate. Cannot be set when attribute is required.
-     * @return Result<appwrite::models::AttributePoint>
+     * @return appwrite::Result<appwrite::models::AttributePoint>
      */
-    [[nodiscard]] Result<appwrite::models::AttributePoint> createPointAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<std::vector<std::string>> default_ = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::AttributePoint> createPointAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<std::vector<std::string>> default_ = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/point", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -4316,9 +4316,9 @@ public:
      * @param key Attribute Key.
      * @param required Is attribute required?
      * @param default_ Default value for attribute when not provided, array of two numbers [longitude, latitude], representing a single coordinate. Cannot be set when attribute is required.
-     * @return Result<appwrite::models::AttributePoint>
+     * @return appwrite::Result<appwrite::models::AttributePoint>
      */
-    [[nodiscard]] Task<Result<appwrite::models::AttributePoint>> createPointAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<std::vector<std::string>> default_ = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::AttributePoint>> createPointAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<std::vector<std::string>> default_ = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/point", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -4342,9 +4342,9 @@ public:
      * @param required Is attribute required?
      * @param default_ Default value for attribute when not provided, array of two numbers [longitude, latitude], representing a single coordinate. Cannot be set when attribute is required.
      * @param newKey New attribute key.
-     * @return Result<appwrite::models::AttributePoint>
+     * @return appwrite::Result<appwrite::models::AttributePoint>
      */
-    [[nodiscard]] Result<appwrite::models::AttributePoint> updatePointAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<std::vector<std::string>> default_ = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::AttributePoint> updatePointAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<std::vector<std::string>> default_ = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/point/{}", databaseId, collectionId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -4371,9 +4371,9 @@ public:
      * @param required Is attribute required?
      * @param default_ Default value for attribute when not provided, array of two numbers [longitude, latitude], representing a single coordinate. Cannot be set when attribute is required.
      * @param newKey New attribute key.
-     * @return Result<appwrite::models::AttributePoint>
+     * @return appwrite::Result<appwrite::models::AttributePoint>
      */
-    [[nodiscard]] Task<Result<appwrite::models::AttributePoint>> updatePointAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<std::vector<std::string>> default_ = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::AttributePoint>> updatePointAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<std::vector<std::string>> default_ = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/point/{}", databaseId, collectionId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -4397,9 +4397,9 @@ public:
      * @param key Attribute Key.
      * @param required Is attribute required?
      * @param default_ Default value for attribute when not provided, three-dimensional array where the outer array holds one or more linear rings, [[[longitude, latitude], …], …], the first ring is the exterior boundary, any additional rings are interior holes, and each ring must start and end with the same coordinate pair. Cannot be set when attribute is required.
-     * @return Result<appwrite::models::AttributePolygon>
+     * @return appwrite::Result<appwrite::models::AttributePolygon>
      */
-    [[nodiscard]] Result<appwrite::models::AttributePolygon> createPolygonAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<std::vector<std::string>> default_ = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::AttributePolygon> createPolygonAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<std::vector<std::string>> default_ = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/polygon", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -4422,9 +4422,9 @@ public:
      * @param key Attribute Key.
      * @param required Is attribute required?
      * @param default_ Default value for attribute when not provided, three-dimensional array where the outer array holds one or more linear rings, [[[longitude, latitude], …], …], the first ring is the exterior boundary, any additional rings are interior holes, and each ring must start and end with the same coordinate pair. Cannot be set when attribute is required.
-     * @return Result<appwrite::models::AttributePolygon>
+     * @return appwrite::Result<appwrite::models::AttributePolygon>
      */
-    [[nodiscard]] Task<Result<appwrite::models::AttributePolygon>> createPolygonAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<std::vector<std::string>> default_ = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::AttributePolygon>> createPolygonAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<std::vector<std::string>> default_ = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/polygon", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -4448,9 +4448,9 @@ public:
      * @param required Is attribute required?
      * @param default_ Default value for attribute when not provided, three-dimensional array where the outer array holds one or more linear rings, [[[longitude, latitude], …], …], the first ring is the exterior boundary, any additional rings are interior holes, and each ring must start and end with the same coordinate pair. Cannot be set when attribute is required.
      * @param newKey New attribute key.
-     * @return Result<appwrite::models::AttributePolygon>
+     * @return appwrite::Result<appwrite::models::AttributePolygon>
      */
-    [[nodiscard]] Result<appwrite::models::AttributePolygon> updatePolygonAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<std::vector<std::string>> default_ = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::AttributePolygon> updatePolygonAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<std::vector<std::string>> default_ = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/polygon/{}", databaseId, collectionId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -4477,9 +4477,9 @@ public:
      * @param required Is attribute required?
      * @param default_ Default value for attribute when not provided, three-dimensional array where the outer array holds one or more linear rings, [[[longitude, latitude], …], …], the first ring is the exterior boundary, any additional rings are interior holes, and each ring must start and end with the same coordinate pair. Cannot be set when attribute is required.
      * @param newKey New attribute key.
-     * @return Result<appwrite::models::AttributePolygon>
+     * @return appwrite::Result<appwrite::models::AttributePolygon>
      */
-    [[nodiscard]] Task<Result<appwrite::models::AttributePolygon>> updatePolygonAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<std::vector<std::string>> default_ = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::AttributePolygon>> updatePolygonAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<std::vector<std::string>> default_ = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/polygon/{}", databaseId, collectionId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -4507,9 +4507,9 @@ public:
      * @param key Attribute Key.
      * @param twoWayKey Two Way Attribute Key.
      * @param onDelete Constraints option
-     * @return Result<appwrite::models::AttributeRelationship>
+     * @return appwrite::Result<appwrite::models::AttributeRelationship>
      */
-    [[nodiscard]] Result<appwrite::models::AttributeRelationship> createRelationshipAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view relatedCollectionId,         appwrite::enums::RelationshipType type,         std::optional<bool> twoWay = false,         std::optional<std::string_view> key = std::nullopt,         std::optional<std::string_view> twoWayKey = std::nullopt,         std::optional<appwrite::enums::RelationMutate> onDelete = appwrite::enums::RelationMutate::RESTRICT    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::AttributeRelationship> createRelationshipAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view relatedCollectionId,         appwrite::enums::RelationshipType type,         std::optional<bool> twoWay = false,         std::optional<std::string_view> key = std::nullopt,         std::optional<std::string_view> twoWayKey = std::nullopt,         std::optional<appwrite::enums::RelationMutate> onDelete = appwrite::enums::RelationMutate::RESTRICT    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/relationship", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -4545,9 +4545,9 @@ public:
      * @param key Attribute Key.
      * @param twoWayKey Two Way Attribute Key.
      * @param onDelete Constraints option
-     * @return Result<appwrite::models::AttributeRelationship>
+     * @return appwrite::Result<appwrite::models::AttributeRelationship>
      */
-    [[nodiscard]] Task<Result<appwrite::models::AttributeRelationship>> createRelationshipAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view relatedCollectionId,         appwrite::enums::RelationshipType type,         std::optional<bool> twoWay = false,         std::optional<std::string_view> key = std::nullopt,         std::optional<std::string_view> twoWayKey = std::nullopt,         std::optional<appwrite::enums::RelationMutate> onDelete = appwrite::enums::RelationMutate::RESTRICT    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::AttributeRelationship>> createRelationshipAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view relatedCollectionId,         appwrite::enums::RelationshipType type,         std::optional<bool> twoWay = false,         std::optional<std::string_view> key = std::nullopt,         std::optional<std::string_view> twoWayKey = std::nullopt,         std::optional<appwrite::enums::RelationMutate> onDelete = appwrite::enums::RelationMutate::RESTRICT    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/relationship", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -4579,9 +4579,9 @@ public:
      * @param key Attribute Key.
      * @param onDelete Constraints option
      * @param newKey New Attribute Key.
-     * @return Result<appwrite::models::AttributeRelationship>
+     * @return appwrite::Result<appwrite::models::AttributeRelationship>
      */
-    [[nodiscard]] Result<appwrite::models::AttributeRelationship> updateRelationshipAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         std::optional<appwrite::enums::RelationMutate> onDelete = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::AttributeRelationship> updateRelationshipAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         std::optional<appwrite::enums::RelationMutate> onDelete = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/relationship/{}", databaseId, collectionId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -4606,9 +4606,9 @@ public:
      * @param key Attribute Key.
      * @param onDelete Constraints option
      * @param newKey New Attribute Key.
-     * @return Result<appwrite::models::AttributeRelationship>
+     * @return appwrite::Result<appwrite::models::AttributeRelationship>
      */
-    [[nodiscard]] Task<Result<appwrite::models::AttributeRelationship>> updateRelationshipAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         std::optional<appwrite::enums::RelationMutate> onDelete = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::AttributeRelationship>> updateRelationshipAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         std::optional<appwrite::enums::RelationMutate> onDelete = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/relationship/{}", databaseId, collectionId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -4634,9 +4634,9 @@ public:
      * @param default_ Default value for attribute when not provided. Cannot be set when attribute is required.
      * @param array Is attribute an array?
      * @param encrypt Toggle encryption for the attribute. Encryption enhances security by not storing any plain text values in the database. However, encrypted attributes cannot be queried.
-     * @return Result<appwrite::models::AttributeString>
+     * @return appwrite::Result<appwrite::models::AttributeString>
      */
-    [[nodiscard]] Result<appwrite::models::AttributeString> createStringAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         int64_t size,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false,         std::optional<bool> encrypt = false    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::AttributeString> createStringAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         int64_t size,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false,         std::optional<bool> encrypt = false    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/string", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -4669,9 +4669,9 @@ public:
      * @param default_ Default value for attribute when not provided. Cannot be set when attribute is required.
      * @param array Is attribute an array?
      * @param encrypt Toggle encryption for the attribute. Encryption enhances security by not storing any plain text values in the database. However, encrypted attributes cannot be queried.
-     * @return Result<appwrite::models::AttributeString>
+     * @return appwrite::Result<appwrite::models::AttributeString>
      */
-    [[nodiscard]] Task<Result<appwrite::models::AttributeString>> createStringAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         int64_t size,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false,         std::optional<bool> encrypt = false    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::AttributeString>> createStringAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         int64_t size,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false,         std::optional<bool> encrypt = false    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/string", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -4703,9 +4703,9 @@ public:
      * @param default_ Default value for attribute when not provided. Cannot be set when attribute is required.
      * @param size Maximum size of the string attribute.
      * @param newKey New Attribute Key.
-     * @return Result<appwrite::models::AttributeString>
+     * @return appwrite::Result<appwrite::models::AttributeString>
      */
-    [[nodiscard]] Result<appwrite::models::AttributeString> updateStringAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<int64_t> size = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::AttributeString> updateStringAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<int64_t> size = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/string/{}", databaseId, collectionId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -4734,9 +4734,9 @@ public:
      * @param default_ Default value for attribute when not provided. Cannot be set when attribute is required.
      * @param size Maximum size of the string attribute.
      * @param newKey New Attribute Key.
-     * @return Result<appwrite::models::AttributeString>
+     * @return appwrite::Result<appwrite::models::AttributeString>
      */
-    [[nodiscard]] Task<Result<appwrite::models::AttributeString>> updateStringAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<int64_t> size = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::AttributeString>> updateStringAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<int64_t> size = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/string/{}", databaseId, collectionId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -4763,9 +4763,9 @@ public:
      * @param default_ Default value for attribute when not provided. Cannot be set when attribute is required.
      * @param array Is attribute an array?
      * @param encrypt Toggle encryption for the attribute. Encryption enhances security by not storing any plain text values in the database. However, encrypted attributes cannot be queried.
-     * @return Result<appwrite::models::AttributeText>
+     * @return appwrite::Result<appwrite::models::AttributeText>
      */
-    [[nodiscard]] Result<appwrite::models::AttributeText> createTextAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false,         std::optional<bool> encrypt = false    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::AttributeText> createTextAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false,         std::optional<bool> encrypt = false    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/text", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -4796,9 +4796,9 @@ public:
      * @param default_ Default value for attribute when not provided. Cannot be set when attribute is required.
      * @param array Is attribute an array?
      * @param encrypt Toggle encryption for the attribute. Encryption enhances security by not storing any plain text values in the database. However, encrypted attributes cannot be queried.
-     * @return Result<appwrite::models::AttributeText>
+     * @return appwrite::Result<appwrite::models::AttributeText>
      */
-    [[nodiscard]] Task<Result<appwrite::models::AttributeText>> createTextAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false,         std::optional<bool> encrypt = false    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::AttributeText>> createTextAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false,         std::optional<bool> encrypt = false    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/text", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -4828,9 +4828,9 @@ public:
      * @param required Is attribute required?
      * @param default_ Default value for attribute when not provided. Cannot be set when attribute is required.
      * @param newKey New Attribute Key.
-     * @return Result<appwrite::models::AttributeText>
+     * @return appwrite::Result<appwrite::models::AttributeText>
      */
-    [[nodiscard]] Result<appwrite::models::AttributeText> updateTextAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::AttributeText> updateTextAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/text/{}", databaseId, collectionId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -4855,9 +4855,9 @@ public:
      * @param required Is attribute required?
      * @param default_ Default value for attribute when not provided. Cannot be set when attribute is required.
      * @param newKey New Attribute Key.
-     * @return Result<appwrite::models::AttributeText>
+     * @return appwrite::Result<appwrite::models::AttributeText>
      */
-    [[nodiscard]] Task<Result<appwrite::models::AttributeText>> updateTextAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::AttributeText>> updateTextAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/text/{}", databaseId, collectionId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -4880,9 +4880,9 @@ public:
      * @param required Is attribute required?
      * @param default_ Default value for attribute when not provided. Cannot be set when attribute is required.
      * @param array Is attribute an array?
-     * @return Result<appwrite::models::AttributeUrl>
+     * @return appwrite::Result<appwrite::models::AttributeUrl>
      */
-    [[nodiscard]] Result<appwrite::models::AttributeUrl> createUrlAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::AttributeUrl> createUrlAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/url", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -4909,9 +4909,9 @@ public:
      * @param required Is attribute required?
      * @param default_ Default value for attribute when not provided. Cannot be set when attribute is required.
      * @param array Is attribute an array?
-     * @return Result<appwrite::models::AttributeUrl>
+     * @return appwrite::Result<appwrite::models::AttributeUrl>
      */
-    [[nodiscard]] Task<Result<appwrite::models::AttributeUrl>> createUrlAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::AttributeUrl>> createUrlAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/url", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -4938,9 +4938,9 @@ public:
      * @param required Is attribute required?
      * @param default_ Default value for attribute when not provided. Cannot be set when attribute is required.
      * @param newKey New Attribute Key.
-     * @return Result<appwrite::models::AttributeUrl>
+     * @return appwrite::Result<appwrite::models::AttributeUrl>
      */
-    [[nodiscard]] Result<appwrite::models::AttributeUrl> updateUrlAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::AttributeUrl> updateUrlAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/url/{}", databaseId, collectionId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -4965,9 +4965,9 @@ public:
      * @param required Is attribute required?
      * @param default_ Default value for attribute when not provided. Cannot be set when attribute is required.
      * @param newKey New Attribute Key.
-     * @return Result<appwrite::models::AttributeUrl>
+     * @return appwrite::Result<appwrite::models::AttributeUrl>
      */
-    [[nodiscard]] Task<Result<appwrite::models::AttributeUrl>> updateUrlAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::AttributeUrl>> updateUrlAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/url/{}", databaseId, collectionId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -4992,9 +4992,9 @@ public:
      * @param default_ Default value for attribute when not provided. Cannot be set when attribute is required.
      * @param array Is attribute an array?
      * @param encrypt Toggle encryption for the attribute. Encryption enhances security by not storing any plain text values in the database. However, encrypted attributes cannot be queried.
-     * @return Result<appwrite::models::AttributeVarchar>
+     * @return appwrite::Result<appwrite::models::AttributeVarchar>
      */
-    [[nodiscard]] Result<appwrite::models::AttributeVarchar> createVarcharAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         int64_t size,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false,         std::optional<bool> encrypt = false    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::AttributeVarchar> createVarcharAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         int64_t size,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false,         std::optional<bool> encrypt = false    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/varchar", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -5027,9 +5027,9 @@ public:
      * @param default_ Default value for attribute when not provided. Cannot be set when attribute is required.
      * @param array Is attribute an array?
      * @param encrypt Toggle encryption for the attribute. Encryption enhances security by not storing any plain text values in the database. However, encrypted attributes cannot be queried.
-     * @return Result<appwrite::models::AttributeVarchar>
+     * @return appwrite::Result<appwrite::models::AttributeVarchar>
      */
-    [[nodiscard]] Task<Result<appwrite::models::AttributeVarchar>> createVarcharAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         int64_t size,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false,         std::optional<bool> encrypt = false    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::AttributeVarchar>> createVarcharAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         int64_t size,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false,         std::optional<bool> encrypt = false    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/varchar", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -5061,9 +5061,9 @@ public:
      * @param default_ Default value for attribute when not provided. Cannot be set when attribute is required.
      * @param size Maximum size of the varchar attribute.
      * @param newKey New Attribute Key.
-     * @return Result<appwrite::models::AttributeVarchar>
+     * @return appwrite::Result<appwrite::models::AttributeVarchar>
      */
-    [[nodiscard]] Result<appwrite::models::AttributeVarchar> updateVarcharAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<int64_t> size = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::AttributeVarchar> updateVarcharAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<int64_t> size = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/varchar/{}", databaseId, collectionId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -5092,9 +5092,9 @@ public:
      * @param default_ Default value for attribute when not provided. Cannot be set when attribute is required.
      * @param size Maximum size of the varchar attribute.
      * @param newKey New Attribute Key.
-     * @return Result<appwrite::models::AttributeVarchar>
+     * @return appwrite::Result<appwrite::models::AttributeVarchar>
      */
-    [[nodiscard]] Task<Result<appwrite::models::AttributeVarchar>> updateVarcharAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<int64_t> size = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::AttributeVarchar>> updateVarcharAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<int64_t> size = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/varchar/{}", databaseId, collectionId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -5117,9 +5117,9 @@ public:
      * @param databaseId Database ID.
      * @param collectionId Collection ID.
      * @param key Attribute Key.
-     * @return Result<nlohmann::json>
+     * @return appwrite::Result<nlohmann::json>
      */
-    [[nodiscard]] Result<nlohmann::json> getAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key    ) {
+    [[nodiscard]] appwrite::Result<nlohmann::json> getAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/{}", databaseId, collectionId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -5135,9 +5135,9 @@ public:
      * @param databaseId Database ID.
      * @param collectionId Collection ID.
      * @param key Attribute Key.
-     * @return Result<nlohmann::json>
+     * @return appwrite::Result<nlohmann::json>
      */
-    [[nodiscard]] Task<Result<nlohmann::json>> getAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<nlohmann::json>> getAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/{}", databaseId, collectionId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -5152,9 +5152,9 @@ public:
      * @param databaseId Database ID.
      * @param collectionId Collection ID.
      * @param key Attribute Key.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Result<void> deleteAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key    ) {
+    [[nodiscard]] appwrite::Result<void> deleteAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/{}", databaseId, collectionId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -5170,9 +5170,9 @@ public:
      * @param databaseId Database ID.
      * @param collectionId Collection ID.
      * @param key Attribute Key.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Task<Result<void>> deleteAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<void>> deleteAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/attributes/{}", databaseId, collectionId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -5191,9 +5191,9 @@ public:
      * @param transactionId Transaction ID to read uncommitted changes within the transaction.
      * @param total When set to false, the total count returned will be 0 and will not be calculated.
      * @param ttl TTL (seconds) for caching list responses. Responses are stored in an in-memory key-value cache, keyed per project, collection, schema version (attributes and indexes), caller authorization roles, and the exact query — so users with different permissions never share cached entries. Schema changes invalidate cached entries automatically; document writes do not, so choose a TTL you are comfortable serving as stale data. Set to 0 to disable caching. Must be between 0 and 86400 (24 hours).
-     * @return Result<appwrite::models::DocumentList>
+     * @return appwrite::Result<appwrite::models::DocumentList>
      */
-    [[nodiscard]] Result<appwrite::models::DocumentList> listDocuments(        std::string_view databaseId,         std::string_view collectionId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> transactionId = std::nullopt,         std::optional<bool> total = true,         std::optional<int64_t> ttl = 0    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::DocumentList> listDocuments(        std::string_view databaseId,         std::string_view collectionId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> transactionId = std::nullopt,         std::optional<bool> total = true,         std::optional<int64_t> ttl = 0    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/documents", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -5225,9 +5225,9 @@ public:
      * @param transactionId Transaction ID to read uncommitted changes within the transaction.
      * @param total When set to false, the total count returned will be 0 and will not be calculated.
      * @param ttl TTL (seconds) for caching list responses. Responses are stored in an in-memory key-value cache, keyed per project, collection, schema version (attributes and indexes), caller authorization roles, and the exact query — so users with different permissions never share cached entries. Schema changes invalidate cached entries automatically; document writes do not, so choose a TTL you are comfortable serving as stale data. Set to 0 to disable caching. Must be between 0 and 86400 (24 hours).
-     * @return Result<appwrite::models::DocumentList>
+     * @return appwrite::Result<appwrite::models::DocumentList>
      */
-    [[nodiscard]] Task<Result<appwrite::models::DocumentList>> listDocumentsAsync(        std::string_view databaseId,         std::string_view collectionId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> transactionId = std::nullopt,         std::optional<bool> total = true,         std::optional<int64_t> ttl = 0    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::DocumentList>> listDocumentsAsync(        std::string_view databaseId,         std::string_view collectionId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> transactionId = std::nullopt,         std::optional<bool> total = true,         std::optional<int64_t> ttl = 0    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/documents", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -5260,9 +5260,9 @@ public:
      * @param data Document data as JSON object.
      * @param permissions An array of permissions strings. By default, only the current user is granted all permissions. [Learn more about permissions](https://appwrite.io/docs/permissions).
      * @param transactionId Transaction ID for staging the operation.
-     * @return Result<appwrite::models::Document>
+     * @return appwrite::Result<appwrite::models::Document>
      */
-    [[nodiscard]] Result<appwrite::models::Document> createDocument(        std::string_view databaseId,         std::string_view collectionId,         std::string_view documentId = "",         const nlohmann::json& data = nlohmann::json::object(),         std::optional<std::vector<std::string>> permissions = std::nullopt,         std::optional<std::string_view> transactionId = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Document> createDocument(        std::string_view databaseId,         std::string_view collectionId,         std::string_view documentId = "",         const nlohmann::json& data = nlohmann::json::object(),         std::optional<std::vector<std::string>> permissions = std::nullopt,         std::optional<std::string_view> transactionId = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/documents", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -5292,9 +5292,9 @@ public:
      * @param data Document data as JSON object.
      * @param permissions An array of permissions strings. By default, only the current user is granted all permissions. [Learn more about permissions](https://appwrite.io/docs/permissions).
      * @param transactionId Transaction ID for staging the operation.
-     * @return Result<appwrite::models::Document>
+     * @return appwrite::Result<appwrite::models::Document>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Document>> createDocumentAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view documentId = "",         const nlohmann::json& data = nlohmann::json::object(),         std::optional<std::vector<std::string>> permissions = std::nullopt,         std::optional<std::string_view> transactionId = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Document>> createDocumentAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view documentId = "",         const nlohmann::json& data = nlohmann::json::object(),         std::optional<std::vector<std::string>> permissions = std::nullopt,         std::optional<std::string_view> transactionId = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/documents", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -5321,9 +5321,9 @@ public:
      * @param collectionId Collection ID. You can create a new collection using the Database service [server integration](https://appwrite.io/docs/server/databases#databasesCreateCollection). Make sure to define attributes before creating documents.
      * @param documents Array of documents data as JSON objects.
      * @param transactionId Transaction ID for staging the operation.
-     * @return Result<appwrite::models::DocumentList>
+     * @return appwrite::Result<appwrite::models::DocumentList>
      */
-    [[nodiscard]] Result<appwrite::models::DocumentList> createDocuments(        std::string_view databaseId,         std::string_view collectionId,         std::vector<nlohmann::json> documents = std::vector<nlohmann::json>{},         std::optional<std::string_view> transactionId = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::DocumentList> createDocuments(        std::string_view databaseId,         std::string_view collectionId,         std::vector<nlohmann::json> documents = std::vector<nlohmann::json>{},         std::optional<std::string_view> transactionId = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/documents", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -5347,9 +5347,9 @@ public:
      * @param collectionId Collection ID. You can create a new collection using the Database service [server integration](https://appwrite.io/docs/server/databases#databasesCreateCollection). Make sure to define attributes before creating documents.
      * @param documents Array of documents data as JSON objects.
      * @param transactionId Transaction ID for staging the operation.
-     * @return Result<appwrite::models::DocumentList>
+     * @return appwrite::Result<appwrite::models::DocumentList>
      */
-    [[nodiscard]] Task<Result<appwrite::models::DocumentList>> createDocumentsAsync(        std::string_view databaseId,         std::string_view collectionId,         std::vector<nlohmann::json> documents = std::vector<nlohmann::json>{},         std::optional<std::string_view> transactionId = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::DocumentList>> createDocumentsAsync(        std::string_view databaseId,         std::string_view collectionId,         std::vector<nlohmann::json> documents = std::vector<nlohmann::json>{},         std::optional<std::string_view> transactionId = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/documents", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -5372,9 +5372,9 @@ public:
      * @param collectionId Collection ID.
      * @param documents Array of document data as JSON objects. May contain partial documents.
      * @param transactionId Transaction ID for staging the operation.
-     * @return Result<appwrite::models::DocumentList>
+     * @return appwrite::Result<appwrite::models::DocumentList>
      */
-    [[nodiscard]] Result<appwrite::models::DocumentList> upsertDocuments(        std::string_view databaseId,         std::string_view collectionId,         std::vector<nlohmann::json> documents,         std::optional<std::string_view> transactionId = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::DocumentList> upsertDocuments(        std::string_view databaseId,         std::string_view collectionId,         std::vector<nlohmann::json> documents,         std::optional<std::string_view> transactionId = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/documents", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -5398,9 +5398,9 @@ public:
      * @param collectionId Collection ID.
      * @param documents Array of document data as JSON objects. May contain partial documents.
      * @param transactionId Transaction ID for staging the operation.
-     * @return Result<appwrite::models::DocumentList>
+     * @return appwrite::Result<appwrite::models::DocumentList>
      */
-    [[nodiscard]] Task<Result<appwrite::models::DocumentList>> upsertDocumentsAsync(        std::string_view databaseId,         std::string_view collectionId,         std::vector<nlohmann::json> documents,         std::optional<std::string_view> transactionId = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::DocumentList>> upsertDocumentsAsync(        std::string_view databaseId,         std::string_view collectionId,         std::vector<nlohmann::json> documents,         std::optional<std::string_view> transactionId = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/documents", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -5423,9 +5423,9 @@ public:
      * @param data Document data as JSON object. Include only attribute and value pairs to be updated.
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of 100 queries are allowed, each 4096 characters long.
      * @param transactionId Transaction ID for staging the operation.
-     * @return Result<appwrite::models::DocumentList>
+     * @return appwrite::Result<appwrite::models::DocumentList>
      */
-    [[nodiscard]] Result<appwrite::models::DocumentList> updateDocuments(        std::string_view databaseId,         std::string_view collectionId,         std::optional<nlohmann::json> data = nlohmann::json::object(),         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> transactionId = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::DocumentList> updateDocuments(        std::string_view databaseId,         std::string_view collectionId,         std::optional<nlohmann::json> data = nlohmann::json::object(),         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> transactionId = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/documents", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -5454,9 +5454,9 @@ public:
      * @param data Document data as JSON object. Include only attribute and value pairs to be updated.
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of 100 queries are allowed, each 4096 characters long.
      * @param transactionId Transaction ID for staging the operation.
-     * @return Result<appwrite::models::DocumentList>
+     * @return appwrite::Result<appwrite::models::DocumentList>
      */
-    [[nodiscard]] Task<Result<appwrite::models::DocumentList>> updateDocumentsAsync(        std::string_view databaseId,         std::string_view collectionId,         std::optional<nlohmann::json> data = nlohmann::json::object(),         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> transactionId = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::DocumentList>> updateDocumentsAsync(        std::string_view databaseId,         std::string_view collectionId,         std::optional<nlohmann::json> data = nlohmann::json::object(),         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> transactionId = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/documents", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -5482,9 +5482,9 @@ public:
      * @param collectionId Collection ID. You can create a new collection using the Database service [server integration](https://appwrite.io/docs/server/databases#databasesCreateCollection).
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of 100 queries are allowed, each 4096 characters long.
      * @param transactionId Transaction ID for staging the operation.
-     * @return Result<appwrite::models::DocumentList>
+     * @return appwrite::Result<appwrite::models::DocumentList>
      */
-    [[nodiscard]] Result<appwrite::models::DocumentList> deleteDocuments(        std::string_view databaseId,         std::string_view collectionId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> transactionId = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::DocumentList> deleteDocuments(        std::string_view databaseId,         std::string_view collectionId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> transactionId = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/documents", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -5508,9 +5508,9 @@ public:
      * @param collectionId Collection ID. You can create a new collection using the Database service [server integration](https://appwrite.io/docs/server/databases#databasesCreateCollection).
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of 100 queries are allowed, each 4096 characters long.
      * @param transactionId Transaction ID for staging the operation.
-     * @return Result<appwrite::models::DocumentList>
+     * @return appwrite::Result<appwrite::models::DocumentList>
      */
-    [[nodiscard]] Task<Result<appwrite::models::DocumentList>> deleteDocumentsAsync(        std::string_view databaseId,         std::string_view collectionId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> transactionId = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::DocumentList>> deleteDocumentsAsync(        std::string_view databaseId,         std::string_view collectionId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> transactionId = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/documents", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -5534,9 +5534,9 @@ public:
      * @param documentId Document ID.
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of 100 queries are allowed, each 4096 characters long.
      * @param transactionId Transaction ID to read uncommitted changes within the transaction.
-     * @return Result<appwrite::models::Document>
+     * @return appwrite::Result<appwrite::models::Document>
      */
-    [[nodiscard]] Result<appwrite::models::Document> getDocument(        std::string_view databaseId,         std::string_view collectionId,         std::string_view documentId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> transactionId = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Document> getDocument(        std::string_view databaseId,         std::string_view collectionId,         std::string_view documentId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> transactionId = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/documents/{}", databaseId, collectionId, documentId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -5561,9 +5561,9 @@ public:
      * @param documentId Document ID.
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of 100 queries are allowed, each 4096 characters long.
      * @param transactionId Transaction ID to read uncommitted changes within the transaction.
-     * @return Result<appwrite::models::Document>
+     * @return appwrite::Result<appwrite::models::Document>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Document>> getDocumentAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view documentId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> transactionId = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Document>> getDocumentAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view documentId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> transactionId = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/documents/{}", databaseId, collectionId, documentId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -5590,9 +5590,9 @@ public:
      * @param data Document data as JSON object. Include all required attributes of the document to be created or updated.
      * @param permissions An array of permissions strings. By default, the current permissions are inherited. [Learn more about permissions](https://appwrite.io/docs/permissions).
      * @param transactionId Transaction ID for staging the operation.
-     * @return Result<appwrite::models::Document>
+     * @return appwrite::Result<appwrite::models::Document>
      */
-    [[nodiscard]] Result<appwrite::models::Document> upsertDocument(        std::string_view databaseId,         std::string_view collectionId,         std::string_view documentId,         std::optional<nlohmann::json> data = nlohmann::json::object(),         std::optional<std::vector<std::string>> permissions = std::nullopt,         std::optional<std::string_view> transactionId = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Document> upsertDocument(        std::string_view databaseId,         std::string_view collectionId,         std::string_view documentId,         std::optional<nlohmann::json> data = nlohmann::json::object(),         std::optional<std::vector<std::string>> permissions = std::nullopt,         std::optional<std::string_view> transactionId = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/documents/{}", databaseId, collectionId, documentId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -5623,9 +5623,9 @@ public:
      * @param data Document data as JSON object. Include all required attributes of the document to be created or updated.
      * @param permissions An array of permissions strings. By default, the current permissions are inherited. [Learn more about permissions](https://appwrite.io/docs/permissions).
      * @param transactionId Transaction ID for staging the operation.
-     * @return Result<appwrite::models::Document>
+     * @return appwrite::Result<appwrite::models::Document>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Document>> upsertDocumentAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view documentId,         std::optional<nlohmann::json> data = nlohmann::json::object(),         std::optional<std::vector<std::string>> permissions = std::nullopt,         std::optional<std::string_view> transactionId = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Document>> upsertDocumentAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view documentId,         std::optional<nlohmann::json> data = nlohmann::json::object(),         std::optional<std::vector<std::string>> permissions = std::nullopt,         std::optional<std::string_view> transactionId = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/documents/{}", databaseId, collectionId, documentId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -5653,9 +5653,9 @@ public:
      * @param data Document data as JSON object. Include only attribute and value pairs to be updated.
      * @param permissions An array of permissions strings. By default, the current permissions are inherited. [Learn more about permissions](https://appwrite.io/docs/permissions).
      * @param transactionId Transaction ID for staging the operation.
-     * @return Result<appwrite::models::Document>
+     * @return appwrite::Result<appwrite::models::Document>
      */
-    [[nodiscard]] Result<appwrite::models::Document> updateDocument(        std::string_view databaseId,         std::string_view collectionId,         std::string_view documentId,         std::optional<nlohmann::json> data = nlohmann::json::object(),         std::optional<std::vector<std::string>> permissions = std::nullopt,         std::optional<std::string_view> transactionId = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Document> updateDocument(        std::string_view databaseId,         std::string_view collectionId,         std::string_view documentId,         std::optional<nlohmann::json> data = nlohmann::json::object(),         std::optional<std::vector<std::string>> permissions = std::nullopt,         std::optional<std::string_view> transactionId = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/documents/{}", databaseId, collectionId, documentId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -5684,9 +5684,9 @@ public:
      * @param data Document data as JSON object. Include only attribute and value pairs to be updated.
      * @param permissions An array of permissions strings. By default, the current permissions are inherited. [Learn more about permissions](https://appwrite.io/docs/permissions).
      * @param transactionId Transaction ID for staging the operation.
-     * @return Result<appwrite::models::Document>
+     * @return appwrite::Result<appwrite::models::Document>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Document>> updateDocumentAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view documentId,         std::optional<nlohmann::json> data = nlohmann::json::object(),         std::optional<std::vector<std::string>> permissions = std::nullopt,         std::optional<std::string_view> transactionId = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Document>> updateDocumentAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view documentId,         std::optional<nlohmann::json> data = nlohmann::json::object(),         std::optional<std::vector<std::string>> permissions = std::nullopt,         std::optional<std::string_view> transactionId = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/documents/{}", databaseId, collectionId, documentId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -5711,9 +5711,9 @@ public:
      * @param collectionId Collection ID. You can create a new collection using the Database service [server integration](https://appwrite.io/docs/server/databases#databasesCreateCollection).
      * @param documentId Document ID.
      * @param transactionId Transaction ID for staging the operation.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Result<void> deleteDocument(        std::string_view databaseId,         std::string_view collectionId,         std::string_view documentId,         std::optional<std::string_view> transactionId = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<void> deleteDocument(        std::string_view databaseId,         std::string_view collectionId,         std::string_view documentId,         std::optional<std::string_view> transactionId = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/documents/{}", databaseId, collectionId, documentId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -5733,9 +5733,9 @@ public:
      * @param collectionId Collection ID. You can create a new collection using the Database service [server integration](https://appwrite.io/docs/server/databases#databasesCreateCollection).
      * @param documentId Document ID.
      * @param transactionId Transaction ID for staging the operation.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Task<Result<void>> deleteDocumentAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view documentId,         std::optional<std::string_view> transactionId = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<void>> deleteDocumentAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view documentId,         std::optional<std::string_view> transactionId = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/documents/{}", databaseId, collectionId, documentId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -5757,9 +5757,9 @@ public:
      * @param value Value to increment the attribute by. The value must be a number.
      * @param min Minimum value for the attribute. If the current value is lesser than this value, an exception will be thrown.
      * @param transactionId Transaction ID for staging the operation.
-     * @return Result<appwrite::models::Document>
+     * @return appwrite::Result<appwrite::models::Document>
      */
-    [[nodiscard]] Result<appwrite::models::Document> decrementDocumentAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view documentId,         std::string_view attribute,         std::optional<double> value = 1,         std::optional<double> min = std::nullopt,         std::optional<std::string_view> transactionId = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Document> decrementDocumentAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view documentId,         std::string_view attribute,         std::optional<double> value = 1,         std::optional<double> min = std::nullopt,         std::optional<std::string_view> transactionId = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/documents/{}/{}/decrement", databaseId, collectionId, documentId, attribute);
         
         nlohmann::json params = nlohmann::json::object();
@@ -5788,9 +5788,9 @@ public:
      * @param value Value to increment the attribute by. The value must be a number.
      * @param min Minimum value for the attribute. If the current value is lesser than this value, an exception will be thrown.
      * @param transactionId Transaction ID for staging the operation.
-     * @return Result<appwrite::models::Document>
+     * @return appwrite::Result<appwrite::models::Document>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Document>> decrementDocumentAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view documentId,         std::string_view attribute,         std::optional<double> value = 1,         std::optional<double> min = std::nullopt,         std::optional<std::string_view> transactionId = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Document>> decrementDocumentAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view documentId,         std::string_view attribute,         std::optional<double> value = 1,         std::optional<double> min = std::nullopt,         std::optional<std::string_view> transactionId = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/documents/{}/{}/decrement", databaseId, collectionId, documentId, attribute);
         
         nlohmann::json params = nlohmann::json::object();
@@ -5818,9 +5818,9 @@ public:
      * @param value Value to increment the attribute by. The value must be a number.
      * @param max Maximum value for the attribute. If the current value is greater than this value, an error will be thrown.
      * @param transactionId Transaction ID for staging the operation.
-     * @return Result<appwrite::models::Document>
+     * @return appwrite::Result<appwrite::models::Document>
      */
-    [[nodiscard]] Result<appwrite::models::Document> incrementDocumentAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view documentId,         std::string_view attribute,         std::optional<double> value = 1,         std::optional<double> max = std::nullopt,         std::optional<std::string_view> transactionId = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Document> incrementDocumentAttribute(        std::string_view databaseId,         std::string_view collectionId,         std::string_view documentId,         std::string_view attribute,         std::optional<double> value = 1,         std::optional<double> max = std::nullopt,         std::optional<std::string_view> transactionId = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/documents/{}/{}/increment", databaseId, collectionId, documentId, attribute);
         
         nlohmann::json params = nlohmann::json::object();
@@ -5849,9 +5849,9 @@ public:
      * @param value Value to increment the attribute by. The value must be a number.
      * @param max Maximum value for the attribute. If the current value is greater than this value, an error will be thrown.
      * @param transactionId Transaction ID for staging the operation.
-     * @return Result<appwrite::models::Document>
+     * @return appwrite::Result<appwrite::models::Document>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Document>> incrementDocumentAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view documentId,         std::string_view attribute,         std::optional<double> value = 1,         std::optional<double> max = std::nullopt,         std::optional<std::string_view> transactionId = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Document>> incrementDocumentAttributeAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view documentId,         std::string_view attribute,         std::optional<double> value = 1,         std::optional<double> max = std::nullopt,         std::optional<std::string_view> transactionId = std::nullopt    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/documents/{}/{}/increment", databaseId, collectionId, documentId, attribute);
         
         nlohmann::json params = nlohmann::json::object();
@@ -5876,9 +5876,9 @@ public:
      * @param collectionId Collection ID. You can create a new collection using the Database service [server integration](https://appwrite.io/docs/server/databases#databasesCreateCollection).
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of 100 queries are allowed, each 4096 characters long. You may filter on the following attributes: key, type, status, attributes, error
      * @param total When set to false, the total count returned will be 0 and will not be calculated.
-     * @return Result<appwrite::models::IndexList>
+     * @return appwrite::Result<appwrite::models::IndexList>
      */
-    [[nodiscard]] Result<appwrite::models::IndexList> listIndexes(        std::string_view databaseId,         std::string_view collectionId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<bool> total = true    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::IndexList> listIndexes(        std::string_view databaseId,         std::string_view collectionId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<bool> total = true    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/indexes", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -5901,9 +5901,9 @@ public:
      * @param collectionId Collection ID. You can create a new collection using the Database service [server integration](https://appwrite.io/docs/server/databases#databasesCreateCollection).
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of 100 queries are allowed, each 4096 characters long. You may filter on the following attributes: key, type, status, attributes, error
      * @param total When set to false, the total count returned will be 0 and will not be calculated.
-     * @return Result<appwrite::models::IndexList>
+     * @return appwrite::Result<appwrite::models::IndexList>
      */
-    [[nodiscard]] Task<Result<appwrite::models::IndexList>> listIndexesAsync(        std::string_view databaseId,         std::string_view collectionId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<bool> total = true    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::IndexList>> listIndexesAsync(        std::string_view databaseId,         std::string_view collectionId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<bool> total = true    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/indexes", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -5931,9 +5931,9 @@ Attributes can be `key`,
      * @param attributes Array of attributes to index. Maximum of 100 attributes are allowed, each 32 characters long.
      * @param orders Array of index orders. Maximum of 100 orders are allowed.
      * @param lengths Length of index. Maximum of 100
-     * @return Result<appwrite::models::Index>
+     * @return appwrite::Result<appwrite::models::Index>
      */
-    [[nodiscard]] Result<appwrite::models::Index> createIndex(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         appwrite::enums::DatabasesIndexType type,         std::vector<std::string> attributes,         std::optional<std::vector<appwrite::enums::OrderBy>> orders = {},         std::optional<std::vector<int64_t>> lengths = std::vector<int64_t>{}    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Index> createIndex(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         appwrite::enums::DatabasesIndexType type,         std::vector<std::string> attributes,         std::optional<std::vector<appwrite::enums::OrderBy>> orders = {},         std::optional<std::vector<int64_t>> lengths = std::vector<int64_t>{}    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/indexes", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -5965,9 +5965,9 @@ Attributes can be `key`,
      * @param attributes Array of attributes to index. Maximum of 100 attributes are allowed, each 32 characters long.
      * @param orders Array of index orders. Maximum of 100 orders are allowed.
      * @param lengths Length of index. Maximum of 100
-     * @return Result<appwrite::models::Index>
+     * @return appwrite::Result<appwrite::models::Index>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Index>> createIndexAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         appwrite::enums::DatabasesIndexType type,         std::vector<std::string> attributes,         std::optional<std::vector<appwrite::enums::OrderBy>> orders = {},         std::optional<std::vector<int64_t>> lengths = std::vector<int64_t>{}    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Index>> createIndexAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key,         appwrite::enums::DatabasesIndexType type,         std::vector<std::string> attributes,         std::optional<std::vector<appwrite::enums::OrderBy>> orders = {},         std::optional<std::vector<int64_t>> lengths = std::vector<int64_t>{}    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/indexes", databaseId, collectionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -5991,9 +5991,9 @@ Attributes can be `key`,
      * @param databaseId Database ID.
      * @param collectionId Collection ID. You can create a new collection using the Database service [server integration](https://appwrite.io/docs/server/databases#databasesCreateCollection).
      * @param key Index Key.
-     * @return Result<appwrite::models::Index>
+     * @return appwrite::Result<appwrite::models::Index>
      */
-    [[nodiscard]] Result<appwrite::models::Index> getIndex(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Index> getIndex(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/indexes/{}", databaseId, collectionId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -6009,9 +6009,9 @@ Attributes can be `key`,
      * @param databaseId Database ID.
      * @param collectionId Collection ID. You can create a new collection using the Database service [server integration](https://appwrite.io/docs/server/databases#databasesCreateCollection).
      * @param key Index Key.
-     * @return Result<appwrite::models::Index>
+     * @return appwrite::Result<appwrite::models::Index>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Index>> getIndexAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Index>> getIndexAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/indexes/{}", databaseId, collectionId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -6026,9 +6026,9 @@ Attributes can be `key`,
      * @param databaseId Database ID.
      * @param collectionId Collection ID. You can create a new collection using the Database service [server integration](https://appwrite.io/docs/server/databases#databasesCreateCollection).
      * @param key Index Key.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Result<void> deleteIndex(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key    ) {
+    [[nodiscard]] appwrite::Result<void> deleteIndex(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/indexes/{}", databaseId, collectionId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -6044,9 +6044,9 @@ Attributes can be `key`,
      * @param databaseId Database ID.
      * @param collectionId Collection ID. You can create a new collection using the Database service [server integration](https://appwrite.io/docs/server/databases#databasesCreateCollection).
      * @param key Index Key.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Task<Result<void>> deleteIndexAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<void>> deleteIndexAsync(        std::string_view databaseId,         std::string_view collectionId,         std::string_view key    ) {
                 std::string path_ = std::format("/databases/{}/collections/{}/indexes/{}", databaseId, collectionId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -6071,9 +6071,9 @@ public:
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of 100 queries are allowed, each 4096 characters long. You may filter on the following attributes: name, enabled, runtime, deploymentId, schedule, scheduleNext, schedulePrevious, timeout, entrypoint, commands, installationId
      * @param search Search term to filter your list results. Max length: 256 chars.
      * @param total When set to false, the total count returned will be 0 and will not be calculated.
-     * @return Result<appwrite::models::FunctionList>
+     * @return appwrite::Result<appwrite::models::FunctionList>
      */
-    [[nodiscard]] Result<appwrite::models::FunctionList> list(        std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> search = std::nullopt,         std::optional<bool> total = true    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::FunctionList> list(        std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> search = std::nullopt,         std::optional<bool> total = true    ) {
                 std::string path_ = std::format("/functions");
         
         nlohmann::json params = nlohmann::json::object();
@@ -6099,9 +6099,9 @@ public:
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of 100 queries are allowed, each 4096 characters long. You may filter on the following attributes: name, enabled, runtime, deploymentId, schedule, scheduleNext, schedulePrevious, timeout, entrypoint, commands, installationId
      * @param search Search term to filter your list results. Max length: 256 chars.
      * @param total When set to false, the total count returned will be 0 and will not be calculated.
-     * @return Result<appwrite::models::FunctionList>
+     * @return appwrite::Result<appwrite::models::FunctionList>
      */
-    [[nodiscard]] Task<Result<appwrite::models::FunctionList>> listAsync(        std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> search = std::nullopt,         std::optional<bool> total = true    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::FunctionList>> listAsync(        std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> search = std::nullopt,         std::optional<bool> total = true    ) {
                 std::string path_ = std::format("/functions");
         
         nlohmann::json params = nlohmann::json::object();
@@ -6145,9 +6145,9 @@ public:
      * @param buildSpecification Build specification for the function deployments.
      * @param runtimeSpecification Runtime specification for the function executions.
      * @param deploymentRetention Days to keep non-active deployments before deletion. Value 0 means all deployments will be kept.
-     * @return Result<appwrite::models::Function>
+     * @return appwrite::Result<appwrite::models::Function>
      */
-    [[nodiscard]] Result<appwrite::models::Function> create(        std::string_view functionId,         std::string_view name,         appwrite::enums::Runtime runtime,         std::optional<std::vector<std::string>> execute = std::vector<std::string>{},         std::optional<std::vector<std::string>> events = std::vector<std::string>{},         std::optional<std::string_view> schedule = std::nullopt,         std::optional<int64_t> timeout = 15,         std::optional<bool> enabled = true,         std::optional<bool> logging = true,         std::optional<std::string_view> entrypoint = std::nullopt,         std::optional<std::string_view> commands = std::nullopt,         std::optional<std::vector<appwrite::enums::Scopes>> scopes = {},         std::optional<std::string_view> installationId = std::nullopt,         std::optional<std::string_view> providerRepositoryId = std::nullopt,         std::optional<std::string_view> providerBranch = std::nullopt,         std::optional<bool> providerSilentMode = false,         std::optional<std::string_view> providerRootDirectory = std::nullopt,         std::optional<std::string_view> buildSpecification = "[]",         std::optional<std::string_view> runtimeSpecification = "[]",         std::optional<int64_t> deploymentRetention = 0    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Function> create(        std::string_view functionId,         std::string_view name,         appwrite::enums::Runtime runtime,         std::optional<std::vector<std::string>> execute = std::vector<std::string>{},         std::optional<std::vector<std::string>> events = std::vector<std::string>{},         std::optional<std::string_view> schedule = std::nullopt,         std::optional<int64_t> timeout = 15,         std::optional<bool> enabled = true,         std::optional<bool> logging = true,         std::optional<std::string_view> entrypoint = std::nullopt,         std::optional<std::string_view> commands = std::nullopt,         std::optional<std::vector<appwrite::enums::Scopes>> scopes = {},         std::optional<std::string_view> installationId = std::nullopt,         std::optional<std::string_view> providerRepositoryId = std::nullopt,         std::optional<std::string_view> providerBranch = std::nullopt,         std::optional<bool> providerSilentMode = false,         std::optional<std::string_view> providerRootDirectory = std::nullopt,         std::optional<std::string_view> buildSpecification = "[]",         std::optional<std::string_view> runtimeSpecification = "[]",         std::optional<int64_t> deploymentRetention = 0    ) {
                 std::string path_ = std::format("/functions");
         
         nlohmann::json params = nlohmann::json::object();
@@ -6237,9 +6237,9 @@ public:
      * @param buildSpecification Build specification for the function deployments.
      * @param runtimeSpecification Runtime specification for the function executions.
      * @param deploymentRetention Days to keep non-active deployments before deletion. Value 0 means all deployments will be kept.
-     * @return Result<appwrite::models::Function>
+     * @return appwrite::Result<appwrite::models::Function>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Function>> createAsync(        std::string_view functionId,         std::string_view name,         appwrite::enums::Runtime runtime,         std::optional<std::vector<std::string>> execute = std::vector<std::string>{},         std::optional<std::vector<std::string>> events = std::vector<std::string>{},         std::optional<std::string_view> schedule = std::nullopt,         std::optional<int64_t> timeout = 15,         std::optional<bool> enabled = true,         std::optional<bool> logging = true,         std::optional<std::string_view> entrypoint = std::nullopt,         std::optional<std::string_view> commands = std::nullopt,         std::optional<std::vector<appwrite::enums::Scopes>> scopes = {},         std::optional<std::string_view> installationId = std::nullopt,         std::optional<std::string_view> providerRepositoryId = std::nullopt,         std::optional<std::string_view> providerBranch = std::nullopt,         std::optional<bool> providerSilentMode = false,         std::optional<std::string_view> providerRootDirectory = std::nullopt,         std::optional<std::string_view> buildSpecification = "[]",         std::optional<std::string_view> runtimeSpecification = "[]",         std::optional<int64_t> deploymentRetention = 0    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Function>> createAsync(        std::string_view functionId,         std::string_view name,         appwrite::enums::Runtime runtime,         std::optional<std::vector<std::string>> execute = std::vector<std::string>{},         std::optional<std::vector<std::string>> events = std::vector<std::string>{},         std::optional<std::string_view> schedule = std::nullopt,         std::optional<int64_t> timeout = 15,         std::optional<bool> enabled = true,         std::optional<bool> logging = true,         std::optional<std::string_view> entrypoint = std::nullopt,         std::optional<std::string_view> commands = std::nullopt,         std::optional<std::vector<appwrite::enums::Scopes>> scopes = {},         std::optional<std::string_view> installationId = std::nullopt,         std::optional<std::string_view> providerRepositoryId = std::nullopt,         std::optional<std::string_view> providerBranch = std::nullopt,         std::optional<bool> providerSilentMode = false,         std::optional<std::string_view> providerRootDirectory = std::nullopt,         std::optional<std::string_view> buildSpecification = "[]",         std::optional<std::string_view> runtimeSpecification = "[]",         std::optional<int64_t> deploymentRetention = 0    ) {
                 std::string path_ = std::format("/functions");
         
         nlohmann::json params = nlohmann::json::object();
@@ -6305,9 +6305,9 @@ public:
     /**
      * Get a list of all runtimes that are currently active on your instance.
      *
-     * @return Result<appwrite::models::RuntimeList>
+     * @return appwrite::Result<appwrite::models::RuntimeList>
      */
-    [[nodiscard]] Result<appwrite::models::RuntimeList> listRuntimes(    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::RuntimeList> listRuntimes(    ) {
                 std::string path_ = std::format("/functions/runtimes");
         
         nlohmann::json params = nlohmann::json::object();
@@ -6320,9 +6320,9 @@ public:
     /**
      * Get a list of all runtimes that are currently active on your instance.
      *
-     * @return Result<appwrite::models::RuntimeList>
+     * @return appwrite::Result<appwrite::models::RuntimeList>
      */
-    [[nodiscard]] Task<Result<appwrite::models::RuntimeList>> listRuntimesAsync(    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::RuntimeList>> listRuntimesAsync(    ) {
                 std::string path_ = std::format("/functions/runtimes");
         
         nlohmann::json params = nlohmann::json::object();
@@ -6334,9 +6334,9 @@ public:
     /**
      * List allowed function specifications for this instance.
      *
-     * @return Result<appwrite::models::SpecificationList>
+     * @return appwrite::Result<appwrite::models::SpecificationList>
      */
-    [[nodiscard]] Result<appwrite::models::SpecificationList> listSpecifications(    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::SpecificationList> listSpecifications(    ) {
                 std::string path_ = std::format("/functions/specifications");
         
         nlohmann::json params = nlohmann::json::object();
@@ -6349,9 +6349,9 @@ public:
     /**
      * List allowed function specifications for this instance.
      *
-     * @return Result<appwrite::models::SpecificationList>
+     * @return appwrite::Result<appwrite::models::SpecificationList>
      */
-    [[nodiscard]] Task<Result<appwrite::models::SpecificationList>> listSpecificationsAsync(    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::SpecificationList>> listSpecificationsAsync(    ) {
                 std::string path_ = std::format("/functions/specifications");
         
         nlohmann::json params = nlohmann::json::object();
@@ -6364,9 +6364,9 @@ public:
      * Get a function by its unique ID.
      *
      * @param functionId Function ID.
-     * @return Result<appwrite::models::Function>
+     * @return appwrite::Result<appwrite::models::Function>
      */
-    [[nodiscard]] Result<appwrite::models::Function> get(        std::string_view functionId    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Function> get(        std::string_view functionId    ) {
                 std::string path_ = std::format("/functions/{}", functionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -6380,9 +6380,9 @@ public:
      * Get a function by its unique ID.
      *
      * @param functionId Function ID.
-     * @return Result<appwrite::models::Function>
+     * @return appwrite::Result<appwrite::models::Function>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Function>> getAsync(        std::string_view functionId    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Function>> getAsync(        std::string_view functionId    ) {
                 std::string path_ = std::format("/functions/{}", functionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -6414,9 +6414,9 @@ public:
      * @param buildSpecification Build specification for the function deployments.
      * @param runtimeSpecification Runtime specification for the function executions.
      * @param deploymentRetention Days to keep non-active deployments before deletion. Value 0 means all deployments will be kept.
-     * @return Result<appwrite::models::Function>
+     * @return appwrite::Result<appwrite::models::Function>
      */
-    [[nodiscard]] Result<appwrite::models::Function> update(        std::string_view functionId,         std::string_view name,         std::optional<appwrite::enums::Runtime> runtime = appwrite::enums::Runtime::NODE_14_5,         std::optional<std::vector<std::string>> execute = std::vector<std::string>{},         std::optional<std::vector<std::string>> events = std::vector<std::string>{},         std::optional<std::string_view> schedule = std::nullopt,         std::optional<int64_t> timeout = 15,         std::optional<bool> enabled = true,         std::optional<bool> logging = true,         std::optional<std::string_view> entrypoint = std::nullopt,         std::optional<std::string_view> commands = std::nullopt,         std::optional<std::vector<appwrite::enums::Scopes>> scopes = {},         std::optional<std::string_view> installationId = std::nullopt,         std::optional<std::string_view> providerRepositoryId = std::nullopt,         std::optional<std::string_view> providerBranch = std::nullopt,         std::optional<bool> providerSilentMode = false,         std::optional<std::string_view> providerRootDirectory = std::nullopt,         std::optional<std::string_view> buildSpecification = "[]",         std::optional<std::string_view> runtimeSpecification = "[]",         std::optional<int64_t> deploymentRetention = 0    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Function> update(        std::string_view functionId,         std::string_view name,         std::optional<appwrite::enums::Runtime> runtime = std::nullopt,         std::optional<std::vector<std::string>> execute = std::vector<std::string>{},         std::optional<std::vector<std::string>> events = std::vector<std::string>{},         std::optional<std::string_view> schedule = std::nullopt,         std::optional<int64_t> timeout = 15,         std::optional<bool> enabled = true,         std::optional<bool> logging = true,         std::optional<std::string_view> entrypoint = std::nullopt,         std::optional<std::string_view> commands = std::nullopt,         std::optional<std::vector<appwrite::enums::Scopes>> scopes = {},         std::optional<std::string_view> installationId = std::nullopt,         std::optional<std::string_view> providerRepositoryId = std::nullopt,         std::optional<std::string_view> providerBranch = std::nullopt,         std::optional<bool> providerSilentMode = false,         std::optional<std::string_view> providerRootDirectory = std::nullopt,         std::optional<std::string_view> buildSpecification = "[]",         std::optional<std::string_view> runtimeSpecification = "[]",         std::optional<int64_t> deploymentRetention = 0    ) {
                 std::string path_ = std::format("/functions/{}", functionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -6504,9 +6504,9 @@ public:
      * @param buildSpecification Build specification for the function deployments.
      * @param runtimeSpecification Runtime specification for the function executions.
      * @param deploymentRetention Days to keep non-active deployments before deletion. Value 0 means all deployments will be kept.
-     * @return Result<appwrite::models::Function>
+     * @return appwrite::Result<appwrite::models::Function>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Function>> updateAsync(        std::string_view functionId,         std::string_view name,         std::optional<appwrite::enums::Runtime> runtime = appwrite::enums::Runtime::NODE_14_5,         std::optional<std::vector<std::string>> execute = std::vector<std::string>{},         std::optional<std::vector<std::string>> events = std::vector<std::string>{},         std::optional<std::string_view> schedule = std::nullopt,         std::optional<int64_t> timeout = 15,         std::optional<bool> enabled = true,         std::optional<bool> logging = true,         std::optional<std::string_view> entrypoint = std::nullopt,         std::optional<std::string_view> commands = std::nullopt,         std::optional<std::vector<appwrite::enums::Scopes>> scopes = {},         std::optional<std::string_view> installationId = std::nullopt,         std::optional<std::string_view> providerRepositoryId = std::nullopt,         std::optional<std::string_view> providerBranch = std::nullopt,         std::optional<bool> providerSilentMode = false,         std::optional<std::string_view> providerRootDirectory = std::nullopt,         std::optional<std::string_view> buildSpecification = "[]",         std::optional<std::string_view> runtimeSpecification = "[]",         std::optional<int64_t> deploymentRetention = 0    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Function>> updateAsync(        std::string_view functionId,         std::string_view name,         std::optional<appwrite::enums::Runtime> runtime = std::nullopt,         std::optional<std::vector<std::string>> execute = std::vector<std::string>{},         std::optional<std::vector<std::string>> events = std::vector<std::string>{},         std::optional<std::string_view> schedule = std::nullopt,         std::optional<int64_t> timeout = 15,         std::optional<bool> enabled = true,         std::optional<bool> logging = true,         std::optional<std::string_view> entrypoint = std::nullopt,         std::optional<std::string_view> commands = std::nullopt,         std::optional<std::vector<appwrite::enums::Scopes>> scopes = {},         std::optional<std::string_view> installationId = std::nullopt,         std::optional<std::string_view> providerRepositoryId = std::nullopt,         std::optional<std::string_view> providerBranch = std::nullopt,         std::optional<bool> providerSilentMode = false,         std::optional<std::string_view> providerRootDirectory = std::nullopt,         std::optional<std::string_view> buildSpecification = "[]",         std::optional<std::string_view> runtimeSpecification = "[]",         std::optional<int64_t> deploymentRetention = 0    ) {
                 std::string path_ = std::format("/functions/{}", functionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -6574,9 +6574,9 @@ public:
      * Delete a function by its unique ID.
      *
      * @param functionId Function ID.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Result<void> delete_(        std::string_view functionId    ) {
+    [[nodiscard]] appwrite::Result<void> delete_(        std::string_view functionId    ) {
                 std::string path_ = std::format("/functions/{}", functionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -6590,9 +6590,9 @@ public:
      * Delete a function by its unique ID.
      *
      * @param functionId Function ID.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Task<Result<void>> delete_Async(        std::string_view functionId    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<void>> delete_Async(        std::string_view functionId    ) {
                 std::string path_ = std::format("/functions/{}", functionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -6607,9 +6607,9 @@ public:
      *
      * @param functionId Function ID.
      * @param deploymentId Deployment ID.
-     * @return Result<appwrite::models::Function>
+     * @return appwrite::Result<appwrite::models::Function>
      */
-    [[nodiscard]] Result<appwrite::models::Function> updateFunctionDeployment(        std::string_view functionId,         std::string_view deploymentId    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Function> updateFunctionDeployment(        std::string_view functionId,         std::string_view deploymentId    ) {
                 std::string path_ = std::format("/functions/{}/deployment", functionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -6626,9 +6626,9 @@ public:
      *
      * @param functionId Function ID.
      * @param deploymentId Deployment ID.
-     * @return Result<appwrite::models::Function>
+     * @return appwrite::Result<appwrite::models::Function>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Function>> updateFunctionDeploymentAsync(        std::string_view functionId,         std::string_view deploymentId    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Function>> updateFunctionDeploymentAsync(        std::string_view functionId,         std::string_view deploymentId    ) {
                 std::string path_ = std::format("/functions/{}/deployment", functionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -6646,9 +6646,9 @@ public:
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of 100 queries are allowed, each 4096 characters long. You may filter on the following attributes: buildSize, sourceSize, totalSize, buildDuration, status, activate, type
      * @param search Search term to filter your list results. Max length: 256 chars.
      * @param total When set to false, the total count returned will be 0 and will not be calculated.
-     * @return Result<appwrite::models::DeploymentList>
+     * @return appwrite::Result<appwrite::models::DeploymentList>
      */
-    [[nodiscard]] Result<appwrite::models::DeploymentList> listDeployments(        std::string_view functionId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> search = std::nullopt,         std::optional<bool> total = true    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::DeploymentList> listDeployments(        std::string_view functionId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> search = std::nullopt,         std::optional<bool> total = true    ) {
                 std::string path_ = std::format("/functions/{}/deployments", functionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -6675,9 +6675,9 @@ public:
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of 100 queries are allowed, each 4096 characters long. You may filter on the following attributes: buildSize, sourceSize, totalSize, buildDuration, status, activate, type
      * @param search Search term to filter your list results. Max length: 256 chars.
      * @param total When set to false, the total count returned will be 0 and will not be calculated.
-     * @return Result<appwrite::models::DeploymentList>
+     * @return appwrite::Result<appwrite::models::DeploymentList>
      */
-    [[nodiscard]] Task<Result<appwrite::models::DeploymentList>> listDeploymentsAsync(        std::string_view functionId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> search = std::nullopt,         std::optional<bool> total = true    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::DeploymentList>> listDeploymentsAsync(        std::string_view functionId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> search = std::nullopt,         std::optional<bool> total = true    ) {
                 std::string path_ = std::format("/functions/{}/deployments", functionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -6714,9 +6714,9 @@ Use the "command" param to
      * @param activate Automatically activate the deployment when it is finished building.
      * @param entrypoint Entrypoint File.
      * @param commands Build Commands.
-     * @return Result<appwrite::models::Deployment>
+     * @return appwrite::Result<appwrite::models::Deployment>
      */
-    [[nodiscard]] Result<appwrite::models::Deployment> createDeployment(        std::string_view functionId,         appwrite::InputFile code,         bool activate,         std::optional<std::string_view> entrypoint = std::nullopt,         std::optional<std::string_view> commands = std::nullopt        , Client::ProgressCallback onProgress = nullptr    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Deployment> createDeployment(        std::string_view functionId,         appwrite::InputFile code,         bool activate,         std::optional<std::string_view> entrypoint = std::nullopt,         std::optional<std::string_view> commands = std::nullopt        , Client::ProgressCallback onProgress = nullptr    ) {
                 std::string path_ = std::format("/functions/{}/deployments", functionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -6752,9 +6752,9 @@ Use the "command" param to
      * @param activate Automatically activate the deployment when it is finished building.
      * @param entrypoint Entrypoint File.
      * @param commands Build Commands.
-     * @return Result<appwrite::models::Deployment>
+     * @return appwrite::Result<appwrite::models::Deployment>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Deployment>> createDeploymentAsync(        std::string_view functionId,         appwrite::InputFile code,         bool activate,         std::optional<std::string_view> entrypoint = std::nullopt,         std::optional<std::string_view> commands = std::nullopt        , Client::ProgressCallback onProgress = nullptr    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Deployment>> createDeploymentAsync(        std::string_view functionId,         appwrite::InputFile code,         bool activate,         std::optional<std::string_view> entrypoint = std::nullopt,         std::optional<std::string_view> commands = std::nullopt        , Client::ProgressCallback onProgress = nullptr    ) {
                 std::string path_ = std::format("/functions/{}/deployments", functionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -6780,9 +6780,9 @@ Use the "command" param to
      * @param functionId Function ID.
      * @param deploymentId Deployment ID.
      * @param buildId Build unique ID.
-     * @return Result<appwrite::models::Deployment>
+     * @return appwrite::Result<appwrite::models::Deployment>
      */
-    [[nodiscard]] Result<appwrite::models::Deployment> createDuplicateDeployment(        std::string_view functionId,         std::string_view deploymentId,         std::optional<std::string_view> buildId = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Deployment> createDuplicateDeployment(        std::string_view functionId,         std::string_view deploymentId,         std::optional<std::string_view> buildId = std::nullopt    ) {
                 std::string path_ = std::format("/functions/{}/deployments/duplicate", functionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -6806,9 +6806,9 @@ Use the "command" param to
      * @param functionId Function ID.
      * @param deploymentId Deployment ID.
      * @param buildId Build unique ID.
-     * @return Result<appwrite::models::Deployment>
+     * @return appwrite::Result<appwrite::models::Deployment>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Deployment>> createDuplicateDeploymentAsync(        std::string_view functionId,         std::string_view deploymentId,         std::optional<std::string_view> buildId = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Deployment>> createDuplicateDeploymentAsync(        std::string_view functionId,         std::string_view deploymentId,         std::optional<std::string_view> buildId = std::nullopt    ) {
                 std::string path_ = std::format("/functions/{}/deployments/duplicate", functionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -6836,9 +6836,9 @@ Use this endpoint with
      * @param type Type for the reference provided. Can be commit, branch, or tag
      * @param reference Reference value, can be a commit hash, branch name, or release tag
      * @param activate Automatically activate the deployment when it is finished building.
-     * @return Result<appwrite::models::Deployment>
+     * @return appwrite::Result<appwrite::models::Deployment>
      */
-    [[nodiscard]] Result<appwrite::models::Deployment> createTemplateDeployment(        std::string_view functionId,         std::string_view repository,         std::string_view owner,         std::string_view rootDirectory,         appwrite::enums::TemplateReferenceType type,         std::string_view reference,         std::optional<bool> activate = false    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Deployment> createTemplateDeployment(        std::string_view functionId,         std::string_view repository,         std::string_view owner,         std::string_view rootDirectory,         appwrite::enums::TemplateReferenceType type,         std::string_view reference,         std::optional<bool> activate = false    ) {
                 std::string path_ = std::format("/functions/{}/deployments/template", functionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -6871,9 +6871,9 @@ Use this endpoint with
      * @param type Type for the reference provided. Can be commit, branch, or tag
      * @param reference Reference value, can be a commit hash, branch name, or release tag
      * @param activate Automatically activate the deployment when it is finished building.
-     * @return Result<appwrite::models::Deployment>
+     * @return appwrite::Result<appwrite::models::Deployment>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Deployment>> createTemplateDeploymentAsync(        std::string_view functionId,         std::string_view repository,         std::string_view owner,         std::string_view rootDirectory,         appwrite::enums::TemplateReferenceType type,         std::string_view reference,         std::optional<bool> activate = false    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Deployment>> createTemplateDeploymentAsync(        std::string_view functionId,         std::string_view repository,         std::string_view owner,         std::string_view rootDirectory,         appwrite::enums::TemplateReferenceType type,         std::string_view reference,         std::optional<bool> activate = false    ) {
                 std::string path_ = std::format("/functions/{}/deployments/template", functionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -6900,9 +6900,9 @@ This endpoint
      * @param type Type of reference passed. Allowed values are: branch, commit
      * @param reference VCS reference to create deployment from. Depending on type this can be: branch name, commit hash
      * @param activate Automatically activate the deployment when it is finished building.
-     * @return Result<appwrite::models::Deployment>
+     * @return appwrite::Result<appwrite::models::Deployment>
      */
-    [[nodiscard]] Result<appwrite::models::Deployment> createVcsDeployment(        std::string_view functionId,         appwrite::enums::VCSReferenceType type,         std::string_view reference,         std::optional<bool> activate = false    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Deployment> createVcsDeployment(        std::string_view functionId,         appwrite::enums::VCSReferenceType type,         std::string_view reference,         std::optional<bool> activate = false    ) {
                 std::string path_ = std::format("/functions/{}/deployments/vcs", functionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -6927,9 +6927,9 @@ This endpoint
      * @param type Type of reference passed. Allowed values are: branch, commit
      * @param reference VCS reference to create deployment from. Depending on type this can be: branch name, commit hash
      * @param activate Automatically activate the deployment when it is finished building.
-     * @return Result<appwrite::models::Deployment>
+     * @return appwrite::Result<appwrite::models::Deployment>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Deployment>> createVcsDeploymentAsync(        std::string_view functionId,         appwrite::enums::VCSReferenceType type,         std::string_view reference,         std::optional<bool> activate = false    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Deployment>> createVcsDeploymentAsync(        std::string_view functionId,         appwrite::enums::VCSReferenceType type,         std::string_view reference,         std::optional<bool> activate = false    ) {
                 std::string path_ = std::format("/functions/{}/deployments/vcs", functionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -6948,9 +6948,9 @@ This endpoint
      *
      * @param functionId Function ID.
      * @param deploymentId Deployment ID.
-     * @return Result<appwrite::models::Deployment>
+     * @return appwrite::Result<appwrite::models::Deployment>
      */
-    [[nodiscard]] Result<appwrite::models::Deployment> getDeployment(        std::string_view functionId,         std::string_view deploymentId    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Deployment> getDeployment(        std::string_view functionId,         std::string_view deploymentId    ) {
                 std::string path_ = std::format("/functions/{}/deployments/{}", functionId, deploymentId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -6965,9 +6965,9 @@ This endpoint
      *
      * @param functionId Function ID.
      * @param deploymentId Deployment ID.
-     * @return Result<appwrite::models::Deployment>
+     * @return appwrite::Result<appwrite::models::Deployment>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Deployment>> getDeploymentAsync(        std::string_view functionId,         std::string_view deploymentId    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Deployment>> getDeploymentAsync(        std::string_view functionId,         std::string_view deploymentId    ) {
                 std::string path_ = std::format("/functions/{}/deployments/{}", functionId, deploymentId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -6981,9 +6981,9 @@ This endpoint
      *
      * @param functionId Function ID.
      * @param deploymentId Deployment ID.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Result<void> deleteDeployment(        std::string_view functionId,         std::string_view deploymentId    ) {
+    [[nodiscard]] appwrite::Result<void> deleteDeployment(        std::string_view functionId,         std::string_view deploymentId    ) {
                 std::string path_ = std::format("/functions/{}/deployments/{}", functionId, deploymentId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -6998,9 +6998,9 @@ This endpoint
      *
      * @param functionId Function ID.
      * @param deploymentId Deployment ID.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Task<Result<void>> deleteDeploymentAsync(        std::string_view functionId,         std::string_view deploymentId    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<void>> deleteDeploymentAsync(        std::string_view functionId,         std::string_view deploymentId    ) {
                 std::string path_ = std::format("/functions/{}/deployments/{}", functionId, deploymentId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -7017,9 +7017,9 @@ This endpoint
      * @param functionId Function ID.
      * @param deploymentId Deployment ID.
      * @param type Deployment file to download. Can be: "source", "output".
-     * @return Result<BinaryResponse>
+     * @return appwrite::Result<BinaryResponse>
      */
-    [[nodiscard]] Result<BinaryResponse> getDeploymentDownload(        std::string_view functionId,         std::string_view deploymentId,         std::optional<appwrite::enums::DeploymentDownloadType> type = appwrite::enums::DeploymentDownloadType::SOURCE    ) {
+    [[nodiscard]] appwrite::Result<BinaryResponse> getDeploymentDownload(        std::string_view functionId,         std::string_view deploymentId,         std::optional<appwrite::enums::DeploymentDownloadType> type = appwrite::enums::DeploymentDownloadType::SOURCE    ) {
                 std::string path_ = std::format("/functions/{}/deployments/{}/download", functionId, deploymentId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -7040,9 +7040,9 @@ This endpoint
      * @param functionId Function ID.
      * @param deploymentId Deployment ID.
      * @param type Deployment file to download. Can be: "source", "output".
-     * @return Result<BinaryResponse>
+     * @return appwrite::Result<BinaryResponse>
      */
-    [[nodiscard]] Task<Result<BinaryResponse>> getDeploymentDownloadAsync(        std::string_view functionId,         std::string_view deploymentId,         std::optional<appwrite::enums::DeploymentDownloadType> type = appwrite::enums::DeploymentDownloadType::SOURCE    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<BinaryResponse>> getDeploymentDownloadAsync(        std::string_view functionId,         std::string_view deploymentId,         std::optional<appwrite::enums::DeploymentDownloadType> type = appwrite::enums::DeploymentDownloadType::SOURCE    ) {
                 std::string path_ = std::format("/functions/{}/deployments/{}/download", functionId, deploymentId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -7063,9 +7063,9 @@ This endpoint
      *
      * @param functionId Function ID.
      * @param deploymentId Deployment ID.
-     * @return Result<appwrite::models::Deployment>
+     * @return appwrite::Result<appwrite::models::Deployment>
      */
-    [[nodiscard]] Result<appwrite::models::Deployment> updateDeploymentStatus(        std::string_view functionId,         std::string_view deploymentId    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Deployment> updateDeploymentStatus(        std::string_view functionId,         std::string_view deploymentId    ) {
                 std::string path_ = std::format("/functions/{}/deployments/{}/status", functionId, deploymentId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -7084,9 +7084,9 @@ This endpoint
      *
      * @param functionId Function ID.
      * @param deploymentId Deployment ID.
-     * @return Result<appwrite::models::Deployment>
+     * @return appwrite::Result<appwrite::models::Deployment>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Deployment>> updateDeploymentStatusAsync(        std::string_view functionId,         std::string_view deploymentId    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Deployment>> updateDeploymentStatusAsync(        std::string_view functionId,         std::string_view deploymentId    ) {
                 std::string path_ = std::format("/functions/{}/deployments/{}/status", functionId, deploymentId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -7102,9 +7102,9 @@ This endpoint
      * @param functionId Function ID.
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of 100 queries are allowed, each 4096 characters long. You may filter on the following attributes: trigger, status, responseStatusCode, duration, requestMethod, requestPath, deploymentId
      * @param total When set to false, the total count returned will be 0 and will not be calculated.
-     * @return Result<appwrite::models::ExecutionList>
+     * @return appwrite::Result<appwrite::models::ExecutionList>
      */
-    [[nodiscard]] Result<appwrite::models::ExecutionList> listExecutions(        std::string_view functionId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<bool> total = true    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::ExecutionList> listExecutions(        std::string_view functionId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<bool> total = true    ) {
                 std::string path_ = std::format("/functions/{}/executions", functionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -7127,9 +7127,9 @@ This endpoint
      * @param functionId Function ID.
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of 100 queries are allowed, each 4096 characters long. You may filter on the following attributes: trigger, status, responseStatusCode, duration, requestMethod, requestPath, deploymentId
      * @param total When set to false, the total count returned will be 0 and will not be calculated.
-     * @return Result<appwrite::models::ExecutionList>
+     * @return appwrite::Result<appwrite::models::ExecutionList>
      */
-    [[nodiscard]] Task<Result<appwrite::models::ExecutionList>> listExecutionsAsync(        std::string_view functionId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<bool> total = true    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::ExecutionList>> listExecutionsAsync(        std::string_view functionId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<bool> total = true    ) {
                 std::string path_ = std::format("/functions/{}/executions", functionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -7157,9 +7157,9 @@ This endpoint
      * @param method HTTP method of execution. Default value is POST.
      * @param headers HTTP headers of execution. Defaults to empty.
      * @param scheduledAt Scheduled execution time in [ISO 8601](https://www.iso.org/iso-8601-date-and-time-format.html) format. DateTime value must be in future with precision in minutes.
-     * @return Result<appwrite::models::Execution>
+     * @return appwrite::Result<appwrite::models::Execution>
      */
-    [[nodiscard]] Result<appwrite::models::Execution> createExecution(        std::string_view functionId,         std::optional<std::string_view> body = std::nullopt,         std::optional<bool> async = false,         std::optional<std::string_view> path = "/",         std::optional<appwrite::enums::ExecutionMethod> method = appwrite::enums::ExecutionMethod::POST,         std::optional<nlohmann::json> headers = nlohmann::json::object(),         std::optional<std::string_view> scheduledAt = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Execution> createExecution(        std::string_view functionId,         std::optional<std::string_view> body = std::nullopt,         std::optional<bool> async = false,         std::optional<std::string_view> path = "/",         std::optional<appwrite::enums::ExecutionMethod> method = appwrite::enums::ExecutionMethod::POST,         std::optional<nlohmann::json> headers = nlohmann::json::object(),         std::optional<std::string_view> scheduledAt = std::nullopt    ) {
                 std::string path_ = std::format("/functions/{}/executions", functionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -7200,9 +7200,9 @@ This endpoint
      * @param method HTTP method of execution. Default value is POST.
      * @param headers HTTP headers of execution. Defaults to empty.
      * @param scheduledAt Scheduled execution time in [ISO 8601](https://www.iso.org/iso-8601-date-and-time-format.html) format. DateTime value must be in future with precision in minutes.
-     * @return Result<appwrite::models::Execution>
+     * @return appwrite::Result<appwrite::models::Execution>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Execution>> createExecutionAsync(        std::string_view functionId,         std::optional<std::string_view> body = std::nullopt,         std::optional<bool> async = false,         std::optional<std::string_view> path = "/",         std::optional<appwrite::enums::ExecutionMethod> method = appwrite::enums::ExecutionMethod::POST,         std::optional<nlohmann::json> headers = nlohmann::json::object(),         std::optional<std::string_view> scheduledAt = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Execution>> createExecutionAsync(        std::string_view functionId,         std::optional<std::string_view> body = std::nullopt,         std::optional<bool> async = false,         std::optional<std::string_view> path = "/",         std::optional<appwrite::enums::ExecutionMethod> method = appwrite::enums::ExecutionMethod::POST,         std::optional<nlohmann::json> headers = nlohmann::json::object(),         std::optional<std::string_view> scheduledAt = std::nullopt    ) {
                 std::string path_ = std::format("/functions/{}/executions", functionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -7234,9 +7234,9 @@ This endpoint
      *
      * @param functionId Function ID.
      * @param executionId Execution ID.
-     * @return Result<appwrite::models::Execution>
+     * @return appwrite::Result<appwrite::models::Execution>
      */
-    [[nodiscard]] Result<appwrite::models::Execution> getExecution(        std::string_view functionId,         std::string_view executionId    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Execution> getExecution(        std::string_view functionId,         std::string_view executionId    ) {
                 std::string path_ = std::format("/functions/{}/executions/{}", functionId, executionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -7251,9 +7251,9 @@ This endpoint
      *
      * @param functionId Function ID.
      * @param executionId Execution ID.
-     * @return Result<appwrite::models::Execution>
+     * @return appwrite::Result<appwrite::models::Execution>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Execution>> getExecutionAsync(        std::string_view functionId,         std::string_view executionId    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Execution>> getExecutionAsync(        std::string_view functionId,         std::string_view executionId    ) {
                 std::string path_ = std::format("/functions/{}/executions/{}", functionId, executionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -7267,9 +7267,9 @@ This endpoint
      *
      * @param functionId Function ID.
      * @param executionId Execution ID.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Result<void> deleteExecution(        std::string_view functionId,         std::string_view executionId    ) {
+    [[nodiscard]] appwrite::Result<void> deleteExecution(        std::string_view functionId,         std::string_view executionId    ) {
                 std::string path_ = std::format("/functions/{}/executions/{}", functionId, executionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -7284,9 +7284,9 @@ This endpoint
      *
      * @param functionId Function ID.
      * @param executionId Execution ID.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Task<Result<void>> deleteExecutionAsync(        std::string_view functionId,         std::string_view executionId    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<void>> deleteExecutionAsync(        std::string_view functionId,         std::string_view executionId    ) {
                 std::string path_ = std::format("/functions/{}/executions/{}", functionId, executionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -7299,9 +7299,9 @@ This endpoint
      * Get a list of all variables of a specific function.
      *
      * @param functionId Function unique ID.
-     * @return Result<appwrite::models::VariableList>
+     * @return appwrite::Result<appwrite::models::VariableList>
      */
-    [[nodiscard]] Result<appwrite::models::VariableList> listVariables(        std::string_view functionId    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::VariableList> listVariables(        std::string_view functionId    ) {
                 std::string path_ = std::format("/functions/{}/variables", functionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -7315,9 +7315,9 @@ This endpoint
      * Get a list of all variables of a specific function.
      *
      * @param functionId Function unique ID.
-     * @return Result<appwrite::models::VariableList>
+     * @return appwrite::Result<appwrite::models::VariableList>
      */
-    [[nodiscard]] Task<Result<appwrite::models::VariableList>> listVariablesAsync(        std::string_view functionId    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::VariableList>> listVariablesAsync(        std::string_view functionId    ) {
                 std::string path_ = std::format("/functions/{}/variables", functionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -7334,9 +7334,9 @@ This endpoint
      * @param key Variable key. Max length: 255 chars.
      * @param value Variable value. Max length: 8192 chars.
      * @param secret Secret variables can be updated or deleted, but only functions can read them during build and runtime.
-     * @return Result<appwrite::models::Variable>
+     * @return appwrite::Result<appwrite::models::Variable>
      */
-    [[nodiscard]] Result<appwrite::models::Variable> createVariable(        std::string_view functionId,         std::string_view key,         std::string_view value,         std::optional<bool> secret = true    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Variable> createVariable(        std::string_view functionId,         std::string_view key,         std::string_view value,         std::optional<bool> secret = true    ) {
                 std::string path_ = std::format("/functions/{}/variables", functionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -7359,9 +7359,9 @@ This endpoint
      * @param key Variable key. Max length: 255 chars.
      * @param value Variable value. Max length: 8192 chars.
      * @param secret Secret variables can be updated or deleted, but only functions can read them during build and runtime.
-     * @return Result<appwrite::models::Variable>
+     * @return appwrite::Result<appwrite::models::Variable>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Variable>> createVariableAsync(        std::string_view functionId,         std::string_view key,         std::string_view value,         std::optional<bool> secret = true    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Variable>> createVariableAsync(        std::string_view functionId,         std::string_view key,         std::string_view value,         std::optional<bool> secret = true    ) {
                 std::string path_ = std::format("/functions/{}/variables", functionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -7380,9 +7380,9 @@ This endpoint
      *
      * @param functionId Function unique ID.
      * @param variableId Variable unique ID.
-     * @return Result<appwrite::models::Variable>
+     * @return appwrite::Result<appwrite::models::Variable>
      */
-    [[nodiscard]] Result<appwrite::models::Variable> getVariable(        std::string_view functionId,         std::string_view variableId    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Variable> getVariable(        std::string_view functionId,         std::string_view variableId    ) {
                 std::string path_ = std::format("/functions/{}/variables/{}", functionId, variableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -7397,9 +7397,9 @@ This endpoint
      *
      * @param functionId Function unique ID.
      * @param variableId Variable unique ID.
-     * @return Result<appwrite::models::Variable>
+     * @return appwrite::Result<appwrite::models::Variable>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Variable>> getVariableAsync(        std::string_view functionId,         std::string_view variableId    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Variable>> getVariableAsync(        std::string_view functionId,         std::string_view variableId    ) {
                 std::string path_ = std::format("/functions/{}/variables/{}", functionId, variableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -7416,9 +7416,9 @@ This endpoint
      * @param key Variable key. Max length: 255 chars.
      * @param value Variable value. Max length: 8192 chars.
      * @param secret Secret variables can be updated or deleted, but only functions can read them during build and runtime.
-     * @return Result<appwrite::models::Variable>
+     * @return appwrite::Result<appwrite::models::Variable>
      */
-    [[nodiscard]] Result<appwrite::models::Variable> updateVariable(        std::string_view functionId,         std::string_view variableId,         std::string_view key,         std::optional<std::string_view> value = std::nullopt,         std::optional<bool> secret = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Variable> updateVariable(        std::string_view functionId,         std::string_view variableId,         std::string_view key,         std::optional<std::string_view> value = std::nullopt,         std::optional<bool> secret = std::nullopt    ) {
                 std::string path_ = std::format("/functions/{}/variables/{}", functionId, variableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -7443,9 +7443,9 @@ This endpoint
      * @param key Variable key. Max length: 255 chars.
      * @param value Variable value. Max length: 8192 chars.
      * @param secret Secret variables can be updated or deleted, but only functions can read them during build and runtime.
-     * @return Result<appwrite::models::Variable>
+     * @return appwrite::Result<appwrite::models::Variable>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Variable>> updateVariableAsync(        std::string_view functionId,         std::string_view variableId,         std::string_view key,         std::optional<std::string_view> value = std::nullopt,         std::optional<bool> secret = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Variable>> updateVariableAsync(        std::string_view functionId,         std::string_view variableId,         std::string_view key,         std::optional<std::string_view> value = std::nullopt,         std::optional<bool> secret = std::nullopt    ) {
                 std::string path_ = std::format("/functions/{}/variables/{}", functionId, variableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -7466,9 +7466,9 @@ This endpoint
      *
      * @param functionId Function unique ID.
      * @param variableId Variable unique ID.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Result<void> deleteVariable(        std::string_view functionId,         std::string_view variableId    ) {
+    [[nodiscard]] appwrite::Result<void> deleteVariable(        std::string_view functionId,         std::string_view variableId    ) {
                 std::string path_ = std::format("/functions/{}/variables/{}", functionId, variableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -7483,9 +7483,9 @@ This endpoint
      *
      * @param functionId Function unique ID.
      * @param variableId Variable unique ID.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Task<Result<void>> deleteVariableAsync(        std::string_view functionId,         std::string_view variableId    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<void>> deleteVariableAsync(        std::string_view functionId,         std::string_view variableId    ) {
                 std::string path_ = std::format("/functions/{}/variables/{}", functionId, variableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -7510,9 +7510,9 @@ public:
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of 100 queries are allowed, each 4096 characters long. You may filter on the following attributes: enabled, name, fileSecurity, maximumFileSize, encryption, antivirus, transformations
      * @param search Search term to filter your list results. Max length: 256 chars.
      * @param total When set to false, the total count returned will be 0 and will not be calculated.
-     * @return Result<appwrite::models::BucketList>
+     * @return appwrite::Result<appwrite::models::BucketList>
      */
-    [[nodiscard]] Result<appwrite::models::BucketList> listBuckets(        std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> search = std::nullopt,         std::optional<bool> total = true    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::BucketList> listBuckets(        std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> search = std::nullopt,         std::optional<bool> total = true    ) {
                 std::string path_ = std::format("/storage/buckets");
         
         nlohmann::json params = nlohmann::json::object();
@@ -7538,9 +7538,9 @@ public:
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of 100 queries are allowed, each 4096 characters long. You may filter on the following attributes: enabled, name, fileSecurity, maximumFileSize, encryption, antivirus, transformations
      * @param search Search term to filter your list results. Max length: 256 chars.
      * @param total When set to false, the total count returned will be 0 and will not be calculated.
-     * @return Result<appwrite::models::BucketList>
+     * @return appwrite::Result<appwrite::models::BucketList>
      */
-    [[nodiscard]] Task<Result<appwrite::models::BucketList>> listBucketsAsync(        std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> search = std::nullopt,         std::optional<bool> total = true    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::BucketList>> listBucketsAsync(        std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> search = std::nullopt,         std::optional<bool> total = true    ) {
                 std::string path_ = std::format("/storage/buckets");
         
         nlohmann::json params = nlohmann::json::object();
@@ -7572,9 +7572,9 @@ public:
      * @param encryption Is encryption enabled? For file size above 20MB encryption is skipped even if it's enabled
      * @param antivirus Is virus scanning enabled? For file size above 20MB AntiVirus scanning is skipped even if it's enabled
      * @param transformations Are image transformations enabled?
-     * @return Result<appwrite::models::Bucket>
+     * @return appwrite::Result<appwrite::models::Bucket>
      */
-    [[nodiscard]] Result<appwrite::models::Bucket> createBucket(        std::string_view bucketId,         std::string_view name,         std::optional<std::vector<std::string>> permissions = std::nullopt,         std::optional<bool> fileSecurity = false,         std::optional<bool> enabled = true,         std::optional<int64_t> maximumFileSize = 0,         std::optional<std::vector<std::string>> allowedFileExtensions = std::vector<std::string>{},         std::optional<appwrite::enums::Compression> compression = appwrite::enums::Compression::NONE,         std::optional<bool> encryption = true,         std::optional<bool> antivirus = true,         std::optional<bool> transformations = true    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Bucket> createBucket(        std::string_view bucketId,         std::string_view name,         std::optional<std::vector<std::string>> permissions = std::nullopt,         std::optional<bool> fileSecurity = false,         std::optional<bool> enabled = true,         std::optional<int64_t> maximumFileSize = 0,         std::optional<std::vector<std::string>> allowedFileExtensions = std::vector<std::string>{},         std::optional<appwrite::enums::Compression> compression = appwrite::enums::Compression::NONE,         std::optional<bool> encryption = true,         std::optional<bool> antivirus = true,         std::optional<bool> transformations = true    ) {
                 std::string path_ = std::format("/storage/buckets");
         
         nlohmann::json params = nlohmann::json::object();
@@ -7627,9 +7627,9 @@ public:
      * @param encryption Is encryption enabled? For file size above 20MB encryption is skipped even if it's enabled
      * @param antivirus Is virus scanning enabled? For file size above 20MB AntiVirus scanning is skipped even if it's enabled
      * @param transformations Are image transformations enabled?
-     * @return Result<appwrite::models::Bucket>
+     * @return appwrite::Result<appwrite::models::Bucket>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Bucket>> createBucketAsync(        std::string_view bucketId,         std::string_view name,         std::optional<std::vector<std::string>> permissions = std::nullopt,         std::optional<bool> fileSecurity = false,         std::optional<bool> enabled = true,         std::optional<int64_t> maximumFileSize = 0,         std::optional<std::vector<std::string>> allowedFileExtensions = std::vector<std::string>{},         std::optional<appwrite::enums::Compression> compression = appwrite::enums::Compression::NONE,         std::optional<bool> encryption = true,         std::optional<bool> antivirus = true,         std::optional<bool> transformations = true    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Bucket>> createBucketAsync(        std::string_view bucketId,         std::string_view name,         std::optional<std::vector<std::string>> permissions = std::nullopt,         std::optional<bool> fileSecurity = false,         std::optional<bool> enabled = true,         std::optional<int64_t> maximumFileSize = 0,         std::optional<std::vector<std::string>> allowedFileExtensions = std::vector<std::string>{},         std::optional<appwrite::enums::Compression> compression = appwrite::enums::Compression::NONE,         std::optional<bool> encryption = true,         std::optional<bool> antivirus = true,         std::optional<bool> transformations = true    ) {
                 std::string path_ = std::format("/storage/buckets");
         
         nlohmann::json params = nlohmann::json::object();
@@ -7672,9 +7672,9 @@ public:
      * JSON object with the storage bucket metadata.
      *
      * @param bucketId Bucket unique ID.
-     * @return Result<appwrite::models::Bucket>
+     * @return appwrite::Result<appwrite::models::Bucket>
      */
-    [[nodiscard]] Result<appwrite::models::Bucket> getBucket(        std::string_view bucketId    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Bucket> getBucket(        std::string_view bucketId    ) {
                 std::string path_ = std::format("/storage/buckets/{}", bucketId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -7689,9 +7689,9 @@ public:
      * JSON object with the storage bucket metadata.
      *
      * @param bucketId Bucket unique ID.
-     * @return Result<appwrite::models::Bucket>
+     * @return appwrite::Result<appwrite::models::Bucket>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Bucket>> getBucketAsync(        std::string_view bucketId    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Bucket>> getBucketAsync(        std::string_view bucketId    ) {
                 std::string path_ = std::format("/storage/buckets/{}", bucketId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -7714,9 +7714,9 @@ public:
      * @param encryption Is encryption enabled? For file size above 20MB encryption is skipped even if it's enabled
      * @param antivirus Is virus scanning enabled? For file size above 20MB AntiVirus scanning is skipped even if it's enabled
      * @param transformations Are image transformations enabled?
-     * @return Result<appwrite::models::Bucket>
+     * @return appwrite::Result<appwrite::models::Bucket>
      */
-    [[nodiscard]] Result<appwrite::models::Bucket> updateBucket(        std::string_view bucketId,         std::string_view name,         std::optional<std::vector<std::string>> permissions = std::nullopt,         std::optional<bool> fileSecurity = false,         std::optional<bool> enabled = true,         std::optional<int64_t> maximumFileSize = 0,         std::optional<std::vector<std::string>> allowedFileExtensions = std::vector<std::string>{},         std::optional<appwrite::enums::Compression> compression = appwrite::enums::Compression::NONE,         std::optional<bool> encryption = true,         std::optional<bool> antivirus = true,         std::optional<bool> transformations = true    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Bucket> updateBucket(        std::string_view bucketId,         std::string_view name,         std::optional<std::vector<std::string>> permissions = std::nullopt,         std::optional<bool> fileSecurity = false,         std::optional<bool> enabled = true,         std::optional<int64_t> maximumFileSize = 0,         std::optional<std::vector<std::string>> allowedFileExtensions = std::vector<std::string>{},         std::optional<appwrite::enums::Compression> compression = appwrite::enums::Compression::NONE,         std::optional<bool> encryption = true,         std::optional<bool> antivirus = true,         std::optional<bool> transformations = true    ) {
                 std::string path_ = std::format("/storage/buckets/{}", bucketId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -7768,9 +7768,9 @@ public:
      * @param encryption Is encryption enabled? For file size above 20MB encryption is skipped even if it's enabled
      * @param antivirus Is virus scanning enabled? For file size above 20MB AntiVirus scanning is skipped even if it's enabled
      * @param transformations Are image transformations enabled?
-     * @return Result<appwrite::models::Bucket>
+     * @return appwrite::Result<appwrite::models::Bucket>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Bucket>> updateBucketAsync(        std::string_view bucketId,         std::string_view name,         std::optional<std::vector<std::string>> permissions = std::nullopt,         std::optional<bool> fileSecurity = false,         std::optional<bool> enabled = true,         std::optional<int64_t> maximumFileSize = 0,         std::optional<std::vector<std::string>> allowedFileExtensions = std::vector<std::string>{},         std::optional<appwrite::enums::Compression> compression = appwrite::enums::Compression::NONE,         std::optional<bool> encryption = true,         std::optional<bool> antivirus = true,         std::optional<bool> transformations = true    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Bucket>> updateBucketAsync(        std::string_view bucketId,         std::string_view name,         std::optional<std::vector<std::string>> permissions = std::nullopt,         std::optional<bool> fileSecurity = false,         std::optional<bool> enabled = true,         std::optional<int64_t> maximumFileSize = 0,         std::optional<std::vector<std::string>> allowedFileExtensions = std::vector<std::string>{},         std::optional<appwrite::enums::Compression> compression = appwrite::enums::Compression::NONE,         std::optional<bool> encryption = true,         std::optional<bool> antivirus = true,         std::optional<bool> transformations = true    ) {
                 std::string path_ = std::format("/storage/buckets/{}", bucketId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -7811,9 +7811,9 @@ public:
      * Delete a storage bucket by its unique ID.
      *
      * @param bucketId Bucket unique ID.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Result<void> deleteBucket(        std::string_view bucketId    ) {
+    [[nodiscard]] appwrite::Result<void> deleteBucket(        std::string_view bucketId    ) {
                 std::string path_ = std::format("/storage/buckets/{}", bucketId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -7827,9 +7827,9 @@ public:
      * Delete a storage bucket by its unique ID.
      *
      * @param bucketId Bucket unique ID.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Task<Result<void>> deleteBucketAsync(        std::string_view bucketId    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<void>> deleteBucketAsync(        std::string_view bucketId    ) {
                 std::string path_ = std::format("/storage/buckets/{}", bucketId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -7846,9 +7846,9 @@ public:
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of 100 queries are allowed, each 4096 characters long. You may filter on the following attributes: name, signature, mimeType, sizeOriginal, chunksTotal, chunksUploaded
      * @param search Search term to filter your list results. Max length: 256 chars.
      * @param total When set to false, the total count returned will be 0 and will not be calculated.
-     * @return Result<appwrite::models::FileList>
+     * @return appwrite::Result<appwrite::models::FileList>
      */
-    [[nodiscard]] Result<appwrite::models::FileList> listFiles(        std::string_view bucketId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> search = std::nullopt,         std::optional<bool> total = true    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::FileList> listFiles(        std::string_view bucketId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> search = std::nullopt,         std::optional<bool> total = true    ) {
                 std::string path_ = std::format("/storage/buckets/{}/files", bucketId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -7875,9 +7875,9 @@ public:
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of 100 queries are allowed, each 4096 characters long. You may filter on the following attributes: name, signature, mimeType, sizeOriginal, chunksTotal, chunksUploaded
      * @param search Search term to filter your list results. Max length: 256 chars.
      * @param total When set to false, the total count returned will be 0 and will not be calculated.
-     * @return Result<appwrite::models::FileList>
+     * @return appwrite::Result<appwrite::models::FileList>
      */
-    [[nodiscard]] Task<Result<appwrite::models::FileList>> listFilesAsync(        std::string_view bucketId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> search = std::nullopt,         std::optional<bool> total = true    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::FileList>> listFilesAsync(        std::string_view bucketId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> search = std::nullopt,         std::optional<bool> total = true    ) {
                 std::string path_ = std::format("/storage/buckets/{}/files", bucketId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -7921,9 +7921,9 @@ If you're creating a new file using
      * @param fileId File ID. Choose a custom ID or generate a random ID with `ID.unique()`. Valid chars are a-z, A-Z, 0-9, period, hyphen, and underscore. Can't start with a special char. Max length is 36 chars.
      * @param file Binary file. Appwrite SDKs provide helpers to handle file input. [Learn about file input](https://appwrite.io/docs/products/storage/upload-download#input-file).
      * @param permissions An array of permission strings. By default, only the current user is granted all permissions. [Learn more about permissions](https://appwrite.io/docs/permissions).
-     * @return Result<appwrite::models::File>
+     * @return appwrite::Result<appwrite::models::File>
      */
-    [[nodiscard]] Result<appwrite::models::File> createFile(        std::string_view bucketId,         std::string_view fileId,         appwrite::InputFile file,         std::optional<std::vector<std::string>> permissions = std::nullopt        , Client::ProgressCallback onProgress = nullptr    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::File> createFile(        std::string_view bucketId,         std::string_view fileId,         appwrite::InputFile file,         std::optional<std::vector<std::string>> permissions = std::nullopt        , Client::ProgressCallback onProgress = nullptr    ) {
                 std::string path_ = std::format("/storage/buckets/{}/files", bucketId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -7963,9 +7963,9 @@ If you're creating a new file using
      * @param fileId File ID. Choose a custom ID or generate a random ID with `ID.unique()`. Valid chars are a-z, A-Z, 0-9, period, hyphen, and underscore. Can't start with a special char. Max length is 36 chars.
      * @param file Binary file. Appwrite SDKs provide helpers to handle file input. [Learn about file input](https://appwrite.io/docs/products/storage/upload-download#input-file).
      * @param permissions An array of permission strings. By default, only the current user is granted all permissions. [Learn more about permissions](https://appwrite.io/docs/permissions).
-     * @return Result<appwrite::models::File>
+     * @return appwrite::Result<appwrite::models::File>
      */
-    [[nodiscard]] Task<Result<appwrite::models::File>> createFileAsync(        std::string_view bucketId,         std::string_view fileId,         appwrite::InputFile file,         std::optional<std::vector<std::string>> permissions = std::nullopt        , Client::ProgressCallback onProgress = nullptr    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::File>> createFileAsync(        std::string_view bucketId,         std::string_view fileId,         appwrite::InputFile file,         std::optional<std::vector<std::string>> permissions = std::nullopt        , Client::ProgressCallback onProgress = nullptr    ) {
                 std::string path_ = std::format("/storage/buckets/{}/files", bucketId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -7984,9 +7984,9 @@ If you're creating a new file using
      *
      * @param bucketId Storage bucket unique ID. You can create a new storage bucket using the Storage service [server integration](https://appwrite.io/docs/server/storage#createBucket).
      * @param fileId File ID.
-     * @return Result<appwrite::models::File>
+     * @return appwrite::Result<appwrite::models::File>
      */
-    [[nodiscard]] Result<appwrite::models::File> getFile(        std::string_view bucketId,         std::string_view fileId    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::File> getFile(        std::string_view bucketId,         std::string_view fileId    ) {
                 std::string path_ = std::format("/storage/buckets/{}/files/{}", bucketId, fileId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -8002,9 +8002,9 @@ If you're creating a new file using
      *
      * @param bucketId Storage bucket unique ID. You can create a new storage bucket using the Storage service [server integration](https://appwrite.io/docs/server/storage#createBucket).
      * @param fileId File ID.
-     * @return Result<appwrite::models::File>
+     * @return appwrite::Result<appwrite::models::File>
      */
-    [[nodiscard]] Task<Result<appwrite::models::File>> getFileAsync(        std::string_view bucketId,         std::string_view fileId    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::File>> getFileAsync(        std::string_view bucketId,         std::string_view fileId    ) {
                 std::string path_ = std::format("/storage/buckets/{}/files/{}", bucketId, fileId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -8021,9 +8021,9 @@ If you're creating a new file using
      * @param fileId File ID.
      * @param name File name.
      * @param permissions An array of permission strings. By default, the current permissions are inherited. [Learn more about permissions](https://appwrite.io/docs/permissions).
-     * @return Result<appwrite::models::File>
+     * @return appwrite::Result<appwrite::models::File>
      */
-    [[nodiscard]] Result<appwrite::models::File> updateFile(        std::string_view bucketId,         std::string_view fileId,         std::optional<std::string_view> name = std::nullopt,         std::optional<std::vector<std::string>> permissions = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::File> updateFile(        std::string_view bucketId,         std::string_view fileId,         std::optional<std::string_view> name = std::nullopt,         std::optional<std::vector<std::string>> permissions = std::nullopt    ) {
                 std::string path_ = std::format("/storage/buckets/{}/files/{}", bucketId, fileId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -8047,9 +8047,9 @@ If you're creating a new file using
      * @param fileId File ID.
      * @param name File name.
      * @param permissions An array of permission strings. By default, the current permissions are inherited. [Learn more about permissions](https://appwrite.io/docs/permissions).
-     * @return Result<appwrite::models::File>
+     * @return appwrite::Result<appwrite::models::File>
      */
-    [[nodiscard]] Task<Result<appwrite::models::File>> updateFileAsync(        std::string_view bucketId,         std::string_view fileId,         std::optional<std::string_view> name = std::nullopt,         std::optional<std::vector<std::string>> permissions = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::File>> updateFileAsync(        std::string_view bucketId,         std::string_view fileId,         std::optional<std::string_view> name = std::nullopt,         std::optional<std::vector<std::string>> permissions = std::nullopt    ) {
                 std::string path_ = std::format("/storage/buckets/{}/files/{}", bucketId, fileId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -8070,9 +8070,9 @@ If you're creating a new file using
      *
      * @param bucketId Storage bucket unique ID. You can create a new storage bucket using the Storage service [server integration](https://appwrite.io/docs/server/storage#createBucket).
      * @param fileId File ID.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Result<void> deleteFile(        std::string_view bucketId,         std::string_view fileId    ) {
+    [[nodiscard]] appwrite::Result<void> deleteFile(        std::string_view bucketId,         std::string_view fileId    ) {
                 std::string path_ = std::format("/storage/buckets/{}/files/{}", bucketId, fileId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -8088,9 +8088,9 @@ If you're creating a new file using
      *
      * @param bucketId Storage bucket unique ID. You can create a new storage bucket using the Storage service [server integration](https://appwrite.io/docs/server/storage#createBucket).
      * @param fileId File ID.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Task<Result<void>> deleteFileAsync(        std::string_view bucketId,         std::string_view fileId    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<void>> deleteFileAsync(        std::string_view bucketId,         std::string_view fileId    ) {
                 std::string path_ = std::format("/storage/buckets/{}/files/{}", bucketId, fileId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -8107,9 +8107,9 @@ If you're creating a new file using
      * @param bucketId Storage bucket ID. You can create a new storage bucket using the Storage service [server integration](https://appwrite.io/docs/server/storage#createBucket).
      * @param fileId File ID.
      * @param token File token for accessing this file.
-     * @return Result<BinaryResponse>
+     * @return appwrite::Result<BinaryResponse>
      */
-    [[nodiscard]] Result<BinaryResponse> getFileDownload(        std::string_view bucketId,         std::string_view fileId,         std::optional<std::string_view> token = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<BinaryResponse> getFileDownload(        std::string_view bucketId,         std::string_view fileId,         std::optional<std::string_view> token = std::nullopt    ) {
                 std::string path_ = std::format("/storage/buckets/{}/files/{}/download", bucketId, fileId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -8130,9 +8130,9 @@ If you're creating a new file using
      * @param bucketId Storage bucket ID. You can create a new storage bucket using the Storage service [server integration](https://appwrite.io/docs/server/storage#createBucket).
      * @param fileId File ID.
      * @param token File token for accessing this file.
-     * @return Result<BinaryResponse>
+     * @return appwrite::Result<BinaryResponse>
      */
-    [[nodiscard]] Task<Result<BinaryResponse>> getFileDownloadAsync(        std::string_view bucketId,         std::string_view fileId,         std::optional<std::string_view> token = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<BinaryResponse>> getFileDownloadAsync(        std::string_view bucketId,         std::string_view fileId,         std::optional<std::string_view> token = std::nullopt    ) {
                 std::string path_ = std::format("/storage/buckets/{}/files/{}/download", bucketId, fileId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -8165,9 +8165,9 @@ If you're creating a new file using
      * @param background Preview image background color. Only works with transparent images (png). Use a valid HEX color, no # is needed for prefix.
      * @param output Output format type (jpeg, jpg, png, gif and webp).
      * @param token File token for accessing this file.
-     * @return Result<BinaryResponse>
+     * @return appwrite::Result<BinaryResponse>
      */
-    [[nodiscard]] Result<BinaryResponse> getFilePreview(        std::string_view bucketId,         std::string_view fileId,         std::optional<int64_t> width = 0,         std::optional<int64_t> height = 0,         std::optional<appwrite::enums::ImageGravity> gravity = appwrite::enums::ImageGravity::CENTER,         std::optional<int64_t> quality = -1,         std::optional<int64_t> borderWidth = 0,         std::optional<std::string_view> borderColor = std::nullopt,         std::optional<int64_t> borderRadius = 0,         std::optional<double> opacity = 1,         std::optional<int64_t> rotation = 0,         std::optional<std::string_view> background = std::nullopt,         std::optional<appwrite::enums::ImageFormat> output = appwrite::enums::ImageFormat::JPG,         std::optional<std::string_view> token = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<BinaryResponse> getFilePreview(        std::string_view bucketId,         std::string_view fileId,         std::optional<int64_t> width = 0,         std::optional<int64_t> height = 0,         std::optional<appwrite::enums::ImageGravity> gravity = appwrite::enums::ImageGravity::CENTER,         std::optional<int64_t> quality = -1,         std::optional<int64_t> borderWidth = 0,         std::optional<std::string_view> borderColor = std::nullopt,         std::optional<int64_t> borderRadius = 0,         std::optional<double> opacity = 1,         std::optional<int64_t> rotation = 0,         std::optional<std::string_view> background = std::nullopt,         std::optional<appwrite::enums::ImageFormat> output = std::nullopt,         std::optional<std::string_view> token = std::nullopt    ) {
                 std::string path_ = std::format("/storage/buckets/{}/files/{}/preview", bucketId, fileId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -8234,9 +8234,9 @@ If you're creating a new file using
      * @param background Preview image background color. Only works with transparent images (png). Use a valid HEX color, no # is needed for prefix.
      * @param output Output format type (jpeg, jpg, png, gif and webp).
      * @param token File token for accessing this file.
-     * @return Result<BinaryResponse>
+     * @return appwrite::Result<BinaryResponse>
      */
-    [[nodiscard]] Task<Result<BinaryResponse>> getFilePreviewAsync(        std::string_view bucketId,         std::string_view fileId,         std::optional<int64_t> width = 0,         std::optional<int64_t> height = 0,         std::optional<appwrite::enums::ImageGravity> gravity = appwrite::enums::ImageGravity::CENTER,         std::optional<int64_t> quality = -1,         std::optional<int64_t> borderWidth = 0,         std::optional<std::string_view> borderColor = std::nullopt,         std::optional<int64_t> borderRadius = 0,         std::optional<double> opacity = 1,         std::optional<int64_t> rotation = 0,         std::optional<std::string_view> background = std::nullopt,         std::optional<appwrite::enums::ImageFormat> output = appwrite::enums::ImageFormat::JPG,         std::optional<std::string_view> token = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<BinaryResponse>> getFilePreviewAsync(        std::string_view bucketId,         std::string_view fileId,         std::optional<int64_t> width = 0,         std::optional<int64_t> height = 0,         std::optional<appwrite::enums::ImageGravity> gravity = appwrite::enums::ImageGravity::CENTER,         std::optional<int64_t> quality = -1,         std::optional<int64_t> borderWidth = 0,         std::optional<std::string_view> borderColor = std::nullopt,         std::optional<int64_t> borderRadius = 0,         std::optional<double> opacity = 1,         std::optional<int64_t> rotation = 0,         std::optional<std::string_view> background = std::nullopt,         std::optional<appwrite::enums::ImageFormat> output = std::nullopt,         std::optional<std::string_view> token = std::nullopt    ) {
                 std::string path_ = std::format("/storage/buckets/{}/files/{}/preview", bucketId, fileId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -8289,9 +8289,9 @@ If you're creating a new file using
      * @param bucketId Storage bucket unique ID. You can create a new storage bucket using the Storage service [server integration](https://appwrite.io/docs/server/storage#createBucket).
      * @param fileId File ID.
      * @param token File token for accessing this file.
-     * @return Result<BinaryResponse>
+     * @return appwrite::Result<BinaryResponse>
      */
-    [[nodiscard]] Result<BinaryResponse> getFileView(        std::string_view bucketId,         std::string_view fileId,         std::optional<std::string_view> token = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<BinaryResponse> getFileView(        std::string_view bucketId,         std::string_view fileId,         std::optional<std::string_view> token = std::nullopt    ) {
                 std::string path_ = std::format("/storage/buckets/{}/files/{}/view", bucketId, fileId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -8312,9 +8312,9 @@ If you're creating a new file using
      * @param bucketId Storage bucket unique ID. You can create a new storage bucket using the Storage service [server integration](https://appwrite.io/docs/server/storage#createBucket).
      * @param fileId File ID.
      * @param token File token for accessing this file.
-     * @return Result<BinaryResponse>
+     * @return appwrite::Result<BinaryResponse>
      */
-    [[nodiscard]] Task<Result<BinaryResponse>> getFileViewAsync(        std::string_view bucketId,         std::string_view fileId,         std::optional<std::string_view> token = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<BinaryResponse>> getFileViewAsync(        std::string_view bucketId,         std::string_view fileId,         std::optional<std::string_view> token = std::nullopt    ) {
                 std::string path_ = std::format("/storage/buckets/{}/files/{}/view", bucketId, fileId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -8342,9 +8342,9 @@ public:
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of 100 queries are allowed, each 4096 characters long. You may filter on the following columns: name
      * @param search Search term to filter your list results. Max length: 256 chars.
      * @param total When set to false, the total count returned will be 0 and will not be calculated.
-     * @return Result<appwrite::models::DatabaseList>
+     * @return appwrite::Result<appwrite::models::DatabaseList>
      */
-    [[nodiscard]] Result<appwrite::models::DatabaseList> list(        std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> search = std::nullopt,         std::optional<bool> total = true    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::DatabaseList> list(        std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> search = std::nullopt,         std::optional<bool> total = true    ) {
                 std::string path_ = std::format("/tablesdb");
         
         nlohmann::json params = nlohmann::json::object();
@@ -8370,9 +8370,9 @@ public:
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of 100 queries are allowed, each 4096 characters long. You may filter on the following columns: name
      * @param search Search term to filter your list results. Max length: 256 chars.
      * @param total When set to false, the total count returned will be 0 and will not be calculated.
-     * @return Result<appwrite::models::DatabaseList>
+     * @return appwrite::Result<appwrite::models::DatabaseList>
      */
-    [[nodiscard]] Task<Result<appwrite::models::DatabaseList>> listAsync(        std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> search = std::nullopt,         std::optional<bool> total = true    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::DatabaseList>> listAsync(        std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> search = std::nullopt,         std::optional<bool> total = true    ) {
                 std::string path_ = std::format("/tablesdb");
         
         nlohmann::json params = nlohmann::json::object();
@@ -8396,9 +8396,9 @@ public:
      * @param databaseId Unique Id. Choose a custom ID or generate a random ID with `ID.unique()`. Valid chars are a-z, A-Z, 0-9, period, hyphen, and underscore. Can't start with a special char. Max length is 36 chars.
      * @param name Database name. Max length: 128 chars.
      * @param enabled Is the database enabled? When set to 'disabled', users cannot access the database but Server SDKs with an API key can still read and write to the database. No data is lost when this is toggled.
-     * @return Result<appwrite::models::Database>
+     * @return appwrite::Result<appwrite::models::Database>
      */
-    [[nodiscard]] Result<appwrite::models::Database> create(        std::string_view databaseId,         std::string_view name,         std::optional<bool> enabled = true    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Database> create(        std::string_view databaseId,         std::string_view name,         std::optional<bool> enabled = true    ) {
                 std::string path_ = std::format("/tablesdb");
         
         nlohmann::json params = nlohmann::json::object();
@@ -8419,9 +8419,9 @@ public:
      * @param databaseId Unique Id. Choose a custom ID or generate a random ID with `ID.unique()`. Valid chars are a-z, A-Z, 0-9, period, hyphen, and underscore. Can't start with a special char. Max length is 36 chars.
      * @param name Database name. Max length: 128 chars.
      * @param enabled Is the database enabled? When set to 'disabled', users cannot access the database but Server SDKs with an API key can still read and write to the database. No data is lost when this is toggled.
-     * @return Result<appwrite::models::Database>
+     * @return appwrite::Result<appwrite::models::Database>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Database>> createAsync(        std::string_view databaseId,         std::string_view name,         std::optional<bool> enabled = true    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Database>> createAsync(        std::string_view databaseId,         std::string_view name,         std::optional<bool> enabled = true    ) {
                 std::string path_ = std::format("/tablesdb");
         
         nlohmann::json params = nlohmann::json::object();
@@ -8439,9 +8439,9 @@ public:
      * List transactions across all databases.
      *
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries).
-     * @return Result<appwrite::models::TransactionList>
+     * @return appwrite::Result<appwrite::models::TransactionList>
      */
-    [[nodiscard]] Result<appwrite::models::TransactionList> listTransactions(        std::optional<std::vector<std::string>> queries = std::vector<std::string>{}    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::TransactionList> listTransactions(        std::optional<std::vector<std::string>> queries = std::vector<std::string>{}    ) {
                 std::string path_ = std::format("/tablesdb/transactions");
         
         nlohmann::json params = nlohmann::json::object();
@@ -8458,9 +8458,9 @@ public:
      * List transactions across all databases.
      *
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries).
-     * @return Result<appwrite::models::TransactionList>
+     * @return appwrite::Result<appwrite::models::TransactionList>
      */
-    [[nodiscard]] Task<Result<appwrite::models::TransactionList>> listTransactionsAsync(        std::optional<std::vector<std::string>> queries = std::vector<std::string>{}    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::TransactionList>> listTransactionsAsync(        std::optional<std::vector<std::string>> queries = std::vector<std::string>{}    ) {
                 std::string path_ = std::format("/tablesdb/transactions");
         
         nlohmann::json params = nlohmann::json::object();
@@ -8476,9 +8476,9 @@ public:
      * Create a new transaction.
      *
      * @param ttl Seconds before the transaction expires.
-     * @return Result<appwrite::models::Transaction>
+     * @return appwrite::Result<appwrite::models::Transaction>
      */
-    [[nodiscard]] Result<appwrite::models::Transaction> createTransaction(        std::optional<int64_t> ttl = 300    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Transaction> createTransaction(        std::optional<int64_t> ttl = 300    ) {
                 std::string path_ = std::format("/tablesdb/transactions");
         
         nlohmann::json params = nlohmann::json::object();
@@ -8495,9 +8495,9 @@ public:
      * Create a new transaction.
      *
      * @param ttl Seconds before the transaction expires.
-     * @return Result<appwrite::models::Transaction>
+     * @return appwrite::Result<appwrite::models::Transaction>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Transaction>> createTransactionAsync(        std::optional<int64_t> ttl = 300    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Transaction>> createTransactionAsync(        std::optional<int64_t> ttl = 300    ) {
                 std::string path_ = std::format("/tablesdb/transactions");
         
         nlohmann::json params = nlohmann::json::object();
@@ -8513,9 +8513,9 @@ public:
      * Get a transaction by its unique ID.
      *
      * @param transactionId Transaction ID.
-     * @return Result<appwrite::models::Transaction>
+     * @return appwrite::Result<appwrite::models::Transaction>
      */
-    [[nodiscard]] Result<appwrite::models::Transaction> getTransaction(        std::string_view transactionId    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Transaction> getTransaction(        std::string_view transactionId    ) {
                 std::string path_ = std::format("/tablesdb/transactions/{}", transactionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -8529,9 +8529,9 @@ public:
      * Get a transaction by its unique ID.
      *
      * @param transactionId Transaction ID.
-     * @return Result<appwrite::models::Transaction>
+     * @return appwrite::Result<appwrite::models::Transaction>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Transaction>> getTransactionAsync(        std::string_view transactionId    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Transaction>> getTransactionAsync(        std::string_view transactionId    ) {
                 std::string path_ = std::format("/tablesdb/transactions/{}", transactionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -8546,9 +8546,9 @@ public:
      * @param transactionId Transaction ID.
      * @param commit Commit transaction?
      * @param rollback Rollback transaction?
-     * @return Result<appwrite::models::Transaction>
+     * @return appwrite::Result<appwrite::models::Transaction>
      */
-    [[nodiscard]] Result<appwrite::models::Transaction> updateTransaction(        std::string_view transactionId,         std::optional<bool> commit = false,         std::optional<bool> rollback = false    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Transaction> updateTransaction(        std::string_view transactionId,         std::optional<bool> commit = false,         std::optional<bool> rollback = false    ) {
                 std::string path_ = std::format("/tablesdb/transactions/{}", transactionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -8570,9 +8570,9 @@ public:
      * @param transactionId Transaction ID.
      * @param commit Commit transaction?
      * @param rollback Rollback transaction?
-     * @return Result<appwrite::models::Transaction>
+     * @return appwrite::Result<appwrite::models::Transaction>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Transaction>> updateTransactionAsync(        std::string_view transactionId,         std::optional<bool> commit = false,         std::optional<bool> rollback = false    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Transaction>> updateTransactionAsync(        std::string_view transactionId,         std::optional<bool> commit = false,         std::optional<bool> rollback = false    ) {
                 std::string path_ = std::format("/tablesdb/transactions/{}", transactionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -8591,9 +8591,9 @@ public:
      * Delete a transaction by its unique ID.
      *
      * @param transactionId Transaction ID.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Result<void> deleteTransaction(        std::string_view transactionId    ) {
+    [[nodiscard]] appwrite::Result<void> deleteTransaction(        std::string_view transactionId    ) {
                 std::string path_ = std::format("/tablesdb/transactions/{}", transactionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -8607,9 +8607,9 @@ public:
      * Delete a transaction by its unique ID.
      *
      * @param transactionId Transaction ID.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Task<Result<void>> deleteTransactionAsync(        std::string_view transactionId    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<void>> deleteTransactionAsync(        std::string_view transactionId    ) {
                 std::string path_ = std::format("/tablesdb/transactions/{}", transactionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -8623,9 +8623,9 @@ public:
      *
      * @param transactionId Transaction ID.
      * @param operations Array of staged operations.
-     * @return Result<appwrite::models::Transaction>
+     * @return appwrite::Result<appwrite::models::Transaction>
      */
-    [[nodiscard]] Result<appwrite::models::Transaction> createOperations(        std::string_view transactionId,         std::optional<std::vector<nlohmann::json>> operations = std::vector<nlohmann::json>{}    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Transaction> createOperations(        std::string_view transactionId,         std::optional<std::vector<nlohmann::json>> operations = std::vector<nlohmann::json>{}    ) {
                 std::string path_ = std::format("/tablesdb/transactions/{}/operations", transactionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -8643,9 +8643,9 @@ public:
      *
      * @param transactionId Transaction ID.
      * @param operations Array of staged operations.
-     * @return Result<appwrite::models::Transaction>
+     * @return appwrite::Result<appwrite::models::Transaction>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Transaction>> createOperationsAsync(        std::string_view transactionId,         std::optional<std::vector<nlohmann::json>> operations = std::vector<nlohmann::json>{}    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Transaction>> createOperationsAsync(        std::string_view transactionId,         std::optional<std::vector<nlohmann::json>> operations = std::vector<nlohmann::json>{}    ) {
                 std::string path_ = std::format("/tablesdb/transactions/{}/operations", transactionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -8662,9 +8662,9 @@ public:
      * object with the database metadata.
      *
      * @param databaseId Database ID.
-     * @return Result<appwrite::models::Database>
+     * @return appwrite::Result<appwrite::models::Database>
      */
-    [[nodiscard]] Result<appwrite::models::Database> get(        std::string_view databaseId    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Database> get(        std::string_view databaseId    ) {
                 std::string path_ = std::format("/tablesdb/{}", databaseId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -8679,9 +8679,9 @@ public:
      * object with the database metadata.
      *
      * @param databaseId Database ID.
-     * @return Result<appwrite::models::Database>
+     * @return appwrite::Result<appwrite::models::Database>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Database>> getAsync(        std::string_view databaseId    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Database>> getAsync(        std::string_view databaseId    ) {
                 std::string path_ = std::format("/tablesdb/{}", databaseId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -8696,9 +8696,9 @@ public:
      * @param databaseId Database ID.
      * @param name Database name. Max length: 128 chars.
      * @param enabled Is database enabled? When set to 'disabled', users cannot access the database but Server SDKs with an API key can still read and write to the database. No data is lost when this is toggled.
-     * @return Result<appwrite::models::Database>
+     * @return appwrite::Result<appwrite::models::Database>
      */
-    [[nodiscard]] Result<appwrite::models::Database> update(        std::string_view databaseId,         std::optional<std::string_view> name = std::nullopt,         std::optional<bool> enabled = true    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Database> update(        std::string_view databaseId,         std::optional<std::string_view> name = std::nullopt,         std::optional<bool> enabled = true    ) {
                 std::string path_ = std::format("/tablesdb/{}", databaseId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -8720,9 +8720,9 @@ public:
      * @param databaseId Database ID.
      * @param name Database name. Max length: 128 chars.
      * @param enabled Is database enabled? When set to 'disabled', users cannot access the database but Server SDKs with an API key can still read and write to the database. No data is lost when this is toggled.
-     * @return Result<appwrite::models::Database>
+     * @return appwrite::Result<appwrite::models::Database>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Database>> updateAsync(        std::string_view databaseId,         std::optional<std::string_view> name = std::nullopt,         std::optional<bool> enabled = true    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Database>> updateAsync(        std::string_view databaseId,         std::optional<std::string_view> name = std::nullopt,         std::optional<bool> enabled = true    ) {
                 std::string path_ = std::format("/tablesdb/{}", databaseId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -8742,9 +8742,9 @@ public:
      * scope can delete a database.
      *
      * @param databaseId Database ID.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Result<void> delete_(        std::string_view databaseId    ) {
+    [[nodiscard]] appwrite::Result<void> delete_(        std::string_view databaseId    ) {
                 std::string path_ = std::format("/tablesdb/{}", databaseId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -8759,9 +8759,9 @@ public:
      * scope can delete a database.
      *
      * @param databaseId Database ID.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Task<Result<void>> delete_Async(        std::string_view databaseId    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<void>> delete_Async(        std::string_view databaseId    ) {
                 std::string path_ = std::format("/tablesdb/{}", databaseId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -8778,9 +8778,9 @@ public:
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of 100 queries are allowed, each 4096 characters long. You may filter on the following columns: name, enabled, rowSecurity
      * @param search Search term to filter your list results. Max length: 256 chars.
      * @param total When set to false, the total count returned will be 0 and will not be calculated.
-     * @return Result<appwrite::models::TableList>
+     * @return appwrite::Result<appwrite::models::TableList>
      */
-    [[nodiscard]] Result<appwrite::models::TableList> listTables(        std::string_view databaseId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> search = std::nullopt,         std::optional<bool> total = true    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::TableList> listTables(        std::string_view databaseId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> search = std::nullopt,         std::optional<bool> total = true    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables", databaseId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -8807,9 +8807,9 @@ public:
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of 100 queries are allowed, each 4096 characters long. You may filter on the following columns: name, enabled, rowSecurity
      * @param search Search term to filter your list results. Max length: 256 chars.
      * @param total When set to false, the total count returned will be 0 and will not be calculated.
-     * @return Result<appwrite::models::TableList>
+     * @return appwrite::Result<appwrite::models::TableList>
      */
-    [[nodiscard]] Task<Result<appwrite::models::TableList>> listTablesAsync(        std::string_view databaseId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> search = std::nullopt,         std::optional<bool> total = true    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::TableList>> listTablesAsync(        std::string_view databaseId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> search = std::nullopt,         std::optional<bool> total = true    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables", databaseId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -8841,9 +8841,9 @@ public:
      * @param enabled Is table enabled? When set to 'disabled', users cannot access the table but Server SDKs with and API key can still read and write to the table. No data is lost when this is toggled.
      * @param columns Array of column definitions to create. Each column should contain: key (string), type (string: string, integer, float, boolean, datetime, relationship), size (integer, required for string type), required (boolean, optional), default (mixed, optional), array (boolean, optional), and type-specific options.
      * @param indexes Array of index definitions to create. Each index should contain: key (string), type (string: key, fulltext, unique, spatial), attributes (array of column keys), orders (array of ASC/DESC, optional), and lengths (array of integers, optional).
-     * @return Result<appwrite::models::Table>
+     * @return appwrite::Result<appwrite::models::Table>
      */
-    [[nodiscard]] Result<appwrite::models::Table> createTable(        std::string_view databaseId,         std::string_view tableId,         std::string_view name,         std::optional<std::vector<std::string>> permissions = std::nullopt,         std::optional<bool> rowSecurity = false,         std::optional<bool> enabled = true,         std::optional<std::vector<nlohmann::json>> columns = std::vector<nlohmann::json>{},         std::optional<std::vector<nlohmann::json>> indexes = std::vector<nlohmann::json>{}    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Table> createTable(        std::string_view databaseId,         std::string_view tableId,         std::string_view name,         std::optional<std::vector<std::string>> permissions = std::nullopt,         std::optional<bool> rowSecurity = false,         std::optional<bool> enabled = true,         std::optional<std::vector<nlohmann::json>> columns = std::vector<nlohmann::json>{},         std::optional<std::vector<nlohmann::json>> indexes = std::vector<nlohmann::json>{}    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables", databaseId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -8884,9 +8884,9 @@ public:
      * @param enabled Is table enabled? When set to 'disabled', users cannot access the table but Server SDKs with and API key can still read and write to the table. No data is lost when this is toggled.
      * @param columns Array of column definitions to create. Each column should contain: key (string), type (string: string, integer, float, boolean, datetime, relationship), size (integer, required for string type), required (boolean, optional), default (mixed, optional), array (boolean, optional), and type-specific options.
      * @param indexes Array of index definitions to create. Each index should contain: key (string), type (string: key, fulltext, unique, spatial), attributes (array of column keys), orders (array of ASC/DESC, optional), and lengths (array of integers, optional).
-     * @return Result<appwrite::models::Table>
+     * @return appwrite::Result<appwrite::models::Table>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Table>> createTableAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view name,         std::optional<std::vector<std::string>> permissions = std::nullopt,         std::optional<bool> rowSecurity = false,         std::optional<bool> enabled = true,         std::optional<std::vector<nlohmann::json>> columns = std::vector<nlohmann::json>{},         std::optional<std::vector<nlohmann::json>> indexes = std::vector<nlohmann::json>{}    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Table>> createTableAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view name,         std::optional<std::vector<std::string>> permissions = std::nullopt,         std::optional<bool> rowSecurity = false,         std::optional<bool> enabled = true,         std::optional<std::vector<nlohmann::json>> columns = std::vector<nlohmann::json>{},         std::optional<std::vector<nlohmann::json>> indexes = std::vector<nlohmann::json>{}    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables", databaseId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -8918,9 +8918,9 @@ public:
      *
      * @param databaseId Database ID.
      * @param tableId Table ID.
-     * @return Result<appwrite::models::Table>
+     * @return appwrite::Result<appwrite::models::Table>
      */
-    [[nodiscard]] Result<appwrite::models::Table> getTable(        std::string_view databaseId,         std::string_view tableId    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Table> getTable(        std::string_view databaseId,         std::string_view tableId    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -8936,9 +8936,9 @@ public:
      *
      * @param databaseId Database ID.
      * @param tableId Table ID.
-     * @return Result<appwrite::models::Table>
+     * @return appwrite::Result<appwrite::models::Table>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Table>> getTableAsync(        std::string_view databaseId,         std::string_view tableId    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Table>> getTableAsync(        std::string_view databaseId,         std::string_view tableId    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -8957,9 +8957,9 @@ public:
      * @param rowSecurity Enables configuring permissions for individual rows. A user needs one of row or table-level permissions to access a row. [Learn more about permissions](https://appwrite.io/docs/permissions).
      * @param enabled Is table enabled? When set to 'disabled', users cannot access the table but Server SDKs with and API key can still read and write to the table. No data is lost when this is toggled.
      * @param purge When true, purge all cached list responses for this table as part of the update. Use this to force readers to see fresh data immediately instead of waiting for the cache TTL to expire.
-     * @return Result<appwrite::models::Table>
+     * @return appwrite::Result<appwrite::models::Table>
      */
-    [[nodiscard]] Result<appwrite::models::Table> updateTable(        std::string_view databaseId,         std::string_view tableId,         std::optional<std::string_view> name = std::nullopt,         std::optional<std::vector<std::string>> permissions = std::nullopt,         std::optional<bool> rowSecurity = false,         std::optional<bool> enabled = true,         std::optional<bool> purge = false    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Table> updateTable(        std::string_view databaseId,         std::string_view tableId,         std::optional<std::string_view> name = std::nullopt,         std::optional<std::vector<std::string>> permissions = std::nullopt,         std::optional<bool> rowSecurity = false,         std::optional<bool> enabled = true,         std::optional<bool> purge = false    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -8994,9 +8994,9 @@ public:
      * @param rowSecurity Enables configuring permissions for individual rows. A user needs one of row or table-level permissions to access a row. [Learn more about permissions](https://appwrite.io/docs/permissions).
      * @param enabled Is table enabled? When set to 'disabled', users cannot access the table but Server SDKs with and API key can still read and write to the table. No data is lost when this is toggled.
      * @param purge When true, purge all cached list responses for this table as part of the update. Use this to force readers to see fresh data immediately instead of waiting for the cache TTL to expire.
-     * @return Result<appwrite::models::Table>
+     * @return appwrite::Result<appwrite::models::Table>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Table>> updateTableAsync(        std::string_view databaseId,         std::string_view tableId,         std::optional<std::string_view> name = std::nullopt,         std::optional<std::vector<std::string>> permissions = std::nullopt,         std::optional<bool> rowSecurity = false,         std::optional<bool> enabled = true,         std::optional<bool> purge = false    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Table>> updateTableAsync(        std::string_view databaseId,         std::string_view tableId,         std::optional<std::string_view> name = std::nullopt,         std::optional<std::vector<std::string>> permissions = std::nullopt,         std::optional<bool> rowSecurity = false,         std::optional<bool> enabled = true,         std::optional<bool> purge = false    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -9026,9 +9026,9 @@ public:
      *
      * @param databaseId Database ID.
      * @param tableId Table ID.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Result<void> deleteTable(        std::string_view databaseId,         std::string_view tableId    ) {
+    [[nodiscard]] appwrite::Result<void> deleteTable(        std::string_view databaseId,         std::string_view tableId    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -9044,9 +9044,9 @@ public:
      *
      * @param databaseId Database ID.
      * @param tableId Table ID.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Task<Result<void>> deleteTableAsync(        std::string_view databaseId,         std::string_view tableId    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<void>> deleteTableAsync(        std::string_view databaseId,         std::string_view tableId    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -9062,9 +9062,9 @@ public:
      * @param tableId Table ID.
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of 100 queries are allowed, each 4096 characters long. You may filter on the following columns: key, type, size, required, array, status, error
      * @param total When set to false, the total count returned will be 0 and will not be calculated.
-     * @return Result<appwrite::models::ColumnList>
+     * @return appwrite::Result<appwrite::models::ColumnList>
      */
-    [[nodiscard]] Result<appwrite::models::ColumnList> listColumns(        std::string_view databaseId,         std::string_view tableId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<bool> total = true    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::ColumnList> listColumns(        std::string_view databaseId,         std::string_view tableId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<bool> total = true    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -9087,9 +9087,9 @@ public:
      * @param tableId Table ID.
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of 100 queries are allowed, each 4096 characters long. You may filter on the following columns: key, type, size, required, array, status, error
      * @param total When set to false, the total count returned will be 0 and will not be calculated.
-     * @return Result<appwrite::models::ColumnList>
+     * @return appwrite::Result<appwrite::models::ColumnList>
      */
-    [[nodiscard]] Task<Result<appwrite::models::ColumnList>> listColumnsAsync(        std::string_view databaseId,         std::string_view tableId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<bool> total = true    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::ColumnList>> listColumnsAsync(        std::string_view databaseId,         std::string_view tableId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<bool> total = true    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -9113,9 +9113,9 @@ public:
      * @param required Is column required?
      * @param default_ Default value for column when not provided. Cannot be set when column is required.
      * @param array Is column an array?
-     * @return Result<appwrite::models::ColumnBoolean>
+     * @return appwrite::Result<appwrite::models::ColumnBoolean>
      */
-    [[nodiscard]] Result<appwrite::models::ColumnBoolean> createBooleanColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<bool> default_ = std::nullopt,         std::optional<bool> array = false    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::ColumnBoolean> createBooleanColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<bool> default_ = std::nullopt,         std::optional<bool> array = false    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/boolean", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -9142,9 +9142,9 @@ public:
      * @param required Is column required?
      * @param default_ Default value for column when not provided. Cannot be set when column is required.
      * @param array Is column an array?
-     * @return Result<appwrite::models::ColumnBoolean>
+     * @return appwrite::Result<appwrite::models::ColumnBoolean>
      */
-    [[nodiscard]] Task<Result<appwrite::models::ColumnBoolean>> createBooleanColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<bool> default_ = std::nullopt,         std::optional<bool> array = false    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::ColumnBoolean>> createBooleanColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<bool> default_ = std::nullopt,         std::optional<bool> array = false    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/boolean", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -9171,9 +9171,9 @@ public:
      * @param required Is column required?
      * @param default_ Default value for column when not provided. Cannot be set when column is required.
      * @param newKey New Column Key.
-     * @return Result<appwrite::models::ColumnBoolean>
+     * @return appwrite::Result<appwrite::models::ColumnBoolean>
      */
-    [[nodiscard]] Result<appwrite::models::ColumnBoolean> updateBooleanColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         bool default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::ColumnBoolean> updateBooleanColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         bool default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/boolean/{}", databaseId, tableId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -9198,9 +9198,9 @@ public:
      * @param required Is column required?
      * @param default_ Default value for column when not provided. Cannot be set when column is required.
      * @param newKey New Column Key.
-     * @return Result<appwrite::models::ColumnBoolean>
+     * @return appwrite::Result<appwrite::models::ColumnBoolean>
      */
-    [[nodiscard]] Task<Result<appwrite::models::ColumnBoolean>> updateBooleanColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         bool default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::ColumnBoolean>> updateBooleanColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         bool default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/boolean/{}", databaseId, tableId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -9223,9 +9223,9 @@ public:
      * @param required Is column required?
      * @param default_ Default value for the column in [ISO 8601](https://www.iso.org/iso-8601-date-and-time-format.html) format. Cannot be set when column is required.
      * @param array Is column an array?
-     * @return Result<appwrite::models::ColumnDatetime>
+     * @return appwrite::Result<appwrite::models::ColumnDatetime>
      */
-    [[nodiscard]] Result<appwrite::models::ColumnDatetime> createDatetimeColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::ColumnDatetime> createDatetimeColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/datetime", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -9252,9 +9252,9 @@ public:
      * @param required Is column required?
      * @param default_ Default value for the column in [ISO 8601](https://www.iso.org/iso-8601-date-and-time-format.html) format. Cannot be set when column is required.
      * @param array Is column an array?
-     * @return Result<appwrite::models::ColumnDatetime>
+     * @return appwrite::Result<appwrite::models::ColumnDatetime>
      */
-    [[nodiscard]] Task<Result<appwrite::models::ColumnDatetime>> createDatetimeColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::ColumnDatetime>> createDatetimeColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/datetime", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -9281,9 +9281,9 @@ public:
      * @param required Is column required?
      * @param default_ Default value for column when not provided. Cannot be set when column is required.
      * @param newKey New Column Key.
-     * @return Result<appwrite::models::ColumnDatetime>
+     * @return appwrite::Result<appwrite::models::ColumnDatetime>
      */
-    [[nodiscard]] Result<appwrite::models::ColumnDatetime> updateDatetimeColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::ColumnDatetime> updateDatetimeColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/datetime/{}", databaseId, tableId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -9308,9 +9308,9 @@ public:
      * @param required Is column required?
      * @param default_ Default value for column when not provided. Cannot be set when column is required.
      * @param newKey New Column Key.
-     * @return Result<appwrite::models::ColumnDatetime>
+     * @return appwrite::Result<appwrite::models::ColumnDatetime>
      */
-    [[nodiscard]] Task<Result<appwrite::models::ColumnDatetime>> updateDatetimeColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::ColumnDatetime>> updateDatetimeColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/datetime/{}", databaseId, tableId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -9333,9 +9333,9 @@ public:
      * @param required Is column required?
      * @param default_ Default value for column when not provided. Cannot be set when column is required.
      * @param array Is column an array?
-     * @return Result<appwrite::models::ColumnEmail>
+     * @return appwrite::Result<appwrite::models::ColumnEmail>
      */
-    [[nodiscard]] Result<appwrite::models::ColumnEmail> createEmailColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::ColumnEmail> createEmailColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/email", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -9362,9 +9362,9 @@ public:
      * @param required Is column required?
      * @param default_ Default value for column when not provided. Cannot be set when column is required.
      * @param array Is column an array?
-     * @return Result<appwrite::models::ColumnEmail>
+     * @return appwrite::Result<appwrite::models::ColumnEmail>
      */
-    [[nodiscard]] Task<Result<appwrite::models::ColumnEmail>> createEmailColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::ColumnEmail>> createEmailColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/email", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -9391,9 +9391,9 @@ public:
      * @param required Is column required?
      * @param default_ Default value for column when not provided. Cannot be set when column is required.
      * @param newKey New Column Key.
-     * @return Result<appwrite::models::ColumnEmail>
+     * @return appwrite::Result<appwrite::models::ColumnEmail>
      */
-    [[nodiscard]] Result<appwrite::models::ColumnEmail> updateEmailColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::ColumnEmail> updateEmailColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/email/{}", databaseId, tableId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -9418,9 +9418,9 @@ public:
      * @param required Is column required?
      * @param default_ Default value for column when not provided. Cannot be set when column is required.
      * @param newKey New Column Key.
-     * @return Result<appwrite::models::ColumnEmail>
+     * @return appwrite::Result<appwrite::models::ColumnEmail>
      */
-    [[nodiscard]] Task<Result<appwrite::models::ColumnEmail>> updateEmailColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::ColumnEmail>> updateEmailColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/email/{}", databaseId, tableId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -9445,9 +9445,9 @@ public:
      * @param required Is column required?
      * @param default_ Default value for column when not provided. Cannot be set when column is required.
      * @param array Is column an array?
-     * @return Result<appwrite::models::ColumnEnum>
+     * @return appwrite::Result<appwrite::models::ColumnEnum>
      */
-    [[nodiscard]] Result<appwrite::models::ColumnEnum> createEnumColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         std::vector<std::string> elements,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::ColumnEnum> createEnumColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         std::vector<std::string> elements,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/enum", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -9477,9 +9477,9 @@ public:
      * @param required Is column required?
      * @param default_ Default value for column when not provided. Cannot be set when column is required.
      * @param array Is column an array?
-     * @return Result<appwrite::models::ColumnEnum>
+     * @return appwrite::Result<appwrite::models::ColumnEnum>
      */
-    [[nodiscard]] Task<Result<appwrite::models::ColumnEnum>> createEnumColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         std::vector<std::string> elements,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::ColumnEnum>> createEnumColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         std::vector<std::string> elements,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/enum", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -9508,9 +9508,9 @@ public:
      * @param required Is column required?
      * @param default_ Default value for column when not provided. Cannot be set when column is required.
      * @param newKey New Column Key.
-     * @return Result<appwrite::models::ColumnEnum>
+     * @return appwrite::Result<appwrite::models::ColumnEnum>
      */
-    [[nodiscard]] Result<appwrite::models::ColumnEnum> updateEnumColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         std::vector<std::string> elements,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::ColumnEnum> updateEnumColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         std::vector<std::string> elements,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/enum/{}", databaseId, tableId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -9537,9 +9537,9 @@ public:
      * @param required Is column required?
      * @param default_ Default value for column when not provided. Cannot be set when column is required.
      * @param newKey New Column Key.
-     * @return Result<appwrite::models::ColumnEnum>
+     * @return appwrite::Result<appwrite::models::ColumnEnum>
      */
-    [[nodiscard]] Task<Result<appwrite::models::ColumnEnum>> updateEnumColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         std::vector<std::string> elements,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::ColumnEnum>> updateEnumColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         std::vector<std::string> elements,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/enum/{}", databaseId, tableId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -9566,9 +9566,9 @@ public:
      * @param max Maximum value
      * @param default_ Default value. Cannot be set when required.
      * @param array Is column an array?
-     * @return Result<appwrite::models::ColumnFloat>
+     * @return appwrite::Result<appwrite::models::ColumnFloat>
      */
-    [[nodiscard]] Result<appwrite::models::ColumnFloat> createFloatColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<double> min = std::nullopt,         std::optional<double> max = std::nullopt,         std::optional<double> default_ = std::nullopt,         std::optional<bool> array = false    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::ColumnFloat> createFloatColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<double> min = std::nullopt,         std::optional<double> max = std::nullopt,         std::optional<double> default_ = std::nullopt,         std::optional<bool> array = false    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/float", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -9604,9 +9604,9 @@ public:
      * @param max Maximum value
      * @param default_ Default value. Cannot be set when required.
      * @param array Is column an array?
-     * @return Result<appwrite::models::ColumnFloat>
+     * @return appwrite::Result<appwrite::models::ColumnFloat>
      */
-    [[nodiscard]] Task<Result<appwrite::models::ColumnFloat>> createFloatColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<double> min = std::nullopt,         std::optional<double> max = std::nullopt,         std::optional<double> default_ = std::nullopt,         std::optional<bool> array = false    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::ColumnFloat>> createFloatColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<double> min = std::nullopt,         std::optional<double> max = std::nullopt,         std::optional<double> default_ = std::nullopt,         std::optional<bool> array = false    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/float", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -9641,9 +9641,9 @@ public:
      * @param min Minimum value
      * @param max Maximum value
      * @param newKey New Column Key.
-     * @return Result<appwrite::models::ColumnFloat>
+     * @return appwrite::Result<appwrite::models::ColumnFloat>
      */
-    [[nodiscard]] Result<appwrite::models::ColumnFloat> updateFloatColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         double default_,         std::optional<double> min = std::nullopt,         std::optional<double> max = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::ColumnFloat> updateFloatColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         double default_,         std::optional<double> min = std::nullopt,         std::optional<double> max = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/float/{}", databaseId, tableId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -9676,9 +9676,9 @@ public:
      * @param min Minimum value
      * @param max Maximum value
      * @param newKey New Column Key.
-     * @return Result<appwrite::models::ColumnFloat>
+     * @return appwrite::Result<appwrite::models::ColumnFloat>
      */
-    [[nodiscard]] Task<Result<appwrite::models::ColumnFloat>> updateFloatColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         double default_,         std::optional<double> min = std::nullopt,         std::optional<double> max = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::ColumnFloat>> updateFloatColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         double default_,         std::optional<double> min = std::nullopt,         std::optional<double> max = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/float/{}", databaseId, tableId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -9710,9 +9710,9 @@ public:
      * @param max Maximum value
      * @param default_ Default value. Cannot be set when column is required.
      * @param array Is column an array?
-     * @return Result<appwrite::models::ColumnInteger>
+     * @return appwrite::Result<appwrite::models::ColumnInteger>
      */
-    [[nodiscard]] Result<appwrite::models::ColumnInteger> createIntegerColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<int64_t> min = std::nullopt,         std::optional<int64_t> max = std::nullopt,         std::optional<int64_t> default_ = std::nullopt,         std::optional<bool> array = false    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::ColumnInteger> createIntegerColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<int64_t> min = std::nullopt,         std::optional<int64_t> max = std::nullopt,         std::optional<int64_t> default_ = std::nullopt,         std::optional<bool> array = false    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/integer", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -9748,9 +9748,9 @@ public:
      * @param max Maximum value
      * @param default_ Default value. Cannot be set when column is required.
      * @param array Is column an array?
-     * @return Result<appwrite::models::ColumnInteger>
+     * @return appwrite::Result<appwrite::models::ColumnInteger>
      */
-    [[nodiscard]] Task<Result<appwrite::models::ColumnInteger>> createIntegerColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<int64_t> min = std::nullopt,         std::optional<int64_t> max = std::nullopt,         std::optional<int64_t> default_ = std::nullopt,         std::optional<bool> array = false    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::ColumnInteger>> createIntegerColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<int64_t> min = std::nullopt,         std::optional<int64_t> max = std::nullopt,         std::optional<int64_t> default_ = std::nullopt,         std::optional<bool> array = false    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/integer", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -9785,9 +9785,9 @@ public:
      * @param min Minimum value
      * @param max Maximum value
      * @param newKey New Column Key.
-     * @return Result<appwrite::models::ColumnInteger>
+     * @return appwrite::Result<appwrite::models::ColumnInteger>
      */
-    [[nodiscard]] Result<appwrite::models::ColumnInteger> updateIntegerColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         int64_t default_,         std::optional<int64_t> min = std::nullopt,         std::optional<int64_t> max = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::ColumnInteger> updateIntegerColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         int64_t default_,         std::optional<int64_t> min = std::nullopt,         std::optional<int64_t> max = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/integer/{}", databaseId, tableId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -9820,9 +9820,9 @@ public:
      * @param min Minimum value
      * @param max Maximum value
      * @param newKey New Column Key.
-     * @return Result<appwrite::models::ColumnInteger>
+     * @return appwrite::Result<appwrite::models::ColumnInteger>
      */
-    [[nodiscard]] Task<Result<appwrite::models::ColumnInteger>> updateIntegerColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         int64_t default_,         std::optional<int64_t> min = std::nullopt,         std::optional<int64_t> max = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::ColumnInteger>> updateIntegerColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         int64_t default_,         std::optional<int64_t> min = std::nullopt,         std::optional<int64_t> max = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/integer/{}", databaseId, tableId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -9851,9 +9851,9 @@ public:
      * @param required Is column required?
      * @param default_ Default value. Cannot be set when column is required.
      * @param array Is column an array?
-     * @return Result<appwrite::models::ColumnIp>
+     * @return appwrite::Result<appwrite::models::ColumnIp>
      */
-    [[nodiscard]] Result<appwrite::models::ColumnIp> createIpColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::ColumnIp> createIpColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/ip", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -9880,9 +9880,9 @@ public:
      * @param required Is column required?
      * @param default_ Default value. Cannot be set when column is required.
      * @param array Is column an array?
-     * @return Result<appwrite::models::ColumnIp>
+     * @return appwrite::Result<appwrite::models::ColumnIp>
      */
-    [[nodiscard]] Task<Result<appwrite::models::ColumnIp>> createIpColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::ColumnIp>> createIpColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/ip", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -9909,9 +9909,9 @@ public:
      * @param required Is column required?
      * @param default_ Default value. Cannot be set when column is required.
      * @param newKey New Column Key.
-     * @return Result<appwrite::models::ColumnIp>
+     * @return appwrite::Result<appwrite::models::ColumnIp>
      */
-    [[nodiscard]] Result<appwrite::models::ColumnIp> updateIpColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::ColumnIp> updateIpColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/ip/{}", databaseId, tableId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -9936,9 +9936,9 @@ public:
      * @param required Is column required?
      * @param default_ Default value. Cannot be set when column is required.
      * @param newKey New Column Key.
-     * @return Result<appwrite::models::ColumnIp>
+     * @return appwrite::Result<appwrite::models::ColumnIp>
      */
-    [[nodiscard]] Task<Result<appwrite::models::ColumnIp>> updateIpColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::ColumnIp>> updateIpColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/ip/{}", databaseId, tableId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -9960,9 +9960,9 @@ public:
      * @param key Column Key.
      * @param required Is column required?
      * @param default_ Default value for column when not provided, two-dimensional array of coordinate pairs, [[longitude, latitude], [longitude, latitude], …], listing the vertices of the line in order. Cannot be set when column is required.
-     * @return Result<appwrite::models::ColumnLine>
+     * @return appwrite::Result<appwrite::models::ColumnLine>
      */
-    [[nodiscard]] Result<appwrite::models::ColumnLine> createLineColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<std::vector<std::string>> default_ = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::ColumnLine> createLineColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<std::vector<std::string>> default_ = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/line", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -9985,9 +9985,9 @@ public:
      * @param key Column Key.
      * @param required Is column required?
      * @param default_ Default value for column when not provided, two-dimensional array of coordinate pairs, [[longitude, latitude], [longitude, latitude], …], listing the vertices of the line in order. Cannot be set when column is required.
-     * @return Result<appwrite::models::ColumnLine>
+     * @return appwrite::Result<appwrite::models::ColumnLine>
      */
-    [[nodiscard]] Task<Result<appwrite::models::ColumnLine>> createLineColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<std::vector<std::string>> default_ = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::ColumnLine>> createLineColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<std::vector<std::string>> default_ = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/line", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -10011,9 +10011,9 @@ public:
      * @param required Is column required?
      * @param default_ Default value for column when not provided, two-dimensional array of coordinate pairs, [[longitude, latitude], [longitude, latitude], …], listing the vertices of the line in order. Cannot be set when column is required.
      * @param newKey New Column Key.
-     * @return Result<appwrite::models::ColumnLine>
+     * @return appwrite::Result<appwrite::models::ColumnLine>
      */
-    [[nodiscard]] Result<appwrite::models::ColumnLine> updateLineColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<std::vector<std::string>> default_ = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::ColumnLine> updateLineColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<std::vector<std::string>> default_ = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/line/{}", databaseId, tableId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -10040,9 +10040,9 @@ public:
      * @param required Is column required?
      * @param default_ Default value for column when not provided, two-dimensional array of coordinate pairs, [[longitude, latitude], [longitude, latitude], …], listing the vertices of the line in order. Cannot be set when column is required.
      * @param newKey New Column Key.
-     * @return Result<appwrite::models::ColumnLine>
+     * @return appwrite::Result<appwrite::models::ColumnLine>
      */
-    [[nodiscard]] Task<Result<appwrite::models::ColumnLine>> updateLineColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<std::vector<std::string>> default_ = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::ColumnLine>> updateLineColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<std::vector<std::string>> default_ = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/line/{}", databaseId, tableId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -10068,9 +10068,9 @@ public:
      * @param default_ Default value for column when not provided. Cannot be set when column is required.
      * @param array Is column an array?
      * @param encrypt Toggle encryption for the column. Encryption enhances security by not storing any plain text values in the database. However, encrypted columns cannot be queried.
-     * @return Result<appwrite::models::ColumnLongtext>
+     * @return appwrite::Result<appwrite::models::ColumnLongtext>
      */
-    [[nodiscard]] Result<appwrite::models::ColumnLongtext> createLongtextColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false,         std::optional<bool> encrypt = false    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::ColumnLongtext> createLongtextColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false,         std::optional<bool> encrypt = false    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/longtext", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -10101,9 +10101,9 @@ public:
      * @param default_ Default value for column when not provided. Cannot be set when column is required.
      * @param array Is column an array?
      * @param encrypt Toggle encryption for the column. Encryption enhances security by not storing any plain text values in the database. However, encrypted columns cannot be queried.
-     * @return Result<appwrite::models::ColumnLongtext>
+     * @return appwrite::Result<appwrite::models::ColumnLongtext>
      */
-    [[nodiscard]] Task<Result<appwrite::models::ColumnLongtext>> createLongtextColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false,         std::optional<bool> encrypt = false    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::ColumnLongtext>> createLongtextColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false,         std::optional<bool> encrypt = false    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/longtext", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -10133,9 +10133,9 @@ public:
      * @param required Is column required?
      * @param default_ Default value for column when not provided. Cannot be set when column is required.
      * @param newKey New Column Key.
-     * @return Result<appwrite::models::ColumnLongtext>
+     * @return appwrite::Result<appwrite::models::ColumnLongtext>
      */
-    [[nodiscard]] Result<appwrite::models::ColumnLongtext> updateLongtextColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::ColumnLongtext> updateLongtextColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/longtext/{}", databaseId, tableId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -10160,9 +10160,9 @@ public:
      * @param required Is column required?
      * @param default_ Default value for column when not provided. Cannot be set when column is required.
      * @param newKey New Column Key.
-     * @return Result<appwrite::models::ColumnLongtext>
+     * @return appwrite::Result<appwrite::models::ColumnLongtext>
      */
-    [[nodiscard]] Task<Result<appwrite::models::ColumnLongtext>> updateLongtextColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::ColumnLongtext>> updateLongtextColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/longtext/{}", databaseId, tableId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -10186,9 +10186,9 @@ public:
      * @param default_ Default value for column when not provided. Cannot be set when column is required.
      * @param array Is column an array?
      * @param encrypt Toggle encryption for the column. Encryption enhances security by not storing any plain text values in the database. However, encrypted columns cannot be queried.
-     * @return Result<appwrite::models::ColumnMediumtext>
+     * @return appwrite::Result<appwrite::models::ColumnMediumtext>
      */
-    [[nodiscard]] Result<appwrite::models::ColumnMediumtext> createMediumtextColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false,         std::optional<bool> encrypt = false    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::ColumnMediumtext> createMediumtextColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false,         std::optional<bool> encrypt = false    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/mediumtext", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -10219,9 +10219,9 @@ public:
      * @param default_ Default value for column when not provided. Cannot be set when column is required.
      * @param array Is column an array?
      * @param encrypt Toggle encryption for the column. Encryption enhances security by not storing any plain text values in the database. However, encrypted columns cannot be queried.
-     * @return Result<appwrite::models::ColumnMediumtext>
+     * @return appwrite::Result<appwrite::models::ColumnMediumtext>
      */
-    [[nodiscard]] Task<Result<appwrite::models::ColumnMediumtext>> createMediumtextColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false,         std::optional<bool> encrypt = false    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::ColumnMediumtext>> createMediumtextColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false,         std::optional<bool> encrypt = false    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/mediumtext", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -10251,9 +10251,9 @@ public:
      * @param required Is column required?
      * @param default_ Default value for column when not provided. Cannot be set when column is required.
      * @param newKey New Column Key.
-     * @return Result<appwrite::models::ColumnMediumtext>
+     * @return appwrite::Result<appwrite::models::ColumnMediumtext>
      */
-    [[nodiscard]] Result<appwrite::models::ColumnMediumtext> updateMediumtextColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::ColumnMediumtext> updateMediumtextColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/mediumtext/{}", databaseId, tableId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -10278,9 +10278,9 @@ public:
      * @param required Is column required?
      * @param default_ Default value for column when not provided. Cannot be set when column is required.
      * @param newKey New Column Key.
-     * @return Result<appwrite::models::ColumnMediumtext>
+     * @return appwrite::Result<appwrite::models::ColumnMediumtext>
      */
-    [[nodiscard]] Task<Result<appwrite::models::ColumnMediumtext>> updateMediumtextColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::ColumnMediumtext>> updateMediumtextColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/mediumtext/{}", databaseId, tableId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -10302,9 +10302,9 @@ public:
      * @param key Column Key.
      * @param required Is column required?
      * @param default_ Default value for column when not provided, array of two numbers [longitude, latitude], representing a single coordinate. Cannot be set when column is required.
-     * @return Result<appwrite::models::ColumnPoint>
+     * @return appwrite::Result<appwrite::models::ColumnPoint>
      */
-    [[nodiscard]] Result<appwrite::models::ColumnPoint> createPointColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<std::vector<std::string>> default_ = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::ColumnPoint> createPointColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<std::vector<std::string>> default_ = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/point", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -10327,9 +10327,9 @@ public:
      * @param key Column Key.
      * @param required Is column required?
      * @param default_ Default value for column when not provided, array of two numbers [longitude, latitude], representing a single coordinate. Cannot be set when column is required.
-     * @return Result<appwrite::models::ColumnPoint>
+     * @return appwrite::Result<appwrite::models::ColumnPoint>
      */
-    [[nodiscard]] Task<Result<appwrite::models::ColumnPoint>> createPointColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<std::vector<std::string>> default_ = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::ColumnPoint>> createPointColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<std::vector<std::string>> default_ = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/point", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -10353,9 +10353,9 @@ public:
      * @param required Is column required?
      * @param default_ Default value for column when not provided, array of two numbers [longitude, latitude], representing a single coordinate. Cannot be set when column is required.
      * @param newKey New Column Key.
-     * @return Result<appwrite::models::ColumnPoint>
+     * @return appwrite::Result<appwrite::models::ColumnPoint>
      */
-    [[nodiscard]] Result<appwrite::models::ColumnPoint> updatePointColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<std::vector<std::string>> default_ = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::ColumnPoint> updatePointColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<std::vector<std::string>> default_ = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/point/{}", databaseId, tableId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -10382,9 +10382,9 @@ public:
      * @param required Is column required?
      * @param default_ Default value for column when not provided, array of two numbers [longitude, latitude], representing a single coordinate. Cannot be set when column is required.
      * @param newKey New Column Key.
-     * @return Result<appwrite::models::ColumnPoint>
+     * @return appwrite::Result<appwrite::models::ColumnPoint>
      */
-    [[nodiscard]] Task<Result<appwrite::models::ColumnPoint>> updatePointColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<std::vector<std::string>> default_ = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::ColumnPoint>> updatePointColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<std::vector<std::string>> default_ = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/point/{}", databaseId, tableId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -10408,9 +10408,9 @@ public:
      * @param key Column Key.
      * @param required Is column required?
      * @param default_ Default value for column when not provided, three-dimensional array where the outer array holds one or more linear rings, [[[longitude, latitude], …], …], the first ring is the exterior boundary, any additional rings are interior holes, and each ring must start and end with the same coordinate pair. Cannot be set when column is required.
-     * @return Result<appwrite::models::ColumnPolygon>
+     * @return appwrite::Result<appwrite::models::ColumnPolygon>
      */
-    [[nodiscard]] Result<appwrite::models::ColumnPolygon> createPolygonColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<std::vector<std::string>> default_ = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::ColumnPolygon> createPolygonColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<std::vector<std::string>> default_ = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/polygon", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -10433,9 +10433,9 @@ public:
      * @param key Column Key.
      * @param required Is column required?
      * @param default_ Default value for column when not provided, three-dimensional array where the outer array holds one or more linear rings, [[[longitude, latitude], …], …], the first ring is the exterior boundary, any additional rings are interior holes, and each ring must start and end with the same coordinate pair. Cannot be set when column is required.
-     * @return Result<appwrite::models::ColumnPolygon>
+     * @return appwrite::Result<appwrite::models::ColumnPolygon>
      */
-    [[nodiscard]] Task<Result<appwrite::models::ColumnPolygon>> createPolygonColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<std::vector<std::string>> default_ = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::ColumnPolygon>> createPolygonColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<std::vector<std::string>> default_ = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/polygon", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -10459,9 +10459,9 @@ public:
      * @param required Is column required?
      * @param default_ Default value for column when not provided, three-dimensional array where the outer array holds one or more linear rings, [[[longitude, latitude], …], …], the first ring is the exterior boundary, any additional rings are interior holes, and each ring must start and end with the same coordinate pair. Cannot be set when column is required.
      * @param newKey New Column Key.
-     * @return Result<appwrite::models::ColumnPolygon>
+     * @return appwrite::Result<appwrite::models::ColumnPolygon>
      */
-    [[nodiscard]] Result<appwrite::models::ColumnPolygon> updatePolygonColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<std::vector<std::string>> default_ = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::ColumnPolygon> updatePolygonColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<std::vector<std::string>> default_ = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/polygon/{}", databaseId, tableId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -10488,9 +10488,9 @@ public:
      * @param required Is column required?
      * @param default_ Default value for column when not provided, three-dimensional array where the outer array holds one or more linear rings, [[[longitude, latitude], …], …], the first ring is the exterior boundary, any additional rings are interior holes, and each ring must start and end with the same coordinate pair. Cannot be set when column is required.
      * @param newKey New Column Key.
-     * @return Result<appwrite::models::ColumnPolygon>
+     * @return appwrite::Result<appwrite::models::ColumnPolygon>
      */
-    [[nodiscard]] Task<Result<appwrite::models::ColumnPolygon>> updatePolygonColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<std::vector<std::string>> default_ = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::ColumnPolygon>> updatePolygonColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<std::vector<std::string>> default_ = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/polygon/{}", databaseId, tableId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -10518,9 +10518,9 @@ public:
      * @param key Column Key.
      * @param twoWayKey Two Way Column Key.
      * @param onDelete Constraints option
-     * @return Result<appwrite::models::ColumnRelationship>
+     * @return appwrite::Result<appwrite::models::ColumnRelationship>
      */
-    [[nodiscard]] Result<appwrite::models::ColumnRelationship> createRelationshipColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view relatedTableId,         appwrite::enums::RelationshipType type,         std::optional<bool> twoWay = false,         std::optional<std::string_view> key = std::nullopt,         std::optional<std::string_view> twoWayKey = std::nullopt,         std::optional<appwrite::enums::RelationMutate> onDelete = appwrite::enums::RelationMutate::RESTRICT    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::ColumnRelationship> createRelationshipColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view relatedTableId,         appwrite::enums::RelationshipType type,         std::optional<bool> twoWay = false,         std::optional<std::string_view> key = std::nullopt,         std::optional<std::string_view> twoWayKey = std::nullopt,         std::optional<appwrite::enums::RelationMutate> onDelete = appwrite::enums::RelationMutate::RESTRICT    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/relationship", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -10556,9 +10556,9 @@ public:
      * @param key Column Key.
      * @param twoWayKey Two Way Column Key.
      * @param onDelete Constraints option
-     * @return Result<appwrite::models::ColumnRelationship>
+     * @return appwrite::Result<appwrite::models::ColumnRelationship>
      */
-    [[nodiscard]] Task<Result<appwrite::models::ColumnRelationship>> createRelationshipColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view relatedTableId,         appwrite::enums::RelationshipType type,         std::optional<bool> twoWay = false,         std::optional<std::string_view> key = std::nullopt,         std::optional<std::string_view> twoWayKey = std::nullopt,         std::optional<appwrite::enums::RelationMutate> onDelete = appwrite::enums::RelationMutate::RESTRICT    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::ColumnRelationship>> createRelationshipColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view relatedTableId,         appwrite::enums::RelationshipType type,         std::optional<bool> twoWay = false,         std::optional<std::string_view> key = std::nullopt,         std::optional<std::string_view> twoWayKey = std::nullopt,         std::optional<appwrite::enums::RelationMutate> onDelete = appwrite::enums::RelationMutate::RESTRICT    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/relationship", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -10592,9 +10592,9 @@ public:
      * @param default_ Default value for column when not provided. Cannot be set when column is required.
      * @param array Is column an array?
      * @param encrypt Toggle encryption for the column. Encryption enhances security by not storing any plain text values in the database. However, encrypted columns cannot be queried.
-     * @return Result<appwrite::models::ColumnString>
+     * @return appwrite::Result<appwrite::models::ColumnString>
      */
-    [[nodiscard]] Result<appwrite::models::ColumnString> createStringColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         int64_t size,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false,         std::optional<bool> encrypt = false    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::ColumnString> createStringColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         int64_t size,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false,         std::optional<bool> encrypt = false    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/string", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -10627,9 +10627,9 @@ public:
      * @param default_ Default value for column when not provided. Cannot be set when column is required.
      * @param array Is column an array?
      * @param encrypt Toggle encryption for the column. Encryption enhances security by not storing any plain text values in the database. However, encrypted columns cannot be queried.
-     * @return Result<appwrite::models::ColumnString>
+     * @return appwrite::Result<appwrite::models::ColumnString>
      */
-    [[nodiscard]] Task<Result<appwrite::models::ColumnString>> createStringColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         int64_t size,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false,         std::optional<bool> encrypt = false    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::ColumnString>> createStringColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         int64_t size,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false,         std::optional<bool> encrypt = false    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/string", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -10661,9 +10661,9 @@ public:
      * @param default_ Default value for column when not provided. Cannot be set when column is required.
      * @param size Maximum size of the string column.
      * @param newKey New Column Key.
-     * @return Result<appwrite::models::ColumnString>
+     * @return appwrite::Result<appwrite::models::ColumnString>
      */
-    [[nodiscard]] Result<appwrite::models::ColumnString> updateStringColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<int64_t> size = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::ColumnString> updateStringColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<int64_t> size = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/string/{}", databaseId, tableId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -10692,9 +10692,9 @@ public:
      * @param default_ Default value for column when not provided. Cannot be set when column is required.
      * @param size Maximum size of the string column.
      * @param newKey New Column Key.
-     * @return Result<appwrite::models::ColumnString>
+     * @return appwrite::Result<appwrite::models::ColumnString>
      */
-    [[nodiscard]] Task<Result<appwrite::models::ColumnString>> updateStringColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<int64_t> size = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::ColumnString>> updateStringColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<int64_t> size = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/string/{}", databaseId, tableId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -10721,9 +10721,9 @@ public:
      * @param default_ Default value for column when not provided. Cannot be set when column is required.
      * @param array Is column an array?
      * @param encrypt Toggle encryption for the column. Encryption enhances security by not storing any plain text values in the database. However, encrypted columns cannot be queried.
-     * @return Result<appwrite::models::ColumnText>
+     * @return appwrite::Result<appwrite::models::ColumnText>
      */
-    [[nodiscard]] Result<appwrite::models::ColumnText> createTextColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false,         std::optional<bool> encrypt = false    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::ColumnText> createTextColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false,         std::optional<bool> encrypt = false    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/text", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -10754,9 +10754,9 @@ public:
      * @param default_ Default value for column when not provided. Cannot be set when column is required.
      * @param array Is column an array?
      * @param encrypt Toggle encryption for the column. Encryption enhances security by not storing any plain text values in the database. However, encrypted columns cannot be queried.
-     * @return Result<appwrite::models::ColumnText>
+     * @return appwrite::Result<appwrite::models::ColumnText>
      */
-    [[nodiscard]] Task<Result<appwrite::models::ColumnText>> createTextColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false,         std::optional<bool> encrypt = false    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::ColumnText>> createTextColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false,         std::optional<bool> encrypt = false    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/text", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -10786,9 +10786,9 @@ public:
      * @param required Is column required?
      * @param default_ Default value for column when not provided. Cannot be set when column is required.
      * @param newKey New Column Key.
-     * @return Result<appwrite::models::ColumnText>
+     * @return appwrite::Result<appwrite::models::ColumnText>
      */
-    [[nodiscard]] Result<appwrite::models::ColumnText> updateTextColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::ColumnText> updateTextColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/text/{}", databaseId, tableId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -10813,9 +10813,9 @@ public:
      * @param required Is column required?
      * @param default_ Default value for column when not provided. Cannot be set when column is required.
      * @param newKey New Column Key.
-     * @return Result<appwrite::models::ColumnText>
+     * @return appwrite::Result<appwrite::models::ColumnText>
      */
-    [[nodiscard]] Task<Result<appwrite::models::ColumnText>> updateTextColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::ColumnText>> updateTextColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/text/{}", databaseId, tableId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -10838,9 +10838,9 @@ public:
      * @param required Is column required?
      * @param default_ Default value for column when not provided. Cannot be set when column is required.
      * @param array Is column an array?
-     * @return Result<appwrite::models::ColumnUrl>
+     * @return appwrite::Result<appwrite::models::ColumnUrl>
      */
-    [[nodiscard]] Result<appwrite::models::ColumnUrl> createUrlColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::ColumnUrl> createUrlColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/url", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -10867,9 +10867,9 @@ public:
      * @param required Is column required?
      * @param default_ Default value for column when not provided. Cannot be set when column is required.
      * @param array Is column an array?
-     * @return Result<appwrite::models::ColumnUrl>
+     * @return appwrite::Result<appwrite::models::ColumnUrl>
      */
-    [[nodiscard]] Task<Result<appwrite::models::ColumnUrl>> createUrlColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::ColumnUrl>> createUrlColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/url", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -10896,9 +10896,9 @@ public:
      * @param required Is column required?
      * @param default_ Default value for column when not provided. Cannot be set when column is required.
      * @param newKey New Column Key.
-     * @return Result<appwrite::models::ColumnUrl>
+     * @return appwrite::Result<appwrite::models::ColumnUrl>
      */
-    [[nodiscard]] Result<appwrite::models::ColumnUrl> updateUrlColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::ColumnUrl> updateUrlColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/url/{}", databaseId, tableId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -10923,9 +10923,9 @@ public:
      * @param required Is column required?
      * @param default_ Default value for column when not provided. Cannot be set when column is required.
      * @param newKey New Column Key.
-     * @return Result<appwrite::models::ColumnUrl>
+     * @return appwrite::Result<appwrite::models::ColumnUrl>
      */
-    [[nodiscard]] Task<Result<appwrite::models::ColumnUrl>> updateUrlColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::ColumnUrl>> updateUrlColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/url/{}", databaseId, tableId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -10950,9 +10950,9 @@ public:
      * @param default_ Default value for column when not provided. Cannot be set when column is required.
      * @param array Is column an array?
      * @param encrypt Toggle encryption for the column. Encryption enhances security by not storing any plain text values in the database. However, encrypted columns cannot be queried.
-     * @return Result<appwrite::models::ColumnVarchar>
+     * @return appwrite::Result<appwrite::models::ColumnVarchar>
      */
-    [[nodiscard]] Result<appwrite::models::ColumnVarchar> createVarcharColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         int64_t size,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false,         std::optional<bool> encrypt = false    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::ColumnVarchar> createVarcharColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         int64_t size,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false,         std::optional<bool> encrypt = false    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/varchar", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -10985,9 +10985,9 @@ public:
      * @param default_ Default value for column when not provided. Cannot be set when column is required.
      * @param array Is column an array?
      * @param encrypt Toggle encryption for the column. Encryption enhances security by not storing any plain text values in the database. However, encrypted columns cannot be queried.
-     * @return Result<appwrite::models::ColumnVarchar>
+     * @return appwrite::Result<appwrite::models::ColumnVarchar>
      */
-    [[nodiscard]] Task<Result<appwrite::models::ColumnVarchar>> createVarcharColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         int64_t size,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false,         std::optional<bool> encrypt = false    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::ColumnVarchar>> createVarcharColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         int64_t size,         bool required,         std::optional<std::string_view> default_ = std::nullopt,         std::optional<bool> array = false,         std::optional<bool> encrypt = false    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/varchar", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -11019,9 +11019,9 @@ public:
      * @param default_ Default value for column when not provided. Cannot be set when column is required.
      * @param size Maximum size of the varchar column.
      * @param newKey New Column Key.
-     * @return Result<appwrite::models::ColumnVarchar>
+     * @return appwrite::Result<appwrite::models::ColumnVarchar>
      */
-    [[nodiscard]] Result<appwrite::models::ColumnVarchar> updateVarcharColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<int64_t> size = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::ColumnVarchar> updateVarcharColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<int64_t> size = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/varchar/{}", databaseId, tableId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -11050,9 +11050,9 @@ public:
      * @param default_ Default value for column when not provided. Cannot be set when column is required.
      * @param size Maximum size of the varchar column.
      * @param newKey New Column Key.
-     * @return Result<appwrite::models::ColumnVarchar>
+     * @return appwrite::Result<appwrite::models::ColumnVarchar>
      */
-    [[nodiscard]] Task<Result<appwrite::models::ColumnVarchar>> updateVarcharColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<int64_t> size = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::ColumnVarchar>> updateVarcharColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         bool required,         std::string_view default_,         std::optional<int64_t> size = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/varchar/{}", databaseId, tableId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -11075,9 +11075,9 @@ public:
      * @param databaseId Database ID.
      * @param tableId Table ID.
      * @param key Column Key.
-     * @return Result<nlohmann::json>
+     * @return appwrite::Result<nlohmann::json>
      */
-    [[nodiscard]] Result<nlohmann::json> getColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key    ) {
+    [[nodiscard]] appwrite::Result<nlohmann::json> getColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/{}", databaseId, tableId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -11093,9 +11093,9 @@ public:
      * @param databaseId Database ID.
      * @param tableId Table ID.
      * @param key Column Key.
-     * @return Result<nlohmann::json>
+     * @return appwrite::Result<nlohmann::json>
      */
-    [[nodiscard]] Task<Result<nlohmann::json>> getColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<nlohmann::json>> getColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/{}", databaseId, tableId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -11110,9 +11110,9 @@ public:
      * @param databaseId Database ID.
      * @param tableId Table ID.
      * @param key Column Key.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Result<void> deleteColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key    ) {
+    [[nodiscard]] appwrite::Result<void> deleteColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/{}", databaseId, tableId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -11128,9 +11128,9 @@ public:
      * @param databaseId Database ID.
      * @param tableId Table ID.
      * @param key Column Key.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Task<Result<void>> deleteColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<void>> deleteColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/{}", databaseId, tableId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -11148,9 +11148,9 @@ public:
      * @param key Column Key.
      * @param onDelete Constraints option
      * @param newKey New Column Key.
-     * @return Result<appwrite::models::ColumnRelationship>
+     * @return appwrite::Result<appwrite::models::ColumnRelationship>
      */
-    [[nodiscard]] Result<appwrite::models::ColumnRelationship> updateRelationshipColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         std::optional<appwrite::enums::RelationMutate> onDelete = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::ColumnRelationship> updateRelationshipColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         std::optional<appwrite::enums::RelationMutate> onDelete = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/{}/relationship", databaseId, tableId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -11175,9 +11175,9 @@ public:
      * @param key Column Key.
      * @param onDelete Constraints option
      * @param newKey New Column Key.
-     * @return Result<appwrite::models::ColumnRelationship>
+     * @return appwrite::Result<appwrite::models::ColumnRelationship>
      */
-    [[nodiscard]] Task<Result<appwrite::models::ColumnRelationship>> updateRelationshipColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         std::optional<appwrite::enums::RelationMutate> onDelete = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::ColumnRelationship>> updateRelationshipColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         std::optional<appwrite::enums::RelationMutate> onDelete = std::nullopt,         std::optional<std::string_view> newKey = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/columns/{}/relationship", databaseId, tableId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -11199,9 +11199,9 @@ public:
      * @param tableId Table ID. You can create a new table using the Database service [server integration](https://appwrite.io/docs/references/cloud/server-dart/tablesDB#createTable).
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of 100 queries are allowed, each 4096 characters long. You may filter on the following columns: key, type, status, attributes, error
      * @param total When set to false, the total count returned will be 0 and will not be calculated.
-     * @return Result<appwrite::models::ColumnIndexList>
+     * @return appwrite::Result<appwrite::models::ColumnIndexList>
      */
-    [[nodiscard]] Result<appwrite::models::ColumnIndexList> listIndexes(        std::string_view databaseId,         std::string_view tableId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<bool> total = true    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::ColumnIndexList> listIndexes(        std::string_view databaseId,         std::string_view tableId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<bool> total = true    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/indexes", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -11224,9 +11224,9 @@ public:
      * @param tableId Table ID. You can create a new table using the Database service [server integration](https://appwrite.io/docs/references/cloud/server-dart/tablesDB#createTable).
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of 100 queries are allowed, each 4096 characters long. You may filter on the following columns: key, type, status, attributes, error
      * @param total When set to false, the total count returned will be 0 and will not be calculated.
-     * @return Result<appwrite::models::ColumnIndexList>
+     * @return appwrite::Result<appwrite::models::ColumnIndexList>
      */
-    [[nodiscard]] Task<Result<appwrite::models::ColumnIndexList>> listIndexesAsync(        std::string_view databaseId,         std::string_view tableId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<bool> total = true    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::ColumnIndexList>> listIndexesAsync(        std::string_view databaseId,         std::string_view tableId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<bool> total = true    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/indexes", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -11254,9 +11254,9 @@ Type can be `key`, `fulltext`,
      * @param columns Array of columns to index. Maximum of 100 columns are allowed, each 32 characters long.
      * @param orders Array of index orders. Maximum of 100 orders are allowed.
      * @param lengths Length of index. Maximum of 100
-     * @return Result<appwrite::models::ColumnIndex>
+     * @return appwrite::Result<appwrite::models::ColumnIndex>
      */
-    [[nodiscard]] Result<appwrite::models::ColumnIndex> createIndex(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         appwrite::enums::TablesDBIndexType type,         std::vector<std::string> columns,         std::optional<std::vector<appwrite::enums::OrderBy>> orders = {},         std::optional<std::vector<int64_t>> lengths = std::vector<int64_t>{}    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::ColumnIndex> createIndex(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         appwrite::enums::TablesDBIndexType type,         std::vector<std::string> columns,         std::optional<std::vector<appwrite::enums::OrderBy>> orders = {},         std::optional<std::vector<int64_t>> lengths = std::vector<int64_t>{}    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/indexes", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -11288,9 +11288,9 @@ Type can be `key`, `fulltext`,
      * @param columns Array of columns to index. Maximum of 100 columns are allowed, each 32 characters long.
      * @param orders Array of index orders. Maximum of 100 orders are allowed.
      * @param lengths Length of index. Maximum of 100
-     * @return Result<appwrite::models::ColumnIndex>
+     * @return appwrite::Result<appwrite::models::ColumnIndex>
      */
-    [[nodiscard]] Task<Result<appwrite::models::ColumnIndex>> createIndexAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         appwrite::enums::TablesDBIndexType type,         std::vector<std::string> columns,         std::optional<std::vector<appwrite::enums::OrderBy>> orders = {},         std::optional<std::vector<int64_t>> lengths = std::vector<int64_t>{}    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::ColumnIndex>> createIndexAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key,         appwrite::enums::TablesDBIndexType type,         std::vector<std::string> columns,         std::optional<std::vector<appwrite::enums::OrderBy>> orders = {},         std::optional<std::vector<int64_t>> lengths = std::vector<int64_t>{}    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/indexes", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -11314,9 +11314,9 @@ Type can be `key`, `fulltext`,
      * @param databaseId Database ID.
      * @param tableId Table ID. You can create a new table using the Database service [server integration](https://appwrite.io/docs/references/cloud/server-dart/tablesDB#createTable).
      * @param key Index Key.
-     * @return Result<appwrite::models::ColumnIndex>
+     * @return appwrite::Result<appwrite::models::ColumnIndex>
      */
-    [[nodiscard]] Result<appwrite::models::ColumnIndex> getIndex(        std::string_view databaseId,         std::string_view tableId,         std::string_view key    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::ColumnIndex> getIndex(        std::string_view databaseId,         std::string_view tableId,         std::string_view key    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/indexes/{}", databaseId, tableId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -11332,9 +11332,9 @@ Type can be `key`, `fulltext`,
      * @param databaseId Database ID.
      * @param tableId Table ID. You can create a new table using the Database service [server integration](https://appwrite.io/docs/references/cloud/server-dart/tablesDB#createTable).
      * @param key Index Key.
-     * @return Result<appwrite::models::ColumnIndex>
+     * @return appwrite::Result<appwrite::models::ColumnIndex>
      */
-    [[nodiscard]] Task<Result<appwrite::models::ColumnIndex>> getIndexAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::ColumnIndex>> getIndexAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/indexes/{}", databaseId, tableId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -11349,9 +11349,9 @@ Type can be `key`, `fulltext`,
      * @param databaseId Database ID.
      * @param tableId Table ID. You can create a new table using the TablesDB service [server integration](https://appwrite.io/docs/references/cloud/server-dart/tablesDB#createTable).
      * @param key Index Key.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Result<void> deleteIndex(        std::string_view databaseId,         std::string_view tableId,         std::string_view key    ) {
+    [[nodiscard]] appwrite::Result<void> deleteIndex(        std::string_view databaseId,         std::string_view tableId,         std::string_view key    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/indexes/{}", databaseId, tableId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -11367,9 +11367,9 @@ Type can be `key`, `fulltext`,
      * @param databaseId Database ID.
      * @param tableId Table ID. You can create a new table using the TablesDB service [server integration](https://appwrite.io/docs/references/cloud/server-dart/tablesDB#createTable).
      * @param key Index Key.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Task<Result<void>> deleteIndexAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<void>> deleteIndexAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view key    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/indexes/{}", databaseId, tableId, key);
         
         nlohmann::json params = nlohmann::json::object();
@@ -11388,9 +11388,9 @@ Type can be `key`, `fulltext`,
      * @param transactionId Transaction ID to read uncommitted changes within the transaction.
      * @param total When set to false, the total count returned will be 0 and will not be calculated.
      * @param ttl TTL (seconds) for caching list responses. Responses are stored in an in-memory key-value cache, keyed per project, table, schema version (columns and indexes), caller authorization roles, and the exact query — so users with different permissions never share cached entries. Schema changes invalidate cached entries automatically; row writes do not, so choose a TTL you are comfortable serving as stale data. Set to 0 to disable caching. Must be between 0 and 86400 (24 hours).
-     * @return Result<appwrite::models::RowList>
+     * @return appwrite::Result<appwrite::models::RowList>
      */
-    [[nodiscard]] Result<appwrite::models::RowList> listRows(        std::string_view databaseId,         std::string_view tableId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> transactionId = std::nullopt,         std::optional<bool> total = true,         std::optional<int64_t> ttl = 0    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::RowList> listRows(        std::string_view databaseId,         std::string_view tableId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> transactionId = std::nullopt,         std::optional<bool> total = true,         std::optional<int64_t> ttl = 0    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/rows", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -11422,9 +11422,9 @@ Type can be `key`, `fulltext`,
      * @param transactionId Transaction ID to read uncommitted changes within the transaction.
      * @param total When set to false, the total count returned will be 0 and will not be calculated.
      * @param ttl TTL (seconds) for caching list responses. Responses are stored in an in-memory key-value cache, keyed per project, table, schema version (columns and indexes), caller authorization roles, and the exact query — so users with different permissions never share cached entries. Schema changes invalidate cached entries automatically; row writes do not, so choose a TTL you are comfortable serving as stale data. Set to 0 to disable caching. Must be between 0 and 86400 (24 hours).
-     * @return Result<appwrite::models::RowList>
+     * @return appwrite::Result<appwrite::models::RowList>
      */
-    [[nodiscard]] Task<Result<appwrite::models::RowList>> listRowsAsync(        std::string_view databaseId,         std::string_view tableId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> transactionId = std::nullopt,         std::optional<bool> total = true,         std::optional<int64_t> ttl = 0    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::RowList>> listRowsAsync(        std::string_view databaseId,         std::string_view tableId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> transactionId = std::nullopt,         std::optional<bool> total = true,         std::optional<int64_t> ttl = 0    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/rows", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -11457,9 +11457,9 @@ Type can be `key`, `fulltext`,
      * @param data Row data as JSON object.
      * @param permissions An array of permissions strings. By default, only the current user is granted all permissions. [Learn more about permissions](https://appwrite.io/docs/permissions).
      * @param transactionId Transaction ID for staging the operation.
-     * @return Result<appwrite::models::Row>
+     * @return appwrite::Result<appwrite::models::Row>
      */
-    [[nodiscard]] Result<appwrite::models::Row> createRow(        std::string_view databaseId,         std::string_view tableId,         std::string_view rowId = "",         const nlohmann::json& data = nlohmann::json::object(),         std::optional<std::vector<std::string>> permissions = std::nullopt,         std::optional<std::string_view> transactionId = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Row> createRow(        std::string_view databaseId,         std::string_view tableId,         std::string_view rowId = "",         const nlohmann::json& data = nlohmann::json::object(),         std::optional<std::vector<std::string>> permissions = std::nullopt,         std::optional<std::string_view> transactionId = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/rows", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -11489,9 +11489,9 @@ Type can be `key`, `fulltext`,
      * @param data Row data as JSON object.
      * @param permissions An array of permissions strings. By default, only the current user is granted all permissions. [Learn more about permissions](https://appwrite.io/docs/permissions).
      * @param transactionId Transaction ID for staging the operation.
-     * @return Result<appwrite::models::Row>
+     * @return appwrite::Result<appwrite::models::Row>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Row>> createRowAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view rowId = "",         const nlohmann::json& data = nlohmann::json::object(),         std::optional<std::vector<std::string>> permissions = std::nullopt,         std::optional<std::string_view> transactionId = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Row>> createRowAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view rowId = "",         const nlohmann::json& data = nlohmann::json::object(),         std::optional<std::vector<std::string>> permissions = std::nullopt,         std::optional<std::string_view> transactionId = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/rows", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -11518,9 +11518,9 @@ Type can be `key`, `fulltext`,
      * @param tableId Table ID. You can create a new table using the Database service [server integration](https://appwrite.io/docs/references/cloud/server-dart/tablesDB#createTable). Make sure to define columns before creating rows.
      * @param rows Array of rows data as JSON objects.
      * @param transactionId Transaction ID for staging the operation.
-     * @return Result<appwrite::models::RowList>
+     * @return appwrite::Result<appwrite::models::RowList>
      */
-    [[nodiscard]] Result<appwrite::models::RowList> createRows(        std::string_view databaseId,         std::string_view tableId,         std::vector<nlohmann::json> rows = std::vector<nlohmann::json>{},         std::optional<std::string_view> transactionId = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::RowList> createRows(        std::string_view databaseId,         std::string_view tableId,         std::vector<nlohmann::json> rows = std::vector<nlohmann::json>{},         std::optional<std::string_view> transactionId = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/rows", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -11544,9 +11544,9 @@ Type can be `key`, `fulltext`,
      * @param tableId Table ID. You can create a new table using the Database service [server integration](https://appwrite.io/docs/references/cloud/server-dart/tablesDB#createTable). Make sure to define columns before creating rows.
      * @param rows Array of rows data as JSON objects.
      * @param transactionId Transaction ID for staging the operation.
-     * @return Result<appwrite::models::RowList>
+     * @return appwrite::Result<appwrite::models::RowList>
      */
-    [[nodiscard]] Task<Result<appwrite::models::RowList>> createRowsAsync(        std::string_view databaseId,         std::string_view tableId,         std::vector<nlohmann::json> rows = std::vector<nlohmann::json>{},         std::optional<std::string_view> transactionId = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::RowList>> createRowsAsync(        std::string_view databaseId,         std::string_view tableId,         std::vector<nlohmann::json> rows = std::vector<nlohmann::json>{},         std::optional<std::string_view> transactionId = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/rows", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -11569,9 +11569,9 @@ Type can be `key`, `fulltext`,
      * @param tableId Table ID.
      * @param rows Array of row data as JSON objects. May contain partial rows.
      * @param transactionId Transaction ID for staging the operation.
-     * @return Result<appwrite::models::RowList>
+     * @return appwrite::Result<appwrite::models::RowList>
      */
-    [[nodiscard]] Result<appwrite::models::RowList> upsertRows(        std::string_view databaseId,         std::string_view tableId,         std::vector<nlohmann::json> rows,         std::optional<std::string_view> transactionId = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::RowList> upsertRows(        std::string_view databaseId,         std::string_view tableId,         std::vector<nlohmann::json> rows,         std::optional<std::string_view> transactionId = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/rows", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -11595,9 +11595,9 @@ Type can be `key`, `fulltext`,
      * @param tableId Table ID.
      * @param rows Array of row data as JSON objects. May contain partial rows.
      * @param transactionId Transaction ID for staging the operation.
-     * @return Result<appwrite::models::RowList>
+     * @return appwrite::Result<appwrite::models::RowList>
      */
-    [[nodiscard]] Task<Result<appwrite::models::RowList>> upsertRowsAsync(        std::string_view databaseId,         std::string_view tableId,         std::vector<nlohmann::json> rows,         std::optional<std::string_view> transactionId = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::RowList>> upsertRowsAsync(        std::string_view databaseId,         std::string_view tableId,         std::vector<nlohmann::json> rows,         std::optional<std::string_view> transactionId = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/rows", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -11619,9 +11619,9 @@ Type can be `key`, `fulltext`,
      * @param data Row data as JSON object. Include only column and value pairs to be updated.
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of 100 queries are allowed, each 4096 characters long.
      * @param transactionId Transaction ID for staging the operation.
-     * @return Result<appwrite::models::RowList>
+     * @return appwrite::Result<appwrite::models::RowList>
      */
-    [[nodiscard]] Result<appwrite::models::RowList> updateRows(        std::string_view databaseId,         std::string_view tableId,         std::optional<nlohmann::json> data = nlohmann::json::object(),         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> transactionId = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::RowList> updateRows(        std::string_view databaseId,         std::string_view tableId,         std::optional<nlohmann::json> data = nlohmann::json::object(),         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> transactionId = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/rows", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -11649,9 +11649,9 @@ Type can be `key`, `fulltext`,
      * @param data Row data as JSON object. Include only column and value pairs to be updated.
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of 100 queries are allowed, each 4096 characters long.
      * @param transactionId Transaction ID for staging the operation.
-     * @return Result<appwrite::models::RowList>
+     * @return appwrite::Result<appwrite::models::RowList>
      */
-    [[nodiscard]] Task<Result<appwrite::models::RowList>> updateRowsAsync(        std::string_view databaseId,         std::string_view tableId,         std::optional<nlohmann::json> data = nlohmann::json::object(),         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> transactionId = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::RowList>> updateRowsAsync(        std::string_view databaseId,         std::string_view tableId,         std::optional<nlohmann::json> data = nlohmann::json::object(),         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> transactionId = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/rows", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -11677,9 +11677,9 @@ Type can be `key`, `fulltext`,
      * @param tableId Table ID. You can create a new table using the Database service [server integration](https://appwrite.io/docs/references/cloud/server-dart/tablesDB#createTable).
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of 100 queries are allowed, each 4096 characters long.
      * @param transactionId Transaction ID for staging the operation.
-     * @return Result<appwrite::models::RowList>
+     * @return appwrite::Result<appwrite::models::RowList>
      */
-    [[nodiscard]] Result<appwrite::models::RowList> deleteRows(        std::string_view databaseId,         std::string_view tableId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> transactionId = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::RowList> deleteRows(        std::string_view databaseId,         std::string_view tableId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> transactionId = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/rows", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -11703,9 +11703,9 @@ Type can be `key`, `fulltext`,
      * @param tableId Table ID. You can create a new table using the Database service [server integration](https://appwrite.io/docs/references/cloud/server-dart/tablesDB#createTable).
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of 100 queries are allowed, each 4096 characters long.
      * @param transactionId Transaction ID for staging the operation.
-     * @return Result<appwrite::models::RowList>
+     * @return appwrite::Result<appwrite::models::RowList>
      */
-    [[nodiscard]] Task<Result<appwrite::models::RowList>> deleteRowsAsync(        std::string_view databaseId,         std::string_view tableId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> transactionId = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::RowList>> deleteRowsAsync(        std::string_view databaseId,         std::string_view tableId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> transactionId = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/rows", databaseId, tableId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -11729,9 +11729,9 @@ Type can be `key`, `fulltext`,
      * @param rowId Row ID.
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of 100 queries are allowed, each 4096 characters long.
      * @param transactionId Transaction ID to read uncommitted changes within the transaction.
-     * @return Result<appwrite::models::Row>
+     * @return appwrite::Result<appwrite::models::Row>
      */
-    [[nodiscard]] Result<appwrite::models::Row> getRow(        std::string_view databaseId,         std::string_view tableId,         std::string_view rowId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> transactionId = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Row> getRow(        std::string_view databaseId,         std::string_view tableId,         std::string_view rowId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> transactionId = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/rows/{}", databaseId, tableId, rowId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -11756,9 +11756,9 @@ Type can be `key`, `fulltext`,
      * @param rowId Row ID.
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of 100 queries are allowed, each 4096 characters long.
      * @param transactionId Transaction ID to read uncommitted changes within the transaction.
-     * @return Result<appwrite::models::Row>
+     * @return appwrite::Result<appwrite::models::Row>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Row>> getRowAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view rowId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> transactionId = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Row>> getRowAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view rowId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> transactionId = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/rows/{}", databaseId, tableId, rowId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -11785,9 +11785,9 @@ Type can be `key`, `fulltext`,
      * @param data Row data as JSON object. Include all required columns of the row to be created or updated.
      * @param permissions An array of permissions strings. By default, the current permissions are inherited. [Learn more about permissions](https://appwrite.io/docs/permissions).
      * @param transactionId Transaction ID for staging the operation.
-     * @return Result<appwrite::models::Row>
+     * @return appwrite::Result<appwrite::models::Row>
      */
-    [[nodiscard]] Result<appwrite::models::Row> upsertRow(        std::string_view databaseId,         std::string_view tableId,         std::string_view rowId,         std::optional<nlohmann::json> data = nlohmann::json::object(),         std::optional<std::vector<std::string>> permissions = std::nullopt,         std::optional<std::string_view> transactionId = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Row> upsertRow(        std::string_view databaseId,         std::string_view tableId,         std::string_view rowId,         std::optional<nlohmann::json> data = nlohmann::json::object(),         std::optional<std::vector<std::string>> permissions = std::nullopt,         std::optional<std::string_view> transactionId = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/rows/{}", databaseId, tableId, rowId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -11818,9 +11818,9 @@ Type can be `key`, `fulltext`,
      * @param data Row data as JSON object. Include all required columns of the row to be created or updated.
      * @param permissions An array of permissions strings. By default, the current permissions are inherited. [Learn more about permissions](https://appwrite.io/docs/permissions).
      * @param transactionId Transaction ID for staging the operation.
-     * @return Result<appwrite::models::Row>
+     * @return appwrite::Result<appwrite::models::Row>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Row>> upsertRowAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view rowId,         std::optional<nlohmann::json> data = nlohmann::json::object(),         std::optional<std::vector<std::string>> permissions = std::nullopt,         std::optional<std::string_view> transactionId = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Row>> upsertRowAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view rowId,         std::optional<nlohmann::json> data = nlohmann::json::object(),         std::optional<std::vector<std::string>> permissions = std::nullopt,         std::optional<std::string_view> transactionId = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/rows/{}", databaseId, tableId, rowId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -11848,9 +11848,9 @@ Type can be `key`, `fulltext`,
      * @param data Row data as JSON object. Include only columns and value pairs to be updated.
      * @param permissions An array of permissions strings. By default, the current permissions are inherited. [Learn more about permissions](https://appwrite.io/docs/permissions).
      * @param transactionId Transaction ID for staging the operation.
-     * @return Result<appwrite::models::Row>
+     * @return appwrite::Result<appwrite::models::Row>
      */
-    [[nodiscard]] Result<appwrite::models::Row> updateRow(        std::string_view databaseId,         std::string_view tableId,         std::string_view rowId,         std::optional<nlohmann::json> data = nlohmann::json::object(),         std::optional<std::vector<std::string>> permissions = std::nullopt,         std::optional<std::string_view> transactionId = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Row> updateRow(        std::string_view databaseId,         std::string_view tableId,         std::string_view rowId,         std::optional<nlohmann::json> data = nlohmann::json::object(),         std::optional<std::vector<std::string>> permissions = std::nullopt,         std::optional<std::string_view> transactionId = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/rows/{}", databaseId, tableId, rowId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -11879,9 +11879,9 @@ Type can be `key`, `fulltext`,
      * @param data Row data as JSON object. Include only columns and value pairs to be updated.
      * @param permissions An array of permissions strings. By default, the current permissions are inherited. [Learn more about permissions](https://appwrite.io/docs/permissions).
      * @param transactionId Transaction ID for staging the operation.
-     * @return Result<appwrite::models::Row>
+     * @return appwrite::Result<appwrite::models::Row>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Row>> updateRowAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view rowId,         std::optional<nlohmann::json> data = nlohmann::json::object(),         std::optional<std::vector<std::string>> permissions = std::nullopt,         std::optional<std::string_view> transactionId = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Row>> updateRowAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view rowId,         std::optional<nlohmann::json> data = nlohmann::json::object(),         std::optional<std::vector<std::string>> permissions = std::nullopt,         std::optional<std::string_view> transactionId = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/rows/{}", databaseId, tableId, rowId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -11906,9 +11906,9 @@ Type can be `key`, `fulltext`,
      * @param tableId Table ID. You can create a new table using the Database service [server integration](https://appwrite.io/docs/references/cloud/server-dart/tablesDB#createTable).
      * @param rowId Row ID.
      * @param transactionId Transaction ID for staging the operation.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Result<void> deleteRow(        std::string_view databaseId,         std::string_view tableId,         std::string_view rowId,         std::optional<std::string_view> transactionId = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<void> deleteRow(        std::string_view databaseId,         std::string_view tableId,         std::string_view rowId,         std::optional<std::string_view> transactionId = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/rows/{}", databaseId, tableId, rowId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -11928,9 +11928,9 @@ Type can be `key`, `fulltext`,
      * @param tableId Table ID. You can create a new table using the Database service [server integration](https://appwrite.io/docs/references/cloud/server-dart/tablesDB#createTable).
      * @param rowId Row ID.
      * @param transactionId Transaction ID for staging the operation.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Task<Result<void>> deleteRowAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view rowId,         std::optional<std::string_view> transactionId = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<void>> deleteRowAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view rowId,         std::optional<std::string_view> transactionId = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/rows/{}", databaseId, tableId, rowId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -11952,9 +11952,9 @@ Type can be `key`, `fulltext`,
      * @param value Value to increment the column by. The value must be a number.
      * @param min Minimum value for the column. If the current value is lesser than this value, an exception will be thrown.
      * @param transactionId Transaction ID for staging the operation.
-     * @return Result<appwrite::models::Row>
+     * @return appwrite::Result<appwrite::models::Row>
      */
-    [[nodiscard]] Result<appwrite::models::Row> decrementRowColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view rowId,         std::string_view column,         std::optional<double> value = 1,         std::optional<double> min = std::nullopt,         std::optional<std::string_view> transactionId = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Row> decrementRowColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view rowId,         std::string_view column,         std::optional<double> value = 1,         std::optional<double> min = std::nullopt,         std::optional<std::string_view> transactionId = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/rows/{}/{}/decrement", databaseId, tableId, rowId, column);
         
         nlohmann::json params = nlohmann::json::object();
@@ -11983,9 +11983,9 @@ Type can be `key`, `fulltext`,
      * @param value Value to increment the column by. The value must be a number.
      * @param min Minimum value for the column. If the current value is lesser than this value, an exception will be thrown.
      * @param transactionId Transaction ID for staging the operation.
-     * @return Result<appwrite::models::Row>
+     * @return appwrite::Result<appwrite::models::Row>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Row>> decrementRowColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view rowId,         std::string_view column,         std::optional<double> value = 1,         std::optional<double> min = std::nullopt,         std::optional<std::string_view> transactionId = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Row>> decrementRowColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view rowId,         std::string_view column,         std::optional<double> value = 1,         std::optional<double> min = std::nullopt,         std::optional<std::string_view> transactionId = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/rows/{}/{}/decrement", databaseId, tableId, rowId, column);
         
         nlohmann::json params = nlohmann::json::object();
@@ -12013,9 +12013,9 @@ Type can be `key`, `fulltext`,
      * @param value Value to increment the column by. The value must be a number.
      * @param max Maximum value for the column. If the current value is greater than this value, an error will be thrown.
      * @param transactionId Transaction ID for staging the operation.
-     * @return Result<appwrite::models::Row>
+     * @return appwrite::Result<appwrite::models::Row>
      */
-    [[nodiscard]] Result<appwrite::models::Row> incrementRowColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view rowId,         std::string_view column,         std::optional<double> value = 1,         std::optional<double> max = std::nullopt,         std::optional<std::string_view> transactionId = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Row> incrementRowColumn(        std::string_view databaseId,         std::string_view tableId,         std::string_view rowId,         std::string_view column,         std::optional<double> value = 1,         std::optional<double> max = std::nullopt,         std::optional<std::string_view> transactionId = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/rows/{}/{}/increment", databaseId, tableId, rowId, column);
         
         nlohmann::json params = nlohmann::json::object();
@@ -12044,9 +12044,9 @@ Type can be `key`, `fulltext`,
      * @param value Value to increment the column by. The value must be a number.
      * @param max Maximum value for the column. If the current value is greater than this value, an error will be thrown.
      * @param transactionId Transaction ID for staging the operation.
-     * @return Result<appwrite::models::Row>
+     * @return appwrite::Result<appwrite::models::Row>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Row>> incrementRowColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view rowId,         std::string_view column,         std::optional<double> value = 1,         std::optional<double> max = std::nullopt,         std::optional<std::string_view> transactionId = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Row>> incrementRowColumnAsync(        std::string_view databaseId,         std::string_view tableId,         std::string_view rowId,         std::string_view column,         std::optional<double> value = 1,         std::optional<double> max = std::nullopt,         std::optional<std::string_view> transactionId = std::nullopt    ) {
                 std::string path_ = std::format("/tablesdb/{}/tables/{}/rows/{}/{}/increment", databaseId, tableId, rowId, column);
         
         nlohmann::json params = nlohmann::json::object();
@@ -12080,9 +12080,9 @@ public:
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of 100 queries are allowed, each 4096 characters long. You may filter on the following attributes: name, total, billingPlan
      * @param search Search term to filter your list results. Max length: 256 chars.
      * @param total When set to false, the total count returned will be 0 and will not be calculated.
-     * @return Result<appwrite::models::TeamList>
+     * @return appwrite::Result<appwrite::models::TeamList>
      */
-    [[nodiscard]] Result<appwrite::models::TeamList> list(        std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> search = std::nullopt,         std::optional<bool> total = true    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::TeamList> list(        std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> search = std::nullopt,         std::optional<bool> total = true    ) {
                 std::string path_ = std::format("/teams");
         
         nlohmann::json params = nlohmann::json::object();
@@ -12108,9 +12108,9 @@ public:
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of 100 queries are allowed, each 4096 characters long. You may filter on the following attributes: name, total, billingPlan
      * @param search Search term to filter your list results. Max length: 256 chars.
      * @param total When set to false, the total count returned will be 0 and will not be calculated.
-     * @return Result<appwrite::models::TeamList>
+     * @return appwrite::Result<appwrite::models::TeamList>
      */
-    [[nodiscard]] Task<Result<appwrite::models::TeamList>> listAsync(        std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> search = std::nullopt,         std::optional<bool> total = true    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::TeamList>> listAsync(        std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> search = std::nullopt,         std::optional<bool> total = true    ) {
                 std::string path_ = std::format("/teams");
         
         nlohmann::json params = nlohmann::json::object();
@@ -12136,9 +12136,9 @@ public:
      * @param teamId Team ID. Choose a custom ID or generate a random ID with `ID.unique()`. Valid chars are a-z, A-Z, 0-9, period, hyphen, and underscore. Can't start with a special char. Max length is 36 chars.
      * @param name Team name. Max length: 128 chars.
      * @param roles Array of strings. Use this param to set the roles in the team for the user who created it. The default role is **owner**. A role can be any string. Learn more about [roles and permissions](https://appwrite.io/docs/permissions). Maximum of 100 roles are allowed, each 32 characters long.
-     * @return Result<appwrite::models::Team>
+     * @return appwrite::Result<appwrite::models::Team>
      */
-    [[nodiscard]] Result<appwrite::models::Team> create(        std::string_view teamId,         std::string_view name,         std::optional<std::vector<std::string>> roles = std::vector<std::string>{"owner"}    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Team> create(        std::string_view teamId,         std::string_view name,         std::optional<std::vector<std::string>> roles = std::vector<std::string>{"owner"}    ) {
                 std::string path_ = std::format("/teams");
         
         nlohmann::json params = nlohmann::json::object();
@@ -12161,9 +12161,9 @@ public:
      * @param teamId Team ID. Choose a custom ID or generate a random ID with `ID.unique()`. Valid chars are a-z, A-Z, 0-9, period, hyphen, and underscore. Can't start with a special char. Max length is 36 chars.
      * @param name Team name. Max length: 128 chars.
      * @param roles Array of strings. Use this param to set the roles in the team for the user who created it. The default role is **owner**. A role can be any string. Learn more about [roles and permissions](https://appwrite.io/docs/permissions). Maximum of 100 roles are allowed, each 32 characters long.
-     * @return Result<appwrite::models::Team>
+     * @return appwrite::Result<appwrite::models::Team>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Team>> createAsync(        std::string_view teamId,         std::string_view name,         std::optional<std::vector<std::string>> roles = std::vector<std::string>{"owner"}    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Team>> createAsync(        std::string_view teamId,         std::string_view name,         std::optional<std::vector<std::string>> roles = std::vector<std::string>{"owner"}    ) {
                 std::string path_ = std::format("/teams");
         
         nlohmann::json params = nlohmann::json::object();
@@ -12181,9 +12181,9 @@ public:
      * Get a team by its ID. All team members have read access for this resource.
      *
      * @param teamId Team ID.
-     * @return Result<appwrite::models::Team>
+     * @return appwrite::Result<appwrite::models::Team>
      */
-    [[nodiscard]] Result<appwrite::models::Team> get(        std::string_view teamId    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Team> get(        std::string_view teamId    ) {
                 std::string path_ = std::format("/teams/{}", teamId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -12197,9 +12197,9 @@ public:
      * Get a team by its ID. All team members have read access for this resource.
      *
      * @param teamId Team ID.
-     * @return Result<appwrite::models::Team>
+     * @return appwrite::Result<appwrite::models::Team>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Team>> getAsync(        std::string_view teamId    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Team>> getAsync(        std::string_view teamId    ) {
                 std::string path_ = std::format("/teams/{}", teamId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -12213,9 +12213,9 @@ public:
      *
      * @param teamId Team ID.
      * @param name New team name. Max length: 128 chars.
-     * @return Result<appwrite::models::Team>
+     * @return appwrite::Result<appwrite::models::Team>
      */
-    [[nodiscard]] Result<appwrite::models::Team> updateName(        std::string_view teamId,         std::string_view name    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Team> updateName(        std::string_view teamId,         std::string_view name    ) {
                 std::string path_ = std::format("/teams/{}", teamId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -12231,9 +12231,9 @@ public:
      *
      * @param teamId Team ID.
      * @param name New team name. Max length: 128 chars.
-     * @return Result<appwrite::models::Team>
+     * @return appwrite::Result<appwrite::models::Team>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Team>> updateNameAsync(        std::string_view teamId,         std::string_view name    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Team>> updateNameAsync(        std::string_view teamId,         std::string_view name    ) {
                 std::string path_ = std::format("/teams/{}", teamId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -12248,9 +12248,9 @@ public:
      * delete the team.
      *
      * @param teamId Team ID.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Result<void> delete_(        std::string_view teamId    ) {
+    [[nodiscard]] appwrite::Result<void> delete_(        std::string_view teamId    ) {
                 std::string path_ = std::format("/teams/{}", teamId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -12265,9 +12265,9 @@ public:
      * delete the team.
      *
      * @param teamId Team ID.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Task<Result<void>> delete_Async(        std::string_view teamId    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<void>> delete_Async(        std::string_view teamId    ) {
                 std::string path_ = std::format("/teams/{}", teamId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -12285,9 +12285,9 @@ public:
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of 100 queries are allowed, each 4096 characters long. You may filter on the following attributes: userId, teamId, invited, joined, confirm, roles
      * @param search Search term to filter your list results. Max length: 256 chars.
      * @param total When set to false, the total count returned will be 0 and will not be calculated.
-     * @return Result<appwrite::models::MembershipList>
+     * @return appwrite::Result<appwrite::models::MembershipList>
      */
-    [[nodiscard]] Result<appwrite::models::MembershipList> listMemberships(        std::string_view teamId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> search = std::nullopt,         std::optional<bool> total = true    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::MembershipList> listMemberships(        std::string_view teamId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> search = std::nullopt,         std::optional<bool> total = true    ) {
                 std::string path_ = std::format("/teams/{}/memberships", teamId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -12315,9 +12315,9 @@ public:
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of 100 queries are allowed, each 4096 characters long. You may filter on the following attributes: userId, teamId, invited, joined, confirm, roles
      * @param search Search term to filter your list results. Max length: 256 chars.
      * @param total When set to false, the total count returned will be 0 and will not be calculated.
-     * @return Result<appwrite::models::MembershipList>
+     * @return appwrite::Result<appwrite::models::MembershipList>
      */
-    [[nodiscard]] Task<Result<appwrite::models::MembershipList>> listMembershipsAsync(        std::string_view teamId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> search = std::nullopt,         std::optional<bool> total = true    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::MembershipList>> listMembershipsAsync(        std::string_view teamId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> search = std::nullopt,         std::optional<bool> total = true    ) {
                 std::string path_ = std::format("/teams/{}/memberships", teamId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -12366,9 +12366,9 @@ Please
      * @param phone Phone number. Format this number with a leading '+' and a country code, e.g., +16175551212.
      * @param url URL to redirect the user back to your app from the invitation email. This parameter is not required when an API key is supplied. Only URLs from hostnames in your project platform list are allowed. This requirement helps to prevent an [open redirect](https://cheatsheetseries.owasp.org/cheatsheets/Unvalidated_Redirects_and_Forwards_Cheat_Sheet.html) attack against your project API.
      * @param name Name of the new team member. Max length: 128 chars.
-     * @return Result<appwrite::models::Membership>
+     * @return appwrite::Result<appwrite::models::Membership>
      */
-    [[nodiscard]] Result<appwrite::models::Membership> createMembership(        std::string_view teamId,         std::vector<std::string> roles,         std::optional<std::string_view> email = std::nullopt,         std::optional<std::string_view> userId = std::nullopt,         std::optional<std::string_view> phone = std::nullopt,         std::optional<std::string_view> url = std::nullopt,         std::optional<std::string_view> name = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Membership> createMembership(        std::string_view teamId,         std::vector<std::string> roles,         std::optional<std::string_view> email = std::nullopt,         std::optional<std::string_view> userId = std::nullopt,         std::optional<std::string_view> phone = std::nullopt,         std::optional<std::string_view> url = std::nullopt,         std::optional<std::string_view> name = std::nullopt    ) {
                 std::string path_ = std::format("/teams/{}/memberships", teamId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -12425,9 +12425,9 @@ Please
      * @param phone Phone number. Format this number with a leading '+' and a country code, e.g., +16175551212.
      * @param url URL to redirect the user back to your app from the invitation email. This parameter is not required when an API key is supplied. Only URLs from hostnames in your project platform list are allowed. This requirement helps to prevent an [open redirect](https://cheatsheetseries.owasp.org/cheatsheets/Unvalidated_Redirects_and_Forwards_Cheat_Sheet.html) attack against your project API.
      * @param name Name of the new team member. Max length: 128 chars.
-     * @return Result<appwrite::models::Membership>
+     * @return appwrite::Result<appwrite::models::Membership>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Membership>> createMembershipAsync(        std::string_view teamId,         std::vector<std::string> roles,         std::optional<std::string_view> email = std::nullopt,         std::optional<std::string_view> userId = std::nullopt,         std::optional<std::string_view> phone = std::nullopt,         std::optional<std::string_view> url = std::nullopt,         std::optional<std::string_view> name = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Membership>> createMembershipAsync(        std::string_view teamId,         std::vector<std::string> roles,         std::optional<std::string_view> email = std::nullopt,         std::optional<std::string_view> userId = std::nullopt,         std::optional<std::string_view> phone = std::nullopt,         std::optional<std::string_view> url = std::nullopt,         std::optional<std::string_view> name = std::nullopt    ) {
                 std::string path_ = std::format("/teams/{}/memberships", teamId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -12459,9 +12459,9 @@ Please
      *
      * @param teamId Team ID.
      * @param membershipId Membership ID.
-     * @return Result<appwrite::models::Membership>
+     * @return appwrite::Result<appwrite::models::Membership>
      */
-    [[nodiscard]] Result<appwrite::models::Membership> getMembership(        std::string_view teamId,         std::string_view membershipId    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Membership> getMembership(        std::string_view teamId,         std::string_view membershipId    ) {
                 std::string path_ = std::format("/teams/{}/memberships/{}", teamId, membershipId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -12478,9 +12478,9 @@ Please
      *
      * @param teamId Team ID.
      * @param membershipId Membership ID.
-     * @return Result<appwrite::models::Membership>
+     * @return appwrite::Result<appwrite::models::Membership>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Membership>> getMembershipAsync(        std::string_view teamId,         std::string_view membershipId    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Membership>> getMembershipAsync(        std::string_view teamId,         std::string_view membershipId    ) {
                 std::string path_ = std::format("/teams/{}/memberships/{}", teamId, membershipId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -12497,9 +12497,9 @@ Please
      * @param teamId Team ID.
      * @param membershipId Membership ID.
      * @param roles An array of strings. Use this param to set the user's roles in the team. A role can be any string. Learn more about [roles and permissions](https://appwrite.io/docs/permissions). Maximum of 100 roles are allowed, each 81 characters long.
-     * @return Result<appwrite::models::Membership>
+     * @return appwrite::Result<appwrite::models::Membership>
      */
-    [[nodiscard]] Result<appwrite::models::Membership> updateMembership(        std::string_view teamId,         std::string_view membershipId,         std::vector<std::string> roles    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Membership> updateMembership(        std::string_view teamId,         std::string_view membershipId,         std::vector<std::string> roles    ) {
                 std::string path_ = std::format("/teams/{}/memberships/{}", teamId, membershipId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -12518,9 +12518,9 @@ Please
      * @param teamId Team ID.
      * @param membershipId Membership ID.
      * @param roles An array of strings. Use this param to set the user's roles in the team. A role can be any string. Learn more about [roles and permissions](https://appwrite.io/docs/permissions). Maximum of 100 roles are allowed, each 81 characters long.
-     * @return Result<appwrite::models::Membership>
+     * @return appwrite::Result<appwrite::models::Membership>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Membership>> updateMembershipAsync(        std::string_view teamId,         std::string_view membershipId,         std::vector<std::string> roles    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Membership>> updateMembershipAsync(        std::string_view teamId,         std::string_view membershipId,         std::vector<std::string> roles    ) {
                 std::string path_ = std::format("/teams/{}/memberships/{}", teamId, membershipId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -12537,9 +12537,9 @@ Please
      *
      * @param teamId Team ID.
      * @param membershipId Membership ID.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Result<void> deleteMembership(        std::string_view teamId,         std::string_view membershipId    ) {
+    [[nodiscard]] appwrite::Result<void> deleteMembership(        std::string_view teamId,         std::string_view membershipId    ) {
                 std::string path_ = std::format("/teams/{}/memberships/{}", teamId, membershipId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -12556,9 +12556,9 @@ Please
      *
      * @param teamId Team ID.
      * @param membershipId Membership ID.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Task<Result<void>> deleteMembershipAsync(        std::string_view teamId,         std::string_view membershipId    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<void>> deleteMembershipAsync(        std::string_view teamId,         std::string_view membershipId    ) {
                 std::string path_ = std::format("/teams/{}/memberships/{}", teamId, membershipId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -12579,9 +12579,9 @@ If the request is successful, a session for the user is
      * @param membershipId Membership ID.
      * @param userId User ID.
      * @param secret Secret key.
-     * @return Result<appwrite::models::Membership>
+     * @return appwrite::Result<appwrite::models::Membership>
      */
-    [[nodiscard]] Result<appwrite::models::Membership> updateMembershipStatus(        std::string_view teamId,         std::string_view membershipId,         std::string_view userId,         std::string_view secret    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Membership> updateMembershipStatus(        std::string_view teamId,         std::string_view membershipId,         std::string_view userId,         std::string_view secret    ) {
                 std::string path_ = std::format("/teams/{}/memberships/{}/status", teamId, membershipId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -12605,9 +12605,9 @@ If the request is successful, a session for the user is
      * @param membershipId Membership ID.
      * @param userId User ID.
      * @param secret Secret key.
-     * @return Result<appwrite::models::Membership>
+     * @return appwrite::Result<appwrite::models::Membership>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Membership>> updateMembershipStatusAsync(        std::string_view teamId,         std::string_view membershipId,         std::string_view userId,         std::string_view secret    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Membership>> updateMembershipStatusAsync(        std::string_view teamId,         std::string_view membershipId,         std::string_view userId,         std::string_view secret    ) {
                 std::string path_ = std::format("/teams/{}/memberships/{}/status", teamId, membershipId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -12624,9 +12624,9 @@ If the request is successful, a session for the user is
      * preferences](https://appwrite.io/docs/references/cloud/client-web/account#getPrefs).
      *
      * @param teamId Team ID.
-     * @return Result<appwrite::models::Preferences>
+     * @return appwrite::Result<appwrite::models::Preferences>
      */
-    [[nodiscard]] Result<appwrite::models::Preferences> getPrefs(        std::string_view teamId    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Preferences> getPrefs(        std::string_view teamId    ) {
                 std::string path_ = std::format("/teams/{}/prefs", teamId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -12642,9 +12642,9 @@ If the request is successful, a session for the user is
      * preferences](https://appwrite.io/docs/references/cloud/client-web/account#getPrefs).
      *
      * @param teamId Team ID.
-     * @return Result<appwrite::models::Preferences>
+     * @return appwrite::Result<appwrite::models::Preferences>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Preferences>> getPrefsAsync(        std::string_view teamId    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Preferences>> getPrefsAsync(        std::string_view teamId    ) {
                 std::string path_ = std::format("/teams/{}/prefs", teamId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -12660,9 +12660,9 @@ If the request is successful, a session for the user is
      *
      * @param teamId Team ID.
      * @param prefs Prefs key-value JSON object.
-     * @return Result<appwrite::models::Preferences>
+     * @return appwrite::Result<appwrite::models::Preferences>
      */
-    [[nodiscard]] Result<appwrite::models::Preferences> updatePrefs(        std::string_view teamId,         const nlohmann::json& prefs = nlohmann::json::object()    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Preferences> updatePrefs(        std::string_view teamId,         const nlohmann::json& prefs = nlohmann::json::object()    ) {
                 std::string path_ = std::format("/teams/{}/prefs", teamId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -12680,9 +12680,9 @@ If the request is successful, a session for the user is
      *
      * @param teamId Team ID.
      * @param prefs Prefs key-value JSON object.
-     * @return Result<appwrite::models::Preferences>
+     * @return appwrite::Result<appwrite::models::Preferences>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Preferences>> updatePrefsAsync(        std::string_view teamId,         const nlohmann::json& prefs = nlohmann::json::object()    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Preferences>> updatePrefsAsync(        std::string_view teamId,         const nlohmann::json& prefs = nlohmann::json::object()    ) {
                 std::string path_ = std::format("/teams/{}/prefs", teamId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -12708,9 +12708,9 @@ public:
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of 100 queries are allowed, each 4096 characters long. You may filter on the following attributes: name, email, phone, status, passwordUpdate, registration, emailVerification, phoneVerification, labels, impersonator
      * @param search Search term to filter your list results. Max length: 256 chars.
      * @param total When set to false, the total count returned will be 0 and will not be calculated.
-     * @return Result<appwrite::models::UserList>
+     * @return appwrite::Result<appwrite::models::UserList>
      */
-    [[nodiscard]] Result<appwrite::models::UserList> list(        std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> search = std::nullopt,         std::optional<bool> total = true    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::UserList> list(        std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> search = std::nullopt,         std::optional<bool> total = true    ) {
                 std::string path_ = std::format("/users");
         
         nlohmann::json params = nlohmann::json::object();
@@ -12736,9 +12736,9 @@ public:
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of 100 queries are allowed, each 4096 characters long. You may filter on the following attributes: name, email, phone, status, passwordUpdate, registration, emailVerification, phoneVerification, labels, impersonator
      * @param search Search term to filter your list results. Max length: 256 chars.
      * @param total When set to false, the total count returned will be 0 and will not be calculated.
-     * @return Result<appwrite::models::UserList>
+     * @return appwrite::Result<appwrite::models::UserList>
      */
-    [[nodiscard]] Task<Result<appwrite::models::UserList>> listAsync(        std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> search = std::nullopt,         std::optional<bool> total = true    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::UserList>> listAsync(        std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> search = std::nullopt,         std::optional<bool> total = true    ) {
                 std::string path_ = std::format("/users");
         
         nlohmann::json params = nlohmann::json::object();
@@ -12764,9 +12764,9 @@ public:
      * @param phone Phone number. Format this number with a leading '+' and a country code, e.g., +16175551212.
      * @param password Plain text user password. Must be at least 8 chars.
      * @param name User name. Max length: 128 chars.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Result<appwrite::models::User> create(        std::string_view userId,         std::optional<std::string_view> email = std::nullopt,         std::optional<std::string_view> phone = std::nullopt,         std::optional<std::string_view> password = std::nullopt,         std::optional<std::string_view> name = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::User> create(        std::string_view userId,         std::optional<std::string_view> email = std::nullopt,         std::optional<std::string_view> phone = std::nullopt,         std::optional<std::string_view> password = std::nullopt,         std::optional<std::string_view> name = std::nullopt    ) {
                 std::string path_ = std::format("/users");
         
         nlohmann::json params = nlohmann::json::object();
@@ -12797,9 +12797,9 @@ public:
      * @param phone Phone number. Format this number with a leading '+' and a country code, e.g., +16175551212.
      * @param password Plain text user password. Must be at least 8 chars.
      * @param name User name. Max length: 128 chars.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Task<Result<appwrite::models::User>> createAsync(        std::string_view userId,         std::optional<std::string_view> email = std::nullopt,         std::optional<std::string_view> phone = std::nullopt,         std::optional<std::string_view> password = std::nullopt,         std::optional<std::string_view> name = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::User>> createAsync(        std::string_view userId,         std::optional<std::string_view> email = std::nullopt,         std::optional<std::string_view> phone = std::nullopt,         std::optional<std::string_view> password = std::nullopt,         std::optional<std::string_view> name = std::nullopt    ) {
                 std::string path_ = std::format("/users");
         
         nlohmann::json params = nlohmann::json::object();
@@ -12831,9 +12831,9 @@ public:
      * @param email User email.
      * @param password User password hashed using Argon2.
      * @param name User name. Max length: 128 chars.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Result<appwrite::models::User> createArgon2User(        std::string_view userId,         std::string_view email,         std::string_view password,         std::optional<std::string_view> name = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::User> createArgon2User(        std::string_view userId,         std::string_view email,         std::string_view password,         std::optional<std::string_view> name = std::nullopt    ) {
                 std::string path_ = std::format("/users/argon2");
         
         nlohmann::json params = nlohmann::json::object();
@@ -12859,9 +12859,9 @@ public:
      * @param email User email.
      * @param password User password hashed using Argon2.
      * @param name User name. Max length: 128 chars.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Task<Result<appwrite::models::User>> createArgon2UserAsync(        std::string_view userId,         std::string_view email,         std::string_view password,         std::optional<std::string_view> name = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::User>> createArgon2UserAsync(        std::string_view userId,         std::string_view email,         std::string_view password,         std::optional<std::string_view> name = std::nullopt    ) {
                 std::string path_ = std::format("/users/argon2");
         
         nlohmann::json params = nlohmann::json::object();
@@ -12886,9 +12886,9 @@ public:
      * @param email User email.
      * @param password User password hashed using Bcrypt.
      * @param name User name. Max length: 128 chars.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Result<appwrite::models::User> createBcryptUser(        std::string_view userId,         std::string_view email,         std::string_view password,         std::optional<std::string_view> name = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::User> createBcryptUser(        std::string_view userId,         std::string_view email,         std::string_view password,         std::optional<std::string_view> name = std::nullopt    ) {
                 std::string path_ = std::format("/users/bcrypt");
         
         nlohmann::json params = nlohmann::json::object();
@@ -12914,9 +12914,9 @@ public:
      * @param email User email.
      * @param password User password hashed using Bcrypt.
      * @param name User name. Max length: 128 chars.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Task<Result<appwrite::models::User>> createBcryptUserAsync(        std::string_view userId,         std::string_view email,         std::string_view password,         std::optional<std::string_view> name = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::User>> createBcryptUserAsync(        std::string_view userId,         std::string_view email,         std::string_view password,         std::optional<std::string_view> name = std::nullopt    ) {
                 std::string path_ = std::format("/users/bcrypt");
         
         nlohmann::json params = nlohmann::json::object();
@@ -12937,9 +12937,9 @@ public:
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of 100 queries are allowed, each 4096 characters long. You may filter on the following attributes: userId, provider, providerUid, providerEmail, providerAccessTokenExpiry
      * @param search Search term to filter your list results. Max length: 256 chars.
      * @param total When set to false, the total count returned will be 0 and will not be calculated.
-     * @return Result<appwrite::models::IdentityList>
+     * @return appwrite::Result<appwrite::models::IdentityList>
      */
-    [[nodiscard]] Result<appwrite::models::IdentityList> listIdentities(        std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> search = std::nullopt,         std::optional<bool> total = true    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::IdentityList> listIdentities(        std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> search = std::nullopt,         std::optional<bool> total = true    ) {
                 std::string path_ = std::format("/users/identities");
         
         nlohmann::json params = nlohmann::json::object();
@@ -12964,9 +12964,9 @@ public:
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of 100 queries are allowed, each 4096 characters long. You may filter on the following attributes: userId, provider, providerUid, providerEmail, providerAccessTokenExpiry
      * @param search Search term to filter your list results. Max length: 256 chars.
      * @param total When set to false, the total count returned will be 0 and will not be calculated.
-     * @return Result<appwrite::models::IdentityList>
+     * @return appwrite::Result<appwrite::models::IdentityList>
      */
-    [[nodiscard]] Task<Result<appwrite::models::IdentityList>> listIdentitiesAsync(        std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> search = std::nullopt,         std::optional<bool> total = true    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::IdentityList>> listIdentitiesAsync(        std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> search = std::nullopt,         std::optional<bool> total = true    ) {
                 std::string path_ = std::format("/users/identities");
         
         nlohmann::json params = nlohmann::json::object();
@@ -12988,9 +12988,9 @@ public:
      * Delete an identity by its unique ID.
      *
      * @param identityId Identity ID.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Result<void> deleteIdentity(        std::string_view identityId    ) {
+    [[nodiscard]] appwrite::Result<void> deleteIdentity(        std::string_view identityId    ) {
                 std::string path_ = std::format("/users/identities/{}", identityId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -13004,9 +13004,9 @@ public:
      * Delete an identity by its unique ID.
      *
      * @param identityId Identity ID.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Task<Result<void>> deleteIdentityAsync(        std::string_view identityId    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<void>> deleteIdentityAsync(        std::string_view identityId    ) {
                 std::string path_ = std::format("/users/identities/{}", identityId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -13025,9 +13025,9 @@ public:
      * @param email User email.
      * @param password User password hashed using MD5.
      * @param name User name. Max length: 128 chars.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Result<appwrite::models::User> createMD5User(        std::string_view userId,         std::string_view email,         std::string_view password,         std::optional<std::string_view> name = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::User> createMD5User(        std::string_view userId,         std::string_view email,         std::string_view password,         std::optional<std::string_view> name = std::nullopt    ) {
                 std::string path_ = std::format("/users/md5");
         
         nlohmann::json params = nlohmann::json::object();
@@ -13053,9 +13053,9 @@ public:
      * @param email User email.
      * @param password User password hashed using MD5.
      * @param name User name. Max length: 128 chars.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Task<Result<appwrite::models::User>> createMD5UserAsync(        std::string_view userId,         std::string_view email,         std::string_view password,         std::optional<std::string_view> name = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::User>> createMD5UserAsync(        std::string_view userId,         std::string_view email,         std::string_view password,         std::optional<std::string_view> name = std::nullopt    ) {
                 std::string path_ = std::format("/users/md5");
         
         nlohmann::json params = nlohmann::json::object();
@@ -13080,9 +13080,9 @@ public:
      * @param email User email.
      * @param password User password hashed using PHPass.
      * @param name User name. Max length: 128 chars.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Result<appwrite::models::User> createPHPassUser(        std::string_view userId,         std::string_view email,         std::string_view password,         std::optional<std::string_view> name = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::User> createPHPassUser(        std::string_view userId,         std::string_view email,         std::string_view password,         std::optional<std::string_view> name = std::nullopt    ) {
                 std::string path_ = std::format("/users/phpass");
         
         nlohmann::json params = nlohmann::json::object();
@@ -13108,9 +13108,9 @@ public:
      * @param email User email.
      * @param password User password hashed using PHPass.
      * @param name User name. Max length: 128 chars.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Task<Result<appwrite::models::User>> createPHPassUserAsync(        std::string_view userId,         std::string_view email,         std::string_view password,         std::optional<std::string_view> name = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::User>> createPHPassUserAsync(        std::string_view userId,         std::string_view email,         std::string_view password,         std::optional<std::string_view> name = std::nullopt    ) {
                 std::string path_ = std::format("/users/phpass");
         
         nlohmann::json params = nlohmann::json::object();
@@ -13140,9 +13140,9 @@ public:
      * @param passwordParallel Optional parallelization cost used to hash password.
      * @param passwordLength Optional hash length used to hash password.
      * @param name User name. Max length: 128 chars.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Result<appwrite::models::User> createScryptUser(        std::string_view userId,         std::string_view email,         std::string_view password,         std::string_view passwordSalt,         int64_t passwordCpu,         int64_t passwordMemory,         int64_t passwordParallel,         int64_t passwordLength,         std::optional<std::string_view> name = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::User> createScryptUser(        std::string_view userId,         std::string_view email,         std::string_view password,         std::string_view passwordSalt,         int64_t passwordCpu,         int64_t passwordMemory,         int64_t passwordParallel,         int64_t passwordLength,         std::optional<std::string_view> name = std::nullopt    ) {
                 std::string path_ = std::format("/users/scrypt");
         
         nlohmann::json params = nlohmann::json::object();
@@ -13178,9 +13178,9 @@ public:
      * @param passwordParallel Optional parallelization cost used to hash password.
      * @param passwordLength Optional hash length used to hash password.
      * @param name User name. Max length: 128 chars.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Task<Result<appwrite::models::User>> createScryptUserAsync(        std::string_view userId,         std::string_view email,         std::string_view password,         std::string_view passwordSalt,         int64_t passwordCpu,         int64_t passwordMemory,         int64_t passwordParallel,         int64_t passwordLength,         std::optional<std::string_view> name = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::User>> createScryptUserAsync(        std::string_view userId,         std::string_view email,         std::string_view password,         std::string_view passwordSalt,         int64_t passwordCpu,         int64_t passwordMemory,         int64_t passwordParallel,         int64_t passwordLength,         std::optional<std::string_view> name = std::nullopt    ) {
                 std::string path_ = std::format("/users/scrypt");
         
         nlohmann::json params = nlohmann::json::object();
@@ -13214,9 +13214,9 @@ public:
      * @param passwordSaltSeparator Salt separator used to hash password.
      * @param passwordSignerKey Signer key used to hash password.
      * @param name User name. Max length: 128 chars.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Result<appwrite::models::User> createScryptModifiedUser(        std::string_view userId,         std::string_view email,         std::string_view password,         std::string_view passwordSalt,         std::string_view passwordSaltSeparator,         std::string_view passwordSignerKey,         std::optional<std::string_view> name = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::User> createScryptModifiedUser(        std::string_view userId,         std::string_view email,         std::string_view password,         std::string_view passwordSalt,         std::string_view passwordSaltSeparator,         std::string_view passwordSignerKey,         std::optional<std::string_view> name = std::nullopt    ) {
                 std::string path_ = std::format("/users/scrypt-modified");
         
         nlohmann::json params = nlohmann::json::object();
@@ -13249,9 +13249,9 @@ public:
      * @param passwordSaltSeparator Salt separator used to hash password.
      * @param passwordSignerKey Signer key used to hash password.
      * @param name User name. Max length: 128 chars.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Task<Result<appwrite::models::User>> createScryptModifiedUserAsync(        std::string_view userId,         std::string_view email,         std::string_view password,         std::string_view passwordSalt,         std::string_view passwordSaltSeparator,         std::string_view passwordSignerKey,         std::optional<std::string_view> name = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::User>> createScryptModifiedUserAsync(        std::string_view userId,         std::string_view email,         std::string_view password,         std::string_view passwordSalt,         std::string_view passwordSaltSeparator,         std::string_view passwordSignerKey,         std::optional<std::string_view> name = std::nullopt    ) {
                 std::string path_ = std::format("/users/scrypt-modified");
         
         nlohmann::json params = nlohmann::json::object();
@@ -13280,9 +13280,9 @@ public:
      * @param password User password hashed using SHA.
      * @param passwordVersion Optional SHA version used to hash password. Allowed values are: 'sha1', 'sha224', 'sha256', 'sha384', 'sha512/224', 'sha512/256', 'sha512', 'sha3-224', 'sha3-256', 'sha3-384', 'sha3-512'
      * @param name User name. Max length: 128 chars.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Result<appwrite::models::User> createSHAUser(        std::string_view userId,         std::string_view email,         std::string_view password,         std::optional<appwrite::enums::PasswordHash> passwordVersion = appwrite::enums::PasswordHash::SHA1,         std::optional<std::string_view> name = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::User> createSHAUser(        std::string_view userId,         std::string_view email,         std::string_view password,         std::optional<appwrite::enums::PasswordHash> passwordVersion = std::nullopt,         std::optional<std::string_view> name = std::nullopt    ) {
                 std::string path_ = std::format("/users/sha");
         
         nlohmann::json params = nlohmann::json::object();
@@ -13312,9 +13312,9 @@ public:
      * @param password User password hashed using SHA.
      * @param passwordVersion Optional SHA version used to hash password. Allowed values are: 'sha1', 'sha224', 'sha256', 'sha384', 'sha512/224', 'sha512/256', 'sha512', 'sha3-224', 'sha3-256', 'sha3-384', 'sha3-512'
      * @param name User name. Max length: 128 chars.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Task<Result<appwrite::models::User>> createSHAUserAsync(        std::string_view userId,         std::string_view email,         std::string_view password,         std::optional<appwrite::enums::PasswordHash> passwordVersion = appwrite::enums::PasswordHash::SHA1,         std::optional<std::string_view> name = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::User>> createSHAUserAsync(        std::string_view userId,         std::string_view email,         std::string_view password,         std::optional<appwrite::enums::PasswordHash> passwordVersion = std::nullopt,         std::optional<std::string_view> name = std::nullopt    ) {
                 std::string path_ = std::format("/users/sha");
         
         nlohmann::json params = nlohmann::json::object();
@@ -13336,9 +13336,9 @@ public:
      * Get a user by its unique ID.
      *
      * @param userId User ID.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Result<appwrite::models::User> get(        std::string_view userId    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::User> get(        std::string_view userId    ) {
                 std::string path_ = std::format("/users/{}", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -13352,9 +13352,9 @@ public:
      * Get a user by its unique ID.
      *
      * @param userId User ID.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Task<Result<appwrite::models::User>> getAsync(        std::string_view userId    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::User>> getAsync(        std::string_view userId    ) {
                 std::string path_ = std::format("/users/{}", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -13372,9 +13372,9 @@ public:
      * endpoint instead.
      *
      * @param userId User ID.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Result<void> delete_(        std::string_view userId    ) {
+    [[nodiscard]] appwrite::Result<void> delete_(        std::string_view userId    ) {
                 std::string path_ = std::format("/users/{}", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -13393,9 +13393,9 @@ public:
      * endpoint instead.
      *
      * @param userId User ID.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Task<Result<void>> delete_Async(        std::string_view userId    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<void>> delete_Async(        std::string_view userId    ) {
                 std::string path_ = std::format("/users/{}", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -13409,9 +13409,9 @@ public:
      *
      * @param userId User ID.
      * @param email User email.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Result<appwrite::models::User> updateEmail(        std::string_view userId,         std::string_view email    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::User> updateEmail(        std::string_view userId,         std::string_view email    ) {
                 std::string path_ = std::format("/users/{}/email", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -13427,9 +13427,9 @@ public:
      *
      * @param userId User ID.
      * @param email User email.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Task<Result<appwrite::models::User>> updateEmailAsync(        std::string_view userId,         std::string_view email    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::User>> updateEmailAsync(        std::string_view userId,         std::string_view email    ) {
                 std::string path_ = std::format("/users/{}/email", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -13448,9 +13448,9 @@ public:
      *
      * @param userId User ID.
      * @param impersonator Whether the user can impersonate other users. When true, the user can browse project users to choose a target and can pass impersonation headers to act as that user. Internal audit logs still attribute impersonated actions to the original impersonator and store the target user details only in internal audit payload data.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Result<appwrite::models::User> updateImpersonator(        std::string_view userId,         bool impersonator    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::User> updateImpersonator(        std::string_view userId,         bool impersonator    ) {
                 std::string path_ = std::format("/users/{}/impersonator", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -13470,9 +13470,9 @@ public:
      *
      * @param userId User ID.
      * @param impersonator Whether the user can impersonate other users. When true, the user can browse project users to choose a target and can pass impersonation headers to act as that user. Internal audit logs still attribute impersonated actions to the original impersonator and store the target user details only in internal audit payload data.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Task<Result<appwrite::models::User>> updateImpersonatorAsync(        std::string_view userId,         bool impersonator    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::User>> updateImpersonatorAsync(        std::string_view userId,         bool impersonator    ) {
                 std::string path_ = std::format("/users/{}/impersonator", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -13490,9 +13490,9 @@ public:
      * @param userId User ID.
      * @param sessionId Session ID. Use the string 'recent' to use the most recent session. Defaults to the most recent session.
      * @param duration Time in seconds before JWT expires. Default duration is 900 seconds, and maximum is 3600 seconds.
-     * @return Result<appwrite::models::Jwt>
+     * @return appwrite::Result<appwrite::models::Jwt>
      */
-    [[nodiscard]] Result<appwrite::models::Jwt> createJWT(        std::string_view userId,         std::optional<std::string_view> sessionId = std::nullopt,         std::optional<int64_t> duration = 900    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Jwt> createJWT(        std::string_view userId,         std::optional<std::string_view> sessionId = std::nullopt,         std::optional<int64_t> duration = 900    ) {
                 std::string path_ = std::format("/users/{}/jwts", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -13516,9 +13516,9 @@ public:
      * @param userId User ID.
      * @param sessionId Session ID. Use the string 'recent' to use the most recent session. Defaults to the most recent session.
      * @param duration Time in seconds before JWT expires. Default duration is 900 seconds, and maximum is 3600 seconds.
-     * @return Result<appwrite::models::Jwt>
+     * @return appwrite::Result<appwrite::models::Jwt>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Jwt>> createJWTAsync(        std::string_view userId,         std::optional<std::string_view> sessionId = std::nullopt,         std::optional<int64_t> duration = 900    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Jwt>> createJWTAsync(        std::string_view userId,         std::optional<std::string_view> sessionId = std::nullopt,         std::optional<int64_t> duration = 900    ) {
                 std::string path_ = std::format("/users/{}/jwts", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -13544,9 +13544,9 @@ Labels can be used to grant
      *
      * @param userId User ID.
      * @param labels Array of user labels. Replaces the previous labels. Maximum of 1000 labels are allowed, each up to 36 alphanumeric characters long.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Result<appwrite::models::User> updateLabels(        std::string_view userId,         std::vector<std::string> labels    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::User> updateLabels(        std::string_view userId,         std::vector<std::string> labels    ) {
                 std::string path_ = std::format("/users/{}/labels", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -13568,9 +13568,9 @@ Labels can be used to grant
      *
      * @param userId User ID.
      * @param labels Array of user labels. Replaces the previous labels. Maximum of 1000 labels are allowed, each up to 36 alphanumeric characters long.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Task<Result<appwrite::models::User>> updateLabelsAsync(        std::string_view userId,         std::vector<std::string> labels    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::User>> updateLabelsAsync(        std::string_view userId,         std::vector<std::string> labels    ) {
                 std::string path_ = std::format("/users/{}/labels", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -13586,9 +13586,9 @@ Labels can be used to grant
      * @param userId User ID.
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Only supported methods are limit and offset
      * @param total When set to false, the total count returned will be 0 and will not be calculated.
-     * @return Result<appwrite::models::LogList>
+     * @return appwrite::Result<appwrite::models::LogList>
      */
-    [[nodiscard]] Result<appwrite::models::LogList> listLogs(        std::string_view userId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<bool> total = true    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::LogList> listLogs(        std::string_view userId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<bool> total = true    ) {
                 std::string path_ = std::format("/users/{}/logs", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -13610,9 +13610,9 @@ Labels can be used to grant
      * @param userId User ID.
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Only supported methods are limit and offset
      * @param total When set to false, the total count returned will be 0 and will not be calculated.
-     * @return Result<appwrite::models::LogList>
+     * @return appwrite::Result<appwrite::models::LogList>
      */
-    [[nodiscard]] Task<Result<appwrite::models::LogList>> listLogsAsync(        std::string_view userId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<bool> total = true    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::LogList>> listLogsAsync(        std::string_view userId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<bool> total = true    ) {
                 std::string path_ = std::format("/users/{}/logs", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -13634,9 +13634,9 @@ Labels can be used to grant
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of 100 queries are allowed, each 4096 characters long. You may filter on the following attributes: userId, teamId, invited, joined, confirm, roles
      * @param search Search term to filter your list results. Max length: 256 chars.
      * @param total When set to false, the total count returned will be 0 and will not be calculated.
-     * @return Result<appwrite::models::MembershipList>
+     * @return appwrite::Result<appwrite::models::MembershipList>
      */
-    [[nodiscard]] Result<appwrite::models::MembershipList> listMemberships(        std::string_view userId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> search = std::nullopt,         std::optional<bool> total = true    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::MembershipList> listMemberships(        std::string_view userId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> search = std::nullopt,         std::optional<bool> total = true    ) {
                 std::string path_ = std::format("/users/{}/memberships", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -13662,9 +13662,9 @@ Labels can be used to grant
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of 100 queries are allowed, each 4096 characters long. You may filter on the following attributes: userId, teamId, invited, joined, confirm, roles
      * @param search Search term to filter your list results. Max length: 256 chars.
      * @param total When set to false, the total count returned will be 0 and will not be calculated.
-     * @return Result<appwrite::models::MembershipList>
+     * @return appwrite::Result<appwrite::models::MembershipList>
      */
-    [[nodiscard]] Task<Result<appwrite::models::MembershipList>> listMembershipsAsync(        std::string_view userId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> search = std::nullopt,         std::optional<bool> total = true    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::MembershipList>> listMembershipsAsync(        std::string_view userId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<std::string_view> search = std::nullopt,         std::optional<bool> total = true    ) {
                 std::string path_ = std::format("/users/{}/memberships", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -13687,9 +13687,9 @@ Labels can be used to grant
      *
      * @param userId User ID.
      * @param mfa Enable or disable MFA.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Result<appwrite::models::User> updateMfa(        std::string_view userId,         bool mfa    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::User> updateMfa(        std::string_view userId,         bool mfa    ) {
                 std::string path_ = std::format("/users/{}/mfa", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -13705,9 +13705,9 @@ Labels can be used to grant
      *
      * @param userId User ID.
      * @param mfa Enable or disable MFA.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Task<Result<appwrite::models::User>> updateMfaAsync(        std::string_view userId,         bool mfa    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::User>> updateMfaAsync(        std::string_view userId,         bool mfa    ) {
                 std::string path_ = std::format("/users/{}/mfa", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -13722,9 +13722,9 @@ Labels can be used to grant
      *
      * @param userId User ID.
      * @param mfa Enable or disable MFA.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Result<appwrite::models::User> updateMFA(        std::string_view userId,         bool mfa    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::User> updateMFA(        std::string_view userId,         bool mfa    ) {
                 std::string path_ = std::format("/users/{}/mfa", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -13740,9 +13740,9 @@ Labels can be used to grant
      *
      * @param userId User ID.
      * @param mfa Enable or disable MFA.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Task<Result<appwrite::models::User>> updateMFAAsync(        std::string_view userId,         bool mfa    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::User>> updateMFAAsync(        std::string_view userId,         bool mfa    ) {
                 std::string path_ = std::format("/users/{}/mfa", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -13757,9 +13757,9 @@ Labels can be used to grant
      *
      * @param userId User ID.
      * @param type Type of authenticator.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Result<void> deleteMfaAuthenticator(        std::string_view userId,         appwrite::enums::AuthenticatorType type    ) {
+    [[nodiscard]] appwrite::Result<void> deleteMfaAuthenticator(        std::string_view userId,         appwrite::enums::AuthenticatorType type    ) {
                 std::string path_ = std::format("/users/{}/mfa/authenticators/{}", userId, appwrite::enums::toString(type));
         
         nlohmann::json params = nlohmann::json::object();
@@ -13774,9 +13774,9 @@ Labels can be used to grant
      *
      * @param userId User ID.
      * @param type Type of authenticator.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Task<Result<void>> deleteMfaAuthenticatorAsync(        std::string_view userId,         appwrite::enums::AuthenticatorType type    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<void>> deleteMfaAuthenticatorAsync(        std::string_view userId,         appwrite::enums::AuthenticatorType type    ) {
                 std::string path_ = std::format("/users/{}/mfa/authenticators/{}", userId, appwrite::enums::toString(type));
         
         nlohmann::json params = nlohmann::json::object();
@@ -13790,9 +13790,9 @@ Labels can be used to grant
      *
      * @param userId User ID.
      * @param type Type of authenticator.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Result<void> deleteMFAAuthenticator(        std::string_view userId,         appwrite::enums::AuthenticatorType type    ) {
+    [[nodiscard]] appwrite::Result<void> deleteMFAAuthenticator(        std::string_view userId,         appwrite::enums::AuthenticatorType type    ) {
                 std::string path_ = std::format("/users/{}/mfa/authenticators/{}", userId, appwrite::enums::toString(type));
         
         nlohmann::json params = nlohmann::json::object();
@@ -13807,9 +13807,9 @@ Labels can be used to grant
      *
      * @param userId User ID.
      * @param type Type of authenticator.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Task<Result<void>> deleteMFAAuthenticatorAsync(        std::string_view userId,         appwrite::enums::AuthenticatorType type    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<void>> deleteMFAAuthenticatorAsync(        std::string_view userId,         appwrite::enums::AuthenticatorType type    ) {
                 std::string path_ = std::format("/users/{}/mfa/authenticators/{}", userId, appwrite::enums::toString(type));
         
         nlohmann::json params = nlohmann::json::object();
@@ -13822,9 +13822,9 @@ Labels can be used to grant
      * List the factors available on the account to be used as a MFA challange.
      *
      * @param userId User ID.
-     * @return Result<appwrite::models::MfaFactors>
+     * @return appwrite::Result<appwrite::models::MfaFactors>
      */
-    [[nodiscard]] Result<appwrite::models::MfaFactors> listMfaFactors(        std::string_view userId    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::MfaFactors> listMfaFactors(        std::string_view userId    ) {
                 std::string path_ = std::format("/users/{}/mfa/factors", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -13838,9 +13838,9 @@ Labels can be used to grant
      * List the factors available on the account to be used as a MFA challange.
      *
      * @param userId User ID.
-     * @return Result<appwrite::models::MfaFactors>
+     * @return appwrite::Result<appwrite::models::MfaFactors>
      */
-    [[nodiscard]] Task<Result<appwrite::models::MfaFactors>> listMfaFactorsAsync(        std::string_view userId    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::MfaFactors>> listMfaFactorsAsync(        std::string_view userId    ) {
                 std::string path_ = std::format("/users/{}/mfa/factors", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -13853,9 +13853,9 @@ Labels can be used to grant
      * List the factors available on the account to be used as a MFA challange.
      *
      * @param userId User ID.
-     * @return Result<appwrite::models::MfaFactors>
+     * @return appwrite::Result<appwrite::models::MfaFactors>
      */
-    [[nodiscard]] Result<appwrite::models::MfaFactors> listMFAFactors(        std::string_view userId    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::MfaFactors> listMFAFactors(        std::string_view userId    ) {
                 std::string path_ = std::format("/users/{}/mfa/factors", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -13869,9 +13869,9 @@ Labels can be used to grant
      * List the factors available on the account to be used as a MFA challange.
      *
      * @param userId User ID.
-     * @return Result<appwrite::models::MfaFactors>
+     * @return appwrite::Result<appwrite::models::MfaFactors>
      */
-    [[nodiscard]] Task<Result<appwrite::models::MfaFactors>> listMFAFactorsAsync(        std::string_view userId    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::MfaFactors>> listMFAFactorsAsync(        std::string_view userId    ) {
                 std::string path_ = std::format("/users/{}/mfa/factors", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -13887,9 +13887,9 @@ Labels can be used to grant
      * method.
      *
      * @param userId User ID.
-     * @return Result<appwrite::models::MfaRecoveryCodes>
+     * @return appwrite::Result<appwrite::models::MfaRecoveryCodes>
      */
-    [[nodiscard]] Result<appwrite::models::MfaRecoveryCodes> getMfaRecoveryCodes(        std::string_view userId    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::MfaRecoveryCodes> getMfaRecoveryCodes(        std::string_view userId    ) {
                 std::string path_ = std::format("/users/{}/mfa/recovery-codes", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -13906,9 +13906,9 @@ Labels can be used to grant
      * method.
      *
      * @param userId User ID.
-     * @return Result<appwrite::models::MfaRecoveryCodes>
+     * @return appwrite::Result<appwrite::models::MfaRecoveryCodes>
      */
-    [[nodiscard]] Task<Result<appwrite::models::MfaRecoveryCodes>> getMfaRecoveryCodesAsync(        std::string_view userId    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::MfaRecoveryCodes>> getMfaRecoveryCodesAsync(        std::string_view userId    ) {
                 std::string path_ = std::format("/users/{}/mfa/recovery-codes", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -13924,9 +13924,9 @@ Labels can be used to grant
      * method.
      *
      * @param userId User ID.
-     * @return Result<appwrite::models::MfaRecoveryCodes>
+     * @return appwrite::Result<appwrite::models::MfaRecoveryCodes>
      */
-    [[nodiscard]] Result<appwrite::models::MfaRecoveryCodes> getMFARecoveryCodes(        std::string_view userId    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::MfaRecoveryCodes> getMFARecoveryCodes(        std::string_view userId    ) {
                 std::string path_ = std::format("/users/{}/mfa/recovery-codes", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -13943,9 +13943,9 @@ Labels can be used to grant
      * method.
      *
      * @param userId User ID.
-     * @return Result<appwrite::models::MfaRecoveryCodes>
+     * @return appwrite::Result<appwrite::models::MfaRecoveryCodes>
      */
-    [[nodiscard]] Task<Result<appwrite::models::MfaRecoveryCodes>> getMFARecoveryCodesAsync(        std::string_view userId    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::MfaRecoveryCodes>> getMFARecoveryCodesAsync(        std::string_view userId    ) {
                 std::string path_ = std::format("/users/{}/mfa/recovery-codes", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -13961,9 +13961,9 @@ Labels can be used to grant
      * method.
      *
      * @param userId User ID.
-     * @return Result<appwrite::models::MfaRecoveryCodes>
+     * @return appwrite::Result<appwrite::models::MfaRecoveryCodes>
      */
-    [[nodiscard]] Result<appwrite::models::MfaRecoveryCodes> updateMfaRecoveryCodes(        std::string_view userId    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::MfaRecoveryCodes> updateMfaRecoveryCodes(        std::string_view userId    ) {
                 std::string path_ = std::format("/users/{}/mfa/recovery-codes", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -13980,9 +13980,9 @@ Labels can be used to grant
      * method.
      *
      * @param userId User ID.
-     * @return Result<appwrite::models::MfaRecoveryCodes>
+     * @return appwrite::Result<appwrite::models::MfaRecoveryCodes>
      */
-    [[nodiscard]] Task<Result<appwrite::models::MfaRecoveryCodes>> updateMfaRecoveryCodesAsync(        std::string_view userId    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::MfaRecoveryCodes>> updateMfaRecoveryCodesAsync(        std::string_view userId    ) {
                 std::string path_ = std::format("/users/{}/mfa/recovery-codes", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -13998,9 +13998,9 @@ Labels can be used to grant
      * method.
      *
      * @param userId User ID.
-     * @return Result<appwrite::models::MfaRecoveryCodes>
+     * @return appwrite::Result<appwrite::models::MfaRecoveryCodes>
      */
-    [[nodiscard]] Result<appwrite::models::MfaRecoveryCodes> updateMFARecoveryCodes(        std::string_view userId    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::MfaRecoveryCodes> updateMFARecoveryCodes(        std::string_view userId    ) {
                 std::string path_ = std::format("/users/{}/mfa/recovery-codes", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -14017,9 +14017,9 @@ Labels can be used to grant
      * method.
      *
      * @param userId User ID.
-     * @return Result<appwrite::models::MfaRecoveryCodes>
+     * @return appwrite::Result<appwrite::models::MfaRecoveryCodes>
      */
-    [[nodiscard]] Task<Result<appwrite::models::MfaRecoveryCodes>> updateMFARecoveryCodesAsync(        std::string_view userId    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::MfaRecoveryCodes>> updateMFARecoveryCodesAsync(        std::string_view userId    ) {
                 std::string path_ = std::format("/users/{}/mfa/recovery-codes", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -14035,9 +14035,9 @@ Labels can be used to grant
      * method by client SDK.
      *
      * @param userId User ID.
-     * @return Result<appwrite::models::MfaRecoveryCodes>
+     * @return appwrite::Result<appwrite::models::MfaRecoveryCodes>
      */
-    [[nodiscard]] Result<appwrite::models::MfaRecoveryCodes> createMfaRecoveryCodes(        std::string_view userId    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::MfaRecoveryCodes> createMfaRecoveryCodes(        std::string_view userId    ) {
                 std::string path_ = std::format("/users/{}/mfa/recovery-codes", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -14054,9 +14054,9 @@ Labels can be used to grant
      * method by client SDK.
      *
      * @param userId User ID.
-     * @return Result<appwrite::models::MfaRecoveryCodes>
+     * @return appwrite::Result<appwrite::models::MfaRecoveryCodes>
      */
-    [[nodiscard]] Task<Result<appwrite::models::MfaRecoveryCodes>> createMfaRecoveryCodesAsync(        std::string_view userId    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::MfaRecoveryCodes>> createMfaRecoveryCodesAsync(        std::string_view userId    ) {
                 std::string path_ = std::format("/users/{}/mfa/recovery-codes", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -14072,9 +14072,9 @@ Labels can be used to grant
      * method by client SDK.
      *
      * @param userId User ID.
-     * @return Result<appwrite::models::MfaRecoveryCodes>
+     * @return appwrite::Result<appwrite::models::MfaRecoveryCodes>
      */
-    [[nodiscard]] Result<appwrite::models::MfaRecoveryCodes> createMFARecoveryCodes(        std::string_view userId    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::MfaRecoveryCodes> createMFARecoveryCodes(        std::string_view userId    ) {
                 std::string path_ = std::format("/users/{}/mfa/recovery-codes", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -14091,9 +14091,9 @@ Labels can be used to grant
      * method by client SDK.
      *
      * @param userId User ID.
-     * @return Result<appwrite::models::MfaRecoveryCodes>
+     * @return appwrite::Result<appwrite::models::MfaRecoveryCodes>
      */
-    [[nodiscard]] Task<Result<appwrite::models::MfaRecoveryCodes>> createMFARecoveryCodesAsync(        std::string_view userId    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::MfaRecoveryCodes>> createMFARecoveryCodesAsync(        std::string_view userId    ) {
                 std::string path_ = std::format("/users/{}/mfa/recovery-codes", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -14107,9 +14107,9 @@ Labels can be used to grant
      *
      * @param userId User ID.
      * @param name User name. Max length: 128 chars.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Result<appwrite::models::User> updateName(        std::string_view userId,         std::string_view name    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::User> updateName(        std::string_view userId,         std::string_view name    ) {
                 std::string path_ = std::format("/users/{}/name", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -14125,9 +14125,9 @@ Labels can be used to grant
      *
      * @param userId User ID.
      * @param name User name. Max length: 128 chars.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Task<Result<appwrite::models::User>> updateNameAsync(        std::string_view userId,         std::string_view name    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::User>> updateNameAsync(        std::string_view userId,         std::string_view name    ) {
                 std::string path_ = std::format("/users/{}/name", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -14142,9 +14142,9 @@ Labels can be used to grant
      *
      * @param userId User ID.
      * @param password New user password. Must be at least 8 chars.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Result<appwrite::models::User> updatePassword(        std::string_view userId,         std::string_view password    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::User> updatePassword(        std::string_view userId,         std::string_view password    ) {
                 std::string path_ = std::format("/users/{}/password", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -14160,9 +14160,9 @@ Labels can be used to grant
      *
      * @param userId User ID.
      * @param password New user password. Must be at least 8 chars.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Task<Result<appwrite::models::User>> updatePasswordAsync(        std::string_view userId,         std::string_view password    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::User>> updatePasswordAsync(        std::string_view userId,         std::string_view password    ) {
                 std::string path_ = std::format("/users/{}/password", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -14177,9 +14177,9 @@ Labels can be used to grant
      *
      * @param userId User ID.
      * @param number User phone number.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Result<appwrite::models::User> updatePhone(        std::string_view userId,         std::string_view number    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::User> updatePhone(        std::string_view userId,         std::string_view number    ) {
                 std::string path_ = std::format("/users/{}/phone", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -14195,9 +14195,9 @@ Labels can be used to grant
      *
      * @param userId User ID.
      * @param number User phone number.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Task<Result<appwrite::models::User>> updatePhoneAsync(        std::string_view userId,         std::string_view number    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::User>> updatePhoneAsync(        std::string_view userId,         std::string_view number    ) {
                 std::string path_ = std::format("/users/{}/phone", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -14211,9 +14211,9 @@ Labels can be used to grant
      * Get the user preferences by its unique ID.
      *
      * @param userId User ID.
-     * @return Result<appwrite::models::Preferences>
+     * @return appwrite::Result<appwrite::models::Preferences>
      */
-    [[nodiscard]] Result<appwrite::models::Preferences> getPrefs(        std::string_view userId    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Preferences> getPrefs(        std::string_view userId    ) {
                 std::string path_ = std::format("/users/{}/prefs", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -14227,9 +14227,9 @@ Labels can be used to grant
      * Get the user preferences by its unique ID.
      *
      * @param userId User ID.
-     * @return Result<appwrite::models::Preferences>
+     * @return appwrite::Result<appwrite::models::Preferences>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Preferences>> getPrefsAsync(        std::string_view userId    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Preferences>> getPrefsAsync(        std::string_view userId    ) {
                 std::string path_ = std::format("/users/{}/prefs", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -14245,9 +14245,9 @@ Labels can be used to grant
      *
      * @param userId User ID.
      * @param prefs Prefs key-value JSON object.
-     * @return Result<appwrite::models::Preferences>
+     * @return appwrite::Result<appwrite::models::Preferences>
      */
-    [[nodiscard]] Result<appwrite::models::Preferences> updatePrefs(        std::string_view userId,         const nlohmann::json& prefs = nlohmann::json::object()    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Preferences> updatePrefs(        std::string_view userId,         const nlohmann::json& prefs = nlohmann::json::object()    ) {
                 std::string path_ = std::format("/users/{}/prefs", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -14265,9 +14265,9 @@ Labels can be used to grant
      *
      * @param userId User ID.
      * @param prefs Prefs key-value JSON object.
-     * @return Result<appwrite::models::Preferences>
+     * @return appwrite::Result<appwrite::models::Preferences>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Preferences>> updatePrefsAsync(        std::string_view userId,         const nlohmann::json& prefs = nlohmann::json::object()    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Preferences>> updatePrefsAsync(        std::string_view userId,         const nlohmann::json& prefs = nlohmann::json::object()    ) {
                 std::string path_ = std::format("/users/{}/prefs", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -14282,9 +14282,9 @@ Labels can be used to grant
      *
      * @param userId User ID.
      * @param total When set to false, the total count returned will be 0 and will not be calculated.
-     * @return Result<appwrite::models::SessionList>
+     * @return appwrite::Result<appwrite::models::SessionList>
      */
-    [[nodiscard]] Result<appwrite::models::SessionList> listSessions(        std::string_view userId,         std::optional<bool> total = true    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::SessionList> listSessions(        std::string_view userId,         std::optional<bool> total = true    ) {
                 std::string path_ = std::format("/users/{}/sessions", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -14302,9 +14302,9 @@ Labels can be used to grant
      *
      * @param userId User ID.
      * @param total When set to false, the total count returned will be 0 and will not be calculated.
-     * @return Result<appwrite::models::SessionList>
+     * @return appwrite::Result<appwrite::models::SessionList>
      */
-    [[nodiscard]] Task<Result<appwrite::models::SessionList>> listSessionsAsync(        std::string_view userId,         std::optional<bool> total = true    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::SessionList>> listSessionsAsync(        std::string_view userId,         std::optional<bool> total = true    ) {
                 std::string path_ = std::format("/users/{}/sessions", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -14326,9 +14326,9 @@ If you want to generate a token for a custom authentication flow,
      * endpoint.
      *
      * @param userId User ID. Choose a custom ID or generate a random ID with `ID.unique()`. Valid chars are a-z, A-Z, 0-9, period, hyphen, and underscore. Can't start with a special char. Max length is 36 chars.
-     * @return Result<appwrite::models::Session>
+     * @return appwrite::Result<appwrite::models::Session>
      */
-    [[nodiscard]] Result<appwrite::models::Session> createSession(        std::string_view userId    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Session> createSession(        std::string_view userId    ) {
                 std::string path_ = std::format("/users/{}/sessions", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -14348,9 +14348,9 @@ If you want to generate a token for a custom authentication flow,
      * endpoint.
      *
      * @param userId User ID. Choose a custom ID or generate a random ID with `ID.unique()`. Valid chars are a-z, A-Z, 0-9, period, hyphen, and underscore. Can't start with a special char. Max length is 36 chars.
-     * @return Result<appwrite::models::Session>
+     * @return appwrite::Result<appwrite::models::Session>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Session>> createSessionAsync(        std::string_view userId    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Session>> createSessionAsync(        std::string_view userId    ) {
                 std::string path_ = std::format("/users/{}/sessions", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -14363,9 +14363,9 @@ If you want to generate a token for a custom authentication flow,
      * Delete all user's sessions by using the user's unique ID.
      *
      * @param userId User ID.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Result<void> deleteSessions(        std::string_view userId    ) {
+    [[nodiscard]] appwrite::Result<void> deleteSessions(        std::string_view userId    ) {
                 std::string path_ = std::format("/users/{}/sessions", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -14379,9 +14379,9 @@ If you want to generate a token for a custom authentication flow,
      * Delete all user's sessions by using the user's unique ID.
      *
      * @param userId User ID.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Task<Result<void>> deleteSessionsAsync(        std::string_view userId    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<void>> deleteSessionsAsync(        std::string_view userId    ) {
                 std::string path_ = std::format("/users/{}/sessions", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -14395,9 +14395,9 @@ If you want to generate a token for a custom authentication flow,
      *
      * @param userId User ID.
      * @param sessionId Session ID.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Result<void> deleteSession(        std::string_view userId,         std::string_view sessionId    ) {
+    [[nodiscard]] appwrite::Result<void> deleteSession(        std::string_view userId,         std::string_view sessionId    ) {
                 std::string path_ = std::format("/users/{}/sessions/{}", userId, sessionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -14412,9 +14412,9 @@ If you want to generate a token for a custom authentication flow,
      *
      * @param userId User ID.
      * @param sessionId Session ID.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Task<Result<void>> deleteSessionAsync(        std::string_view userId,         std::string_view sessionId    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<void>> deleteSessionAsync(        std::string_view userId,         std::string_view sessionId    ) {
                 std::string path_ = std::format("/users/{}/sessions/{}", userId, sessionId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -14429,9 +14429,9 @@ If you want to generate a token for a custom authentication flow,
      *
      * @param userId User ID.
      * @param status User Status. To activate the user pass `true` and to block the user pass `false`.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Result<appwrite::models::User> updateStatus(        std::string_view userId,         bool status    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::User> updateStatus(        std::string_view userId,         bool status    ) {
                 std::string path_ = std::format("/users/{}/status", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -14448,9 +14448,9 @@ If you want to generate a token for a custom authentication flow,
      *
      * @param userId User ID.
      * @param status User Status. To activate the user pass `true` and to block the user pass `false`.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Task<Result<appwrite::models::User>> updateStatusAsync(        std::string_view userId,         bool status    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::User>> updateStatusAsync(        std::string_view userId,         bool status    ) {
                 std::string path_ = std::format("/users/{}/status", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -14466,9 +14466,9 @@ If you want to generate a token for a custom authentication flow,
      * @param userId User ID.
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of 100 queries are allowed, each 4096 characters long. You may filter on the following attributes: userId, providerId, identifier, providerType
      * @param total When set to false, the total count returned will be 0 and will not be calculated.
-     * @return Result<appwrite::models::TargetList>
+     * @return appwrite::Result<appwrite::models::TargetList>
      */
-    [[nodiscard]] Result<appwrite::models::TargetList> listTargets(        std::string_view userId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<bool> total = true    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::TargetList> listTargets(        std::string_view userId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<bool> total = true    ) {
                 std::string path_ = std::format("/users/{}/targets", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -14490,9 +14490,9 @@ If you want to generate a token for a custom authentication flow,
      * @param userId User ID.
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of 100 queries are allowed, each 4096 characters long. You may filter on the following attributes: userId, providerId, identifier, providerType
      * @param total When set to false, the total count returned will be 0 and will not be calculated.
-     * @return Result<appwrite::models::TargetList>
+     * @return appwrite::Result<appwrite::models::TargetList>
      */
-    [[nodiscard]] Task<Result<appwrite::models::TargetList>> listTargetsAsync(        std::string_view userId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<bool> total = true    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::TargetList>> listTargetsAsync(        std::string_view userId,         std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<bool> total = true    ) {
                 std::string path_ = std::format("/users/{}/targets", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -14516,9 +14516,9 @@ If you want to generate a token for a custom authentication flow,
      * @param identifier The target identifier (token, email, phone etc.)
      * @param providerId Provider ID. Message will be sent to this target from the specified provider ID. If no provider ID is set the first setup provider will be used.
      * @param name Target name. Max length: 128 chars. For example: My Awesome App Galaxy S23.
-     * @return Result<appwrite::models::Target>
+     * @return appwrite::Result<appwrite::models::Target>
      */
-    [[nodiscard]] Result<appwrite::models::Target> createTarget(        std::string_view userId,         std::string_view targetId,         appwrite::enums::MessagingProviderType providerType,         std::string_view identifier,         std::optional<std::string_view> providerId = std::nullopt,         std::optional<std::string_view> name = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Target> createTarget(        std::string_view userId,         std::string_view targetId,         appwrite::enums::MessagingProviderType providerType,         std::string_view identifier,         std::optional<std::string_view> providerId = std::nullopt,         std::optional<std::string_view> name = std::nullopt    ) {
                 std::string path_ = std::format("/users/{}/targets", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -14546,9 +14546,9 @@ If you want to generate a token for a custom authentication flow,
      * @param identifier The target identifier (token, email, phone etc.)
      * @param providerId Provider ID. Message will be sent to this target from the specified provider ID. If no provider ID is set the first setup provider will be used.
      * @param name Target name. Max length: 128 chars. For example: My Awesome App Galaxy S23.
-     * @return Result<appwrite::models::Target>
+     * @return appwrite::Result<appwrite::models::Target>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Target>> createTargetAsync(        std::string_view userId,         std::string_view targetId,         appwrite::enums::MessagingProviderType providerType,         std::string_view identifier,         std::optional<std::string_view> providerId = std::nullopt,         std::optional<std::string_view> name = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Target>> createTargetAsync(        std::string_view userId,         std::string_view targetId,         appwrite::enums::MessagingProviderType providerType,         std::string_view identifier,         std::optional<std::string_view> providerId = std::nullopt,         std::optional<std::string_view> name = std::nullopt    ) {
                 std::string path_ = std::format("/users/{}/targets", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -14571,9 +14571,9 @@ If you want to generate a token for a custom authentication flow,
      *
      * @param userId User ID.
      * @param targetId Target ID.
-     * @return Result<appwrite::models::Target>
+     * @return appwrite::Result<appwrite::models::Target>
      */
-    [[nodiscard]] Result<appwrite::models::Target> getTarget(        std::string_view userId,         std::string_view targetId    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Target> getTarget(        std::string_view userId,         std::string_view targetId    ) {
                 std::string path_ = std::format("/users/{}/targets/{}", userId, targetId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -14588,9 +14588,9 @@ If you want to generate a token for a custom authentication flow,
      *
      * @param userId User ID.
      * @param targetId Target ID.
-     * @return Result<appwrite::models::Target>
+     * @return appwrite::Result<appwrite::models::Target>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Target>> getTargetAsync(        std::string_view userId,         std::string_view targetId    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Target>> getTargetAsync(        std::string_view userId,         std::string_view targetId    ) {
                 std::string path_ = std::format("/users/{}/targets/{}", userId, targetId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -14607,9 +14607,9 @@ If you want to generate a token for a custom authentication flow,
      * @param identifier The target identifier (token, email, phone etc.)
      * @param providerId Provider ID. Message will be sent to this target from the specified provider ID. If no provider ID is set the first setup provider will be used.
      * @param name Target name. Max length: 128 chars. For example: My Awesome App Galaxy S23.
-     * @return Result<appwrite::models::Target>
+     * @return appwrite::Result<appwrite::models::Target>
      */
-    [[nodiscard]] Result<appwrite::models::Target> updateTarget(        std::string_view userId,         std::string_view targetId,         std::optional<std::string_view> identifier = std::nullopt,         std::optional<std::string_view> providerId = std::nullopt,         std::optional<std::string_view> name = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Target> updateTarget(        std::string_view userId,         std::string_view targetId,         std::optional<std::string_view> identifier = std::nullopt,         std::optional<std::string_view> providerId = std::nullopt,         std::optional<std::string_view> name = std::nullopt    ) {
                 std::string path_ = std::format("/users/{}/targets/{}", userId, targetId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -14636,9 +14636,9 @@ If you want to generate a token for a custom authentication flow,
      * @param identifier The target identifier (token, email, phone etc.)
      * @param providerId Provider ID. Message will be sent to this target from the specified provider ID. If no provider ID is set the first setup provider will be used.
      * @param name Target name. Max length: 128 chars. For example: My Awesome App Galaxy S23.
-     * @return Result<appwrite::models::Target>
+     * @return appwrite::Result<appwrite::models::Target>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Target>> updateTargetAsync(        std::string_view userId,         std::string_view targetId,         std::optional<std::string_view> identifier = std::nullopt,         std::optional<std::string_view> providerId = std::nullopt,         std::optional<std::string_view> name = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Target>> updateTargetAsync(        std::string_view userId,         std::string_view targetId,         std::optional<std::string_view> identifier = std::nullopt,         std::optional<std::string_view> providerId = std::nullopt,         std::optional<std::string_view> name = std::nullopt    ) {
                 std::string path_ = std::format("/users/{}/targets/{}", userId, targetId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -14661,9 +14661,9 @@ If you want to generate a token for a custom authentication flow,
      *
      * @param userId User ID.
      * @param targetId Target ID.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Result<void> deleteTarget(        std::string_view userId,         std::string_view targetId    ) {
+    [[nodiscard]] appwrite::Result<void> deleteTarget(        std::string_view userId,         std::string_view targetId    ) {
                 std::string path_ = std::format("/users/{}/targets/{}", userId, targetId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -14678,9 +14678,9 @@ If you want to generate a token for a custom authentication flow,
      *
      * @param userId User ID.
      * @param targetId Target ID.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Task<Result<void>> deleteTargetAsync(        std::string_view userId,         std::string_view targetId    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<void>> deleteTargetAsync(        std::string_view userId,         std::string_view targetId    ) {
                 std::string path_ = std::format("/users/{}/targets/{}", userId, targetId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -14698,9 +14698,9 @@ If you want to generate a token for a custom authentication flow,
      * @param userId User ID.
      * @param length Token length in characters. The default length is 6 characters
      * @param expire Token expiration period in seconds. The default expiration is 15 minutes.
-     * @return Result<appwrite::models::Token>
+     * @return appwrite::Result<appwrite::models::Token>
      */
-    [[nodiscard]] Result<appwrite::models::Token> createToken(        std::string_view userId,         std::optional<int64_t> length = 6,         std::optional<int64_t> expire = 900    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Token> createToken(        std::string_view userId,         std::optional<int64_t> length = 6,         std::optional<int64_t> expire = 900    ) {
                 std::string path_ = std::format("/users/{}/tokens", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -14725,9 +14725,9 @@ If you want to generate a token for a custom authentication flow,
      * @param userId User ID.
      * @param length Token length in characters. The default length is 6 characters
      * @param expire Token expiration period in seconds. The default expiration is 15 minutes.
-     * @return Result<appwrite::models::Token>
+     * @return appwrite::Result<appwrite::models::Token>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Token>> createTokenAsync(        std::string_view userId,         std::optional<int64_t> length = 6,         std::optional<int64_t> expire = 900    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Token>> createTokenAsync(        std::string_view userId,         std::optional<int64_t> length = 6,         std::optional<int64_t> expire = 900    ) {
                 std::string path_ = std::format("/users/{}/tokens", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -14747,9 +14747,9 @@ If you want to generate a token for a custom authentication flow,
      *
      * @param userId User ID.
      * @param emailVerification User email verification status.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Result<appwrite::models::User> updateEmailVerification(        std::string_view userId,         bool emailVerification    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::User> updateEmailVerification(        std::string_view userId,         bool emailVerification    ) {
                 std::string path_ = std::format("/users/{}/verification", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -14765,9 +14765,9 @@ If you want to generate a token for a custom authentication flow,
      *
      * @param userId User ID.
      * @param emailVerification User email verification status.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Task<Result<appwrite::models::User>> updateEmailVerificationAsync(        std::string_view userId,         bool emailVerification    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::User>> updateEmailVerificationAsync(        std::string_view userId,         bool emailVerification    ) {
                 std::string path_ = std::format("/users/{}/verification", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -14782,9 +14782,9 @@ If you want to generate a token for a custom authentication flow,
      *
      * @param userId User ID.
      * @param phoneVerification User phone verification status.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Result<appwrite::models::User> updatePhoneVerification(        std::string_view userId,         bool phoneVerification    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::User> updatePhoneVerification(        std::string_view userId,         bool phoneVerification    ) {
                 std::string path_ = std::format("/users/{}/verification/phone", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -14800,9 +14800,9 @@ If you want to generate a token for a custom authentication flow,
      *
      * @param userId User ID.
      * @param phoneVerification User phone verification status.
-     * @return Result<appwrite::models::User>
+     * @return appwrite::Result<appwrite::models::User>
      */
-    [[nodiscard]] Task<Result<appwrite::models::User>> updatePhoneVerificationAsync(        std::string_view userId,         bool phoneVerification    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::User>> updatePhoneVerificationAsync(        std::string_view userId,         bool phoneVerification    ) {
                 std::string path_ = std::format("/users/{}/verification/phone", userId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -14827,9 +14827,9 @@ public:
      *
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of 100 queries are allowed, each 4096 characters long. You may filter on the following attributes: name, url, authUsername, tls, events, enabled, logs, attempts
      * @param total When set to false, the total count returned will be 0 and will not be calculated.
-     * @return Result<appwrite::models::WebhookList>
+     * @return appwrite::Result<appwrite::models::WebhookList>
      */
-    [[nodiscard]] Result<appwrite::models::WebhookList> list(        std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<bool> total = true    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::WebhookList> list(        std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<bool> total = true    ) {
                 std::string path_ = std::format("/webhooks");
         
         nlohmann::json params = nlohmann::json::object();
@@ -14851,9 +14851,9 @@ public:
      *
      * @param queries Array of query strings generated using the Query class provided by the SDK. [Learn more about queries](https://appwrite.io/docs/queries). Maximum of 100 queries are allowed, each 4096 characters long. You may filter on the following attributes: name, url, authUsername, tls, events, enabled, logs, attempts
      * @param total When set to false, the total count returned will be 0 and will not be calculated.
-     * @return Result<appwrite::models::WebhookList>
+     * @return appwrite::Result<appwrite::models::WebhookList>
      */
-    [[nodiscard]] Task<Result<appwrite::models::WebhookList>> listAsync(        std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<bool> total = true    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::WebhookList>> listAsync(        std::optional<std::vector<std::string>> queries = std::vector<std::string>{},         std::optional<bool> total = true    ) {
                 std::string path_ = std::format("/webhooks");
         
         nlohmann::json params = nlohmann::json::object();
@@ -14881,9 +14881,9 @@ public:
      * @param authUsername Webhook HTTP user. Max length: 256 chars.
      * @param authPassword Webhook HTTP password. Max length: 256 chars.
      * @param secret Webhook secret key. If not provided, a new key will be generated automatically. Key must be at least 8 characters long, and at max 256 characters.
-     * @return Result<appwrite::models::Webhook>
+     * @return appwrite::Result<appwrite::models::Webhook>
      */
-    [[nodiscard]] Result<appwrite::models::Webhook> create(        std::string_view webhookId,         std::string_view url,         std::string_view name,         std::vector<std::string> events,         std::optional<bool> enabled = true,         std::optional<bool> tls = false,         std::optional<std::string_view> authUsername = std::nullopt,         std::optional<std::string_view> authPassword = std::nullopt,         std::optional<std::string_view> secret = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Webhook> create(        std::string_view webhookId,         std::string_view url,         std::string_view name,         std::vector<std::string> events,         std::optional<bool> enabled = true,         std::optional<bool> tls = false,         std::optional<std::string_view> authUsername = std::nullopt,         std::optional<std::string_view> authPassword = std::nullopt,         std::optional<std::string_view> secret = std::nullopt    ) {
                 std::string path_ = std::format("/webhooks");
         
         nlohmann::json params = nlohmann::json::object();
@@ -14925,9 +14925,9 @@ public:
      * @param authUsername Webhook HTTP user. Max length: 256 chars.
      * @param authPassword Webhook HTTP password. Max length: 256 chars.
      * @param secret Webhook secret key. If not provided, a new key will be generated automatically. Key must be at least 8 characters long, and at max 256 characters.
-     * @return Result<appwrite::models::Webhook>
+     * @return appwrite::Result<appwrite::models::Webhook>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Webhook>> createAsync(        std::string_view webhookId,         std::string_view url,         std::string_view name,         std::vector<std::string> events,         std::optional<bool> enabled = true,         std::optional<bool> tls = false,         std::optional<std::string_view> authUsername = std::nullopt,         std::optional<std::string_view> authPassword = std::nullopt,         std::optional<std::string_view> secret = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Webhook>> createAsync(        std::string_view webhookId,         std::string_view url,         std::string_view name,         std::vector<std::string> events,         std::optional<bool> enabled = true,         std::optional<bool> tls = false,         std::optional<std::string_view> authUsername = std::nullopt,         std::optional<std::string_view> authPassword = std::nullopt,         std::optional<std::string_view> secret = std::nullopt    ) {
                 std::string path_ = std::format("/webhooks");
         
         nlohmann::json params = nlohmann::json::object();
@@ -14960,9 +14960,9 @@ public:
      * specific webhook configured for a project.
      *
      * @param webhookId Webhook ID.
-     * @return Result<appwrite::models::Webhook>
+     * @return appwrite::Result<appwrite::models::Webhook>
      */
-    [[nodiscard]] Result<appwrite::models::Webhook> get(        std::string_view webhookId    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Webhook> get(        std::string_view webhookId    ) {
                 std::string path_ = std::format("/webhooks/{}", webhookId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -14977,9 +14977,9 @@ public:
      * specific webhook configured for a project.
      *
      * @param webhookId Webhook ID.
-     * @return Result<appwrite::models::Webhook>
+     * @return appwrite::Result<appwrite::models::Webhook>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Webhook>> getAsync(        std::string_view webhookId    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Webhook>> getAsync(        std::string_view webhookId    ) {
                 std::string path_ = std::format("/webhooks/{}", webhookId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -15000,9 +15000,9 @@ public:
      * @param tls Certificate verification, false for disabled or true for enabled.
      * @param authUsername Webhook HTTP user. Max length: 256 chars.
      * @param authPassword Webhook HTTP password. Max length: 256 chars.
-     * @return Result<appwrite::models::Webhook>
+     * @return appwrite::Result<appwrite::models::Webhook>
      */
-    [[nodiscard]] Result<appwrite::models::Webhook> update(        std::string_view webhookId,         std::string_view name,         std::string_view url,         std::vector<std::string> events,         std::optional<bool> enabled = true,         std::optional<bool> tls = false,         std::optional<std::string_view> authUsername = std::nullopt,         std::optional<std::string_view> authPassword = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Webhook> update(        std::string_view webhookId,         std::string_view name,         std::string_view url,         std::vector<std::string> events,         std::optional<bool> enabled = true,         std::optional<bool> tls = false,         std::optional<std::string_view> authUsername = std::nullopt,         std::optional<std::string_view> authPassword = std::nullopt    ) {
                 std::string path_ = std::format("/webhooks/{}", webhookId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -15039,9 +15039,9 @@ public:
      * @param tls Certificate verification, false for disabled or true for enabled.
      * @param authUsername Webhook HTTP user. Max length: 256 chars.
      * @param authPassword Webhook HTTP password. Max length: 256 chars.
-     * @return Result<appwrite::models::Webhook>
+     * @return appwrite::Result<appwrite::models::Webhook>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Webhook>> updateAsync(        std::string_view webhookId,         std::string_view name,         std::string_view url,         std::vector<std::string> events,         std::optional<bool> enabled = true,         std::optional<bool> tls = false,         std::optional<std::string_view> authUsername = std::nullopt,         std::optional<std::string_view> authPassword = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Webhook>> updateAsync(        std::string_view webhookId,         std::string_view name,         std::string_view url,         std::vector<std::string> events,         std::optional<bool> enabled = true,         std::optional<bool> tls = false,         std::optional<std::string_view> authUsername = std::nullopt,         std::optional<std::string_view> authPassword = std::nullopt    ) {
                 std::string path_ = std::format("/webhooks/{}", webhookId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -15070,9 +15070,9 @@ public:
      * receive project events.
      *
      * @param webhookId Webhook ID.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Result<void> delete_(        std::string_view webhookId    ) {
+    [[nodiscard]] appwrite::Result<void> delete_(        std::string_view webhookId    ) {
                 std::string path_ = std::format("/webhooks/{}", webhookId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -15087,9 +15087,9 @@ public:
      * receive project events.
      *
      * @param webhookId Webhook ID.
-     * @return Result<void>
+     * @return appwrite::Result<void>
      */
-    [[nodiscard]] Task<Result<void>> delete_Async(        std::string_view webhookId    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<void>> delete_Async(        std::string_view webhookId    ) {
                 std::string path_ = std::format("/webhooks/{}", webhookId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -15105,9 +15105,9 @@ public:
      *
      * @param webhookId Webhook ID.
      * @param secret Webhook secret key. If not provided, a new key will be generated automatically. Key must be at least 8 characters long, and at max 256 characters.
-     * @return Result<appwrite::models::Webhook>
+     * @return appwrite::Result<appwrite::models::Webhook>
      */
-    [[nodiscard]] Result<appwrite::models::Webhook> updateSecret(        std::string_view webhookId,         std::optional<std::string_view> secret = std::nullopt    ) {
+    [[nodiscard]] appwrite::Result<appwrite::models::Webhook> updateSecret(        std::string_view webhookId,         std::optional<std::string_view> secret = std::nullopt    ) {
                 std::string path_ = std::format("/webhooks/{}/secret", webhookId);
         
         nlohmann::json params = nlohmann::json::object();
@@ -15127,9 +15127,9 @@ public:
      *
      * @param webhookId Webhook ID.
      * @param secret Webhook secret key. If not provided, a new key will be generated automatically. Key must be at least 8 characters long, and at max 256 characters.
-     * @return Result<appwrite::models::Webhook>
+     * @return appwrite::Result<appwrite::models::Webhook>
      */
-    [[nodiscard]] Task<Result<appwrite::models::Webhook>> updateSecretAsync(        std::string_view webhookId,         std::optional<std::string_view> secret = std::nullopt    ) {
+    [[nodiscard]] appwrite::Task<appwrite::Result<appwrite::models::Webhook>> updateSecretAsync(        std::string_view webhookId,         std::optional<std::string_view> secret = std::nullopt    ) {
                 std::string path_ = std::format("/webhooks/{}/secret", webhookId);
         
         nlohmann::json params = nlohmann::json::object();

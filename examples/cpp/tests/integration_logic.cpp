@@ -60,8 +60,13 @@ int runIntegration(Client& client) {
             {"z", nlohmann::json::array({"string in array"})}
         };
 
+        static const char* resource_dir = []() {
+            const char* d = std::getenv("APPWRITE_RESOURCE_DIR");
+            return d ? d : "tests/resources";
+        }();
+
         for (int i = 0; i < 2; ++i) {
-            auto f = InputFile::fromPath("/app/tests/resources/file.png");
+            auto f = InputFile::fromPath(std::string(resource_dir) + "/file.png");
             printResult(
                 client.fileUpload<nlohmann::json>(
                     "POST", "/v1/mock/tests/general/upload", "file",
@@ -69,7 +74,7 @@ int runIntegration(Client& client) {
                 "small upload");
         }
         for (int i = 0; i < 2; ++i) {
-            auto f = InputFile::fromPath("/app/tests/resources/large_file.mp4");
+            auto f = InputFile::fromPath(std::string(resource_dir) + "/large_file.mp4");
             printResult(
                 client.fileUpload<nlohmann::json>(
                     "POST", "/v1/mock/tests/general/upload", "file",

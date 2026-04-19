@@ -10,6 +10,7 @@ cp /app/tests/resources/file.png /tmp/cpp-sdk/tests/resources/file.png
 cp /app/tests/resources/large_file.mp4 /tmp/cpp-sdk/tests/resources/large_file.mp4
 
 cd /tmp/cpp-sdk || exit 1
+export APPWRITE_RESOURCE_DIR=/tmp/cpp-sdk/tests/resources
 
 # Build SDK and integration test binary
 cmake -S . -B build \

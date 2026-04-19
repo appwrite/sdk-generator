@@ -31,8 +31,24 @@ class Cpp20Test extends Base
 
     public function setUp(): void
     {
-        // Start mock server (required for integration) but skip Base's header-prepend
-        // because the C++ integration_test does not print an x-sdk-name header line.
-        \exec('cd ./mock-server && docker compose build && docker compose up -d --force-recreate');
+        // Start mock server (optimized: skip build)
+        \exec('cd ./mock-server && docker compose up -d --force-recreate');
+
+        // Wait for mock server to be ready
+        $attempts = 0;
+        $maxAttempts = 30;
+        while ($attempts < $maxAttempts) {
+            $output = [];
+            $resultCode = 0;
+            // Use curl -sf for a standard, robust health check from within the container
+            \exec('docker exec mockapi curl -sf http://localhost/v1/health/version 2>/dev/null', $output, $resultCode);
+
+            if ($resultCode === 0 && !empty($output)) {
+                return;
+            }
+            $attempts++;
+            sleep(1);
+        }
+        throw new \Exception("Timed out waiting for mock server via docker exec mockapi curl");
     }
 }
