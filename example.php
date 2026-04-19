@@ -24,6 +24,7 @@ use Appwrite\SDK\Language\Kotlin;
 use Appwrite\SDK\Language\ReactNative;
 use Appwrite\SDK\Language\Markdown;
 use Appwrite\SDK\Language\AgentSkills;
+use Appwrite\SDK\Language\ClaudePlugin;
 use Appwrite\SDK\Language\CursorPlugin;
 use Appwrite\SDK\Language\Rust;
 
@@ -114,7 +115,7 @@ try {
     }
 
     $version = '1.9.x';
-    $speclessSDKs = ['agent-skills', 'cursor-plugin'];
+    $speclessSDKs = ['agent-skills', 'cursor-plugin', 'claude-plugin'];
     $needsSpec = !$requestedSdk || !in_array($requestedSdk, $speclessSDKs);
 
     if ($needsSpec) {
@@ -323,6 +324,19 @@ try {
         ));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/cursor-plugin');
+    }
+
+    // Claude Plugin
+    if (!$requestedSdk || $requestedSdk === 'claude-plugin') {
+        $sdk = new SDK(new ClaudePlugin(), new StaticSpec(
+            title: 'Appwrite',
+            description: 'Appwrite backend as a service',
+            version: $version,
+            licenseName: 'BSD-3-Clause',
+            licenseURL: 'https://raw.githubusercontent.com/appwrite/appwrite/master/LICENSE',
+        ));
+        configureSDK($sdk);
+        $sdk->generate(__DIR__ . '/examples/claude-plugin');
     }
 
     // Rust
