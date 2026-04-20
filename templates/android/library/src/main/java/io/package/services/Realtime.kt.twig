@@ -289,7 +289,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         }
         
         private fun handleResponseConnected(message: RealtimeResponse) {
-            message.data?.jsonCast<Map<String, Any>>() ?: return
+            if (message.data == null) return
 
             sendSubscribeMessage()
         }
