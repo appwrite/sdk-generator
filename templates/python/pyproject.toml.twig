@@ -32,6 +32,11 @@ classifiers = [
   "Programming Language :: Python :: 3.12",
 ]
 
+[project.optional-dependencies]
+test = [
+  "requests_mock==1.11.0",
+]
+
 [project.urls]
 Homepage = "{{ spec.contactURL }}"
 Repository = "https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName }}"
