@@ -40,12 +40,30 @@ namespace {{ spec.title | caseUcfirst }}.Services
             {{~ include('dotnet/base/params.twig') }}
 
             {%~ if method.responseModel %}
-            static {{ utils.resultType(spec.title, method) }} Convert(Dictionary<string, object> it) =>
-            {%~ if method.responseModel == 'any' %}
-                it;
+{% set hasResponseDiscriminator = method.responseDiscriminator is defined and method.responseDiscriminator is not empty %}
+{% set responseDiscriminator = method.responseDiscriminator ?? {} %}
+            static {{ utils.resultType(spec.title, method) }} Convert(Dictionary<string, object> it)
+            {
+            {%~ if method.responseModel == 'any' or method.responseModels|length > 1 %}
+                {%~ if (method | getValidResponseModels)|length > 1 %}
+                    {%~ if hasResponseDiscriminator %}
+{% for modelName, conditions in responseDiscriminator %}
+                if ({% for field, expectedValue in conditions %}it.TryGetValue("{{ field }}", out var {{ field | caseCamel }}Value{{ loop.parent.loop.index }}) && {{ field | caseCamel }}Value{{ loop.parent.loop.index }}?.ToString() == "{{ expectedValue }}"{% if not loop.last %} && {% endif %}{% endfor %})
+                {
+                    return {{ spec.title | caseUcfirst }}.Models.{{ modelName | caseUcfirst | overrideIdentifier }}.From(map: it);
+                }
+{% endfor %}
+                throw new System.Exception("Unable to match response to any expected response model");
+                    {%~ else %}
+                return {{ spec.title | caseUcfirst }}.Models.{{ method.responseModel | caseUcfirst | overrideIdentifier }}.From(map: it);
+                    {%~ endif %}
+                {%~ else %}
+                return it;
+                {%~ endif %}
             {%~ else %}
-                {{ utils.resultType(spec.title, method) }}.From(map: it);
+                return {{ utils.resultType(spec.title, method) }}.From(map: it);
             {%~ endif %}
+            }
             {%~ endif %}
 
             {%~ if method.type == 'location' %}

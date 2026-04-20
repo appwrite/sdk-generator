@@ -2,8 +2,8 @@ import os from "os";
 import fs from "fs";
 import _path from "path";
 import process from "process";
-import JSONbig from "json-bigint";
 import type { Models } from "@appwrite.io/console";
+import type { z } from "zod";
 import type {
   BucketType,
   CollectionType,
@@ -14,6 +14,22 @@ import type {
   TableType,
   TeamType,
   TopicType,
+  WebhookType,
+} from "./commands/config.js";
+import {
+  SiteSchema,
+  FunctionSchema,
+  DatabaseSchema,
+  CollectionSchema,
+  AttributeSchema,
+  IndexSchema,
+  TableSchema,
+  ColumnSchema,
+  IndexTableSchema,
+  TopicSchema,
+  TeamSchema,
+  BucketSchema,
+  WebhookSchema,
 } from "./commands/config.js";
 import type {
   SessionData,
@@ -22,142 +38,110 @@ import type {
   GlobalConfigData,
 } from "./types.js";
 import { createSettingsObject } from "./utils.js";
-import { SDK_TITLE_LOWER } from "./constants.js";
+import { EXECUTABLE_NAME, TOP_LEVEL_RESOURCE_ARRAY_KEYS } from "./constants.js";
+import { JSONBig } from "./json.js";
 
-const JSONBigInt = JSONbig({ storeAsString: false });
+/**
+ * Extract keys from a Zod object schema.
+ * Handles both plain ZodObject and ZodEffects (schemas with refinements).
+ */
+function getSchemaKeys(schema: z.ZodTypeAny): Set<string> {
+  // For ZodEffects (created by .refine(), .superRefine(), .transform())
+  if ("def" in schema && "schema" in (schema.def as any)) {
+    return getSchemaKeys((schema.def as any).schema);
+  }
+  // For ZodObject
+  if ("shape" in schema) {
+    return new Set(Object.keys((schema as any).shape));
+  }
+  return new Set();
+}
 
 const KeysVars = new Set(["key", "value"]);
-const KeysSite = new Set([
-  "path",
-  "$id",
-  "name",
-  "enabled",
-  "logging",
-  "timeout",
-  "framework",
-  "buildRuntime",
-  "adapter",
-  "installCommand",
-  "buildCommand",
-  "outputDirectory",
-  "fallbackFile",
-  "specification",
-  "vars",
-]);
-const KeysFunction = new Set([
-  "path",
-  "$id",
-  "execute",
-  "name",
-  "enabled",
-  "logging",
-  "runtime",
-  "specification",
-  "scopes",
-  "events",
-  "schedule",
-  "timeout",
-  "entrypoint",
-  "commands",
-  "vars",
-]);
-const KeysDatabase = new Set(["$id", "name", "enabled"]);
-const KeysCollection = new Set([
-  "$id",
-  "$permissions",
-  "databaseId",
-  "name",
-  "enabled",
-  "documentSecurity",
-  "attributes",
-  "indexes",
-]);
-const KeysTable = new Set([
-  "$id",
-  "$permissions",
-  "databaseId",
-  "name",
-  "enabled",
-  "rowSecurity",
-  "columns",
-  "indexes",
-]);
-const KeysStorage = new Set([
-  "$id",
-  "$permissions",
-  "fileSecurity",
-  "name",
-  "enabled",
-  "maximumFileSize",
-  "allowedFileExtensions",
-  "compression",
-  "encryption",
-  "antivirus",
-]);
-const KeysTopics = new Set(["$id", "name", "subscribe"]);
-const KeysTeams = new Set(["$id", "name"]);
-const KeysAttributes = new Set([
-  "key",
-  "type",
-  "required",
-  "array",
-  "size",
-  "default",
-  // integer and float
-  "min",
-  "max",
-  // email, enum, URL, IP, and datetime
-  "format",
-  // enum
-  "elements",
-  // relationship
-  "relatedCollection",
-  "relationType",
-  "twoWay",
-  "twoWayKey",
-  "onDelete",
-  "side",
-  // Indexes
-  "attributes",
-  "orders",
-  // Strings
-  "encrypt",
-]);
-const KeysColumns = new Set([
-  "key",
-  "type",
-  "required",
-  "array",
-  "size",
-  "default",
-  // integer and float
-  "min",
-  "max",
-  // email, enum, URL, IP, and datetime
-  "format",
-  // enum
-  "elements",
-  // relationship
-  "relatedTable",
-  "relationType",
-  "twoWay",
-  "twoWayKey",
-  "onDelete",
-  "side",
-  // Indexes
-  "columns",
-  "orders",
-  // Strings
-  "encrypt",
-]);
-const KeyIndexes = new Set(["key", "type", "status", "attributes", "orders"]);
-const KeyIndexesColumns = new Set([
-  "key",
-  "type",
-  "status",
-  "columns",
-  "orders",
-]);
+const KeysSite = getSchemaKeys(SiteSchema);
+const KeysFunction = getSchemaKeys(FunctionSchema);
+const KeysDatabase = getSchemaKeys(DatabaseSchema);
+const KeysCollection = getSchemaKeys(CollectionSchema);
+const KeysTable = getSchemaKeys(TableSchema);
+const KeysStorage = getSchemaKeys(BucketSchema);
+const KeysTopics = getSchemaKeys(TopicSchema);
+const KeysTeams = getSchemaKeys(TeamSchema);
+const KeysWebhooks = getSchemaKeys(WebhookSchema);
+const KeysAttributes = getSchemaKeys(AttributeSchema);
+const KeysColumns = getSchemaKeys(ColumnSchema);
+const KeyIndexes = getSchemaKeys(IndexSchema);
+const KeyIndexesColumns = getSchemaKeys(IndexTableSchema);
+
+const CONFIG_KEY_ORDER = [
+  "projectId",
+  "projectName",
+  "endpoint",
+  "settings",
+  "functions",
+  "sites",
+  "databases",
+  "collections",
+  "tablesDB",
+  "tables",
+  "buckets",
+  "teams",
+  "topics",
+  "messages",
+];
+
+function orderConfigKeys<T extends Record<string, any>>(data: T): T {
+  const ordered: Record<string, any> = {};
+
+  for (const key of CONFIG_KEY_ORDER) {
+    if (key in data) {
+      ordered[key] = data[key];
+    }
+  }
+
+  for (const key of Object.keys(data)) {
+    if (!(key in ordered)) {
+      ordered[key] = data[key];
+    }
+  }
+
+  return ordered as T;
+}
+
+function pruneEmptyTopLevelResourceArrays<T extends Record<string, any>>(
+  data: T,
+): T {
+  const sanitized = { ...data };
+
+  for (const key of TOP_LEVEL_RESOURCE_ARRAY_KEYS) {
+    if (Array.isArray(sanitized[key]) && sanitized[key].length === 0) {
+      delete sanitized[key];
+    }
+  }
+
+  return sanitized as T;
+}
+
+function pruneDeprecatedSiteFields<T extends Record<string, any>>(data: T): T {
+  const sanitized: Record<string, any> = { ...data };
+
+  if (Array.isArray(sanitized.sites)) {
+    sanitized.sites = sanitized.sites.map((site) => {
+      if (site && typeof site === "object") {
+        const {
+          enabled: _enabled,
+          vars: _vars,
+          ignore: _ignore,
+          ...rest
+        } = site as Record<string, any>;
+        return rest;
+      }
+
+      return site;
+    });
+  }
+
+  return sanitized as T;
+}
 
 function whitelistKeys<T = any>(
   value: T,
@@ -200,8 +184,8 @@ class Config<T extends ConfigData = ConfigData> {
   read(): void {
     try {
       const file = fs.readFileSync(this.path).toString();
-      this.data = JSONBigInt.parse(file);
-    } catch (e) {
+      this.data = JSONBig.parse(file);
+    } catch (_e) {
       this.data = {} as T;
     }
   }
@@ -211,7 +195,7 @@ class Config<T extends ConfigData = ConfigData> {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
-    fs.writeFileSync(this.path, JSONBigInt.stringify(this.data, null, 4), {
+    fs.writeFileSync(this.path, JSONBig.stringify(this.data, null, 4), {
       mode: 0o600,
     });
   }
@@ -250,7 +234,7 @@ class Config<T extends ConfigData = ConfigData> {
   }
 
   toString(): string {
-    return JSONBigInt.stringify(this.data, null, 4);
+    return JSONBig.stringify(this.data, null, 4);
   }
 
   protected _getDBEntities(entityType: string): Entity[] {
@@ -307,8 +291,8 @@ class Config<T extends ConfigData = ConfigData> {
 }
 
 class Local extends Config<ConfigType> {
-  static CONFIG_FILE_PATH = `${SDK_TITLE_LOWER}.config.json`;
-  static CONFIG_FILE_PATH_LEGACY = `${SDK_TITLE_LOWER}.json`;
+  static CONFIG_FILE_PATH = `${EXECUTABLE_NAME}.config.json`;
+  static CONFIG_FILE_PATH_LEGACY = `${EXECUTABLE_NAME}.json`;
   configDirectoryPath = "";
 
   constructor(
@@ -324,6 +308,19 @@ class Local extends Config<ConfigType> {
 
     super(absolutePath);
     this.configDirectoryPath = _path.dirname(absolutePath);
+  }
+
+  write(): void {
+    const dir = _path.dirname(this.path);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    const orderedData = orderConfigKeys(
+      pruneEmptyTopLevelResourceArrays(pruneDeprecatedSiteFields(this.data)),
+    );
+    fs.writeFileSync(this.path, JSONBig.stringify(orderedData, null, 4), {
+      mode: 0o600,
+    });
   }
 
   static findConfigFile(filename: string): string | null {
@@ -362,7 +359,10 @@ class Local extends Config<ConfigType> {
     if (!this.has("sites")) {
       return [];
     }
-    return this.get("sites") ?? [];
+    return ((this.get("sites") ?? []) as Record<string, any>[]).map((site) => {
+      const { enabled: _enabled, vars: _vars, ignore: _ignore, ...rest } = site;
+      return rest;
+    }) as SiteType[];
   }
 
   getSite($id: string): SiteType | Record<string, never> {
@@ -370,7 +370,7 @@ class Local extends Config<ConfigType> {
       return {};
     }
 
-    const sites = this.get("sites") ?? [];
+    const sites = this.getSites();
     for (let i = 0; i < sites.length; i++) {
       if (sites[i]["$id"] == $id) {
         return sites[i];
@@ -692,6 +692,46 @@ class Local extends Config<ConfigType> {
     this.set("teams", teams);
   }
 
+  getWebhooks(): WebhookType[] {
+    if (!this.has("webhooks")) {
+      return [];
+    }
+    return this.get("webhooks") ?? [];
+  }
+
+  getWebhook($id: string): WebhookType | Record<string, never> {
+    if (!this.has("webhooks")) {
+      return {};
+    }
+
+    const webhooks = this.get("webhooks") ?? [];
+    for (let i = 0; i < webhooks.length; i++) {
+      if (webhooks[i]["$id"] == $id) {
+        return webhooks[i];
+      }
+    }
+
+    return {};
+  }
+
+  addWebhook(props: WebhookType): void {
+    props = whitelistKeys(props, KeysWebhooks);
+    if (!this.has("webhooks")) {
+      this.set("webhooks", []);
+    }
+
+    const webhooks = this.get("webhooks") ?? [];
+    for (let i = 0; i < webhooks.length; i++) {
+      if (webhooks[i]["$id"] == props["$id"]) {
+        webhooks[i] = props;
+        this.set("webhooks", webhooks);
+        return;
+      }
+    }
+    webhooks.push(props);
+    this.set("webhooks", webhooks);
+  }
+
   getProject(): {
     projectId?: string;
     projectName?: string;
@@ -728,7 +768,7 @@ class Local extends Config<ConfigType> {
 }
 
 class Global extends Config<GlobalConfigData> {
-  static CONFIG_FILE_PATH = `.${SDK_TITLE_LOWER}/prefs.json`;
+  static CONFIG_FILE_PATH = `.${EXECUTABLE_NAME}/prefs.json`;
 
   static PREFERENCE_CURRENT = "current" as const;
   static PREFERENCE_ENDPOINT = "endpoint" as const;
@@ -793,15 +833,15 @@ class Global extends Config<GlobalConfigData> {
 
     sessions.forEach((sessionId) => {
       const sessionData = (this.data as any)[sessionId];
-      const email = sessionData[Global.PREFERENCE_EMAIL];
-      const endpoint = sessionData[Global.PREFERENCE_ENDPOINT];
+      const email = sessionData[Global.PREFERENCE_EMAIL] ?? "";
+      const endpoint = sessionData[Global.PREFERENCE_ENDPOINT] ?? "";
       const key = `${email}|${endpoint}`;
 
       if (sessionId === current || !sessionMap.has(key)) {
         sessionMap.set(key, {
           id: sessionId,
-          endpoint: sessionData[Global.PREFERENCE_ENDPOINT],
-          email: sessionData[Global.PREFERENCE_EMAIL],
+          endpoint,
+          email,
         });
       }
     });
@@ -927,6 +967,7 @@ export {
   KeysTopics,
   KeysStorage,
   KeysTeams,
+  KeysWebhooks,
   KeysCollection,
   KeysTable,
   whitelistKeys,

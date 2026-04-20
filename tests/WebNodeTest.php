@@ -15,8 +15,8 @@ class WebNodeTest extends Base
         'cp tests/languages/web/tests.js tests/sdks/web/tests.js',
         'cp tests/languages/web/node.js tests/sdks/web/node.js',
         'cp tests/languages/web/index.html tests/sdks/web/index.html',
-        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.15.0-focal npm install', //  npm list --depth 0 &&
-        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.15.0-focal npm run build',
+        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.56.1-jammy npm install',
+        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.56.1-jammy npm run build',
     ];
     protected string $command =
         'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/sdks/web node:18-alpine node node.js';
@@ -37,6 +37,7 @@ class WebNodeTest extends Base
         ...Base::QUERY_HELPER_RESPONSES,
         ...Base::PERMISSION_HELPER_RESPONSES,
         ...Base::ID_HELPER_RESPONSES,
+        ...Base::CHANNEL_HELPER_RESPONSES,
         ...Base::OPERATOR_HELPER_RESPONSES
     ];
 }

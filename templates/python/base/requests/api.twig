@@ -1,8 +1,38 @@
-        return self.client.call('{{ method.method | caseLower }}', api_path, {
+        response = self.client.call('{{ method.method | caseLower }}', api_path, {
 {% for parameter in method.parameters.header %}
-            '{{ parameter.name }}': {{ parameter.name | escapeKeyword | caseSnake }},
+            '{{ parameter.name }}': self._normalize_value({{ parameter.name | escapeKeyword | caseSnake }}),
 {% endfor %}
 {% for key, header in method.headers %}
             '{{ key }}': '{{ header }}',
 {% endfor %}
         }, api_params{% if method.type == 'webAuth' %}, response_type='location'{% endif %})
+{% if method.responseModels is defined and method.responseModels|length > 1 %}
+{% set hasResponseDiscriminator = method.responseDiscriminator is defined and method.responseDiscriminator is not empty %}
+{% set responseDiscriminator = method.responseDiscriminator ?? {} %}
+{% if hasResponseDiscriminator %}
+        if not isinstance(response, dict):
+            raise AppwriteException('Expected object response when hydrating a response model')
+{% for modelName, conditions in responseDiscriminator %}
+
+        if {% for field, expectedValue in conditions %}response.get('{{ field }}') == '{{ expectedValue }}'{% if not loop.last %} and {% endif %}{% endfor %}:
+            return self._parse_response(response, model={% if (modelName | caseUcfirst) == (service.name | caseUcfirst) %}{{ modelName | caseUcfirst }}Model{% else %}{{ modelName | caseUcfirst }}{% endif %})
+{% endfor %}
+
+        raise AppwriteException('Unable to match response to any known model')
+{% else %}
+
+        return self._parse_response(response, model={% if (method.responseModel | caseUcfirst) == (service.name | caseUcfirst) %}{{ method.responseModel | caseUcfirst }}Model{% else %}{{ method.responseModel | caseUcfirst }}{% endif %})
+{% endif %}
+{% elseif method.responseModel and method.responseModel != 'any' %}
+{% set isGenericResponse = method.responseModel | hasGenericType(spec) %}
+{% if isGenericResponse %}
+
+        return {{ method.responseModel | caseUcfirst }}.with_data(response, model_type)
+{% else %}
+
+        return self._parse_response(response, model={% if (method.responseModel | caseUcfirst) == (service.name | caseUcfirst) %}{{ method.responseModel | caseUcfirst }}Model{% else %}{{ method.responseModel | caseUcfirst }}{% endif %})
+{% endif %}
+{% else %}
+
+        return response
+{% endif %}

@@ -1,0 +1,128 @@
+{% autoescape false %}
+package query
+
+import (
+	"encoding/json"
+	"testing"
+)
+
+func TestEqual(t *testing.T) {
+	q := Equal("attr", "val")
+	var data map[string]interface{}
+	if err := json.Unmarshal([]byte(q), &data); err != nil {
+		t.Fatal(err)
+	}
+
+	if data["method"] != "equal" {
+		t.Errorf("Expected equal, got %v", data["method"])
+	}
+	if data["attribute"] != "attr" {
+		t.Errorf("Expected attr, got %v", data["attribute"])
+	}
+	values := data["values"].([]interface{})
+	if values[0] != "val" {
+		t.Errorf("Expected val, got %v", values[0])
+	}
+}
+
+func TestNotEqual(t *testing.T) {
+	q := NotEqual("attr", 123)
+	var data map[string]interface{}
+	if err := json.Unmarshal([]byte(q), &data); err != nil {
+		t.Fatal(err)
+	}
+
+	if data["method"] != "notEqual" {
+		t.Errorf("Expected notEqual, got %v", data["method"])
+	}
+	values := data["values"].([]interface{})
+	if values[0].(float64) != 123 {
+		t.Errorf("Expected 123, got %v", values[0])
+	}
+}
+
+func TestBetween(t *testing.T) {
+	q := Between("attr", 1, 10)
+	var data map[string]interface{}
+	if err := json.Unmarshal([]byte(q), &data); err != nil {
+		t.Fatal(err)
+	}
+
+	if data["method"] != "between" {
+		t.Errorf("Expected between, got %v", data["method"])
+	}
+	values := data["values"].([]interface{})
+	if values[0].(float64) != 1 {
+		t.Errorf("Expected 1, got %v", values[0])
+	}
+	if values[1].(float64) != 10 {
+		t.Errorf("Expected 10, got %v", values[1])
+	}
+}
+
+func TestSelect(t *testing.T) {
+	q := Select([]interface{}{"attr1", "attr2"})
+	var data map[string]interface{}
+	if err := json.Unmarshal([]byte(q), &data); err != nil {
+		t.Fatal(err)
+	}
+
+	if data["method"] != "select" {
+		t.Errorf("Expected select, got %v", data["method"])
+	}
+	values := data["values"].([]interface{})
+	if values[0] != "attr1" || values[1] != "attr2" {
+		t.Errorf("Expected [attr1, attr2], got %v", values)
+	}
+}
+
+func TestOrderAsc(t *testing.T) {
+	q := OrderAsc("attr")
+	var data map[string]interface{}
+	if err := json.Unmarshal([]byte(q), &data); err != nil {
+		t.Fatal(err)
+	}
+
+	if data["method"] != "orderAsc" {
+		t.Errorf("Expected orderAsc, got %v", data["method"])
+	}
+	if data["attribute"] != "attr" {
+		t.Errorf("Expected attr, got %v", data["attribute"])
+	}
+}
+
+func TestLimit(t *testing.T) {
+	q := Limit(25)
+	var data map[string]interface{}
+	if err := json.Unmarshal([]byte(q), &data); err != nil {
+		t.Fatal(err)
+	}
+
+	if data["method"] != "limit" {
+		t.Errorf("Expected limit, got %v", data["method"])
+	}
+	values := data["values"].([]interface{})
+	if values[0].(float64) != 25 {
+		t.Errorf("Expected 25, got %v", values[0])
+	}
+}
+
+func TestOr(t *testing.T) {
+	q1 := Equal("name", "Alice")
+	q2 := Equal("name", "Bob")
+	q := Or([]string{q1, q2})
+
+	var data map[string]interface{}
+	if err := json.Unmarshal([]byte(q), &data); err != nil {
+		t.Fatal(err)
+	}
+
+	if data["method"] != "or" {
+		t.Errorf("Expected or, got %v", data["method"])
+	}
+	values := data["values"].([]interface{})
+	if len(values) != 2 {
+		t.Errorf("Expected 2 subqueries, got %d", len(values))
+	}
+}
+{% endautoescape %}

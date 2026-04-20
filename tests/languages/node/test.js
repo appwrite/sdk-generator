@@ -30,6 +30,8 @@ async function start() {
     client.addHeader('Origin', 'http://localhost');
 
     console.log('\nTest Started');
+    const sdkHeaders = client.getHeaders();
+    console.log(`x-sdk-name: ${sdkHeaders['x-sdk-name']}; x-sdk-platform: ${sdkHeaders['x-sdk-platform']}; x-sdk-language: ${sdkHeaders['x-sdk-language']}; x-sdk-version: ${sdkHeaders['x-sdk-version']}`);
 
     // Ping
     response = await client.ping();
@@ -273,7 +275,9 @@ async function start() {
     console.log(Query.offset(20));
     console.log(Query.contains("title", "Spider"));
     console.log(Query.contains("labels", "first"));
-    
+    console.log(Query.containsAny("labels", ["first", "second"]));
+    console.log(Query.containsAll("labels", ["first", "second"]));
+
     // New query methods
     console.log(Query.notContains("title", "Spider"));
     console.log(Query.notSearch("name", "john"));
@@ -318,6 +322,15 @@ async function start() {
     console.log(Query.and([
         Query.equal("released", false),
         Query.greaterThan("releasedYear", 2015)
+    ]));
+
+    // regex, exists, notExists, elemMatch
+    console.log(Query.regex("name", "pattern.*"));
+    console.log(Query.exists(["attr1", "attr2"]));
+    console.log(Query.notExists(["attr1", "attr2"]));
+    console.log(Query.elemMatch("friends", [
+        Query.equal("name", "Alice"),
+        Query.greaterThan("age", 18)
     ]));
 
     // Permission & Role helper tests

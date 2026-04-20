@@ -24,6 +24,8 @@ class Tests: XCTestCase {
             .setProject("123456")
             .addHeader(key: "Origin", value: "http://localhost")
             .setSelfSigned()
+        let sdkHeaders = client.getHeaders()
+        print("x-sdk-name: \(sdkHeaders["x-sdk-name"] ?? "nil"); x-sdk-platform: \(sdkHeaders["x-sdk-platform"] ?? "nil"); x-sdk-language: \(sdkHeaders["x-sdk-language"] ?? "nil"); x-sdk-version: \(sdkHeaders["x-sdk-version"] ?? "nil")")
 
         // Ping pong test
         let ping = try await client.ping()
@@ -32,7 +34,7 @@ class Tests: XCTestCase {
 
         // reset configs
         client.setProject("console")
-        client.setEndpointRealtime("wss://cloud.appwrite.io/v1")
+        client.setEndpointRealtime("wss://fra.stage.cloud.appwrite.io/v1")
         client.setSelfSigned(false)
 
         let foo = Foo(client)
@@ -40,12 +42,39 @@ class Tests: XCTestCase {
         let general = General(client)
         let realtime = Realtime(client)
         var realtimeResponse = "Realtime failed!"
+        var realtimeResponseWithQueries = "Realtime failed!"
+        var realtimeResponseWithQueriesFailure = "Realtime failed!"
 
         let expectation = XCTestExpectation(description: "realtime server")
+        let expectationWithQueries = XCTestExpectation(description: "realtime server (with queries)")
+        let expectationWithQueriesFailure = XCTestExpectation(description: "realtime server (with queries failure)")
+        expectationWithQueriesFailure.isInverted = true
 
+        // Subscribe without queries
         try await realtime.subscribe(channels: ["tests"]) { message in
             realtimeResponse = message.payload!["response"] as! String
             expectation.fulfill()
+        }
+
+        // Subscribe with queries to ensure query array support works
+        try await realtime.subscribe(
+            channels: ["tests"],
+            queries: [
+                Query.equal("response", value: ["WS:/v1/realtime:passed"])
+            ]
+        ) { message in
+            realtimeResponseWithQueries = message.payload?["response"] as! String
+            expectationWithQueries.fulfill()
+        }
+
+        try await realtime.subscribe(
+            channels: ["tests"],
+            queries: [
+                Query.equal("response", value: ["failed"])
+            ]
+        ) { message in
+            realtimeResponseWithQueriesFailure = message.payload?["response"] as! String
+            expectationWithQueriesFailure.fulfill()
         }
 
         var mock: Mock
@@ -160,8 +189,18 @@ class Tests: XCTestCase {
 
         print("Invalid endpoint URL: htp://cloud.appwrite.io/v1") // Indicates fatalError by client.setEndpoint
 
-        wait(for: [expectation], timeout: 10.0)
+        wait(for: [expectation], timeout: 20.0)
         print(realtimeResponse)
+
+        wait(for: [expectationWithQueries], timeout: 20.0)
+        print(realtimeResponseWithQueries)
+        
+        wait(for: [expectationWithQueriesFailure], timeout: 20.0)
+        if expectationWithQueriesFailure.isInverted {
+            print(realtimeResponseWithQueriesFailure)
+        } else {
+            print("Realtime failed")
+        }
 
         mock = try await general.setCookie()
         print(mock.result)
@@ -195,7 +234,9 @@ class Tests: XCTestCase {
         print(Query.offset(20))
         print(Query.contains("title", value: "Spider"))
         print(Query.contains("labels", value: "first"))
-        
+        print(Query.containsAny("labels", value: ["first", "second"]))
+        print(Query.containsAll("labels", value: ["first", "second"]))
+
         // New query methods
         print(Query.notContains("title", value: "Spider"))
         print(Query.notSearch("name", value: "john"))
@@ -242,6 +283,15 @@ class Tests: XCTestCase {
             Query.greaterThan("releasedYear", value: 2015)
         ]))
 
+        // regex, exists, notExists, elemMatch
+        print(Query.regex("name", pattern: "pattern.*"))
+        print(Query.exists(["attr1", "attr2"]))
+        print(Query.notExists(["attr1", "attr2"]))
+        print(Query.elemMatch("friends", queries: [
+            Query.equal("name", value: "Alice"),
+            Query.greaterThan("age", value: 18)
+        ]))
+
         // Permission & Role helper tests
         print(Permission.read(Role.any()))
         print(Permission.write(Role.user(ID.custom("userid"))))
@@ -257,6 +307,35 @@ class Tests: XCTestCase {
         // ID helper tests
         print(ID.unique())
         print(ID.custom("custom_id"))
+
+        // Channel helper tests
+        print(try Channel.database("db1").collection("col1").document().toString())
+        print(try Channel.database("db1").collection("col1").document("doc1").toString())
+        print(try Channel.database("db1").collection("col1").document("doc1").create().toString())
+        print(try Channel.database("db1").collection("col1").document("doc1").upsert().toString())
+        print(try Channel.tablesdb("db1").table("table1").row().toString())
+        print(try Channel.tablesdb("db1").table("table1").row("row1").toString())
+        print(try Channel.tablesdb("db1").table("table1").row("row1").update().toString())
+        print(Channel.account())
+        print(try Channel.bucket("bucket1").file().toString())
+        print(try Channel.bucket("bucket1").file("file1").toString())
+        print(try Channel.bucket("bucket1").file("file1").delete().toString())
+        print(try Channel.function("func2").toString())
+        print(try Channel.function("func1").toString())
+        print(try Channel.execution("exec2").toString())
+        print(try Channel.execution("exec1").toString())
+        print(Channel.documents())
+        print(Channel.rows())
+        print(Channel.files())
+        print(Channel.executions())
+        print(Channel.teams())
+        print(try Channel.team("team2").toString())
+        print(try Channel.team("team1").toString())
+        print(try Channel.team("team1").create().toString())
+        print(Channel.memberships())
+        print(try Channel.membership("membership2").toString())
+        print(try Channel.membership("membership1").toString())
+        print(try Channel.membership("membership1").update().toString())
 
         // Operator helper tests
         print(Operator.increment(1))

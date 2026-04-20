@@ -1,25 +1,20 @@
 import { getDatabasesService } from "../../services.js";
 import { paginate } from "../../paginate.js";
 import { log } from "../../parser.js";
+import type { Client } from "@appwrite.io/console";
 
 export class Pools {
   private STEP_SIZE = 100; // Resources
   private POLL_DEBOUNCE = 2000; // Milliseconds
   private pollMaxDebounces = 30;
   private POLL_DEFAULT_VALUE = 30;
+  private client?: Client;
 
-  constructor(pollMaxDebounces?: number) {
+  constructor(pollMaxDebounces?: number, client?: Client) {
+    this.client = client;
     if (pollMaxDebounces) {
       this.pollMaxDebounces = pollMaxDebounces;
     }
-  }
-
-  public setPollMaxDebounces(value: number): void {
-    this.pollMaxDebounces = value;
-  }
-
-  public getPollMaxDebounces(): number {
-    return this.pollMaxDebounces;
   }
 
   public wipeAttributes = async (
@@ -31,7 +26,7 @@ export class Pools {
       return false;
     }
 
-    const databasesService = await getDatabasesService();
+    const databasesService = await getDatabasesService(this.client);
     const response = await databasesService.listAttributes(
       databaseId,
       collectionId,
@@ -44,7 +39,7 @@ export class Pools {
     }
 
     if (this.pollMaxDebounces === this.POLL_DEFAULT_VALUE) {
-      let steps = Math.max(1, Math.ceil(total / this.STEP_SIZE));
+      const steps = Math.max(1, Math.ceil(Number(total) / this.STEP_SIZE));
       if (steps > 1 && iteration === 1) {
         this.pollMaxDebounces *= steps;
 
@@ -70,7 +65,7 @@ export class Pools {
       return false;
     }
 
-    const databasesService = await getDatabasesService();
+    const databasesService = await getDatabasesService(this.client);
     const response = await databasesService.listIndexes(
       databaseId,
       collectionId,
@@ -83,7 +78,7 @@ export class Pools {
     }
 
     if (this.pollMaxDebounces === this.POLL_DEFAULT_VALUE) {
-      let steps = Math.max(1, Math.ceil(total / this.STEP_SIZE));
+      const steps = Math.max(1, Math.ceil(Number(total) / this.STEP_SIZE));
       if (steps > 1 && iteration === 1) {
         this.pollMaxDebounces *= steps;
 
@@ -111,7 +106,10 @@ export class Pools {
     }
 
     if (this.pollMaxDebounces === this.POLL_DEFAULT_VALUE) {
-      let steps = Math.max(1, Math.ceil(attributeKeys.length / this.STEP_SIZE));
+      const steps = Math.max(
+        1,
+        Math.ceil(attributeKeys.length / this.STEP_SIZE),
+      );
       if (steps > 1 && iteration === 1) {
         this.pollMaxDebounces *= steps;
 
@@ -125,7 +123,7 @@ export class Pools {
 
     const { attributes } = await paginate(
       async (args: any) => {
-        const databasesService = await getDatabasesService();
+        const databasesService = await getDatabasesService(this.client);
         return await databasesService.listAttributes({
           databaseId: args.databaseId,
           collectionId: args.collectionId,
@@ -169,7 +167,10 @@ export class Pools {
     }
 
     if (this.pollMaxDebounces === this.POLL_DEFAULT_VALUE) {
-      let steps = Math.max(1, Math.ceil(attributeKeys.length / this.STEP_SIZE));
+      const steps = Math.max(
+        1,
+        Math.ceil(attributeKeys.length / this.STEP_SIZE),
+      );
       if (steps > 1 && iteration === 1) {
         this.pollMaxDebounces *= steps;
 
@@ -183,7 +184,7 @@ export class Pools {
 
     const { attributes } = await paginate(
       async (args: any) => {
-        const databasesService = await getDatabasesService();
+        const databasesService = await getDatabasesService(this.client);
         return await databasesService.listAttributes(
           args.databaseId,
           args.collectionId,
@@ -226,65 +227,6 @@ export class Pools {
     );
   };
 
-  public deleteIndexes = async (
-    databaseId: string,
-    collectionId: string,
-    indexesKeys: any[],
-    iteration: number = 1,
-  ): Promise<boolean> => {
-    if (iteration > this.pollMaxDebounces) {
-      return false;
-    }
-
-    if (this.pollMaxDebounces === this.POLL_DEFAULT_VALUE) {
-      let steps = Math.max(1, Math.ceil(indexesKeys.length / this.STEP_SIZE));
-      if (steps > 1 && iteration === 1) {
-        this.pollMaxDebounces *= steps;
-
-        log(
-          "Found a large number of indexes to be deleted. Increasing timeout to " +
-            (this.pollMaxDebounces * this.POLL_DEBOUNCE) / 1000 / 60 +
-            " minutes",
-        );
-      }
-    }
-
-    const { indexes } = await paginate(
-      async (args: any) => {
-        const databasesService = await getDatabasesService();
-        return await databasesService.listIndexes(
-          args.databaseId,
-          args.collectionId,
-          args.queries || [],
-        );
-      },
-      {
-        databaseId,
-        collectionId,
-      },
-      100,
-      "indexes",
-    );
-
-    const indexKeySet = new Set(indexes.map((i: any) => i.key));
-    const ready = indexesKeys.filter((index: any) =>
-      indexKeySet.has(index.key),
-    );
-
-    if (ready.length === 0) {
-      return true;
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, this.POLL_DEBOUNCE));
-
-    return await this.deleteIndexes(
-      databaseId,
-      collectionId,
-      indexesKeys,
-      iteration + 1,
-    );
-  };
-
   public expectIndexes = async (
     databaseId: string,
     collectionId: string,
@@ -296,7 +238,7 @@ export class Pools {
     }
 
     if (this.pollMaxDebounces === this.POLL_DEFAULT_VALUE) {
-      let steps = Math.max(1, Math.ceil(indexKeys.length / this.STEP_SIZE));
+      const steps = Math.max(1, Math.ceil(indexKeys.length / this.STEP_SIZE));
       if (steps > 1 && iteration === 1) {
         this.pollMaxDebounces *= steps;
 
@@ -310,7 +252,7 @@ export class Pools {
 
     const { indexes } = await paginate(
       async (args: any) => {
-        const databasesService = await getDatabasesService();
+        const databasesService = await getDatabasesService(this.client);
         return await databasesService.listIndexes(
           args.databaseId,
           args.collectionId,

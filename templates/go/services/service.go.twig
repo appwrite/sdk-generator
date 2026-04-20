@@ -1,9 +1,27 @@
 {%- set requireModelsPkg = false -%}
 {%- set requireFilesPkg = false -%}
+{%- set requireUrlPkg = false -%}
+{%- for method in service.methods -%}
+{%- if method.type == 'location' -%}
+{%- set requireUrlPkg = true -%}
+{%- endif -%}
+{%- endfor -%}
+{%- set requireFmtPkg = false -%}
+{%- for method in service.methods -%}
+{%- if method.type == 'location' and (method.parameters.query|length > 0) -%}
+{%- set requireFmtPkg = true -%}
+{%- endif -%}
+{%- endfor -%}
+{% set hasDiscriminatedUnionResponses = false %}
+{% for method in service.methods %}
+{% if (method | getValidResponseModels)|length > 1 and method.responseDiscriminator is defined and method.responseDiscriminator is not empty %}
+{% set hasDiscriminatedUnionResponses = true %}
+{% endif %}
+{% endfor %}
 {%- for method in service.methods -%}
 {%- if (method | returnType(spec, spec.title | caseLower)) starts with "models" -%}
 		{%- set requireModelsPkg = true -%}
-{%- endif -%}
+	{%- endif -%}
 {% for parameter in method.parameters.all %}
 	{%- if (parameter | typeName) ends with "InputFile"  -%}
 		{%- set requireFilesPkg = true -%}
@@ -18,12 +36,18 @@ package {{ service.name | caseLower }}
 import (
 	"encoding/json"
 	"errors"
-	"github.com/{{sdk.gitUserName}}/sdk-for-go/client"
+	"{{ sdk | goPackagePath }}/client"
 {% if requireModelsPkg %}
-	"github.com/{{sdk.gitUserName}}/sdk-for-go/models"
+	"{{ sdk | goPackagePath }}/models"
 {% endif %}
 {% if requireFilesPkg %}
-	"github.com/{{sdk.gitUserName}}/sdk-for-go/file"
+	"{{ sdk | goPackagePath }}/file"
+{% endif %}
+{% if requireUrlPkg %}
+	"net/url"
+{% endif %}
+{% if requireFmtPkg or hasDiscriminatedUnionResponses %}
+	"fmt"
 {% endif %}
 	"strings"
 )
@@ -98,7 +122,8 @@ func (srv *{{ service.name | caseUcfirst }}) With{{ method.name | caseUcfirst }}
 // Deprecated: This API has been deprecated.
 {%~ endif %}
 {% endif %}
-func (srv *{{ service.name | caseUcfirst }}) {{ method.name | caseUcfirst }}({{ params }})(*{{ method | returnType(spec, spec.title | caseLower) }}, error) {
+{% set returnType = method | returnType(spec, spec.title | caseLower) %}
+func (srv *{{ service.name | caseUcfirst }}) {{ method.name | caseUcfirst }}({{ params }})({% if returnType == 'models.Model' %}{{ returnType }}{% else %}*{{ returnType }}{% endif %}, error) {
 {% if method.parameters.path|length > 0 %}
 	r := strings.NewReplacer({% for parameter in method.parameters.path %}"{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}", {{ parameter.name | caseUcfirst }}{% if not loop.last %}, {% endif %}{% endfor %})
 	path := r.Replace("{{ method.path }}")
@@ -112,4 +137,50 @@ func (srv *{{ service.name | caseUcfirst }}) {{ method.name | caseUcfirst }}({{ 
 {{ include('go/base/requests/api.twig') }}
 {% endif %}
 }
+{% if method.type == 'location' %}
+{% if method.description %}
+{{ ((method.name | caseUcfirst) ~ 'URL ' ~ method.description | caseLcfirst) | godocComment }}
+{% else %}
+// {{ method.name | caseUcfirst }}URL
+{% endif %}
+// Returns the URL for the resource instead of the content.
+{% if method.deprecated %}
+//
+{%~ if method.since and method.replaceWith %}
+// Deprecated: This API has been deprecated since {{ method.since }}. Please use `{{ method.replaceWith | capitalizeFirst }}` instead.
+{%~ else %}
+// Deprecated: This API has been deprecated.
+{%~ endif %}
+{% endif %}
+func (srv *{{ service.name | caseUcfirst }}) {{ method.name | caseUcfirst }}URL({{ params }}) (*string, error) {
+{% if method.parameters.path|length > 0 %}
+	r := strings.NewReplacer({% for parameter in method.parameters.path %}"{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}", {{ parameter.name | caseUcfirst }}{% if not loop.last %}, {% endif %}{% endfor %})
+	path := r.Replace("{{ method.path }}")
+{% else %}
+	path := "{{ method.path }}"
+{% endif %}
+{% if method.parameters.all|filter(v => not v.required)|length > 0 %}
+	options := {{(method.name ~ "Options") | caseUcfirst}}{}.New()
+	for _, opt := range optionalSetters {
+		opt(options)
+	}
+{% endif %}
+	u, err := url.Parse(srv.client.Endpoint + path)
+	if err != nil {
+		return nil, err
+	}
+	q := u.Query()
+{% for parameter in method.parameters.query|filter(v => v.required) %}
+	q.Set("{{ parameter.name }}", fmt.Sprintf("%v", {{ parameter.name | caseUcfirst }}))
+{% endfor %}
+{% for parameter in method.parameters.query|filter(v => not v.required) %}
+	if options.enabledSetters["{{ parameter.name | caseUcfirst }}"] {
+		q.Set("{{ parameter.name }}", fmt.Sprintf("%v", options.{{ parameter.name | caseUcfirst }}))
+	}
+{% endfor %}
+	u.RawQuery = q.Encode()
+	result := u.String()
+	return &result, nil
+}
+{% endif %}
 {% endfor %}

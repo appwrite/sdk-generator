@@ -268,6 +268,10 @@ class Query implements \JsonSerializable
     /**
      * Contains
      *
+     * Filter resources where attribute contains the specified value.
+     * For string attributes, checks if the string contains the substring.
+     *
+     * Note: For array attributes, use containsAny() or containsAll() instead.
      * @param string $attribute
      * @param mixed $value
      * @return string
@@ -275,6 +279,38 @@ class Query implements \JsonSerializable
     public static function contains(string $attribute, $value): string
     {
         return (new Query('contains', $attribute, $value))->__toString();
+    }
+
+    /**
+     * Contains Any
+     *
+     * Filter resources where attribute contains ANY of the specified values.
+     * For array and relationship attributes, matches documents where the attribute
+     * contains at least one of the given values.
+     *
+     * @param string $attribute
+     * @param array<mixed> $value
+     * @return string
+     */
+    public static function containsAny(string $attribute, array $value): string
+    {
+        return (new Query('containsAny', $attribute, $value))->__toString();
+    }
+
+    /**
+     * Contains All
+     *
+     * Filter resources where attribute contains ALL of the specified values.
+     * For array and relationship attributes, matches documents where the attribute
+     * contains every one of the given values.
+     *
+     * @param string $attribute
+     * @param array<mixed> $value
+     * @return string
+     */
+    public static function containsAll(string $attribute, array $value): string
+    {
+        return (new Query('containsAll', $attribute, $value))->__toString();
     }
 
     /**
@@ -336,6 +372,40 @@ class Query implements \JsonSerializable
     public static function notEndsWith(string $attribute, string $value): string
     {
         return (new Query('notEndsWith', $attribute, $value))->__toString();
+    }
+
+    /**
+     * Filter resources where attribute matches a regular expression pattern.
+     *
+     * @param string $attribute The attribute to filter on.
+     * @param string $pattern The regular expression pattern to match.
+     * @return string
+     */
+    public static function regex(string $attribute, string $pattern): string
+    {
+        return (new Query('regex', $attribute, $pattern))->__toString();
+    }
+
+    /**
+     * Filter resources where the specified attributes exist.
+     *
+     * @param array<string> $attributes The list of attributes that must exist.
+     * @return string
+     */
+    public static function exists(array $attributes): string
+    {
+        return (new Query('exists', null, $attributes))->__toString();
+    }
+
+    /**
+     * Filter resources where the specified attributes do not exist.
+     *
+     * @param array<string> $attributes The list of attributes that must not exist.
+     * @return string
+     */
+    public static function notExists(array $attributes): string
+    {
+        return (new Query('notExists', null, $attributes))->__toString();
     }
 
     /**
@@ -432,6 +502,22 @@ class Query implements \JsonSerializable
             $query = \json_decode($query, true);
         }
         return (new Query('and', null, $queries))->__toString();
+    }
+
+    /**
+     * Filter array elements where at least one element matches all the specified queries.
+     *
+     * @param string $attribute The attribute containing the array to filter on.
+     * @param array<string> $queries The list of query strings to match against array elements.
+     * @return string
+     */
+    public static function elemMatch(string $attribute, array $queries): string
+    {
+        foreach ($queries as &$query) {
+            $query = \json_decode($query, true);
+        }
+
+        return (new Query('elemMatch', $attribute, $queries))->__toString();
     }
 
     /**

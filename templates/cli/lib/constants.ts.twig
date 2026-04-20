@@ -9,6 +9,12 @@ export const SDK_LOGO = {{ language.params.logo | raw }};
 
 // CLI
 export const EXECUTABLE_NAME = '{{ language.params.executableName }}';
+// 1 day
+export const UPDATE_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
+
+// Homebrew — fully-qualified `<owner>/<tap>/<formula>` reference
+export const HOMEBREW_TAP = '{{ language.params.homebrewTapOwner }}/{{ language.params.homebrewTapName }}';
+export const HOMEBREW_FORMULA = `${HOMEBREW_TAP}/{{ language.params.executableName|caseLower }}`;
 
 // NPM
 export const NPM_PACKAGE_NAME = '{{ language.params.npmPackage|caseDash }}';
@@ -20,3 +26,33 @@ export const GITHUB_RELEASES_URL = `https://github.com/${GITHUB_REPO}/releases`;
 
 // API
 export const DEFAULT_ENDPOINT = '{{ spec.endpoint }}';
+
+// Config resources
+export const CONFIG_RESOURCE_KEYS = [
+{% for service in spec.services %}
+{% if service.name == 'functions' %}
+  "functions",
+{% elseif service.name == 'sites' %}
+  "sites",
+{% elseif service.name == 'databases' %}
+  "databases",
+{% elseif service.name == 'tablesDB' %}
+  "tablesDB",
+  "tables",
+{% elseif service.name == 'storage' %}
+  "buckets",
+{% elseif service.name == 'teams' %}
+  "teams",
+{% elseif service.name == 'webhooks' %}
+  "webhooks",
+{% elseif service.name == 'messaging' %}
+  "topics",
+  "messages",
+{% endif %}
+{% endfor %}
+  "collections",
+] as const;
+
+export const TOP_LEVEL_RESOURCE_ARRAY_KEYS = new Set<string>(
+  CONFIG_RESOURCE_KEYS,
+);

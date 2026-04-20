@@ -1,0 +1,37 @@
+{% autoescape false %}
+package permission
+
+import (
+	"testing"
+)
+
+func TestRead(t *testing.T) {
+	if Read("any") != "read(\"any\")" {
+		t.Errorf("Expected read(\"any\"), got %s", Read("any"))
+	}
+}
+
+func TestWrite(t *testing.T) {
+	if Write("any") != "write(\"any\")" {
+		t.Errorf("Expected write(\"any\"), got %s", Write("any"))
+	}
+}
+
+func TestCreate(t *testing.T) {
+	if Create("any") != "create(\"any\")" {
+		t.Errorf("Expected create(\"any\"), got %s", Create("any"))
+	}
+}
+
+func TestUpdate(t *testing.T) {
+	if Update("any") != "update(\"any\")" {
+		t.Errorf("Expected update(\"any\"), got %s", Update("any"))
+	}
+}
+
+func TestDelete(t *testing.T) {
+	if Delete("any") != "delete(\"any\")" {
+		t.Errorf("Expected delete(\"any\"), got %s", Delete("any"))
+	}
+}
+{% endautoescape %}

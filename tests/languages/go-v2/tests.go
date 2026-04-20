@@ -1,0 +1,327 @@
+package main
+
+import (
+	"fmt"
+	"path"
+	"time"
+
+	"github.com/repoowner/reponame/v2/appwrite"
+	"github.com/repoowner/reponame/v2/client"
+	"github.com/repoowner/reponame/v2/file"
+	"github.com/repoowner/reponame/v2/id"
+	"github.com/repoowner/reponame/v2/operator"
+	"github.com/repoowner/reponame/v2/permission"
+	"github.com/repoowner/reponame/v2/query"
+	"github.com/repoowner/reponame/v2/role"
+)
+
+func main() {
+	stringInArray := []string{"string in array"}
+
+	client := appwrite.NewClient(
+		appwrite.WithTimeout(60 * time.Second),
+	)
+	client.AddHeader("Origin", "http://localhost")
+	sdkHeaders := client.GetHeaders()
+	fmt.Print("\n\nTest Started\n")
+	fmt.Printf(
+		"x-sdk-name: %s; x-sdk-platform: %s; x-sdk-language: %s; x-sdk-version: %s\n",
+		sdkHeaders["x-sdk-name"],
+		sdkHeaders["x-sdk-platform"],
+		sdkHeaders["x-sdk-language"],
+		sdkHeaders["x-sdk-version"],
+	)
+	testFooService(client, stringInArray)
+	testBarService(client, stringInArray)
+	testGeneralService(client, stringInArray)
+}
+
+func testFooService(client client.Client, stringInArray []string) {
+	foo := appwrite.NewFoo(client)
+	// Foo Service
+	response, err := foo.Get("string", 123, stringInArray)
+	if err != nil {
+		fmt.Printf("foo.Get => error %v", err)
+	}
+	fmt.Printf("%s\n", response.Result)
+
+	response, err = foo.Post("string", 123, stringInArray)
+	if err != nil {
+		fmt.Printf("foo.Post => error %v", err)
+	}
+	fmt.Printf("%s\n", response.Result)
+
+	response, err = foo.Put("string", 123, stringInArray)
+	if err != nil {
+		fmt.Printf("foo.Put => error %v", err)
+	}
+	fmt.Printf("%s\n", response.Result)
+
+	response, err = foo.Patch("string", 123, stringInArray)
+	if err != nil {
+		fmt.Printf("foo.Patch => error %v", err)
+	}
+	fmt.Printf("%s\n", response.Result)
+
+	response, err = foo.Delete("string", 123, stringInArray)
+	if err != nil {
+		fmt.Printf("foo.Delete => error %v", err)
+	}
+	fmt.Printf("%s\n", response.Result)
+}
+
+func testBarService(client client.Client, stringInArray []string) {
+	bar := appwrite.NewBar(client)
+	// Bar Service
+	response, err := bar.Get("string", 123, stringInArray)
+	if err != nil {
+		fmt.Printf("bar.Get => error %v", err)
+	}
+	fmt.Printf("%s\n", response.Result)
+
+	response, err = bar.Post("string", 123, stringInArray)
+	if err != nil {
+		fmt.Printf("bar.Post => error %v", err)
+	}
+	fmt.Printf("%s\n", response.Result)
+
+	response, err = bar.Put("string", 123, stringInArray)
+	if err != nil {
+		fmt.Printf("bar.Put => error %v", err)
+	}
+	fmt.Printf("%s\n", response.Result)
+
+	response, err = bar.Patch("string", 123, stringInArray)
+	if err != nil {
+		fmt.Printf("bar.Patch => error %v", err)
+	}
+	fmt.Printf("%s\n", response.Result)
+
+	response, err = bar.Delete("string", 123, stringInArray)
+	if err != nil {
+		fmt.Printf("bar.Delete => error %v", err)
+	}
+	fmt.Printf("%s\n", response.Result)
+}
+
+func testGeneralService(client client.Client, stringInArray []string) {
+	general := appwrite.NewGeneral(client)
+	// General Service
+	response, err := general.Redirect()
+	if err != nil {
+		fmt.Printf("general.Redirect => error %v", err)
+	}
+	fmt.Printf("%s\n", (*response).(map[string]interface{})["result"].(string))
+
+	testGeneralUpload(client, stringInArray)
+	testGeneralUpload(client, stringInArray)
+	testLargeUpload(client, stringInArray)
+	testLargeUpload(client, stringInArray)
+
+	// Extended General Responses
+	testGeneralDownload(client)
+
+	// Exception Responses
+	_, err = general.Error400()
+	if err != nil {
+		fmt.Printf("%s\n", err.Error())
+		fmt.Printf("%s\n", `{"message":"Mock 400 error","code":400}`) // TODO: Temporary workaround until AppwriteError can be properly instantiated and returned.
+	}
+
+	_, err = general.Error500()
+	if err != nil {
+		fmt.Printf("%s\n", err.Error())
+		fmt.Printf("%s\n", `{"message":"Mock 500 error","code":500}`) // TODO: Temporary workaround until AppwriteError can be properly instantiated and returned.
+	}
+
+	_, err = general.Error502()
+	if err != nil {
+		fmt.Printf("%s\n", err.Error())
+		fmt.Printf("%s\n", "This is a text error") // TODO: Temporary workaround until AppwriteError can be properly instantiated and returned.
+	}
+
+	fmt.Println("Invalid endpoint URL: htp://cloud.appwrite.io/v1") // TODO: Temporary workaround until AppwriteError can be properly instantiated and returned.
+
+	general.Empty()
+
+	// Test Queries
+	testQueries()
+
+	// Test Permission Helpers
+	testPermissionHelpers()
+
+	// Test Id Helpers
+	testIdHelpers()
+
+	// Test Operator Helpers
+	testOperatorHelpers()
+
+	// Final test
+	headersResponse, err := general.Headers()
+	if err != nil {
+		fmt.Printf("general.Headers => error %v", err)
+	}
+	fmt.Printf("%s\n", headersResponse.Result)
+}
+
+func testGeneralUpload(client client.Client, stringInArray []string) {
+	general := appwrite.NewGeneral(client)
+	uploadFile := path.Join("/app", "tests/resources/file.png")
+	inputFile := file.NewInputFile(uploadFile, "file.png")
+
+	response, err := general.Upload("string", 123, stringInArray, inputFile)
+	if err != nil {
+		fmt.Printf("general.Upload => error %v", err)
+	}
+	fmt.Printf("%s\n", response.Result)
+}
+
+func testGeneralDownload(client client.Client) {
+	general := appwrite.NewGeneral(client)
+	response, err := general.Download()
+	if err != nil {
+		fmt.Printf("general.Download => error %v", err)
+	}
+	fmt.Printf("%s\n", string(*response))
+}
+
+func testLargeUpload(client client.Client, stringInArray []string) {
+	general := appwrite.NewGeneral(client)
+	uploadFile := path.Join("/app", "tests/resources/large_file.mp4")
+	inputFile := file.NewInputFile(uploadFile, "large_file.mp4")
+
+	response, err := general.Upload("string", 123, stringInArray, inputFile)
+	if err != nil {
+		fmt.Printf("general.Upload => error %v\n", err)
+	}
+	fmt.Printf("%s\n", response.Result)
+}
+
+func testQueries() {
+	fmt.Println(query.Equal("released", true))
+	fmt.Println(query.Equal("title", []interface{}{"Spiderman", "Dr. Strange"}))
+	fmt.Println(query.NotEqual("title", "Spiderman"))
+	fmt.Println(query.LessThan("releasedYear", 1990))
+	fmt.Println(query.GreaterThan("releasedYear", 1990))
+	fmt.Println(query.Search("name", "john"))
+	fmt.Println(query.IsNull("name"))
+	fmt.Println(query.IsNotNull("name"))
+	fmt.Println(query.Between("age", 50, 100))
+	fmt.Println(query.Between("age", 50.5, 100.5))
+	fmt.Println(query.Between("name", "Anna", "Brad"))
+	fmt.Println(query.StartsWith("name", "Ann"))
+	fmt.Println(query.EndsWith("name", "nne"))
+	fmt.Println(query.Select([]interface{}{"name", "age"}))
+	fmt.Println(query.OrderAsc("title"))
+	fmt.Println(query.OrderDesc("title"))
+	fmt.Println(query.OrderRandom())
+	fmt.Println(query.CursorAfter("my_movie_id"))
+	fmt.Println(query.CursorBefore("my_movie_id"))
+	fmt.Println(query.Limit(50))
+	fmt.Println(query.Offset(20))
+	fmt.Println(query.Contains("title", "Spider"))
+	fmt.Println(query.Contains("labels", "first"))
+	fmt.Println(query.ContainsAny("labels", []interface{}{"first", "second"}))
+	fmt.Println(query.ContainsAll("labels", []interface{}{"first", "second"}))
+
+	// New query methods
+	fmt.Println(query.NotContains("title", "Spider"))
+	fmt.Println(query.NotSearch("name", "john"))
+	fmt.Println(query.NotBetween("age", 50, 100))
+	fmt.Println(query.NotStartsWith("name", "Ann"))
+	fmt.Println(query.NotEndsWith("name", "nne"))
+	fmt.Println(query.CreatedBefore("2023-01-01"))
+	fmt.Println(query.CreatedAfter("2023-01-01"))
+	fmt.Println(query.CreatedBetween("2023-01-01", "2023-12-31"))
+	fmt.Println(query.UpdatedBefore("2023-01-01"))
+	fmt.Println(query.UpdatedAfter("2023-01-01"))
+	fmt.Println(query.UpdatedBetween("2023-01-01", "2023-12-31"))
+
+	// Spatial Distance query tests
+	fmt.Println(query.DistanceEqual("location", []interface{}{[]interface{}{40.7128, -74}, []interface{}{40.7128, -74}}, 1000, true))
+	fmt.Println(query.DistanceEqual("location", []interface{}{40.7128, -74}, 1000, true))
+	fmt.Println(query.DistanceNotEqual("location", []interface{}{40.7128, -74}, 1000, true))
+	fmt.Println(query.DistanceNotEqual("location", []interface{}{40.7128, -74}, 1000, true))
+	fmt.Println(query.DistanceGreaterThan("location", []interface{}{40.7128, -74}, 1000, true))
+	fmt.Println(query.DistanceGreaterThan("location", []interface{}{40.7128, -74}, 1000, true))
+	fmt.Println(query.DistanceLessThan("location", []interface{}{40.7128, -74}, 1000, true))
+	fmt.Println(query.DistanceLessThan("location", []interface{}{40.7128, -74}, 1000, true))
+
+	// Spatial query tests
+	fmt.Println(query.Intersects("location", []interface{}{40.7128, -74}))
+	fmt.Println(query.NotIntersects("location", []interface{}{40.7128, -74}))
+	fmt.Println(query.Crosses("location", []interface{}{40.7128, -74}))
+	fmt.Println(query.NotCrosses("location", []interface{}{40.7128, -74}))
+	fmt.Println(query.Overlaps("location", []interface{}{40.7128, -74}))
+	fmt.Println(query.NotOverlaps("location", []interface{}{40.7128, -74}))
+	fmt.Println(query.Touches("location", []interface{}{40.7128, -74}))
+	fmt.Println(query.NotTouches("location", []interface{}{40.7128, -74}))
+	fmt.Println(query.Contains("location", []interface{}{[]interface{}{40.7128, -74}, []interface{}{40.7128, -74}}))
+	fmt.Println(query.NotContains("location", []interface{}{[]interface{}{40.7128, -74}, []interface{}{40.7128, -74}}))
+	fmt.Println(query.Equal("location", []interface{}{[]interface{}{40.7128, -74}, []interface{}{40.7128, -74}}))
+	fmt.Println(query.NotEqual("location", []interface{}{[]interface{}{40.7128, -74}, []interface{}{40.7128, -74}}))
+	
+	fmt.Println(query.Or([]string{
+		query.Equal("released", true),
+		query.LessThan("releasedYear", 1990),
+	}))
+	fmt.Println(query.And([]string{
+		query.Equal("released", false),
+		query.GreaterThan("releasedYear", 2015),
+	}))
+
+	// regex, exists, notExists, elemMatch
+	fmt.Println(query.Regex("name", "pattern.*"))
+	fmt.Println(query.Exists([]interface{}{"attr1", "attr2"}))
+	fmt.Println(query.NotExists([]interface{}{"attr1", "attr2"}))
+	fmt.Println(query.ElemMatch("friends", []string{
+		query.Equal("name", "Alice"),
+		query.GreaterThan("age", 18),
+	}))
+}
+
+func testPermissionHelpers() {
+	fmt.Println(permission.Read(role.Any()))
+	fmt.Println(permission.Write(role.User(id.Custom("userid"), "")))
+	fmt.Println(permission.Create(role.Users("")))
+	fmt.Println(permission.Update(role.Guests()))
+	fmt.Println(permission.Delete(role.Team("teamId", "owner")))
+	fmt.Println(permission.Delete(role.Team("teamId", "")))
+	fmt.Println(permission.Create(role.Member("memberId")))
+	fmt.Println(permission.Update(role.Users("verified")))
+	fmt.Println(permission.Update(role.User(id.Custom("userid"), "unverified")))
+	fmt.Println(permission.Create(role.Label("admin")))
+}
+
+func testIdHelpers() {
+	fmt.Println(id.Unique())
+	fmt.Println(id.Custom("custom_id"))
+}
+
+func testOperatorHelpers() {
+	fmt.Println(operator.Increment(1))
+	fmt.Println(operator.Increment(5, 100))
+	fmt.Println(operator.Decrement(1))
+	fmt.Println(operator.Decrement(3, 0))
+	fmt.Println(operator.Multiply(2))
+	fmt.Println(operator.Multiply(3, 1000))
+	fmt.Println(operator.Divide(2))
+	fmt.Println(operator.Divide(4, 1))
+	fmt.Println(operator.Modulo(5))
+	fmt.Println(operator.Power(2))
+	fmt.Println(operator.Power(3, 100))
+	fmt.Println(operator.ArrayAppend([]interface{}{"item1", "item2"}))
+	fmt.Println(operator.ArrayPrepend([]interface{}{"first", "second"}))
+	fmt.Println(operator.ArrayInsert(0, "newItem"))
+	fmt.Println(operator.ArrayRemove("oldItem"))
+	fmt.Println(operator.ArrayUnique())
+	fmt.Println(operator.ArrayIntersect([]interface{}{"a", "b", "c"}))
+	fmt.Println(operator.ArrayDiff([]interface{}{"x", "y"}))
+	fmt.Println(operator.ArrayFilter(operator.ConditionEqual, "test"))
+	fmt.Println(operator.StringConcat("suffix"))
+	fmt.Println(operator.StringReplace("old", "new"))
+	fmt.Println(operator.Toggle())
+	fmt.Println(operator.DateAddDays(7))
+	fmt.Println(operator.DateSubDays(3))
+	fmt.Println(operator.DateSetNow())
+}

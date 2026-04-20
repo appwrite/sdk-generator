@@ -82,6 +82,11 @@ class ClientBrowser extends ClientBase with ClientMixin {
   }
 
   @override
+  Map<String, String> getHeaders() {
+    return Map<String, String>.from(_headers!);
+  }
+
+  @override
   Future<String?> webAuth(Uri url) async {
     final request = http.Request('GET', url);
     request.followRedirects = false;

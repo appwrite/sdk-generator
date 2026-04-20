@@ -3,15 +3,15 @@ import { parse as parseDotenv } from "dotenv";
 import chalk from "chalk";
 import ignoreModule from "ignore";
 const ignore: typeof ignoreModule =
-  (ignoreModule as any).default ?? ignoreModule;
-import tar from "tar";
+  (ignoreModule as unknown as { default?: typeof ignoreModule }).default ??
+  ignoreModule;
+import { create, extract } from "tar";
 import fs from "fs";
 import chokidar from "chokidar";
 import inquirer from "inquirer";
 import path from "path";
 import { Command } from "commander";
 import { localConfig, globalConfig } from "../config.js";
-import { paginate } from "../paginate.js";
 import { getFunctionsService } from "../services.js";
 import { questionsRunFunctions } from "../questions.js";
 import {
@@ -24,7 +24,12 @@ import {
   commandDescriptions,
   drawTable,
 } from "../parser.js";
-import { systemHasCommand, isPortTaken, getAllFiles } from "../utils.js";
+import {
+  systemHasCommand,
+  isPortTaken,
+  getAllFiles,
+  getErrorMessage,
+} from "../utils.js";
 import {
   runtimeNames,
   systemTools,
@@ -37,7 +42,9 @@ import {
   dockerStart,
   dockerBuild,
   dockerPull,
+  assertFunctionSourceCode,
 } from "../emulation/docker.js";
+import { Scopes } from "@appwrite.io/console";
 
 interface RunFunctionOptions {
   port?: string | number;
@@ -61,7 +68,7 @@ const runFunction = async ({
   }
 
   const functions = localConfig.getFunctions();
-  const func = functions.find((f: any) => f.$id === functionId);
+  const func = functions.find((f) => f.$id === functionId);
   if (!func) {
     throw new Error("Function '" + functionId + "' not found.");
   }
@@ -126,12 +133,14 @@ const runFunction = async ({
   };
 
   drawTable([settings]);
-  log(
+  hint(
     "If you wish to change your local settings, update the appwrite.config.json file and rerun the 'appwrite run' command.",
   );
   hint(
     "Permissions, events, CRON and timeouts don't apply when running locally.",
   );
+
+  assertFunctionSourceCode(func);
 
   await dockerCleanup(func.$id);
 
@@ -170,21 +179,20 @@ const runFunction = async ({
 
   if (withVariables) {
     try {
-      const { variables: remoteVariables } = await paginate(
-        async () => (await getFunctionsService()).listVariables(func["$id"]),
-        {},
-        100,
-        "variables",
-      );
+      const { variables: remoteVariables } = await (
+        await getFunctionsService()
+      ).listVariables({
+        functionId: func["$id"],
+      });
 
-      remoteVariables.forEach((v: any) => {
+      remoteVariables.forEach((v) => {
         allVariables[v.key] = v.value;
         userVariables[v.key] = v.value;
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       warn(
         "Remote variables not fetched. Production environment variables will not be available. Reason: " +
-          err.message,
+          getErrorMessage(err),
       );
     }
   }
@@ -212,11 +220,11 @@ const runFunction = async ({
   allVariables["APPWRITE_FUNCTION_RUNTIME_VERSION"] = func.runtime;
 
   try {
-    await JwtManager.setup(userId, func.scopes ?? []);
-  } catch (err: any) {
+    await JwtManager.setup(userId, (func.scopes as Scopes[]) ?? []);
+  } catch (err: unknown) {
     warn(
       "Dynamic API key not generated. Header x-appwrite-key will not be set. Reason: " +
-        err.message,
+        getErrorMessage(err),
     );
   }
 
@@ -243,10 +251,22 @@ const runFunction = async ({
 
   await dockerPull(func);
 
+  let hasShownRuntimeLogsHeader = false;
+  const showRuntimeLogsHeader = (): void => {
+    if (hasShownRuntimeLogsHeader) {
+      return;
+    }
+
+    hasShownRuntimeLogsHeader = true;
+    log("Runtime logs:");
+  };
+
   new Tail(logsPath).on("line", function (data: string) {
+    showRuntimeLogsHeader();
     process.stdout.write(chalk.white(`${data}\n`));
   });
   new Tail(errorsPath).on("line", function (data: string) {
+    showRuntimeLogsHeader();
     process.stdout.write(chalk.white(`${data}\n`));
   });
 
@@ -286,6 +306,7 @@ const runFunction = async ({
 
     try {
       await dockerStop(func.$id);
+      assertFunctionSourceCode(func);
 
       const dependencyFile = files.find((filePath: string) =>
         tool.dependencyFiles.includes(filePath),
@@ -316,7 +337,7 @@ const runFunction = async ({
           fs.mkdirSync(hotSwapPath, { recursive: true });
         }
 
-        await tar.extract({
+        await extract({
           keep: true,
           sync: true,
           cwd: hotSwapPath,
@@ -351,7 +372,7 @@ const runFunction = async ({
           fs.copyFileSync(sourcePath, filePath);
         }
 
-        await tar.create(
+        await create(
           {
             gzip: true,
             sync: true,
@@ -364,7 +385,7 @@ const runFunction = async ({
         await dockerStart(func, allVariables, portNum!);
       }
     } catch (err) {
-      console.error(err);
+      error(`Failed to reload function with error: ${getErrorMessage(err)}`);
     } finally {
       Queue.unlock();
     }
@@ -380,8 +401,10 @@ const runFunction = async ({
     return;
   }
 
+  process.stdout.write("\n");
   log("Starting function using Docker ...");
   hint("Function automatically restarts when you edit your code.");
+  process.stdout.write("\n");
   await dockerStart(func, allVariables, portNum!);
 
   Queue.unlock();
@@ -393,7 +416,7 @@ export const run = new Command("run")
     helpWidth: process.stdout.columns || 80,
   })
   .action(
-    actionRunner(async (_options: any, command: Command) => {
+    actionRunner(async (_options: unknown, command: Command) => {
       command.help();
     }),
   );

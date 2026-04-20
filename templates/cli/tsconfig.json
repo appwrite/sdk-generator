@@ -19,6 +19,6 @@
     "noEmitOnError": false,
     "noImplicitAny": false
   },
-  "include": ["**/*.ts"],
+  "include": ["**/*.ts", "**/*.d.ts"],
   "exclude": ["node_modules", "dist", "build"]
 }

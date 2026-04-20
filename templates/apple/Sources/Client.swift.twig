@@ -1,6 +1,8 @@
 import NIO
 import NIOCore
+#if canImport(NIOFoundationCompat)
 import NIOFoundationCompat
+#endif
 import NIOSSL
 import Foundation
 import AsyncHTTPClient
@@ -176,6 +178,10 @@ open class Client {
         return self
     }
 
+    open func getHeaders() -> [String: String] {
+        return self.headers
+    }
+
    ///
    /// Builds a query string from parameters
    ///
@@ -254,7 +260,7 @@ open class Client {
         headers: [String: String] = [:],
         params: [String: Any?] = [:],
         sink: ((ByteBuffer) -> Void)? = nil,
-        converter: ((Any) -> T)? = nil
+        converter: ((Any) throws -> T)? = nil
     ) async throws -> T {
         let validParams = params.filter { $0.value != nil }
 
@@ -294,7 +300,7 @@ open class Client {
     private func execute<T>(
         _ request: HTTPClientRequest,
         withSink bufferSink: ((ByteBuffer) -> Void)? = nil,
-        converter: ((Any) -> T)? = nil
+        converter: ((Any) throws -> T)? = nil
     ) async throws -> T {
         let response = try await http.execute(
             request,
@@ -328,9 +334,13 @@ open class Client {
                 if data.readableBytes == 0 {
                     return true as! T
                 }
-                let dict = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+                let dict = try JSONSerialization.jsonObject(with: Data(data.readableBytesView)) as? [String: Any]
 
-                return converter?(dict!) ?? dict! as! T
+                if let converter = converter {
+                    return try converter(dict!)
+                }
+
+                return dict! as! T
             }
         default:
             var message = ""
@@ -338,7 +348,7 @@ open class Client {
             var responseString = ""
 
             do {
-                let dict = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+                let dict = try JSONSerialization.jsonObject(with: Data(data.readableBytesView)) as? [String: Any]
 
                 message = dict?["message"] as? String ?? response.status.reasonPhrase
                 type = dict?["type"] as? String ?? ""
@@ -363,16 +373,16 @@ open class Client {
         params: inout [String: Any?],
         paramName: String,
         idParamName: String? = nil,
-        converter: ((Any) -> T)? = nil,
+        converter: ((Any) throws -> T)? = nil,
         onProgress: ((UploadProgress) -> Void)? = nil
     ) async throws -> T {
         let input = params[paramName] as! InputFile
 
         switch(input.sourceType) {
         case "path":
-            input.data = ByteBuffer(data: try! Data(contentsOf: URL(fileURLWithPath: input.path)))
+            input.data = ByteBuffer(bytes: try! Data(contentsOf: URL(fileURLWithPath: input.path)))
         case "data":
-            input.data = ByteBuffer(data: input.data as! Data)
+            input.data = ByteBuffer(bytes: input.data as! Data)
         default:
             break
         }
@@ -436,7 +446,7 @@ open class Client {
             ))
         }
 
-        return converter!(result)
+        return try converter!(result)
     }
 
     private static func randomBoundary() -> String {

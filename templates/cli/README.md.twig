@@ -22,7 +22,7 @@
 
 ## Installation
 
-The {{ spec.title }} CLI is a Node based command line tool to help you interact with the {{ spec.title }} API. The CLI is distributed both as an [`npm package`](https://www.npmjs.com/package/{{ spec.title|caseLower }}-cli) as well as [pre built binaries](https://github.com/{{ sdk.gitUserName|url_encode }}/{{ sdk.gitRepoName|url_encode }}/releases/latest) for specific operating systems and architectures.
+The {{ spec.title }} CLI is a command line tool to help you interact with the {{ spec.title }} API. The CLI is distributed both as an [`npm package`](https://www.npmjs.com/package/{{ spec.title|caseLower }}-cli) as well as [native binaries](https://github.com/{{ sdk.gitUserName|url_encode }}/{{ sdk.gitRepoName|url_encode }}/releases/latest) for specific operating systems and architectures.
 
 ### Install using NPM
 ---
@@ -50,10 +50,12 @@ If you do not have `npm` installed, you can always install the prebuilt binaries
 $ wget -q {{ sdk.url }}/cli/install.sh  -O - | /bin/bash
 ```
 
-### MacOS via [Homebrew](https://brew.sh)
+### MacOS / Linux via [Homebrew](https://brew.sh)
 ```bash
-$ brew install {{ language.params.executableName }} 
+$ brew install {{ language.params.homebrewTapOwner }}/{{ language.params.homebrewTapName }}/{{ language.params.executableName }}
 ```
+
+Homebrew pulls the formula from the [`{{ language.params.homebrewTapOwner }}/homebrew-{{ language.params.homebrewTapName }}`](https://github.com/{{ language.params.homebrewTapOwner }}/homebrew-{{ language.params.homebrewTapName }}) tap and downloads the native binary for your platform.
 
 ### Windows
 Via Powershell

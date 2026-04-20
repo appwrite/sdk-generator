@@ -3,6 +3,7 @@ import path from "path";
 import childProcess from "child_process";
 import { Command } from "commander";
 import inquirer from "inquirer";
+import chalk from "chalk";
 import { getProjectsService, getSitesService } from "../services.js";
 import { pullResources } from "./pull.js";
 import ID from "../id.js";
@@ -30,14 +31,227 @@ import {
   commandDescriptions,
 } from "../parser.js";
 import { sdkForConsole } from "../sdks.js";
-import { isCloud } from "../utils.js";
-import { Account } from "@appwrite.io/console";
+import {
+  isCloud,
+  getSafeDirectoryName,
+  siteRequiresBuildCommand,
+  hasSkillsInstalled,
+  fetchAvailableSkills,
+  detectProjectSkills,
+  placeSkills,
+} from "../utils.js";
+import { Account, UseCases, AppwriteException } from "@appwrite.io/console";
 import { DEFAULT_ENDPOINT, EXECUTABLE_NAME } from "../constants.js";
 
+type InitResourceAction = (_options?: unknown) => Promise<void>;
+type ProjectsService = Awaited<ReturnType<typeof getProjectsService>>;
+type ProjectCreateRegion = Parameters<ProjectsService["create"]>[3];
+
+interface ExistingProjectSummary {
+  $id: string;
+  name?: string;
+  region?: string;
+}
+
+interface InitProjectAnswers {
+  start: "new" | "existing";
+  override?: boolean;
+  id?: string;
+  project: string | ExistingProjectSummary;
+  organization: string;
+  region?: ProjectCreateRegion;
+}
+
+interface InitProjectAutopullAnswer {
+  autopull?: boolean;
+}
+
+interface SiteTemplateFramework {
+  providerRootDirectory: string;
+  adapter?: string;
+  buildRuntime?: string;
+  installCommand?: string;
+  buildCommand?: string;
+  outputDirectory?: string;
+  fallbackFile?: string;
+}
+
+interface SiteTemplateVariable {
+  name: string;
+  value?: string;
+}
+
+interface SiteTemplateDetails {
+  providerOwner: string;
+  providerRepositoryId: string;
+  providerVersion: string;
+  frameworks: SiteTemplateFramework[];
+  variables?: SiteTemplateVariable[];
+}
+
+interface InitProjectNextStep {
+  command: string;
+  description: string;
+}
+
+interface InitProjectStepOptions {
+  start: "new" | "existing";
+  autoPulled: boolean;
+}
+
+const extractSelectionId = (value: string): string => {
+  const match = value.match(/\(([^()]+)\)$/);
+  return match ? match[1] : value;
+};
+
+const getExistingProjectSummary = async (
+  projectId: string,
+): Promise<ExistingProjectSummary> => {
+  const projectsService = await getProjectsService();
+  const project = await projectsService.get(extractSelectionId(projectId));
+
+  return {
+    $id: project.$id,
+    name: project.name,
+    region: project.region || "",
+  };
+};
+
+const printInitProjectSuccess = (message: string): void => {
+  console.log(`${chalk.green.bold("✓")} ${chalk.green(message)}`);
+};
+
+const printInitProjectNextSteps = (steps: InitProjectNextStep[]): void => {
+  if (steps.length === 0) {
+    return;
+  }
+
+  const longestCommand = steps.reduce(
+    (longest, step) => Math.max(longest, step.command.length),
+    0,
+  );
+
+  console.log("");
+  console.log("  Next steps:");
+
+  for (const step of steps) {
+    const spacing = " ".repeat(longestCommand - step.command.length + 4);
+    console.log(
+      `    ${chalk.cyan(step.command)}${spacing}${step.description}`,
+    );
+  }
+};
+
+const getLocalInitProjectResourceState = () => {
+  const functions = localConfig.getFunctions();
+  const sites = localConfig.getSites();
+  const collections = localConfig.getCollections();
+  const tables = localConfig.getTables();
+  const buckets = localConfig.getBuckets();
+  const teams = localConfig.getTeams();
+  const webhooks = localConfig.getWebhooks();
+  const topics = localConfig.getMessagingTopics();
+
+  return {
+    hasFunctions: functions.length > 0,
+    hasResources:
+      functions.length > 0 ||
+      sites.length > 0 ||
+      collections.length > 0 ||
+      tables.length > 0 ||
+      buckets.length > 0 ||
+      teams.length > 0 ||
+      webhooks.length > 0 ||
+      topics.length > 0,
+  };
+};
+
+const getInitProjectNextSteps = ({
+  start,
+  autoPulled,
+}: InitProjectStepOptions): InitProjectNextStep[] => {
+  const { hasFunctions, hasResources } = getLocalInitProjectResourceState();
+  const nextSteps: InitProjectNextStep[] = [];
+
+  if (start === "existing" && !autoPulled) {
+    nextSteps.push(
+      {
+        command: `${EXECUTABLE_NAME} pull`,
+        description: "Choose a resource to sync",
+      },
+      {
+        command: `${EXECUTABLE_NAME} init`,
+        description: "Create a new resource",
+      },
+    );
+
+    return nextSteps;
+  }
+
+  if (start === "new") {
+    nextSteps.push({
+      command: `${EXECUTABLE_NAME} init`,
+      description: "Create your first resource",
+    });
+
+    return nextSteps;
+  }
+
+  nextSteps.push({
+    command: `${EXECUTABLE_NAME} init`,
+    description: "Create another resource",
+  });
+
+  if (hasFunctions) {
+    nextSteps.push({
+      command: `${EXECUTABLE_NAME} run function`,
+      description: "Run a pulled function locally",
+    });
+  }
+
+  if (hasResources) {
+    nextSteps.push({
+      command: `${EXECUTABLE_NAME} push`,
+      description: "Deploy your local edits",
+    });
+  }
+
+  return nextSteps;
+};
+
+const installInitProjectSkills = async (): Promise<void> => {
+  if (hasSkillsInstalled(localConfig.configDirectoryPath)) {
+    log("Agent skills already found. Skipping installation.");
+    return;
+  }
+
+  try {
+    const skillsCwd = localConfig.configDirectoryPath;
+    const { skills, tempDir } = fetchAvailableSkills();
+    try {
+      const detected = detectProjectSkills(skillsCwd, skills);
+      if (detected.length > 0) {
+        const names = detected.map((s) => s.dirName);
+        placeSkills(skillsCwd, tempDir, names, [".agents", ".claude"], true);
+        printInitProjectSuccess(
+          `Installed ${names.length} agent skill${names.length === 1 ? "" : "s"}: ${detected.map((s) => s.name).join(", ")}`,
+        );
+      }
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    error(`Failed to install agent skills: ${msg}`);
+    hint(`You can install them later with '${EXECUTABLE_NAME} init skill'.`);
+  }
+};
+
 const initResources = async (): Promise<void> => {
-  const actions: Record<string, (options?: any) => Promise<void>> = {
+  const actions: Record<string, InitResourceAction> = {
     function: initFunction,
     site: initSite,
+    skill: initSkill,
     table: initTable,
     bucket: initBucket,
     team: initTeam,
@@ -64,8 +278,6 @@ const initProject = async ({
   projectId,
   projectName,
 }: InitProjectOptions = {}): Promise<void> => {
-  let response: any = {};
-
   try {
     if (globalConfig.getEndpoint() === "" || globalConfig.getCookie() === "") {
       throw new Error(
@@ -76,96 +288,150 @@ const initProject = async ({
     const accountClient = new Account(client);
 
     await accountClient.get();
-  } catch (e) {
+  } catch (_e) {
     error(
       `Error Session not found. Please run '${EXECUTABLE_NAME} login' to create a session`,
     );
     process.exit(1);
   }
 
-  let answers: any = {};
+  let answers: InitProjectAnswers;
 
   if (!organizationId && !projectId && !projectName) {
     answers = await inquirer.prompt(questionsInitProject);
     if (answers.override === false) {
-      process.exit(1);
+      log("No changes made. Existing project configuration was kept.");
+      return;
+    }
+    if (typeof answers.organization === "string") {
+      answers.organization = extractSelectionId(answers.organization);
     }
   } else {
-    answers.start = "existing";
-    answers.project = {};
-    answers.organization = {};
-
-    answers.organization =
+    const selectedOrganization =
       organizationId ??
       (await inquirer.prompt([questionsInitProject[2]])).organization;
-    answers.project.name =
+    const selectedProjectName =
       projectName ?? (await inquirer.prompt([questionsInitProject[3]])).project;
-    answers.project =
+    const selectedProjectId =
       projectId ?? (await inquirer.prompt([questionsInitProject[4]])).id;
 
+    const normalizedOrganization = extractSelectionId(selectedOrganization);
+
+    answers = {
+      start: "existing",
+      project: selectedProjectId,
+      organization: normalizedOrganization,
+    };
+
     try {
-      const projectsService = await getProjectsService();
-      await projectsService.get(projectId);
-    } catch (e: any) {
-      if (e.code === 404) {
-        answers.start = "new";
-        answers.id = answers.project;
-        answers.project = answers.project.name;
+      answers.project = await getExistingProjectSummary(selectedProjectId);
+    } catch (e) {
+      if (e instanceof AppwriteException && e.code === 404) {
+        answers = {
+          start: "new",
+          id: selectedProjectId,
+          project: selectedProjectName,
+          organization: selectedOrganization,
+        };
       } else {
         throw e;
       }
     }
   }
 
+  if (answers.start === "existing" && typeof answers.project === "string") {
+    answers.project = await getExistingProjectSummary(answers.project);
+  }
+
   localConfig.clear(); // Clear the config to avoid any conflicts
   const url = new URL(DEFAULT_ENDPOINT);
 
   if (answers.start === "new") {
+    let projectIdToCreate;
+    let projectNameToCreate;
+
+    switch (typeof answers.project) {
+      case "string":
+        projectIdToCreate = answers.id ?? answers.project;
+        projectNameToCreate = answers.project;
+        break;
+      case "object":
+        projectIdToCreate = answers.id ?? answers.project.$id;
+        projectNameToCreate = answers.project.name ?? answers.project.$id;
+        break;
+      default:
+        projectIdToCreate = answers.id;
+        projectNameToCreate = "";
+        break;
+    }
+
     const projectsService = await getProjectsService();
-    response = await projectsService.create(
-      answers.id,
-      answers.project,
+    const response = await projectsService.create(
+      projectIdToCreate,
+      projectNameToCreate,
       answers.organization,
       answers.region,
     );
 
-    localConfig.setProject(response["$id"]);
+    localConfig.setProject(response["$id"], response.name ?? "");
     if (answers.region) {
       localConfig.setEndpoint(
         `https://${answers.region}.${url.host}${url.pathname}`,
       );
     }
   } else {
-    localConfig.setProject(answers.project["$id"]);
-    if (isCloud()) {
+    let selectedProject;
+
+    switch (typeof answers.project) {
+      case "string":
+        selectedProject = { $id: answers.project };
+        break;
+      case "object":
+        selectedProject = answers.project;
+        break;
+      default:
+        selectedProject = { $id: "" };
+        break;
+    }
+
+    localConfig.setProject(selectedProject.$id, selectedProject.name ?? "");
+
+    if (isCloud() && selectedProject.region) {
       localConfig.setEndpoint(
-        `https://${answers.project["region"]}.${url.host}${url.pathname}`,
+        `https://${selectedProject.region}.${url.host}${url.pathname}`,
       );
     }
   }
 
-  success(
-    `Project successfully ${answers.start === "existing" ? "linked" : "created"}. Details are now stored in appwrite.config.json file.`,
-  );
-
+  let autoPulled = false;
   if (answers.start === "existing") {
-    answers = await inquirer.prompt(questionsInitProjectAutopull);
-    if (answers.autopull) {
+    const autopullAnswers: InitProjectAutopullAnswer = await inquirer.prompt(
+      questionsInitProjectAutopull,
+    );
+    console.log("");
+    printInitProjectSuccess("Project linked → appwrite.config.json");
+    await installInitProjectSkills();
+    if (autopullAnswers.autopull) {
+      console.log("");
+      autoPulled = true;
       cliConfig.all = true;
       cliConfig.force = true;
       await pullResources({
         skipDeprecated: true,
       });
-    } else {
-      log(
-        `You can run '${EXECUTABLE_NAME} pull all' to synchronize all of your existing resources.`,
-      );
     }
+  } else {
+    console.log("");
+    printInitProjectSuccess("Project created → appwrite.config.json");
+    await installInitProjectSkills();
   }
 
-  hint(
-    `Next you can use '${EXECUTABLE_NAME} init' to create resources in your project, or use '${EXECUTABLE_NAME} pull' and '${EXECUTABLE_NAME} push' to synchronize your project.`,
-  );
+  const nextSteps = getInitProjectNextSteps({
+    start: answers.start,
+    autoPulled,
+  });
+
+  printInitProjectNextSteps(nextSteps);
 };
 
 const initBucket = async (): Promise<void> => {
@@ -282,6 +548,75 @@ const initTopic = async (): Promise<void> => {
   );
 };
 
+const initSkill = async (): Promise<void> => {
+  process.chdir(localConfig.configDirectoryPath);
+  const cwd = process.cwd();
+
+  log("Fetching available Appwrite agent skills ...");
+  const { skills, tempDir } = fetchAvailableSkills();
+
+  try {
+    const { selectedSkills } = await inquirer.prompt([
+      {
+        type: "checkbox",
+        name: "selectedSkills",
+        message: "Which skills would you like to install?",
+        choices: skills.map((skill) => ({
+          name: skill.name,
+          value: skill.dirName,
+          checked: false,
+        })),
+        validate: (value: string[]) =>
+          value.length > 0 || "Please select at least one skill.",
+      },
+    ]);
+
+    const { selectedAgents } = await inquirer.prompt([
+      {
+        type: "checkbox",
+        name: "selectedAgents",
+        message: "Which agent directories would you like to install to?",
+        choices: [
+          { name: ".agents", value: ".agents", checked: true },
+          { name: ".claude", value: ".claude", checked: false },
+        ],
+        validate: (value: string[]) =>
+          value.length > 0 || "Please select at least one agent directory.",
+      },
+    ]);
+
+    const { installMethod } = await inquirer.prompt([
+      {
+        type: "list",
+        name: "installMethod",
+        message: "How would you like to install the skills?",
+        choices: [
+          {
+            name: "Symlink (recommended) — single source of truth, easy to update",
+            value: "symlink",
+          },
+          {
+            name: "Copy — independent copies in each agent directory",
+            value: "copy",
+          },
+        ],
+      },
+    ]);
+
+    const useSymlinks = installMethod === "symlink";
+    placeSkills(cwd, tempDir, selectedSkills, selectedAgents, useSymlinks);
+
+    success(
+      `${selectedSkills.length} skill${selectedSkills.length === 1 ? "" : "s"} installed successfully.`,
+    );
+    hint(
+      `Agent skills are automatically discovered by AI coding agents like Claude Code, Cursor, and GitHub Copilot.`,
+    );
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+};
+
 const initFunction = async (): Promise<void> => {
   process.chdir(localConfig.configDirectoryPath);
 
@@ -297,13 +632,14 @@ const initFunction = async (): Promise<void> => {
 
   const functionId = answers.id === "unique()" ? ID.unique() : answers.id;
   const functionName = answers.name;
-  const functionDir = path.join(functionFolder, functionName);
+  const functionDirectoryName = getSafeDirectoryName(functionName, functionId);
+  const functionDir = path.join(functionFolder, functionDirectoryName);
   const templatesDir = path.join(functionFolder, `${functionId}-templates`);
   const runtimeDir = path.join(templatesDir, answers.runtime.name);
 
   if (fs.existsSync(functionDir)) {
     throw new Error(
-      `( ${functionName} ) already exists in the current directory. Please choose another name.`,
+      `( ${functionDirectoryName} ) already exists in the current directory. Please choose another name.`,
     );
   }
 
@@ -322,7 +658,6 @@ const initFunction = async (): Promise<void> => {
   fs.mkdirSync(functionDir, { mode: 0o777 });
   fs.mkdirSync(templatesDir, { mode: 0o777 });
   const repo = "https://github.com/appwrite/templates";
-  const api = `https://api.github.com/repos/appwrite/templates/contents/${answers.runtime.name}`;
   let selected: { template: string } = { template: "starter" };
 
   const sparse = (
@@ -351,20 +686,21 @@ const initFunction = async (): Promise<void> => {
       stdio: "pipe",
       cwd: templatesDir,
     });
-  } catch (err: any) {
+  } catch (err) {
     /* Specialised errors with recommended actions to take */
-    if (err.message.includes("error: unknown option")) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    if (errorMessage.includes("error: unknown option")) {
       throw new Error(
-        `${err.message} \n\nSuggestion: Try updating your git to the latest version, then trying to run this command again.`,
+        `${errorMessage} \n\nSuggestion: Try updating your git to the latest version, then trying to run this command again.`,
       );
     } else if (
-      err.message.includes(
+      errorMessage.includes(
         "is not recognized as an internal or external command,",
       ) ||
-      err.message.includes("command not found")
+      errorMessage.includes("command not found")
     ) {
       throw new Error(
-        `${err.message} \n\nSuggestion: It appears that git is not installed, try installing git then trying to run this command again.`,
+        `${errorMessage} \n\nSuggestion: It appears that git is not installed, try installing git then trying to run this command again.`,
       );
     } else {
       throw err;
@@ -390,9 +726,9 @@ const initFunction = async (): Promise<void> => {
   }
 
   const copyRecursiveSync = (src: string, dest: string): void => {
-    let exists = fs.existsSync(src);
-    let stats = exists && fs.statSync(src);
-    let isDirectory = exists && stats && stats.isDirectory();
+    const exists = fs.existsSync(src);
+    const stats = exists && fs.statSync(src);
+    const isDirectory = exists && stats && stats.isDirectory();
     if (isDirectory) {
       if (!fs.existsSync(dest)) {
         fs.mkdirSync(dest);
@@ -415,7 +751,7 @@ const initFunction = async (): Promise<void> => {
   const readmePath = path.join(
     process.cwd(),
     "functions",
-    functionName,
+    functionDirectoryName,
     "README.md",
   );
   const readmeFile = fs.readFileSync(readmePath).toString();
@@ -424,11 +760,12 @@ const initFunction = async (): Promise<void> => {
   newReadmeFile.splice(1, 2);
   fs.writeFileSync(readmePath, newReadmeFile.join("\n"));
 
-  let data = {
+  const data = {
     $id: functionId,
     name: answers.name,
     runtime: answers.runtime.id,
-    specification: answers.specification,
+    buildSpecification: answers.buildSpecification,
+    runtimeSpecification: answers.runtimeSpecification,
     execute: ["any"],
     events: [],
     scopes: ["users.read"],
@@ -439,7 +776,8 @@ const initFunction = async (): Promise<void> => {
     entrypoint: answers.runtime.entrypoint || "",
     commands: answers.runtime.commands || "",
     ignore: answers.runtime.ignore || null,
-    path: `functions/${functionName}`,
+    deploymentRetention: 0,
+    path: `functions/${functionDirectoryName}`,
   };
 
   localConfig.addFunction(data);
@@ -453,31 +791,42 @@ const initSite = async (): Promise<void> => {
   process.chdir(localConfig.configDirectoryPath);
 
   const answers = await inquirer.prompt(questionsCreateSite);
-  const siteFolder = path.join(process.cwd(), "sites");
-
-  if (!fs.existsSync(siteFolder)) {
-    fs.mkdirSync(siteFolder, {
-      recursive: true,
-    });
-  }
-
   const siteId = answers.id === "unique()" ? ID.unique() : answers.id;
-  const siteName = answers.name;
-  const siteDir = path.join(siteFolder, siteName);
+  const sitePath = answers.path.trim();
+  const siteDir = path.resolve(process.cwd(), sitePath);
+  const siteFolder = path.join(process.cwd(), "sites");
   const templatesDir = path.join(siteFolder, `${siteId}-templates`);
+  const siteDirExists = fs.existsSync(siteDir);
+  const siteFolderExists = fs.existsSync(siteFolder);
 
-  if (fs.existsSync(siteDir)) {
+  if (siteDirExists && !fs.statSync(siteDir).isDirectory()) {
     throw new Error(
-      `( ${siteName} ) already exists in the current directory. Please choose another name.`,
+      `( ${sitePath} ) already exists and is not a directory. Please choose another path.`,
     );
   }
 
-  let templateDetails: any;
+  const siteDirIsEmpty = siteDirExists
+    ? fs.readdirSync(siteDir).length === 0
+    : true;
+
+  if (answers.downloadTemplate && siteDirExists && !siteDirIsEmpty) {
+    throw new Error(
+      `( ${sitePath} ) already exists and is not empty. Please choose another path.`,
+    );
+  }
+
+  if (!answers.downloadTemplate && siteDirExists && !siteDirIsEmpty) {
+    hint(
+      `Using existing non-empty site directory '${sitePath}'. No starter template code will be downloaded.`,
+    );
+  }
+
+  let templateDetails: SiteTemplateDetails | null = null;
   try {
     const sitesService = await getSitesService();
     const response = await sitesService.listTemplates(
       [answers.framework.key],
-      ["starter"],
+      [UseCases.Starter],
       1,
     );
     if (response.total == 0) {
@@ -486,158 +835,173 @@ const initSite = async (): Promise<void> => {
       );
     }
     templateDetails = response.templates[0];
-  } catch (err: any) {
-    throw new Error(
-      `Failed to fetch template for framework ${answers.framework.key}: ${err.message}`,
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    if (answers.downloadTemplate) {
+      throw new Error(
+        `Failed to fetch template for framework ${answers.framework.key}: ${errorMessage}`,
+      );
+    }
+    log(
+      `Failed to fetch template details for framework ${answers.framework.key}: ${errorMessage}`,
     );
   }
 
-  fs.mkdirSync(siteDir, { mode: 0o777 });
-  fs.mkdirSync(templatesDir, { mode: 0o777 });
-  const repo = `https://github.com/${templateDetails.providerOwner}/${templateDetails.providerRepositoryId}`;
-  let selected = {
-    template: templateDetails.frameworks[0].providerRootDirectory,
-  };
+  const templateFramework = templateDetails?.frameworks[0];
 
-  let gitCloneCommands = "";
-
-  const sparse = selected.template.startsWith("./")
-    ? selected.template.substring(2)
-    : selected.template;
-
-  log("Fetching site code ...");
-
-  if (selected.template === "./") {
-    gitCloneCommands = `
-            mkdir -p .
-            cd .
-            git init
-            git remote add origin ${repo}
-            git config --global init.defaultBranch main
-            git fetch --depth=1 origin refs/tags/$(git ls-remote --tags origin "${templateDetails.providerVersion}" | tail -n 1 | awk -F '/' '{print $3}')
-            git checkout FETCH_HEAD
-        `.trim();
-  } else {
-    gitCloneCommands = `
-            mkdir -p .
-            cd .
-            git init
-            git remote add origin ${repo}
-            git config --global init.defaultBranch main
-            git config core.sparseCheckout true
-            echo "${sparse}" >> .git/info/sparse-checkout
-            git config --add remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'
-            git config remote.origin.tagopt --no-tags
-            git fetch --depth=1 origin refs/tags/$(git ls-remote --tags origin "${templateDetails.providerVersion}" | tail -n 1 | awk -F '/' '{print $3}')
-            git checkout FETCH_HEAD
-        `.trim();
+  const createdSiteDir = !siteDirExists;
+  if (!siteDirExists) {
+    fs.mkdirSync(siteDir, { recursive: true, mode: 0o777 });
   }
 
-  /* Force use CMD as powershell does not support && */
-  if (process.platform === "win32") {
-    gitCloneCommands = 'cmd /c "' + gitCloneCommands + '"';
-  }
+  if (answers.downloadTemplate) {
+    try {
+      if (!templateDetails || !templateFramework) {
+        throw new Error(
+          `No starter template found for framework ${answers.framework.key}`,
+        );
+      }
 
-  /*  Execute the child process but do not print any std output */
-  try {
-    childProcess.execSync(gitCloneCommands, {
-      stdio: "pipe",
-      cwd: templatesDir,
-    });
-  } catch (err: any) {
-    /* Specialised errors with recommended actions to take */
-    if (err.message.includes("error: unknown option")) {
-      throw new Error(
-        `${err.message} \n\nSuggestion: Try updating your git to the latest version, then trying to run this command again.`,
+      if (!fs.existsSync(siteFolder)) {
+        fs.mkdirSync(siteFolder, {
+          recursive: true,
+        });
+      }
+
+      fs.mkdirSync(templatesDir, { mode: 0o777 });
+      const repo = `https://github.com/${templateDetails.providerOwner}/${templateDetails.providerRepositoryId}`;
+      const selected = {
+        template: templateFramework.providerRootDirectory,
+      };
+
+      let dirSetupCommands = "";
+
+      const sparse = selected.template.startsWith("./")
+        ? selected.template.substring(2)
+        : selected.template;
+
+      log("Fetching site code ...");
+
+      if (selected.template === "./") {
+        dirSetupCommands = `
+              cd ${templatesDir}
+              git init
+              git remote add origin ${repo}
+              git config --global init.defaultBranch main
+          `.trim();
+      } else {
+        dirSetupCommands = `
+              cd ${templatesDir}
+              git init
+              git remote add origin ${repo}
+              git config --global init.defaultBranch main
+              git config core.sparseCheckout true
+              echo "${sparse}" >> .git/info/sparse-checkout
+              git config --add remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'
+              git config remote.origin.tagopt --no-tags
+          `.trim();
+      }
+      const windowsGitCloneCommands = `
+              $tag = (git ls-remote --tags origin "${templateDetails.providerVersion}" | Select-Object -Last 1) -replace '.*refs/tags/', ''
+              git fetch --depth=1 origin "refs/tags/$tag"
+              git checkout FETCH_HEAD
+              `.trim();
+      const unixGitCloneCommands = `
+              git fetch --depth=1 origin refs/tags/$(git ls-remote --tags origin "${templateDetails.providerVersion}" | tail -n 1 | awk -F '/' '{print $3}')
+              git checkout FETCH_HEAD
+              `.trim();
+
+      let usedShell = null;
+      if (process.platform === "win32") {
+        dirSetupCommands = dirSetupCommands + "\n" + windowsGitCloneCommands;
+        usedShell = "powershell.exe";
+      } else {
+        dirSetupCommands = dirSetupCommands + "\n" + unixGitCloneCommands;
+      }
+
+      /*  Execute the child process but do not print any std output */
+      try {
+        childProcess.execSync(dirSetupCommands, {
+          stdio: "pipe",
+          cwd: templatesDir,
+          shell: usedShell,
+        });
+      } catch (err) {
+        /* Specialised errors with recommended actions to take */
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        if (errorMessage.includes("error: unknown option")) {
+          throw new Error(
+            `${errorMessage} \n\nSuggestion: Try updating your git to the latest version, then trying to run this command again.`,
+          );
+        } else if (
+          errorMessage.includes(
+            "is not recognized as an internal or external command,",
+          ) ||
+          errorMessage.includes("command not found")
+        ) {
+          throw new Error(
+            `${errorMessage} \n\nSuggestion: It appears that git is not installed, try installing git then trying to run this command again.`,
+          );
+        } else {
+          throw err;
+        }
+      }
+
+      fs.rmSync(path.join(templatesDir, ".git"), {
+        recursive: true,
+        force: true,
+      });
+
+      fs.cpSync(
+        selected.template === "./"
+          ? templatesDir
+          : path.join(templatesDir, selected.template),
+        siteDir,
+        { recursive: true, force: true },
       );
-    } else if (
-      err.message.includes(
-        "is not recognized as an internal or external command,",
-      ) ||
-      err.message.includes("command not found")
-    ) {
-      throw new Error(
-        `${err.message} \n\nSuggestion: It appears that git is not installed, try installing git then trying to run this command again.`,
-      );
-    } else {
+
+      fs.rmSync(templatesDir, { recursive: true, force: true });
+
+      const readmePath = path.join(siteDir, "README.md");
+      if (fs.existsSync(readmePath)) {
+        const readmeFile = fs.readFileSync(readmePath).toString();
+        const newReadmeFile = readmeFile.split("\n");
+        newReadmeFile[0] = `# ${answers.name}`;
+        newReadmeFile.splice(1, 2);
+        fs.writeFileSync(readmePath, newReadmeFile.join("\n"));
+      }
+    } catch (err) {
+      fs.rmSync(templatesDir, { recursive: true, force: true });
+      if (createdSiteDir) {
+        fs.rmSync(siteDir, { recursive: true, force: true });
+      }
+      if (
+        !siteFolderExists &&
+        fs.existsSync(siteFolder) &&
+        fs.readdirSync(siteFolder).length === 0
+      ) {
+        fs.rmSync(siteFolder, { recursive: true, force: true });
+      }
       throw err;
     }
   }
 
-  fs.rmSync(path.join(templatesDir, ".git"), { recursive: true });
-
-  const copyRecursiveSync = (src: string, dest: string): void => {
-    let exists = fs.existsSync(src);
-    let stats = exists && fs.statSync(src);
-    let isDirectory = exists && stats && stats.isDirectory();
-    if (isDirectory) {
-      if (!fs.existsSync(dest)) {
-        fs.mkdirSync(dest);
-      }
-
-      fs.readdirSync(src).forEach(function (childItemName) {
-        copyRecursiveSync(
-          path.join(src, childItemName),
-          path.join(dest, childItemName),
-        );
-      });
-    } else {
-      fs.copyFileSync(src, dest);
-    }
-  };
-  copyRecursiveSync(
-    selected.template === "./"
-      ? templatesDir
-      : path.join(templatesDir, selected.template),
-    siteDir,
-  );
-
-  fs.rmSync(templatesDir, { recursive: true, force: true });
-
-  const readmePath = path.join(process.cwd(), "sites", siteName, "README.md");
-  const readmeFile = fs.readFileSync(readmePath).toString();
-  const newReadmeFile = readmeFile.split("\n");
-  newReadmeFile[0] = `# ${answers.name}`;
-  newReadmeFile.splice(1, 2);
-  fs.writeFileSync(readmePath, newReadmeFile.join("\n"));
-
-  let vars = (templateDetails.variables ?? []).map((variable: any) => {
-    let value = variable.value;
-    const replacements: Record<string, string> = {
-      "{apiEndpoint}": globalConfig.getEndpoint(),
-      "{projectId}": localConfig.getProject().projectId,
-      "{projectName}": localConfig.getProject().projectName,
-    };
-
-    for (const placeholder in replacements) {
-      if (value?.includes(placeholder)) {
-        value = value.replace(placeholder, replacements[placeholder]);
-      }
-    }
-
-    return {
-      key: variable.name,
-      value: value,
-    };
-  });
-
-  let data = {
+  const data = {
     $id: siteId,
     name: answers.name,
     framework: answers.framework.key,
-    adapter: templateDetails.frameworks[0].adapter || "",
-    buildRuntime: templateDetails.frameworks[0].buildRuntime || "",
-    installCommand: templateDetails.frameworks[0].installCommand || "",
-    buildCommand: templateDetails.frameworks[0].buildCommand || "",
-    outputDirectory: templateDetails.frameworks[0].outputDirectory || "",
-    fallbackFile: templateDetails.frameworks[0].fallbackFile || "",
-    specification: answers.specification,
-    enabled: true,
+    adapter: templateFramework?.adapter || "",
+    buildRuntime: templateFramework?.buildRuntime || "",
+    installCommand: templateFramework?.installCommand || "",
+    buildCommand: templateFramework?.buildCommand || "",
+    outputDirectory: templateFramework?.outputDirectory || "",
+    fallbackFile: templateFramework?.fallbackFile || "",
+    buildSpecification: answers.buildSpecification,
+    runtimeSpecification: answers.runtimeSpecification,
+    deploymentRetention: Number(answers.deploymentRetention),
     timeout: 30,
     logging: true,
-    ignore: answers.framework.ignore || null,
-    path: `sites/${siteName}`,
-    vars: vars,
+    path: sitePath,
   };
 
   if (!data.buildRuntime) {
@@ -652,7 +1016,7 @@ const initSite = async (): Promise<void> => {
     );
   }
 
-  if (!data.buildCommand) {
+  if (!data.buildCommand && siteRequiresBuildCommand(data)) {
     log(
       `Build command for this framework not found. You will be asked to configure the build command when you first push the site.`,
     );
@@ -692,6 +1056,12 @@ init
   .alias("sites")
   .description("Init a new Appwrite site")
   .action(actionRunner(initSite));
+
+init
+  .command("skill")
+  .alias("skills")
+  .description("Install Appwrite agent skills for AI coding agents")
+  .action(actionRunner(initSkill));
 
 init
   .command("bucket")

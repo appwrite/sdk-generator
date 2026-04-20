@@ -1,0 +1,56 @@
+```rust
+{% set crateName = sdk.cratePackage | default('appwrite') | rustCrateName %}
+{% set hasFileParam = method.parameters.all | filter((param) => param.type == 'file') | length > 0 %}
+use {{ crateName }}::Client;
+use {{ crateName }}::services::{{ service.name | caseUcfirst }};
+{% if hasFileParam %}
+use {{ crateName }}::InputFile;
+{% endif %}
+{% if method.parameters.all | hasPermissionParam %}
+use {{ crateName }}::permission::Permission;
+use {{ crateName }}::role::Role;
+{% endif %}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let client = Client::new();
+    client.set_endpoint("{{ spec.endpointDocs | raw }}"); // Your API Endpoint
+{% for node in method.auth %}
+{% for key, header in node|keys %}
+    client.set_{{ header | caseSnake }}("{{ node[header]['x-appwrite']['demo'] | raw }}"); // {{ node[header].description }}
+{% endfor %}
+{% endfor %}
+
+    let {{ service.name | caseSnake }} = {{ service.name | caseUcfirst }}::new(&client);
+{% for parameter in method.parameters.all %}
+{% if parameter.type == 'file' %}
+
+    let {{ parameter.name | caseSnake | overrideIdentifier }} = InputFile::from_path("path/to/file.png", None).await?;
+{% endif %}
+{% endfor %}
+{% set resultType = method | returnType(spec, 'crate') | rustType %}
+
+{% if method.parameters.all | length == 0 %}
+    {% if resultType != 'crate::error::Result<()>' %}let result = {% endif %}{{ service.name | caseSnake }}.{{ method.name | caseSnake | overrideIdentifier }}().await?;
+{% else %}
+{% set arguments = [] %}
+{% for parameter in method.parameters.all %}
+{% set argument = parameter | docsArgumentExample(crateName) %}
+{% if not loop.last %}
+{% set argument = argument ~ ',' %}
+{% endif %}
+{% if not parameter.required %}
+{% set argument = argument ~ ' // optional' %}
+{% endif %}
+{% set arguments = arguments | merge([argument]) %}
+{% endfor %}
+    {% if resultType != 'crate::error::Result<()>' %}let result = {% endif %}{{ service.name | caseSnake }}.{{ method.name | caseSnake | overrideIdentifier }}(
+        {{ arguments | join("\n        ") | raw }}
+    ).await?;
+{% endif %}
+
+    {% if resultType != 'crate::error::Result<()>' %}let _ = result;
+
+    {% endif %}Ok(())
+}
+```

@@ -25,6 +25,8 @@ namespace AppwriteTests
             var client = new Client()
                 .AddHeader("Origin", "http://localhost")
                 .SetSelfSigned(true);
+            var sdkHeaders = client.GetHeaders();
+            TestContext.WriteLine($"x-sdk-name: {sdkHeaders["x-sdk-name"]}; x-sdk-platform: {sdkHeaders["x-sdk-platform"]}; x-sdk-language: {sdkHeaders["x-sdk-language"]}; x-sdk-version: {sdkHeaders["x-sdk-version"]}");
 
             var foo = new Foo(client);
             var bar = new Bar(client);
@@ -168,7 +170,9 @@ namespace AppwriteTests
             TestContext.WriteLine(Query.Offset(20));
             TestContext.WriteLine(Query.Contains("title", "Spider"));
             TestContext.WriteLine(Query.Contains("labels", "first"));
-            
+            TestContext.WriteLine(Query.ContainsAny("labels", new List<string> { "first", "second" }));
+            TestContext.WriteLine(Query.ContainsAll("labels", new List<string> { "first", "second" }));
+
             // New query methods
             TestContext.WriteLine(Query.NotContains("title", "Spider"));
             TestContext.WriteLine(Query.NotSearch("name", "john"));
@@ -218,6 +222,15 @@ namespace AppwriteTests
                     Query.GreaterThan("releasedYear", 2015)
                 }
             ));
+
+            // regex, exists, notExists, elemMatch
+            TestContext.WriteLine(Query.Regex("name", "pattern.*"));
+            TestContext.WriteLine(Query.Exists(new List<string> { "attr1", "attr2" }));
+            TestContext.WriteLine(Query.NotExists(new List<string> { "attr1", "attr2" }));
+            TestContext.WriteLine(Query.ElemMatch("friends", new List<string> {
+                Query.Equal("name", "Alice"),
+                Query.GreaterThan("age", 18)
+            }));
 
             // Permission & Roles helper tests
             TestContext.WriteLine(Permission.Read(Role.Any()));

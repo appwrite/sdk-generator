@@ -1,9 +1,10 @@
 import chalk from "chalk";
 import { getDatabasesService } from "../../services.js";
 import { KeysAttributes } from "../../config.js";
-import { log, success, cliConfig, drawTable } from "../../parser.js";
+import { log, success, error, cliConfig, drawTable } from "../../parser.js";
 import { Pools } from "./pools.js";
 import inquirer from "inquirer";
+import type { Client } from "@appwrite.io/console";
 
 const changeableKeys = [
   "status",
@@ -53,9 +54,11 @@ const questionPushChangesConfirmation = [
 export class Attributes {
   private pools: Pools;
   private skipConfirmation: boolean;
+  private client?: Client;
 
-  constructor(pools?: Pools, skipConfirmation = false) {
-    this.pools = pools || new Pools();
+  constructor(pools?: Pools, skipConfirmation = false, client?: Client) {
+    this.client = client;
+    this.pools = pools || new Pools(undefined, client);
     this.skipConfirmation = skipConfirmation;
   }
 
@@ -73,7 +76,7 @@ export class Attributes {
       return answers.changes;
     }
 
-    let answers = await inquirer.prompt(questionPushChanges);
+    const answers = await inquirer.prompt(questionPushChanges);
 
     if (answers.changes !== "YES" && answers.changes !== "NO") {
       answers.changes = await fixConfirmation();
@@ -145,9 +148,9 @@ export class Attributes {
     const keyName = `${chalk.yellow(local.key)} in ${collection.name} (${collection["$id"]})`;
     const action = chalk.cyan(recreating ? "recreating" : "changing");
     let reason = "";
-    let attribute = recreating ? remote : local;
+    const attribute = recreating ? remote : local;
 
-    for (let key of Object.keys(remote)) {
+    for (const key of Object.keys(remote)) {
       if (!KeysAttributes.has(key)) {
         continue;
       }
@@ -197,7 +200,7 @@ export class Attributes {
     collectionId: string,
     attribute: any,
   ): Promise<any> => {
-    const databasesService = await getDatabasesService();
+    const databasesService = await getDatabasesService(this.client);
     switch (attribute.type) {
       case "string":
         switch (attribute.format) {
@@ -250,6 +253,47 @@ export class Attributes {
               encrypt: attribute.encrypt,
             });
         }
+      case "varchar":
+        return databasesService.createVarcharAttribute({
+          databaseId,
+          collectionId,
+          key: attribute.key,
+          size: attribute.size,
+          required: attribute.required,
+          xdefault: attribute.default,
+          array: attribute.array,
+          encrypt: attribute.encrypt,
+        });
+      case "text":
+        return databasesService.createTextAttribute({
+          databaseId,
+          collectionId,
+          key: attribute.key,
+          required: attribute.required,
+          xdefault: attribute.default,
+          array: attribute.array,
+          encrypt: attribute.encrypt,
+        });
+      case "mediumtext":
+        return databasesService.createMediumtextAttribute({
+          databaseId,
+          collectionId,
+          key: attribute.key,
+          required: attribute.required,
+          xdefault: attribute.default,
+          array: attribute.array,
+          encrypt: attribute.encrypt,
+        });
+      case "longtext":
+        return databasesService.createLongtextAttribute({
+          databaseId,
+          collectionId,
+          key: attribute.key,
+          required: attribute.required,
+          xdefault: attribute.default,
+          array: attribute.array,
+          encrypt: attribute.encrypt,
+        });
       case "integer":
         return databasesService.createIntegerAttribute({
           databaseId,
@@ -336,7 +380,7 @@ export class Attributes {
     collectionId: string,
     attribute: any,
   ): Promise<any> => {
-    const databasesService = await getDatabasesService();
+    const databasesService = await getDatabasesService(this.client);
     switch (attribute.type) {
       case "string":
         switch (attribute.format) {
@@ -382,6 +426,39 @@ export class Attributes {
               xdefault: attribute.default,
             });
         }
+      case "varchar":
+        return databasesService.updateVarcharAttribute({
+          databaseId,
+          collectionId,
+          key: attribute.key,
+          required: attribute.required,
+          xdefault: attribute.default,
+          size: attribute.size,
+        });
+      case "text":
+        return databasesService.updateTextAttribute({
+          databaseId,
+          collectionId,
+          key: attribute.key,
+          required: attribute.required,
+          xdefault: attribute.default,
+        });
+      case "mediumtext":
+        return databasesService.updateMediumtextAttribute({
+          databaseId,
+          collectionId,
+          key: attribute.key,
+          required: attribute.required,
+          xdefault: attribute.default,
+        });
+      case "longtext":
+        return databasesService.updateLongtextAttribute({
+          databaseId,
+          collectionId,
+          key: attribute.key,
+          required: attribute.required,
+          xdefault: attribute.default,
+        });
       case "integer":
         return databasesService.updateIntegerAttribute({
           databaseId,
@@ -463,7 +540,7 @@ export class Attributes {
       `Deleting ${isIndex ? "index" : "attribute"} ${attribute.key} of ${collection.name} ( ${collection["$id"]} )`,
     );
 
-    const databasesService = await getDatabasesService();
+    const databasesService = await getDatabasesService(this.client);
     if (isIndex) {
       await databasesService.deleteIndex(
         collection["databaseId"],
@@ -481,39 +558,58 @@ export class Attributes {
   };
 
   /**
+   * Check if attribute is a child-side relationship
+   * Child-side relationships are auto-generated by Appwrite and should be skipped
+   */
+  private isChildSideRelationship = (attribute: any): boolean =>
+    attribute.type === "relationship" && attribute.side === "child";
+
+  /**
    * Filter deleted and recreated attributes,
-   * return list of attributes to create
+   * return list of attributes to create and whether any changes were made
    */
   public attributesToCreate = async (
     remoteAttributes: any[],
     localAttributes: any[],
     collection: Collection,
     isIndex: boolean = false,
-  ): Promise<any[]> => {
-    const deleting = remoteAttributes
+  ): Promise<{ attributes: any[]; hasChanges: boolean }> => {
+    // Filter out child-side relationships from both local and remote attributes for comparison
+    // Child-side relationships are auto-generated by Appwrite when creating two-way relationships
+    // from the parent side, so we should not compare or try to create them directly
+    const filteredLocalAttributes = localAttributes.filter(
+      (attr) => !this.isChildSideRelationship(attr),
+    );
+    let filteredRemoteAttributes = remoteAttributes.filter(
+      (attr) => !this.isChildSideRelationship(attr),
+    );
+
+    const deleting = filteredRemoteAttributes
       .filter(
-        (attribute) => !this.attributesContains(attribute, localAttributes),
+        (attribute) =>
+          !this.attributesContains(attribute, filteredLocalAttributes),
       )
       .map((attr) => this.generateChangesObject(attr, collection, false));
-    const adding = localAttributes
+    const adding = filteredLocalAttributes
       .filter(
-        (attribute) => !this.attributesContains(attribute, remoteAttributes),
+        (attribute) =>
+          !this.attributesContains(attribute, filteredRemoteAttributes),
       )
       .map((attr) => this.generateChangesObject(attr, collection, true));
-    const conflicts = remoteAttributes
+    const conflicts = filteredRemoteAttributes
       .map((attribute) =>
         this.checkAttributeChanges(
           attribute,
-          this.attributesContains(attribute, localAttributes),
+          this.attributesContains(attribute, filteredLocalAttributes),
           collection,
         ),
       )
       .filter((attribute) => attribute !== undefined) as AttributeChange[];
-    const changes = remoteAttributes
+    const changes = filteredRemoteAttributes
       .map((attribute) =>
         this.checkAttributeChanges(
           attribute,
-          this.attributesContains(attribute, localAttributes),
+          this.attributesContains(attribute, filteredLocalAttributes),
           collection,
           false,
         ),
@@ -527,7 +623,7 @@ export class Attributes {
     let changedAttributes: any[] = [];
     const changing = [...deleting, ...adding, ...conflicts, ...changes];
     if (changing.length === 0) {
-      return changedAttributes;
+      return { attributes: changedAttributes, hasChanges: false };
     }
 
     log(
@@ -573,7 +669,7 @@ export class Attributes {
       }
 
       if ((await this.getConfirmation()) !== true) {
-        return changedAttributes;
+        return { attributes: changedAttributes, hasChanges: false };
       }
     }
 
@@ -584,22 +680,28 @@ export class Attributes {
           this.deleteAttribute(collection, changed, isIndex),
         ),
       );
-      remoteAttributes = remoteAttributes.filter(
+      filteredRemoteAttributes = filteredRemoteAttributes.filter(
         (attribute) => !this.attributesContains(attribute, changedAttributes),
       );
     }
 
     if (changes.length > 0) {
       changedAttributes = changes.map((change) => change.attribute);
-      await Promise.all(
-        changedAttributes.map((changed) =>
-          this.updateAttribute(
-            collection["databaseId"],
-            collection["$id"],
-            changed,
+      try {
+        await Promise.all(
+          changedAttributes.map((changed) =>
+            this.updateAttribute(
+              collection["databaseId"],
+              collection["$id"],
+              changed,
+            ),
           ),
-        ),
-      );
+        );
+      } catch (err) {
+        error(
+          `Error updating attribute for ${collection["$id"]}: ${String(err)}`,
+        );
+      }
     }
 
     const deletingAttributes = deleting.map((change) => change.attribute);
@@ -625,9 +727,11 @@ export class Attributes {
       }
     }
 
-    return localAttributes.filter(
-      (attribute) => !this.attributesContains(attribute, remoteAttributes),
+    const newAttributes = filteredLocalAttributes.filter(
+      (attribute) =>
+        !this.attributesContains(attribute, filteredRemoteAttributes),
     );
+    return { attributes: newAttributes, hasChanges: true };
   };
 
   public createIndexes = async (
@@ -636,8 +740,8 @@ export class Attributes {
   ): Promise<void> => {
     log(`Creating indexes ...`);
 
-    const databasesService = await getDatabasesService();
-    for (let index of indexes) {
+    const databasesService = await getDatabasesService(this.client);
+    for (const index of indexes) {
       await databasesService.createIndex({
         databaseId: collection["databaseId"],
         collectionId: collection["$id"],
@@ -658,14 +762,18 @@ export class Attributes {
       throw new Error("Index creation timed out.");
     }
 
-    success(`Created ${indexes.length} indexes`);
+    if (indexes.length > 0) {
+      success(`Created ${indexes.length} indexes`);
+    }
   };
 
   public createAttributes = async (
     attributes: any[],
     collection: Collection,
   ): Promise<void> => {
-    for (let attribute of attributes) {
+    log(`Creating attributes ...`);
+
+    for (const attribute of attributes) {
       if (attribute.side !== "child") {
         await this.createAttribute(
           collection["databaseId"],
@@ -688,14 +796,18 @@ export class Attributes {
     }
 
     const createdCount = attributes.filter((a) => a.side !== "child").length;
-    success(`Created ${createdCount} attributes`);
+    if (createdCount > 0) {
+      success(`Created ${createdCount} attributes`);
+    }
   };
 
   public createColumns = async (
     columns: any[],
     table: Collection,
   ): Promise<void> => {
-    for (let column of columns) {
+    log(`Creating columns ...`);
+
+    for (const column of columns) {
       if (column.side !== "child") {
         await this.createAttribute(table["databaseId"], table["$id"], column);
       }
@@ -714,6 +826,8 @@ export class Attributes {
     }
 
     const createdCount = columns.filter((c) => c.side !== "child").length;
-    success(`Created ${createdCount} columns`);
+    if (createdCount > 0) {
+      success(`Created ${createdCount} columns`);
+    }
   };
 }

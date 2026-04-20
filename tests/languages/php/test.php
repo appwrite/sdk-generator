@@ -9,11 +9,15 @@ include __DIR__ . '/../../sdks/php/src/Appwrite/Role.php';
 include __DIR__ . '/../../sdks/php/src/Appwrite/ID.php';
 include __DIR__ . '/../../sdks/php/src/Appwrite/Operator.php';
 include __DIR__ . '/../../sdks/php/src/Appwrite/AppwriteException.php';
-include __DIR__ . '/../../sdks/php/src/Appwrite/Enums/MockType.php';
-include __DIR__ . '/../../sdks/php/src/Appwrite/Services/Foo.php';
-include __DIR__ . '/../../sdks/php/src/Appwrite/Services/Bar.php';
-include __DIR__ . '/../../sdks/php/src/Appwrite/Services/General.php';
-include __DIR__ . '/../../sdks/php/src/Appwrite/Models/Player.php';
+foreach (glob(__DIR__ . '/../../sdks/php/src/Appwrite/Enums/*.php') as $file) {
+    include $file;
+}
+foreach (glob(__DIR__ . '/../../sdks/php/src/Appwrite/Models/*.php') as $file) {
+    include $file;
+}
+foreach (glob(__DIR__ . '/../../sdks/php/src/Appwrite/Services/*.php') as $file) {
+    include $file;
+}
 
 use Appwrite\AppwriteException;
 use Appwrite\Models\Player;
@@ -30,6 +34,107 @@ use Appwrite\Services\Bar;
 use Appwrite\Services\Foo;
 use Appwrite\Services\General;
 
+readonly class AdditionalPropsDataOnly
+{
+    use \Appwrite\Models\ArraySerializable;
+
+    public function __construct(
+        public array $data = []
+    ) {
+    }
+
+    public static function from(array $data): static
+    {
+        return new static(
+            data: static::extractAdditionalPropertiesFromFields($data, []),
+        );
+    }
+
+    public function toArray(): array
+    {
+        return static::serializeAdditionalProperties($this->data);
+    }
+}
+
+readonly class AdditionalPropsDataFieldMapped
+{
+    use \Appwrite\Models\ArraySerializable;
+
+    public function __construct(
+        public array $payload,
+        public string $status,
+        public array $data = []
+    ) {
+    }
+
+    public static function from(array $data): static
+    {
+        if (!array_key_exists('data', $data)) {
+            throw new \InvalidArgumentException('Missing required field "data" for ' . static::class . '.');
+        }
+
+        if (!array_key_exists('status', $data)) {
+            throw new \InvalidArgumentException('Missing required field "status" for ' . static::class . '.');
+        }
+
+        return new static(
+            payload: $data['data'],
+            status: $data['status'],
+            data: static::extractAdditionalPropertiesFromFields($data, ['data', 'status']),
+        );
+    }
+
+    public function toArray(): array
+    {
+        $result = [
+            'data' => static::serializeValue($this->payload),
+            'status' => static::serializeValue($this->status),
+        ];
+
+        foreach (static::serializeAdditionalProperties($this->data) as $field => $value) {
+            $result[$field] = $value;
+        }
+
+        return $result;
+    }
+}
+
+readonly class AdditionalPropsMapped
+{
+    use \Appwrite\Models\ArraySerializable;
+
+    public function __construct(
+        public string $id,
+        public array $data = []
+    ) {
+    }
+
+    public static function from(array $data): static
+    {
+        if (!array_key_exists('$id', $data)) {
+            throw new \InvalidArgumentException('Missing required field "$id" for ' . static::class . '.');
+        }
+
+        return new static(
+            id: $data['$id'],
+            data: static::extractAdditionalPropertiesFromFields($data, ['$id']),
+        );
+    }
+
+    public function toArray(): array
+    {
+        $result = [
+            '$id' => static::serializeValue($this->id),
+        ];
+
+        foreach (static::serializeAdditionalProperties($this->data) as $field => $value) {
+            $result[$field] = $value;
+        }
+
+        return $result;
+    }
+}
+
 $client = (new Client())
     ->addHeader("Origin", "http://localhost")
     ->setSelfSigned();
@@ -39,72 +144,81 @@ $bar = new Bar($client);
 $general = new General($client);
 
 echo "\nTest Started\n";
+$sdkHeaders = $client->getHeaders();
+echo "x-sdk-name: {$sdkHeaders['x-sdk-name']}; x-sdk-platform: {$sdkHeaders['x-sdk-platform']}; x-sdk-language: {$sdkHeaders['x-sdk-language']}; x-sdk-version: {$sdkHeaders['x-sdk-version']}\n";
 
 // Foo Service
 
 $response = $foo->get('string', 123, ['string in array']);
-echo "{$response['result']}\n";
+echo $response->result . "\n";
 
 $response = $foo->post('string', 123, ['string in array']);
-echo "{$response['result']}\n";
+echo $response->result . "\n";
 
 $response = $foo->put('string', 123, ['string in array']);
-echo "{$response['result']}\n";
+echo $response->result . "\n";
 
 $response = $foo->patch('string', 123, ['string in array']);
-echo "{$response['result']}\n";
+echo $response->result . "\n";
 
 $response = $foo->delete('string', 123, ['string in array']);
-echo "{$response['result']}\n";
+echo $response->result . "\n";
 
 // Bar Service
 
 $response = $bar->get('string', 123, ['string in array']);
-echo "{$response['result']}\n";
+echo $response->result . "\n";
 
 $response = $bar->post('string', 123, ['string in array']);
-echo "{$response['result']}\n";
+echo $response->result . "\n";
 
 $response = $bar->put('string', 123, ['string in array']);
-echo "{$response['result']}\n";
+echo $response->result . "\n";
 
 $response = $bar->patch('string', 123, ['string in array']);
-echo "{$response['result']}\n";
+echo $response->result . "\n";
 
 $response = $bar->delete('string', 123, ['string in array']);
-echo "{$response['result']}\n";
+echo $response->result . "\n";
 
 $response = $general->redirect();
-echo "{$response['result']}\n";
+echo $response['result'] . "\n";
+
+$response = $general->getUnion();
+echo $response->result . "\n";
+
+$response = $general->getUnion('stub');
+echo $response->data . "\n";
+echo $response->type . "\n";
 
 $data = file_get_contents(__DIR__ . '/../../resources/file.png');
 $response = $general->upload('string', 123, ['string in array'], InputFile::withData($data, 'image/png', 'file.png'));
-echo "{$response['result']}\n";
+echo $response->result . "\n";
 
 $data = file_get_contents(__DIR__ . '/../../resources/large_file.mp4');
 $response = $general->upload('string', 123, ['string in array'], InputFile::withData($data, 'video/mp4', 'large_file.mp4'));
-echo "{$response['result']}\n";
+echo $response->result . "\n";
 
 $response = $general->upload('string', 123, ['string in array'], InputFile::withPath(__DIR__ .'/../../resources/file.png'));
-echo "{$response['result']}\n";
+echo $response->result . "\n";
 
 $response = $general->upload('string', 123, ['string in array'], InputFile::withPath(__DIR__ .'/../../resources/large_file.mp4'));
-echo "{$response['result']}\n";
+echo $response->result . "\n";
 
 $response = $general->enum(MockType::FIRST());
-echo "{$response['result']}\n";
+echo $response->result . "\n";
 
 // Request model tests
 $player = new Player('player1', 'John Doe', 100);
 $response = $general->createPlayer($player);
-echo "{$response['result']}\n";
+echo $response->result . "\n";
 
 $players = [
     new Player('player1', 'John Doe', 100),
     new Player('player2', 'Jane Doe', 200),
 ];
 $response = $general->createPlayers($players);
-echo "{$response['result']}\n";
+echo $response->result . "\n";
 
 try {
     $response = $general->error400();
@@ -168,6 +282,8 @@ echo Query::limit(50) . "\n";
 echo Query::offset(20) . "\n";
 echo Query::contains('title', ['Spider']) . "\n";
 echo Query::contains('labels', ['first']) . "\n";
+echo Query::containsAny('labels', ['first', 'second']) . "\n";
+echo Query::containsAll('labels', ['first', 'second']) . "\n";
 
 // New query methods
 echo Query::notContains('title', ['Spider']) . "\n";
@@ -215,6 +331,15 @@ echo Query::and([
     Query::greaterThan('releasedYear', 2015)
 ]) . "\n";
 
+// regex, exists, notExists, elemMatch
+echo Query::regex('name', 'pattern.*') . "\n";
+echo Query::exists(['attr1', 'attr2']) . "\n";
+echo Query::notExists(['attr1', 'attr2']) . "\n";
+echo Query::elemMatch('friends', [
+    Query::equal('name', ['Alice']),
+    Query::greaterThan('age', 18)
+]) . "\n";
+
 // Permission & Role helper tests
 echo Permission::read(Role::any()) . "\n";
 echo Permission::write(Role::user(ID::custom('userid'))) . "\n";
@@ -230,6 +355,27 @@ echo Permission::create(Role::label('admin')) . "\n";
 // ID helper tests
 echo ID::unique() . "\n";
 echo ID::custom('custom_id') . "\n";
+
+// additionalProperties round-trip tests
+$preferences = AdditionalPropsDataOnly::from([
+    'theme' => 'dark',
+    'timezone' => 'UTC',
+]);
+echo json_encode($preferences->toArray(), JSON_THROW_ON_ERROR) . "\n";
+
+$row = AdditionalPropsMapped::from([
+    '$id' => 'row1',
+    'custom' => 'value',
+    'nested' => ['enabled' => true],
+]);
+echo json_encode($row->toArray(), JSON_THROW_ON_ERROR) . "\n";
+
+$dataFieldPayload = AdditionalPropsDataFieldMapped::from([
+    'status' => 'ok',
+    'data' => ['enabled' => true],
+    'extra' => 'kept',
+]);
+echo json_encode($dataFieldPayload->toArray(), JSON_THROW_ON_ERROR) . "\n";
 
 // Operator helper tests
 echo Operator::increment() . "\n";
@@ -259,4 +405,4 @@ echo Operator::dateSubDays(3) . "\n";
 echo Operator::dateSetNow() . "\n";
 
 $response = $general->headers();
-echo "{$response['result']}\n";
+echo $response->result . "\n";

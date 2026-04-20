@@ -83,6 +83,18 @@ abstract class Base extends TestCase
         'POST:/v1/mock/tests/general/upload:passed',
     ];
 
+    protected const EXCLUDED_FIXTURE_TOKENS = [
+        'zzexcludedservice',
+        'zzexcludedpayload',
+        'zzexcludedresult',
+        'zzexcludedstatus',
+        'zzexcludedchild',
+        'zzexcludedchildstatus',
+        'zzexcludedmethodpayload',
+        'zzexcludedmethodresult',
+        'zzexcludedmethodstatus',
+    ];
+
     /**
      * 'Mock 400 error'                              -> message
      * '{"message":"Mock 400 error","code":400}'     -> response
@@ -99,6 +111,8 @@ abstract class Base extends TestCase
 
     protected const REALTIME_RESPONSES = [
         'WS:/v1/realtime:passed',
+        'WS:/v1/realtime:passed',
+        'Realtime failed!'
     ];
 
     protected const QUERY_HELPER_RESPONSES = [
@@ -125,6 +139,8 @@ abstract class Base extends TestCase
         '{"method":"offset","values":[20]}',
         '{"method":"contains","attribute":"title","values":["Spider"]}',
         '{"method":"contains","attribute":"labels","values":["first"]}',
+        '{"method":"containsAny","attribute":"labels","values":["first","second"]}',
+        '{"method":"containsAll","attribute":"labels","values":["first","second"]}',
         '{"method":"notContains","attribute":"title","values":["Spider"]}',
         '{"method":"notSearch","attribute":"name","values":["john"]}',
         '{"method":"notBetween","attribute":"age","values":[50,100]}',
@@ -157,7 +173,11 @@ abstract class Base extends TestCase
         '{"method":"equal","attribute":"location","values":[[40.7128,-74],[40.7128,-74]]}',
         '{"method":"notEqual","attribute":"location","values":[[40.7128,-74],[40.7128,-74]]}',
         '{"method":"or","values":[{"method":"equal","attribute":"released","values":[true]},{"method":"lessThan","attribute":"releasedYear","values":[1990]}]}',
-        '{"method":"and","values":[{"method":"equal","attribute":"released","values":[false]},{"method":"greaterThan","attribute":"releasedYear","values":[2015]}]}'
+        '{"method":"and","values":[{"method":"equal","attribute":"released","values":[false]},{"method":"greaterThan","attribute":"releasedYear","values":[2015]}]}',
+        '{"method":"regex","attribute":"name","values":["pattern.*"]}',
+        '{"method":"exists","values":["attr1","attr2"]}',
+        '{"method":"notExists","values":["attr1","attr2"]}',
+        '{"method":"elemMatch","attribute":"friends","values":[{"method":"equal","attribute":"name","values":["Alice"]},{"method":"greaterThan","attribute":"age","values":[18]}]}',
     ];
 
     protected const PERMISSION_HELPER_RESPONSES = [
@@ -176,6 +196,65 @@ abstract class Base extends TestCase
     protected const ID_HELPER_RESPONSES = [
         'unique()',
         'custom_id'
+    ];
+
+    protected const ADDITIONAL_PROPERTIES_RESPONSES = [
+        '{"theme":"dark","timezone":"UTC"}',
+        '{"$id":"row1","custom":"value","nested":{"enabled":true}}',
+        '{"data":{"enabled":true},"status":"ok","extra":"kept"}',
+    ];
+
+    protected const CLI_CONSOLE_URL_RESPONSES = [
+        'https://cloud.appwrite.io/console/project-sgp-chirag-project-prod/sites/site-chirag-profile-website/deployments/deployment-123',
+        'https://cloud.appwrite.io/console/project-sgp-chirag-project-prod/functions/function-sample-function/deployment-123',
+        'https://abc.example.com/console/project-self-hosted-project/sites/site-docs/deployments/deployment-456',
+    ];
+
+    protected const CLI_HEADERS_RESPONSES = [
+        'x-sdk-name: cli; x-sdk-platform: server; x-sdk-language: cli; x-sdk-version: 0.0.1',
+    ];
+
+    protected const CLI_TYPEGEN_RESPONSES = [
+        'CLI_TYPEGEN:passed',
+    ];
+
+    protected const CLI_LOCAL_FUNCTION_EMULATION_RESPONSES = [
+        'CLI_LOCAL_FUNCTION_RUNNER_CONFIG:passed',
+        'CLI_LOCAL_SOURCE_PREFLIGHT:passed',
+    ];
+
+    protected const CLI_RUNTIME_RENDERING_RESPONSES = [
+        'CLI_RUNTIME_RENDERING:passed',
+    ];
+
+    protected const CHANNEL_HELPER_RESPONSES = [
+        'databases.db1.collections.col1.documents',
+        'databases.db1.collections.col1.documents.doc1',
+        'databases.db1.collections.col1.documents.doc1.create',
+        'databases.db1.collections.col1.documents.doc1.upsert',
+        'tablesdb.db1.tables.table1.rows',
+        'tablesdb.db1.tables.table1.rows.row1',
+        'tablesdb.db1.tables.table1.rows.row1.update',
+        'account',
+        'buckets.bucket1.files',
+        'buckets.bucket1.files.file1',
+        'buckets.bucket1.files.file1.delete',
+        'functions.func2',
+        'functions.func1',
+        'executions.exec2',
+        'executions.exec1',
+        'documents',
+        'rows',
+        'files',
+        'executions',
+        'teams',
+        'teams.team2',
+        'teams.team1',
+        'teams.team1.create',
+        'memberships',
+        'memberships.membership2',
+        'memberships.membership1',
+        'memberships.membership1.update',
     ];
 
     protected const OPERATOR_HELPER_RESPONSES = [
@@ -218,15 +297,18 @@ abstract class Base extends TestCase
 
     public function setUp(): void
     {
-        $headers = "x-sdk-name: {$this->sdkName}; x-sdk-platform: {$this->sdkPlatform}; x-sdk-language: {$this->sdkLanguage}; x-sdk-version: {$this->version}";
-
-        $this->expectedOutput[] = $headers;
+        \array_unshift($this->expectedOutput, $this->getExpectedSdkHeaders());
 
         \exec('
             cd ./mock-server && \
             docker compose build && \
             docker compose up -d --force-recreate
         ');
+    }
+
+    protected function getExpectedSdkHeaders(): string
+    {
+        return "x-sdk-name: {$this->sdkName}; x-sdk-platform: {$this->sdkPlatform}; x-sdk-language: {$this->sdkLanguage}; x-sdk-version: {$this->version}";
     }
 
     public function tearDown(): void
@@ -266,6 +348,14 @@ abstract class Base extends TestCase
             ->setDefaultHeaders([
                 'X-Appwrite-Response-Format' => '0.8.0',
             ])
+            ->setExclude([
+                'services' => [
+                    ['name' => 'zzexcludedservice'],
+                ],
+                'methods' => [
+                    ['name' => 'createExcludedGeneralFixture'],
+                ],
+            ])
             ->setTest("true");
 
         if ($this->language === 'android' || $this->language === 'kotlin') {
@@ -279,6 +369,7 @@ abstract class Base extends TestCase
         $this->rmdirRecursive($dir);
 
         $sdk->generate(__DIR__ . '/sdks/' . $this->language);
+        $this->assertExcludedFixtureWasRemoved($dir);
 
         /**
          * Build SDK
@@ -337,6 +428,41 @@ abstract class Base extends TestCase
             }
         }
         \rmdir($dir);
+    }
+
+    private function assertExcludedFixtureWasRemoved(string $dir): void
+    {
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS)
+        );
+
+        foreach ($iterator as $file) {
+            $path = \strtolower($file->getPathname());
+
+            foreach (self::EXCLUDED_FIXTURE_TOKENS as $token) {
+                $this->assertStringNotContainsString($token, $path, "Excluded fixture leaked into generated path: {$path}");
+            }
+
+            if (!$file->isFile()) {
+                continue;
+            }
+
+            $contents = \file_get_contents($file->getPathname());
+
+            if ($contents === false) {
+                continue;
+            }
+
+            $contents = \strtolower($contents);
+
+            foreach (self::EXCLUDED_FIXTURE_TOKENS as $token) {
+                $this->assertStringNotContainsString(
+                    $token,
+                    $contents,
+                    "Excluded fixture leaked into generated file: {$file->getPathname()}"
+                );
+            }
+        }
     }
 
     public function getLanguage(): Language

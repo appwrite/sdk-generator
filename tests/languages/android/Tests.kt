@@ -7,6 +7,7 @@ import io.appwrite.exceptions.AppwriteException
 import io.appwrite.Permission
 import io.appwrite.Role
 import io.appwrite.ID
+import io.appwrite.Channel
 import io.appwrite.Query
 import io.appwrite.Operator
 import io.appwrite.Condition
@@ -67,6 +68,9 @@ class ServiceTest {
             .setProject("123456")
             .addHeader("Origin", "http://localhost")
             .setSelfSigned(true)
+        val sdkHeaders = client.getHeaders()
+
+        writeToFile("x-sdk-name: ${sdkHeaders["x-sdk-name"]}; x-sdk-platform: ${sdkHeaders["x-sdk-platform"]}; x-sdk-language: ${sdkHeaders["x-sdk-language"]}; x-sdk-version: ${sdkHeaders["x-sdk-version"]}")
 
         runBlocking {
             val ping = client.ping()
@@ -76,16 +80,40 @@ class ServiceTest {
 
         // reset configs
         client.setProject("console")
-            .setEndpointRealtime("wss://cloud.appwrite.io/v1")
+            .setEndpointRealtime("wss://fra.stage.cloud.appwrite.io/v1")
 
         val foo = Foo(client)
         val bar = Bar(client)
         val general = General(client)
         val realtime = Realtime(client)
         var realtimeResponse = "Realtime failed!"
+        var realtimeResponseWithQueries = "Realtime failed!"
+        var realtimeResponseWithQueriesFailure = "Realtime failed!"
 
+        // Subscribe without queries
         realtime.subscribe("tests", payloadType = TestPayload::class.java) {
             realtimeResponse = it.payload.response
+        }
+
+        // Subscribe with queries to ensure query set support works
+        realtime.subscribe(
+            "tests",
+            payloadType = TestPayload::class.java,
+            queries = setOf(
+                Query.equal("response", listOf("WS:/v1/realtime:passed"))
+            )
+        ) {
+            realtimeResponseWithQueries = it.payload.response
+        }
+
+        realtime.subscribe(
+            "tests",
+            payloadType = TestPayload::class.java,
+            queries = setOf(
+                Query.equal("response", listOf("failed"))
+            )
+        ) {
+            realtimeResponseWithQueriesFailure = "WS:/v1/realtime:passed"
         }
 
         runBlocking {
@@ -188,8 +216,11 @@ class ServiceTest {
                 writeToFile(e.message)
             }
 
-            delay(5000)
+            delay(30000)
+
             writeToFile(realtimeResponse)
+            writeToFile(realtimeResponseWithQueries)
+            writeToFile(realtimeResponseWithQueriesFailure)
 
             // mock = general.setCookie()
             // writeToFile(mock.result)
@@ -223,7 +254,9 @@ class ServiceTest {
             writeToFile(Query.offset(20))
             writeToFile(Query.contains("title", listOf("Spider")))
             writeToFile(Query.contains("labels", listOf("first")))
-            
+            writeToFile(Query.containsAny("labels", listOf("first", "second")))
+            writeToFile(Query.containsAll("labels", listOf("first", "second")))
+
             // New query methods
             writeToFile(Query.notContains("title", listOf("Spider")))
             writeToFile(Query.notSearch("name", "john"))
@@ -264,6 +297,15 @@ class ServiceTest {
             writeToFile(Query.or(listOf(Query.equal("released", listOf(true)), Query.lessThan("releasedYear", 1990))))
             writeToFile(Query.and(listOf(Query.equal("released", listOf(false)), Query.greaterThan("releasedYear", 2015))))
 
+            // regex, exists, notExists, elemMatch
+            writeToFile(Query.regex("name", "pattern.*"))
+            writeToFile(Query.exists(listOf("attr1", "attr2")))
+            writeToFile(Query.notExists(listOf("attr1", "attr2")))
+            writeToFile(Query.elemMatch("friends", listOf(
+                Query.equal("name", "Alice"),
+                Query.greaterThan("age", 18)
+            )))
+
             // Permission & Roles helper tests
             writeToFile(Permission.read(Role.any()))
             writeToFile(Permission.write(Role.user(ID.custom("userid"))))
@@ -279,6 +321,35 @@ class ServiceTest {
             // ID helper tests
             writeToFile(ID.unique())
             writeToFile(ID.custom("custom_id"))
+
+            // Channel helper tests
+            writeToFile(Channel.database("db1").collection("col1").document().toString())
+            writeToFile(Channel.database("db1").collection("col1").document("doc1").toString())
+            writeToFile(Channel.database("db1").collection("col1").document("doc1").create().toString())
+            writeToFile(Channel.database("db1").collection("col1").document("doc1").upsert().toString())
+            writeToFile(Channel.tablesdb("db1").table("table1").row().toString())
+            writeToFile(Channel.tablesdb("db1").table("table1").row("row1").toString())
+            writeToFile(Channel.tablesdb("db1").table("table1").row("row1").update().toString())
+            writeToFile(Channel.account())
+            writeToFile(Channel.bucket("bucket1").file().toString())
+            writeToFile(Channel.bucket("bucket1").file("file1").toString())
+            writeToFile(Channel.bucket("bucket1").file("file1").delete().toString())
+            writeToFile(Channel.function("func2").toString())
+            writeToFile(Channel.function("func1").toString())
+            writeToFile(Channel.execution("exec2").toString())
+            writeToFile(Channel.execution("exec1").toString())
+            writeToFile(Channel.documents())
+            writeToFile(Channel.rows())
+            writeToFile(Channel.files())
+            writeToFile(Channel.executions())
+            writeToFile(Channel.teams())
+            writeToFile(Channel.team("team2").toString())
+            writeToFile(Channel.team("team1").toString())
+            writeToFile(Channel.team("team1").create().toString())
+            writeToFile(Channel.memberships())
+            writeToFile(Channel.membership("membership2").toString())
+            writeToFile(Channel.membership("membership1").toString())
+            writeToFile(Channel.membership("membership1").update().toString())
 
             // Operator helper tests
             writeToFile(Operator.increment(1))

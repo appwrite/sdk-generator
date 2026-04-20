@@ -13,6 +13,8 @@ general = General.new(client)
 
 puts ''
 puts 'Test Started'
+sdk_headers = client.get_headers
+puts "x-sdk-name: #{sdk_headers['x-sdk-name']}; x-sdk-platform: #{sdk_headers['x-sdk-platform']}; x-sdk-language: #{sdk_headers['x-sdk-language']}; x-sdk-version: #{sdk_headers['x-sdk-version']}"
 
 # Foo
 
@@ -158,6 +160,8 @@ puts Query.limit(50)
 puts Query.offset(20)
 puts Query.contains("title", "Spider")
 puts Query.contains("labels", "first")
+puts Query.contains_any("labels", ["first", "second"])
+puts Query.contains_all("labels", ["first", "second"])
 
 # New query methods
 puts Query.not_contains("title", "Spider")
@@ -198,6 +202,15 @@ puts Query.not_equal("location", [[40.7128, -74], [40.7128, -74]])
 
 puts Query.or([Query.equal("released", true), Query.less_than("releasedYear", 1990)])
 puts Query.and([Query.equal("released", false), Query.greater_than("releasedYear", 2015)])
+
+# New query methods: regex, exists, notExists, elemMatch
+puts Query.regex("name", "pattern.*")
+puts Query.exists(["attr1", "attr2"])
+puts Query.not_exists(["attr1", "attr2"])
+puts Query.elem_match("friends", [
+  Query.equal("name", "Alice"),
+  Query.greater_than("age", 18)
+])
 
 # Permission & Role helper tests
 puts Permission.read(Role.any())

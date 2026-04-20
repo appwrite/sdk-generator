@@ -127,7 +127,14 @@ class PHP extends Language
      */
     public function getIdentifierOverrides(): array
     {
-        return [];
+        return [
+            'Function' => 'FunctionModel',
+        ];
+    }
+
+    protected function applyIdentifierOverride(string $value): string
+    {
+        return $this->getIdentifierOverrides()[$value] ?? $value;
     }
 
     public function getStaticAccessOperator(): string
@@ -263,6 +270,11 @@ class PHP extends Language
                 'template'      => 'php/src/Service.php.twig',
             ],
             [
+                'scope'         => 'default',
+                'destination'   => '/src/{{ spec.namespace | caseNamespacePath }}/Models/ArraySerializable.php',
+                'template'      => 'php/src/Models/ArraySerializable.php.twig',
+            ],
+            [
                 'scope'         => 'service',
                 'destination'   => '/src/{{ spec.namespace | caseNamespacePath }}/Services/{{service.name | caseUcfirst}}.php',
                 'template'      => 'php/src/Services/Service.php.twig',
@@ -274,15 +286,60 @@ class PHP extends Language
             ],
             [
                 'scope'         => 'enum',
-                'destination'   => '/src/{{ spec.namespace | caseNamespacePath }}/Enums/{{ enum.name | caseUcfirst }}.php',
+                'destination'   => '/src/{{ spec.namespace | caseNamespacePath }}/Enums/{{ enum.name | caseUcfirst | overrideIdentifier }}.php',
                 'template'      => 'php/src/Enums/Enum.php.twig',
             ],
             [
+                'scope'         => 'definition',
+                'destination'   => '/src/{{ spec.namespace | caseNamespacePath }}/Models/{{ definition.name | caseUcfirst | overrideIdentifier }}.php',
+                'template'      => 'php/src/Models/Model.php.twig',
+            ],
+            [
                 'scope'         => 'requestModel',
-                'destination'   => '/src/{{ spec.namespace | caseNamespacePath }}/Models/{{ requestModel.name | caseUcfirst }}.php',
+                'destination'   => '/src/{{ spec.namespace | caseNamespacePath }}/Models/{{ requestModel.name | caseUcfirst | overrideIdentifier }}.php',
                 'template'      => 'php/src/Models/RequestModel.php.twig',
             ],
         ];
+    }
+
+    protected function normalizeNamespace(string $namespace): string
+    {
+        $segments = explode('\\', $namespace);
+        $segments = array_map(function ($segment) {
+            return $this->toPascalCase($segment);
+        }, $segments);
+
+        return implode('\\', $segments);
+    }
+
+    protected function getModelClassName(string $modelName, array $spec, bool $fullyQualified = false): string
+    {
+        $className = $this->applyIdentifierOverride($this->toPascalCase($modelName));
+
+        if (!$fullyQualified) {
+            return $className;
+        }
+
+        return '\\' . $this->normalizeNamespace($spec['namespace'] ?? '') . '\\Models\\' . $className;
+    }
+
+    protected function getResponseModels(array $method, array $spec): array
+    {
+        $models = [];
+
+        foreach ($method['responseModels'] ?? [] as $modelName) {
+            if (empty($modelName) || $modelName === 'any') {
+                continue;
+            }
+
+            $models[] = $this->getModelClassName($modelName, $spec, true);
+        }
+
+        if (empty($models) && !empty($method['responseModel']) && $method['responseModel'] !== 'any') {
+            $models[] = $this->getModelClassName($method['responseModel'], $spec, true);
+        }
+
+        return array_values(array_unique($models));
     }
 
     /**
@@ -292,17 +349,28 @@ class PHP extends Language
      */
     public function getTypeName(array $parameter, array $spec = []): string
     {
+        if (
+            ($parameter['type'] ?? null) === self::TYPE_ARRAY
+            && (isset($parameter['enumName']) || !empty($parameter['enumValues']))
+        ) {
+            return 'array';
+        }
+
         if (isset($parameter['enumName'])) {
-            return \ucfirst($parameter['enumName']);
+            return $this->applyIdentifierOverride(\ucfirst($parameter['enumName']));
         }
         if (!empty($parameter['enumValues'])) {
-            return \ucfirst($parameter['name']);
+            return $this->applyIdentifierOverride(\ucfirst($parameter['name']));
         }
         if (!empty($parameter['array']['model'])) {
             return 'array';
         }
+        if (!empty($parameter['sub_schema'])) {
+            $modelType = $this->applyIdentifierOverride($this->toPascalCase($parameter['sub_schema']));
+            return ($parameter['type'] ?? null) === self::TYPE_ARRAY ? 'array' : $modelType;
+        }
         if (!empty($parameter['model'])) {
-            $modelType = $this->toPascalCase($parameter['model']);
+            $modelType = $this->applyIdentifierOverride($this->toPascalCase($parameter['model']));
             return $parameter['type'] === self::TYPE_ARRAY ? 'array' : $modelType;
         }
         return match ($parameter['type']) {
@@ -467,10 +535,125 @@ class PHP extends Language
         return $output;
     }
 
-    protected function getReturn(array $method): string
+    protected function getMockDefinitionPayload(string $definitionName, array $spec, int $indentLevel = 2): string
+    {
+        $definition = null;
+
+        foreach ($spec['definitions'] ?? [] as $candidate) {
+            if (($candidate['name'] ?? null) === $definitionName) {
+                $definition = $candidate;
+                break;
+            }
+        }
+
+        if ($definition === null) {
+            return 'array()';
+        }
+
+        $properties = array_values(array_filter(
+            $definition['properties'] ?? [],
+            fn (array $property) => (bool)($property['required'] ?? false)
+        ));
+
+        if (empty($properties)) {
+            return 'array()';
+        }
+
+        $itemIndent = str_repeat('    ', $indentLevel);
+        $closingIndent = str_repeat('    ', max(0, $indentLevel - 1));
+        $lines = ['array('];
+
+        foreach ($properties as $index => $property) {
+            $lines[] = $itemIndent
+                . '"' . $this->escapePhpString((string)($property['name'] ?? '')) . '" => '
+                . $this->getMockPropertyValue($property, $spec, $indentLevel + 1)
+                . ($index < count($properties) - 1 ? ',' : '');
+        }
+
+        $lines[] = $closingIndent . ')';
+
+        return implode("\n", $lines);
+    }
+
+    protected function getMockPropertyValue(array $property, array $spec, int $indentLevel): string
+    {
+        if (!empty($property['sub_schema'])) {
+            if (($property['type'] ?? null) === self::TYPE_ARRAY) {
+                $itemIndent = str_repeat('    ', $indentLevel);
+                $closingIndent = str_repeat('    ', max(0, $indentLevel - 1));
+
+                return "array(\n"
+                    . $itemIndent . $this->getMockDefinitionPayload((string)$property['sub_schema'], $spec, $indentLevel + 1) . "\n"
+                    . $closingIndent . ')';
+            }
+
+            return $this->getMockDefinitionPayload((string)$property['sub_schema'], $spec, $indentLevel);
+        }
+
+        if (!empty($property['enum'])) {
+            return '"' . $this->escapePhpString((string)$property['enum'][0]) . '"';
+        }
+
+        return match ($property['type'] ?? null) {
+            self::TYPE_OBJECT, self::TYPE_ARRAY => 'array()',
+            self::TYPE_BOOLEAN => 'true',
+            self::TYPE_INTEGER => (($property['x-example'] ?? null) === null && ($property['example'] ?? null) === null)
+                ? '1'
+                : $this->formatPhpLiteral($property['example'] ?? $property['x-example']),
+            self::TYPE_NUMBER => (($property['x-example'] ?? null) === null && ($property['example'] ?? null) === null)
+                ? '1.0'
+                : $this->formatPhpLiteral($property['example'] ?? $property['x-example']),
+            self::TYPE_STRING => '"' . $this->escapePhpString(
+                (string)(
+                    ($property['example'] ?? null) !== null && ($property['example'] ?? '') !== ''
+                        ? $property['example']
+                        : '[' . strtoupper((string)($property['name'] ?? '')) . ']'
+                )
+            ) . '"',
+            default => $this->formatPhpLiteral($property['example'] ?? null),
+        };
+    }
+
+    protected function formatPhpLiteral(mixed $value): string
+    {
+        if (is_string($value)) {
+            return '"' . $this->escapePhpString($value) . '"';
+        }
+
+        if (is_bool($value)) {
+            return $value ? 'true' : 'false';
+        }
+
+        if ($value === null) {
+            return 'null';
+        }
+
+        if (is_array($value)) {
+            return empty($value) ? 'array()' : var_export($value, true);
+        }
+
+        return (string)$value;
+    }
+
+    protected function escapePhpString(string $value): string
+    {
+        $value = str_replace('\\', '\\\\', $value);
+        $value = str_replace('"', '\\"', $value);
+        $value = str_replace('$', '\\$', $value);
+
+        return $value;
+    }
+
+    protected function getReturn(array $method, array $spec = []): string
     {
         if (($method['emptyResponse'] ?? true) || $method['type'] === 'location' || $method['type'] === 'webAuth') {
             return 'string';
+        }
+
+        $responseModels = $this->getResponseModels($method, $spec);
+
+        if (!empty($responseModels)) {
+            return implode('|', $responseModels);
         }
 
         return 'array';
@@ -510,9 +693,15 @@ class PHP extends Language
     public function getFilters(): array
     {
         return [
-            new TwigFilter('getReturn', function ($value) {
-                return $this->getReturn($value);
+            new TwigFilter('getReturn', function ($value, array $spec = []) {
+                return $this->getReturn($value, $spec);
             }),
+            new TwigFilter('getResponseModels', function ($value, array $spec = []) {
+                return $this->getResponseModels($value, $spec);
+            }),
+            new TwigFilter('mockDefinitionPayload', function (string $definitionName, array $spec, int $indentLevel = 2) {
+                return $this->getMockDefinitionPayload($definitionName, $spec, $indentLevel);
+            }, ['is_safe' => ['html']]),
             new TwigFilter('methodParameters', function ($value) {
                 return $this->getMethodParameters($value);
             }),
@@ -537,20 +726,71 @@ class PHP extends Language
             new TwigFilter('caseNamespace', function ($value) {
                 $segments = explode('\\', $value);
                 $segments = array_map(function ($segment) {
-                    return ucfirst($this->toCamelCase($segment));
+                    return $this->toPascalCase($segment);
                 }, $segments);
                 return implode('\\', $segments);
             }),
             new TwigFilter('caseNamespacePath', function ($value) {
                 $segments = explode('\\', $value);
                 $segments = array_map(function ($segment) {
-                    return ucfirst($this->toCamelCase($segment));
+                    return $this->toPascalCase($segment);
                 }, $segments);
                 return implode('/', $segments);
             }),
             new TwigFilter('escapeJson', function ($value) {
                 // Escape backslashes for JSON strings
                 return str_replace('\\', '\\\\', $value);
+            }),
+            new TwigFilter('enumExample', function (array $param) {
+                $enumValues = $param['enumValues'] ?? [];
+                if (empty($enumValues)) {
+                    return '';
+                }
+
+                $enumKeys = $param['enumKeys'] ?? [];
+                $enumName = $this->toPascalCase($param['enumName'] ?? $param['name'] ?? '');
+                $example = $param['example'] ?? null;
+                $isArray = ($param['type'] ?? '') === self::TYPE_ARRAY;
+
+                $resolveKey = function ($value) use ($enumValues, $enumKeys) {
+                    $index = array_search($value, $enumValues, true);
+                    if ($index !== false && isset($enumKeys[$index]) && $enumKeys[$index] !== '') {
+                        $cleaned = \preg_replace('/[^a-zA-Z0-9]/', '', $enumKeys[$index]);
+                        return $this->toUpperSnakeCase($cleaned);
+                    }
+                    if ($index !== false && isset($enumValues[$index])) {
+                        $cleaned = \preg_replace('/[^a-zA-Z0-9]/', '', $enumValues[$index]);
+                        return $this->toUpperSnakeCase($cleaned);
+                    }
+                    $fallback = $enumKeys[0] ?? $enumValues[0] ?? $value;
+                    $cleaned = \preg_replace('/[^a-zA-Z0-9]/', '', (string)$fallback);
+                    return $this->toUpperSnakeCase($cleaned);
+                };
+
+                if ($isArray) {
+                    $values = [];
+                    if (\is_string($example) && $example !== '') {
+                        $decoded = json_decode($example, true);
+                        if (\is_array($decoded)) {
+                            $values = $decoded;
+                        }
+                    } elseif (\is_array($example)) {
+                        $values = $example;
+                    }
+
+                    if (empty($values)) {
+                        $values = [$enumValues[0]];
+                    }
+
+                    $items = array_map(function ($value) use ($enumName, $resolveKey) {
+                        return $enumName . '::' . $resolveKey($value) . '()';
+                    }, $values);
+
+                    return '[' . implode(', ', $items) . ']';
+                }
+
+                $value = ($example !== null && $example !== '') ? $example : $enumValues[0];
+                return $enumName . '::' . $resolveKey($value) . '()';
             }),
         ];
     }

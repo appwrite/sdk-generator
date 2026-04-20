@@ -1,3 +1,4 @@
+```http
 {% set boundary = 'cec8e8123c05ba25' %}
 {{ method.method | caseUpper }} {{spec.basePath}}{{ method.path }} HTTP/1.1
 Host: {{ spec.host }}
@@ -36,3 +37,4 @@ Content-Disposition: form-data; name="{{parameter.name}}{% if parameter.type == 
 --{{boundary}}--
 {% endif %}
 {% endfor %}
+```

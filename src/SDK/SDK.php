@@ -80,6 +80,21 @@ class SDK
     ];
 
     /**
+     * @var array|null
+     */
+    protected ?array $excludeIndex = null;
+
+    /**
+     * @var array|null
+     */
+    protected ?array $filteredServicesCache = null;
+
+    /**
+     * @var array|null
+     */
+    protected ?array $filteredModelDataCache = null;
+
+    /**
      * SDK constructor.
      *
      * @param Language $language
@@ -128,6 +143,9 @@ class SDK
         $this->twig->addFilter(new TwigFilter('caseCamel', function ($value) {
             return $this->helperCamelCase($value);
         }));
+        $this->twig->addFilter(new TwigFilter('removeDash', function ($value) {
+            return str_replace('-', '', $value);
+        }));
         $this->twig->addFilter(new TwigFilter('caseDash', function ($value) {
             return str_replace([' ', '_'], '-', strtolower(preg_replace('/([a-zA-Z])(?=[A-Z])/', '$1-', $value)));
         }));
@@ -135,7 +153,7 @@ class SDK
             return strtolower(preg_replace('/(?<!^)([A-Z][a-z]|(?<=[a-z])[^a-z\s]|(?<=[A-Z])[0-9_])/', '-$1', $value));
         }));
         $this->twig->addFilter(new TwigFilter('caseSlash', function ($value) {
-            return str_replace([' ', '_'], '/', strtolower(preg_replace('/([a-zA-Z])(?=[A-Z])/', '$1/', $value)));
+            return str_replace([' ', '_', '.'], '/', strtolower(preg_replace('/([a-zA-Z])(?=[A-Z])/', '$1/', $value)));
         }));
         $this->twig->addFilter(new TwigFilter('caseDot', function ($value) {
             return str_replace([' ', '_'], '.', strtolower(preg_replace('/([a-zA-Z])(?=[A-Z])/', '$1.', $value)));
@@ -159,6 +177,9 @@ class SDK
         $this->twig->addFilter(new TwigFilter('typeName', function ($value, $spec = []) {
             return $this->language->getTypeName($value, $spec);
         }, ['is_safe' => ['html']]));
+        $this->twig->addFilter(new TwigFilter('getValidResponseModels', function ($value) {
+            return $this->getValidResponseModels($value);
+        }));
         $this->twig->addFilter(new TwigFilter('paramDefault', function ($value) {
             return $this->language->getParamDefault($value);
         }, ['is_safe' => ['html']]));
@@ -173,7 +194,7 @@ class SDK
             return implode("\n", $value);
         }, ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('escapeDollarSign', function ($value) {
-            $value = str_replace('\\', '\\\\', $value); // Escape backslashes first
+            $value = str_replace('\\', '\\\\', $value ?? ''); // Escape backslashes first
             $value = str_replace('"', '\\"', $value);   // Escape double quotes
             $value = str_replace('$', '\\$', $value);   // Escape dollar signs
             return $value;
@@ -212,6 +233,9 @@ class SDK
         $this->twig->addFilter(new TwigFilter('capitalizeFirst', function ($value) {
             return ucfirst($value);
         }));
+        $this->twig->addFilter(new TwigFilter('caseSpace', function ($value) {
+            return preg_replace('/([a-z])([A-Z])/', '$1 $2', $value);
+        }));
         $this->twig->addFilter(new TwigFilter('caseSnakeExceptFirstDot', function ($value) {
             $parts = explode('.', $value, 2);
             $toSnake = function ($str) {
@@ -227,6 +251,34 @@ class SDK
         }));
         $this->twig->addFilter(new TwigFilter('hasPermissionParam', function ($value) {
             return $this->language->hasPermissionParam($value);
+        }));
+        $this->twig->addFilter(new TwigFilter('stripMarkdown', function ($value) {
+            if ($value === null) {
+                return '';
+            }
+            // Convert markdown links.
+            // Absolute URLs (http/https) are preserved as "text (url)" so users
+            // can copy or click them; relative links like "/docs/..." are
+            // useless in a terminal, so we drop the URL and keep just the text.
+            $value = preg_replace_callback(
+                '/\[([^\]]+)\]\(([^)]+)\)/',
+                function ($m) {
+                    $text = $m[1];
+                    $url = trim($m[2]);
+                    if (preg_match('/^https?:\/\//i', $url)) {
+                        return $text . ' (' . $url . ')';
+                    }
+                    return $text;
+                },
+                $value
+            );
+            // Remove bold **text** -> text (lazy to keep adjacent bold spans
+            // separate; . doesn't cross newlines by default)
+            $value = preg_replace('/\*\*(.+?)\*\*/', '$1', $value);
+            // Remove bold __text__ -> text (lazy so inner underscores like
+            // __user_id__ match correctly)
+            $value = preg_replace('/__(.+?)__/', '$1', $value);
+            return $value;
         }));
     }
 
@@ -565,49 +617,356 @@ class SDK
      */
     protected function getFilteredServices(): array
     {
+        if ($this->filteredServicesCache !== null) {
+            return $this->filteredServicesCache;
+        }
+
         $allServices = $this->spec->getServices();
         $filteredServices = [];
 
-        // Extract exclusion rules for services
-        $excludeServices = [];
-        $excludeFeatures = [];
-        foreach ($this->excludeRules['services'] ?? [] as $service) {
-            if (isset($service['name'])) {
-                $excludeServices[] = $service['name'];
-            }
-            if (isset($service['feature'])) {
-                $excludeFeatures[] = $service['feature'];
-            }
-        }
-
         foreach ($allServices as $serviceName => $service) {
-            // Check if service is excluded by name
-            if (in_array($serviceName, $excludeServices)) {
+            $allMethods = $this->spec->getMethods($serviceName);
+
+            if ($this->isServiceExcluded($serviceName, $allMethods)) {
                 continue;
             }
 
-            // Check if service is excluded by feature
-            $methods = $this->spec->getMethods($serviceName);
-            $serviceFeatures = [
-                'upload' => $this->hasUploads($methods),
-                'location' => $this->hasLocation($methods),
-                'webAuth' => $this->hasWebAuth($methods),
-            ];
+            $methods = $this->getFilteredMethods($allMethods, $serviceName);
 
-            $shouldExclude = false;
-            foreach ($excludeFeatures as $feature) {
-                if ($serviceFeatures[$feature] ?? false) {
-                    $shouldExclude = true;
-                    break;
-                }
+            if (empty($methods)) {
+                continue;
             }
 
-            if (!$shouldExclude) {
-                $filteredServices[$serviceName] = $service;
+            $service['methods'] = $methods;
+            $filteredServices[$serviceName] = $service;
+        }
+
+        $this->filteredServicesCache = $filteredServices;
+
+        return $this->filteredServicesCache;
+    }
+
+    /**
+     * @param array $methods
+     * @param string $serviceName
+     * @return array
+     */
+    protected function getFilteredMethods(array $methods, string $serviceName = ''): array
+    {
+        return \array_values(\array_filter($methods, fn (array $method) => !$this->isMethodExcluded($method, $serviceName)));
+    }
+
+    /**
+     * @return array
+     */
+    protected function getFilteredDefinitions(): array
+    {
+        return $this->getFilteredModelData()['definitions'];
+    }
+
+    /**
+     * @return array
+     */
+    protected function getFilteredRequestModels(): array
+    {
+        return $this->getFilteredModelData()['requestModels'];
+    }
+
+    /**
+     * @return array
+     */
+    protected function getFilteredRequestEnums(?array $filteredServices = null): array
+    {
+        $filteredServices ??= $this->getFilteredServices();
+        $list = [];
+
+        foreach ($filteredServices as $service) {
+            foreach ($service['methods'] ?? [] as $method) {
+                foreach ($method['parameters']['all'] ?? [] as $parameter) {
+                    $enumName = $parameter['enumName'] ?? $parameter['name'] ?? '';
+
+                    if (!isset($parameter['enumValues']) || empty($enumName)) {
+                        continue;
+                    }
+
+                    $this->mergeEnumValues(
+                        $list,
+                        $enumName,
+                        $parameter['enumValues'],
+                        $parameter['enumKeys'] ?? []
+                    );
+                }
             }
         }
 
-        return $filteredServices;
+        return \array_values($list);
+    }
+
+    /**
+     * @return array
+     */
+    protected function getFilteredResponseEnums(?array $filteredDefinitions = null): array
+    {
+        $filteredDefinitions ??= $this->getFilteredDefinitions();
+        $list = [];
+
+        foreach ($filteredDefinitions as $modelName => $model) {
+            foreach ($model['properties'] ?? [] as $propertyName => $property) {
+                if (isset($property['enum'])) {
+                    $enumName = $property['enumName'] ?? ucfirst((string)$modelName) . ucfirst((string)$propertyName);
+
+                    $this->mergeEnumValues(
+                        $list,
+                        $enumName,
+                        $property['enum'],
+                        $property['enumKeys'] ?? []
+                    );
+                }
+
+                if ((($property['type'] ?? null) === 'array') && isset($property['items']['enum'])) {
+                    $enumName = $property['items']['x-enum-name']
+                        ?? $property['enumName']
+                        ?? ucfirst((string)$modelName) . ucfirst((string)$propertyName);
+
+                    $this->mergeEnumValues(
+                        $list,
+                        $enumName,
+                        $property['items']['enum'],
+                        $property['items']['x-enum-keys'] ?? []
+                    );
+                }
+            }
+        }
+
+        return \array_values($list);
+    }
+
+    /**
+     * @return array
+     */
+    protected function getFilteredRequestModelEnums(?array $filteredRequestModels = null): array
+    {
+        $filteredRequestModels ??= $this->getFilteredRequestModels();
+        $list = [];
+
+        foreach ($filteredRequestModels as $modelName => $model) {
+            foreach ($model['properties'] ?? [] as $propertyName => $property) {
+                if (isset($property['enum'])) {
+                    $enumName = $property['enumName'] ?? ucfirst((string)$modelName) . ucfirst((string)$propertyName);
+
+                    $this->mergeEnumValues(
+                        $list,
+                        $enumName,
+                        $property['enum'],
+                        $property['enumKeys'] ?? []
+                    );
+                }
+
+                if ((($property['type'] ?? null) === 'array') && isset($property['enumValues'])) {
+                    $enumName = $property['enumName'] ?? ucfirst((string)$modelName) . ucfirst((string)$propertyName);
+
+                    $this->mergeEnumValues(
+                        $list,
+                        $enumName,
+                        $property['enumValues'],
+                        $property['enumKeys'] ?? []
+                    );
+                }
+            }
+        }
+
+        return \array_values($list);
+    }
+
+    /**
+     * @return array
+     */
+    protected function getFilteredAllEnums(
+        ?array $filteredRequestEnums = null,
+        ?array $filteredRequestModelEnums = null,
+        ?array $filteredResponseEnums = null
+    ): array {
+        $filteredRequestEnums ??= $this->getFilteredRequestEnums();
+        $filteredRequestModelEnums ??= $this->getFilteredRequestModelEnums();
+        $filteredResponseEnums ??= $this->getFilteredResponseEnums();
+        $list = [];
+
+        foreach ($filteredRequestEnums as $enum) {
+            $this->mergeEnumValues(
+                $list,
+                $enum['name'],
+                $enum['enum'],
+                $enum['keys'] ?? []
+            );
+        }
+
+        foreach ($filteredRequestModelEnums as $enum) {
+            $this->mergeEnumValues(
+                $list,
+                $enum['name'],
+                $enum['enum'],
+                $enum['keys'] ?? []
+            );
+        }
+
+        foreach ($filteredResponseEnums as $enum) {
+            $this->mergeEnumValues(
+                $list,
+                $enum['name'],
+                $enum['enum'],
+                $enum['keys'] ?? []
+            );
+        }
+
+        return \array_values($list);
+    }
+
+    /**
+     * @param array $list
+     * @param string $enumName
+     * @param array $enumValues
+     * @param array $enumKeys
+     * @return void
+     */
+    protected function mergeEnumValues(array &$list, string $enumName, array $enumValues, array $enumKeys = []): void
+    {
+        if (!isset($list[$enumName])) {
+            $list[$enumName] = [
+                'name' => $enumName,
+                'enum' => [],
+                'keys' => [],
+            ];
+        }
+
+        foreach ($enumValues as $index => $value) {
+            if (\in_array($value, $list[$enumName]['enum'], true)) {
+                continue;
+            }
+
+            $list[$enumName]['enum'][] = $value;
+            $list[$enumName]['keys'][] = $enumKeys[$index] ?? $value;
+        }
+    }
+
+    /**
+     * @return array
+     */
+    protected function getFilteredModelData(): array
+    {
+        if ($this->filteredModelDataCache !== null) {
+            return $this->filteredModelDataCache;
+        }
+
+        $definitions = $this->spec->getDefinitions();
+        $requestModels = $this->spec->getRequestModels();
+        $excludedDefinitions = $this->getExcludedDefinitions();
+        $queue = [];
+        $reachableDefinitions = [];
+        $reachableRequestModels = [];
+
+        foreach ($this->getFilteredServices() as $service) {
+            foreach ($service['methods'] ?? [] as $method) {
+                $responseModels = $method['responseModels'] ?? [];
+
+                if (!empty($method['responseModel'])) {
+                    $responseModels[] = $method['responseModel'];
+                }
+
+                foreach ($responseModels as $modelName) {
+                    if (!empty($modelName)) {
+                        $queue[$modelName] = true;
+                    }
+                }
+
+                foreach ($method['parameters']['all'] ?? [] as $parameter) {
+                    $parameterModels = [
+                        $parameter['model'] ?? null,
+                        $parameter['array']['model'] ?? null,
+                    ];
+
+                    foreach ($parameterModels as $modelName) {
+                        if (!empty($modelName)) {
+                            $queue[$modelName] = true;
+                        }
+                    }
+                }
+            }
+        }
+
+        while (!empty($queue)) {
+            $modelName = array_key_first($queue);
+
+            if ($modelName === null) {
+                break;
+            }
+
+            unset($queue[$modelName]);
+
+            if (isset($excludedDefinitions[$modelName])) {
+                continue;
+            }
+
+            $model = $definitions[$modelName] ?? $requestModels[$modelName] ?? null;
+
+            if ($model === null) {
+                continue;
+            }
+
+            if (isset($definitions[$modelName])) {
+                if (isset($reachableDefinitions[$modelName])) {
+                    continue;
+                }
+
+                $reachableDefinitions[$modelName] = true;
+            } else {
+                if (isset($reachableRequestModels[$modelName])) {
+                    continue;
+                }
+
+                $reachableRequestModels[$modelName] = true;
+            }
+
+            foreach ($model['properties'] ?? [] as $property) {
+                $dependencies = [];
+
+                if (!empty($property['sub_schema'])) {
+                    $dependencies[] = $property['sub_schema'];
+                }
+
+                foreach ($property['sub_schemas'] ?? [] as $subSchema) {
+                    if (!empty($subSchema)) {
+                        $dependencies[] = $subSchema;
+                    }
+                }
+
+                foreach ($dependencies as $dependency) {
+                    if (!isset($excludedDefinitions[$dependency])) {
+                        $queue[$dependency] = true;
+                    }
+                }
+            }
+        }
+
+        $filteredDefinitions = [];
+        foreach ($definitions as $modelName => $definition) {
+            if (isset($reachableDefinitions[$modelName])) {
+                $filteredDefinitions[$modelName] = $definition;
+            }
+        }
+
+        $filteredRequestModels = [];
+        foreach ($requestModels as $modelName => $requestModel) {
+            if (isset($reachableRequestModels[$modelName])) {
+                $filteredRequestModels[$modelName] = $requestModel;
+            }
+        }
+
+        $this->filteredModelDataCache = [
+            'definitions' => $filteredDefinitions,
+            'requestModels' => $filteredRequestModels,
+        ];
+
+        return $this->filteredModelDataCache;
     }
 
     /**
@@ -619,6 +978,19 @@ class SDK
      */
     public function generate(string $target): void
     {
+        $filteredServices = $this->getFilteredServices();
+        $filteredModelData = $this->getFilteredModelData();
+        $filteredDefinitions = $filteredModelData['definitions'];
+        $filteredRequestModels = $filteredModelData['requestModels'];
+        $filteredRequestEnums = $this->getFilteredRequestEnums($filteredServices);
+        $filteredRequestModelEnums = $this->getFilteredRequestModelEnums($filteredRequestModels);
+        $filteredResponseEnums = $this->getFilteredResponseEnums($filteredDefinitions);
+        $filteredAllEnums = $this->getFilteredAllEnums(
+            $filteredRequestEnums,
+            $filteredRequestModelEnums,
+            $filteredResponseEnums
+        );
+
         $params = [
             'spec' => [
                 'title' => $this->spec->getTitle(),
@@ -634,15 +1006,19 @@ class SDK
                 'contactName' => $this->spec->getContactName(),
                 'contactURL' => $this->spec->getContactURL(),
                 'contactEmail' => $this->spec->getContactEmail(),
-                'services' => $this->getFilteredServices(),
-                'requestEnums' => $this->spec->getRequestEnums(),
-                'responseEnums' => $this->spec->getResponseEnums(),
-                'allEnums' => $this->spec->getAllEnums(),
-                'definitions' => $this->spec->getDefinitions(),
-                'requestModels' => $this->spec->getRequestModels(),
+                'services' => $filteredServices,
+                'requestEnums' => $filteredRequestEnums,
+                'requestModelEnums' => $filteredRequestModelEnums,
+                'responseEnums' => $filteredResponseEnums,
+                'allEnums' => $filteredAllEnums,
+                'definitions' => $filteredDefinitions,
+                'requestModels' => $filteredRequestModels,
                 'global' => [
                     'headers' => $this->spec->getGlobalHeaders(),
-                    'defaultHeaders' => $this->defaultHeaders,
+                    'defaultHeaders' => array_merge(
+                        $this->defaultHeaders,
+                        $this->spec->getVersion() !== '' ? ['X-Appwrite-Response-Format' => $this->spec->getVersion()] : [],
+                    ),
                 ],
             ],
             'language' => [
@@ -671,8 +1047,8 @@ class SDK
                     copy(realpath(__DIR__ . '/../../templates/' . $file['template']), $destination);
                     break;
                 case 'service':
-                    foreach ($this->getFilteredServices() as $key => $service) {
-                        $methods = $this->spec->getMethods($key);
+                    foreach ($filteredServices as $key => $service) {
+                        $methods = $service['methods'] ?? [];
                         $params['service'] = [
                             'globalParams' => $service['globalParams'] ?? [],
                             'description' => $service['description'] ?? '',
@@ -683,6 +1059,7 @@ class SDK
                                 'webAuth' => $this->hasWebAuth($methods),
                             ],
                             'methods' => $methods,
+                            'isConsoleOnly' => $this->isConsoleOnly($key),
                         ];
 
                         if ($this->exclude($file, $params)) {
@@ -693,7 +1070,7 @@ class SDK
                     }
                     break;
                 case 'definition':
-                    foreach ($this->spec->getDefinitions() as $key => $definition) {
+                    foreach ($filteredDefinitions as $key => $definition) {
                         $params['definition'] = $definition;
 
                         if ($this->exclude($file, $params)) {
@@ -704,7 +1081,7 @@ class SDK
                     }
                     break;
                 case 'requestModel':
-                    foreach ($this->spec->getRequestModels() as $key => $requestModel) {
+                    foreach ($filteredRequestModels as $key => $requestModel) {
                         $params['requestModel'] = $requestModel;
 
                         if ($this->exclude($file, $params)) {
@@ -715,8 +1092,8 @@ class SDK
                     }
                     break;
                 case 'method':
-                    foreach ($this->getFilteredServices() as $key => $service) {
-                        $methods = $this->spec->getMethods($key);
+                    foreach ($filteredServices as $key => $service) {
+                        $methods = $service['methods'] ?? [];
                         $params['service'] = [
                             'name' => $key,
                             'methods' => $methods,
@@ -726,6 +1103,7 @@ class SDK
                                 'location' => $this->hasLocation($methods),
                                 'webAuth' => $this->hasWebAuth($methods),
                             ],
+                            'isConsoleOnly' => $this->isConsoleOnly($key),
                         ];
 
                         foreach ($methods as $method) {
@@ -740,7 +1118,7 @@ class SDK
                     }
                     break;
                 case 'enum':
-                    foreach ($this->spec->getAllEnums() as $key => $enum) {
+                    foreach ($filteredAllEnums as $key => $enum) {
                         $params['enum'] = $enum;
 
                         $this->render($template, $destination, $block, $params, $minify);
@@ -769,7 +1147,117 @@ class SDK
             }
         }
 
+        $this->excludeIndex = null;
+        $this->filteredServicesCache = null;
+        $this->filteredModelDataCache = null;
+
         return $this;
+    }
+
+    /**
+     * @param string $serviceName
+     * @param array $methods
+     * @return bool
+     */
+    protected function isServiceExcluded(string $serviceName, array $methods): bool
+    {
+        $excludeIndex = $this->getExcludeIndex();
+
+        if (isset($excludeIndex['services'][$serviceName])) {
+            return true;
+        }
+
+        $serviceFeatures = [
+            'upload' => $this->hasUploads($methods),
+            'location' => $this->hasLocation($methods),
+            'webAuth' => $this->hasWebAuth($methods),
+        ];
+
+        foreach ($excludeIndex['features'] as $feature) {
+            if ($serviceFeatures[$feature] ?? false) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param array $method
+     * @param string $serviceName
+     * @return bool
+     */
+    protected function isMethodExcluded(array $method, string $serviceName = ''): bool
+    {
+        $excludeIndex = $this->getExcludeIndex();
+        $methodName = $method['name'] ?? '';
+
+        if (isset($excludeIndex['methods'][$methodName])) {
+            foreach ($excludeIndex['methods'][$methodName] as $scope) {
+                // true = global exclusion, string = service-scoped exclusion
+                if ($scope === true || $scope === $serviceName) {
+                    return true;
+                }
+            }
+        }
+
+        return isset($excludeIndex['types'][$method['type'] ?? '']);
+    }
+
+    /**
+     * @return array
+     */
+    protected function getExcludedDefinitions(): array
+    {
+        return $this->getExcludeIndex()['definitions'];
+    }
+
+    /**
+     * @return array
+     */
+    protected function getExcludeIndex(): array
+    {
+        if ($this->excludeIndex !== null) {
+            return $this->excludeIndex;
+        }
+
+        $this->excludeIndex = [
+            'services' => [],
+            'features' => [],
+            'methods' => [],
+            'types' => [],
+            'definitions' => [],
+        ];
+
+        foreach ($this->excludeRules['services'] ?? [] as $service) {
+            if (isset($service['name'])) {
+                $this->excludeIndex['services'][$service['name']] = true;
+            }
+
+            if (isset($service['feature'])) {
+                $this->excludeIndex['features'][$service['feature']] = $service['feature'];
+            }
+        }
+
+        foreach ($this->excludeRules['methods'] ?? [] as $method) {
+            if (isset($method['name'])) {
+                // When 'service' is set, only exclude the method from that service.
+                // Otherwise, exclude it globally (true).
+                $this->excludeIndex['methods'][$method['name']][] = $method['service'] ?? true;
+            }
+
+            if (isset($method['type'])) {
+                $this->excludeIndex['types'][$method['type']] = true;
+            }
+        }
+
+        foreach ($this->excludeRules['definitions'] ?? [] as $definition) {
+            if (isset($definition['name'])) {
+                $this->excludeIndex['definitions'][$definition['name']] = true;
+            }
+        }
+
+        return $this->excludeIndex;
     }
 
     /**
@@ -800,10 +1288,15 @@ class SDK
         }
 
         $methods = [];
+        $scopedMethods = [];
         $types = [];
         foreach ($exclude['methods'] ?? [] as $method) {
             if (isset($method['name'])) {
-                $methods[] = $method['name'];
+                if (isset($method['service'])) {
+                    $scopedMethods[] = $method;
+                } else {
+                    $methods[] = $method['name'];
+                }
             }
             if (isset($method['type'])) {
                 $types[] = $method['type'];
@@ -829,6 +1322,14 @@ class SDK
 
         if (\in_array($params['method']['name'] ?? '', $methods)) {
             return true;
+        }
+
+        $currentMethodName = $params['method']['name'] ?? '';
+        $currentServiceName = $params['service']['name'] ?? '';
+        foreach ($scopedMethods as $scopedMethod) {
+            if ($scopedMethod['name'] === $currentMethodName && $scopedMethod['service'] === $currentServiceName) {
+                return true;
+            }
         }
 
         if (\in_array($params['method']['type'] ?? '', $types)) {
@@ -885,6 +1386,18 @@ class SDK
         }
 
         return false;
+    }
+
+    protected function isConsoleOnly(string $serviceName): bool
+    {
+        $consoleOnlyServices = [
+            'account',
+            'locale',
+            'organizations',
+            'projects',
+        ];
+
+        return \in_array($serviceName, $consoleOnlyServices, true);
     }
 
     /**
@@ -948,5 +1461,32 @@ class SDK
         $str = lcfirst($str);
 
         return $str;
+    }
+
+    /**
+     * @param array $method
+     * @return array<int, string>
+     */
+    protected function getValidResponseModels(array $method): array
+    {
+        $responseModels = [];
+
+        foreach ($method['responseModels'] ?? [] as $modelName) {
+            if (empty($modelName) || $modelName === 'any' || \in_array($modelName, $responseModels, true)) {
+                continue;
+            }
+
+            $responseModels[] = $modelName;
+        }
+
+        if (
+            empty($responseModels)
+            && !empty($method['responseModel'])
+            && $method['responseModel'] !== 'any'
+        ) {
+            $responseModels[] = $method['responseModel'];
+        }
+
+        return $responseModels;
     }
 }

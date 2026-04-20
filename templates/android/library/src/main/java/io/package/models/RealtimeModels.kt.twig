@@ -10,7 +10,8 @@ data class RealtimeSubscription(
 }
 
 data class RealtimeCallback(
-    val channels: Collection<String>,
+    val channels: Set<String>,
+    val queries: Set<String>,
     val payloadClass: Class<*>,
     val callback: (RealtimeResponseEvent<*>) -> Unit
 )

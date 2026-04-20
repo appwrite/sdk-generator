@@ -1,3 +1,4 @@
+```ts
 import { Client, {{ service.name | caseUcfirst }}{% for parameter in method.parameters.all %}{% if parameter.enumValues | length > 0%}, {{ parameter.enumName | caseUcfirst}}{% endif %}{% endfor %}{% if method.parameters.all | hasPermissionParam %}, Permission, Role{% endif %} } from "https://deno.land/x/{{ spec.title | caseDash }}/mod.ts";
 
 const client = new Client()
@@ -24,3 +25,4 @@ const {{ service.name | caseCamel }} = new {{service.name | caseUcfirst}}(client
 {%~ endfor -%}
 });
 {% endif %}
+```

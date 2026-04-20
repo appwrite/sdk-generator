@@ -1,7 +1,13 @@
 import { z } from "zod";
+import {
+  validateRequiredDefault,
+  validateStringSize,
+  validateContainerDuplicates,
+  validateCrossDatabase,
+} from "./config-validations.js";
 
 // ============================================================================
-// Internal Helpers (not exported)
+// Internal Helpers
 // ============================================================================
 
 const INT64_MIN = BigInt("-9223372036854775808");
@@ -19,7 +25,7 @@ const int64Schema = z.preprocess(
           const valueOfResult = val.valueOf();
           const bigIntVal = BigInt(valueOfResult as string | number | bigint);
           return bigIntVal;
-        } catch (e) {
+        } catch (_e) {
           return undefined;
         }
       }
@@ -31,7 +37,7 @@ const int64Schema = z.preprocess(
     if (typeof val === "string") {
       try {
         return BigInt(val);
-      } catch (e) {
+      } catch (_e) {
         return undefined;
       }
     }
@@ -66,29 +72,6 @@ const MockNumberSchema = z
   .strict();
 
 // ============================================================================
-// Config Schema
-// ============================================================================
-
-const ConfigSchema = z
-  .object({
-    projectId: z.string(),
-    projectName: z.string().optional(),
-    endpoint: z.string().optional(),
-    settings: z.lazy(() => SettingsSchema).optional(),
-    functions: z.array(z.lazy(() => FunctionSchema)).optional(),
-    sites: z.array(z.lazy(() => SiteSchema)).optional(),
-    databases: z.array(z.lazy(() => DatabaseSchema)).optional(),
-    collections: z.array(z.lazy(() => CollectionSchema)).optional(),
-    tablesDB: z.array(z.lazy(() => DatabaseSchema)).optional(),
-    tables: z.array(z.lazy(() => TablesDBSchema)).optional(),
-    topics: z.array(z.lazy(() => TopicSchema)).optional(),
-    teams: z.array(z.lazy(() => TeamSchema)).optional(),
-    buckets: z.array(z.lazy(() => BucketSchema)).optional(),
-    messages: z.array(z.lazy(() => MessageSchema)).optional(),
-  })
-  .strict();
-
-// ============================================================================
 // Project Settings
 // ============================================================================
 
@@ -111,6 +94,14 @@ const SettingsSchema = z
       })
       .strict()
       .optional(),
+    protocols: z
+      .object({
+        rest: z.boolean().optional(),
+        graphql: z.boolean().optional(),
+        websocket: z.boolean().optional(),
+      })
+      .strict()
+      .optional(),
     auth: z
       .object({
         methods: z
@@ -127,10 +118,10 @@ const SettingsSchema = z
           .optional(),
         security: z
           .object({
-            duration: z.number().optional(),
-            limit: z.number().optional(),
-            sessionsLimit: z.number().optional(),
-            passwordHistory: z.number().optional(),
+            duration: z.union([z.number(), z.bigint()]).optional(),
+            limit: z.union([z.number(), z.bigint()]).optional(),
+            sessionsLimit: z.union([z.number(), z.bigint()]).optional(),
+            passwordHistory: z.union([z.number(), z.bigint()]).optional(),
             passwordDictionary: z.boolean().optional(),
             personalDataCheck: z.boolean().optional(),
             sessionAlerts: z.boolean().optional(),
@@ -153,9 +144,8 @@ const SiteSchema = z
     path: z.string().optional(),
     $id: z.string(),
     name: z.string(),
-    enabled: z.boolean().optional(),
     logging: z.boolean().optional(),
-    timeout: z.number().optional(),
+    timeout: z.union([z.number(), z.bigint()]).optional(),
     framework: z.string().optional(),
     buildRuntime: z.string().optional(),
     adapter: z.string().optional(),
@@ -163,9 +153,11 @@ const SiteSchema = z
     buildCommand: z.string().optional(),
     outputDirectory: z.string().optional(),
     fallbackFile: z.string().optional(),
-    specification: z.string().optional(),
+    buildSpecification: z.string().optional(),
+    runtimeSpecification: z.string().optional(),
+    deploymentRetention: z.number().optional(),
+    startCommand: z.string().optional(),
     vars: z.record(z.string(), z.string()).optional(),
-    ignore: z.string().optional(),
   })
   .strict();
 
@@ -178,11 +170,13 @@ const FunctionSchema = z
     enabled: z.boolean().optional(),
     logging: z.boolean().optional(),
     runtime: z.string(),
-    specification: z.string().optional(),
+    buildSpecification: z.string().optional(),
+    runtimeSpecification: z.string().optional(),
+    deploymentRetention: z.number().optional(),
     scopes: z.array(z.string()).optional(),
     events: z.array(z.string()).optional(),
     schedule: z.string().optional(),
-    timeout: z.number().optional(),
+    timeout: z.union([z.number(), z.bigint()]).optional(),
     entrypoint: z.string().optional(),
     commands: z.string().optional(),
     vars: z.record(z.string(), z.string()).optional(),
@@ -206,11 +200,15 @@ const DatabaseSchema = z
 // Collections (legacy)
 // ============================================================================
 
-const AttributeSchemaBase = z
+const AttributeSchema = z
   .object({
     key: z.string(),
     type: z.enum([
       "string",
+      "text",
+      "varchar",
+      "mediumtext",
+      "longtext",
       "integer",
       "double",
       "boolean",
@@ -234,6 +232,7 @@ const AttributeSchemaBase = z
       .optional(),
     elements: z.array(z.string()).optional(),
     relatedCollection: z.string().optional(),
+    relatedTable: z.string().optional(),
     relationType: z.string().optional(),
     twoWay: z.boolean().optional(),
     twoWayKey: z.string().optional(),
@@ -243,20 +242,15 @@ const AttributeSchemaBase = z
     orders: z.array(z.string()).optional(),
     encrypt: z.boolean().optional(),
   })
-  .strict();
-
-const AttributeSchema = AttributeSchemaBase.refine(
-  (data) => {
-    if (data.required === true && data.default !== null) {
-      return false;
-    }
-    return true;
-  },
-  {
+  .strict()
+  .refine(validateRequiredDefault, {
     message: "When 'required' is true, 'default' must be null",
     path: ["default"],
-  },
-);
+  })
+  .refine(validateStringSize, {
+    message: "When 'type' is 'string' or 'varchar', 'size' must be defined",
+    path: ["size"],
+  });
 
 const IndexSchema = z
   .object({
@@ -280,45 +274,64 @@ const CollectionSchema = z
     indexes: z.array(IndexSchema).optional(),
   })
   .strict()
-  .superRefine((data, ctx) => {
-    if (data.attributes && data.attributes.length > 0) {
-      const seenKeys = new Set<string>();
-
-      data.attributes.forEach((attr, index) => {
-        if (seenKeys.has(attr.key)) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: `Attribute with the key '${attr.key}' already exists. Attribute keys must be unique, try again with a different key.`,
-            path: ["attributes", index, "key"],
-          });
-        } else {
-          seenKeys.add(attr.key);
-        }
-      });
-    }
-
-    if (data.indexes && data.indexes.length > 0) {
-      const seenKeys = new Set<string>();
-
-      data.indexes.forEach((index, indexPos) => {
-        if (seenKeys.has(index.key)) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: `Index with the key '${index.key}' already exists. Index keys must be unique, try again with a different key.`,
-            path: ["indexes", indexPos, "key"],
-          });
-        } else {
-          seenKeys.add(index.key);
-        }
-      });
-    }
-  });
+  .superRefine(validateContainerDuplicates);
 
 // ============================================================================
 // Tables
 // ============================================================================
 
-const ColumnSchema = AttributeSchema;
+const ColumnSchema = z
+  .object({
+    key: z.string(),
+    type: z.enum([
+      "string",
+      "text",
+      "varchar",
+      "mediumtext",
+      "longtext",
+      "integer",
+      "double",
+      "boolean",
+      "datetime",
+      "relationship",
+      "linestring",
+      "point",
+      "polygon",
+    ]),
+    required: z.boolean().optional(),
+    array: z.boolean().optional(),
+    size: z.number().optional(),
+    default: z.any().optional(),
+    min: int64Schema,
+    max: int64Schema,
+    format: z
+      .union([
+        z.enum(["email", "enum", "url", "ip", "datetime"]),
+        z.literal(""),
+      ])
+      .optional(),
+    elements: z.array(z.string()).optional(),
+    // For tables, relationship uses relatedTable instead of relatedCollection
+    relatedTable: z.string().optional(),
+    relationType: z.string().optional(),
+    twoWay: z.boolean().optional(),
+    twoWayKey: z.string().optional(),
+    onDelete: z.string().optional(),
+    side: z.string().optional(),
+    // For table indexes, uses columns instead of attributes
+    columns: z.array(z.string()).optional(),
+    orders: z.array(z.string()).optional(),
+    encrypt: z.boolean().optional(),
+  })
+  .strict()
+  .refine(validateRequiredDefault, {
+    message: "When 'required' is true, 'default' must be null",
+    path: ["default"],
+  })
+  .refine(validateStringSize, {
+    message: "When 'type' is 'string' or 'varchar', 'size' must be defined",
+    path: ["size"],
+  });
 
 const IndexTableSchema = z
   .object({
@@ -330,7 +343,7 @@ const IndexTableSchema = z
   })
   .strict();
 
-const TablesDBSchema = z
+const TableSchema = z
   .object({
     $id: z.string(),
     $permissions: z.array(z.string()).optional(),
@@ -342,39 +355,7 @@ const TablesDBSchema = z
     indexes: z.array(IndexTableSchema).optional(),
   })
   .strict()
-  .superRefine((data, ctx) => {
-    if (data.columns && data.columns.length > 0) {
-      const seenKeys = new Set<string>();
-
-      data.columns.forEach((col, index) => {
-        if (seenKeys.has(col.key)) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: `Column with the key '${col.key}' already exists. Column keys must be unique, try again with a different key.`,
-            path: ["columns", index, "key"],
-          });
-        } else {
-          seenKeys.add(col.key);
-        }
-      });
-    }
-
-    if (data.indexes && data.indexes.length > 0) {
-      const seenKeys = new Set<string>();
-
-      data.indexes.forEach((index, indexPos) => {
-        if (seenKeys.has(index.key)) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: `Index with the key '${index.key}' already exists. Index keys must be unique, try again with a different key.`,
-            path: ["indexes", indexPos, "key"],
-          });
-        } else {
-          seenKeys.add(index.key);
-        }
-      });
-    }
-  });
+  .superRefine(validateContainerDuplicates);
 
 // ============================================================================
 // Topics
@@ -396,6 +377,21 @@ const TeamSchema = z
   .object({
     $id: z.string(),
     name: z.string(),
+  })
+  .strict();
+
+// ============================================================================
+// Webhooks
+// ============================================================================
+
+const WebhookSchema = z
+  .object({
+    $id: z.string(),
+    name: z.string(),
+    url: z.string(),
+    events: z.array(z.string()),
+    enabled: z.boolean().optional(),
+    tls: z.boolean().optional(),
   })
   .strict();
 
@@ -434,7 +430,32 @@ const BucketSchema = z
   .strict();
 
 // ============================================================================
-// Type Exports (inferred from Zod schemas - single source of truth)
+// Config Schema
+// ============================================================================
+
+const ConfigSchema = z
+  .object({
+    projectId: z.string(),
+    projectName: z.string().optional(),
+    endpoint: z.string().optional(),
+    settings: z.lazy(() => SettingsSchema).optional(),
+    functions: z.array(z.lazy(() => FunctionSchema)).optional(),
+    sites: z.array(z.lazy(() => SiteSchema)).optional(),
+    databases: z.array(z.lazy(() => DatabaseSchema)).optional(),
+    collections: z.array(z.lazy(() => CollectionSchema)).optional(),
+    tablesDB: z.array(z.lazy(() => DatabaseSchema)).optional(),
+    tables: z.array(z.lazy(() => TableSchema)).optional(),
+    topics: z.array(z.lazy(() => TopicSchema)).optional(),
+    teams: z.array(z.lazy(() => TeamSchema)).optional(),
+    buckets: z.array(z.lazy(() => BucketSchema)).optional(),
+    webhooks: z.array(z.lazy(() => WebhookSchema)).optional(),
+    messages: z.array(z.lazy(() => MessageSchema)).optional(),
+  })
+  .strict()
+  .superRefine(validateCrossDatabase);
+
+// ============================================================================
+// Type Exports
 // ============================================================================
 
 export type ConfigType = z.infer<typeof ConfigSchema>;
@@ -445,19 +466,21 @@ export type DatabaseType = z.infer<typeof DatabaseSchema>;
 export type CollectionType = z.infer<typeof CollectionSchema>;
 export type AttributeType = z.infer<typeof AttributeSchema>;
 export type IndexType = z.infer<typeof IndexSchema>;
-export type TableType = z.infer<typeof TablesDBSchema>;
+export type TableType = z.infer<typeof TableSchema>;
 export type ColumnType = z.infer<typeof ColumnSchema>;
 export type TableIndexType = z.infer<typeof IndexTableSchema>;
 export type TopicType = z.infer<typeof TopicSchema>;
 export type TeamType = z.infer<typeof TeamSchema>;
 export type MessageType = z.infer<typeof MessageSchema>;
 export type BucketType = z.infer<typeof BucketSchema>;
+export type WebhookType = z.infer<typeof WebhookSchema>;
 
 // ============================================================================
 // Schema Exports
 // ============================================================================
 
 export {
+  /** Config */
   ConfigSchema,
 
   /** Project Settings */
@@ -476,7 +499,7 @@ export {
   IndexSchema,
 
   /** Tables */
-  TablesDBSchema,
+  TableSchema,
   ColumnSchema,
   IndexTableSchema,
 
@@ -491,4 +514,7 @@ export {
 
   /** Buckets */
   BucketSchema,
+
+  /** Webhooks */
+  WebhookSchema,
 };

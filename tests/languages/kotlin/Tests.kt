@@ -44,6 +44,9 @@ class ServiceTest {
             .setProject("123456")
             .addHeader("Origin", "http://localhost")
             .setSelfSigned(true)
+        val sdkHeaders = client.getHeaders()
+
+        writeToFile("x-sdk-name: ${sdkHeaders["x-sdk-name"]}; x-sdk-platform: ${sdkHeaders["x-sdk-platform"]}; x-sdk-language: ${sdkHeaders["x-sdk-language"]}; x-sdk-version: ${sdkHeaders["x-sdk-version"]}")
 
         runBlocking {
             val ping = client.ping()
@@ -190,7 +193,9 @@ class ServiceTest {
             writeToFile(Query.offset(20))
             writeToFile(Query.contains("title", listOf("Spider")))
             writeToFile(Query.contains("labels", listOf("first")))
-            
+            writeToFile(Query.containsAny("labels", listOf("first", "second")))
+            writeToFile(Query.containsAll("labels", listOf("first", "second")))
+
             // New query methods
             writeToFile(Query.notContains("title", listOf("Spider")))
             writeToFile(Query.notSearch("name", "john"))
@@ -230,6 +235,15 @@ class ServiceTest {
             
             writeToFile(Query.or(listOf(Query.equal("released", listOf(true)), Query.lessThan("releasedYear", 1990))))
             writeToFile(Query.and(listOf(Query.equal("released", listOf(false)), Query.greaterThan("releasedYear", 2015))))
+
+            // regex, exists, notExists, elemMatch
+            writeToFile(Query.regex("name", "pattern.*"))
+            writeToFile(Query.exists(listOf("attr1", "attr2")))
+            writeToFile(Query.notExists(listOf("attr1", "attr2")))
+            writeToFile(Query.elemMatch("friends", listOf(
+                Query.equal("name", "Alice"),
+                Query.greaterThan("age", 18)
+            )))
 
             // Permission & Roles helper tests
             writeToFile(Permission.read(Role.any()))

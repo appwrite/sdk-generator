@@ -10,9 +10,11 @@ import {
 
 export const sdkForConsole = async (
   requiresAuth: boolean = true,
+  endpointOverride?: string,
 ): Promise<Client> => {
   const client = new Client();
-  const endpoint = globalConfig.getEndpoint() || DEFAULT_ENDPOINT;
+  const endpoint =
+    endpointOverride || globalConfig.getEndpoint() || DEFAULT_ENDPOINT;
   const cookie = globalConfig.getCookie();
   const selfSigned = globalConfig.getSelfSigned();
 
@@ -23,6 +25,7 @@ export const sdkForConsole = async (
   }
 
   client.headers = {
+    ...client.headers,
     "x-sdk-name": "Command Line",
     "x-sdk-platform": "console",
     "x-sdk-language": "cli",
@@ -61,6 +64,7 @@ export const sdkForProject = async (): Promise<Client> => {
   }
 
   client.headers = {
+    ...client.headers,
     "x-sdk-name": "Command Line",
     "x-sdk-platform": "console",
     "x-sdk-language": "cli",

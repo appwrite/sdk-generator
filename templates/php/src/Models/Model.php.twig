@@ -1,0 +1,172 @@
+<?php
+
+namespace {{ spec.namespace | caseNamespace }}\Models;
+
+{% set requiredProperties = definition.properties | filter((property) => property.required) %}
+{% set optionalProperties = definition.properties | filter((property) => not property.required) %}
+{% set enumImports = [] %}
+{% for property in definition.properties %}
+{% if property.enumValues is not empty or property.enumName is not empty %}
+{% set enumName = property.enumName ?? property.name %}
+{% if enumName not in enumImports %}
+{% set enumImports = enumImports|merge([enumName]) %}
+{% endif %}
+{% endif %}
+{% endfor %}
+{% for enumName in enumImports %}
+use {{ spec.namespace | caseNamespace }}\Enums\{{ enumName | caseUcfirst | overrideIdentifier }};
+{% endfor %}
+{% if enumImports is not empty %}
+
+{% endif %}
+/**
+ * {{ definition.description | unescape | raw }}
+ */
+readonly class {{ definition.name | caseUcfirst | overrideIdentifier }}
+{
+    use ArraySerializable;
+
+{% if definition.additionalProperties %}
+    private const ADDITIONAL_PROPERTIES = true;
+
+{% endif %}
+    /**
+     * {{ definition.name | caseUcfirst }} constructor.
+     *
+{% for property in requiredProperties %}
+{% set paramDocType = property | typeName %}
+{% if property.type == 'array' and property.sub_schema %}
+{% set paramDocType = 'list<' ~ (property.sub_schema | caseUcfirst | overrideIdentifier) ~ '>' %}
+{% elseif property.type == 'array' and (property.enumValues is not empty or property.enumName is not empty) %}
+{% set paramDocType = 'list<' ~ ((property.enumName ?? property.name) | caseUcfirst | overrideIdentifier) ~ '>' %}
+{% endif %}
+     * @param {{ paramDocType | raw }} ${{ property.name | caseCamel }} {{ property.description | unescape | lower | raw }}
+{% endfor %}
+{% for property in optionalProperties %}
+{% set paramDocType = property | typeName %}
+{% if property.type == 'array' and property.sub_schema %}
+{% set paramDocType = 'list<' ~ (property.sub_schema | caseUcfirst | overrideIdentifier) ~ '>' %}
+{% elseif property.type == 'array' and (property.enumValues is not empty or property.enumName is not empty) %}
+{% set paramDocType = 'list<' ~ ((property.enumName ?? property.name) | caseUcfirst | overrideIdentifier) ~ '>' %}
+{% endif %}
+     * @param {{ paramDocType | raw }}|null ${{ property.name | caseCamel }} {{ property.description | unescape | lower | raw }}
+{% endfor %}
+{% if definition.additionalProperties %}
+     * @param array<string, mixed> $data Additional properties.
+{% endif %}
+     */
+    public function __construct(
+{% for property in requiredProperties %}
+        public {{ property | typeName }} ${{ property.name | caseCamel }}{{ (not loop.last or optionalProperties is not empty or definition.additionalProperties) ? ',' : '' }}
+{% endfor %}
+{% for property in optionalProperties %}
+        public ?{{ property | typeName }} ${{ property.name | caseCamel }} = null{{ (not loop.last or definition.additionalProperties) ? ',' : '' }}
+{% endfor %}
+{% if definition.additionalProperties %}
+        public array $data = []
+{% endif %}
+    ) {
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    public static function from(array $data): static
+    {
+{% if requiredProperties is empty and optionalProperties is empty and not definition.additionalProperties %}
+        return new static();
+{% else %}
+{% for property in requiredProperties %}
+        if (!array_key_exists('{{ property.name }}', $data)) {
+            throw new \InvalidArgumentException('Missing required field "{{ property.name }}" for ' . static::class . '.');
+        }
+{% endfor %}
+{% if definition.additionalProperties %}
+
+        $additionalProperties = static::extractAdditionalPropertiesFromFields(
+            $data,
+            [
+{% for property in definition.properties %}
+                '{{ property.name }}'{{ loop.last ? '' : ',' }}
+{% endfor %}
+            ]
+        );
+{% endif %}
+
+        return new static(
+{% for property in requiredProperties %}
+            {{ property.name | caseCamel }}: {% if property.type == 'array' and property.sub_schema %}is_array($data['{{ property.name }}'])
+                ? array_map(
+                    static fn (mixed $item): mixed => static::hydrateTypedValue({{ property.sub_schema | caseUcfirst | overrideIdentifier }}::class, $item),
+                    $data['{{ property.name }}']
+                )
+                : $data['{{ property.name }}']{% elseif property.sub_schema %}static::hydrateTypedValue({{ property.sub_schema | caseUcfirst | overrideIdentifier }}::class, $data['{{ property.name }}']){% elseif property.type == 'array' and (property.enumValues is not empty or property.enumName is not empty) %}is_array($data['{{ property.name }}'])
+                ? array_map(
+                    static fn (mixed $item): mixed => static::hydrateTypedValue({{ (property.enumName ?? property.name) | caseUcfirst | overrideIdentifier }}::class, $item),
+                    $data['{{ property.name }}']
+                )
+                : $data['{{ property.name }}']{% elseif property.enumValues is not empty or property.enumName is not empty %}static::hydrateTypedValue({{ (property.enumName ?? property.name) | caseUcfirst | overrideIdentifier }}::class, $data['{{ property.name }}']){% else %}$data['{{ property.name }}']{% endif %}{{ (not loop.last or optionalProperties is not empty or definition.additionalProperties) ? ',' : '' }}
+{% endfor %}
+{% for property in optionalProperties %}
+{% if property.type == 'array' and property.sub_schema %}
+            {{ property.name | caseCamel }}: array_key_exists('{{ property.name }}', $data)
+                ? (
+                    is_array($data['{{ property.name }}'])
+                        ? array_map(
+                            static fn (mixed $item): mixed => static::hydrateTypedValue({{ property.sub_schema | caseUcfirst | overrideIdentifier }}::class, $item),
+                            $data['{{ property.name }}']
+                        )
+                        : $data['{{ property.name }}']
+                )
+{% elseif property.type == 'array' and (property.enumValues is not empty or property.enumName is not empty) %}
+            {{ property.name | caseCamel }}: array_key_exists('{{ property.name }}', $data)
+                ? (
+                    is_array($data['{{ property.name }}'])
+                        ? array_map(
+                            static fn (mixed $item): mixed => static::hydrateTypedValue({{ (property.enumName ?? property.name) | caseUcfirst | overrideIdentifier }}::class, $item),
+                            $data['{{ property.name }}']
+                        )
+                        : $data['{{ property.name }}']
+                )
+{% elseif property.sub_schema %}
+            {{ property.name | caseCamel }}: array_key_exists('{{ property.name }}', $data) ? static::hydrateTypedValue({{ property.sub_schema | caseUcfirst | overrideIdentifier }}::class, $data['{{ property.name }}'], true) : null{{ (not loop.last or definition.additionalProperties) ? ',' : '' }}
+{% elseif property.enumValues is not empty or property.enumName is not empty %}
+            {{ property.name | caseCamel }}: array_key_exists('{{ property.name }}', $data) ? static::hydrateTypedValue({{ (property.enumName ?? property.name) | caseUcfirst | overrideIdentifier }}::class, $data['{{ property.name }}'], true) : null{{ (not loop.last or definition.additionalProperties) ? ',' : '' }}
+{% else %}
+            {{ property.name | caseCamel }}: array_key_exists('{{ property.name }}', $data) ? $data['{{ property.name }}'] : null{{ (not loop.last or definition.additionalProperties) ? ',' : '' }}
+{% endif %}
+{% if property.type == 'array' and (property.sub_schema or property.enumValues is not empty or property.enumName is not empty) %}
+                : null{{ (not loop.last or definition.additionalProperties) ? ',' : '' }}
+{% endif %}
+{% endfor %}
+{% if definition.additionalProperties %}
+            data: $additionalProperties
+{% endif %}
+        );
+{% endif %}
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toArray(): array
+    {
+{% if definition.properties is empty and not definition.additionalProperties %}
+        return [];
+{% else %}
+        $result = [
+{% for property in definition.properties %}
+            '{{ property.name }}' => static::serializeValue($this->{{ property.name | caseCamel }}){{ loop.last ? '' : ',' }}
+{% endfor %}
+        ];
+{% if definition.additionalProperties %}
+
+        foreach (static::serializeAdditionalProperties($this->data) as $field => $value) {
+            $result[$field] = $value;
+        }
+{% endif %}
+
+        return $result;
+{% endif %}
+    }
+}

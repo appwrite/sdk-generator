@@ -1,0 +1,49 @@
+const { Client } = require("../../dist/client");
+const { InputFile } = require("../../dist/inputFile");
+const { {{ service.name | caseUcfirst }} } = require("../../dist/services/{{ service.name | caseKebab }}");
+
+const { fetch: mockedFetch, Response } = require("node-fetch-native-with-agent");
+jest.mock('node-fetch-native-with-agent', () => ({ ...jest.requireActual('node-fetch-native-with-agent'), fetch: jest.fn() }));
+
+describe('{{ service.name | caseUcfirst }}', () => {
+    const client = new Client();
+    const {{ service.name | caseCamel }} = new {{ service.name | caseUcfirst }}(client);
+
+    {% for method in service.methods ~%}
+    test('test method {{ method.name | caseCamel }}()', async () => {
+        {%~ if method.type == 'webAuth' %}
+        const data = 'https://example.com/';
+        mockedFetch.mockImplementation(() => Response.redirect(data));
+        {%~ elseif method.type == 'location' %}
+        const data = new ArrayBuffer(0);
+        mockedFetch.mockImplementation(() => new Response(data));
+        {%~ else %}
+        {% set responseModels = method | getValidResponseModels %}
+        {% set responseModelName = '' %}
+        {% if responseModels|length > 1 %}
+        {% set responseModelName = responseModels|last %}
+        {% elseif method.responseModel and method.responseModel != 'any' %}
+        {% set responseModelName = method.responseModel %}
+        {% endif %}
+        {%- if responseModelName %}
+        const data = {
+            {%- for definition in spec.definitions ~%}{%~ if definition.name == responseModelName -%}{%~ for property in definition.properties | filter((param) => param.required) ~%}
+            '{{ property.name | escapeDollarSign }}': {% if property.type == 'object' %}{}{% elseif property.type == 'array' %}[]{% elseif property.type == 'string' %}'{{ property.example | escapeDollarSign }}'{% elseif property.type == 'boolean' %}true{% else %}{{ property.example }}{% endif %},{%~ endfor ~%}{% set break = true %}{%- else -%}{% set continue = true %}{%- endif -%}{%~ endfor -%}
+        };
+        {%~ else %}
+        const data = {message: ""};
+        {%~ endif %}
+        mockedFetch.mockImplementation(() => Response.json(data));
+        {%~ endif %}
+
+        const response = await {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({%~ for parameter in method.parameters.all | filter((param) => param.required) ~%}
+            {% if parameter.type == 'object' %}{}{% elseif parameter.type == 'array' %}[]{% elseif parameter.type == 'file' %}InputFile.fromBuffer(new Uint8Array(0), 'image.png'){% elseif parameter.type == 'boolean' %}true{% elseif parameter.type == 'string' %}'{% if parameter.example is not empty %}{{ parameter.example | escapeDollarSign }}{% endif %}'{% elseif parameter.type == 'integer' and parameter['x-example'] is empty %}1{% elseif parameter.type == 'number' and parameter['x-example'] is empty %}1.0{% else %}{{ parameter.example }}{%~ endif ~%},{%~ endfor ~%}
+        );
+
+        // Remove custom toString method on the objects to allow for clean data comparison.
+        delete response.toString;
+
+        expect(response).toEqual(data);
+    });
+    {% endfor %}
+})

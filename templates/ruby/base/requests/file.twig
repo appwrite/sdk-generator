@@ -6,6 +6,31 @@
 
 {% endif %}
 {% endfor %}
+{% set responseModels = method | getValidResponseModels %}
+{% set hasResponseDiscriminator = method.responseDiscriminator is defined and method.responseDiscriminator is not empty %}
+{% set responseDiscriminator = method.responseDiscriminator ?? {} %}
+{% if responseModels|length > 1 and hasResponseDiscriminator %}
+            response = @client.chunked_upload(
+                path: api_path,
+                headers: api_headers,
+                params: api_params,
+                param_name: param_name,
+                id_param_name: id_param_name,
+                on_progress: on_progress,
+            )
+
+            unless response.is_a?(Hash)
+                raise Exception, "Expected object response when hydrating a response model"
+            end
+{% for modelName, conditions in responseDiscriminator %}
+
+            if {% for field, expectedValue in conditions %}response['{{ field }}'] == '{{ expectedValue }}'{% if not loop.last %} && {% endif %}{% endfor %}{{ "\n" }}
+                return Models::{{ modelName | caseUcfirst }}.from(map: response)
+            end
+{% endfor %}
+
+            raise Exception, "Unable to match response to any expected response model"
+{% else %}
             @client.chunked_upload(
                 path: api_path,
                 headers: api_headers,
@@ -17,3 +42,4 @@
                 response_type: Models::{{method.responseModel | caseUcfirst}}
 {% endif %}
             )
+{% endif %}

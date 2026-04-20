@@ -134,9 +134,53 @@ class Go extends Language
                 'template'      => 'go/id.go.twig',
             ],
             [
+                'scope'         => 'default',
+                'destination'   => 'id/id_test.go',
+                'template'      => 'go/id_test.go.twig',
+            ],
+
+            [
+                'scope'         => 'default',
+                'destination'   => 'role/role_test.go',
+                'template'      => 'go/role_test.go.twig',
+            ],
+
+            [
+                'scope'         => 'default',
+                'destination'   => 'permission/permission_test.go',
+                'template'      => 'go/permission_test.go.twig',
+            ],
+
+            [
+                'scope'         => 'default',
+                'destination'   => 'query/query_test.go',
+                'template'      => 'go/query_test.go.twig',
+            ],
+
+            [
+                'scope'         => 'default',
+                'destination'   => 'operator/operator_test.go',
+                'template'      => 'go/operator_test.go.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'client/client_test.go',
+                'template'      => 'go/client_test.go.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'models/model_interface.go',
+                'template'      => 'go/models/model_interface.go.twig',
+            ],
+            [
                 'scope'         => 'service',
                 'destination'   => '{{ service.name | caseLower}}/{{service.name | caseSnake}}.go',
                 'template'      => 'go/services/service.go.twig',
+            ],
+            [
+                'scope'         => 'service',
+                'destination'   => '{{ service.name | caseLower}}/{{service.name | caseSnake}}_test.go',
+                'template'      => 'go/services/service_test.go.twig',
             ],
             [
                 'scope'         => 'method',
@@ -145,12 +189,17 @@ class Go extends Language
             ],
             [
                 'scope'         => 'definition',
-                'destination'   => 'models/{{ definition.name | caseSnake }}.go',
+                'destination'   => 'models/{{ definition.name | caseCamel }}.go',
                 'template'      => 'go/models/model.go.twig',
             ],
             [
+                'scope'         => 'definition',
+                'destination'   => 'models/{{ definition.name | caseCamel }}_test.go',
+                'template'      => 'go/models/model_test.go.twig',
+            ],
+            [
                 'scope'         => 'requestModel',
-                'destination'   => 'models/{{ requestModel.name | caseSnake }}.go',
+                'destination'   => 'models/{{ requestModel.name | caseCamel }}.go',
                 'template'      => 'go/models/request_model.go.twig',
             ],
         ];
@@ -340,7 +389,34 @@ class Go extends Language
             new TwigFilter('caseEnumKey', function (string $value) {
                 return $this->toUpperSnakeCase($value);
             }),
+            new TwigFilter('goPackagePath', function (array $sdk) {
+                return $this->getPackagePath($sdk);
+            }),
         ];
+    }
+
+    protected function getPackagePath(array $sdk): string
+    {
+        $user = $sdk['gitUserName'] ?? '';
+        $repo = $sdk['gitRepoName'] ?? 'sdk-for-go';
+        $suffix = $this->getMajorVersionSuffix($sdk['version'] ?? '');
+
+        if ($user === '') {
+            return $repo . $suffix;
+        }
+
+        return 'github.com/' . $user . '/' . $repo . $suffix;
+    }
+
+    protected function getMajorVersionSuffix(string $version): string
+    {
+        if (!\preg_match('/^v?(?<major>\d+)/', $version, $matches)) {
+            return '';
+        }
+
+        $major = (int) ($matches['major'] ?? 0);
+
+        return $major >= 2 ? '/v' . $major : '';
     }
 
     protected function getPropertyType(array $property, array $spec, string $generic = 'map[string]interface{}'): string
@@ -367,6 +443,14 @@ class Go extends Language
             return '[]byte';
         }
 
+        if (
+            \array_key_exists('responseModels', $method)
+            && \count($method['responseModels']) > 1
+        ) {
+            return 'models.Model';
+        }
+
+        // Check for missing or generic response model
         if (
             !\array_key_exists('responseModel', $method)
             || empty($method['responseModel'])

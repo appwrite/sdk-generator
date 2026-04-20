@@ -1,0 +1,81 @@
+<?php
+
+namespace {{ spec.namespace | caseNamespace }}\Models;
+
+trait ArraySerializable
+{
+    /**
+     * @param array<string, mixed> $data
+     * @param array<int, string> $knownFields
+     * @return array<string, mixed>
+     */
+    private static function extractAdditionalPropertiesFromFields(array $data, array $knownFields): array
+    {
+        if (!\in_array('data', $knownFields, true) && isset($data['data']) && is_array($data['data'])) {
+            return $data['data'];
+        }
+
+        return array_diff_key($data, array_flip($knownFields));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function serializeAdditionalProperties(mixed $value): array
+    {
+        if (!is_array($value)) {
+            return [];
+        }
+
+        $result = [];
+
+        foreach ($value as $field => $fieldValue) {
+            $result[$field] = static::serializeValue($fieldValue);
+        }
+
+        return $result;
+    }
+
+    private static function hydrateTypedValue(string $type, mixed $value, bool $allowsNull = false): mixed
+    {
+        if ($value === null || !method_exists($type, 'from')) {
+            return $value;
+        }
+
+        if ($allowsNull && $value === '') {
+            return null;
+        }
+
+        return is_array($value) ? $type::from($value) : $type::from((string) $value);
+    }
+
+    private static function serializeValue(mixed $value): mixed
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        if (is_array($value)) {
+            return array_map(
+                static fn (mixed $item): mixed => static::serializeValue($item),
+                $value
+            );
+        }
+
+        if (is_object($value)) {
+            if (method_exists($value, 'toArray')) {
+                return $value->toArray();
+            }
+
+            if ($value instanceof \JsonSerializable) {
+                return $value->jsonSerialize();
+            }
+
+            if (method_exists($value, '__toString')) {
+                return (string) $value;
+            }
+        }
+
+        return $value;
+    }
+}

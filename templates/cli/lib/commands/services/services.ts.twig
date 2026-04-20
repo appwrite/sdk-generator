@@ -1,11 +1,15 @@
 import { Command } from "commander";
 {% set hasLocationMethod = false %}
+{% set hasFileParam = false %}
 {% set enumNames = [] %}
 {% for method in service.methods %}
 {% if method.type == 'location' %}
 {% set hasLocationMethod = true %}
 {% endif %}
 {% for parameter in method.parameters.all %}
+{% if parameter.type == 'file' %}
+{% set hasFileParam = true %}
+{% endif %}
 {% if parameter.enumName is defined and parameter.enumName not in enumNames %}
 {% set enumNames = enumNames|merge([parameter.enumName]) %}
 {% endif %}
@@ -14,7 +18,14 @@ import { Command } from "commander";
 {% if hasLocationMethod %}
 import fs from "fs";
 {% endif %}
+{% if hasFileParam %}
+import { resolveFileParam } from "../utils/deployment.js";
+{% endif %}
+{% if service.isConsoleOnly %}
+import { sdkForConsole } from "../../sdks.js";
+{% else %}
 import { sdkForProject } from "../../sdks.js";
+{% endif %}
 import {
   actionRunner,
   commandDescriptions,
@@ -22,27 +33,33 @@ import {
   parse,
   parseBool,
   parseInteger,
+{% if service.name == 'teams' %}
+  hint,
+{% endif %}
 } from "../../parser.js";
 {% if sdk.test %}
 {{ include('cli/base/mock.twig') }}
 {% else %}
-{% if enumNames | length > 0 %}
-import {
-  {{ service.name | caseUcfirst }},
-{% for enumName in enumNames %}
-  {{ enumName | caseUcfirst }},
-{% endfor %}
-} from "@appwrite.io/console";
-{% else %}
 import { {{ service.name | caseUcfirst }} } from "@appwrite.io/console";
-{% endif %}
 {% endif %}
 
 let {{ service.name | caseCamel }}Client: {{ service.name | caseUcfirst }} | null = null;
 
 const get{{ service.name | caseUcfirst }}Client = async (): Promise<{{ service.name | caseUcfirst }}> => {
   if (!{{ service.name | caseCamel }}Client) {
-    const sdkClient = await sdkForProject();
+{% if service.name == 'teams' %}
+    let sdkClient;
+    try {
+      sdkClient = await sdkForProject();
+    } catch (e) {
+      if (e instanceof Error && e.message.includes("Project is not set")) {
+        hint(`To manage console-level teams, use the 'organizations' command instead.`);
+      }
+      throw e;
+    }
+{% else %}
+    const sdkClient = await {{ service.isConsoleOnly ? 'sdkForConsole' : 'sdkForProject' }}();
+{% endif %}
     {{ service.name | caseCamel }}Client = new {{ service.name | caseUcfirst }}(sdkClient);
   }
   return {{ service.name | caseCamel }}Client;
@@ -59,21 +76,22 @@ export const {{ service.name | caseCamel }} = new Command("{{ service.name | cas
 {% set commandName = method.name | caseKebab %}
 {% if commandName not in seenCommands %}
 {% set seenCommands = seenCommands|merge([commandName]) %}
-{{ service.name | caseCamel }}
+{% set commandVar = service.name | caseCamel ~ method.name | caseUcfirst ~ 'Command' %}
+const {{ commandVar }} = {{ service.name | caseCamel }}
   .command(`{{ commandName }}`)
-  .description(`{{ method.description | replace({'`': '\\`'}) | raw }}`)
+  .description(`{{ method.description | stripMarkdown | replace({'`': '\\`'}) | raw }}`)
 {% for parameter in method.parameters.all %}
 {% set opt = getCliOption(parameter) %}
 {% if opt.customParserCode is defined %}
   .{{ opt.method }}(
     `{{ opt.syntax | raw }}`,
-    `{{ parameter.description | replace({'`': '\\`'}) | raw }}`,
+    `{{ parameter.description | stripMarkdown | replace({'`': '\\`'}) | raw }}`,
     {{ opt.customParserCode | raw }},
   )
 {% elseif opt.parser %}
-  .{{ opt.method }}(`{{ opt.syntax | raw }}`, `{{ parameter.description | replace({'`': '\\`'}) | raw }}`, {{ opt.parser }})
+  .{{ opt.method }}(`{{ opt.syntax | raw }}`, `{{ parameter.description | stripMarkdown | replace({'`': '\\`'}) | raw }}`, {{ opt.parser }})
 {% else %}
-  .{{ opt.method }}(`{{ opt.syntax | raw }}`, `{{ parameter.description | replace({'`': '\\`'}) | raw }}`)
+  .{{ opt.method }}(`{{ opt.syntax | raw }}`, `{{ parameter.description | stripMarkdown | replace({'`': '\\`'}) | raw }}`)
 {% endif %}
 {% endfor %}
 {% if method.type == 'location' %}
@@ -112,6 +130,10 @@ export const {{ service.name | caseCamel }} = new Command("{{ service.name | cas
 {% endif %}
     ),
   );
+
+{% if service.name == 'projects' and method.name == 'list' %}
+({{ commandVar }} as Command & { outputFields?: string[] }).outputFields = ["name", "$id", "region", "status"];
+{% endif %}
 
 {% endif %}
 {% endfor %}
