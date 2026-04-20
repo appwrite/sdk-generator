@@ -1,12 +1,9 @@
 # ⚙️ Appwrite SDK Generator
 
 [![Discord](https://img.shields.io/discord/564160730845151244?label=discord&style=flat-square)](https://appwrite.io/discord)
-[![CI](https://github.com/appwrite/sdk-generator/actions/workflows/tests.yml/badge.svg)](https://github.com/appwrite/sdk-generator/actions/workflows/tests.yml)
 [![Twig Linting](https://github.com/appwrite/sdk-generator/actions/workflows/djlint.yml/badge.svg)](https://github.com/appwrite/sdk-generator/actions/workflows/djlint.yml)
 [![X Account](https://img.shields.io/badge/follow-@appwrite-000000?style=flat-square&logo=x&logoColor=white)](https://x.com/appwrite)
 [![appwrite.io](https://img.shields.io/badge/appwrite-.io-f02e65?style=flat-square)](https://appwrite.io)
-
-**WORK IN PROGRESS - NOT READY FOR GENERAL USAGE**
 
 [Appwrite](https://appwrite.io) SDK generator is a PHP library for auto-generating SDK libraries for multiple languages and platforms.
 
