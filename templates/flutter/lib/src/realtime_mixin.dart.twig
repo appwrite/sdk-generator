@@ -22,7 +22,11 @@ mixin RealtimeMixin {
   final Map<int, String> _slotToSubscriptionId = {};
   // Inverse map: subscriptionId -> slot index (for O(1) lookup)
   final Map<String, int> _subscriptionIdToSlot = {};
-  final List<int> _pendingSubscribeSlots = [];
+  // FIFO queue of slot-lists: one entry per outgoing subscribe message.
+  // The server replies in order, so each ack dequeues the head entry. A single
+  // shared list would be overwritten by in-flight update messages, causing
+  // subscribe responses to map to the wrong slots.
+  final List<List<int>> _pendingSubscribeSlotsQueue = [];
   int _subscriptionsCounter = 0;
   WebSocketChannel? _websok;
   String? _lastUrl;
@@ -123,8 +127,11 @@ mixin RealtimeMixin {
             if (subscriptions == null) {
               break;
             }
+            final pendingSlots = _pendingSubscribeSlotsQueue.isNotEmpty
+                ? _pendingSubscribeSlotsQueue.removeAt(0)
+                : const <int>[];
             for (var index = 0; index < subscriptions.length; index++) {
-              final slot = index < _pendingSubscribeSlots.length ? _pendingSubscribeSlots[index] : null;
+              final slot = index < pendingSlots.length ? pendingSlots[index] : null;
               final item = subscriptions[index] as Map<String, dynamic>?;
               final subscriptionId = item?['subscriptionId']?.toString();
               if (slot == null || subscriptionId == null || subscriptionId.isEmpty) {
@@ -259,9 +266,7 @@ mixin RealtimeMixin {
     if (knownSubscriptionId != null && knownSubscriptionId.isNotEmpty) {
       row['subscriptionId'] = knownSubscriptionId;
     }
-    _pendingSubscribeSlots
-      ..clear()
-      ..add(slot);
+    _pendingSubscribeSlotsQueue.add([slot]);
     _websok!.sink.add(jsonEncode({
       'type': 'subscribe',
       'data': [row],
@@ -278,7 +283,7 @@ mixin RealtimeMixin {
     _subscriptions.clear();
     _slotToSubscriptionId.clear();
     _subscriptionIdToSlot.clear();
-    _pendingSubscribeSlots.clear();
+    _pendingSubscribeSlotsQueue.clear();
     await _closeConnection();
   }
 
@@ -288,7 +293,7 @@ mixin RealtimeMixin {
     }
 
     final rows = <Map<String, dynamic>>[];
-    _pendingSubscribeSlots.clear();
+    final slotsForMessage = <int>[];
 
     for (var entry in _subscriptions.entries) {
       final slot = entry.key;
@@ -303,12 +308,14 @@ mixin RealtimeMixin {
         row['subscriptionId'] = knownSubscriptionId;
       }
       rows.add(row);
-      _pendingSubscribeSlots.add(slot);
+      slotsForMessage.add(slot);
     }
 
     if (rows.isEmpty) {
       return;
     }
+
+    _pendingSubscribeSlotsQueue.add(slotsForMessage);
 
     _websok!.sink.add(jsonEncode({
       'type': 'subscribe',

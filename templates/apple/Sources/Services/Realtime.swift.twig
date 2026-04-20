@@ -20,7 +20,11 @@ open class Realtime : Service {
     private var slotToSubscriptionId = [Int: String]()
     // Inverse map: subscriptionId -> slot index (for O(1) lookup)
     private var subscriptionIdToSlot = [String: Int]()
-    private var pendingSubscribeSlots = [Int]()
+    // FIFO queue of slot-lists: one entry per outgoing subscribe message.
+    // The server replies in order, so each ack dequeues the head entry. A single
+    // shared array would be overwritten by in-flight update messages, causing
+    // subscribe responses to map to the wrong slots.
+    private var pendingSubscribeSlotsQueue = [[Int]]()
     private var heartbeatTask: Task<Void, Swift.Error>? = nil
 
     let connectSync = DispatchQueue(label: "ConnectSync")
@@ -133,7 +137,7 @@ open class Realtime : Service {
         if let knownSubscriptionId = slotToSubscriptionId[slot] {
             row["subscriptionId"] = knownSubscriptionId
         }
-        pendingSubscribeSlots = [slot]
+        pendingSubscribeSlotsQueue.append([slot])
         let payload: [String: Any] = [
             "type": "subscribe",
             "data": [row]
@@ -152,7 +156,7 @@ open class Realtime : Service {
         activeSubscriptionQueries.removeAll()
         slotToSubscriptionId.removeAll()
         subscriptionIdToSlot.removeAll()
-        pendingSubscribeSlots.removeAll()
+        pendingSubscribeSlotsQueue.removeAll()
         reconnect = false
         try await closeSocket()
     }
@@ -163,7 +167,7 @@ open class Realtime : Service {
         }
 
         var rows = [[String: Any]]()
-        pendingSubscribeSlots.removeAll()
+        var slotsForMessage = [Int]()
 
         for (slot, subscription) in activeSubscriptions {
             let queries = activeSubscriptionQueries[slot] ?? []
@@ -175,12 +179,14 @@ open class Realtime : Service {
                 row["subscriptionId"] = knownSubscriptionId
             }
             rows.append(row)
-            pendingSubscribeSlots.append(slot)
+            slotsForMessage.append(slot)
         }
 
         if rows.isEmpty {
             return
         }
+
+        pendingSubscribeSlotsQueue.append(slotsForMessage)
 
         let payload: [String: Any] = [
             "type": "subscribe",
@@ -393,12 +399,17 @@ extension Realtime: WebSocketClientDelegate {
             return
         }
 
+        guard !pendingSubscribeSlotsQueue.isEmpty else {
+            return
+        }
+        let pendingSlots = pendingSubscribeSlotsQueue.removeFirst()
+
         for (index, item) in subscriptions.enumerated() {
-            guard index < pendingSubscribeSlots.count,
+            guard index < pendingSlots.count,
                   let subscriptionId = item["subscriptionId"] as? String else {
                 continue
             }
-            let slot = pendingSubscribeSlots[index]
+            let slot = pendingSlots[index]
             slotToSubscriptionId[slot] = subscriptionId
             subscriptionIdToSlot[subscriptionId] = slot
         }

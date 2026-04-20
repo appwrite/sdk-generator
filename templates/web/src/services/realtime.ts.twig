@@ -97,7 +97,11 @@ export class Realtime {
     private heartbeatTimer?: number;
 
     private subCallDepth = 0;
-    private pendingSubscribeSlots: number[] = [];
+    // FIFO queue of slot-lists: one entry per outgoing subscribe message.
+    // The server replies in order, so each ack dequeues the head entry. A single
+    // shared array would be overwritten by in-flight `update` messages, causing
+    // subscribe responses to map to the wrong slots.
+    private pendingSubscribeSlotsQueue: number[][] = [];
     private reconnectAttempts = 0;
     private subscriptionsCounter = 0;
     private connectionId = 0;
@@ -345,7 +349,7 @@ export class Realtime {
             row.subscriptionId = knownSubscriptionId;
         }
 
-        this.pendingSubscribeSlots = [slot];
+        this.pendingSubscribeSlotsQueue.push([slot]);
 
         this.socket.send(JSON.stringify(<RealtimeRequest>{
             type: 'subscribe',
@@ -361,7 +365,7 @@ export class Realtime {
         this.activeSubscriptions.clear();
         this.slotToSubscriptionId.clear();
         this.subscriptionIdToSlot.clear();
-        this.pendingSubscribeSlots = [];
+        this.pendingSubscribeSlotsQueue = [];
         this.reconnect = false;
         await this.closeSocket();
     }
@@ -372,7 +376,7 @@ export class Realtime {
         }
 
         const rows: RealtimeRequestSubscribeRow[] = [];
-        this.pendingSubscribeSlots = [];
+        const slotsForMessage: number[] = [];
 
         for (const [slot, subscription] of this.activeSubscriptions) {
             const queries = subscription.queries ?? [];
@@ -387,12 +391,14 @@ export class Realtime {
             }
 
             rows.push(row);
-            this.pendingSubscribeSlots.push(slot);
+            slotsForMessage.push(slot);
         }
 
         if (rows.length < 1) {
             return;
         }
+
+        this.pendingSubscribeSlotsQueue.push(slotsForMessage);
 
         this.socket.send(JSON.stringify(<RealtimeRequest>{
             type: 'subscribe',
@@ -691,10 +697,15 @@ export class Realtime {
             return;
         }
 
+        const pendingSlots = this.pendingSubscribeSlotsQueue.shift();
+        if (!pendingSlots) {
+            return;
+        }
+
         for (let i = 0; i < data.subscriptions.length; i++) {
             const subscription = data.subscriptions[i];
             const subscriptionId = subscription?.subscriptionId;
-            const slot = this.pendingSubscribeSlots[i];
+            const slot = pendingSlots[i];
             if (slot === undefined || !subscriptionId) {
                 continue;
             }
