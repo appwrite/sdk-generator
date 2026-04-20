@@ -56,7 +56,7 @@ export class InputFile {
   }
 
   static fromBuffer(parts: BlobLike | Uint8Array | ArrayBuffer | string, name: string): InputFile {
-    if (parts && typeof (parts as BlobLike).arrayBuffer === 'function') {
+    if (parts && !ArrayBuffer.isView(parts) && typeof (parts as BlobLike).arrayBuffer === 'function') {
       return new InputFile({ type: 'blob', data: parts as BlobLike }, name);
     }
 
