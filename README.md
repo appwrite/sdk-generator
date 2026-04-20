@@ -44,7 +44,9 @@ use Appwrite\SDK\SDK;
 use Appwrite\SDK\Language\PHP;
 
 // Read API specification file (Swagger 2) and create spec instance
-$spec = new Swagger2(file_get_contents('https://appwrite.io/v1/open-api-2.json?extension=1'));
+$version = '1.9.x';
+$platform = 'server';
+$spec = new Swagger2(file_get_contents("https://raw.githubusercontent.com/appwrite/specs/main/specs/{$version}/swagger2-{$version}-{$platform}.json"));
 
 // Create language instance
 $lang = new PHP();
