@@ -28,7 +28,6 @@ export type RealtimeResponseEvent<T = any> = {
 export type RealtimeResponseConnected = {
     channels: string[];
     user?: object;
-    subscriptions?: { [slot: string]: string }; // Map slot index -> subscriptionId
 }
 
 export type RealtimeRequest = {
@@ -496,27 +495,6 @@ export class Realtime {
         }
 
         const messageData = message.data as RealtimeResponseConnected;
-
-        // Store subscription ID mappings from backend.
-        // Use direct slot first; if URL mapping is zero-based, try slot+1.
-        if (messageData.subscriptions) {
-            for (const [slotStr, subscriptionId] of Object.entries(messageData.subscriptions)) {
-                const slot = Number(slotStr);
-                if (isNaN(slot)) {
-                    continue;
-                }
-
-                const directSlotExists = this.activeSubscriptions.has(slot);
-                const shiftedSlot = slot + 1;
-                const shiftedSlotExists = this.activeSubscriptions.has(shiftedSlot);
-                const targetSlot = directSlotExists ? slot : shiftedSlotExists ? shiftedSlot : slot;
-
-                if (typeof subscriptionId === 'string') {
-                    this.slotToSubscriptionId.set(targetSlot, subscriptionId);
-                    this.subscriptionIdToSlot.set(subscriptionId, targetSlot);
-                }
-            }
-        }
 
         let session = this.client.config.session;
         if (!session) {

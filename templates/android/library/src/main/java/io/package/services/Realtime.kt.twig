@@ -289,27 +289,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         }
         
         private fun handleResponseConnected(message: RealtimeResponse) {
-            val messageData = message.data?.jsonCast<Map<String, Any>>() ?: return
-            val subscriptions = messageData["subscriptions"] as? Map<*, *>
-
-            if (subscriptions != null) {
-                // Store subscription ID mappings from backend.
-                // Try direct slot first, then slot+1 for zero-based server maps.
-                synchronized(subscriptionLock) {
-                    subscriptions.forEach { (slotStr, subscriptionId) ->
-                        val slot = (slotStr as? String)?.toIntOrNull()
-                        if (slot != null && subscriptionId is String) {
-                            val targetSlot = when {
-                                activeSubscriptions.containsKey(slot) -> slot
-                                activeSubscriptions.containsKey(slot + 1) -> slot + 1
-                                else -> slot
-                            }
-                            slotToSubscriptionId[targetSlot] = subscriptionId
-                            subscriptionIdToSlot[subscriptionId] = targetSlot
-                        }
-                    }
-                }
-            }
+            message.data?.jsonCast<Map<String, Any>>() ?: return
 
             sendSubscribeMessage()
         }

@@ -97,31 +97,8 @@ mixin RealtimeMixin {
             handleError(data);
             break;
           case 'connected':
-            // channels, user, subscriptions?
             final message = RealtimeResponseConnected.fromMap(data.data);
-            
-            // Store subscription ID mappings from backend
-            // Format: { "0": "sub_a1f9", "1": "sub_b83c", ... }.
-            // Try direct slot first, then slot+1 for zero-based server maps.
-            final rawSubscriptions = data.data['subscriptions'];
-            if (rawSubscriptions is Map) {
-              rawSubscriptions.forEach((slotStr, subscriptionId) {
-                final slot = int.tryParse(slotStr.toString());
-                if (slot != null) {
-                  final directSlotExists = _subscriptions.containsKey(slot);
-                  final shiftedSlot = slot + 1;
-                  final shiftedSlotExists = _subscriptions.containsKey(shiftedSlot);
-                  final targetSlot = directSlotExists
-                      ? slot
-                      : shiftedSlotExists
-                          ? shiftedSlot
-                          : slot;
-                  _slotToSubscriptionId[targetSlot] = subscriptionId.toString();
-                  _subscriptionIdToSlot[subscriptionId.toString()] = targetSlot;
-                }
-              });
-            }
-            
+
             if (message.user.isEmpty) {
               // send fallback cookie if exists
               final cookie = getFallbackCookie?.call();

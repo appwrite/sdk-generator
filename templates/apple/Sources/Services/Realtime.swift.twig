@@ -292,27 +292,8 @@ extension Realtime: WebSocketClientDelegate {
     }
     
     private func handleResponseConnected(from json: [String: Any]) {
-        guard let data = json["data"] as? [String: Any] else {
+        guard json["data"] is [String: Any] else {
             return
-        }
-        
-        if let subscriptions = data["subscriptions"] as? [String: String] {
-            // Store subscription ID mappings from backend.
-            // Try direct slot first, then slot+1 for zero-based server maps.
-            for (slotStr, subscriptionId) in subscriptions {
-                if let slot = Int(slotStr) {
-                    let targetSlot: Int
-                    if activeSubscriptions[slot] != nil {
-                        targetSlot = slot
-                    } else if activeSubscriptions[slot + 1] != nil {
-                        targetSlot = slot + 1
-                    } else {
-                        targetSlot = slot
-                    }
-                    slotToSubscriptionId[targetSlot] = subscriptionId
-                    subscriptionIdToSlot[subscriptionId] = targetSlot
-                }
-            }
         }
 
         sendSubscribeMessage()

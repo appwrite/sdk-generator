@@ -160,11 +160,6 @@ type RealtimeResponseConnected = {
      * User object representing the connected user (optional).
      */
     user?: object;
-
-    /**
-     * Map slot index -> subscription ID from backend (optional).
-     */
-    subscriptions?: Record<string, string>;
 }
 
 /**
@@ -641,30 +636,7 @@ class Client {
                 switch (message.type) {
                     case 'connected': {
                         const messageData = <RealtimeResponseConnected>message.data;
-                        if (messageData?.subscriptions) {
-                            for (const [slotStr, subscriptionId] of Object.entries(messageData.subscriptions)) {
-                                const slot = Number(slotStr);
-                                if (isNaN(slot) || typeof subscriptionId !== 'string') {
-                                    continue;
-                                }
 
-                                const directSlotExists = this.realtime.subscriptions.has(slot);
-                                const shiftedSlot = slot + 1;
-                                const shiftedSlotExists = this.realtime.subscriptions.has(shiftedSlot);
-                                const targetSlot = directSlotExists ? slot : shiftedSlotExists ? shiftedSlot : slot;
-
-                                this.realtime.slotToSubscriptionId.set(targetSlot, subscriptionId);
-                                this.realtime.subscriptionIdToSlot.set(subscriptionId, targetSlot);
-                            }
-                        }
-
-                        this.realtime.subscriptions.forEach((_sub, slot) => {
-                            const existing = this.realtime.slotToSubscriptionId.get(slot);
-                            if (existing) {
-                                this.realtime.subscriptionIdToSlot.set(existing, slot);
-                            }
-                        });
-                        
                         let session = this.config.session;
                         if (!session) {
                             const cookie = JSONbig.parse(window.localStorage.getItem('cookieFallback') ?? '{}');
