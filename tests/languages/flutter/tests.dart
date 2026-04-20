@@ -176,11 +176,9 @@ void main() async {
   // Assert realtime outputs in a deterministic order (no-query then with-query)
   final message1 = await rtsub.stream.first.timeout(Duration(seconds: 10));
   print(message1.payload["response"]);
-  await rtsub.close();
 
   final message2 = await rtsubWithQueries.stream.first.timeout(Duration(seconds: 10));
   print(message2.payload["response"]);
-  await rtsubWithQueries.close();
 
   try {
     final message3 = await rtsubWithQueriesFailure.stream.first.timeout(Duration(seconds: 10));
@@ -190,7 +188,27 @@ void main() async {
     // Timeout means no matching message was received, which is expected for a failure query
     print("Realtime failed!");
   }
-  await rtsubWithQueriesFailure.close();
+
+  try {
+    await rtsubWithQueriesFailure.unsubscribe();
+    print("Realtime unsubscribe:passed");
+  } catch (e) {
+    print("Realtime unsubscribe:failed");
+  }
+
+  try {
+    await rtsubWithQueries.update(channels: ["tests"], queries: []);
+    print("Realtime update:passed");
+  } catch (e) {
+    print("Realtime update:failed");
+  }
+
+  try {
+    await realtime.disconnect();
+    print("Realtime disconnect:passed");
+  } catch (e) {
+    print("Realtime disconnect:failed");
+  }
 
   response = await general.setCookie();
   print(response.result);

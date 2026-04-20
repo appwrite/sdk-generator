@@ -51,13 +51,13 @@ class Tests: XCTestCase {
         expectationWithQueriesFailure.isInverted = true
 
         // Subscribe without queries
-        try await realtime.subscribe(channels: ["tests"]) { message in
+        let rtsub = try await realtime.subscribe(channels: ["tests"]) { message in
             realtimeResponse = message.payload!["response"] as! String
             expectation.fulfill()
         }
 
         // Subscribe with queries to ensure query array support works
-        try await realtime.subscribe(
+        let rtsubWithQueries = try await realtime.subscribe(
             channels: ["tests"],
             queries: [
                 Query.equal("response", value: ["WS:/v1/realtime:passed"])
@@ -67,7 +67,7 @@ class Tests: XCTestCase {
             expectationWithQueries.fulfill()
         }
 
-        try await realtime.subscribe(
+        let rtsubWithQueriesFailure = try await realtime.subscribe(
             channels: ["tests"],
             queries: [
                 Query.equal("response", value: ["failed"])
@@ -200,6 +200,27 @@ class Tests: XCTestCase {
             print(realtimeResponseWithQueriesFailure)
         } else {
             print("Realtime failed")
+        }
+
+        do {
+            try await rtsubWithQueriesFailure.unsubscribe()
+            print("Realtime unsubscribe:passed")
+        } catch {
+            print("Realtime unsubscribe:failed")
+        }
+
+        do {
+            try await rtsubWithQueries.update(.init(channels: ["tests"], queries: []))
+            print("Realtime update:passed")
+        } catch {
+            print("Realtime update:failed")
+        }
+
+        do {
+            try await realtime.disconnect()
+            print("Realtime disconnect:passed")
+        } catch {
+            print("Realtime disconnect:failed")
         }
 
         mock = try await general.setCookie()

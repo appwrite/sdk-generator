@@ -18,6 +18,7 @@ import io.appwrite.models.Error
 import io.appwrite.models.InputFile
 import io.appwrite.models.Mock
 import io.appwrite.models.Player
+import io.appwrite.models.RealtimeSubscriptionUpdate
 import io.appwrite.services.Bar
 import io.appwrite.services.Foo
 import io.appwrite.services.General
@@ -91,12 +92,12 @@ class ServiceTest {
         var realtimeResponseWithQueriesFailure = "Realtime failed!"
 
         // Subscribe without queries
-        realtime.subscribe("tests", payloadType = TestPayload::class.java) {
+        val rtsub = realtime.subscribe("tests", payloadType = TestPayload::class.java) {
             realtimeResponse = it.payload.response
         }
 
         // Subscribe with queries to ensure query set support works
-        realtime.subscribe(
+        val rtsubWithQueries = realtime.subscribe(
             "tests",
             payloadType = TestPayload::class.java,
             queries = setOf(
@@ -106,7 +107,7 @@ class ServiceTest {
             realtimeResponseWithQueries = it.payload.response
         }
 
-        realtime.subscribe(
+        val rtsubWithQueriesFailure = realtime.subscribe(
             "tests",
             payloadType = TestPayload::class.java,
             queries = setOf(
@@ -221,6 +222,32 @@ class ServiceTest {
             writeToFile(realtimeResponse)
             writeToFile(realtimeResponseWithQueries)
             writeToFile(realtimeResponseWithQueriesFailure)
+
+            try {
+                rtsubWithQueriesFailure.unsubscribe()
+                writeToFile("Realtime unsubscribe:passed")
+            } catch (e: Exception) {
+                writeToFile("Realtime unsubscribe:failed")
+            }
+
+            try {
+                rtsubWithQueries.update(
+                    RealtimeSubscriptionUpdate(
+                        channels = listOf("tests"),
+                        queries = emptyList()
+                    )
+                )
+                writeToFile("Realtime update:passed")
+            } catch (e: Exception) {
+                writeToFile("Realtime update:failed")
+            }
+
+            try {
+                realtime.disconnect()
+                writeToFile("Realtime disconnect:passed")
+            } catch (e: Exception) {
+                writeToFile("Realtime disconnect:failed")
+            }
 
             // mock = general.setCookie()
             // writeToFile(mock.result)

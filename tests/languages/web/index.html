@@ -45,12 +45,12 @@
             const realtimeWithFailure = new Realtime(client);
 
             // Subscribe without queries
-            await realtime.subscribe(['tests'], message => {
+            const rtsub = await realtime.subscribe(['tests'], message => {
                 responseRealtime = message.payload.response;
             });
 
             // Subscribe with queries to ensure query array support works
-            await realtime.subscribe(
+            const rtsubWithQueries = await realtime.subscribe(
                 ['tests'],
                 message => {
                     responseRealtimeWithQueries = message.payload.response;
@@ -60,7 +60,7 @@
                 ],
             );
 
-            await realtime.subscribe(
+            const rtsubWithQueriesFailure = await realtime.subscribe(
                 ['tests'],
                 message => {
                     responseRealtimeWithQueriesFailure = message.payload.response;
@@ -284,6 +284,27 @@
             console.log(responseRealtime)
             console.log(responseRealtimeWithQueries)
             console.log(responseRealtimeWithQueriesFailure)
+
+            try {
+                await rtsubWithQueriesFailure.unsubscribe();
+                console.log('Realtime unsubscribe:passed');
+            } catch (e) {
+                console.log('Realtime unsubscribe:failed');
+            }
+
+            try {
+                await rtsubWithQueries.update({ channels: ['tests'], queries: [] });
+                console.log('Realtime update:passed');
+            } catch (e) {
+                console.log('Realtime update:failed');
+            }
+
+            try {
+                await realtime.disconnect();
+                console.log('Realtime disconnect:passed');
+            } catch (e) {
+                console.log('Realtime disconnect:failed');
+            }
 
             // Query helper tests
             console.log(Query.equal("released", [true]));
