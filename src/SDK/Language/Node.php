@@ -32,6 +32,23 @@ class Node extends Web
         return 'sdk.';
     }
 
+    public function getTypeName(array $parameter, array $method = []): string
+    {
+        if (($parameter['type'] ?? null) === self::TYPE_ARRAY) {
+            $arrayType = $parameter['array']['type'] ?? $parameter['items']['type'] ?? null;
+
+            if ($arrayType === self::TYPE_FILE) {
+                return '(File | InputFile)[]';
+            }
+        }
+
+        if (($parameter['type'] ?? null) === self::TYPE_FILE) {
+            return 'File | InputFile';
+        }
+
+        return parent::getTypeName($parameter, $method);
+    }
+
     public function getReturn(array $method, array $spec): string
     {
         if ($method['type'] === 'webAuth') {
@@ -79,7 +96,7 @@ class Node extends Web
         return 'Promise<{}>';
     }
 
-        /**
+    /**
      * @param array $param
      * @param string $lang
      * @return string
@@ -112,6 +129,36 @@ class Node extends Web
                 : $example),
             self::TYPE_STRING => "'{$example}'",
         };
+    }
+
+    /**
+     * Check if service has any file parameters
+     *
+     * @param array $service
+     * @return bool
+     */
+    public function hasFileParam(array $service): bool
+    {
+        foreach ($service['methods'] as $method) {
+            foreach ($method['parameters']['all'] as $parameter) {
+                if ($parameter['type'] === self::TYPE_FILE) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * @return array
+     */
+    public function getFilters(): array
+    {
+        return \array_merge(parent::getFilters(), [
+            new \Twig\TwigFilter('hasFileParam', function ($service) {
+                return $this->hasFileParam($service);
+            }),
+        ]);
     }
 
     /**

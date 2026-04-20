@@ -1,23 +1,144 @@
 import { File } from "node-fetch-native-with-agent";
-import { realpathSync, readFileSync } from "fs";
-import type { BinaryLike } from "crypto";
+
+type FsPromises = {
+  stat: (path: string) => Promise<{ size: number }>;
+  open: (path: string, flags: string) => Promise<{
+    read: (buffer: Uint8Array, offset: number, length: number, position: number) => Promise<{ bytesRead: number }>;
+    close: () => Promise<void>;
+  }>;
+  readFile: (path: string) => Promise<Uint8Array>;
+};
+
+function isEdgeRuntime(): boolean {
+  return typeof globalThis !== 'undefined' && typeof (globalThis as { EdgeRuntime?: unknown }).EdgeRuntime !== 'undefined';
+}
+
+function assertFileSystemAvailable(): void {
+  if (isEdgeRuntime()) {
+    throw new Error('File system operations are not supported in edge runtimes. Please use InputFile.fromBuffer instead.');
+  }
+}
+
+async function getFs(): Promise<FsPromises> {
+  assertFileSystemAvailable();
+
+  try {
+    const fs = await import('fs');
+    return fs.promises;
+  } catch {
+    throw new Error('File system operations are not available in this runtime. Please use InputFile.fromBuffer instead.');
+  }
+}
+
+function getFilename(path: string): string {
+  const segments = path.replace(/\\/g, '/').split('/').filter(Boolean);
+  return segments.pop() ?? 'file';
+}
+
+type BlobLike = {
+  size: number;
+  slice: (start: number, end: number) => BlobLike;
+  arrayBuffer: () => Promise<ArrayBuffer>;
+};
+
+type InputFileSource =
+  | { type: 'path'; path: string }
+  | { type: 'buffer'; data: Uint8Array }
+  | { type: 'blob'; data: BlobLike };
 
 export class InputFile {
-  static fromBuffer(
-    parts: Blob | BinaryLike,
-    name: string
-  ): File {
-    return new File([parts], name);
+  private source: InputFileSource;
+  filename: string;
+
+  private constructor(source: InputFileSource, filename: string) {
+    this.source = source;
+    this.filename = filename;
   }
 
-  static fromPath(path: string, name: string): File {
-    const realPath = realpathSync(path);
-    const contents = readFileSync(realPath);
-    return this.fromBuffer(contents, name);
+  static fromBuffer(parts: BlobLike | Uint8Array | ArrayBuffer | string, name: string): InputFile {
+    if (parts && !ArrayBuffer.isView(parts) && typeof (parts as BlobLike).arrayBuffer === 'function') {
+      return new InputFile({ type: 'blob', data: parts as BlobLike }, name);
+    }
+
+    if (typeof parts === 'string') {
+      return new InputFile({ type: 'buffer', data: new TextEncoder().encode(parts) }, name);
+    }
+
+    if (parts instanceof ArrayBuffer) {
+      return new InputFile({ type: 'buffer', data: new Uint8Array(parts) }, name);
+    }
+
+    if (ArrayBuffer.isView(parts)) {
+      return new InputFile({
+        type: 'buffer',
+        data: new Uint8Array(parts.buffer, parts.byteOffset, parts.byteLength),
+      }, name);
+    }
+
+    throw new Error('Unsupported input type for InputFile.fromBuffer');
   }
 
-  static fromPlainText(content: string, name: string): File {
-    const arrayBytes = new TextEncoder().encode(content);
-    return this.fromBuffer(arrayBytes, name);
+  static fromPath(path: string, name?: string): InputFile {
+    assertFileSystemAvailable();
+    return new InputFile({ type: 'path', path }, name ?? getFilename(path));
+  }
+
+  static fromPlainText(content: string, name: string): InputFile {
+    return new InputFile({ type: 'buffer', data: new TextEncoder().encode(content) }, name);
+  }
+
+  async size(): Promise<number> {
+    switch (this.source.type) {
+      case 'path': {
+        const fs = await getFs();
+        return (await fs.stat(this.source.path)).size;
+      }
+      case 'buffer':
+        return this.source.data.length;
+      case 'blob':
+        return this.source.data.size;
+    }
+  }
+
+  async slice(start: number, end: number): Promise<Uint8Array> {
+    const length = end - start;
+
+    switch (this.source.type) {
+      case 'path': {
+        const fs = await getFs();
+        const handle = await fs.open(this.source.path, 'r');
+        try {
+          const buffer = new Uint8Array(length);
+          const result = await handle.read(buffer, 0, length, start);
+          return result.bytesRead === buffer.length ? buffer : buffer.subarray(0, result.bytesRead);
+        } finally {
+          await handle.close();
+        }
+      }
+      case 'buffer':
+        return this.source.data.subarray(start, end);
+      case 'blob': {
+        const arrayBuffer = await this.source.data.slice(start, end).arrayBuffer();
+        return new Uint8Array(arrayBuffer);
+      }
+    }
+  }
+
+  async toFile(): Promise<File> {
+    const data = await this.toUint8Array();
+    return new File([data], this.filename);
+  }
+
+  private async toUint8Array(): Promise<Uint8Array> {
+    switch (this.source.type) {
+      case 'path': {
+        const fs = await getFs();
+        return await fs.readFile(this.source.path);
+      }
+      case 'buffer':
+        return this.source.data;
+      case 'blob':
+        return new Uint8Array(await this.source.data.arrayBuffer());
+    }
   }
 }
