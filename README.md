@@ -1,9 +1,9 @@
 # ⚙️ Appwrite SDK Generator
 
 [![Discord](https://img.shields.io/discord/564160730845151244?label=discord&style=flat-square)](https://appwrite.io/discord)
-[![Build Status](https://img.shields.io/travis/com/appwrite/sdk-generator?style=flat-square)](https://travis-ci.com/appwrite/sdk-generator)
-[![Twitter Account](https://img.shields.io/twitter/follow/appwrite?color=00acee&label=twitter&style=flat-square)](https://twitter.com/appwrite)
-[![Follow Appwrite on StackShare](https://img.shields.io/badge/follow%20on-stackshare-blue?style=flat-square)](https://stackshare.io/appwrite)
+[![CI](https://github.com/appwrite/sdk-generator/actions/workflows/tests.yml/badge.svg)](https://github.com/appwrite/sdk-generator/actions/workflows/tests.yml)
+[![Twig Linting](https://github.com/appwrite/sdk-generator/actions/workflows/djlint.yml/badge.svg)](https://github.com/appwrite/sdk-generator/actions/workflows/djlint.yml)
+[![X Account](https://img.shields.io/badge/follow-@appwrite-000000?style=flat-square&logo=x&logoColor=white)](https://x.com/appwrite)
 [![appwrite.io](https://img.shields.io/badge/appwrite-.io-f02e65?style=flat-square)](https://appwrite.io)
 
 **WORK IN PROGRESS - NOT READY FOR GENERAL USAGE**
@@ -93,57 +93,50 @@ Requires [uv](https://github.com/astral-sh/uv) to be installed. Configuration is
 * [Postman 1.0](https://schema.getpostman.com/json/collection/v1.0.0/docs/index.html) (Not Ready)
 * [API Blueprint 1A](https://github.com/apiaryio/api-blueprint/blob/master/API%20Blueprint%20Specification.md) (Not Ready)
 
-## Supported Client / Platform SDKs
+## Generated SDKs and Artifacts
 
-| Language               | Supported Versions  |  Coding Standards      |  Package Manager   |   Maintainer   |
-|------------------------|---------------------|------------------------|--------------------|----------------|
-| Web                    | ES5+                | [NPM Coding Style]     | NPM, Yarn,         | [@eldadfux]    |
-| Flutter                |                     | [Effective Dart]       | pub tool           | [@bartektartanus] [@Almoullim] [@lohanidamodar]   |
-| Android (Kotlin, Java) | 5.0+                | [Android style guide]  | Gradle, Maven      | [@abnegate]    |
-| iOS, macOS (Swift)     | iOS 15+, macOS 11+  | [Swift Style Guide]    | Swift Pkg Manager  | [@abnegate]    |
-| Unity (Csharp)         |                     |                        | ?                  | [You?](https://github.com/appwrite/sdk-generator/issues/20) |
+The primary generation targets are defined in `example.php`. Pass the argument below to generate a single target:
 
-## Supported Server SDKs
+```bash
+php example.php <argument>
+```
 
-| Language   | Supported Versions  |  Coding Standards      |  Package Manager   | Contributors   |
-|------------|---------------------|------------------------|--------------------|----------------|
-| TypeScript |                     | [NPM Coding Style]     | NPM, Yarn          | [@eldadfux]    |
-| NodeJS     | 8, 10, 12           | [NPM Coding Style]     | NPM, Yarn          | [@eldadfux]    |
-| PHP        | 7.0+                | [PHP FIG]              | Composer           | [@eldadfux]    |
-| Ruby       | 2.4+                | [Ruby Style Guide]     | GEM                | [@eldadfux] [@abnegate] |
-| Python     | 3.5+                | [PEP8]                 | PIP                | [@eldadfux] [@abnegate] |
-| Dart       | 2.7+                | [Effective Dart]       | pub                | [@lohanidamodar] |
-| Go         |                     | [Effective Go]         | go get             | [@panz3r] [@phaus]      |
-| .NET       | .NET core 3.1       | [C# Coding Conventions]| NuGet              | [@komemi] [@TorstenDittmann]     |
-| D          |                     |                        | ?                  | [You?](https://github.com/appwrite/sdk-generator/issues/20) |
-| Kotlin     | 1.4.31+             | [Kotlin style guide]   | Gradle, Maven      | [@abnegate]    |
-| Java       | 8+                  | [Google style guide]   | Gradle, Maven      | [@abnegate]    |
-| Swift      | 5.5+                | [Swift Style Guide]    | Swift Pkg Manager  | [@abnegate]    |
-| Docker CLI |                     |                        | Docker Hub         | [@christyjacob4]  |
+### Client SDKs
 
-[@Almoullim]:           https://github.com/Almoullim
-[@eldadfux]:            https://github.com/eldadfux
-[@panz3r]:              https://github.com/panz3r
-[@armino-dev]:          https://github.com/armino-dev
-[@bartektartanus]:      https://github.com/bartektartanus
-[@komemi]:              https://github.com/komemi
-[@TorstenDittmann]:     https://github.com/TorstenDittmann
-[@lohanidamodar]:       https://github.com/lohanidamodar
-[@christyjacob4]:       https://github.com/christyjacob4
-[@abnegate]:            https://github.com/abnegate
+| Target | Argument | Output |
+|--------|----------|--------|
+| Web | `web` | `examples/web/` |
+| Flutter | `flutter` | `examples/flutter/` |
+| Apple | `apple` | `examples/apple/` |
+| Android | `android` | `examples/android/` |
+| React Native | `react-native` | `examples/react-native/` |
 
-[PHP FIG]:              https://www.php-fig.org/
-[NPM Coding Style]:     https://docs.npmjs.com/misc/coding-style
-[NPM Coding Style]:     https://docs.npmjs.com/misc/coding-style
-[Ruby Style Guide]:     https://github.com/rubocop-hq/ruby-style-guide
-[PEP8]:                 https://www.python.org/dev/peps/pep-0008/
-[Effective Dart]:       https://dart.dev/guides/language/effective-dart/style
-[Effective Go]:         https://golang.org/doc/effective_go.html
-[Swift Style Guide]:    https://google.github.io/swift/
-[C# Coding Conventions]:https://docs.microsoft.com/en-us/dotnet/csharp/programming-guide/inside-a-program/coding-conventions
-[Kotlin style guide]:   https://kotlinlang.org/docs/coding-conventions.html#apply-the-style-guide
-[Android style guide]:  https://developer.android.com/kotlin/style-guide
-[Google style guide]:   https://google.github.io/styleguide/javaguide.html
+### Server SDKs
+
+| Target | Argument | Output |
+|--------|----------|--------|
+| Node.js | `node` | `examples/node/` |
+| PHP | `php` | `examples/php/` |
+| Python | `python` | `examples/python/` |
+| Ruby | `ruby` | `examples/ruby/` |
+| Dart | `dart` | `examples/dart/` |
+| Go | `go` | `examples/go/` |
+| Swift | `swift` | `examples/swift/` |
+| .NET | `dotnet` | `examples/dotnet/` |
+| Kotlin | `kotlin` | `examples/kotlin/` |
+| Rust | `rust` | `examples/rust/` |
+
+### Tooling and Documentation
+
+| Target | Argument | Output |
+|--------|----------|--------|
+| CLI | `cli` | `examples/cli/` |
+| REST examples | `rest` | `examples/REST/` |
+| GraphQL | `graphql` | `examples/graphql/` |
+| Markdown docs | `markdown` | `examples/markdown/` |
+| Agent Skills | `agent-skills` | `examples/agent-skills/` |
+| Cursor Plugin | `cursor-plugin` | `examples/cursor-plugin/` |
+| Claude Plugin | `claude-plugin` | `examples/claude-plugin/` |
 
 ## Contributing
 
