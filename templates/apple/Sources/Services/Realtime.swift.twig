@@ -5,6 +5,12 @@ import NIOHTTP1
 
 open class Realtime : Service {
 
+    // Diagnostic messages go to stderr so they don't interleave with any stdout
+    // the host process may be asserting on (e.g. SDK integration tests).
+    private static func logDiagnostic(_ message: String) {
+        FileHandle.standardError.write(Data("\(message)\n".utf8))
+    }
+
     private let TYPE_ERROR = "error"
     private let TYPE_EVENT = "event"
     private let TYPE_PONG = "pong"
@@ -62,7 +68,7 @@ open class Realtime : Service {
                 }
             } catch {
                 if !Task.isCancelled {
-                    print("Heartbeat task failed: \(error.localizedDescription)")
+                    Realtime.logDiagnostic("Heartbeat task failed: \(error.localizedDescription)")
                 }
             }
         }
@@ -454,7 +460,7 @@ extension Realtime: WebSocketClientDelegate {
 
         let timeout = getTimeout()
 
-        print("Realtime disconnected. Re-connecting in \(timeout / 1000) seconds.")
+        Realtime.logDiagnostic("Realtime disconnected. Re-connecting in \(timeout / 1000) seconds.")
 
         try await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000))
 
@@ -465,7 +471,7 @@ extension Realtime: WebSocketClientDelegate {
 
     public func onError(error: Swift.Error?, status: HTTPResponseStatus?) {
         stopHeartbeat()
-        print(error?.localizedDescription ?? "Unknown error")
+        Realtime.logDiagnostic(error?.localizedDescription ?? "Unknown error")
 
         onErrorCallbacks.forEach { $0(error, status) }
     }
