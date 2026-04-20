@@ -1,0 +1,84 @@
+# {{method.name | caseUcfirst}}
+
+## Example
+
+```csharp
+using {{ spec.title | caseUcfirst }};
+{% set addedEnum = false %}
+{% for parameter in method.parameters.all %}
+{% if parameter.enumValues | length > 0 and not addedEnum %}
+using {{ spec.title | caseUcfirst }}.Enums;
+{% set addedEnum = true %}
+{% endif %}
+{% endfor %}
+using {{ spec.title | caseUcfirst }}.Models;
+using {{ spec.title | caseUcfirst }}.Services;
+using Cysharp.Threading.Tasks;
+using UnityEngine;
+
+public class {{method.name | caseUcfirst}}Example : MonoBehaviour
+{
+    private Client client;
+    private {{service.name | caseUcfirst}} {{service.name | caseCamel}};
+
+    async void Start()
+    {
+        client = new Client()
+{% if method.auth|length > 0 %}
+            .SetEndpoint("{{ spec.endpointDocs | raw }}") // Your API Endpoint
+{% for node in method.auth %}
+{% for key,header in node|keys %}
+            .Set{{header | caseUcfirst}}("{{node[header]['x-appwrite']['demo'] | raw }}"){% if loop.last %};{% endif %} // {{node[header].description}}
+{% endfor %}{% endfor %}{% endif %}
+
+        {{ service.name | caseCamel }} = new {{ service.name | caseUcfirst }}(client);
+
+        await Example{{method.name | caseUcfirst}}();
+    }
+    
+    async UniTask Example{{method.name | caseUcfirst}}()
+    {
+        try
+        {
+{% if method.method != 'delete' and method.type != 'webAuth' %}{% if method.type == 'location' %}            byte[] result = {% else %}            {{ method.responseModel | caseUcfirst | overrideIdentifier }} result = {% endif %}{% endif %}await {{ service.name | caseCamel }}.{{ method.name | caseUcfirst }}({% if method.parameters.all | length == 0 %});{% endif %}
+{%~ for parameter in method.parameters.all %}
+
+                {{ parameter.name }}: {% if parameter.enumValues | length > 0%}{{ parameter.enumName }}.{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}{% else %}{{ parameter | paramExample }}{% endif %}{% if not loop.last %},{% endif %}{% if not parameter.required %} // optional{% endif %}
+{%~ endfor %}
+
+{% if method.parameters.all | length > 0 %}            );{% endif %}
+
+{% if method.method != 'delete' and method.type != 'webAuth' %}            Debug.Log("Success: " + result);
+{% else %}            Debug.Log("Success");
+{% endif %}
+        }
+        catch ({{spec.title | caseUcfirst}}Exception ex)
+        {
+            Debug.LogError($"Error: {ex.Message} (Code: {ex.Code})");
+        }
+    }
+}
+```
+
+## Parameters
+
+{%~ for parameter in method.parameters.all %}
+- **{{parameter.name | caseCamel}}** *{{parameter.type}}* - {{parameter.description}}{% if parameter.required %} *(required)* {% else %} *(optional)*{% endif %}
+
+{%~ endfor %}
+
+## Response
+
+{% if method.responseModel and method.responseModel != 'any' -%}
+Returns `{{method.responseModel | caseUcfirst}}` object.
+{%- else -%}
+{% if method.type == "webAuth" -%}
+None Returns
+{%- else -%}
+Returns response object.
+{%- endif -%}
+{%- endif %}
+
+## More Info
+
+{{method.description}}

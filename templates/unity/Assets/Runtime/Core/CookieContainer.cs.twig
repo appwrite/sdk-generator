@@ -1,0 +1,291 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.Json;
+using UnityEngine;
+#if UNITY_WEBGL && !UNITY_EDITOR
+using System.Runtime.InteropServices;
+#endif
+
+namespace {{ spec.title | caseUcfirst }}
+{
+    /// <summary>
+    /// Simple cookie container for Unity WebRequest
+    /// </summary>
+    [Serializable]
+    public class Cookie
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Value { get; set; } = string.Empty;
+        public string Domain { get; set; } = string.Empty;
+        public string Path { get; set; } = "/";
+        public DateTime Expires { get; set; } = DateTime.MaxValue;
+        public int? MaxAge { get; set; } // null means didn't set, 0+ means seconds from creation
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public bool HttpOnly { get; set; }
+        public bool Secure { get; set; }
+        public string SameSite { get; set; } = string.Empty;
+
+        // Max-Age priority over Expires
+        public bool IsExpired =>
+            MaxAge.HasValue
+                ? MaxAge <= 0 || DateTime.Now > CreatedAt.AddSeconds(MaxAge.Value)
+                : DateTime.Now > Expires;
+
+        public bool MatchesDomain(string requestDomain)
+        {
+            if (string.IsNullOrEmpty(Domain)) return true;
+            var d = Domain.ToLowerInvariant();
+            var r = requestDomain.ToLowerInvariant();
+            return r == d || r.EndsWith("." + d) || (d.StartsWith(".") && r.EndsWith(d));
+        }
+
+        public bool MatchesPath(string requestPath) =>
+            string.IsNullOrEmpty(Path) || requestPath.StartsWith(Path, StringComparison.OrdinalIgnoreCase);
+
+        public override string ToString()
+        {
+            return $"{Name}={Value} " +
+                   $"{(string.IsNullOrEmpty(Domain) ? "" : $"; Domain={Domain}")}" +
+                   $"{(string.IsNullOrEmpty(Path) ? "" : $"; Path={Path}")}" +
+                   $"{(Expires == DateTime.MaxValue ? "" : $"; Expires={Expires:R}")}" +
+                   $"{(MaxAge.HasValue ? $"; Max-Age={MaxAge.Value}" : "")}" +
+                   $"{(HttpOnly ? "; HttpOnly" : "")}" +
+                   $"{(Secure ? "; Secure" : "")}" +
+                   $"{(string.IsNullOrEmpty(SameSite) ? "" : $"; SameSite={SameSite}")}";
+        }
+    }
+
+    /// <summary>
+    /// Simple cookie container implementation for Unity
+    /// </summary>
+    public class CookieContainer
+    {
+        private readonly List<Cookie> _cookies = new List<Cookie>();
+        private readonly object _lock = new object();
+
+        private const string CookiePrefsKey = "{{ spec.title | caseUcfirst }}_Cookies";
+#if UNITY_WEBGL && !UNITY_EDITOR
+        [DllImport("__Internal")]
+        private static extern void EnableWebGLHttpCredentials(int enable);
+#endif
+
+        public CookieContainer()
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            try
+            {
+                EnableWebGLHttpCredentials(1);
+                Debug.Log("[CookieContainer] WebGL credentials enabled - browser will handle cookies.");
+            }
+            catch
+            {
+                // Ignore errors - jslib may not be loaded
+            }
+            // In WebGL, the browser handles cookies automatically, so we don't load from PlayerPrefs
+#else
+            // In non-WebGL builds, load cookies from PlayerPrefs
+            LoadCookies();
+#endif
+        }
+
+        /// <summary>
+        /// Add a cookie to the container
+        /// </summary>
+        private void AddCookie(Cookie cookie)
+        {
+            if (cookie?.Name == null) return;
+            
+            lock (_lock)
+            {
+                // Remove existing cookie with the same name, domain, and path
+                Debug.Log($"[CookieContainer] Removing duplicates for {cookie.Name}");
+                _cookies.RemoveAll(c => c.Name == cookie.Name && c.Domain == cookie.Domain && c.Path == cookie.Path);
+                if (!cookie.IsExpired)
+                {
+                    _cookies.Add(cookie);
+                    Debug.Log($"[CookieContainer] Cookie added to container: {cookie}");
+                    SaveCookies(); // Auto-save when cookie is added
+                }
+                else
+                {
+                    Debug.Log($"[CookieContainer] Cookie is expired, not added: {cookie.Name}");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Get cookies for a specific domain and path
+        /// </summary>
+        public List<Cookie> GetCookies(string domain, string path = "/")
+        {
+            lock (_lock)
+            {
+                CleanExpiredCookies();
+                var list = _cookies.Where(c =>
+                    c.MatchesDomain(domain) &&
+                    c.MatchesPath(path) &&
+                    !c.IsExpired).ToList();
+                Debug.Log($"[CookieContainer] GetCookies for domain={domain} path={path} => {list.Count}");
+                return list;
+            }
+        }
+
+        /// <summary>
+        /// Get cookie header string for request
+        /// </summary>
+        public string GetCookieHeader(string domain, string path = "/") => 
+            string.Join("; ", GetCookies(domain, path)
+                .Select(c => $"{c.Name}={c.Value}"));
+
+        /// <summary>
+        /// Parse Set-Cookie header and add to container
+        /// </summary>
+        public void ParseSetCookieHeader(string setCookieHeader, string domain)
+        {
+            if (string.IsNullOrWhiteSpace(setCookieHeader) || string.IsNullOrWhiteSpace(domain)) return;
+            foreach (var c in setCookieHeader.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+                ParseCookie(c.Trim(), domain);
+        }
+        
+        /// <summary>
+        /// Parse a single cookie string
+        /// </summary>
+        private void ParseCookie(string cookieString, string domain)
+        {
+            var parts = cookieString.Split(';');
+            var kv = parts[0].Split('=', 2);
+            if (kv.Length != 2) return;
+
+            var c = new Cookie { Name = kv[0].Trim(), Value = kv[1].Trim(), Domain = domain.ToLowerInvariant() };
+            foreach (var p in parts.Skip(1))
+            {
+                var seg = p.Split('=', 2);
+                var key = seg[0].Trim().ToLowerInvariant();
+                var val = seg.Length > 1 ? seg[1].Trim() : null;
+                switch (key)
+                {
+                    case "domain": c.Domain = val?.ToLowerInvariant() ?? string.Empty; break;
+                    case "path": c.Path = val ?? string.Empty; break;
+                    case "expires":
+                        if (DateTime.TryParse(val, out var e)) c.Expires = e;
+                        break;
+                    case "max-age":
+                        if (int.TryParse(val, out var m)) c.MaxAge = m;
+                        break;
+                    case "httponly": c.HttpOnly = true; break;
+                    case "secure": c.Secure = true; break;
+                    case "samesite": c.SameSite = val?.ToLowerInvariant() ?? string.Empty; break;
+                }
+            }
+            Debug.Log($"[CookieContainer] Parsed cookie => {c}");
+            AddCookie(c);
+        }
+
+        /// <summary>
+        /// Clear all cookies
+        /// </summary>
+        public void Clear()
+        {
+            lock (_lock)
+            {
+                _cookies.Clear();
+                SaveCookies(); // Auto-save when cookies are cleared
+            }
+        }
+
+        /// <summary>
+        /// Get the total number of cookies in the container
+        /// </summary>
+        public int Count
+        {
+            get
+            {
+                lock (_lock)
+                {
+                    CleanExpiredCookies();
+                    return _cookies.Count;
+                }
+            }
+        }
+
+        public string GetContents()
+        {
+            lock (_lock)
+            {
+                CleanExpiredCookies();
+                return string.Join("\n", _cookies);
+            }
+        }
+
+        /// <summary>
+        /// Remove expired cookies (must be called within lock)
+        /// </summary>
+        private void CleanExpiredCookies() => 
+            _cookies.RemoveAll(c => c == null || c.IsExpired);
+
+        /// <summary>
+        /// Load cookies from persistent storage
+        /// </summary>
+        public void LoadCookies()
+        {
+            lock (_lock)
+            {
+                try
+                {
+                    if (PlayerPrefs.HasKey(CookiePrefsKey))
+                    {
+                        var loaded = JsonSerializer.Deserialize<List<Cookie>>(PlayerPrefs.GetString(CookiePrefsKey), Client.DeserializerOptions);
+                        _cookies.Clear();
+                        if (loaded != null)
+                        {
+                            _cookies.AddRange(loaded);
+                        }
+                    }
+                    Debug.Log($"[CookieContainer] Loaded cookies from prefs: {_cookies.Count}");
+                    CleanExpiredCookies();
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogWarning($"Failed to load cookies: {ex.Message}");
+                    _cookies.Clear();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Save cookies to persistent storage (must be called within lock)
+        /// </summary>
+        private void SaveCookies()
+        {
+            // Note: This method should only be called from within a lock block
+            try
+            {
+                CleanExpiredCookies();
+                var json = JsonSerializer.Serialize(_cookies, Client.SerializerOptions);
+                PlayerPrefs.SetString(CookiePrefsKey, json);
+                PlayerPrefs.Save();
+                Debug.Log($"[CookieContainer] Saved cookies to prefs: {_cookies.Count}");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"Failed to save cookies: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Delete persistent cookie storage
+        /// </summary>
+        public void DeleteCookieStorage()
+        {
+            lock (_lock)
+            {
+                _cookies.Clear();
+                if (PlayerPrefs.HasKey(CookiePrefsKey))
+                    PlayerPrefs.DeleteKey(CookiePrefsKey);
+                PlayerPrefs.Save();
+                Debug.Log("[CookieContainer] Deleted cookie storage");
+            }
+        }
+    }
+}
