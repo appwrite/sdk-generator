@@ -50,6 +50,12 @@ class Tests: XCTestCase {
         let expectationWithQueriesFailure = XCTestExpectation(description: "realtime server (with queries failure)")
         expectationWithQueriesFailure.isInverted = true
 
+        // Watchdog: flipped to true if the callback fires after unsubscribe, so we can
+        // verify the subscription is *actually* torn down, not just that the call
+        // resolved without throwing.
+        var rtsubFailureUnsubscribed = false
+        var rtsubFailureFiredAfterUnsubscribe = false
+
         // Subscribe without queries
         let rtsub = try await realtime.subscribe(channels: ["tests"]) { message in
             realtimeResponse = message.payload!["response"] as! String
@@ -73,6 +79,7 @@ class Tests: XCTestCase {
                 Query.equal("response", value: ["failed"])
             ]
         ) { message in
+            if rtsubFailureUnsubscribed { rtsubFailureFiredAfterUnsubscribe = true }
             realtimeResponseWithQueriesFailure = message.payload?["response"] as! String
             expectationWithQueriesFailure.fulfill()
         }
@@ -204,6 +211,19 @@ class Tests: XCTestCase {
 
         do {
             try await rtsubWithQueriesFailure.unsubscribe()
+            rtsubFailureUnsubscribed = true
+
+            // Idempotence: a second unsubscribe on the same handle must not throw.
+            try await rtsubWithQueriesFailure.unsubscribe()
+
+            // Give any in-flight frames a chance to be dispatched to the callback.
+            // If we're truly unsubscribed, the watchdog flag stays false.
+            try await Task.sleep(nanoseconds: 500_000_000)
+
+            if rtsubFailureFiredAfterUnsubscribe {
+                throw NSError(domain: "RealtimeTest", code: 1, userInfo: [NSLocalizedDescriptionKey: "callback fired after unsubscribe"])
+            }
+
             print("Realtime unsubscribe:passed")
         } catch {
             print("Realtime unsubscribe:failed")

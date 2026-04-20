@@ -91,6 +91,12 @@ class ServiceTest {
         var realtimeResponseWithQueries = "Realtime failed!"
         var realtimeResponseWithQueriesFailure = "Realtime failed!"
 
+        // Watchdog: flipped to true if the callback fires after unsubscribe, so we can
+        // verify the subscription is *actually* torn down, not just that the call
+        // resolved without throwing.
+        var rtsubFailureUnsubscribed = false
+        var rtsubFailureFiredAfterUnsubscribe = false
+
         // Subscribe without queries
         val rtsub = realtime.subscribe("tests", payloadType = TestPayload::class.java) {
             realtimeResponse = it.payload.response
@@ -114,6 +120,7 @@ class ServiceTest {
                 Query.equal("response", listOf("failed"))
             )
         ) {
+            if (rtsubFailureUnsubscribed) rtsubFailureFiredAfterUnsubscribe = true
             realtimeResponseWithQueriesFailure = "WS:/v1/realtime:passed"
         }
 
@@ -225,6 +232,19 @@ class ServiceTest {
 
             try {
                 rtsubWithQueriesFailure.unsubscribe()
+                rtsubFailureUnsubscribed = true
+
+                // Idempotence: a second unsubscribe on the same handle must not throw.
+                rtsubWithQueriesFailure.unsubscribe()
+
+                // Give any in-flight frames a chance to be dispatched to the callback.
+                // If we're truly unsubscribed, the watchdog flag stays false.
+                delay(500)
+
+                if (rtsubFailureFiredAfterUnsubscribe) {
+                    throw Exception("callback fired after unsubscribe")
+                }
+
                 writeToFile("Realtime unsubscribe:passed")
             } catch (e: Exception) {
                 writeToFile("Realtime unsubscribe:failed")

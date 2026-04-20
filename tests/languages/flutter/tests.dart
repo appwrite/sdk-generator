@@ -191,6 +191,16 @@ void main() async {
 
   try {
     await rtsubWithQueriesFailure.unsubscribe();
+
+    // Idempotence: a second unsubscribe on the same handle must not throw.
+    await rtsubWithQueriesFailure.unsubscribe();
+
+    // Truly unsubscribed: the backing stream controller should be closed so
+    // no further events can be pushed to consumers.
+    if (!rtsubWithQueriesFailure.controller.isClosed) {
+      throw Exception("controller still open after unsubscribe");
+    }
+
     print("Realtime unsubscribe:passed");
   } catch (e) {
     print("Realtime unsubscribe:failed");
