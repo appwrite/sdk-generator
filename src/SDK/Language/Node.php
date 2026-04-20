@@ -34,6 +34,14 @@ class Node extends Web
 
     public function getTypeName(array $parameter, array $method = []): string
     {
+        if (($parameter['type'] ?? null) === self::TYPE_ARRAY) {
+            $arrayType = $parameter['array']['type'] ?? $parameter['items']['type'] ?? null;
+
+            if ($arrayType === self::TYPE_FILE) {
+                return '(File | InputFile)[]';
+            }
+        }
+
         if (($parameter['type'] ?? null) === self::TYPE_FILE) {
             return 'File | InputFile';
         }
