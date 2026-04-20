@@ -92,10 +92,23 @@ Requires [uv](https://github.com/astral-sh/uv) to be installed. Configuration is
 
 ## Generated SDKs and Artifacts
 
-The primary generation targets are defined in `example.php`. Pass the argument below to generate a single target:
+The primary generation targets are defined in `example.php`. Run it without arguments to generate every target with the default `console` platform spec, or pass a target and optional platform to generate one SDK:
 
 ```bash
-php example.php <argument>
+php example.php
+php example.php <target>
+php example.php <target> <platform>
+```
+
+`<platform>` can be `console`, `client`, or `server`. If omitted, it defaults to `console`.
+
+Examples:
+
+```bash
+php example.php web client
+php example.php node server
+php example.php cli console
+php example.php agent-skills
 ```
 
 ### Client SDKs
