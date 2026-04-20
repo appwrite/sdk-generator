@@ -104,6 +104,65 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         socket?.close(RealtimeCode.POLICY_VIOLATION.value, null)
     }
 
+    private fun sendUnsubscribeMessage(subscriptionIds: List<String>) {
+        val ws = socket ?: return
+        val ids = subscriptionIds.filter { it.isNotEmpty() }
+        if (ids.isEmpty()) {
+            return
+        }
+        ws.send(
+            mapOf(
+                "type" to "unsubscribe",
+                "data" to ids.map { mapOf("subscriptionId" to it) }
+            ).toJson()
+        )
+    }
+
+    private fun removeSlotLocked(slot: Int): String? {
+        val subscriptionId = slotToSubscriptionId[slot]
+        activeSubscriptions.remove(slot)
+        slotToSubscriptionId.remove(slot)
+        subscriptionId?.let { subscriptionIdToSlot.remove(it) }
+        return subscriptionId
+    }
+
+    private fun sendUpdateMessage(slot: Int) {
+        val ws = socket ?: return
+        val row: Map<String, Any>
+        val slotsForMessage: List<Int>
+        synchronized(subscriptionLock) {
+            val subscription = activeSubscriptions[slot] ?: return
+            val rowBuilder = mutableMapOf<String, Any>(
+                "channels" to subscription.channels.toList(),
+                "queries" to subscription.queries.toList()
+            )
+            val knownSubscriptionId = slotToSubscriptionId[slot]
+            if (!knownSubscriptionId.isNullOrEmpty()) {
+                rowBuilder["subscriptionId"] = knownSubscriptionId
+            }
+            row = rowBuilder
+            slotsForMessage = listOf(slot)
+            pendingSubscribeSlotsQueue.addLast(slotsForMessage)
+        }
+        ws.send(mapOf("type" to "subscribe", "data" to listOf(row)).toJson())
+    }
+
+    /**
+     * Close the WebSocket connection and drop all active subscriptions client-side.
+     * Use this instead of calling [RealtimeSubscription.unsubscribe] on every subscription
+     * when you want to tear everything down.
+     */
+    fun disconnect() {
+        synchronized(subscriptionLock) {
+            activeSubscriptions.clear()
+            slotToSubscriptionId.clear()
+            subscriptionIdToSlot.clear()
+            pendingSubscribeSlotsQueue.clear()
+            reconnect = false
+            closeSocket()
+        }
+    }
+
     private fun sendSubscribeMessage() {
         val ws = socket ?: return
         val rows = mutableListOf<Map<String, Any>>()
@@ -231,26 +290,58 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
             }
         }
 
-        return RealtimeSubscription {
-            // Unsubscribe must update all three maps atomically so that
-            // no reader observes a half-updated state.
+        val unsubscribeFn: () -> Unit = {
+            val subscriptionId: String?
             synchronized(subscriptionLock) {
-                val subscriptionId = slotToSubscriptionId[slot]
-                activeSubscriptions.remove(slot)
-                slotToSubscriptionId.remove(slot)
-                subscriptionId?.let { subscriptionIdToSlot.remove(it) }
+                subscriptionId = if (activeSubscriptions.containsKey(slot)) {
+                    removeSlotLocked(slot)
+                } else {
+                    null
+                }
             }
+            if (!subscriptionId.isNullOrEmpty()) {
+                sendUnsubscribeMessage(listOf(subscriptionId))
+            }
+        }
+
+        val updateFn: (RealtimeSubscriptionUpdate) -> Unit = { changes ->
+            synchronized(subscriptionLock) {
+                val current = activeSubscriptions[slot]
+                if (current != null) {
+                    val nextChannels = changes.channels?.map { channelToString(it) }?.toSet()
+                        ?: current.channels
+                    val nextQueries = changes.queries?.toSet() ?: current.queries
+                    activeSubscriptions[slot] = RealtimeCallback(
+                        nextChannels,
+                        nextQueries,
+                        current.payloadClass,
+                        current.callback
+                    )
+                }
+            }
+            if (socket != null) {
+                sendUpdateMessage(slot)
+            } else {
+                createSocket()
+            }
+        }
+
+        val closeFn: () -> Unit = {
+            // Legacy behavior: per-sub unsubscribe plus auto-close when this was the last one.
+            unsubscribeFn()
             synchronized(subscriptionLock) {
                 if (activeSubscriptions.isEmpty()) {
                     reconnect = false
                     closeSocket()
-                } else if (socket != null) {
-                    sendSubscribeMessage()
-                } else {
-                    this@Realtime.createSocket()
                 }
             }
         }
+
+        return RealtimeSubscription(
+            unsubscribe = unsubscribeFn,
+            update = updateFn,
+            close = closeFn
+        )
     }
 
     // cleanUp is no longer needed - slots are removed directly in subscribe().close()

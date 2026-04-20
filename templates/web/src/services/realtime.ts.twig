@@ -2,7 +2,27 @@ import { {{ spec.title | caseUcfirst}}Exception, Client } from '../client';
 import { Channel, ActionableChannel, ResolvedChannel } from '../channel';
 import { Query } from '../query';
 
+export type RealtimeSubscriptionUpdate = {
+    channels?: (string | Channel<any> | ActionableChannel | ResolvedChannel)[];
+    queries?: (string | Query)[];
+}
+
 export type RealtimeSubscription = {
+    /**
+     * Remove this subscription only. Keeps the WebSocket open so other subscriptions keep receiving events.
+     * Use `Realtime.disconnect()` to close the connection entirely.
+     */
+    unsubscribe: () => Promise<void>;
+
+    /**
+     * Replace the channels and/or queries for this subscription on the server without re-creating it.
+     */
+    update: (changes: RealtimeSubscriptionUpdate) => Promise<void>;
+
+    /**
+     * Alias of `unsubscribe()` plus legacy auto-disconnect when this was the last active subscription.
+     * Prefer `unsubscribe()` for per-subscription teardown and `Realtime.disconnect()` for full shutdown.
+     */
     close: () => Promise<void>;
 }
 
@@ -31,7 +51,7 @@ export type RealtimeResponseConnected = {
 }
 
 export type RealtimeRequest = {
-    type: 'authentication' | 'subscribe';
+    type: 'authentication' | 'subscribe' | 'unsubscribe';
     data: any;
 }
 
@@ -281,6 +301,71 @@ export class Realtime {
         return this.slotToSubscriptionId.get(slot);
     }
 
+    private sendUnsubscribeMessage(subscriptionIds: string[]): void {
+        const ids = subscriptionIds.filter(id => typeof id === 'string' && id.length > 0);
+        if (ids.length === 0) {
+            return;
+        }
+        if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
+            return;
+        }
+        this.socket.send(JSON.stringify(<RealtimeRequest>{
+            type: 'unsubscribe',
+            data: ids.map(subscriptionId => ({ subscriptionId }))
+        }));
+    }
+
+    private removeSlot(slot: number): string | undefined {
+        const subscriptionId = this.slotToSubscriptionId.get(slot);
+        this.activeSubscriptions.delete(slot);
+        this.slotToSubscriptionId.delete(slot);
+        if (subscriptionId) {
+            this.subscriptionIdToSlot.delete(subscriptionId);
+        }
+        return subscriptionId;
+    }
+
+    private sendUpdateMessage(slot: number): void {
+        if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
+            return;
+        }
+
+        const subscription = this.activeSubscriptions.get(slot);
+        if (!subscription) {
+            return;
+        }
+
+        const row: RealtimeRequestSubscribeRow = {
+            channels: Array.from(subscription.channels),
+            queries: subscription.queries ?? []
+        };
+
+        const knownSubscriptionId = this.getKnownSubscriptionId(slot);
+        if (knownSubscriptionId) {
+            row.subscriptionId = knownSubscriptionId;
+        }
+
+        this.pendingSubscribeSlots = [slot];
+
+        this.socket.send(JSON.stringify(<RealtimeRequest>{
+            type: 'subscribe',
+            data: [row]
+        }));
+    }
+
+    /**
+     * Close the WebSocket connection and drop all active subscriptions client-side.
+     * Use this instead of calling `unsubscribe()` on every subscription when you want to tear everything down.
+     */
+    public async disconnect(): Promise<void> {
+        this.activeSubscriptions.clear();
+        this.slotToSubscriptionId.clear();
+        this.subscriptionIdToSlot.clear();
+        this.pendingSubscribeSlots = [];
+        this.reconnect = false;
+        await this.closeSocket();
+    }
+
     private sendSubscribeMessage(): void {
         if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
             return;
@@ -439,27 +524,60 @@ export class Realtime {
 
         this.subCallDepth--;
 
-        return {
-            close: async () => {
-                const subscriptionId = this.slotToSubscriptionId.get(slot);
-                this.activeSubscriptions.delete(slot);
-                this.slotToSubscriptionId.delete(slot);
-                if (subscriptionId) {
-                    this.subscriptionIdToSlot.delete(subscriptionId);
-                }
-                if (this.activeSubscriptions.size === 0) {
-                    this.reconnect = false;
-                    await this.closeSocket();
-                    return;
-                }
-
-                if (!this.socket || this.socket.readyState > WebSocket.OPEN) {
-                    await this.createSocket();
-                } else if (this.socket.readyState === WebSocket.OPEN) {
-                    this.sendSubscribeMessage();
-                }
+        const unsubscribe = async (): Promise<void> => {
+            if (!this.activeSubscriptions.has(slot)) {
+                return;
+            }
+            const subscriptionId = this.removeSlot(slot);
+            if (subscriptionId) {
+                this.sendUnsubscribeMessage([subscriptionId]);
             }
         };
+
+        const update = async (changes: RealtimeSubscriptionUpdate): Promise<void> => {
+            const subscription = this.activeSubscriptions.get(slot);
+            if (!subscription) {
+                return;
+            }
+
+            if (changes.channels !== undefined) {
+                const nextChannelStrings = changes.channels.map(ch => this.channelToString(ch));
+                subscription.channels = new Set(nextChannelStrings);
+            }
+
+            if (changes.queries !== undefined) {
+                const nextQueries: string[] = [];
+                for (const q of changes.queries) {
+                    if (Array.isArray(q)) {
+                        for (const inner of q) {
+                            nextQueries.push(typeof inner === 'string' ? inner : (inner as Query).toString());
+                        }
+                    } else {
+                        nextQueries.push(typeof q === 'string' ? q : q.toString());
+                    }
+                }
+                subscription.queries = nextQueries;
+            }
+
+            if (!this.socket || this.socket.readyState > WebSocket.OPEN) {
+                await this.createSocket();
+                return;
+            }
+
+            if (this.socket.readyState === WebSocket.OPEN) {
+                this.sendUpdateMessage(slot);
+            }
+        };
+
+        const close = async (): Promise<void> => {
+            await unsubscribe();
+            if (this.activeSubscriptions.size === 0) {
+                this.reconnect = false;
+                await this.closeSocket();
+            }
+        };
+
+        return { unsubscribe, update, close };
     }
 
     // cleanUp is no longer needed - slots are removed directly in subscribe().close()
@@ -564,7 +682,12 @@ export class Realtime {
 
     private handleResponseAction(message: RealtimeResponse): void {
         const data = message.data as RealtimeResponseAction | undefined;
-        if (!data || data.to !== 'subscribe' || !Array.isArray(data.subscriptions)) {
+        if (!data || !Array.isArray(data.subscriptions)) {
+            return;
+        }
+
+        // Nothing to do on unsubscribe acks beyond what the caller already did client-side.
+        if (data.to !== 'subscribe') {
             return;
         }
 

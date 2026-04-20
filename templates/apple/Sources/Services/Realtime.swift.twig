@@ -94,6 +94,69 @@ open class Realtime : Service {
         try await socketClient?.connect()
     }
 
+    private func sendUnsubscribeMessage(_ subscriptionIds: [String]) {
+        let ids = subscriptionIds.filter { !$0.isEmpty }
+        guard !ids.isEmpty, let ws = socketClient, ws.isConnected else {
+            return
+        }
+        let payload: [String: Any] = [
+            "type": "unsubscribe",
+            "data": ids.map { ["subscriptionId": $0] }
+        ]
+        if let data = try? JSONSerialization.data(withJSONObject: payload),
+           let text = String(data: data, encoding: .utf8) {
+            ws.send(text: text)
+        }
+    }
+
+    private func removeSlot(_ slot: Int) -> String? {
+        let subscriptionId = slotToSubscriptionId[slot]
+        activeSubscriptions[slot] = nil
+        activeSubscriptionQueries[slot] = nil
+        slotToSubscriptionId[slot] = nil
+        if let sid = subscriptionId {
+            subscriptionIdToSlot[sid] = nil
+        }
+        return subscriptionId
+    }
+
+    private func sendUpdateMessage(slot: Int) {
+        guard let ws = socketClient, ws.isConnected,
+              let subscription = activeSubscriptions[slot] else {
+            return
+        }
+        let queries = activeSubscriptionQueries[slot] ?? []
+        var row: [String: Any] = [
+            "channels": Array(subscription.channels),
+            "queries": queries
+        ]
+        if let knownSubscriptionId = slotToSubscriptionId[slot] {
+            row["subscriptionId"] = knownSubscriptionId
+        }
+        pendingSubscribeSlots = [slot]
+        let payload: [String: Any] = [
+            "type": "subscribe",
+            "data": [row]
+        ]
+        if let data = try? JSONSerialization.data(withJSONObject: payload),
+           let text = String(data: data, encoding: .utf8) {
+            ws.send(text: text)
+        }
+    }
+
+    /// Close the WebSocket connection and drop all active subscriptions client-side.
+    /// Use this instead of calling `unsubscribe()` on every subscription when you want
+    /// to tear everything down.
+    public func disconnect() async throws {
+        activeSubscriptions.removeAll()
+        activeSubscriptionQueries.removeAll()
+        slotToSubscriptionId.removeAll()
+        subscriptionIdToSlot.removeAll()
+        pendingSubscribeSlots.removeAll()
+        reconnect = false
+        try await closeSocket()
+    }
+
     private func sendSubscribeMessage() {
         guard let ws = socketClient, ws.isConnected else {
             return
@@ -258,25 +321,49 @@ open class Realtime : Service {
             self.subCallDepth -= 1
         }
 
-        return RealtimeSubscription {
-            let subscriptionId = self.slotToSubscriptionId[slot]
-            self.activeSubscriptions[slot] = nil
-            self.activeSubscriptionQueries[slot] = nil
-            self.slotToSubscriptionId[slot] = nil
-            if let sid = subscriptionId {
-                self.subscriptionIdToSlot[sid] = nil
+        return RealtimeSubscription(
+            unsubscribe: { [weak self] in
+                guard let self = self else { return }
+                guard self.activeSubscriptions[slot] != nil else { return }
+                let subscriptionId = self.removeSlot(slot)
+                if let sid = subscriptionId, !sid.isEmpty {
+                    self.sendUnsubscribeMessage([sid])
+                }
+            },
+            update: { [weak self] changes in
+                guard let self = self, let subscription = self.activeSubscriptions[slot] else {
+                    return
+                }
+                if let nextChannels = changes.channels {
+                    let channelStrings = Set(nextChannels.map { self.channelToString($0) })
+                    self.activeSubscriptions[slot] = RealtimeCallback(
+                        for: channelStrings,
+                        with: subscription.callback
+                    )
+                }
+                if let nextQueries = changes.queries {
+                    self.activeSubscriptionQueries[slot] = nextQueries
+                }
+                if let ws = self.socketClient, ws.isConnected {
+                    self.sendUpdateMessage(slot: slot)
+                } else {
+                    try await self.createSocket()
+                }
+            },
+            close: { [weak self] in
+                guard let self = self else { return }
+                if self.activeSubscriptions[slot] != nil {
+                    let subscriptionId = self.removeSlot(slot)
+                    if let sid = subscriptionId, !sid.isEmpty {
+                        self.sendUnsubscribeMessage([sid])
+                    }
+                }
+                if self.activeSubscriptions.isEmpty {
+                    self.reconnect = false
+                    try await self.closeSocket()
+                }
             }
-            if self.activeSubscriptions.isEmpty {
-                self.reconnect = false
-                try await self.closeSocket()
-                return
-            }
-            if let ws = self.socketClient, ws.isConnected {
-                self.sendSubscribeMessage()
-            } else {
-                try await self.createSocket()
-            }
-        }
+        )
     }
 
     // cleanUp is no longer needed - slots are removed directly in subscribe().close()
