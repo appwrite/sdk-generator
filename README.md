@@ -69,6 +69,35 @@ $sdk->generate(__DIR__ . '/examples/php'); // Generate source code
 
 ```
 
+For generated artifacts that do not need an API specification, use `StaticSpec`:
+
+```php
+<?php
+
+require_once 'vendor/autoload.php';
+
+use Appwrite\Spec\StaticSpec;
+use Appwrite\SDK\SDK;
+use Appwrite\SDK\Language\AgentSkills;
+
+$spec = new StaticSpec(
+    title: 'Appwrite',
+    description: 'Appwrite backend as a service',
+    version: '1.9.x',
+    licenseName: 'BSD-3-Clause',
+    licenseURL: 'https://raw.githubusercontent.com/appwrite/appwrite/master/LICENSE',
+);
+
+$sdk = new SDK(new AgentSkills(), $spec);
+
+$sdk
+    ->setName('Appwrite')
+    ->setVersion('1.9.x')
+;
+
+$sdk->generate(__DIR__ . '/examples/agent-skills');
+```
+
 ## Linting Twig Templates
 
 This project uses [djLint](https://djlint.com/) to lint Twig template files for syntax and common issues.
@@ -115,40 +144,52 @@ php example.php agent-skills
 
 ### Client SDKs
 
-| Target | Argument | Output |
-|--------|----------|--------|
-| Web | `web` | `examples/web/` |
-| Flutter | `flutter` | `examples/flutter/` |
-| Apple | `apple` | `examples/apple/` |
-| Android | `android` | `examples/android/` |
-| React Native | `react-native` | `examples/react-native/` |
+| Target | Argument | Supported Versions | Coding Standards | Package Manager | Output |
+|--------|----------|--------------------|------------------|-----------------|--------|
+| Web | `web` | ES5+; Node.js >=18 for builds | [NPM Coding Style] | NPM | `examples/web/` |
+| Flutter | `flutter` | Dart >=2.17 <4; Flutter stable | [Effective Dart] | pub | `examples/flutter/` |
+| Apple | `apple` | iOS 15+, macOS 11+, watchOS 7+, tvOS 13+ | [Swift Style Guide] | Swift Package Manager | `examples/apple/` |
+| Android | `android` | Android 5.0+; Java 17 in CI | [Android style guide] | Gradle, Maven | `examples/android/` |
+| React Native | `react-native` | React Native >=0.76.7 <1.0.0; Node.js >=18 | [NPM Coding Style] | NPM | `examples/react-native/` |
 
 ### Server SDKs
 
-| Target | Argument | Output |
-|--------|----------|--------|
-| Node.js | `node` | `examples/node/` |
-| PHP | `php` | `examples/php/` |
-| Python | `python` | `examples/python/` |
-| Ruby | `ruby` | `examples/ruby/` |
-| Dart | `dart` | `examples/dart/` |
-| Go | `go` | `examples/go/` |
-| Swift | `swift` | `examples/swift/` |
-| .NET | `dotnet` | `examples/dotnet/` |
-| Kotlin | `kotlin` | `examples/kotlin/` |
-| Rust | `rust` | `examples/rust/` |
+| Target | Argument | Supported Versions | Coding Standards | Package Manager | Output |
+|--------|----------|--------------------|------------------|-----------------|--------|
+| Node.js | `node` | Node.js 20 in CI | [NPM Coding Style] | NPM | `examples/node/` |
+| PHP | `php` | PHP >=8.2 | [PHP FIG] | Composer | `examples/php/` |
+| Python | `python` | Python >=3.9 | [PEP8] | pip | `examples/python/` |
+| Ruby | `ruby` | Ruby 3.1 in CI | [Ruby Style Guide] | RubyGems, Bundler | `examples/ruby/` |
+| Dart | `dart` | Dart >=2.17 <4 | [Effective Dart] | pub | `examples/dart/` |
+| Go | `go` | Go 1.22.5 | [Effective Go] | Go modules | `examples/go/` |
+| Swift | `swift` | Swift 5.1+; Swift 5.9.2 in CI | [Swift Style Guide] | Swift Package Manager | `examples/swift/` |
+| .NET | `dotnet` | .NET Standard 2.0; .NET Framework 4.6.2 | [C# Coding Conventions] | NuGet | `examples/dotnet/` |
+| Kotlin | `kotlin` | JVM 1.8 target; Java 17 in CI | [Kotlin style guide] | Gradle, Maven | `examples/kotlin/` |
+| Rust | `rust` | Rust >=1.83 | [Rust API Guidelines] | Cargo | `examples/rust/` |
 
 ### Tooling and Documentation
 
-| Target | Argument | Output |
-|--------|----------|--------|
-| CLI | `cli` | `examples/cli/` |
-| REST examples | `rest` | `examples/REST/` |
-| GraphQL | `graphql` | `examples/graphql/` |
-| Markdown docs | `markdown` | `examples/markdown/` |
-| Agent Skills | `agent-skills` | `examples/agent-skills/` |
-| Cursor Plugin | `cursor-plugin` | `examples/cursor-plugin/` |
-| Claude Plugin | `claude-plugin` | `examples/claude-plugin/` |
+| Target | Argument | Supported Versions | Coding Standards | Package Manager | Output |
+|--------|----------|--------------------|------------------|-----------------|--------|
+| CLI | `cli` | Node.js 20 and Bun 1.3.11 in CI | [NPM Coding Style] | NPM, Bun, native binaries | `examples/cli/` |
+| REST examples | `rest` | N/A | Markdown | N/A | `examples/REST/` |
+| GraphQL | `graphql` | N/A | GraphQL | N/A | `examples/graphql/` |
+| Markdown docs | `markdown` | N/A | Markdown | N/A | `examples/markdown/` |
+| Agent Skills | `agent-skills` | N/A | Markdown | N/A | `examples/agent-skills/` |
+| Cursor Plugin | `cursor-plugin` | N/A | Markdown | N/A | `examples/cursor-plugin/` |
+| Claude Plugin | `claude-plugin` | N/A | Markdown | N/A | `examples/claude-plugin/` |
+
+[PHP FIG]: https://www.php-fig.org/
+[NPM Coding Style]: https://docs.npmjs.com/misc/coding-style
+[Ruby Style Guide]: https://github.com/rubocop/ruby-style-guide
+[PEP8]: https://peps.python.org/pep-0008/
+[Effective Dart]: https://dart.dev/effective-dart/style
+[Effective Go]: https://go.dev/doc/effective_go
+[Swift Style Guide]: https://google.github.io/swift/
+[C# Coding Conventions]: https://learn.microsoft.com/en-us/dotnet/csharp/fundamentals/coding-style/coding-conventions
+[Kotlin style guide]: https://kotlinlang.org/docs/coding-conventions.html
+[Android style guide]: https://developer.android.com/kotlin/style-guide
+[Rust API Guidelines]: https://rust-lang.github.io/api-guidelines/
 
 ## Contributing
 
