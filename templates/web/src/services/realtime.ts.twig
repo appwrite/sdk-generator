@@ -80,6 +80,7 @@ export class Realtime {
     private client: Client;
     private socket?: WebSocket;
     private activeSubscriptions = new Map<string, RealtimeCallback<any>>();
+    private pendingSubscribes = new Map<string, RealtimeRequestSubscribeRow>();
     private heartbeatTimer?: number;
 
     private subCallDepth = 0;
@@ -295,26 +296,16 @@ export class Realtime {
         }));
     }
 
-    private sendUpdateMessage(subscriptionId: string): void {
-        if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
-            return;
-        }
-
+    private enqueuePendingSubscribe(subscriptionId: string): void {
         const subscription = this.activeSubscriptions.get(subscriptionId);
         if (!subscription) {
             return;
         }
-
-        const row: RealtimeRequestSubscribeRow = {
+        this.pendingSubscribes.set(subscriptionId, {
             subscriptionId,
             channels: Array.from(subscription.channels),
             queries: subscription.queries ?? []
-        };
-
-        this.socket.send(JSON.stringify(<RealtimeRequest>{
-            type: 'subscribe',
-            data: [row]
-        }));
+        });
     }
 
     /**
@@ -323,28 +314,22 @@ export class Realtime {
      */
     public async disconnect(): Promise<void> {
         this.activeSubscriptions.clear();
+        this.pendingSubscribes.clear();
         this.reconnect = false;
         await this.closeSocket();
     }
 
-    private sendSubscribeMessage(): void {
+    private sendPendingSubscribes(): void {
         if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
             return;
         }
 
-        const rows: RealtimeRequestSubscribeRow[] = [];
-
-        for (const [subscriptionId, subscription] of this.activeSubscriptions) {
-            rows.push({
-                subscriptionId,
-                channels: Array.from(subscription.channels),
-                queries: subscription.queries ?? []
-            });
-        }
-
-        if (rows.length < 1) {
+        if (this.pendingSubscribes.size < 1) {
             return;
         }
+
+        const rows = Array.from(this.pendingSubscribes.values());
+        this.pendingSubscribes.clear();
 
         this.socket.send(JSON.stringify(<RealtimeRequest>{
             type: 'subscribe',
@@ -456,6 +441,7 @@ export class Realtime {
             queries: queryStrings,
             callback
         });
+        this.enqueuePendingSubscribe(subscriptionId);
 
         this.subCallDepth++;
 
@@ -465,7 +451,7 @@ export class Realtime {
             if (!this.socket || this.socket.readyState > WebSocket.OPEN) {
                 await this.createSocket();
             } else if (this.socket.readyState === WebSocket.OPEN) {
-                this.sendSubscribeMessage();
+                this.sendPendingSubscribes();
             }
         }
 
@@ -476,6 +462,7 @@ export class Realtime {
                 return;
             }
             this.activeSubscriptions.delete(subscriptionId);
+            this.pendingSubscribes.delete(subscriptionId);
             this.sendUnsubscribeMessage([subscriptionId]);
         };
 
@@ -504,14 +491,21 @@ export class Realtime {
                 subscription.queries = nextQueries;
             }
 
-            if (!this.socket || this.socket.readyState > WebSocket.OPEN) {
-                await this.createSocket();
-                return;
+            this.enqueuePendingSubscribe(subscriptionId);
+
+            this.subCallDepth++;
+
+            await this.sleep(this.DEBOUNCE_MS);
+
+            if (this.subCallDepth === 1) {
+                if (!this.socket || this.socket.readyState > WebSocket.OPEN) {
+                    await this.createSocket();
+                } else if (this.socket.readyState === WebSocket.OPEN) {
+                    this.sendPendingSubscribes();
+                }
             }
 
-            if (this.socket.readyState === WebSocket.OPEN) {
-                this.sendUpdateMessage(subscriptionId);
-            }
+            this.subCallDepth--;
         };
 
         const close = async (): Promise<void> => {
@@ -575,7 +569,10 @@ export class Realtime {
             }));
         }
 
-        this.sendSubscribeMessage();
+        for (const subscriptionId of this.activeSubscriptions.keys()) {
+            this.enqueuePendingSubscribe(subscriptionId);
+        }
+        this.sendPendingSubscribes();
     }
 
     private handleResponseError(message: RealtimeResponse): void {

@@ -229,6 +229,11 @@ type Realtime = {
     }>;
 
     /**
+     * Pending subscribe rows keyed by subscriptionId. Flushed and cleared on each send.
+     */
+    pendingSubscribes: Map<string, RealtimeRequestSubscribe>;
+
+    /**
      * Boolean indicating whether automatic reconnection is enabled.
      */
     reconnect: boolean;
@@ -258,7 +263,7 @@ type Realtime = {
      */
     createHeartbeat: () => void;
 
-    sendSubscribeMessage: () => void;
+    sendPendingSubscribes: () => void;
 
     /**
      * Function to handle incoming messages from the WebSocket connection.
@@ -475,6 +480,7 @@ class Client {
         url: '',
         channels: new Set(),
         subscriptions: new Map(),
+        pendingSubscribes: new Map(),
         reconnect: true,
         reconnectAttempts: 0,
         lastMessage: undefined,
@@ -561,28 +567,20 @@ class Client {
                     }, timeout);
                 })
             } else if (this.realtime.socket?.readyState === WebSocket.OPEN) {
-                // URL is unchanged; re-send subscribe message to apply updated queries.
-                this.realtime.sendSubscribeMessage();
+                this.realtime.sendPendingSubscribes();
             }
         },
-        sendSubscribeMessage: () => {
+        sendPendingSubscribes: () => {
             if (!this.realtime.socket || this.realtime.socket.readyState !== WebSocket.OPEN) {
                 return;
             }
 
-            const rows: RealtimeRequestSubscribe[] = [];
-
-            this.realtime.subscriptions.forEach((sub, subscriptionId) => {
-                rows.push({
-                    subscriptionId,
-                    channels: sub.channels,
-                    queries: sub.queries ?? []
-                });
-            });
-
-            if (rows.length < 1) {
+            if (this.realtime.pendingSubscribes.size < 1) {
                 return;
             }
+
+            const rows = Array.from(this.realtime.pendingSubscribes.values());
+            this.realtime.pendingSubscribes.clear();
 
             this.realtime.socket.send(JSONbig.stringify(<RealtimeRequest>{
                 type: 'subscribe',
@@ -611,7 +609,14 @@ class Client {
                             }));
                         }
 
-                        this.realtime.sendSubscribeMessage();
+                        this.realtime.subscriptions.forEach((sub, subscriptionId) => {
+                            this.realtime.pendingSubscribes.set(subscriptionId, {
+                                subscriptionId,
+                                channels: sub.channels,
+                                queries: sub.queries ?? []
+                            });
+                        });
+                        this.realtime.sendPendingSubscribes();
                         break;
                     }
                     case 'response':
@@ -717,11 +722,17 @@ class Client {
             queries: queryStrings,
             callback
         });
+        this.realtime.pendingSubscribes.set(subscriptionId, {
+            subscriptionId,
+            channels: channelStrings,
+            queries: queryStrings
+        });
 
         this.realtime.connect();
 
         return () => {
             this.realtime.subscriptions.delete(subscriptionId);
+            this.realtime.pendingSubscribes.delete(subscriptionId);
             const stillUsed = new Set<string>();
             this.realtime.subscriptions.forEach(sub => {
                 sub.channels.forEach(channel => stillUsed.add(channel));

@@ -42,6 +42,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
 
         private var socket: RealWebSocket? = null
         private val activeSubscriptions = ConcurrentHashMap<String, RealtimeCallback>()
+        private val pendingSubscribes = LinkedHashMap<String, Map<String, Any>>()
 
         private var reconnectAttempts = 0
         private val socketGeneration = AtomicInteger(0)
@@ -110,18 +111,13 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         )
     }
 
-    private fun sendUpdateMessage(subscriptionId: String) {
-        val ws = socket ?: return
-        val row: Map<String, Any>
-        synchronized(subscriptionLock) {
-            val subscription = activeSubscriptions[subscriptionId] ?: return
-            row = mapOf(
-                "subscriptionId" to subscriptionId,
-                "channels" to subscription.channels.toList(),
-                "queries" to subscription.queries.toList()
-            )
-        }
-        ws.send(mapOf("type" to "subscribe", "data" to listOf(row)).toJson())
+    private fun enqueuePendingSubscribeLocked(subscriptionId: String) {
+        val subscription = activeSubscriptions[subscriptionId] ?: return
+        pendingSubscribes[subscriptionId] = mapOf(
+            "subscriptionId" to subscriptionId,
+            "channels" to subscription.channels.toList(),
+            "queries" to subscription.queries.toList()
+        )
     }
 
     /**
@@ -132,29 +128,22 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
     fun disconnect() {
         synchronized(subscriptionLock) {
             activeSubscriptions.clear()
+            pendingSubscribes.clear()
             reconnect = false
             closeSocket()
         }
     }
 
-    private fun sendSubscribeMessage() {
+    private fun sendPendingSubscribes() {
         val ws = socket ?: return
-        val rows = mutableListOf<Map<String, Any>>()
-
+        val rows: List<Map<String, Any>>
         synchronized(subscriptionLock) {
-            activeSubscriptions.forEach { (subscriptionId, subscription) ->
-                rows.add(mapOf(
-                    "subscriptionId" to subscriptionId,
-                    "channels" to subscription.channels.toList(),
-                    "queries" to subscription.queries.toList()
-                ))
+            if (pendingSubscribes.isEmpty()) {
+                return
             }
+            rows = pendingSubscribes.values.toList()
+            pendingSubscribes.clear()
         }
-
-        if (rows.isEmpty()) {
-            return
-        }
-
         ws.send(mapOf("type" to "subscribe", "data" to rows).toJson())
     }
 
@@ -239,8 +228,9 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
                 payloadType,
                 callback as (RealtimeResponseEvent<*>) -> Unit
             )
+            enqueuePendingSubscribeLocked(subscriptionId)
             if (socket != null) {
-                sendSubscribeMessage()
+                sendPendingSubscribes()
             } else {
                 createSocket()
             }
@@ -250,6 +240,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
             val removed: Boolean
             synchronized(subscriptionLock) {
                 removed = activeSubscriptions.remove(subscriptionId) != null
+                pendingSubscribes.remove(subscriptionId)
             }
             if (removed) {
                 sendUnsubscribeMessage(listOf(subscriptionId))
@@ -269,10 +260,11 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
                         current.payloadClass,
                         current.callback
                     )
+                    enqueuePendingSubscribeLocked(subscriptionId)
                 }
             }
             if (socket != null) {
-                sendUpdateMessage(subscriptionId)
+                sendPendingSubscribes()
             } else {
                 createSocket()
             }
@@ -330,7 +322,10 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         private fun handleResponseConnected(message: RealtimeResponse) {
             if (message.data == null) return
 
-            sendSubscribeMessage()
+            synchronized(subscriptionLock) {
+                activeSubscriptions.keys.forEach { enqueuePendingSubscribeLocked(it) }
+            }
+            sendPendingSubscribes()
         }
 
         private fun handleResponseAction(message: RealtimeResponse) {

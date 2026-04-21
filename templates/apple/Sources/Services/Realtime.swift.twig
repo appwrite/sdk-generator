@@ -20,6 +20,7 @@ open class Realtime : Service {
 
     private var socketClient: WebSocketClient? = nil
     private var activeSubscriptions = [String: RealtimeCallback]()
+    private var pendingSubscribes = [String: [String: Any]]()
     private var heartbeatTask: Task<Void, Swift.Error>? = nil
 
     let connectSync = DispatchQueue(label: "ConnectSync")
@@ -107,24 +108,15 @@ open class Realtime : Service {
         }
     }
 
-    private func sendUpdateMessage(subscriptionId: String) {
-        guard let ws = socketClient, ws.isConnected,
-              let subscription = activeSubscriptions[subscriptionId] else {
+    private func enqueuePendingSubscribe(subscriptionId: String) {
+        guard let subscription = activeSubscriptions[subscriptionId] else {
             return
         }
-        let row: [String: Any] = [
+        pendingSubscribes[subscriptionId] = [
             "subscriptionId": subscriptionId,
             "channels": Array(subscription.channels),
             "queries": subscription.queries
         ]
-        let payload: [String: Any] = [
-            "type": "subscribe",
-            "data": [row]
-        ]
-        if let data = try? JSONSerialization.data(withJSONObject: payload),
-           let text = String(data: data, encoding: .utf8) {
-            ws.send(text: text)
-        }
     }
 
     /// Close the WebSocket connection and drop all active subscriptions client-side.
@@ -132,28 +124,22 @@ open class Realtime : Service {
     /// to tear everything down.
     public func disconnect() async throws {
         activeSubscriptions.removeAll()
+        pendingSubscribes.removeAll()
         reconnect = false
         try await closeSocket()
     }
 
-    private func sendSubscribeMessage() {
+    private func sendPendingSubscribes() {
         guard let ws = socketClient, ws.isConnected else {
             return
         }
 
-        var rows = [[String: Any]]()
-
-        for (subscriptionId, subscription) in activeSubscriptions {
-            rows.append([
-                "subscriptionId": subscriptionId,
-                "channels": Array(subscription.channels),
-                "queries": subscription.queries
-            ])
-        }
-
-        if rows.isEmpty {
+        if pendingSubscribes.isEmpty {
             return
         }
+
+        let rows = Array(pendingSubscribes.values)
+        pendingSubscribes.removeAll()
 
         let payload: [String: Any] = [
             "type": "subscribe",
@@ -266,6 +252,7 @@ open class Realtime : Service {
             queries: queries,
             with: callback
         )
+        enqueuePendingSubscribe(subscriptionId: subscriptionId)
 
         connectSync.sync {
             subCallDepth += 1
@@ -275,7 +262,7 @@ open class Realtime : Service {
 
         if self.subCallDepth == 1 {
             if let ws = self.socketClient, ws.isConnected {
-                self.sendSubscribeMessage()
+                self.sendPendingSubscribes()
             } else {
                 try await self.createSocket()
             }
@@ -290,6 +277,7 @@ open class Realtime : Service {
                 guard let self = self else { return }
                 guard self.activeSubscriptions[subscriptionId] != nil else { return }
                 self.activeSubscriptions[subscriptionId] = nil
+                self.pendingSubscribes[subscriptionId] = nil
                 self.sendUnsubscribeMessage([subscriptionId])
             },
             update: { [weak self] changes in
@@ -302,16 +290,32 @@ open class Realtime : Service {
                 if let nextQueries = changes.queries {
                     subscription.queries = nextQueries
                 }
-                if let ws = self.socketClient, ws.isConnected {
-                    self.sendUpdateMessage(subscriptionId: subscriptionId)
-                } else {
-                    try await self.createSocket()
+
+                self.enqueuePendingSubscribe(subscriptionId: subscriptionId)
+
+                self.connectSync.sync {
+                    self.subCallDepth += 1
+                }
+
+                try await Task.sleep(nanoseconds: UInt64(self.DEBOUNCE_NANOS))
+
+                if self.subCallDepth == 1 {
+                    if let ws = self.socketClient, ws.isConnected {
+                        self.sendPendingSubscribes()
+                    } else {
+                        try await self.createSocket()
+                    }
+                }
+
+                self.connectSync.sync {
+                    self.subCallDepth -= 1
                 }
             },
             close: { [weak self] in
                 guard let self = self else { return }
                 if self.activeSubscriptions[subscriptionId] != nil {
                     self.activeSubscriptions[subscriptionId] = nil
+                    self.pendingSubscribes[subscriptionId] = nil
                     self.sendUnsubscribeMessage([subscriptionId])
                 }
                 if self.activeSubscriptions.isEmpty {
@@ -336,7 +340,10 @@ extension Realtime: WebSocketClientDelegate {
             return
         }
 
-        sendSubscribeMessage()
+        for subscriptionId in activeSubscriptions.keys {
+            enqueuePendingSubscribe(subscriptionId: subscriptionId)
+        }
+        sendPendingSubscribes()
     }
 
     private func handleResponseAction(from json: [String: Any]) {

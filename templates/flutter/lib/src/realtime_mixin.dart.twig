@@ -29,6 +29,7 @@ String _uniqueSubscriptionId() {
 mixin RealtimeMixin {
   late Client client;
   final Map<String, RealtimeSubscription> _subscriptions = {};
+  final Map<String, Map<String, dynamic>> _pendingSubscribes = {};
   WebSocketChannel? _websok;
   String? _lastUrl;
   late WebSocketFactory getWebSocket;
@@ -85,7 +86,7 @@ mixin RealtimeMixin {
         _lastUrl = uri.toString();
       } else {
         if (_lastUrl == uri.toString() && _websok?.closeCode == null) {
-          _sendSubscribeMessage();
+          _sendPendingSubscribes();
           _creatingSocket = false;
           return;
         }
@@ -115,7 +116,14 @@ mixin RealtimeMixin {
                 }));
               }
             }
-            _sendSubscribeMessage();
+            for (var entry in _subscriptions.entries) {
+              _pendingSubscribes[entry.key] = {
+                'subscriptionId': entry.key,
+                'channels': entry.value.channels,
+                'queries': entry.value.queries,
+              };
+            }
+            _sendPendingSubscribes();
             _startHeartbeat(); // Start heartbeat after successful connection
             break;
           case 'response':
@@ -217,24 +225,16 @@ mixin RealtimeMixin {
     }));
   }
 
-  void _sendUpdateMessage(String subscriptionId) {
-    if (_websok == null || _websok?.closeCode != null) {
-      return;
-    }
+  void _enqueuePendingSubscribe(String subscriptionId) {
     final subscription = _subscriptions[subscriptionId];
     if (subscription == null) {
       return;
     }
-    _websok!.sink.add(jsonEncode({
-      'type': 'subscribe',
-      'data': [
-        {
-          'subscriptionId': subscriptionId,
-          'channels': subscription.channels,
-          'queries': subscription.queries,
-        }
-      ],
-    }));
+    _pendingSubscribes[subscriptionId] = {
+      'subscriptionId': subscriptionId,
+      'channels': List<String>.from(subscription.channels),
+      'queries': List<String>.from(subscription.queries),
+    };
   }
 
   /// Close the WebSocket connection and drop all active subscriptions client-side.
@@ -245,28 +245,21 @@ mixin RealtimeMixin {
       await subscription.controller.close();
     }
     _subscriptions.clear();
+    _pendingSubscribes.clear();
     await _closeConnection();
   }
 
-  void _sendSubscribeMessage() {
+  void _sendPendingSubscribes() {
     if (_websok == null || _websok?.closeCode != null) {
       return;
     }
 
-    final rows = <Map<String, dynamic>>[];
-
-    for (var entry in _subscriptions.entries) {
-      final subscription = entry.value;
-      rows.add({
-        'subscriptionId': entry.key,
-        'channels': subscription.channels,
-        'queries': subscription.queries,
-      });
-    }
-
-    if (rows.isEmpty) {
+    if (_pendingSubscribes.isEmpty) {
       return;
     }
+
+    final rows = _pendingSubscribes.values.toList();
+    _pendingSubscribes.clear();
 
     _websok!.sink.add(jsonEncode({
       'type': 'subscribe',
@@ -294,6 +287,7 @@ mixin RealtimeMixin {
         return;
       }
       _subscriptions.remove(subscriptionId);
+      _pendingSubscribes.remove(subscriptionId);
       await controller.close();
       _sendUnsubscribeMessage([subscriptionId]);
     }
@@ -316,8 +310,9 @@ mixin RealtimeMixin {
           ..clear()
           ..addAll(queries);
       }
+      _enqueuePendingSubscribe(subscriptionId);
       if (_websok != null && _websok?.closeCode == null) {
-        _sendUpdateMessage(subscriptionId);
+        await Future.delayed(Duration.zero, _sendPendingSubscribes);
       } else {
         await Future.delayed(Duration.zero, () => _createSocket());
       }
@@ -339,6 +334,7 @@ mixin RealtimeMixin {
       close: close,
     );
     _subscriptions[subscriptionId] = subscription;
+    _enqueuePendingSubscribe(subscriptionId);
 
     Future.delayed(Duration.zero, () => _createSocket());
     return subscription;
