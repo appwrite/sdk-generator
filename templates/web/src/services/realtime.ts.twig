@@ -1,4 +1,4 @@
-import { {{ spec.title | caseUcfirst}}Exception, Client } from '../client';
+import { {{ spec.title | caseUcfirst}}Exception, Client, JSONbig } from '../client';
 import { Channel, ActionableChannel, ResolvedChannel } from '../channel';
 import { Query } from '../query';
 import { ID } from '../id';
@@ -130,7 +130,7 @@ export class Realtime {
         this.stopHeartbeat();
         this.heartbeatTimer = window.setInterval(() => {
             if (this.socket && this.socket.readyState === WebSocket.OPEN) {
-                this.socket.send(JSON.stringify({ type: 'ping' }));
+                this.socket.send(JSONbig.stringify({ type: 'ping' }));
             }
         }, this.HEARTBEAT_INTERVAL);
     }
@@ -195,7 +195,7 @@ export class Realtime {
                         return;
                     }
                     try {
-                        const message = JSON.parse(event.data) as RealtimeResponse;
+                        const message = JSONbig.parse(event.data) as RealtimeResponse;
                         this.handleMessage(message);
                     } catch (error) {
                         console.error('Failed to parse message:', error);
@@ -290,7 +290,7 @@ export class Realtime {
         if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
             return;
         }
-        this.socket.send(JSON.stringify(<RealtimeRequest>{
+        this.socket.send(JSONbig.stringify(<RealtimeRequest>{
             type: 'unsubscribe',
             data: ids.map(subscriptionId => ({ subscriptionId }))
         }));
@@ -331,7 +331,7 @@ export class Realtime {
         const rows = Array.from(this.pendingSubscribes.values());
         this.pendingSubscribes.clear();
 
-        this.socket.send(JSON.stringify(<RealtimeRequest>{
+        this.socket.send(JSONbig.stringify(<RealtimeRequest>{
             type: 'subscribe',
             data: rows
         }));
@@ -444,18 +444,19 @@ export class Realtime {
         this.enqueuePendingSubscribe(subscriptionId);
 
         this.subCallDepth++;
+        try {
+            await this.sleep(this.DEBOUNCE_MS);
 
-        await this.sleep(this.DEBOUNCE_MS);
-
-        if (this.subCallDepth === 1) {
-            if (!this.socket || this.socket.readyState > WebSocket.OPEN) {
-                await this.createSocket();
-            } else if (this.socket.readyState === WebSocket.OPEN) {
-                this.sendPendingSubscribes();
+            if (this.subCallDepth === 1) {
+                if (!this.socket || this.socket.readyState > WebSocket.OPEN) {
+                    await this.createSocket();
+                } else if (this.socket.readyState === WebSocket.OPEN) {
+                    this.sendPendingSubscribes();
+                }
             }
+        } finally {
+            this.subCallDepth--;
         }
-
-        this.subCallDepth--;
 
         const unsubscribe = async (): Promise<void> => {
             if (!this.activeSubscriptions.has(subscriptionId)) {
@@ -494,18 +495,19 @@ export class Realtime {
             this.enqueuePendingSubscribe(subscriptionId);
 
             this.subCallDepth++;
+            try {
+                await this.sleep(this.DEBOUNCE_MS);
 
-            await this.sleep(this.DEBOUNCE_MS);
-
-            if (this.subCallDepth === 1) {
-                if (!this.socket || this.socket.readyState > WebSocket.OPEN) {
-                    await this.createSocket();
-                } else if (this.socket.readyState === WebSocket.OPEN) {
-                    this.sendPendingSubscribes();
+                if (this.subCallDepth === 1) {
+                    if (!this.socket || this.socket.readyState > WebSocket.OPEN) {
+                        await this.createSocket();
+                    } else if (this.socket.readyState === WebSocket.OPEN) {
+                        this.sendPendingSubscribes();
+                    }
                 }
+            } finally {
+                this.subCallDepth--;
             }
-
-            this.subCallDepth--;
         };
 
         const close = async (): Promise<void> => {
@@ -553,7 +555,7 @@ export class Realtime {
         let session = this.client.config.session;
         if (!session) {
             try {
-                const cookie = JSON.parse(window.localStorage.getItem('cookieFallback') ?? '{}');
+                const cookie = JSONbig.parse(window.localStorage.getItem('cookieFallback') ?? '{}');
                 session = cookie?.[`a_session_${this.client.config.project}`];
             } catch (error) {
                 console.error('Failed to parse cookie fallback:', error);
@@ -561,7 +563,7 @@ export class Realtime {
         }
 
         if (session && !messageData.user) {
-            this.socket?.send(JSON.stringify(<RealtimeRequest>{
+            this.socket?.send(JSONbig.stringify(<RealtimeRequest>{
                 type: 'authentication',
                 data: {
                     session

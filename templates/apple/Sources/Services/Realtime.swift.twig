@@ -257,6 +257,11 @@ open class Realtime : Service {
         connectSync.sync {
             subCallDepth += 1
         }
+        defer {
+            connectSync.sync {
+                self.subCallDepth -= 1
+            }
+        }
 
         try await Task.sleep(nanoseconds: UInt64(DEBOUNCE_NANOS))
 
@@ -266,10 +271,6 @@ open class Realtime : Service {
             } else {
                 try await self.createSocket()
             }
-        }
-
-        connectSync.sync {
-            self.subCallDepth -= 1
         }
 
         return RealtimeSubscription(
@@ -296,6 +297,11 @@ open class Realtime : Service {
                 self.connectSync.sync {
                     self.subCallDepth += 1
                 }
+                defer {
+                    self.connectSync.sync {
+                        self.subCallDepth -= 1
+                    }
+                }
 
                 try await Task.sleep(nanoseconds: UInt64(self.DEBOUNCE_NANOS))
 
@@ -305,10 +311,6 @@ open class Realtime : Service {
                     } else {
                         try await self.createSocket()
                     }
-                }
-
-                self.connectSync.sync {
-                    self.subCallDepth -= 1
                 }
             },
             close: { [weak self] in
