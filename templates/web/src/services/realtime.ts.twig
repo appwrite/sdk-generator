@@ -128,7 +128,7 @@ export class Realtime {
 
     private startHeartbeat(): void {
         this.stopHeartbeat();
-        this.heartbeatTimer = window.setInterval(() => {
+        this.heartbeatTimer = window?.setInterval(() => {
             if (this.socket && this.socket.readyState === WebSocket.OPEN) {
                 this.socket.send(JSONbig.stringify({ type: 'ping' }));
             }
@@ -137,7 +137,7 @@ export class Realtime {
 
     private stopHeartbeat(): void {
         if (this.heartbeatTimer) {
-            window.clearInterval(this.heartbeatTimer);
+            window?.clearInterval(this.heartbeatTimer);
             this.heartbeatTimer = undefined;
         }
     }
