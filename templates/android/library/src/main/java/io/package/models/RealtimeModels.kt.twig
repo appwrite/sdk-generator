@@ -3,9 +3,29 @@ package {{ sdk.namespace | caseDot }}.models
 import kotlin.collections.Collection
 import java.io.Closeable
 
+data class RealtimeSubscriptionUpdate(
+    val channels: Collection<Any>? = null,
+    val queries: Collection<String>? = null
+)
+
 data class RealtimeSubscription(
+    /**
+     * Remove this subscription only. The WebSocket stays open so other subscriptions keep
+     * receiving events — use [Realtime.disconnect] for full teardown.
+     */
+    val unsubscribe: () -> Unit,
+
+    /**
+     * Replace the channels and/or queries on this subscription without recreating it.
+     */
+    val update: (RealtimeSubscriptionUpdate) -> Unit,
+
     private val close: () -> Unit
 ) : Closeable {
+    /**
+     * Alias of [unsubscribe] that also tears the socket down when this was the last active
+     * subscription. Prefer [unsubscribe] plus [Realtime.disconnect] for explicit control.
+     */
     override fun close() = close.invoke()
 }
 

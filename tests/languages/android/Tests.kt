@@ -18,6 +18,7 @@ import io.appwrite.models.Error
 import io.appwrite.models.InputFile
 import io.appwrite.models.Mock
 import io.appwrite.models.Player
+import io.appwrite.models.RealtimeSubscriptionUpdate
 import io.appwrite.services.Bar
 import io.appwrite.services.Foo
 import io.appwrite.services.General
@@ -80,7 +81,7 @@ class ServiceTest {
 
         // reset configs
         client.setProject("console")
-            .setEndpointRealtime("wss://fra.stage.cloud.appwrite.io/v1")
+            .setEndpointRealtime("wss://cloud.appwrite.io/v1")
 
         val foo = Foo(client)
         val bar = Bar(client)
@@ -90,13 +91,19 @@ class ServiceTest {
         var realtimeResponseWithQueries = "Realtime failed!"
         var realtimeResponseWithQueriesFailure = "Realtime failed!"
 
+        // Watchdog: flipped to true if the callback fires after unsubscribe, so we can
+        // verify the subscription is *actually* torn down, not just that the call
+        // resolved without throwing.
+        var rtsubFailureUnsubscribed = false
+        var rtsubFailureFiredAfterUnsubscribe = false
+
         // Subscribe without queries
-        realtime.subscribe("tests", payloadType = TestPayload::class.java) {
+        val rtsub = realtime.subscribe("tests", payloadType = TestPayload::class.java) {
             realtimeResponse = it.payload.response
         }
 
         // Subscribe with queries to ensure query set support works
-        realtime.subscribe(
+        val rtsubWithQueries = realtime.subscribe(
             "tests",
             payloadType = TestPayload::class.java,
             queries = setOf(
@@ -106,13 +113,14 @@ class ServiceTest {
             realtimeResponseWithQueries = it.payload.response
         }
 
-        realtime.subscribe(
+        val rtsubWithQueriesFailure = realtime.subscribe(
             "tests",
             payloadType = TestPayload::class.java,
             queries = setOf(
                 Query.equal("response", listOf("failed"))
             )
         ) {
+            if (rtsubFailureUnsubscribed) rtsubFailureFiredAfterUnsubscribe = true
             realtimeResponseWithQueriesFailure = "WS:/v1/realtime:passed"
         }
 
@@ -221,6 +229,45 @@ class ServiceTest {
             writeToFile(realtimeResponse)
             writeToFile(realtimeResponseWithQueries)
             writeToFile(realtimeResponseWithQueriesFailure)
+
+            try {
+                rtsubWithQueriesFailure.unsubscribe()
+                rtsubFailureUnsubscribed = true
+
+                // Idempotence: a second unsubscribe on the same handle must not throw.
+                rtsubWithQueriesFailure.unsubscribe()
+
+                // Give any in-flight frames a chance to be dispatched to the callback.
+                // If we're truly unsubscribed, the watchdog flag stays false.
+                delay(500)
+
+                if (rtsubFailureFiredAfterUnsubscribe) {
+                    throw Exception("callback fired after unsubscribe")
+                }
+
+                writeToFile("Realtime unsubscribe:passed")
+            } catch (e: Exception) {
+                writeToFile("Realtime unsubscribe:failed")
+            }
+
+            try {
+                rtsubWithQueries.update(
+                    RealtimeSubscriptionUpdate(
+                        channels = listOf("tests"),
+                        queries = emptyList()
+                    )
+                )
+                writeToFile("Realtime update:passed")
+            } catch (e: Exception) {
+                writeToFile("Realtime update:failed")
+            }
+
+            try {
+                realtime.disconnect()
+                writeToFile("Realtime disconnect:passed")
+            } catch (e: Exception) {
+                writeToFile("Realtime disconnect:failed")
+            }
 
             // mock = general.setCookie()
             // writeToFile(mock.result)

@@ -22,6 +22,12 @@
             let responseRealtimeWithQueries = 'Realtime failed!';
             let responseRealtimeWithQueriesFailure = 'Realtime failed!';
 
+            // Watchdog: set to true if the callback fires after unsubscribe, so we can
+            // verify the subscription is *actually* torn down, not just that the call
+            // resolved without throwing.
+            let rtsubFailureUnsubscribed = false;
+            let rtsubFailureFiredAfterUnsubscribe = false;
+
             // Init SDK
             const { Client, Foo, Bar, General, Realtime, Query, Permission, Role, ID, Channel, Operator, Condition, MockType } = Appwrite;
             const client = new Client();
@@ -39,18 +45,18 @@
 
             // Realtime setup
             client.setProject('console');
-            client.setEndpointRealtime('wss://fra.stage.cloud.appwrite.io/v1');
+            client.setEndpointRealtime('wss://cloud.appwrite.io/v1');
 
             const realtime = new Realtime(client);
             const realtimeWithFailure = new Realtime(client);
 
             // Subscribe without queries
-            await realtime.subscribe(['tests'], message => {
+            const rtsub = await realtime.subscribe(['tests'], message => {
                 responseRealtime = message.payload.response;
             });
 
             // Subscribe with queries to ensure query array support works
-            await realtime.subscribe(
+            const rtsubWithQueries = await realtime.subscribe(
                 ['tests'],
                 message => {
                     responseRealtimeWithQueries = message.payload.response;
@@ -60,9 +66,10 @@
                 ],
             );
 
-            await realtime.subscribe(
+            const rtsubWithQueriesFailure = await realtime.subscribe(
                 ['tests'],
                 message => {
+                    if (rtsubFailureUnsubscribed) rtsubFailureFiredAfterUnsubscribe = true;
                     responseRealtimeWithQueriesFailure = message.payload.response;
                 },
                 [
@@ -284,6 +291,40 @@
             console.log(responseRealtime)
             console.log(responseRealtimeWithQueries)
             console.log(responseRealtimeWithQueriesFailure)
+
+            try {
+                await rtsubWithQueriesFailure.unsubscribe();
+                rtsubFailureUnsubscribed = true;
+
+                // Idempotence: a second unsubscribe on the same handle must not throw.
+                await rtsubWithQueriesFailure.unsubscribe();
+
+                // Give any in-flight frames a chance to be dispatched to the callback.
+                // If we're truly unsubscribed, the watchdog flag stays false.
+                await delay(500);
+
+                if (rtsubFailureFiredAfterUnsubscribe) {
+                    throw new Error('callback fired after unsubscribe');
+                }
+
+                console.log('Realtime unsubscribe:passed');
+            } catch (e) {
+                console.log('Realtime unsubscribe:failed');
+            }
+
+            try {
+                await rtsubWithQueries.update({ channels: ['tests'], queries: [] });
+                console.log('Realtime update:passed');
+            } catch (e) {
+                console.log('Realtime update:failed');
+            }
+
+            try {
+                await realtime.disconnect();
+                console.log('Realtime disconnect:passed');
+            } catch (e) {
+                console.log('Realtime disconnect:failed');
+            }
 
             // Query helper tests
             console.log(Query.equal("released", [true]));
