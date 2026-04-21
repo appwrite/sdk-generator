@@ -225,6 +225,17 @@ mixin RealtimeMixin {
     }));
   }
 
+  String _generateUniqueSubscriptionId() {
+    final attempts = _subscriptions.length + 1;
+    for (var i = 0; i < attempts; i++) {
+      final id = _uniqueSubscriptionId();
+      if (!_subscriptions.containsKey(id)) {
+        return id;
+      }
+    }
+    throw {{spec.title | caseUcfirst}}Exception('Failed to generate unique subscription id');
+  }
+
   void _enqueuePendingSubscribe(String subscriptionId) {
     final subscription = _subscriptions[subscriptionId];
     if (subscription == null) {
@@ -278,7 +289,7 @@ mixin RealtimeMixin {
     final channelStrings = channels.map((ch) => _channelToString(ch)).toList().cast<String>();
     final queryStrings = List<String>.from(queries);
 
-    final subscriptionId = _uniqueSubscriptionId();
+    final subscriptionId = _generateUniqueSubscriptionId();
 
     late RealtimeSubscription subscription;
 

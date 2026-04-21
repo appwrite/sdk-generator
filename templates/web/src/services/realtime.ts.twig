@@ -296,6 +296,17 @@ export class Realtime {
         }));
     }
 
+    private generateUniqueSubscriptionId(): string {
+        const attempts = this.activeSubscriptions.size + 1;
+        for (let i = 0; i < attempts; i++) {
+            const id = ID.unique();
+            if (!this.activeSubscriptions.has(id)) {
+                return id;
+            }
+        }
+        throw new {{spec.title | caseUcfirst}}Exception('Failed to generate unique subscription id');
+    }
+
     private enqueuePendingSubscribe(subscriptionId: string): void {
         const subscription = this.activeSubscriptions.get(subscriptionId);
         if (!subscription) {
@@ -434,7 +445,7 @@ export class Realtime {
             }
         }
 
-        const subscriptionId = ID.unique();
+        const subscriptionId = this.generateUniqueSubscriptionId();
 
         this.activeSubscriptions.set(subscriptionId, {
             channels,

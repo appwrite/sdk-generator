@@ -716,7 +716,19 @@ class Client {
         channelStrings.forEach(channel => this.realtime.channels.add(channel));
 
         const queryStrings = (queries ?? []).map(q => typeof q === 'string' ? q : q.toString());
-        const subscriptionId = ID.unique();
+
+        let subscriptionId = '';
+        const attempts = this.realtime.subscriptions.size + 1;
+        for (let i = 0; i < attempts; i++) {
+            const candidate = ID.unique();
+            if (!this.realtime.subscriptions.has(candidate)) {
+                subscriptionId = candidate;
+                break;
+            }
+        }
+        if (subscriptionId === '') {
+            throw new {{spec.title | caseUcfirst}}Exception('Failed to generate unique subscription id');
+        }
         this.realtime.subscriptions.set(subscriptionId, {
             channels: channelStrings,
             queries: queryStrings,

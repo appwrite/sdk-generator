@@ -108,6 +108,17 @@ open class Realtime : Service {
         }
     }
 
+    private func generateUniqueSubscriptionId() throws -> String {
+        let attempts = activeSubscriptions.count + 1
+        for _ in 0..<attempts {
+            let id = ID.unique()
+            if activeSubscriptions[id] == nil {
+                return id
+            }
+        }
+        throw {{ spec.title | caseUcfirst }}Error(message: "Failed to generate unique subscription id")
+    }
+
     private func enqueuePendingSubscribe(subscriptionId: String) {
         guard let subscription = activeSubscriptions[subscriptionId] else {
             return
@@ -245,7 +256,7 @@ open class Realtime : Service {
         queries: [String] = [],
         callback: @escaping (RealtimeResponseEvent) -> Void
     ) async throws -> RealtimeSubscription {
-        let subscriptionId = ID.unique()
+        let subscriptionId = try generateUniqueSubscriptionId()
 
         activeSubscriptions[subscriptionId] = RealtimeCallback(
             for: channels,

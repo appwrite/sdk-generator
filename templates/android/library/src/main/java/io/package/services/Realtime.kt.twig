@@ -111,6 +111,16 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         )
     }
 
+    private fun generateUniqueSubscriptionIdLocked(): String {
+        repeat(activeSubscriptions.size + 1) {
+            val id = ID.unique()
+            if (!activeSubscriptions.containsKey(id)) {
+                return id
+            }
+        }
+        throw {{ spec.title | caseUcfirst }}Exception("Failed to generate unique subscription id")
+    }
+
     private fun enqueuePendingSubscribeLocked(subscriptionId: String) {
         val subscription = activeSubscriptions[subscriptionId] ?: return
         pendingSubscribes[subscriptionId] = mapOf(
@@ -219,9 +229,9 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         queries: Set<String> = emptySet(),
         callback: (RealtimeResponseEvent<T>) -> Unit,
     ): RealtimeSubscription {
-        val subscriptionId = ID.unique()
-
+        val subscriptionId: String
         synchronized(subscriptionLock) {
+            subscriptionId = generateUniqueSubscriptionIdLocked()
             activeSubscriptions[subscriptionId] = RealtimeCallback(
                 channels.toSet(),
                 queries,
