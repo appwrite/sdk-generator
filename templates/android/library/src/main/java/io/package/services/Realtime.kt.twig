@@ -3,6 +3,7 @@ package {{ sdk.namespace | caseDot }}.services
 import {{ sdk.namespace | caseDot }}.Service
 import {{ sdk.namespace | caseDot }}.Client
 import {{ sdk.namespace | caseDot }}.Channel
+import {{ sdk.namespace | caseDot }}.ID
 import {{ sdk.namespace | caseDot }}.Query
 import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.title | caseUcfirst }}Exception
 import {{ sdk.namespace | caseDot }}.extensions.forEachAsync
@@ -40,22 +41,13 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         private const val HEARTBEAT_INTERVAL = 20_000L // 20 seconds
 
         private var socket: RealWebSocket? = null
-        // Slot-centric state: Map<slot, RealtimeCallback>
-        private val activeSubscriptions = ConcurrentHashMap<Int, RealtimeCallback>()
-        // Map slot index -> subscriptionId (from backend)
-        private val slotToSubscriptionId = ConcurrentHashMap<Int, String>()
-        // Inverse map: subscriptionId -> slot index (for O(1) lookup)
-        private val subscriptionIdToSlot = ConcurrentHashMap<String, Int>()
-        // Queue of slot snapshots per in-flight subscribe message (FIFO with server responses).
-        private val pendingSubscribeSlotsQueue = ArrayDeque<List<Int>>()
+        private val activeSubscriptions = ConcurrentHashMap<String, RealtimeCallback>()
 
         private var reconnectAttempts = 0
-        private val subscriptionsCounter = AtomicInteger(0)
         private val socketGeneration = AtomicInteger(0)
         private var reconnect = true
         private var heartbeatJob: Job? = null
 
-        // Lock to coordinate multi-map updates (activeSubscriptions, slotToSubscriptionId, subscriptionIdToSlot)
         private val subscriptionLock = Any()
     }
 
@@ -118,31 +110,16 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         )
     }
 
-    private fun removeSlotLocked(slot: Int): String? {
-        val subscriptionId = slotToSubscriptionId[slot]
-        activeSubscriptions.remove(slot)
-        slotToSubscriptionId.remove(slot)
-        subscriptionId?.let { subscriptionIdToSlot.remove(it) }
-        return subscriptionId
-    }
-
-    private fun sendUpdateMessage(slot: Int) {
+    private fun sendUpdateMessage(subscriptionId: String) {
         val ws = socket ?: return
         val row: Map<String, Any>
-        val slotsForMessage: List<Int>
         synchronized(subscriptionLock) {
-            val subscription = activeSubscriptions[slot] ?: return
-            val rowBuilder = mutableMapOf<String, Any>(
+            val subscription = activeSubscriptions[subscriptionId] ?: return
+            row = mapOf(
+                "subscriptionId" to subscriptionId,
                 "channels" to subscription.channels.toList(),
                 "queries" to subscription.queries.toList()
             )
-            val knownSubscriptionId = slotToSubscriptionId[slot]
-            if (!knownSubscriptionId.isNullOrEmpty()) {
-                rowBuilder["subscriptionId"] = knownSubscriptionId
-            }
-            row = rowBuilder
-            slotsForMessage = listOf(slot)
-            pendingSubscribeSlotsQueue.addLast(slotsForMessage)
         }
         ws.send(mapOf("type" to "subscribe", "data" to listOf(row)).toJson())
     }
@@ -155,9 +132,6 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
     fun disconnect() {
         synchronized(subscriptionLock) {
             activeSubscriptions.clear()
-            slotToSubscriptionId.clear()
-            subscriptionIdToSlot.clear()
-            pendingSubscribeSlotsQueue.clear()
             reconnect = false
             closeSocket()
         }
@@ -166,30 +140,19 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
     private fun sendSubscribeMessage() {
         val ws = socket ?: return
         val rows = mutableListOf<Map<String, Any>>()
-        val slotsForMessage = mutableListOf<Int>()
 
         synchronized(subscriptionLock) {
-            activeSubscriptions.forEach { (slot, subscription) ->
-                val queries = subscription.queries
-                val row = mutableMapOf<String, Any>(
+            activeSubscriptions.forEach { (subscriptionId, subscription) ->
+                rows.add(mapOf(
+                    "subscriptionId" to subscriptionId,
                     "channels" to subscription.channels.toList(),
-                    "queries" to queries.toList()
-                )
-                val knownSubscriptionId = slotToSubscriptionId[slot]
-                if (!knownSubscriptionId.isNullOrEmpty()) {
-                    row["subscriptionId"] = knownSubscriptionId
-                }
-                rows.add(row)
-                slotsForMessage.add(slot)
+                    "queries" to subscription.queries.toList()
+                ))
             }
         }
 
         if (rows.isEmpty()) {
             return
-        }
-
-        synchronized(subscriptionLock) {
-            pendingSubscribeSlotsQueue.addLast(slotsForMessage.toList())
         }
 
         ws.send(mapOf("type" to "subscribe", "data" to rows).toJson())
@@ -267,22 +230,15 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         queries: Set<String> = emptySet(),
         callback: (RealtimeResponseEvent<T>) -> Unit,
     ): RealtimeSubscription {
-        // Allocate a new slot index atomically
-        val slot = subscriptionsCounter.incrementAndGet()
+        val subscriptionId = ID.unique()
 
-        // Store slot-centric data: channels, queries, and callback belong to the slot.
-        // We only touch activeSubscriptions here, but keep the pattern consistent
-        // and future-proof by guarding multi-map writes with a shared lock.
         synchronized(subscriptionLock) {
-            activeSubscriptions[slot] = RealtimeCallback(
+            activeSubscriptions[subscriptionId] = RealtimeCallback(
                 channels.toSet(),
                 queries,
                 payloadType,
                 callback as (RealtimeResponseEvent<*>) -> Unit
             )
-        }
-        // Reuse active socket when possible; otherwise create it.
-        synchronized(subscriptionLock) {
             if (socket != null) {
                 sendSubscribeMessage()
             } else {
@@ -291,27 +247,23 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         }
 
         val unsubscribeFn: () -> Unit = {
-            val subscriptionId: String?
+            val removed: Boolean
             synchronized(subscriptionLock) {
-                subscriptionId = if (activeSubscriptions.containsKey(slot)) {
-                    removeSlotLocked(slot)
-                } else {
-                    null
-                }
+                removed = activeSubscriptions.remove(subscriptionId) != null
             }
-            if (!subscriptionId.isNullOrEmpty()) {
+            if (removed) {
                 sendUnsubscribeMessage(listOf(subscriptionId))
             }
         }
 
         val updateFn: (RealtimeSubscriptionUpdate) -> Unit = { changes ->
             synchronized(subscriptionLock) {
-                val current = activeSubscriptions[slot]
+                val current = activeSubscriptions[subscriptionId]
                 if (current != null) {
                     val nextChannels = changes.channels?.map { channelToString(it) }?.toSet()
                         ?: current.channels
                     val nextQueries = changes.queries?.toSet() ?: current.queries
-                    activeSubscriptions[slot] = RealtimeCallback(
+                    activeSubscriptions[subscriptionId] = RealtimeCallback(
                         nextChannels,
                         nextQueries,
                         current.payloadClass,
@@ -320,14 +272,13 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
                 }
             }
             if (socket != null) {
-                sendUpdateMessage(slot)
+                sendUpdateMessage(subscriptionId)
             } else {
                 createSocket()
             }
         }
 
         val closeFn: () -> Unit = {
-            // Legacy behavior: per-sub unsubscribe plus auto-close when this was the last one.
             unsubscribeFn()
             synchronized(subscriptionLock) {
                 if (activeSubscriptions.isEmpty()) {
@@ -343,9 +294,6 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
             close = closeFn
         )
     }
-
-    // cleanUp is no longer needed - slots are removed directly in subscribe().close()
-    // Channels are automatically rebuilt from remaining slots in createSocket()
 
     private inner class {{ spec.title | caseUcfirst }}WebSocketListener(
         private val generation: Int
@@ -386,25 +334,9 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         }
 
         private fun handleResponseAction(message: RealtimeResponse) {
-            val actionData = message.data?.jsonCast<Map<String, Any>>() ?: return
-            if (actionData["to"] != "subscribe") {
-                return
-            }
-            val subscriptions = actionData["subscriptions"] as? List<*> ?: return
-
-            synchronized(subscriptionLock) {
-                if (pendingSubscribeSlotsQueue.isEmpty()) {
-                    return
-                }
-                val pendingSlots = pendingSubscribeSlotsQueue.removeFirst()
-                subscriptions.forEachIndexed { index, item ->
-                    val slot = pendingSlots.getOrNull(index) ?: return@forEachIndexed
-                    val row = item as? Map<*, *> ?: return@forEachIndexed
-                    val subscriptionId = row["subscriptionId"] as? String ?: return@forEachIndexed
-                    slotToSubscriptionId[slot] = subscriptionId
-                    subscriptionIdToSlot[subscriptionId] = slot
-                }
-            }
+            // The SDK generates subscriptionIds client-side and sends them on every
+            // subscribe/unsubscribe, so subscribe/unsubscribe acks carry no state
+            // the SDK needs to reconcile.
         }
 
         private fun handleResponseError(message: RealtimeResponse) {
@@ -427,19 +359,12 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
                 return
             }
 
-            // Use backend-provided subscription IDs for O(1) dispatch
             subscriptions.forEach { subscriptionId ->
-                // O(1) lookup using subscriptionId
-                val slot = subscriptionIdToSlot[subscriptionId]
-                if (slot != null) {
-                    val subscription = activeSubscriptions[slot]
-                    if (subscription != null) {
-                        val typedEvent = event.copy(
-                            payload = rawPayload.jsonCast(subscription.payloadClass)
-                        )
-                        subscription.callback(typedEvent)
-                    }
-                }
+                val subscription = activeSubscriptions[subscriptionId] ?: return@forEach
+                val typedEvent = event.copy(
+                    payload = rawPayload.jsonCast(subscription.payloadClass)
+                )
+                subscription.callback(typedEvent)
             }
         }
 

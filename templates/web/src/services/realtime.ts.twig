@@ -1,6 +1,7 @@
 import { {{ spec.title | caseUcfirst}}Exception, Client } from '../client';
 import { Channel, ActionableChannel, ResolvedChannel } from '../channel';
 import { Query } from '../query';
+import { ID } from '../id';
 
 export type RealtimeSubscriptionUpdate = {
     channels?: (string | Channel<any> | ActionableChannel | ResolvedChannel)[];
@@ -61,16 +62,6 @@ type RealtimeRequestSubscribeRow = {
     queries: string[];
 }
 
-type RealtimeResponseAction = {
-    to?: string;
-    success?: boolean;
-    subscriptions?: Array<{
-        subscriptionId?: string;
-        channels?: string[];
-        queries?: string[];
-    }>;
-}
-
 export enum RealtimeCode {
     NORMAL_CLOSURE = 1000,
     POLICY_VIOLATION = 1008,
@@ -88,22 +79,11 @@ export class Realtime {
 
     private client: Client;
     private socket?: WebSocket;
-    // Slot-centric state: Map<slot, { channels: Set<string>, queries: string[], callback: Function }>
-    private activeSubscriptions = new Map<number, RealtimeCallback<any>>();
-    // Map slot index -> subscriptionId (from backend)
-    private slotToSubscriptionId = new Map<number, string>();
-    // Inverse map: subscriptionId -> slot index (for O(1) lookup)
-    private subscriptionIdToSlot = new Map<string, number>();
+    private activeSubscriptions = new Map<string, RealtimeCallback<any>>();
     private heartbeatTimer?: number;
 
     private subCallDepth = 0;
-    // FIFO queue of slot-lists: one entry per outgoing subscribe message.
-    // The server replies in order, so each ack dequeues the head entry. A single
-    // shared array would be overwritten by in-flight `update` messages, causing
-    // subscribe responses to map to the wrong slots.
-    private pendingSubscribeSlotsQueue: number[][] = [];
     private reconnectAttempts = 0;
-    private subscriptionsCounter = 0;
     private connectionId = 0;
     private reconnect = true;
 
@@ -301,10 +281,6 @@ export class Realtime {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
 
-    private getKnownSubscriptionId(slot: number): string | undefined {
-        return this.slotToSubscriptionId.get(slot);
-    }
-
     private sendUnsubscribeMessage(subscriptionIds: string[]): void {
         const ids = subscriptionIds.filter(id => typeof id === 'string' && id.length > 0);
         if (ids.length === 0) {
@@ -319,37 +295,21 @@ export class Realtime {
         }));
     }
 
-    private removeSlot(slot: number): string | undefined {
-        const subscriptionId = this.slotToSubscriptionId.get(slot);
-        this.activeSubscriptions.delete(slot);
-        this.slotToSubscriptionId.delete(slot);
-        if (subscriptionId) {
-            this.subscriptionIdToSlot.delete(subscriptionId);
-        }
-        return subscriptionId;
-    }
-
-    private sendUpdateMessage(slot: number): void {
+    private sendUpdateMessage(subscriptionId: string): void {
         if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
             return;
         }
 
-        const subscription = this.activeSubscriptions.get(slot);
+        const subscription = this.activeSubscriptions.get(subscriptionId);
         if (!subscription) {
             return;
         }
 
         const row: RealtimeRequestSubscribeRow = {
+            subscriptionId,
             channels: Array.from(subscription.channels),
             queries: subscription.queries ?? []
         };
-
-        const knownSubscriptionId = this.getKnownSubscriptionId(slot);
-        if (knownSubscriptionId) {
-            row.subscriptionId = knownSubscriptionId;
-        }
-
-        this.pendingSubscribeSlotsQueue.push([slot]);
 
         this.socket.send(JSON.stringify(<RealtimeRequest>{
             type: 'subscribe',
@@ -363,9 +323,6 @@ export class Realtime {
      */
     public async disconnect(): Promise<void> {
         this.activeSubscriptions.clear();
-        this.slotToSubscriptionId.clear();
-        this.subscriptionIdToSlot.clear();
-        this.pendingSubscribeSlotsQueue = [];
         this.reconnect = false;
         await this.closeSocket();
     }
@@ -376,29 +333,18 @@ export class Realtime {
         }
 
         const rows: RealtimeRequestSubscribeRow[] = [];
-        const slotsForMessage: number[] = [];
 
-        for (const [slot, subscription] of this.activeSubscriptions) {
-            const queries = subscription.queries ?? [];
-
-            const row: RealtimeRequestSubscribeRow = {
+        for (const [subscriptionId, subscription] of this.activeSubscriptions) {
+            rows.push({
+                subscriptionId,
                 channels: Array.from(subscription.channels),
-                queries
-            };
-            const knownSubscriptionId = this.getKnownSubscriptionId(slot);
-            if (knownSubscriptionId) {
-                row.subscriptionId = knownSubscriptionId;
-            }
-
-            rows.push(row);
-            slotsForMessage.push(slot);
+                queries: subscription.queries ?? []
+            });
         }
 
         if (rows.length < 1) {
             return;
         }
-
-        this.pendingSubscribeSlotsQueue.push(slotsForMessage);
 
         this.socket.send(JSON.stringify(<RealtimeRequest>{
             type: 'subscribe',
@@ -503,14 +449,9 @@ export class Realtime {
             }
         }
 
-        // Allocate a new slot index
-        this.subscriptionsCounter++;
-        const slot = this.subscriptionsCounter;
+        const subscriptionId = ID.unique();
 
-        // Store slot-centric data: channels, queries, and callback belong to the slot
-        // queries is stored as string[] (array of query strings)
-        // No channel mutation occurs here - channels are derived from slots in createSocket()
-        this.activeSubscriptions.set(slot, {
+        this.activeSubscriptions.set(subscriptionId, {
             channels,
             queries: queryStrings,
             callback
@@ -531,17 +472,15 @@ export class Realtime {
         this.subCallDepth--;
 
         const unsubscribe = async (): Promise<void> => {
-            if (!this.activeSubscriptions.has(slot)) {
+            if (!this.activeSubscriptions.has(subscriptionId)) {
                 return;
             }
-            const subscriptionId = this.removeSlot(slot);
-            if (subscriptionId) {
-                this.sendUnsubscribeMessage([subscriptionId]);
-            }
+            this.activeSubscriptions.delete(subscriptionId);
+            this.sendUnsubscribeMessage([subscriptionId]);
         };
 
         const update = async (changes: RealtimeSubscriptionUpdate): Promise<void> => {
-            const subscription = this.activeSubscriptions.get(slot);
+            const subscription = this.activeSubscriptions.get(subscriptionId);
             if (!subscription) {
                 return;
             }
@@ -571,7 +510,7 @@ export class Realtime {
             }
 
             if (this.socket.readyState === WebSocket.OPEN) {
-                this.sendUpdateMessage(slot);
+                this.sendUpdateMessage(subscriptionId);
             }
         };
 
@@ -585,9 +524,6 @@ export class Realtime {
 
         return { unsubscribe, update, close };
     }
-
-    // cleanUp is no longer needed - slots are removed directly in subscribe().close()
-    // Channels are automatically rebuilt from remaining slots in createSocket()
 
     private handleMessage(message: RealtimeResponse): void {
         if (!message.type) {
@@ -666,52 +602,24 @@ export class Realtime {
             return;
         }
 
-        // Iterate over all matching subscriptionIds and call callback for each
         for (const subscriptionId of subscriptions) {
-            // O(1) lookup using subscriptionId
-            const slot = this.subscriptionIdToSlot.get(subscriptionId);
-            if (slot !== undefined) {
-                const subscription = this.activeSubscriptions.get(slot);
-                if (subscription) {
-                    const response: RealtimeResponseEvent<any> = {
-                        events,
-                        channels,
-                        timestamp,
-                        payload,
-                        subscriptions
-                    };
-                    subscription.callback(response);
-                }
+            const subscription = this.activeSubscriptions.get(subscriptionId);
+            if (!subscription) {
+                continue;
             }
+            subscription.callback({
+                events,
+                channels,
+                timestamp,
+                payload,
+                subscriptions
+            });
         }
     }
 
-    private handleResponseAction(message: RealtimeResponse): void {
-        const data = message.data as RealtimeResponseAction | undefined;
-        if (!data || !Array.isArray(data.subscriptions)) {
-            return;
-        }
-
-        // Nothing to do on unsubscribe acks beyond what the caller already did client-side.
-        if (data.to !== 'subscribe') {
-            return;
-        }
-
-        const pendingSlots = this.pendingSubscribeSlotsQueue.shift();
-        if (!pendingSlots) {
-            return;
-        }
-
-        for (let i = 0; i < data.subscriptions.length; i++) {
-            const subscription = data.subscriptions[i];
-            const subscriptionId = subscription?.subscriptionId;
-            const slot = pendingSlots[i];
-            if (slot === undefined || !subscriptionId) {
-                continue;
-            }
-
-            this.slotToSubscriptionId.set(slot, subscriptionId);
-            this.subscriptionIdToSlot.set(subscriptionId, slot);
-        }
+    private handleResponseAction(_message: RealtimeResponse): void {
+        // The SDK generates subscriptionIds client-side and sends them on every
+        // subscribe/unsubscribe, so subscribe/unsubscribe acks carry no state
+        // the SDK needs to reconcile.
     }
 }

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:web_socket_channel/status.dart' as status;
@@ -13,21 +14,21 @@ import 'realtime_response_connected.dart';
 typedef WebSocketFactory = Future<WebSocketChannel> Function(Uri uri);
 typedef GetFallbackCookie = String? Function();
 
+String _uniqueSubscriptionId() {
+  final now = DateTime.now();
+  final sec = (now.millisecondsSinceEpoch / 1000).floor();
+  final usec = now.microsecondsSinceEpoch - (sec * 1000000);
+  final base = sec.toRadixString(16) + usec.toRadixString(16).padLeft(5, '0');
+  final rand = StringBuffer();
+  for (var i = 0; i < 7; i++) {
+    rand.write(Random().nextInt(16).toRadixString(16));
+  }
+  return base + rand.toString();
+}
+
 mixin RealtimeMixin {
   late Client client;
-  // Slot-centric state: Map<slot, RealtimeSubscription>
-  // Each subscription stores its own channels and queries
-  final Map<int, RealtimeSubscription> _subscriptions = {};
-  // Map slot index -> subscriptionId (from backend)
-  final Map<int, String> _slotToSubscriptionId = {};
-  // Inverse map: subscriptionId -> slot index (for O(1) lookup)
-  final Map<String, int> _subscriptionIdToSlot = {};
-  // FIFO queue of slot-lists: one entry per outgoing subscribe message.
-  // The server replies in order, so each ack dequeues the head entry. A single
-  // shared list would be overwritten by in-flight update messages, causing
-  // subscribe responses to map to the wrong slots.
-  final List<List<int>> _pendingSubscribeSlotsQueue = [];
-  int _subscriptionsCounter = 0;
+  final Map<String, RealtimeSubscription> _subscriptions = {};
   WebSocketChannel? _websok;
   String? _lastUrl;
   late WebSocketFactory getWebSocket;
@@ -66,7 +67,6 @@ mixin RealtimeMixin {
   }
 
   Future<void> _createSocket() async {
-    // Rebuild channels from all slots
     final allChannels = <String>{};
     for (var subscription in _subscriptions.values) {
       allChannels.addAll(subscription.channels);
@@ -119,27 +119,9 @@ mixin RealtimeMixin {
             _startHeartbeat(); // Start heartbeat after successful connection
             break;
           case 'response':
-            final actionData = data.data as Map<String, dynamic>;
-            if (actionData['to'] != 'subscribe') {
-              break;
-            }
-            final subscriptions = actionData['subscriptions'] as List<dynamic>?;
-            if (subscriptions == null) {
-              break;
-            }
-            final pendingSlots = _pendingSubscribeSlotsQueue.isNotEmpty
-                ? _pendingSubscribeSlotsQueue.removeAt(0)
-                : const <int>[];
-            for (var index = 0; index < subscriptions.length; index++) {
-              final slot = index < pendingSlots.length ? pendingSlots[index] : null;
-              final item = subscriptions[index] as Map<String, dynamic>?;
-              final subscriptionId = item?['subscriptionId']?.toString();
-              if (slot == null || subscriptionId == null || subscriptionId.isEmpty) {
-                continue;
-              }
-              _slotToSubscriptionId[slot] = subscriptionId;
-              _subscriptionIdToSlot[subscriptionId] = slot;
-            }
+            // The SDK generates subscriptionIds client-side and sends them on
+            // every subscribe/unsubscribe, so subscribe/unsubscribe acks carry
+            // no state the SDK needs to reconcile.
             break;
           case 'pong':
             break;
@@ -149,20 +131,15 @@ mixin RealtimeMixin {
             final subscriptions = (messageData['subscriptions'] as List<dynamic>?)
                 ?.map((x) => x.toString())
                 .toList() ?? <String>[];
-            
+
             if (subscriptions.isEmpty) {
               break;
             }
 
-            // Iterate over all matching subscriptionIds and call callback for each
             for (var subscriptionId in subscriptions) {
-              // O(1) lookup using subscriptionId
-              final slot = _subscriptionIdToSlot[subscriptionId];
-              if (slot != null) {
-                final subscription = _subscriptions[slot];
-                if (subscription != null) {
-                  subscription.controller.add(message);
-                }
+              final subscription = _subscriptions[subscriptionId];
+              if (subscription != null) {
+                subscription.controller.add(message);
               }
             }
             break;
@@ -240,36 +217,23 @@ mixin RealtimeMixin {
     }));
   }
 
-  String? _removeSlot(int slot) {
-    final subscriptionId = _slotToSubscriptionId[slot];
-    _subscriptions.remove(slot);
-    _slotToSubscriptionId.remove(slot);
-    if (subscriptionId != null) {
-      _subscriptionIdToSlot.remove(subscriptionId);
-    }
-    return subscriptionId;
-  }
-
-  void _sendUpdateMessage(int slot) {
+  void _sendUpdateMessage(String subscriptionId) {
     if (_websok == null || _websok?.closeCode != null) {
       return;
     }
-    final subscription = _subscriptions[slot];
+    final subscription = _subscriptions[subscriptionId];
     if (subscription == null) {
       return;
     }
-    final row = <String, dynamic>{
-      'channels': subscription.channels,
-      'queries': subscription.queries,
-    };
-    final knownSubscriptionId = _slotToSubscriptionId[slot];
-    if (knownSubscriptionId != null && knownSubscriptionId.isNotEmpty) {
-      row['subscriptionId'] = knownSubscriptionId;
-    }
-    _pendingSubscribeSlotsQueue.add([slot]);
     _websok!.sink.add(jsonEncode({
       'type': 'subscribe',
-      'data': [row],
+      'data': [
+        {
+          'subscriptionId': subscriptionId,
+          'channels': subscription.channels,
+          'queries': subscription.queries,
+        }
+      ],
     }));
   }
 
@@ -281,9 +245,6 @@ mixin RealtimeMixin {
       await subscription.controller.close();
     }
     _subscriptions.clear();
-    _slotToSubscriptionId.clear();
-    _subscriptionIdToSlot.clear();
-    _pendingSubscribeSlotsQueue.clear();
     await _closeConnection();
   }
 
@@ -293,29 +254,19 @@ mixin RealtimeMixin {
     }
 
     final rows = <Map<String, dynamic>>[];
-    final slotsForMessage = <int>[];
 
     for (var entry in _subscriptions.entries) {
-      final slot = entry.key;
       final subscription = entry.value;
-      final queries = subscription.queries;
-      final row = <String, dynamic>{
+      rows.add({
+        'subscriptionId': entry.key,
         'channels': subscription.channels,
-        'queries': queries,
-      };
-      final knownSubscriptionId = _slotToSubscriptionId[slot];
-      if (knownSubscriptionId != null && knownSubscriptionId.isNotEmpty) {
-        row['subscriptionId'] = knownSubscriptionId;
-      }
-      rows.add(row);
-      slotsForMessage.add(slot);
+        'queries': subscription.queries,
+      });
     }
 
     if (rows.isEmpty) {
       return;
     }
-
-    _pendingSubscribeSlotsQueue.add(slotsForMessage);
 
     _websok!.sink.add(jsonEncode({
       'type': 'subscribe',
@@ -334,26 +285,22 @@ mixin RealtimeMixin {
     final channelStrings = channels.map((ch) => _channelToString(ch)).toList().cast<String>();
     final queryStrings = List<String>.from(queries);
 
-    // Allocate a new slot index
-    _subscriptionsCounter++;
-    final slot = _subscriptionsCounter;
+    final subscriptionId = _uniqueSubscriptionId();
 
     late RealtimeSubscription subscription;
 
     Future<void> unsubscribe() async {
-      if (!_subscriptions.containsKey(slot)) {
+      if (!_subscriptions.containsKey(subscriptionId)) {
         return;
       }
-      final subscriptionId = _removeSlot(slot);
+      _subscriptions.remove(subscriptionId);
       await controller.close();
-      if (subscriptionId != null && subscriptionId.isNotEmpty) {
-        _sendUnsubscribeMessage([subscriptionId]);
-      }
+      _sendUnsubscribeMessage([subscriptionId]);
     }
 
     Future<void> update(
         {List<Object>? channels, List<String>? queries}) async {
-      final current = _subscriptions[slot];
+      final current = _subscriptions[subscriptionId];
       if (current == null) {
         return;
       }
@@ -370,7 +317,7 @@ mixin RealtimeMixin {
           ..addAll(queries);
       }
       if (_websok != null && _websok?.closeCode == null) {
-        _sendUpdateMessage(slot);
+        _sendUpdateMessage(subscriptionId);
       } else {
         await Future.delayed(Duration.zero, () => _createSocket());
       }
@@ -391,14 +338,11 @@ mixin RealtimeMixin {
       update: update,
       close: close,
     );
-    _subscriptions[slot] = subscription;
+    _subscriptions[subscriptionId] = subscription;
 
     Future.delayed(Duration.zero, () => _createSocket());
     return subscription;
   }
-
-  // _cleanup is no longer needed - slots are removed directly in subscribeTo().close()
-  // Channels are automatically rebuilt from remaining slots in _createSocket()
 
   void handleError(RealtimeResponse response) {
     if (response.data['code'] == status.policyViolation) {
