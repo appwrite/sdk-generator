@@ -19,25 +19,14 @@ open class Realtime : Service {
     private let HEARTBEAT_INTERVAL: UInt64 = 20_000_000_000 // 20 seconds in nanoseconds
 
     private var socketClient: WebSocketClient? = nil
-    // Slot-centric state: Map<slot, { channels: Set<String>, queries: [String], callback: Function }>
-    private var activeSubscriptions = [Int: RealtimeCallback]()
-    private var activeSubscriptionQueries = [Int: [String]]() // Map slot -> queries array
-    // Map slot index -> subscriptionId (from backend)
-    private var slotToSubscriptionId = [Int: String]()
-    // Inverse map: subscriptionId -> slot index (for O(1) lookup)
-    private var subscriptionIdToSlot = [String: Int]()
-    // FIFO queue of slot-lists: one entry per outgoing subscribe message.
-    // The server replies in order, so each ack dequeues the head entry. A single
-    // shared array would be overwritten by in-flight update messages, causing
-    // subscribe responses to map to the wrong slots.
-    private var pendingSubscribeSlotsQueue = [[Int]]()
+    private var activeSubscriptions = [String: RealtimeCallback]()
+    private var pendingSubscribes = [String: [String: Any]]()
     private var heartbeatTask: Task<Void, Swift.Error>? = nil
 
     let connectSync = DispatchQueue(label: "ConnectSync")
 
     private var subCallDepth = 0
     private var reconnectAttempts = 0
-    private var subscriptionsCounter = 0
     private var reconnect = true
     
     private var onErrorCallbacks: [((Swift.Error?, HTTPResponseStatus?) -> Void)] = []
@@ -119,39 +108,26 @@ open class Realtime : Service {
         }
     }
 
-    private func removeSlot(_ slot: Int) -> String? {
-        let subscriptionId = slotToSubscriptionId[slot]
-        activeSubscriptions[slot] = nil
-        activeSubscriptionQueries[slot] = nil
-        slotToSubscriptionId[slot] = nil
-        if let sid = subscriptionId {
-            subscriptionIdToSlot[sid] = nil
+    private func generateUniqueSubscriptionId() throws -> String {
+        let attempts = activeSubscriptions.count + 1
+        for _ in 0..<attempts {
+            let id = ID.unique()
+            if activeSubscriptions[id] == nil {
+                return id
+            }
         }
-        return subscriptionId
+        throw {{ spec.title | caseUcfirst }}Error(message: "Failed to generate unique subscription id")
     }
 
-    private func sendUpdateMessage(slot: Int) {
-        guard let ws = socketClient, ws.isConnected,
-              let subscription = activeSubscriptions[slot] else {
+    private func enqueuePendingSubscribe(subscriptionId: String) {
+        guard let subscription = activeSubscriptions[subscriptionId] else {
             return
         }
-        let queries = activeSubscriptionQueries[slot] ?? []
-        var row: [String: Any] = [
+        pendingSubscribes[subscriptionId] = [
+            "subscriptionId": subscriptionId,
             "channels": Array(subscription.channels),
-            "queries": queries
+            "queries": subscription.queries
         ]
-        if let knownSubscriptionId = slotToSubscriptionId[slot] {
-            row["subscriptionId"] = knownSubscriptionId
-        }
-        pendingSubscribeSlotsQueue.append([slot])
-        let payload: [String: Any] = [
-            "type": "subscribe",
-            "data": [row]
-        ]
-        if let data = try? JSONSerialization.data(withJSONObject: payload),
-           let text = String(data: data, encoding: .utf8) {
-            ws.send(text: text)
-        }
     }
 
     /// Close the WebSocket connection and drop all active subscriptions client-side.
@@ -159,40 +135,22 @@ open class Realtime : Service {
     /// to tear everything down.
     public func disconnect() async throws {
         activeSubscriptions.removeAll()
-        activeSubscriptionQueries.removeAll()
-        slotToSubscriptionId.removeAll()
-        subscriptionIdToSlot.removeAll()
-        pendingSubscribeSlotsQueue.removeAll()
+        pendingSubscribes.removeAll()
         reconnect = false
         try await closeSocket()
     }
 
-    private func sendSubscribeMessage() {
+    private func sendPendingSubscribes() {
         guard let ws = socketClient, ws.isConnected else {
             return
         }
 
-        var rows = [[String: Any]]()
-        var slotsForMessage = [Int]()
-
-        for (slot, subscription) in activeSubscriptions {
-            let queries = activeSubscriptionQueries[slot] ?? []
-            var row: [String: Any] = [
-                "channels": Array(subscription.channels),
-                "queries": queries
-            ]
-            if let knownSubscriptionId = slotToSubscriptionId[slot] {
-                row["subscriptionId"] = knownSubscriptionId
-            }
-            rows.append(row)
-            slotsForMessage.append(slot)
-        }
-
-        if rows.isEmpty {
+        if pendingSubscribes.isEmpty {
             return
         }
 
-        pendingSubscribeSlotsQueue.append(slotsForMessage)
+        let rows = Array(pendingSubscribes.values)
+        pendingSubscribes.removeAll()
 
         let payload: [String: Any] = [
             "type": "subscribe",
@@ -298,77 +256,80 @@ open class Realtime : Service {
         queries: [String] = [],
         callback: @escaping (RealtimeResponseEvent) -> Void
     ) async throws -> RealtimeSubscription {
-        // Allocate a new slot index
-        subscriptionsCounter += 1
-        let slot = subscriptionsCounter
+        let subscriptionId = try generateUniqueSubscriptionId()
 
-        // Convert queries to array of strings
-        // queries is already [String], store as-is
-        let queryStrings = queries
-
-        // Store slot-centric data: channels, queries, and callback belong to the slot
-        // queries is stored as [String] (array of query strings)
-        // No channel mutation occurs here - channels are derived from slots in createSocket()
-        activeSubscriptions[slot] = RealtimeCallback(
+        activeSubscriptions[subscriptionId] = RealtimeCallback(
             for: channels,
+            queries: queries,
             with: callback
         )
-        activeSubscriptionQueries[slot] = queryStrings
+        enqueuePendingSubscribe(subscriptionId: subscriptionId)
 
         connectSync.sync {
             subCallDepth += 1
+        }
+        defer {
+            connectSync.sync {
+                self.subCallDepth -= 1
+            }
         }
 
         try await Task.sleep(nanoseconds: UInt64(DEBOUNCE_NANOS))
 
         if self.subCallDepth == 1 {
             if let ws = self.socketClient, ws.isConnected {
-                self.sendSubscribeMessage()
+                self.sendPendingSubscribes()
             } else {
                 try await self.createSocket()
             }
         }
 
-        connectSync.sync {
-            self.subCallDepth -= 1
-        }
-
         return RealtimeSubscription(
             unsubscribe: { [weak self] in
                 guard let self = self else { return }
-                guard self.activeSubscriptions[slot] != nil else { return }
-                let subscriptionId = self.removeSlot(slot)
-                if let sid = subscriptionId, !sid.isEmpty {
-                    self.sendUnsubscribeMessage([sid])
-                }
+                guard self.activeSubscriptions[subscriptionId] != nil else { return }
+                self.activeSubscriptions[subscriptionId] = nil
+                self.pendingSubscribes[subscriptionId] = nil
+                self.sendUnsubscribeMessage([subscriptionId])
             },
             update: { [weak self] changes in
-                guard let self = self, let subscription = self.activeSubscriptions[slot] else {
+                guard let self = self, let subscription = self.activeSubscriptions[subscriptionId] else {
                     return
                 }
                 if let nextChannels = changes.channels {
-                    let channelStrings = Set(nextChannels.map { self.channelToString($0) })
-                    self.activeSubscriptions[slot] = RealtimeCallback(
-                        for: channelStrings,
-                        with: subscription.callback
-                    )
+                    subscription.channels = Set(nextChannels.map { self.channelToString($0) })
                 }
                 if let nextQueries = changes.queries {
-                    self.activeSubscriptionQueries[slot] = nextQueries
+                    subscription.queries = nextQueries
                 }
-                if let ws = self.socketClient, ws.isConnected {
-                    self.sendUpdateMessage(slot: slot)
-                } else {
-                    try await self.createSocket()
+
+                self.enqueuePendingSubscribe(subscriptionId: subscriptionId)
+
+                self.connectSync.sync {
+                    self.subCallDepth += 1
+                }
+                defer {
+                    self.connectSync.sync {
+                        self.subCallDepth -= 1
+                    }
+                }
+
+                try await Task.sleep(nanoseconds: UInt64(self.DEBOUNCE_NANOS))
+
+                if self.subCallDepth == 1 {
+                    if let ws = self.socketClient, ws.isConnected {
+                        self.sendPendingSubscribes()
+                    } else {
+                        try await self.createSocket()
+                    }
                 }
             },
             close: { [weak self] in
                 guard let self = self else { return }
-                if self.activeSubscriptions[slot] != nil {
-                    let subscriptionId = self.removeSlot(slot)
-                    if let sid = subscriptionId, !sid.isEmpty {
-                        self.sendUnsubscribeMessage([sid])
-                    }
+                if self.activeSubscriptions[subscriptionId] != nil {
+                    self.activeSubscriptions[subscriptionId] = nil
+                    self.pendingSubscribes[subscriptionId] = nil
+                    self.sendUnsubscribeMessage([subscriptionId])
                 }
                 if self.activeSubscriptions.isEmpty {
                     self.reconnect = false
@@ -377,9 +338,6 @@ open class Realtime : Service {
             }
         )
     }
-
-    // cleanUp is no longer needed - slots are removed directly in subscribe().close()
-    // Channels are automatically rebuilt from remaining slots in createSocket()
 }
 
 extension Realtime: WebSocketClientDelegate {
@@ -395,30 +353,16 @@ extension Realtime: WebSocketClientDelegate {
             return
         }
 
-        sendSubscribeMessage()
+        for subscriptionId in activeSubscriptions.keys {
+            enqueuePendingSubscribe(subscriptionId: subscriptionId)
+        }
+        sendPendingSubscribes()
     }
 
     private func handleResponseAction(from json: [String: Any]) {
-        guard let data = json["data"] as? [String: Any],
-              data["to"] as? String == "subscribe",
-              let subscriptions = data["subscriptions"] as? [[String: Any]] else {
-            return
-        }
-
-        guard !pendingSubscribeSlotsQueue.isEmpty else {
-            return
-        }
-        let pendingSlots = pendingSubscribeSlotsQueue.removeFirst()
-
-        for (index, item) in subscriptions.enumerated() {
-            guard index < pendingSlots.count,
-                  let subscriptionId = item["subscriptionId"] as? String else {
-                continue
-            }
-            let slot = pendingSlots[index]
-            slotToSubscriptionId[slot] = subscriptionId
-            subscriptionIdToSlot[subscriptionId] = slot
-        }
+        // The SDK generates subscriptionIds client-side and sends them on every
+        // subscribe/unsubscribe, so subscribe/unsubscribe acks carry no state
+        // the SDK needs to reconcile.
     }
 
     public func onMessage(text: String) {
@@ -493,19 +437,15 @@ extension Realtime: WebSocketClientDelegate {
             return
         }
 
-        // Iterate over all matching subscriptionIds and call callback for each
         for subscriptionId in subscriptions {
-            // O(1) lookup using subscriptionId
-            if let slot = subscriptionIdToSlot[subscriptionId] {
-                if let subscription = activeSubscriptions[slot] {
-                    let response = RealtimeResponseEvent(
-                        events: events,
-                        channels: channels,
-                        timestamp: data["timestamp"] as! String,
-                        payload: payload
-                    )
-                    subscription.callback(response)
-                }
+            if let subscription = activeSubscriptions[subscriptionId] {
+                let response = RealtimeResponseEvent(
+                    events: events,
+                    channels: channels,
+                    timestamp: data["timestamp"] as? String ?? "",
+                    payload: payload
+                )
+                subscription.callback(response)
             }
         }
     }

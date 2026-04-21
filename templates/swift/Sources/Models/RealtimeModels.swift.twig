@@ -44,14 +44,17 @@ public class RealtimeSubscription {
 }
 
 public class RealtimeCallback {
-    public let channels: Set<String>
+    public var channels: Set<String>
+    public var queries: [String]
     public let callback: (RealtimeResponseEvent) -> Void
 
     init(
         for channels: Set<String>,
+        queries: [String],
         with callback: @escaping (RealtimeResponseEvent) -> Void
     ) {
         self.channels = channels
+        self.queries = queries
         self.callback = callback
     }
 }
