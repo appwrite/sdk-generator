@@ -26,6 +26,7 @@ use Appwrite\SDK\Language\Markdown;
 use Appwrite\SDK\Language\AgentSkills;
 use Appwrite\SDK\Language\CursorPlugin;
 use Appwrite\SDK\Language\Rust;
+use Appwrite\SDK\Language\Cpp;
 
 try {
 
@@ -344,6 +345,41 @@ try {
         $sdk = new SDK(new Rust(), new Swagger2($spec));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/rust');
+    }
+
+    // C++
+    if (!$requestedSdk || $requestedSdk === 'cpp') {
+        $sdk = new SDK(new Cpp(), new Swagger2($spec));
+        configureSDK($sdk, [
+            'name' => 'cpp',
+            'version' => '0.0.1',
+            'platform' => $platform,
+            'namespace' => 'appwrite',
+            'exclude' => [
+                'services' => [
+                    ['name' => 'avatars'],
+                    ['name' => 'health'],
+                    ['name' => 'locale'],
+                    ['name' => 'messaging'],
+                    ['name' => 'migrations'],
+                    ['name' => 'graphql'],
+                    ['name' => 'vcs'],
+                    ['name' => 'assistant'],
+                    ['name' => 'activities'],
+                    ['name' => 'backups'],
+                    ['name' => 'console'],
+                    ['name' => 'domains'],
+                    ['name' => 'organizations'],
+                    ['name' => 'project'],
+                    ['name' => 'projects'],
+                    ['name' => 'proxy'],
+                    ['name' => 'sites'],
+                    ['name' => 'tables_db'],
+                    ['name' => 'tokens'],
+                ]
+            ]
+        ]);
+        $sdk->generate(__DIR__ . '/examples/cpp');
     }
 }
 catch (Exception $exception) {
