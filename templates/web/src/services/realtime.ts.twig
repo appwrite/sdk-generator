@@ -2,6 +2,9 @@ import { {{ spec.title | caseUcfirst}}Exception, Client, JSONbig } from '../clie
 import { Channel, ActionableChannel, ResolvedChannel } from '../channel';
 import { Query } from '../query';
 import { ID } from '../id';
+{% if language.name == 'ReactNative' %}
+import { Platform } from 'react-native';
+{% endif %}
 
 export type RealtimeSubscriptionUpdate = {
     channels?: (string | Channel<any> | ActionableChannel | ResolvedChannel)[];
@@ -178,7 +181,16 @@ export class Realtime {
         return new Promise((resolve, reject) => {
             try {
                 const connectionId = ++this.connectionId;
+{% if language.name == 'ReactNative' %}
+                const WebSocketCtor: any = WebSocket;
+                const socket = (this.socket = new WebSocketCtor(url, undefined, {
+                    headers: {
+                        Origin: `{{ spec.title | caseLower }}-${Platform.OS}://${this.client.config.platform}`
+                    }
+                }));
+{% else %}
                 const socket = (this.socket = new WebSocket(url));
+{% endif %}
 
                 socket.addEventListener('open', () => {
                     if (connectionId !== this.connectionId) {
