@@ -167,6 +167,13 @@ public:
     explicit operator bool() const { return isOk(); }
     void operator*() const { value(); }
 
+    std::shared_ptr<AppwriteException> error() const {
+        if (isOk()) throw AppwriteException("Result is Ok, no error available");
+        try { std::rethrow_exception(*eptr_); }
+        catch (const AppwriteException& e) { return e.clone(); }
+        throw AppwriteException("Unknown error");
+    }
+
 private:
     Result() : eptr_(std::nullopt) {}
     explicit Result(std::exception_ptr eptr) : eptr_(std::move(eptr)) {}

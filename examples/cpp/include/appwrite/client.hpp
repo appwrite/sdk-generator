@@ -386,19 +386,24 @@ private:
         std::lock_guard<std::mutex> lock(cfg_mutex_);
         cfg_ = std::make_shared<const Config>(std::move(next));
     }
-
+// Retry: idempotent methods (GET/PUT/DELETE/HEAD/OPTIONS) retry on network
+// failure, 429, and 5xx. POST/PATCH retry only on status_code==0 (request
+// never reached the server) to avoid duplicate side effects.
     static cpr::Response send(const Config& c, std::string_view m, std::string_view p, const auto& h, const auto& pms, bool no_redir = false) {
         int attempt = 0;
         while (true) {
             cpr::Session s;
             init(s, c, m, p, h, pms, no_redir);
             cpr::Response r = runSession(s, m);
-            if (r.status_code == 0) {
-                if (attempt < c.retryOptions.maxRetries) {
-                    attempt++;
-                    std::this_thread::sleep_for(c.retryOptions.retryDelay);
-                    continue;
-                }
+            
+            bool isRetryable = (r.status_code == 0 || r.status_code == 429 || (r.status_code >= 500 && r.status_code <= 504));
+            bool isIdempotent = (m == "GET" || m == "PUT" || m == "DELETE" || m == "HEAD" || m == "OPTIONS");
+            bool canRetry = isRetryable && (isIdempotent || (r.status_code == 0 && attempt == 0));
+
+            if (canRetry && attempt < c.retryOptions.maxRetries) {
+                attempt++;
+                std::this_thread::sleep_for(c.retryOptions.retryDelay);
+                continue;
             }
             return r;
         }
@@ -504,23 +509,35 @@ private:
                 if (!fileId.empty()) cur_h["x-appwrite-id"] = fileId;
                 cur_h["Content-Range"] = "bytes " + std::to_string(off) + "-" + std::to_string(end - 1) + "/" + std::to_string(size);
 
-                cpr::Session s;
-                init(s, *c, m, p, cur_h, pms, false, true);
+                int attempt = 0;
+                while (true) {
+                    cpr::Session s;
+                    init(s, *c, m, p, cur_h, pms, false, true);
 
-                cpr::Multipart multipart = prepareMultipart(pms);
-                multipart.parts.emplace_back(fk, cpr::Buffer{chunk.begin(), chunk.end(), file.filename()});
+                    cpr::Multipart multipart = prepareMultipart(pms);
+                    multipart.parts.emplace_back(fk, cpr::Buffer{chunk.begin(), chunk.end(), file.filename()});
 
-                s.SetMultipart(multipart);
-                auto resp = runSession(s, m);
-                verify(resp);
+                    s.SetMultipart(multipart);
+                    auto resp = runSession(s, m);
 
-                last = nlohmann::json::parse(resp.text);
-                if (fileId.empty() && last.contains("$id")) fileId = last["$id"].get<std::string>();
+                    bool isRetryable = (resp.status_code == 0 || resp.status_code == 429 || (resp.status_code >= 500 && resp.status_code <= 504));
+                    // POST/PATCH only retry on connection failure, exactly once.
+                    bool canRetry = isRetryable && (resp.status_code == 0 && attempt == 0);
+
+                    if (canRetry && attempt < c->retryOptions.maxRetries) {
+                        attempt++;
+                        std::this_thread::sleep_for(c->retryOptions.retryDelay);
+                        continue;
+                    }
+
+                    verify(resp);
+
+                    last = nlohmann::json::parse(resp.text);
+                    if (fileId.empty() && last.contains("$id")) fileId = last["$id"].get<std::string>();
+                    break;
+                }
                 off = end;
                 chunksUploaded++;
-
-                // Prevent hammering servers (specifically mock-server race conditions)
-                std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
                 if (cb) {
                     cb(InputFile::Progress{

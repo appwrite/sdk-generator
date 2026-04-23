@@ -14,6 +14,7 @@ class Cpp extends Language
 {
     private ?array $identifierOverridesCache = null;
 
+    // Parameters are iterated in spec order — std::format requires positional order match
     private function buildPathLine(array $method): string
     {
         $path = $method['path'];
@@ -858,7 +859,7 @@ class Cpp extends Language
                     }
                 }
 
-                // Kahn's algorithm: compute dependencies
+                // DFS post-order traversal: compute dependencies
                 $deps = []; // name -> set of names this depends on
                 foreach ($byName as $name => $def) {
                     $deps[$name] = [];
