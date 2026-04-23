@@ -165,8 +165,11 @@ class Client {
     config: { [key: string]: string } = {
         endpoint: '{{ spec.endpoint }}',
         endpointRealtime: '',
+        platform: '',
 {% for header in spec.global.headers %}
+{% if header.key | caseLower != 'platform' %}
         {{ header.key | caseLower }}: '',
+{% endif %}
 {% endfor %}
     };
     headers: Headers = {
@@ -235,7 +238,22 @@ class Client {
         return this;
     }
 
+    /**
+     * Set platform
+     *
+     * Set platform. Will be used as origin for all requests.
+     *
+     * @param {string} platform
+     * @returns {this}
+     */
+    setPlatform(platform: string): this {
+        this.config.platform = platform;
+
+        return this;
+    }
+
 {% for header in spec.global.headers %}
+{% if header.key | caseLower != 'platform' %}
     /**
      * Set {{header.key | caseUcfirst}}
      *
@@ -253,6 +271,7 @@ class Client {
         return this;
     }
 
+{% endif %}
 {% endfor %}
 
     private realtime: Realtime = {

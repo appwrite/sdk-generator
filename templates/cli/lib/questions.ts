@@ -224,7 +224,7 @@ export const questionsInitProject: Question[] = [
     },
   },
   {
-    type: "search-list",
+    type: "list",
     name: "start",
     when: whenOverride,
     message: "Select a setup method:",
