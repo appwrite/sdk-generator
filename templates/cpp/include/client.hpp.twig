@@ -139,7 +139,7 @@ public:
     }
 
     [[nodiscard]] std::string getEndpoint() const { return get_cfg()->endpoint; }
-    [[nodiscard]] const std::unordered_map<std::string, std::string>& getHeaders() const { return get_cfg()->headers; }
+    [[nodiscard]] std::unordered_map<std::string, std::string> getHeaders() const { return get_cfg()->headers; }
 
     Client& setProject(std::string projectId) { return addHeader("x-appwrite-project", std::move(projectId)); }
     Client& setKey(std::string key) { return addHeader("x-appwrite-key", std::move(key)); }
