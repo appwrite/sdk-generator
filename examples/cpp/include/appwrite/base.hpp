@@ -102,6 +102,7 @@ template <typename T>
 class Result {
 public:
     static Result Ok(T value) { return Result(std::move(value)); }
+    static Result Err(std::exception_ptr eptr) { return Result(std::move(eptr)); }
     static Result Err(const AppwriteException& error) {
         try { throw error; }
         catch (...) { return Result(std::current_exception()); }
@@ -153,6 +154,7 @@ template <>
 class Result<void> {
 public:
     static Result Ok() { return Result(); }
+    static Result Err(std::exception_ptr eptr) { return Result(std::move(eptr)); }
     static Result Err(const AppwriteException& error) {
         try { throw error; }
         catch (...) { return Result(std::current_exception()); }
