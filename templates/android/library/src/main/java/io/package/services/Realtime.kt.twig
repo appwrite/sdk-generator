@@ -230,6 +230,8 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         callback: (RealtimeResponseEvent<T>) -> Unit,
     ): RealtimeSubscription {
         val subscriptionId: String
+        var shouldSendPending = false
+        var shouldCreateSocket = false
         synchronized(subscriptionLock) {
             subscriptionId = generateUniqueSubscriptionIdLocked()
             activeSubscriptions[subscriptionId] = RealtimeCallback(
@@ -240,10 +242,15 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
             )
             enqueuePendingSubscribeLocked(subscriptionId)
             if (socket != null) {
-                sendPendingSubscribes()
+                shouldSendPending = true
             } else {
-                createSocket()
+                shouldCreateSocket = true
             }
+        }
+        if (shouldSendPending) {
+            sendPendingSubscribes()
+        } else if (shouldCreateSocket) {
+            createSocket()
         }
 
         val unsubscribeFn: () -> Unit = {
