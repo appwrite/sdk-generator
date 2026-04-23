@@ -250,7 +250,18 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         if (shouldSendPending) {
             sendPendingSubscribes()
         } else if (shouldCreateSocket) {
-            createSocket()
+            val shouldCreateAfterRecheck: Boolean
+            synchronized(subscriptionLock) {
+                shouldCreateAfterRecheck = (socket == null)
+            }
+
+            if (shouldCreateAfterRecheck) {
+                createSocket()
+            } else {
+                // Another concurrent subscribe() created the socket first.
+                // Send pending rows without holding the lock to avoid ws.send() blocking others.
+                sendPendingSubscribes()
+            }
         }
 
         val unsubscribeFn: () -> Unit = {

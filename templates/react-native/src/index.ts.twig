@@ -2,7 +2,9 @@ export { Client, {{spec.title | caseUcfirst}}Exception } from './client';
 {% for service in spec.services %}
 export { {{service.name | caseUcfirst}} } from './services/{{service.name | caseKebab}}';
 {% endfor %}
+export { Realtime } from './services/realtime';
 export type { Models, Payload, RealtimeResponseEvent, UploadProgress } from './client';
+export type { RealtimeSubscription } from './services/realtime';
 export type { QueryTypes, QueryTypesList } from './query';
 export { Query } from './query';
 export { Permission } from './permission';
