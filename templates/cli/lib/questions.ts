@@ -224,7 +224,7 @@ export const questionsInitProject: Question[] = [
     },
   },
   {
-    type: "list",
+    type: "search-list",
     name: "start",
     when: whenOverride,
     message: "Select a setup method:",
@@ -240,7 +240,7 @@ export const questionsInitProject: Question[] = [
     ],
   },
   {
-    type: "list",
+    type: "search-list",
     name: "organization",
     message: "Choose your organization:",
     choices: async () => {
@@ -584,7 +584,7 @@ export const questionsCreateFunctionSelectTemplate = (
 ): Question[] => {
   return [
     {
-      type: "list",
+      type: "search-list",
       name: "template",
       message: "What template would you like to use?",
       choices: templates.map((template) => {
@@ -614,7 +614,7 @@ export const questionsCreateBucket: Question[] = [
     default: "unique()",
   },
   {
-    type: "list",
+    type: "search-list",
     name: "fileSecurity",
     message: "Enable File-Security configuring permissions for individual file",
     choices: ["No", "Yes"],
@@ -638,7 +638,7 @@ export const questionsCreateTeam: Question[] = [
 
 export const questionsCreateCollection: Question[] = [
   {
-    type: "list",
+    type: "search-list",
     name: "method",
     message: "What database would you like to use for your collection",
     choices: ["New", "Existing"],
