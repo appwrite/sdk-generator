@@ -250,8 +250,8 @@ jobs:
               cargo test --lib
               ;;
             cpp)
-              cmake -S . -B build -DAPPWRITE_BUILD_TESTS=ON
-              cmake --build build
+              cmake -S . -B build -DAPPWRITE_BUILD_TESTS=ON -DCMAKE_PREFIX_PATH=/usr/local
+              cmake --build build -j$(nproc)
               ctest --test-dir build --output-on-failure
               ;;
             *)

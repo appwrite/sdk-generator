@@ -40,7 +40,11 @@ class Cpp20Test extends Base
         while ($attempts < $maxAttempts) {
             $output = [];
             $resultCode = 0;
-            \exec('docker exec mockapi curl -sf http://localhost/v1/health/version 2>/dev/null', $output, $resultCode);
+            // Greptile fix: Query the actual container name (Compose adds prefixes like sdk-generator-mockapi-1)
+            $names = [];
+            \exec('docker ps --filter "name=mockapi" --format "{{.Names}}" 2>/dev/null', $names);
+            $containerName = $names[0] ?? 'mockapi';
+            \exec("docker exec {$containerName} curl -sf http://localhost/v1/health/version 2>/dev/null", $output, $resultCode);
             if ($resultCode === 0 && !empty($output)) {
                 return;
             }
