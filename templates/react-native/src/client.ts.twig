@@ -38,7 +38,7 @@ function reviver(_key: string, value: any): any {
     return value;
 }
 
-const JSONbig = {
+export const JSONbig = {
     parse: (text: string) => JSONbigParser.parse(text, reviver),
     stringify: JSONbigSerializer.stringify
 };
@@ -165,10 +165,10 @@ class Client {
     config = {
         endpoint: '{{ spec.endpoint }}',
         endpointRealtime: '',
+        session: '',
 {% for header in spec.global.headers %}
         {{ header.key | caseLower }}: '',
 {% endfor %}
-        platform: '',
     };
     headers: Headers = {
         'x-sdk-name': '{{ sdk.name }}',
@@ -233,20 +233,6 @@ class Client {
         }
 
         this.config.endpointRealtime = endpointRealtime;
-        return this;
-    }
-
-    /**
-     * Set platform
-     * 
-     * Set platform. Will be used as origin for all requests.
-     * 
-     * @param {string} platform
-     * @returns {this}
-     */
-    setPlatform(platform: string): this {
-        this.config.platform = platform;
-
         return this;
     }
 
