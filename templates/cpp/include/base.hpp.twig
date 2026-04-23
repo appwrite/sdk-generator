@@ -10,6 +10,7 @@
 #include <vector>
 #include <cstdint>
 #include <span>
+#include <future>
 #include <nlohmann/json.hpp>
 
 namespace nlohmann {
@@ -183,25 +184,25 @@ private:
 template<typename T>
 struct Task {
     struct promise_type {
-        Task get_return_object() { return Task{std::coroutine_handle<promise_type>::from_promise(*this)}; }
+        Task get_return_object() { return Task{std::coroutine_handle<promise_type>::from_promise(*this), future_}; }
         std::suspend_always initial_suspend() noexcept { return {}; }
         std::suspend_always final_suspend() noexcept { return {}; }
-        void unhandled_exception() { result = std::current_exception(); }
+        void unhandled_exception() { promise_.set_exception(std::current_exception()); }
         template<typename V>
-        void return_value(V&& value) { result = std::variant<T, std::exception_ptr>(std::forward<V>(value)); }
-        std::optional<std::variant<T, std::exception_ptr>> result;
+        void return_value(V&& value) { promise_.set_value(std::forward<V>(value)); }
+        std::promise<T> promise_;
+        std::shared_future<T> future_ = promise_.get_future().share();
     };
 
-    explicit Task(std::coroutine_handle<promise_type> h) : handle(h) {}
+    explicit Task(std::coroutine_handle<promise_type> h, std::shared_future<T> f)
+        : handle(h), future_(std::move(f)) {}
     ~Task() { if (handle) handle.destroy(); }
-    Task(Task&& other) noexcept : handle(std::exchange(other.handle, nullptr)) {}
+    Task(Task&& other) noexcept
+        : handle(std::exchange(other.handle, nullptr)), future_(std::move(other.future_)) {}
+
     T get() {
-        // Defensive loop: safe for multi-step coroutines.
-        // Warning: if the coroutine suspends indefinitely, this will spin forever.
-        while (!handle.done()) handle.resume();
-        if (!handle.promise().result) throw AppwriteException("Coroutine did not return a value");
-        if (handle.promise().result->index() == 1) std::rethrow_exception(std::get<1>(*handle.promise().result));
-        return std::move(std::get<0>(*handle.promise().result));
+        if (handle && !handle.done()) handle.resume();
+        return future_.get();
     }
 
     auto operator co_await() noexcept {
@@ -212,33 +213,35 @@ struct Task {
                 task_.handle.resume();
                 h.resume();
             }
-            T await_resume() { return task_.get(); }
+            T await_resume() { return task_.future_.get(); }
         };
-        // Note: Task is move-only. After co_await, the original Task handle is null.
         return Awaiter{std::move(*this)};
     }
 
     std::coroutine_handle<promise_type> handle;
+    std::shared_future<T> future_;
 };
 
 template<>
 struct Task<void> {
     struct promise_type {
-        Task get_return_object() { return Task{std::coroutine_handle<promise_type>::from_promise(*this)}; }
+        Task get_return_object() { return Task{std::coroutine_handle<promise_type>::from_promise(*this), future_}; }
         std::suspend_always initial_suspend() noexcept { return {}; }
         std::suspend_always final_suspend() noexcept { return {}; }
-        void unhandled_exception() { exception = std::current_exception(); }
-        void return_void() noexcept {}
-        std::exception_ptr exception;
+        void unhandled_exception() { promise_.set_exception(std::current_exception()); }
+        void return_void() noexcept { promise_.set_value(); }
+        std::promise<void> promise_;
+        std::shared_future<void> future_ = promise_.get_future().share();
     };
-    explicit Task(std::coroutine_handle<promise_type> h) : handle(h) {}
+    explicit Task(std::coroutine_handle<promise_type> h, std::shared_future<void> f)
+        : handle(h), future_(std::move(f)) {}
     ~Task() { if (handle) handle.destroy(); }
-    Task(Task&& other) noexcept : handle(std::exchange(other.handle, nullptr)) {}
+    Task(Task&& other) noexcept
+        : handle(std::exchange(other.handle, nullptr)), future_(std::move(other.future_)) {}
+
     void get() {
-        // Defensive loop: safe for multi-step coroutines.
-        // Warning: if the coroutine suspends indefinitely, this will spin forever.
-        while (!handle.done()) handle.resume();
-        if (handle.promise().exception) std::rethrow_exception(handle.promise().exception);
+        if (handle && !handle.done()) handle.resume();
+        future_.get();
     }
 
     auto operator co_await() noexcept {
@@ -249,13 +252,13 @@ struct Task<void> {
                 task_.handle.resume();
                 h.resume();
             }
-            void await_resume() { task_.get(); }
+            void await_resume() { task_.future_.get(); }
         };
-        // Note: Task is move-only. After co_await, the original Task handle is null.
         return Awaiter{std::move(*this)};
     }
 
     std::coroutine_handle<promise_type> handle;
+    std::shared_future<void> future_;
 };
 
 /**
