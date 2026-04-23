@@ -41,15 +41,25 @@
     "typescript": "5.7.3"
   },
   "dependencies": {
-    "expo-file-system": "18.*.*",
     "json-bigint": "1.0.0",
     "react-native": ">=0.76.7 <1.0.0"
   },
   "peerDependencies": {
-    "expo": "*"
+    "expo": "*",
+    "expo-file-system": "18.*.*"
+  },
+  "peerDependenciesMeta": {
+    "expo": {
+      "optional": true
+    },
+    "expo-file-system": {
+      "optional": true
+    }
   },
   "overrides": {
     "glob": "^13.0.0",
-    "rimraf": "^6.0.0"
+    "rimraf": "^6.0.0",
+    "@xmldom/xmldom": "^0.9.10",
+    "uuid": "^13.0.0"
   }
 }

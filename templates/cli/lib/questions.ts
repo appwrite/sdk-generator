@@ -240,7 +240,7 @@ export const questionsInitProject: Question[] = [
     ],
   },
   {
-    type: "search-list",
+    type: "list",
     name: "organization",
     message: "Choose your organization:",
     choices: async () => {
@@ -300,7 +300,7 @@ export const questionsInitProject: Question[] = [
       whenOverride(answer) && answer.start !== "existing",
   },
   {
-    type: "search-list",
+    type: "list",
     name: "project",
     message: "Choose your project:",
     choices: async (answers: Answers) => {
@@ -584,7 +584,7 @@ export const questionsCreateFunctionSelectTemplate = (
 ): Question[] => {
   return [
     {
-      type: "search-list",
+      type: "list",
       name: "template",
       message: "What template would you like to use?",
       choices: templates.map((template) => {
@@ -647,7 +647,7 @@ export const questionsCreateCollection: Question[] = [
     },
   },
   {
-    type: "search-list",
+    type: "list",
     name: "database",
     message: "Choose the collection database",
     choices: async () => {
@@ -719,7 +719,7 @@ export const questionsCreateTable: Question[] = [
     },
   },
   {
-    type: "search-list",
+    type: "list",
     name: "database",
     message: "Choose the table database",
     choices: async () => {

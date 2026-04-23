@@ -96,7 +96,7 @@ jobs:
         if: matrix.sdk == 'web' || matrix.sdk == 'node' || matrix.sdk == 'react-native' || matrix.sdk == 'cli'
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: ${{ matrix.sdk == 'cli' && '22' || '20' }}
 
       - name: Setup Bun
         if: matrix.sdk == 'cli'

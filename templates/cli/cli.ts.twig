@@ -17,7 +17,6 @@ import {
     getCachedUpdateNotification,
     syncVersionCheckCache,
 } from './lib/utils.js';
-import inquirerSearchList from 'inquirer-search-list';
 
 import { client } from './lib/commands/generic.js';
 {% if sdk.test != "true" %}
@@ -38,7 +37,6 @@ import { {{ service.name }} } from './lib/commands/services/{{ service.name | ca
 {% endfor %}
 
 const { version } = packageJson;
-inquirer.registerPrompt('search-list', inquirerSearchList);
 const VERSION_CHECK_TIMEOUT_MS = 5000;
 
 function writeUpdateAvailableNotice(currentVersion: string, latestVersion: string, toStderr: boolean = false): void {
