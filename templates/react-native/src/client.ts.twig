@@ -38,7 +38,7 @@ function reviver(_key: string, value: any): any {
     return value;
 }
 
-const JSONbig = {
+export const JSONbig = {
     parse: (text: string) => JSONbigParser.parse(text, reviver),
     stringify: JSONbigSerializer.stringify
 };
@@ -162,13 +162,15 @@ class {{spec.title | caseUcfirst}}Exception extends Error {
 }
 
 class Client {
-    config = {
+    config: { [key: string]: string } = {
         endpoint: '{{ spec.endpoint }}',
         endpointRealtime: '',
-{% for header in spec.global.headers %}
-        {{ header.key | caseLower }}: '',
-{% endfor %}
         platform: '',
+{% for header in spec.global.headers %}
+{% if header.key | caseLower != 'platform' %}
+        {{ header.key | caseLower }}: '',
+{% endif %}
+{% endfor %}
     };
     headers: Headers = {
         'x-sdk-name': '{{ sdk.name }}',
@@ -238,9 +240,9 @@ class Client {
 
     /**
      * Set platform
-     * 
+     *
      * Set platform. Will be used as origin for all requests.
-     * 
+     *
      * @param {string} platform
      * @returns {this}
      */
@@ -251,6 +253,7 @@ class Client {
     }
 
 {% for header in spec.global.headers %}
+{% if header.key | caseLower != 'platform' %}
     /**
      * Set {{header.key | caseUcfirst}}
      *
@@ -268,6 +271,7 @@ class Client {
         return this;
     }
 
+{% endif %}
 {% endfor %}
 
     private realtime: Realtime = {

@@ -258,6 +258,7 @@ mixin RealtimeMixin {
     _subscriptions.clear();
     _pendingSubscribes.clear();
     await _closeConnection();
+    _reconnect = true; // allow future subscribeTo() calls to reconnect
   }
 
   void _sendPendingSubscribes() {

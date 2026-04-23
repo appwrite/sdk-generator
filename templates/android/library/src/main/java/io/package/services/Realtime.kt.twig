@@ -230,6 +230,8 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         callback: (RealtimeResponseEvent<T>) -> Unit,
     ): RealtimeSubscription {
         val subscriptionId: String
+        var shouldSendPending = false
+        var shouldCreateSocket = false
         synchronized(subscriptionLock) {
             subscriptionId = generateUniqueSubscriptionIdLocked()
             activeSubscriptions[subscriptionId] = RealtimeCallback(
@@ -240,9 +242,25 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
             )
             enqueuePendingSubscribeLocked(subscriptionId)
             if (socket != null) {
-                sendPendingSubscribes()
+                shouldSendPending = true
             } else {
+                shouldCreateSocket = true
+            }
+        }
+        if (shouldSendPending) {
+            sendPendingSubscribes()
+        } else if (shouldCreateSocket) {
+            val shouldCreateAfterRecheck: Boolean
+            synchronized(subscriptionLock) {
+                shouldCreateAfterRecheck = (socket == null)
+            }
+
+            if (shouldCreateAfterRecheck) {
                 createSocket()
+            } else {
+                // Another concurrent subscribe() created the socket first.
+                // Send pending rows without holding the lock to avoid ws.send() blocking others.
+                sendPendingSubscribes()
             }
         }
 
