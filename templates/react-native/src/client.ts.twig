@@ -162,10 +162,9 @@ class {{spec.title | caseUcfirst}}Exception extends Error {
 }
 
 class Client {
-    config = {
+    config: { [key: string]: string } = {
         endpoint: '{{ spec.endpoint }}',
         endpointRealtime: '',
-        session: '',
 {% for header in spec.global.headers %}
         {{ header.key | caseLower }}: '',
 {% endfor %}
