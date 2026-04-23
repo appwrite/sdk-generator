@@ -527,12 +527,14 @@ private:
                     s.SetMultipart(multipart);
                     auto resp = runSession(s, m);
 
-                    // Chunks are always POST — only retry if the request never reached
-                    // the server (status_code == 0) and only once, to avoid duplicating
-                    // a chunk the server may have already received and partially applied.
-                    bool canRetry = (resp.status_code == 0) && (attempt == 0);
+                    // Chunk uploads are idempotent: Content-Range defines the byte range and
+                    // x-appwrite-id lets the server deduplicate retried chunks. Full retry
+                    // semantics apply \u2014 maxRetries is respected just like regular GET/PUT calls.
+                    bool canRetry = (resp.status_code == 0 || resp.status_code == 429 ||
+                                    (resp.status_code >= 500 && resp.status_code <= 504))
+                                   && attempt < c->retryOptions.maxRetries;
 
-                    if (canRetry && attempt < c->retryOptions.maxRetries) {
+                    if (canRetry) {
                         attempt++;
                         std::this_thread::sleep_for(c->retryOptions.retryDelay);
                         continue;

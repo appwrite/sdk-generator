@@ -364,7 +364,7 @@ public:
 
     [[nodiscard]] static InputFile fromPath(std::string path) {
         std::ifstream file(path, std::ios::binary | std::ios::ate);
-        if (!file) throw std::runtime_error("Could not open file: " + path);
+        if (!file) throw AppwriteException("Could not open file: " + path);
         size_t size = file.tellg();
         std::string filename = std::filesystem::path(path).filename().string();
         return InputFile(std::move(path), std::move(filename), size);
@@ -376,7 +376,7 @@ public:
 
     [[nodiscard]] std::string readChunk(size_t offset, size_t size) const {
         std::ifstream file(path_, std::ios::binary);
-        if (!file) throw std::runtime_error("Could not open file: " + path_);
+        if (!file) throw AppwriteException("Could not open file: " + path_);
         
         file.seekg(offset);
         std::string buffer;
