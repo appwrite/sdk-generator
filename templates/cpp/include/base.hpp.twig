@@ -192,7 +192,7 @@ struct Task {
     ~Task() { if (handle) handle.destroy(); }
     Task(Task&& other) noexcept : handle(std::exchange(other.handle, nullptr)) {}
     T get() {
-        handle.resume(); // single resume — safe, coroutine runs to completion
+        if (handle && !handle.done()) handle.resume();
         if (!handle.promise().result) throw AppwriteException("Coroutine did not return a value");
         if (handle.promise().result->index() == 1) std::rethrow_exception(std::get<1>(*handle.promise().result));
         return std::move(std::get<0>(*handle.promise().result));
@@ -206,7 +206,11 @@ struct Task {
                 task_.handle.resume();
                 h.resume();
             }
-            T await_resume() { return task_.get(); }
+            T await_resume() {
+                auto& res = *task_.handle.promise().result;
+                if (res.index() == 1) std::rethrow_exception(std::get<1>(res));
+                return std::move(std::get<0>(res));
+            }
         };
         // Note: Task is move-only. After co_await, the original Task handle is null.
         return Awaiter{std::move(*this)};
@@ -229,7 +233,7 @@ struct Task<void> {
     ~Task() { if (handle) handle.destroy(); }
     Task(Task&& other) noexcept : handle(std::exchange(other.handle, nullptr)) {}
     void get() {
-        handle.resume(); // single resume
+        if (handle && !handle.done()) handle.resume();
         if (handle.promise().exception) std::rethrow_exception(handle.promise().exception);
     }
 
@@ -241,7 +245,9 @@ struct Task<void> {
                 task_.handle.resume();
                 h.resume();
             }
-            void await_resume() { task_.get(); }
+            void await_resume() { 
+                if (task_.handle.promise().exception) std::rethrow_exception(task_.handle.promise().exception);
+            }
         };
         // Note: Task is move-only. After co_await, the original Task handle is null.
         return Awaiter{std::move(*this)};
