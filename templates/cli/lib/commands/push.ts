@@ -124,31 +124,6 @@ const ANSI_RESET = "\u001B[0m";
 
 type TerminalImageModule = typeof import("terminal-image");
 
-type CompatibilityService = Record<string, unknown>;
-
-const callCompatMethod = async (
-  attempts: Array<{
-    service: CompatibilityService;
-    methodName: string;
-    payload: Record<string, unknown>;
-  }>,
-): Promise<void> => {
-  for (const { service, methodName, payload } of attempts) {
-    const method = service[methodName];
-
-    if (typeof method === "function") {
-      await method.call(service, payload);
-      return;
-    }
-  }
-
-  throw new Error(
-    `Unsupported project settings operation: ${attempts
-      .map(({ methodName }) => methodName)
-      .join(", ")}`,
-  );
-};
-
 let terminalImageModulePromise:
   | Promise<TerminalImageModule["default"]>
   | undefined;
@@ -1020,8 +995,6 @@ export class Push {
     const projectsService = await getProjectsService(this.consoleClient);
     const projectId = config.projectId;
     const projectService = await getProjectService();
-    const projectCompat = projectService as unknown as CompatibilityService;
-    const projectsCompat = projectsService as unknown as CompatibilityService;
     const projectName = config.projectName;
     const settings = config.settings ?? {};
 
@@ -1036,173 +1009,47 @@ export class Push {
     if (settings.services) {
       this.log("Applying service statuses ...");
       for (const [service, status] of Object.entries(settings.services)) {
-        await callCompatMethod([
-          {
-            service: projectCompat,
-            methodName: "updateService",
-            payload: {
-              serviceId: service as ServiceId,
-              enabled: status,
-            },
-          },
-          {
-            service: projectCompat,
-            methodName: "updateServiceStatus",
-            payload: {
-              serviceId: service as ServiceId,
-              enabled: status,
-            },
-          },
-        ]);
+        await projectService.updateService({
+          serviceId: service as ServiceId,
+          enabled: status,
+        });
       }
     }
 
     if (settings.protocols) {
       this.log("Applying protocol statuses ...");
       for (const [protocol, status] of Object.entries(settings.protocols)) {
-        await callCompatMethod([
-          {
-            service: projectCompat,
-            methodName: "updateProtocol",
-            payload: {
-              protocolId: protocol as ProtocolId,
-              enabled: status,
-            },
-          },
-          {
-            service: projectCompat,
-            methodName: "updateProtocolStatus",
-            payload: {
-              protocolId: protocol as ProtocolId,
-              enabled: status,
-            },
-          },
-        ]);
+        await projectService.updateProtocol({
+          protocolId: protocol as ProtocolId,
+          enabled: status,
+        });
       }
     }
 
     if (settings.auth) {
       if (settings.auth.security) {
         this.log("Applying auth security settings ...");
-        await callCompatMethod([
-          {
-            service: projectCompat,
-            methodName: "updateSessionDurationPolicy",
-            payload: {
-              duration: Number(settings.auth.security.duration),
-            },
-          },
-          {
-            service: projectsCompat,
-            methodName: "updateAuthDuration",
-            payload: {
-              projectId,
-              duration: Number(settings.auth.security.duration),
-            },
-          },
-        ]);
-        await callCompatMethod([
-          {
-            service: projectCompat,
-            methodName: "updateUserLimitPolicy",
-            payload: {
-              total: Number(settings.auth.security.limit),
-            },
-          },
-          {
-            service: projectsCompat,
-            methodName: "updateAuthLimit",
-            payload: {
-              projectId,
-              limit: Number(settings.auth.security.limit),
-            },
-          },
-        ]);
-        await callCompatMethod([
-          {
-            service: projectCompat,
-            methodName: "updateSessionLimitPolicy",
-            payload: {
-              total: Number(settings.auth.security.sessionsLimit),
-            },
-          },
-          {
-            service: projectsCompat,
-            methodName: "updateAuthSessionsLimit",
-            payload: {
-              projectId,
-              limit: Number(settings.auth.security.sessionsLimit),
-            },
-          },
-        ]);
-        await callCompatMethod([
-          {
-            service: projectCompat,
-            methodName: "updatePasswordDictionaryPolicy",
-            payload: {
-              enabled: settings.auth.security.passwordDictionary,
-            },
-          },
-          {
-            service: projectsCompat,
-            methodName: "updateAuthPasswordDictionary",
-            payload: {
-              projectId,
-              enabled: settings.auth.security.passwordDictionary,
-            },
-          },
-        ]);
-        await callCompatMethod([
-          {
-            service: projectCompat,
-            methodName: "updatePasswordHistoryPolicy",
-            payload: {
-              total: Number(settings.auth.security.passwordHistory),
-            },
-          },
-          {
-            service: projectsCompat,
-            methodName: "updateAuthPasswordHistory",
-            payload: {
-              projectId,
-              limit: Number(settings.auth.security.passwordHistory),
-            },
-          },
-        ]);
-        await callCompatMethod([
-          {
-            service: projectCompat,
-            methodName: "updatePasswordPersonalDataPolicy",
-            payload: {
-              enabled: settings.auth.security.personalDataCheck,
-            },
-          },
-          {
-            service: projectsCompat,
-            methodName: "updatePersonalDataCheck",
-            payload: {
-              projectId,
-              enabled: settings.auth.security.personalDataCheck,
-            },
-          },
-        ]);
-        await callCompatMethod([
-          {
-            service: projectCompat,
-            methodName: "updateSessionAlertPolicy",
-            payload: {
-              enabled: settings.auth.security.sessionAlerts,
-            },
-          },
-          {
-            service: projectsCompat,
-            methodName: "updateSessionAlerts",
-            payload: {
-              projectId,
-              alerts: settings.auth.security.sessionAlerts,
-            },
-          },
-        ]);
+        await projectService.updateSessionDurationPolicy({
+          duration: Number(settings.auth.security.duration),
+        });
+        await projectService.updateUserLimitPolicy({
+          total: Number(settings.auth.security.limit),
+        });
+        await projectService.updateSessionLimitPolicy({
+          total: Number(settings.auth.security.sessionsLimit),
+        });
+        await projectService.updatePasswordDictionaryPolicy({
+          enabled: settings.auth.security.passwordDictionary,
+        });
+        await projectService.updatePasswordHistoryPolicy({
+          total: Number(settings.auth.security.passwordHistory),
+        });
+        await projectService.updatePasswordPersonalDataPolicy({
+          enabled: settings.auth.security.personalDataCheck,
+        });
+        await projectService.updateSessionAlertPolicy({
+          enabled: settings.auth.security.sessionAlerts,
+        });
         await projectsService.updateMockNumbers({
           projectId,
           numbers: settings.auth.security.mockNumbers,
