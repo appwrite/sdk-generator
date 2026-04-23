@@ -300,7 +300,7 @@ export const questionsInitProject: Question[] = [
       whenOverride(answer) && answer.start !== "existing",
   },
   {
-    type: "list",
+    type: "search-list",
     name: "project",
     message: "Choose your project:",
     choices: async (answers: Answers) => {
@@ -614,7 +614,7 @@ export const questionsCreateBucket: Question[] = [
     default: "unique()",
   },
   {
-    type: "search-list",
+    type: "list",
     name: "fileSecurity",
     message: "Enable File-Security configuring permissions for individual file",
     choices: ["No", "Yes"],
@@ -638,7 +638,7 @@ export const questionsCreateTeam: Question[] = [
 
 export const questionsCreateCollection: Question[] = [
   {
-    type: "search-list",
+    type: "list",
     name: "method",
     message: "What database would you like to use for your collection",
     choices: ["New", "Existing"],
@@ -647,7 +647,7 @@ export const questionsCreateCollection: Question[] = [
     },
   },
   {
-    type: "list",
+    type: "search-list",
     name: "database",
     message: "Choose the collection database",
     choices: async () => {
@@ -719,7 +719,7 @@ export const questionsCreateTable: Question[] = [
     },
   },
   {
-    type: "list",
+    type: "search-list",
     name: "database",
     message: "Choose the table database",
     choices: async () => {
