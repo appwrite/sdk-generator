@@ -417,7 +417,7 @@ private:
     }
 
     static void init(cpr::Session& s, const Config& c, std::string_view m, std::string_view p, const auto& h, const auto& pms, bool no_redir, bool is_multipart = false) {
-        s.SetUrl(cpr::Url{c.endpoint + (p[0] == '/' ? "" : "/") + std::string(p)});
+        s.SetUrl(cpr::Url{c.endpoint + (p.starts_with('/') ? "" : "/") + std::string(p)});
         s.SetVerifySsl(!c.selfSigned);
         s.SetTimeout(c.timeout);
         if (no_redir) s.SetRedirect(cpr::Redirect{0, false, false, cpr::PostRedirectFlags::POST_ALL});

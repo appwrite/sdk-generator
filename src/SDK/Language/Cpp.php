@@ -469,6 +469,12 @@ class Cpp extends Language
         $required = $parameter['required'] ?? true;
 
         if (!$required && $default === null) {
+            // InputFile is never wrapped in std::optional — the type is always concrete.
+            // A non-required file param with no default has no valid sentinel value;
+            // emit no default and let the caller provide one explicitly.
+            if ($type === self::TYPE_FILE) {
+                return '';
+            }
             return ' = std::nullopt';
         }
 
