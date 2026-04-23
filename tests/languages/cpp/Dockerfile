@@ -7,9 +7,9 @@ RUN apk add --no-cache \
     git \
     openssl-dev
 
-# Pre-build and install cpr
+# cpr v1.10.5 (commit 3b15fa82) — same version pinned in CI workflow (sdk-build-validation.yml)
 RUN git clone https://github.com/libcpr/cpr.git \
-    && cd cpr && git checkout 3b15fa82ea74739b574d705fea44959b58142eb8 && cd .. \  # v1.10.5 — matches CI workflow
+    && cd cpr && git checkout 3b15fa82ea74739b574d705fea44959b58142eb8 && cd .. \
     && cmake -S cpr -B cpr/build \
         -DCPR_BUILD_TESTS=OFF \
         -DCPR_USE_SYSTEM_CURL=ON \
