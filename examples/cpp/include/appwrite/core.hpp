@@ -22,7 +22,8 @@ namespace appwrite {
 
 namespace internal {
 
-static std::string quote(std::string_view s) {
+// internal helpers — inline prevents per-TU copies in a header-only library
+inline std::string quote(std::string_view s) {
     std::string out = "\"";
     for (char c : s) {
         if      (c == '"')  out += "\\\"";
@@ -33,19 +34,19 @@ static std::string quote(std::string_view s) {
     return out + "\"";
 }
 
-static std::string int_str(int64_t v) { return std::to_string(v); }
+inline std::string int_str(int64_t v) { return std::to_string(v); }
 
-static std::string dbl_str(double v) {
+inline std::string dbl_str(double v) {
     char buf[32];
     auto [ptr, ec] = std::to_chars(buf, buf + sizeof(buf), v);
     return ec == std::errc{} ? std::string(buf, ptr) : "0";
 }
 
-static std::string point(double lat, double lon) {
+inline std::string point(double lat, double lon) {
     return "[" + dbl_str(lat) + "," + dbl_str(lon) + "]";
 }
 
-static std::string join(const std::vector<std::string>& parts) {
+inline std::string join(const std::vector<std::string>& parts) {
     std::string out;
     for (size_t i = 0; i < parts.size(); ++i) { 
         if (i) out += ','; 
@@ -54,14 +55,14 @@ static std::string join(const std::vector<std::string>& parts) {
     return out;
 }
 
-static std::vector<std::string> quote_all(const std::vector<std::string>& v) {
+inline std::vector<std::string> quote_all(const std::vector<std::string>& v) {
     std::vector<std::string> out;
     out.reserve(v.size());
     for (auto const& s : v) out.push_back(quote(s));
     return out;
 }
 
-static std::string build(std::string_view method, std::string_view attribute, const std::vector<std::string>& values, bool force_values = false) {
+inline std::string build(std::string_view method, std::string_view attribute, const std::vector<std::string>& values, bool force_values = false) {
     std::string s = "{\"method\":\"" + std::string(method) + "\"";
     if (!attribute.empty()) s += ",\"attribute\":" + quote(attribute);
     if (!values.empty() || force_values) {
