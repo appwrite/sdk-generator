@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Initial release of Appwrite C++ SDK
-- Full support for Appwrite API 1.9.1
+- Full support for Appwrite API 1.9.2
 - Header-only library for easy integration
 - Modern C++20 API with coroutine/async support via C++20 coroutines
 - Built-in `Result<T>` error handling (no exceptions required in calling code)

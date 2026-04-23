@@ -1431,7 +1431,7 @@ TEST(TeamTest, RoundTrip) {
     EXPECT_EQ(json1.dump(), json2.dump());
 }
 TEST(MembershipTest, RoundTrip) {
-    auto seed = nlohmann::json::parse(R"json({        "$id": "5e5ea5c16897e",        "$createdAt": "2020-10-15T06:38:00.000+00:00",        "$updatedAt": "2020-10-15T06:38:00.000+00:00",        "userId": "5e5ea5c16897e",        "userName": "John Doe",        "userEmail": "john@appwrite.io",        "teamId": "5e5ea5c16897e",        "teamName": "VIP",        "invited": "2020-10-15T06:38:00.000+00:00",        "joined": "2020-10-15T06:38:00.000+00:00",        "confirm": false,        "mfa": false,        "roles": ["owner"]    })json");
+    auto seed = nlohmann::json::parse(R"json({        "$id": "5e5ea5c16897e",        "$createdAt": "2020-10-15T06:38:00.000+00:00",        "$updatedAt": "2020-10-15T06:38:00.000+00:00",        "userId": "5e5ea5c16897e",        "userName": "John Doe",        "userEmail": "john@appwrite.io",        "userPhone": "+1 555 555 5555",        "teamId": "5e5ea5c16897e",        "teamName": "VIP",        "invited": "2020-10-15T06:38:00.000+00:00",        "joined": "2020-10-15T06:38:00.000+00:00",        "confirm": false,        "mfa": false,        "roles": ["owner"]    })json");
 
     // Deserialization must not throw (skip on type mismatch in example data)
     appwrite::models::Membership model;

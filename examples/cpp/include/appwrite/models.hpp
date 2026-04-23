@@ -3630,6 +3630,8 @@ struct Membership {
     std::string userName;
     /** @brief User email address. Hide this attribute by toggling membership privacy in the Console. */
     std::string userEmail;
+    /** @brief User phone number. Hide this attribute by toggling membership privacy in the Console. */
+    std::string userPhone;
     /** @brief Team ID. */
     std::string teamId;
     /** @brief Team name. */
@@ -3688,6 +3690,13 @@ struct Membership {
                 throw appwrite::DeserializationException("Required field 'userEmail' is null");
             } else {
                 obj.userEmail = j["userEmail"].get<std::string>();
+            }
+        }
+        if (j.contains("userPhone")) {
+            if (j["userPhone"].is_null()) {
+                throw appwrite::DeserializationException("Required field 'userPhone' is null");
+            } else {
+                obj.userPhone = j["userPhone"].get<std::string>();
             }
         }
         if (j.contains("teamId")) {
@@ -3762,6 +3771,9 @@ struct Membership {
         }
         {
             j["userEmail"] = this->userEmail;
+        }
+        {
+            j["userPhone"] = this->userPhone;
         }
         {
             j["teamId"] = this->teamId;

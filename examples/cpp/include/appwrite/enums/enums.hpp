@@ -691,6 +691,8 @@ enum class Scopes {
     PLATFORMS_READ,
     PLATFORMS_WRITE,
     POLICIES_WRITE,
+    TEMPLATES_READ,
+    TEMPLATES_WRITE,
     POLICIES_READ,
     ARCHIVES_READ,
     ARCHIVES_WRITE,
@@ -769,6 +771,8 @@ inline std::string toString(Scopes value) {
         case Scopes :: PLATFORMS_READ: return "platforms.read";
         case Scopes :: PLATFORMS_WRITE: return "platforms.write";
         case Scopes :: POLICIES_WRITE: return "policies.write";
+        case Scopes :: TEMPLATES_READ: return "templates.read";
+        case Scopes :: TEMPLATES_WRITE: return "templates.write";
         case Scopes :: POLICIES_READ: return "policies.read";
         case Scopes :: ARCHIVES_READ: return "archives.read";
         case Scopes :: ARCHIVES_WRITE: return "archives.write";
@@ -848,6 +852,8 @@ inline Scopes scopesFromString(const std::string& s) {
     if (s == "platforms.read") return Scopes::PLATFORMS_READ;
     if (s == "platforms.write") return Scopes::PLATFORMS_WRITE;
     if (s == "policies.write") return Scopes::POLICIES_WRITE;
+    if (s == "templates.read") return Scopes::TEMPLATES_READ;
+    if (s == "templates.write") return Scopes::TEMPLATES_WRITE;
     if (s == "policies.read") return Scopes::POLICIES_READ;
     if (s == "archives.read") return Scopes::ARCHIVES_READ;
     if (s == "archives.write") return Scopes::ARCHIVES_WRITE;

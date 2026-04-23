@@ -191,6 +191,8 @@ struct Task {
     explicit Task(std::coroutine_handle<promise_type> h) : handle(h) {}
     ~Task() { if (handle) handle.destroy(); }
     Task(Task&& other) noexcept : handle(std::exchange(other.handle, nullptr)) {}
+    // Not thread-safe: Task is move-only; call get() from a single thread.
+    // A single handle.resume() runs the coroutine to completion synchronously.
     T get() {
         if (handle && !handle.done()) handle.resume();
         if (!handle.promise().result) throw AppwriteException("Coroutine did not return a value");
@@ -202,6 +204,8 @@ struct Task {
         struct Awaiter {
             Task task_;
             bool await_ready() const noexcept { return task_.handle.done(); }
+            // Note: resume() blocks until the thread-pool future resolves.
+            // co_await has the same cost as .get() — true async requires Asio/libuv.
             void await_suspend(std::coroutine_handle<> h) noexcept {
                 task_.handle.resume();
                 h.resume();
@@ -232,6 +236,7 @@ struct Task<void> {
     explicit Task(std::coroutine_handle<promise_type> h) : handle(h) {}
     ~Task() { if (handle) handle.destroy(); }
     Task(Task&& other) noexcept : handle(std::exchange(other.handle, nullptr)) {}
+    // Not thread-safe: Task is move-only; call get() from a single thread.
     void get() {
         if (handle && !handle.done()) handle.resume();
         if (handle.promise().exception) std::rethrow_exception(handle.promise().exception);
@@ -241,6 +246,8 @@ struct Task<void> {
         struct Awaiter {
             Task task_;
             bool await_ready() const noexcept { return task_.handle.done(); }
+            // Note: resume() blocks until the thread-pool future resolves.
+            // co_await has the same cost as .get() — true async requires Asio/libuv.
             void await_suspend(std::coroutine_handle<> h) noexcept {
                 task_.handle.resume();
                 h.resume();
