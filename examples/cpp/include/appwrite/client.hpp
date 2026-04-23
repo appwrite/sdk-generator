@@ -520,9 +520,10 @@ private:
                     s.SetMultipart(multipart);
                     auto resp = runSession(s, m);
 
-                    bool isRetryable = (resp.status_code == 0 || resp.status_code == 429 || (resp.status_code >= 500 && resp.status_code <= 504));
-                    // POST/PATCH only retry on connection failure, exactly once.
-                    bool canRetry = isRetryable && (resp.status_code == 0 && attempt == 0);
+                    // Chunks are always POST — only retry if the request never reached
+                    // the server (status_code == 0) and only once, to avoid duplicating
+                    // a chunk the server may have already received and partially applied.
+                    bool canRetry = (resp.status_code == 0) && (attempt == 0);
 
                     if (canRetry && attempt < c->retryOptions.maxRetries) {
                         attempt++;

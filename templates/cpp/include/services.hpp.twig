@@ -149,6 +149,7 @@ public:
         std::vector<std::string> allChannels;
         std::string subId;
         std::shared_ptr<SocketBackend> sock;
+        bool isNewSocket = false;
         std::string endpoint = client_.getRealtimeEndpoint();
         std::string project = client_.getProject();
 
@@ -156,7 +157,7 @@ public:
         {
             std::lock_guard<std::mutex> lock(state_->mutex);
             subId = std::to_string(++state_->subIdCounter);
-            
+
             sub.id = subId;
             sub.channels = channels;
             sub.callback = std::move(callback);
@@ -164,35 +165,22 @@ public:
 
             state_->subscriptions[subId] = sub;
             allChannels = Subscription::getChannels(state_.get());
-            
+
             if (!state_->socket) {
                 state_->socket = client_.createSocket();
                 std::weak_ptr<State> weakState = state_;
                 state_->socket->onMessage([weakState](const std::string& msg) {
                     if (auto s = weakState.lock()) handleMessage(s.get(), msg);
                 });
-                sock = state_->socket;
-                // We'll connect below after releasing the lock
-            } else {
-                sock = state_->socket;
+                isNewSocket = true;
             }
+            sock = state_->socket;
         }
 
-        // Perform socket operations outside the lock to prevent deadlocks
-        if (sock) {
-            // Note: If this is a new socket, we connect it. 
-            // The SocketBackend::connect should be idempotent or handle multiple calls if necessary,
-            // but here we only call it if we just created it (indicated by subId being the first or similar logic, 
-            // but actually we can just check if it was newly assigned to sock).
-            // Better: just call connect if it's not connected.
-            
-            // For simplicity, we assume connect() is safe to call or we track 'connected' state.
-            // Let's just call it if we newly created it.
-            static std::unordered_set<SocketBackend*> connected; // This is not thread safe either!
-            // Real fix: the SocketBackend handles its own connection state.
-            sock->connect(endpoint, project);
-            sock->subscribe(allChannels);
-        }
+        // Perform socket operations outside the lock to prevent deadlocks.
+        // Only connect() on first use — reuse the existing socket for subsequent subscriptions.
+        if (isNewSocket && sock) sock->connect(endpoint, project);
+        if (sock) sock->subscribe(allChannels);
 
         return sub;
     }
