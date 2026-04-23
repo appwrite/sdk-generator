@@ -66,10 +66,13 @@ jobs:
           - sdk: rust
             platform: server
 
+          - sdk: cpp
+            platform: server
+
           # Console SDKs
           - sdk: cli
             platform: console
-          
+
           - sdk: web
             platform: console
 
@@ -161,6 +164,15 @@ jobs:
         if: matrix.sdk == 'rust'
         uses: dtolnay/rust-toolchain@1.83.0
 
+      - name: Setup C++
+        if: matrix.sdk == 'cpp'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake libcurl4-openssl-dev nlohmann-json3-dev libgtest-dev
+          git clone --depth 1 --branch 1.10.5 https://github.com/libcpr/cpr.git /tmp/cpr
+          cmake -S /tmp/cpr -B /tmp/cpr/build -DCPR_BUILD_TESTS=OFF -DCPR_USE_SYSTEM_CURL=ON -DCMAKE_INSTALL_PREFIX=/usr/local
+          sudo cmake --build /tmp/cpr/build --target install -j$(nproc)
+
       - name: Build SDK
         working-directory: examples/${{ matrix.sdk }}
         run: |
@@ -236,6 +248,11 @@ jobs:
             rust)
               cargo build --release
               cargo test --lib
+              ;;
+            cpp)
+              cmake -S . -B build -DAPPWRITE_BUILD_TESTS=ON
+              cmake --build build
+              ctest --test-dir build --output-on-failure
               ;;
             *)
               echo "Unknown SDK: ${{ matrix.sdk }}"
