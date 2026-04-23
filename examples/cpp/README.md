@@ -8,7 +8,7 @@ A production-ready, modern C++20 SDK for Appwrite, designed for game engines, Io
 
 - **Header-Only**: Drop in via CMake FetchContent — no precompilation required.
 - **Thread-Safe by Design**: Mutex-guarded configuration, per-request HTTP sessions — no state leakage.
-- **Async-style API**: C++20 coroutine syntax (`co_await`) with thread-pool dispatch.
+- **Concurrent API**: Thread-pool dispatch with C++20 coroutine syntax (`co_await`). Each call runs on a background thread; `.get()` blocks until complete. True non-blocking I/O requires an async runtime (Asio/libuv), which is out of scope.
 - **Result<T> Error Model**: Errors are surfaced as values. Chainable and composable.
 - **Resumable Uploads**: Automatic chunked upload with progress callbacks.
 - **Realtime Support**: Pluggable `SocketBackend` for WebSocket event subscriptions.
