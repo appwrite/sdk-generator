@@ -66,6 +66,9 @@ public:
         for (auto& w : workers_) w.join();
     }
 
+    // Blocks the caller if more than 1024 tasks are queued.
+    // This provides natural backpressure for bulk operations — intentional
+    // back-pressure is safer than an unbounded queue that can OOM.
     void enqueue(std::function<void()> t) {
         {
             std::unique_lock lock(mutex_);
@@ -398,6 +401,10 @@ private:
             
             bool isRetryable = (r.status_code == 0 || r.status_code == 429 || (r.status_code >= 500 && r.status_code <= 504));
             bool isIdempotent = (m == "GET" || m == "PUT" || m == "DELETE" || m == "HEAD" || m == "OPTIONS");
+            // POST/PATCH: only one retry allowed (attempt == 0), regardless of maxRetries.
+            // This ensures a pure network failure (request never left the socket) gets one
+            // retry, but we never risk duplicate side effects from a server that already
+            // received and processed the request.
             bool canRetry = isRetryable && (isIdempotent || (r.status_code == 0 && attempt == 0));
 
             if (canRetry && attempt < c.retryOptions.maxRetries) {

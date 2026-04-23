@@ -201,10 +201,14 @@ struct Task {
     // Not thread-safe: Task is move-only; call get() from a single thread.
     // A single handle.resume() runs the coroutine to completion synchronously.
     T get() {
-        if (handle && !handle.done()) handle.resume();
+        if (!handle) throw AppwriteException("Task already consumed");
+        if (!handle.done()) handle.resume();
         if (!handle.promise().result) throw AppwriteException("Coroutine did not return a value");
         if (handle.promise().result->index() == 1) std::rethrow_exception(std::get<1>(*handle.promise().result));
-        return std::move(std::get<0>(*handle.promise().result));
+        T value = std::move(std::get<0>(*handle.promise().result));
+        handle.destroy();
+        handle = nullptr;
+        return value;
     }
 
     auto operator co_await() noexcept {
@@ -245,8 +249,12 @@ struct Task<void> {
     Task(Task&& other) noexcept : handle(std::exchange(other.handle, nullptr)) {}
     // Not thread-safe: Task is move-only; call get() from a single thread.
     void get() {
-        if (handle && !handle.done()) handle.resume();
-        if (handle.promise().exception) std::rethrow_exception(handle.promise().exception);
+        if (!handle) throw AppwriteException("Task already consumed");
+        if (!handle.done()) handle.resume();
+        auto ex = handle.promise().exception;
+        handle.destroy();
+        handle = nullptr;
+        if (ex) std::rethrow_exception(ex);
     }
 
     auto operator co_await() noexcept {
