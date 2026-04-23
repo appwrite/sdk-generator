@@ -1,0 +1,214 @@
+{% autoescape false %}
+#pragma once
+
+#include <string>
+#include <vector>
+#include <unordered_map>
+#include <span>
+#include <format>
+#include <algorithm>
+#include <mutex>
+#include <nlohmann/json.hpp>
+#include "client.hpp"
+#include "models.hpp"
+#include "enums/enums.hpp"
+
+namespace appwrite {
+
+/**
+ * @brief Base class for all Appwrite services.
+ */
+class Service {
+public:
+    explicit Service(Client& client) : client_(client) {}
+protected:
+    Client& client_;
+};
+
+namespace services {
+
+{% for service in spec.services %}
+/**
+ * @brief {{ service.description }}
+ */
+class {{ service.name | casePascal }} : public Service {
+public:
+    explicit {{ service.name | casePascal }}(Client& client) : Service(client) {}
+
+{% for method in service.methods %}
+{{ method | cppdocComment(spec, 4) }}
+    [[nodiscard]] {{ method | returnType(spec, 'appwrite') }} {{ method.name | caseCamel | overrideIdentifier }}(
+{%- for parameter in method.parameters.all %}
+        {{ parameter | inputType(spec) }} {{ parameter.name | caseCamel | overrideIdentifier }}{{ parameter | paramDefault | raw }}{% if not loop.last %}, {% endif %}
+{%- endfor %}
+{%- if method.type == 'upload' %}
+        , Client::ProgressCallback onProgress = nullptr
+{%- endif %}
+    ) {
+        {{ method | parameterBuildingBlock(spec) | indent(8) }}
+        {{ method | parameterDispatchBlock(spec) | indent(8) }}
+    }
+
+{{ method | cppdocComment(spec, 4) }}
+    [[nodiscard]] {{ method | returnType(spec, 'appwrite', true) }} {{ method.name | caseCamel | overrideIdentifier }}Async(
+{%- for parameter in method.parameters.all %}
+        {{ parameter | inputType(spec) }} {{ parameter.name | caseCamel | overrideIdentifier }}{{ parameter | paramDefault | raw }}{% if not loop.last %}, {% endif %}
+{%- endfor %}
+{%- if method.type == 'upload' %}
+        , Client::ProgressCallback onProgress = nullptr
+{%- endif %}
+    ) {
+        {{ method | parameterBuildingBlock(spec) | indent(8) }}
+        {{ method | parameterDispatchAsyncBlock(spec) | indent(8) }}
+    }
+{% endfor %}
+};
+
+{% endfor %}
+
+} // namespace services
+
+/**
+ * @brief Response payload received from the Appwrite Realtime service.
+ */
+struct RealtimeResponse {
+    std::string event;
+    std::string timestamp;
+    std::vector<std::string> channels;
+    nlohmann::json data;
+};
+
+namespace services {
+
+/**
+ * @brief Realtime Service for subscribing to Appwrite events.
+ *
+ * @note WebSocket support requires a SocketBackend implementation.
+ *       Enable by defining APPWRITE_ENABLE_REALTIME and providing
+ *       a SocketBackend implementation before including this header.
+ */
+#ifdef APPWRITE_ENABLE_REALTIME
+
+class Realtime : public Service {
+public:
+    using MessageCallback = std::function<void(const RealtimeResponse&)>;
+
+    struct Subscription {
+        std::vector<std::string> channels;
+        MessageCallback callback;
+        std::string id;
+        void unsubscribe() { if (onUnsubscribe) onUnsubscribe(id); }
+    private:
+        friend class Realtime;
+        std::function<void(const std::string&)> onUnsubscribe;
+    };
+
+    explicit Realtime(Client& client) : Service(client) {}
+
+    Subscription subscribe(std::vector<std::string> channels, MessageCallback callback) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        static uint64_t subIdCounter = 0;
+        std::string subId = std::to_string(++subIdCounter);
+
+        Subscription sub;
+        sub.id = subId;
+        sub.channels = channels;
+        sub.callback = std::move(callback);
+        sub.onUnsubscribe = [this](const std::string& id) { this->unsubscribe(id); };
+
+        subscriptions_[subId] = sub;
+        refresh();
+        return sub;
+    }
+
+private:
+    std::mutex mutex_;
+    std::unordered_map<std::string, Subscription> subscriptions_;
+    std::shared_ptr<SocketBackend> socket_;
+
+    void unsubscribe(const std::string& subId) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        subscriptions_.erase(subId);
+        refresh();
+    }
+
+    void refresh() {
+        if (subscriptions_.empty()) {
+            if (socket_) { socket_->close(); socket_.reset(); }
+            return;
+        }
+
+        std::vector<std::string> allChannels;
+        for (const auto& [id, sub] : subscriptions_) {
+            for (const auto& chan : sub.channels) {
+                if (std::find(allChannels.begin(), allChannels.end(), chan) == allChannels.end()) {
+                    allChannels.push_back(chan);
+                }
+            }
+        }
+
+        if (!socket_) {
+            socket_ = client_.createSocket();
+            socket_->onMessage([this](const std::string& msg) { this->handleMessage(msg); });
+            socket_->connect(client_.getRealtimeEndpoint(), client_.getProject());
+        }
+        socket_->subscribe(allChannels);
+    }
+
+    void handleMessage(const std::string& msg) {
+        try {
+            auto j = nlohmann::json::parse(msg);
+            RealtimeResponse resp;
+            resp.event = j.value("event", "");
+            resp.timestamp = j.value("timestamp", "");
+            resp.data = j.value("data", nlohmann::json::object());
+            if (j.contains("channels")) {
+                for (auto& c : j["channels"]) resp.channels.push_back(c.get<std::string>());
+            }
+
+            std::lock_guard<std::mutex> lock(mutex_);
+            for (const auto& [id, sub] : subscriptions_) {
+                for (const auto& subChan : sub.channels) {
+                    if (std::find(resp.channels.begin(), resp.channels.end(), subChan) != resp.channels.end()) {
+                        sub.callback(resp);
+                        break;
+                    }
+                }
+            }
+        } catch (...) {}
+    }
+};
+
+#else
+
+class Realtime : public Service {
+public:
+    using MessageCallback = std::function<void(const RealtimeResponse&)>;
+
+    struct Subscription {
+        std::string id;
+        std::vector<std::string> channels;
+        void unsubscribe() {}
+    };
+
+    explicit Realtime(Client& client) : Service(client) {}
+
+    template <typename T = void>
+    Subscription subscribe(
+        std::vector<std::string> /*channels*/,
+        MessageCallback /*callback*/
+    ) {
+        static_assert(
+            !std::is_same_v<T, void>,
+            "Realtime requires APPWRITE_ENABLE_REALTIME. "
+            "Define it and provide a SocketBackend before including services.hpp."
+        );
+        return {};
+    }
+};
+
+#endif // APPWRITE_ENABLE_REALTIME
+
+} // namespace services
+} // namespace appwrite
+{% endautoescape %}

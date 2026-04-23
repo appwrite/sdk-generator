@@ -1,0 +1,51 @@
+// Enums umbrella header for the Appwrite C++ SDK
+// Auto-generated — do not edit manually
+#pragma once
+
+#include <string>
+#include <stdexcept>
+#include <nlohmann/json.hpp>
+
+namespace appwrite {
+namespace enums {
+
+{% for enum in spec.allEnums %}
+{% if enum.description %}/// {{ enum.description }}
+{% endif %}
+enum class {{ enum.name | casePascal }} {
+{% for value in enum.enum %}
+{% set key = enum.keys is not empty and enum.keys[loop.index0] is defined and enum.keys[loop.index0] is not empty ? enum.keys[loop.index0] : value %}
+    {{ key | caseUpperSnakeCase }}{% if not loop.last %},{% endif %}
+
+{% endfor %}
+};
+
+inline std::string toString({{ enum.name | casePascal }} value) {
+    switch (value) {
+{% for value in enum.enum %}
+{% set key = enum.keys is not empty and enum.keys[loop.index0] is defined and enum.keys[loop.index0] is not empty ? enum.keys[loop.index0] : value %}
+        case {{ enum.name | casePascal }} :: {{ key | caseUpperSnakeCase }}: return "{{ value }}";
+{% endfor %}
+        default: throw std::invalid_argument("Unknown {{ enum.name | casePascal }} enum value");
+    }
+}
+
+inline {{ enum.name | casePascal }} {{ enum.name | caseCamel }}FromString(const std::string& s) {
+{% for value in enum.enum %}
+{% set key = enum.keys is not empty and enum.keys[loop.index0] is defined and enum.keys[loop.index0] is not empty ? enum.keys[loop.index0] : value %}
+    if (s == "{{ value }}") return {{ enum.name | casePascal }}::{{ key | caseUpperSnakeCase }};
+{% endfor %}
+    throw std::invalid_argument("Unknown {{ enum.name | casePascal }} value: " + s);
+}
+
+inline void from_json(const nlohmann::json& j, {{ enum.name | casePascal }}& v) {
+    v = {{ enum.name | caseCamel }}FromString(j.get<std::string>());
+}
+
+inline void to_json(nlohmann::json& j, const {{ enum.name | casePascal }}& v) {
+    j = toString(v);
+}
+
+{% endfor %}
+} // namespace enums
+} // namespace appwrite
