@@ -1009,7 +1009,7 @@ export class Push {
     if (settings.services) {
       this.log("Applying service statuses ...");
       for (const [service, status] of Object.entries(settings.services)) {
-        await projectService.updateServiceStatus({
+        await projectService.updateService({
           serviceId: service as ServiceId,
           enabled: status,
         });
@@ -1019,7 +1019,7 @@ export class Push {
     if (settings.protocols) {
       this.log("Applying protocol statuses ...");
       for (const [protocol, status] of Object.entries(settings.protocols)) {
-        await projectService.updateProtocolStatus({
+        await projectService.updateProtocol({
           protocolId: protocol as ProtocolId,
           enabled: status,
         });
@@ -1029,33 +1029,26 @@ export class Push {
     if (settings.auth) {
       if (settings.auth.security) {
         this.log("Applying auth security settings ...");
-        await projectsService.updateAuthDuration({
-          projectId,
+        await projectService.updateSessionDurationPolicy({
           duration: Number(settings.auth.security.duration),
         });
-        await projectsService.updateAuthLimit({
-          projectId,
-          limit: Number(settings.auth.security.limit),
+        await projectService.updateUserLimitPolicy({
+          total: Number(settings.auth.security.limit),
         });
-        await projectsService.updateAuthSessionsLimit({
-          projectId,
-          limit: Number(settings.auth.security.sessionsLimit),
+        await projectService.updateSessionLimitPolicy({
+          total: Number(settings.auth.security.sessionsLimit),
         });
-        await projectsService.updateAuthPasswordDictionary({
-          projectId,
+        await projectService.updatePasswordDictionaryPolicy({
           enabled: settings.auth.security.passwordDictionary,
         });
-        await projectsService.updateAuthPasswordHistory({
-          projectId,
-          limit: Number(settings.auth.security.passwordHistory),
+        await projectService.updatePasswordHistoryPolicy({
+          total: Number(settings.auth.security.passwordHistory),
         });
-        await projectsService.updatePersonalDataCheck({
-          projectId,
+        await projectService.updatePasswordPersonalDataPolicy({
           enabled: settings.auth.security.personalDataCheck,
         });
-        await projectsService.updateSessionAlerts({
-          projectId,
-          alerts: settings.auth.security.sessionAlerts,
+        await projectService.updateSessionAlertPolicy({
+          enabled: settings.auth.security.sessionAlerts,
         });
         await projectsService.updateMockNumbers({
           projectId,
