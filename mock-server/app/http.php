@@ -494,6 +494,24 @@ App::get('/v1/mock/tests/general/empty')
         $response->noContent();
     });
 
+App::get('/v1/mock/tests/general/list-rows')
+    ->desc('List Rows')
+    ->groups(['mock'])
+    ->label('scope', 'public')
+    ->label('sdk.auth', [APP_AUTH_TYPE_SESSION, APP_AUTH_TYPE_KEY, APP_AUTH_TYPE_JWT])
+    ->label('sdk.namespace', 'general')
+    ->label('sdk.method', 'listRows')
+    ->label('sdk.description', 'Mock a queryable list request.')
+    ->label('sdk.response.code', Response::STATUS_CODE_OK)
+    ->label('sdk.response.type', Response::CONTENT_TYPE_JSON)
+    ->label('sdk.response.model', Response::MODEL_MOCK)
+    ->label('sdk.mock', true)
+    ->param('queries', [], new ArrayList(new Text(4096), APP_LIMIT_ARRAY_PARAMS_SIZE), 'Array of query strings generated using the Query class provided by the SDK.')
+    ->inject('response')
+    ->action(function (array $queries, UtopiaSwooleResponse $response) {
+        $response->json(['result' => \json_encode($queries)]);
+    });
+
 App::post('/v1/mock/tests/general/nullable')
     ->desc('Nullable Test')
     ->groups(['mock'])

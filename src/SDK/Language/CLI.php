@@ -2,6 +2,7 @@
 
 namespace Appwrite\SDK\Language;
 
+use Twig\TwigFilter;
 use Twig\TwigFunction;
 
 class CLI extends Node
@@ -191,6 +192,92 @@ class CLI extends Node
             return 'x' . ucfirst($name);
         }
         return $name;
+    }
+
+    private function hasArrayQueriesParameter(array $method): bool
+    {
+        foreach ($method['parameters']['all'] ?? [] as $parameter) {
+            if (($parameter['name'] ?? '') === 'queries' && ($parameter['type'] ?? '') === self::TYPE_ARRAY) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function hasOnlyLimitOffsetQueries(array $method): bool
+    {
+        foreach ($method['parameters']['all'] ?? [] as $parameter) {
+            if (($parameter['name'] ?? '') !== 'queries' || ($parameter['type'] ?? '') !== self::TYPE_ARRAY) {
+                continue;
+            }
+
+            if (str_contains(strtolower($parameter['description'] ?? ''), 'only supported methods are limit and offset')) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function hasCliQueryParam(array $service): bool
+    {
+        foreach ($service['methods'] ?? [] as $method) {
+            if ($this->hasArrayQueriesParameter($method)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function getCliQueryConfig(array $method): array
+    {
+        $hasQueries = $this->hasArrayQueriesParameter($method);
+        $methodName = $method['name'] ?? '';
+        $hasOnlyLimitOffsetQueries = $hasQueries && $this->hasOnlyLimitOffsetQueries($method);
+        $hasSelectQueries = $hasQueries && in_array($methodName, ['listDocuments', 'getDocument', 'listRows', 'getRow'], true);
+        $hasSelectionOnlyQueries = $hasQueries && in_array($methodName, ['getDocument', 'getRow'], true);
+        $hasFilteringQueries = $hasQueries && !$hasOnlyLimitOffsetQueries && !$hasSelectionOnlyQueries;
+        $hasPaginationQueries = $hasQueries && !$hasSelectionOnlyQueries;
+
+        $builderParams = [];
+        if ($hasQueries) {
+            $builderParams[] = 'queries';
+
+            if ($hasFilteringQueries) {
+                array_push($builderParams, 'where', 'sortAsc', 'sortDesc', 'cursorAfter', 'cursorBefore');
+            }
+
+            if ($hasPaginationQueries) {
+                array_push($builderParams, 'limit', 'offset');
+            }
+
+            if ($hasSelectQueries) {
+                $builderParams[] = 'select';
+            }
+        }
+
+        if ($hasOnlyLimitOffsetQueries) {
+            $rawDescriptionPrefix = 'Raw Appwrite JSON query strings (legacy). Use this for advanced queries or automation; for common pagination prefer --limit and --offset. When mixed, raw --queries are sent before generated flag queries.';
+        } elseif ($hasSelectionOnlyQueries) {
+            $rawDescriptionPrefix = 'Raw Appwrite JSON query strings (legacy). Use this for advanced queries or automation; for selecting returned attributes prefer --select. When mixed, raw --queries are sent before generated flag queries.';
+        } elseif ($hasSelectQueries) {
+            $rawDescriptionPrefix = 'Raw Appwrite JSON query strings (legacy). Use this for advanced queries or automation; for common filtering, sorting, pagination, and selection prefer --where, --sort-asc, --sort-desc, --limit, --offset, and --select. When mixed, raw --queries are sent before generated flag queries.';
+        } else {
+            $rawDescriptionPrefix = 'Raw Appwrite JSON query strings (legacy). Use this for advanced queries or automation; for common filtering, sorting, and pagination prefer --where, --sort-asc, --sort-desc, --limit, and --offset. When mixed, raw --queries are sent before generated flag queries.';
+        }
+
+        return [
+            'hasQueries' => $hasQueries,
+            'hasFiltering' => $hasFilteringQueries,
+            'hasPagination' => $hasPaginationQueries,
+            'hasCursors' => $hasFilteringQueries,
+            'hasSelect' => $hasSelectQueries,
+            'builderParams' => $builderParams,
+            'extraParams' => array_values(array_filter($builderParams, fn (string $param): bool => $param !== 'queries')),
+            'rawDescriptionPrefix' => $rawDescriptionPrefix,
+        ];
     }
 
     /**
@@ -531,6 +618,11 @@ class CLI extends Node
                 'destination'   => 'lib/commands/utils/pools.ts',
                 'template'      => 'cli/lib/commands/utils/pools.ts',
             ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'lib/commands/utils/query.ts',
+                'template'      => 'cli/lib/commands/utils/query.ts',
+            ],
 
             // Emulation (lib/emulation/)
             [
@@ -703,6 +795,18 @@ class CLI extends Node
 
     /**
      * Language specific filters.
+     * @return array
+     */
+    public function getFilters(): array
+    {
+        return array_merge(parent::getFilters(), [
+            new TwigFilter('hasCliQueryParam', fn (array $service): bool => $this->hasCliQueryParam($service)),
+            new TwigFilter('cliQueryConfig', fn (array $method): array => $this->getCliQueryConfig($method)),
+        ]);
+    }
+
+    /**
+     * Language specific functions.
      * @return array
      */
     public function getFunctions(): array

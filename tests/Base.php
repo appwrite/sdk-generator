@@ -230,6 +230,23 @@ abstract class Base extends TestCase
         'CLI_RUNTIME_RENDERING:passed',
     ];
 
+    protected const CLI_QUERY_HELPER_RESPONSES = [
+        '[' .
+        '"{\"method\":\"orderDesc\",\"attribute\":\"rawName\"}",' .
+        '"{\"method\":\"equal\",\"attribute\":\"published\",\"values\":[true]}",' .
+        '"{\"method\":\"greaterThanEqual\",\"attribute\":\"score\",\"values\":[10]}",' .
+        '"{\"method\":\"equal\",\"attribute\":\"status\",\"values\":[\"draft\",\"published\"]}",' .
+        '"{\"method\":\"orderAsc\",\"attribute\":\"title\"}",' .
+        '"{\"method\":\"orderDesc\",\"attribute\":\"$createdAt\"}",' .
+        '"{\"method\":\"limit\",\"values\":[25]}",' .
+        '"{\"method\":\"offset\",\"values\":[50]}",' .
+        '"{\"method\":\"cursorAfter\",\"values\":[\"row-before\"]}",' .
+        '"{\"method\":\"cursorBefore\",\"values\":[\"row-after\"]}",' .
+        '"{\"method\":\"select\",\"values\":[\"$id\",\"title\"]}"' .
+        ']',
+        'CLI_QUERY_HELPERS:passed',
+    ];
+
     protected const CHANNEL_HELPER_RESPONSES = [
         'databases.db1.collections.col1.documents',
         'databases.db1.collections.col1.documents.doc1',

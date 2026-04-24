@@ -649,6 +649,20 @@ export const drawJSON = (data: unknown): void => {
   console.log(JSON.stringify(data, null, 2));
 };
 
+const isQueryError = (message: string): boolean =>
+  /Invalid query(?: method)?/i.test(message) ||
+  /query[^.:\n]*syntax error|syntax error[^.:\n]*query/i.test(message);
+
+const printQueryErrorHint = (err: Error): void => {
+  if (!isQueryError(err.message)) {
+    return;
+  }
+
+  hint(
+    `For common list filters, use flags like --limit 25, --sort-desc '$createdAt', or --where 'status=active'. Raw --queries values must be Appwrite JSON query strings, for example: ${EXECUTABLE_NAME} tables-db list-rows --queries '{"method":"limit","values":[25]}'`,
+  );
+};
+
 export const parseError = (err: Error): void => {
   if (cliConfig.report) {
     void (async () => {
@@ -695,6 +709,7 @@ export const parseError = (err: Error): void => {
       log(
         `To report this error you can:\n - Create a support ticket in our Discord server https://appwrite.io/discord \n - Create an issue in our Github\n   ${githubIssueUrl.href}\n`,
       );
+      printQueryErrorHint(err);
 
       error("\n Stack Trace: \n");
       console.error(err);
@@ -703,9 +718,11 @@ export const parseError = (err: Error): void => {
   } else {
     if (cliConfig.verbose) {
       console.error(err);
+      printQueryErrorHint(err);
     } else {
       log("For detailed error pass the --verbose or --report flag");
       error(err.message);
+      printQueryErrorHint(err);
     }
     process.exit(1);
   }
