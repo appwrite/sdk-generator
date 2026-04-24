@@ -1,0 +1,46 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [{{ sdk.version }}] - TBD
+
+### Added
+- Initial release of {{ spec.title }} C++ SDK
+- Full support for {{ spec.title }} API {{ spec.version }}
+- Header-only library for easy integration
+- Modern C++20 API with coroutine/async support via C++20 coroutines
+- Built-in `Result<T>` error handling (no exceptions required in calling code)
+- File upload support with automatic chunking for large files
+- Query builder (`Query::equal`, `Query::between`, geo queries, etc.)
+- Permission and role management utilities
+- ID generation utilities
+- Comprehensive model structs with JSON serialization/deserialization
+- Enum types for all API parameters
+- Realtime event subscription support
+- Self-signed certificate support
+- Custom header support
+- CMake FetchContent integration for zero-install setup
+
+### Services
+{% for service in spec.services %}
+#### {{ service.name | casePascal }}
+{{ service.description }}
+{% for method in service.methods %}
+- `{{ method.name | caseCamel }}()` - {{ method.description }}
+{% endfor %}
+
+{% endfor %}
+
+### Models
+{% for definition in spec.definitions %}
+- `{{ definition.name | casePascal }}` - {{ definition.description }}
+{% endfor %}
+
+### Dependencies
+- [cpr](https://github.com/libcpr/cpr) 1.10.5+ for HTTP client
+- [nlohmann/json](https://github.com/nlohmann/json) 3.11.3+ for JSON serialization
+
+[{{ sdk.version }}]: https://github.com/{{ sdk.gitUserName }}/sdk-for-cpp/releases/tag/{{ sdk.version }}
