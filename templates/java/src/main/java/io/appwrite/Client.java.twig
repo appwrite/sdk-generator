@@ -1,0 +1,332 @@
+package {{ sdk.namespace | caseDot }};
+
+import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.title | caseUcfirst }}Exception;
+import {{ sdk.namespace | caseDot }}.models.InputFile;
+import {{ sdk.namespace | caseDot }}.models.UploadProgress;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+import okhttp3.*;
+import okhttp3.logging.HttpLoggingInterceptor;
+
+import javax.net.ssl.*;
+import java.io.*;
+import java.lang.reflect.Type;
+import java.security.SecureRandom;
+import java.security.cert.X509Certificate;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
+
+public class Client {
+
+    private static final int CHUNK_SIZE = 5 * 1024 * 1024;
+    private static final Gson gson = new Gson();
+
+    private String endPoint;
+    private boolean selfSigned;
+    private OkHttpClient http;
+    private OkHttpClient httpForRedirect;
+
+    private final Map<String, String> headers = new LinkedHashMap<>();
+    private final Map<String, String> config = new LinkedHashMap<>();
+
+    public Client() {
+        this("{{ spec.endpoint }}", false);
+    }
+
+    public Client(String endPoint) {
+        this(endPoint, false);
+    }
+
+    public Client(String endPoint, boolean selfSigned) {
+        this.endPoint = endPoint;
+        headers.put("content-type", "application/json");
+        headers.put("user-agent", "{{ spec.title | caseUcfirst }}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} " + System.getProperty("http.agent", ""));
+        headers.put("x-sdk-name", "{{ sdk.name }}");
+        headers.put("x-sdk-platform", "{{ sdk.platform }}");
+        headers.put("x-sdk-language", "{{ language.name | caseLower }}");
+        headers.put("x-sdk-version", "{{ sdk.version }}");
+        {%~ for key, header in spec.global.defaultHeaders %}
+        headers.put("{{ key | caseLower }}", "{{ header }}");
+        {%~ endfor %}
+        setSelfSigned(selfSigned);
+    }
+
+{% for header in spec.global.headers %}
+    /**
+     * Set {{ header.key | caseUcfirst }}
+     *{% if header.description %}
+     * {{ header.description }}
+     *{% endif %}
+     * @param value the {{ header.key | caseLower }}
+     * @return this
+     */
+    public Client set{{ header.key | caseUcfirst }}(String value) {
+        config.put("{{ header.key | caseCamel }}", value);
+        addHeader("{{ header.name | caseLower }}", value);
+        return this;
+    }
+
+{% endfor %}
+    public Client setSelfSigned(boolean status) {
+        this.selfSigned = status;
+        OkHttpClient.Builder builder = new OkHttpClient.Builder();
+
+        if (!selfSigned) {
+            http = builder.build();
+            httpForRedirect = builder.followRedirects(false).build();
+            return this;
+        }
+
+        try {
+            TrustManager[] trustAllCerts = new TrustManager[]{
+                new X509TrustManager() {
+                    public void checkClientTrusted(X509Certificate[] chain, String authType) {}
+                    public void checkServerTrusted(X509Certificate[] chain, String authType) {}
+                    public X509Certificate[] getAcceptedIssuers() { return new X509Certificate[0]; }
+                }
+            };
+            SSLContext sslContext = SSLContext.getInstance("SSL");
+            sslContext.init(null, trustAllCerts, new SecureRandom());
+            SSLSocketFactory sslFactory = sslContext.getSocketFactory();
+            builder.sslSocketFactory(sslFactory, (X509TrustManager) trustAllCerts[0]);
+            builder.hostnameVerifier((hostname, session) -> true);
+            http = builder.build();
+            httpForRedirect = builder.followRedirects(false).build();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        return this;
+    }
+
+    public Client setEndpoint(String endPoint) {
+        if (!endPoint.startsWith("http://") && !endPoint.startsWith("https://")) {
+            throw new IllegalArgumentException("Invalid endpoint URL: " + endPoint);
+        }
+        this.endPoint = endPoint;
+        return this;
+    }
+
+    public Client addHeader(String key, String value) {
+        headers.put(key, value);
+        return this;
+    }
+
+    public Map<String, String> getHeaders() { return Collections.unmodifiableMap(headers); }
+    public Map<String, String> getConfig() { return Collections.unmodifiableMap(config); }
+    public String getEndpoint() { return endPoint; }
+
+    private Request buildRequest(String method, String path, Map<String, String> extraHeaders, Map<String, Object> params) {
+        Map<String, Object> filteredParams = new LinkedHashMap<>();
+        if (params != null) {
+            for (Map.Entry<String, Object> e : params.entrySet()) {
+                if (e.getValue() != null) filteredParams.put(e.getKey(), e.getValue());
+            }
+        }
+
+        Headers.Builder hb = new Headers.Builder();
+        for (Map.Entry<String, String> e : headers.entrySet()) hb.add(e.getKey(), e.getValue());
+        if (extraHeaders != null) for (Map.Entry<String, String> e : extraHeaders.entrySet()) hb.add(e.getKey(), e.getValue());
+        Headers requestHeaders = hb.build();
+
+        HttpUrl.Builder urlBuilder = HttpUrl.parse(endPoint + path).newBuilder();
+
+        if ("GET".equalsIgnoreCase(method)) {
+            for (Map.Entry<String, Object> e : filteredParams.entrySet()) {
+                if (e.getValue() instanceof List) {
+                    for (Object item : (List<?>) e.getValue()) {
+                        urlBuilder.addQueryParameter(e.getKey() + "[]", item.toString());
+                    }
+                } else {
+                    urlBuilder.addQueryParameter(e.getKey(), e.getValue().toString());
+                }
+            }
+            return new Request.Builder().url(urlBuilder.build()).headers(requestHeaders).get().build();
+        }
+
+        String contentType = extraHeaders != null ? extraHeaders.getOrDefault("content-type", "application/json") : "application/json";
+        RequestBody body;
+        if (MediaType.parse(MultipartBody.FORM.toString()) != null && "multipart/form-data".equals(contentType)) {
+            MultipartBody.Builder mb = new MultipartBody.Builder().setType(MultipartBody.FORM);
+            for (Map.Entry<String, Object> e : filteredParams.entrySet()) {
+                if ("file".equals(e.getKey())) {
+                    mb.addPart((MultipartBody.Part) e.getValue());
+                } else if (e.getValue() instanceof List) {
+                    for (Object item : (List<?>) e.getValue()) mb.addFormDataPart(e.getKey() + "[]", item.toString());
+                } else {
+                    mb.addFormDataPart(e.getKey(), e.getValue().toString());
+                }
+            }
+            body = mb.build();
+        } else {
+            String json = gson.toJson(filteredParams);
+            body = RequestBody.create(json, MediaType.parse("application/json"));
+        }
+
+        return new Request.Builder().url(urlBuilder.build()).headers(requestHeaders).method(method.toUpperCase(), body).build();
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T> CompletableFuture<T> call(
+        String method,
+        String path,
+        Map<String, String> headers,
+        Map<String, Object> params,
+        Class<T> responseType,
+        Function<Object, T> converter
+    ) {
+        return CompletableFuture.supplyAsync(() -> {
+            Request request = buildRequest(method, path, headers, params);
+            try (Response response = http.newCall(request).execute()) {
+                if (!response.isSuccessful()) {
+                    String body = response.body() != null ? response.body().string() : "";
+                    String contentType = response.header("content-type", "");
+                    if (contentType != null && contentType.contains("application/json")) {
+                        Type mapType = new TypeToken<Map<String, Object>>(){}.getType();
+                        Map<String, Object> map = gson.fromJson(body, mapType);
+                        String msg = map.containsKey("message") ? (String) map.get("message") : body;
+                        int code = map.containsKey("code") ? ((Number) map.get("code")).intValue() : response.code();
+                        String type = map.containsKey("type") ? (String) map.get("type") : "";
+                        throw new RuntimeException(new {{ spec.title | caseUcfirst }}Exception(msg, code, type, body));
+                    }
+                    throw new RuntimeException(new {{ spec.title | caseUcfirst }}Exception(body, response.code(), "", body));
+                }
+
+                String warnings = response.header("x-{{ spec.title | lower }}-warning");
+                if (warnings != null) {
+                    for (String w : warnings.split(";")) System.err.println("Warning: " + w);
+                }
+
+                if (responseType == Boolean.class) return (T) Boolean.TRUE;
+
+                if (response.body() == null) return (T) Boolean.TRUE;
+                String body = response.body().string();
+                if (body.isEmpty()) return (T) Boolean.TRUE;
+
+                if (responseType == String.class) return (T) body;
+
+                if (responseType == byte[].class) return (T) body.getBytes();
+
+                Type mapType = new TypeToken<Map<String, Object>>(){}.getType();
+                Map<String, Object> map = gson.fromJson(body, mapType);
+                if (converter != null) return converter.apply(map);
+                return (T) map;
+            } catch ({{ spec.title | caseUcfirst }}Exception e) {
+                throw new RuntimeException(e);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
+    public <T> CompletableFuture<T> call(
+        String method,
+        String path,
+        Map<String, String> headers,
+        Map<String, Object> params,
+        Class<T> responseType
+    ) {
+        return call(method, path, headers, params, responseType, null);
+    }
+
+    public CompletableFuture<String> redirect(
+        String method,
+        String path,
+        Map<String, String> headers,
+        Map<String, Object> params
+    ) {
+        return CompletableFuture.supplyAsync(() -> {
+            Request request = buildRequest(method, path, headers, params);
+            try (Response response = httpForRedirect.newCall(request).execute()) {
+                return response.header("Location", "");
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T> CompletableFuture<T> chunkedUpload(
+        String path,
+        Map<String, String> headers,
+        Map<String, Object> params,
+        Class<T> responseType,
+        Function<Object, T> converter,
+        String paramName,
+        String idParamName,
+        java.util.function.Consumer<UploadProgress> onProgress
+    ) {
+        return CompletableFuture.supplyAsync(() -> {
+            InputFile input = (InputFile) params.get(paramName);
+            long size;
+            RandomAccessFile file = null;
+            try {
+                if ("path".equals(input.sourceType) || "file".equals(input.sourceType)) {
+                    file = new RandomAccessFile(input.path, "r");
+                    size = file.length();
+                } else {
+                    size = ((byte[]) input.data).length;
+                }
+
+                if (size < CHUNK_SIZE) {
+                    byte[] data;
+                    if ("bytes".equals(input.sourceType)) {
+                        data = (byte[]) input.data;
+                    } else {
+                        data = new java.io.FileInputStream(input.path).readAllBytes();
+                    }
+                    RequestBody fileBody = RequestBody.create(data, MediaType.parse(input.mimeType));
+                    params.put(paramName, MultipartBody.Part.createFormData(paramName, input.filename, fileBody));
+                    return call("POST", path, headers, params, responseType, converter).get();
+                }
+
+                byte[] buffer = new byte[CHUNK_SIZE];
+                long offset = 0;
+                Map<String, Object> result = null;
+
+                if (idParamName != null && !idParamName.isEmpty()) {
+                    Map<String, Object> current = (Map<String, Object>) call("GET", path + "/" + params.get(idParamName), headers, Collections.emptyMap(), Map.class).get();
+                    long chunksUploaded = ((Number) current.get("chunksUploaded")).longValue();
+                    offset = chunksUploaded * CHUNK_SIZE;
+                }
+
+                while (offset < size) {
+                    if ("bytes".equals(input.sourceType)) {
+                        byte[] src = (byte[]) input.data;
+                        int len = (int) Math.min(CHUNK_SIZE, size - offset);
+                        System.arraycopy(src, (int) offset, buffer, 0, len);
+                    } else {
+                        file.seek(offset);
+                        file.read(buffer);
+                    }
+
+                    long end = Math.min(offset + CHUNK_SIZE - 1, size - 1);
+                    headers.put("Content-Range", "bytes " + offset + "-" + end + "/" + size);
+
+                    RequestBody chunkBody = RequestBody.create(buffer, MediaType.parse("application/octet-stream"));
+                    params.put(paramName, MultipartBody.Part.createFormData(paramName, input.filename, chunkBody));
+
+                    result = (Map<String, Object>) call("POST", path, headers, params, Map.class).get();
+                    offset += CHUNK_SIZE;
+                    headers.put("x-{{ spec.title | caseLower }}-id", result.get("$id").toString());
+
+                    if (onProgress != null) {
+                        onProgress.accept(new UploadProgress(
+                            result.get("$id").toString(),
+                            (double) Math.min(offset, size) / size * 100,
+                            Math.min(offset, size),
+                            ((Number) result.get("chunksTotal")).intValue(),
+                            ((Number) result.get("chunksUploaded")).intValue()
+                        ));
+                    }
+                }
+
+                return converter.apply(result);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            } finally {
+                if (file != null) try { file.close(); } catch (IOException ignored) {}
+            }
+        });
+    }
+}

@@ -378,7 +378,7 @@ abstract class Base extends TestCase
             ])
             ->setTest("true");
 
-        if ($this->language === 'android' || $this->language === 'kotlin') {
+        if ($this->language === 'android' || $this->language === 'kotlin' || $this->language === 'java') {
             $sdk->setNamespace("io.appwrite");
         } else {
             $sdk->setNamespace("appwrite");

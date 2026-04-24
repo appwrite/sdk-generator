@@ -1,0 +1,28 @@
+package {{ sdk.namespace | caseDot }};
+
+import java.time.Instant;
+import java.util.Random;
+
+public class ID {
+
+    private static String hexTimestamp() {
+        Instant now = Instant.now();
+        long sec = now.getEpochSecond();
+        long usec = (System.nanoTime() / 1000) % 1000;
+        return String.format("%08x%05x", sec, usec);
+    }
+
+    public static String custom(String id) { return id; }
+
+    public static String unique() { return unique(7); }
+
+    public static String unique(int padding) {
+        String baseId = hexTimestamp();
+        Random random = new Random();
+        StringBuilder sb = new StringBuilder(baseId);
+        for (int i = 0; i < padding; i++) {
+            sb.append(Integer.toHexString(random.nextInt(16)));
+        }
+        return sb.toString();
+    }
+}

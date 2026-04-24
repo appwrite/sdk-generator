@@ -1,0 +1,111 @@
+package {{ sdk.namespace | caseDot }}.models;
+
+import java.util.*;
+{% for property in definition.properties %}
+{% if property.enum %}
+import {{ sdk.namespace | caseDot }}.enums.{{ property.enumName | caseUcfirst }};
+{% endif %}
+{% endfor %}
+
+/**
+ * {{ definition.description | replace({"\n": " "}) | raw }}
+ */
+public class {{ definition.name | caseUcfirst }}{% if definition.additionalProperties %}<T>{% endif %} {
+
+{% for property in definition.properties %}
+    /** {{ property.description | replace({"\n": " "}) | raw }} */
+    private {{ property | typeName }}{% if not property.required %}{% endif %} {{ property.name | caseCamel | removeDollarSign }};
+
+{% endfor %}
+{% if definition.additionalProperties %}
+    private T data;
+
+{% endif %}
+    public {{ definition.name | caseUcfirst }}(
+{% for property in definition.properties %}
+        {{ property | typeName }} {{ property.name | caseCamel | removeDollarSign }}{% if not loop.last %},{% endif %}
+
+{% endfor %}
+{% if definition.additionalProperties %}
+        T data
+{% endif %}
+    ) {
+{% for property in definition.properties %}
+        this.{{ property.name | caseCamel | removeDollarSign }} = {{ property.name | caseCamel | removeDollarSign }};
+{% endfor %}
+{% if definition.additionalProperties %}
+        this.data = data;
+{% endif %}
+    }
+
+{% for property in definition.properties %}
+    public {{ property | typeName }} get{{ property.name | caseUcfirst | removeDollarSign }}() { return {{ property.name | caseCamel | removeDollarSign }}; }
+    public void set{{ property.name | caseUcfirst | removeDollarSign }}({{ property | typeName }} {{ property.name | caseCamel | removeDollarSign }}) { this.{{ property.name | caseCamel | removeDollarSign }} = {{ property.name | caseCamel | removeDollarSign }}; }
+{% endfor %}
+{% if definition.additionalProperties %}
+    public T getData() { return data; }
+    public void setData(T data) { this.data = data; }
+{% endif %}
+
+    @SuppressWarnings("unchecked")
+    public static {% if definition.additionalProperties %}<T> {{ definition.name | caseUcfirst }}<T>{% else %}{{ definition.name | caseUcfirst }}{% endif %} from(Map<String, Object> map{% if definition.additionalProperties %}, Class<T> nestedType{% endif %}) {
+        return new {{ definition.name | caseUcfirst }}{% if definition.additionalProperties %}<T>{% endif %}(
+{% for property in definition.properties %}
+            {% if property.sub_schema %}
+            {% if property.type == 'array' %}
+            (() -> {
+                List<Map<String, Object>> list = (List<Map<String, Object>>) map.get("{{ property.name }}");
+                List<{{ property.sub_schema | caseUcfirst }}> result = new ArrayList<>();
+                if (list != null) { for (Map<String, Object> item : list) result.add({{ property.sub_schema | caseUcfirst }}.from(item)); }
+                return result;
+            }).call()
+            {% else %}
+            map.get("{{ property.name }}") != null ? {{ property.sub_schema | caseUcfirst }}.from((Map<String, Object>) map.get("{{ property.name }}")) : null
+            {% endif %}
+            {% elseif property.enum %}
+            (() -> {
+                String val = (String) map.get("{{ property.name }}");
+                if (val == null) return null;
+                for ({{ property.enumName | caseUcfirst }} e : {{ property.enumName | caseUcfirst }}.values()) {
+                    if (e.getValue().equals(val)) return e;
+                }
+                return null;
+            }).call()
+            {% elseif property.type == 'integer' %}
+            map.get("{{ property.name }}") != null ? ((Number) map.get("{{ property.name }}")).longValue() : {% if property.required %}0L{% else %}null{% endif %}
+            {% elseif property.type == 'number' %}
+            map.get("{{ property.name }}") != null ? ((Number) map.get("{{ property.name }}")).doubleValue() : {% if property.required %}0.0{% else %}null{% endif %}
+            {% else %}
+            ({{ property | typeName }}) map.get("{{ property.name }}")
+            {% endif %}
+            {% if not loop.last %},{% endif %}
+
+{% endfor %}
+{% if definition.additionalProperties %}
+            , (T) map.get("data")
+{% endif %}
+        );
+    }
+
+    public Map<String, Object> toMap() {
+        Map<String, Object> map = new LinkedHashMap<>();
+{% for property in definition.properties %}
+        map.put("{{ property.name }}", {% if property.sub_schema %}{% if property.type == 'array' %}
+            (() -> { List<Map<String, Object>> l = new ArrayList<>(); if ({{ property.name | caseCamel | removeDollarSign }} != null) for (var i : {{ property.name | caseCamel | removeDollarSign }}) l.add(i.toMap()); return l; }).call(){% else %}{{ property.name | caseCamel | removeDollarSign }} != null ? {{ property.name | caseCamel | removeDollarSign }}.toMap() : null{% endif %}{% elseif property.enum %}{{ property.name | caseCamel | removeDollarSign }} != null ? {{ property.name | caseCamel | removeDollarSign }}.getValue() : null{% else %}{{ property.name | caseCamel | removeDollarSign }}{% endif %});
+{% endfor %}
+{% if definition.additionalProperties %}
+        map.put("data", data);
+{% endif %}
+        return map;
+    }
+
+    @Override
+    public String toString() {
+        return "{{ definition.name | caseUcfirst }}{" +
+{% for property in definition.properties %}
+            "{{ property.name | caseCamel | removeDollarSign }}=" + {{ property.name | caseCamel | removeDollarSign }}{% if not loop.last %} + ", " +{% else %} +{% endif %}
+
+{% endfor %}
+            "}";
+    }
+}
