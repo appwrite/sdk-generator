@@ -1,4 +1,4 @@
-const { execSync } = require("child_process");
+const { execFileSync, execSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 const Client = require("./lib/client.ts").default;
@@ -320,6 +320,81 @@ for (const forbiddenToken of [
 }
 
 console.log("CLI_RUNTIME_RENDERING:passed");
+
+output = execFileSync(
+  "bun",
+  [
+    "./dist/cli.cjs",
+    "general",
+    "list-rows",
+    "--queries",
+    '{"method":"orderDesc","attribute":"rawName"}',
+    "--where",
+    "published=true",
+    "--where",
+    "score>=10",
+    "--where",
+    'status=["draft","published"]',
+    "--sort-asc",
+    "title",
+    "--sort-desc",
+    "$createdAt",
+    "--limit",
+    "25",
+    "--offset",
+    "50",
+    "--cursor-after",
+    "row-before",
+    "--cursor-before",
+    "row-after",
+    "--select",
+    "$id",
+    "--select",
+    "title",
+  ],
+  { stdio: "pipe" },
+).toString();
+console.log(extractFirstValue(output));
+
+try {
+  execFileSync(
+    "bun",
+    [
+      "./dist/cli.cjs",
+      "general",
+      "list-rows",
+      "--where",
+      "count>1e999",
+    ],
+    { stdio: "pipe" },
+  );
+  throw new Error("Expected non-finite numeric where values to be rejected.");
+} catch (error) {
+  if (!String(error.stderr ?? error.message).includes("finite numbers")) {
+    throw error;
+  }
+}
+
+try {
+  execFileSync(
+    "bun",
+    [
+      "./dist/cli.cjs",
+      "general",
+      "list-rows",
+      "--where",
+      "count=[1e999]",
+    ],
+    { stdio: "pipe" },
+  );
+  throw new Error("Expected non-finite array where values to be rejected.");
+} catch (error) {
+  if (!String(error.stderr ?? error.message).includes("finite numbers")) {
+    throw error;
+  }
+}
+
+console.log("CLI_QUERY_HELPERS:passed");
 
 // Type generation regression: generated concrete row query helpers must compile on TS 5.9+
 fs.rmSync(path.join(process.cwd(), "generated"), {

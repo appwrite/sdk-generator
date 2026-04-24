@@ -1446,6 +1446,72 @@
         ]
       }
     },
+    "\/mock\/tests\/general\/list-rows": {
+      "get": {
+        "summary": "List Rows",
+        "operationId": "generalListRows",
+        "consumes": [],
+        "produces": [
+          "application\/json"
+        ],
+        "tags": [
+          "general"
+        ],
+        "description": "Mock a queryable list request.",
+        "responses": {
+          "200": {
+            "description": "Mock",
+            "schema": {
+              "$ref": "#\/definitions\/mock"
+            }
+          }
+        },
+        "x-appwrite": {
+          "method": "listRows",
+          "weight": 284,
+          "cookies": false,
+          "type": "",
+          "demo": "general\/list-rows.md",
+          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a queryable list request.",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "platforms": [
+            "client",
+            "server",
+            "server"
+          ],
+          "packaging": false,
+          "offline-model": "",
+          "offline-key": "",
+          "offline-response-key": "$id",
+          "auth": {
+            "Project": []
+          }
+        },
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "queries",
+            "description": "Array of query strings generated using the Query class provided by the SDK.",
+            "required": false,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string"
+            },
+            "in": "query"
+          }
+        ]
+      }
+    },
     "\/mock\/tests\/general\/enum": {
       "post": {
         "summary": "Enum Test",

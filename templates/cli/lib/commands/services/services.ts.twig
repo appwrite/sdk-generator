@@ -1,6 +1,7 @@
 import { Command } from "commander";
 {% set hasLocationMethod = false %}
 {% set hasFileParam = false %}
+{% set hasQueryParam = service | hasCliQueryParam %}
 {% set enumNames = [] %}
 {% for method in service.methods %}
 {% if method.type == 'location' %}
@@ -20,6 +21,13 @@ import fs from "fs";
 {% endif %}
 {% if hasFileParam %}
 import { resolveFileParam } from "../utils/deployment.js";
+{% endif %}
+{% if hasQueryParam %}
+import {
+  buildQueries,
+  collectQueryValue,
+  parseWhereQuery,
+} from "../utils/query.js";
 {% endif %}
 {% if service.isConsoleOnly %}
 import { sdkForConsole } from "../../sdks.js";
@@ -77,23 +85,46 @@ export const {{ service.name | caseCamel }} = new Command("{{ service.name | cas
 {% if commandName not in seenCommands %}
 {% set seenCommands = seenCommands|merge([commandName]) %}
 {% set commandVar = service.name | caseCamel ~ method.name | caseUcfirst ~ 'Command' %}
+{% set query = method | cliQueryConfig %}
 const {{ commandVar }} = {{ service.name | caseCamel }}
   .command(`{{ commandName }}`)
   .description(`{{ method.description | stripMarkdown | replace({'`': '\\`'}) | raw }}`)
 {% for parameter in method.parameters.all %}
 {% set opt = getCliOption(parameter) %}
+{% set optDescription = parameter.description | stripMarkdown | replace({'`': '\\`'}) %}
+{% if parameter.name == 'queries' and parameter.type == 'array' %}
+{% set optDescription = query.rawDescriptionPrefix ~ ' ' ~ optDescription %}
+{% endif %}
 {% if opt.customParserCode is defined %}
   .{{ opt.method }}(
     `{{ opt.syntax | raw }}`,
-    `{{ parameter.description | stripMarkdown | replace({'`': '\\`'}) | raw }}`,
+    `{{ optDescription | raw }}`,
     {{ opt.customParserCode | raw }},
   )
 {% elseif opt.parser %}
-  .{{ opt.method }}(`{{ opt.syntax | raw }}`, `{{ parameter.description | stripMarkdown | replace({'`': '\\`'}) | raw }}`, {{ opt.parser }})
+  .{{ opt.method }}(`{{ opt.syntax | raw }}`, `{{ optDescription | raw }}`, {{ opt.parser }})
 {% else %}
-  .{{ opt.method }}(`{{ opt.syntax | raw }}`, `{{ parameter.description | stripMarkdown | replace({'`': '\\`'}) | raw }}`)
+  .{{ opt.method }}(`{{ opt.syntax | raw }}`, `{{ optDescription | raw }}`)
 {% endif %}
 {% endfor %}
+{% if query.hasQueries %}
+{% if query.hasFiltering %}
+  .option(`--where <expression>`, `Filter using a simple comparison expression. Repeat for multiple filters. Supports field=value, field!=value, field>value, field>=value, field<value, and field<=value.`, (value: string, previous: string[] | undefined) => collectQueryValue(parseWhereQuery(value), previous))
+  .option(`--sort-asc <attribute>`, `Sort results by an attribute in ascending order. Repeat for multiple sort fields.`, (value: string, previous: string[] | undefined) => collectQueryValue(value, previous))
+  .option(`--sort-desc <attribute>`, `Sort results by an attribute in descending order. Repeat for multiple sort fields.`, (value: string, previous: string[] | undefined) => collectQueryValue(value, previous))
+{% endif %}
+{% if query.hasPagination %}
+  .option(`--limit <limit>`, `Maximum number of results to return.`, parseInteger)
+  .option(`--offset <offset>`, `Number of results to skip.`, parseInteger)
+{% endif %}
+{% if query.hasCursors %}
+  .option(`--cursor-after <id>`, `Return results after this cursor ID.`)
+  .option(`--cursor-before <id>`, `Return results before this cursor ID.`)
+{% endif %}
+{% if query.hasSelect %}
+  .option(`--select <attribute>`, `Attribute to include in the response. Repeat for multiple attributes.`, (value: string, previous: string[] | undefined) => collectQueryValue(value, previous))
+{% endif %}
+{% endif %}
 {% if method.type == 'location' %}
   .requiredOption(`--destination <destination>`, `Path to save the file to.`)
 {% endif %}
@@ -103,11 +134,18 @@ const {{ commandVar }} = {{ service.name | caseCamel }}
 {% for parameter in method.parameters.all %}
 {% set params = params|merge([getCliVarName(parameter)]) %}
 {% endfor %}
+{% if query.hasQueries %}
+{% set params = params|merge(query.extraParams) %}
+{% endif %}
 {% set hasParams = params | length > 0 %}
 {% set actionParams = hasParams ? '{ ' ~ params | join(', ') ~ (method.type == 'location' ? ', destination' : '') ~ ' }' : (method.type == 'location' ? '{ destination }' : '') %}
 {% set argExpressions = [] %}
 {% for parameter in method.parameters.all %}
+{% if parameter.name == 'queries' and parameter.type == 'array' %}
+{% set argExpressions = argExpressions|merge(['buildQueries({ ' ~ query.builderParams | join(', ') ~ ' })']) %}
+{% else %}
 {% set argExpressions = argExpressions|merge([getCliArgExpression(parameter)]) %}
+{% endif %}
 {% endfor %}
 {% if method.type == 'location' %}
       async ({{ actionParams }}) => {

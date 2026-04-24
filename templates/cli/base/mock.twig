@@ -26,7 +26,10 @@ class {{ service.name | caseUcfirst }} {
 {% endfor %}
 
   async {{ method.name | caseCamel }}({{ params | join(', ') }}): Promise<any> {
-{% if method.name == 'redirect' %}
+{% set query = method | cliQueryConfig %}
+{% if query.hasQueries %}
+    return { result: JSON.stringify(queries ?? []) };
+{% elseif method.name == 'redirect' %}
     return { result: '{{ method.method | upper }}:/v1{{ method.path }}/done:passed' };
 {% elseif method.name == 'headers' %}
     return { result: 'x-sdk-name: {{ sdk.name }}; x-sdk-platform: {{ sdk.platform }}; x-sdk-language: {{ language.name | caseLower }}; x-sdk-version: {{ sdk.version }}' };
