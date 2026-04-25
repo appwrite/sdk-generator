@@ -93,10 +93,10 @@ class Java extends Kotlin
                     $output .= 'null';
                     break;
                 case self::TYPE_BOOLEAN:
-                    $output .= 'false';
+                    $output .= 'null';
                     break;
                 case self::TYPE_STRING:
-                    $output .= '""';
+                    $output .= 'null';
                     break;
             }
         } else {
