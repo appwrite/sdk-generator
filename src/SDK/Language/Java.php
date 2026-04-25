@@ -86,7 +86,7 @@ class Java extends Kotlin
                     $output .= 'null';
                     break;
                 case self::TYPE_NUMBER:
-                    $output .= '1.0';
+                    $output .= 'null';
                     break;
                 case self::TYPE_ARRAY:
                 case self::TYPE_OBJECT:
