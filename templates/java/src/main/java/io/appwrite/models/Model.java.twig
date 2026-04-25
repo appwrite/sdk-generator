@@ -62,6 +62,13 @@ public class {{ definition.name | caseUcfirst }}{% if definition.additionalPrope
             {% else %}
             map.get("{{ property.name }}") != null ? {{ property.sub_schema | caseUcfirst }}.from((Map<String, Object>) map.get("{{ property.name }}")) : null
             {% endif %}
+            {% elseif property.enum and property.type == 'array' %}
+            ((java.util.function.Supplier<List<{{ property.enumName | caseUcfirst }}>>) () -> {
+                List<String> rawList = (List<String>) map.get("{{ property.name }}");
+                List<{{ property.enumName | caseUcfirst }}> result = new ArrayList<>();
+                if (rawList != null) { for (String val : rawList) { for ({{ property.enumName | caseUcfirst }} e : {{ property.enumName | caseUcfirst }}.values()) { if (e.getValue().equals(val)) { result.add(e); break; } } } }
+                return result;
+            }).get()
             {% elseif property.enum %}
             ((java.util.function.Supplier<{{ property.enumName | caseUcfirst }}>) () -> {
                 String val = (String) map.get("{{ property.name }}");

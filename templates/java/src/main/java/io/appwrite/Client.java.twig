@@ -152,7 +152,7 @@ public class Client {
         if (MediaType.parse(MultipartBody.FORM.toString()) != null && "multipart/form-data".equals(contentType)) {
             MultipartBody.Builder mb = new MultipartBody.Builder().setType(MultipartBody.FORM);
             for (Map.Entry<String, Object> e : filteredParams.entrySet()) {
-                if ("file".equals(e.getKey())) {
+                if (e.getValue() instanceof MultipartBody.Part) {
                     mb.addPart((MultipartBody.Part) e.getValue());
                 } else if (e.getValue() instanceof List) {
                     for (Object item : (List<?>) e.getValue()) mb.addFormDataPart(e.getKey() + "[]", item.toString());
