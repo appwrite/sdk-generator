@@ -81,9 +81,9 @@ public class Query {
     public static String updatedBefore(String value) { return lessThan("$updatedAt", value); }
     public static String updatedAfter(String value) { return greaterThan("$updatedAt", value); }
     public static String updatedBetween(String start, String end) { return between("$updatedAt", start, end); }
-    public static String or(List<String> queries) { return new Query("or", null, new ArrayList<Object>(queries)).toString(); }
-    public static String and(List<String> queries) { return new Query("and", null, new ArrayList<Object>(queries)).toString(); }
-    public static String elemMatch(String attribute, List<String> queries) { return new Query("elemMatch", attribute, new ArrayList<Object>(queries)).toString(); }
+    public static String or(List<String> queries) { return new Query("or", null, parseQueries(queries)).toString(); }
+    public static String and(List<String> queries) { return new Query("and", null, parseQueries(queries)).toString(); }
+    public static String elemMatch(String attribute, List<String> queries) { return new Query("elemMatch", attribute, parseQueries(queries)).toString(); }
 
     public static String distanceEqual(String attribute, List<?> values, Number distance) { return new Query("distanceEqual", attribute, withDistance(values, distance)).toString(); }
     public static String distanceEqual(String attribute, List<?> values, Number distance, boolean meters) { return new Query("distanceEqual", attribute, withDistance(values, distance, meters)).toString(); }
@@ -102,6 +102,12 @@ public class Query {
     public static String notOverlaps(String attribute, List<?> values) { return new Query("notOverlaps", attribute, new ArrayList<Object>(values)).toString(); }
     public static String touches(String attribute, List<?> values) { return new Query("touches", attribute, new ArrayList<Object>(values)).toString(); }
     public static String notTouches(String attribute, List<?> values) { return new Query("notTouches", attribute, new ArrayList<Object>(values)).toString(); }
+
+    private static List<Object> parseQueries(List<String> queries) {
+        List<Object> l = new ArrayList<>();
+        for (String q : queries) l.add(gson.fromJson(q, Object.class));
+        return l;
+    }
 
     @SuppressWarnings("unchecked")
     private static List<Object> parseValue(Object value) {
