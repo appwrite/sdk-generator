@@ -201,12 +201,13 @@ public class Client {
                 if (responseType == Boolean.class) return (T) Boolean.TRUE;
 
                 if (response.body() == null) return (T) Boolean.TRUE;
+
+                if (responseType == byte[].class) return (T) response.body().bytes();
+
                 String body = response.body().string();
                 if (body.isEmpty()) return (T) Boolean.TRUE;
 
                 if (responseType == String.class) return (T) body;
-
-                if (responseType == byte[].class) return (T) body.getBytes();
 
                 Type mapType = new TypeToken<Map<String, Object>>(){}.getType();
                 Map<String, Object> map = gson.fromJson(body, mapType);

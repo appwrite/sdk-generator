@@ -83,7 +83,7 @@ public class {{ service.name | caseUcfirst }} extends Service {
         {%~ endif %}
     }
 
-    {%~ if method.parameters.all | reduce((carry, param) => carry or not param.required) %}
+    {%~ if (method.parameters.all | reduce((carry, param) => carry or param.required, false)) and (method.parameters.all | reduce((carry, param) => carry or not param.required, false)) %}
     /**
      * {{ method.description | replace({"\n": "\n     * "}) | raw }} — optional params default to null
      */
