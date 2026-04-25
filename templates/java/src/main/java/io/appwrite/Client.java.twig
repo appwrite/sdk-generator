@@ -309,14 +309,14 @@ public class Client {
                         file.readFully(chunk);
                     }
 
-                    long end = Math.min(offset + CHUNK_SIZE - 1, size - 1);
+                    long end = offset + chunkLen - 1;
                     headers.put("Content-Range", "bytes " + offset + "-" + end + "/" + size);
 
                     RequestBody chunkBody = RequestBody.create(chunk, MediaType.parse("application/octet-stream"));
                     params.put(paramName, MultipartBody.Part.createFormData(paramName, input.filename, chunkBody));
 
                     result = (Map<String, Object>) call("POST", path, headers, params, Map.class).get();
-                    offset += CHUNK_SIZE;
+                    offset += chunkLen;
                     headers.put("x-{{ spec.title | caseLower }}-id", result.get("$id").toString());
 
                     if (onProgress != null) {
