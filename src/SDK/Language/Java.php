@@ -83,7 +83,7 @@ class Java extends Kotlin
         if (empty($default) && $default !== 0 && $default !== false) {
             switch ($type) {
                 case self::TYPE_INTEGER:
-                    $output .= '-1L';
+                    $output .= 'null';
                     break;
                 case self::TYPE_NUMBER:
                     $output .= '1.0';

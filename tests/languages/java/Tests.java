@@ -93,9 +93,8 @@ public class Tests {
 
         // General Tests
         try {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> result = (Map<String, Object>) general.redirect().get();
-            write((String) result.get("result"));
+            String result = general.redirect().get();
+            write(result);
         } catch (Exception e) {
             write(e.getMessage());
         }
