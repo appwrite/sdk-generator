@@ -16,7 +16,7 @@ class JavaJava11Test extends Base
         'cp tests/languages/java/Tests.java tests/sdks/java/src/main/java/io/appwrite/Tests.java',
     ];
     protected string $command =
-        'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/sdks/java eclipse-temurin:11-jdk-jammy sh -c "mvn compile exec:java -Dexec.mainClass=io.appwrite.Tests -q 2>/dev/null"';
+        'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/sdks/java maven:3.9-eclipse-temurin-11 sh -c "mvn compile exec:java -Dexec.mainClass=io.appwrite.Tests -q 2>/dev/null"';
 
     protected array $expectedOutput = [
         ...Base::PING_RESPONSE,

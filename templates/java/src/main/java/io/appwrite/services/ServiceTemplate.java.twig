@@ -84,6 +84,7 @@ public class {{ service.name | caseUcfirst }} extends Service {
     }
 
     {%~ if (method.parameters.all | reduce((carry, param) => carry or param.required, false)) and (method.parameters.all | reduce((carry, param) => carry or not param.required, false)) %}
+    {%~ set requiredParams = method.parameters.all | filter(p => p.required) %}
     /**
      * {{ method.description | replace({"\n": "\n     * "}) | raw }} — optional params default to null
      */
@@ -91,11 +92,9 @@ public class {{ service.name | caseUcfirst }} extends Service {
     @Deprecated
     {%~ endif %}
     public CompletableFuture<{{ method | returnType(spec, sdk.namespace | caseDot) | raw }}> {{ method.name | caseCamel }}(
-        {%~ for parameter in method.parameters.all %}
-        {%~ if parameter.required %}
+        {%~ for parameter in requiredParams %}
         {{ parameter | typeName }} {{ parameter.name | caseCamel }}{% if not loop.last %},{% endif %}
 
-        {%~ endif %}
         {%~ endfor %}
     ) {
         return {{ method.name | caseCamel }}(
