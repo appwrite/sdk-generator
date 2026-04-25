@@ -85,12 +85,12 @@ public class Operator {
         return new Operator("power", List.of(exponent, max)).toString();
     }
 
-    public static String arrayAppend(List<Object> values) {
-        return new Operator("arrayAppend", values).toString();
+    public static String arrayAppend(List<?> values) {
+        return new Operator("arrayAppend", new ArrayList<Object>(values)).toString();
     }
 
-    public static String arrayPrepend(List<Object> values) {
-        return new Operator("arrayPrepend", values).toString();
+    public static String arrayPrepend(List<?> values) {
+        return new Operator("arrayPrepend", new ArrayList<Object>(values)).toString();
     }
 
     public static String arrayInsert(int index, Object value) {
@@ -105,12 +105,12 @@ public class Operator {
         return new Operator("arrayUnique", List.of()).toString();
     }
 
-    public static String arrayIntersect(List<Object> values) {
-        return new Operator("arrayIntersect", values).toString();
+    public static String arrayIntersect(List<?> values) {
+        return new Operator("arrayIntersect", new ArrayList<Object>(values)).toString();
     }
 
-    public static String arrayDiff(List<Object> values) {
-        return new Operator("arrayDiff", values).toString();
+    public static String arrayDiff(List<?> values) {
+        return new Operator("arrayDiff", new ArrayList<Object>(values)).toString();
     }
 
     public static String arrayFilter(Condition condition, Object value) {
