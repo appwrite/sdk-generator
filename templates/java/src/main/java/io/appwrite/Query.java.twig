@@ -19,26 +19,27 @@ public class Query {
     @SerializedName("values")
     private final List<Object> values;
 
-    @SerializedName("distance")
-    private final Number distance;
-
-    @SerializedName("meters")
-    private final Boolean meters;
-
-    private Query(String method, String attribute, List<Object> values, Number distance, Boolean meters) {
+    public Query(String method, String attribute, List<Object> values) {
         this.method = method;
         this.attribute = attribute;
         this.values = values;
-        this.distance = distance;
-        this.meters = meters;
     }
 
-    public Query(String method, String attribute, List<Object> values) {
-        this(method, attribute, values, null, null);
+    public Query(String method, String attribute) { this(method, attribute, null); }
+    public Query(String method) { this(method, null, null); }
+
+    private static List<Object> withDistance(List<?> values, Number distance) {
+        List<Object> l = new ArrayList<Object>(values);
+        l.add(distance);
+        return l;
     }
 
-    public Query(String method, String attribute) { this(method, attribute, null, null, null); }
-    public Query(String method) { this(method, null, null, null, null); }
+    private static List<Object> withDistance(List<?> values, Number distance, boolean meters) {
+        List<Object> l = new ArrayList<Object>(values);
+        l.add(distance);
+        l.add(meters);
+        return l;
+    }
 
     @Override
     public String toString() { return gson.toJson(this); }
@@ -84,14 +85,14 @@ public class Query {
     public static String and(List<String> queries) { return new Query("and", null, new ArrayList<Object>(queries)).toString(); }
     public static String elemMatch(String attribute, List<String> queries) { return new Query("elemMatch", attribute, new ArrayList<Object>(queries)).toString(); }
 
-    public static String distanceEqual(String attribute, List<?> values, Number distance) { return new Query("distanceEqual", attribute, new ArrayList<Object>(values), distance, null).toString(); }
-    public static String distanceEqual(String attribute, List<?> values, Number distance, boolean meters) { return new Query("distanceEqual", attribute, new ArrayList<Object>(values), distance, meters).toString(); }
-    public static String distanceNotEqual(String attribute, List<?> values, Number distance) { return new Query("distanceNotEqual", attribute, new ArrayList<Object>(values), distance, null).toString(); }
-    public static String distanceNotEqual(String attribute, List<?> values, Number distance, boolean meters) { return new Query("distanceNotEqual", attribute, new ArrayList<Object>(values), distance, meters).toString(); }
-    public static String distanceGreaterThan(String attribute, List<?> values, Number distance) { return new Query("distanceGreaterThan", attribute, new ArrayList<Object>(values), distance, null).toString(); }
-    public static String distanceGreaterThan(String attribute, List<?> values, Number distance, boolean meters) { return new Query("distanceGreaterThan", attribute, new ArrayList<Object>(values), distance, meters).toString(); }
-    public static String distanceLessThan(String attribute, List<?> values, Number distance) { return new Query("distanceLessThan", attribute, new ArrayList<Object>(values), distance, null).toString(); }
-    public static String distanceLessThan(String attribute, List<?> values, Number distance, boolean meters) { return new Query("distanceLessThan", attribute, new ArrayList<Object>(values), distance, meters).toString(); }
+    public static String distanceEqual(String attribute, List<?> values, Number distance) { return new Query("distanceEqual", attribute, withDistance(values, distance)).toString(); }
+    public static String distanceEqual(String attribute, List<?> values, Number distance, boolean meters) { return new Query("distanceEqual", attribute, withDistance(values, distance, meters)).toString(); }
+    public static String distanceNotEqual(String attribute, List<?> values, Number distance) { return new Query("distanceNotEqual", attribute, withDistance(values, distance)).toString(); }
+    public static String distanceNotEqual(String attribute, List<?> values, Number distance, boolean meters) { return new Query("distanceNotEqual", attribute, withDistance(values, distance, meters)).toString(); }
+    public static String distanceGreaterThan(String attribute, List<?> values, Number distance) { return new Query("distanceGreaterThan", attribute, withDistance(values, distance)).toString(); }
+    public static String distanceGreaterThan(String attribute, List<?> values, Number distance, boolean meters) { return new Query("distanceGreaterThan", attribute, withDistance(values, distance, meters)).toString(); }
+    public static String distanceLessThan(String attribute, List<?> values, Number distance) { return new Query("distanceLessThan", attribute, withDistance(values, distance)).toString(); }
+    public static String distanceLessThan(String attribute, List<?> values, Number distance, boolean meters) { return new Query("distanceLessThan", attribute, withDistance(values, distance, meters)).toString(); }
 
     public static String intersects(String attribute, List<?> values) { return new Query("intersects", attribute, new ArrayList<Object>(values)).toString(); }
     public static String notIntersects(String attribute, List<?> values) { return new Query("notIntersects", attribute, new ArrayList<Object>(values)).toString(); }
