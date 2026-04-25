@@ -153,39 +153,39 @@ public class Tests {
         try {
             general.error400().get();
         } catch (ExecutionException e) {
-            Throwable cause = e.getCause();
+            Throwable cause = e.getCause() != null ? e.getCause().getCause() : null;
             if (cause instanceof AppwriteException) {
                 AppwriteException ex = (AppwriteException) cause;
                 write(ex.getMessage());
                 write(ex.getResponse());
             } else {
-                write(cause.getMessage());
+                write(e.getMessage());
             }
         }
 
         try {
             general.error500().get();
         } catch (ExecutionException e) {
-            Throwable cause = e.getCause();
+            Throwable cause = e.getCause() != null ? e.getCause().getCause() : null;
             if (cause instanceof AppwriteException) {
                 AppwriteException ex = (AppwriteException) cause;
                 write(ex.getMessage());
                 write(ex.getResponse());
             } else {
-                write(cause.getMessage());
+                write(e.getMessage());
             }
         }
 
         try {
             general.error502().get();
         } catch (ExecutionException e) {
-            Throwable cause = e.getCause();
+            Throwable cause = e.getCause() != null ? e.getCause().getCause() : null;
             if (cause instanceof AppwriteException) {
                 AppwriteException ex = (AppwriteException) cause;
                 write(ex.getMessage());
                 write(ex.getResponse());
             } else {
-                write(cause.getMessage());
+                write(e.getMessage());
             }
         }
 

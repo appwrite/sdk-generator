@@ -18,14 +18,26 @@ public class Query {
     @SerializedName("values")
     private final List<Object> values;
 
-    public Query(String method, String attribute, List<Object> values) {
+    @SerializedName("distance")
+    private final Number distance;
+
+    @SerializedName("meters")
+    private final Boolean meters;
+
+    private Query(String method, String attribute, List<Object> values, Number distance, Boolean meters) {
         this.method = method;
         this.attribute = attribute;
         this.values = values;
+        this.distance = distance;
+        this.meters = meters;
     }
 
-    public Query(String method, String attribute) { this(method, attribute, null); }
-    public Query(String method) { this(method, null, null); }
+    public Query(String method, String attribute, List<Object> values) {
+        this(method, attribute, values, null, null);
+    }
+
+    public Query(String method, String attribute) { this(method, attribute, null, null, null); }
+    public Query(String method) { this(method, null, null, null, null); }
 
     @Override
     public String toString() { return gson.toJson(this); }
@@ -69,6 +81,25 @@ public class Query {
     public static String updatedBetween(String start, String end) { return between("$updatedAt", start, end); }
     public static String or(List<String> queries) { return new Query("or", null, List.copyOf(queries)).toString(); }
     public static String and(List<String> queries) { return new Query("and", null, List.copyOf(queries)).toString(); }
+    public static String elemMatch(String attribute, List<String> queries) { return new Query("elemMatch", attribute, List.copyOf(queries)).toString(); }
+
+    public static String distanceEqual(String attribute, List<Object> values, Number distance) { return new Query("distanceEqual", attribute, values, distance, null).toString(); }
+    public static String distanceEqual(String attribute, List<Object> values, Number distance, boolean meters) { return new Query("distanceEqual", attribute, values, distance, meters).toString(); }
+    public static String distanceNotEqual(String attribute, List<Object> values, Number distance) { return new Query("distanceNotEqual", attribute, values, distance, null).toString(); }
+    public static String distanceNotEqual(String attribute, List<Object> values, Number distance, boolean meters) { return new Query("distanceNotEqual", attribute, values, distance, meters).toString(); }
+    public static String distanceGreaterThan(String attribute, List<Object> values, Number distance) { return new Query("distanceGreaterThan", attribute, values, distance, null).toString(); }
+    public static String distanceGreaterThan(String attribute, List<Object> values, Number distance, boolean meters) { return new Query("distanceGreaterThan", attribute, values, distance, meters).toString(); }
+    public static String distanceLessThan(String attribute, List<Object> values, Number distance) { return new Query("distanceLessThan", attribute, values, distance, null).toString(); }
+    public static String distanceLessThan(String attribute, List<Object> values, Number distance, boolean meters) { return new Query("distanceLessThan", attribute, values, distance, meters).toString(); }
+
+    public static String intersects(String attribute, List<Object> values) { return new Query("intersects", attribute, values).toString(); }
+    public static String notIntersects(String attribute, List<Object> values) { return new Query("notIntersects", attribute, values).toString(); }
+    public static String crosses(String attribute, List<Object> values) { return new Query("crosses", attribute, values).toString(); }
+    public static String notCrosses(String attribute, List<Object> values) { return new Query("notCrosses", attribute, values).toString(); }
+    public static String overlaps(String attribute, List<Object> values) { return new Query("overlaps", attribute, values).toString(); }
+    public static String notOverlaps(String attribute, List<Object> values) { return new Query("notOverlaps", attribute, values).toString(); }
+    public static String touches(String attribute, List<Object> values) { return new Query("touches", attribute, values).toString(); }
+    public static String notTouches(String attribute, List<Object> values) { return new Query("notTouches", attribute, values).toString(); }
 
     @SuppressWarnings("unchecked")
     private static List<Object> parseValue(Object value) {

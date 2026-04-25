@@ -6,7 +6,6 @@ import {{ sdk.namespace | caseDot }}.models.UploadProgress;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import okhttp3.*;
-import okhttp3.logging.HttpLoggingInterceptor;
 
 import javax.net.ssl.*;
 import java.io.*;
@@ -129,7 +128,9 @@ public class Client {
         if (extraHeaders != null) for (Map.Entry<String, String> e : extraHeaders.entrySet()) hb.add(e.getKey(), e.getValue());
         Headers requestHeaders = hb.build();
 
-        HttpUrl.Builder urlBuilder = HttpUrl.parse(endPoint + path).newBuilder();
+        HttpUrl parsed = HttpUrl.parse(endPoint + path);
+        if (parsed == null) throw new IllegalArgumentException("Invalid URL: " + endPoint + path);
+        HttpUrl.Builder urlBuilder = parsed.newBuilder();
 
         if ("GET".equalsIgnoreCase(method)) {
             for (Map.Entry<String, Object> e : filteredParams.entrySet()) {
@@ -273,7 +274,7 @@ public class Client {
                     if ("bytes".equals(input.sourceType)) {
                         data = (byte[]) input.data;
                     } else {
-                        data = new java.io.FileInputStream(input.path).readAllBytes();
+                        data = java.nio.file.Files.readAllBytes(java.nio.file.Paths.get(input.path));
                     }
                     RequestBody fileBody = RequestBody.create(data, MediaType.parse(input.mimeType));
                     params.put(paramName, MultipartBody.Part.createFormData(paramName, input.filename, fileBody));
@@ -291,19 +292,21 @@ public class Client {
                 }
 
                 while (offset < size) {
+                    int chunkLen = (int) Math.min(CHUNK_SIZE, size - offset);
+                    byte[] chunk;
                     if ("bytes".equals(input.sourceType)) {
                         byte[] src = (byte[]) input.data;
-                        int len = (int) Math.min(CHUNK_SIZE, size - offset);
-                        System.arraycopy(src, (int) offset, buffer, 0, len);
+                        chunk = Arrays.copyOfRange(src, (int) offset, (int) offset + chunkLen);
                     } else {
                         file.seek(offset);
-                        file.read(buffer);
+                        chunk = new byte[chunkLen];
+                        file.readFully(chunk);
                     }
 
                     long end = Math.min(offset + CHUNK_SIZE - 1, size - 1);
                     headers.put("Content-Range", "bytes " + offset + "-" + end + "/" + size);
 
-                    RequestBody chunkBody = RequestBody.create(buffer, MediaType.parse("application/octet-stream"));
+                    RequestBody chunkBody = RequestBody.create(chunk, MediaType.parse("application/octet-stream"));
                     params.put(paramName, MultipartBody.Part.createFormData(paramName, input.filename, chunkBody));
 
                     result = (Map<String, Object>) call("POST", path, headers, params, Map.class).get();
