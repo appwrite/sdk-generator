@@ -290,6 +290,9 @@ public class Client {
                     Map<String, Object> current = (Map<String, Object>) call("GET", path + "/" + params.get(idParamName), headers, Collections.emptyMap(), Map.class).get();
                     long chunksUploaded = ((Number) current.get("chunksUploaded")).longValue();
                     offset = chunksUploaded * CHUNK_SIZE;
+                    if (offset >= size) {
+                        return converter.apply(current);
+                    }
                 }
 
                 while (offset < size) {
