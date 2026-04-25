@@ -23,7 +23,7 @@ public class {{ definition.name | caseUcfirst }}{% if definition.additionalPrope
 {% endif %}
     public {{ definition.name | caseUcfirst }}(
 {% for property in definition.properties %}
-        {{ property | typeName }} {{ property.name | caseCamel | removeDollarSign }}{% if not loop.last %},{% endif %}
+        {{ property | typeName }} {{ property.name | caseCamel | removeDollarSign }}{% if not loop.last or definition.additionalProperties %},{% endif %}
 
 {% endfor %}
 {% if definition.additionalProperties %}
