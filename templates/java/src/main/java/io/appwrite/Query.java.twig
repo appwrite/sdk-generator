@@ -28,6 +28,12 @@ public class Query {
     public Query(String method, String attribute) { this(method, attribute, null); }
     public Query(String method) { this(method, null, null); }
 
+    private static List<Object> wrapCoords(List<?> values) {
+        List<Object> l = new ArrayList<>();
+        l.add(new ArrayList<Object>(values));
+        return l;
+    }
+
     private static List<Object> withDistance(List<?> values, Number distance) {
         List<Object> l = new ArrayList<Object>(values);
         l.add(distance);
@@ -94,14 +100,14 @@ public class Query {
     public static String distanceLessThan(String attribute, List<?> values, Number distance) { return new Query("distanceLessThan", attribute, withDistance(values, distance)).toString(); }
     public static String distanceLessThan(String attribute, List<?> values, Number distance, boolean meters) { return new Query("distanceLessThan", attribute, withDistance(values, distance, meters)).toString(); }
 
-    public static String intersects(String attribute, List<?> values) { return new Query("intersects", attribute, new ArrayList<Object>(values)).toString(); }
-    public static String notIntersects(String attribute, List<?> values) { return new Query("notIntersects", attribute, new ArrayList<Object>(values)).toString(); }
-    public static String crosses(String attribute, List<?> values) { return new Query("crosses", attribute, new ArrayList<Object>(values)).toString(); }
-    public static String notCrosses(String attribute, List<?> values) { return new Query("notCrosses", attribute, new ArrayList<Object>(values)).toString(); }
-    public static String overlaps(String attribute, List<?> values) { return new Query("overlaps", attribute, new ArrayList<Object>(values)).toString(); }
-    public static String notOverlaps(String attribute, List<?> values) { return new Query("notOverlaps", attribute, new ArrayList<Object>(values)).toString(); }
-    public static String touches(String attribute, List<?> values) { return new Query("touches", attribute, new ArrayList<Object>(values)).toString(); }
-    public static String notTouches(String attribute, List<?> values) { return new Query("notTouches", attribute, new ArrayList<Object>(values)).toString(); }
+    public static String intersects(String attribute, List<?> values) { return new Query("intersects", attribute, wrapCoords(values)).toString(); }
+    public static String notIntersects(String attribute, List<?> values) { return new Query("notIntersects", attribute, wrapCoords(values)).toString(); }
+    public static String crosses(String attribute, List<?> values) { return new Query("crosses", attribute, wrapCoords(values)).toString(); }
+    public static String notCrosses(String attribute, List<?> values) { return new Query("notCrosses", attribute, wrapCoords(values)).toString(); }
+    public static String overlaps(String attribute, List<?> values) { return new Query("overlaps", attribute, wrapCoords(values)).toString(); }
+    public static String notOverlaps(String attribute, List<?> values) { return new Query("notOverlaps", attribute, wrapCoords(values)).toString(); }
+    public static String touches(String attribute, List<?> values) { return new Query("touches", attribute, wrapCoords(values)).toString(); }
+    public static String notTouches(String attribute, List<?> values) { return new Query("notTouches", attribute, wrapCoords(values)).toString(); }
 
     private static List<Object> parseQueries(List<String> queries) {
         List<Object> l = new ArrayList<>();
