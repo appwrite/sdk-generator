@@ -37,7 +37,7 @@ public class {{ requestModel.name | caseUcfirst }} {
         Map<String, Object> map = new LinkedHashMap<>();
 {% for property in requestModel.properties %}
         map.put("{{ property.name }}", {% if property.sub_schema %}{% if property.type == 'array' %}
-            (() -> { List<Map<String, Object>> l = new ArrayList<>(); if ({{ property.name | caseCamel | removeDollarSign }} != null) for (var i : {{ property.name | caseCamel | removeDollarSign }}) l.add(i.toMap()); return l; }).call(){% else %}{{ property.name | caseCamel | removeDollarSign }} != null ? {{ property.name | caseCamel | removeDollarSign }}.toMap() : null{% endif %}{% elseif property.enum %}{{ property.name | caseCamel | removeDollarSign }} != null ? {{ property.name | caseCamel | removeDollarSign }}.getValue() : null{% else %}{{ property.name | caseCamel | removeDollarSign }}{% endif %});
+            ((java.util.function.Supplier<List<Map<String, Object>>>) () -> { List<Map<String, Object>> l = new ArrayList<>(); if ({{ property.name | caseCamel | removeDollarSign }} != null) for (var i : {{ property.name | caseCamel | removeDollarSign }}) l.add(i.toMap()); return l; }).get(){% else %}{{ property.name | caseCamel | removeDollarSign }} != null ? {{ property.name | caseCamel | removeDollarSign }}.toMap() : null{% endif %}{% elseif property.enum %}{{ property.name | caseCamel | removeDollarSign }} != null ? {{ property.name | caseCamel | removeDollarSign }}.getValue() : null{% else %}{{ property.name | caseCamel | removeDollarSign }}{% endif %});
 {% endfor %}
         return map;
     }

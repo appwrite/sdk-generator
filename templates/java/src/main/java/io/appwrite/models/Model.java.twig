@@ -53,24 +53,24 @@ public class {{ definition.name | caseUcfirst }}{% if definition.additionalPrope
 {% for property in definition.properties %}
             {% if property.sub_schema %}
             {% if property.type == 'array' %}
-            (() -> {
+            ((java.util.function.Supplier<List<{{ property.sub_schema | caseUcfirst }}>>) () -> {
                 List<Map<String, Object>> list = (List<Map<String, Object>>) map.get("{{ property.name }}");
                 List<{{ property.sub_schema | caseUcfirst }}> result = new ArrayList<>();
                 if (list != null) { for (Map<String, Object> item : list) result.add({{ property.sub_schema | caseUcfirst }}.from(item)); }
                 return result;
-            }).call()
+            }).get()
             {% else %}
             map.get("{{ property.name }}") != null ? {{ property.sub_schema | caseUcfirst }}.from((Map<String, Object>) map.get("{{ property.name }}")) : null
             {% endif %}
             {% elseif property.enum %}
-            (() -> {
+            ((java.util.function.Supplier<{{ property.enumName | caseUcfirst }}>) () -> {
                 String val = (String) map.get("{{ property.name }}");
                 if (val == null) return null;
                 for ({{ property.enumName | caseUcfirst }} e : {{ property.enumName | caseUcfirst }}.values()) {
                     if (e.getValue().equals(val)) return e;
                 }
                 return null;
-            }).call()
+            }).get()
             {% elseif property.type == 'integer' %}
             map.get("{{ property.name }}") != null ? ((Number) map.get("{{ property.name }}")).longValue() : {% if property.required %}0L{% else %}null{% endif %}
             {% elseif property.type == 'number' %}
@@ -91,7 +91,7 @@ public class {{ definition.name | caseUcfirst }}{% if definition.additionalPrope
         Map<String, Object> map = new LinkedHashMap<>();
 {% for property in definition.properties %}
         map.put("{{ property.name }}", {% if property.sub_schema %}{% if property.type == 'array' %}
-            (() -> { List<Map<String, Object>> l = new ArrayList<>(); if ({{ property.name | caseCamel | removeDollarSign }} != null) for (var i : {{ property.name | caseCamel | removeDollarSign }}) l.add(i.toMap()); return l; }).call(){% else %}{{ property.name | caseCamel | removeDollarSign }} != null ? {{ property.name | caseCamel | removeDollarSign }}.toMap() : null{% endif %}{% elseif property.enum %}{{ property.name | caseCamel | removeDollarSign }} != null ? {{ property.name | caseCamel | removeDollarSign }}.getValue() : null{% else %}{{ property.name | caseCamel | removeDollarSign }}{% endif %});
+            ((java.util.function.Supplier<List<Map<String, Object>>>) () -> { List<Map<String, Object>> l = new ArrayList<>(); if ({{ property.name | caseCamel | removeDollarSign }} != null) for (var i : {{ property.name | caseCamel | removeDollarSign }}) l.add(i.toMap()); return l; }).get(){% else %}{{ property.name | caseCamel | removeDollarSign }} != null ? {{ property.name | caseCamel | removeDollarSign }}.toMap() : null{% endif %}{% elseif property.enum %}{{ property.name | caseCamel | removeDollarSign }} != null ? {{ property.name | caseCamel | removeDollarSign }}.getValue() : null{% else %}{{ property.name | caseCamel | removeDollarSign }}{% endif %});
 {% endfor %}
 {% if definition.additionalProperties %}
         map.put("data", data);

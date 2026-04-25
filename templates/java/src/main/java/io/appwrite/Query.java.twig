@@ -52,12 +52,12 @@ public class Query {
     public static String search(String attribute, String value) { return new Query("search", attribute, List.of(value)).toString(); }
     public static String isNull(String attribute) { return new Query("isNull", attribute).toString(); }
     public static String isNotNull(String attribute) { return new Query("isNotNull", attribute).toString(); }
-    public static String exists(List<String> attributes) { return new Query("exists", null, List.copyOf(attributes)).toString(); }
-    public static String notExists(List<String> attributes) { return new Query("notExists", null, List.copyOf(attributes)).toString(); }
+    public static String exists(List<String> attributes) { return new Query("exists", null, new ArrayList<Object>(attributes)).toString(); }
+    public static String notExists(List<String> attributes) { return new Query("notExists", null, new ArrayList<Object>(attributes)).toString(); }
     public static String between(String attribute, Object start, Object end) { return new Query("between", attribute, List.of(start, end)).toString(); }
     public static String startsWith(String attribute, String value) { return new Query("startsWith", attribute, List.of(value)).toString(); }
     public static String endsWith(String attribute, String value) { return new Query("endsWith", attribute, List.of(value)).toString(); }
-    public static String select(List<String> attributes) { return new Query("select", null, List.copyOf(attributes)).toString(); }
+    public static String select(List<String> attributes) { return new Query("select", null, new ArrayList<Object>(attributes)).toString(); }
     public static String orderAsc(String attribute) { return new Query("orderAsc", attribute).toString(); }
     public static String orderDesc(String attribute) { return new Query("orderDesc", attribute).toString(); }
     public static String orderRandom() { return new Query("orderRandom").toString(); }
@@ -79,9 +79,9 @@ public class Query {
     public static String updatedBefore(String value) { return lessThan("$updatedAt", value); }
     public static String updatedAfter(String value) { return greaterThan("$updatedAt", value); }
     public static String updatedBetween(String start, String end) { return between("$updatedAt", start, end); }
-    public static String or(List<String> queries) { return new Query("or", null, List.copyOf(queries)).toString(); }
-    public static String and(List<String> queries) { return new Query("and", null, List.copyOf(queries)).toString(); }
-    public static String elemMatch(String attribute, List<String> queries) { return new Query("elemMatch", attribute, List.copyOf(queries)).toString(); }
+    public static String or(List<String> queries) { return new Query("or", null, new ArrayList<Object>(queries)).toString(); }
+    public static String and(List<String> queries) { return new Query("and", null, new ArrayList<Object>(queries)).toString(); }
+    public static String elemMatch(String attribute, List<String> queries) { return new Query("elemMatch", attribute, new ArrayList<Object>(queries)).toString(); }
 
     public static String distanceEqual(String attribute, List<Object> values, Number distance) { return new Query("distanceEqual", attribute, values, distance, null).toString(); }
     public static String distanceEqual(String attribute, List<Object> values, Number distance, boolean meters) { return new Query("distanceEqual", attribute, values, distance, meters).toString(); }
