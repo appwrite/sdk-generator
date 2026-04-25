@@ -105,7 +105,7 @@ public class Query {
 
     private static List<Object> parseQueries(List<String> queries) {
         List<Object> l = new ArrayList<>();
-        for (String q : queries) l.add(gson.fromJson(q, Object.class));
+        for (String q : queries) l.add(com.google.gson.JsonParser.parseString(q));
         return l;
     }
 
