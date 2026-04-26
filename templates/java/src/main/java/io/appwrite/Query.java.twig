@@ -35,16 +35,22 @@ public class Query {
     }
 
     private static List<Object> withDistance(List<?> values, Number distance) {
-        List<Object> l = new ArrayList<Object>(values);
-        l.add(distance);
-        return l;
+        List<Object> inner = new ArrayList<>();
+        inner.add(new ArrayList<Object>(values));
+        inner.add(distance);
+        List<Object> outer = new ArrayList<>();
+        outer.add(inner);
+        return outer;
     }
 
     private static List<Object> withDistance(List<?> values, Number distance, boolean meters) {
-        List<Object> l = new ArrayList<Object>(values);
-        l.add(distance);
-        l.add(meters);
-        return l;
+        List<Object> inner = new ArrayList<>();
+        inner.add(new ArrayList<Object>(values));
+        inner.add(distance);
+        inner.add(meters);
+        List<Object> outer = new ArrayList<>();
+        outer.add(inner);
+        return outer;
     }
 
     @Override
