@@ -8,7 +8,7 @@ public class ID {
     private static String hexTimestamp() {
         Instant now = Instant.now();
         long sec = now.getEpochSecond();
-        long usec = (System.nanoTime() / 1000) % 1000;
+        long usec = now.getNano() / 1000;
         return String.format("%08x%05x", sec, usec);
     }
 
