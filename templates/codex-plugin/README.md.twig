@@ -1,0 +1,112 @@
+# {{ spec.title }} Codex CLI Plugin
+
+![License](https://img.shields.io/github/license/{{ sdk.gitUserName|url_encode }}/{{ sdk.gitRepoName|url_encode }}.svg?style=flat-square)
+![Version](https://img.shields.io/badge/api%20version-{{ sdk.version }}-blue.svg?style=flat-square)
+[![Twitter Account](https://img.shields.io/twitter/follow/appwrite?color=00acee&label=twitter&style=flat-square)](https://twitter.com/appwrite)
+[![Discord](https://img.shields.io/discord/564160730845151244?label=discord&style=flat-square)](https://appwrite.io/discord)
+
+{{ spec.title }} tools for the [OpenAI Codex CLI](https://github.com/openai/codex). This plugin packages {{ spec.title }} SDK skills, {{ spec.title }} deployment workflow skills, and {{ spec.title }} MCP servers.
+
+## Structure
+
+```text
+skills/                                  # Codex skills (auto-loaded by description match)
+|-- {{ spec.title | caseLower }}-typescript/SKILL.md
+|-- {{ spec.title | caseLower }}-dart/SKILL.md
+|-- {{ spec.title | caseLower }}-kotlin/SKILL.md
+|-- {{ spec.title | caseLower }}-swift/SKILL.md
+|-- {{ spec.title | caseLower }}-php/SKILL.md
+|-- {{ spec.title | caseLower }}-python/SKILL.md
+|-- {{ spec.title | caseLower }}-ruby/SKILL.md
+|-- {{ spec.title | caseLower }}-go/SKILL.md
+|-- {{ spec.title | caseLower }}-rust/SKILL.md
+|-- {{ spec.title | caseLower }}-dotnet/SKILL.md
+|-- {{ spec.title | caseLower }}-cli/SKILL.md
+|-- {{ spec.title | caseLower }}-deploy-site/SKILL.md
+`-- {{ spec.title | caseLower }}-deploy-function/SKILL.md
+.codex-plugin/plugin.json                # Codex plugin manifest
+.mcp.json                                # MCP server config for plugin installs
+config.toml                              # MCP server config snippet for manual installs
+```
+
+## Installation
+
+Codex plugins include a `.codex-plugin/plugin.json` manifest for plugin installation. For manual installs, Codex CLI loads skills from `~/.codex/skills/` and reads MCP server configuration from `~/.codex/config.toml`. Install the generated files manually by copying them into those locations.
+
+### macOS / Linux
+
+```sh
+# Copy skills
+mkdir -p ~/.codex/skills
+cp -R skills/* ~/.codex/skills/
+
+# Append the MCP config snippet to your Codex config
+mkdir -p ~/.codex
+cat config.toml >> ~/.codex/config.toml
+```
+
+### Windows (PowerShell)
+
+```powershell
+# Copy skills
+New-Item -ItemType Directory -Force -Path "$HOME\.codex\skills" | Out-Null
+Copy-Item -Recurse skills\* "$HOME\.codex\skills\"
+
+# Append the MCP config snippet to your Codex config
+New-Item -ItemType Directory -Force -Path "$HOME\.codex" | Out-Null
+Get-Content config.toml | Add-Content "$HOME\.codex\config.toml"
+```
+
+After copying `config.toml`, edit `~/.codex/config.toml` and replace `<PROJECT_ID>`, `<API_KEY>`, and the `<REGION>` portion of the endpoint with your {{ spec.title }} credentials.
+
+## Included Skills
+
+Each skill ships as `skills/{{ spec.title | caseLower }}-<language>/SKILL.md`. Codex loads them based on the `description` field in the frontmatter, so they activate automatically when a session is about Appwrite work in that language:
+
+- `{{ spec.title | caseLower }}-typescript`
+- `{{ spec.title | caseLower }}-dart`
+- `{{ spec.title | caseLower }}-kotlin`
+- `{{ spec.title | caseLower }}-swift`
+- `{{ spec.title | caseLower }}-php`
+- `{{ spec.title | caseLower }}-python`
+- `{{ spec.title | caseLower }}-ruby`
+- `{{ spec.title | caseLower }}-go`
+- `{{ spec.title | caseLower }}-rust`
+- `{{ spec.title | caseLower }}-dotnet`
+- `{{ spec.title | caseLower }}-cli`
+- `{{ spec.title | caseLower }}-deploy-site`
+- `{{ spec.title | caseLower }}-deploy-function`
+
+The language skills give Codex language-specific {{ spec.title }} context for authentication, database queries, storage, realtime, functions, and server-side administration. The deployment skills walk through {{ spec.title }} Sites and Functions deployment with the {{ spec.title }} CLI.
+
+## Deployment Workflows
+
+Deployment workflows are exposed as explicit skills:
+
+- `${{ spec.title | caseLower }}-deploy-site`
+- `${{ spec.title | caseLower }}-deploy-function`
+
+Use these to walk through deploying {{ spec.title }} sites and functions with the {{ spec.title }} CLI. Codex can also load them automatically when a task matches the skill description.
+
+## Included MCP Servers
+
+The bundled `config.toml` registers two MCP servers:
+
+- `{{ spec.title | caseLower }}-api` runs `uvx mcp-server-appwrite` against your project. Set `{{ spec.title | caseUpper }}_ENDPOINT`, `{{ spec.title | caseUpper }}_PROJECT_ID`, and `{{ spec.title | caseUpper }}_API_KEY` in the `env` block.
+- `{{ spec.title | caseLower }}-docs` proxies `https://mcp-for-docs.appwrite.io` through `npx mcp-remote` so Codex can search the {{ spec.title }} documentation.
+
+## Verify
+
+After copying, run `codex` and check:
+
+- A session about {{ spec.title }} TypeScript work loads the `{{ spec.title | caseLower }}-typescript` skill (visible in the session header).
+- Typing `$` lets you invoke the `{{ spec.title | caseLower }}-deploy-*` skills explicitly.
+- `codex mcp list` (or `codex --debug`) lists the `{{ spec.title | caseLower }}-api` and `{{ spec.title | caseLower }}-docs` servers.
+
+## Contribution
+
+This library is auto-generated by Appwrite custom [SDK Generator](https://github.com/appwrite/sdk-generator). To learn more about how you can help us improve this SDK, please check the [contribution guide](https://github.com/appwrite/sdk-generator/blob/master/CONTRIBUTING.md) before sending a pull-request.
+
+## License
+
+Please see the [MIT license](LICENSE) file for more information.

@@ -1,0 +1,20 @@
+{
+    "mcpServers": {
+        "{{ spec.title | caseLower }}-api": {
+            "type": "stdio",
+            "command": "uvx",
+            "args": [
+                "mcp-server-appwrite"
+            ],
+            "env": {
+                "{{ spec.title | caseUpper }}_ENDPOINT": "https://<REGION>.cloud.appwrite.io/v1",
+                "{{ spec.title | caseUpper }}_PROJECT_ID": "<PROJECT_ID>",
+                "{{ spec.title | caseUpper }}_API_KEY": "<API_KEY>"
+            }
+        },
+        "{{ spec.title | caseLower }}-docs": {
+            "type": "http",
+            "url": "https://mcp-for-docs.appwrite.io"
+        }
+    }
+}
