@@ -1,0 +1,291 @@
+import { {{spec.title | caseUcfirst}}Exception, JSONbig, type Payload, type UploadProgress } from './client';
+import { Service } from './service';
+
+/**
+ * Headers type representing a key-value pair with string keys and string values.
+ */
+type Headers = {
+    [key: string]: string;
+}
+
+{% set serverHeaderExcludes = [
+    'session',
+    'dev-key',
+    'devkey',
+    'impersonate-user-id',
+    'impersonateuserid',
+    'impersonate-user-email',
+    'impersonateuseremail',
+    'impersonate-user-phone',
+    'impersonateuserphone'
+] %}
+{% set serverKeyFlag = [] %}
+{% for header in spec.global.headers %}
+{% if header.key|lower == 'key' %}
+{% set serverKeyFlag = serverKeyFlag|merge([1]) %}
+{% endif %}
+{% endfor %}
+{% set serverHasKey = serverKeyFlag|length > 0 %}
+{% set serverFallbackKeyHeader = 'X-' ~ (spec.title | caseUcfirst) ~ '-Key' %}
+
+/**
+ * ServerClient that handles requests to {{spec.title | caseUcfirst}} from trusted server
+ * runtimes. Authenticates with an API key (optionally a JWT) and exposes admin-tier
+ * methods on the shared service classes through TypeScript type-gating.
+ *
+ * Use {@link Client} for browser/end-user contexts. ServerClient does not support
+ * realtime subscriptions or browser-only credentials (session, dev key, impersonation).
+ */
+class ServerClient {
+    static CHUNK_SIZE = 1024 * 1024 * 5;
+
+    /**
+     * Holds configuration such as project and API key.
+     */
+    config: {
+        endpoint: string;
+{%~ if not serverHasKey %}
+        key: string;
+{%~ endif %}
+{%~ for header in spec.global.headers | filter(h => h.key|lower not in serverHeaderExcludes) %}
+        {{ header.key | caseLower }}: string;
+{%~ endfor %}
+    } = {
+        endpoint: '{{ spec.endpoint }}',
+{%~ if not serverHasKey %}
+        key: '',
+{%~ endif %}
+{%~ for header in spec.global.headers | filter(h => h.key|lower not in serverHeaderExcludes) %}
+        {{ header.key | caseLower }}: '',
+{%~ endfor %}
+    };
+
+    /**
+     * Custom headers for API requests.
+     */
+    headers: Headers = {
+        'x-sdk-name': '{{ sdk.name }}',
+        'x-sdk-platform': 'server',
+        'x-sdk-language': '{{ language.name | caseLower }}',
+        'x-sdk-version': '{{ sdk.version }}',
+        {%~ for key,header in spec.global.defaultHeaders %}
+        '{{key}}': '{{header}}',
+        {%~ endfor %}
+    };
+
+    /**
+     * Get Headers
+     *
+     * Returns a copy of the current request headers, including any
+     * authentication headers. Handle with care.
+     *
+     * @returns {Headers}
+     */
+    getHeaders(): Headers {
+        return { ...this.headers };
+    }
+
+    /**
+     * Set Endpoint
+     *
+     * Your project endpoint
+     *
+     * @param {string} endpoint
+     *
+     * @returns {this}
+     */
+    setEndpoint(endpoint: string): this {
+        if (!endpoint || typeof endpoint !== 'string') {
+            throw new {{spec.title | caseUcfirst}}Exception('Endpoint must be a valid string');
+        }
+
+        if (!endpoint.startsWith('http://') && !endpoint.startsWith('https://')) {
+            throw new {{spec.title | caseUcfirst}}Exception('Invalid endpoint URL: ' + endpoint);
+        }
+
+        this.config.endpoint = endpoint;
+        return this;
+    }
+
+    {%~ for header in spec.global.headers | filter(h => h.key|lower not in serverHeaderExcludes) %}
+    /**
+     * Set {{header.key | caseUcfirst}}
+     *
+    {%~ if header.description %}
+     * {{header.description}}
+     *
+    {%~ endif %}
+     * @param value string
+     *
+     * @return {this}
+     */
+    set{{header.key | caseUcfirst}}(value: string): this {
+        this.headers['{{header.name}}'] = value;
+        this.config.{{ header.key | caseLower }} = value;
+        return this;
+    }
+    {%~ endfor %}
+{%~ if not serverHasKey %}
+
+    /**
+     * Set Key
+     *
+     * Your secret API key.
+     *
+     * @param value string
+     *
+     * @return {this}
+     */
+    setKey(value: string): this {
+        this.headers['{{ serverFallbackKeyHeader }}'] = value;
+        this.config.key = value;
+        return this;
+    }
+{%~ endif %}
+
+    prepareRequest(method: string, url: URL, headers: Headers = {}, params: Payload = {}): { uri: string, options: RequestInit } {
+        method = method.toUpperCase();
+
+        headers = Object.assign({}, this.headers, headers);
+
+        let options: RequestInit = {
+            method,
+            headers,
+        };
+
+        if (method === 'GET') {
+            for (const [key, value] of Object.entries(Service.flatten(params))) {
+                url.searchParams.append(key, value);
+            }
+        } else {
+            switch (headers['content-type']) {
+                case 'application/json':
+                    options.body = JSONbig.stringify(params);
+                    break;
+
+                case 'multipart/form-data':
+                    if (typeof FormData === 'undefined' || typeof File === 'undefined') {
+                        throw new {{spec.title | caseUcfirst}}Exception('Multipart requests require File and FormData globals');
+                    }
+
+                    const formData = new FormData();
+
+                    for (const [key, value] of Object.entries(params)) {
+                        if (value instanceof File) {
+                            formData.append(key, value, value.name);
+                        } else if (Array.isArray(value)) {
+                            for (const nestedValue of value) {
+                                formData.append(`${key}[]`, nestedValue);
+                            }
+                        } else {
+                            formData.append(key, value);
+                        }
+                    }
+
+                    options.body = formData;
+                    delete headers['content-type'];
+                    break;
+            }
+        }
+
+        return { uri: url.toString(), options };
+    }
+
+    async chunkedUpload(method: string, url: URL, headers: Headers = {}, originalPayload: Payload = {}, onProgress: (progress: UploadProgress) => void) {
+        if (typeof File === 'undefined' || typeof FormData === 'undefined') {
+            throw new {{spec.title | caseUcfirst}}Exception('Chunked uploads require File and FormData globals');
+        }
+
+        const [fileParam, file] = Object.entries(originalPayload).find(([_, value]) => value instanceof File) ?? [];
+
+        if (!file || !fileParam) {
+            throw new Error('File not found in payload');
+        }
+
+        if (file.size <= ServerClient.CHUNK_SIZE) {
+            return await this.call(method, url, headers, originalPayload);
+        }
+
+        let start = 0;
+        let response = null;
+
+        while (start < file.size) {
+            let end = start + ServerClient.CHUNK_SIZE;
+            if (end >= file.size) {
+                end = file.size;
+            }
+
+            const chunkHeaders = { ...headers };
+            chunkHeaders['content-range'] = `bytes ${start}-${end-1}/${file.size}`;
+            const chunk = file.slice(start, end);
+
+            let payload = { ...originalPayload };
+            payload[fileParam] = new File([chunk], file.name);
+
+            response = await this.call(method, url, chunkHeaders, payload);
+
+            if (onProgress && typeof onProgress === 'function') {
+                onProgress({
+                    $id: response.$id,
+                    progress: Math.round((end / file.size) * 100),
+                    sizeUploaded: end,
+                    chunksTotal: Math.ceil(file.size / ServerClient.CHUNK_SIZE),
+                    chunksUploaded: Math.ceil(end / ServerClient.CHUNK_SIZE)
+                });
+            }
+
+            if (response && response.$id) {
+                headers['x-{{spec.title | caseLower }}-id'] = response.$id;
+            }
+
+            start = end;
+        }
+
+        return response;
+    }
+
+    async ping(): Promise<string> {
+        return this.call('GET', new URL(this.config.endpoint + '/ping'));
+    }
+
+    async call(method: string, url: URL, headers: Headers = {}, params: Payload = {}, responseType = 'json'): Promise<any> {
+        const { uri, options } = this.prepareRequest(method, url, headers, params);
+
+        let data: any = null;
+
+        const response = await fetch(uri, options);
+
+        const warnings = response.headers.get('x-{{ spec.title | lower }}-warning');
+        if (warnings) {
+            warnings.split(';').forEach((warning: string) => console.warn('Warning: ' + warning));
+        }
+
+        if (response.headers.get('content-type')?.includes('application/json')) {
+            data = JSONbig.parse(await response.text());
+        } else if (responseType === 'arrayBuffer') {
+            data = await response.arrayBuffer();
+        } else {
+            data = {
+                message: await response.text()
+            };
+        }
+
+        if (400 <= response.status) {
+            let responseText = '';
+            if (response.headers.get('content-type')?.includes('application/json') || responseType === 'arrayBuffer') {
+                responseText = JSONbig.stringify(data);
+            } else {
+                responseText = data?.message;
+            }
+            throw new {{spec.title | caseUcfirst}}Exception(data?.message, response.status, data?.type, responseText);
+        }
+
+        if (data && typeof data === 'object') {
+            data.toString = () => JSONbig.stringify(data);
+        }
+
+        return data;
+    }
+}
+
+export { ServerClient };

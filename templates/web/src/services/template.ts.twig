@@ -1,5 +1,27 @@
+{# Detect service shape and imports before emitting TypeScript. #}
+{% set tierFlag = [] %}
+{% set serverFlag = [] %}
+{% set uploadFlag = [] %}
+{% for m in service.methods %}
+{% if 'client' in m.platforms %}
+{% set tierFlag = tierFlag|merge([1]) %}
+{% endif %}
+{% if 'server' in m.platforms or 'console' in m.platforms %}
+{% set serverFlag = serverFlag|merge([1]) %}
+{% endif %}
+{% if 'multipart/form-data' in m.consumes %}
+{% set uploadFlag = uploadFlag|merge([1]) %}
+{% endif %}
+{% endfor %}
+{% set hasClientTier = tierFlag|length > 0 %}
+{% set hasServerTier = serverFlag|length > 0 %}
+{% set hasMixedTier = hasClientTier and hasServerTier %}
+{% set hasUpload = uploadFlag|length > 0 %}
 import { Service } from '../service';
-import { {{ spec.title | caseUcfirst}}Exception, Client, type Payload, UploadProgress } from '../client';
+import { {{ spec.title | caseUcfirst}}Exception, {% if hasClientTier %}Client, {% endif %}type Payload{% if hasUpload %}, UploadProgress{% endif %} } from '../client';
+{%~ if hasServerTier %}
+import type { ServerClient } from '../server-client';
+{%~ endif %}
 import type { Models } from '../models';
 
 {% set added = [] %}
@@ -14,14 +36,40 @@ import { {{ parameter.enumName | caseUcfirst }} } from '../enums/{{ parameter.en
 {% endfor %}
 {% endfor %}
 
+{%~ if hasMixedTier %}
+export class {{ service.name | caseUcfirst }}<TClient extends Client | ServerClient = Client | ServerClient> {
+    client: TClient;
+
+    constructor(client: TClient) {
+        this.client = client;
+    }
+{%~ elseif hasServerTier %}
+export class {{ service.name | caseUcfirst }} {
+    client: ServerClient;
+
+    constructor(client: ServerClient) {
+        this.client = client;
+    }
+{%~ else %}
 export class {{ service.name | caseUcfirst }} {
     client: Client;
 
     constructor(client: Client) {
         this.client = client;
     }
+{%~ endif %}
 
     {%~ for method in service.methods %}
+    {%~ set thisGate = '' %}
+    {%~ set methodSupportsClient = 'client' in method.platforms %}
+    {%~ set methodSupportsServer = 'server' in method.platforms or 'console' in method.platforms %}
+    {%~ if hasMixedTier %}
+    {%~ if not methodSupportsClient %}
+    {%~ set thisGate = 'this: ' ~ (service.name | caseUcfirst) ~ '<ServerClient>, ' %}
+    {%~ elseif not methodSupportsServer %}
+    {%~ set thisGate = 'this: ' ~ (service.name | caseUcfirst) ~ '<Client>, ' %}
+    {%~ endif %}
+    {%~ endif %}
     /**
     {%~ if method.description %}
      * {{ method.description | replace({'\n': '\n     * '}) | raw }}
@@ -41,7 +89,7 @@ export class {{ service.name | caseUcfirst }} {
     {%~ endif %}
      */
     {%~ if method.parameters.all|length > 0 %}
-    {{ method.name | caseCamel }}{{ method.responseModel | getGenerics(spec) | raw }}(params{% set hasRequiredParams = false %}{% for parameter in method.parameters.all %}{% if parameter.required %}{% set hasRequiredParams = true %}{% endif %}{% endfor %}{% if not hasRequiredParams %}?{% endif %}: { {% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | getPropertyType(method) | raw }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, onProgress?: (progress: UploadProgress) => void{% endif %} }): {{ method | getReturn(spec) | raw }};
+    {{ method.name | caseCamel }}{{ method.responseModel | getGenerics(spec) | raw }}({{ thisGate | raw }}params{% set hasRequiredParams = false %}{% for parameter in method.parameters.all %}{% if parameter.required %}{% set hasRequiredParams = true %}{% endif %}{% endfor %}{% if not hasRequiredParams %}?{% endif %}: { {% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | getPropertyType(method) | raw }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, onProgress?: (progress: UploadProgress) => void{% endif %} }): {{ method | getReturn(spec) | raw }};
     /**
      {%~ if method.description %}
      * {{ method.description | replace({'\n': '\n     * '}) | raw }}
@@ -54,9 +102,9 @@ export class {{ service.name | caseUcfirst }} {
      * @returns {{ '{' }}{{ method | getReturn(spec) | raw }}{{ '}' }}
      * @deprecated Use the object parameter style method for a better developer experience.
      */
-    {{ method.name | caseCamel }}{{ method.responseModel | getGenerics(spec) | raw }}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | getPropertyType(method) | raw }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, onProgress?: (progress: UploadProgress) => void{% endif %}): {{ method | getReturn(spec) | raw }};
+    {{ method.name | caseCamel }}{{ method.responseModel | getGenerics(spec) | raw }}({{ thisGate | raw }}{% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | getPropertyType(method) | raw }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, onProgress?: (progress: UploadProgress) => void{% endif %}): {{ method | getReturn(spec) | raw }};
     {{ method.name | caseCamel }}{{ method.responseModel | getGenerics(spec) | raw }}(
-        {% if method.parameters.all|length > 0 %}paramsOrFirst{% if not method.parameters.all[0].required or method.parameters.all[0].nullable %}?{% endif %}: { {% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | getPropertyType(method) | raw }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, onProgress?: (progress: UploadProgress) => void{% endif %} } | {{ method.parameters.all[0] | getPropertyType(method) | raw }}{% if method.parameters.all|length > 1 %},
+        {{ thisGate | raw }}{% if method.parameters.all|length > 0 %}paramsOrFirst{% if not method.parameters.all[0].required or method.parameters.all[0].nullable %}?{% endif %}: { {% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | getPropertyType(method) | raw }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, onProgress?: (progress: UploadProgress) => void{% endif %} } | {{ method.parameters.all[0] | getPropertyType(method) | raw }}{% if method.parameters.all|length > 1 %},
         ...rest: [{% for parameter in method.parameters.all[1:] %}({{ parameter | getPropertyType(method) | raw }})?{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %},((progress: UploadProgress) => void)?{% endif %}]{% endif %}{% endif %}
     
     ): {{ method | getReturn(spec) | raw }} {
@@ -96,7 +144,7 @@ export class {{ service.name | caseUcfirst }} {
         {%~ endif %}
         {%~ endif %}
     {%~ else %}
-    {{ method.name | caseCamel }}{{ method.responseModel | getGenerics(spec) | raw }}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | getPropertyType(method) | raw }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, onProgress = (progress: UploadProgress) => void{% endif %}): {{ method | getReturn(spec) | raw }} {
+    {{ method.name | caseCamel }}{{ method.responseModel | getGenerics(spec) | raw }}({{ thisGate | raw }}{% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | getPropertyType(method) | raw }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, onProgress = (progress: UploadProgress) => void{% endif %}): {{ method | getReturn(spec) | raw }} {
     {%~ endif %}
         {%~ for parameter in method.parameters.all %}
         {%~ if parameter.required %}

@@ -353,7 +353,7 @@ class Client {
     config: {
         endpoint: string;
         endpointRealtime: string;
-{%~ for header in spec.global.headers %}
+{%~ for header in spec.global.headers | filter(h => h.key|lower != 'key') %}
         {{ header.key | caseLower }}: string;
 {%~ endfor %}
 {%~ if sdk.platform == 'console' %}
@@ -363,7 +363,7 @@ class Client {
     } = {
         endpoint: '{{ spec.endpoint }}',
         endpointRealtime: '',
-{%~ for header in spec.global.headers %}
+{%~ for header in spec.global.headers | filter(h => h.key|lower != 'key') %}
         {{ header.key | caseLower }}: '',
 {%~ endfor %}
 {%~ if sdk.platform == 'console' %}
@@ -454,7 +454,7 @@ class Client {
     }
 
 {%~ endif %}
-    {%~ for header in spec.global.headers %}
+    {%~ for header in spec.global.headers | filter(h => h.key|lower != 'key') %}
     /**
      * Set {{header.key | caseUcfirst}}
      *
@@ -833,13 +833,14 @@ class Client {
                 end = file.size; // Adjust for the last chunk to include the last byte
             }
 
-            headers['content-range'] = `bytes ${start}-${end-1}/${file.size}`;
+            const chunkHeaders = { ...headers };
+            chunkHeaders['content-range'] = `bytes ${start}-${end-1}/${file.size}`;
             const chunk = file.slice(start, end);
 
             let payload = { ...originalPayload };
             payload[fileParam] = new File([chunk], file.name);
 
-            response = await this.call(method, url, headers, payload);
+            response = await this.call(method, url, chunkHeaders, payload);
 
             if (onProgress && typeof onProgress === 'function') {
                 onProgress({
