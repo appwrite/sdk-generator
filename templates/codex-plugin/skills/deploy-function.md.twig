@@ -122,3 +122,13 @@ appwrite push all --all --force
 | `appwrite functions list-executions --function-id <ID>` | List recent executions |
 | `appwrite functions create-execution --function-id <ID>` | Trigger a function execution |
 | `appwrite functions get-execution --function-id <ID> --execution-id <ID>` | Get execution details |
+
+## Environment Variables
+
+| Command | Description |
+|---------|-------------|
+| `appwrite functions list-variables --function-id <ID>` | List all variables |
+| `appwrite functions create-variable --function-id <ID> --key <KEY> --value <VALUE>` | Create a variable |
+| `appwrite functions get-variable --function-id <ID> --variable-id <ID>` | Get a variable |
+| `appwrite functions update-variable --function-id <ID> --variable-id <ID> --key <KEY> --value <VALUE>` | Update a variable |
+| `appwrite functions delete-variable --function-id <ID> --variable-id <ID>` | Delete a variable |
