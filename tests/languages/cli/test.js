@@ -1,5 +1,6 @@
 const { execFileSync, execSync } = require("child_process");
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
 const Client = require("./lib/client.ts").default;
 const { parse } = require("./lib/parser.ts");
@@ -15,6 +16,8 @@ const {
   getFunctionDeploymentConsoleUrl,
   getSiteDeploymentConsoleUrl,
 } = require("./lib/utils.ts");
+const { EXECUTABLE_NAME } = require("./lib/constants.ts");
+const { isCompletionInvocation } = require("./lib/completions.ts");
 
 const extractFirstValue = (output) => {
   const firstLine =
@@ -34,6 +37,34 @@ const extractFirstValue = (output) => {
 };
 
 const stripAnsi = (value) => value.replace(/\u001b\[[0-9;]*m/g, "");
+
+const extractHelpCommands = (helpOutput) => {
+  const commandsIndex = helpOutput.indexOf("Commands:");
+
+  if (commandsIndex === -1) {
+    throw new Error(
+      `Expected help output to include a Commands section.\n${helpOutput}`,
+    );
+  }
+
+  return helpOutput
+    .slice(commandsIndex)
+    .split("\n")
+    .map((line) => line.match(/^\s{2}([a-zA-Z0-9-]+)\b/)?.[1])
+    .filter((commandName) => commandName && commandName !== "help");
+};
+
+const extractLineContaining = (output, token) => {
+  const line = output
+    .split("\n")
+    .find((candidate) => candidate.includes(token));
+
+  if (!line) {
+    throw new Error(`Expected output to include ${JSON.stringify(token)}.`);
+  }
+
+  return line.trim();
+};
 
 // Sync-only capture helper. The callback must complete all writes before it
 // returns, and async callbacks are rejected explicitly to avoid misleading
@@ -71,16 +102,144 @@ const captureStdoutSync = (callback) => {
   return stripAnsi(output).replace(/\r/g, "");
 };
 
+const withArgv = (args, callback) => {
+  const originalArgv = process.argv;
+
+  process.argv = ["bun", "./dist/cli.cjs", ...args];
+
+  try {
+    return callback();
+  } finally {
+    process.argv = originalArgv;
+  }
+};
+
 execSync(
   "bun ./dist/cli.cjs client --endpoint 'http://mockapi/v1' --project-id console --key=35y3h5h345 --self-signed true",
   { stdio: "inherit" },
 );
+
+const zshCompletionOutput = execSync("bun ./dist/cli.cjs completion zsh", {
+  stdio: "pipe",
+}).toString();
+const bashCompletionOutput = execSync("bun ./dist/cli.cjs completion bash", {
+  stdio: "pipe",
+}).toString();
+const fishCompletionOutput = execSync("bun ./dist/cli.cjs completion fish", {
+  stdio: "pipe",
+}).toString();
+const helpOutput = execSync("bun ./dist/cli.cjs --help", {
+  stdio: "pipe",
+}).toString();
+const completionFunctionName = `_${EXECUTABLE_NAME}`;
+const zshRegistrationToken = `compdef ${completionFunctionName} ${EXECUTABLE_NAME}`;
+const bashRegistrationToken =
+  `complete -F ${completionFunctionName}_completion ${EXECUTABLE_NAME}`;
+const fishRegistrationToken = `complete -c '${EXECUTABLE_NAME}'`;
+
+for (const commandName of extractHelpCommands(helpOutput)) {
+  if (!zshCompletionOutput.includes(`'${commandName}'`)) {
+    throw new Error(
+      `Expected zsh completion output to include top-level command ${commandName}.`,
+    );
+  }
+}
+
+for (const [shell, completionOutput, expectedToken] of [
+  ["zsh", zshCompletionOutput, zshRegistrationToken],
+  ["bash", bashCompletionOutput, bashRegistrationToken],
+  ["fish", fishCompletionOutput, fishRegistrationToken],
+]) {
+  if (!completionOutput.includes(expectedToken)) {
+    throw new Error(
+      `Expected ${shell} completion output to include ${JSON.stringify(expectedToken)}.`,
+    );
+  }
+}
+
+if (
+  !zshCompletionOutput.includes("'foo:get'") ||
+  !zshCompletionOutput.includes("'--verbose'") ||
+  !zshCompletionOutput.includes("'--x'")
+) {
+  throw new Error(
+    "Expected zsh completion output to include nested commands and flags.",
+  );
+}
+
+if (withArgv(["--id", "completion"], isCompletionInvocation)) {
+  throw new Error(
+    "Expected --id completion to be parsed as an id value, not a completion command.",
+  );
+}
+
+if (!withArgv(["--id=foo", "completion"], isCompletionInvocation)) {
+  throw new Error("Expected completion command after --id=foo to be detected.");
+}
+
+const completionHome = fs.mkdtempSync(
+  path.join(os.tmpdir(), `${EXECUTABLE_NAME}-completion-`),
+);
+try {
+  const installOutput = execFileSync(
+    "bun",
+    ["./dist/cli.cjs", "completion", "install"],
+    {
+      env: {
+        ...process.env,
+        HOME: completionHome,
+        SHELL: "/bin/zsh",
+      },
+      stdio: "pipe",
+    },
+  ).toString();
+  const installedCompletionPath = path.join(
+    completionHome,
+    ".zfunc",
+    completionFunctionName,
+  );
+  const installedCompletion = fs.readFileSync(installedCompletionPath, "utf8");
+
+  if (
+    !installOutput.includes(
+      `Installed zsh completion to ${installedCompletionPath}`,
+    )
+  ) {
+    throw new Error(`Unexpected completion install output: ${installOutput}`);
+  }
+
+  if (!installedCompletion.includes(zshRegistrationToken)) {
+    throw new Error(
+      "Expected completion install to write zsh completion script.",
+    );
+  }
+} finally {
+  fs.rmSync(completionHome, { recursive: true, force: true });
+}
 
 var output;
 console.log("\nTest Started");
 const sdkHeaders = new Client().getHeaders();
 console.log(
   `x-sdk-name: ${sdkHeaders["x-sdk-name"]}; x-sdk-platform: ${sdkHeaders["x-sdk-platform"]}; x-sdk-language: ${sdkHeaders["x-sdk-language"]}; x-sdk-version: ${sdkHeaders["x-sdk-version"]}`,
+);
+console.log(
+  extractLineContaining(zshCompletionOutput, zshRegistrationToken),
+);
+console.log(
+  extractLineContaining(
+    bashCompletionOutput,
+    bashRegistrationToken,
+  ),
+);
+console.log(
+  extractLineContaining(
+    fishCompletionOutput,
+    `${fishRegistrationToken} -f -n '__${EXECUTABLE_NAME}_using_command' -a`,
+  ),
+);
+console.log(
+  extractLineContaining(zshCompletionOutput, "'foo:get') context='foo get'"),
 );
 
 // Foo
@@ -359,13 +518,7 @@ console.log(extractFirstValue(output));
 try {
   execFileSync(
     "bun",
-    [
-      "./dist/cli.cjs",
-      "general",
-      "list-rows",
-      "--where",
-      "count>1e999",
-    ],
+    ["./dist/cli.cjs", "general", "list-rows", "--where", "count>1e999"],
     { stdio: "pipe" },
   );
   throw new Error("Expected non-finite numeric where values to be rejected.");
@@ -378,13 +531,7 @@ try {
 try {
   execFileSync(
     "bun",
-    [
-      "./dist/cli.cjs",
-      "general",
-      "list-rows",
-      "--where",
-      "count=[1e999]",
-    ],
+    ["./dist/cli.cjs", "general", "list-rows", "--where", "count=[1e999]"],
     { stdio: "pipe" },
   );
   throw new Error("Expected non-finite array where values to be rejected.");

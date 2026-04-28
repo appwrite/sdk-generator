@@ -57,6 +57,27 @@ $ brew install {{ language.params.homebrewTapOwner }}/{{ language.params.homebre
 
 Homebrew pulls the formula from the [`{{ language.params.homebrewTapOwner }}/homebrew-{{ language.params.homebrewTapName }}`](https://github.com/{{ language.params.homebrewTapOwner }}/homebrew-{{ language.params.homebrewTapName }}) tap and downloads the native binary for your platform.
 
+### Shell completion
+
+Install completion for your current shell:
+
+```bash
+{{ language.params.executableName|caseLower }} completion install
+```
+
+You can also generate or install completion scripts manually:
+
+```bash
+# zsh
+{{ language.params.executableName|caseLower }} completion install zsh
+# bash
+{{ language.params.executableName|caseLower }} completion install bash
+# fish
+{{ language.params.executableName|caseLower }} completion install fish
+```
+
+For zsh, ensure `~/.zfunc` is in your `fpath` and `compinit` is loaded from your shell config.
+
 ### Windows
 Via Powershell
 ```powershell

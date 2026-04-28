@@ -37,6 +37,7 @@ ARCH=""
 # Add some color to life
 RED='\033[0;31m'
 GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
 NC='\033[0m' # No Color
 
 greeting() {
@@ -49,7 +50,7 @@ EOF
 }
 
 getSystemInfo() {
-    echo "[1/4] Getting System Info ..."
+    echo "[1/5] Getting System Info ..."
     
     ARCH=$(uname -m)
     case $ARCH in
@@ -87,6 +88,10 @@ printSuccess() {
     printf "${GREEN}✅ Done ... ${NC}\n\n"
 }
 
+printSkipped() {
+    printf "${YELLOW}ℹ️  $1 ${NC}\n"
+}
+
 verifyMacOSCodeSignature() {
     if [ "$OS" != "darwin" ]; then
         return
@@ -107,7 +112,7 @@ verifyMacOSCodeSignature() {
 }
 
 downloadBinary() {
-    echo "[2/4] Downloading executable for $OS ($ARCH) ..."
+    echo "[2/5] Downloading executable for $OS ($ARCH) ..."
 
     GITHUB_LATEST_VERSION="{{ sdk.version }}"
     GITHUB_FILE="{{ language.params.npmPackage }}-${OS}-${ARCH}"
@@ -124,7 +129,7 @@ downloadBinary() {
 }
 
 install() {
-    echo "[3/4] Installing ..."
+    echo "[3/5] Installing ..."
 
     printf "${GREEN}🚧 Setting Permissions ${NC}\n"
     chmod +x ${{ spec.title | upper }}_TEMP_NAME
@@ -145,6 +150,22 @@ install() {
     printSuccess
 }
 
+installCompletions() {
+    echo "[4/5] Installing shell completions ..."
+
+    if ${{ spec.title | upper }}_EXECUTABLE_FILEPATH completion install; then
+        printSuccess
+        return
+    fi
+
+    printSkipped "Skipped shell completion installation. To install manually, run:"
+    echo "  ${{ spec.title | upper }}_EXECUTABLE_NAME completion install"
+    echo "  ${{ spec.title | upper }}_EXECUTABLE_NAME completion install zsh"
+    echo "  ${{ spec.title | upper }}_EXECUTABLE_NAME completion install bash"
+    echo "  ${{ spec.title | upper }}_EXECUTABLE_NAME completion install fish"
+    echo ""
+}
+
 cleanup() {
     printf "${GREEN}🧹 Cleaning up mess ... ${NC}\n"
     rm ${{ spec.title | upper }}_TEMP_NAME 
@@ -157,7 +178,7 @@ cleanup() {
 }
 
 installCompleted() {
-    echo "[4/4] Wrapping up installation ... "
+    echo "[5/5] Wrapping up installation ... "
     cleanup
     echo "🚀 To get started with {{ spec.title | caseUcfirst }} CLI, please visit {{ sdk.url }}/docs/command-line"
     echo "As first step, you can login to your {{ spec.title | caseUcfirst }} account using 'appwrite login'"
@@ -168,4 +189,5 @@ greeting
 getSystemInfo
 downloadBinary
 install
+installCompletions
 installCompleted
