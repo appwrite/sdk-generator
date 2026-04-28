@@ -411,6 +411,11 @@ class CLI extends Node
                 'template'      => 'cli/lib/config.ts',
             ],
             [
+                'scope'         => 'copy',
+                'destination'   => 'lib/completions.ts',
+                'template'      => 'cli/lib/completions.ts',
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => 'lib/constants.ts',
                 'template'      => 'cli/lib/constants.ts.twig',

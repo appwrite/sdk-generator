@@ -217,6 +217,13 @@ abstract class Base extends TestCase
         'x-sdk-name: cli; x-sdk-platform: server; x-sdk-language: cli; x-sdk-version: 0.0.1',
     ];
 
+    protected const CLI_COMPLETION_RESPONSES = [
+        'compdef _appwrite appwrite',
+        'complete -F _appwrite_completion appwrite',
+        'complete -c \'appwrite\' -f -n \'__appwrite_using_command\' -a \'bar client completion foo general\'',
+        '\'foo:get\') context=\'foo get\' ;;',
+    ];
+
     protected const CLI_TYPEGEN_RESPONSES = [
         'CLI_TYPEGEN:passed',
     ];

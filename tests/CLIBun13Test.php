@@ -25,6 +25,7 @@ class CLIBun13Test extends Base
         'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/sdks/cli oven/bun:1.3 bun test.js';
 
     protected array $expectedOutput = [
+        ...Base::CLI_COMPLETION_RESPONSES,
         ...Base::FOO_RESPONSES,
         ...Base::BAR_RESPONSES,
         ...Base::GENERAL_RESPONSES,
