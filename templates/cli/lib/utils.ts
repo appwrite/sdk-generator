@@ -246,14 +246,25 @@ export const getInstalledHomebrewFormula = (
       },
     );
     const formulaName = EXECUTABLE_NAME.toLowerCase();
-    const supportedFormulas = new Set([HOMEBREW_FORMULA, formulaName]);
+    const preferredFormulas = new Set([HOMEBREW_FORMULA, formulaName]);
+    const installedFormulas = output
+      .split(/\r?\n/)
+      .map((formula) => formula.trim())
+      .filter((formula) => formula.length > 0);
 
-    return (
-      output
-        .split(/\r?\n/)
-        .map((formula) => formula.trim())
-        .find((formula) => supportedFormulas.has(formula)) ?? null
+    const preferred = installedFormulas.find((formula) =>
+      preferredFormulas.has(formula),
     );
+    if (preferred) {
+      return preferred;
+    }
+
+    const tapMatch = installedFormulas.find((formula) => {
+      const segments = formula.split("/");
+      return segments[segments.length - 1] === formulaName;
+    });
+
+    return tapMatch ?? null;
   } catch (_error) {
     return null;
   }

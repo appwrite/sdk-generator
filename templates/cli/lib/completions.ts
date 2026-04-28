@@ -550,8 +550,18 @@ export function createCompletionCommand(rootCommand: Command): Command {
         return;
       }
 
-      const installPath = installCompletion(rootCommand, shell);
-      process.stdout.write(`Installed ${shell} completion to ${installPath}\n`);
+      try {
+        const installPath = installCompletion(rootCommand, shell);
+        process.stdout.write(
+          `Installed ${shell} completion to ${installPath}\n`,
+        );
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        process.stderr.write(
+          `Failed to install ${shell} completion: ${message}\n`,
+        );
+        process.exitCode = 1;
+      }
     });
 
   for (const shell of SUPPORTED_COMPLETION_SHELLS) {
