@@ -21,7 +21,7 @@ export const NPM_PACKAGE_NAME = '{{ language.params.npmPackage|caseDash }}';
 export const NPM_REGISTRY_URL = `https://registry.npmjs.org/${NPM_PACKAGE_NAME}/latest`;
 
 // GitHub
-export const GITHUB_REPO = 'appwrite/{{ language.params.npmPackage|caseDash }}';
+export const GITHUB_REPO = '{{ sdk.gitUserName }}/{{ sdk.gitRepoName|caseDash }}';
 export const GITHUB_RELEASES_URL = `https://github.com/${GITHUB_REPO}/releases`;
 
 // API
