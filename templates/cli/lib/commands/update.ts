@@ -11,6 +11,7 @@ import {
   getLatestVersionForInstallation,
   compareVersions,
   getErrorMessage,
+  getInstalledHomebrewFormula,
 } from "../utils.js";
 import {
   EXECUTABLE_NAME,
@@ -136,6 +137,31 @@ const execCommand = (
   });
 };
 
+const getHomebrewFormulaForUpdate = (): string => {
+  return getInstalledHomebrewFormula() ?? HOMEBREW_FORMULA;
+};
+
+const getHomebrewFormulaForManualInstructions = (): string => {
+  if (process.platform === "win32") {
+    return HOMEBREW_FORMULA;
+  }
+
+  return getHomebrewFormulaForUpdate();
+};
+
+const showHomebrewTapRecommendation = (formulaName: string): void => {
+  if (formulaName === HOMEBREW_FORMULA) {
+    return;
+  }
+
+  warn(
+    `Detected ${chalk.bold(formulaName)} from Homebrew. For faster native binaries, we recommend using the official Appwrite tap.`,
+  );
+  hint(
+    `To use the official Appwrite tap, run: brew install ${HOMEBREW_FORMULA}`,
+  );
+};
+
 /**
  * Update via npm
  */
@@ -163,9 +189,16 @@ const updateViaNpm = async (): Promise<void> => {
 /**
  * Update via Homebrew
  */
-const updateViaHomebrew = async (): Promise<void> => {
+const updateViaHomebrew = async (
+  formulaName: string = getHomebrewFormulaForUpdate(),
+  options: { showRecommendation?: boolean } = {},
+): Promise<void> => {
   try {
-    await execCommand("brew", ["upgrade", HOMEBREW_FORMULA]);
+    if (options.showRecommendation ?? true) {
+      showHomebrewTapRecommendation(formulaName);
+    }
+
+    await execCommand("brew", ["upgrade", formulaName]);
     console.log("");
     success("Updated to latest version via Homebrew!");
     hint(`Run '${EXECUTABLE_NAME} --version' to verify the new version.`);
@@ -184,7 +217,7 @@ const updateViaHomebrew = async (): Promise<void> => {
     } else {
       console.log("");
       error(`Failed to update via Homebrew: ${message}`);
-      hint(`Try running: brew upgrade ${HOMEBREW_FORMULA}`);
+      hint(`Try running: brew upgrade ${formulaName}`);
     }
   }
 };
@@ -196,7 +229,7 @@ const updateViaStandaloneBinary = async (
   latestVersion: string,
 ): Promise<void> => {
   if (process.platform === "win32") {
-    showManualInstructions(latestVersion);
+    showManualInstructions(latestVersion, HOMEBREW_FORMULA);
     return;
   }
 
@@ -252,7 +285,10 @@ const updateViaStandaloneBinary = async (
 /**
  * Show manual update instructions
  */
-const showManualInstructions = (latestVersion: string): void => {
+const showManualInstructions = (
+  latestVersion: string,
+  homebrewFormula: string = getHomebrewFormulaForManualInstructions(),
+): void => {
   log("Manual update options:");
   console.log("");
 
@@ -261,7 +297,13 @@ const showManualInstructions = (latestVersion: string): void => {
   console.log("");
 
   log(`${chalk.bold("Option 2: Homebrew")}`);
-  console.log(`  brew upgrade ${HOMEBREW_FORMULA}`);
+  console.log(`  brew upgrade ${homebrewFormula}`);
+  if (homebrewFormula !== HOMEBREW_FORMULA) {
+    console.log("");
+    hint(
+      `For faster native binaries from the official Appwrite tap, run: brew install ${HOMEBREW_FORMULA}`,
+    );
+  }
   console.log("");
 
   if (process.platform !== "win32") {
@@ -347,8 +389,14 @@ interface UpdateOptions {
 const updateCli = async ({ manual }: UpdateOptions = {}): Promise<void> => {
   try {
     const installationMethod = detectInstallationMethod();
-    const latestVersion =
-      await getLatestVersionForInstallation(installationMethod);
+    const homebrewFormula =
+      installationMethod === "homebrew" ? getHomebrewFormulaForUpdate() : null;
+    const latestVersion = await getLatestVersionForInstallation(
+      installationMethod,
+      {
+        homebrewFormula: homebrewFormula ?? undefined,
+      },
+    );
 
     const comparison = compareVersions(version, latestVersion);
 
@@ -365,22 +413,28 @@ const updateCli = async ({ manual }: UpdateOptions = {}): Promise<void> => {
       return;
     }
 
+    if (manual) {
+      showManualInstructions(latestVersion, homebrewFormula ?? undefined);
+      return;
+    }
+
+    if (homebrewFormula) {
+      showHomebrewTapRecommendation(homebrewFormula);
+    }
+
     log(
       `Updating from ${chalk.blue(version)} to ${chalk.green(latestVersion)}...`,
     );
     console.log("");
-
-    if (manual) {
-      showManualInstructions(latestVersion);
-      return;
-    }
 
     switch (installationMethod) {
       case "npm":
         await updateViaNpm();
         break;
       case "homebrew":
-        await updateViaHomebrew();
+        await updateViaHomebrew(homebrewFormula ?? undefined, {
+          showRecommendation: false,
+        });
         break;
       case "standalone":
         await updateViaStandaloneBinary(latestVersion);
