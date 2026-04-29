@@ -30,6 +30,7 @@ mixin RealtimeMixin {
   late Client client;
   final Map<String, RealtimeSubscription> _subscriptions = {};
   final Map<String, Map<String, dynamic>> _pendingSubscribes = {};
+  final List<Completer<Map<String, dynamic>>> _pendingPresenceRequests = [];
   WebSocketChannel? _websok;
   String? _lastUrl;
   late WebSocketFactory getWebSocket;
@@ -127,6 +128,24 @@ mixin RealtimeMixin {
             _startHeartbeat(); // Start heartbeat after successful connection
             break;
           case 'response':
+            final responseData = data.data is Map<String, dynamic>
+                ? data.data as Map<String, dynamic>
+                : null;
+            if (responseData != null && responseData['to'] == 'presence') {
+              final presence = responseData['presence'];
+              if (presence is Map<String, dynamic>) {
+                // Presence responses arrive in the same order as the requests
+                // on a single websocket, so a FIFO queue is enough to correlate
+                // them.
+                if (_pendingPresenceRequests.isNotEmpty) {
+                  final completer = _pendingPresenceRequests.removeAt(0);
+                  if (!completer.isCompleted) {
+                    completer.complete(presence);
+                  }
+                }
+              }
+              break;
+            }
             // The SDK generates subscriptionIds client-side and sends them on
             // every subscribe/unsubscribe, so subscribe/unsubscribe acks carry
             // no state the SDK needs to reconcile.
@@ -353,10 +372,62 @@ mixin RealtimeMixin {
   }
 
   void handleError(RealtimeResponse response) {
+    // Server errors are not correlated with a specific request, so reject
+    // every in-flight presence request to avoid leaving futures hanging.
+    if (_pendingPresenceRequests.isNotEmpty) {
+      final ex = {{spec.title | caseUcfirst}}Exception(
+        response.data["message"],
+        response.data["code"],
+      );
+      final pending = List<Completer<Map<String, dynamic>>>.from(_pendingPresenceRequests);
+      _pendingPresenceRequests.clear();
+      for (final completer in pending) {
+        if (!completer.isCompleted) {
+          completer.completeError(ex);
+        }
+      }
+    }
+
     if (response.data['code'] == status.policyViolation) {
       throw {{spec.title | caseUcfirst}}Exception(response.data["message"], response.data["code"]);
     } else {
       _retry();
     }
+  }
+
+  /// Create or upsert a presence entry for the current authenticated user
+  /// over the existing realtime connection.
+  ///
+  /// Requires an authenticated user and an open WebSocket connection
+  /// (subscribe to a channel first if you don't have one yet).
+  Future<Map<String, dynamic>> createPresenceTo({
+    required String status,
+    List<String>? permissions,
+    Map<String, dynamic>? metadata,
+    String? presenceId,
+  }) async {
+    final ws = _websok;
+    if (ws == null || ws.closeCode != null) {
+      throw {{spec.title | caseUcfirst}}Exception(
+        'Realtime connection is not open. Subscribe to a channel first.',
+      );
+    }
+
+    final data = <String, dynamic>{'status': status};
+    if (permissions != null) data['permissions'] = permissions;
+    if (metadata != null) data['metadata'] = metadata;
+    if (presenceId != null) data['presenceId'] = presenceId;
+
+    final completer = Completer<Map<String, dynamic>>();
+    _pendingPresenceRequests.add(completer);
+
+    try {
+      ws.sink.add(jsonEncode({'type': 'presence', 'data': data}));
+    } catch (e) {
+      _pendingPresenceRequests.remove(completer);
+      rethrow;
+    }
+
+    return completer.future;
   }
 }

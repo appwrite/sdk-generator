@@ -21,9 +21,11 @@ open class Realtime : Service {
     private var socketClient: WebSocketClient? = nil
     private var activeSubscriptions = [String: RealtimeCallback]()
     private var pendingSubscribes = [String: [String: Any]]()
+    private var pendingPresenceRequests: [CheckedContinuation<[String: Any], Swift.Error>] = []
     private var heartbeatTask: Task<Void, Swift.Error>? = nil
 
     let connectSync = DispatchQueue(label: "ConnectSync")
+    let presenceSync = DispatchQueue(label: "PresenceSync")
 
     private var subCallDepth = 0
     private var reconnectAttempts = 0
@@ -196,6 +198,57 @@ open class Realtime : Service {
         return channel.toString()
     }
 
+    /// Create or upsert a presence entry for the current authenticated user
+    /// over the existing realtime connection.
+    ///
+    /// Requires an authenticated user and an open WebSocket connection
+    /// (subscribe to a channel first if you don't have one yet).
+    ///
+    /// - Parameters:
+    ///   - status: The presence status (required).
+    ///   - permissions: Optional permission list to attach to the presence document.
+    ///   - metadata: Optional metadata payload.
+    ///   - presenceId: Optional presence ID. Defaults server-side to a new unique ID.
+    /// - Returns: The created or updated presence document as a dictionary.
+    public func createPresence(
+        status: String,
+        permissions: [String]? = nil,
+        metadata: [String: Any]? = nil,
+        presenceId: String? = nil
+    ) async throws -> [String: Any] {
+        guard let ws = socketClient, ws.isConnected else {
+            throw {{ spec.title | caseUcfirst }}Error(message: "Realtime connection is not open. Subscribe to a channel first.")
+        }
+
+        var data: [String: Any] = ["status": status]
+        if let permissions = permissions {
+            data["permissions"] = permissions
+        }
+        if let metadata = metadata {
+            data["metadata"] = metadata
+        }
+        if let presenceId = presenceId {
+            data["presenceId"] = presenceId
+        }
+
+        let payload: [String: Any] = [
+            "type": "presence",
+            "data": data
+        ]
+
+        guard let jsonData = try? JSONSerialization.data(withJSONObject: payload),
+              let text = String(data: jsonData, encoding: .utf8) else {
+            throw {{ spec.title | caseUcfirst }}Error(message: "Failed to encode presence payload")
+        }
+
+        return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<[String: Any], Swift.Error>) in
+            presenceSync.sync {
+                pendingPresenceRequests.append(continuation)
+            }
+            ws.send(text: text)
+        }
+    }
+
     public func subscribe(
         channel: ChannelValue,
         callback: @escaping (RealtimeResponseEvent) -> Void,
@@ -360,6 +413,21 @@ extension Realtime: WebSocketClientDelegate {
     }
 
     private func handleResponseAction(from json: [String: Any]) {
+        if let data = json["data"] as? [String: Any],
+           let to = data["to"] as? String,
+           to == "presence",
+           let presence = data["presence"] as? [String: Any] {
+            // Presence responses arrive in the same order as the requests on a
+            // single websocket, so a FIFO queue is enough to correlate them.
+            var continuation: CheckedContinuation<[String: Any], Swift.Error>?
+            presenceSync.sync {
+                if !pendingPresenceRequests.isEmpty {
+                    continuation = pendingPresenceRequests.removeFirst()
+                }
+            }
+            continuation?.resume(returning: presence)
+            return
+        }
         // The SDK generates subscriptionIds client-side and sends them on every
         // subscribe/unsubscribe, so subscribe/unsubscribe acks carry no state
         // the SDK needs to reconcile.
@@ -421,7 +489,21 @@ extension Realtime: WebSocketClientDelegate {
     }
 
     func handleResponseError(from json: [String: Any]) throws {
-        throw {{ spec.title | caseUcfirst }}Error(message: json["message"] as? String ?? "Unknown error")
+        let message = json["message"] as? String ?? "Unknown error"
+        let error = {{ spec.title | caseUcfirst }}Error(message: message)
+
+        // Server errors are not correlated with a specific request, so reject
+        // every in-flight presence request to avoid leaving continuations hanging.
+        var pending: [CheckedContinuation<[String: Any], Swift.Error>] = []
+        presenceSync.sync {
+            pending = pendingPresenceRequests
+            pendingPresenceRequests.removeAll()
+        }
+        for continuation in pending {
+            continuation.resume(throwing: error)
+        }
+
+        throw error
     }
 
     func handleResponseEvent(from json: [String: Any]) {
