@@ -36,14 +36,14 @@ class CodexPlugin extends AgentSkills
         foreach ($languages as $lang) {
             $files[] = [
                 'scope'       => 'default',
-                'destination' => 'skills/{{ spec.title | caseLower }}-' . $lang . '/SKILL.md',
+                'destination' => 'plugins/{{ spec.title | caseLower }}/skills/{{ spec.title | caseLower }}-' . $lang . '/SKILL.md',
                 'template'    => 'agent-skills/' . $lang . '.md.twig',
             ];
         }
 
         $files[] = [
             'scope'       => 'default',
-            'destination' => '.codex-plugin/plugin.json',
+            'destination' => 'plugins/{{ spec.title | caseLower }}/.codex-plugin/plugin.json',
             'template'    => 'codex-plugin/plugin.json.twig',
         ];
 
@@ -55,25 +55,25 @@ class CodexPlugin extends AgentSkills
 
         $files[] = [
             'scope'       => 'default',
-            'destination' => '.mcp.json',
+            'destination' => 'plugins/{{ spec.title | caseLower }}/.mcp.json',
             'template'    => 'codex-plugin/.mcp.json.twig',
         ];
 
         $files[] = [
             'scope'       => 'default',
-            'destination' => 'skills/{{ spec.title | caseLower }}-deploy-site/SKILL.md',
+            'destination' => 'plugins/{{ spec.title | caseLower }}/skills/{{ spec.title | caseLower }}-deploy-site/SKILL.md',
             'template'    => 'codex-plugin/skills/deploy-site.md.twig',
         ];
 
         $files[] = [
             'scope'       => 'default',
-            'destination' => 'skills/{{ spec.title | caseLower }}-deploy-function/SKILL.md',
+            'destination' => 'plugins/{{ spec.title | caseLower }}/skills/{{ spec.title | caseLower }}-deploy-function/SKILL.md',
             'template'    => 'codex-plugin/skills/deploy-function.md.twig',
         ];
 
         $files[] = [
             'scope'       => 'default',
-            'destination' => 'config.toml',
+            'destination' => 'plugins/{{ spec.title | caseLower }}/config.toml',
             'template'    => 'codex-plugin/config.toml.twig',
         ];
 
