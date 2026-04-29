@@ -322,7 +322,6 @@ class Client
         if (curl_errno($ch)) {
             throw new {{ spec.namespace | split('\\') | last | caseUcfirst}}Exception(curl_error($ch), $responseStatus, $responseBody['type'] ?? '', $responseBody);
         }
-        
 
         if($responseStatus >= 400) {
             if(is_array($responseBody)) {
