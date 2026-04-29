@@ -25,6 +25,7 @@ skills/                                  # Codex skills (auto-loaded by descript
 |-- {{ spec.title | caseLower }}-deploy-site/SKILL.md
 `-- {{ spec.title | caseLower }}-deploy-function/SKILL.md
 .codex-plugin/plugin.json                # Codex plugin manifest
+.agents/plugins/marketplace.json         # Local marketplace manifest
 .mcp.json                                # MCP server config for plugin installs
 config.toml                              # MCP server config snippet for manual installs
 ```
@@ -32,6 +33,8 @@ config.toml                              # MCP server config snippet for manual 
 ## Installation
 
 Codex plugins include a `.codex-plugin/plugin.json` manifest for plugin installation. For manual installs, Codex CLI loads skills from `~/.codex/skills/` and reads MCP server configuration from `~/.codex/config.toml`. Install the generated files manually by copying them into those locations.
+
+To install through a local Codex marketplace, add this directory as a marketplace source using the generated `.agents/plugins/marketplace.json` file.
 
 ### macOS / Linux
 

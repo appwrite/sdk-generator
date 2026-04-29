@@ -49,6 +49,12 @@ class CodexPlugin extends AgentSkills
 
         $files[] = [
             'scope'       => 'default',
+            'destination' => '.agents/plugins/marketplace.json',
+            'template'    => 'codex-plugin/marketplace.json.twig',
+        ];
+
+        $files[] = [
+            'scope'       => 'default',
             'destination' => '.mcp.json',
             'template'    => 'codex-plugin/.mcp.json.twig',
         ];

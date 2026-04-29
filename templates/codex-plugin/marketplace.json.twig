@@ -1,0 +1,20 @@
+{
+    "name": "{{ spec.title | caseLower }}",
+    "interface": {
+        "displayName": "{{ spec.title }}"
+    },
+    "plugins": [
+        {
+            "name": "{{ spec.title | caseLower }}",
+            "source": {
+                "source": "local",
+                "path": "./"
+            },
+            "policy": {
+                "installation": "AVAILABLE",
+                "authentication": "ON_INSTALL"
+            },
+            "category": "Developer Tools"
+        }
+    ]
+}
