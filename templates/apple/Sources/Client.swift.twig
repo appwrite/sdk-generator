@@ -38,6 +38,10 @@ open class Client {
 
     internal var selfSigned: Bool = false
 
+    internal var compression: Bool = true
+
+    internal var compressionHeaderInjected: Bool = false
+
     internal var http: HTTPClient
 
     private static let boundaryChars = "abcdefghijklmnopqrstuvwxyz1234567890"
@@ -56,6 +60,7 @@ open class Client {
 
     private static func createHTTP(
         selfSigned: Bool = false,
+        compression: Bool = true,
         maxRedirects: Int = 5,
         alloweRedirectCycles: Bool = false,
         connectTimeout: TimeAmount = .seconds(30),
@@ -82,7 +87,7 @@ open class Client {
                 tlsConfiguration: tls,
                 redirectConfiguration: redirect,
                 timeout: timeout,
-                decompression: .enabled(limit: .none)
+                decompression: compression ? .enabled(limit: .none) : .disabled
             )
         )
     }
@@ -125,7 +130,37 @@ open class Client {
     open func setSelfSigned(_ status: Bool = true) -> Client {
         self.selfSigned = status
         try! http.syncShutdown()
-        http = Client.createHTTP(selfSigned: status)
+        http = Client.createHTTP(selfSigned: status, compression: compression)
+        return self
+    }
+
+    ///
+    /// Enable or disable automatic response decompression.
+    ///
+    /// When disabled, the client asks the server for an identity response
+    /// encoding and does not attempt to decompress response bodies. This can
+    /// be useful when a server or proxy returns compressed responses that the
+    /// underlying HTTP client cannot decode.
+    ///
+    /// @param Bool status Whether response decompression should be enabled.
+    ///
+    /// @return Client The same client instance.
+    ///
+    open func setCompression(_ status: Bool = true) -> Client {
+        self.compression = status
+
+        if status {
+            if compressionHeaderInjected && self.headers["accept-encoding"] == "identity" {
+                self.headers.removeValue(forKey: "accept-encoding")
+            }
+            self.compressionHeaderInjected = false
+        } else {
+            self.headers["accept-encoding"] = "identity"
+            self.compressionHeaderInjected = true
+        }
+
+        try! http.syncShutdown()
+        http = Client.createHTTP(selfSigned: selfSigned, compression: status)
         return self
     }
 
@@ -174,6 +209,10 @@ open class Client {
     /// @return Client
     ///
     open func addHeader(key: String, value: String) -> Client {
+        if key.caseInsensitiveCompare("accept-encoding") == .orderedSame {
+            self.compressionHeaderInjected = false
+        }
+
         self.headers[key] = value
         return self
     }
