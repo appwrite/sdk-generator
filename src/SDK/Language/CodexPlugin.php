@@ -37,7 +37,7 @@ class CodexPlugin extends AgentSkills
             $files[] = [
                 'scope'       => 'default',
                 'destination' => 'skills/{{ spec.title | caseLower }}-' . $lang . '/SKILL.md',
-                'template'    => 'codex-plugin/skills/' . $lang . '.md.twig',
+                'template'    => 'agent-skills/' . $lang . '.md.twig',
             ];
         }
 
