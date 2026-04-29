@@ -44,9 +44,14 @@ export default {
             tsconfig: './tsconfig.json',
             noEmitOnError: false,
             compilerOptions: {
+                allowJs: true,
                 declaration: false,
                 declarationMap: false,
+                outDir: 'dist',
+                rootDir: '.',
             },
+            include: ['src/**/*.ts', 'browser.js'],
+            exclude: ['node_modules/**', 'dist/**'],
         }),
     ],
 };

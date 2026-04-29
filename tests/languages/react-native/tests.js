@@ -27,9 +27,15 @@ server.listen(3000, async () => {
     });
     await page.goto('http://localhost:3000');
 
-    setTimeout(async () => {
-        await browser.close();
-        server.close();
-        exit(0);
-    }, 20000);
+    try {
+        await page.waitForFunction(() => window.__APPWRITE_TEST_DONE__ === true, {
+            timeout: 20000,
+        });
+    } catch (e) {
+        console.log('TEST RUNNER TIMEOUT: ' + e.message);
+    }
+
+    await browser.close();
+    server.close();
+    exit(0);
 });
