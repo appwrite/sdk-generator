@@ -10,7 +10,7 @@
 ## Structure
 
 ```text
-skills/                                  # Codex skills (auto-loaded by description match)
+plugins/{{ spec.title | caseLower }}/skills/                       # Codex skills (auto-loaded by description match)
 |-- {{ spec.title | caseLower }}-typescript/SKILL.md
 |-- {{ spec.title | caseLower }}-dart/SKILL.md
 |-- {{ spec.title | caseLower }}-kotlin/SKILL.md
@@ -24,10 +24,10 @@ skills/                                  # Codex skills (auto-loaded by descript
 |-- {{ spec.title | caseLower }}-cli/SKILL.md
 |-- {{ spec.title | caseLower }}-deploy-site/SKILL.md
 `-- {{ spec.title | caseLower }}-deploy-function/SKILL.md
-.codex-plugin/plugin.json                # Codex plugin manifest
+plugins/{{ spec.title | caseLower }}/.codex-plugin/plugin.json     # Codex plugin manifest
 .agents/plugins/marketplace.json         # Local marketplace manifest
-.mcp.json                                # MCP server config for plugin installs
-config.toml                              # MCP server config snippet for manual installs
+plugins/{{ spec.title | caseLower }}/.mcp.json                     # MCP server config for plugin installs
+plugins/{{ spec.title | caseLower }}/config.toml                   # MCP server config snippet for manual installs
 ```
 
 ## Installation
@@ -41,11 +41,11 @@ To install through a local Codex marketplace, add this directory as a marketplac
 ```sh
 # Copy skills
 mkdir -p ~/.codex/skills
-cp -R skills/* ~/.codex/skills/
+cp -R plugins/{{ spec.title | caseLower }}/skills/* ~/.codex/skills/
 
 # Append the MCP config snippet to your Codex config
 mkdir -p ~/.codex
-cat config.toml >> ~/.codex/config.toml
+cat plugins/{{ spec.title | caseLower }}/config.toml >> ~/.codex/config.toml
 ```
 
 ### Windows (PowerShell)
@@ -53,18 +53,18 @@ cat config.toml >> ~/.codex/config.toml
 ```powershell
 # Copy skills
 New-Item -ItemType Directory -Force -Path "$HOME\.codex\skills" | Out-Null
-Copy-Item -Recurse skills\* "$HOME\.codex\skills\"
+Copy-Item -Recurse plugins\{{ spec.title | caseLower }}\skills\* "$HOME\.codex\skills\"
 
 # Append the MCP config snippet to your Codex config
 New-Item -ItemType Directory -Force -Path "$HOME\.codex" | Out-Null
-Get-Content config.toml | Add-Content "$HOME\.codex\config.toml"
+Get-Content plugins\{{ spec.title | caseLower }}\config.toml | Add-Content "$HOME\.codex\config.toml"
 ```
 
 After copying `config.toml`, edit `~/.codex/config.toml` and replace `<PROJECT_ID>`, `<API_KEY>`, and the `<REGION>` portion of the endpoint with your {{ spec.title }} credentials.
 
 ## Included Skills
 
-Each skill ships as `skills/{{ spec.title | caseLower }}-<language>/SKILL.md`. Codex loads them based on the `description` field in the frontmatter, so they activate automatically when a session is about Appwrite work in that language:
+Each skill ships as `plugins/{{ spec.title | caseLower }}/skills/{{ spec.title | caseLower }}-<language>/SKILL.md`. Codex loads them based on the `description` field in the frontmatter, so they activate automatically when a session is about Appwrite work in that language:
 
 - `{{ spec.title | caseLower }}-typescript`
 - `{{ spec.title | caseLower }}-dart`
@@ -93,7 +93,7 @@ Use these to walk through deploying {{ spec.title }} sites and functions with th
 
 ## Included MCP Servers
 
-The bundled `config.toml` registers two MCP servers:
+The bundled `plugins/{{ spec.title | caseLower }}/config.toml` registers two MCP servers:
 
 - `{{ spec.title | caseLower }}-api` runs `uvx mcp-server-appwrite` against your project. Set `{{ spec.title | caseUpper }}_ENDPOINT`, `{{ spec.title | caseUpper }}_PROJECT_ID`, and `{{ spec.title | caseUpper }}_API_KEY` in the `env` block.
 - `{{ spec.title | caseLower }}-docs` proxies `https://mcp-for-docs.appwrite.io` through `npx mcp-remote` so Codex can search the {{ spec.title }} documentation.
