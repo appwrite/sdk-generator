@@ -18,7 +18,7 @@
 {% set hasMixedTier = hasClientTier and hasServerTier %}
 {% set hasUpload = uploadFlag|length > 0 %}
 import { Service } from '../service';
-import { {{ spec.title | caseUcfirst}}Exception, Client, type ClientAuth, type AdminAuth, type BrowserAuth, type Payload{% if hasUpload %}, UploadProgress{% endif %} } from '../client';
+import { {{ spec.title | caseUcfirst}}Exception, Client, {% if hasMixedTier %}type ClientAuth, {% endif %}{% if hasServerTier %}type AdminAuth, {% endif %}{% if hasClientTier %}type BrowserAuth, {% endif %}type Payload{% if hasUpload %}, UploadProgress{% endif %} } from '../client';
 import type { Models } from '../models';
 
 {% set added = [] %}
