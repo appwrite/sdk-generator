@@ -1,6 +1,8 @@
 {# Detect service shape and imports before emitting TypeScript. #}
 {% set tierFlag = [] %}
 {% set serverFlag = [] %}
+{% set adminAuthFlag = [] %}
+{% set browserAuthFlag = [] %}
 {% set uploadFlag = [] %}
 {% for m in service.methods %}
 {% if 'client' in m.platforms %}
@@ -9,6 +11,12 @@
 {% if 'server' in m.platforms or 'console' in m.platforms %}
 {% set serverFlag = serverFlag|merge([1]) %}
 {% endif %}
+{% if ('server' in m.platforms or 'console' in m.platforms) and 'client' not in m.platforms %}
+{% set adminAuthFlag = adminAuthFlag|merge([1]) %}
+{% endif %}
+{% if 'client' in m.platforms and 'server' not in m.platforms and 'console' not in m.platforms %}
+{% set browserAuthFlag = browserAuthFlag|merge([1]) %}
+{% endif %}
 {% if 'multipart/form-data' in m.consumes %}
 {% set uploadFlag = uploadFlag|merge([1]) %}
 {% endif %}
@@ -16,9 +24,11 @@
 {% set hasClientTier = tierFlag|length > 0 %}
 {% set hasServerTier = serverFlag|length > 0 %}
 {% set hasMixedTier = hasClientTier and hasServerTier %}
+{% set needsAdminAuth = hasServerTier and (not hasMixedTier or adminAuthFlag|length > 0) %}
+{% set needsBrowserAuth = hasClientTier and (not hasMixedTier or browserAuthFlag|length > 0) %}
 {% set hasUpload = uploadFlag|length > 0 %}
 import { Service } from '../service';
-import { {{ spec.title | caseUcfirst}}Exception, Client, {% if hasMixedTier %}type ClientAuth, {% endif %}{% if hasServerTier %}type AdminAuth, {% endif %}{% if hasClientTier %}type BrowserAuth, {% endif %}type Payload{% if hasUpload %}, UploadProgress{% endif %} } from '../client';
+import { {{ spec.title | caseUcfirst}}Exception, Client, {% if hasMixedTier %}type ClientAuth, {% endif %}{% if needsAdminAuth %}type AdminAuth, {% endif %}{% if needsBrowserAuth %}type BrowserAuth, {% endif %}type Payload{% if hasUpload %}, UploadProgress{% endif %} } from '../client';
 import type { Models } from '../models';
 
 {% set added = [] %}
