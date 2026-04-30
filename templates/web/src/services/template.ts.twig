@@ -63,7 +63,7 @@ export class {{ service.name | caseUcfirst }} {
     {%~ if hasMixedTier %}
     {%~ if (method.type == 'location' or method.type == 'webAuth') and not methodSupportsClient %}
     {%~ set thisGate = 'this: ' ~ (service.name | caseUcfirst) ~ '<AdminAuth>, ' %}
-    {%~ elseif method.type == 'location' or method.type == 'webAuth' %}
+    {%~ elseif (method.type == 'location' or method.type == 'webAuth') and not methodSupportsServer %}
     {%~ set thisGate = 'this: ' ~ (service.name | caseUcfirst) ~ '<BrowserAuth>, ' %}
     {%~ elseif not methodSupportsClient %}
     {%~ set thisGate = 'this: ' ~ (service.name | caseUcfirst) ~ '<AdminAuth>, ' %}
