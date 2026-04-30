@@ -346,8 +346,8 @@ class {{spec.title | caseUcfirst}}Exception extends Error {
  */
 type ClientRuntime = 'browser' | 'server';
 type ClientAuth = 'anonymous' | 'session' | 'jwt' | 'apiKey' | 'devKey' | 'impersonation';
-type AdminAuth = 'apiKey' | 'devKey';
-type BrowserAuth = 'anonymous' | 'session' | 'jwt' | 'impersonation';
+type AdminAuth = 'apiKey';
+type BrowserAuth = 'anonymous' | 'session' | 'jwt' | 'devKey' | 'impersonation';
 
 type BaseClientParams = {
     endpoint: string;
@@ -471,7 +471,7 @@ class Client<TAuth extends ClientAuth = 'anonymous'> {
 
     static fromDevKey(params: DevKeyClientParams): Client<'devKey'> {
         return new Client<'devKey'>()
-            .applyBase<'devKey'>(params, 'server')
+            .applyBase<'devKey'>(params, 'browser')
             .setDevKey(params.devKey);
     }
 
@@ -622,8 +622,8 @@ class Client<TAuth extends ClientAuth = 'anonymous'> {
     setDevKey(value: string): Client<'devKey'> {
         this.headers['X-{{ spec.title | caseUcfirst }}-Dev-Key'] = value;
         this.config.devkey = value;
-        this.runtime = 'server';
-        this.headers['x-sdk-platform'] = 'server';
+        this.runtime = 'browser';
+        this.headers['x-sdk-platform'] = 'client';
         return this as unknown as Client<'devKey'>;
     }
 
