@@ -70,7 +70,7 @@ class {{ definition.name | caseUcfirst }}(AppwriteModel{% if isGeneric %}, Gener
         internal_fields = {k: v for k, v in data.items() if k.startswith('$')}
         user_data = {k: v for k, v in data.items() if not k.startswith('$')}
         instance = cls.model_validate(internal_fields)
-        instance._data = model_type(**user_data) if model_type is not dict else user_data
+        instance._{{ definition.additionalPropertiesKey | default('data') | caseSnake }} = model_type(**user_data) if model_type is not dict else user_data
         return instance
 {% else %}
         instance = cls.model_validate(data)
@@ -94,24 +94,24 @@ class {{ definition.name | caseUcfirst }}(AppwriteModel{% if isGeneric %}, Gener
 {% endif %}
 {% if definition.additionalProperties %}
 
-    _data: Any = PrivateAttr(default_factory=dict)
+    _{{ definition.additionalPropertiesKey | default('data') | caseSnake }}: Any = PrivateAttr(default_factory=dict)
 
     @property
-    def data(self) -> T:
-        return cast(T, self._data)
+    def {{ definition.additionalPropertiesKey | default('data') | caseSnake }}(self) -> T:
+        return cast(T, self._{{ definition.additionalPropertiesKey | default('data') | caseSnake }})
 
-    @data.setter
-    def data(self, value: T) -> None:
-        object.__setattr__(self, '_data', value)
+    @{{ definition.additionalPropertiesKey | default('data') | caseSnake }}.setter
+    def {{ definition.additionalPropertiesKey | default('data') | caseSnake }}(self, value: T) -> None:
+        object.__setattr__(self, '_{{ definition.additionalPropertiesKey | default('data') | caseSnake }}', value)
 
     def to_dict(self) -> Dict[str, Any]:
         result = super().to_dict()
-        if hasattr(self, '_data'):
-            if isinstance(self._data, dict):
-                result['data'] = self._data
-            elif hasattr(self._data, 'model_dump'):
-                result['data'] = self._data.model_dump(mode='json')
+        if hasattr(self, '_{{ definition.additionalPropertiesKey | default('data') | caseSnake }}'):
+            if isinstance(self._{{ definition.additionalPropertiesKey | default('data') | caseSnake }}, dict):
+                result['{{ definition.additionalPropertiesKey | default('data') }}'] = self._{{ definition.additionalPropertiesKey | default('data') | caseSnake }}
+            elif hasattr(self._{{ definition.additionalPropertiesKey | default('data') | caseSnake }}, 'model_dump'):
+                result['{{ definition.additionalPropertiesKey | default('data') }}'] = self._{{ definition.additionalPropertiesKey | default('data') | caseSnake }}.model_dump(mode='json')
             else:
-                result['data'] = self._data
+                result['{{ definition.additionalPropertiesKey | default('data') }}'] = self._{{ definition.additionalPropertiesKey | default('data') | caseSnake }}
         return result
 {% endif %}

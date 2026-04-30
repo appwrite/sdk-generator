@@ -8,7 +8,7 @@ module {{ spec.title | caseUcfirst }}
             attr_reader :{{ property.name | caseSnake | escapeKeyword }}
 {% endfor %}
 {% if definition.additionalProperties %}
-            attr_reader :data
+            attr_reader :{{ definition.additionalPropertiesKey | default('data') | caseSnake | escapeKeyword }}
 {% endif %}
 
             def initialize(
@@ -17,7 +17,7 @@ module {{ spec.title | caseUcfirst }}
 
 {% endfor %}
 {% if definition.additionalProperties %}
-                data:
+                {{ definition.additionalPropertiesKey | default('data') | caseSnake | escapeKeyword }}:
 {% endif %}
             )
 {% for property in definition.properties %}
@@ -32,7 +32,7 @@ module {{ spec.title | caseUcfirst }}
 {% endif %}
 {% endfor %}
 {% if definition.additionalProperties %}
-                @data = data
+                @{{ definition.additionalPropertiesKey | default('data') | caseSnake | escapeKeyword }} = {{ definition.additionalPropertiesKey | default('data') | caseSnake | escapeKeyword }}
 {% endif %}
             end
 
@@ -43,7 +43,7 @@ module {{ spec.title | caseUcfirst }}
 
 {% endfor %}
 {% if definition.additionalProperties %}
-                    data: map["data"] || map
+                    {{ definition.additionalPropertiesKey | default('data') | caseSnake | escapeKeyword }}: map["{{ definition.additionalPropertiesKey | default('data') }}"] || map
 {% endif %}
                 )
             end
@@ -55,14 +55,14 @@ module {{ spec.title | caseUcfirst }}
 
 {% endfor %}
 {% if definition.additionalProperties %}
-                    "data": @data
+                    "{{ definition.additionalPropertiesKey | default('data') }}": @{{ definition.additionalPropertiesKey | default('data') | caseSnake | escapeKeyword }}
 {% endif %}
                 }
             end
 {% if definition.additionalProperties %}
 
             def convert_to(from_json)
-                from_json.call(data)
+                from_json.call({{ definition.additionalPropertiesKey | default('data') | caseSnake | escapeKeyword }})
             end
 {% endif %}
 {% for property in definition.properties %}

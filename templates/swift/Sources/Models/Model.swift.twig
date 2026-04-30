@@ -15,7 +15,7 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
         case {{ property.name | escapeSwiftKeyword | removeDollarSign }} = "{{ property.name }}"
         {%~ endfor %}
         {%~ if definition.additionalProperties %}
-        case data
+        case {{ definition.additionalPropertiesKey | default('data') | escapeSwiftKeyword | removeDollarSign }}
         {%~ endif %}
     }
 
@@ -26,7 +26,7 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
     {%~ endfor %}
     {%~ if definition.additionalProperties %}
     /// Additional properties
-    public let data: T
+    public let {{ definition.additionalPropertiesKey | default('data') | escapeSwiftKeyword | removeDollarSign }}: T
     {%~ endif %}
 
     init(
@@ -35,14 +35,14 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
 
         {%~ endfor %}
         {%~ if definition.additionalProperties %}
-        data: T
+        {{ definition.additionalPropertiesKey | default('data') | escapeSwiftKeyword | removeDollarSign }}: T
         {%~ endif %}
     ) {
         {%~ for property in definition.properties %}
         self.{{ property.name | escapeSwiftKeyword | removeDollarSign }} = {{ property.name | escapeSwiftKeyword | removeDollarSign }}
         {%~ endfor %}
         {%~ if definition.additionalProperties %}
-        self.data = data
+        self.{{ definition.additionalPropertiesKey | default('data') | escapeSwiftKeyword | removeDollarSign }} = {{ definition.additionalPropertiesKey | default('data') | escapeSwiftKeyword | removeDollarSign }}
         {%~ endif %}
     }
 
@@ -65,7 +65,7 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
         {%~ endif %}
         {%~ endfor %}
         {%~ if definition.additionalProperties %}
-        self.data = try container.decode(T.self, forKey: .data)
+        self.{{ definition.additionalPropertiesKey | default('data') | escapeSwiftKeyword | removeDollarSign }} = try container.decode(T.self, forKey: .{{ definition.additionalPropertiesKey | default('data') | escapeSwiftKeyword | removeDollarSign }})
         {%~ endif %}
     }
 
@@ -76,7 +76,7 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
         try container.encode{% if not property.required %}IfPresent{% endif %}({{ property.name | escapeSwiftKeyword | removeDollarSign }}{% if property.enum %}{% if property.required %}.rawValue{% else %}?.rawValue{% endif %}{% endif %}, forKey: .{{ property.name | escapeSwiftKeyword | removeDollarSign }})
         {%~ endfor %}
         {%~ if definition.additionalProperties %}
-        try container.encode(data, forKey: .data)
+        try container.encode({{ definition.additionalPropertiesKey | default('data') | escapeSwiftKeyword | removeDollarSign }}, forKey: .{{ definition.additionalPropertiesKey | default('data') | escapeSwiftKeyword | removeDollarSign }})
         {%~ endif %}
     }
 
@@ -87,7 +87,7 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
 
             {%~ endfor %}
             {%~ if definition.additionalProperties %}
-            "data": try! JSONEncoder().encode(data)
+            "{{ definition.additionalPropertiesKey | default('data') }}": try! JSONEncoder().encode({{ definition.additionalPropertiesKey | default('data') | escapeSwiftKeyword | removeDollarSign }})
             {%~ endif %}
         ]
     }
@@ -115,7 +115,7 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
 
             {%~ endfor %}
             {%~ if definition.additionalProperties %}
-            data: try! JSONDecoder().decode(T.self, from: JSONSerialization.data(withJSONObject: map["data"] as? [String: Any] ?? map, options: []))
+            {{ definition.additionalPropertiesKey | default('data') | escapeSwiftKeyword | removeDollarSign }}: try! JSONDecoder().decode(T.self, from: JSONSerialization.data(withJSONObject: map["{{ definition.additionalPropertiesKey | default('data') }}"] as? [String: Any] ?? map, options: []))
             {%~ endif %}
         )
     }

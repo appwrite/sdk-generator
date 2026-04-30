@@ -9,7 +9,7 @@ class {{ definition.name | caseUcfirst | overrideIdentifier }} implements Model 
 
 {% endfor %}
 {%~ if definition.additionalProperties %}
-    final Map<String, dynamic> data;
+    final Map<String, dynamic> {{ definition.additionalPropertiesKey | default('data') | escapeKeyword }};
 
 {% endif %}
     {{ definition.name | caseUcfirst | overrideIdentifier}}({% if definition.properties | length or definition.additionalProperties %}{{ '{' }}{% endif %}
@@ -18,7 +18,7 @@ class {{ definition.name | caseUcfirst | overrideIdentifier }} implements Model 
         {% if property.required %}required {% endif %}this.{{ property.name | escapeKeyword }},
 {% endfor %}
 {% if definition.additionalProperties %}
-        required this.data,
+        required this.{{ definition.additionalPropertiesKey | default('data') | escapeKeyword }},
 {% endif %}
     {% if definition.properties | length or definition.additionalProperties %}{{ '}' }}{% endif %});
 
@@ -54,7 +54,7 @@ class {{ definition.name | caseUcfirst | overrideIdentifier }} implements Model 
             {%- endif -%},
 {% endfor %}
 {% if definition.additionalProperties %}
-            data: map["data"] ?? map,
+            {{ definition.additionalPropertiesKey | default('data') | escapeKeyword }}: map["{{ definition.additionalPropertiesKey | default('data') | escapeDollarSign }}"] ?? map,
 {% endif %}
         );
     }
@@ -66,13 +66,13 @@ class {{ definition.name | caseUcfirst | overrideIdentifier }} implements Model 
             "{{ property.name | escapeDollarSign }}": {% if property.sub_schema %}{% if property.type == 'array' %}{{property.name | escapeKeyword}}.map((p) => p.toMap()).toList(){% else %}{{property.name | escapeKeyword}}.toMap(){% endif %}{% elseif property.enum %}{{property.name | escapeKeyword}}{% if not property.required %}?{% endif %}.value{% else %}{{property.name | escapeKeyword }}{% endif %},
 {% endfor %}
 {% if definition.additionalProperties %}
-            "data": data,
+            "{{ definition.additionalPropertiesKey | default('data') | escapeDollarSign }}": {{ definition.additionalPropertiesKey | default('data') | escapeKeyword }},
 {% endif %}
         };
     }
 {% if definition.additionalProperties %}
 
-    T convertTo<T>(T Function(Map<String, dynamic>) fromJson) => fromJson(data);
+    T convertTo<T>(T Function(Map<String, dynamic>) fromJson) => fromJson({{ definition.additionalPropertiesKey | default('data') | escapeKeyword }});
 {% endif %}
 {% for property in definition.properties %}
 {% if property.sub_schema %}
