@@ -1,0 +1,129 @@
+class_name AppwriteClient
+extends RefCounted
+
+var _chunk_size = 5 * 1024 * 1024
+var _self_signed = false
+var _endpoint = '{{spec.endpoint}}'
+var _global_headers = {
+    'content-type': '',
+    'user-agent': '{{spec.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} (Godot/' + Engine.get_version_info().string + '; ' + OS.get_name() + ')',
+    'x-sdk-name': '{{ sdk.name }}',
+    'x-sdk-platform': '{{ sdk.platform }}',
+    'x-sdk-language': '{{ language.name | caseLower }}',
+    'x-sdk-version': '{{ sdk.version }}',
+{% for key,header in spec.global.defaultHeaders %}
+    '{{key}}': '{{header}}',
+{% endfor %}
+}
+
+func set_self_signed(status: bool = true) -> AppwriteClient:
+    _self_signed = status
+    return self
+
+func set_endpoint(endpoint: String) -> AppwriteClient:
+    _endpoint = endpoint
+    return self
+
+func add_header(key: String, value: String) -> AppwriteClient:
+    _global_headers[key.to_lower()] = value
+    return self
+
+func get_headers() -> Dictionary:
+    return _global_headers.duplicate()
+
+{% for header in spec.global.headers %}
+func set_{{header.key | caseSnake}}(value: String) -> AppwriteClient:
+{% if header.description %}
+    # {{header.description}}
+{% endif %}
+    _global_headers['{{header.name|lower}}'] = value
+    return self
+
+{% endfor %}
+
+func call_api(method: String, path: String = "", headers: Dictionary = {}, params: Dictionary = {}) -> Dictionary:
+    var http := HTTPClient.new()
+
+    # Parse host, port, and TLS from _endpoint
+    var uri := _endpoint.trim_suffix("/")
+    var use_tls := uri.begins_with("https://")
+    var host := uri.replace("https://", "").replace("http://", "")
+    var port := 443 if use_tls else 80
+    if ":" in host:
+        var parts := host.split(":")
+        host = parts[0]
+        port = int(parts[1])
+
+    var tls_options := TLSOptions.client_unsafe() if _self_signed else TLSOptions.client()
+    var err := http.connect_to_host(host, port, tls_options)
+    if err != OK:
+        return {"statusCode": 0, "error": "Failed to connect: " + error_string(err)}
+
+    while http.get_status() in [HTTPClient.STATUS_CONNECTING, HTTPClient.STATUS_RESOLVING]:
+        http.poll()
+        await Engine.get_main_loop().process_frame
+
+    if http.get_status() != HTTPClient.STATUS_CONNECTED:
+        return {"statusCode": 0, "error": "Could not connect, status: " + str(http.get_status())}
+
+    # Merge headers
+    var combined_headers := _global_headers.duplicate()
+    for key in headers:
+        combined_headers[key.to_lower()] = headers[key]
+
+    # Choose HTTP method constant
+    var http_method: int
+    match method.to_upper():
+        "POST":   http_method = HTTPClient.METHOD_POST
+        "PUT":    http_method = HTTPClient.METHOD_PUT
+        "PATCH":  http_method = HTTPClient.METHOD_PATCH
+        "DELETE": http_method = HTTPClient.METHOD_DELETE
+        _:        http_method = HTTPClient.METHOD_GET
+
+    # Build request path and body
+    var request_path := path
+    var body := PackedByteArray()
+
+    if http_method in [HTTPClient.METHOD_GET, HTTPClient.METHOD_DELETE]:
+        if not params.is_empty():
+            request_path += "?" + http.query_string_from_dict(params)
+    else:
+        var body_str := JSON.stringify(params)
+        body = body_str.to_utf8_buffer()
+        combined_headers["content-type"] = "application/json"
+        combined_headers["content-length"] = str(body.size())
+
+    # Build header array
+    var header_list := PackedStringArray()
+    for key in combined_headers:
+        header_list.append(key + ": " + str(combined_headers[key]))
+
+    err = http.request_raw(http_method, request_path, header_list, body)
+    if err != OK:
+        return {"statusCode": 0, "error": "Request failed: " + error_string(err)}
+
+    while http.get_status() == HTTPClient.STATUS_REQUESTING:
+        http.poll()
+        await Engine.get_main_loop().process_frame
+
+    if http.get_status() not in [HTTPClient.STATUS_BODY, HTTPClient.STATUS_CONNECTED]:
+        return {"statusCode": 0, "error": "Unexpected status after request: " + str(http.get_status())}
+
+    var response_code := http.get_response_code()
+
+    # Read body chunks
+    var response_body := PackedByteArray()
+    while http.get_status() == HTTPClient.STATUS_BODY:
+        http.poll()
+        var chunk := http.read_response_body_chunk()
+        if chunk.size() > 0:
+            response_body.append_array(chunk)
+        else:
+            await Engine.get_main_loop().process_frame
+
+    var response_text := response_body.get_string_from_utf8()
+    var json := JSON.new()
+    if json.parse(response_text) == OK:
+        return {"statusCode": response_code, "body": json.data}
+    else:
+        return {"statusCode": response_code, "body": response_text}

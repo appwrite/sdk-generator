@@ -1,0 +1,30 @@
+class_name {{ service.name | caseUcfirst }}
+extends AppwriteService
+
+{% for method in service.methods %}
+func {{ method.name | caseSnake }}({% for parameter in method.parameters.all %}{{ parameter.name | caseSnake }}: {{ parameter | typeName }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}) -> Dictionary:
+    var path = '{{ method.path }}'
+{% for parameter in method.parameters.path %}
+    path = path.replace('{{ '{' }}{{ parameter.name }}{{ '}' }}', {{ parameter.name | caseSnake }})
+{% endfor %}
+    var params = {
+{% for parameter in method.parameters.query %}
+        '{{ parameter.name }}': {{ parameter.name | caseSnake }},
+{% endfor %}
+{% for parameter in method.parameters.body %}
+        '{{ parameter.name }}': {{ parameter.name | caseSnake }},
+{% endfor %}
+{% for parameter in method.parameters.formData %}
+        '{{ parameter.name }}': {{ parameter.name | caseSnake }},
+{% endfor %}
+    }
+
+    var headers = {
+{% for key, value in method.headers %}
+        '{{ key }}': '{{ value }}',
+{% endfor %}
+    }
+
+    return await client.call_api('{{ method.method }}', path, headers, params)
+
+{% endfor %}

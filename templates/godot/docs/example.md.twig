@@ -1,0 +1,15 @@
+extends Node
+
+func _ready():
+	{% if method.type != 'webAuth' %}
+	var result = await Appwrite.{{ service.name | caseCamel }}.{{ method.name | caseCamel }}(
+	{% else %}
+	var result = Appwrite.{{ service.name | caseCamel }}.{{ method.name | caseCamel }}(
+	{% endif %}
+
+	{% for parameter in method.parameters.all %}
+		{{ parameter.name | caseSnake }} = {{ parameter | paramExample }}{% if not loop.last %},{% endif %}{% if not parameter.required %} # optional{% endif %}
+	{% endfor %}
+	)
+
+	print(result)
