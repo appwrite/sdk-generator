@@ -348,7 +348,6 @@ type ClientRuntime = 'browser' | 'server';
 type ClientAuth = 'anonymous' | 'session' | 'jwt' | 'apiKey' | 'devKey' | 'impersonation';
 type AdminAuth = 'apiKey' | 'devKey';
 type BrowserAuth = 'anonymous' | 'session' | 'jwt' | 'impersonation';
-type ServerClient = Client<AdminAuth>;
 
 type BaseClientParams = {
     endpoint: string;
@@ -419,7 +418,6 @@ class Client<TAuth extends ClientAuth = 'anonymous'> {
     };
 
     private runtime: ClientRuntime = '{{ sdk.platform == 'server' ? 'server' : 'browser' }}';
-    private auth: ClientAuth = 'anonymous';
     private readonly authType?: TAuth;
 
     /**
@@ -436,7 +434,7 @@ class Client<TAuth extends ClientAuth = 'anonymous'> {
     };
 
     static anonymous(params: BaseClientParams): Client<'anonymous'> {
-        return new Client<'anonymous'>().applyBase(params, 'anonymous', 'browser');
+        return new Client<'anonymous'>().applyBase<'anonymous'>(params, 'browser');
     }
 
     static fromAnonymous(params: BaseClientParams): Client<'anonymous'> {
@@ -445,13 +443,13 @@ class Client<TAuth extends ClientAuth = 'anonymous'> {
 
     static fromSession(params: SessionClientParams): Client<'session'> {
         return new Client<'session'>()
-            .applyBase(params, 'session', 'browser')
+            .applyBase<'session'>(params, 'browser')
             .setSession(params.session);
     }
 
     static fromApiKey(params: ApiKeyClientParams): Client<'apiKey'> {
         const client = new Client<'apiKey'>()
-            .applyBase(params, 'apiKey', 'server')
+            .applyBase<'apiKey'>(params, 'server')
             .setKey(params.apiKey);
 
         if (params.jwt !== undefined) {
@@ -467,13 +465,13 @@ class Client<TAuth extends ClientAuth = 'anonymous'> {
 
     static fromJWT(params: JWTClientParams): Client<'jwt'> {
         return new Client<'jwt'>()
-            .applyBase(params, 'jwt', 'browser')
+            .applyBase<'jwt'>(params, 'browser')
             .setJWT(params.jwt);
     }
 
     static fromDevKey(params: DevKeyClientParams): Client<'devKey'> {
         return new Client<'devKey'>()
-            .applyBase(params, 'devKey', 'server')
+            .applyBase<'devKey'>(params, 'server')
             .setDevKey(params.devKey);
     }
 
@@ -489,7 +487,7 @@ class Client<TAuth extends ClientAuth = 'anonymous'> {
         }
 
         const client = new Client<'impersonation'>()
-            .applyBase(params, 'impersonation', 'browser')
+            .applyBase<'impersonation'>(params, 'browser')
             .setSession(params.session);
 
         if (params.userId !== undefined) {
@@ -501,9 +499,8 @@ class Client<TAuth extends ClientAuth = 'anonymous'> {
         return client.setImpersonateUserPhone(params.phone);
     }
 
-    private applyBase<T extends ClientAuth>(params: BaseClientParams, auth: T, runtime: ClientRuntime): Client<T> {
+    private applyBase<T extends ClientAuth>(params: BaseClientParams, runtime: ClientRuntime): Client<T> {
         const client = this as unknown as Client<T>;
-        client.auth = auth;
         client.runtime = runtime;
         client.headers['x-sdk-platform'] = runtime === 'server' ? 'server' : 'client';
         client.setEndpoint(params.endpoint);
@@ -597,9 +594,6 @@ class Client<TAuth extends ClientAuth = 'anonymous'> {
     setKey(value: string): Client<'apiKey'> {
         this.headers['X-{{ spec.title | caseUcfirst }}-Key'] = value;
         this.config.key = value;
-        this.auth = 'apiKey';
-        this.runtime = 'server';
-        this.headers['x-sdk-platform'] = 'server';
         return this as unknown as Client<'apiKey'>;
     }
 
@@ -618,18 +612,12 @@ class Client<TAuth extends ClientAuth = 'anonymous'> {
     setSession(value: string): Client<'session'> {
         this.headers['X-{{ spec.title | caseUcfirst }}-Session'] = value;
         this.config.session = value;
-        this.auth = 'session';
-        this.runtime = 'browser';
-        this.headers['x-sdk-platform'] = 'client';
         return this as unknown as Client<'session'>;
     }
 
     setDevKey(value: string): Client<'devKey'> {
         this.headers['X-{{ spec.title | caseUcfirst }}-Dev-Key'] = value;
         this.config.devkey = value;
-        this.auth = 'devKey';
-        this.runtime = 'server';
-        this.headers['x-sdk-platform'] = 'server';
         return this as unknown as Client<'devKey'>;
     }
 
@@ -642,21 +630,18 @@ class Client<TAuth extends ClientAuth = 'anonymous'> {
     setImpersonateUserId(value: string): Client<'impersonation'> {
         this.headers['X-{{ spec.title | caseUcfirst }}-Impersonate-User-Id'] = value;
         this.config.impersonateuserid = value;
-        this.auth = 'impersonation';
         return this as unknown as Client<'impersonation'>;
     }
 
     setImpersonateUserEmail(value: string): Client<'impersonation'> {
         this.headers['X-{{ spec.title | caseUcfirst }}-Impersonate-User-Email'] = value;
         this.config.impersonateuseremail = value;
-        this.auth = 'impersonation';
         return this as unknown as Client<'impersonation'>;
     }
 
     setImpersonateUserPhone(value: string): Client<'impersonation'> {
         this.headers['X-{{ spec.title | caseUcfirst }}-Impersonate-User-Phone'] = value;
         this.config.impersonateuserphone = value;
-        this.auth = 'impersonation';
         return this as unknown as Client<'impersonation'>;
     }
 
@@ -1134,6 +1119,6 @@ class Client<TAuth extends ClientAuth = 'anonymous'> {
 }
 
 export { Client, {{spec.title | caseUcfirst}}Exception };
-export type { Models, ClientAuth, AdminAuth, BrowserAuth, ServerClient, Payload, RealtimeResponseEvent, UploadProgress };
+export type { Models, ClientAuth, AdminAuth, BrowserAuth, Payload, RealtimeResponseEvent, UploadProgress };
 export { Query } from './query';
 export type { QueryTypes, QueryTypesList } from './query';

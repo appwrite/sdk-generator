@@ -10,7 +10,7 @@ export { Client, Query, {{spec.title | caseUcfirst}}Exception } from './client';
 export { {{service.name | caseUcfirst}} } from './services/{{service.name | caseKebab}}';
 {% endfor %}
 export { Realtime } from './services/realtime';
-export type { Models, Payload, RealtimeResponseEvent, UploadProgress, ClientAuth, AdminAuth, BrowserAuth, ServerClient } from './client';
+export type { Models, Payload, RealtimeResponseEvent, UploadProgress, ClientAuth, AdminAuth, BrowserAuth } from './client';
 export type { RealtimeSubscription } from './services/realtime';
 export type { QueryTypes, QueryTypesList } from './query';
 export { Permission } from './permission';
