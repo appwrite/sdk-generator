@@ -47,11 +47,6 @@ class Web extends JS
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'src/server-client.ts',
-                'template'      => 'web/src/server-client.ts.twig',
-            ],
-            [
-                'scope'         => 'default',
                 'destination'   => 'src/service.ts',
                 'template'      => 'web/src/service.ts.twig',
             ],

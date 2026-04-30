@@ -1,4 +1,4 @@
-import { {{ spec.title | caseUcfirst}}Exception, Client, JSONbig } from '../client';
+import { {{ spec.title | caseUcfirst}}Exception, Client, JSONbig, type BrowserAuth } from '../client';
 import { Channel, ActionableChannel, ResolvedChannel } from '../channel';
 import { Query } from '../query';
 import { ID } from '../id';
@@ -80,7 +80,7 @@ export class Realtime {
     private readonly DEBOUNCE_MS = 1;
     private readonly HEARTBEAT_INTERVAL = 20000; // 20 seconds in milliseconds
 
-    private client: Client;
+    private client: Client<BrowserAuth>;
     private socket?: WebSocket;
     private activeSubscriptions = new Map<string, RealtimeCallback<any>>();
     private pendingSubscribes = new Map<string, RealtimeRequestSubscribeRow>();
@@ -95,7 +95,7 @@ export class Realtime {
     private onCloseCallbacks: Array<() => void> = [];
     private onOpenCallbacks: Array<() => void> = [];
 
-    constructor(client: Client) {
+    constructor(client: Client<BrowserAuth>) {
         this.client = client;
     }
 

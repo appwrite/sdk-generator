@@ -18,10 +18,7 @@
 {% set hasMixedTier = hasClientTier and hasServerTier %}
 {% set hasUpload = uploadFlag|length > 0 %}
 import { Service } from '../service';
-import { {{ spec.title | caseUcfirst}}Exception, {% if hasClientTier %}Client, {% endif %}type Payload{% if hasUpload %}, UploadProgress{% endif %} } from '../client';
-{%~ if hasServerTier %}
-import type { ServerClient } from '../server-client';
-{%~ endif %}
+import { {{ spec.title | caseUcfirst}}Exception, Client, type ClientAuth, type AdminAuth, type BrowserAuth, type Payload{% if hasUpload %}, UploadProgress{% endif %} } from '../client';
 import type { Models } from '../models';
 
 {% set added = [] %}
@@ -37,24 +34,24 @@ import { {{ parameter.enumName | caseUcfirst }} } from '../enums/{{ parameter.en
 {% endfor %}
 
 {%~ if hasMixedTier %}
-export class {{ service.name | caseUcfirst }}<TClient extends Client | ServerClient = Client | ServerClient> {
-    client: TClient;
+export class {{ service.name | caseUcfirst }}<TAuth extends ClientAuth = ClientAuth> {
+    client: Client<TAuth>;
 
-    constructor(client: TClient) {
+    constructor(client: Client<TAuth>) {
         this.client = client;
     }
 {%~ elseif hasServerTier %}
 export class {{ service.name | caseUcfirst }} {
-    client: ServerClient;
+    client: Client<AdminAuth>;
 
-    constructor(client: ServerClient) {
+    constructor(client: Client<AdminAuth>) {
         this.client = client;
     }
 {%~ else %}
 export class {{ service.name | caseUcfirst }} {
-    client: Client;
+    client: Client<BrowserAuth>;
 
-    constructor(client: Client) {
+    constructor(client: Client<BrowserAuth>) {
         this.client = client;
     }
 {%~ endif %}
@@ -65,13 +62,13 @@ export class {{ service.name | caseUcfirst }} {
     {%~ set methodSupportsServer = 'server' in method.platforms or 'console' in method.platforms %}
     {%~ if hasMixedTier %}
     {%~ if (method.type == 'location' or method.type == 'webAuth') and not methodSupportsClient %}
-    {%~ set thisGate = 'this: ' ~ (service.name | caseUcfirst) ~ '<ServerClient>, ' %}
+    {%~ set thisGate = 'this: ' ~ (service.name | caseUcfirst) ~ '<AdminAuth>, ' %}
     {%~ elseif method.type == 'location' or method.type == 'webAuth' %}
-    {%~ set thisGate = 'this: ' ~ (service.name | caseUcfirst) ~ '<Client>, ' %}
+    {%~ set thisGate = 'this: ' ~ (service.name | caseUcfirst) ~ '<BrowserAuth>, ' %}
     {%~ elseif not methodSupportsClient %}
-    {%~ set thisGate = 'this: ' ~ (service.name | caseUcfirst) ~ '<ServerClient>, ' %}
+    {%~ set thisGate = 'this: ' ~ (service.name | caseUcfirst) ~ '<AdminAuth>, ' %}
     {%~ elseif not methodSupportsServer %}
-    {%~ set thisGate = 'this: ' ~ (service.name | caseUcfirst) ~ '<Client>, ' %}
+    {%~ set thisGate = 'this: ' ~ (service.name | caseUcfirst) ~ '<BrowserAuth>, ' %}
     {%~ endif %}
     {%~ endif %}
     /**
