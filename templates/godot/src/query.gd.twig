@@ -1,4 +1,4 @@
-class_name Query extends RefCounted
+class_name {{spec.title | caseUcfirst}}Query extends RefCounted
 
 var method: String
 var attribute: Variant
@@ -26,73 +26,73 @@ func _to_string() -> String:
     return JSON.stringify(to_dict())
 
 static func equal(attribute: String, value: Variant) -> String:
-    return Query.new("equal", attribute, value)._to_string()
+    return {{spec.title | caseUcfirst}}Query.new("equal", attribute, value)._to_string()
 
 static func notEqual(attribute: String, value: Variant) -> String:
-    return Query.new("notEqual", attribute, value)._to_string()
+    return {{spec.title | caseUcfirst}}Query.new("notEqual", attribute, value)._to_string()
 
 static func regex(attribute: String, pattern: String) -> String:
-    return Query.new("regex", attribute, pattern)._to_string()
+    return {{spec.title | caseUcfirst}}Query.new("regex", attribute, pattern)._to_string()
 
 static func lessThan(attribute: String, value: Variant) -> String:
-    return Query.new("lessThan", attribute, value)._to_string()
+    return {{spec.title | caseUcfirst}}Query.new("lessThan", attribute, value)._to_string()
 
 static func lessThanEqual(attribute: String, value: Variant) -> String:
-    return Query.new("lessThanEqual", attribute, value)._to_string()
+    return {{spec.title | caseUcfirst}}Query.new("lessThanEqual", attribute, value)._to_string()
 
 static func greaterThan(attribute: String, value: Variant) -> String:
-    return Query.new("greaterThan", attribute, value)._to_string()
+    return {{spec.title | caseUcfirst}}Query.new("greaterThan", attribute, value)._to_string()
 
 static func greaterThanEqual(attribute: String, value: Variant) -> String:
-    return Query.new("greaterThanEqual", attribute, value)._to_string()
+    return {{spec.title | caseUcfirst}}Query.new("greaterThanEqual", attribute, value)._to_string()
 
 static func search(attribute: String, value: String) -> String:
-    return Query.new("search", attribute, value)._to_string()
+    return {{spec.title | caseUcfirst}}Query.new("search", attribute, value)._to_string()
 
 static func isNull(attribute: String) -> String:
-    return Query.new("isNull", attribute)._to_string()
+    return {{spec.title | caseUcfirst}}Query.new("isNull", attribute)._to_string()
 
 static func isNotNull(attribute: String) -> String:
-    return Query.new("isNotNull", attribute)._to_string()
+    return {{spec.title | caseUcfirst}}Query.new("isNotNull", attribute)._to_string()
 
 static func exists(attributes: Array) -> String:
-    return Query.new("exists", null, attributes)._to_string()
+    return {{spec.title | caseUcfirst}}Query.new("exists", null, attributes)._to_string()
 
 static func notExists(attributes: Array) -> String:
-    return Query.new("notExists", null, attributes)._to_string()
+    return {{spec.title | caseUcfirst}}Query.new("notExists", null, attributes)._to_string()
 
 static func between(attribute: String, start: Variant, end: Variant) -> String:
-    return Query.new("between", attribute, [start, end])._to_string()
+    return {{spec.title | caseUcfirst}}Query.new("between", attribute, [start, end])._to_string()
 
 static func startsWith(attribute: String, value: String) -> String:
-    return Query.new("startsWith", attribute, value)._to_string()
+    return {{spec.title | caseUcfirst}}Query.new("startsWith", attribute, value)._to_string()
 
 static func endsWith(attribute: String, value: String) -> String:
-    return Query.new("endsWith", attribute, value)._to_string()
+    return {{spec.title | caseUcfirst}}Query.new("endsWith", attribute, value)._to_string()
 
 static func contains(attribute: String, value: Variant) -> String:
-    return Query.new("contains", attribute, value)._to_string()
+    return {{spec.title | caseUcfirst}}Query.new("contains", attribute, value)._to_string()
 
 static func containsAny(attribute: String, value: Array) -> String:
-    return Query.new("containsAny", attribute, value)._to_string()
+    return {{spec.title | caseUcfirst}}Query.new("containsAny", attribute, value)._to_string()
 
 static func containsAll(attribute: String, value: Array) -> String:
-    return Query.new("containsAll", attribute, value)._to_string()
+    return {{spec.title | caseUcfirst}}Query.new("containsAll", attribute, value)._to_string()
 
 static func notContains(attribute: String, value: Variant) -> String:
-    return Query.new("notContains", attribute, value)._to_string()
+    return {{spec.title | caseUcfirst}}Query.new("notContains", attribute, value)._to_string()
 
 static func notSearch(attribute: String, value: String) -> String:
-    return Query.new("notSearch", attribute, value)._to_string()
+    return {{spec.title | caseUcfirst}}Query.new("notSearch", attribute, value)._to_string()
 
 static func notBetween(attribute: String, start: Variant, end: Variant) -> String:
-    return Query.new("notBetween", attribute, [start, end])._to_string()
+    return {{spec.title | caseUcfirst}}Query.new("notBetween", attribute, [start, end])._to_string()
 
 static func notStartsWith(attribute: String, value: String) -> String:
-    return Query.new("notStartsWith", attribute, value)._to_string()
+    return {{spec.title | caseUcfirst}}Query.new("notStartsWith", attribute, value)._to_string()
 
 static func notEndsWith(attribute: String, value: String) -> String:
-    return Query.new("notEndsWith", attribute, value)._to_string()
+    return {{spec.title | caseUcfirst}}Query.new("notEndsWith", attribute, value)._to_string()
 
 static func createdBefore(value: String) -> String:
     return lessThan("$createdAt", value)
@@ -118,7 +118,7 @@ static func or_query(queries: Array) -> String:
         var parsed = JSON.parse_string(q)
         if parsed != null:
             parsed_queries.append(parsed)
-    return Query.new("or", null, parsed_queries)._to_string()
+    return {{spec.title | caseUcfirst}}Query.new("or", null, parsed_queries)._to_string()
 
 static func and_query(queries: Array) -> String:
     var parsed_queries := []
@@ -126,7 +126,7 @@ static func and_query(queries: Array) -> String:
         var parsed = JSON.parse_string(q)
         if parsed != null:
             parsed_queries.append(parsed)
-    return Query.new("and", null, parsed_queries)._to_string()
+    return {{spec.title | caseUcfirst}}Query.new("and", null, parsed_queries)._to_string()
 
 static func elemMatch(attribute: String, queries: Array) -> String:
     var parsed_queries := []
@@ -134,64 +134,65 @@ static func elemMatch(attribute: String, queries: Array) -> String:
         var parsed = JSON.parse_string(q)
         if parsed != null:
             parsed_queries.append(parsed)
-    return Query.new("elemMatch", attribute, parsed_queries)._to_string()
+    return {{spec.title | caseUcfirst}}Query.new("elemMatch", attribute, parsed_queries)._to_string()
 
 static func select(attributes: Array) -> String:
-    return Query.new("select", null, attributes)._to_string()
+    return {{spec.title | caseUcfirst}}Query.new("select", null, attributes)._to_string()
 
 static func orderAsc(attribute: String) -> String:
-    return Query.new("orderAsc", attribute)._to_string()
+    return {{spec.title | caseUcfirst}}Query.new("orderAsc", attribute)._to_string()
 
 static func orderDesc(attribute: String) -> String:
-    return Query.new("orderDesc", attribute)._to_string()
+    return {{spec.title | caseUcfirst}}Query.new("orderDesc", attribute)._to_string()
 
 static func orderRandom() -> String:
-    return Query.new("orderRandom")._to_string()
+    return {{spec.title | caseUcfirst}}Query.new("orderRandom")._to_string()
 
 static func cursorBefore(id: String) -> String:
-    return Query.new("cursorBefore", null, id)._to_string()
+    return {{spec.title | caseUcfirst}}Query.new("cursorBefore", null, id)._to_string()
 
 static func cursorAfter(id: String) -> String:
-    return Query.new("cursorAfter", null, id)._to_string()
+    return {{spec.title | caseUcfirst}}Query.new("cursorAfter", null, id)._to_string()
 
 static func limit(p_limit: int) -> String:
-    return Query.new("limit", null, p_limit)._to_string()
+    return {{spec.title | caseUcfirst}}Query.new("limit", null, p_limit)._to_string()
 
 static func offset(p_offset: int) -> String:
-    return Query.new("offset", null, p_offset)._to_string()
+    return {{spec.title | caseUcfirst}}Query.new("offset", null, p_offset)._to_string()
 
 static func distanceEqual(attribute: String, values: Array, distance: float, meters: bool = true) -> String:
-    return Query.new("distanceEqual", attribute, [[values, distance, meters]])._to_string()
+    return {{spec.title | caseUcfirst}}Query.new("distanceEqual", attribute, [[values, distance, meters]])._to_string()
 
 static func distanceNotEqual(attribute: String, values: Array, distance: float, meters: bool = true) -> String:
-    return Query.new("distanceNotEqual", attribute, [[values, distance, meters]])._to_string()
+    return {{spec.title | caseUcfirst}}Query.new("distanceNotEqual", attribute, [[values, distance, meters]])._to_string()
 
 static func distanceGreaterThan(attribute: String, values: Array, distance: float, meters: bool = true) -> String:
-    return Query.new("distanceGreaterThan", attribute, [[values, distance, meters]])._to_string()
+    return {{spec.title | caseUcfirst}}Query.new("distanceGreaterThan", attribute, [[values, distance, meters]])._to_string()
 
 static func distanceLessThan(attribute: String, values: Array, distance: float, meters: bool = true) -> String:
-    return Query.new("distanceLessThan", attribute, [[values, distance, meters]])._to_string()
+    return {{spec.title | caseUcfirst}}Query.new("distanceLessThan", attribute, [[values, distance, meters]])._to_string()
 
 static func intersects(attribute: String, values: Array) -> String:
-    return Query.new("intersects", attribute, [values])._to_string()
+    return {{spec.title | caseUcfirst}}Query.new("intersects", attribute, [values])._to_string()
 
 static func notIntersects(attribute: String, values: Array) -> String:
-    return Query.new("notIntersects", attribute, [values])._to_string()
+    return {{spec.title | caseUcfirst}}Query.new("notIntersects", attribute, [values])._to_string()
 
 static func crosses(attribute: String, values: Array) -> String:
-    return Query.new("crosses", attribute, [values])._to_string()
+    return {{spec.title | caseUcfirst}}Query.new("crosses", attribute, [values])._to_string()
 
 static func notCrosses(attribute: String, values: Array) -> String:
-    return Query.new("notCrosses", attribute, [values])._to_string()
+    return {{spec.title | caseUcfirst}}Query.new("notCrosses", attribute, [values])._to_string()
 
 static func overlaps(attribute: String, values: Array) -> String:
-    return Query.new("overlaps", attribute, [values])._to_string()
+    return {{spec.title | caseUcfirst}}Query.new("overlaps", attribute, [values])._to_string()
 
 static func notOverlaps(attribute: String, values: Array) -> String:
-    return Query.new("notOverlaps", attribute, [values])._to_string()
+    return {{spec.title | caseUcfirst}}Query.new("notOverlaps", attribute, [values])._to_string()
 
 static func touches(attribute: String, values: Array) -> String:
-    return Query.new("touches", attribute, [values])._to_string()
+    return {{spec.title | caseUcfirst}}Query.new("touches", attribute, [values])._to_string()
 
 static func notTouches(attribute: String, values: Array) -> String:
-    return Query.new("notTouches", attribute, [values])._to_string()
+    return {{spec.title | caseUcfirst}}Query.new("notTouches", attribute, [values])._to_string()
+

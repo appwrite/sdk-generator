@@ -1,0 +1,31 @@
+{% set prefix = spec.title | caseUcfirst %}
+extends Node
+
+# Autoload singleton for {{spec.title}}
+
+var client: {{prefix}}Client
+
+{% for service in spec.services %}
+var {{ service.name | caseCamel }}: {{prefix}}{{ service.name | caseUcfirst }}
+{% endfor %}
+
+func _ready() -> void:
+    client = {{prefix}}Client.new()
+    
+    # Attempt to load configuration from ProjectSettings
+    if ProjectSettings.has_setting("appwrite/config/endpoint"):
+        client.set_endpoint(ProjectSettings.get_setting("appwrite/config/endpoint"))
+    if ProjectSettings.has_setting("appwrite/config/project"):
+        client.set_project(ProjectSettings.get_setting("appwrite/config/project"))
+    
+{% for service in spec.services %}
+    {{ service.name | caseCamel }} = {{prefix}}{{ service.name | caseUcfirst }}.new(client)
+{% endfor %}
+
+func set_endpoint(endpoint: String) -> void:
+    client.set_endpoint(endpoint)
+
+func set_project(project: String) -> void:
+    client.set_project(project)
+
+# Add other global setters if needed

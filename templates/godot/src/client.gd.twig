@@ -1,4 +1,5 @@
-class_name AppwriteClient
+{% set prefix = spec.title | caseUcfirst %}
+class_name {{prefix}}Client
 extends RefCounted
 
 var _chunk_size = 5 * 1024 * 1024
@@ -16,15 +17,15 @@ var _global_headers = {
 {% endfor %}
 }
 
-func set_self_signed(status: bool = true) -> AppwriteClient:
+func set_self_signed(status: bool = true) -> {{prefix}}Client:
     _self_signed = status
     return self
 
-func set_endpoint(endpoint: String) -> AppwriteClient:
+func set_endpoint(endpoint: String) -> {{prefix}}Client:
     _endpoint = endpoint
     return self
 
-func add_header(key: String, value: String) -> AppwriteClient:
+func add_header(key: String, value: String) -> {{prefix}}Client:
     _global_headers[key.to_lower()] = value
     return self
 
@@ -32,7 +33,7 @@ func get_headers() -> Dictionary:
     return _global_headers.duplicate()
 
 {% for header in spec.global.headers %}
-func set_{{header.key | caseSnake}}(value: String) -> AppwriteClient:
+func set_{{header.key | caseSnake}}(value: String) -> {{prefix}}Client:
 {% if header.description %}
     # {{header.description}}
 {% endif %}
@@ -42,29 +43,12 @@ func set_{{header.key | caseSnake}}(value: String) -> AppwriteClient:
 {% endfor %}
 
 func call_api(method: String, path: String = "", headers: Dictionary = {}, params: Dictionary = {}) -> Dictionary:
-    var http := HTTPClient.new()
-
-    # Parse host, port, and TLS from _endpoint
-    var uri := _endpoint.trim_suffix("/")
-    var use_tls := uri.begins_with("https://")
-    var host := uri.replace("https://", "").replace("http://", "")
-    var port := 443 if use_tls else 80
-    if ":" in host:
-        var parts := host.split(":")
-        host = parts[0]
-        port = int(parts[1])
-
+    var http := HTTPRequest.new()
+    
     var tls_options := TLSOptions.client_unsafe() if _self_signed else TLSOptions.client()
-    var err := http.connect_to_host(host, port, tls_options)
-    if err != OK:
-        return {"statusCode": 0, "error": "Failed to connect: " + error_string(err)}
-
-    while http.get_status() in [HTTPClient.STATUS_CONNECTING, HTTPClient.STATUS_RESOLVING]:
-        http.poll()
-        await Engine.get_main_loop().process_frame
-
-    if http.get_status() != HTTPClient.STATUS_CONNECTED:
-        return {"statusCode": 0, "error": "Could not connect, status: " + str(http.get_status())}
+    http.set_tls_options(tls_options)
+    
+    Engine.get_main_loop().root.add_child(http)
 
     # Merge headers
     var combined_headers := _global_headers.duplicate()
@@ -80,46 +64,52 @@ func call_api(method: String, path: String = "", headers: Dictionary = {}, param
         "DELETE": http_method = HTTPClient.METHOD_DELETE
         _:        http_method = HTTPClient.METHOD_GET
 
-    # Build request path and body
+    var uri := _endpoint.trim_suffix("/")
     var request_path := path
     var body := PackedByteArray()
-
+    
     if http_method in [HTTPClient.METHOD_GET, HTTPClient.METHOD_DELETE]:
         if not params.is_empty():
-            request_path += "?" + http.query_string_from_dict(params)
+            var query_http := HTTPClient.new()
+            request_path += "?" + query_http.query_string_from_dict(params)
     else:
-        var body_str := JSON.stringify(params)
-        body = body_str.to_utf8_buffer()
-        combined_headers["content-type"] = "application/json"
+        var has_files := false
+        for key in params:
+            if params[key] is {{prefix}}InputFile:
+                has_files = true
+                break
+        
+        if has_files:
+            var boundary := "Boundary-%x" % Time.get_ticks_msec()
+            combined_headers["content-type"] = "multipart/form-data; boundary=" + boundary
+            body = _build_multipart(params, boundary)
+        else:
+            var body_str := JSON.stringify(params)
+            body = body_str.to_utf8_buffer()
+            combined_headers["content-type"] = "application/json"
+        
         combined_headers["content-length"] = str(body.size())
 
     # Build header array
     var header_list := PackedStringArray()
     for key in combined_headers:
-        header_list.append(key + ": " + str(combined_headers[key]))
+        if combined_headers[key] != "":
+            header_list.append(key + ": " + str(combined_headers[key]))
 
-    err = http.request_raw(http_method, request_path, header_list, body)
+    var err = http.request_raw(uri + request_path, header_list, http_method, body)
     if err != OK:
+        http.queue_free()
         return {"statusCode": 0, "error": "Request failed: " + error_string(err)}
 
-    while http.get_status() == HTTPClient.STATUS_REQUESTING:
-        http.poll()
-        await Engine.get_main_loop().process_frame
-
-    if http.get_status() not in [HTTPClient.STATUS_BODY, HTTPClient.STATUS_CONNECTED]:
-        return {"statusCode": 0, "error": "Unexpected status after request: " + str(http.get_status())}
-
-    var response_code := http.get_response_code()
-
-    # Read body chunks
-    var response_body := PackedByteArray()
-    while http.get_status() == HTTPClient.STATUS_BODY:
-        http.poll()
-        var chunk := http.read_response_body_chunk()
-        if chunk.size() > 0:
-            response_body.append_array(chunk)
-        else:
-            await Engine.get_main_loop().process_frame
+    var response = await http.request_completed
+    http.queue_free()
+    
+    var request_result: int = response[0]
+    var response_code: int = response[1]
+    var response_body: PackedByteArray = response[3]
+    
+    if request_result != HTTPRequest.RESULT_SUCCESS:
+        return {"statusCode": 0, "error": "HTTP Request Error: " + str(request_result)}
 
     var response_text := response_body.get_string_from_utf8()
     var json := JSON.new()
@@ -127,3 +117,32 @@ func call_api(method: String, path: String = "", headers: Dictionary = {}, param
         return {"statusCode": response_code, "body": json.data}
     else:
         return {"statusCode": response_code, "body": response_text}
+
+
+func _build_multipart(params: Dictionary, boundary: String) -> PackedByteArray:
+    var body := PackedByteArray()
+    for key in params:
+        var value = params[key]
+        if value == null: continue
+        
+        body.append_array(("--" + boundary + "\r\n").to_utf8_buffer())
+        
+        if value is {{prefix}}InputFile:
+            body.append_array(("Content-Disposition: form-data; name=\"%s\"; filename=\"%s\"\r\n" % [key, value.filename]).to_utf8_buffer())
+            var c_type = value.content_type if value.content_type != "" else "application/octet-stream"
+            body.append_array(("Content-Type: %s\r\n\r\n" % c_type).to_utf8_buffer())
+            body.append_array(value.get_data())
+        elif value is Array:
+            for i in range(value.size()):
+                if i > 0:
+                    body.append_array(("\r\n--" + boundary + "\r\n").to_utf8_buffer())
+                body.append_array(("Content-Disposition: form-data; name=\"%s[]\"\r\n\r\n" % key).to_utf8_buffer())
+                body.append_array((str(value[i])).to_utf8_buffer())
+        else:
+            body.append_array(("Content-Disposition: form-data; name=\"%s\"\r\n\r\n" % key).to_utf8_buffer())
+            body.append_array((str(value)).to_utf8_buffer())
+            
+        body.append_array(("\r\n").to_utf8_buffer())
+    
+    body.append_array(("--" + boundary + "--\r\n").to_utf8_buffer())
+    return body

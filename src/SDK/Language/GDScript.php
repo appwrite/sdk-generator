@@ -108,23 +108,26 @@ class GDScript extends Language
      */
     public function getTypeName(array $parameter, array $spec = []): string
     {
+        $prefix = $this->toPascalCase($spec['title'] ?? 'Appwrite');
+
         if (isset($parameter['enumName'])) {
-            return \ucfirst($parameter['enumName']);
+            return $prefix . \ucfirst($parameter['enumName']);
         }
         if (!empty($parameter['enumValues'])) {
-            return \ucfirst($parameter['name']);
+            return $prefix . \ucfirst($parameter['name']);
         }
         if (!empty($parameter['array']['model'])) {
-            return 'Array';
+            return 'Array[' . $prefix . $this->toPascalCase($parameter['array']['model']) . ']';
         }
         if (!empty($parameter['model'])) {
-            return $parameter['type'] === self::TYPE_ARRAY ? 'Array' : $this->toPascalCase($parameter['model']);
+            $modelType = $prefix . $this->toPascalCase($parameter['model']);
+            return $parameter['type'] === self::TYPE_ARRAY ? 'Array[' . $modelType . ']' : $modelType;
         }
         return match ($parameter['type']) {
             self::TYPE_INTEGER => 'int',
             self::TYPE_NUMBER => 'float',
             self::TYPE_STRING => 'String',
-            self::TYPE_FILE => 'FileAccess', // or PackedByteArray depending on usage
+            self::TYPE_FILE => $prefix . 'InputFile',
             self::TYPE_BOOLEAN => 'bool',
             self::TYPE_ARRAY => 'Array',
             self::TYPE_OBJECT => 'Dictionary',

@@ -1,13 +1,15 @@
-class_name {{ service.name | caseUcfirst }}
-extends AppwriteService
+{% set prefix = spec.title | caseUcfirst %}
+class_name {{prefix}}{{ service.name | caseUcfirst }}
+extends {{prefix}}Service
 
 {% for method in service.methods %}
-func {{ method.name | caseSnake }}({% for parameter in method.parameters.all %}{{ parameter.name | caseSnake }}: {{ parameter | typeName }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}) -> Dictionary:
-    var path = '{{ method.path }}'
+{% set return_type = method.responseModel | caseUcfirst %}
+func {{ method.name | caseSnake }}({% for parameter in method.parameters.all %}{{ parameter.name | caseSnake }}: {{ parameter | typeName(spec) }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}) -> Variant:
+    var path := '{{ method.path }}'
 {% for parameter in method.parameters.path %}
-    path = path.replace('{{ '{' }}{{ parameter.name }}{{ '}' }}', {{ parameter.name | caseSnake }})
+    path = path.replace('{{ '{' }}{{ parameter.name }}{{ '}' }}', str({{ parameter.name | caseSnake }}))
 {% endfor %}
-    var params = {
+    var params := {
 {% for parameter in method.parameters.query %}
         '{{ parameter.name }}': {{ parameter.name | caseSnake }},
 {% endfor %}
@@ -19,12 +21,40 @@ func {{ method.name | caseSnake }}({% for parameter in method.parameters.all %}{
 {% endfor %}
     }
 
-    var headers = {
+    var headers := {
 {% for key, value in method.headers %}
         '{{ key }}': '{{ value }}',
 {% endfor %}
     }
 
-    return await client.call_api('{{ method.method }}', path, headers, params)
+    var result = await client.call_api('{{ method.method }}', path, headers, params)
+    
+    if result.statusCode >= 400:
+        var message = ""
+        var code = result.statusCode
+        var type = ""
+        var response = ""
+        if result.body is Dictionary:
+            message = result.body.get("message", "")
+            code = result.body.get("code", result.statusCode)
+            type = result.body.get("type", "")
+            response = str(result.body)
+        else:
+            message = str(result.body)
+            response = str(result.body)
+        
+        push_error("{{prefix}} Error (%s): %s" % [type, message])
+        return {{prefix}}Exception.new(message, code, type, response)
+
+{% if method.responseModel and method.responseModel != 'any' %}
+    if result.body is Array:
+        var list: Array[{{prefix}}{{return_type}}] = []
+        for item in result.body:
+            list.append({{prefix}}{{return_type}}.from_dict(item))
+        return list
+    return {{prefix}}{{ return_type }}.from_dict(result.body)
+{% else %}
+    return result.body
+{% endif %}
 
 {% endfor %}

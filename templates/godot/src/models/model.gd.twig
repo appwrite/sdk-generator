@@ -1,20 +1,40 @@
-class_name {{ definition.name | caseUcfirst }}
+{% set prefix = spec.title | caseUcfirst %}
+class_name {{prefix}}{{ definition.name | caseUcfirst }}
 extends RefCounted
 
 {% for property in definition.properties %}
-var {{ property.name | caseSnake }}: {{ property | typeName }}
+var {{ property.name | caseSnake }}: {{ property | typeName(spec) }}
 {% endfor %}
 
-func from_dictionary(dict: Dictionary) -> {{ definition.name | caseUcfirst }}:
+static func from_dict(dict: Dictionary) -> {{prefix}}{{ definition.name | caseUcfirst }}:
+    var model = {{prefix}}{{ definition.name | caseUcfirst }}.new()
 {% for property in definition.properties %}
     if dict.has('{{ property.name }}'):
-        {{ property.name | caseSnake }} = dict['{{ property.name }}']
+{% if property.model %}
+        model.{{ property.name | caseSnake }} = {{prefix}}{{ property.model | caseUcfirst }}.from_dict(dict['{{ property.name }}'])
+{% elseif property.array.model %}
+        var {{ property.name | caseSnake }}_list: {{ property | typeName(spec) }} = []
+        for item in dict['{{ property.name }}']:
+            {{ property.name | caseSnake }}_list.append({{prefix}}{{ property.array.model | caseUcfirst }}.from_dict(item))
+        model.{{ property.name | caseSnake }} = {{ property.name | caseSnake }}_list
+{% else %}
+        model.{{ property.name | caseSnake }} = dict['{{ property.name }}']
+{% endif %}
 {% endfor %}
-    return self
+    return model
 
-func to_dictionary() -> Dictionary:
+func to_dict() -> Dictionary:
     var dict = {}
 {% for property in definition.properties %}
+{% if property.model %}
+    dict['{{ property.name }}'] = {{ property.name | caseSnake }}.to_dict() if {{ property.name | caseSnake }} else null
+{% elseif property.array.model %}
+    var {{ property.name | caseSnake }}_list = []
+    for item in {{ property.name | caseSnake }}:
+        {{ property.name | caseSnake }}_list.append(item.to_dict())
+    dict['{{ property.name }}'] = {{ property.name | caseSnake }}_list
+{% else %}
     dict['{{ property.name }}'] = {{ property.name | caseSnake }}
+{% endif %}
 {% endfor %}
     return dict

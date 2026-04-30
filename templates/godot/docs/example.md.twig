@@ -1,15 +1,22 @@
 extends Node
 
 func _ready():
-	{% if method.type != 'webAuth' %}
-	var result = await Appwrite.{{ service.name | caseCamel }}.{{ method.name | caseCamel }}(
-	{% else %}
-	var result = Appwrite.{{ service.name | caseCamel }}.{{ method.name | caseCamel }}(
-	{% endif %}
+    # If the Appwrite Autoload is configured, you can directly use it
+    Appwrite.set_endpoint("https://cloud.appwrite.io/v1")
+    Appwrite.set_project("YOUR_PROJECT_ID")
+    
+{% if method.type != 'webAuth' %}
+    var result = await Appwrite.{{ service.name | caseCamel }}.{{ method.name | caseSnake }}(
+{% else %}
+    var result = Appwrite.{{ service.name | caseCamel }}.{{ method.name | caseSnake }}(
+{% endif %}
+{% for parameter in method.parameters.all %}
+        {{ parameter | paramExample }}{% if not loop.last %},{% endif %}{% if not parameter.required %} # optional{% endif %}
 
-	{% for parameter in method.parameters.all %}
-		{{ parameter.name | caseSnake }} = {{ parameter | paramExample }}{% if not loop.last %},{% endif %}{% if not parameter.required %} # optional{% endif %}
-	{% endfor %}
-	)
+{% endfor %}
+    )
 
-	print(result)
+    if result is {{ spec.title | caseUcfirst }}Exception:
+        print("Error: ", result.message)
+    else:
+        print(result)
