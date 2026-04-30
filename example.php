@@ -27,6 +27,7 @@ use Appwrite\SDK\Language\AgentSkills;
 use Appwrite\SDK\Language\ClaudePlugin;
 use Appwrite\SDK\Language\CursorPlugin;
 use Appwrite\SDK\Language\Rust;
+use Appwrite\SDK\Language\GDScript;
 use Appwrite\SDK\Language\Godot;
 
 try {
@@ -347,6 +348,13 @@ try {
         $sdk = new SDK(new Rust(), new Swagger2($spec));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/rust');
+    }
+
+    // Godot
+    if (!$requestedSdk || $requestedSdk === 'godot') {
+        $sdk = new SDK(new Godot(), new Swagger2($spec));
+        configureSDK($sdk);
+        $sdk->generate(__DIR__ . '/examples/godot');
     }
 } catch (Exception $exception) {
     echo 'Error: ' . $exception->getMessage() . ' on ' . $exception->getFile() . ':' . $exception->getLine() . "\n";

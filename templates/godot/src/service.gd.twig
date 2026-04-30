@@ -1,0 +1,7 @@
+class_name AppwriteService
+extends RefCounted
+
+var client: AppwriteClient
+
+func _init(client_ptr: AppwriteClient):
+    client = client_ptr

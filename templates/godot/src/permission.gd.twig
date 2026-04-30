@@ -1,0 +1,16 @@
+class_name Permission extends RefCounted
+
+static func read(role: String) -> String:
+    return 'read("%s")' % role
+
+static func write(role: String) -> String:
+    return 'write("%s")' % role
+
+static func create(role: String) -> String:
+    return 'create("%s")' % role
+
+static func update(role: String) -> String:
+    return 'update("%s")' % role
+
+static func delete(role: String) -> String:
+    return 'delete("%s")' % role

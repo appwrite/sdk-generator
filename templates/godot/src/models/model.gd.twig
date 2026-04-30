@@ -1,0 +1,20 @@
+class_name {{ definition.name | caseUcfirst }}
+extends RefCounted
+
+{% for property in definition.properties %}
+var {{ property.name | caseSnake }}: {{ property | typeName }}
+{% endfor %}
+
+func from_dictionary(dict: Dictionary) -> {{ definition.name | caseUcfirst }}:
+{% for property in definition.properties %}
+    if dict.has('{{ property.name }}'):
+        {{ property.name | caseSnake }} = dict['{{ property.name }}']
+{% endfor %}
+    return self
+
+func to_dictionary() -> Dictionary:
+    var dict = {}
+{% for property in definition.properties %}
+    dict['{{ property.name }}'] = {{ property.name | caseSnake }}
+{% endfor %}
+    return dict

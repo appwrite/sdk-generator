@@ -1,0 +1,18 @@
+class_name InputFile extends RefCounted
+
+var path: String
+var bytes: PackedByteArray
+var filename: String
+var content_type: String
+
+func _init(p_path: String = "", p_bytes: PackedByteArray = PackedByteArray(), p_filename: String = "", p_content_type: String = "") -> void:
+    self.path = p_path
+    self.bytes = p_bytes
+    self.filename = p_filename
+    self.content_type = p_content_type
+
+static func from_path(p_path: String, p_filename: String = "", p_content_type: String = "") -> InputFile:
+    return InputFile.new(p_path, PackedByteArray(), p_filename, p_content_type)
+
+static func from_bytes(p_bytes: PackedByteArray, p_filename: String, p_content_type: String = "") -> InputFile:
+    return InputFile.new("", p_bytes, p_filename, p_content_type)
