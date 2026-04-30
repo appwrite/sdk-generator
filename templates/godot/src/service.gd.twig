@@ -1,7 +1,8 @@
-class_name AppwriteService
+{% set prefix = spec.title | caseUcfirst %}
+class_name {{prefix}}Service
 extends RefCounted
 
-var client: AppwriteClient
+var client: {{prefix}}Client
 
-func _init(client_ptr: AppwriteClient):
-    client = client_ptr
+func _init(p_client: {{prefix}}Client) -> void:
+    client = p_client

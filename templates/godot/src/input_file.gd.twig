@@ -1,4 +1,4 @@
-class_name InputFile extends RefCounted
+class_name {{spec.title | caseUcfirst}}InputFile extends RefCounted
 
 var path: String
 var bytes: PackedByteArray
@@ -10,9 +10,19 @@ func _init(p_path: String = "", p_bytes: PackedByteArray = PackedByteArray(), p_
     self.bytes = p_bytes
     self.filename = p_filename
     self.content_type = p_content_type
+    
+    if self.filename == "" and self.path != "":
+        self.filename = self.path.get_file()
 
-static func from_path(p_path: String, p_filename: String = "", p_content_type: String = "") -> InputFile:
-    return InputFile.new(p_path, PackedByteArray(), p_filename, p_content_type)
+static func from_path(p_path: String, p_filename: String = "", p_content_type: String = "") -> {{spec.title | caseUcfirst}}InputFile:
+    return {{spec.title | caseUcfirst}}InputFile.new(p_path, PackedByteArray(), p_filename, p_content_type)
 
-static func from_bytes(p_bytes: PackedByteArray, p_filename: String, p_content_type: String = "") -> InputFile:
-    return InputFile.new("", p_bytes, p_filename, p_content_type)
+static func from_bytes(p_bytes: PackedByteArray, p_filename: String, p_content_type: String = "") -> {{spec.title | caseUcfirst}}InputFile:
+    return {{spec.title | caseUcfirst}}InputFile.new("", p_bytes, p_filename, p_content_type)
+
+func get_data() -> PackedByteArray:
+    if not bytes.is_empty():
+        return bytes
+    if not path.is_empty():
+        return FileAccess.get_file_as_bytes(path)
+    return PackedByteArray()
