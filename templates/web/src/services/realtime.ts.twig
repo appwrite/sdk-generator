@@ -1,4 +1,8 @@
+{% if language.name == 'Web' %}
 import { {{ spec.title | caseUcfirst}}Exception, Client, JSONbig, type BrowserAuth } from '../client';
+{% else %}
+import { {{ spec.title | caseUcfirst}}Exception, Client, JSONbig } from '../client';
+{% endif %}
 import { Channel, ActionableChannel, ResolvedChannel } from '../channel';
 import { Query } from '../query';
 import { ID } from '../id';
@@ -80,7 +84,7 @@ export class Realtime {
     private readonly DEBOUNCE_MS = 1;
     private readonly HEARTBEAT_INTERVAL = 20000; // 20 seconds in milliseconds
 
-    private client: Client<BrowserAuth>;
+    private client: Client{% if language.name == 'Web' %}<BrowserAuth>{% endif %};
     private socket?: WebSocket;
     private activeSubscriptions = new Map<string, RealtimeCallback<any>>();
     private pendingSubscribes = new Map<string, RealtimeRequestSubscribeRow>();
@@ -95,7 +99,7 @@ export class Realtime {
     private onCloseCallbacks: Array<() => void> = [];
     private onOpenCallbacks: Array<() => void> = [];
 
-    constructor(client: Client<BrowserAuth>) {
+    constructor(client: Client{% if language.name == 'Web' %}<BrowserAuth>{% endif %}) {
         this.client = client;
     }
 

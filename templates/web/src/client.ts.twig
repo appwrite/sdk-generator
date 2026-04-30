@@ -517,6 +517,15 @@ class Client<TAuth extends ClientAuth = 'anonymous'> {
         return client;
     }
 
+    private withRuntime<T extends ClientAuth>(runtime: ClientRuntime): Client<T> {
+        const client = new Client<T>();
+        client.config = { ...this.config };
+        client.headers = { ...this.headers };
+        client.runtime = runtime;
+        client.headers['x-sdk-platform'] = runtime === 'server' ? 'server' : 'client';
+        return client;
+    }
+
     /**
      * Get Headers
      *
@@ -592,9 +601,10 @@ class Client<TAuth extends ClientAuth = 'anonymous'> {
     }
 
     setKey(value: string): Client<'apiKey'> {
-        this.headers['X-{{ spec.title | caseUcfirst }}-Key'] = value;
-        this.config.key = value;
-        return this as unknown as Client<'apiKey'>;
+        const client = this.withRuntime<'apiKey'>('server');
+        client.headers['X-{{ spec.title | caseUcfirst }}-Key'] = value;
+        client.config.key = value;
+        return client;
     }
 
     setJWT(value: string): this {
@@ -610,15 +620,17 @@ class Client<TAuth extends ClientAuth = 'anonymous'> {
     }
 
     setSession(value: string): Client<'session'> {
-        this.headers['X-{{ spec.title | caseUcfirst }}-Session'] = value;
-        this.config.session = value;
-        return this as unknown as Client<'session'>;
+        const client = this.withRuntime<'session'>('browser');
+        client.headers['X-{{ spec.title | caseUcfirst }}-Session'] = value;
+        client.config.session = value;
+        return client;
     }
 
     setDevKey(value: string): Client<'devKey'> {
-        this.headers['X-{{ spec.title | caseUcfirst }}-Dev-Key'] = value;
-        this.config.devkey = value;
-        return this as unknown as Client<'devKey'>;
+        const client = this.withRuntime<'devKey'>('server');
+        client.headers['X-{{ spec.title | caseUcfirst }}-Dev-Key'] = value;
+        client.config.devkey = value;
+        return client;
     }
 
     setForwardedUserAgent(value: string): this {
@@ -628,21 +640,24 @@ class Client<TAuth extends ClientAuth = 'anonymous'> {
     }
 
     setImpersonateUserId(value: string): Client<'impersonation'> {
-        this.headers['X-{{ spec.title | caseUcfirst }}-Impersonate-User-Id'] = value;
-        this.config.impersonateuserid = value;
-        return this as unknown as Client<'impersonation'>;
+        const client = this.withRuntime<'impersonation'>('browser');
+        client.headers['X-{{ spec.title | caseUcfirst }}-Impersonate-User-Id'] = value;
+        client.config.impersonateuserid = value;
+        return client;
     }
 
     setImpersonateUserEmail(value: string): Client<'impersonation'> {
-        this.headers['X-{{ spec.title | caseUcfirst }}-Impersonate-User-Email'] = value;
-        this.config.impersonateuseremail = value;
-        return this as unknown as Client<'impersonation'>;
+        const client = this.withRuntime<'impersonation'>('browser');
+        client.headers['X-{{ spec.title | caseUcfirst }}-Impersonate-User-Email'] = value;
+        client.config.impersonateuseremail = value;
+        return client;
     }
 
     setImpersonateUserPhone(value: string): Client<'impersonation'> {
-        this.headers['X-{{ spec.title | caseUcfirst }}-Impersonate-User-Phone'] = value;
-        this.config.impersonateuserphone = value;
-        return this as unknown as Client<'impersonation'>;
+        const client = this.withRuntime<'impersonation'>('browser');
+        client.headers['X-{{ spec.title | caseUcfirst }}-Impersonate-User-Phone'] = value;
+        client.config.impersonateuserphone = value;
+        return client;
     }
 
     private realtime: Realtime = {
