@@ -1,60 +1,53 @@
 {% set prefix = spec.title | caseUcfirst %}
-class_name {{prefix}}{{ service.name | caseUcfirst }}
-extends {{prefix}}Service
+extends "../service.gd"
+
+// TODO: Import enums
+const InputFile := preload("../input_file.gd")
 
 {% for method in service.methods %}
-{% set return_type = method.responseModel | caseUcfirst %}
-func {{ method.name | caseSnake }}({% for parameter in method.parameters.all %}{{ parameter.name | caseSnake }}: {{ parameter | typeName(spec) }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}) -> Variant:
-    var path := '{{ method.path }}'
-{% for parameter in method.parameters.path %}
-    path = path.replace('{{ '{' }}{{ parameter.name }}{{ '}' }}', str({{ parameter.name | caseSnake }}))
-{% endfor %}
-    var params := {
-{% for parameter in method.parameters.query %}
-        '{{ parameter.name }}': {{ parameter.name | caseSnake }},
-{% endfor %}
-{% for parameter in method.parameters.body %}
-        '{{ parameter.name }}': {{ parameter.name | caseSnake }},
-{% endfor %}
-{% for parameter in method.parameters.formData %}
-        '{{ parameter.name }}': {{ parameter.name | caseSnake }},
-{% endfor %}
+{%~ set methodNameSnake = method.name | caseSnake %}
+{%~ set shouldSkip = false %}
+{%~ if method.deprecated %}
+{%~ for otherMethod in service.methods %}
+{%~ if not otherMethod.deprecated and (otherMethod.name | caseSnake) == methodNameSnake %}
+{%~ set shouldSkip = true %}
+{%~ endif %}
+{%~ endfor %}
+{%~ endif %}
+{%~ if not shouldSkip %}
+{%~ set return_type = method.responseModel | caseUcfirst %}
+
+func {{ methodNameSnake| escapeKeyword }}({% for parameter in method.parameters.all %}{{ parameter.name | caseSnake | escapeKeyword }}: {{ parameter | typeName(spec) }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}) -> Variant:
+    var _path := '{{ method.path }}'
+    {%~ for parameter in method.parameters.path %}
+    _path = _path.replace('{{ '{' }}{{ parameter.name }}{{ '}' }}', str({{ parameter.name | caseSnake | escapeKeyword }}))
+    {%~ endfor %}
+
+    var _params := {
+        {%~ for parameter in method.parameters.query %}
+        '{{ parameter.name }}': {{ parameter.name | caseSnake | escapeKeyword }},
+        {%~ endfor %}
+        {%~ for parameter in method.parameters.body %}
+        '{{ parameter.name }}': {{ parameter.name | caseSnake | escapeKeyword }},
+        {%~ endfor %}
+        {%~ for parameter in method.parameters.formData %}
+        '{{ parameter.name }}': {{ parameter.name | caseSnake | escapeKeyword }},
+        {%~ endfor %}
     }
 
-    var headers := {
-{% for key, value in method.headers %}
+    var _headers := {
+        {%~ for key, value in method.headers %}
         '{{ key }}': '{{ value }}',
-{% endfor %}
+        {%~ endfor %}
     }
 
-    var result = await client.call_api('{{ method.method }}', path, headers, params)
-    
-    if result.statusCode >= 400:
-        var message = ""
-        var code = result.statusCode
-        var type = ""
-        var response = ""
-        if result.body is Dictionary:
-            message = result.body.get("message", "")
-            code = result.body.get("code", result.statusCode)
-            type = result.body.get("type", "")
-            response = str(result.body)
-        else:
-            message = str(result.body)
-            response = str(result.body)
-        
-        push_error("{{prefix}} Error (%s): %s" % [type, message])
-        return {{prefix}}Exception.new(message, code, type, response)
+    {%~ if method.responseModel and method.responseModel != 'any' %}
+    var model_script = {{prefix}}{{method.responseModel | caseUcfirst}}
+    {%~ else %}
+    var model_script = null
+    {%~ endif %}
 
-{% if method.responseModel and method.responseModel != 'any' %}
-    if result.body is Array:
-        var list: Array[{{prefix}}{{return_type}}] = []
-        for item in result.body:
-            list.append({{prefix}}{{return_type}}.from_dict(item))
-        return list
-    return {{prefix}}{{ return_type }}.from_dict(result.body)
-{% else %}
-    return result.body
-{% endif %}
+    return await _call('{{ method.method }}', _path, _headers, _params, model_script)
 
-{% endfor %}
+{%~ endif %}
+{%~ endfor %}

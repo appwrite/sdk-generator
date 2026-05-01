@@ -3,6 +3,7 @@
 namespace Appwrite\SDK\Language;
 
 use Appwrite\SDK\Language;
+use Twig\TwigFilter;
 
 class GDScript extends Language
 {
@@ -67,6 +68,17 @@ class GDScript extends Language
             'TAU',
             'INF',
             'NAN',
+            // NODE specific keywords
+            '_ready',
+            'name',
+            'type',
+            '_process',
+            '_physics_process',
+            '_input',
+            '_unhandled_input',
+            '_exit_tree',
+            'get',
+            'set',
         ];
     }
 
@@ -108,29 +120,49 @@ class GDScript extends Language
      */
     public function getTypeName(array $parameter, array $spec = []): string
     {
-        $prefix = $this->toPascalCase($spec['title'] ?? 'Appwrite');
+        // ARRAY TYPES
+        if (($parameter['type'] ?? null) === self::TYPE_ARRAY) {
 
-        if (isset($parameter['enumName'])) {
-            return $prefix . \ucfirst($parameter['enumName']);
+            // Array of models
+            if (!empty($parameter['array']['model'])) {
+                return 'Array[' . $this->toPascalCase($parameter['array']['model']) . ']';
+            }
+
+            // Array of enums
+            if (isset($parameter['enumName'])) {
+                return 'Array[' . $this->toPascalCase($parameter['enumName']) . ']';
+            }
+
+            if (!empty($parameter['enumValues'])) {
+                return 'Array[' . $this->toPascalCase($parameter['name']) . ']';
+            }
+
+            return 'Array';
         }
-        if (!empty($parameter['enumValues'])) {
-            return $prefix . \ucfirst($parameter['name']);
-        }
-        if (!empty($parameter['array']['model'])) {
-            return 'Array[' . $prefix . $this->toPascalCase($parameter['array']['model']) . ']';
-        }
+
+        // MODEL TYPE
         if (!empty($parameter['model'])) {
-            $modelType = $prefix . $this->toPascalCase($parameter['model']);
-            return $parameter['type'] === self::TYPE_ARRAY ? 'Array[' . $modelType . ']' : $modelType;
+            return $this->toPascalCase($parameter['model']);
         }
-        return match ($parameter['type']) {
+
+        // ENUM TYPE
+        if (isset($parameter['enumName'])) {
+            return $this->toPascalCase($parameter['enumName']);
+        }
+
+        if (!empty($parameter['enumValues'])) {
+            return $this->toPascalCase($parameter['name']);
+        }
+
+        // PRIMITIVES
+        return match ($parameter['type'] ?? '') {
             self::TYPE_INTEGER => 'int',
             self::TYPE_NUMBER => 'float',
             self::TYPE_STRING => 'String',
-            self::TYPE_FILE => $prefix . 'InputFile',
             self::TYPE_BOOLEAN => 'bool',
             self::TYPE_ARRAY => 'Array',
             self::TYPE_OBJECT => 'Dictionary',
+            self::TYPE_FILE => 'RefCounted',
             default => 'Variant',
         };
     }
@@ -255,5 +287,24 @@ class GDScript extends Language
         }
 
         return $output;
+    }
+
+    public function getFilters(): array
+    {
+        return array_merge([
+            new TwigFilter('caseEnumKey', function (string $value) {
+                return $this->toUpperSnakeCase($value);
+            }),
+            new TwigFilter('uniqueSnake', function (string $value) {
+                return $this->toUniqueSnake($value);
+            }),
+        ], parent::getFilters());
+    }
+
+    private function toUniqueSnake(string $value): string
+    {
+        $base = $this->toSnakeCase($value);
+        $name = $this->escapeKeyword($base);
+        return $name;
     }
 }

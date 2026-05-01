@@ -1,7 +1,7 @@
 [plugin]
 
-name="{{sdk.name}}"
-description="{{sdk.description}}"
+name="{{ spec.title | caseUcfirst }}"
+description="{{ spec.shortDescription }}"
 author="Appwrite Team"
-version="{{sdk.version}}"
+version="{{ spec.version }}"
 script="plugin.gd"

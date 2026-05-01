@@ -1,8 +1,13 @@
 @tool
 extends EditorPlugin
 
-func _enter_tree():
-	add_autoload_singleton("{{sdk.name}}", "res://addons/{{sdk.name | caseLower}}/{{sdk.name | caseLower}}.gd")
+const AUTOLOAD_NAME : String = "{{spec.title | caseUcfirst}}"
+const AUTOLOAD_PATH : String = "res://addons/{{spec.title | caseSnake}}/{{spec.title | caseLower}}.gd"
 
-func _exit_tree():
-	remove_autoload_singleton("{{sdk.name}}")
+func _enable_plugin() -> void:
+	add_autoload_singleton(AUTOLOAD_NAME, AUTOLOAD_PATH)
+
+
+func _disable_plugin() -> void:
+	remove_autoload_singleton(AUTOLOAD_NAME)
+

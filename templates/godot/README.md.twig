@@ -14,13 +14,13 @@
 
 ## Installation
 
-1. Copy the `addons/{{sdk.name | caseLower}}` folder into your Godot project's `res://addons/` directory.
+1. Copy the `addons/{{spec.title | caseSnake}}` folder into your Godot project's `res://addons/` directory.
 2. Enable the plugin in **Project Settings** > **Plugins**.
-3. The SDK is now available as a global singleton named `{{sdk.name}}`.
+3. The SDK is now available as a global singleton named `{{spec.title | caseUcfirst}}`.
 
 ## Getting Started
 
-In Godot 4, the SDK uses asynchronous coroutines via the `await` keyword. You can use the global `{{sdk.name}}` singleton or initialize the `{{sdk.name}}Client` manually.
+In Godot 4, the SDK uses asynchronous coroutines via the `await` keyword. You can use the global `{{spec.title | caseUcfirst}}` singleton or initialize the `{{spec.title | caseUcfirst}}Client` manually.
 
 ### Using the Autoload Singleton
 
@@ -28,12 +28,12 @@ In Godot 4, the SDK uses asynchronous coroutines via the `await` keyword. You ca
 extends Node
 
 func _ready():
-    # Initialize the global Appwrite singleton
-    {{sdk.name}}.set_endpoint('https://cloud.appwrite.io/v1')
-    {{sdk.name}}.set_project('YOUR_PROJECT_ID')
+    # Initialize the global {{spec.title | caseUcfirst}} singleton
+    {{spec.title | caseUcfirst}}.set_endpoint('https://cloud.appwrite.io/v1')
+    {{spec.title | caseUcfirst}}.set_project('YOUR_PROJECT_ID')
     
     # Call an API method asynchronously
-    var response = await {{sdk.name}}.account.get()
+    var response = await {{spec.title | caseUcfirst}}.account.get()
     
     if response == null:
         print("An error occurred")
@@ -47,11 +47,11 @@ func _ready():
 extends Node
 
 func _ready():
-    var client = {{sdk.name}}Client.new()
+    var client = {{spec.title | caseUcfirst}}Client.new()
     client.set_endpoint('https://cloud.appwrite.io/v1')
     client.set_project('YOUR_PROJECT_ID')
     
-    var account = {{sdk.name}}Account.new(client)
+    var account = {{spec.title | caseUcfirst}}Account.new(client)
     var response = await account.get()
 ```
 
