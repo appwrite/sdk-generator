@@ -1,6 +1,7 @@
-{% set prefix = spec.title | caseUcfirst %}
-class_name {{prefix}}Client
+# {{prefix}}Client
 extends RefCounted
+
+const InputFile := preload("input_file.gd")
 
 var _chunk_size = 5 * 1024 * 1024
 var _self_signed = false
@@ -17,30 +18,36 @@ var _global_headers = {
 {% endfor %}
 }
 
-func set_self_signed(status: bool = true) -> {{prefix}}Client:
+func set_self_signed(status: bool = true) -> RefCounted:
     _self_signed = status
     return self
 
-func set_endpoint(endpoint: String) -> {{prefix}}Client:
+
+func set_endpoint(endpoint: String) -> RefCounted:
     _endpoint = endpoint
     return self
 
-func add_header(key: String, value: String) -> {{prefix}}Client:
+
+func add_header(key: String, value: String) -> RefCounted:
     _global_headers[key.to_lower()] = value
     return self
+
 
 func get_headers() -> Dictionary:
     return _global_headers.duplicate()
 
+
 {% for header in spec.global.headers %}
-func set_{{header.key | caseSnake}}(value: String) -> {{prefix}}Client:
+func set_{{header.key | caseSnake}}(value: String) -> RefCounted:
 {% if header.description %}
     # {{header.description}}
 {% endif %}
     _global_headers['{{header.name|lower}}'] = value
     return self
 
+
 {% endfor %}
+
 
 func call_api(method: String, path: String = "", headers: Dictionary = {}, params: Dictionary = {}) -> Dictionary:
     var http := HTTPRequest.new()
@@ -119,6 +126,9 @@ func call_api(method: String, path: String = "", headers: Dictionary = {}, param
         return {"statusCode": response_code, "body": response_text}
 
 
+const InputFileScript = preload("input_file.gd")
+
+
 func _build_multipart(params: Dictionary, boundary: String) -> PackedByteArray:
     var body := PackedByteArray()
     for key in params:
@@ -127,7 +137,7 @@ func _build_multipart(params: Dictionary, boundary: String) -> PackedByteArray:
         
         body.append_array(("--" + boundary + "\r\n").to_utf8_buffer())
         
-        if value is {{prefix}}InputFile:
+        if value is InputFileScript:
             body.append_array(("Content-Disposition: form-data; name=\"%s\"; filename=\"%s\"\r\n" % [key, value.filename]).to_utf8_buffer())
             var c_type = value.content_type if value.content_type != "" else "application/octet-stream"
             body.append_array(("Content-Type: %s\r\n\r\n" % c_type).to_utf8_buffer())
@@ -146,3 +156,4 @@ func _build_multipart(params: Dictionary, boundary: String) -> PackedByteArray:
     
     body.append_array(("--" + boundary + "--\r\n").to_utf8_buffer())
     return body
+

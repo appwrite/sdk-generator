@@ -1,6 +1,17 @@
-class_name {{spec.title | caseUcfirst}}{{ enum.name | caseUcfirst }}
+# Enum: {{ enum.name }}
 
 {% for value in enum.enum %}
 {% set key = enum.keys is empty ? value : enum.keys[loop.index0] %}
-const {{ key | caseSnake | upper | escapeKeyword }} = "{{ value }}"
+const {{ key | caseEnumKey }} = "{{ value }}"
 {% endfor %}
+
+
+static func is_valid(value: String) -> bool:
+    return value in values()
+
+static func values() -> Array:
+    return [
+        {% for value in enum.enum %}
+        "{{ value }}",
+        {% endfor %}
+    ]

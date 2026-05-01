@@ -39,77 +39,82 @@ class Godot extends GDScript
             ],
             [
                 'scope' => 'default',
-                'destination' => 'addons/{{ sdk.name | caseLower }}/plugin.cfg',
+                'destination' => 'addons/{{ spec.title | caseSnake }}/plugin.cfg',
                 'template' => 'godot/src/plugin.cfg.twig',
             ],
             [
                 'scope' => 'default',
-                'destination' => 'addons/{{ sdk.name | caseLower }}/plugin.gd',
+                'destination' => 'addons/{{ spec.title | caseSnake }}/plugin.gd',
                 'template' => 'godot/src/plugin.gd.twig',
             ],
             [
                 'scope' => 'default',
-                'destination' => 'addons/{{ sdk.name | caseLower }}/{{ sdk.name | caseLower }}.gd',
+                'destination' => 'addons/{{ spec.title | caseSnake }}/{{ spec.title | caseSnake }}.gd',
                 'template' => 'godot/src/appwrite.gd.twig',
             ],
             [
                 'scope' => 'default',
-                'destination' => 'addons/{{ sdk.name | caseLower }}/icon.svg',
+                'destination' => 'addons/{{ spec.title | caseSnake }}/icon.svg',
                 'template' => 'godot/src/icon.svg',
             ],
             [
                 'scope' => 'default',
-                'destination' => 'addons/{{ sdk.name | caseLower }}/client.gd',
+                'destination' => 'addons/{{ spec.title | caseSnake }}/client.gd',
                 'template' => 'godot/src/client.gd.twig',
             ],
             [
                 'scope' => 'default',
-                'destination' => 'addons/{{ sdk.name | caseLower }}/service.gd',
+                'destination' => 'addons/{{ spec.title | caseSnake }}/service.gd',
                 'template' => 'godot/src/service.gd.twig',
             ],
             [
                 'scope' => 'default',
-                'destination' => 'addons/{{ sdk.name | caseLower }}/exception.gd',
+                'destination' => 'addons/{{ spec.title | caseSnake }}/exception.gd',
                 'template' => 'godot/src/exception.gd.twig',
             ],
             [
                 'scope' => 'default',
-                'destination' => 'addons/{{ sdk.name | caseLower }}/id.gd',
+                'destination' => 'addons/{{ spec.title | caseSnake }}/id.gd',
                 'template' => 'godot/src/id.gd.twig',
             ],
             [
                 'scope' => 'default',
-                'destination' => 'addons/{{ sdk.name | caseLower }}/permission.gd',
+                'destination' => 'addons/{{ spec.title | caseSnake }}/permission.gd',
                 'template' => 'godot/src/permission.gd.twig',
             ],
             [
                 'scope' => 'default',
-                'destination' => 'addons/{{ sdk.name | caseLower }}/role.gd',
+                'destination' => 'addons/{{ spec.title | caseSnake }}/role.gd',
                 'template' => 'godot/src/role.gd.twig',
             ],
             [
                 'scope' => 'default',
-                'destination' => 'addons/{{ sdk.name | caseLower }}/query.gd',
+                'destination' => 'addons/{{ spec.title | caseSnake }}/query.gd',
                 'template' => 'godot/src/query.gd.twig',
             ],
             [
                 'scope' => 'default',
-                'destination' => 'addons/{{ sdk.name | caseLower }}/input_file.gd',
+                'destination' => 'addons/{{ spec.title | caseSnake }}/input_file.gd',
                 'template' => 'godot/src/input_file.gd.twig',
             ],
             [
+                'scope' => 'default',
+                'destination' => 'example.env',
+                'template' => 'godot/example.env.twig'
+            ],
+            [
                 'scope' => 'enum',
-                'destination' => 'addons/{{ sdk.name | caseLower }}/enums/{{ enum.name | caseSnake }}.gd',
+                'destination' => 'addons/{{ spec.title | caseSnake }}/enums/{{ enum.name | caseSnake }}.gd',
                 'template' => 'godot/src/enums/enum.gd.twig',
             ],
             [
                 'scope' => 'service',
-                'destination' => 'addons/{{ sdk.name | caseLower }}/services/{{ service.name | caseSnake }}.gd',
+                'destination' => 'addons/{{ spec.title | caseSnake }}/services/{{ service.name | caseSnake }}.gd',
                 'template' => 'godot/src/services/service.gd.twig',
             ],
             [
                 'scope' => 'definition',
-                'destination' => 'addons/{{ sdk.name | caseLower }}/models/{{ definition.name | caseSnake }}.gd',
+                'destination' => 'addons/{{ spec.title | caseSnake }}/models/{{ definition.name | caseSnake }}.gd',
                 'template' => 'godot/src/models/model.gd.twig',
             ],
             [

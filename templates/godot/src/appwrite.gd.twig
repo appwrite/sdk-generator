@@ -1,31 +1,76 @@
 {% set prefix = spec.title | caseUcfirst %}
 extends Node
 
-# Autoload singleton for {{spec.title}}
-
-var client: {{prefix}}Client
+const ClientScript = preload("client.gd")
+const IDScript = preload("id.gd")
+const PermissionScript = preload("permission.gd")
+const RoleScript = preload("role.gd")
+const QueryScript = preload("query.gd")
+const InputFileScript = preload("input_file.gd")
+const ID = preload("id.gd")
+const Permission = preload("permission.gd")
+const Role = preload("role.gd")
+const Query = preload("query.gd")
+const InputFile = preload("input_file.gd")
+const Exception = preload("exception.gd")
 
 {% for service in spec.services %}
-var {{ service.name | caseCamel }}: {{prefix}}{{ service.name | caseUcfirst }}
+const {{ service.name | caseUcfirst }}Script = preload("services/{{ service.name | caseSnake }}.gd")
+{% endfor %}
+
+var client: RefCounted
+{% for service in spec.services %}
+var {{ service.name | caseCamel }}: RefCounted
 {% endfor %}
 
 func _ready() -> void:
-    client = {{prefix}}Client.new()
-    
-    # Attempt to load configuration from ProjectSettings
-    if ProjectSettings.has_setting("appwrite/config/endpoint"):
-        client.set_endpoint(ProjectSettings.get_setting("appwrite/config/endpoint"))
-    if ProjectSettings.has_setting("appwrite/config/project"):
-        client.set_project(ProjectSettings.get_setting("appwrite/config/project"))
+    client = ClientScript.new()
+    _load_env()
     
 {% for service in spec.services %}
-    {{ service.name | caseCamel }} = {{prefix}}{{ service.name | caseUcfirst }}.new(client)
+    {{ service.name | caseCamel }} = {{ service.name | caseUcfirst }}Script.new(client)
 {% endfor %}
+
+
+func _load_env() -> void:
+    var path = "res://.env"
+    if not FileAccess.file_exists(path):
+        return
+
+    var file = FileAccess.open(path, FileAccess.READ)
+    while not file.eof_reached():
+        var line = file.get_line().strip_edges()
+        if line.is_empty() or line.begins_with("#"):
+            continue
+            
+        var parts = line.split("=", true, 1)
+        if parts.size() != 2:
+            continue
+            
+        var key = parts[0].strip_edges()
+        var value = parts[1].strip_edges()
+        
+        # Remove quotes if present
+        if (value.begins_with("\"") and value.ends_with("\"")) or (value.begins_with("'") and value.ends_with("'")):
+            value = value.substr(1, value.length() - 2)
+            
+        match key:
+            "APPWRITE_ENDPOINT":
+                client.set_endpoint(value)
+            "APPWRITE_PROJECT":
+                client.set_project(value)
+            "APPWRITE_KEY":
+                client.set_key(value)
+
 
 func set_endpoint(endpoint: String) -> void:
     client.set_endpoint(endpoint)
 
+
 func set_project(project: String) -> void:
     client.set_project(project)
 
-# Add other global setters if needed
+
+func set_key(key: String) -> void:
+    client.set_key(key)
+
