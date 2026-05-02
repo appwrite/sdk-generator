@@ -52,7 +52,7 @@ readonly class {{ definition.name | caseUcfirst | overrideIdentifier }}
      * @param {{ paramDocType | raw }}|null ${{ property.name | caseCamel }} {{ property.description | unescape | lower | raw }}
 {% endfor %}
 {% if definition.additionalProperties %}
-     * @param array<string, mixed> $data Additional properties.
+     * @param array<string, mixed> ${{ definition.additionalPropertiesKey | default('data') | caseCamel }} Additional properties.
 {% endif %}
      */
     public function __construct(
@@ -63,7 +63,7 @@ readonly class {{ definition.name | caseUcfirst | overrideIdentifier }}
         public ?{{ property | typeName }} ${{ property.name | caseCamel }} = null{{ (not loop.last or definition.additionalProperties) ? ',' : '' }}
 {% endfor %}
 {% if definition.additionalProperties %}
-        public array $data = []
+        public array ${{ definition.additionalPropertiesKey | default('data') | caseCamel }} = []
 {% endif %}
     ) {
     }
@@ -140,7 +140,7 @@ readonly class {{ definition.name | caseUcfirst | overrideIdentifier }}
 {% endif %}
 {% endfor %}
 {% if definition.additionalProperties %}
-            data: $additionalProperties
+            {{ definition.additionalPropertiesKey | default('data') | caseCamel }}: $additionalProperties
 {% endif %}
         );
 {% endif %}
@@ -161,7 +161,7 @@ readonly class {{ definition.name | caseUcfirst | overrideIdentifier }}
         ];
 {% if definition.additionalProperties %}
 
-        foreach (static::serializeAdditionalProperties($this->data) as $field => $value) {
+        foreach (static::serializeAdditionalProperties($this->{{ definition.additionalPropertiesKey | default('data') | caseCamel }}) as $field => $value) {
             $result[$field] = $value;
         }
 {% endif %}

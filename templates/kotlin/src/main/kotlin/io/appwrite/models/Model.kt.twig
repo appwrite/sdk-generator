@@ -26,8 +26,8 @@ import {{ sdk.namespace | caseDot }}.enums.{{ property.enumName | caseUcfirst }}
     /**
      * Additional properties
      */
-    @SerializedName("data")
-    val data: T
+    @SerializedName("{{ definition.additionalPropertiesKey | default('data') | escapeDollarSign }}")
+    val {{ definition.additionalPropertiesKey | default('data') | escapeKeyword | removeDollarSign }}: T
     {%~ endif %}
 ) {
     fun toMap(): Map<String, Any> = mapOf(
@@ -35,7 +35,7 @@ import {{ sdk.namespace | caseDot }}.enums.{{ property.enumName | caseUcfirst }}
         "{{ property.name | escapeDollarSign }}" to {% if property.sub_schema %}{% if property.type == 'array' %}{{property.name | escapeKeyword | removeDollarSign}}.map { it.toMap() }{% else %}{{property.name | escapeKeyword | removeDollarSign}}.toMap(){% endif %}{% elseif property.enum %}{{property.name | escapeKeyword | removeDollarSign}}{% if not property.required %}?{% endif %}.value{% else %}{{property.name | escapeKeyword | removeDollarSign}}{% endif %} as Any,
         {%~ endfor %}
         {%~ if definition.additionalProperties %}
-        "data" to data!!.jsonCast(to = Map::class.java)
+        "{{ definition.additionalPropertiesKey | default('data') | escapeDollarSign }}" to {{ definition.additionalPropertiesKey | default('data') | escapeKeyword | removeDollarSign }}!!.jsonCast(to = Map::class.java)
         {%~ endif %}
     )
 
@@ -46,14 +46,14 @@ import {{ sdk.namespace | caseDot }}.enums.{{ property.enumName | caseUcfirst }}
             {{ property.name | escapeKeyword | removeDollarSign }}: {{ property | propertyType(spec, 'Map<String, Any>') | raw }},
             {%~ endfor %}
             {%~ if definition.additionalProperties %}
-            data: Map<String, Any>
+            {{ definition.additionalPropertiesKey | default('data') | escapeKeyword | removeDollarSign }}: Map<String, Any>
             {%~ endif %}
         ) = {{ definition | modelType(spec, 'Map<String, Any>') | raw }}(
             {%~ for property in definition.properties %}
             {{ property.name | escapeKeyword | removeDollarSign }},
             {%~ endfor %}
             {%~ if definition.additionalProperties %}
-            data
+            {{ definition.additionalPropertiesKey | default('data') | escapeKeyword | removeDollarSign }}
             {%~ endif %}
         )
         {%~ endif %}
@@ -69,7 +69,7 @@ import {{ sdk.namespace | caseDot }}.enums.{{ property.enumName | caseUcfirst }}
             {{ property.name | escapeKeyword | removeDollarSign }} = {{ property | propertyAssignment(spec) | raw }},
             {%~ endfor %}
             {%~ if definition.additionalProperties %}
-            data = map["data"]?.jsonCast(to = nestedType) ?: map.jsonCast(to = nestedType)
+            {{ definition.additionalPropertiesKey | default('data') | escapeKeyword | removeDollarSign }} = map["{{ definition.additionalPropertiesKey | default('data') | escapeDollarSign }}"]?.jsonCast(to = nestedType) ?: map.jsonCast(to = nestedType)
             {%~ endif %}
         )
     }

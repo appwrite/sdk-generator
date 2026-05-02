@@ -43,6 +43,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         private var socket: RealWebSocket? = null
         private val activeSubscriptions = ConcurrentHashMap<String, RealtimeCallback>()
         private val pendingSubscribes = LinkedHashMap<String, Map<String, Any>>()
+        private val pendingPresenceRequests = ArrayDeque<CompletableDeferred<Map<String, Any>>>()
 
         private var reconnectAttempts = 0
         private val socketGeneration = AtomicInteger(0)
@@ -50,6 +51,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         private var heartbeatJob: Job? = null
 
         private val subscriptionLock = Any()
+        private val presenceLock = Any()
     }
 
     private fun createSocket() {
@@ -189,6 +191,51 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
             channel is Channel<*> -> channel.toString()
             else -> channel.toString()
         }
+    }
+
+    /**
+     * Create or upsert a presence entry for the current authenticated user
+     * over the existing realtime connection.
+     *
+     * Requires an authenticated user and an open WebSocket connection
+     * (subscribe to a channel first if you don't have one yet).
+     *
+     * @param status Presence status (required).
+     * @param permissions Optional permission list to attach to the presence document.
+     * @param metadata Optional metadata payload.
+     * @param presenceId Optional presence ID. Defaults server-side to a new unique ID.
+     * @return The created or updated presence document as a map.
+     */
+    suspend fun createPresence(
+        status: String,
+        permissions: List<String>? = null,
+        metadata: Map<String, Any>? = null,
+        presenceId: String? = null,
+    ): Map<String, Any> {
+        val ws = socket ?: throw {{ spec.title | caseUcfirst }}Exception(
+            "Realtime connection is not open. Subscribe to a channel first."
+        )
+
+        val data = mutableMapOf<String, Any>("status" to status)
+        permissions?.let { data["permissions"] = it }
+        metadata?.let { data["metadata"] = it }
+        presenceId?.let { data["presenceId"] = it }
+
+        val deferred = CompletableDeferred<Map<String, Any>>()
+        synchronized(presenceLock) {
+            pendingPresenceRequests.addLast(deferred)
+        }
+
+        try {
+            ws.send(mapOf("type" to "presence", "data" to data).toJson())
+        } catch (e: Throwable) {
+            synchronized(presenceLock) {
+                pendingPresenceRequests.remove(deferred)
+            }
+            throw e
+        }
+
+        return deferred.await()
     }
 
     fun subscribe(
@@ -357,13 +404,43 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         }
 
         private fun handleResponseAction(message: RealtimeResponse) {
+            val data = message.data?.jsonCast<Map<String, Any?>>()
+            if (data != null && data["to"] == "presence") {
+                @Suppress("UNCHECKED_CAST")
+                val presence = data["presence"] as? Map<String, Any>
+                if (presence != null) {
+                    // Presence responses arrive in the same order as the requests on a
+                    // single websocket, so a FIFO queue is enough to correlate them.
+                    val deferred: CompletableDeferred<Map<String, Any>>?
+                    synchronized(presenceLock) {
+                        deferred = if (pendingPresenceRequests.isNotEmpty()) {
+                            pendingPresenceRequests.removeFirst()
+                        } else {
+                            null
+                        }
+                    }
+                    deferred?.complete(presence)
+                    return
+                }
+            }
             // The SDK generates subscriptionIds client-side and sends them on every
             // subscribe/unsubscribe, so subscribe/unsubscribe acks carry no state
             // the SDK needs to reconcile.
         }
 
         private fun handleResponseError(message: RealtimeResponse) {
-            throw message.data?.jsonCast<{{ spec.title | caseUcfirst }}Exception>() ?: RuntimeException("Data is not present")
+            val ex = message.data?.jsonCast<{{ spec.title | caseUcfirst }}Exception>() ?: RuntimeException("Data is not present")
+
+            // Server errors are not correlated with a specific request, so reject
+            // every in-flight presence request to avoid leaving deferred awaits hanging.
+            val pending: List<CompletableDeferred<Map<String, Any>>>
+            synchronized(presenceLock) {
+                pending = pendingPresenceRequests.toList()
+                pendingPresenceRequests.clear()
+            }
+            pending.forEach { it.completeExceptionally(ex) }
+
+            throw ex
         }
 
         private suspend fun handleResponseEvent(message: RealtimeResponse) {

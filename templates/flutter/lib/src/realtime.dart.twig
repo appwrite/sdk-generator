@@ -60,6 +60,25 @@ abstract class Realtime extends Service {
   /// subscription when you want to tear everything down.
   Future<void> disconnect();
 
+  /// Create or upsert a presence entry for the current authenticated user
+  /// over the existing realtime connection.
+  ///
+  /// Requires an authenticated user and an open WebSocket connection
+  /// (subscribe to a channel first if you don't have one yet).
+  ///
+  /// ```dart
+  /// final presence = await realtime.createPresence(
+  ///   status: 'online',
+  ///   metadata: {'device': 'web'},
+  /// );
+  /// ```
+  Future<Map<String, dynamic>> createPresence({
+    required String status,
+    List<String>? permissions,
+    Map<String, dynamic>? metadata,
+    String? presenceId,
+  });
+
   /// The [close code](https://datatracker.ietf.org/doc/html/rfc6455#section-7.1.5) set when the WebSocket connection is closed.
   ///
   /// Before the connection has been closed, this will be `null`.

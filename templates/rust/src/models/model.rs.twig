@@ -26,7 +26,7 @@ pub struct {{ definition.name | caseUcfirst | overrideIdentifier }} {
 {% if definition.additionalProperties %}
 
     #[serde(flatten)]
-    pub data: HashMap<String, serde_json::Value>,
+    pub {{ definition.additionalPropertiesKey | default('data') | caseSnake }}: HashMap<String, serde_json::Value>,
 {% endif %}
 }
 
@@ -57,12 +57,12 @@ impl {{ definition.name | caseUcfirst | overrideIdentifier }} {
 {% if definition.additionalProperties %}
 
     pub fn get<T: serde::de::DeserializeOwned>(&self, key: &str) -> Option<T> {
-        self.data.get(key)
+        self.{{ definition.additionalPropertiesKey | default('data') | caseSnake }}.get(key)
             .and_then(|v| serde_json::from_value(v.clone()).ok())
     }
 
-    pub fn data(&self) -> &HashMap<String, serde_json::Value> {
-        &self.data
+    pub fn {{ definition.additionalPropertiesKey | default('data') | caseSnake }}(&self) -> &HashMap<String, serde_json::Value> {
+        &self.{{ definition.additionalPropertiesKey | default('data') | caseSnake }}
     }
 {% endif %}
 }
