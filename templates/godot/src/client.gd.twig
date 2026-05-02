@@ -39,9 +39,6 @@ func get_headers() -> Dictionary:
 
 {% for header in spec.global.headers %}
 func set_{{header.key | caseSnake}}(value: String) -> RefCounted:
-{% if header.description %}
-    # {{header.description}}
-{% endif %}
     _global_headers['{{header.name|lower}}'] = value
     return self
 
@@ -56,7 +53,7 @@ func call_api(method: String, path: String = "", headers: Dictionary = {}, param
     http.set_tls_options(tls_options)
     
     Engine.get_main_loop().root.add_child.call_deferred(http)
-	await http.tree_entered
+    await http.tree_entered
 
     # Merge headers
     var combined_headers := _global_headers.duplicate()
@@ -83,7 +80,7 @@ func call_api(method: String, path: String = "", headers: Dictionary = {}, param
     else:
         var has_files := false
         for key in params:
-            if params[key] is {{prefix}}InputFile:
+            if params[key] is InputFile:
                 has_files = true
                 break
         
@@ -127,9 +124,6 @@ func call_api(method: String, path: String = "", headers: Dictionary = {}, param
         return {"statusCode": response_code, "body": response_text}
 
 
-const InputFileScript = preload("input_file.gd")
-
-
 func _build_multipart(params: Dictionary, boundary: String) -> PackedByteArray:
     var body := PackedByteArray()
     for key in params:
@@ -138,7 +132,7 @@ func _build_multipart(params: Dictionary, boundary: String) -> PackedByteArray:
         
         body.append_array(("--" + boundary + "\r\n").to_utf8_buffer())
         
-        if value is InputFileScript:
+        if value is InputFile:
             body.append_array(("Content-Disposition: form-data; name=\"%s\"; filename=\"%s\"\r\n" % [key, value.filename]).to_utf8_buffer())
             var c_type = value.content_type if value.content_type != "" else "application/octet-stream"
             body.append_array(("Content-Type: %s\r\n\r\n" % c_type).to_utf8_buffer())
@@ -157,9 +151,3 @@ func _build_multipart(params: Dictionary, boundary: String) -> PackedByteArray:
     
     body.append_array(("--" + boundary + "--\r\n").to_utf8_buffer())
     return body
-
-
-func ping() -> String:
-    var response = await call_api('GET', '/ping')
-    return str(response.get('body'))
-
