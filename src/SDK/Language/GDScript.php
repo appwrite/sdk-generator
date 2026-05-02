@@ -24,51 +24,50 @@ class GDScript extends Language
     {
         return [
             'if',
-            'else',
             'elif',
+            'else',
             'for',
-            'not',
-            'and',
-            'or',
             'while',
             'match',
-            'master',
+            'when',
             'break',
             'continue',
+            'pass',
             'return',
-            'load',
-            'func',
             'class',
             'class_name',
             'extends',
             'is',
-            'in',
             'as',
+            'in',
             'self',
             'super',
             'signal',
-            'await',
-            'var',
+            'func',
+            'static',
             'const',
             'enum',
-            'static',
+            'var',
             'breakpoint',
-            'assert',
-            '@export',
-            '@onready',
-            'pass',
             'preload',
-            'puppet',
-            'remote',
-            'remotesync',
-            'static',
-            '@tool',
+            'await',
+            'yield',
+            'assert',
             'void',
             'PI',
             'TAU',
             'INF',
             'NAN',
-            // NODE specific keywords
+            'and',
+            'or',
+            'not',
+            'master',
+            '@export',
+            '@onready',
+            'puppet',
+            'remote',
+            'remotesync',
+            '@tool',
             '_ready',
             'name',
             'type',
@@ -79,6 +78,67 @@ class GDScript extends Language
             '_exit_tree',
             'get',
             'set',
+            'Theme',
+            'Button',
+            'LineEdit',
+            'TextureRect',
+            'Label',
+            'Control',
+            'print',
+            'prints',
+            'printerr',
+            'push_error',
+            'push_warning',
+            'len',
+            'range',
+            'load',
+            'type_exists',
+            'is_instance_valid',
+            'randf',
+            'randi',
+            'randomize',
+            'clamp',
+            'lerp',
+            'free',
+            'call',
+            'callv',
+            'call_deferred',
+            '@export_range',
+            'connect',
+            'disconnect',
+            'emit_signal',
+            'has_method',
+            'has_signal',
+            'get_meta',
+            'set_meta',
+            'has_meta',
+            'to_string',
+            'is_inside_tree',
+            '_enter_tree',
+            '_unhandled_key_input',
+            '_notification',
+            'add_child',
+            'remove_child',
+            'get_node',
+            'get_parent',
+            'queue_free',
+            'duplicate',
+            'get_tree',
+            'Object',
+            'RefCounted',
+            'Node',
+            'Node2D',
+            'Node3D',
+            'Callable',
+            'Vector2',
+            'Vector3',
+            'Vector4',
+            'Color',
+            'Transform2D',
+            'Transform3D',
+            'RID',
+            '@on_ready'
+            // TODO: add more
         ];
     }
 
@@ -130,11 +190,11 @@ class GDScript extends Language
 
             // Array of enums
             if (isset($parameter['enumName'])) {
-                return 'Array[' . $this->toPascalCase($parameter['enumName']) . ']';
+                return 'Array[String]';
             }
 
             if (!empty($parameter['enumValues'])) {
-                return 'Array[' . $this->toPascalCase($parameter['name']) . ']';
+                return 'Array[String]';
             }
 
             return 'Array';
@@ -147,11 +207,11 @@ class GDScript extends Language
 
         // ENUM TYPE
         if (isset($parameter['enumName'])) {
-            return $this->toPascalCase($parameter['enumName']);
+            return 'String';
         }
 
         if (!empty($parameter['enumValues'])) {
-            return $this->toPascalCase($parameter['name']);
+            return 'String';
         }
 
         // PRIMITIVES
@@ -186,21 +246,20 @@ class GDScript extends Language
         if (empty($default) && $default !== 0 && $default !== false) {
             switch ($type) {
                 case self::TYPE_NUMBER:
-                    $output .= '0.0';
-                    break;
                 case self::TYPE_INTEGER:
-                    $output .= '0';
+                    $output .= '0.0';
                     break;
                 case self::TYPE_BOOLEAN:
                     $output .= 'false';
                     break;
                 case self::TYPE_STRING:
-                    $output .= '""';
+                    $output .= "''";
                     break;
                 case self::TYPE_ARRAY:
                     $output .= '[]';
                     break;
                 case self::TYPE_OBJECT:
+                case self::TYPE_FILE:
                     $output .= '{}';
                     break;
                 default:
@@ -210,18 +269,29 @@ class GDScript extends Language
         } else {
             switch ($type) {
                 case self::TYPE_NUMBER:
-                case self::TYPE_INTEGER:
-                case self::TYPE_ARRAY:
+                    if (is_array($default) || $default === '[]') {
+                        $default = '0.0';
+                    }
                     $output .= $default;
+                    break;
+                case self::TYPE_INTEGER:
+                    if (is_array($default) || $default === '[]') {
+                        $default = '0';
+                    }
+                    $output .= $default;
+                    break;
+                case self::TYPE_ARRAY:
+                case self::TYPE_OBJECT:
+                    $output .= $default;
+                    break;
+                case self::TYPE_FILE:
+                    $output .= '{}';
                     break;
                 case self::TYPE_BOOLEAN:
                     $output .= ($default) ? 'true' : 'false';
                     break;
                 case self::TYPE_STRING:
-                    $output .= "\"{$default}\"";
-                    break;
-                case self::TYPE_OBJECT:
-                    $output .= $default; // Should be formatted as GDScript dictionary
+                    $output .= "'{$default}'";
                     break;
                 default:
                     $output .= 'null';
@@ -278,7 +348,7 @@ class GDScript extends Language
                     $output .= ($example) ? 'true' : 'false';
                     break;
                 case self::TYPE_STRING:
-                    $output .= "\"{$example}\"";
+                    $output .= "'{$example}'";
                     break;
                 case self::TYPE_FILE:
                     $output .= 'FileAccess.open("file.png", FileAccess.READ)';
