@@ -1,12 +1,6 @@
 {% set prefix = spec.title | caseUcfirst %}
 extends Node
 
-const ClientScript = preload("client.gd")
-const IDScript = preload("id.gd")
-const PermissionScript = preload("permission.gd")
-const RoleScript = preload("role.gd")
-const QueryScript = preload("query.gd")
-const InputFileScript = preload("input_file.gd")
 const ID = preload("id.gd")
 const Permission = preload("permission.gd")
 const Role = preload("role.gd")
@@ -14,21 +8,17 @@ const Query = preload("query.gd")
 const InputFile = preload("input_file.gd")
 const Exception = preload("exception.gd")
 
-{% for service in spec.services %}
-const {{ service.name | caseUcfirst }}Script = preload("services/{{ service.name | caseSnake }}.gd")
-{% endfor %}
-
 var client: RefCounted
 {% for service in spec.services %}
 var {{ service.name | caseCamel }}: RefCounted
 {% endfor %}
 
 func _ready() -> void:
-    client = ClientScript.new()
+    client = preload("client.gd").new()
     _load_env()
-    
+
 {% for service in spec.services %}
-    {{ service.name | caseCamel }} = {{ service.name | caseUcfirst }}Script.new(client)
+    {{ service.name | caseCamel }} = preload("services/{{ service.name | caseSnake }}.gd").new(client)
 {% endfor %}
 
 
@@ -54,23 +44,47 @@ func _load_env() -> void:
         if (value.begins_with("\"") and value.ends_with("\"")) or (value.begins_with("'") and value.ends_with("'")):
             value = value.substr(1, value.length() - 2)
             
-        match key:
-            "APPWRITE_ENDPOINT":
-                client.set_endpoint(value)
-            "APPWRITE_PROJECT":
-                client.set_project(value)
-            "APPWRITE_KEY":
-                client.set_key(value)
+        _apply_env(key, value)
+
+
+{% for header in spec.global.headers %}
+{% if header.description %}
+# {{header.description}}
+{% endif %}
+func set_{{header.key | caseSnake}}(value: String) -> void:
+    client.set_{{header.key | caseSnake}}(value)
+
+
+{% endfor %}
+func set_self_signed(status: bool = true) -> void:
+    client.set_self_signed(status)
 
 
 func set_endpoint(endpoint: String) -> void:
     client.set_endpoint(endpoint)
 
 
-func set_project(project: String) -> void:
-    client.set_project(project)
+func add_header(key: String, value: String) -> void:
+    client.add_header(key, value)    
 
 
-func set_key(key: String) -> void:
-    client.set_key(key)
+func get_headers() -> Dictionary:
+    return client.get_headers()
 
+
+func _apply_env(key: String, value: String) -> void:
+    match key:
+        "{{ prefix | caseUpper }}_ENDPOINT":
+            client.set_endpoint(value)
+        "{{ prefix | caseUpper }}_SELF_SIGNED":
+            client.set_self_signed(value.to_lower() == "true")
+{% for header in spec.global.headers %}
+        "{{ prefix | caseUpper }}_{{ header.key | caseUpper }}":
+            client.set_{{ header.key | caseSnake }}(value)
+{% endfor %}
+        
+
+# Used to register the platform on Appwrite
+func ping() -> String:
+    var response = await client.call_api('GET', '/ping')
+    return str(response.get('body'))
