@@ -1,0 +1,118 @@
+package {{ sdk.namespace | caseDot }}.services;
+
+import {{ sdk.namespace | caseDot }}.Client;
+{% if spec.definitions is not empty %}
+import {{ sdk.namespace | caseDot }}.models.*;
+{% endif %}
+{% if spec.requestEnums is not empty %}
+import {{ sdk.namespace | caseDot }}.enums.*;
+{% endif %}
+import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.title | caseUcfirst }}Exception;
+
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
+
+/**
+ * {{ service.description | replace({"\n": " "}) | raw }}
+ */
+public class {{ service.name | caseUcfirst }} extends Service {
+
+    public {{ service.name | caseUcfirst }}(Client client) {
+        super(client);
+    }
+
+{% for method in service.methods %}
+    /**
+     * {{ method.description | replace({"\n": "\n     * "}) | raw }}
+     *
+    {%~ for parameter in method.parameters.all %}
+     * @param {{ parameter.name | caseCamel }} {{ parameter.description | raw }}
+    {%~ endfor %}
+     * @return CompletableFuture
+     */
+    {%~ if method.deprecated %}
+    @Deprecated
+    {%~ endif %}
+    @SuppressWarnings("unchecked")
+    public CompletableFuture<{{ method | returnType(spec, sdk.namespace | caseDot) | raw }}> {{ method.name | caseCamel }}(
+        {%~ for parameter in method.parameters.all %}
+        {{ parameter | typeName }} {{ parameter.name | caseCamel }}{% if not loop.last %},{% endif %}
+
+        {%~ endfor %}
+        {%~ if 'multipart/form-data' in method.consumes %}
+        {%~ if method.parameters.all | length > 0 %}, {% endif %}java.util.function.Consumer<{{ sdk.namespace | caseDot }}.models.UploadProgress> onProgress
+        {%~ endif %}
+    ) {
+        String apiPath = "{{ method.path }}"
+        {%~ for parameter in method.parameters.path %}
+            .replace("{{ '{' ~ parameter.name | caseCamel ~ '}' }}", {{ parameter.name | caseCamel }}{% if parameter.enumValues is not empty %}.getValue(){% endif %})
+        {%~ endfor %}
+        ;
+
+        Map<String, Object> apiParams = new LinkedHashMap<>();
+        {%~ for parameter in method.parameters.query | merge(method.parameters.body) %}
+        apiParams.put("{{ parameter.name }}", {{ parameter.name | caseCamel }});
+        {%~ endfor %}
+
+        Map<String, String> apiHeaders = new LinkedHashMap<>();
+        {%~ for key, header in method.headers %}
+        apiHeaders.put("{{ key }}", "{{ header }}");
+        {%~ endfor %}
+
+        {%~ if method.type == 'location' %}
+        return (CompletableFuture) client.call("{{ method.method | caseUpper }}", apiPath, apiHeaders, apiParams, byte[].class);
+        {%~ elseif method.type == 'webAuth' %}
+        return (CompletableFuture) client.redirect("{{ method.method | caseUpper }}", apiPath, apiHeaders, apiParams);
+        {%~ elseif method.responseModel and method.responseModel != 'any' and (method | getValidResponseModels)|length <= 1 %}
+        {%~ if method.responseModel | hasGenericType(spec) %}
+        Function<Object, {{ method | returnType(spec, sdk.namespace | caseDot) | raw }}> converter =
+            it -> ({{ method | returnType(spec, sdk.namespace | caseDot) | raw }}) {{ sdk.namespace | caseDot }}.models.{{ method.responseModel | caseUcfirst }}.from((Map<String, Object>) it, Map.class);
+        return (CompletableFuture) client.call("{{ method.method | caseUpper }}", apiPath, apiHeaders, apiParams, {{ sdk.namespace | caseDot }}.models.{{ method.responseModel | caseUcfirst }}.class, (Function) converter);
+        {%~ else %}
+        Function<Object, {{ method | returnType(spec, sdk.namespace | caseDot) | raw }}> converter =
+            it -> {{ method | returnType(spec, sdk.namespace | caseDot) | raw }}.from((Map<String, Object>) it);
+        {%~ if 'multipart/form-data' in method.consumes %}
+        return client.chunkedUpload(apiPath, apiHeaders, apiParams, {{ method | returnType(spec, sdk.namespace | caseDot) | raw }}.class, (Function) converter, "{{ method.parameters.file[0].name ?? 'file' }}", {% if method.parameters.body[0].name ?? '' %}"{{ method.parameters.body[0].name }}"{% else %}null{% endif %}, onProgress);
+        {%~ else %}
+        return client.call("{{ method.method | caseUpper }}", apiPath, apiHeaders, apiParams, {{ method | returnType(spec, sdk.namespace | caseDot) | raw }}.class, (Function) converter);
+        {%~ endif %}
+        {%~ endif %}
+        {%~ else %}
+        return (CompletableFuture) client.call("{{ method.method | caseUpper }}", apiPath, apiHeaders, apiParams, Object.class);
+        {%~ endif %}
+    }
+
+    {%~ if (method.parameters.all | reduce((carry, param) => carry or param.required, false)) and (method.parameters.all | reduce((carry, param) => carry or not param.required, false)) %}
+    {%~ set requiredParams = method.parameters.all | filter(p => p.required) %}
+    /**
+     * {{ method.description | replace({"\n": "\n     * "}) | raw }} — optional params default to null
+     */
+    {%~ if method.deprecated %}
+    @Deprecated
+    {%~ endif %}
+    public CompletableFuture<{{ method | returnType(spec, sdk.namespace | caseDot) | raw }}> {{ method.name | caseCamel }}(
+        {%~ for parameter in requiredParams %}
+        {{ parameter | typeName }} {{ parameter.name | caseCamel }}{% if not loop.last %},{% endif %}
+
+        {%~ endfor %}
+    ) {
+        return {{ method.name | caseCamel }}(
+            {%~ for parameter in method.parameters.all %}
+            {%~ if parameter.required %}
+            {{ parameter.name | caseCamel }}{% if not loop.last or 'multipart/form-data' in method.consumes %},{% endif %}
+
+            {%~ else %}
+            null{% if not loop.last or 'multipart/form-data' in method.consumes %},{% endif %}
+
+            {%~ endif %}
+            {%~ endfor %}
+            {%~ if 'multipart/form-data' in method.consumes %}
+            null
+            {%~ endif %}
+        );
+    }
+    {%~ endif %}
+
+{% endfor %}
+}

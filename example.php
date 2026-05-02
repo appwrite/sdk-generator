@@ -27,6 +27,7 @@ use Appwrite\SDK\Language\AgentSkills;
 use Appwrite\SDK\Language\ClaudePlugin;
 use Appwrite\SDK\Language\CursorPlugin;
 use Appwrite\SDK\Language\Rust;
+use Appwrite\SDK\Language\Java;
 
 try {
 
@@ -344,6 +345,15 @@ try {
         $sdk = new SDK(new Rust(), new Swagger2($spec));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/rust');
+    }
+
+    // Java
+    if (!$requestedSdk || $requestedSdk === 'java') {
+        $sdk = new SDK(new Java(), new Swagger2($spec));
+        configureSDK($sdk, [
+            'namespace' => 'io.appwrite',
+        ]);
+        $sdk->generate(__DIR__ . '/examples/java');
     }
 }
 catch (Exception $exception) {

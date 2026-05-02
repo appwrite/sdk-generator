@@ -1,0 +1,42 @@
+```java
+import {{ sdk.namespace | caseDot }}.Client;
+{% if method.parameters.all | filter((param) => param.type == 'file') | length > 0 %}
+import {{ sdk.namespace | caseDot }}.models.InputFile;
+{% endif %}
+{% if method.parameters.all | hasPermissionParam %}
+import {{ sdk.namespace | caseDot }}.Permission;
+import {{ sdk.namespace | caseDot }}.Role;
+{% endif %}
+import {{ sdk.namespace | caseDot }}.services.{{ service.name | caseUcfirst }};
+{% set added = [] %}
+{% for parameter in method.parameters.all %}
+{% if parameter.enumValues is not empty %}
+{% if parameter.enumName not in added %}
+import {{ sdk.namespace | caseDot }}.enums.{{ parameter.enumName | caseUcfirst }};
+{% set added = added|merge([parameter.enumName]) %}
+{% endif %}
+{% endif %}
+{% endfor %}
+
+Client client = new Client()
+{% if method.auth|length > 0 %}
+    .setEndpoint("{{ spec.endpointDocs | raw }}")
+{% for node in method.auth %}
+{% for key,header in node|keys %}
+    .set{{ header | caseUcfirst }}("{{ node[header]['x-appwrite']['demo'] | raw }}"); // {{ node[header].description }}
+{% endfor %}{% endfor %}{% endif %}
+
+{{ service.name | caseUcfirst }} {{ service.name | caseCamel }} = new {{ service.name | caseUcfirst }}(client);
+
+{{ service.name | caseCamel }}.{{ method.name | caseCamel }}(
+    {%~ for parameter in method.parameters.all %}
+    {% if parameter.enumValues | length > 0 %}{{ parameter | javaEnumExample }}{% else %}{{ parameter | javaParamExample }}{% endif %}{% if not loop.last %},{% endif %} // {{ parameter.name }}{% if not parameter.required %} (optional){% endif %}
+
+    {%~ endfor %}
+).thenAccept(result -> {
+    System.out.println(result);
+}).exceptionally(e -> {
+    e.printStackTrace();
+    return null;
+});
+```

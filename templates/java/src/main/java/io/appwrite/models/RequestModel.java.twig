@@ -1,0 +1,44 @@
+package {{ sdk.namespace | caseDot }}.models;
+
+import java.util.*;
+{% for property in requestModel.properties %}
+{% if property.enum %}
+import {{ sdk.namespace | caseDot }}.enums.{{ property.enumName | caseUcfirst }};
+{% endif %}
+{% endfor %}
+
+/**
+ * {{ requestModel.description | replace({"\n": " "}) | raw }}
+ */
+public class {{ requestModel.name | caseUcfirst }} {
+
+{% for property in requestModel.properties %}
+    /** {{ property.description | replace({"\n": " "}) | raw }} */
+    private {{ property | typeName }} {{ property.name | caseCamel | removeDollarSign }};
+
+{% endfor %}
+    public {{ requestModel.name | caseUcfirst }}(
+{% for property in requestModel.properties %}
+        {{ property | typeName }} {{ property.name | caseCamel | removeDollarSign }}{% if not loop.last %},{% endif %}
+
+{% endfor %}
+    ) {
+{% for property in requestModel.properties %}
+        this.{{ property.name | caseCamel | removeDollarSign }} = {{ property.name | caseCamel | removeDollarSign }};
+{% endfor %}
+    }
+
+{% for property in requestModel.properties %}
+    public {{ property | typeName }} get{{ property.name | caseUcfirst | removeDollarSign }}() { return {{ property.name | caseCamel | removeDollarSign }}; }
+    public void set{{ property.name | caseUcfirst | removeDollarSign }}({{ property | typeName }} {{ property.name | caseCamel | removeDollarSign }}) { this.{{ property.name | caseCamel | removeDollarSign }} = {{ property.name | caseCamel | removeDollarSign }}; }
+
+{% endfor %}
+    public Map<String, Object> toMap() {
+        Map<String, Object> map = new LinkedHashMap<>();
+{% for property in requestModel.properties %}
+        map.put("{{ property.name }}", {% if property.sub_schema %}{% if property.type == 'array' %}
+            ((java.util.function.Supplier<List<Map<String, Object>>>) () -> { List<Map<String, Object>> l = new ArrayList<>(); if ({{ property.name | caseCamel | removeDollarSign }} != null) for (var i : {{ property.name | caseCamel | removeDollarSign }}) l.add(i.toMap()); return l; }).get(){% else %}{{ property.name | caseCamel | removeDollarSign }} != null ? {{ property.name | caseCamel | removeDollarSign }}.toMap() : null{% endif %}{% elseif property.enum and property.type == 'array' %}((java.util.function.Supplier<List<String>>) () -> { List<String> l = new ArrayList<>(); if ({{ property.name | caseCamel | removeDollarSign }} != null) for (var i : {{ property.name | caseCamel | removeDollarSign }}) l.add(i.getValue()); return l; }).get(){% elseif property.enum %}{{ property.name | caseCamel | removeDollarSign }} != null ? {{ property.name | caseCamel | removeDollarSign }}.getValue() : null{% else %}{{ property.name | caseCamel | removeDollarSign }}{% endif %});
+{% endfor %}
+        return map;
+    }
+}

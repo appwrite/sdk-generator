@@ -1,0 +1,31 @@
+package {{ sdk.namespace | caseDot }}.models;
+
+public class UploadProgress {
+
+    private final String id;
+    private final double progress;
+    private final long sizeUploaded;
+    private final int chunksTotal;
+    private final int chunksUploaded;
+
+    public UploadProgress(String id, double progress, long sizeUploaded, int chunksTotal, int chunksUploaded) {
+        this.id = id;
+        this.progress = progress;
+        this.sizeUploaded = sizeUploaded;
+        this.chunksTotal = chunksTotal;
+        this.chunksUploaded = chunksUploaded;
+    }
+
+    public String getId() { return id; }
+    public double getProgress() { return progress; }
+    public long getSizeUploaded() { return sizeUploaded; }
+    public int getChunksTotal() { return chunksTotal; }
+    public int getChunksUploaded() { return chunksUploaded; }
+
+    @Override
+    public String toString() {
+        return "UploadProgress{id='" + id + "', progress=" + progress +
+               ", sizeUploaded=" + sizeUploaded + ", chunksTotal=" + chunksTotal +
+               ", chunksUploaded=" + chunksUploaded + "}";
+    }
+}
