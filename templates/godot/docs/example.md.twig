@@ -1,15 +1,17 @@
+{% set prefix = spec.title | caseUcfirst %}
 extends Node
 
-func _ready():
-    # If the Appwrite Autoload is configured, you can directly use it
-    Appwrite.set_endpoint("https://cloud.appwrite.io/v1")
-    Appwrite.set_project("YOUR_PROJECT_ID")
-    Appwrite.set_key("YOUR_API_KEY")
-    
-{% if method.type != 'webAuth' %}
-    var result = await Appwrite.{{ service.name | caseCamel }}.{{ method.name | caseSnake }}(
+{% if method.responseModel and method.responseModel != 'any' %}
+{% set return_type = prefix ~ (method.responseModel | caseUcfirst) %}
 {% else %}
-    var result = Appwrite.{{ service.name | caseCamel }}.{{ method.name | caseSnake }}(
+{% set return_type = 'Variant' %}
+{% endif -%}
+
+func _ready():
+{% if method.type != 'webAuth' %}
+    var result = await Appwrite.{{ service.name | caseCamel }}.{{ method.name | caseSnake | escapeKeyword }}(
+{% else %}
+    var result = Appwrite.{{ service.name | caseCamel }}.{{ method.name | caseSnake | escapeKeyword }}(
 {% endif %}
 {% for parameter in method.parameters.all %}
         {{ parameter | paramExample }}{% if not loop.last %},{% endif %}{% if not parameter.required %} # optional{% endif %}
@@ -18,6 +20,7 @@ func _ready():
     )
 
     if result is Appwrite.Exception:
-        print("Error: ", result.message)
-    else:
-        print(result)
+        push_error(result.message)
+    
+    if result is {{return_type}}:
+        print(result.to_dict())
