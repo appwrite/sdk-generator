@@ -1,7 +1,18 @@
 {% set prefix = spec.title | caseUcfirst %}
 extends "../service.gd"
 
-// TODO: Import enums
+{% set imports = [] %}
+{% for method in service.methods %}
+{% for parameter in method.parameters.all %}
+{% if parameter.enumValues is not empty %}
+{% if parameter.enumName not in imports %}
+const {{ parameter.enumName | caseUcfirst | escapeKeyword }} := preload("../enums/{{ parameter.enumName | caseSnake }}.gd")
+{% set imports = imports|merge([parameter.enumName]) %}
+{% endif %}
+{% endif %}
+{% endfor %}
+{% endfor %}
+
 const InputFile := preload("../input_file.gd")
 
 {% for method in service.methods %}
@@ -15,9 +26,13 @@ const InputFile := preload("../input_file.gd")
 {%~ endfor %}
 {%~ endif %}
 {%~ if not shouldSkip %}
-{%~ set return_type = method.responseModel | caseUcfirst %}
+{%~ if method.responseModel and method.responseModel != 'any' %}
+{%~ set return_type = (spec.title | caseUcfirst) ~ (method.responseModel | caseUcfirst) %}
+{%~ else %}
+{%~ set return_type = 'Variant' %}
+{%~ endif %}
 
-func {{ methodNameSnake| escapeKeyword }}({% for parameter in method.parameters.all %}{{ parameter.name | caseSnake | escapeKeyword }}: {{ parameter | typeName(spec) }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}) -> Variant:
+func {{ methodNameSnake| escapeKeyword }}({% for parameter in method.parameters.all %}{{ parameter.name | caseSnake | escapeKeyword }}: {{ parameter | typeName(spec) }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}) -> {{ return_type }}:
     var _path := '{{ method.path }}'
     {%~ for parameter in method.parameters.path %}
     _path = _path.replace('{{ '{' }}{{ parameter.name }}{{ '}' }}', str({{ parameter.name | caseSnake | escapeKeyword }}))
@@ -41,8 +56,8 @@ func {{ methodNameSnake| escapeKeyword }}({% for parameter in method.parameters.
         {%~ endfor %}
     }
 
-    {%~ if method.responseModel and method.responseModel != 'any' %}
-    var model_script = {{prefix}}{{method.responseModel | caseUcfirst}}
+    {%~ if return_type != 'Variant' %}
+    var model_script = {{ return_type }}
     {%~ else %}
     var model_script = null
     {%~ endif %}

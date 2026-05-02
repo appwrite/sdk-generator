@@ -7,7 +7,7 @@ extends RefCounted
 {%~ set enumName = property.enumName ?? attribute(property, 'x-enum-name') ?? (definition.name ~ (property.name | caseUcfirst)) %}
 {%~ if property.enum or property.items.enum is defined %}
 {%~ if enumName not in imports %}
-const {{ enumName | caseUcfirst }} := preload("res://addons/{{ spec.title | caseSnake }}/enums/{{ enumName | caseSnake }}.gd")
+const {{ enumName | caseUcfirst | escapeKeyword }} := preload("res://addons/{{ spec.title | caseSnake }}/enums/{{ enumName | caseSnake }}.gd")
 {% set imports = imports|merge([enumName]) %}
 {%~ endif %}
 {%~ endif %}

@@ -9,7 +9,8 @@ const {{ key | caseEnumKey }} = "{{ value }}"
 static func is_valid(value: String) -> bool:
     return value in values()
 
-static func values() -> Array:
+
+static func values() -> Array[String]:
     return [
         {% for value in enum.enum %}
         "{{ value }}",
