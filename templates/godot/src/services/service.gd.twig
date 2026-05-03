@@ -1,19 +1,6 @@
 {% set prefix = spec.title | caseUcfirst %}
 extends "../service.gd"
-
-{% set imports = [] %}
-{% for method in service.methods %}
-{% for parameter in method.parameters.all %}
-{% if parameter.enumValues is not empty %}
-{% if parameter.enumName not in imports %}
-const {{ parameter.enumName | caseUcfirst | escapeKeyword }} := preload("../enums/{{ parameter.enumName | caseSnake }}.gd")
-{% set imports = imports|merge([parameter.enumName]) %}
-{% endif %}
-{% endif %}
-{% endfor %}
-{% endfor %}
-
-const InputFile := preload("../input_file.gd")
+## {{ service.description | default("Service class.") | replace({"\n": "\n## "}) }}
 
 {% for method in service.methods %}
 {%~ set methodNameSnake = method.name | caseSnake %}
@@ -49,7 +36,7 @@ const InputFile := preload("../input_file.gd")
 ## - [{{return_type}}] on success.[br]
 ##[br]
 ## Errors:[br]
-## - Returns error data as [member {{spec.title | caseUcfirst}}.Exception].
+## - Returns error data as [member {{ prefix }}Exception].
 func {{ methodNameSnake| escapeKeyword }}({% for parameter in method.parameters.all %}{{ parameter.name | caseSnake | escapeKeyword }}: {{ parameter | typeName(spec) }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}) -> Variant :
     var _path := '{{ method.path }}'
     {%~ for parameter in method.parameters.path %}
