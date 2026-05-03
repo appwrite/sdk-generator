@@ -1,14 +1,12 @@
-# {{prefix | caseUcfirst}}Client
+# {% set prefix = spec.title | caseUcfirst %}Client
 extends RefCounted
-
-const InputFile := preload("input_file.gd")
 
 var _chunk_size = 5 * 1024 * 1024
 var _self_signed = false
 var _endpoint = '{{spec.endpoint}}'
 var _global_headers = {
     'content-type': '',
-    'user-agent': '{{spec.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} (Godot/' + Engine.get_version_info().string + '; ' + OS.get_name() + ')',
+    'user-agent': '{{prefix}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} (Godot/' + Engine.get_version_info().string + '; ' + OS.get_name() + ')',
     'x-sdk-name': '{{ sdk.name }}',
     'x-sdk-platform': '{{ sdk.platform }}',
     'x-sdk-language': '{{ language.name | caseLower }}',
@@ -18,27 +16,27 @@ var _global_headers = {
 {% endfor %}
 }
 
-func set_self_signed(status: bool = true) -> RefCounted:
+func _set_self_signed(status: bool = true) -> RefCounted:
     _self_signed = status
     return self
 
 
-func set_endpoint(endpoint: String) -> RefCounted:
+func _set_endpoint(endpoint: String) -> RefCounted:
     _endpoint = endpoint
     return self
 
 
-func add_header(key: String, value: String) -> RefCounted:
+func _add_header(key: String, value: String) -> RefCounted:
     _global_headers[key.to_lower()] = value
     return self
 
 
-func get_headers() -> Dictionary:
+func _get_headers() -> Dictionary:
     return _global_headers.duplicate()
 
 
 {% for header in spec.global.headers %}
-func set_{{header.key | caseSnake}}(value: String) -> RefCounted:
+func _set_{{header.key | caseSnake}}(value: String) -> RefCounted:
     _global_headers['{{header.name|lower}}'] = value
     return self
 
@@ -80,7 +78,7 @@ func _call_api(method: String, path: String = "", headers: Dictionary = {}, para
     else:
         var has_files := false
         for key in params:
-            if params[key] is InputFile:
+            if params[key] is {{prefix}}InputFile:
                 has_files = true
                 break
         
@@ -132,7 +130,7 @@ func _build_multipart(params: Dictionary, boundary: String) -> PackedByteArray:
         
         body.append_array(("--" + boundary + "\r\n").to_utf8_buffer())
         
-        if value is InputFile:
+        if value is {{prefix}}InputFile:
             body.append_array(("Content-Disposition: form-data; name=\"%s\"; filename=\"%s\"\r\n" % [key, value.filename]).to_utf8_buffer())
             var c_type = value.content_type if value.content_type != "" else "application/octet-stream"
             body.append_array(("Content-Type: %s\r\n\r\n" % c_type).to_utf8_buffer())

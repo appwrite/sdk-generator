@@ -12,9 +12,9 @@ extends Node
 
 func _ready():
 {% if method.type != 'webAuth' %}
-    var result = await Appwrite.{{ service.name | caseCamel }}.{{ method.name | caseSnake | escapeKeyword }}(
+    var result = await {{prefix}}.{{ service.name | caseCamel }}.{{ method.name | caseSnake | escapeKeyword }}(
 {% else %}
-    var result = Appwrite.{{ service.name | caseCamel }}.{{ method.name | caseSnake | escapeKeyword }}(
+    var result = {{prefix}}.{{ service.name | caseCamel }}.{{ method.name | caseSnake | escapeKeyword }}(
 {% endif %}
 {% for parameter in method.parameters.all %}
         {{ parameter | paramExample }}{% if not loop.last %},{% endif %}{% if not parameter.required %} # optional{% endif %}
@@ -22,7 +22,7 @@ func _ready():
 {% endfor %}
     )
 
-    if result is Appwrite.Exception:
+    if result is {{prefix}}Exception:
         push_error(result.message)
     
     if result is {{return_type}}:

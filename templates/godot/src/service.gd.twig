@@ -3,7 +3,6 @@
 
 extends RefCounted
 
-const ExceptionScript = preload("exception.gd")
 
 var client: RefCounted
 
@@ -16,7 +15,7 @@ func _call(method: String, path: String, headers: Dictionary, params: Dictionary
     if result.statusCode == 0:
         var error_msg = result.get("error", "Unknown error")
         push_error("{{prefix}} Network Error: %s" % error_msg)
-        return ExceptionScript.new(error_msg, 0, "network_error", "")
+        return {{prefix}}Exception.new(error_msg, 0, "network_error", "")
 
     if result.statusCode >= 400:
         var message = ""
@@ -33,7 +32,7 @@ func _call(method: String, path: String, headers: Dictionary, params: Dictionary
             response = str(result.get("body", ""))
         
         push_error("{{prefix}} Error (%s): %s" % [type, message])
-        return ExceptionScript.new(message, code, type, response)
+        return {{prefix}}Exception.new(message, code, type, response)
 
     if model_script == null:
         return result.get("body")
