@@ -7,21 +7,13 @@ extends RefCounted
 {%~ set enumName = property.enumName ?? attribute(property, 'x-enum-name') ?? (definition.name ~ (property.name | caseUcfirst)) %}
 {%~ if property.enum or property.items.enum is defined %}
 {%~ if enumName not in imports %}
-const {{ enumName | caseUcfirst | escapeKeyword }} := preload("res://addons/{{ spec.title | caseSnake }}/enums/{{ enumName | caseSnake }}.gd")
+const _{{ enumName | caseUcfirst }} := preload("res://addons/{{ spec.title | caseSnake }}/enums/{{ enumName | caseSnake }}.gd")
 {% set imports = imports|merge([enumName]) %}
 {%~ endif %}
 {%~ endif %}
-{%~ if property.model and property.model not in imports %}
-const {{ property.model | caseUcfirst }} := preload("res://addons/{{ spec.title | caseSnake }}/models/{{ property.model | caseSnake }}.gd")
-{% set imports = imports|merge([property.model]) %}
-{%~ endif %}
-{%~ if property.array.model and property.array.model not in imports %}
-const {{ property.array.model | caseUcfirst }} := preload("res://addons/{{ spec.title | caseSnake }}/models/{{ property.array.model | caseSnake }}.gd")
-{% set imports = imports|merge([property.array.model]) %}
-{%~ endif %}
 {%~ endfor %}
 
-const FIELD_MAP := {
+const _FIELD_MAP := {
 {% for property in definition.properties %}
     "{{ property.name | uniqueSnake }}": "{{ property.name }}",
 {% endfor %}
@@ -35,8 +27,8 @@ var {{ property.name | uniqueSnake }}: {{ baseType }}
 static func from_dict(dict: Dictionary):
     var m := {{ prefix }}{{ definition.name | caseUcfirst }}.new()
 
-    for key in FIELD_MAP:
-        var raw_key = FIELD_MAP[key]
+    for key in _FIELD_MAP:
+        var raw_key = _FIELD_MAP[key]
         var value = dict.get(raw_key)
 
 {% for property in definition.properties %}
@@ -60,7 +52,7 @@ static func from_dict(dict: Dictionary):
 {% endif %}
 {% if property.enum %}
         if key == "{{ field }}" and value != null:
-            if not {{ enumName | caseUcfirst }}.is_valid(value):
+            if not _{{ enumName | caseUcfirst }}.is_valid(value):
                 push_error("Invalid enum value for {{ field }}: %s" % value)
             m.set(key, value)
             continue
@@ -69,7 +61,7 @@ static func from_dict(dict: Dictionary):
         if key == "{{ field }}" and value is Array:
             var list := []
             for item in value:
-                if not {{ enumName | caseUcfirst }}.is_valid(item):
+                if not _{{ enumName | caseUcfirst }}.is_valid(item):
                     push_error("Invalid enum value: %s" % item)
                 list.append(item)
             m.set(key, list)
@@ -90,14 +82,14 @@ static func from_dict(dict: Dictionary):
 func to_dict() -> Dictionary:
     var dict := {}
 
-    for key in FIELD_MAP:
+    for key in _FIELD_MAP:
         var value = get(key)
 
 {% for property in definition.properties %}
 {% set field = property.name | uniqueSnake %}
 {% if property.model %}
         if key == "{{ field }}" and value != null:
-            dict[FIELD_MAP[key]] = value.to_dict()
+            dict[_FIELD_MAP[key]] = value.to_dict()
             continue
 {% endif %}
 {% if property.array.model %}
@@ -106,11 +98,11 @@ func to_dict() -> Dictionary:
             for item in value:
                 if item != null:
                     list.append(item.to_dict())
-            dict[FIELD_MAP[key]] = list
+            dict[_FIELD_MAP[key]] = list
             continue
 {% endif %}
 {% endfor %}
 
-        dict[FIELD_MAP[key]] = value
+        dict[_FIELD_MAP[key]] = value
 
     return dict
