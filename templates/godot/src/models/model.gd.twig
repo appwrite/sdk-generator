@@ -1,6 +1,7 @@
 {% set prefix = spec.title | caseUcfirst %}
 class_name {{ prefix }}{{ definition.name | caseUcfirst }}
 extends RefCounted
+## {{ definition.description | default("Model class.") | replace({"\n": "\n## "}) }}[br]
 
 {% set imports = [] %}
 {%~ for property in definition.properties %}
@@ -21,9 +22,10 @@ const _FIELD_MAP := {
 
 {% for property in definition.properties %}
 {% set baseType = property | typeName(spec) %}
-var {{ property.name | uniqueSnake }}: {{ baseType }}
+var {{ property.name | uniqueSnake }}: {{ baseType }} ## {{ property.description | default("No description provided.") }}
 {% endfor %}
 
+## Convert dictionary to model
 static func from_dict(dict: Dictionary):
     var m := {{ prefix }}{{ definition.name | caseUcfirst }}.new()
 
@@ -79,6 +81,7 @@ static func from_dict(dict: Dictionary):
     return m
 
 
+## Convert to Dictionary
 func to_dict() -> Dictionary:
     var dict := {}
 

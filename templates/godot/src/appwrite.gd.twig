@@ -49,25 +49,29 @@ func _load_env() -> void:
 
 {% for header in spec.global.headers %}
 {% if header.description %}
-# {{header.description}}
+## {{header.description}}
 {% endif %}
 func set_{{header.key | caseSnake}}(value: String) -> void:
     client.set_{{header.key | caseSnake}}(value)
 
 
 {% endfor %}
+## Set self signed status
 func set_self_signed(status: bool = true) -> void:
     client.set_self_signed(status)
 
 
+## Set the endpoint
 func set_endpoint(endpoint: String) -> void:
     client.set_endpoint(endpoint)
 
 
+## Add a header
 func add_header(key: String, value: String) -> void:
     client.add_header(key, value)    
 
 
+## Get all headers
 func get_headers() -> Dictionary:
     return client.get_headers()
 
@@ -84,7 +88,7 @@ func _apply_env(key: String, value: String) -> void:
 {% endfor %}
         
 
-# Used to register the platform on Appwrite
+## Ping {{prefix}} Server for testing connection
 func ping() -> String:
-    var response = await client.call_api('GET', '/ping')
+    var response = await client._call_api('GET', '/ping')
     return str(response.get('body'))

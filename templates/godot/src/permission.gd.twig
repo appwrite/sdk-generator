@@ -1,16 +1,21 @@
 # {{spec.title | caseUcfirst}}Permission
 
+## Read permission
 static func read(role: String) -> String:
     return 'read("%s")' % role
 
+## Write permission
 static func write(role: String) -> String:
     return 'write("%s")' % role
 
+## Create permission
 static func create(role: String) -> String:
     return 'create("%s")' % role
 
+## Update permission
 static func update(role: String) -> String:
     return 'update("%s")' % role
 
+## Delete permission
 static func delete(role: String) -> String:
     return 'delete("%s")' % role
