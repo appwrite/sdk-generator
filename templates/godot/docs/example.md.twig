@@ -1,3 +1,6 @@
+{% if method.description %}{{ method.description }}{% endif %}
+
+```gdscript
 {% set prefix = spec.title | caseUcfirst %}
 extends Node
 
@@ -24,3 +27,4 @@ func _ready():
     
     if result is {{return_type}}:
         print(result.to_dict())
+```
