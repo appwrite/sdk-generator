@@ -32,7 +32,7 @@ const InputFile := preload("../input_file.gd")
 {%~ set return_type = 'Variant' %}
 {%~ endif %}
 
-func {{ methodNameSnake| escapeKeyword }}({% for parameter in method.parameters.all %}{{ parameter.name | caseSnake | escapeKeyword }}: {{ parameter | typeName(spec) }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}) -> {{ return_type }}:
+func {{ methodNameSnake| escapeKeyword }}({% for parameter in method.parameters.all %}{{ parameter.name | caseSnake | escapeKeyword }}: {{ parameter | typeName(spec) }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}) -> Variant :
     var _path := '{{ method.path }}'
     {%~ for parameter in method.parameters.path %}
     _path = _path.replace('{{ '{' }}{{ parameter.name }}{{ '}' }}', str({{ parameter.name | caseSnake | escapeKeyword }}))
