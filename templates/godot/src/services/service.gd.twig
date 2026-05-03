@@ -32,6 +32,24 @@ const InputFile := preload("../input_file.gd")
 {%~ set return_type = 'Variant' %}
 {%~ endif %}
 
+## {{ method.summary ?? method.description | replace({"\n": "[br]\n##"}) }}[br]
+##[br]
+{% if method.deprecated %}
+## @deprecated{% if method.since %}: Since {{ method.since }}{% endif %}{% if method.replaceWith %} Use [method {{ method.replaceWith | caseSnake | escapeKeyword }}] instead.{% endif %}[br]
+##[br]
+{% endif %}
+{% if method.parameters.all|length > 0 %}
+## Parameters:[br]
+{% for parameter in method.parameters.all %}
+## - [param {{ parameter.name | caseSnake | escapeKeyword }}]: {{ parameter.description | default("No description provided.") | replace({"\n": "\n##   "}) }}[br]
+{% endfor %}
+##[br]
+{% endif %}
+## Returns:[br]
+## - [{{return_type}}] on success.[br]
+##[br]
+## Errors:[br]
+## - Returns error data as [member {{spec.title | caseUcfirst}}.Exception].
 func {{ methodNameSnake| escapeKeyword }}({% for parameter in method.parameters.all %}{{ parameter.name | caseSnake | escapeKeyword }}: {{ parameter | typeName(spec) }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}) -> Variant :
     var _path := '{{ method.path }}'
     {%~ for parameter in method.parameters.path %}
