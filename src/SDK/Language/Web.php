@@ -504,6 +504,7 @@ class Web extends JS
             'DevKey'               => 'X-Appwrite-Dev-Key',
             'Mode'                 => 'X-Appwrite-Mode',
             'Platform'             => 'X-Appwrite-Platform',
+            'ForwardedUserAgent'   => 'X-Forwarded-User-Agent',
             'ImpersonateUserId'    => 'X-Appwrite-Impersonate-User-Id',
             'ImpersonateUserEmail' => 'X-Appwrite-Impersonate-User-Email',
             'ImpersonateUserPhone' => 'X-Appwrite-Impersonate-User-Phone',

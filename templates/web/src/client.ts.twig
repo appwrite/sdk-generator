@@ -404,7 +404,6 @@ class Client<TAuth extends Auth = 'browser'> {
 {%~ for header in webHeaders %}
         {{ header.key | caseLower }}: string;
 {%~ endfor %}
-        forwardeduseragent: string;
         selfSigned: boolean;
     } = {
         endpoint: '{{ spec.endpoint }}',
@@ -412,7 +411,6 @@ class Client<TAuth extends Auth = 'browser'> {
 {%~ for header in webHeaders %}
         {{ header.key | caseLower }}: '',
 {%~ endfor %}
-        forwardeduseragent: '',
         selfSigned: false,
     };
 
@@ -619,11 +617,6 @@ class Client<TAuth extends Auth = 'browser'> {
     }
 
 {%~ endfor %}
-    private setForwardedUserAgent(value: string): this {
-        this.headers['X-Forwarded-User-Agent'] = value;
-        this.config.forwardeduseragent = value;
-        return this;
-    }
 
     private realtime: Realtime = {
         socket: undefined,
