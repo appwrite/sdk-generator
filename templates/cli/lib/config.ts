@@ -251,6 +251,43 @@ export function readLocalConfigFile(filePath: string): ConfigType {
   return resolveConfigData(filePath, rootData, includePaths) as ConfigType;
 }
 
+export function resolveLocalConfigResourcePaths(
+  config: ConfigType,
+  filePath: string,
+): ConfigType {
+  const rootData = fs.existsSync(filePath)
+    ? readJsonFile<Record<string, unknown>>(filePath)
+    : {};
+  const includePaths = getConfigIncludePaths(rootData);
+
+  const resolveResourcePath = (
+    resource: "functions" | "sites",
+    resourcePath?: string,
+  ): string | undefined => {
+    if (!resourcePath || _path.isAbsolute(resourcePath)) {
+      return resourcePath;
+    }
+
+    const includePath = includePaths[resource];
+    const resourceDirectory = includePath
+      ? _path.dirname(resolveIncludePath(filePath, includePath))
+      : _path.dirname(filePath);
+    return _path.resolve(resourceDirectory, resourcePath);
+  };
+
+  return {
+    ...config,
+    functions: config.functions?.map((func) => ({
+      ...func,
+      path: resolveResourcePath("functions", func.path),
+    })),
+    sites: config.sites?.map((site) => ({
+      ...site,
+      path: resolveResourcePath("sites", site.path),
+    })),
+  };
+}
+
 export function writeLocalConfigFile(
   config: ConfigType,
   filePath: string,
@@ -286,6 +323,9 @@ function writeResolvedLocalConfig(
       resourceData,
     );
     delete rootOutput[resource];
+    if (resourceData.length === 0) {
+      delete nextIncludePaths[resource as ConfigResourceKey];
+    }
   }
 
   if (Object.keys(nextIncludePaths).length > 0) {
@@ -508,6 +548,7 @@ class Local extends Config<ConfigType> {
   static CONFIG_FILE_PATH_LEGACY = `${EXECUTABLE_NAME}.json`;
   private rootData: Record<string, unknown> = {};
   private includePaths: ConfigIncludePaths = {};
+  private includePathHints: ConfigIncludePaths = {};
   configDirectoryPath = "";
 
   constructor(
@@ -530,12 +571,17 @@ class Local extends Config<ConfigType> {
     if (!fs.existsSync(this.path)) {
       this.rootData = {};
       this.includePaths = {};
+      this.includePathHints = {};
       this.data = {} as ConfigType;
       return;
     }
 
     this.rootData = readJsonFile<Record<string, unknown>>(this.path);
     this.includePaths = getConfigIncludePaths(this.rootData);
+    this.includePathHints = {
+      ...this.includePathHints,
+      ...this.includePaths,
+    };
     this.data = resolveConfigData(
       this.path,
       this.rootData,
@@ -544,12 +590,17 @@ class Local extends Config<ConfigType> {
   }
 
   write(): void {
+    const writeIncludePaths = this.getWriteIncludePaths();
     writeResolvedLocalConfig(
       this.data as Record<string, unknown>,
       this.path,
       this.rootData ?? {},
-      this.includePaths ?? {},
+      writeIncludePaths,
     );
+    this.includePathHints = {
+      ...this.includePathHints,
+      ...writeIncludePaths,
+    };
     this.read();
   }
 
@@ -563,8 +614,26 @@ class Local extends Config<ConfigType> {
 
     this.rootData = {};
     this.includePaths = {};
+    this.includePathHints = {};
     this.data = {} as ConfigType;
     writeJsonFile(this.path, {});
+  }
+
+  private getWriteIncludePaths(): ConfigIncludePaths {
+    const writeIncludePaths: ConfigIncludePaths = { ...this.includePaths };
+
+    for (const resource of CONFIG_RESOURCE_KEYS) {
+      if (writeIncludePaths[resource] || !this.includePathHints[resource]) {
+        continue;
+      }
+
+      const resourceData = this.data[resource];
+      if (Array.isArray(resourceData) && resourceData.length > 0) {
+        writeIncludePaths[resource] = this.includePathHints[resource];
+      }
+    }
+
+    return writeIncludePaths;
   }
 
   static findConfigFile(filename: string): string | null {

@@ -6,13 +6,18 @@ import { Push, PushOptions } from "./push.js";
 import { parseWithBetterErrors } from "./utils/error-formatter.js";
 import * as path from "path";
 import { TypeScriptDatabasesGenerator } from "./generators/typescript/databases.js";
-import { readLocalConfigFile, writeLocalConfigFile } from "../config.js";
+import {
+  readLocalConfigFile,
+  resolveLocalConfigResourcePaths,
+  writeLocalConfigFile,
+} from "../config.js";
 
 export class Schema {
   private pullCommand: Pull;
   private pushCommand: Push;
 
   private pullCommandSilent: Pull;
+  private configPaths = new WeakMap<ConfigType, string>();
 
   public db: TypeScriptDatabasesGenerator;
 
@@ -82,7 +87,14 @@ export class Schema {
     options: PushOptions,
     configPath?: string,
   ): Promise<ConfigType> {
-    await this.pushCommand.pushResources(config, options);
+    const resolvedConfigPath = configPath
+      ? path.resolve(configPath)
+      : this.configPaths.get(config);
+    const pushConfig = resolvedConfigPath
+      ? resolveLocalConfigResourcePaths(config, resolvedConfigPath)
+      : config;
+
+    await this.pushCommand.pushResources(pushConfig, options);
     const updatedConfig = await this.pullCommandSilent.pullResources(
       config,
       options,
@@ -100,8 +112,11 @@ export class Schema {
    * @param path - The path to the file to read.
    * @returns The configuration object.
    */
-  public read(path: string): ConfigType {
-    return readLocalConfigFile(path);
+  public read(filePath: string): ConfigType {
+    const resolvedPath = path.resolve(filePath);
+    const config = readLocalConfigFile(resolvedPath);
+    this.configPaths.set(config, resolvedPath);
+    return config;
   }
 
   /**
