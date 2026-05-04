@@ -782,7 +782,7 @@ export const parseJsonObject = (
     );
   }
 
-  throw new InvalidArgumentError(`${optionName} must be a JSON object.`);
+  throw new InvalidArgumentError(`${optionName} must be a valid JSON object.`);
 };
 
 export const log = (message?: string): void => {
