@@ -96,12 +96,9 @@ async function createPullInstance(
     silent?: boolean;
     requiresConsoleAuth?: boolean;
     resource?: "functions" | "sites";
-  } = {
-    silent: false,
-    requiresConsoleAuth: false,
-  },
+  } = {},
 ): Promise<Pull> {
-  const { silent, requiresConsoleAuth, resource } = options;
+  const { silent = false, requiresConsoleAuth = false, resource } = options;
   const projectClient = await sdkForProject();
   const consoleClient = await sdkForConsole(requiresConsoleAuth);
 

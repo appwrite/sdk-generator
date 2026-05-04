@@ -185,10 +185,6 @@ function writeJsonFile(filePath: string, data: unknown): void {
 }
 
 function resolveIncludePath(configFilePath: string, includePath: string): string {
-  if (_path.isAbsolute(includePath)) {
-    return includePath;
-  }
-
   return _path.resolve(_path.dirname(configFilePath), includePath);
 }
 
