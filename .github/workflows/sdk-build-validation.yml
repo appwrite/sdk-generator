@@ -21,9 +21,6 @@ jobs:
       matrix:
         include:
           # Client SDKs
-          - sdk: web
-            platform: client
-
           - sdk: flutter
             platform: client
 
@@ -73,7 +70,7 @@ jobs:
           # Console SDKs
           - sdk: cli
             platform: console
-          
+
           - sdk: web
             platform: console
 

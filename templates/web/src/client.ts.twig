@@ -345,8 +345,8 @@ class {{spec.title | caseUcfirst}}Exception extends Error {
  * Client that handles requests to {{spec.title | caseUcfirst}}
  */
 type ClientRuntime = 'browser' | 'server';
-type ClientAuth = 'anonymous' | 'session' | 'jwt' | 'apiKey' | 'devKey' | 'impersonation';
-type AdminAuth = 'apiKey';
+type ClientAuth = 'anonymous' | 'session' | 'jwt' | 'apiKey'{% if sdk.platform == 'console' %} | 'cookie'{% endif %} | 'devKey' | 'impersonation';
+type AdminAuth = 'apiKey'{% if sdk.platform == 'console' %} | 'cookie'{% endif %};
 type BrowserAuth = 'anonymous' | 'session' | 'jwt' | 'devKey' | 'impersonation';
 
 type BaseClientParams = {
@@ -354,6 +354,10 @@ type BaseClientParams = {
     projectId: string;
     endpointRealtime?: string;
     locale?: string;
+{%~ if sdk.platform == 'console' %}
+    mode?: string;
+    platform?: string;
+{%~ endif %}
 };
 
 type SessionClientParams = BaseClientParams & {
@@ -366,6 +370,12 @@ type ApiKeyClientParams = BaseClientParams & {
     forwardedUserAgent?: string;
 };
 
+{%~ if sdk.platform == 'console' %}
+type CookieClientParams = BaseClientParams & {
+    cookie: string;
+};
+
+{%~ endif %}
 type JWTClientParams = BaseClientParams & {
     jwt: string;
 };
@@ -392,6 +402,11 @@ class Client<TAuth extends ClientAuth = 'anonymous'> {
         endpointRealtime: string;
         project: string;
         key: string;
+{%~ if sdk.platform == 'console' %}
+        cookie: string;
+        mode: string;
+        platform: string;
+{%~ endif %}
         jwt: string;
         locale: string;
         session: string;
@@ -406,6 +421,11 @@ class Client<TAuth extends ClientAuth = 'anonymous'> {
         endpointRealtime: '',
         project: '',
         key: '',
+{%~ if sdk.platform == 'console' %}
+        cookie: '',
+        mode: '',
+        platform: '',
+{%~ endif %}
         jwt: '',
         locale: '',
         session: '',
@@ -463,6 +483,14 @@ class Client<TAuth extends ClientAuth = 'anonymous'> {
         return client;
     }
 
+{%~ if sdk.platform == 'console' %}
+    static fromCookie(params: CookieClientParams): Client<'cookie'> {
+        return new Client<'cookie'>()
+            .applyBase<'cookie'>(params, 'server')
+            .setCookie(params.cookie);
+    }
+
+{%~ endif %}
     static fromJWT(params: JWTClientParams): Client<'jwt'> {
         return new Client<'jwt'>()
             .applyBase<'jwt'>(params, 'browser')
@@ -502,7 +530,7 @@ class Client<TAuth extends ClientAuth = 'anonymous'> {
     private applyBase<T extends ClientAuth>(params: BaseClientParams, runtime: ClientRuntime): Client<T> {
         const client = this as unknown as Client<T>;
         client.runtime = runtime;
-        client.headers['x-sdk-platform'] = runtime === 'server' ? 'server' : 'client';
+        client.headers['x-sdk-platform'] = runtime === 'server' ? '{{ sdk.platform == 'console' ? 'console' : 'server' }}' : 'client';
         client.setEndpoint(params.endpoint);
         client.setProject(params.projectId);
 
@@ -514,6 +542,18 @@ class Client<TAuth extends ClientAuth = 'anonymous'> {
             client.setLocale(params.locale);
         }
 
+{%~ if sdk.platform == 'console' %}
+        if (params.mode !== undefined) {
+            client.headers['X-{{ spec.title | caseUcfirst }}-Mode'] = params.mode;
+            client.config.mode = params.mode;
+        }
+
+        if (params.platform !== undefined) {
+            client.headers['X-{{ spec.title | caseUcfirst }}-Platform'] = params.platform;
+            client.config.platform = params.platform;
+        }
+
+{%~ endif %}
         return client;
     }
 
@@ -595,10 +635,20 @@ class Client<TAuth extends ClientAuth = 'anonymous'> {
         this.headers['X-{{ spec.title | caseUcfirst }}-Key'] = value;
         this.config.key = value;
         this.runtime = 'server';
-        this.headers['x-sdk-platform'] = 'server';
+        this.headers['x-sdk-platform'] = '{{ sdk.platform == 'console' ? 'console' : 'server' }}';
         return this as unknown as Client<'apiKey'>;
     }
 
+{%~ if sdk.platform == 'console' %}
+    setCookie(value: string): Client<'cookie'> {
+        this.headers['Cookie'] = value;
+        this.config.cookie = value;
+        this.runtime = 'server';
+        this.headers['x-sdk-platform'] = '{{ sdk.platform == 'console' ? 'console' : 'server' }}';
+        return this as unknown as Client<'cookie'>;
+    }
+
+{%~ endif %}
     setJWT(value: string): this {
         this.headers['X-{{ spec.title | caseUcfirst }}-JWT'] = value;
         this.config.jwt = value;
