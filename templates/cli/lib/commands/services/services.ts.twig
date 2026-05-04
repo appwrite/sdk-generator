@@ -1,6 +1,7 @@
 import { Command } from "commander";
 {% set hasLocationMethod = false %}
 {% set hasFileParam = false %}
+{% set hasObjectParam = false %}
 {% set hasQueryParam = service | hasCliQueryParam %}
 {% set enumNames = [] %}
 {% for method in service.methods %}
@@ -10,6 +11,9 @@ import { Command } from "commander";
 {% for parameter in method.parameters.all %}
 {% if parameter.type == 'file' %}
 {% set hasFileParam = true %}
+{% endif %}
+{% if parameter.type == 'object' %}
+{% set hasObjectParam = true %}
 {% endif %}
 {% if parameter.enumName is defined and parameter.enumName not in enumNames %}
 {% set enumNames = enumNames|merge([parameter.enumName]) %}
@@ -41,6 +45,9 @@ import {
   parse,
   parseBool,
   parseInteger,
+{% if hasObjectParam %}
+  parseJsonObject,
+{% endif %}
 {% if service.name == 'teams' %}
   hint,
 {% endif %}
@@ -149,7 +156,7 @@ const {{ commandVar }} = {{ service.name | caseCamel }}
 {% endfor %}
 {% if method.type == 'location' %}
       async ({{ actionParams }}) => {
-        const url = await (await get{{ service.name | caseUcfirst }}Client()).{{ method.name | caseCamel }}({{ argExpressions | join(', ') }});
+        const url = await (await get{{ service.name | caseUcfirst }}Client()).{{ method.name | caseCamel }}({{ argExpressions | join(', ') | raw }});
         const response = await fetch(url);
         const buffer = Buffer.from(await response.arrayBuffer());
         fs.writeFileSync(destination, buffer);
@@ -157,12 +164,12 @@ const {{ commandVar }} = {{ service.name | caseCamel }}
       },
 {% elseif method.type == 'webAuth' %}
       async ({{ actionParams }}) => {
-        const url = (await get{{ service.name | caseUcfirst }}Client()).{{ method.name | caseCamel }}({{ argExpressions | join(', ') }});
+        const url = (await get{{ service.name | caseUcfirst }}Client()).{{ method.name | caseCamel }}({{ argExpressions | join(', ') | raw }});
         if (url) console.log(url);
       },
 {% elseif hasParams %}
       async ({{ actionParams }}) =>
-        parse(await (await get{{ service.name | caseUcfirst }}Client()).{{ method.name | caseCamel }}({{ argExpressions | join(', ') }})),
+        parse(await (await get{{ service.name | caseUcfirst }}Client()).{{ method.name | caseCamel }}({{ argExpressions | join(', ') | raw }})),
 {% else %}
       async () => parse(await (await get{{ service.name | caseUcfirst }}Client()).{{ method.name | caseCamel }}()),
 {% endif %}

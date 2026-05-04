@@ -1791,6 +1791,106 @@
         ]
       }
     },
+    "\/functions\/{functionId}\/executions": {
+      "post": {
+        "summary": "Create execution",
+        "operationId": "functionsCreateExecution",
+        "consumes": [
+          "application\/json"
+        ],
+        "produces": [
+          "application\/json"
+        ],
+        "tags": [
+          "functions"
+        ],
+        "description": "Create a new function execution.",
+        "responses": {
+          "200": {
+            "description": "Mock",
+            "schema": {
+              "$ref": "#\/definitions\/mock"
+            }
+          }
+        },
+        "x-appwrite": {
+          "method": "createExecution",
+          "weight": 1,
+          "cookies": false,
+          "type": "",
+          "demo": "functions\/create-execution.md",
+          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterCreate a new function execution.",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "functions.write",
+          "platforms": [
+            "server"
+          ],
+          "packaging": false,
+          "offline-model": "",
+          "offline-key": "",
+          "offline-response-key": "$id",
+          "auth": {
+            "Project": []
+          }
+        },
+        "security": [
+          {
+            "Project": [],
+            "Key": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "functionId",
+            "description": "Function ID.",
+            "required": true,
+            "type": "string",
+            "in": "path"
+          },
+          {
+            "name": "payload",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "body": {
+                  "type": "string",
+                  "description": "HTTP body of execution.",
+                  "default": null
+                },
+                "async": {
+                  "type": "boolean",
+                  "description": "Execute asynchronously.",
+                  "default": null
+                },
+                "path": {
+                  "type": "string",
+                  "description": "HTTP path of execution.",
+                  "default": null
+                },
+                "method": {
+                  "type": "string",
+                  "description": "HTTP method of execution.",
+                  "default": null
+                },
+                "headers": {
+                  "type": "object",
+                  "description": "HTTP headers of execution. Defaults to empty.",
+                  "default": null
+                },
+                "scheduledAt": {
+                  "type": "string",
+                  "description": "Scheduled execution time.",
+                  "default": null
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
     "\/mock\/tests\/general\/redirect": {
       "get": {
         "summary": "Redirect",

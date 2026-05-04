@@ -358,6 +358,12 @@ output = execSync("bun ./dist/cli.cjs general headers", {
 }).toString();
 console.log(extractFirstValue(output));
 
+output = execSync(
+  "bun ./dist/cli.cjs functions create-execution --function-id sample-function",
+  { stdio: "pipe" },
+).toString();
+console.log(extractFirstValue(output));
+
 if (openRuntimesVersion !== "v5") {
   throw new Error(
     `Expected local function emulation to use OpenRuntimes v5, got ${openRuntimesVersion}`,

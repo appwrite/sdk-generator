@@ -762,6 +762,29 @@ export const parseBool = (value: string): boolean => {
   throw new InvalidArgumentError("Not a boolean.");
 };
 
+export const parseJsonObject = (
+  value: string | undefined,
+  optionName: string,
+): Record<string, unknown> | undefined => {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  try {
+    const parsed = JSON.parse(value) as unknown;
+
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      return parsed as Record<string, unknown>;
+    }
+  } catch {
+    throw new InvalidArgumentError(
+      `${optionName} must be a valid JSON object.`,
+    );
+  }
+
+  throw new InvalidArgumentError(`${optionName} must be a JSON object.`);
+};
+
 export const log = (message?: string): void => {
   console.log(`${chalk.cyan.bold("ℹ Info:")} ${chalk.cyan(message ?? "")}`);
 };
