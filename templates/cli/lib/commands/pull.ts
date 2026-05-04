@@ -92,17 +92,25 @@ export interface PullSettingsResult {
 }
 
 async function createPullInstance(
-  options: { silent?: boolean; requiresConsoleAuth?: boolean } = {
+  options: {
+    silent?: boolean;
+    requiresConsoleAuth?: boolean;
+    resource?: "functions" | "sites";
+  } = {
     silent: false,
     requiresConsoleAuth: false,
   },
 ): Promise<Pull> {
-  const { silent, requiresConsoleAuth } = options;
+  const { silent, requiresConsoleAuth, resource } = options;
   const projectClient = await sdkForProject();
   const consoleClient = await sdkForConsole(requiresConsoleAuth);
 
   const pullInstance = new Pull(projectClient, consoleClient, silent);
-  pullInstance.setConfigDirectoryPath(localConfig.configDirectoryPath);
+  pullInstance.setConfigDirectoryPath(
+    resource
+      ? localConfig.getResourceDirname(resource)
+      : localConfig.configDirectoryPath,
+  );
   return pullInstance;
 }
 
@@ -849,7 +857,7 @@ const pullFunctions = async ({
   const shouldPullCode = code !== false && allowCodePull === true;
   const selectedFunctionIds = functionsToCheck.map((f: any) => f.$id);
 
-  const pullInstance = await createPullInstance();
+  const pullInstance = await createPullInstance({ resource: "functions" });
   const functions = await pullInstance.pullFunctions({
     code: shouldPullCode,
     withVariables,
@@ -898,7 +906,7 @@ const pullSites = async ({
   const shouldPullCode = code !== false && allowCodePull === true;
   const selectedSiteIds = sitesToCheck.map((s: any) => s.$id);
 
-  const pullInstance = await createPullInstance();
+  const pullInstance = await createPullInstance({ resource: "sites" });
   const sites = await pullInstance.pullSites({
     code: shouldPullCode,
     withVariables,

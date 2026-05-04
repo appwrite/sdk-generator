@@ -438,6 +438,22 @@ const ConfigSchema = z
     projectId: z.string(),
     projectName: z.string().optional(),
     endpoint: z.string().optional(),
+    includes: z
+      .object({
+        functions: z.string().optional(),
+        sites: z.string().optional(),
+        databases: z.string().optional(),
+        collections: z.string().optional(),
+        tablesDB: z.string().optional(),
+        tables: z.string().optional(),
+        topics: z.string().optional(),
+        teams: z.string().optional(),
+        buckets: z.string().optional(),
+        webhooks: z.string().optional(),
+        messages: z.string().optional(),
+      })
+      .strict()
+      .optional(),
     settings: z.lazy(() => SettingsSchema).optional(),
     functions: z.array(z.lazy(() => FunctionSchema)).optional(),
     sites: z.array(z.lazy(() => SiteSchema)).optional(),
@@ -459,6 +475,7 @@ const ConfigSchema = z
 // ============================================================================
 
 export type ConfigType = z.infer<typeof ConfigSchema>;
+export type ConfigIncludesType = NonNullable<ConfigType["includes"]>;
 export type SettingsType = z.infer<typeof SettingsSchema>;
 export type SiteType = z.infer<typeof SiteSchema>;
 export type FunctionType = z.infer<typeof FunctionSchema>;

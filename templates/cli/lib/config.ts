@@ -38,8 +38,16 @@ import type {
   GlobalConfigData,
 } from "./types.js";
 import { createSettingsObject } from "./utils.js";
-import { EXECUTABLE_NAME, TOP_LEVEL_RESOURCE_ARRAY_KEYS } from "./constants.js";
+import {
+  CONFIG_RESOURCE_KEYS,
+  EXECUTABLE_NAME,
+  TOP_LEVEL_RESOURCE_ARRAY_KEYS,
+} from "./constants.js";
 import { JSONBig } from "./json.js";
+
+type ConfigResourceKey = (typeof CONFIG_RESOURCE_KEYS)[number];
+
+type ConfigIncludePaths = Partial<Record<ConfigResourceKey, string>>;
 
 /**
  * Extract keys from a Zod object schema.
@@ -76,6 +84,7 @@ const CONFIG_KEY_ORDER = [
   "projectId",
   "projectName",
   "endpoint",
+  "includes",
   "settings",
   "functions",
   "sites",
@@ -85,9 +94,159 @@ const CONFIG_KEY_ORDER = [
   "tables",
   "buckets",
   "teams",
+  "webhooks",
   "topics",
   "messages",
 ];
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function ensureDirectoryForFile(filePath: string): void {
+  const dir = _path.dirname(filePath);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+}
+
+function assertValidIncludePath(resource: string, includePath: unknown): string {
+  if (typeof includePath !== "string" || includePath.trim() === "") {
+    throw new Error(`Config include for '${resource}' must be a file path.`);
+  }
+
+  if (includePath.includes("#")) {
+    throw new Error(
+      `Config include '${resource}' must be a file path without a JSON pointer fragment.`,
+    );
+  }
+
+  return includePath;
+}
+
+function getConfigIncludePaths(data: Record<string, unknown>): ConfigIncludePaths {
+  const includes = data.includes;
+  if (includes === undefined) {
+    return {};
+  }
+
+  if (!isRecord(includes)) {
+    throw new Error("Config 'includes' must be an object.");
+  }
+
+  const includePaths: ConfigIncludePaths = {};
+  for (const [key, value] of Object.entries(includes)) {
+    if (!TOP_LEVEL_RESOURCE_ARRAY_KEYS.has(key)) {
+      throw new Error(`Unsupported config include '${key}'.`);
+    }
+    includePaths[key as ConfigResourceKey] = assertValidIncludePath(key, value);
+  }
+
+  return includePaths;
+}
+
+function readJsonFile<T>(filePath: string): T {
+  try {
+    return JSONBig.parse<T>(fs.readFileSync(filePath, "utf8"));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    throw new Error(`Failed to read config file '${filePath}': ${message}`);
+  }
+}
+
+function writeJsonFile(filePath: string, data: unknown): void {
+  ensureDirectoryForFile(filePath);
+  fs.writeFileSync(filePath, JSONBig.stringify(data, null, 4), {
+    mode: 0o600,
+  });
+}
+
+function resolveIncludePath(configFilePath: string, includePath: string): string {
+  if (_path.isAbsolute(includePath)) {
+    return includePath;
+  }
+
+  return _path.resolve(_path.dirname(configFilePath), includePath);
+}
+
+function resolveConfigData(
+  configFilePath: string,
+  rootData: Record<string, unknown>,
+  includePaths: ConfigIncludePaths,
+): Record<string, unknown> {
+  const resolvedData = { ...rootData };
+
+  for (const [resource, includePath] of Object.entries(includePaths)) {
+    if (rootData[resource] !== undefined) {
+      throw new Error(
+        `Config resource '${resource}' cannot be defined both inline and in includes.`,
+      );
+    }
+
+    const resolvedPath = resolveIncludePath(configFilePath, includePath);
+    const includedData = fs.existsSync(resolvedPath)
+      ? readJsonFile<unknown>(resolvedPath)
+      : [];
+    if (!Array.isArray(includedData)) {
+      throw new Error(
+        `Config include '${resource}' must point to a JSON file containing an array.`,
+      );
+    }
+
+    resolvedData[resource] = includedData;
+  }
+
+  return resolvedData;
+}
+
+export function readLocalConfigFile(filePath: string): ConfigType {
+  const rootData = readJsonFile<Record<string, unknown>>(filePath);
+  const includePaths = getConfigIncludePaths(rootData);
+  return resolveConfigData(filePath, rootData, includePaths) as ConfigType;
+}
+
+export function writeLocalConfigFile(
+  config: ConfigType,
+  filePath: string,
+): void {
+  const rootData = fs.existsSync(filePath)
+    ? readJsonFile<Record<string, unknown>>(filePath)
+    : {};
+  const includePaths = getConfigIncludePaths(rootData);
+  writeResolvedLocalConfig(config, filePath, rootData, includePaths);
+}
+
+function writeResolvedLocalConfig(
+  config: Record<string, unknown>,
+  filePath: string,
+  rootData: Record<string, unknown>,
+  includePaths: ConfigIncludePaths,
+): void {
+  const sanitizedData = pruneDeprecatedSiteFields(config);
+  const rootOutput: Record<string, unknown> = {
+    ...rootData,
+    ...sanitizedData,
+  };
+
+  for (const [resource, includePath] of Object.entries(includePaths)) {
+    const resourceData = sanitizedData[resource] ?? [];
+    if (!Array.isArray(resourceData)) {
+      throw new Error(`Config resource '${resource}' must be an array.`);
+    }
+
+    writeJsonFile(resolveIncludePath(filePath, includePath), resourceData);
+    delete rootOutput[resource];
+  }
+
+  if (Object.keys(includePaths).length > 0) {
+    rootOutput.includes = includePaths;
+  }
+
+  writeJsonFile(
+    filePath,
+    orderConfigKeys(pruneEmptyTopLevelResourceArrays(rootOutput)),
+  );
+}
 
 function orderConfigKeys<T extends Record<string, any>>(data: T): T {
   const ordered: Record<string, any> = {};
@@ -175,10 +334,12 @@ class Config<T extends ConfigData = ConfigData> {
   readonly path: string;
   protected data: T;
 
-  constructor(path: string) {
+  constructor(path: string, autoRead = true) {
     this.path = path;
     this.data = {} as T;
-    this.read();
+    if (autoRead) {
+      this.read();
+    }
   }
 
   read(): void {
@@ -293,6 +454,8 @@ class Config<T extends ConfigData = ConfigData> {
 class Local extends Config<ConfigType> {
   static CONFIG_FILE_PATH = `${EXECUTABLE_NAME}.config.json`;
   static CONFIG_FILE_PATH_LEGACY = `${EXECUTABLE_NAME}.json`;
+  private rootData: Record<string, unknown> = {};
+  private includePaths: ConfigIncludePaths = {};
   configDirectoryPath = "";
 
   constructor(
@@ -306,21 +469,41 @@ class Local extends Config<ConfigType> {
       absolutePath = `${process.cwd()}/${path}`;
     }
 
-    super(absolutePath);
+    super(absolutePath, false);
     this.configDirectoryPath = _path.dirname(absolutePath);
+    this.read();
+  }
+
+  read(): void {
+    if (!fs.existsSync(this.path)) {
+      this.rootData = {};
+      this.includePaths = {};
+      this.data = {} as ConfigType;
+      return;
+    }
+
+    this.rootData = readJsonFile<Record<string, unknown>>(this.path);
+    this.includePaths = getConfigIncludePaths(this.rootData);
+    this.data = resolveConfigData(
+      this.path,
+      this.rootData,
+      this.includePaths,
+    ) as ConfigType;
   }
 
   write(): void {
-    const dir = _path.dirname(this.path);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    const orderedData = orderConfigKeys(
-      pruneEmptyTopLevelResourceArrays(pruneDeprecatedSiteFields(this.data)),
+    writeResolvedLocalConfig(
+      this.data as Record<string, unknown>,
+      this.path,
+      this.rootData ?? {},
+      this.includePaths ?? {},
     );
-    fs.writeFileSync(this.path, JSONBig.stringify(orderedData, null, 4), {
-      mode: 0o600,
-    });
+  }
+
+  clear(): void {
+    this.rootData = {};
+    this.includePaths = {};
+    super.clear();
   }
 
   static findConfigFile(filename: string): string | null {
@@ -345,6 +528,23 @@ class Local extends Config<ConfigType> {
 
   getDirname(): string {
     return _path.dirname(this.path);
+  }
+
+  getResourceDirname(resource: ConfigResourceKey): string {
+    const includePath = this.includePaths[resource];
+    if (!includePath) {
+      return this.getDirname();
+    }
+
+    return _path.dirname(resolveIncludePath(this.path, includePath));
+  }
+
+  resolveResourcePath(resource: ConfigResourceKey, resourcePath: string): string {
+    if (_path.isAbsolute(resourcePath)) {
+      return resourcePath;
+    }
+
+    return _path.resolve(this.getResourceDirname(resource), resourcePath);
   }
 
   getEndpoint(): string {

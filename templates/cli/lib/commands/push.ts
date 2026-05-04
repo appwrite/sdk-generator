@@ -2781,6 +2781,18 @@ async function createPushInstance(
   return new Push(projectClient, consoleClient, silent);
 }
 
+function withResolvedResourcePaths<T extends { path?: string }>(
+  resource: "functions" | "sites",
+  resources: T[],
+): T[] {
+  return resources.map((item) => ({
+    ...item,
+    path: item.path
+      ? localConfig.resolveResourcePath(resource, item.path)
+      : item.path,
+  }));
+}
+
 const pushResources = async ({
   skipDeprecated = false,
   functionOptions,
@@ -2835,8 +2847,8 @@ const pushResources = async ({
       projectId: project.projectId ?? "",
       projectName: project.projectName,
       settings: project.projectSettings,
-      functions,
-      sites,
+      functions: withResolvedResourcePaths("functions", functions),
+      sites: withResolvedResourcePaths("sites", sites),
       collections: localConfig.getCollections(),
       databases: localConfig.getDatabases(),
       tables: localConfig.getTables(),
@@ -3054,13 +3066,16 @@ const pushSite = async ({
 
   const pushStartTime = Date.now();
   const pushInstance = await createPushInstance();
-  const result = await pushInstance.pushSites(sites, {
-    async: asyncDeploy,
-    code: shouldPushCode,
-    activate: shouldActivate ?? true,
-    withVariables,
-    logs,
-  });
+  const result = await pushInstance.pushSites(
+    withResolvedResourcePaths("sites", sites),
+    {
+      async: asyncDeploy,
+      code: shouldPushCode,
+      activate: shouldActivate ?? true,
+      withVariables,
+      logs,
+    },
+  );
 
   const {
     successfullyPushed,
@@ -3212,13 +3227,16 @@ const pushFunction = async ({
 
   const pushStartTime = Date.now();
   const pushInstance = await createPushInstance();
-  const result = await pushInstance.pushFunctions(functions, {
-    async: asyncDeploy,
-    code: shouldPushCode,
-    activate: shouldActivate ?? true,
-    withVariables,
-    logs,
-  });
+  const result = await pushInstance.pushFunctions(
+    withResolvedResourcePaths("functions", functions),
+    {
+      async: asyncDeploy,
+      code: shouldPushCode,
+      activate: shouldActivate ?? true,
+      withVariables,
+      logs,
+    },
+  );
 
   const {
     successfullyPushed,

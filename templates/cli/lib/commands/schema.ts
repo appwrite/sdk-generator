@@ -4,10 +4,9 @@ import { ConfigSchema } from "./config.js";
 import { Pull, PullOptions } from "./pull.js";
 import { Push, PushOptions } from "./push.js";
 import { parseWithBetterErrors } from "./utils/error-formatter.js";
-import { JSONBig } from "../json.js";
-import * as fs from "fs";
 import * as path from "path";
 import { TypeScriptDatabasesGenerator } from "./generators/typescript/databases.js";
+import { readLocalConfigFile, writeLocalConfigFile } from "../config.js";
 
 export class Schema {
   private pullCommand: Pull;
@@ -102,7 +101,7 @@ export class Schema {
    * @returns The configuration object.
    */
   public read(path: string): ConfigType {
-    return JSONBig.parse(fs.readFileSync(path, "utf8")) as ConfigType;
+    return readLocalConfigFile(path);
   }
 
   /**
@@ -114,7 +113,6 @@ export class Schema {
    */
   public write(config: ConfigType, filePath: string): void {
     const resolvedPath = path.resolve(filePath);
-    const content = JSONBig.stringify(config, null, 4);
-    fs.writeFileSync(resolvedPath, content);
+    writeLocalConfigFile(config, resolvedPath);
   }
 }
