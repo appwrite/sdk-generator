@@ -72,7 +72,7 @@ export class Schema {
     if (resolvedConfigPath) {
       this.configPaths.set(updatedConfig, resolvedConfigPath);
     }
-    if (configPath && resolvedConfigPath) {
+    if (resolvedConfigPath) {
       this.write(updatedConfig, resolvedConfigPath);
     }
     return updatedConfig;
@@ -106,7 +106,7 @@ export class Schema {
       options,
     );
 
-    if (configPath && resolvedConfigPath) {
+    if (resolvedConfigPath) {
       this.write(updatedConfig, resolvedConfigPath);
     }
     if (resolvedConfigPath) {

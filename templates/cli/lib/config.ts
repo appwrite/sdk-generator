@@ -49,6 +49,8 @@ type ConfigResourceKey = (typeof CONFIG_RESOURCE_KEYS)[number];
 
 type ConfigIncludePaths = Partial<Record<ConfigResourceKey, string>>;
 
+const includePathHintsByFile = new Map<string, ConfigIncludePaths>();
+
 /**
  * Extract keys from a Zod object schema.
  * Handles both plain ZodObject and ZodEffects (schemas with refinements).
@@ -296,7 +298,17 @@ export function writeLocalConfigFile(
     ? readJsonFile<Record<string, unknown>>(filePath)
     : {};
   const includePaths = getConfigIncludePaths(rootData);
-  writeResolvedLocalConfig(config, filePath, rootData, includePaths);
+  const includePathHints = includePathHintsByFile.get(filePath) ?? {};
+  const writeIncludePaths = getWriteIncludePaths(
+    config,
+    includePaths,
+    includePathHints,
+  );
+  writeResolvedLocalConfig(config, filePath, rootData, writeIncludePaths);
+  includePathHintsByFile.set(filePath, {
+    ...includePathHints,
+    ...writeIncludePaths,
+  });
 }
 
 function writeResolvedLocalConfig(
@@ -338,6 +350,27 @@ function writeResolvedLocalConfig(
     filePath,
     orderConfigKeys(pruneEmptyTopLevelResourceArrays(rootOutput)),
   );
+}
+
+function getWriteIncludePaths(
+  config: Record<string, unknown>,
+  includePaths: ConfigIncludePaths,
+  includePathHints: ConfigIncludePaths,
+): ConfigIncludePaths {
+  const writeIncludePaths: ConfigIncludePaths = { ...includePaths };
+
+  for (const resource of CONFIG_RESOURCE_KEYS) {
+    if (writeIncludePaths[resource] || !includePathHints[resource]) {
+      continue;
+    }
+
+    const resourceData = config[resource];
+    if (Array.isArray(resourceData) && resourceData.length > 0) {
+      writeIncludePaths[resource] = includePathHints[resource];
+    }
+  }
+
+  return writeIncludePaths;
 }
 
 function orderConfigKeys<T extends Record<string, any>>(data: T): T {
@@ -590,7 +623,11 @@ class Local extends Config<ConfigType> {
   }
 
   write(): void {
-    const writeIncludePaths = this.getWriteIncludePaths();
+    const writeIncludePaths = getWriteIncludePaths(
+      this.data as Record<string, unknown>,
+      this.includePaths,
+      this.includePathHints,
+    );
     writeResolvedLocalConfig(
       this.data as Record<string, unknown>,
       this.path,
@@ -617,23 +654,6 @@ class Local extends Config<ConfigType> {
     this.includePathHints = {};
     this.data = {} as ConfigType;
     writeJsonFile(this.path, {});
-  }
-
-  private getWriteIncludePaths(): ConfigIncludePaths {
-    const writeIncludePaths: ConfigIncludePaths = { ...this.includePaths };
-
-    for (const resource of CONFIG_RESOURCE_KEYS) {
-      if (writeIncludePaths[resource] || !this.includePathHints[resource]) {
-        continue;
-      }
-
-      const resourceData = this.data[resource];
-      if (Array.isArray(resourceData) && resourceData.length > 0) {
-        writeIncludePaths[resource] = this.includePathHints[resource];
-      }
-    }
-
-    return writeIncludePaths;
   }
 
   static findConfigFile(filename: string): string | null {
