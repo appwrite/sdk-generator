@@ -618,7 +618,11 @@ const initSkill = async (): Promise<void> => {
 };
 
 const initFunction = async (): Promise<void> => {
-  process.chdir(localConfig.configDirectoryPath);
+  const configDirectory = localConfig.getResourceDirname("functions");
+  if (!fs.existsSync(configDirectory)) {
+    fs.mkdirSync(configDirectory, { recursive: true });
+  }
+  process.chdir(configDirectory);
 
   // TODO: Add CI/CD support (ID, name, runtime)
   const answers = await inquirer.prompt(questionsCreateFunction);
@@ -788,7 +792,11 @@ const initFunction = async (): Promise<void> => {
 };
 
 const initSite = async (): Promise<void> => {
-  process.chdir(localConfig.configDirectoryPath);
+  const configDirectory = localConfig.getResourceDirname("sites");
+  if (!fs.existsSync(configDirectory)) {
+    fs.mkdirSync(configDirectory, { recursive: true });
+  }
+  process.chdir(configDirectory);
 
   const answers = await inquirer.prompt(questionsCreateSite);
   const siteId = answers.id === "unique()" ? ID.unique() : answers.id;

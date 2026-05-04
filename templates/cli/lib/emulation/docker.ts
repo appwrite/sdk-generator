@@ -36,7 +36,7 @@ function getFunctionFiles(func: FunctionType): {
   files: string[];
   ignorer: ignoreModule.Ignore;
 } {
-  const functionDir = path.join(localConfig.getDirname(), func.path);
+  const functionDir = localConfig.resolveResourcePath("functions", func.path);
   const ignorer = getFunctionIgnorer(func, functionDir);
   const files = getAllFiles(functionDir)
     .map((file) => path.relative(functionDir, file))
@@ -46,7 +46,7 @@ function getFunctionFiles(func: FunctionType): {
 }
 
 export function assertFunctionSourceCode(func: FunctionType): void {
-  const functionDir = path.join(localConfig.getDirname(), func.path);
+  const functionDir = localConfig.resolveResourcePath("functions", func.path);
 
   if (!fs.existsSync(functionDir)) {
     throw new Error(
@@ -301,12 +301,7 @@ export async function dockerBuild(
       `Unable to build function '${func.name}'.`,
     );
 
-    const copyPath = path.join(
-      localConfig.getDirname(),
-      func.path,
-      ".appwrite",
-      "build.tar.gz",
-    );
+    const copyPath = path.join(functionDir, ".appwrite", "build.tar.gz");
     const copyDir = path.dirname(copyPath);
     if (!fs.existsSync(copyDir)) {
       fs.mkdirSync(copyDir, { recursive: true });
@@ -342,11 +337,7 @@ export async function dockerBuild(
     }
 
     // Clean up temp files
-    const tempPath = path.join(
-      localConfig.getDirname(),
-      func.path,
-      "code.tar.gz",
-    );
+    const tempPath = path.join(functionDir, "code.tar.gz");
     if (fs.existsSync(tempPath)) {
       fs.rmSync(tempPath, { force: true });
     }
@@ -362,7 +353,7 @@ export async function dockerStart(
   port: number,
 ): Promise<void> {
   // Pack function files
-  const functionDir = path.join(localConfig.getDirname(), func.path);
+  const functionDir = localConfig.resolveResourcePath("functions", func.path);
 
   const imageName = getRuntimeImageName(func);
   const runtimeName = func.runtime.split("-").slice(0, -1).join("-");
@@ -474,20 +465,13 @@ export async function dockerCleanup(functionId: string): Promise<void> {
   await dockerStop(functionId);
 
   const func = localConfig.getFunction(functionId);
-  const appwritePath = path.join(
-    localConfig.getDirname(),
-    func.path,
-    ".appwrite",
-  );
+  const functionDir = localConfig.resolveResourcePath("functions", func.path);
+  const appwritePath = path.join(functionDir, ".appwrite");
   if (fs.existsSync(appwritePath)) {
     fs.rmSync(appwritePath, { recursive: true, force: true });
   }
 
-  const tempPath = path.join(
-    localConfig.getDirname(),
-    func.path,
-    "code.tar.gz",
-  );
+  const tempPath = path.join(functionDir, "code.tar.gz");
   if (fs.existsSync(tempPath)) {
     fs.rmSync(tempPath, { force: true });
   }
