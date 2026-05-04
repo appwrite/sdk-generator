@@ -1,0 +1,41 @@
+{
+    "name": "{{ spec.title | caseLower }}",
+    "version": "{{ sdk.version }}",
+    "description": "{{ spec.title }} tools for Codex, including SDK skills, MCP servers, and deployment workflow skills.",
+    "author": {
+        "name": "Appwrite",
+        "email": "team@appwrite.io",
+        "url": "https://appwrite.io"
+    },
+    "homepage": "https://appwrite.io/docs/tooling/ai/ai-dev-tools/codex",
+    "repository": "https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName }}",
+    "license": "{{ spec.licenseName }}",
+    "keywords": [
+        "{{ spec.title | caseLower }}",
+        "codex",
+        "mcp",
+        "skills"
+    ],
+    "skills": "../skills/",
+    "mcpServers": "../.mcp.json",
+    "interface": {
+        "displayName": "{{ spec.title }}",
+        "shortDescription": "{{ spec.title }} SDK skills, MCP servers, and deployment workflow skills for Codex.",
+        "longDescription": "Use {{ spec.title }} with Codex through language-specific SDK skills, project and documentation MCP servers, and guided deployment skills for sites and functions.",
+        "developerName": "Appwrite",
+        "category": "Developer Tools",
+        "capabilities": [
+            "Interactive",
+            "Write"
+        ],
+        "websiteURL": "https://appwrite.io",
+        "privacyPolicyURL": "https://appwrite.io/privacy",
+        "termsOfServiceURL": "https://appwrite.io/terms",
+        "defaultPrompt": [
+            "Build an {{ spec.title }} app with the SDK.",
+            "Connect Codex to my {{ spec.title }} project.",
+            "Deploy my {{ spec.title }} function."
+        ],
+        "brandColor": "#FD366E"
+    }
+}
