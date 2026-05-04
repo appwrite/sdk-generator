@@ -5,6 +5,7 @@ import {
   validateContainerDuplicates,
   validateCrossDatabase,
 } from "./config-validations.js";
+import { CONFIG_RESOURCE_KEYS } from "../constants.js";
 
 // ============================================================================
 // Internal Helpers
@@ -446,6 +447,15 @@ const ConfigIncludePathSchema = z
   .refine((value) => !value.split(/[\\/]+/).includes(".."), {
     message: "Include path cannot contain parent directory segments",
   })
+  .refine(
+    (value) =>
+      !value.startsWith("/") &&
+      !value.startsWith("\\") &&
+      !/^[a-z]:[\\/]/i.test(value),
+    {
+      message: "Include path must be relative",
+    },
+  )
   .refine((value) => !/^[a-z][a-z0-9+.-]*:/i.test(value), {
     message: "Include path must be a local file path, not a URL",
   })
@@ -453,27 +463,29 @@ const ConfigIncludePathSchema = z
     message: "Include path must point to a JSON file",
   });
 
+type ConfigIncludePathShape = {
+  [K in (typeof CONFIG_RESOURCE_KEYS)[number]]: z.ZodOptional<
+    typeof ConfigIncludePathSchema
+  >;
+};
+
+const ConfigIncludesSchema = z
+  .object(
+    Object.fromEntries(
+      CONFIG_RESOURCE_KEYS.map((key) => [
+        key,
+        ConfigIncludePathSchema.optional(),
+      ]),
+    ) as ConfigIncludePathShape,
+  )
+  .strict();
+
 const ConfigSchema = z
   .object({
     projectId: z.string(),
     projectName: z.string().optional(),
     endpoint: z.string().optional(),
-    includes: z
-      .object({
-        functions: ConfigIncludePathSchema.optional(),
-        sites: ConfigIncludePathSchema.optional(),
-        databases: ConfigIncludePathSchema.optional(),
-        collections: ConfigIncludePathSchema.optional(),
-        tablesDB: ConfigIncludePathSchema.optional(),
-        tables: ConfigIncludePathSchema.optional(),
-        topics: ConfigIncludePathSchema.optional(),
-        teams: ConfigIncludePathSchema.optional(),
-        buckets: ConfigIncludePathSchema.optional(),
-        webhooks: ConfigIncludePathSchema.optional(),
-        messages: ConfigIncludePathSchema.optional(),
-      })
-      .strict()
-      .optional(),
+    includes: ConfigIncludesSchema.optional(),
     settings: z.lazy(() => SettingsSchema).optional(),
     functions: z.array(z.lazy(() => FunctionSchema)).optional(),
     sites: z.array(z.lazy(() => SiteSchema)).optional(),

@@ -132,6 +132,10 @@ function assertValidIncludePath(resource: string, includePath: unknown): string 
     );
   }
 
+  if (_path.isAbsolute(normalizedPath)) {
+    throw new Error(`Config include '${resource}' must be a relative file path.`);
+  }
+
   if (/^[a-z][a-z0-9+.-]*:/i.test(normalizedPath)) {
     throw new Error(`Config include '${resource}' must be a local file path.`);
   }
@@ -553,6 +557,7 @@ class Local extends Config<ConfigType> {
       this.rootData ?? {},
       this.includePaths ?? {},
     );
+    this.read();
   }
 
   clear(): void {
