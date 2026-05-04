@@ -1,8 +1,8 @@
 {# Detect service shape and imports before emitting TypeScript. #}
 {% set tierFlag = [] %}
 {% set serverFlag = [] %}
-{% set adminAuthFlag = [] %}
-{% set browserAuthFlag = [] %}
+{% set serverAuthFlag = [] %}
+{% set clientAuthFlag = [] %}
 {% set uploadFlag = [] %}
 {% for m in service.methods %}
 {% if 'client' in m.platforms %}
@@ -12,10 +12,10 @@
 {% set serverFlag = serverFlag|merge([1]) %}
 {% endif %}
 {% if ('server' in m.platforms or 'console' in m.platforms) and 'client' not in m.platforms %}
-{% set adminAuthFlag = adminAuthFlag|merge([1]) %}
+{% set serverAuthFlag = serverAuthFlag|merge([1]) %}
 {% endif %}
 {% if 'client' in m.platforms and 'server' not in m.platforms and 'console' not in m.platforms %}
-{% set browserAuthFlag = browserAuthFlag|merge([1]) %}
+{% set clientAuthFlag = clientAuthFlag|merge([1]) %}
 {% endif %}
 {% if 'multipart/form-data' in m.consumes %}
 {% set uploadFlag = uploadFlag|merge([1]) %}
@@ -24,11 +24,12 @@
 {% set hasClientTier = tierFlag|length > 0 %}
 {% set hasServerTier = serverFlag|length > 0 %}
 {% set hasMixedTier = hasClientTier and hasServerTier %}
-{% set needsAdminAuth = hasServerTier and (not hasMixedTier or adminAuthFlag|length > 0) %}
-{% set needsBrowserAuth = hasClientTier and (not hasMixedTier or browserAuthFlag|length > 0) %}
+{% set platformAuth = sdk.platform == 'console' ? 'ConsoleAuth' : 'ServerAuth' %}
+{% set needsPlatformAuth = hasServerTier and (not hasMixedTier or serverAuthFlag|length > 0) %}
+{% set needsClientAuth = hasClientTier and (not hasMixedTier or clientAuthFlag|length > 0) %}
 {% set hasUpload = uploadFlag|length > 0 %}
 import { Service } from '../service';
-import { {{ spec.title | caseUcfirst}}Exception, Client, {% if hasMixedTier %}type ClientAuth, {% endif %}{% if needsAdminAuth %}type AdminAuth, {% endif %}{% if needsBrowserAuth %}type BrowserAuth, {% endif %}type Payload{% if hasUpload %}, UploadProgress{% endif %} } from '../client';
+import { {{ spec.title | caseUcfirst}}Exception, Client, {% if needsClientAuth or hasMixedTier %}type ClientAuth, {% endif %}{% if needsPlatformAuth or hasMixedTier %}type {{ platformAuth }}, {% endif %}type Payload{% if hasUpload %}, UploadProgress{% endif %} } from '../client';
 import type { Models } from '../models';
 
 {% set added = [] %}
@@ -44,7 +45,7 @@ import { {{ parameter.enumName | caseUcfirst }} } from '../enums/{{ parameter.en
 {% endfor %}
 
 {%~ if hasMixedTier %}
-export class {{ service.name | caseUcfirst }}<TAuth extends ClientAuth = ClientAuth> {
+export class {{ service.name | caseUcfirst }}<TAuth extends ClientAuth | {{ platformAuth }} = ClientAuth | {{ platformAuth }}> {
     client: Client<TAuth>;
 
     constructor(client: Client<TAuth>) {
@@ -52,16 +53,16 @@ export class {{ service.name | caseUcfirst }}<TAuth extends ClientAuth = ClientA
     }
 {%~ elseif hasServerTier %}
 export class {{ service.name | caseUcfirst }} {
-    client: Client<AdminAuth>;
+    client: Client<{{ platformAuth }}>;
 
-    constructor(client: Client<AdminAuth>) {
+    constructor(client: Client<{{ platformAuth }}>) {
         this.client = client;
     }
 {%~ else %}
 export class {{ service.name | caseUcfirst }} {
-    client: Client<BrowserAuth>;
+    client: Client<ClientAuth>;
 
-    constructor(client: Client<BrowserAuth>) {
+    constructor(client: Client<ClientAuth>) {
         this.client = client;
     }
 {%~ endif %}
@@ -72,13 +73,13 @@ export class {{ service.name | caseUcfirst }} {
     {%~ set methodSupportsServer = 'server' in method.platforms or 'console' in method.platforms %}
     {%~ if hasMixedTier %}
     {%~ if (method.type == 'location' or method.type == 'webAuth') and not methodSupportsClient %}
-    {%~ set thisGate = 'this: ' ~ (service.name | caseUcfirst) ~ '<AdminAuth>, ' %}
+    {%~ set thisGate = 'this: ' ~ (service.name | caseUcfirst) ~ '<' ~ platformAuth ~ '>, ' %}
     {%~ elseif (method.type == 'location' or method.type == 'webAuth') and not methodSupportsServer %}
-    {%~ set thisGate = 'this: ' ~ (service.name | caseUcfirst) ~ '<BrowserAuth>, ' %}
+    {%~ set thisGate = 'this: ' ~ (service.name | caseUcfirst) ~ '<ClientAuth>, ' %}
     {%~ elseif not methodSupportsClient %}
-    {%~ set thisGate = 'this: ' ~ (service.name | caseUcfirst) ~ '<AdminAuth>, ' %}
+    {%~ set thisGate = 'this: ' ~ (service.name | caseUcfirst) ~ '<' ~ platformAuth ~ '>, ' %}
     {%~ elseif not methodSupportsServer %}
-    {%~ set thisGate = 'this: ' ~ (service.name | caseUcfirst) ~ '<BrowserAuth>, ' %}
+    {%~ set thisGate = 'this: ' ~ (service.name | caseUcfirst) ~ '<ClientAuth>, ' %}
     {%~ endif %}
     {%~ endif %}
     /**

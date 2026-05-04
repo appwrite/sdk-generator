@@ -345,9 +345,10 @@ class {{spec.title | caseUcfirst}}Exception extends Error {
  * Client that handles requests to {{spec.title | caseUcfirst}}
  */
 type ClientRuntime = 'browser' | 'server';
-type ClientAuth = 'anonymous' | 'session' | 'jwt' | 'apiKey'{% if sdk.platform == 'console' %} | 'cookie'{% endif %} | 'devKey' | 'impersonation';
-type AdminAuth = 'apiKey'{% if sdk.platform == 'console' %} | 'cookie'{% endif %};
-type BrowserAuth = 'anonymous' | 'session' | 'jwt' | 'devKey' | 'impersonation';
+type ClientAuth = 'anonymous' | 'session' | 'jwt' | 'devKey' | 'impersonation';
+type ServerAuth = 'apiKey';
+type ConsoleAuth = {% if sdk.platform == 'console' %}'apiKey' | 'cookie'{% else %}never{% endif %};
+type Auth = ClientAuth | ServerAuth | ConsoleAuth;
 
 type BaseClientParams = {
     endpoint: string;
@@ -391,7 +392,7 @@ type ImpersonationTarget =
 
 type ImpersonationClientParams = SessionClientParams & ImpersonationTarget;
 
-class Client<TAuth extends ClientAuth = 'anonymous'> {
+class Client<TAuth extends Auth = 'anonymous'> {
     static CHUNK_SIZE = 1024 * 1024 * 5;
 
     /**
@@ -527,7 +528,7 @@ class Client<TAuth extends ClientAuth = 'anonymous'> {
         return client.setImpersonateUserPhone(params.phone);
     }
 
-    private applyBase<T extends ClientAuth>(params: BaseClientParams, runtime: ClientRuntime): Client<T> {
+    private applyBase<T extends Auth>(params: BaseClientParams, runtime: ClientRuntime): Client<T> {
         const client = this as unknown as Client<T>;
         client.runtime = runtime;
         client.headers['x-sdk-platform'] = runtime === 'server' ? '{{ sdk.platform == 'console' ? 'console' : 'server' }}' : 'client';
@@ -1181,6 +1182,6 @@ class Client<TAuth extends ClientAuth = 'anonymous'> {
 }
 
 export { Client, {{spec.title | caseUcfirst}}Exception };
-export type { Models, ClientAuth, AdminAuth, BrowserAuth, Payload, RealtimeResponseEvent, UploadProgress };
+export type { Models, ClientAuth, ServerAuth, ConsoleAuth, Payload, RealtimeResponseEvent, UploadProgress };
 export { Query } from './query';
 export type { QueryTypes, QueryTypesList } from './query';
