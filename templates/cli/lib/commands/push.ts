@@ -89,7 +89,7 @@ import { sdkForProject, sdkForConsole } from "../sdks.js";
 import {
   ServiceId,
   ProtocolId,
-  AuthMethod,
+  MethodId,
   AppwriteException,
   Client,
   ImageFormat,
@@ -1050,19 +1050,70 @@ export class Push {
         await projectService.updateSessionAlertPolicy({
           enabled: settings.auth.security.sessionAlerts,
         });
-        await projectsService.updateMockNumbers({
-          projectId,
-          numbers: settings.auth.security.mockNumbers,
-        });
+        if (settings.auth.security.mockNumbers !== undefined) {
+          const remoteMockNumbers: Array<{ number: string; otp: string }> = [];
+          const limit = 100;
+          let offset = 0;
+          let total = 0;
+
+          do {
+            const response = await projectService.listMockPhones({
+              queries: [Query.limit(limit), Query.offset(offset)],
+            });
+
+            remoteMockNumbers.push(...response.mockNumbers);
+            total = response.total;
+            offset += response.mockNumbers.length;
+
+            if (response.mockNumbers.length === 0) {
+              break;
+            }
+          } while (offset < total);
+
+          const desiredMockNumbersByPhone = new Map(
+            settings.auth.security.mockNumbers.map((mockNumber) => [
+              mockNumber.phone,
+              mockNumber.otp,
+            ]),
+          );
+
+          for (const remoteMockNumber of remoteMockNumbers) {
+            const desiredOtp = desiredMockNumbersByPhone.get(
+              remoteMockNumber.number,
+            );
+
+            if (desiredOtp === undefined) {
+              await projectService.deleteMockPhone({
+                number: remoteMockNumber.number,
+              });
+              continue;
+            }
+
+            if (remoteMockNumber.otp !== desiredOtp) {
+              await projectService.updateMockPhone({
+                number: remoteMockNumber.number,
+                otp: desiredOtp,
+              });
+            }
+
+            desiredMockNumbersByPhone.delete(remoteMockNumber.number);
+          }
+
+          for (const [phone, otp] of desiredMockNumbersByPhone) {
+            await projectService.createMockPhone({
+              number: phone,
+              otp,
+            });
+          }
+        }
       }
 
       if (settings.auth.methods) {
         this.log("Applying auth methods statuses ...");
         for (const [method, status] of Object.entries(settings.auth.methods)) {
-          await projectsService.updateAuthStatus({
-            projectId,
-            method: method as AuthMethod,
-            status: status,
+          await projectService.updateAuthMethod({
+            methodId: method as MethodId,
+            enabled: status,
           });
         }
       }
