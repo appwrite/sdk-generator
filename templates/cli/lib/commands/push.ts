@@ -1051,9 +1051,25 @@ export class Push {
           enabled: settings.auth.security.sessionAlerts,
         });
         if (settings.auth.security.mockNumbers !== undefined) {
-          const remoteMockNumbers = await projectService.listMockPhones({
-            queries: [Query.limit(100)],
-          });
+          const remoteMockNumbers: Array<{ number: string; otp: string }> = [];
+          const limit = 100;
+          let offset = 0;
+          let total = 0;
+
+          do {
+            const response = await projectService.listMockPhones({
+              queries: [Query.limit(limit), Query.offset(offset)],
+            });
+
+            remoteMockNumbers.push(...response.mockNumbers);
+            total = response.total;
+            offset += response.mockNumbers.length;
+
+            if (response.mockNumbers.length === 0) {
+              break;
+            }
+          } while (offset < total);
+
           const desiredMockNumbersByPhone = new Map(
             settings.auth.security.mockNumbers.map((mockNumber) => [
               mockNumber.phone,
@@ -1061,7 +1077,7 @@ export class Push {
             ]),
           );
 
-          for (const remoteMockNumber of remoteMockNumbers.mockNumbers) {
+          for (const remoteMockNumber of remoteMockNumbers) {
             const desiredOtp = desiredMockNumbersByPhone.get(
               remoteMockNumber.number,
             );

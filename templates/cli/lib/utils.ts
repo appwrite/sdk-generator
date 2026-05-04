@@ -55,7 +55,7 @@ export const createSettingsObject = (project: Models.Project): SettingsType => {
         passwordDictionary: project.authPasswordDictionary,
         personalDataCheck: project.authPersonalDataCheck,
         sessionAlerts: project.authSessionAlerts,
-        mockNumbers: project.authMockNumbers.map((mockNumber) => ({
+        mockNumbers: project.authMockNumbers?.map((mockNumber) => ({
           phone: mockNumber.number,
           otp: mockNumber.otp,
         })),
