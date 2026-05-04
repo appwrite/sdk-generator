@@ -126,6 +126,12 @@ function assertValidIncludePath(resource: string, includePath: unknown): string 
     );
   }
 
+  if (normalizedPath.split(/[\\/]+/).includes("..")) {
+    throw new Error(
+      `Config include '${resource}' cannot contain parent directory segments.`,
+    );
+  }
+
   if (/^[a-z][a-z0-9+.-]*:/i.test(normalizedPath)) {
     throw new Error(`Config include '${resource}' must be a local file path.`);
   }
@@ -190,6 +196,21 @@ function isPathInside(parentPath: string, childPath: string): boolean {
   );
 }
 
+function assertIncludePathInsideProject(
+  configFilePath: string,
+  resource: string,
+  includePath: string,
+): string {
+  const resolvedPath = resolveIncludePath(configFilePath, includePath);
+  if (!isPathInside(_path.dirname(configFilePath), resolvedPath)) {
+    throw new Error(
+      `Config include '${resource}' must resolve inside the project directory.`,
+    );
+  }
+
+  return resolvedPath;
+}
+
 function resolveConfigData(
   configFilePath: string,
   rootData: Record<string, unknown>,
@@ -204,17 +225,14 @@ function resolveConfigData(
       );
     }
 
-    const resolvedPath = resolveIncludePath(configFilePath, includePath);
+    const resolvedPath = assertIncludePathInsideProject(
+      configFilePath,
+      resource,
+      includePath,
+    );
     const includedData = fs.existsSync(resolvedPath)
       ? readJsonFile<unknown>(resolvedPath)
-      : isPathInside(_path.dirname(configFilePath), resolvedPath)
-        ? []
-        : undefined;
-    if (includedData === undefined) {
-      throw new Error(
-        `Config include '${resource}' points outside the project directory and must already exist.`,
-      );
-    }
+      : [];
     if (!Array.isArray(includedData)) {
       throw new Error(
         `Config include '${resource}' must point to a JSON file containing an array.`,
@@ -263,7 +281,10 @@ function writeResolvedLocalConfig(
       throw new Error(`Config resource '${resource}' must be an array.`);
     }
 
-    writeJsonFile(resolveIncludePath(filePath, includePath), resourceData);
+    writeJsonFile(
+      assertIncludePathInsideProject(filePath, resource, includePath),
+      resourceData,
+    );
     delete rootOutput[resource];
     if (resourceData.length === 0) {
       delete nextIncludePaths[resource as ConfigResourceKey];
@@ -535,8 +556,11 @@ class Local extends Config<ConfigType> {
   }
 
   clear(): void {
-    for (const includePath of Object.values(this.includePaths)) {
-      writeJsonFile(resolveIncludePath(this.path, includePath), []);
+    for (const [resource, includePath] of Object.entries(this.includePaths)) {
+      writeJsonFile(
+        assertIncludePathInsideProject(this.path, resource, includePath),
+        [],
+      );
     }
 
     this.rootData = {};

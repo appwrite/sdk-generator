@@ -443,6 +443,9 @@ const ConfigIncludePathSchema = z
   .refine((value) => !value.includes("#"), {
     message: "Include path cannot contain JSON pointer fragments",
   })
+  .refine((value) => !value.split(/[\\/]+/).includes(".."), {
+    message: "Include path cannot contain parent directory segments",
+  })
   .refine((value) => !/^[a-z][a-z0-9+.-]*:/i.test(value), {
     message: "Include path must be a local file path, not a URL",
   })
