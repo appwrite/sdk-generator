@@ -345,8 +345,8 @@ class {{spec.title | caseUcfirst}}Exception extends Error {
  * Client that handles requests to {{spec.title | caseUcfirst}}
  */
 type ClientRuntime = 'browser' | 'server';
-type ClientAuth = 'browser' | 'session' | 'jwt' | 'devKey' | 'impersonation';
-type ServerAuth = 'apiKey';
+type ClientAuth = 'browser' | 'session' | 'devKey' | 'impersonation';
+type ServerAuth = 'apiKey' | 'jwt';
 type ConsoleAuth = {% if sdk.platform == 'console' %}'apiKey' | 'cookie'{% else %}never{% endif %};
 type Auth = ClientAuth | ServerAuth | ConsoleAuth;
 
@@ -489,7 +489,7 @@ class Client<TAuth extends Auth = 'browser'> {
 {%~ endif %}
     static fromJWT(params: JWTClientParams): Client<'jwt'> {
         return new Client<'jwt'>()
-            .applyBase<'jwt'>(params, 'browser')
+            .applyBase<'jwt'>(params, 'server')
             .setJWT(params.jwt);
     }
 
@@ -645,10 +645,12 @@ class Client<TAuth extends Auth = 'browser'> {
     }
 
 {%~ endif %}
-    setJWT(value: string): this {
+    setJWT(value: string): Client<'jwt'> {
         this.headers['X-{{ spec.title | caseUcfirst }}-JWT'] = value;
         this.config.jwt = value;
-        return this;
+        this.runtime = 'server';
+        this.headers['x-sdk-platform'] = '{{ sdk.platform == 'console' ? 'console' : 'server' }}';
+        return this as unknown as Client<'jwt'>;
     }
 
     setLocale(value: string): this {
