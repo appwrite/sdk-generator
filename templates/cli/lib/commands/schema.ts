@@ -65,9 +65,15 @@ export class Schema {
     options: PullOptions,
     configPath?: string,
   ): Promise<ConfigType> {
+    const resolvedConfigPath = configPath
+      ? path.resolve(configPath)
+      : this.configPaths.get(config);
     const updatedConfig = await this.pullCommand.pullResources(config, options);
+    if (resolvedConfigPath) {
+      this.configPaths.set(updatedConfig, resolvedConfigPath);
+    }
     if (configPath) {
-      this.write(updatedConfig, configPath);
+      this.write(updatedConfig, resolvedConfigPath);
     }
     return updatedConfig;
   }
@@ -101,7 +107,10 @@ export class Schema {
     );
 
     if (configPath) {
-      this.write(updatedConfig, configPath);
+      this.write(updatedConfig, resolvedConfigPath);
+    }
+    if (resolvedConfigPath) {
+      this.configPaths.set(updatedConfig, resolvedConfigPath);
     }
     return updatedConfig;
   }
@@ -129,5 +138,6 @@ export class Schema {
   public write(config: ConfigType, filePath: string): void {
     const resolvedPath = path.resolve(filePath);
     writeLocalConfigFile(config, resolvedPath);
+    this.configPaths.set(config, resolvedPath);
   }
 }
