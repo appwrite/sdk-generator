@@ -344,7 +344,7 @@ class {{spec.title | caseUcfirst}}Exception extends Error {
 /**
  * Client that handles requests to {{spec.title | caseUcfirst}}
  */
-type ClientRuntime = 'browser' | 'server';
+type ClientRuntime = 'client' | 'server';
 type ClientAuth = 'browser' | 'session' | 'devKey' | 'impersonation';
 type ServerAuth = 'apiKey' | 'jwt';
 type ConsoleAuth = {% if sdk.platform == 'console' %}'apiKey' | 'cookie'{% else %}never{% endif %};
@@ -367,8 +367,6 @@ type SessionClientParams = BaseClientParams & {
 
 type ApiKeyClientParams = BaseClientParams & {
     apiKey: string;
-    jwt?: string;
-    forwardedUserAgent?: string;
 };
 
 {%~ if sdk.platform == 'console' %}
@@ -438,7 +436,7 @@ class Client<TAuth extends Auth = 'browser'> {
         selfSigned: false,
     };
 
-    private runtime: ClientRuntime = '{{ sdk.platform == 'server' ? 'server' : 'browser' }}';
+    private runtime: ClientRuntime = '{{ sdk.platform == 'server' ? 'server' : 'client' }}';
 
     /**
      * Custom headers for API requests.
@@ -454,30 +452,23 @@ class Client<TAuth extends Auth = 'browser'> {
     };
 
     static fromBrowser(params: BaseClientParams): Client<'browser'> {
-        return new Client<'browser'>().applyBase<'browser'>(params, 'browser');
+        return new Client<'browser'>().applyBase<'browser'>(params, 'client');
     }
 
     static fromSession(params: SessionClientParams): Client<'session'> {
         return new Client<'session'>()
-            .applyBase<'session'>(params, 'browser')
+            .applyBase<'session'>(params, 'client')
             .setSession(params.session);
     }
 
-    static fromApiKey(params: ApiKeyClientParams): Client<'apiKey'> {
-        const client = new Client<'apiKey'>()
+{%~ if sdk.platform == 'server' or sdk.platform == 'console' %}
+    static fromAPIKey(params: ApiKeyClientParams): Client<'apiKey'> {
+        return new Client<'apiKey'>()
             .applyBase<'apiKey'>(params, 'server')
             .setKey(params.apiKey);
-
-        if (params.jwt !== undefined) {
-            client.setJWT(params.jwt);
-        }
-
-        if (params.forwardedUserAgent !== undefined) {
-            client.setForwardedUserAgent(params.forwardedUserAgent);
-        }
-
-        return client;
     }
+
+{%~ endif %}
 
 {%~ if sdk.platform == 'console' %}
     static fromCookie(params: CookieClientParams): Client<'cookie'> {
@@ -495,7 +486,7 @@ class Client<TAuth extends Auth = 'browser'> {
 
     static fromDevKey(params: DevKeyClientParams): Client<'devKey'> {
         return new Client<'devKey'>()
-            .applyBase<'devKey'>(params, 'browser')
+            .applyBase<'devKey'>(params, 'client')
             .setDevKey(params.devKey);
     }
 
@@ -511,7 +502,7 @@ class Client<TAuth extends Auth = 'browser'> {
         }
 
         const client = new Client<'impersonation'>()
-            .applyBase<'impersonation'>(params, 'browser')
+            .applyBase<'impersonation'>(params, 'client')
             .setSession(params.session);
 
         if (params.userId !== undefined) {
@@ -521,6 +512,18 @@ class Client<TAuth extends Auth = 'browser'> {
             return client.setImpersonateUserEmail(params.email);
         }
         return client.setImpersonateUserPhone(params.phone);
+    }
+
+    withJWT(jwt: string): this {
+        this.headers['X-{{ spec.title | caseUcfirst }}-JWT'] = jwt;
+        this.config.jwt = jwt;
+        return this;
+    }
+
+    withForwardedUserAgent(forwardedUserAgent: string): this {
+        this.headers['X-Forwarded-User-Agent'] = forwardedUserAgent;
+        this.config.forwardeduseragent = forwardedUserAgent;
+        return this;
     }
 
     private applyBase<T extends Auth>(params: BaseClientParams, runtime: ClientRuntime): Client<T> {
@@ -574,7 +577,7 @@ class Client<TAuth extends Auth = 'browser'> {
      *
      * @returns {this}
      */
-    setEndpoint(endpoint: string): this {
+    private setEndpoint(endpoint: string): this {
         if (!endpoint || typeof endpoint !== 'string') {
             throw new {{spec.title | caseUcfirst}}Exception('Endpoint must be a valid string');
         }
@@ -596,7 +599,7 @@ class Client<TAuth extends Auth = 'browser'> {
      *
      * @returns {this}
      */
-    setEndpointRealtime(endpointRealtime: string): this {
+    private setEndpointRealtime(endpointRealtime: string): this {
         if (!endpointRealtime || typeof endpointRealtime !== 'string') {
             throw new {{spec.title | caseUcfirst}}Exception('Endpoint must be a valid string');
         }
@@ -616,18 +619,18 @@ class Client<TAuth extends Auth = 'browser'> {
      *
      * @returns {this}
      */
-    setSelfSigned(selfSigned: boolean): this {
+    private setSelfSigned(selfSigned: boolean): this {
         this.config.selfSigned = selfSigned;
         return this;
     }
 
-    setProject(value: string): this {
+    private setProject(value: string): this {
         this.headers['X-{{ spec.title | caseUcfirst }}-Project'] = value;
         this.config.project = value;
         return this;
     }
 
-    setKey(value: string): Client<'apiKey'> {
+    private setKey(value: string): Client<'apiKey'> {
         this.headers['X-{{ spec.title | caseUcfirst }}-Key'] = value;
         this.config.key = value;
         this.runtime = 'server';
@@ -636,7 +639,7 @@ class Client<TAuth extends Auth = 'browser'> {
     }
 
 {%~ if sdk.platform == 'console' %}
-    setCookie(value: string): Client<'cookie'> {
+    private setCookie(value: string): Client<'cookie'> {
         this.headers['Cookie'] = value;
         this.config.cookie = value;
         this.runtime = 'server';
@@ -645,7 +648,7 @@ class Client<TAuth extends Auth = 'browser'> {
     }
 
 {%~ endif %}
-    setJWT(value: string): Client<'jwt'> {
+    private setJWT(value: string): Client<'jwt'> {
         this.headers['X-{{ spec.title | caseUcfirst }}-JWT'] = value;
         this.config.jwt = value;
         this.runtime = 'server';
@@ -653,54 +656,54 @@ class Client<TAuth extends Auth = 'browser'> {
         return this as unknown as Client<'jwt'>;
     }
 
-    setLocale(value: string): this {
+    private setLocale(value: string): this {
         this.headers['X-{{ spec.title | caseUcfirst }}-Locale'] = value;
         this.config.locale = value;
         return this;
     }
 
-    setSession(value: string): Client<'session'> {
+    private setSession(value: string): Client<'session'> {
         this.headers['X-{{ spec.title | caseUcfirst }}-Session'] = value;
         this.config.session = value;
-        this.runtime = 'browser';
+        this.runtime = 'client';
         this.headers['x-sdk-platform'] = 'client';
         return this as unknown as Client<'session'>;
     }
 
-    setDevKey(value: string): Client<'devKey'> {
+    private setDevKey(value: string): Client<'devKey'> {
         this.headers['X-{{ spec.title | caseUcfirst }}-Dev-Key'] = value;
         this.config.devkey = value;
-        this.runtime = 'browser';
+        this.runtime = 'client';
         this.headers['x-sdk-platform'] = 'client';
         return this as unknown as Client<'devKey'>;
     }
 
-    setForwardedUserAgent(value: string): this {
+    private setForwardedUserAgent(value: string): this {
         this.headers['X-Forwarded-User-Agent'] = value;
         this.config.forwardeduseragent = value;
         return this;
     }
 
-    setImpersonateUserId(value: string): Client<'impersonation'> {
+    private setImpersonateUserId(value: string): Client<'impersonation'> {
         this.headers['X-{{ spec.title | caseUcfirst }}-Impersonate-User-Id'] = value;
         this.config.impersonateuserid = value;
-        this.runtime = 'browser';
+        this.runtime = 'client';
         this.headers['x-sdk-platform'] = 'client';
         return this as unknown as Client<'impersonation'>;
     }
 
-    setImpersonateUserEmail(value: string): Client<'impersonation'> {
+    private setImpersonateUserEmail(value: string): Client<'impersonation'> {
         this.headers['X-{{ spec.title | caseUcfirst }}-Impersonate-User-Email'] = value;
         this.config.impersonateuseremail = value;
-        this.runtime = 'browser';
+        this.runtime = 'client';
         this.headers['x-sdk-platform'] = 'client';
         return this as unknown as Client<'impersonation'>;
     }
 
-    setImpersonateUserPhone(value: string): Client<'impersonation'> {
+    private setImpersonateUserPhone(value: string): Client<'impersonation'> {
         this.headers['X-{{ spec.title | caseUcfirst }}-Impersonate-User-Phone'] = value;
         this.config.impersonateuserphone = value;
-        this.runtime = 'browser';
+        this.runtime = 'client';
         this.headers['x-sdk-platform'] = 'client';
         return this as unknown as Client<'impersonation'>;
     }
@@ -718,9 +721,13 @@ class Client<TAuth extends Auth = 'browser'> {
         lastMessage: undefined,
         connect: () => {
             clearTimeout(this.realtime.timeout);
-            this.realtime.timeout = window?.setTimeout(() => {
-                this.realtime.createSocket();
-            }, 50);
+            this.realtime.timeout = typeof window !== 'undefined'
+                ? window.setTimeout(() => {
+                    this.realtime.createSocket();
+                }, 50)
+                : setTimeout(() => {
+                    this.realtime.createSocket();
+                }, 50) as unknown as TimeoutHandle;
         },
         getTimeout: () => {
             switch (true) {
@@ -736,14 +743,20 @@ class Client<TAuth extends Auth = 'browser'> {
         },
         createHeartbeat: () => {
             if (this.realtime.heartbeat) {
-                clearTimeout(this.realtime.heartbeat);
+                clearInterval(this.realtime.heartbeat as any);
             }
 
-            this.realtime.heartbeat = window?.setInterval(() => {
-                this.realtime.socket?.send(JSONbig.stringify({
-                    type: 'ping'
-                }));
-            }, 20_000);
+            this.realtime.heartbeat = typeof window !== 'undefined'
+                ? window.setInterval(() => {
+                    this.realtime.socket?.send(JSONbig.stringify({
+                        type: 'ping'
+                    }));
+                }, 20_000)
+                : setInterval(() => {
+                    this.realtime.socket?.send(JSONbig.stringify({
+                        type: 'ping'
+                    }));
+                }, 20_000) as unknown as TimeoutHandle;
         },
         createSocket: () => {
             if (this.realtime.subscriptions.size < 1) {
@@ -829,8 +842,14 @@ class Client<TAuth extends Auth = 'browser'> {
 
                         let session = this.config.session;
                         if (!session) {
-                            const cookie = JSONbig.parse(window.localStorage.getItem('cookieFallback') ?? '{}');
-                            session = cookie?.[`a_session_${this.config.project}`];
+                            try {
+                                if (typeof window !== 'undefined' && window.localStorage) {
+                                    const cookie = JSONbig.parse(window.localStorage.getItem('cookieFallback') ?? '{}');
+                                    session = cookie?.[`a_session_${this.config.project}`];
+                                }
+                            } catch (error) {
+                                console.error('Failed to parse cookie fallback:', error);
+                            }
                         }
                         if (session && !messageData?.user) {
                             this.realtime.socket?.send(JSONbig.stringify(<RealtimeRequest>{
@@ -995,7 +1014,7 @@ class Client<TAuth extends Auth = 'browser'> {
 
         headers = Object.assign({}, this.headers, headers);
 
-        if (this.runtime === 'browser' && typeof window !== 'undefined' && window.localStorage) {
+        if (this.runtime === 'client' && typeof window !== 'undefined' && window.localStorage) {
             const cookieFallback = window.localStorage.getItem('cookieFallback');
             if (cookieFallback) {
                 headers['X-Fallback-Cookies'] = cookieFallback;
@@ -1007,7 +1026,7 @@ class Client<TAuth extends Auth = 'browser'> {
             headers,
         };
 
-        if (this.runtime === 'browser' && headers['X-Appwrite-Dev-Key'] === undefined) {
+        if (this.runtime === 'client' && headers['X-Appwrite-Dev-Key'] === undefined) {
             options.credentials = 'include';
         }
 
@@ -1114,9 +1133,9 @@ class Client<TAuth extends Auth = 'browser'> {
         const response = await fetch(uri, options);
 
         // type opaque: No-CORS, different-origin response (CORS-issue)
-        if (this.runtime === 'browser' && response.type === 'opaque') {
+        if (this.runtime === 'client' && typeof window !== 'undefined' && response.type === 'opaque') {
             throw new {{spec.title | caseUcfirst}}Exception(
-                `Invalid Origin. Register your new client (${window.location.host}) as a new Web platform on your project console dashboard`,
+                `Invalid Origin. Register your new client (${typeof window !== 'undefined' ? window.location.host : 'unknown'}) as a new Web platform on your project console dashboard`,
                 403,
                 "forbidden",
                 ""
@@ -1150,7 +1169,7 @@ class Client<TAuth extends Auth = 'browser'> {
 
         const cookieFallback = response.headers.get('X-Fallback-Cookies');
 
-        if (this.runtime === 'browser' && typeof window !== 'undefined' && window.localStorage && cookieFallback) {
+        if (this.runtime === 'client' && typeof window !== 'undefined' && window.localStorage && cookieFallback) {
             window.console.warn('{{spec.title | caseUcfirst}} is using localStorage for session management. Increase your security by adding a custom domain as your API endpoint.');
             window.localStorage.setItem('cookieFallback', cookieFallback);
         }
