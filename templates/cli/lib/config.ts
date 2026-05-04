@@ -115,13 +115,22 @@ function assertValidIncludePath(resource: string, includePath: unknown): string 
     throw new Error(`Config include for '${resource}' must be a file path.`);
   }
 
-  if (includePath.includes("#")) {
+  const normalizedPath = includePath.trim();
+  if (normalizedPath.includes("\0")) {
+    throw new Error(`Config include '${resource}' cannot contain null bytes.`);
+  }
+
+  if (normalizedPath.includes("#")) {
     throw new Error(
       `Config include '${resource}' must be a file path without a JSON pointer fragment.`,
     );
   }
 
-  return includePath;
+  if (/^[a-z][a-z0-9+.-]*:/i.test(normalizedPath)) {
+    throw new Error(`Config include '${resource}' must be a local file path.`);
+  }
+
+  return normalizedPath;
 }
 
 function getConfigIncludePaths(data: Record<string, unknown>): ConfigIncludePaths {

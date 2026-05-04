@@ -433,6 +433,20 @@ const BucketSchema = z
 // Config Schema
 // ============================================================================
 
+const ConfigIncludePathSchema = z
+  .string()
+  .trim()
+  .min(1, "Include path cannot be empty")
+  .refine((value) => !value.includes("\0"), {
+    message: "Include path cannot contain null bytes",
+  })
+  .refine((value) => !value.includes("#"), {
+    message: "Include path cannot contain JSON pointer fragments",
+  })
+  .refine((value) => !/^[a-z][a-z0-9+.-]*:/i.test(value), {
+    message: "Include path must be a local file path, not a URL",
+  });
+
 const ConfigSchema = z
   .object({
     projectId: z.string(),
@@ -440,17 +454,17 @@ const ConfigSchema = z
     endpoint: z.string().optional(),
     includes: z
       .object({
-        functions: z.string().optional(),
-        sites: z.string().optional(),
-        databases: z.string().optional(),
-        collections: z.string().optional(),
-        tablesDB: z.string().optional(),
-        tables: z.string().optional(),
-        topics: z.string().optional(),
-        teams: z.string().optional(),
-        buckets: z.string().optional(),
-        webhooks: z.string().optional(),
-        messages: z.string().optional(),
+        functions: ConfigIncludePathSchema.optional(),
+        sites: ConfigIncludePathSchema.optional(),
+        databases: ConfigIncludePathSchema.optional(),
+        collections: ConfigIncludePathSchema.optional(),
+        tablesDB: ConfigIncludePathSchema.optional(),
+        tables: ConfigIncludePathSchema.optional(),
+        topics: ConfigIncludePathSchema.optional(),
+        teams: ConfigIncludePathSchema.optional(),
+        buckets: ConfigIncludePathSchema.optional(),
+        webhooks: ConfigIncludePathSchema.optional(),
+        messages: ConfigIncludePathSchema.optional(),
       })
       .strict()
       .optional(),
