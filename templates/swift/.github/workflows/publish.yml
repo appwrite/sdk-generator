@@ -15,7 +15,7 @@ jobs:
           swift-version: "5.4"
 
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v6
 
       - name: Install cocoapods
         run: gem install cocoapods
