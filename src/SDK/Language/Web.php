@@ -477,14 +477,6 @@ class Web extends JS
     }
 
     /**
-     * Determine the TypeScript auth type name for a given platform.
-     */
-    protected function webPlatformAuth(string $platform): string
-    {
-        return $platform === 'console' ? 'ConsoleAuth' : 'ServerAuth';
-    }
-
-    /**
      * Determine whether a method supports client-side platforms.
      */
     protected function methodSupportsClient(array $method): bool
@@ -495,7 +487,7 @@ class Web extends JS
     /**
      * Determine whether a method supports server/console platforms.
      */
-    protected function methodSupportsPlatformAuth(array $method): bool
+    protected function methodSupportsServer(array $method): bool
     {
         $platforms = $method['platforms'] ?? [];
         return in_array('server', $platforms, true) || in_array('console', $platforms, true);
@@ -506,7 +498,7 @@ class Web extends JS
      *
      * @return array<string, mixed>
      */
-    public function webServiceAuth(array $service, string $platform): array
+    public function webServiceAuth(array $service): array
     {
         $hasClientTier = false;
         $hasServerTier = false;
@@ -515,20 +507,19 @@ class Web extends JS
         $hasUpload = false;
 
         foreach ($service['methods'] ?? [] as $method) {
-            $platforms = $method['platforms'] ?? [];
-            $hasClient = in_array('client', $platforms, true);
-            $hasServerOrConsole = in_array('server', $platforms, true) || in_array('console', $platforms, true);
+            $hasClient = $this->methodSupportsClient($method);
+            $hasServer = $this->methodSupportsServer($method);
 
             if ($hasClient) {
                 $hasClientTier = true;
             }
-            if ($hasServerOrConsole) {
+            if ($hasServer) {
                 $hasServerTier = true;
             }
-            if ($hasServerOrConsole && !$hasClient) {
+            if ($hasServer && !$hasClient) {
                 $hasServerOnly = true;
             }
-            if ($hasClient && !$hasServerOrConsole) {
+            if ($hasClient && !$hasServer) {
                 $hasClientOnly = true;
             }
             if (in_array('multipart/form-data', $method['consumes'] ?? [], true)) {
@@ -537,38 +528,33 @@ class Web extends JS
         }
 
         $hasMixedTier = $hasClientTier && $hasServerTier;
-        $platformAuth = $this->webPlatformAuth($platform);
 
         return [
-            'hasClientTier'     => $hasClientTier,
-            'hasServerTier'     => $hasServerTier,
-            'hasMixedTier'      => $hasMixedTier,
-            'platformAuth'      => $platformAuth,
-            'needsPlatformAuth' => $hasServerTier && (!$hasMixedTier || $hasServerOnly),
-            'needsClientAuth'   => $hasClientTier && (!$hasMixedTier || $hasClientOnly),
-            'hasUpload'         => $hasUpload,
+            'hasClientTier'   => $hasClientTier,
+            'hasServerTier'   => $hasServerTier,
+            'hasMixedTier'    => $hasMixedTier,
+            'needsServerAuth' => $hasServerTier && (!$hasMixedTier || $hasServerOnly),
+            'needsClientAuth' => $hasClientTier && (!$hasMixedTier || $hasClientOnly),
+            'hasUpload'       => $hasUpload,
         ];
     }
 
     /**
      * Build the TypeScript `this:` gate string for a method in a Web service.
      */
-    public function webMethodThisGate(array $method, array $service, string $platform): string
+    public function webMethodThisGate(array $method, array $service): string
     {
-        $auth = $this->webServiceAuth($service, $platform);
+        $auth = $this->webServiceAuth($service);
         if (!$auth['hasMixedTier']) {
             return '';
         }
 
-        $methodSupportsClient = $this->methodSupportsClient($method);
-        $methodSupportsPlatform = $this->methodSupportsPlatformAuth($method);
-
         $serviceName = $this->toPascalCase($service['name'] ?? '');
 
-        if (!$methodSupportsClient) {
-            return 'this: ' . $serviceName . '<' . $auth['platformAuth'] . '>, ';
+        if (!$this->methodSupportsClient($method)) {
+            return 'this: ' . $serviceName . '<ServerAuth>, ';
         }
-        if (!$methodSupportsPlatform) {
+        if (!$this->methodSupportsServer($method)) {
             return 'this: ' . $serviceName . '<ClientAuth>, ';
         }
 
@@ -635,11 +621,11 @@ class Web extends JS
 
                 return $condition;
             }, ['is_safe' => ['html']]),
-            new TwigFilter('webServiceAuth', function (array $service, string $platform) {
-                return $this->webServiceAuth($service, $platform);
+            new TwigFilter('webServiceAuth', function (array $service) {
+                return $this->webServiceAuth($service);
             }),
-            new TwigFilter('webMethodThisGate', function (array $method, array $service, string $platform) {
-                return $this->webMethodThisGate($method, $service, $platform);
+            new TwigFilter('webMethodThisGate', function (array $method, array $service) {
+                return $this->webMethodThisGate($method, $service);
             }, ['is_safe' => ['html']]),
             new TwigFilter('comment2', function ($value) {
                 $value = explode("\n", $value);

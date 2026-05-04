@@ -1,7 +1,7 @@
 {# Detect service shape and imports before emitting TypeScript. #}
-{% set auth = service | webServiceAuth(sdk.platform) %}
+{% set auth = service | webServiceAuth %}
 import { Service } from '../service';
-import { {{ spec.title | caseUcfirst}}Exception, Client, {% if auth.needsClientAuth or auth.hasMixedTier %}type ClientAuth, {% endif %}{% if auth.needsPlatformAuth or auth.hasMixedTier %}type {{ auth.platformAuth }}, {% endif %}type Payload{% if auth.hasUpload %}, UploadProgress{% endif %} } from '../client';
+import { {{ spec.title | caseUcfirst}}Exception, Client, {% if auth.needsClientAuth or auth.hasMixedTier %}type ClientAuth, {% endif %}{% if auth.needsServerAuth or auth.hasMixedTier %}type ServerAuth, {% endif %}type Payload{% if auth.hasUpload %}, UploadProgress{% endif %} } from '../client';
 import type { Models } from '../models';
 
 {% set added = [] %}
@@ -17,7 +17,7 @@ import { {{ parameter.enumName | caseUcfirst }} } from '../enums/{{ parameter.en
 {% endfor %}
 
 {%~ if auth.hasMixedTier %}
-export class {{ service.name | caseUcfirst }}<TAuth extends ClientAuth | {{ auth.platformAuth }} = ClientAuth | {{ auth.platformAuth }}> {
+export class {{ service.name | caseUcfirst }}<TAuth extends ClientAuth | ServerAuth = ClientAuth | ServerAuth> {
     client: Client<TAuth>;
 
     constructor(client: Client<TAuth>) {
@@ -25,9 +25,9 @@ export class {{ service.name | caseUcfirst }}<TAuth extends ClientAuth | {{ auth
     }
 {%~ elseif auth.hasServerTier %}
 export class {{ service.name | caseUcfirst }} {
-    client: Client<{{ auth.platformAuth }}>;
+    client: Client<ServerAuth>;
 
-    constructor(client: Client<{{ auth.platformAuth }}>) {
+    constructor(client: Client<ServerAuth>) {
         this.client = client;
     }
 {%~ else %}
@@ -40,7 +40,7 @@ export class {{ service.name | caseUcfirst }} {
 {%~ endif %}
 
     {%~ for method in service.methods %}
-    {%~ set thisGate = method | webMethodThisGate(service, sdk.platform) %}
+    {%~ set thisGate = method | webMethodThisGate(service) %}
     /**
     {%~ if method.description %}
      * {{ method.description | replace({'\n': '\n     * '}) | raw }}

@@ -344,11 +344,13 @@ class {{spec.title | caseUcfirst}}Exception extends Error {
 /**
  * Client that handles requests to {{spec.title | caseUcfirst}}
  */
-type ClientRuntime = 'client' | 'server';
+type SDKPlatform = 'client' | 'server';
 type ClientAuth = 'browser' | 'session' | 'devKey' | 'impersonation';
-type ServerAuth = 'apiKey' | 'jwt';
-type ConsoleAuth = {% if sdk.platform == 'console' %}'apiKey' | 'cookie'{% else %}never{% endif %};
-type Auth = ClientAuth | ServerAuth | ConsoleAuth;
+type ServerAuth = 'apiKey' | 'jwt' | 'cookie';
+type Auth = ClientAuth | ServerAuth;
+
+// Forces TypeScript to display the expanded shape on hover instead of an alias name.
+type Prettify<T> = { [K in keyof T]: T[K] } & {};
 
 type BaseClientParams = {
     endpoint: string;
@@ -369,12 +371,10 @@ type ApiKeyClientParams = BaseClientParams & {
     apiKey: string;
 };
 
-{%~ if sdk.platform == 'console' %}
 type CookieClientParams = BaseClientParams & {
     cookie: string;
 };
 
-{%~ endif %}
 type JWTClientParams = BaseClientParams & {
     jwt: string;
 };
@@ -401,8 +401,8 @@ class Client<TAuth extends Auth = 'browser'> {
         endpointRealtime: string;
         project: string;
         key: string;
-{%~ if sdk.platform == 'console' %}
         cookie: string;
+{%~ if sdk.platform == 'console' %}
         mode: string;
         platform: string;
 {%~ endif %}
@@ -420,8 +420,8 @@ class Client<TAuth extends Auth = 'browser'> {
         endpointRealtime: '',
         project: '',
         key: '',
-{%~ if sdk.platform == 'console' %}
         cookie: '',
+{%~ if sdk.platform == 'console' %}
         mode: '',
         platform: '',
 {%~ endif %}
@@ -436,7 +436,7 @@ class Client<TAuth extends Auth = 'browser'> {
         selfSigned: false,
     };
 
-    private runtime: ClientRuntime = '{{ sdk.platform == 'server' ? 'server' : 'client' }}';
+    private sdkPlatform: SDKPlatform = '{{ sdk.platform == 'server' ? 'server' : 'client' }}';
 
     /**
      * Custom headers for API requests.
@@ -451,18 +451,18 @@ class Client<TAuth extends Auth = 'browser'> {
         {%~ endfor %}
     };
 
-    static fromBrowser(params: BaseClientParams): Client<'browser'> {
+    static fromBrowser(params: Prettify<BaseClientParams>): Client<'browser'> {
         return new Client<'browser'>().applyBase<'browser'>(params, 'client');
     }
 
-    static fromSession(params: SessionClientParams): Client<'session'> {
+    static fromSession(params: Prettify<SessionClientParams>): Client<'session'> {
         return new Client<'session'>()
             .applyBase<'session'>(params, 'client')
             .setSession(params.session);
     }
 
 {%~ if sdk.platform == 'server' or sdk.platform == 'console' %}
-    static fromAPIKey(params: ApiKeyClientParams): Client<'apiKey'> {
+    static fromAPIKey(params: Prettify<ApiKeyClientParams>): Client<'apiKey'> {
         return new Client<'apiKey'>()
             .applyBase<'apiKey'>(params, 'server')
             .setKey(params.apiKey);
@@ -470,27 +470,29 @@ class Client<TAuth extends Auth = 'browser'> {
 
 {%~ endif %}
 
-{%~ if sdk.platform == 'console' %}
-    static fromCookie(params: CookieClientParams): Client<'cookie'> {
+    static fromCookie(params: Prettify<CookieClientParams>): Client<'cookie'> {
         return new Client<'cookie'>()
+{%~ if sdk.platform == 'console' %}
+            .applyBase<'cookie'>({ mode: 'admin', ...params }, 'server')
+{%~ else %}
             .applyBase<'cookie'>(params, 'server')
+{%~ endif %}
             .setCookie(params.cookie);
     }
 
-{%~ endif %}
-    static fromJWT(params: JWTClientParams): Client<'jwt'> {
+    static fromJWT(params: Prettify<JWTClientParams>): Client<'jwt'> {
         return new Client<'jwt'>()
             .applyBase<'jwt'>(params, 'server')
             .setJWT(params.jwt);
     }
 
-    static fromDevKey(params: DevKeyClientParams): Client<'devKey'> {
+    static fromDevKey(params: Prettify<DevKeyClientParams>): Client<'devKey'> {
         return new Client<'devKey'>()
             .applyBase<'devKey'>(params, 'client')
             .setDevKey(params.devKey);
     }
 
-    static fromImpersonation(params: ImpersonationClientParams): Client<'impersonation'> {
+    static fromImpersonation(params: Prettify<ImpersonationClientParams>): Client<'impersonation'> {
         const targets = [
             params.userId !== undefined,
             params.email !== undefined,
@@ -526,10 +528,10 @@ class Client<TAuth extends Auth = 'browser'> {
         return this;
     }
 
-    private applyBase<T extends Auth>(params: BaseClientParams, runtime: ClientRuntime): Client<T> {
+    private applyBase<T extends Auth>(params: BaseClientParams, sdkPlatform: SDKPlatform): Client<T> {
         const client = this as unknown as Client<T>;
-        client.runtime = runtime;
-        client.headers['x-sdk-platform'] = runtime === 'server' ? '{{ sdk.platform == 'console' ? 'console' : 'server' }}' : 'client';
+        client.sdkPlatform = sdkPlatform;
+        client.headers['x-sdk-platform'] = sdkPlatform === 'server' ? '{{ sdk.platform == 'console' ? 'console' : 'server' }}' : 'client';
         client.setEndpoint(params.endpoint);
         client.setProject(params.projectId);
 
@@ -633,25 +635,23 @@ class Client<TAuth extends Auth = 'browser'> {
     private setKey(value: string): Client<'apiKey'> {
         this.headers['X-{{ spec.title | caseUcfirst }}-Key'] = value;
         this.config.key = value;
-        this.runtime = 'server';
+        this.sdkPlatform = 'server';
         this.headers['x-sdk-platform'] = '{{ sdk.platform == 'console' ? 'console' : 'server' }}';
         return this as unknown as Client<'apiKey'>;
     }
 
-{%~ if sdk.platform == 'console' %}
     private setCookie(value: string): Client<'cookie'> {
         this.headers['Cookie'] = value;
         this.config.cookie = value;
-        this.runtime = 'server';
+        this.sdkPlatform = 'server';
         this.headers['x-sdk-platform'] = '{{ sdk.platform == 'console' ? 'console' : 'server' }}';
         return this as unknown as Client<'cookie'>;
     }
 
-{%~ endif %}
     private setJWT(value: string): Client<'jwt'> {
         this.headers['X-{{ spec.title | caseUcfirst }}-JWT'] = value;
         this.config.jwt = value;
-        this.runtime = 'server';
+        this.sdkPlatform = 'server';
         this.headers['x-sdk-platform'] = '{{ sdk.platform == 'console' ? 'console' : 'server' }}';
         return this as unknown as Client<'jwt'>;
     }
@@ -665,7 +665,7 @@ class Client<TAuth extends Auth = 'browser'> {
     private setSession(value: string): Client<'session'> {
         this.headers['X-{{ spec.title | caseUcfirst }}-Session'] = value;
         this.config.session = value;
-        this.runtime = 'client';
+        this.sdkPlatform = 'client';
         this.headers['x-sdk-platform'] = 'client';
         return this as unknown as Client<'session'>;
     }
@@ -673,7 +673,7 @@ class Client<TAuth extends Auth = 'browser'> {
     private setDevKey(value: string): Client<'devKey'> {
         this.headers['X-{{ spec.title | caseUcfirst }}-Dev-Key'] = value;
         this.config.devkey = value;
-        this.runtime = 'client';
+        this.sdkPlatform = 'client';
         this.headers['x-sdk-platform'] = 'client';
         return this as unknown as Client<'devKey'>;
     }
@@ -687,7 +687,7 @@ class Client<TAuth extends Auth = 'browser'> {
     private setImpersonateUserId(value: string): Client<'impersonation'> {
         this.headers['X-{{ spec.title | caseUcfirst }}-Impersonate-User-Id'] = value;
         this.config.impersonateuserid = value;
-        this.runtime = 'client';
+        this.sdkPlatform = 'client';
         this.headers['x-sdk-platform'] = 'client';
         return this as unknown as Client<'impersonation'>;
     }
@@ -695,7 +695,7 @@ class Client<TAuth extends Auth = 'browser'> {
     private setImpersonateUserEmail(value: string): Client<'impersonation'> {
         this.headers['X-{{ spec.title | caseUcfirst }}-Impersonate-User-Email'] = value;
         this.config.impersonateuseremail = value;
-        this.runtime = 'client';
+        this.sdkPlatform = 'client';
         this.headers['x-sdk-platform'] = 'client';
         return this as unknown as Client<'impersonation'>;
     }
@@ -703,7 +703,7 @@ class Client<TAuth extends Auth = 'browser'> {
     private setImpersonateUserPhone(value: string): Client<'impersonation'> {
         this.headers['X-{{ spec.title | caseUcfirst }}-Impersonate-User-Phone'] = value;
         this.config.impersonateuserphone = value;
-        this.runtime = 'client';
+        this.sdkPlatform = 'client';
         this.headers['x-sdk-platform'] = 'client';
         return this as unknown as Client<'impersonation'>;
     }
@@ -1014,7 +1014,7 @@ class Client<TAuth extends Auth = 'browser'> {
 
         headers = Object.assign({}, this.headers, headers);
 
-        if (this.runtime === 'client' && typeof window !== 'undefined' && window.localStorage) {
+        if (this.sdkPlatform === 'client' && typeof window !== 'undefined' && window.localStorage) {
             const cookieFallback = window.localStorage.getItem('cookieFallback');
             if (cookieFallback) {
                 headers['X-Fallback-Cookies'] = cookieFallback;
@@ -1026,7 +1026,7 @@ class Client<TAuth extends Auth = 'browser'> {
             headers,
         };
 
-        if (this.runtime === 'client' && headers['X-Appwrite-Dev-Key'] === undefined) {
+        if (this.sdkPlatform === 'client' && headers['X-Appwrite-Dev-Key'] === undefined) {
             options.credentials = 'include';
         }
 
@@ -1133,7 +1133,7 @@ class Client<TAuth extends Auth = 'browser'> {
         const response = await fetch(uri, options);
 
         // type opaque: No-CORS, different-origin response (CORS-issue)
-        if (this.runtime === 'client' && typeof window !== 'undefined' && response.type === 'opaque') {
+        if (this.sdkPlatform === 'client' && typeof window !== 'undefined' && response.type === 'opaque') {
             throw new {{spec.title | caseUcfirst}}Exception(
                 `Invalid Origin. Register your new client (${typeof window !== 'undefined' ? window.location.host : 'unknown'}) as a new Web platform on your project console dashboard`,
                 403,
@@ -1169,7 +1169,7 @@ class Client<TAuth extends Auth = 'browser'> {
 
         const cookieFallback = response.headers.get('X-Fallback-Cookies');
 
-        if (this.runtime === 'client' && typeof window !== 'undefined' && window.localStorage && cookieFallback) {
+        if (this.sdkPlatform === 'client' && typeof window !== 'undefined' && window.localStorage && cookieFallback) {
             window.console.warn('{{spec.title | caseUcfirst}} is using localStorage for session management. Increase your security by adding a custom domain as your API endpoint.');
             window.localStorage.setItem('cookieFallback', cookieFallback);
         }
@@ -1198,6 +1198,6 @@ class Client<TAuth extends Auth = 'browser'> {
 }
 
 export { Client, {{spec.title | caseUcfirst}}Exception };
-export type { Models, ClientAuth, ServerAuth, ConsoleAuth, Payload, RealtimeResponseEvent, UploadProgress };
+export type { Models, SDKPlatform, ClientAuth, ServerAuth, Payload, RealtimeResponseEvent, UploadProgress };
 export { Query } from './query';
 export type { QueryTypes, QueryTypesList } from './query';
