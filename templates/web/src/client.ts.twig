@@ -822,41 +822,108 @@ class Client {
             return await this.call(method, url, headers, originalPayload);
         }
 
-        let start = 0;
-        let response = null;
+        const totalChunks = Math.ceil(file.size / Client.CHUNK_SIZE);
 
-        while (start < file.size) {
-            let end = start + Client.CHUNK_SIZE; // Prepare end for the next chunk
-            if (end >= file.size) {
-                end = file.size; // Adjust for the last chunk to include the last byte
+        // Upload first chunk alone to get the upload ID
+        const firstChunkEnd = Math.min(Client.CHUNK_SIZE, file.size);
+        const firstChunkHeaders = { ...headers, 'content-range': `bytes 0-${firstChunkEnd - 1}/${file.size}` };
+        const firstChunk = file.slice(0, firstChunkEnd);
+        const firstPayload = { ...originalPayload };
+        firstPayload[fileParam] = new File([firstChunk], file.name);
+
+        let response = await this.call(method, url, firstChunkHeaders, firstPayload);
+        const uploadId = response?.$id;
+
+        if (onProgress && typeof onProgress === 'function') {
+            onProgress({
+                $id: uploadId,
+                progress: Math.round((firstChunkEnd / file.size) * 100),
+                sizeUploaded: firstChunkEnd,
+                chunksTotal: totalChunks,
+                chunksUploaded: 1
+            });
+        }
+
+        if (totalChunks === 1) {
+            return response;
+        }
+
+        // Prepare remaining chunks
+        const chunks: { index: number; start: number; end: number }[] = [];
+        for (let i = 1; i < totalChunks; i++) {
+            const start = i * Client.CHUNK_SIZE;
+            const end = Math.min(start + Client.CHUNK_SIZE, file.size);
+            chunks.push({ index: i, start, end });
+        }
+
+        // Upload remaining chunks with max concurrency of 8
+        const CONCURRENCY = 8;
+        let completedCount = 1;
+        let uploadedBytes = firstChunkEnd;
+        let lastResponse = response;
+
+        const uploadChunk = async (chunk: typeof chunks[0]) => {
+            const chunkHeaders = { ...headers };
+            if (uploadId) {
+                chunkHeaders['x-{{spec.title | caseLower }}-id'] = uploadId;
             }
+            chunkHeaders['content-range'] = `bytes ${chunk.start}-${chunk.end - 1}/${file.size}`;
+            
+            const chunkBlob = file.slice(chunk.start, chunk.end);
+            const chunkPayload = { ...originalPayload };
+            chunkPayload[fileParam] = new File([chunkBlob], file.name);
 
-            headers['content-range'] = `bytes ${start}-${end-1}/${file.size}`;
-            const chunk = file.slice(start, end);
-
-            let payload = { ...originalPayload };
-            payload[fileParam] = new File([chunk], file.name);
-
-            response = await this.call(method, url, headers, payload);
+            const chunkResponse = await this.call(method, url, chunkHeaders, chunkPayload);
+            
+            completedCount++;
+            uploadedBytes += (chunk.end - chunk.start);
+            
+            if (chunk.index === totalChunks - 1) {
+                lastResponse = chunkResponse;
+            }
 
             if (onProgress && typeof onProgress === 'function') {
                 onProgress({
-                    $id: response.$id,
-                    progress: Math.round((end / file.size) * 100),
-                    sizeUploaded: end,
-                    chunksTotal: Math.ceil(file.size / Client.CHUNK_SIZE),
-                    chunksUploaded: Math.ceil(end / Client.CHUNK_SIZE)
+                    $id: uploadId,
+                    progress: Math.round((uploadedBytes / file.size) * 100),
+                    sizeUploaded: uploadedBytes,
+                    chunksTotal: totalChunks,
+                    chunksUploaded: completedCount
                 });
             }
 
-            if (response && response.$id) {
-                headers['x-{{spec.title | caseLower }}-id'] = response.$id;
-            }
+            return chunkResponse;
+        };
 
-            start = end;
-        }
+        await new Promise<void>((resolve, reject) => {
+            let nextChunk = 0;
+            let inFlight = 0;
+            let completed = 0;
 
-        return response;
+            const uploadNext = () => {
+                if (completed === chunks.length) {
+                    resolve();
+                    return;
+                }
+
+                while (inFlight < CONCURRENCY && nextChunk < chunks.length) {
+                    const chunk = chunks[nextChunk++];
+                    inFlight++;
+
+                    uploadChunk(chunk)
+                        .then(() => {
+                            inFlight--;
+                            completed++;
+                            uploadNext();
+                        })
+                        .catch(reject);
+                }
+            };
+
+            uploadNext();
+        });
+
+        return lastResponse;
     }
 
     async ping(): Promise<string> {
