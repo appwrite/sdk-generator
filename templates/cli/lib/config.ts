@@ -286,9 +286,6 @@ function writeResolvedLocalConfig(
       resourceData,
     );
     delete rootOutput[resource];
-    if (resourceData.length === 0) {
-      delete nextIncludePaths[resource as ConfigResourceKey];
-    }
   }
 
   if (Object.keys(nextIncludePaths).length > 0) {
