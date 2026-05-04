@@ -438,8 +438,7 @@ class Client<TAuth extends Auth = 'browser'> {
         selfSigned: false,
     };
 
-    private runtime: ClientRuntime = '{{ sdk.platform == 'console' ? 'browser' : 'server' }}';
-    private readonly authType?: TAuth;
+    private runtime: ClientRuntime = '{{ sdk.platform == 'server' ? 'server' : 'browser' }}';
 
     /**
      * Custom headers for API requests.
