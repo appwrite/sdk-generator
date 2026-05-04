@@ -345,7 +345,7 @@ class {{spec.title | caseUcfirst}}Exception extends Error {
  * Client that handles requests to {{spec.title | caseUcfirst}}
  */
 type ClientRuntime = 'browser' | 'server';
-type ClientAuth = 'anonymous' | 'session' | 'jwt' | 'devKey' | 'impersonation';
+type ClientAuth = 'browser' | 'session' | 'jwt' | 'devKey' | 'impersonation';
 type ServerAuth = 'apiKey';
 type ConsoleAuth = {% if sdk.platform == 'console' %}'apiKey' | 'cookie'{% else %}never{% endif %};
 type Auth = ClientAuth | ServerAuth | ConsoleAuth;
@@ -392,7 +392,7 @@ type ImpersonationTarget =
 
 type ImpersonationClientParams = SessionClientParams & ImpersonationTarget;
 
-class Client<TAuth extends Auth = 'anonymous'> {
+class Client<TAuth extends Auth = 'browser'> {
     static CHUNK_SIZE = 1024 * 1024 * 5;
 
     /**
@@ -454,12 +454,8 @@ class Client<TAuth extends Auth = 'anonymous'> {
         {%~ endfor %}
     };
 
-    static anonymous(params: BaseClientParams): Client<'anonymous'> {
-        return new Client<'anonymous'>().applyBase<'anonymous'>(params, 'browser');
-    }
-
-    static fromAnonymous(params: BaseClientParams): Client<'anonymous'> {
-        return Client.anonymous(params);
+    static fromBrowser(params: BaseClientParams): Client<'browser'> {
+        return new Client<'browser'>().applyBase<'browser'>(params, 'browser');
     }
 
     static fromSession(params: SessionClientParams): Client<'session'> {
