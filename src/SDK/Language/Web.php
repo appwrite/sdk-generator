@@ -476,6 +476,133 @@ class Web extends JS
         return $this->getTypeName($property);
     }
 
+    /**
+     * Augment spec.global.headers with any auth headers required by the unified
+     * web client but missing from the loaded spec. Each platform's spec exposes
+     * a different subset of securityDefinitions (e.g. console omits Session and
+     * DevKey; client omits Cookie and Mode), but the unified web Client emits
+     * setters for the union so factories work regardless of build target.
+     *
+     * TODO: Remove this augmentation once appwrite/appwrite#12211 ships and the
+     * regenerated specs declare the union of auth headers in every platform's
+     * securityDefinitions. After that, spec.global.headers will already carry
+     * everything the unified client needs and this filter (plus its Twig
+     * registration) can be deleted.
+     *
+     * @param array $globalHeaders headers parsed from securityDefinitions
+     * @return array merged list, preserving spec entries (with descriptions)
+     */
+    public function webClientHeaders(array $globalHeaders): array
+    {
+        $required = [
+            'Project'              => 'X-Appwrite-Project',
+            'Key'                  => 'X-Appwrite-Key',
+            'Cookie'               => 'Cookie',
+            'JWT'                  => 'X-Appwrite-JWT',
+            'Locale'               => 'X-Appwrite-Locale',
+            'Session'              => 'X-Appwrite-Session',
+            'DevKey'               => 'X-Appwrite-Dev-Key',
+            'Mode'                 => 'X-Appwrite-Mode',
+            'Platform'             => 'X-Appwrite-Platform',
+            'ForwardedUserAgent'   => 'X-Forwarded-User-Agent',
+            'ImpersonateUserId'    => 'X-Appwrite-Impersonate-User-Id',
+            'ImpersonateUserEmail' => 'X-Appwrite-Impersonate-User-Email',
+            'ImpersonateUserPhone' => 'X-Appwrite-Impersonate-User-Phone',
+        ];
+        $existing = array_column($globalHeaders, 'key');
+        foreach ($required as $key => $name) {
+            if (!in_array($key, $existing, true)) {
+                $globalHeaders[] = ['key' => $key, 'name' => $name, 'description' => ''];
+            }
+        }
+        return $globalHeaders;
+    }
+
+    /**
+     * Determine whether a method supports client-side platforms.
+     */
+    protected function methodSupportsClient(array $method): bool
+    {
+        return in_array('client', $method['platforms'] ?? [], true);
+    }
+
+    /**
+     * Determine whether a method supports server/console platforms.
+     */
+    protected function methodSupportsServer(array $method): bool
+    {
+        $platforms = $method['platforms'] ?? [];
+        return in_array('server', $platforms, true) || in_array('console', $platforms, true);
+    }
+
+    /**
+     * Compute auth-related flags for a Web service.
+     *
+     * @return array<string, mixed>
+     */
+    public function webServiceAuth(array $service): array
+    {
+        $hasClientTier = false;
+        $hasServerTier = false;
+        $hasServerOnly = false;
+        $hasClientOnly = false;
+        $hasUpload = false;
+
+        foreach ($service['methods'] ?? [] as $method) {
+            $hasClient = $this->methodSupportsClient($method);
+            $hasServer = $this->methodSupportsServer($method);
+
+            if ($hasClient) {
+                $hasClientTier = true;
+            }
+            if ($hasServer) {
+                $hasServerTier = true;
+            }
+            if ($hasServer && !$hasClient) {
+                $hasServerOnly = true;
+            }
+            if ($hasClient && !$hasServer) {
+                $hasClientOnly = true;
+            }
+            if (in_array('multipart/form-data', $method['consumes'] ?? [], true)) {
+                $hasUpload = true;
+            }
+        }
+
+        $hasMixedTier = $hasClientTier && $hasServerTier;
+
+        return [
+            'hasClientTier'   => $hasClientTier,
+            'hasServerTier'   => $hasServerTier,
+            'hasMixedTier'    => $hasMixedTier,
+            'needsServerAuth' => $hasServerTier && (!$hasMixedTier || $hasServerOnly),
+            'needsClientAuth' => $hasClientTier && (!$hasMixedTier || $hasClientOnly),
+            'hasUpload'       => $hasUpload,
+        ];
+    }
+
+    /**
+     * Build the TypeScript `this:` gate string for a method in a Web service.
+     */
+    public function webMethodThisGate(array $method, array $service): string
+    {
+        $auth = $this->webServiceAuth($service);
+        if (!$auth['hasMixedTier']) {
+            return '';
+        }
+
+        $serviceName = $this->toPascalCase($service['name'] ?? '');
+
+        if (!$this->methodSupportsClient($method)) {
+            return 'this: ' . $serviceName . '<ServerAuth>, ';
+        }
+        if (!$this->methodSupportsServer($method)) {
+            return 'this: ' . $serviceName . '<ClientAuth>, ';
+        }
+
+        return '';
+    }
+
     public function getFilters(): array
     {
         return \array_merge(parent::getFilters(), [
@@ -536,6 +663,15 @@ class Web extends JS
 
                 return $condition;
             }, ['is_safe' => ['html']]),
+            new TwigFilter('webServiceAuth', function (array $service) {
+                return $this->webServiceAuth($service);
+            }),
+            new TwigFilter('webMethodThisGate', function (array $method, array $service) {
+                return $this->webMethodThisGate($method, $service);
+            }, ['is_safe' => ['html']]),
+            new TwigFilter('webClientHeaders', function (array $globalHeaders) {
+                return $this->webClientHeaders($globalHeaders);
+            }),
             new TwigFilter('comment2', function ($value) {
                 $value = explode("\n", $value);
                 foreach ($value as $key => $line) {

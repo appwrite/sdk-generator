@@ -344,7 +344,55 @@ class {{spec.title | caseUcfirst}}Exception extends Error {
 /**
  * Client that handles requests to {{spec.title | caseUcfirst}}
  */
-class Client {
+type SDKPlatform = 'client' | 'server';
+type ClientAuth = 'browser' | 'session' | 'devKey' | 'impersonation';
+type ServerAuth = 'apiKey' | 'jwt' | 'cookie';
+type Auth = ClientAuth | ServerAuth;
+
+// Forces TypeScript to display the expanded shape on hover instead of an alias name.
+type Prettify<T> = { [K in keyof T]: T[K] } & {};
+
+type BaseClientParams = {
+    endpoint: string;
+    projectId: string;
+    endpointRealtime?: string;
+    locale?: string;
+    selfSigned?: boolean;
+{%~ if sdk.platform == 'console' %}
+    mode?: string;
+    platform?: string;
+{%~ endif %}
+};
+
+type SessionClientParams = BaseClientParams & {
+    session: string;
+};
+
+type ApiKeyClientParams = BaseClientParams & {
+    apiKey: string;
+};
+
+type CookieClientParams = BaseClientParams & {
+    cookie: string;
+};
+
+type JWTClientParams = BaseClientParams & {
+    jwt: string;
+};
+
+type DevKeyClientParams = BaseClientParams & {
+    devKey: string;
+};
+
+type ImpersonationTarget =
+    | { userId: string; email?: never; phone?: never }
+    | { email: string; userId?: never; phone?: never }
+    | { phone: string; userId?: never; email?: never };
+
+type ImpersonationClientParams = SessionClientParams & ImpersonationTarget;
+
+{%~ set webHeaders = spec.global.headers | webClientHeaders %}
+class Client<TAuth extends Auth = 'browser'> {
     static CHUNK_SIZE = 1024 * 1024 * 5;
 
     /**
@@ -353,24 +401,21 @@ class Client {
     config: {
         endpoint: string;
         endpointRealtime: string;
-{%~ for header in spec.global.headers %}
+{%~ for header in webHeaders %}
         {{ header.key | caseLower }}: string;
 {%~ endfor %}
-{%~ if sdk.platform == 'console' %}
         selfSigned: boolean;
-        session?: string;
-{%~ endif %}
     } = {
         endpoint: '{{ spec.endpoint }}',
         endpointRealtime: '',
-{%~ for header in spec.global.headers %}
+{%~ for header in webHeaders %}
         {{ header.key | caseLower }}: '',
 {%~ endfor %}
-{%~ if sdk.platform == 'console' %}
         selfSigned: false,
-        session: undefined,
-{%~ endif %}
     };
+
+    private sdkPlatform: SDKPlatform = '{{ sdk.platform == 'server' ? 'server' : 'client' }}';
+
     /**
      * Custom headers for API requests.
      */
@@ -383,6 +428,118 @@ class Client {
         '{{key}}': '{{header}}',
         {%~ endfor %}
     };
+
+    static fromBrowser(params: Prettify<BaseClientParams>): Client<'browser'> {
+        return new Client<'browser'>().applyBase<'browser'>(params, 'client');
+    }
+
+    static fromSession(params: Prettify<SessionClientParams>): Client<'session'> {
+        return new Client<'session'>()
+            .applyBase<'session'>(params, 'client')
+            .setSession(params.session);
+    }
+
+{%~ if sdk.platform == 'server' or sdk.platform == 'console' %}
+    static fromAPIKey(params: Prettify<ApiKeyClientParams>): Client<'apiKey'> {
+        return new Client<'apiKey'>()
+            .applyBase<'apiKey'>(params, 'server')
+            .setKey(params.apiKey);
+    }
+
+{%~ endif %}
+
+    static fromCookie(params: Prettify<CookieClientParams>): Client<'cookie'> {
+        return new Client<'cookie'>()
+{%~ if sdk.platform == 'console' %}
+            .applyBase<'cookie'>({ mode: 'admin', ...params }, 'server')
+{%~ else %}
+            .applyBase<'cookie'>(params, 'server')
+{%~ endif %}
+            .setCookie(params.cookie);
+    }
+
+{%~ if sdk.platform == 'server' or sdk.platform == 'console' %}
+    static fromJWT(params: Prettify<JWTClientParams>): Client<'jwt'> {
+        return new Client<'jwt'>()
+            .applyBase<'jwt'>(params, 'server')
+            .setJWT(params.jwt);
+    }
+
+{%~ endif %}
+
+    static fromDevKey(params: Prettify<DevKeyClientParams>): Client<'devKey'> {
+        return new Client<'devKey'>()
+            .applyBase<'devKey'>(params, 'client')
+            .setDevKey(params.devKey);
+    }
+
+    static fromImpersonation(params: Prettify<ImpersonationClientParams>): Client<'impersonation'> {
+        const targets = [
+            params.userId !== undefined,
+            params.email !== undefined,
+            params.phone !== undefined
+        ].filter(Boolean).length;
+
+        if (targets !== 1) {
+            throw new {{spec.title | caseUcfirst}}Exception('Exactly one impersonation target must be provided');
+        }
+
+        const client = new Client<'impersonation'>()
+            .applyBase<'impersonation'>(params, 'client')
+            .setSession(params.session);
+
+        if (params.userId !== undefined) {
+            return client.setImpersonateUserId(params.userId);
+        }
+        if (params.email !== undefined) {
+            return client.setImpersonateUserEmail(params.email);
+        }
+        return client.setImpersonateUserPhone(params.phone);
+    }
+
+    withJWT(jwt: string): this {
+        this.headers['X-{{ spec.title | caseUcfirst }}-JWT'] = jwt;
+        this.config.jwt = jwt;
+        return this;
+    }
+
+    withForwardedUserAgent(forwardedUserAgent: string): this {
+        this.headers['X-Forwarded-User-Agent'] = forwardedUserAgent;
+        this.config.forwardeduseragent = forwardedUserAgent;
+        return this;
+    }
+
+    private applyBase<T extends Auth>(params: BaseClientParams, sdkPlatform: SDKPlatform): Client<T> {
+        const client = this as unknown as Client<T>;
+        client.sdkPlatform = sdkPlatform;
+        client.headers['x-sdk-platform'] = sdkPlatform === 'server' ? '{{ sdk.platform == 'console' ? 'console' : 'server' }}' : 'client';
+        client.setEndpoint(params.endpoint);
+        client.setProject(params.projectId);
+
+        if (params.endpointRealtime !== undefined) {
+            client.setEndpointRealtime(params.endpointRealtime);
+        }
+
+        if (params.locale !== undefined) {
+            client.setLocale(params.locale);
+        }
+
+        if (params.selfSigned !== undefined) {
+            client.setSelfSigned(params.selfSigned);
+        }
+
+{%~ if sdk.platform == 'console' %}
+        if (params.mode !== undefined) {
+            client.setMode(params.mode);
+        }
+
+        if (params.platform !== undefined) {
+            client.setPlatform(params.platform);
+        }
+
+{%~ endif %}
+        return client;
+    }
 
     /**
      * Get Headers
@@ -405,7 +562,7 @@ class Client {
      *
      * @returns {this}
      */
-    setEndpoint(endpoint: string): this {
+    private setEndpoint(endpoint: string): this {
         if (!endpoint || typeof endpoint !== 'string') {
             throw new {{spec.title | caseUcfirst}}Exception('Endpoint must be a valid string');
         }
@@ -427,7 +584,7 @@ class Client {
      *
      * @returns {this}
      */
-    setEndpointRealtime(endpointRealtime: string): this {
+    private setEndpointRealtime(endpointRealtime: string): this {
         if (!endpointRealtime || typeof endpointRealtime !== 'string') {
             throw new {{spec.title | caseUcfirst}}Exception('Endpoint must be a valid string');
         }
@@ -440,7 +597,6 @@ class Client {
         return this;
     }
 
-{%~ if sdk.platform == 'console' %}
     /**
      * Set self-signed
      *
@@ -448,30 +604,19 @@ class Client {
      *
      * @returns {this}
      */
-    setSelfSigned(selfSigned: boolean): this {
+    private setSelfSigned(selfSigned: boolean): this {
         this.config.selfSigned = selfSigned;
         return this;
     }
 
-{%~ endif %}
-    {%~ for header in spec.global.headers %}
-    /**
-     * Set {{header.key | caseUcfirst}}
-     *
-    {%~ if header.description %}
-     * {{header.description}}
-     *
-    {%~ endif %}
-     * @param value string
-     *
-     * @return {this}
-     */
-    set{{header.key | caseUcfirst}}(value: string): this {
-        this.headers['{{header.name}}'] = value;
+{%~ for header in webHeaders %}
+    private set{{ header.key | caseUcfirst }}(value: string): this {
+        this.headers['{{ header.name }}'] = value;
         this.config.{{ header.key | caseLower }} = value;
         return this;
     }
-    {%~ endfor %}
+
+{%~ endfor %}
 
     private realtime: Realtime = {
         socket: undefined,
@@ -486,9 +631,13 @@ class Client {
         lastMessage: undefined,
         connect: () => {
             clearTimeout(this.realtime.timeout);
-            this.realtime.timeout = window?.setTimeout(() => {
-                this.realtime.createSocket();
-            }, 50);
+            this.realtime.timeout = typeof window !== 'undefined'
+                ? window.setTimeout(() => {
+                    this.realtime.createSocket();
+                }, 50)
+                : setTimeout(() => {
+                    this.realtime.createSocket();
+                }, 50) as unknown as TimeoutHandle;
         },
         getTimeout: () => {
             switch (true) {
@@ -504,14 +653,20 @@ class Client {
         },
         createHeartbeat: () => {
             if (this.realtime.heartbeat) {
-                clearTimeout(this.realtime.heartbeat);
+                clearInterval(this.realtime.heartbeat as any);
             }
 
-            this.realtime.heartbeat = window?.setInterval(() => {
-                this.realtime.socket?.send(JSONbig.stringify({
-                    type: 'ping'
-                }));
-            }, 20_000);
+            this.realtime.heartbeat = typeof window !== 'undefined'
+                ? window.setInterval(() => {
+                    this.realtime.socket?.send(JSONbig.stringify({
+                        type: 'ping'
+                    }));
+                }, 20_000)
+                : setInterval(() => {
+                    this.realtime.socket?.send(JSONbig.stringify({
+                        type: 'ping'
+                    }));
+                }, 20_000) as unknown as TimeoutHandle;
         },
         createSocket: () => {
             if (this.realtime.subscriptions.size < 1) {
@@ -597,8 +752,14 @@ class Client {
 
                         let session = this.config.session;
                         if (!session) {
-                            const cookie = JSONbig.parse(window.localStorage.getItem('cookieFallback') ?? '{}');
-                            session = cookie?.[`a_session_${this.config.project}`];
+                            try {
+                                if (typeof window !== 'undefined' && window.localStorage) {
+                                    const cookie = JSONbig.parse(window.localStorage.getItem('cookieFallback') ?? '{}');
+                                    session = cookie?.[`a_session_${this.config.project}`];
+                                }
+                            } catch (error) {
+                                console.error('Failed to parse cookie fallback:', error);
+                            }
                         }
                         if (session && !messageData?.user) {
                             this.realtime.socket?.send(JSONbig.stringify(<RealtimeRequest>{
@@ -763,7 +924,7 @@ class Client {
 
         headers = Object.assign({}, this.headers, headers);
 
-        if (typeof window !== 'undefined' && window.localStorage) {
+        if (this.sdkPlatform === 'client' && typeof window !== 'undefined' && window.localStorage) {
             const cookieFallback = window.localStorage.getItem('cookieFallback');
             if (cookieFallback) {
                 headers['X-Fallback-Cookies'] = cookieFallback;
@@ -775,7 +936,7 @@ class Client {
             headers,
         };
 
-        if (headers['X-Appwrite-Dev-Key'] === undefined) {
+        if (this.sdkPlatform === 'client' && headers['X-Appwrite-Dev-Key'] === undefined) {
             options.credentials = 'include';
         }
 
@@ -790,6 +951,10 @@ class Client {
                     break;
 
                 case 'multipart/form-data':
+                    if (typeof FormData === 'undefined' || typeof File === 'undefined') {
+                        throw new {{spec.title | caseUcfirst}}Exception('Multipart requests require File and FormData globals');
+                    }
+
                     const formData = new FormData();
 
                     for (const [key, value] of Object.entries(params)) {
@@ -814,6 +979,10 @@ class Client {
     }
 
     async chunkedUpload(method: string, url: URL, headers: Headers = {}, originalPayload: Payload = {}, onProgress: (progress: UploadProgress) => void) {
+        if (typeof File === 'undefined' || typeof FormData === 'undefined') {
+            throw new {{spec.title | caseUcfirst}}Exception('Chunked uploads require File and FormData globals');
+        }
+
         const [fileParam, file] = Object.entries(originalPayload).find(([_, value]) => value instanceof File) ?? [];
 
         if (!file || !fileParam) {
@@ -833,13 +1002,14 @@ class Client {
                 end = file.size; // Adjust for the last chunk to include the last byte
             }
 
-            headers['content-range'] = `bytes ${start}-${end-1}/${file.size}`;
+            const chunkHeaders = { ...headers };
+            chunkHeaders['content-range'] = `bytes ${start}-${end-1}/${file.size}`;
             const chunk = file.slice(start, end);
 
             let payload = { ...originalPayload };
             payload[fileParam] = new File([chunk], file.name);
 
-            response = await this.call(method, url, headers, payload);
+            response = await this.call(method, url, chunkHeaders, payload);
 
             if (onProgress && typeof onProgress === 'function') {
                 onProgress({
@@ -873,9 +1043,9 @@ class Client {
         const response = await fetch(uri, options);
 
         // type opaque: No-CORS, different-origin response (CORS-issue)
-        if (response.type === 'opaque') {
+        if (this.sdkPlatform === 'client' && typeof window !== 'undefined' && response.type === 'opaque') {
             throw new {{spec.title | caseUcfirst}}Exception(
-                `Invalid Origin. Register your new client (${window.location.host}) as a new Web platform on your project console dashboard`,
+                `Invalid Origin. Register your new client (${typeof window !== 'undefined' ? window.location.host : 'unknown'}) as a new Web platform on your project console dashboard`,
                 403,
                 "forbidden",
                 ""
@@ -909,7 +1079,7 @@ class Client {
 
         const cookieFallback = response.headers.get('X-Fallback-Cookies');
 
-        if (typeof window !== 'undefined' && window.localStorage && cookieFallback) {
+        if (this.sdkPlatform === 'client' && typeof window !== 'undefined' && window.localStorage && cookieFallback) {
             window.console.warn('{{spec.title | caseUcfirst}} is using localStorage for session management. Increase your security by adding a custom domain as your API endpoint.');
             window.localStorage.setItem('cookieFallback', cookieFallback);
         }
@@ -938,7 +1108,6 @@ class Client {
 }
 
 export { Client, {{spec.title | caseUcfirst}}Exception };
+export type { Models, SDKPlatform, ClientAuth, ServerAuth, Payload, RealtimeResponseEvent, UploadProgress };
 export { Query } from './query';
-export type { Models, Payload, UploadProgress };
-export type { RealtimeResponseEvent };
 export type { QueryTypes, QueryTypesList } from './query';
