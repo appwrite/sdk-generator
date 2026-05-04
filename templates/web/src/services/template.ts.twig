@@ -1,35 +1,7 @@
 {# Detect service shape and imports before emitting TypeScript. #}
-{% set tierFlag = [] %}
-{% set serverFlag = [] %}
-{% set serverAuthFlag = [] %}
-{% set clientAuthFlag = [] %}
-{% set uploadFlag = [] %}
-{% for m in service.methods %}
-{% if 'client' in m.platforms %}
-{% set tierFlag = tierFlag|merge([1]) %}
-{% endif %}
-{% if 'server' in m.platforms or 'console' in m.platforms %}
-{% set serverFlag = serverFlag|merge([1]) %}
-{% endif %}
-{% if ('server' in m.platforms or 'console' in m.platforms) and 'client' not in m.platforms %}
-{% set serverAuthFlag = serverAuthFlag|merge([1]) %}
-{% endif %}
-{% if 'client' in m.platforms and 'server' not in m.platforms and 'console' not in m.platforms %}
-{% set clientAuthFlag = clientAuthFlag|merge([1]) %}
-{% endif %}
-{% if 'multipart/form-data' in m.consumes %}
-{% set uploadFlag = uploadFlag|merge([1]) %}
-{% endif %}
-{% endfor %}
-{% set hasClientTier = tierFlag|length > 0 %}
-{% set hasServerTier = serverFlag|length > 0 %}
-{% set hasMixedTier = hasClientTier and hasServerTier %}
-{% set platformAuth = sdk.platform == 'console' ? 'ConsoleAuth' : 'ServerAuth' %}
-{% set needsPlatformAuth = hasServerTier and (not hasMixedTier or serverAuthFlag|length > 0) %}
-{% set needsClientAuth = hasClientTier and (not hasMixedTier or clientAuthFlag|length > 0) %}
-{% set hasUpload = uploadFlag|length > 0 %}
+{% set auth = service | webServiceAuth(sdk.platform) %}
 import { Service } from '../service';
-import { {{ spec.title | caseUcfirst}}Exception, Client, {% if needsClientAuth or hasMixedTier %}type ClientAuth, {% endif %}{% if needsPlatformAuth or hasMixedTier %}type {{ platformAuth }}, {% endif %}type Payload{% if hasUpload %}, UploadProgress{% endif %} } from '../client';
+import { {{ spec.title | caseUcfirst}}Exception, Client, {% if auth.needsClientAuth or auth.hasMixedTier %}type ClientAuth, {% endif %}{% if auth.needsPlatformAuth or auth.hasMixedTier %}type {{ auth.platformAuth }}, {% endif %}type Payload{% if auth.hasUpload %}, UploadProgress{% endif %} } from '../client';
 import type { Models } from '../models';
 
 {% set added = [] %}
@@ -44,18 +16,18 @@ import { {{ parameter.enumName | caseUcfirst }} } from '../enums/{{ parameter.en
 {% endfor %}
 {% endfor %}
 
-{%~ if hasMixedTier %}
-export class {{ service.name | caseUcfirst }}<TAuth extends ClientAuth | {{ platformAuth }} = ClientAuth | {{ platformAuth }}> {
+{%~ if auth.hasMixedTier %}
+export class {{ service.name | caseUcfirst }}<TAuth extends ClientAuth | {{ auth.platformAuth }} = ClientAuth | {{ auth.platformAuth }}> {
     client: Client<TAuth>;
 
     constructor(client: Client<TAuth>) {
         this.client = client;
     }
-{%~ elseif hasServerTier %}
+{%~ elseif auth.hasServerTier %}
 export class {{ service.name | caseUcfirst }} {
-    client: Client<{{ platformAuth }}>;
+    client: Client<{{ auth.platformAuth }}>;
 
-    constructor(client: Client<{{ platformAuth }}>) {
+    constructor(client: Client<{{ auth.platformAuth }}>) {
         this.client = client;
     }
 {%~ else %}
@@ -68,20 +40,7 @@ export class {{ service.name | caseUcfirst }} {
 {%~ endif %}
 
     {%~ for method in service.methods %}
-    {%~ set thisGate = '' %}
-    {%~ set methodSupportsClient = 'client' in method.platforms %}
-    {%~ set methodSupportsServer = 'server' in method.platforms or 'console' in method.platforms %}
-    {%~ if hasMixedTier %}
-    {%~ if (method.type == 'location' or method.type == 'webAuth') and not methodSupportsClient %}
-    {%~ set thisGate = 'this: ' ~ (service.name | caseUcfirst) ~ '<' ~ platformAuth ~ '>, ' %}
-    {%~ elseif (method.type == 'location' or method.type == 'webAuth') and not methodSupportsServer %}
-    {%~ set thisGate = 'this: ' ~ (service.name | caseUcfirst) ~ '<ClientAuth>, ' %}
-    {%~ elseif not methodSupportsClient %}
-    {%~ set thisGate = 'this: ' ~ (service.name | caseUcfirst) ~ '<' ~ platformAuth ~ '>, ' %}
-    {%~ elseif not methodSupportsServer %}
-    {%~ set thisGate = 'this: ' ~ (service.name | caseUcfirst) ~ '<ClientAuth>, ' %}
-    {%~ endif %}
-    {%~ endif %}
+    {%~ set thisGate = method | webMethodThisGate(service, sdk.platform) %}
     /**
     {%~ if method.description %}
      * {{ method.description | replace({'\n': '\n     * '}) | raw }}

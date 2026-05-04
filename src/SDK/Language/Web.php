@@ -476,6 +476,105 @@ class Web extends JS
         return $this->getTypeName($property);
     }
 
+    /**
+     * Determine the TypeScript auth type name for a given platform.
+     */
+    protected function webPlatformAuth(string $platform): string
+    {
+        return $platform === 'console' ? 'ConsoleAuth' : 'ServerAuth';
+    }
+
+    /**
+     * Determine whether a method supports client-side platforms.
+     */
+    protected function methodSupportsClient(array $method): bool
+    {
+        return in_array('client', $method['platforms'] ?? [], true);
+    }
+
+    /**
+     * Determine whether a method supports server/console platforms.
+     */
+    protected function methodSupportsPlatformAuth(array $method): bool
+    {
+        $platforms = $method['platforms'] ?? [];
+        return in_array('server', $platforms, true) || in_array('console', $platforms, true);
+    }
+
+    /**
+     * Compute auth-related flags for a Web service.
+     *
+     * @return array<string, mixed>
+     */
+    public function webServiceAuth(array $service, string $platform): array
+    {
+        $hasClientTier = false;
+        $hasServerTier = false;
+        $hasServerOnly = false;
+        $hasClientOnly = false;
+        $hasUpload = false;
+
+        foreach ($service['methods'] ?? [] as $method) {
+            $platforms = $method['platforms'] ?? [];
+            $hasClient = in_array('client', $platforms, true);
+            $hasServerOrConsole = in_array('server', $platforms, true) || in_array('console', $platforms, true);
+
+            if ($hasClient) {
+                $hasClientTier = true;
+            }
+            if ($hasServerOrConsole) {
+                $hasServerTier = true;
+            }
+            if ($hasServerOrConsole && !$hasClient) {
+                $hasServerOnly = true;
+            }
+            if ($hasClient && !$hasServerOrConsole) {
+                $hasClientOnly = true;
+            }
+            if (in_array('multipart/form-data', $method['consumes'] ?? [], true)) {
+                $hasUpload = true;
+            }
+        }
+
+        $hasMixedTier = $hasClientTier && $hasServerTier;
+        $platformAuth = $this->webPlatformAuth($platform);
+
+        return [
+            'hasClientTier'     => $hasClientTier,
+            'hasServerTier'     => $hasServerTier,
+            'hasMixedTier'      => $hasMixedTier,
+            'platformAuth'      => $platformAuth,
+            'needsPlatformAuth' => $hasServerTier && (!$hasMixedTier || $hasServerOnly),
+            'needsClientAuth'   => $hasClientTier && (!$hasMixedTier || $hasClientOnly),
+            'hasUpload'         => $hasUpload,
+        ];
+    }
+
+    /**
+     * Build the TypeScript `this:` gate string for a method in a Web service.
+     */
+    public function webMethodThisGate(array $method, array $service, string $platform): string
+    {
+        $auth = $this->webServiceAuth($service, $platform);
+        if (!$auth['hasMixedTier']) {
+            return '';
+        }
+
+        $methodSupportsClient = $this->methodSupportsClient($method);
+        $methodSupportsPlatform = $this->methodSupportsPlatformAuth($method);
+
+        $serviceName = $this->toPascalCase($service['name'] ?? '');
+
+        if (!$methodSupportsClient) {
+            return 'this: ' . $serviceName . '<' . $auth['platformAuth'] . '>, ';
+        }
+        if (!$methodSupportsPlatform) {
+            return 'this: ' . $serviceName . '<ClientAuth>, ';
+        }
+
+        return '';
+    }
+
     public function getFilters(): array
     {
         return \array_merge(parent::getFilters(), [
@@ -535,6 +634,12 @@ class Web extends JS
                 $condition .= ')';
 
                 return $condition;
+            }, ['is_safe' => ['html']]),
+            new TwigFilter('webServiceAuth', function (array $service, string $platform) {
+                return $this->webServiceAuth($service, $platform);
+            }),
+            new TwigFilter('webMethodThisGate', function (array $method, array $service, string $platform) {
+                return $this->webMethodThisGate($method, $service, $platform);
             }, ['is_safe' => ['html']]),
             new TwigFilter('comment2', function ($value) {
                 $value = explode("\n", $value);
