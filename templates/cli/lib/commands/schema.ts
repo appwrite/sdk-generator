@@ -69,21 +69,9 @@ export class Schema {
     const resolvedConfigPath = configPath
       ? path.resolve(configPath)
       : this.configPaths.get(config);
-    const pullOptions = resolvedConfigPath
-      ? {
-          ...options,
-          resourceDirectories: {
-            functions: getLocalConfigResourceDirname(
-              resolvedConfigPath,
-              "functions",
-            ),
-            sites: getLocalConfigResourceDirname(resolvedConfigPath, "sites"),
-          },
-        }
-      : options;
     const updatedConfig = await this.pullCommand.pullResources(
       config,
-      pullOptions,
+      this.withResourceDirectories(options, resolvedConfigPath),
     );
     if (resolvedConfigPath) {
       this.write(updatedConfig, resolvedConfigPath);
@@ -116,7 +104,7 @@ export class Schema {
     await this.pushCommand.pushResources(pushConfig, options);
     const updatedConfig = await this.pullCommandSilent.pullResources(
       config,
-      options,
+      this.withResourceDirectories(options, resolvedConfigPath),
     );
 
     if (resolvedConfigPath) {
@@ -149,5 +137,22 @@ export class Schema {
     const resolvedPath = path.resolve(filePath);
     writeLocalConfigFile(config, resolvedPath);
     this.configPaths.set(config, resolvedPath);
+  }
+
+  private withResourceDirectories(
+    options: PullOptions,
+    configPath?: string,
+  ): PullOptions {
+    if (!configPath) {
+      return options;
+    }
+
+    return {
+      ...options,
+      resourceDirectories: {
+        functions: getLocalConfigResourceDirname(configPath, "functions"),
+        sites: getLocalConfigResourceDirname(configPath, "sites"),
+      },
+    };
   }
 }
