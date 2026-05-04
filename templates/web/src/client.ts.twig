@@ -391,6 +391,7 @@ type ImpersonationTarget =
 
 type ImpersonationClientParams = SessionClientParams & ImpersonationTarget;
 
+{%~ set webHeaders = spec.global.headers | webClientHeaders %}
 class Client<TAuth extends Auth = 'browser'> {
     static CHUNK_SIZE = 1024 * 1024 * 5;
 
@@ -400,40 +401,18 @@ class Client<TAuth extends Auth = 'browser'> {
     config: {
         endpoint: string;
         endpointRealtime: string;
-        project: string;
-        key: string;
-        cookie: string;
-{%~ if sdk.platform == 'console' %}
-        mode: string;
-        platform: string;
-{%~ endif %}
-        jwt: string;
-        locale: string;
-        session: string;
-        devkey: string;
+{%~ for header in webHeaders %}
+        {{ header.key | caseLower }}: string;
+{%~ endfor %}
         forwardeduseragent: string;
-        impersonateuserid: string;
-        impersonateuseremail: string;
-        impersonateuserphone: string;
         selfSigned: boolean;
     } = {
         endpoint: '{{ spec.endpoint }}',
         endpointRealtime: '',
-        project: '',
-        key: '',
-        cookie: '',
-{%~ if sdk.platform == 'console' %}
-        mode: '',
-        platform: '',
-{%~ endif %}
-        jwt: '',
-        locale: '',
-        session: '',
-        devkey: '',
+{%~ for header in webHeaders %}
+        {{ header.key | caseLower }}: '',
+{%~ endfor %}
         forwardeduseragent: '',
-        impersonateuserid: '',
-        impersonateuseremail: '',
-        impersonateuserphone: '',
         selfSigned: false,
     };
 
@@ -553,13 +532,11 @@ class Client<TAuth extends Auth = 'browser'> {
 
 {%~ if sdk.platform == 'console' %}
         if (params.mode !== undefined) {
-            client.headers['X-{{ spec.title | caseUcfirst }}-Mode'] = params.mode;
-            client.config.mode = params.mode;
+            client.setMode(params.mode);
         }
 
         if (params.platform !== undefined) {
-            client.headers['X-{{ spec.title | caseUcfirst }}-Platform'] = params.platform;
-            client.config.platform = params.platform;
+            client.setPlatform(params.platform);
         }
 
 {%~ endif %}
@@ -634,86 +611,18 @@ class Client<TAuth extends Auth = 'browser'> {
         return this;
     }
 
-    private setProject(value: string): this {
-        this.headers['X-{{ spec.title | caseUcfirst }}-Project'] = value;
-        this.config.project = value;
+{%~ for header in webHeaders %}
+    private set{{ header.key | caseUcfirst }}(value: string): this {
+        this.headers['{{ header.name }}'] = value;
+        this.config.{{ header.key | caseLower }} = value;
         return this;
     }
 
-    private setKey(value: string): Client<'apiKey'> {
-        this.headers['X-{{ spec.title | caseUcfirst }}-Key'] = value;
-        this.config.key = value;
-        this.sdkPlatform = 'server';
-        this.headers['x-sdk-platform'] = '{{ sdk.platform == 'console' ? 'console' : 'server' }}';
-        return this as unknown as Client<'apiKey'>;
-    }
-
-    private setCookie(value: string): Client<'cookie'> {
-        this.headers['Cookie'] = value;
-        this.config.cookie = value;
-        this.sdkPlatform = 'server';
-        this.headers['x-sdk-platform'] = '{{ sdk.platform == 'console' ? 'console' : 'server' }}';
-        return this as unknown as Client<'cookie'>;
-    }
-
-    private setJWT(value: string): Client<'jwt'> {
-        this.headers['X-{{ spec.title | caseUcfirst }}-JWT'] = value;
-        this.config.jwt = value;
-        this.sdkPlatform = 'server';
-        this.headers['x-sdk-platform'] = '{{ sdk.platform == 'console' ? 'console' : 'server' }}';
-        return this as unknown as Client<'jwt'>;
-    }
-
-    private setLocale(value: string): this {
-        this.headers['X-{{ spec.title | caseUcfirst }}-Locale'] = value;
-        this.config.locale = value;
-        return this;
-    }
-
-    private setSession(value: string): Client<'session'> {
-        this.headers['X-{{ spec.title | caseUcfirst }}-Session'] = value;
-        this.config.session = value;
-        this.sdkPlatform = 'client';
-        this.headers['x-sdk-platform'] = 'client';
-        return this as unknown as Client<'session'>;
-    }
-
-    private setDevKey(value: string): Client<'devKey'> {
-        this.headers['X-{{ spec.title | caseUcfirst }}-Dev-Key'] = value;
-        this.config.devkey = value;
-        this.sdkPlatform = 'client';
-        this.headers['x-sdk-platform'] = 'client';
-        return this as unknown as Client<'devKey'>;
-    }
-
+{%~ endfor %}
     private setForwardedUserAgent(value: string): this {
         this.headers['X-Forwarded-User-Agent'] = value;
         this.config.forwardeduseragent = value;
         return this;
-    }
-
-    private setImpersonateUserId(value: string): Client<'impersonation'> {
-        this.headers['X-{{ spec.title | caseUcfirst }}-Impersonate-User-Id'] = value;
-        this.config.impersonateuserid = value;
-        this.sdkPlatform = 'client';
-        this.headers['x-sdk-platform'] = 'client';
-        return this as unknown as Client<'impersonation'>;
-    }
-
-    private setImpersonateUserEmail(value: string): Client<'impersonation'> {
-        this.headers['X-{{ spec.title | caseUcfirst }}-Impersonate-User-Email'] = value;
-        this.config.impersonateuseremail = value;
-        this.sdkPlatform = 'client';
-        this.headers['x-sdk-platform'] = 'client';
-        return this as unknown as Client<'impersonation'>;
-    }
-
-    private setImpersonateUserPhone(value: string): Client<'impersonation'> {
-        this.headers['X-{{ spec.title | caseUcfirst }}-Impersonate-User-Phone'] = value;
-        this.config.impersonateuserphone = value;
-        this.sdkPlatform = 'client';
-        this.headers['x-sdk-platform'] = 'client';
-        return this as unknown as Client<'impersonation'>;
     }
 
     private realtime: Realtime = {

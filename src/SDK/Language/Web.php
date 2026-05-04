@@ -477,6 +477,47 @@ class Web extends JS
     }
 
     /**
+     * Augment spec.global.headers with any auth headers required by the unified
+     * web client but missing from the loaded spec. Each platform's spec exposes
+     * a different subset of securityDefinitions (e.g. console omits Session and
+     * DevKey; client omits Cookie and Mode), but the unified web Client emits
+     * setters for the union so factories work regardless of build target.
+     *
+     * TODO: Remove this augmentation once appwrite/appwrite#12211 ships and the
+     * regenerated specs declare the union of auth headers in every platform's
+     * securityDefinitions. After that, spec.global.headers will already carry
+     * everything the unified client needs and this filter (plus its Twig
+     * registration) can be deleted.
+     *
+     * @param array $globalHeaders headers parsed from securityDefinitions
+     * @return array merged list, preserving spec entries (with descriptions)
+     */
+    public function webClientHeaders(array $globalHeaders): array
+    {
+        $required = [
+            'Project'              => 'X-Appwrite-Project',
+            'Key'                  => 'X-Appwrite-Key',
+            'Cookie'               => 'Cookie',
+            'JWT'                  => 'X-Appwrite-JWT',
+            'Locale'               => 'X-Appwrite-Locale',
+            'Session'              => 'X-Appwrite-Session',
+            'DevKey'               => 'X-Appwrite-Dev-Key',
+            'Mode'                 => 'X-Appwrite-Mode',
+            'Platform'             => 'X-Appwrite-Platform',
+            'ImpersonateUserId'    => 'X-Appwrite-Impersonate-User-Id',
+            'ImpersonateUserEmail' => 'X-Appwrite-Impersonate-User-Email',
+            'ImpersonateUserPhone' => 'X-Appwrite-Impersonate-User-Phone',
+        ];
+        $existing = array_column($globalHeaders, 'key');
+        foreach ($required as $key => $name) {
+            if (!in_array($key, $existing, true)) {
+                $globalHeaders[] = ['key' => $key, 'name' => $name, 'description' => ''];
+            }
+        }
+        return $globalHeaders;
+    }
+
+    /**
      * Determine whether a method supports client-side platforms.
      */
     protected function methodSupportsClient(array $method): bool
@@ -627,6 +668,9 @@ class Web extends JS
             new TwigFilter('webMethodThisGate', function (array $method, array $service) {
                 return $this->webMethodThisGate($method, $service);
             }, ['is_safe' => ['html']]),
+            new TwigFilter('webClientHeaders', function (array $globalHeaders) {
+                return $this->webClientHeaders($globalHeaders);
+            }),
             new TwigFilter('comment2', function ($value) {
                 $value = explode("\n", $value);
                 foreach ($value as $key => $line) {
