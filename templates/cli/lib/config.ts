@@ -49,7 +49,12 @@ type ConfigResourceKey = (typeof CONFIG_RESOURCE_KEYS)[number];
 
 type ConfigIncludePaths = Partial<Record<ConfigResourceKey, string>>;
 
-const includePathHintsByFile = new Map<string, ConfigIncludePaths>();
+type ConfigIncludePathHintCache = {
+  paths: ConfigIncludePaths;
+  mtimeMs: number;
+};
+
+const includePathHintsByFile = new Map<string, ConfigIncludePathHintCache>();
 
 /**
  * Extract keys from a Zod object schema.
@@ -250,6 +255,7 @@ function resolveConfigData(
 export function readLocalConfigFile(filePath: string): ConfigType {
   const rootData = readJsonFile<Record<string, unknown>>(filePath);
   const includePaths = getConfigIncludePaths(rootData);
+  setCachedIncludePathHints(filePath, includePaths);
   return resolveConfigData(filePath, rootData, includePaths) as ConfigType;
 }
 
@@ -298,16 +304,48 @@ export function writeLocalConfigFile(
     ? readJsonFile<Record<string, unknown>>(filePath)
     : {};
   const includePaths = getConfigIncludePaths(rootData);
-  const includePathHints = includePathHintsByFile.get(filePath) ?? {};
+  const includePathHints = getCachedIncludePathHints(filePath);
   const writeIncludePaths = getWriteIncludePaths(
     config,
     includePaths,
     includePathHints,
   );
   writeResolvedLocalConfig(config, filePath, rootData, writeIncludePaths);
-  includePathHintsByFile.set(filePath, {
+  setCachedIncludePathHints(filePath, {
     ...includePathHints,
     ...writeIncludePaths,
+  });
+}
+
+function getCachedIncludePathHints(filePath: string): ConfigIncludePaths {
+  const cached = includePathHintsByFile.get(filePath);
+  if (!cached) {
+    return {};
+  }
+
+  if (
+    !fs.existsSync(filePath) ||
+    fs.statSync(filePath).mtimeMs !== cached.mtimeMs
+  ) {
+    includePathHintsByFile.delete(filePath);
+    return {};
+  }
+
+  return cached.paths;
+}
+
+function setCachedIncludePathHints(
+  filePath: string,
+  includePaths: ConfigIncludePaths,
+): void {
+  if (!fs.existsSync(filePath) || Object.keys(includePaths).length === 0) {
+    includePathHintsByFile.delete(filePath);
+    return;
+  }
+
+  includePathHintsByFile.set(filePath, {
+    paths: includePaths,
+    mtimeMs: fs.statSync(filePath).mtimeMs,
   });
 }
 

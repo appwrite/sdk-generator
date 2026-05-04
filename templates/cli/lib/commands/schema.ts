@@ -70,9 +70,6 @@ export class Schema {
       : this.configPaths.get(config);
     const updatedConfig = await this.pullCommand.pullResources(config, options);
     if (resolvedConfigPath) {
-      this.configPaths.set(updatedConfig, resolvedConfigPath);
-    }
-    if (resolvedConfigPath) {
       this.write(updatedConfig, resolvedConfigPath);
     }
     return updatedConfig;
@@ -108,9 +105,6 @@ export class Schema {
 
     if (resolvedConfigPath) {
       this.write(updatedConfig, resolvedConfigPath);
-    }
-    if (resolvedConfigPath) {
-      this.configPaths.set(updatedConfig, resolvedConfigPath);
     }
     return updatedConfig;
   }
