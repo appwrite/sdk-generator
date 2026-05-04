@@ -71,6 +71,10 @@ export interface PullOptions {
   skipDeprecated?: boolean;
   withVariables?: boolean;
   noCode?: boolean;
+  resourceDirectories?: {
+    functions?: string;
+    sites?: string;
+  };
 }
 
 interface PullFunctionsOptions {
@@ -176,59 +180,72 @@ export class Pull {
 
     const updatedConfig: ConfigType = { ...config };
     const shouldPullAll = options.all === true;
+    const originalConfigDirectoryPath = this.configDirectoryPath;
 
-    if (shouldPullAll || options.settings) {
-      const settings = await this.pullSettings(config.projectId);
-      updatedConfig.settings = settings.settings;
-      updatedConfig.projectName = settings.projectName;
-    }
+    try {
+      if (shouldPullAll || options.settings) {
+        const settings = await this.pullSettings(config.projectId);
+        updatedConfig.settings = settings.settings;
+        updatedConfig.projectName = settings.projectName;
+      }
 
-    if (shouldPullAll || options.functions) {
-      const functions = await this.pullFunctions({
-        code: options.noCode === true ? false : true,
-        withVariables: options.withVariables,
-      });
-      updatedConfig.functions = functions;
-    }
+      if (shouldPullAll || options.functions) {
+        if (options.resourceDirectories?.functions) {
+          this.setConfigDirectoryPath(options.resourceDirectories.functions);
+        }
+        const functions = await this.pullFunctions({
+          code: options.noCode === true ? false : true,
+          withVariables: options.withVariables,
+        });
+        updatedConfig.functions = functions;
+        this.setConfigDirectoryPath(originalConfigDirectoryPath);
+      }
 
-    if (shouldPullAll || options.sites) {
-      const sites = await this.pullSites({
-        code: options.noCode === true ? false : true,
-        withVariables: options.withVariables,
-      });
-      updatedConfig.sites = sites;
-    }
+      if (shouldPullAll || options.sites) {
+        if (options.resourceDirectories?.sites) {
+          this.setConfigDirectoryPath(options.resourceDirectories.sites);
+        }
+        const sites = await this.pullSites({
+          code: options.noCode === true ? false : true,
+          withVariables: options.withVariables,
+        });
+        updatedConfig.sites = sites;
+        this.setConfigDirectoryPath(originalConfigDirectoryPath);
+      }
 
-    if (shouldPullAll || options.tables) {
-      const { databases, tables } = await this.pullTables();
-      updatedConfig.databases = databases;
-      updatedConfig.tables = tables;
-    }
+      if (shouldPullAll || options.tables) {
+        const { databases, tables } = await this.pullTables();
+        updatedConfig.databases = databases;
+        updatedConfig.tables = tables;
+      }
 
-    if (options.collections || (shouldPullAll && !skipDeprecated)) {
-      const { databases, collections } = await this.pullCollections();
-      updatedConfig.databases = databases;
-      updatedConfig.collections = collections;
-    }
+      if (options.collections || (shouldPullAll && !skipDeprecated)) {
+        const { databases, collections } = await this.pullCollections();
+        updatedConfig.databases = databases;
+        updatedConfig.collections = collections;
+      }
 
-    if (shouldPullAll || options.buckets) {
-      const buckets = await this.pullBuckets();
-      updatedConfig.buckets = buckets;
-    }
+      if (shouldPullAll || options.buckets) {
+        const buckets = await this.pullBuckets();
+        updatedConfig.buckets = buckets;
+      }
 
-    if (shouldPullAll || options.teams) {
-      const teams = await this.pullTeams();
-      updatedConfig.teams = teams;
-    }
+      if (shouldPullAll || options.teams) {
+        const teams = await this.pullTeams();
+        updatedConfig.teams = teams;
+      }
 
-    if (shouldPullAll || options.webhooks) {
-      const webhooks = await this.pullWebhooks();
-      updatedConfig.webhooks = webhooks;
-    }
+      if (shouldPullAll || options.webhooks) {
+        const webhooks = await this.pullWebhooks();
+        updatedConfig.webhooks = webhooks;
+      }
 
-    if (shouldPullAll || options.topics) {
-      const topics = await this.pullMessagingTopics();
-      updatedConfig.topics = topics;
+      if (shouldPullAll || options.topics) {
+        const topics = await this.pullMessagingTopics();
+        updatedConfig.topics = topics;
+      }
+    } finally {
+      this.setConfigDirectoryPath(originalConfigDirectoryPath);
     }
 
     return updatedConfig;

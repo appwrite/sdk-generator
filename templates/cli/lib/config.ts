@@ -49,13 +49,6 @@ type ConfigResourceKey = (typeof CONFIG_RESOURCE_KEYS)[number];
 
 type ConfigIncludePaths = Partial<Record<ConfigResourceKey, string>>;
 
-type ConfigIncludePathHintCache = {
-  paths: ConfigIncludePaths;
-  mtimeMs: number;
-};
-
-const includePathHintsByFile = new Map<string, ConfigIncludePathHintCache>();
-
 /**
  * Extract keys from a Zod object schema.
  * Handles both plain ZodObject and ZodEffects (schemas with refinements).
@@ -255,8 +248,24 @@ function resolveConfigData(
 export function readLocalConfigFile(filePath: string): ConfigType {
   const rootData = readJsonFile<Record<string, unknown>>(filePath);
   const includePaths = getConfigIncludePaths(rootData);
-  setCachedIncludePathHints(filePath, includePaths);
   return resolveConfigData(filePath, rootData, includePaths) as ConfigType;
+}
+
+export function getLocalConfigResourceDirname(
+  filePath: string,
+  resource: "functions" | "sites",
+): string {
+  const rootData = fs.existsSync(filePath)
+    ? readJsonFile<Record<string, unknown>>(filePath)
+    : {};
+  const includePath = getConfigIncludePaths(rootData)[resource];
+  if (!includePath) {
+    return _path.dirname(filePath);
+  }
+
+  return _path.dirname(
+    assertIncludePathInsideProject(filePath, resource, includePath),
+  );
 }
 
 export function resolveLocalConfigResourcePaths(
@@ -304,49 +313,7 @@ export function writeLocalConfigFile(
     ? readJsonFile<Record<string, unknown>>(filePath)
     : {};
   const includePaths = getConfigIncludePaths(rootData);
-  const includePathHints = getCachedIncludePathHints(filePath);
-  const writeIncludePaths = getWriteIncludePaths(
-    config,
-    includePaths,
-    includePathHints,
-  );
-  writeResolvedLocalConfig(config, filePath, rootData, writeIncludePaths);
-  setCachedIncludePathHints(filePath, {
-    ...includePathHints,
-    ...writeIncludePaths,
-  });
-}
-
-function getCachedIncludePathHints(filePath: string): ConfigIncludePaths {
-  const cached = includePathHintsByFile.get(filePath);
-  if (!cached) {
-    return {};
-  }
-
-  if (
-    !fs.existsSync(filePath) ||
-    fs.statSync(filePath).mtimeMs !== cached.mtimeMs
-  ) {
-    includePathHintsByFile.delete(filePath);
-    return {};
-  }
-
-  return cached.paths;
-}
-
-function setCachedIncludePathHints(
-  filePath: string,
-  includePaths: ConfigIncludePaths,
-): void {
-  if (!fs.existsSync(filePath) || Object.keys(includePaths).length === 0) {
-    includePathHintsByFile.delete(filePath);
-    return;
-  }
-
-  includePathHintsByFile.set(filePath, {
-    paths: includePaths,
-    mtimeMs: fs.statSync(filePath).mtimeMs,
-  });
+  writeResolvedLocalConfig(config, filePath, rootData, includePaths);
 }
 
 function writeResolvedLocalConfig(

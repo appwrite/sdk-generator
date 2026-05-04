@@ -7,6 +7,7 @@ import { parseWithBetterErrors } from "./utils/error-formatter.js";
 import * as path from "path";
 import { TypeScriptDatabasesGenerator } from "./generators/typescript/databases.js";
 import {
+  getLocalConfigResourceDirname,
   readLocalConfigFile,
   resolveLocalConfigResourcePaths,
   writeLocalConfigFile,
@@ -68,7 +69,22 @@ export class Schema {
     const resolvedConfigPath = configPath
       ? path.resolve(configPath)
       : this.configPaths.get(config);
-    const updatedConfig = await this.pullCommand.pullResources(config, options);
+    const pullOptions = resolvedConfigPath
+      ? {
+          ...options,
+          resourceDirectories: {
+            functions: getLocalConfigResourceDirname(
+              resolvedConfigPath,
+              "functions",
+            ),
+            sites: getLocalConfigResourceDirname(resolvedConfigPath, "sites"),
+          },
+        }
+      : options;
+    const updatedConfig = await this.pullCommand.pullResources(
+      config,
+      pullOptions,
+    );
     if (resolvedConfigPath) {
       this.write(updatedConfig, resolvedConfigPath);
     }
