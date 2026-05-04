@@ -357,6 +357,7 @@ type BaseClientParams = {
     projectId: string;
     endpointRealtime?: string;
     locale?: string;
+    selfSigned?: boolean;
 {%~ if sdk.platform == 'console' %}
     mode?: string;
     platform?: string;
@@ -480,11 +481,14 @@ class Client<TAuth extends Auth = 'browser'> {
             .setCookie(params.cookie);
     }
 
+{%~ if sdk.platform == 'server' or sdk.platform == 'console' %}
     static fromJWT(params: Prettify<JWTClientParams>): Client<'jwt'> {
         return new Client<'jwt'>()
             .applyBase<'jwt'>(params, 'server')
             .setJWT(params.jwt);
     }
+
+{%~ endif %}
 
     static fromDevKey(params: Prettify<DevKeyClientParams>): Client<'devKey'> {
         return new Client<'devKey'>()
@@ -541,6 +545,10 @@ class Client<TAuth extends Auth = 'browser'> {
 
         if (params.locale !== undefined) {
             client.setLocale(params.locale);
+        }
+
+        if (params.selfSigned !== undefined) {
+            client.setSelfSigned(params.selfSigned);
         }
 
 {%~ if sdk.platform == 'console' %}
