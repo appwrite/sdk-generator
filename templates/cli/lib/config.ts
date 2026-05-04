@@ -130,6 +130,10 @@ function assertValidIncludePath(resource: string, includePath: unknown): string 
     throw new Error(`Config include '${resource}' must be a local file path.`);
   }
 
+  if (!normalizedPath.toLowerCase().endsWith(".json")) {
+    throw new Error(`Config include '${resource}' must point to a JSON file.`);
+  }
+
   return normalizedPath;
 }
 
@@ -178,6 +182,14 @@ function resolveIncludePath(configFilePath: string, includePath: string): string
   return _path.resolve(_path.dirname(configFilePath), includePath);
 }
 
+function isPathInside(parentPath: string, childPath: string): boolean {
+  const relativePath = _path.relative(parentPath, childPath);
+  return (
+    relativePath === "" ||
+    (!relativePath.startsWith("..") && !_path.isAbsolute(relativePath))
+  );
+}
+
 function resolveConfigData(
   configFilePath: string,
   rootData: Record<string, unknown>,
@@ -195,7 +207,14 @@ function resolveConfigData(
     const resolvedPath = resolveIncludePath(configFilePath, includePath);
     const includedData = fs.existsSync(resolvedPath)
       ? readJsonFile<unknown>(resolvedPath)
-      : [];
+      : isPathInside(_path.dirname(configFilePath), resolvedPath)
+        ? []
+        : undefined;
+    if (includedData === undefined) {
+      throw new Error(
+        `Config include '${resource}' points outside the project directory and must already exist.`,
+      );
+    }
     if (!Array.isArray(includedData)) {
       throw new Error(
         `Config include '${resource}' must point to a JSON file containing an array.`,
@@ -236,6 +255,7 @@ function writeResolvedLocalConfig(
     ...rootData,
     ...sanitizedData,
   };
+  const nextIncludePaths: ConfigIncludePaths = { ...includePaths };
 
   for (const [resource, includePath] of Object.entries(includePaths)) {
     const resourceData = sanitizedData[resource] ?? [];
@@ -245,10 +265,15 @@ function writeResolvedLocalConfig(
 
     writeJsonFile(resolveIncludePath(filePath, includePath), resourceData);
     delete rootOutput[resource];
+    if (resourceData.length === 0) {
+      delete nextIncludePaths[resource as ConfigResourceKey];
+    }
   }
 
-  if (Object.keys(includePaths).length > 0) {
-    rootOutput.includes = includePaths;
+  if (Object.keys(nextIncludePaths).length > 0) {
+    rootOutput.includes = nextIncludePaths;
+  } else {
+    delete rootOutput.includes;
   }
 
   writeJsonFile(
@@ -510,9 +535,14 @@ class Local extends Config<ConfigType> {
   }
 
   clear(): void {
+    for (const includePath of Object.values(this.includePaths)) {
+      writeJsonFile(resolveIncludePath(this.path, includePath), []);
+    }
+
     this.rootData = {};
     this.includePaths = {};
-    super.clear();
+    this.data = {} as ConfigType;
+    writeJsonFile(this.path, {});
   }
 
   static findConfigFile(filename: string): string | null {

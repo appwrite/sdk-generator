@@ -445,6 +445,9 @@ const ConfigIncludePathSchema = z
   })
   .refine((value) => !/^[a-z][a-z0-9+.-]*:/i.test(value), {
     message: "Include path must be a local file path, not a URL",
+  })
+  .refine((value) => value.toLowerCase().endsWith(".json"), {
+    message: "Include path must point to a JSON file",
   });
 
 const ConfigSchema = z
