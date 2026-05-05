@@ -5,7 +5,7 @@
 [![Twitter Account](https://img.shields.io/twitter/follow/appwrite?color=00acee&label=twitter&style=flat-square)](https://twitter.com/appwrite)
 [![Discord](https://img.shields.io/discord/564160730845151244?label=discord&style=flat-square)](https://appwrite.io/discord)
 
-{{ spec.title }} tools for the [OpenAI Codex CLI](https://github.com/openai/codex). This plugin packages {{ spec.title }} SDK skills, {{ spec.title }} deployment workflow skills, and {{ spec.title }} MCP servers.
+{{ spec.title }} tools for the [OpenAI Codex CLI](https://github.com/openai/codex). This plugin packages {{ spec.title }} SDK skills, {{ spec.title }} deployment workflow skills, and the {{ spec.title }} docs MCP server.
 
 ## Structure
 
@@ -60,8 +60,6 @@ New-Item -ItemType Directory -Force -Path "$HOME\.codex" | Out-Null
 Get-Content plugins\{{ spec.title | caseLower }}\config.toml | Add-Content "$HOME\.codex\config.toml"
 ```
 
-After copying `config.toml`, edit `~/.codex/config.toml` and replace `<PROJECT_ID>`, `<API_KEY>`, and the `<REGION>` portion of the endpoint with your {{ spec.title }} credentials.
-
 ## Included Skills
 
 Each skill ships as `plugins/{{ spec.title | caseLower }}/skills/{{ spec.title | caseLower }}-<language>/SKILL.md`. Codex loads them based on the `description` field in the frontmatter, so they activate automatically when a session is about Appwrite work in that language:
@@ -93,9 +91,8 @@ Use these to walk through deploying {{ spec.title }} sites and functions with th
 
 ## Included MCP Servers
 
-The bundled `plugins/{{ spec.title | caseLower }}/config.toml` registers two MCP servers:
+The bundled `plugins/{{ spec.title | caseLower }}/config.toml` registers one MCP server:
 
-- `{{ spec.title | caseLower }}-api` runs `uvx mcp-server-appwrite` against your project. Set `{{ spec.title | caseUpper }}_ENDPOINT`, `{{ spec.title | caseUpper }}_PROJECT_ID`, and `{{ spec.title | caseUpper }}_API_KEY` in the `env` block.
 - `{{ spec.title | caseLower }}-docs` proxies `https://mcp-for-docs.appwrite.io` through `npx mcp-remote` so Codex can search the {{ spec.title }} documentation.
 
 ## Verify
@@ -104,7 +101,7 @@ After copying, run `codex` and check:
 
 - A session about {{ spec.title }} TypeScript work loads the `{{ spec.title | caseLower }}-typescript` skill (visible in the session header).
 - Typing `$` lets you invoke the `{{ spec.title | caseLower }}-deploy-*` skills explicitly.
-- `codex mcp list` (or `codex --debug`) lists the `{{ spec.title | caseLower }}-api` and `{{ spec.title | caseLower }}-docs` servers.
+- `codex mcp list` (or `codex --debug`) lists the `{{ spec.title | caseLower }}-docs` server.
 
 ## Contribution
 
