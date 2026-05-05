@@ -343,7 +343,6 @@ function writeResolvedLocalConfig(
     ...rootData,
     ...sanitizedData,
   };
-  const nextIncludePaths: ConfigIncludePaths = { ...includePaths };
 
   for (const [resource, includePath] of Object.entries(includePaths)) {
     const resourceData = sanitizedData[resource] ?? [];
@@ -356,13 +355,10 @@ function writeResolvedLocalConfig(
       resourceData,
     );
     delete rootOutput[resource];
-    if (resourceData.length === 0) {
-      delete nextIncludePaths[resource as ConfigResourceKey];
-    }
   }
 
-  if (Object.keys(nextIncludePaths).length > 0) {
-    rootOutput.includes = nextIncludePaths;
+  if (Object.keys(includePaths).length > 0) {
+    rootOutput.includes = includePaths;
   } else {
     delete rootOutput.includes;
   }
