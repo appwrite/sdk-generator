@@ -535,6 +535,11 @@ class DotNet extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseUcfirst }}.Tests/OperatorTests.cs',
+                'template'      => 'dotnet/Package.Tests/OperatorTests.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '{{ spec.title | caseUcfirst }}.Tests/ExceptionTests.cs',
                 'template'      => 'dotnet/Package.Tests/ExceptionTests.cs.twig',
             ],
