@@ -125,6 +125,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
 
 {% for parameter in method.parameters.all %}
 {% if parameter.isUploadID %}
+        id = {{ parameter.name }};
         try {
             response = await this.client.call(
                 'get',
@@ -137,80 +138,133 @@ export class {{ service.name | caseUcfirst }} extends Service {
 {% endif %}
 {% endfor %}
 
-        let currentChunk = 1;
+        const totalChunks = Math.ceil(size / Client.CHUNK_SIZE);
+        const chunks: { index: number; start: number; end: number; data: Uint8Array }[] = [];
+        let currentChunk = 0;
         let currentPosition = 0;
         let uploadableChunk = new Uint8Array(Client.CHUNK_SIZE);
 
-        const uploadChunk = async (lastUpload = false) => {
-            if(currentChunk <= chunksUploaded) {
+        const queueChunk = () => {
+            if (currentChunk < chunksUploaded) {
+                currentChunk++;
+                currentPosition = 0;
+                uploadableChunk = new Uint8Array(Client.CHUNK_SIZE);
                 return;
             }
 
-            const start = ((currentChunk - 1) * Client.CHUNK_SIZE);
-            let end = start + currentPosition;
+            const start = currentChunk * Client.CHUNK_SIZE;
+            const end = Math.min(start + currentPosition, size);
+            const data = currentPosition >= Client.CHUNK_SIZE
+                ? uploadableChunk
+                : uploadableChunk.slice(0, currentPosition);
 
-            if (end === size) {
-                end -= 1;
-            }
-
-            if(!lastUpload || currentChunk !== 1) {
-                apiHeaders['content-range'] = 'bytes ' + start + '-' + end + '/' + size;
-            }
-
-            let uploadableChunkTrimmed: Uint8Array;
-
-            if(currentPosition + 1 >= Client.CHUNK_SIZE) {
-                uploadableChunkTrimmed = uploadableChunk;
-            } else {
-                uploadableChunkTrimmed = new Uint8Array(currentPosition);
-                for(let i = 0; i <= currentPosition; i++) {
-                    uploadableChunkTrimmed[i] = uploadableChunk[i];
-                }
-            }
-
-            if (id) {
-                apiHeaders['x-{{spec.title | caseLower }}-id'] = id;
-            }
-
-            payload['{{ parameter.name }}'] = { type: 'file', file: new File([uploadableChunkTrimmed], {{ parameter.name | caseCamel | escapeKeyword }}.filename), filename: {{ parameter.name | caseCamel | escapeKeyword }}.filename };
-
-            response = await this.client.call('{{ method.method | caseLower }}', apiPath, apiHeaders, payload{% if method.type == 'location' %}, 'arraybuffer'{% elseif method.type == 'webAuth' %}, 'location'{% endif %});
-
-            if (!id) {
-                id = response['$id'];
-            }
-
-            if (onProgress !== null) {
-                onProgress({
-                    $id: response['$id'],
-                    progress: Math.min((currentChunk) * Client.CHUNK_SIZE, size) / size * 100,
-                    sizeUploaded: end+1,
-                    chunksTotal: response['chunksTotal'],
-                    chunksUploaded: response['chunksUploaded']
-                });
-            }
-
-            uploadableChunk = new Uint8Array(Client.CHUNK_SIZE);
-            currentPosition = 0;
+            chunks.push({ index: currentChunk, start, end, data });
             currentChunk++;
-        }
+            currentPosition = 0;
+            uploadableChunk = new Uint8Array(Client.CHUNK_SIZE);
+        };
 
         for await (const chunk of {{ parameter.name | caseCamel | escapeKeyword }}.stream) {
             let i = 0;
             for(const b of chunk) {
                 uploadableChunk[currentPosition] = chunk[i];
+                currentPosition++;
 
-                if(currentPosition + 1 >= Client.CHUNK_SIZE) {
-                    await uploadChunk();
-                    currentPosition--;
+                if(currentPosition >= Client.CHUNK_SIZE) {
+                    queueChunk();
                 }
 
                 i++;
-                currentPosition++;
             }
         }
 
-        await uploadChunk(true);
+        if (currentPosition > 0) {
+            queueChunk();
+        }
+
+        if (chunks.length === 0) {
+            return response;
+        }
+
+        if (chunks.length === 1 && chunks[0].index === 0) {
+            payload['{{ parameter.name }}'] = { type: 'file', file: new File([chunks[0].data], {{ parameter.name | caseCamel | escapeKeyword }}.filename), filename: {{ parameter.name | caseCamel | escapeKeyword }}.filename };
+            response = await this.client.call('{{ method.method | caseLower }}', apiPath, apiHeaders, payload{% if method.type == 'location' %}, 'arraybuffer'{% elseif method.type == 'webAuth' %}, 'location'{% endif %});
+
+            if (onProgress !== null) {
+                onProgress({
+                    $id: response['$id'],
+                    progress: 100,
+                    sizeUploaded: size,
+                    chunksTotal: response['chunksTotal'] ?? totalChunks,
+                    chunksUploaded: response['chunksUploaded'] ?? 1
+                });
+            }
+
+            return response;
+        }
+
+        const uploadChunk = async (chunk: typeof chunks[0]) => {
+            const chunkHeaders = { ...apiHeaders };
+            chunkHeaders['content-range'] = 'bytes ' + chunk.start + '-' + (chunk.end - 1) + '/' + size;
+            if (id) {
+                chunkHeaders['x-{{spec.title | caseLower }}-id'] = id;
+            }
+
+            const chunkPayload = { ...payload };
+            chunkPayload['{{ parameter.name }}'] = { type: 'file', file: new File([chunk.data], {{ parameter.name | caseCamel | escapeKeyword }}.filename), filename: {{ parameter.name | caseCamel | escapeKeyword }}.filename };
+
+            return await this.client.call('{{ method.method | caseLower }}', apiPath, chunkHeaders, chunkPayload{% if method.type == 'location' %}, 'arraybuffer'{% elseif method.type == 'webAuth' %}, 'location'{% endif %});
+        };
+
+        response = await uploadChunk(chunks[0]);
+
+        if (!id) {
+            id = response['$id'];
+        }
+
+        let completedCount = chunks[0].index + 1;
+        let uploadedBytes = chunks[0].end;
+
+        if (onProgress !== null) {
+            onProgress({
+                $id: response['$id'],
+                progress: uploadedBytes / size * 100,
+                sizeUploaded: uploadedBytes,
+                chunksTotal: response['chunksTotal'] ?? totalChunks,
+                chunksUploaded: response['chunksUploaded'] ?? completedCount
+            });
+        }
+
+        const CONCURRENCY = 8;
+        let nextChunk = 1;
+        let lastResponse = response;
+
+        const uploadNext = async () => {
+            while (nextChunk < chunks.length) {
+                const chunk = chunks[nextChunk++];
+                const chunkResponse = await uploadChunk(chunk);
+                completedCount++;
+                uploadedBytes += chunk.end - chunk.start;
+
+                if (chunk.index === totalChunks - 1) {
+                    lastResponse = chunkResponse;
+                }
+
+                if (onProgress !== null) {
+                    onProgress({
+                        $id: id!,
+                        progress: uploadedBytes / size * 100,
+                        sizeUploaded: uploadedBytes,
+                        chunksTotal: chunkResponse['chunksTotal'] ?? totalChunks,
+                        chunksUploaded: chunkResponse['chunksUploaded'] ?? completedCount
+                    });
+                }
+            }
+        };
+
+        await Promise.all(Array.from({ length: Math.min(CONCURRENCY, chunks.length - 1) }, uploadNext));
+
+        response = lastResponse;
 
         return response;
 {% endif %}
