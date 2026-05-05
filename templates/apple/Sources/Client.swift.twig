@@ -464,13 +464,15 @@ open class Client {
         var nextChunk = offset / Client.chunkSize
         var completedChunks = nextChunk
         var uploadedBytes = min(offset, size)
+        let baseParams = params
+        let baseHeaders = headers
 
         func uploadChunk(index: Int, uploadId: String?) async throws -> (Int, Int, [String: Any]) {
             let chunkOffset = index * Client.chunkSize
             let chunkLength = min(Client.chunkSize, size - chunkOffset)
             let slice = (input.data as! ByteBuffer).getSlice(at: chunkOffset, length: chunkLength)!
-            var chunkParams = params
-            var chunkHeaders = headers
+            var chunkParams = baseParams
+            var chunkHeaders = baseHeaders
             chunkParams[paramName] = InputFile.fromBuffer(slice, filename: input.filename, mimeType: input.mimeType)
             chunkHeaders["content-range"] = "bytes \(chunkOffset)-\(chunkOffset + chunkLength - 1)/\(size)"
             if let uploadId = uploadId {

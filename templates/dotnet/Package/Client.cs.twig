@@ -474,7 +474,7 @@ namespace {{ spec.title | caseUcfirst }}
                 switch(input.SourceType)
                 {
                     case "path":
-                        using (var chunkStream = File.OpenRead(input.Path))
+                        using (var chunkStream = System.IO.File.OpenRead(input.Path))
                         {
                             chunkStream.Seek(start, SeekOrigin.Begin);
                             var read = 0;
