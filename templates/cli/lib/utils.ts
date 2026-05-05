@@ -317,7 +317,7 @@ const getHomebrewLatestVersion = async (
   }
 };
 
-const isCloudHostname = (hostname: string): boolean =>
+export const isCloudHostname = (hostname: string): boolean =>
   hostname === "cloud.appwrite.io" || hostname.endsWith(".cloud.appwrite.io");
 
 export const getConsoleBaseUrl = (endpoint: string): string => {
