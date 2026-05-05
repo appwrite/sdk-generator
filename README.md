@@ -1,12 +1,9 @@
 # ⚙️ Appwrite SDK Generator
 
 [![Discord](https://img.shields.io/discord/564160730845151244?label=discord&style=flat-square)](https://appwrite.io/discord)
-[![Build Status](https://img.shields.io/travis/com/appwrite/sdk-generator?style=flat-square)](https://travis-ci.com/appwrite/sdk-generator)
-[![Twitter Account](https://img.shields.io/twitter/follow/appwrite?color=00acee&label=twitter&style=flat-square)](https://twitter.com/appwrite)
-[![Follow Appwrite on StackShare](https://img.shields.io/badge/follow%20on-stackshare-blue?style=flat-square)](https://stackshare.io/appwrite)
+[![Twig Linting](https://github.com/appwrite/sdk-generator/actions/workflows/djlint.yml/badge.svg)](https://github.com/appwrite/sdk-generator/actions/workflows/djlint.yml)
+[![X Account](https://img.shields.io/badge/follow-@appwrite-000000?style=flat-square&logo=x&logoColor=white)](https://x.com/appwrite)
 [![appwrite.io](https://img.shields.io/badge/appwrite-.io-f02e65?style=flat-square)](https://appwrite.io)
-
-**WORK IN PROGRESS - NOT READY FOR GENERAL USAGE**
 
 [Appwrite](https://appwrite.io) SDK generator is a PHP library for auto-generating SDK libraries for multiple languages and platforms.
 
@@ -47,7 +44,9 @@ use Appwrite\SDK\SDK;
 use Appwrite\SDK\Language\PHP;
 
 // Read API specification file (Swagger 2) and create spec instance
-$spec = new Swagger2(file_get_contents('https://appwrite.io/v1/open-api-2.json?extension=1'));
+$version = '1.9.x';
+$platform = 'server';
+$spec = new Swagger2(file_get_contents("https://raw.githubusercontent.com/appwrite/specs/main/specs/{$version}/swagger2-{$version}-{$platform}.json"));
 
 // Create language instance
 $lang = new PHP();
@@ -68,6 +67,35 @@ $sdk
 
 $sdk->generate(__DIR__ . '/examples/php'); // Generate source code
 
+```
+
+For generated artifacts that do not need an API specification, use `StaticSpec`:
+
+```php
+<?php
+
+require_once 'vendor/autoload.php';
+
+use Appwrite\Spec\StaticSpec;
+use Appwrite\SDK\SDK;
+use Appwrite\SDK\Language\AgentSkills;
+
+$spec = new StaticSpec(
+    title: 'Appwrite',
+    description: 'Appwrite backend as a service',
+    version: '1.9.x',
+    licenseName: 'BSD-3-Clause',
+    licenseURL: 'https://raw.githubusercontent.com/appwrite/appwrite/master/LICENSE',
+);
+
+$sdk = new SDK(new AgentSkills(), $spec);
+
+$sdk
+    ->setName('Appwrite')
+    ->setVersion('1.9.x')
+;
+
+$sdk->generate(__DIR__ . '/examples/agent-skills');
 ```
 
 ## Linting Twig Templates
@@ -93,57 +121,75 @@ Requires [uv](https://github.com/astral-sh/uv) to be installed. Configuration is
 * [Postman 1.0](https://schema.getpostman.com/json/collection/v1.0.0/docs/index.html) (Not Ready)
 * [API Blueprint 1A](https://github.com/apiaryio/api-blueprint/blob/master/API%20Blueprint%20Specification.md) (Not Ready)
 
-## Supported Client / Platform SDKs
+## Generated SDKs and Artifacts
 
-| Language               | Supported Versions  |  Coding Standards      |  Package Manager   |   Maintainer   |
-|------------------------|---------------------|------------------------|--------------------|----------------|
-| Web                    | ES5+                | [NPM Coding Style]     | NPM, Yarn,         | [@eldadfux]    |
-| Flutter                |                     | [Effective Dart]       | pub tool           | [@bartektartanus] [@Almoullim] [@lohanidamodar]   |
-| Android (Kotlin, Java) | 5.0+                | [Android style guide]  | Gradle, Maven      | [@abnegate]    |
-| iOS, macOS (Swift)     | iOS 15+, macOS 11+  | [Swift Style Guide]    | Swift Pkg Manager  | [@abnegate]    |
-| Unity (Csharp)         |                     |                        | ?                  | [You?](https://github.com/appwrite/sdk-generator/issues/20) |
+The primary generation targets are defined in `example.php`. Run it without arguments to generate every target with the default `console` platform spec, or pass a target and optional platform to generate one SDK:
 
-## Supported Server SDKs
+```bash
+php example.php
+php example.php <target>
+php example.php <target> <platform>
+```
 
-| Language   | Supported Versions  |  Coding Standards      |  Package Manager   | Contributors   |
-|------------|---------------------|------------------------|--------------------|----------------|
-| TypeScript |                     | [NPM Coding Style]     | NPM, Yarn          | [@eldadfux]    |
-| NodeJS     | 8, 10, 12           | [NPM Coding Style]     | NPM, Yarn          | [@eldadfux]    |
-| PHP        | 7.0+                | [PHP FIG]              | Composer           | [@eldadfux]    |
-| Ruby       | 2.4+                | [Ruby Style Guide]     | GEM                | [@eldadfux] [@abnegate] |
-| Python     | 3.5+                | [PEP8]                 | PIP                | [@eldadfux] [@abnegate] |
-| Dart       | 2.7+                | [Effective Dart]       | pub                | [@lohanidamodar] |
-| Go         |                     | [Effective Go]         | go get             | [@panz3r] [@phaus]      |
-| .NET       | .NET core 3.1       | [C# Coding Conventions]| NuGet              | [@komemi] [@TorstenDittmann]     |
-| D          |                     |                        | ?                  | [You?](https://github.com/appwrite/sdk-generator/issues/20) |
-| Kotlin     | 1.4.31+             | [Kotlin style guide]   | Gradle, Maven      | [@abnegate]    |
-| Java       | 8+                  | [Google style guide]   | Gradle, Maven      | [@abnegate]    |
-| Swift      | 5.5+                | [Swift Style Guide]    | Swift Pkg Manager  | [@abnegate]    |
-| Docker CLI |                     |                        | Docker Hub         | [@christyjacob4]  |
+`<platform>` can be `console`, `client`, or `server`. If omitted, it defaults to `console`.
 
-[@Almoullim]:           https://github.com/Almoullim
-[@eldadfux]:            https://github.com/eldadfux
-[@panz3r]:              https://github.com/panz3r
-[@armino-dev]:          https://github.com/armino-dev
-[@bartektartanus]:      https://github.com/bartektartanus
-[@komemi]:              https://github.com/komemi
-[@TorstenDittmann]:     https://github.com/TorstenDittmann
-[@lohanidamodar]:       https://github.com/lohanidamodar
-[@christyjacob4]:       https://github.com/christyjacob4
-[@abnegate]:            https://github.com/abnegate
+Examples:
 
-[PHP FIG]:              https://www.php-fig.org/
-[NPM Coding Style]:     https://docs.npmjs.com/misc/coding-style
-[NPM Coding Style]:     https://docs.npmjs.com/misc/coding-style
-[Ruby Style Guide]:     https://github.com/rubocop-hq/ruby-style-guide
-[PEP8]:                 https://www.python.org/dev/peps/pep-0008/
-[Effective Dart]:       https://dart.dev/guides/language/effective-dart/style
-[Effective Go]:         https://golang.org/doc/effective_go.html
-[Swift Style Guide]:    https://google.github.io/swift/
-[C# Coding Conventions]:https://docs.microsoft.com/en-us/dotnet/csharp/programming-guide/inside-a-program/coding-conventions
-[Kotlin style guide]:   https://kotlinlang.org/docs/coding-conventions.html#apply-the-style-guide
-[Android style guide]:  https://developer.android.com/kotlin/style-guide
-[Google style guide]:   https://google.github.io/styleguide/javaguide.html
+```bash
+php example.php web client
+php example.php node server
+php example.php cli console
+php example.php agent-skills
+```
+
+### Client SDKs
+
+| Target | Argument | Supported Versions | Coding Standards | Package Manager | Output |
+|--------|----------|--------------------|------------------|-----------------|--------|
+| Web | `web` | ES5+; Node.js >=18 for builds | [NPM Coding Style] | NPM | `examples/web/` |
+| Flutter | `flutter` | Dart >=2.17 <4; Flutter stable | [Effective Dart] | pub | `examples/flutter/` |
+| Apple | `apple` | iOS 15+, macOS 11+, watchOS 7+, tvOS 13+ | [Swift Style Guide] | Swift Package Manager | `examples/apple/` |
+| Android | `android` | Android 5.0+; Java 17 in CI | [Android style guide] | Gradle, Maven | `examples/android/` |
+| React Native | `react-native` | React Native >=0.76.7 <1.0.0; Node.js >=18 | [NPM Coding Style] | NPM | `examples/react-native/` |
+
+### Server SDKs
+
+| Target | Argument | Supported Versions | Coding Standards | Package Manager | Output |
+|--------|----------|--------------------|------------------|-----------------|--------|
+| Node.js | `node` | Node.js 20 in CI | [NPM Coding Style] | NPM | `examples/node/` |
+| PHP | `php` | PHP >=8.2 | [PHP FIG] | Composer | `examples/php/` |
+| Python | `python` | Python >=3.9 | [PEP8] | pip | `examples/python/` |
+| Ruby | `ruby` | Ruby 3.1 in CI | [Ruby Style Guide] | RubyGems, Bundler | `examples/ruby/` |
+| Dart | `dart` | Dart >=2.17 <4 | [Effective Dart] | pub | `examples/dart/` |
+| Go | `go` | Go 1.22.5 | [Effective Go] | Go modules | `examples/go/` |
+| Swift | `swift` | Swift 5.1+; Swift 5.9.2 in CI | [Swift Style Guide] | Swift Package Manager | `examples/swift/` |
+| .NET | `dotnet` | .NET Standard 2.0; .NET Framework 4.6.2 | [C# Coding Conventions] | NuGet | `examples/dotnet/` |
+| Kotlin | `kotlin` | JVM 1.8 target; Java 17 in CI | [Kotlin style guide] | Gradle, Maven | `examples/kotlin/` |
+| Rust | `rust` | Rust >=1.83 | [Rust API Guidelines] | Cargo | `examples/rust/` |
+
+### Tooling and Documentation
+
+| Target | Argument | Supported Versions | Coding Standards | Package Manager | Output |
+|--------|----------|--------------------|------------------|-----------------|--------|
+| CLI | `cli` | Node.js 20 and Bun 1.3.11 in CI | [NPM Coding Style] | NPM, Bun, native binaries | `examples/cli/` |
+| REST examples | `rest` | N/A | Markdown | N/A | `examples/REST/` |
+| GraphQL | `graphql` | N/A | GraphQL | N/A | `examples/graphql/` |
+| Markdown docs | `markdown` | N/A | Markdown | N/A | `examples/markdown/` |
+| Agent Skills | `agent-skills` | N/A | Markdown | N/A | `examples/agent-skills/` |
+| Cursor Plugin | `cursor-plugin` | N/A | Markdown | N/A | `examples/cursor-plugin/` |
+| Claude Plugin | `claude-plugin` | N/A | Markdown | N/A | `examples/claude-plugin/` |
+
+[PHP FIG]: https://www.php-fig.org/
+[NPM Coding Style]: https://docs.npmjs.com/misc/coding-style
+[Ruby Style Guide]: https://github.com/rubocop/ruby-style-guide
+[PEP8]: https://peps.python.org/pep-0008/
+[Effective Dart]: https://dart.dev/effective-dart/style
+[Effective Go]: https://go.dev/doc/effective_go
+[Swift Style Guide]: https://google.github.io/swift/
+[C# Coding Conventions]: https://learn.microsoft.com/en-us/dotnet/csharp/fundamentals/coding-style/coding-conventions
+[Kotlin style guide]: https://kotlinlang.org/docs/coding-conventions.html
+[Android style guide]: https://developer.android.com/kotlin/style-guide
+[Rust API Guidelines]: https://rust-lang.github.io/api-guidelines/
 
 ## Contributing
 

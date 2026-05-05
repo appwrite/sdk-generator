@@ -230,19 +230,22 @@ try await teams.delete(teamId: "[TEAM_ID]")
 ```swift
 let realtime = Realtime(client)
 
-let subscription = realtime.subscribe(channels: ["databases.[DATABASE_ID].tables.[TABLE_ID].rows"]) { response in
-    print(response.events)   // e.g. ["databases.*.tables.*.rows.*.create"]
+// Subscribe to row changes
+let subscription = try await realtime.subscribe(channels: [
+    Channel.tablesdb("[DATABASE_ID]").table("[TABLE_ID]").row()
+]) { response in
+    print(response.events)   // e.g. ["tablesdb.*.tables.*.rows.*.create"]
     print(response.payload)  // the affected resource
 }
 
 // Subscribe to multiple channels
-let multi = realtime.subscribe(channels: [
-    "databases.[DATABASE_ID].tables.[TABLE_ID].rows",
-    "buckets.[BUCKET_ID].files",
+let multi = try await realtime.subscribe(channels: [
+    Channel.tablesdb("[DATABASE_ID]").table("[TABLE_ID]").row(),
+    Channel.files(),
 ]) { response in /* ... */ }
 
 // Cleanup
-subscription.close()
+try await subscription.close()
 ```
 
 **Available channels:**
@@ -250,8 +253,8 @@ subscription.close()
 | Channel | Description |
 |---------|-------------|
 | `account` | Changes to the authenticated user's account |
-| `databases.[DB_ID].tables.[TABLE_ID].rows` | All rows in a table |
-| `databases.[DB_ID].tables.[TABLE_ID].rows.[ROW_ID]` | A specific row |
+| `tablesdb.[DB_ID].tables.[TABLE_ID].rows` | All rows in a table |
+| `tablesdb.[DB_ID].tables.[TABLE_ID].rows.[ROW_ID]` | A specific row |
 | `buckets.[BUCKET_ID].files` | All files in a bucket |
 | `buckets.[BUCKET_ID].files.[FILE_ID]` | A specific file |
 | `teams` | Changes to teams the user belongs to |

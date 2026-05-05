@@ -1,7 +1,36 @@
-        return $this->client->call(
+        $response = $this->client->call(
             Client::METHOD_{{ method.method | caseUpper }},
             $apiPath,
             $apiHeaders,
             $apiParams{% if method.type == 'webAuth' -%}, 'location'{% endif %}
 
         );
+{% set responseModels = method | getResponseModels(spec) %}
+{% set hasResponseDiscriminator = method.responseDiscriminator is defined and method.responseDiscriminator is not empty %}
+{% set responseDiscriminator = method.responseDiscriminator ?? {} %}
+{% if responseModels | length > 0 %}
+{% if responseModels | length > 1 and hasResponseDiscriminator %}
+
+        if (!is_array($response)) {
+            throw new \UnexpectedValueException('Expected array response when hydrating a response model.');
+        }
+{% for modelName, conditions in responseDiscriminator %}
+
+        if ({% for field, expectedValue in conditions %}($response['{{ field }}'] ?? null) === '{{ expectedValue }}'{% if not loop.last %} && {% endif %}{% endfor %}) {
+            return \Appwrite\Models\{{ modelName | caseUcfirst }}::from($response);
+        }
+{% endfor %}
+
+        throw new \UnexpectedValueException('Unable to match response to any expected response model.');
+{% else %}
+
+        if (!is_array($response)) {
+            throw new \UnexpectedValueException('Expected array response when hydrating a response model.');
+        }
+
+        return {{ responseModels | first }}::from($response);
+{% endif %}
+{% else %}
+
+        return $response;
+{% endif %}

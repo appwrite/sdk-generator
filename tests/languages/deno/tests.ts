@@ -22,6 +22,8 @@ async function start() {
   client.addHeader("Origin", "http://localhost");
 
   console.log("\nTest Started");
+  const sdkHeaders = client.getHeaders();
+  console.log(`x-sdk-name: ${sdkHeaders["x-sdk-name"]}; x-sdk-platform: ${sdkHeaders["x-sdk-platform"]}; x-sdk-language: ${sdkHeaders["x-sdk-language"]}; x-sdk-version: ${sdkHeaders["x-sdk-version"]}`);
 
   // Foo
 

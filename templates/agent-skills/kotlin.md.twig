@@ -284,17 +284,22 @@ teams.delete(teamId = "[TEAM_ID]")
 ### Real-time Subscriptions (client-side)
 
 ```kotlin
+import io.{{ spec.title | caseLower }}.Channel
+
 val realtime = Realtime(client)
 
-val subscription = realtime.subscribe("databases.[DATABASE_ID].tables.[TABLE_ID].rows") { response ->
-    println(response.events)   // e.g. ["databases.*.tables.*.rows.*.create"]
+// Subscribe to row changes
+val subscription = realtime.subscribe(
+    Channel.tablesdb("[DATABASE_ID]").table("[TABLE_ID]").row()
+) { response ->
+    println(response.events)   // e.g. ["tablesdb.*.tables.*.rows.*.create"]
     println(response.payload)  // the affected resource
 }
 
 // Subscribe to multiple channels
 val multi = realtime.subscribe(
-    "databases.[DATABASE_ID].tables.[TABLE_ID].rows",
-    "buckets.[BUCKET_ID].files"
+    Channel.tablesdb("[DATABASE_ID]").table("[TABLE_ID]").row(),
+    Channel.bucket("[BUCKET_ID]").file()
 ) { response -> /* ... */ }
 
 // Cleanup
@@ -306,8 +311,8 @@ subscription.close()
 | Channel | Description |
 |---------|-------------|
 | `account` | Changes to the authenticated user's account |
-| `databases.[DB_ID].tables.[TABLE_ID].rows` | All rows in a table |
-| `databases.[DB_ID].tables.[TABLE_ID].rows.[ROW_ID]` | A specific row |
+| `tablesdb.[DB_ID].tables.[TABLE_ID].rows` | All rows in a table |
+| `tablesdb.[DB_ID].tables.[TABLE_ID].rows.[ROW_ID]` | A specific row |
 | `buckets.[BUCKET_ID].files` | All files in a bucket |
 | `buckets.[BUCKET_ID].files.[FILE_ID]` | A specific file |
 | `teams` | Changes to teams the user belongs to |

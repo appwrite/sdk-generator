@@ -1,0 +1,21 @@
+{% autoescape false %}
+package id
+
+import (
+	"testing"
+)
+
+func TestUnique(t *testing.T) {
+	id := Unique()
+	if len(id) < 15 || len(id) > 25 {
+		t.Errorf("Expected length between 15 and 25, got %d", len(id))
+	}
+}
+
+func TestCustom(t *testing.T) {
+	id := Custom("custom_id")
+	if id != "custom_id" {
+		t.Errorf("Expected custom_id, got %s", id)
+	}
+}
+{% endautoescape %}

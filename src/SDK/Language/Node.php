@@ -32,6 +32,23 @@ class Node extends Web
         return 'sdk.';
     }
 
+    public function getTypeName(array $parameter, array $method = []): string
+    {
+        if (($parameter['type'] ?? null) === self::TYPE_ARRAY) {
+            $arrayType = $parameter['array']['type'] ?? $parameter['items']['type'] ?? null;
+
+            if ($arrayType === self::TYPE_FILE) {
+                return '(File | InputFile)[]';
+            }
+        }
+
+        if (($parameter['type'] ?? null) === self::TYPE_FILE) {
+            return 'File | InputFile';
+        }
+
+        return parent::getTypeName($parameter, $method);
+    }
+
     public function getReturn(array $method, array $spec): string
     {
         if ($method['type'] === 'webAuth') {
@@ -79,7 +96,7 @@ class Node extends Web
         return 'Promise<{}>';
     }
 
-        /**
+    /**
      * @param array $param
      * @param string $lang
      * @return string
@@ -115,6 +132,36 @@ class Node extends Web
     }
 
     /**
+     * Check if service has any file parameters
+     *
+     * @param array $service
+     * @return bool
+     */
+    public function hasFileParam(array $service): bool
+    {
+        foreach ($service['methods'] as $method) {
+            foreach ($method['parameters']['all'] as $parameter) {
+                if ($parameter['type'] === self::TYPE_FILE) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * @return array
+     */
+    public function getFilters(): array
+    {
+        return \array_merge(parent::getFilters(), [
+            new \Twig\TwigFilter('hasFileParam', function ($service) {
+                return $this->hasFileParam($service);
+            }),
+        ]);
+    }
+
+    /**
      * @return array
      */
     public function getFiles(): array
@@ -147,8 +194,18 @@ class Node extends Web
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'test/permission.test.js',
+                'template'      => 'node/test/permission.test.js.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'src/permission.ts',
                 'template'      => 'web/src/permission.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'test/role.test.js',
+                'template'      => 'node/test/role.test.js.twig',
             ],
             [
                 'scope'         => 'default',
@@ -157,8 +214,18 @@ class Node extends Web
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'test/id.test.js',
+                'template'      => 'node/test/id.test.js.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'src/id.ts',
                 'template'      => 'web/src/id.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'test/query.test.js',
+                'template'      => 'node/test/query.test.js.twig',
             ],
             [
                 'scope'         => 'default',
@@ -167,8 +234,18 @@ class Node extends Web
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'test/operator.test.js',
+                'template'      => 'node/test/operator.test.js.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'src/operator.ts',
                 'template'      => 'node/src/operator.ts.twig',
+            ],
+            [
+                'scope'         => 'service',
+                'destination'   => 'test/services/{{service.name | caseDash}}.test.js',
+                'template'      => 'node/test/services/service.test.js.twig',
             ],
             [
                 'scope'         => 'default',
@@ -198,7 +275,7 @@ class Node extends Web
             [
                 'scope'         => 'default',
                 'destination'   => 'tsconfig.json',
-                'template'      => '/node/tsconfig.json.twig',
+                'template'      => 'node/tsconfig.json.twig',
             ],
             [
                 'scope'         => 'default',
@@ -219,6 +296,16 @@ class Node extends Web
                 'scope'         => 'requestModel',
                 'destination'   => 'src/models/{{ requestModel.name | caseKebab }}.ts',
                 'template'      => 'node/src/models/requestModel.ts.twig',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => '.gitignore',
+                'template'      => 'node/.gitignore',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'package-lock.json',
+                'template'      => 'node/package-lock.json.twig',
             ],
         ];
     }

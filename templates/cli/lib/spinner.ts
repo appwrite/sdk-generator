@@ -1,5 +1,6 @@
 import progress from "cli-progress";
 import chalk from "chalk";
+import stringWidth from "string-width";
 
 const SPINNER_ARC = "arc";
 const SPINNER_DOTS = "dots";
@@ -33,6 +34,8 @@ class Spinner {
   static updatesBar: progress.MultiBar;
   private bar: progress.SingleBar;
   private spinnerInterval?: NodeJS.Timeout;
+  private static readonly DEFAULT_MIDDLE_WIDTH = 40;
+  private static readonly MIN_MIDDLE_WIDTH = 1;
 
   static start(
     clearOnComplete: boolean = true,
@@ -52,9 +55,26 @@ class Spinner {
     Spinner.updatesBar.stop();
   }
 
-  static formatter(options: any, params: any, payload: SpinnerPayload): string {
+  static log(message: string): void {
+    if (!message.endsWith("\n")) {
+      message += "\n";
+    }
+
+    if (Spinner.updatesBar) {
+      Spinner.updatesBar.log(message);
+      return;
+    }
+
+    process.stdout.write(message);
+  }
+
+  static formatter(
+    _options: unknown,
+    _params: unknown,
+    payload: SpinnerPayload,
+  ): string {
     const status = payload.status.padEnd(12);
-    const middle = `${payload.resource} (${payload.id})`.padEnd(40);
+    const middle = `${payload.resource} (${payload.id})`;
 
     let prefix = chalk.cyan(payload.prefix ?? "⧗");
     let start = chalk.cyan(status);
@@ -78,6 +98,42 @@ class Spinner {
     return Spinner.line(prefix, start, middle, end);
   }
 
+  private static fitMiddle(
+    prefix: string,
+    start: string,
+    middle: string,
+    end: string,
+    separator: string,
+  ): string {
+    const terminalWidth = process.stdout.columns ?? 120;
+    const startWidth = stringWidth(`${prefix} ${start} ${separator} `);
+    const endWidth = end ? stringWidth(` ${separator} ${end}`) : 0;
+    const availableWidth = Math.max(
+      Spinner.MIN_MIDDLE_WIDTH,
+      terminalWidth - startWidth - endWidth,
+    );
+    const targetWidth = Math.min(Spinner.DEFAULT_MIDDLE_WIDTH, availableWidth);
+
+    if (stringWidth(middle) <= targetWidth) {
+      return middle.padEnd(targetWidth);
+    }
+
+    if (targetWidth <= 1) {
+      return "…";
+    }
+
+    let truncated = "";
+    for (const char of middle) {
+      const next = `${truncated}${char}`;
+      if (stringWidth(`${next}…`) > targetWidth) {
+        break;
+      }
+      truncated = next;
+    }
+
+    return `${truncated}…`;
+  }
+
   static line(
     prefix: string,
     start: string,
@@ -85,7 +141,15 @@ class Spinner {
     end: string,
     separator: string = "•",
   ): string {
-    return `${prefix} ${start} ${separator} ${middle} ${!end ? "" : separator} ${end}`;
+    const fittedMiddle = Spinner.fitMiddle(
+      prefix,
+      start,
+      middle,
+      end,
+      separator,
+    );
+
+    return `${prefix} ${start} ${separator} ${fittedMiddle} ${!end ? "" : separator} ${end}`;
   }
 
   constructor(

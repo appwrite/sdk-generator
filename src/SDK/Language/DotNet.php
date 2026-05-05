@@ -399,6 +399,11 @@ class DotNet extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'Directory.Build.props',
+                'template'      => 'dotnet/Directory.Build.props.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '{{ spec.title | caseUcfirst }}/{{ spec.title | caseUcfirst }}.csproj',
                 'template'      => 'dotnet/Package/Package.csproj.twig',
             ],

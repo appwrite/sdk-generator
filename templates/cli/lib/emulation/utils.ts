@@ -1,10 +1,9 @@
 import { EventEmitter } from "node:events";
-import { localConfig } from "../config.js";
 import { log } from "../parser.js";
-import { sdkForConsole } from "../sdks.js";
-import { Projects, Scopes, Users } from "@appwrite.io/console";
+import { sdkForProject } from "../sdks.js";
+import { Project, Scopes, Users } from "@appwrite.io/console";
 
-export const openRuntimesVersion = "v4";
+export const openRuntimesVersion = "v5";
 
 export const runtimeNames: Record<string, string> = {
   node: "Node.js",
@@ -31,67 +30,67 @@ interface SystemTool {
 export const systemTools: Record<string, SystemTool> = {
   node: {
     isCompiled: false,
-    startCommand: "sh helpers/server.sh",
+    startCommand: "bash helpers/server.sh",
     dependencyFiles: ["package.json", "package-lock.json"],
   },
   php: {
     isCompiled: false,
-    startCommand: "sh helpers/server.sh",
+    startCommand: "bash helpers/server.sh",
     dependencyFiles: ["composer.json", "composer.lock"],
   },
   ruby: {
     isCompiled: false,
-    startCommand: "sh helpers/server.sh",
+    startCommand: "bash helpers/server.sh",
     dependencyFiles: ["Gemfile", "Gemfile.lock"],
   },
   python: {
     isCompiled: false,
-    startCommand: "sh helpers/server.sh",
+    startCommand: "bash helpers/server.sh",
     dependencyFiles: ["requirements.txt", "requirements.lock"],
   },
   "python-ml": {
     isCompiled: false,
-    startCommand: "sh helpers/server.sh",
+    startCommand: "bash helpers/server.sh",
     dependencyFiles: ["requirements.txt", "requirements.lock"],
   },
   deno: {
     isCompiled: false,
-    startCommand: "sh helpers/server.sh",
+    startCommand: "bash helpers/server.sh",
     dependencyFiles: [],
   },
   dart: {
     isCompiled: true,
-    startCommand: "sh helpers/server.sh",
+    startCommand: "bash helpers/server.sh",
     dependencyFiles: [],
   },
   dotnet: {
     isCompiled: true,
-    startCommand: "sh helpers/server.sh",
+    startCommand: "bash helpers/server.sh",
     dependencyFiles: [],
   },
   java: {
     isCompiled: true,
-    startCommand: "sh helpers/server.sh",
+    startCommand: "bash helpers/server.sh",
     dependencyFiles: [],
   },
   swift: {
     isCompiled: true,
-    startCommand: "sh helpers/server.sh",
+    startCommand: "bash helpers/server.sh",
     dependencyFiles: [],
   },
   kotlin: {
     isCompiled: true,
-    startCommand: "sh helpers/server.sh",
+    startCommand: "bash helpers/server.sh",
     dependencyFiles: [],
   },
   bun: {
     isCompiled: false,
-    startCommand: "sh helpers/server.sh",
+    startCommand: "bash helpers/server.sh",
     dependencyFiles: ["package.json", "package-lock.json", "bun.lockb"],
   },
   go: {
     isCompiled: true,
-    startCommand: "sh helpers/server.sh",
+    startCommand: "bash helpers/server.sh",
     dependencyFiles: [],
   },
 };
@@ -107,9 +106,8 @@ export const JwtManager = {
     userId: string | null = null,
     projectScopes: Scopes[] = [],
   ): Promise<void> {
-    const consoleClient = await sdkForConsole();
-    const usersClient = new Users(consoleClient);
-    const projectsClient = new Projects(consoleClient);
+    const projectClient = await sdkForProject();
+    const projectService = new Project(projectClient);
 
     if (this.timerWarn) {
       clearTimeout(this.timerWarn);
@@ -139,22 +137,22 @@ export const JwtManager = {
     ); // 60 mins
 
     if (userId) {
+      const usersClient = new Users(projectClient);
       await usersClient.get({
         userId,
       });
-      const userResponse: any = await usersClient.createJWT({
+      const userResponse = await usersClient.createJWT({
         userId,
         duration: 60 * 60,
       });
       this.userJwt = userResponse.jwt;
     }
 
-    const functionResponse: any = await projectsClient.createJWT({
-      projectId: localConfig.getProject().projectId!,
+    const functionResponse = await projectService.createEphemeralKey({
       scopes: projectScopes,
       duration: 60 * 60,
     });
-    this.functionJwt = functionResponse.jwt;
+    this.functionJwt = functionResponse.secret;
   },
 };
 

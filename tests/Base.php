@@ -83,6 +83,18 @@ abstract class Base extends TestCase
         'POST:/v1/mock/tests/general/upload:passed',
     ];
 
+    protected const EXCLUDED_FIXTURE_TOKENS = [
+        'zzexcludedservice',
+        'zzexcludedpayload',
+        'zzexcludedresult',
+        'zzexcludedstatus',
+        'zzexcludedchild',
+        'zzexcludedchildstatus',
+        'zzexcludedmethodpayload',
+        'zzexcludedmethodresult',
+        'zzexcludedmethodstatus',
+    ];
+
     /**
      * 'Mock 400 error'                              -> message
      * '{"message":"Mock 400 error","code":400}'     -> response
@@ -100,7 +112,10 @@ abstract class Base extends TestCase
     protected const REALTIME_RESPONSES = [
         'WS:/v1/realtime:passed',
         'WS:/v1/realtime:passed',
-        'Realtime failed!'
+        'Realtime failed!',
+        'Realtime unsubscribe:passed',
+        'Realtime update:passed',
+        'Realtime disconnect:passed',
     ];
 
     protected const QUERY_HELPER_RESPONSES = [
@@ -186,32 +201,89 @@ abstract class Base extends TestCase
         'custom_id'
     ];
 
+    protected const ADDITIONAL_PROPERTIES_RESPONSES = [
+        '{"theme":"dark","timezone":"UTC"}',
+        '{"$id":"row1","custom":"value","nested":{"enabled":true}}',
+        '{"data":{"enabled":true},"status":"ok","extra":"kept"}',
+    ];
+
+    protected const CLI_CONSOLE_URL_RESPONSES = [
+        'https://cloud.appwrite.io/console/project-sgp-chirag-project-prod/sites/site-chirag-profile-website/deployments/deployment-123',
+        'https://cloud.appwrite.io/console/project-sgp-chirag-project-prod/functions/function-sample-function/deployment-123',
+        'https://abc.example.com/console/project-self-hosted-project/sites/site-docs/deployments/deployment-456',
+    ];
+
+    protected const CLI_HEADERS_RESPONSES = [
+        'x-sdk-name: cli; x-sdk-platform: server; x-sdk-language: cli; x-sdk-version: 0.0.1',
+    ];
+
+    protected const CLI_FUNCTION_RESPONSES = [
+        'POST:/v1/functions/{functionId}/executions:passed',
+    ];
+
+    protected const CLI_COMPLETION_RESPONSES = [
+        'compdef _appwrite appwrite',
+        'complete -F _appwrite_completion appwrite',
+        'complete -c \'appwrite\' -f -n \'__appwrite_using_command\' -a \'bar client completion foo functions general\'',
+        '\'foo:get\') context=\'foo get\' ;;',
+    ];
+
+    protected const CLI_TYPEGEN_RESPONSES = [
+        'CLI_TYPEGEN:passed',
+    ];
+
+    protected const CLI_LOCAL_FUNCTION_EMULATION_RESPONSES = [
+        'CLI_LOCAL_FUNCTION_RUNNER_CONFIG:passed',
+        'CLI_LOCAL_SOURCE_PREFLIGHT:passed',
+    ];
+
+    protected const CLI_RUNTIME_RENDERING_RESPONSES = [
+        'CLI_RUNTIME_RENDERING:passed',
+    ];
+
+    protected const CLI_QUERY_HELPER_RESPONSES = [
+        '[' .
+        '"{\"method\":\"orderDesc\",\"attribute\":\"rawName\"}",' .
+        '"{\"method\":\"equal\",\"attribute\":\"published\",\"values\":[true]}",' .
+        '"{\"method\":\"greaterThanEqual\",\"attribute\":\"score\",\"values\":[10]}",' .
+        '"{\"method\":\"equal\",\"attribute\":\"status\",\"values\":[\"draft\",\"published\"]}",' .
+        '"{\"method\":\"orderAsc\",\"attribute\":\"title\"}",' .
+        '"{\"method\":\"orderDesc\",\"attribute\":\"$createdAt\"}",' .
+        '"{\"method\":\"limit\",\"values\":[25]}",' .
+        '"{\"method\":\"offset\",\"values\":[50]}",' .
+        '"{\"method\":\"cursorAfter\",\"values\":[\"row-before\"]}",' .
+        '"{\"method\":\"cursorBefore\",\"values\":[\"row-after\"]}",' .
+        '"{\"method\":\"select\",\"values\":[\"$id\",\"title\"]}"' .
+        ']',
+        'CLI_QUERY_HELPERS:passed',
+    ];
+
     protected const CHANNEL_HELPER_RESPONSES = [
-        'databases.*.collections.*.documents',
+        'databases.db1.collections.col1.documents',
         'databases.db1.collections.col1.documents.doc1',
         'databases.db1.collections.col1.documents.doc1.create',
         'databases.db1.collections.col1.documents.doc1.upsert',
-        'tablesdb.*.tables.*.rows',
+        'tablesdb.db1.tables.table1.rows',
         'tablesdb.db1.tables.table1.rows.row1',
         'tablesdb.db1.tables.table1.rows.row1.update',
         'account',
-        'buckets.*.files',
+        'buckets.bucket1.files',
         'buckets.bucket1.files.file1',
         'buckets.bucket1.files.file1.delete',
-        'functions.*',
+        'functions.func2',
         'functions.func1',
-        'executions.*',
+        'executions.exec2',
         'executions.exec1',
         'documents',
         'rows',
         'files',
         'executions',
         'teams',
-        'teams.*',
+        'teams.team2',
         'teams.team1',
         'teams.team1.create',
         'memberships',
-        'memberships.*',
+        'memberships.membership2',
         'memberships.membership1',
         'memberships.membership1.update',
     ];
@@ -256,15 +328,18 @@ abstract class Base extends TestCase
 
     public function setUp(): void
     {
-        $headers = "x-sdk-name: {$this->sdkName}; x-sdk-platform: {$this->sdkPlatform}; x-sdk-language: {$this->sdkLanguage}; x-sdk-version: {$this->version}";
-
-        $this->expectedOutput[] = $headers;
+        \array_unshift($this->expectedOutput, $this->getExpectedSdkHeaders());
 
         \exec('
             cd ./mock-server && \
             docker compose build && \
             docker compose up -d --force-recreate
         ');
+    }
+
+    protected function getExpectedSdkHeaders(): string
+    {
+        return "x-sdk-name: {$this->sdkName}; x-sdk-platform: {$this->sdkPlatform}; x-sdk-language: {$this->sdkLanguage}; x-sdk-version: {$this->version}";
     }
 
     public function tearDown(): void
@@ -304,6 +379,14 @@ abstract class Base extends TestCase
             ->setDefaultHeaders([
                 'X-Appwrite-Response-Format' => '0.8.0',
             ])
+            ->setExclude([
+                'services' => [
+                    ['name' => 'zzexcludedservice'],
+                ],
+                'methods' => [
+                    ['name' => 'createExcludedGeneralFixture'],
+                ],
+            ])
             ->setTest("true");
 
         if ($this->language === 'android' || $this->language === 'kotlin') {
@@ -317,6 +400,7 @@ abstract class Base extends TestCase
         $this->rmdirRecursive($dir);
 
         $sdk->generate(__DIR__ . '/sdks/' . $this->language);
+        $this->assertExcludedFixtureWasRemoved($dir);
 
         /**
          * Build SDK
@@ -375,6 +459,41 @@ abstract class Base extends TestCase
             }
         }
         \rmdir($dir);
+    }
+
+    private function assertExcludedFixtureWasRemoved(string $dir): void
+    {
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS)
+        );
+
+        foreach ($iterator as $file) {
+            $path = \strtolower($file->getPathname());
+
+            foreach (self::EXCLUDED_FIXTURE_TOKENS as $token) {
+                $this->assertStringNotContainsString($token, $path, "Excluded fixture leaked into generated path: {$path}");
+            }
+
+            if (!$file->isFile()) {
+                continue;
+            }
+
+            $contents = \file_get_contents($file->getPathname());
+
+            if ($contents === false) {
+                continue;
+            }
+
+            $contents = \strtolower($contents);
+
+            foreach (self::EXCLUDED_FIXTURE_TOKENS as $token) {
+                $this->assertStringNotContainsString(
+                    $token,
+                    $contents,
+                    "Excluded fixture leaked into generated file: {$file->getPathname()}"
+                );
+            }
+        }
     }
 
     public function getLanguage(): Language

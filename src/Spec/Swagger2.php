@@ -151,6 +151,7 @@ class Swagger2 extends Spec
 
         $responseModel = '';
         $responseModels = [];
+        $responseDiscriminator = [];
         $responses = $method['responses'];
         $emptyResponse = true;
         foreach ($responses as $code => $desc) {
@@ -168,9 +169,11 @@ class Swagger2 extends Spec
             // check for union types
             if (isset($desc['schema']['x-oneOf'])) {
                 $responseModels = \array_map(
-                    fn($schema) => str_replace('#/definitions/', '', $schema['$ref']),
+                    fn($schema) => $this->normalizeSchemaRef($schema['$ref'] ?? ''),
                     $desc['schema']['x-oneOf']
                 );
+
+                $responseDiscriminator = $this->parseUnionDiscriminator($desc['schema']);
 
                 // set to first model
                 // for backward compatibility
@@ -192,6 +195,8 @@ class Swagger2 extends Spec
             'security' => [$methodSecurity] ?? [],
             'consumes' => $method['consumes'] ?? [],
             'cookies' => $method['x-appwrite']['cookies'] ?? false,
+            'platforms' => $method['x-appwrite']['platforms'] ?? [],
+            'consoleOnly' => $method['x-appwrite']['consoleOnly'] ?? false,
             'type' => $method['x-appwrite']['type'] ?? false,
             'deprecated' => $method['deprecated'] ?? false,
             'headers' => [],
@@ -205,6 +210,7 @@ class Swagger2 extends Spec
             'emptyResponse' => $emptyResponse,
             'responseModel' => $responseModel,
             'responseModels' => $responseModels,
+            'responseDiscriminator' => $responseDiscriminator,
         ];
 
         if ($method['x-appwrite']['deprecated'] ?? false) {
@@ -319,6 +325,88 @@ class Swagger2 extends Spec
         });
 
         return $output;
+    }
+
+    protected function normalizeSchemaRef(string $ref): string
+    {
+        return str_replace(
+            ['#/definitions/', '#/components/schemas/'],
+            '',
+            $ref
+        );
+    }
+
+    protected function parseUnionDiscriminator(array $schema): array
+    {
+        $discriminator = $schema['x-discriminator'] ?? $schema['discriminator'] ?? null;
+
+        if (!\is_array($discriminator)) {
+            return [];
+        }
+
+        $cases = [];
+        $mapping = [];
+
+        if (\is_array($discriminator['x-mapping'] ?? null)) {
+            foreach ($discriminator['x-mapping'] as $ref => $conditions) {
+                if (!\is_array($conditions)) {
+                    continue;
+                }
+
+                $modelName = $this->normalizeSchemaRef((string) $ref);
+
+                if ($modelName === '') {
+                    continue;
+                }
+
+                $mapping[$modelName] = \array_filter(
+                    $conditions,
+                    fn($value) => $value !== null
+                );
+            }
+        }
+
+        if (
+            empty($mapping)
+            && isset($discriminator['propertyName'], $discriminator['mapping'])
+            && \is_array($discriminator['mapping'])
+        ) {
+            foreach ($discriminator['mapping'] as $value => $ref) {
+                $modelName = $this->normalizeSchemaRef((string) $ref);
+
+                if ($modelName === '') {
+                    continue;
+                }
+
+                $mapping[$modelName] = [
+                    $discriminator['propertyName'] => $value,
+                ];
+            }
+        }
+
+        if (empty($mapping)) {
+            return [];
+        }
+
+        foreach ($schema['x-oneOf'] ?? [] as $unionSchema) {
+            $modelName = $this->normalizeSchemaRef($unionSchema['$ref'] ?? '');
+
+            if ($modelName === '' || !isset($mapping[$modelName])) {
+                continue;
+            }
+
+            $cases[$modelName] = $mapping[$modelName];
+        }
+
+        if (empty($cases)) {
+            $cases = $mapping;
+        }
+
+        uksort($cases, function (string $left, string $right) use ($cases): int {
+            return \count($cases[$right]) <=> \count($cases[$left]);
+        });
+
+        return $cases;
     }
 
     /**
@@ -518,6 +606,10 @@ class Swagger2 extends Spec
                     $model['properties'][$name]['description'] = $def['description'] ?? '';
                     $model['properties'][$name]['example'] = $def['x-example'] ?? null;
                     $model['properties'][$name]['required'] =  in_array($name, $model['required']);
+                    if (isset($def['$ref'])) {
+                        $model['properties'][$name]['sub_schema'] = str_replace('#/definitions/', '', $def['$ref']);
+                    }
+
                     if (isset($def['items']['$ref'])) {
                         //nested model
                         $model['properties'][$name]['sub_schema'] = str_replace('#/definitions/', '', $def['items']['$ref']);
@@ -538,6 +630,10 @@ class Swagger2 extends Spec
                         $model['properties'][$name]['enum'] = $def['enum'];
                         $model['properties'][$name]['enumName'] = $def['x-enum-name'] ?? ucfirst($key) . ucfirst($name);
                         $model['properties'][$name]['enumKeys'] = $def['x-enum-keys'] ?? [];
+                    } elseif (($model['properties'][$name]['type'] ?? null) === 'array' && isset($def['items']['enum'])) {
+                        $model['properties'][$name]['enumValues'] = $def['items']['enum'];
+                        $model['properties'][$name]['enumName'] = $def['items']['x-enum-name'] ?? ucfirst($key) . ucfirst($name);
+                        $model['properties'][$name]['enumKeys'] = $def['items']['x-enum-keys'] ?? [];
                     }
                 }
             }
@@ -572,6 +668,10 @@ class Swagger2 extends Spec
                     $model['properties'][$name]['description'] = $def['description'] ?? '';
                     $model['properties'][$name]['example'] = $def['x-example'] ?? null;
                     $model['properties'][$name]['required'] = in_array($name, $model['required']);
+                    if (isset($def['$ref'])) {
+                        $model['properties'][$name]['sub_schema'] = str_replace('#/definitions/', '', $def['$ref']);
+                    }
+
                     if (isset($def['items']['$ref'])) {
                         $model['properties'][$name]['sub_schema'] = str_replace('#/definitions/', '', $def['items']['$ref']);
                     }
@@ -588,6 +688,10 @@ class Swagger2 extends Spec
                         $model['properties'][$name]['enum'] = $def['enum'];
                         $model['properties'][$name]['enumName'] = $def['x-enum-name'] ?? ucfirst($key) . ucfirst($name);
                         $model['properties'][$name]['enumKeys'] = $def['x-enum-keys'] ?? [];
+                    } elseif (($model['properties'][$name]['type'] ?? null) === 'array' && isset($def['items']['enum'])) {
+                        $model['properties'][$name]['enumValues'] = $def['items']['enum'];
+                        $model['properties'][$name]['enumName'] = $def['items']['x-enum-name'] ?? ucfirst($key) . ucfirst($name);
+                        $model['properties'][$name]['enumKeys'] = $def['items']['x-enum-keys'] ?? [];
                     }
                 }
             }
@@ -649,7 +753,9 @@ class Swagger2 extends Spec
 
                     // array of enums
                     if ((($property['type'] ?? null) === 'array') && isset($property['items']['enum'])) {
-                        $enumName = $property['x-enum-name'] ?? ucfirst($modelName) . ucfirst($propertyName);
+                        $enumName = $property['items']['x-enum-name']
+                            ?? $property['enumName']
+                            ?? ucfirst($modelName) . ucfirst($propertyName);
 
                         if (!isset($list[$enumName])) {
                             $list[$enumName] = [
@@ -669,10 +775,55 @@ class Swagger2 extends Spec
     /**
      * @return array
      */
+    public function getRequestModelEnums(): array
+    {
+        $list = [];
+
+        foreach ($this->getRequestModels() as $modelName => $model) {
+            if (!isset($model['properties']) || !is_array($model['properties'])) {
+                continue;
+            }
+
+            foreach ($model['properties'] as $propertyName => $property) {
+                if (isset($property['enum'])) {
+                    $enumName = $property['enumName'] ?? ucfirst($modelName) . ucfirst($propertyName);
+
+                    if (!isset($list[$enumName])) {
+                        $list[$enumName] = [
+                            'name' => $enumName,
+                            'enum' => $property['enum'],
+                            'keys' => $property['enumKeys'] ?? [],
+                        ];
+                    }
+                }
+
+                if ((($property['type'] ?? null) === 'array') && isset($property['enumValues'])) {
+                    $enumName = $property['enumName'] ?? ucfirst($modelName) . ucfirst($propertyName);
+
+                    if (!isset($list[$enumName])) {
+                        $list[$enumName] = [
+                            'name' => $enumName,
+                            'enum' => $property['enumValues'],
+                            'keys' => $property['enumKeys'] ?? [],
+                        ];
+                    }
+                }
+            }
+        }
+
+        return \array_values($list);
+    }
+
+    /**
+     * @return array
+     */
     public function getAllEnums(): array
     {
         $list = [];
         foreach ($this->getRequestEnums() as $enum) {
+            $list[$enum['name']] = $enum;
+        }
+        foreach ($this->getRequestModelEnums() as $enum) {
             $list[$enum['name']] = $enum;
         }
         foreach ($this->getResponseEnums() as $enum) {

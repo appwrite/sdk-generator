@@ -5,14 +5,14 @@ import (
 	"path"
 	"time"
 
-	"github.com/repoowner/sdk-for-go/appwrite"
-	"github.com/repoowner/sdk-for-go/client"
-	"github.com/repoowner/sdk-for-go/file"
-	"github.com/repoowner/sdk-for-go/id"
-	"github.com/repoowner/sdk-for-go/operator"
-	"github.com/repoowner/sdk-for-go/permission"
-	"github.com/repoowner/sdk-for-go/query"
-	"github.com/repoowner/sdk-for-go/role"
+	"github.com/repoowner/reponame/appwrite"
+	"github.com/repoowner/reponame/client"
+	"github.com/repoowner/reponame/file"
+	"github.com/repoowner/reponame/id"
+	"github.com/repoowner/reponame/operator"
+	"github.com/repoowner/reponame/permission"
+	"github.com/repoowner/reponame/query"
+	"github.com/repoowner/reponame/role"
 )
 
 func main() {
@@ -22,7 +22,15 @@ func main() {
 		appwrite.WithTimeout(60 * time.Second),
 	)
 	client.AddHeader("Origin", "http://localhost")
+	sdkHeaders := client.GetHeaders()
 	fmt.Print("\n\nTest Started\n")
+	fmt.Printf(
+		"x-sdk-name: %s; x-sdk-platform: %s; x-sdk-language: %s; x-sdk-version: %s\n",
+		sdkHeaders["x-sdk-name"],
+		sdkHeaders["x-sdk-platform"],
+		sdkHeaders["x-sdk-language"],
+		sdkHeaders["x-sdk-version"],
+	)
 	testFooService(client, stringInArray)
 	testBarService(client, stringInArray)
 	testGeneralService(client, stringInArray)

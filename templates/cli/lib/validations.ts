@@ -1,6 +1,6 @@
 export const validateRequired = (
   resource: string,
-  value: any,
+  value: unknown,
 ): string | true => {
   if (Array.isArray(value)) {
     if (value.length <= 0) {

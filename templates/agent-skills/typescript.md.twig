@@ -66,11 +66,12 @@ const session = await account.createEmailPasswordSession({
     password: 'password123'
 });
 
-// OAuth login
+// OAuth login (Web)
 account.createOAuth2Session({
-    provider: 'github',
+    provider: OAuthProvider.Github,
     success: 'https://example.com/success',
-    failure: 'https://example.com/fail'
+    failure: 'https://example.com/fail',
+    scopes: ['repo', 'user'] // optional — provider-specific scopes
 });
 
 // Get current user
@@ -78,6 +79,73 @@ const user = await account.get();
 
 // Logout
 await account.deleteSession({ sessionId: 'current' });
+```
+
+### OAuth 2 Login (React Native)
+
+> **Important:** `createOAuth2Session()` does **not** work on React Native. You must use `createOAuth2Token()` with deep linking instead.
+
+#### Setup
+
+Install the required dependencies:
+
+```bash
+npx expo install react-native-{{ spec.title | caseLower }} react-native-url-polyfill
+npm install expo-auth-session expo-web-browser expo-linking
+```
+
+Set the URL scheme in your `app.json`:
+
+```json
+{
+  "expo": {
+    "scheme": "appwrite-callback-[PROJECT_ID]"
+  }
+}
+```
+
+#### OAuth Flow
+
+```typescript
+import { Client, Account, OAuthProvider } from 'react-native-{{ spec.title | caseLower }}';
+import { makeRedirectUri } from 'expo-auth-session';
+import * as WebBrowser from 'expo-web-browser';
+
+const client = new Client()
+    .setEndpoint('https://<REGION>.cloud.appwrite.io/v1')
+    .setProject('[PROJECT_ID]');
+
+const account = new Account(client);
+
+async function oauthLogin(provider: OAuthProvider) {
+    // Create deep link that works across Expo environments
+    const deepLink = new URL(makeRedirectUri({ preferLocalhost: true }));
+    const scheme = `${deepLink.protocol}//`; // e.g. 'exp://' or 'appwrite-callback-[PROJECT_ID]://'
+
+    // Get the OAuth login URL
+    const loginUrl = await account.createOAuth2Token({
+        provider,
+        success: `${deepLink}`,
+        failure: `${deepLink}`,
+    });
+
+    // Open browser and listen for the scheme redirect
+    const result = await WebBrowser.openAuthSessionAsync(`${loginUrl}`, scheme);
+
+    if (result.type !== 'success') return;
+
+    // Extract credentials from the redirect URL
+    const url = new URL(result.url);
+    const secret = url.searchParams.get('secret');
+    const userId = url.searchParams.get('userId');
+
+    // Create session with the OAuth credentials
+    await account.createSession({ userId, secret });
+}
+
+// Usage
+await oauthLogin(OAuthProvider.Github);
+await oauthLogin(OAuthProvider.Google);
 ```
 
 ### User Management (server-side)
@@ -354,25 +422,33 @@ await teams.delete({ teamId: '[TEAM_ID]' });
 ### Real-time Subscriptions (client-side)
 
 ```typescript
-// Subscribe to row changes
-const unsubscribe = client.subscribe('databases.[DATABASE_ID].tables.[TABLE_ID].rows', (response) => {
-    console.log(response.events);   // e.g. ['databases.*.tables.*.rows.*.create']
-    console.log(response.payload);  // the affected resource
-});
+import { Realtime, Channel } from '{{ spec.title | caseLower }}';
 
-// Subscribe to file changes
-client.subscribe('buckets.[BUCKET_ID].files', (response) => {
-    console.log(response.payload);
-});
+const realtime = new Realtime(client);
+
+// Subscribe to row changes
+const subscription = await realtime.subscribe(
+    Channel.tablesdb('[DATABASE_ID]').table('[TABLE_ID]').row(),
+    (response) => {
+        console.log(response.events);   // e.g. ['tablesdb.*.tables.*.rows.*.create']
+        console.log(response.payload);  // the affected resource
+    }
+);
+
+// Subscribe to a specific row
+await realtime.subscribe(
+    Channel.tablesdb('[DATABASE_ID]').table('[TABLE_ID]').row('[ROW_ID]'),
+    (response) => { /* ... */ }
+);
 
 // Subscribe to multiple channels
-client.subscribe([
-    'databases.[DATABASE_ID].tables.[TABLE_ID].rows',
-    'buckets.[BUCKET_ID].files',
+await realtime.subscribe([
+    Channel.tablesdb('[DATABASE_ID]').table('[TABLE_ID]').row(),
+    Channel.bucket('[BUCKET_ID]').file(),
 ], (response) => { /* ... */ });
 
 // Unsubscribe
-unsubscribe();
+await subscription.close();
 ```
 
 **Available channels:**
@@ -380,8 +456,8 @@ unsubscribe();
 | Channel | Description |
 |---------|-------------|
 | `account` | Changes to the authenticated user's account |
-| `databases.[DB_ID].tables.[TABLE_ID].rows` | All rows in a table |
-| `databases.[DB_ID].tables.[TABLE_ID].rows.[ROW_ID]` | A specific row |
+| `tablesdb.[DB_ID].tables.[TABLE_ID].rows` | All rows in a table |
+| `tablesdb.[DB_ID].tables.[TABLE_ID].rows.[ROW_ID]` | A specific row |
 | `buckets.[BUCKET_ID].files` | All files in a bucket |
 | `buckets.[BUCKET_ID].files.[FILE_ID]` | A specific file |
 | `teams` | Changes to teams the user belongs to |

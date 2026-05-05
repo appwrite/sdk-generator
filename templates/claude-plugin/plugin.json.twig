@@ -1,0 +1,38 @@
+{
+    "name": "{{ spec.title | caseLower }}",
+    "version": "{{ sdk.version }}",
+    "description": "{{ spec.title }} tools for Claude Code, including SDK skills, Appwrite MCP servers, and deployment commands.",
+    "author": {
+        "name": "Appwrite",
+        "email": "team@appwrite.io"
+    },
+    "homepage": "https://appwrite.io/docs/tooling/ai/ai-dev-tools/claude-code",
+    "repository": "https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName }}",
+    "license": "MIT",
+    "keywords": [
+        "{{ spec.title | caseLower }}",
+        "claude-code",
+        "mcp",
+        "skills"
+    ],
+    "userConfig": {
+        "appwrite_endpoint": {
+            "type": "string",
+            "title": "Appwrite Endpoint",
+            "description": "Your Appwrite endpoint URL, for example https://<REGION>.cloud.appwrite.io/v1",
+            "sensitive": false
+        },
+        "appwrite_project_id": {
+            "type": "string",
+            "title": "Appwrite Project ID",
+            "description": "Your Appwrite project ID",
+            "sensitive": false
+        },
+        "appwrite_api_key": {
+            "type": "string",
+            "title": "Appwrite API Key",
+            "description": "Your Appwrite API key",
+            "sensitive": true
+        }
+    }
+}

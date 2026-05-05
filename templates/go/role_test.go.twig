@@ -1,0 +1,58 @@
+{% autoescape false %}
+package role
+
+import (
+	"testing"
+)
+
+func TestAny(t *testing.T) {
+	if Any() != "any" {
+		t.Errorf("Expected any, got %s", Any())
+	}
+}
+
+func TestUser(t *testing.T) {
+	if User("custom", "") != "user:custom" {
+		t.Errorf("Expected user:custom, got %s", User("custom", ""))
+	}
+	if User("custom", "status") != "user:custom/status" {
+		t.Errorf("Expected user:custom/status, got %s", User("custom", "status"))
+	}
+}
+
+func TestUsers(t *testing.T) {
+	if Users("") != "users" {
+		t.Errorf("Expected users, got %s", Users(""))
+	}
+	if Users("status") != "users/status" {
+		t.Errorf("Expected users/status, got %s", Users("status"))
+	}
+}
+
+func TestGuests(t *testing.T) {
+	if Guests() != "guests" {
+		t.Errorf("Expected guests, got %s", Guests())
+	}
+}
+
+func TestTeam(t *testing.T) {
+	if Team("custom", "") != "team:custom" {
+		t.Errorf("Expected team:custom, got %s", Team("custom", ""))
+	}
+	if Team("custom", "owner") != "team:custom/owner" {
+		t.Errorf("Expected team:custom/owner, got %s", Team("custom", "owner"))
+	}
+}
+
+func TestMember(t *testing.T) {
+	if Member("custom") != "member:custom" {
+		t.Errorf("Expected member:custom, got %s", Member("custom"))
+	}
+}
+
+func TestLabel(t *testing.T) {
+	if Label("admin") != "label:admin" {
+		t.Errorf("Expected label:admin, got %s", Label("admin"))
+	}
+}
+{% endautoescape %}

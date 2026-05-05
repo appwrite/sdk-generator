@@ -6,6 +6,7 @@ import { TypeScript } from "../../../type-generation/languages/typescript.js";
 import { SDK_TITLE, EXECUTABLE_NAME } from "../../../constants.js";
 import {
   BaseDatabasesGenerator,
+  GenerateOptions,
   GenerateResult,
   SupportedLanguage,
 } from "../base.js";
@@ -39,7 +40,7 @@ const PERMISSION_CALLBACK_INLINE = `(permission: { read: (role: RoleString) => s
 
 // Inline query callback type for better IntelliSense (with type parameter for field safety)
 const getQueryCallbackInline = (typeName: string) =>
-  `(q: { equal: <K extends QueryableKeys<${typeName}>>(field: K, value: ExtractQueryValue<${typeName}[K]>) => string; notEqual: <K extends QueryableKeys<${typeName}>>(field: K, value: ExtractQueryValue<${typeName}[K]>) => string; lessThan: <K extends QueryableKeys<${typeName}>>(field: K, value: ExtractQueryValue<${typeName}[K]>) => string; lessThanEqual: <K extends QueryableKeys<${typeName}>>(field: K, value: ExtractQueryValue<${typeName}[K]>) => string; greaterThan: <K extends QueryableKeys<${typeName}>>(field: K, value: ExtractQueryValue<${typeName}[K]>) => string; greaterThanEqual: <K extends QueryableKeys<${typeName}>>(field: K, value: ExtractQueryValue<${typeName}[K]>) => string; contains: <K extends QueryableKeys<${typeName}>>(field: K, value: ExtractQueryValue<${typeName}[K]>) => string; search: <K extends QueryableKeys<${typeName}>>(field: K, value: string) => string; isNull: <K extends QueryableKeys<${typeName}>>(field: K) => string; isNotNull: <K extends QueryableKeys<${typeName}>>(field: K) => string; startsWith: <K extends QueryableKeys<${typeName}>>(field: K, value: string) => string; endsWith: <K extends QueryableKeys<${typeName}>>(field: K, value: string) => string; between: <K extends QueryableKeys<${typeName}>>(field: K, start: ExtractQueryValue<${typeName}[K]>, end: ExtractQueryValue<${typeName}[K]>) => string; select: <K extends keyof ${typeName}>(fields: K[]) => string; orderAsc: <K extends keyof ${typeName}>(field: K) => string; orderDesc: <K extends keyof ${typeName}>(field: K) => string; limit: (value: number) => string; offset: (value: number) => string; cursorAfter: (documentId: string) => string; cursorBefore: (documentId: string) => string; or: (...queries: string[]) => string; and: (...queries: string[]) => string }) => string[]`;
+  `(q: { equal: <K extends QueryableKeys<${typeName}>>(field: K, value: QueryableFieldValue<${typeName}, K>) => string; notEqual: <K extends QueryableKeys<${typeName}>>(field: K, value: QueryableFieldValue<${typeName}, K>) => string; lessThan: <K extends QueryableKeys<${typeName}>>(field: K, value: QueryableFieldValue<${typeName}, K>) => string; lessThanEqual: <K extends QueryableKeys<${typeName}>>(field: K, value: QueryableFieldValue<${typeName}, K>) => string; greaterThan: <K extends QueryableKeys<${typeName}>>(field: K, value: QueryableFieldValue<${typeName}, K>) => string; greaterThanEqual: <K extends QueryableKeys<${typeName}>>(field: K, value: QueryableFieldValue<${typeName}, K>) => string; contains: <K extends QueryableKeys<${typeName}>>(field: K, value: QueryableFieldValue<${typeName}, K>) => string; search: <K extends QueryableKeys<${typeName}>>(field: K, value: string) => string; isNull: <K extends QueryableKeys<${typeName}>>(field: K) => string; isNotNull: <K extends QueryableKeys<${typeName}>>(field: K) => string; startsWith: <K extends QueryableKeys<${typeName}>>(field: K, value: string) => string; endsWith: <K extends QueryableKeys<${typeName}>>(field: K, value: string) => string; between: <K extends QueryableKeys<${typeName}>>(field: K, start: QueryableFieldValue<${typeName}, K>, end: QueryableFieldValue<${typeName}, K>) => string; select: <K extends keyof ${typeName}>(fields: K[]) => string; orderAsc: <K extends keyof ${typeName}>(field: K) => string; orderDesc: <K extends keyof ${typeName}>(field: K) => string; limit: (value: number) => string; offset: (value: number) => string; cursorAfter: (documentId: string) => string; cursorBefore: (documentId: string) => string; or: (...queries: string[]) => string; and: (...queries: string[]) => string }) => string[]`;
 
 /**
  * TypeScript-specific database generator.
@@ -240,7 +241,7 @@ export type DatabaseHandle<D extends DatabaseId> = {
   use: <T extends keyof DatabaseTableMap[D] & string>(tableId: T) => DatabaseTableMap[D][T];
 ${
   supportsServerSide
-    ? `  create: (tableId: string, name: string, options?: { permissions?: ${PERMISSION_CALLBACK_INLINE}; rowSecurity?: boolean; enabled?: boolean; columns?: any[]; indexes?: any[] }) => Promise<Models.Table>;
+    ? `  create: (tableId: string, name: string, options?: { permissions?: ${PERMISSION_CALLBACK_INLINE}; rowSecurity?: boolean; enabled?: boolean; columns?: object[]; indexes?: object[] }) => Promise<Models.Table>;
   update: <T extends keyof DatabaseTableMap[D] & string>(tableId: T, options?: { name?: string; permissions?: ${PERMISSION_CALLBACK_INLINE}; rowSecurity?: boolean; enabled?: boolean }) => Promise<Models.Table>;
   delete: <T extends keyof DatabaseTableMap[D] & string>(tableId: T) => Promise<void>;`
     : ""
@@ -259,14 +260,13 @@ ${
 };`;
   }
 
-  private generateTypesFile(config: ConfigType): string {
+  private generateTypesFile(config: ConfigType, appwriteDep: string): string {
     const entities = config.tables?.length ? config.tables : config.collections;
 
     if (!entities || entities.length === 0) {
       return "// No tables or collections found in configuration\n";
     }
 
-    const appwriteDep = getAppwriteDependency();
     const enums = this.generateEnums(entities);
     const types = entities
       .map((entity: Entity) => this.generateTableType(entity, entities))
@@ -330,26 +330,26 @@ ${
     if (!supportsBulk) return "";
 
     return `
-    createMany: (rows: any[], options?: { transactionId?: string }) =>
+    createMany: (rows: object[], options?: { transactionId?: string }) =>
       tablesDB.createRows({
         databaseId,
         tableId,
         rows,
         transactionId: options?.transactionId,
       }),
-    updateMany: (data: any, options?: { queries?: (q: any) => string[]; transactionId?: string }) =>
+    updateMany: (data: object, options?: { queries?: (q: QueryBuilder<T>) => string[]; transactionId?: string }) =>
       tablesDB.updateRows({
         databaseId,
         tableId,
         data,
-        queries: options?.queries?.(createQueryBuilder()),
+        queries: options?.queries?.(createQueryBuilder<T>()),
         transactionId: options?.transactionId,
       }),
-    deleteMany: (options?: { queries?: (q: any) => string[]; transactionId?: string }) =>
+    deleteMany: (options?: { queries?: (q: QueryBuilder<T>) => string[]; transactionId?: string }) =>
       tablesDB.deleteRows({
         databaseId,
         tableId,
-        queries: options?.queries?.(createQueryBuilder()),
+        queries: options?.queries?.(createQueryBuilder<T>()),
         transactionId: options?.transactionId,
       }),`;
   }
@@ -364,13 +364,17 @@ ${
     return `
         // Remove bulk methods for tables with relationships
         if (!hasBulkMethods(databaseId, tableId)) {
-          delete (api as any).createMany;
-          delete (api as any).updateMany;
-          delete (api as any).deleteMany;
+          delete (api as Record<string, unknown>).createMany;
+          delete (api as Record<string, unknown>).updateMany;
+          delete (api as Record<string, unknown>).deleteMany;
         }`;
   }
 
-  private generateDatabasesFile(config: ConfigType, importExt: string): string {
+  private generateDatabasesFile(
+    config: ConfigType,
+    importExt: string,
+    appwriteDep: string,
+  ): string {
     const entities = config.tables?.length ? config.tables : config.collections;
 
     if (!entities || entities.length === 0) {
@@ -378,7 +382,6 @@ ${
     }
 
     const entitiesByDb = this.groupEntitiesByDb(entities);
-    const appwriteDep = getAppwriteDependency();
     const supportsServerSide = supportsServerSideMethods(
       appwriteDep,
       this.serverSideOverride,
@@ -405,8 +408,10 @@ ${
     });
   }
 
-  private generateConstantsFile(config: ConfigType): string {
-    const appwriteDep = getAppwriteDependency();
+  private generateConstantsFile(
+    config: ConfigType,
+    appwriteDep: string,
+  ): string {
     const supportsServerSide = supportsServerSideMethods(
       appwriteDep,
       this.serverSideOverride,
@@ -420,16 +425,44 @@ ${
     });
   }
 
-  async generate(config: ConfigType): Promise<GenerateResult> {
+  /**
+   * Deduplicate entities by composite key ($id + databaseId).
+   * Keeps the last occurrence to match addTable/addCollection semantics.
+   */
+  private dedupeEntities<T extends Entity>(entities: T[]): T[] {
+    const seen = new Map<string, T>();
+    for (const entity of entities) {
+      seen.set(`${entity.databaseId}:${entity.$id}`, entity);
+    }
+    return Array.from(seen.values());
+  }
+
+  async generate(
+    config: ConfigType,
+    options?: GenerateOptions,
+  ): Promise<GenerateResult> {
     if (!config.projectId) {
       throw new Error("Project ID is required in configuration");
     }
 
-    const importExt = detectImportExtension();
+    const appwriteDep =
+      options?.appwriteImportSource ?? getAppwriteDependency();
+    const importExt = options?.importExtension ?? detectImportExtension();
+
+    // Deduplicate entities to guard against corrupted configs
+    const dedupedConfig = { ...config };
+    if (dedupedConfig.tables && dedupedConfig.tables.length > 0) {
+      dedupedConfig.tables = this.dedupeEntities(dedupedConfig.tables);
+    }
+    if (dedupedConfig.collections && dedupedConfig.collections.length > 0) {
+      dedupedConfig.collections = this.dedupeEntities(
+        dedupedConfig.collections,
+      );
+    }
 
     const hasEntities =
-      (config.tables && config.tables.length > 0) ||
-      (config.collections && config.collections.length > 0);
+      (dedupedConfig.tables && dedupedConfig.tables.length > 0) ||
+      (dedupedConfig.collections && dedupedConfig.collections.length > 0);
 
     if (!hasEntities) {
       console.log(
@@ -439,15 +472,22 @@ ${
         dbContent: "// No tables or collections found in configuration\n",
         typesContent: "// No tables or collections found in configuration\n",
         indexContent: this.generateIndexFile(importExt),
-        constantsContent: this.generateConstantsFile(config),
+        constantsContent: this.generateConstantsFile(
+          dedupedConfig,
+          appwriteDep,
+        ),
       };
     }
 
     return {
-      dbContent: this.generateDatabasesFile(config, importExt),
-      typesContent: this.generateTypesFile(config),
+      dbContent: this.generateDatabasesFile(
+        dedupedConfig,
+        importExt,
+        appwriteDep,
+      ),
+      typesContent: this.generateTypesFile(dedupedConfig, appwriteDep),
       indexContent: this.generateIndexFile(importExt),
-      constantsContent: this.generateConstantsFile(config),
+      constantsContent: this.generateConstantsFile(dedupedConfig, appwriteDep),
     };
   }
 }

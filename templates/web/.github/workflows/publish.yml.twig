@@ -14,16 +14,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
     - name: Use Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v6
       with:
-        node-version: '22'
+        node-version: '24.14.1'
         registry-url: 'https://registry.npmjs.org'
 
-    - name: Update npm to latest version for OIDC support
-      run: npm install -g npm@latest
+    - name: Pin npm for trusted publishing
+      run: npm install -g npm@11.10.0
 
     - name: Determine release tag
       id: release_tag
@@ -36,7 +36,7 @@ jobs:
 
     - name: Install dependencies and build
       run: |
-        npm install
+        npm ci
         npm run build
 
     - name: Publish

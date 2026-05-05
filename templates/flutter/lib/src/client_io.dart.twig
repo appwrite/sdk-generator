@@ -135,6 +135,11 @@ class ClientIO extends ClientBase with ClientMixin {
     return this;
   }
 
+  @override
+  Map<String, String> getHeaders() {
+    return Map<String, String>.from(_headers!);
+  }
+
   Future init() async {
     if (_initProgress) return;
     _initProgress = true;
@@ -335,7 +340,6 @@ class ClientIO extends ClientBase with ClientMixin {
           ? callbackUrlScheme
           : "{{spec.title | caseLower}}-callback-${config['project']!}",
       options: const FlutterWebAuth2Options(
-        intentFlags: ephemeralIntentFlags,
         useWebview: false,
       ),
     ).then((value) async {

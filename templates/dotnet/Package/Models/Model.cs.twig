@@ -28,7 +28,8 @@ namespace {{ spec.title | caseUcfirst }}.Models
             {%~ if definition.additionalProperties %}
             Dictionary<string, object> data
             {%~ endif %}
-        ) {
+        )
+        {
             {%~ for property in definition.properties %}
             {{ property_name(definition, property) | overrideProperty(definition.name) }} = {{ property.name | caseCamel | escapeKeyword }};
             {%~ endfor %}
@@ -62,7 +63,7 @@ namespace {{ spec.title | caseUcfirst }}.Models
                         map["{{ property.name }}"].ConvertToList<{{ property | typeName | replace({'List<': '', '>': ''}) }}>()
                     {%- else %}
                         {%- if property.type == "integer" or property.type == "number" %}
-                            {%- if not property.required -%}map["{{ property.name }}"] == null ? null :{% endif %}Convert.To{% if property.type == "integer" %}Int64{% else %}Double{% endif %}(map["{{ property.name }}"])
+                            {%- if not property.required -%}map["{{ property.name }}"] == null ? null : {% endif %}Convert.To{% if property.type == "integer" %}Int64{% else %}Double{% endif %}(map["{{ property.name }}"])
                         {%- else %}
                             {%- if property.type == "boolean" -%}
                                 ({{ property | typeName }}{% if not property.required %}?{% endif %})map["{{ property.name }}"]
@@ -73,14 +74,16 @@ namespace {{ spec.title | caseUcfirst }}.Models
                                     map["{{ property.name }}"].ToString()
                                 {%- endif %}
                             {%- endif %}
-                        {%~ endif %}
-                    {%~ endif %}
+                        {%- endif %}
+                    {%- endif %}
                 {%~ endif %}
                 {%- if not loop.last or (loop.last and definition.additionalProperties) %},
                 {%~ endif %}
             {%~ endfor %}
             {%- if definition.additionalProperties %}
-            data: map.TryGetValue("data", out var dataValue) ? (Dictionary<string, object>)dataValue : map
+            data: map.TryGetValue("data", out var dataValue)
+                ? (Dictionary<string, object>)dataValue
+                : map
             {%- endif ~%}
         );
 

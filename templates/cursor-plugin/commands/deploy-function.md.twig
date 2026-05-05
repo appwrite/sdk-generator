@@ -1,0 +1,153 @@
+---
+name: deploy-function
+description: Deploy a function using the {{ spec.title }} CLI
+---
+
+# Deploy a function using the {{ spec.title }} CLI
+
+## Prerequisites
+
+- {{ spec.title }} CLI installed (`npm install -g appwrite-cli`)
+- Authenticated with `appwrite login`
+- Project initialized with `appwrite init`
+
+## Quick Deploy
+
+```sh
+appwrite push functions
+```
+
+## Full Workflow
+
+### 1. Initialize a new function
+
+```sh
+appwrite init functions
+```
+
+This scaffolds a new function with a starter template and adds it to `appwrite.config.json`.
+
+### 2. Pull existing functions from Console
+
+```sh
+appwrite pull functions
+```
+
+### 3. Configuration
+
+Functions are configured in `appwrite.config.json`:
+
+```json
+{
+    "projectId": "<PROJECT_ID>",
+    "endpoint": "https://<REGION>.cloud.appwrite.io/v1",
+    "functions": [
+        {
+            "$id": "<FUNCTION_ID>",
+            "name": "userAuth",
+            "enabled": true,
+            "live": true,
+            "logging": true,
+            "runtime": "node-18.0",
+            "deployment": "<DEPLOYMENT_ID>",
+            "vars": [],
+            "events": [],
+            "schedule": "",
+            "timeout": 15,
+            "entrypoint": "userAuth.js",
+            "commands": "npm install",
+            "version": "v3",
+            "path": "functions/userAuth"
+        }
+    ]
+}
+```
+
+### 4. Deploy
+
+```sh
+appwrite push functions
+```
+
+## CI/CD (Non-Interactive)
+
+Set up headless mode first:
+
+```sh
+appwrite client \
+    --endpoint https://<REGION>.cloud.appwrite.io/v1 \
+    --project-id <PROJECT_ID> \
+    --key <API_KEY>
+```
+
+Then deploy non-interactively:
+
+```sh
+# Push all functions
+appwrite push functions --all --force
+
+# Push a specific function
+appwrite push functions --function-id <FUNCTION_ID> --force
+
+# Push all resources at once (functions, tables, buckets, teams, topics)
+appwrite push all --all --force
+```
+
+## Function Management Commands
+
+| Command | Description |
+|---------|-------------|
+| `appwrite functions list` | List all functions in the project |
+| `appwrite functions create` | Create a new function |
+| `appwrite functions get --function-id <ID>` | Get a function by ID |
+| `appwrite functions update --function-id <ID>` | Update a function |
+| `appwrite functions delete --function-id <ID>` | Delete a function |
+| `appwrite functions list-runtimes` | List all active runtimes |
+
+## Deployment Commands
+
+| Command | Description |
+|---------|-------------|
+| `appwrite functions list-deployments --function-id <ID>` | List all deployments |
+| `appwrite functions create-deployment --function-id <ID>` | Upload a new deployment |
+| `appwrite functions get-deployment --function-id <ID> --deployment-id <ID>` | Get a deployment |
+| `appwrite functions update-deployment --function-id <ID> --deployment-id <ID>` | Set active deployment |
+| `appwrite functions delete-deployment --function-id <ID> --deployment-id <ID>` | Delete a deployment |
+| `appwrite functions download-deployment --function-id <ID> --deployment-id <ID>` | Download deployment contents |
+
+## Execution Commands
+
+| Command | Description |
+|---------|-------------|
+| `appwrite functions create-execution --function-id <ID>` | Trigger a function execution |
+| `appwrite functions list-executions --function-id <ID>` | List execution logs |
+| `appwrite functions get-execution --function-id <ID> --execution-id <ID>` | Get an execution log |
+
+### Trigger with body
+
+```sh
+appwrite functions create-execution \
+    --function-id <FUNCTION_ID> \
+    --body '{"key": "value"}'
+```
+
+## Environment Variables
+
+| Command | Description |
+|---------|-------------|
+| `appwrite functions list-variables --function-id <ID>` | List all variables |
+| `appwrite functions create-variable --function-id <ID> --key <KEY> --value <VALUE>` | Create a variable |
+| `appwrite functions update-variable --function-id <ID> --variable-id <ID> --key <KEY> --value <VALUE>` | Update a variable |
+| `appwrite functions delete-variable --function-id <ID> --variable-id <ID>` | Delete a variable |
+
+Variables are accessible at runtime as environment variables.
+
+## Local Development
+
+Run your function locally for quick debugging:
+
+```sh
+appwrite run functions
+```
+
+This starts a local development server that watches for file changes and automatically rebuilds.

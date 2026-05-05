@@ -18,6 +18,7 @@ import io.appwrite.models.Error
 import io.appwrite.models.InputFile
 import io.appwrite.models.Mock
 import io.appwrite.models.Player
+import io.appwrite.models.RealtimeSubscriptionUpdate
 import io.appwrite.services.Bar
 import io.appwrite.services.Foo
 import io.appwrite.services.General
@@ -68,6 +69,9 @@ class ServiceTest {
             .setProject("123456")
             .addHeader("Origin", "http://localhost")
             .setSelfSigned(true)
+        val sdkHeaders = client.getHeaders()
+
+        writeToFile("x-sdk-name: ${sdkHeaders["x-sdk-name"]}; x-sdk-platform: ${sdkHeaders["x-sdk-platform"]}; x-sdk-language: ${sdkHeaders["x-sdk-language"]}; x-sdk-version: ${sdkHeaders["x-sdk-version"]}")
 
         runBlocking {
             val ping = client.ping()
@@ -87,13 +91,19 @@ class ServiceTest {
         var realtimeResponseWithQueries = "Realtime failed!"
         var realtimeResponseWithQueriesFailure = "Realtime failed!"
 
+        // Watchdog: flipped to true if the callback fires after unsubscribe, so we can
+        // verify the subscription is *actually* torn down, not just that the call
+        // resolved without throwing.
+        var rtsubFailureUnsubscribed = false
+        var rtsubFailureFiredAfterUnsubscribe = false
+
         // Subscribe without queries
-        realtime.subscribe("tests", payloadType = TestPayload::class.java) {
+        val rtsub = realtime.subscribe("tests", payloadType = TestPayload::class.java) {
             realtimeResponse = it.payload.response
         }
 
         // Subscribe with queries to ensure query set support works
-        realtime.subscribe(
+        val rtsubWithQueries = realtime.subscribe(
             "tests",
             payloadType = TestPayload::class.java,
             queries = setOf(
@@ -103,13 +113,14 @@ class ServiceTest {
             realtimeResponseWithQueries = it.payload.response
         }
 
-        realtime.subscribe(
+        val rtsubWithQueriesFailure = realtime.subscribe(
             "tests",
             payloadType = TestPayload::class.java,
             queries = setOf(
                 Query.equal("response", listOf("failed"))
             )
         ) {
+            if (rtsubFailureUnsubscribed) rtsubFailureFiredAfterUnsubscribe = true
             realtimeResponseWithQueriesFailure = "WS:/v1/realtime:passed"
         }
 
@@ -219,6 +230,45 @@ class ServiceTest {
             writeToFile(realtimeResponseWithQueries)
             writeToFile(realtimeResponseWithQueriesFailure)
 
+            try {
+                rtsubWithQueriesFailure.unsubscribe()
+                rtsubFailureUnsubscribed = true
+
+                // Idempotence: a second unsubscribe on the same handle must not throw.
+                rtsubWithQueriesFailure.unsubscribe()
+
+                // Give any in-flight frames a chance to be dispatched to the callback.
+                // If we're truly unsubscribed, the watchdog flag stays false.
+                delay(500)
+
+                if (rtsubFailureFiredAfterUnsubscribe) {
+                    throw Exception("callback fired after unsubscribe")
+                }
+
+                writeToFile("Realtime unsubscribe:passed")
+            } catch (e: Exception) {
+                writeToFile("Realtime unsubscribe:failed")
+            }
+
+            try {
+                rtsubWithQueries.update(
+                    RealtimeSubscriptionUpdate(
+                        channels = listOf("tests"),
+                        queries = emptyList()
+                    )
+                )
+                writeToFile("Realtime update:passed")
+            } catch (e: Exception) {
+                writeToFile("Realtime update:failed")
+            }
+
+            try {
+                realtime.disconnect()
+                writeToFile("Realtime disconnect:passed")
+            } catch (e: Exception) {
+                writeToFile("Realtime disconnect:failed")
+            }
+
             // mock = general.setCookie()
             // writeToFile(mock.result)
 
@@ -320,31 +370,31 @@ class ServiceTest {
             writeToFile(ID.custom("custom_id"))
 
             // Channel helper tests
-            writeToFile(Channel.database().collection().document().toString())
+            writeToFile(Channel.database("db1").collection("col1").document().toString())
             writeToFile(Channel.database("db1").collection("col1").document("doc1").toString())
             writeToFile(Channel.database("db1").collection("col1").document("doc1").create().toString())
             writeToFile(Channel.database("db1").collection("col1").document("doc1").upsert().toString())
-            writeToFile(Channel.tablesdb().table().row().toString())
+            writeToFile(Channel.tablesdb("db1").table("table1").row().toString())
             writeToFile(Channel.tablesdb("db1").table("table1").row("row1").toString())
             writeToFile(Channel.tablesdb("db1").table("table1").row("row1").update().toString())
             writeToFile(Channel.account())
-            writeToFile(Channel.bucket().file().toString())
+            writeToFile(Channel.bucket("bucket1").file().toString())
             writeToFile(Channel.bucket("bucket1").file("file1").toString())
             writeToFile(Channel.bucket("bucket1").file("file1").delete().toString())
-            writeToFile(Channel.function().toString())
+            writeToFile(Channel.function("func2").toString())
             writeToFile(Channel.function("func1").toString())
-            writeToFile(Channel.execution().toString())
+            writeToFile(Channel.execution("exec2").toString())
             writeToFile(Channel.execution("exec1").toString())
             writeToFile(Channel.documents())
             writeToFile(Channel.rows())
             writeToFile(Channel.files())
             writeToFile(Channel.executions())
             writeToFile(Channel.teams())
-            writeToFile(Channel.team().toString())
+            writeToFile(Channel.team("team2").toString())
             writeToFile(Channel.team("team1").toString())
             writeToFile(Channel.team("team1").create().toString())
             writeToFile(Channel.memberships())
-            writeToFile(Channel.membership().toString())
+            writeToFile(Channel.membership("membership2").toString())
             writeToFile(Channel.membership("membership1").toString())
             writeToFile(Channel.membership("membership1").update().toString())
 

@@ -10,8 +10,8 @@ export class DestructiveChangeError extends Error {
         type: string;
         resource: string;
         field: string;
-        oldValue?: any;
-        newValue?: any;
+        oldValue?: unknown;
+        newValue?: unknown;
       }>;
       affectedResources: number;
     },

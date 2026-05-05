@@ -1,9 +1,15 @@
+import fs from "fs";
+import path from "path";
 import chalk from "chalk";
 import { localConfig, globalConfig } from "./config.js";
 import { sdkForConsole } from "./sdks.js";
 import { validateRequired } from "./validations.js";
 import { paginate } from "./paginate.js";
-import { checkDeployConditions, isCloud } from "./utils.js";
+import {
+  checkDeployConditions,
+  getSafeDirectoryName,
+  isCloud,
+} from "./utils.js";
 import { Account, Client } from "@appwrite.io/console";
 import {
   getOrganizationsService,
@@ -48,6 +54,60 @@ interface Question {
 
 const whenOverride = (answers: Answers): boolean =>
   answers.override === undefined ? true : answers.override;
+
+const validateNonNegativeInteger = (value: string): boolean | string => {
+  if (!/^\d+$/.test(value)) {
+    return "Please enter a non-negative integer.";
+  }
+
+  return true;
+};
+
+const getDefaultSitePath = (answers: Answers): string => {
+  const siteDirectoryName = getSafeDirectoryName(
+    String(answers.name ?? ""),
+    "my-awesome-site",
+  );
+
+  return `sites/${siteDirectoryName}`;
+};
+
+const validateSitePath = (value: unknown): boolean | string => {
+  const required = validateRequired("site path", value);
+  if (required !== true) {
+    return required;
+  }
+
+  const sitePath = String(value).trim();
+  const absoluteSitePath = path.resolve(process.cwd(), sitePath);
+
+  if (
+    fs.existsSync(absoluteSitePath) &&
+    !fs.statSync(absoluteSitePath).isDirectory()
+  ) {
+    return "Site path already exists and is not a directory.";
+  }
+
+  return true;
+};
+
+const buildSelectionLabel = (name: string, id: string): string =>
+  `${name} (${id})`;
+
+const extractSelectionId = (value: string): string => {
+  const match = value.match(/\(([^()]+)\)$/);
+  return match ? match[1] : value;
+};
+
+const getInitProjectOverrideMessage = (): string => {
+  const projectName = localConfig.getProject().projectName;
+
+  if (projectName) {
+    return `A project is already linked to this directory (${projectName}). Override?`;
+  }
+
+  return "A project is already linked to this directory. Override?";
+};
 
 const getIgnores = (runtime: string): string[] => {
   const language = runtime.split("-").slice(0, -1).join("-");
@@ -158,7 +218,7 @@ export const questionsInitProject: Question[] = [
   {
     type: "confirm",
     name: "override",
-    message: `An ${SDK_TITLE} project ( ${localConfig.getProject()["projectId"]} ) is already associated with the current directory. Would you like to override it?`,
+    message: getInitProjectOverrideMessage(),
     when() {
       return Object.keys(localConfig.getProject()).length !== 0;
     },
@@ -167,14 +227,14 @@ export const questionsInitProject: Question[] = [
     type: "list",
     name: "start",
     when: whenOverride,
-    message: "How would you like to start?",
+    message: "Select a setup method:",
     choices: [
       {
-        name: "Create new project",
+        name: "Create a new project",
         value: "new",
       },
       {
-        name: "Link directory to an existing project",
+        name: "Link this directory to an existing project",
         value: "existing",
       },
     ],
@@ -182,29 +242,34 @@ export const questionsInitProject: Question[] = [
   {
     type: "search-list",
     name: "organization",
-    message: "Choose your organization",
+    message: "Choose your organization:",
     choices: async () => {
-      let client = await sdkForConsole(true);
+      const client = await sdkForConsole(true);
       const { teams } = isCloud()
         ? await paginate(
-            async (opts: { sdk?: Client } = {}) =>
-              (await getOrganizationsService(opts.sdk)).list(),
+            async (args) =>
+              (await getOrganizationsService(args.sdk as Client)).list({
+                queries: args.queries as string[],
+              }),
             { sdk: client },
             100,
             "teams",
           )
         : await paginate(
-            async (opts: { sdk?: Client } = {}) =>
-              (await getTeamsService(opts.sdk)).list(),
+            async (args) =>
+              (await getTeamsService(args.sdk as Client)).list({
+                queries: args.queries as string[],
+              }),
             { parseOutput: false, sdk: client },
             100,
             "teams",
           );
 
-      let choices = teams.map((team: any, idx: number) => {
+      const choices = teams.map((team: any, _idx: number) => {
+        const label = buildSelectionLabel(team.name, team["$id"]);
         return {
-          name: `${team.name} (${team["$id"]})`,
-          value: team["$id"],
+          name: label,
+          value: label,
         };
       });
 
@@ -223,44 +288,45 @@ export const questionsInitProject: Question[] = [
     name: "project",
     message: "What would you like to name your project?",
     default: "My Awesome Project",
-    when: (answer: Answers) => answer.start !== "existing",
+    when: (answer: Answers) =>
+      whenOverride(answer) && answer.start !== "existing",
   },
   {
     type: "input",
     name: "id",
     message: "What ID would you like to have for your project?",
     default: "unique()",
-    when: (answer: Answers) => answer.start !== "existing",
+    when: (answer: Answers) =>
+      whenOverride(answer) && answer.start !== "existing",
   },
   {
     type: "search-list",
     name: "project",
-    message: `Choose your ${SDK_TITLE} project.`,
+    message: "Choose your project:",
     choices: async (answers: Answers) => {
       const queries = [
         JSON.stringify({
           method: "equal",
           attribute: "teamId",
-          values: [answers.organization],
+          values: [extractSelectionId(answers.organization)],
         }),
         JSON.stringify({ method: "orderDesc", attribute: "$id" }),
       ];
 
       const { projects } = await paginate(
-        async () => (await getProjectsService()).list(queries),
+        async (args) =>
+          (await getProjectsService()).list(args.queries as string[]),
         { parseOutput: false },
         100,
         "projects",
         queries,
       );
 
-      let choices = projects.map((project: any) => {
+      const choices = projects.map((project: any) => {
+        const label = buildSelectionLabel(project.name, project["$id"]);
         return {
-          name: `${project.name} (${project["$id"]})`,
-          value: {
-            $id: project["$id"],
-            region: project.region || "",
-          },
+          name: label,
+          value: label,
         };
       });
 
@@ -277,13 +343,13 @@ export const questionsInitProject: Question[] = [
     name: "region",
     message: `Select your ${SDK_TITLE} Cloud region`,
     choices: async () => {
-      let client = await sdkForConsole(true);
+      const client = await sdkForConsole(true);
       const endpoint = globalConfig.getEndpoint() || DEFAULT_ENDPOINT;
-      let response = (await client.call(
+      const response = (await client.call(
         "GET",
         new URL(endpoint + "/console/regions"),
       )) as { regions: any[] };
-      let regions = response.regions || [];
+      const regions = response.regions || [];
       if (!regions.length) {
         throw new Error(
           "No regions found. Please check your network or Appwrite Cloud availability.",
@@ -297,6 +363,7 @@ export const questionsInitProject: Question[] = [
         }));
     },
     when: (answer: Answers) => {
+      if (!whenOverride(answer)) return false;
       if (answer.start === "existing") return false;
       return isCloud();
     },
@@ -307,7 +374,7 @@ export const questionsInitProjectAutopull: Question[] = [
   {
     type: "confirm",
     name: "autopull",
-    message: `Would you like to pull all resources from the project you just linked?`,
+    message: "Pull all resources from this project?",
   },
 ];
 
@@ -325,6 +392,7 @@ export const questionsPullResources: Question[] = [
       { name: `Tables ${chalk.blackBright(`(TablesDB)`)}`, value: "tables" },
       { name: `Buckets ${chalk.blackBright(`(Storage)`)}`, value: "buckets" },
       { name: `Teams ${chalk.blackBright(`(Auth)`)}`, value: "teams" },
+      { name: `Webhooks ${chalk.blackBright(`(Project)`)}`, value: "webhooks" },
       { name: `Topics ${chalk.blackBright(`(Messaging)`)}`, value: "messages" },
       {
         name: `Collections ${chalk.blackBright(`(Legacy Databases)`)}`,
@@ -342,7 +410,8 @@ export const questionsPullFunctions: Question[] = [
     validate: (value: any) => validateRequired("function", value),
     choices: async () => {
       const { functions } = await paginate(
-        async () => (await getFunctionsService()).list(),
+        async (args) =>
+          (await getFunctionsService()).list(args.queries as string[]),
         { parseOutput: false },
         100,
         "functions",
@@ -377,6 +446,15 @@ export const questionsPushFunctionsCode: Question[] = [
   },
 ];
 
+export const questionsPushFunctionsActivate: Question[] = [
+  {
+    type: "confirm",
+    name: "activate",
+    message: "Do you want to activate the deployment after it is ready?",
+    default: true,
+  },
+];
+
 export const questionsPullSites: Question[] = [
   {
     type: "checkbox",
@@ -385,7 +463,8 @@ export const questionsPullSites: Question[] = [
     validate: (value: any) => validateRequired("site", value),
     choices: async () => {
       const { sites } = await paginate(
-        async () => (await getSitesService()).list(),
+        async (args) =>
+          (await getSitesService()).list(args.queries as string[]),
         { parseOutput: false },
         100,
         "sites",
@@ -420,6 +499,15 @@ export const questionsPushSitesCode: Question[] = [
   },
 ];
 
+export const questionsPushSitesActivate: Question[] = [
+  {
+    type: "confirm",
+    name: "activate",
+    message: "Do you want to activate the deployment after it is ready?",
+    default: true,
+  },
+];
+
 export const questionsCreateFunction: Question[] = [
   {
     type: "input",
@@ -438,9 +526,9 @@ export const questionsCreateFunction: Question[] = [
     name: "runtime",
     message: "What runtime would you like to use?",
     choices: async () => {
-      let response = await (await getFunctionsService()).listRuntimes();
-      let runtimes = response["runtimes"];
-      let choices = runtimes.map((runtime: any, idx: number) => {
+      const response = await (await getFunctionsService()).listRuntimes();
+      const runtimes = response["runtimes"];
+      const choices = runtimes.map((runtime: any, _idx: number) => {
         return {
           name: `${runtime.name} (${runtime["$id"]})`,
           value: {
@@ -457,12 +545,29 @@ export const questionsCreateFunction: Question[] = [
   },
   {
     type: "list",
-    name: "specification",
-    message: "What specification would you like to use?",
+    name: "buildSpecification",
+    message: "What build specification would you like to use?",
     choices: async () => {
-      let response = await (await getFunctionsService()).listSpecifications();
-      let specifications = response["specifications"];
-      let choices = specifications.map((spec: any, idx: number) => {
+      const response = await (await getFunctionsService()).listSpecifications();
+      const specifications = response["specifications"];
+      const choices = specifications.map((spec: any, _idx: number) => {
+        return {
+          name: `${spec.cpus} CPU, ${spec.memory}MB RAM`,
+          value: spec.slug,
+          disabled: spec.enabled === false ? "Upgrade to use" : false,
+        };
+      });
+      return choices;
+    },
+  },
+  {
+    type: "list",
+    name: "runtimeSpecification",
+    message: "What runtime specification would you like to use?",
+    choices: async () => {
+      const response = await (await getFunctionsService()).listSpecifications();
+      const specifications = response["specifications"];
+      const choices = specifications.map((spec: any, _idx: number) => {
         return {
           name: `${spec.cpus} CPU, ${spec.memory}MB RAM`,
           value: spec.slug,
@@ -548,7 +653,7 @@ export const questionsCreateCollection: Question[] = [
     choices: async () => {
       const databases = localConfig.getDatabases();
 
-      let choices = databases.map((database: any, idx: number) => {
+      const choices = databases.map((database: any, _idx: number) => {
         return {
           name: `${database.name} (${database.$id})`,
           value: database.$id,
@@ -620,7 +725,7 @@ export const questionsCreateTable: Question[] = [
     choices: async () => {
       const databases = localConfig.getTablesDBs();
 
-      let choices = databases.map((database: any, idx: number) => {
+      const choices = databases.map((database: any, _idx: number) => {
         return {
           name: `${database.name} (${database.$id})`,
           value: database.$id,
@@ -697,15 +802,15 @@ export const questionsPullCollection: Question[] = [
     message: "From which database would you like to pull collections?",
     validate: (value: any) => validateRequired("collection", value),
     choices: async () => {
-      let response = await (await getDatabasesService()).list();
-      let databases = response["databases"];
+      const response = await (await getDatabasesService()).list();
+      const databases = response["databases"];
 
       if (databases.length <= 0) {
         throw new Error(
           "No databases found. Please create one in project console.",
         );
       }
-      let choices = databases.map((database: any, idx: number) => {
+      const choices = databases.map((database: any, _idx: number) => {
         return {
           name: `${database.name} (${database.$id})`,
           value: database.$id,
@@ -795,9 +900,9 @@ export const questionGetEndpoint: Question[] = [
       if (!value) {
         return "Please enter a valid endpoint.";
       }
-      let client = new Client().setEndpoint(value);
+      const client = new Client().setEndpoint(value);
       try {
-        let response = (await client.call(
+        const response = (await client.call(
           "get",
           new URL(value + "/health/version"),
         )) as { version?: string };
@@ -806,7 +911,7 @@ export const questionGetEndpoint: Question[] = [
         } else {
           throw new Error();
         }
-      } catch (error) {
+      } catch (_error) {
         return "Invalid endpoint or your Appwrite server is not running as expected.";
       }
     },
@@ -860,6 +965,7 @@ export const questionsPushResources: Question[] = [
       { name: `Tables ${chalk.blackBright(`(TablesDB)`)}`, value: "tables" },
       { name: `Buckets ${chalk.blackBright(`(Storage)`)}`, value: "buckets" },
       { name: `Teams ${chalk.blackBright(`(Auth)`)}`, value: "teams" },
+      { name: `Webhooks ${chalk.blackBright(`(Project)`)}`, value: "webhooks" },
       { name: `Topics ${chalk.blackBright(`(Messaging)`)}`, value: "messages" },
       {
         name: `Collections ${chalk.blackBright(`(Legacy Databases)`)}`,
@@ -877,6 +983,7 @@ export const questionsInitResources: Question[] = [
     choices: [
       { name: "Function", value: "function" },
       { name: "Site", value: "site" },
+      { name: "Skill", value: "skill" },
       { name: "Table", value: "table" },
       { name: "Bucket", value: "bucket" },
       { name: "Team", value: "team" },
@@ -894,9 +1001,9 @@ export const questionsPushSites: Question[] = [
     validate: (value: any) => validateRequired("site", value),
     when: () => localConfig.getSites().length > 0,
     choices: () => {
-      let sites = localConfig.getSites();
+      const sites = localConfig.getSites();
       checkDeployConditions(localConfig);
-      let choices = sites.map((site: any, idx: number) => {
+      const choices = sites.map((site: any, _idx: number) => {
         return {
           name: `${site.name} (${site.$id})`,
           value: site.$id,
@@ -915,9 +1022,9 @@ export const questionsPushFunctions: Question[] = [
     validate: (value: any) => validateRequired("function", value),
     when: () => localConfig.getFunctions().length > 0,
     choices: () => {
-      let functions = localConfig.getFunctions();
+      const functions = localConfig.getFunctions();
       checkDeployConditions(localConfig);
-      let choices = functions.map((func: any, idx: number) => {
+      const choices = functions.map((func: any, _idx: number) => {
         return {
           name: `${func.name} (${func.$id})`,
           value: func.$id,
@@ -936,7 +1043,7 @@ export const questionsPushCollections: Question[] = [
     validate: (value: any) => validateRequired("collection", value),
     when: () => localConfig.getCollections().length > 0,
     choices: () => {
-      let collections = localConfig.getCollections();
+      const collections = localConfig.getCollections();
       checkDeployConditions(localConfig);
 
       return collections.map((collection: any) => {
@@ -957,7 +1064,7 @@ export const questionsPushTables: Question[] = [
     validate: (value: any) => validateRequired("table", value),
     when: () => localConfig.getTables().length > 0,
     choices: () => {
-      let tables = localConfig.getTables();
+      const tables = localConfig.getTables();
       checkDeployConditions(localConfig);
 
       return tables.map((table: any) => {
@@ -994,7 +1101,7 @@ export const questionsPushBuckets: Question[] = [
     validate: (value: any) => validateRequired("bucket", value),
     when: () => localConfig.getBuckets().length > 0,
     choices: () => {
-      let buckets = localConfig.getBuckets();
+      const buckets = localConfig.getBuckets();
       checkDeployConditions(localConfig);
 
       return buckets.map((bucket: any) => {
@@ -1015,7 +1122,7 @@ export const questionsPushMessagingTopics: Question[] = [
     validate: (value: any) => validateRequired("topics", value),
     when: () => localConfig.getMessagingTopics().length > 0,
     choices: () => {
-      let topics = localConfig.getMessagingTopics();
+      const topics = localConfig.getMessagingTopics();
 
       return topics.map((topic: any) => {
         return {
@@ -1041,6 +1148,20 @@ export const questionsGetEntrypoint: Question[] = [
   },
 ];
 
+export const questionsGetBuildCommand: Question[] = [
+  {
+    type: "input",
+    name: "buildCommand",
+    message: "Enter the build command",
+    validate(value: string) {
+      if (!value) {
+        return "Please enter your build command";
+      }
+      return true;
+    },
+  },
+];
+
 export const questionsPushTeams: Question[] = [
   {
     type: "checkbox",
@@ -1049,13 +1170,34 @@ export const questionsPushTeams: Question[] = [
     validate: (value: any) => validateRequired("team", value),
     when: () => localConfig.getTeams().length > 0,
     choices: () => {
-      let teams = localConfig.getTeams();
+      const teams = localConfig.getTeams();
       checkDeployConditions(localConfig);
 
       return teams.map((team: any) => {
         return {
           name: `${team.name} (${team["$id"]})`,
           value: team.$id,
+        };
+      });
+    },
+  },
+];
+
+export const questionsPushWebhooks: Question[] = [
+  {
+    type: "checkbox",
+    name: "webhooks",
+    message: "Which webhooks would you like to push?",
+    validate: (value: any) => validateRequired("webhook", value),
+    when: () => localConfig.getWebhooks().length > 0,
+    choices: () => {
+      const webhooks = localConfig.getWebhooks();
+      checkDeployConditions(localConfig);
+
+      return webhooks.map((webhook: any) => {
+        return {
+          name: `${webhook.name} (${webhook["$id"]})`,
+          value: webhook.$id,
         };
       });
     },
@@ -1069,7 +1211,7 @@ export const questionsListFactors: Question[] = [
     message:
       "Your account is protected by multi-factor authentication. Please choose one for verification.",
     choices: async () => {
-      let client = await sdkForConsole(false);
+      const client = await sdkForConsole(false);
       const accountClient = new Account(client);
       const factors = await accountClient.listMfaFactors();
 
@@ -1118,13 +1260,13 @@ export const questionsRunFunctions: Question[] = [
     message: "Which function would you like to develop locally?",
     validate: (value: any) => validateRequired("function", value),
     choices: () => {
-      let functions = localConfig.getFunctions();
+      const functions = localConfig.getFunctions();
       if (functions.length === 0) {
         throw new Error(
           `No functions found. Use '${EXECUTABLE_NAME} pull functions' to synchronize existing one, or use '${EXECUTABLE_NAME} init function' to create a new one.`,
         );
       }
-      let choices = functions.map((func: any, idx: number) => {
+      const choices = functions.map((func: any, _idx: number) => {
         return {
           name: `${func.name} (${func.$id})`,
           value: func.$id,
@@ -1149,13 +1291,20 @@ export const questionsCreateSite: Question[] = [
     default: "unique()",
   },
   {
+    type: "input",
+    name: "path",
+    message: "What local path would you like to use for your site?",
+    default: getDefaultSitePath,
+    validate: validateSitePath,
+  },
+  {
     type: "list",
     name: "framework",
     message: "What framework would you like to use?",
     choices: async () => {
-      let response = await (await getSitesService()).listFrameworks();
-      let frameworks = response["frameworks"];
-      let choices = frameworks.map((framework: any) => {
+      const response = await (await getSitesService()).listFrameworks();
+      const frameworks = response["frameworks"];
+      const choices = frameworks.map((framework: any) => {
         return {
           name: `${framework.name} (${framework.key})`,
           value: framework,
@@ -1166,12 +1315,12 @@ export const questionsCreateSite: Question[] = [
   },
   {
     type: "list",
-    name: "specification",
-    message: "What specification would you like to use?",
+    name: "buildSpecification",
+    message: "What build specification would you like to use?",
     choices: async () => {
-      let response = await (await getSitesService()).listSpecifications();
-      let specifications = response["specifications"];
-      let choices = specifications.map((spec: any) => {
+      const response = await (await getSitesService()).listSpecifications();
+      const specifications = response["specifications"];
+      const choices = specifications.map((spec: any) => {
         return {
           name: `${spec.cpus} CPU, ${spec.memory}MB RAM`,
           value: spec.slug,
@@ -1180,5 +1329,36 @@ export const questionsCreateSite: Question[] = [
       });
       return choices;
     },
+  },
+  {
+    type: "list",
+    name: "runtimeSpecification",
+    message: "What runtime specification would you like to use?",
+    choices: async () => {
+      const response = await (await getSitesService()).listSpecifications();
+      const specifications = response["specifications"];
+      const choices = specifications.map((spec: any) => {
+        return {
+          name: `${spec.cpus} CPU, ${spec.memory}MB RAM`,
+          value: spec.slug,
+          disabled: spec.enabled === false ? "Upgrade to use" : false,
+        };
+      });
+      return choices;
+    },
+  },
+  {
+    type: "input",
+    name: "deploymentRetention",
+    message:
+      "How many days would you like to keep non-active deployments? (0 = keep all deployments)",
+    default: "0",
+    validate: validateNonNegativeInteger,
+  },
+  {
+    type: "confirm",
+    name: "downloadTemplate",
+    message: "Do you want to download the starter template code?",
+    default: false,
   },
 ];

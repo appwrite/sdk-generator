@@ -20,7 +20,7 @@ export namespace Models {
         /**
          * {{ property.description | raw }}
          */
-        {{ property.name }}{% if not property.required %}?{% endif %}: {{ property | getSubSchema(spec, definition.name) | raw }};
+        {{ property.name | removeDash }}{% if not property.required %}?{% endif %}: {{ property | getSubSchema(spec, definition.name) | raw }};
 {% endfor %}
     }
 {% if definition.additionalProperties %}
@@ -41,7 +41,7 @@ export namespace Models {
         /**
          * {{ property.description | raw }}
          */
-        {{ property.name }}{% if not property.required %}?{% endif %}: {{ property | getSubSchema(spec, requestModel.name) | raw }};
+        {{ property.name | removeDash }}{% if not property.required %}?{% endif %}: {{ property | getSubSchema(spec, requestModel.name) | raw }};
 {% endfor %}
     }
 {% if requestModel.additionalProperties %}

@@ -15,6 +15,10 @@
   },
   "module": "dist/esm/sdk.js",
   "types": "types/index.d.ts",
+  "files": [
+    "dist",
+    "types"
+  ],
   "repository": {
     "type": "git",
     "url": "{{ sdk.gitURL }}"
@@ -24,14 +28,17 @@
     "build:types": "tsc --declaration --emitDeclarationOnly --outDir types",
     "build:libs": "rollup -c"
   },
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "devDependencies": {
-    "@rollup/plugin-typescript": "8.3.2",
+    "@rollup/plugin-typescript": "12.3.0",
     "@types/json-bigint": "1.0.4",
-    "playwright": "1.56.1",
-    "rollup": "2.75.4",
-    "serve-handler": "6.1.0",
-    "tslib": "2.4.0",
-    "typescript": "^5.3.3"
+    "playwright": "1.59.0",
+    "rollup": "4.60.1",
+    "serve-handler": "6.1.7",
+    "tslib": "2.8.1",
+    "typescript": "5.7.3"
   },
   "dependencies": {
     "expo-file-system": "18.*.*",
@@ -40,5 +47,12 @@
   },
   "peerDependencies": {
     "expo": "*"
+  },
+  "overrides": {
+    "glob": "^13.0.0",
+    "rimraf": "^6.0.0",
+    "@xmldom/xmldom": "^0.9.10",
+    "uuid": "^14.0.0",
+    "postcss": "^8.5.12"
   }
 }

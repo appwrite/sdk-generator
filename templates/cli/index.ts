@@ -12,6 +12,7 @@ export { Schema, Push, Pull };
 export { Client } from "@appwrite.io/console";
 export type {
   ConfigType,
+  ConfigIncludesType,
   SettingsType,
   FunctionType,
   SiteType,

@@ -17,7 +17,7 @@ use {{ spec.namespace | caseNamespace }}\Enums\{{ parameter.enumName | caseUcfir
 {% endif %}
 {% if parameter.model is not empty and parameter.type != 'array' %}
 {% if parameter.model not in added %}
-use {{ spec.namespace | caseNamespace }}\Models\{{ parameter.model | caseUcfirst }};
+use {{ spec.namespace | caseNamespace }}\Models\{{ parameter.model | caseUcfirst | overrideIdentifier }};
 {% set added = added|merge([parameter.model]) %}
 {% endif %}
 {% endif %}
@@ -26,10 +26,10 @@ use {{ spec.namespace | caseNamespace }}\Models\{{ parameter.model | caseUcfirst
 
 class {{ service.name | caseUcfirst }} extends Service
 {
-     public function __construct(Client $client)
-     {
-         parent::__construct($client);
-     }
+    public function __construct(Client $client)
+    {
+        parent::__construct($client);
+    }
 
 {% set nonDeprecatedMethodNames = [] %}
 {% for method in service.methods %}
@@ -52,7 +52,7 @@ class {{ service.name | caseUcfirst }} extends Service
      * @param {% if not parameter.required or parameter.nullable %}?{% endif %}{{ parameter | typeName }} ${{ parameter.name | caseCamel | escapeKeyword }}
 {% endfor %}
      * @throws {{ spec.namespace | split('\\') | last | caseUcfirst}}Exception
-     * @return {{ method | getReturn }}
+     * @return {{ method | getReturn(spec) }}
 {% if method.deprecated %}
      *
 {%~ if method.since and method.replaceWith %}
@@ -65,7 +65,7 @@ class {{ service.name | caseUcfirst }} extends Service
 {% endif %}
 {% endif %}
      */
-    public function {{ method.name | caseCamel }}({{ method | methodParameters }}): {{ method | getReturn }}
+    public function {{ method.name | caseCamel }}({{ method | methodParameters }}): {{ method | getReturn(spec) }}
     {
         $apiPath = str_replace(
             [{% for parameter in method.parameters.path %}'{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}'{% if not loop.last %}, {% endif %}{% endfor %}],

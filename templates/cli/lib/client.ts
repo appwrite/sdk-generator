@@ -17,6 +17,7 @@ import {
   SDK_LANGUAGE,
   SDK_VERSION,
   SDK_TITLE,
+  EXECUTABLE_NAME,
 } from "./constants.js";
 
 class Client {
@@ -155,6 +156,18 @@ class Client {
     return this;
   }
 
+  /**
+   * Get Headers
+   *
+   * Returns a copy of the current request headers, including any
+   * authentication headers. Handle with care.
+   *
+   * @returns {Headers}
+   */
+  getHeaders(): Headers {
+    return { ...this.headers };
+  }
+
   async call<T = unknown>(
     method: string,
     path: string = "",
@@ -189,7 +202,7 @@ class Client {
           value.type === "file"
         ) {
           const fileUpload = value as FileUpload;
-          formData.append(key, fileUpload.file as any, fileUpload.filename);
+          formData.append(key, fileUpload.file as Blob, fileUpload.filename);
         } else {
           formData.append(key, value as string);
         }
@@ -222,7 +235,7 @@ class Client {
         undefined;
       try {
         json = JSON.parse(text);
-      } catch (error) {
+      } catch (_error) {
         throw new AppwriteException(text, response.status, "", text);
       }
 
@@ -239,6 +252,22 @@ class Client {
         globalConfig.setCurrentSession("");
         globalConfig.removeSession(current);
       }
+
+      const isUnauthorized =
+        json.code === 401 &&
+        json.type === "general_unauthorized_scope" &&
+        typeof json.message === "string" &&
+        /role:\s*guests/i.test(json.message);
+
+      if (isUnauthorized) {
+        throw new AppwriteException(
+          `You are not authenticated. Run '${EXECUTABLE_NAME} login' to authenticate and try again.`,
+          json.code,
+          json.type,
+          text,
+        );
+      }
+
       throw new AppwriteException(
         json.message || text,
         json.code,
@@ -265,7 +294,7 @@ class Client {
     let json: T | undefined = undefined;
     try {
       json = JSONBig.parse(text);
-    } catch (error) {
+    } catch (_error) {
       return text as T;
     }
     return json as T;
