@@ -101,34 +101,179 @@
             $handle = @fopen(${{parameter.name}}->getPath(), "rb");
         }
 
+        $uploadId = '';
+        {% for parameter in method.parameters.all %}{% if parameter.isUploadID %}
+        $uploadId = ${{ parameter.name }} ?? '';
+        {% endif %}{% endfor %}
+        $totalChunks = (int) ceil($size / Client::CHUNK_SIZE);
+        $chunks = [];
         $start = $counter * Client::CHUNK_SIZE;
         while ($start < $size) {
-            $chunk = '';
-            if(!empty($handle)) {
-                fseek($handle, $start);
-                $chunk = @fread($handle, Client::CHUNK_SIZE);
-            } else {
-                $chunk = substr(${{ parameter.name | caseCamel }}->getData(), $start, Client::CHUNK_SIZE);
-            }
-            $apiParams['{{ parameter.name }}'] = new \CURLFile('data://' . $mimeType . ';base64,' . base64_encode($chunk), $mimeType, $postedName);
-            $apiHeaders['content-range'] = 'bytes ' . ($counter * Client::CHUNK_SIZE) . '-' . min(((($counter * Client::CHUNK_SIZE) + Client::CHUNK_SIZE) - 1), $size - 1) . '/' . $size;
-            if(!empty($id)) {
-                $apiHeaders['x-{{spec.title | caseLower }}-id'] = $id;
-            }
-            $response = $this->client->call(Client::METHOD_POST, $apiPath, $apiHeaders, $apiParams);
+            $chunks[] = [
+                'index' => $counter,
+                'start' => $start,
+                'end' => min($start + Client::CHUNK_SIZE, $size),
+            ];
             $counter++;
             $start += Client::CHUNK_SIZE;
-            if(empty($id)) {
-                $id = $response['$id'];
+        }
+
+        $readChunk = function(int $start, int $end) use ($handle, ${{ parameter.name | caseCamel }}) {
+            if(!empty($handle)) {
+                fseek($handle, $start);
+                return @fread($handle, $end - $start);
             }
+
+            return substr(${{ parameter.name | caseCamel }}->getData(), $start, $end - $start);
+        };
+
+        $uploadChunk = function(array $chunk, string $currentUploadId = '') use ($readChunk, $apiPath, $apiHeaders, $apiParams, $mimeType, $postedName, $size) {
+            $chunkParams = $apiParams;
+            $chunkHeaders = $apiHeaders;
+            $data = $readChunk($chunk['start'], $chunk['end']);
+            $chunkParams['{{ parameter.name }}'] = new \CURLFile('data://' . $mimeType . ';base64,' . base64_encode($data), $mimeType, $postedName);
+            $chunkHeaders['content-range'] = 'bytes ' . $chunk['start'] . '-' . ($chunk['end'] - 1) . '/' . $size;
+            if(!empty($currentUploadId)) {
+                $chunkHeaders['x-{{spec.title | caseLower }}-id'] = $currentUploadId;
+            }
+
+            return $this->client->call(Client::METHOD_POST, $apiPath, $chunkHeaders, $chunkParams);
+        };
+
+        if (!empty($chunks)) {
+            $response = $uploadChunk($chunks[0], $uploadId);
+            if(empty($uploadId)) {
+                $uploadId = $response['$id'];
+            }
+            $completedCount = $chunks[0]['index'] + 1;
+            $uploadedSize = $chunks[0]['end'];
             if($onProgress !== null) {
                 $onProgress([
                     '$id' => $response['$id'],
-                    'progress' => min(((($counter * Client::CHUNK_SIZE) + Client::CHUNK_SIZE)), $size) / $size * 100,
-                    'sizeUploaded' => min($counter * Client::CHUNK_SIZE),
-                    'chunksTotal' => $response['chunksTotal'],
-                    'chunksUploaded' => $response['chunksUploaded'],
+                    'progress' => $uploadedSize / $size * 100,
+                    'sizeUploaded' => $uploadedSize,
+                    'chunksTotal' => $response['chunksTotal'] ?? $totalChunks,
+                    'chunksUploaded' => $response['chunksUploaded'] ?? $completedCount,
                 ]);
+            }
+
+            $remainingChunks = array_slice($chunks, 1);
+            $clientConfig = \Closure::bind(function() {
+                if (property_exists($this, 'key') && $this->key !== null) {
+                    $this->headers['authorization'] = $this->getAuthorization();
+                }
+
+                return [$this->endpoint, $this->headers, $this->selfSigned, $this->timeout, $this->connectTimeout];
+            }, $this->client, Client::class);
+            $flattenParams = \Closure::bind(function(array $params): array {
+                return $this->flatten($params);
+            }, $this->client, Client::class);
+            [$endpoint, $globalHeaders, $selfSigned, $timeout, $connectTimeout] = $clientConfig();
+            $responseHeaders = [];
+
+            $makeHandle = function(array $chunk) use ($readChunk, $apiPath, $apiHeaders, $apiParams, $mimeType, $postedName, $size, $uploadId, $endpoint, $globalHeaders, $selfSigned, $timeout, $connectTimeout, $flattenParams, &$responseHeaders) {
+                $chunkParams = $apiParams;
+                $chunkHeaders = array_merge($globalHeaders, $apiHeaders);
+                $data = $readChunk($chunk['start'], $chunk['end']);
+                $chunkParams['{{ parameter.name }}'] = new \CURLFile('data://' . $mimeType . ';base64,' . base64_encode($data), $mimeType, $postedName);
+                $chunkHeaders['content-range'] = 'bytes ' . $chunk['start'] . '-' . ($chunk['end'] - 1) . '/' . $size;
+                if(!empty($uploadId)) {
+                    $chunkHeaders['x-{{spec.title | caseLower }}-id'] = $uploadId;
+                }
+
+                $headers = [];
+                foreach ($chunkHeaders as $key => $value) {
+                    $headers[] = $key . ':' . $value;
+                }
+
+                $ch = curl_init($endpoint . $apiPath);
+                $responseHeaders[(int) $ch] = [];
+                curl_setopt($ch, CURLOPT_CUSTOMREQUEST, Client::METHOD_POST);
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+                curl_setopt($ch, CURLOPT_USERAGENT, php_uname('s') . '-' . php_uname('r') . ':{{ language.name | caseLower }}-' . phpversion());
+                curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+                curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+                curl_setopt($ch, CURLOPT_POSTFIELDS, $flattenParams($chunkParams));
+                curl_setopt($ch, CURLOPT_HEADERFUNCTION, function($curl, $header) use (&$responseHeaders) {
+                    $length = strlen($header);
+                    $header = explode(':', strtolower($header), 2);
+                    if (count($header) >= 2) {
+                        $responseHeaders[(int) $curl][strtolower(trim($header[0]))] = trim($header[1]);
+                    }
+
+                    return $length;
+                });
+                if($selfSigned) {
+                    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+                    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+                }
+                if($timeout !== null) {
+                    curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
+                }
+                if($connectTimeout !== null) {
+                    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, $connectTimeout);
+                }
+
+                return $ch;
+            };
+
+            $nextChunk = 0;
+            while ($nextChunk < count($remainingChunks)) {
+                $multiHandle = curl_multi_init();
+                $handles = [];
+                for ($i = 0; $i < 8 && $nextChunk < count($remainingChunks); $i++, $nextChunk++) {
+                    $chunk = $remainingChunks[$nextChunk];
+                    $ch = $makeHandle($chunk);
+                    $handles[(int) $ch] = ['handle' => $ch, 'chunk' => $chunk];
+                    curl_multi_add_handle($multiHandle, $ch);
+                }
+
+                do {
+                    $status = curl_multi_exec($multiHandle, $active);
+                    if ($active) {
+                        curl_multi_select($multiHandle);
+                    }
+                } while ($active && $status == CURLM_OK);
+
+                foreach ($handles as $handleInfo) {
+                    $ch = $handleInfo['handle'];
+                    $body = curl_multi_getcontent($ch);
+                    $statusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                    $contentType = $responseHeaders[(int) $ch]['content-type'] ?? '';
+
+                    if (curl_errno($ch)) {
+                        throw new {{ spec.namespace | split('\\') | last | caseUcfirst}}Exception(curl_error($ch), $statusCode, '', $body);
+                    }
+
+                    $chunkResponse = str_starts_with($contentType, 'application/json') ? json_decode($body, true) : $body;
+
+                    if($statusCode >= 400) {
+                        if(is_array($chunkResponse)) {
+                            throw new {{ spec.namespace | split('\\') | last | caseUcfirst}}Exception($chunkResponse['message'], $statusCode, $chunkResponse['type'] ?? '', json_encode($chunkResponse));
+                        }
+
+                        throw new {{ spec.namespace | split('\\') | last | caseUcfirst}}Exception($chunkResponse, $statusCode, '', $chunkResponse);
+                    }
+
+                    $completedCount++;
+                    $uploadedSize += $handleInfo['chunk']['end'] - $handleInfo['chunk']['start'];
+                    if($handleInfo['chunk']['index'] === $totalChunks - 1) {
+                        $response = $chunkResponse;
+                    }
+                    if($onProgress !== null) {
+                        $onProgress([
+                            '$id' => $uploadId,
+                            'progress' => $uploadedSize / $size * 100,
+                            'sizeUploaded' => $uploadedSize,
+                            'chunksTotal' => $chunkResponse['chunksTotal'] ?? $totalChunks,
+                            'chunksUploaded' => $chunkResponse['chunksUploaded'] ?? $completedCount,
+                        ]);
+                    }
+
+                    curl_multi_remove_handle($multiHandle, $ch);
+                }
+
+                curl_multi_close($multiHandle);
             }
         }
         if(!empty($handle)) {

@@ -7,6 +7,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading;
 using System.Threading.Tasks;
 using {{ spec.title | caseUcfirst }}.Converters;
 using {{ spec.title | caseUcfirst }}.Extensions;
@@ -26,6 +27,7 @@ namespace {{ spec.title | caseUcfirst }}
         private string _endpoint;
 
         private static readonly int ChunkSize = 5 * 1024 * 1024;
+        private static readonly int MaxConcurrentUploads = 8;
 
         public static JsonSerializerOptions DeserializerOptions { get; set; } = new JsonSerializerOptions
         {
@@ -195,14 +197,14 @@ namespace {{ spec.title | caseUcfirst }}
             {
                 if (header.Key.Equals("content-type", StringComparison.OrdinalIgnoreCase))
                 {
-                    _http.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(header.Value));
+                    request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue(header.Value));
                 }
                 else
                 {
-                    if (_http.DefaultRequestHeaders.Contains(header.Key)) {
-                        _http.DefaultRequestHeaders.Remove(header.Key);
+                    if (request.Headers.Contains(header.Key)) {
+                        request.Headers.Remove(header.Key);
                     }
-                    _http.DefaultRequestHeaders.Add(header.Key, header.Value);
+                    request.Headers.Add(header.Key, header.Value);
                 }
             }
 
@@ -437,69 +439,123 @@ namespace {{ spec.title | caseUcfirst }}
                 );
             }
 
+            var uploadId = string.Empty;
+
             if (!string.IsNullOrEmpty(idParamName))
             {
                 try
                 {
-                // Make a request to check if a file already exists
-                var current = await Call<Dictionary<string, object?>>(
-                    method: "GET",
-                    path: $"{path}/{parameters[idParamName!]}",
-                    new Dictionary<string, string> { { "content-type", "application/json" } },
-                    parameters: new Dictionary<string, object?>()
-                );
-                if (current.TryGetValue("chunksUploaded", out var chunksUploadedValue) && chunksUploadedValue != null)
-                {
-                    offset = Convert.ToInt64(chunksUploadedValue) * ChunkSize;
+                    // Make a request to check if a file already exists
+                    var current = await Call<Dictionary<string, object?>>(
+                        method: "GET",
+                        path: $"{path}/{parameters[idParamName!]}",
+                        new Dictionary<string, string> { { "content-type", "application/json" } },
+                        parameters: new Dictionary<string, object?>()
+                    );
+                    if (current.TryGetValue("chunksUploaded", out var chunksUploadedValue) && chunksUploadedValue != null)
+                    {
+                        offset = Convert.ToInt64(chunksUploadedValue) * ChunkSize;
+                    }
+                    uploadId = parameters[idParamName!]?.ToString() ?? string.Empty;
                 }
-            }
                 catch
                 {
                     // ignored as it mostly means file not found
                 }
             }
 
-            while (offset < size)
+            var readLock = new object();
+
+            async Task<byte[]> ReadChunkAsync(long start, long end)
             {
+                var length = (int)(end - start);
+                var chunk = new byte[length];
+
                 switch(input.SourceType)
                 {
                     case "path":
+                        using (var chunkStream = File.OpenRead(input.Path))
+                        {
+                            chunkStream.Seek(start, SeekOrigin.Begin);
+                            var read = 0;
+                            while (read < length)
+                            {
+                                var count = await chunkStream.ReadAsync(chunk, read, length - read);
+                                if (count == 0)
+                                    break;
+                                read += count;
+                            }
+                        }
+                        break;
                     case "stream":
                         var stream = input.Data as Stream;
                         if (stream == null)
                             throw new InvalidOperationException("Stream data is null");
-                        stream.Seek(offset, SeekOrigin.Begin);
-                        await stream.ReadAsync(buffer, 0, ChunkSize);
+                        lock (readLock)
+                        {
+                            stream.Seek(start, SeekOrigin.Begin);
+                            var read = 0;
+                            while (read < length)
+                            {
+                                var count = stream.Read(chunk, read, length - read);
+                                if (count == 0)
+                                    break;
+                                read += count;
+                            }
+                        }
                         break;
                     case "bytes":
-                        buffer = ((byte[])input.Data)
-                            .Skip((int)offset)
-                            .Take((int)Math.Min(size - offset, ChunkSize - 1))
-                            .ToArray();
+                        Buffer.BlockCopy((byte[])input.Data, (int)start, chunk, 0, length);
                         break;
                 }
 
-                var content = new MultipartFormDataContent {
-                    { new ByteArrayContent(buffer), paramName, input.Filename }
+                return chunk;
+            }
+
+            async Task<Dictionary<string, object?>> UploadChunkAsync(int index, long start, long end, bool includeUploadId)
+            {
+                var chunkHeaders = new Dictionary<string, string>(headers)
+                {
+                    ["Content-Range"] = $"bytes {start}-{end - 1}/{size}"
                 };
 
-                parameters[paramName] = content;
+                if (includeUploadId && !string.IsNullOrEmpty(uploadId))
+                {
+                    chunkHeaders["x-appwrite-id"] = uploadId;
+                }
 
-                headers["Content-Range"] =
-                    $"bytes {offset}-{Math.Min(offset + ChunkSize - 1, size - 1)}/{size}";
+                var content = new MultipartFormDataContent {
+                    { new ByteArrayContent(await ReadChunkAsync(start, end)), paramName, input.Filename }
+                };
 
-                result = await Call<Dictionary<string, object?>>(
+                var chunkParameters = new Dictionary<string, object?>(parameters)
+                {
+                    [paramName] = content
+                };
+
+                var chunkResult = await Call<Dictionary<string, object?>>(
                     method: "POST",
                     path,
-                    headers,
-                    parameters
+                    chunkHeaders,
+                    chunkParameters
                 );
 
-                offset += ChunkSize;
+                if (index == 0 || string.IsNullOrEmpty(uploadId))
+                {
+                    uploadId = chunkResult.ContainsKey("$id")
+                        ? chunkResult["$id"]?.ToString() ?? string.Empty
+                        : string.Empty;
+                }
 
-                var id = result.ContainsKey("$id")
-                    ? result["$id"]?.ToString() ?? string.Empty
-                    : string.Empty;
+                return chunkResult;
+            }
+
+            if (offset == 0)
+            {
+                var firstChunkEnd = Math.Min(ChunkSize, size);
+                result = await UploadChunkAsync(0, 0, firstChunkEnd, false);
+                offset = firstChunkEnd;
+
                 var chunksTotal = result.TryGetValue("chunksTotal", out var chunksTotalValue) && chunksTotalValue != null
                     ? Convert.ToInt64(chunksTotalValue)
                     : 0L;
@@ -507,15 +563,65 @@ namespace {{ spec.title | caseUcfirst }}
                     ? Convert.ToInt64(chunksUploadedValue)
                     : 0L;
 
-                headers["x-appwrite-id"] = id;
-
                 onProgress?.Invoke(
                     new UploadProgress(
-                        id: id,
-                        progress: Math.Min(offset, size) / size * 100,
+                        id: uploadId,
+                        progress: Math.Min(offset, size) / (double)size * 100,
                         sizeUploaded: Math.Min(offset, size),
                         chunksTotal: chunksTotal,
                         chunksUploaded: chunksUploaded));
+            }
+
+            var chunks = new List<(int Index, long Start, long End)>();
+            var chunkOffset = offset;
+            while (chunkOffset < size)
+            {
+                var end = Math.Min(chunkOffset + ChunkSize, size);
+                chunks.Add(((int)(chunkOffset / ChunkSize), chunkOffset, end));
+                chunkOffset = end;
+            }
+
+            if (chunks.Count > 0)
+            {
+                var nextChunk = -1;
+                var completedChunks = (long)(offset / ChunkSize);
+                var uploadedBytes = offset;
+                var lastChunkIndex = (int)((size - 1) / ChunkSize);
+
+                var workers = Enumerable.Range(0, Math.Min(MaxConcurrentUploads, chunks.Count))
+                    .Select(async _ =>
+                    {
+                        while (true)
+                        {
+                            var chunkIndex = Interlocked.Increment(ref nextChunk);
+                            if (chunkIndex >= chunks.Count)
+                                break;
+
+                            var chunk = chunks[chunkIndex];
+                            var chunkResult = await UploadChunkAsync(chunk.Index, chunk.Start, chunk.End, true);
+
+                            if (chunk.Index == lastChunkIndex)
+                            {
+                                result = chunkResult;
+                            }
+
+                            var chunksUploaded = Interlocked.Increment(ref completedChunks);
+                            var sizeUploaded = Interlocked.Add(ref uploadedBytes, chunk.End - chunk.Start);
+                            var chunksTotal = chunkResult.TryGetValue("chunksTotal", out var chunksTotalValue) && chunksTotalValue != null
+                                ? Convert.ToInt64(chunksTotalValue)
+                                : 0L;
+
+                            onProgress?.Invoke(
+                                new UploadProgress(
+                                    id: uploadId,
+                                    progress: Math.Min(sizeUploaded, size) / (double)size * 100,
+                                    sizeUploaded: Math.Min(sizeUploaded, size),
+                                    chunksTotal: chunksTotal,
+                                    chunksUploaded: chunksUploaded));
+                        }
+                    });
+
+                await Task.WhenAll(workers);
             }
 
             // Convert to non-nullable dictionary for converter
