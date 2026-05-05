@@ -255,17 +255,33 @@ export function getLocalConfigResourceDirname(
   filePath: string,
   resource: "functions" | "sites",
 ): string {
+  return getLocalConfigResourceDirnames(filePath)[resource];
+}
+
+export function getLocalConfigResourceDirnames(filePath: string): Record<
+  "functions" | "sites",
+  string
+> {
   const rootData = fs.existsSync(filePath)
     ? readJsonFile<Record<string, unknown>>(filePath)
     : {};
-  const includePath = getConfigIncludePaths(rootData)[resource];
-  if (!includePath) {
-    return _path.dirname(filePath);
-  }
+  const includePaths = getConfigIncludePaths(rootData);
 
-  return _path.dirname(
-    assertIncludePathInsideProject(filePath, resource, includePath),
-  );
+  const getResourceDirname = (resource: "functions" | "sites"): string => {
+    const includePath = includePaths[resource];
+    if (!includePath) {
+      return _path.dirname(filePath);
+    }
+
+    return _path.dirname(
+      assertIncludePathInsideProject(filePath, resource, includePath),
+    );
+  };
+
+  return {
+    functions: getResourceDirname("functions"),
+    sites: getResourceDirname("sites"),
+  };
 }
 
 export function resolveLocalConfigResourcePaths(
