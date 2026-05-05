@@ -7,7 +7,7 @@ import { parseWithBetterErrors } from "./utils/error-formatter.js";
 import * as path from "path";
 import { TypeScriptDatabasesGenerator } from "./generators/typescript/databases.js";
 import {
-  getLocalConfigResourceDirname,
+  getLocalConfigResourceDirnames,
   readLocalConfigFile,
   resolveLocalConfigResourcePaths,
   writeLocalConfigFile,
@@ -149,10 +149,7 @@ export class Schema {
 
     return {
       ...options,
-      resourceDirectories: {
-        functions: getLocalConfigResourceDirname(configPath, "functions"),
-        sites: getLocalConfigResourceDirname(configPath, "sites"),
-      },
+      resourceDirectories: getLocalConfigResourceDirnames(configPath),
     };
   }
 }
