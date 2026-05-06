@@ -8,26 +8,15 @@ import 'upload_progress.dart';
 /// [Client] that handles requests to {{spec.title | caseUcfirst}}.
 ///
 /// The [Client] is also responsible for managing user's sessions.
-abstract class Client {
-  /// The size for chunked uploads in bytes.
-  static const int chunkSize = 5 * 1024 * 1024;
-
+abstract class ClientAuth {
   /// Holds configuration such as project.
-  late Map<String, String> config;
-  late String _endPoint;
-  late String? _endPointRealtime;
+  Map<String, String> get config;
 
   /// {{spec.title | caseUcfirst}} endpoint.
-  String get endPoint => _endPoint;
+  String get endPoint;
 
   /// {{spec.title | caseUcfirst}} realtime endpoint.
-  String? get endPointRealtime => _endPointRealtime;
-
-  /// Initializes a [Client].
-  factory Client({
-    String endPoint = '{{ spec.endpoint }}',
-    bool selfSigned = false,
-  }) => createClient(endPoint: endPoint, selfSigned: selfSigned);
+  String? get endPointRealtime;
 
   /// Handle OAuth2 session creation.
   Future webAuth(Uri url, {String? callbackUrlScheme});
@@ -42,34 +31,6 @@ abstract class Client {
     Function(UploadProgress)? onProgress,
   });
 
-  /// Set self signed to [status].
-  ///
-  /// If self signed is true, [Client] will ignore invalid certificates.
-  /// This is helpful in environments where your {{spec.title | caseUcfirst}}
-  /// instance does not have a valid SSL certificate.
-  Client setSelfSigned({bool status = true});
-
-  /// Set the {{spec.title | caseUcfirst}} endpoint.
-  Client setEndpoint(String endPoint);
-
-  /// Set the {{spec.title | caseUcfirst}} realtime endpoint.
-  Client setEndPointRealtime(String endPoint);
-
-{% for header in spec.global.headers %}
-  /// Set {{header.key | caseUcfirst}}.
-{% if header.description %}
-  ///
-  /// {{header.description}}.
-{% endif %}
-  Client set{{header.key | caseUcfirst}}(String value);
-
-{% endfor %}
-  /// Add headers that should be sent with all API calls.
-  Client addHeader(String key, String value);
-
-  /// Get the current request headers.
-  Map<String, String> getHeaders();
-
   /// Sends a "ping" request to Appwrite to verify connectivity.
   Future<String> ping();
 
@@ -81,4 +42,174 @@ abstract class Client {
     Map<String, dynamic> params = const {},
     ResponseType? responseType,
   });
+}
+
+/// Legacy client with mutable setter methods.
+abstract class Client implements ClientAuth {
+  /// The size for chunked uploads in bytes.
+  static const int chunkSize = 5 * 1024 * 1024;
+
+  /// Initializes a [Client].
+  factory Client({
+    String endPoint = '{{ spec.endpoint }}',
+    bool selfSigned = false,
+  }) => createClient(endPoint: endPoint, selfSigned: selfSigned);
+
+  /// Initializes a client for browser/mobile session authentication.
+  static ClientAuth fromBrowser({
+    String endPoint = '{{ spec.endpoint }}',
+    required String projectId,
+    String? endPointRealtime,
+    String? locale,
+    bool selfSigned = false,
+  }) => _fromBrowserClient(
+        endPoint: endPoint,
+        projectId: projectId,
+        endPointRealtime: endPointRealtime,
+        locale: locale,
+        selfSigned: selfSigned,
+      );
+
+  static Client _fromBrowserClient({
+    required String endPoint,
+    required String projectId,
+    String? endPointRealtime,
+    String? locale,
+    required bool selfSigned,
+  }) {
+    final client = createClient(endPoint: endPoint, selfSigned: selfSigned);
+
+    // ignore: deprecated_member_use_from_same_package
+    client.setProject(projectId);
+    if (endPointRealtime != null) {
+      // ignore: deprecated_member_use_from_same_package
+      client.setEndPointRealtime(endPointRealtime);
+    }
+    if (locale != null) {
+      // ignore: deprecated_member_use_from_same_package
+      client.setLocale(locale);
+    }
+
+    return client;
+  }
+
+  /// Initializes a client with a user session.
+  static ClientAuth fromSession({
+    String endPoint = '{{ spec.endpoint }}',
+    required String projectId,
+    required String session,
+    String? endPointRealtime,
+    String? locale,
+    bool selfSigned = false,
+  }) {
+    final client = _fromBrowserClient(
+      endPoint: endPoint,
+      projectId: projectId,
+      endPointRealtime: endPointRealtime,
+      locale: locale,
+      selfSigned: selfSigned,
+    );
+
+    // ignore: deprecated_member_use_from_same_package
+    client.setSession(session);
+    return client;
+  }
+
+  /// Initializes a client with a development key.
+  static ClientAuth fromDevKey({
+    String endPoint = '{{ spec.endpoint }}',
+    required String projectId,
+    required String devKey,
+    String? endPointRealtime,
+    String? locale,
+    bool selfSigned = false,
+  }) {
+    final client = _fromBrowserClient(
+      endPoint: endPoint,
+      projectId: projectId,
+      endPointRealtime: endPointRealtime,
+      locale: locale,
+      selfSigned: selfSigned,
+    );
+
+    // ignore: deprecated_member_use_from_same_package
+    client.setDevKey(devKey);
+    return client;
+  }
+
+  /// Initializes a client with user impersonation.
+  static ClientAuth fromImpersonation({
+    String endPoint = '{{ spec.endpoint }}',
+    required String projectId,
+    required String session,
+    String? userId,
+    String? userEmail,
+    String? userPhone,
+    String? endPointRealtime,
+    String? locale,
+    bool selfSigned = false,
+  }) {
+    final targets = [userId, userEmail, userPhone].whereType<String>().length;
+    if (targets != 1) {
+      throw ArgumentError(
+        'Exactly one of userId, userEmail, or userPhone must be provided.',
+      );
+    }
+
+    final client = _fromBrowserClient(
+      endPoint: endPoint,
+      projectId: projectId,
+      endPointRealtime: endPointRealtime,
+      locale: locale,
+      selfSigned: selfSigned,
+    );
+
+    // ignore: deprecated_member_use_from_same_package
+    client.setSession(session);
+
+    if (userId != null) {
+      // ignore: deprecated_member_use_from_same_package
+      client.setImpersonateUserId(userId);
+    } else if (userEmail != null) {
+      // ignore: deprecated_member_use_from_same_package
+      client.setImpersonateUserEmail(userEmail);
+    } else if (userPhone != null) {
+      // ignore: deprecated_member_use_from_same_package
+      client.setImpersonateUserPhone(userPhone);
+    }
+
+    return client;
+  }
+
+  /// Set self signed to [status].
+  ///
+  /// If self signed is true, [Client] will ignore invalid certificates.
+  /// This is helpful in environments where your {{spec.title | caseUcfirst}}
+  /// instance does not have a valid SSL certificate.
+  @Deprecated('Use Client.fromBrowser or another factory constructor instead.')
+  Client setSelfSigned({bool status = true});
+
+  /// Set the {{spec.title | caseUcfirst}} endpoint.
+  @Deprecated('Use Client.fromBrowser or another factory constructor instead.')
+  Client setEndpoint(String endPoint);
+
+  /// Set the {{spec.title | caseUcfirst}} realtime endpoint.
+  @Deprecated('Use Client.fromBrowser or another factory constructor instead.')
+  Client setEndPointRealtime(String endPoint);
+
+{% for header in spec.global.headers %}
+  /// Set {{header.key | caseUcfirst}}.
+{% if header.description %}
+  ///
+  /// {{header.description}}.
+{% endif %}
+  @Deprecated('Use Client.fromBrowser or another factory constructor instead.')
+  Client set{{header.key | caseUcfirst}}(String value);
+
+{% endfor %}
+  /// Add headers that should be sent with all API calls.
+  Client addHeader(String key, String value);
+
+  /// Get the current request headers.
+  Map<String, String> getHeaders();
 }
