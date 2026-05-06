@@ -1,6 +1,9 @@
 ---
 name: deploy-function
 description: Deploy a function using the {{ spec.title }} CLI
+{% if language.name == 'ClaudePlugin' %}
+disable-model-invocation: true
+{% endif %}
 ---
 
 # Deploy a function using the {{ spec.title }} CLI
