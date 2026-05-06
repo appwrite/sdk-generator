@@ -392,7 +392,7 @@ type ImpersonationTarget =
 
 type ImpersonationClientParams = SessionClientParams & ImpersonationTarget;
 
-{%~ set webHeaders = spec.global.headers | webClientHeaders %}
+{%~ set webHeaders = spec.global.headers %}
 type LegacyClientSetter = Extract<keyof ClientRuntime<any>, `set${string}`>;
 type ClientAuthBuilder = Extract<keyof ClientRuntime<any>, `with${string}`>;
 type ClientInternalMethod = LegacyClientSetter | ClientAuthBuilder;
@@ -528,7 +528,6 @@ class ClientRuntime<TAuth extends Auth = 'browser'> {
 
     withForwardedUserAgent(forwardedUserAgent: string): this {
         this.headers['X-Forwarded-User-Agent'] = forwardedUserAgent;
-        this.config.forwardeduseragent = forwardedUserAgent;
         return this;
     }
 
