@@ -1,6 +1,9 @@
 ---
 name: deploy-site
 description: Deploy a site using the {{ spec.title }} CLI
+{% if language.name == 'ClaudePlugin' %}
+disable-model-invocation: true
+{% endif %}
 ---
 
 # Deploy a site using the {{ spec.title }} CLI

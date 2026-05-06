@@ -4,6 +4,9 @@ namespace Appwrite\SDK\Language;
 
 class ClaudePlugin extends AgentSkills
 {
+    protected string $skillDestination = 'skills/%s/SKILL.md';
+    protected bool $prefixSkillName = false;
+
     /**
      * @return string
      */
@@ -17,29 +20,7 @@ class ClaudePlugin extends AgentSkills
      */
     public function getFiles(): array
     {
-        $languages = [
-            'typescript',
-            'dart',
-            'kotlin',
-            'swift',
-            'php',
-            'python',
-            'ruby',
-            'go',
-            'rust',
-            'dotnet',
-            'cli',
-        ];
-
-        $files = [];
-
-        foreach ($languages as $lang) {
-            $files[] = [
-                'scope'       => 'default',
-                'destination' => 'skills/' . $lang . '/SKILL.md',
-                'template'    => 'claude-plugin/skills/' . $lang . '.md.twig',
-            ];
-        }
+        $files = $this->getSkillFiles();
 
         $files[] = [
             'scope'       => 'default',
@@ -56,13 +37,13 @@ class ClaudePlugin extends AgentSkills
         $files[] = [
             'scope'       => 'default',
             'destination' => 'commands/deploy-site.md',
-            'template'    => 'claude-plugin/commands/deploy-site.md.twig',
+            'template'    => 'plugin/commands/deploy-site.md.twig',
         ];
 
         $files[] = [
             'scope'       => 'default',
             'destination' => 'commands/deploy-function.md',
-            'template'    => 'claude-plugin/commands/deploy-function.md.twig',
+            'template'    => 'plugin/commands/deploy-function.md.twig',
         ];
 
         $files[] = [
@@ -86,7 +67,7 @@ class ClaudePlugin extends AgentSkills
         $files[] = [
             'scope'       => 'default',
             'destination' => 'LICENSE',
-            'template'    => 'cursor-plugin/LICENSE.twig',
+            'template'    => 'plugin/LICENSE.twig',
         ];
 
         return $files;
