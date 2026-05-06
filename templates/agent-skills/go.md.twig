@@ -417,7 +417,7 @@ if err != nil {
 
 ## Permissions & Roles (Critical)
 
-Appwrite uses permission strings to control access to resources. Each permission pairs an action (`read`, `update`, `delete`, `create`, or `write` which grants create + update + delete) with a role target. By default, **no user has access** unless permissions are explicitly set at the document/file level or inherited from the collection/bucket settings. Permissions are arrays of strings built with the `permission` and `role` helpers.
+Appwrite uses permission strings to control access to resources. Each permission pairs an action (`read`, `update`, `delete`, `create`, or `write` which grants create + update + delete) with a role target. By default, **no user has access** unless permissions are explicitly set at the row/file level or inherited from the table/bucket settings. Permissions are arrays of strings built with the `permission` and `role` helpers.
 
 ```go
 import (
@@ -458,7 +458,7 @@ f, err := service.CreateFile(
 )
 ```
 
-> **When to set permissions:** Set document/file-level permissions when you need per-resource access control. If all documents in a collection share the same rules, configure permissions at the collection/bucket level and leave document permissions empty.
+> **When to set permissions:** Set row/file-level permissions when you need per-resource access control. If all rows in a table share the same rules, configure permissions at the table/bucket level and leave row permissions empty.
 
 > **Common mistakes:**
 > - **Forgetting permissions** — the resource becomes inaccessible to all users (including the creator)
