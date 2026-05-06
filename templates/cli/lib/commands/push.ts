@@ -153,9 +153,7 @@ function getDeploymentProgressSignature(
   const status =
     typeof deployment["status"] === "string" ? deployment["status"] : "";
   const buildLogs =
-    typeof deployment["buildLogs"] === "string"
-      ? deployment["buildLogs"]
-      : "";
+    typeof deployment["buildLogs"] === "string" ? deployment["buildLogs"] : "";
   const updatedAt =
     typeof deployment["$updatedAt"] === "string"
       ? deployment["$updatedAt"]
@@ -173,9 +171,7 @@ function getDeploymentProgressSignature(
   });
 }
 
-function createDeploymentTimeoutTracker(
-  deployment: Record<string, unknown>,
-): {
+function createDeploymentTimeoutTracker(deployment: Record<string, unknown>): {
   touch: (deployment: Record<string, unknown>) => void;
   hasTimedOut: () => boolean;
 } {

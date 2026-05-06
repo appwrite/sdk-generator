@@ -126,7 +126,10 @@ function ensureDirectoryForFile(filePath: string): void {
   }
 }
 
-function assertValidIncludePath(resource: string, includePath: unknown): string {
+function assertValidIncludePath(
+  resource: string,
+  includePath: unknown,
+): string {
   if (typeof includePath !== "string" || includePath.trim() === "") {
     throw new Error(`Config include for '${resource}' must be a file path.`);
   }
@@ -149,7 +152,9 @@ function assertValidIncludePath(resource: string, includePath: unknown): string 
   }
 
   if (_path.isAbsolute(normalizedPath)) {
-    throw new Error(`Config include '${resource}' must be a relative file path.`);
+    throw new Error(
+      `Config include '${resource}' must be a relative file path.`,
+    );
   }
 
   if (/^[a-z][a-z0-9+.-]*:/i.test(normalizedPath)) {
@@ -163,7 +168,9 @@ function assertValidIncludePath(resource: string, includePath: unknown): string 
   return normalizedPath;
 }
 
-function getConfigIncludePaths(data: Record<string, unknown>): ConfigIncludePaths {
+function getConfigIncludePaths(
+  data: Record<string, unknown>,
+): ConfigIncludePaths {
   const includes = data.includes;
   if (includes === undefined) {
     return {};
@@ -200,7 +207,10 @@ function writeJsonFile(filePath: string, data: unknown): void {
   });
 }
 
-function resolveIncludePath(configFilePath: string, includePath: string): string {
+function resolveIncludePath(
+  configFilePath: string,
+  includePath: string,
+): string {
   return _path.resolve(_path.dirname(configFilePath), includePath);
 }
 
@@ -274,10 +284,9 @@ export function getLocalConfigResourceDirname(
   return getLocalConfigResourceDirnames(filePath)[resource];
 }
 
-export function getLocalConfigResourceDirnames(filePath: string): Record<
-  "functions" | "sites",
-  string
-> {
+export function getLocalConfigResourceDirnames(
+  filePath: string,
+): Record<"functions" | "sites", string> {
   const rootData = fs.existsSync(filePath)
     ? readJsonFile<Record<string, unknown>>(filePath)
     : {};
@@ -722,7 +731,10 @@ class Local extends Config<ConfigType> {
     return _path.dirname(resolveIncludePath(this.path, includePath));
   }
 
-  resolveResourcePath(resource: ConfigResourceKey, resourcePath: string): string {
+  resolveResourcePath(
+    resource: ConfigResourceKey,
+    resourcePath: string,
+  ): string {
     if (_path.isAbsolute(resourcePath)) {
       return resourcePath;
     }
