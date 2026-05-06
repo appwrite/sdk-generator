@@ -348,6 +348,7 @@ type SDKPlatform = 'client' | 'server';
 type ClientAuth = 'browser' | 'session' | 'devKey' | 'impersonation';
 type ServerAuth = 'apiKey' | 'jwt' | 'cookie';
 type Auth = ClientAuth | ServerAuth;
+declare const clientAuthBrand: unique symbol;
 
 // Forces TypeScript to display the expanded shape on hover instead of an alias name.
 type Prettify<T> = { [K in keyof T]: T[K] } & {};
@@ -415,6 +416,7 @@ type ClientConstructor = {
 
 class ClientRuntime<TAuth extends Auth = 'browser'> {
     static CHUNK_SIZE = 1024 * 1024 * 5;
+    declare readonly [clientAuthBrand]?: TAuth;
 
     /**
      * Holds configuration such as project.

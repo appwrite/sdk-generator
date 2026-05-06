@@ -547,10 +547,13 @@ class Web extends JS
         $hasServerOnly = false;
         $hasClientOnly = false;
         $hasUpload = false;
+        $serverOnlyMethods = [];
+        $clientOnlyMethods = [];
 
         foreach ($service['methods'] ?? [] as $method) {
             $hasClient = $this->methodSupportsClient($method);
             $hasServer = $this->methodSupportsServer($method);
+            $methodName = $this->toCamelCase($method['name'] ?? '');
 
             if ($hasClient) {
                 $hasClientTier = true;
@@ -560,9 +563,11 @@ class Web extends JS
             }
             if ($hasServer && !$hasClient) {
                 $hasServerOnly = true;
+                $serverOnlyMethods[] = $methodName;
             }
             if ($hasClient && !$hasServer) {
                 $hasClientOnly = true;
+                $clientOnlyMethods[] = $methodName;
             }
             if (in_array('multipart/form-data', $method['consumes'] ?? [], true)) {
                 $hasUpload = true;
@@ -578,6 +583,8 @@ class Web extends JS
             'needsServerAuth' => $hasServerTier && (!$hasMixedTier || $hasServerOnly),
             'needsClientAuth' => $hasClientTier && (!$hasMixedTier || $hasClientOnly),
             'hasUpload'       => $hasUpload,
+            'serverOnlyMethods' => array_values(array_unique($serverOnlyMethods)),
+            'clientOnlyMethods' => array_values(array_unique($clientOnlyMethods)),
         ];
     }
 

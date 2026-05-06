@@ -17,21 +17,35 @@ import { {{ parameter.enumName | caseUcfirst }} } from '../enums/{{ parameter.en
 {% endfor %}
 
 {%~ if auth.hasMixedTier %}
-export class {{ service.name | caseUcfirst }}<TAuth extends ClientAuth | ServerAuth = ClientAuth | ServerAuth> {
+type {{ service.name | caseUcfirst }}ServerOnlyMethod = {% if auth.serverOnlyMethods is empty %}never{% else %}{% for methodName in auth.serverOnlyMethods %}'{{ methodName }}'{% if not loop.last %} | {% endif %}{% endfor %}{% endif %};
+type {{ service.name | caseUcfirst }}ClientOnlyMethod = {% if auth.clientOnlyMethods is empty %}never{% else %}{% for methodName in auth.clientOnlyMethods %}'{{ methodName }}'{% if not loop.last %} | {% endif %}{% endfor %}{% endif %};
+
+export type {{ service.name | caseUcfirst }}<TAuth extends ClientAuth | ServerAuth = ClientAuth | ServerAuth> =
+    TAuth extends ClientAuth
+        ? Omit<{{ service.name | caseUcfirst }}Runtime<TAuth>, 'client' | {{ service.name | caseUcfirst }}ServerOnlyMethod>
+        : TAuth extends ServerAuth
+            ? Omit<{{ service.name | caseUcfirst }}Runtime<TAuth>, 'client' | {{ service.name | caseUcfirst }}ClientOnlyMethod>
+            : Omit<{{ service.name | caseUcfirst }}Runtime<TAuth>, 'client'>;
+
+class {{ service.name | caseUcfirst }}Runtime<TAuth extends ClientAuth | ServerAuth = ClientAuth | ServerAuth> {
     client: Client<TAuth>;
 
     constructor(client: Client<TAuth>) {
         this.client = client;
     }
 {%~ elseif auth.hasServerTier %}
-export class {{ service.name | caseUcfirst }} {
+export type {{ service.name | caseUcfirst }} = Omit<{{ service.name | caseUcfirst }}Runtime, 'client'>;
+
+class {{ service.name | caseUcfirst }}Runtime {
     client: Client<ServerAuth>;
 
     constructor(client: Client<ServerAuth>) {
         this.client = client;
     }
 {%~ else %}
-export class {{ service.name | caseUcfirst }} {
+export type {{ service.name | caseUcfirst }} = Omit<{{ service.name | caseUcfirst }}Runtime, 'client'>;
+
+class {{ service.name | caseUcfirst }}Runtime {
     client: Client<ClientAuth>;
 
     constructor(client: Client<ClientAuth>) {
@@ -40,7 +54,7 @@ export class {{ service.name | caseUcfirst }} {
 {%~ endif %}
 
     {%~ for method in service.methods %}
-    {%~ set thisGate = method | webMethodThisGate(service) %}
+    {%~ set thisGate = '' %}
     /**
     {%~ if method.description %}
      * {{ method.description | replace({'\n': '\n     * '}) | raw }}
@@ -193,3 +207,15 @@ export class {{ service.name | caseUcfirst }} {
 {%~ endif %}
     {%~ endfor %}
 }
+
+const {{ service.name | caseUcfirst }} = {{ service.name | caseUcfirst }}Runtime as unknown as {
+{%~ if auth.hasMixedTier %}
+    new <TAuth extends ClientAuth | ServerAuth = ClientAuth | ServerAuth>(client: Client<TAuth>): {{ service.name | caseUcfirst }}<TAuth>;
+{%~ elseif auth.hasServerTier %}
+    new (client: Client<ServerAuth>): {{ service.name | caseUcfirst }};
+{%~ else %}
+    new (client: Client<ClientAuth>): {{ service.name | caseUcfirst }};
+{%~ endif %}
+};
+
+export { {{ service.name | caseUcfirst }} };
