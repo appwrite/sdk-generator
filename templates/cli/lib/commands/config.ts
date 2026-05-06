@@ -5,6 +5,7 @@ import {
   validateContainerDuplicates,
   validateCrossDatabase,
 } from "./config-validations.js";
+import { CONFIG_RESOURCE_KEYS } from "../constants.js";
 
 // ============================================================================
 // Internal Helpers
@@ -433,11 +434,58 @@ const BucketSchema = z
 // Config Schema
 // ============================================================================
 
+const ConfigIncludePathSchema = z
+  .string()
+  .trim()
+  .min(1, "Include path cannot be empty")
+  .refine((value) => !value.includes("\0"), {
+    message: "Include path cannot contain null bytes",
+  })
+  .refine((value) => !value.includes("#"), {
+    message: "Include path cannot contain JSON pointer fragments",
+  })
+  .refine((value) => !value.split(/[\\/]+/).includes(".."), {
+    message: "Include path cannot contain parent directory segments",
+  })
+  .refine(
+    (value) =>
+      !value.startsWith("/") &&
+      !value.startsWith("\\") &&
+      !/^[a-z]:[\\/]/i.test(value),
+    {
+      message: "Include path must be relative",
+    },
+  )
+  .refine((value) => !/^[a-z][a-z0-9+.-]*:/i.test(value), {
+    message: "Include path must be a local file path, not a URL",
+  })
+  .refine((value) => value.toLowerCase().endsWith(".json"), {
+    message: "Include path must point to a JSON file",
+  });
+
+type ConfigIncludePathShape = {
+  [K in (typeof CONFIG_RESOURCE_KEYS)[number]]: z.ZodOptional<
+    typeof ConfigIncludePathSchema
+  >;
+};
+
+const ConfigIncludesSchema = z
+  .object(
+    Object.fromEntries(
+      CONFIG_RESOURCE_KEYS.map((key) => [
+        key,
+        ConfigIncludePathSchema.optional(),
+      ]),
+    ) as ConfigIncludePathShape,
+  )
+  .strict();
+
 const ConfigSchema = z
   .object({
     projectId: z.string(),
     projectName: z.string().optional(),
     endpoint: z.string().optional(),
+    includes: ConfigIncludesSchema.optional(),
     settings: z.lazy(() => SettingsSchema).optional(),
     functions: z.array(z.lazy(() => FunctionSchema)).optional(),
     sites: z.array(z.lazy(() => SiteSchema)).optional(),
@@ -459,6 +507,7 @@ const ConfigSchema = z
 // ============================================================================
 
 export type ConfigType = z.infer<typeof ConfigSchema>;
+export type ConfigIncludesType = NonNullable<ConfigType["includes"]>;
 export type SettingsType = z.infer<typeof SettingsSchema>;
 export type SiteType = z.infer<typeof SiteSchema>;
 export type FunctionType = z.infer<typeof FunctionSchema>;

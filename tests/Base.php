@@ -217,10 +217,14 @@ abstract class Base extends TestCase
         'x-sdk-name: cli; x-sdk-platform: server; x-sdk-language: cli; x-sdk-version: 0.0.1',
     ];
 
+    protected const CLI_FUNCTION_RESPONSES = [
+        'POST:/v1/functions/{functionId}/executions:passed',
+    ];
+
     protected const CLI_COMPLETION_RESPONSES = [
         'compdef _appwrite appwrite',
         'complete -F _appwrite_completion appwrite',
-        'complete -c \'appwrite\' -f -n \'__appwrite_using_command\' -a \'bar client completion foo general\'',
+        'complete -c \'appwrite\' -f -n \'__appwrite_using_command\' -a \'bar client completion foo functions general\'',
         '\'foo:get\') context=\'foo get\' ;;',
     ];
 

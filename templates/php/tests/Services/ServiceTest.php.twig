@@ -82,7 +82,7 @@ final class {{ service.name | caseUcfirst }}Test extends TestCase
             {{ responseDefinitionName | mockDefinitionPayload(spec, 4) | raw -}},
             array(
 {% for field, expectedValue in responseDiscriminator[responseDefinitionName] %}
-                "{{ field }}" => "{{ expectedValue }}"{{ loop.last ? '' : ',' }}
+                "{{ field | escapeDollarSign }}" => "{{ expectedValue }}"{{ loop.last ? '' : ',' }}
 {% endfor %}
             )
         );
