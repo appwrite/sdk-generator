@@ -392,7 +392,28 @@ type ImpersonationTarget =
 type ImpersonationClientParams = SessionClientParams & ImpersonationTarget;
 
 {%~ set webHeaders = spec.global.headers | webClientHeaders %}
-class Client<TAuth extends Auth = 'browser'> {
+type LegacyClientSetter = Extract<keyof ClientRuntime<any>, `set${string}`>;
+export type Client<TAuth extends Auth = 'browser'> = Omit<ClientRuntime<TAuth>, LegacyClientSetter>;
+type LegacyClient<TAuth extends Auth = 'browser'> = ClientRuntime<TAuth>;
+
+type ClientConstructor = {
+    new <TAuth extends Auth = 'browser'>(): LegacyClient<TAuth>;
+    readonly CHUNK_SIZE: number;
+    fromBrowser(params: Prettify<BaseClientParams>): Client<'browser'>;
+    fromSession(params: Prettify<SessionClientParams>): Client<'session'>;
+{%~ if sdk.platform == 'server' or sdk.platform == 'console' %}
+    fromAPIKey(params: Prettify<ApiKeyClientParams>): Client<'apiKey'>;
+{%~ endif %}
+    fromCookie(params: Prettify<CookieClientParams>): Client<'cookie'>;
+{%~ if sdk.platform == 'server' or sdk.platform == 'console' %}
+    fromJWT(params: Prettify<JWTClientParams>): Client<'jwt'>;
+{%~ endif %}
+    fromDevKey(params: Prettify<DevKeyClientParams>): Client<'devKey'>;
+    fromImpersonation(params: Prettify<ImpersonationClientParams>): Client<'impersonation'>;
+    flatten(data: Payload, prefix?: string): Payload;
+};
+
+class ClientRuntime<TAuth extends Auth = 'browser'> {
     static CHUNK_SIZE = 1024 * 1024 * 5;
 
     /**
@@ -430,18 +451,18 @@ class Client<TAuth extends Auth = 'browser'> {
     };
 
     static fromBrowser(params: Prettify<BaseClientParams>): Client<'browser'> {
-        return new Client<'browser'>().applyBase<'browser'>(params, 'client');
+        return new ClientRuntime<'browser'>().applyBase<'browser'>(params, 'client');
     }
 
     static fromSession(params: Prettify<SessionClientParams>): Client<'session'> {
-        return new Client<'session'>()
+        return new ClientRuntime<'session'>()
             .applyBase<'session'>(params, 'client')
             .setSession(params.session);
     }
 
 {%~ if sdk.platform == 'server' or sdk.platform == 'console' %}
     static fromAPIKey(params: Prettify<ApiKeyClientParams>): Client<'apiKey'> {
-        return new Client<'apiKey'>()
+        return new ClientRuntime<'apiKey'>()
             .applyBase<'apiKey'>(params, 'server')
             .setKey(params.apiKey);
     }
@@ -449,7 +470,7 @@ class Client<TAuth extends Auth = 'browser'> {
 {%~ endif %}
 
     static fromCookie(params: Prettify<CookieClientParams>): Client<'cookie'> {
-        return new Client<'cookie'>()
+        return new ClientRuntime<'cookie'>()
 {%~ if sdk.platform == 'console' %}
             .applyBase<'cookie'>({ mode: 'admin', ...params }, 'server')
 {%~ else %}
@@ -460,7 +481,7 @@ class Client<TAuth extends Auth = 'browser'> {
 
 {%~ if sdk.platform == 'server' or sdk.platform == 'console' %}
     static fromJWT(params: Prettify<JWTClientParams>): Client<'jwt'> {
-        return new Client<'jwt'>()
+        return new ClientRuntime<'jwt'>()
             .applyBase<'jwt'>(params, 'server')
             .setJWT(params.jwt);
     }
@@ -468,7 +489,7 @@ class Client<TAuth extends Auth = 'browser'> {
 {%~ endif %}
 
     static fromDevKey(params: Prettify<DevKeyClientParams>): Client<'devKey'> {
-        return new Client<'devKey'>()
+        return new ClientRuntime<'devKey'>()
             .applyBase<'devKey'>(params, 'client')
             .setDevKey(params.devKey);
     }
@@ -484,7 +505,7 @@ class Client<TAuth extends Auth = 'browser'> {
             throw new {{spec.title | caseUcfirst}}Exception('Exactly one impersonation target must be provided');
         }
 
-        const client = new Client<'impersonation'>()
+        const client = new ClientRuntime<'impersonation'>()
             .applyBase<'impersonation'>(params, 'client')
             .setSession(params.session);
 
@@ -509,8 +530,8 @@ class Client<TAuth extends Auth = 'browser'> {
         return this;
     }
 
-    private applyBase<T extends Auth>(params: BaseClientParams, sdkPlatform: SDKPlatform): Client<T> {
-        const client = this as unknown as Client<T>;
+    private applyBase<T extends Auth>(params: BaseClientParams, sdkPlatform: SDKPlatform): ClientRuntime<T> {
+        const client = this as unknown as ClientRuntime<T>;
         client.sdkPlatform = sdkPlatform;
         client.headers['x-sdk-platform'] = sdkPlatform === 'server' ? '{{ sdk.platform == 'console' ? 'console' : 'server' }}' : 'client';
         client.setEndpoint(params.endpoint);
@@ -562,7 +583,10 @@ class Client<TAuth extends Auth = 'browser'> {
      *
      * @returns {this}
      */
-    private setEndpoint(endpoint: string): this {
+    /**
+     * @deprecated Use `Client.fromBrowser`, `Client.fromSession`, `Client.fromAPIKey`, or another static factory instead.
+     */
+    setEndpoint(endpoint: string): this {
         if (!endpoint || typeof endpoint !== 'string') {
             throw new {{spec.title | caseUcfirst}}Exception('Endpoint must be a valid string');
         }
@@ -584,7 +608,10 @@ class Client<TAuth extends Auth = 'browser'> {
      *
      * @returns {this}
      */
-    private setEndpointRealtime(endpointRealtime: string): this {
+    /**
+     * @deprecated Use the `endpointRealtime` field on a static factory params object instead.
+     */
+    setEndpointRealtime(endpointRealtime: string): this {
         if (!endpointRealtime || typeof endpointRealtime !== 'string') {
             throw new {{spec.title | caseUcfirst}}Exception('Endpoint must be a valid string');
         }
@@ -604,16 +631,22 @@ class Client<TAuth extends Auth = 'browser'> {
      *
      * @returns {this}
      */
-    private setSelfSigned(selfSigned: boolean): this {
+    /**
+     * @deprecated Use the `selfSigned` field on a static factory params object instead.
+     */
+    setSelfSigned(selfSigned: boolean): this {
         this.config.selfSigned = selfSigned;
         return this;
     }
 
 {%~ for header in webHeaders %}
-    private set{{ header.key | caseUcfirst }}(value: string): this {
+    /**
+     * @deprecated Use a static client factory or factory params object instead.
+     */
+    set{{ header.key | caseUcfirst }}(value: string): {% if header.key == 'Key' %}ClientRuntime<'apiKey'>{% elseif header.key == 'Cookie' %}ClientRuntime<'cookie'>{% elseif header.key == 'JWT' %}ClientRuntime<'jwt'>{% elseif header.key == 'Session' %}ClientRuntime<'session'>{% elseif header.key == 'DevKey' %}ClientRuntime<'devKey'>{% elseif header.key in ['ImpersonateUserId', 'ImpersonateUserEmail', 'ImpersonateUserPhone'] %}ClientRuntime<'impersonation'>{% else %}this{% endif %} {
         this.headers['{{ header.name }}'] = value;
         this.config.{{ header.key | caseLower }} = value;
-        return this;
+        return this as unknown as {% if header.key == 'Key' %}ClientRuntime<'apiKey'>{% elseif header.key == 'Cookie' %}ClientRuntime<'cookie'>{% elseif header.key == 'JWT' %}ClientRuntime<'jwt'>{% elseif header.key == 'Session' %}ClientRuntime<'session'>{% elseif header.key == 'DevKey' %}ClientRuntime<'devKey'>{% elseif header.key in ['ImpersonateUserId', 'ImpersonateUserEmail', 'ImpersonateUserPhone'] %}ClientRuntime<'impersonation'>{% else %}this{% endif %};
     }
 
 {%~ endfor %}
@@ -941,7 +974,7 @@ class Client<TAuth extends Auth = 'browser'> {
         }
 
         if (method === 'GET') {
-            for (const [key, value] of Object.entries(Client.flatten(params))) {
+            for (const [key, value] of Object.entries(ClientRuntime.flatten(params))) {
                 url.searchParams.append(key, value);
             }
         } else {
@@ -989,7 +1022,7 @@ class Client<TAuth extends Auth = 'browser'> {
             throw new Error('File not found in payload');
         }
 
-        if (file.size <= Client.CHUNK_SIZE) {
+        if (file.size <= ClientRuntime.CHUNK_SIZE) {
             return await this.call(method, url, headers, originalPayload);
         }
 
@@ -1016,8 +1049,8 @@ class Client<TAuth extends Auth = 'browser'> {
                     $id: response.$id,
                     progress: Math.round((end / file.size) * 100),
                     sizeUploaded: end,
-                    chunksTotal: Math.ceil(file.size / Client.CHUNK_SIZE),
-                    chunksUploaded: Math.ceil(end / Client.CHUNK_SIZE)
+                    chunksTotal: Math.ceil(file.size / ClientRuntime.CHUNK_SIZE),
+                    chunksUploaded: Math.ceil(end / ClientRuntime.CHUNK_SIZE)
                 });
             }
 
@@ -1097,7 +1130,7 @@ class Client<TAuth extends Auth = 'browser'> {
         for (const [key, value] of Object.entries(data)) {
             let finalKey = prefix ? prefix + '[' + key +']' : key;
             if (Array.isArray(value)) {
-                output = { ...output, ...Client.flatten(value, finalKey) };
+                output = { ...output, ...ClientRuntime.flatten(value, finalKey) };
             } else {
                 output[finalKey] = value;
             }
@@ -1106,6 +1139,8 @@ class Client<TAuth extends Auth = 'browser'> {
         return output;
     }
 }
+
+const Client = ClientRuntime as unknown as ClientConstructor;
 
 export { Client, {{spec.title | caseUcfirst}}Exception };
 export type { Models, SDKPlatform, ClientAuth, ServerAuth, Payload, RealtimeResponseEvent, UploadProgress };
