@@ -12,7 +12,72 @@ import AsyncHTTPClient
 let DASHDASH = "--"
 let CRLF = "\r\n"
 
-open class Client {
+public protocol ClientAuth: AnyObject {
+    var endPoint: String { get }
+    var endPointRealtime: String? { get }
+    var selfSigned: Bool { get }
+
+    func getConfig(key: String) -> String?
+    func parametersToQueryString(params: [String: Any?]) -> String
+    func ping() async throws -> String
+    func call<T>(
+        method: String,
+        path: String,
+        headers: [String: String],
+        params: [String: Any?],
+        sink: ((ByteBuffer) -> Void)?,
+        converter: ((Any) throws -> T)?
+    ) async throws -> T
+    func chunkedUpload<T>(
+        path: String,
+        headers: inout [String: String],
+        params: inout [String: Any?],
+        paramName: String,
+        idParamName: String?,
+        converter: ((Any) throws -> T)?,
+        onProgress: ((UploadProgress) -> Void)?
+    ) async throws -> T
+}
+
+public extension ClientAuth {
+    func call<T>(
+        method: String,
+        path: String = "",
+        headers: [String: String] = [:],
+        params: [String: Any?] = [:],
+        converter: ((Any) throws -> T)? = nil
+    ) async throws -> T {
+        return try await call(
+            method: method,
+            path: path,
+            headers: headers,
+            params: params,
+            sink: nil,
+            converter: converter
+        )
+    }
+
+    func chunkedUpload<T>(
+        path: String,
+        headers: inout [String: String],
+        params: inout [String: Any?],
+        paramName: String,
+        idParamName: String?,
+        onProgress: ((UploadProgress) -> Void)? = nil
+    ) async throws -> T {
+        return try await chunkedUpload(
+            path: path,
+            headers: &headers,
+            params: &params,
+            paramName: paramName,
+            idParamName: idParamName,
+            converter: nil,
+            onProgress: onProgress
+        )
+    }
+}
+
+open class Client: ClientAuth {
 
     // MARK: Properties
     public static var chunkSize = 5 * 1024 * 1024 // 5MB
@@ -36,7 +101,7 @@ open class Client {
 
     internal var config: [String: String] = [:]
 
-    internal var selfSigned: Bool = false
+    public internal(set) var selfSigned: Bool = false
 
     internal var compression: Bool = true
 
@@ -56,6 +121,162 @@ open class Client {
         http = Client.createHTTP()
         addUserAgentHeader()
         addOriginHeader()
+    }
+
+    public static func fromBrowser(
+        endpoint: String = "{{spec.endpoint}}",
+        projectId: String,
+        endpointRealtime: String? = nil,
+        locale: String? = nil,
+        selfSigned: Bool = false
+    ) -> ClientAuth {
+        let client = Client()
+        configure(
+            client,
+            endpoint: endpoint,
+            endpointRealtime: endpointRealtime,
+            projectId: projectId,
+            locale: locale,
+            selfSigned: selfSigned
+        )
+        return client
+    }
+
+    public static func fromSession(
+        endpoint: String = "{{spec.endpoint}}",
+        projectId: String,
+        session: String,
+        endpointRealtime: String? = nil,
+        locale: String? = nil,
+        selfSigned: Bool = false
+    ) -> ClientAuth {
+        let client = Client()
+        configure(
+            client,
+            endpoint: endpoint,
+            endpointRealtime: endpointRealtime,
+            projectId: projectId,
+            locale: locale,
+            selfSigned: selfSigned
+        )
+        setHeader(client, configKey: "session", header: "X-Appwrite-Session", value: session)
+        return client
+    }
+
+    public static func fromDevKey(
+        endpoint: String = "{{spec.endpoint}}",
+        projectId: String,
+        devKey: String,
+        endpointRealtime: String? = nil,
+        locale: String? = nil,
+        selfSigned: Bool = false
+    ) -> ClientAuth {
+        let client = Client()
+        configure(
+            client,
+            endpoint: endpoint,
+            endpointRealtime: endpointRealtime,
+            projectId: projectId,
+            locale: locale,
+            selfSigned: selfSigned
+        )
+        setHeader(client, configKey: "devkey", header: "X-Appwrite-Dev-Key", value: devKey)
+        return client
+    }
+
+    public static func fromImpersonation(
+        endpoint: String = "{{spec.endpoint}}",
+        projectId: String,
+        session: String,
+        userId: String? = nil,
+        userEmail: String? = nil,
+        userPhone: String? = nil,
+        endpointRealtime: String? = nil,
+        locale: String? = nil,
+        selfSigned: Bool = false
+    ) -> ClientAuth {
+        let targetCount = [userId, userEmail, userPhone].compactMap { $0 }.count
+        precondition(targetCount == 1, "Provide exactly one impersonation target.")
+
+        let client = Client()
+        configure(
+            client,
+            endpoint: endpoint,
+            endpointRealtime: endpointRealtime,
+            projectId: projectId,
+            locale: locale,
+            selfSigned: selfSigned
+        )
+        setHeader(client, configKey: "session", header: "X-Appwrite-Session", value: session)
+
+        if let userId = userId {
+            setHeader(client, configKey: "impersonateuserid", header: "X-Appwrite-Impersonate-User-Id", value: userId)
+        }
+
+        if let userEmail = userEmail {
+            setHeader(client, configKey: "impersonateuseremail", header: "X-Appwrite-Impersonate-User-Email", value: userEmail)
+        }
+
+        if let userPhone = userPhone {
+            setHeader(client, configKey: "impersonateuserphone", header: "X-Appwrite-Impersonate-User-Phone", value: userPhone)
+        }
+
+        return client
+    }
+
+    private static func configure(
+        _ client: Client,
+        endpoint: String,
+        endpointRealtime: String?,
+        projectId: String,
+        locale: String?,
+        selfSigned: Bool
+    ) {
+        client.configureEndpoint(endpoint)
+
+        if let endpointRealtime = endpointRealtime {
+            client.configureEndpointRealtime(endpointRealtime)
+        }
+
+        if selfSigned {
+            client.configureSelfSigned(selfSigned)
+        }
+
+        setHeader(client, configKey: "project", header: "X-Appwrite-Project", value: projectId)
+
+        if let locale = locale {
+            setHeader(client, configKey: "locale", header: "X-Appwrite-Locale", value: locale)
+        }
+    }
+
+    private static func setHeader(_ client: Client, configKey: String, header: String, value: String) {
+        client.config[configKey] = value
+        _ = client.addHeader(key: header, value: value)
+    }
+
+    private func configureSelfSigned(_ status: Bool) {
+        self.selfSigned = status
+        try! http.syncShutdown()
+        http = Client.createHTTP(selfSigned: status, compression: compression)
+    }
+
+    private func configureEndpoint(_ endPoint: String) {
+        if !endPoint.hasPrefix("http://") && !endPoint.hasPrefix("https://") {
+            fatalError("Invalid endpoint URL: \(endPoint)")
+        }
+
+        self.endPoint = endPoint
+        self.endPointRealtime = endPoint
+            .replacingOccurrences(of: "http://", with: "ws://")
+            .replacingOccurrences(of: "https://", with: "wss://")
+    }
+
+    private func configureEndpointRealtime(_ endPoint: String) {
+        if !endPoint.hasPrefix("ws://") && !endPoint.hasPrefix("wss://") {
+            fatalError("Invalid realtime endpoint URL: \(endPoint)")
+        }
+
+        self.endPointRealtime = endPoint
     }
 
     private static func createHTTP(
@@ -112,6 +333,7 @@ open class Client {
     ///
     /// @return Client
     ///
+    @available(*, deprecated, message: "Use Client.fromBrowser, Client.fromSession, Client.fromDevKey, or Client.fromImpersonation instead.")
     open func set{{ header.key | caseUcfirst }}(_ value: String) -> Client {
         config["{{ header.key | caseLower }}"] = value
         _ = addHeader(key: "{{header.name}}", value: value)
@@ -127,10 +349,9 @@ open class Client {
     ///
     /// @return Client
     ///
+    @available(*, deprecated, message: "Use Client.fromBrowser, Client.fromSession, Client.fromDevKey, or Client.fromImpersonation instead.")
     open func setSelfSigned(_ status: Bool = true) -> Client {
-        self.selfSigned = status
-        try! http.syncShutdown()
-        http = Client.createHTTP(selfSigned: status, compression: compression)
+        configureSelfSigned(status)
         return self
     }
 
@@ -171,16 +392,9 @@ open class Client {
     ///
     /// @return Client
     ///
+    @available(*, deprecated, message: "Use Client.fromBrowser, Client.fromSession, Client.fromDevKey, or Client.fromImpersonation instead.")
     open func setEndpoint(_ endPoint: String) -> Client {
-        if !endPoint.hasPrefix("http://") && !endPoint.hasPrefix("https://") {
-            fatalError("Invalid endpoint URL: \(endPoint)")
-        }
-
-        self.endPoint = endPoint
-        self.endPointRealtime = endPoint
-            .replacingOccurrences(of: "http://", with: "ws://")
-            .replacingOccurrences(of: "https://", with: "wss://")
-
+        configureEndpoint(endPoint)
         return self
     }
 
@@ -191,12 +405,9 @@ open class Client {
     ///
     /// @return Client
     ///
+    @available(*, deprecated, message: "Use Client.fromBrowser, Client.fromSession, Client.fromDevKey, or Client.fromImpersonation instead.")
     open func setEndpointRealtime(_ endPoint: String) -> Client {
-        if !endPoint.hasPrefix("ws://") && !endPoint.hasPrefix("wss://") {
-            fatalError("Invalid realtime endpoint URL: \(endPoint)")
-        }
-
-        self.endPointRealtime = endPoint
+        configureEndpointRealtime(endPoint)
         return self
     }
 
@@ -219,6 +430,10 @@ open class Client {
 
     open func getHeaders() -> [String: String] {
         return self.headers
+    }
+
+    public func getConfig(key: String) -> String? {
+        return config[key]
     }
 
    ///
@@ -406,7 +621,7 @@ open class Client {
         }
     }
 
-    func chunkedUpload<T>(
+    public func chunkedUpload<T>(
         path: String,
         headers: inout [String: String],
         params: inout [String: Any?],
