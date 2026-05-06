@@ -15,6 +15,14 @@ class RealtimeBrowser extends RealtimeBase with RealtimeMixin {
   Map<String, dynamic>? lastMessage;
 
   RealtimeBrowser(ClientAuth client) {
+    if (client is! ClientBrowser) {
+      throw ArgumentError.value(
+        client,
+        'client',
+        'RealtimeBrowser requires a ClientBrowser instance.',
+      );
+    }
+
     this.client = client;
     getWebSocket = _getWebSocket;
     getFallbackCookie = _getFallbackCookie;

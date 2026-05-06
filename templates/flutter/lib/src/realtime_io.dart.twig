@@ -17,6 +17,14 @@ RealtimeBase createRealtime(ClientAuth client) => RealtimeIO(client);
 class RealtimeIO extends RealtimeBase with RealtimeMixin {
 
   RealtimeIO(ClientAuth client) {
+    if (client is! ClientIO) {
+      throw ArgumentError.value(
+        client,
+        'client',
+        'RealtimeIO requires a ClientIO instance.',
+      );
+    }
+
     this.client = client;
     getWebSocket = _getWebSocket;
   }
