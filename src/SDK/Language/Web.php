@@ -568,6 +568,42 @@ class Web extends JS
         return '';
     }
 
+    public function webClientBaseParams(array $headers): array
+    {
+        $params = [
+            'Project' => [
+                'name' => 'projectId',
+                'required' => true,
+                'setter' => 'setProject',
+            ],
+            'Locale' => [
+                'name' => 'locale',
+                'required' => false,
+                'setter' => 'setLocale',
+            ],
+            'Mode' => [
+                'name' => 'mode',
+                'required' => false,
+                'setter' => 'setMode',
+            ],
+            'Platform' => [
+                'name' => 'platform',
+                'required' => false,
+                'setter' => 'setPlatform',
+            ],
+        ];
+
+        $baseParams = [];
+        foreach ($headers as $header) {
+            $key = $header['key'] ?? '';
+            if (isset($params[$key])) {
+                $baseParams[] = $params[$key];
+            }
+        }
+
+        return $baseParams;
+    }
+
     public function getFilters(): array
     {
         return \array_merge(parent::getFilters(), [
@@ -634,6 +670,9 @@ class Web extends JS
             new TwigFilter('webMethodThisGate', function (array $method, array $service) {
                 return $this->webMethodThisGate($method, $service);
             }, ['is_safe' => ['html']]),
+            new TwigFilter('webClientBaseParams', function (array $headers) {
+                return $this->webClientBaseParams($headers);
+            }),
             new TwigFilter('comment2', function ($value) {
                 $value = explode("\n", $value);
                 foreach ($value as $key => $line) {

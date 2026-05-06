@@ -355,34 +355,11 @@ type Prettify<T> = { [K in keyof T]: T[K] } & {};
 
 type BaseClientParams = {
     endpoint: string;
-    projectId: string;
     endpointRealtime?: string;
-    locale?: string;
     selfSigned?: boolean;
-{%~ if sdk.platform == 'console' %}
-    mode?: string;
-    platform?: string;
-{%~ endif %}
-};
-
-type SessionClientParams = BaseClientParams & {
-    session: string;
-};
-
-type ApiKeyClientParams = BaseClientParams & {
-    apiKey: string;
-};
-
-type CookieClientParams = BaseClientParams & {
-    cookie: string;
-};
-
-type JWTClientParams = BaseClientParams & {
-    jwt: string;
-};
-
-type DevKeyClientParams = BaseClientParams & {
-    devKey: string;
+{%~ for param in spec.global.headers | webClientBaseParams %}
+    {{ param.name }}{% if not param.required %}?{% endif %}: string;
+{%~ endfor %}
 };
 
 type ImpersonationTarget =
@@ -390,9 +367,6 @@ type ImpersonationTarget =
     | { email: string; userId?: never; phone?: never }
     | { phone: string; userId?: never; email?: never };
 
-type ImpersonationClientParams = SessionClientParams & ImpersonationTarget;
-
-{%~ set webHeaders = spec.global.headers %}
 type LegacyClientSetter = Extract<keyof ClientRuntime<any>, `set${string}`>;
 type ClientAuthBuilder = Extract<keyof ClientRuntime<any>, `with${string}`>;
 type ClientInternalMethod = LegacyClientSetter | ClientAuthBuilder;
@@ -402,16 +376,16 @@ type LegacyClient<TAuth extends Auth = 'browser'> = Omit<ClientRuntime<TAuth>, C
 type ClientConstructor = {
     new <TAuth extends Auth = 'browser'>(): LegacyClient<TAuth>;
     fromBrowser(params: Prettify<BaseClientParams>): Client<'browser'>;
-    fromSession(params: Prettify<SessionClientParams>): Client<'session'>;
+    fromSession(params: Prettify<BaseClientParams & { session: string }>): Client<'session'>;
 {%~ if sdk.platform == 'server' or sdk.platform == 'console' %}
-    fromAPIKey(params: Prettify<ApiKeyClientParams>): Client<'apiKey'>;
+    fromAPIKey(params: Prettify<BaseClientParams & { apiKey: string }>): Client<'apiKey'>;
 {%~ endif %}
-    fromCookie(params: Prettify<CookieClientParams>): Client<'cookie'>;
+    fromCookie(params: Prettify<BaseClientParams & { cookie: string }>): Client<'cookie'>;
 {%~ if sdk.platform == 'server' or sdk.platform == 'console' %}
-    fromJWT(params: Prettify<JWTClientParams>): Client<'jwt'>;
+    fromJWT(params: Prettify<BaseClientParams & { jwt: string }>): Client<'jwt'>;
 {%~ endif %}
-    fromDevKey(params: Prettify<DevKeyClientParams>): Client<'devKey'>;
-    fromImpersonation(params: Prettify<ImpersonationClientParams>): Client<'impersonation'>;
+    fromDevKey(params: Prettify<BaseClientParams & { devKey: string }>): Client<'devKey'>;
+    fromImpersonation(params: Prettify<BaseClientParams & { session: string } & ImpersonationTarget>): Client<'impersonation'>;
 };
 
 class ClientRuntime<TAuth extends Auth = 'browser'> {
@@ -424,14 +398,14 @@ class ClientRuntime<TAuth extends Auth = 'browser'> {
     config: {
         endpoint: string;
         endpointRealtime: string;
-{%~ for header in webHeaders %}
+{%~ for header in spec.global.headers %}
         {{ header.key | caseLower }}: string;
 {%~ endfor %}
         selfSigned: boolean;
     } = {
         endpoint: '{{ spec.endpoint }}',
         endpointRealtime: '',
-{%~ for header in webHeaders %}
+{%~ for header in spec.global.headers %}
         {{ header.key | caseLower }}: '',
 {%~ endfor %}
         selfSigned: false,
@@ -456,14 +430,14 @@ class ClientRuntime<TAuth extends Auth = 'browser'> {
         return new ClientRuntime<'browser'>().applyBase<'browser'>(params, 'client');
     }
 
-    static fromSession(params: Prettify<SessionClientParams>): Client<'session'> {
+    static fromSession(params: Prettify<BaseClientParams & { session: string }>): Client<'session'> {
         return new ClientRuntime<'session'>()
             .applyBase<'session'>(params, 'client')
             .setSession(params.session);
     }
 
 {%~ if sdk.platform == 'server' or sdk.platform == 'console' %}
-    static fromAPIKey(params: Prettify<ApiKeyClientParams>): Client<'apiKey'> {
+    static fromAPIKey(params: Prettify<BaseClientParams & { apiKey: string }>): Client<'apiKey'> {
         return new ClientRuntime<'apiKey'>()
             .applyBase<'apiKey'>(params, 'server')
             .setKey(params.apiKey);
@@ -471,7 +445,7 @@ class ClientRuntime<TAuth extends Auth = 'browser'> {
 
 {%~ endif %}
 
-    static fromCookie(params: Prettify<CookieClientParams>): Client<'cookie'> {
+    static fromCookie(params: Prettify<BaseClientParams & { cookie: string }>): Client<'cookie'> {
         return new ClientRuntime<'cookie'>()
 {%~ if sdk.platform == 'console' %}
             .applyBase<'cookie'>({ mode: 'admin', ...params }, 'server')
@@ -482,7 +456,7 @@ class ClientRuntime<TAuth extends Auth = 'browser'> {
     }
 
 {%~ if sdk.platform == 'server' or sdk.platform == 'console' %}
-    static fromJWT(params: Prettify<JWTClientParams>): Client<'jwt'> {
+    static fromJWT(params: Prettify<BaseClientParams & { jwt: string }>): Client<'jwt'> {
         return new ClientRuntime<'jwt'>()
             .applyBase<'jwt'>(params, 'server')
             .setJWT(params.jwt);
@@ -490,13 +464,13 @@ class ClientRuntime<TAuth extends Auth = 'browser'> {
 
 {%~ endif %}
 
-    static fromDevKey(params: Prettify<DevKeyClientParams>): Client<'devKey'> {
+    static fromDevKey(params: Prettify<BaseClientParams & { devKey: string }>): Client<'devKey'> {
         return new ClientRuntime<'devKey'>()
             .applyBase<'devKey'>(params, 'client')
             .setDevKey(params.devKey);
     }
 
-    static fromImpersonation(params: Prettify<ImpersonationClientParams>): Client<'impersonation'> {
+    static fromImpersonation(params: Prettify<BaseClientParams & { session: string } & ImpersonationTarget>): Client<'impersonation'> {
         const targets = [
             params.userId !== undefined,
             params.email !== undefined,
@@ -536,30 +510,25 @@ class ClientRuntime<TAuth extends Auth = 'browser'> {
         client.sdkPlatform = sdkPlatform;
         client.headers['x-sdk-platform'] = sdkPlatform === 'server' ? '{{ sdk.platform == 'console' ? 'console' : 'server' }}' : 'client';
         client.setEndpoint(params.endpoint);
-        client.setProject(params.projectId);
+{%~ for param in spec.global.headers | webClientBaseParams %}
+{%~ if param.required %}
+        client.{{ param.setter }}(params.{{ param.name }});
 
-        if (params.endpointRealtime !== undefined) {
-            client.setEndpointRealtime(params.endpointRealtime);
+{%~ else %}
+        if (params.{{ param.name }} !== undefined) {
+            client.{{ param.setter }}(params.{{ param.name }});
         }
 
-        if (params.locale !== undefined) {
-            client.setLocale(params.locale);
+{%~ endif %}
+{%~ endfor %}
+        if (params.endpointRealtime !== undefined) {
+            client.setEndpointRealtime(params.endpointRealtime);
         }
 
         if (params.selfSigned !== undefined) {
             client.setSelfSigned(params.selfSigned);
         }
 
-{%~ if sdk.platform == 'console' %}
-        if (params.mode !== undefined) {
-            client.setMode(params.mode);
-        }
-
-        if (params.platform !== undefined) {
-            client.setPlatform(params.platform);
-        }
-
-{%~ endif %}
         return client;
     }
 
@@ -640,7 +609,7 @@ class ClientRuntime<TAuth extends Auth = 'browser'> {
         return this;
     }
 
-{%~ for header in webHeaders %}
+{%~ for header in spec.global.headers %}
     /**
      * @deprecated Use a static client factory or factory params object instead.
      */
