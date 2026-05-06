@@ -103,6 +103,46 @@ class Godot extends GDScript
                 'template' => 'godot/example.env.twig'
             ],
             [
+                'scope' => 'default',
+                'destination' => 'addons/{{spec.title | caseSnake}}/operator.gd',
+                'template' => 'godot/src/operator.gd.twig',
+            ],
+            [
+                'scope' => 'default',
+                'destination' => 'addons/{{ spec.title | caseSnake }}/tests/test_query.gd',
+                'template' => 'godot/src/tests/test_query.gd.twig',
+            ],
+            [
+                'scope' => 'default',
+                'destination' => 'addons/{{ spec.title | caseSnake }}/tests/test_roles.gd',
+                'template' => 'godot/src/tests/test_roles.gd.twig',
+            ],
+            [
+                'scope' => 'default',
+                'destination' => 'addons/{{ spec.title | caseSnake }}/tests/test_query.gd',
+                'template' => 'godot/src/tests/test_query.gd.twig',
+            ],
+            [
+                'scope' => 'default',
+                'destination' => 'addons/{{ spec.title | caseSnake }}/tests/test_id.gd',
+                'template' => 'godot/src/tests/test_id.gd.twig',
+            ],
+            [
+                'scope' => 'default',
+                'destination' => 'addons/{{ spec.title | caseSnake }}/tests/test_permission.gd',
+                'template' => 'godot/src/tests/test_permission.gd.twig',
+            ],
+            [
+                'scope' => 'default',
+                'destination' => 'addons/{{ spec.title | caseSnake }}/tests/test_input_files.gd',
+                'template' => 'godot/src/tests/test_input_files.gd.twig',
+            ],
+            [
+                'scope' => 'default',
+                'destination' => 'addons/{{ spec.title | caseSnake }}/tests/test_operator.gd',
+                'template' => 'godot/src/tests/test_operator.gd.twig',
+            ],
+            [
                 'scope' => 'enum',
                 'destination' => 'addons/{{ spec.title | caseSnake }}/enums/{{ enum.name | caseSnake }}.gd',
                 'template' => 'godot/src/enums/enum.gd.twig',

@@ -1,0 +1,208 @@
+class_name {{spec.title | caseUcfirst}}Operator
+extends RefCounted
+
+const EQUAL := "equal"
+const NOT_EQUAL := "notEqual"
+const GREATER_THAN := "greaterThan"
+const GREATER_THAN_EQUAL := "greaterThanEqual"
+const LESS_THAN := "lessThan"
+const LESS_THAN_EQUAL := "lessThanEqual"
+const CONTAINS := "contains"
+const IS_NULL := "isNull"
+const IS_NOT_NULL := "isNotNull"
+
+
+var method: String
+var values: Array
+
+
+## Validate condition value
+static func is_valid(value: String) -> bool:
+    return value in [
+        EQUAL,
+        NOT_EQUAL,
+        GREATER_THAN,
+        GREATER_THAN_EQUAL,
+        LESS_THAN,
+        LESS_THAN_EQUAL,
+        CONTAINS,
+        IS_NULL,
+        IS_NOT_NULL
+    ]
+
+
+## Constructor
+func _init(_method: String, _values: Variant = null) -> void:
+    method = _method
+
+    if _values != null:
+        if _values is Array:
+            values = _values
+        else:
+            values = [_values]
+    else:
+        values = []
+
+
+## Convert operator object to JSON string
+func _to_string() -> String:
+    return JSON.stringify({
+        "method": method,
+        "values": values
+    })
+
+
+static func increment(value: float = 1, max: Variant = null) -> String:
+    if not is_finite(value):
+        push_error("Value cannot be NaN or Infinity")
+        return ""
+
+    if max != null and not is_finite(max):
+        push_error("Max cannot be NaN or Infinity")
+        return ""
+
+    var vals := [value]
+    if max != null:
+        vals.append(max)
+
+    return AppwriteOperator.new("increment", vals).to_string()
+
+
+static func decrement(value: float = 1, min: Variant = null) -> String:
+    if not is_finite(value):
+        push_error("Value cannot be NaN or Infinity")
+        return ""
+
+    if min != null and not is_finite(min):
+        push_error("Min cannot be NaN or Infinity")
+        return ""
+
+    var vals := [value]
+    if min != null:
+        vals.append(min)
+
+    return AppwriteOperator.new("decrement", vals).to_string()
+
+
+static func multiply(factor: float, max: Variant = null) -> String:
+    if not is_finite(factor):
+        push_error("Factor cannot be NaN or Infinity")
+        return ""
+
+    if max != null and not is_finite(max):
+        push_error("Max cannot be NaN or Infinity")
+        return ""
+
+    var vals := [factor]
+    if max != null:
+        vals.append(max)
+
+    return AppwriteOperator.new("multiply", vals).to_string()
+
+
+static func divide(divisor: float, min: Variant = null) -> String:
+    if not is_finite(divisor):
+        push_error("Divisor cannot be NaN or Infinity")
+        return ""
+
+    if divisor == 0:
+        push_error("Divisor cannot be zero")
+        return ""
+
+    if min != null and not is_finite(min):
+        push_error("Min cannot be NaN or Infinity")
+        return ""
+
+    var vals := [divisor]
+    if min != null:
+        vals.append(min)
+
+    return AppwriteOperator.new("divide", vals).to_string()
+
+
+static func modulo(divisor: float) -> String:
+    if not is_finite(divisor):
+        push_error("Divisor cannot be NaN or Infinity")
+        return ""
+
+    if divisor == 0:
+        push_error("Divisor cannot be zero")
+        return ""
+
+    return AppwriteOperator.new("modulo", [divisor]).to_string()
+
+
+static func power(exponent: float, max: Variant = null) -> String:
+    if not is_finite(exponent):
+        push_error("Exponent cannot be NaN or Infinity")
+        return ""
+
+    if max != null and not is_finite(max):
+        push_error("Max cannot be NaN or Infinity")
+        return ""
+
+    var vals := [exponent]
+    if max != null:
+        vals.append(max)
+
+    return AppwriteOperator.new("power", vals).to_string()
+
+
+static func array_append(values: Array) -> String:
+    return AppwriteOperator.new("arrayAppend", values).to_string()
+
+
+static func array_prepend(values: Array) -> String:
+    return AppwriteOperator.new("arrayPrepend", values).to_string()
+
+
+static func array_insert(index: int, value: Variant) -> String:
+    return AppwriteOperator.new("arrayInsert", [index, value]).to_string()
+
+
+static func array_remove(value: Variant) -> String:
+    return AppwriteOperator.new("arrayRemove", [value]).to_string()
+
+
+static func array_unique() -> String:
+    return AppwriteOperator.new("arrayUnique", []).to_string()
+
+
+static func array_intersect(values: Array) -> String:
+    return AppwriteOperator.new("arrayIntersect", values).to_string()
+
+
+static func array_diff(values: Array) -> String:
+    return AppwriteOperator.new("arrayDiff", values).to_string()
+
+
+static func array_filter(condition: String, value: Variant = null) -> String:
+    if not is_valid(condition):
+        push_error("Invalid condition: %s" % condition)
+        return ""
+
+    return AppwriteOperator.new("arrayFilter", [condition, value]).to_string()
+
+
+static func string_concat(value: Variant) -> String:
+    return AppwriteOperator.new("stringConcat", [value]).to_string()
+
+
+static func string_replace(search: String, replace: String) -> String:
+    return AppwriteOperator.new("stringReplace", [search, replace]).to_string()
+
+
+static func toggle() -> String:
+    return AppwriteOperator.new("toggle", []).to_string()
+
+
+static func date_add_days(days: int) -> String:
+    return AppwriteOperator.new("dateAddDays", [days]).to_string()
+
+
+static func date_sub_days(days: int) -> String:
+    return AppwriteOperator.new("dateSubDays", [days]).to_string()
+
+
+static func date_set_now() -> String:
+    return AppwriteOperator.new("dateSetNow", []).to_string()
