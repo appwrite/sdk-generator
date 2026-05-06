@@ -613,10 +613,10 @@ class ClientRuntime<TAuth extends Auth = 'browser'> {
     /**
      * @deprecated Use a static client factory or factory params object instead.
      */
-    set{{ header.key | caseUcfirst }}(value: string): {% if header.key == 'Key' %}ClientRuntime<'apiKey'>{% elseif header.key == 'Cookie' %}ClientRuntime<'cookie'>{% elseif header.key == 'JWT' %}ClientRuntime<'jwt'>{% elseif header.key == 'Session' %}ClientRuntime<'session'>{% elseif header.key == 'DevKey' %}ClientRuntime<'devKey'>{% elseif header.key in ['ImpersonateUserId', 'ImpersonateUserEmail', 'ImpersonateUserPhone'] %}ClientRuntime<'impersonation'>{% else %}this{% endif %} {
+    set{{ header.key | caseUcfirst }}(value: string): {{ header | webClientSetterReturnType }} {
         this.headers['{{ header.name }}'] = value;
         this.config.{{ header.key | caseLower }} = value;
-        return this as unknown as {% if header.key == 'Key' %}ClientRuntime<'apiKey'>{% elseif header.key == 'Cookie' %}ClientRuntime<'cookie'>{% elseif header.key == 'JWT' %}ClientRuntime<'jwt'>{% elseif header.key == 'Session' %}ClientRuntime<'session'>{% elseif header.key == 'DevKey' %}ClientRuntime<'devKey'>{% elseif header.key in ['ImpersonateUserId', 'ImpersonateUserEmail', 'ImpersonateUserPhone'] %}ClientRuntime<'impersonation'>{% else %}this{% endif %};
+        return this as unknown as {{ header | webClientSetterReturnType }};
     }
 
 {%~ endfor %}

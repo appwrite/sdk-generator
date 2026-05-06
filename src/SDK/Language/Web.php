@@ -604,6 +604,19 @@ class Web extends JS
         return $baseParams;
     }
 
+    public function webClientSetterReturnType(array $header): string
+    {
+        return match ($header['key'] ?? '') {
+            'Key' => "ClientRuntime<'apiKey'>",
+            'Cookie' => "ClientRuntime<'cookie'>",
+            'JWT' => "ClientRuntime<'jwt'>",
+            'Session' => "ClientRuntime<'session'>",
+            'DevKey' => "ClientRuntime<'devKey'>",
+            'ImpersonateUserId', 'ImpersonateUserEmail', 'ImpersonateUserPhone' => "ClientRuntime<'impersonation'>",
+            default => 'this',
+        };
+    }
+
     public function getFilters(): array
     {
         return \array_merge(parent::getFilters(), [
@@ -673,6 +686,9 @@ class Web extends JS
             new TwigFilter('webClientBaseParams', function (array $headers) {
                 return $this->webClientBaseParams($headers);
             }),
+            new TwigFilter('webClientSetterReturnType', function (array $header) {
+                return $this->webClientSetterReturnType($header);
+            }, ['is_safe' => ['html']]),
             new TwigFilter('comment2', function ($value) {
                 $value = explode("\n", $value);
                 foreach ($value as $key => $line) {
