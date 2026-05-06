@@ -56,6 +56,7 @@ static func from_dict(dict: Dictionary):
         if key == "{{ field }}" and value != null:
             if not _{{ enumName | caseUcfirst }}.is_valid(value):
                 push_error("Invalid enum value for {{ field }}: %s" % value)
+                return {{prefix}}Exception.new("Invalid enum value for {{ field }}: %s" % value, 0, "invalid_enum_value", str(dict))
             m.set(key, value)
             continue
 {% endif %}
@@ -65,6 +66,7 @@ static func from_dict(dict: Dictionary):
             for item in value:
                 if not _{{ enumName | caseUcfirst }}.is_valid(item):
                     push_error("Invalid enum value: %s" % item)
+                    return {{prefix}}Exception.new("Invalid enum value for {{ field }}: %s" % value, 0, "invalid_enum_value", str(dict))
                 list.append(item)
             m.set(key, list)
             continue
