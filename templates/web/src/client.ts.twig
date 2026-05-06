@@ -394,12 +394,13 @@ type ImpersonationClientParams = SessionClientParams & ImpersonationTarget;
 
 {%~ set webHeaders = spec.global.headers | webClientHeaders %}
 type LegacyClientSetter = Extract<keyof ClientRuntime<any>, `set${string}`>;
-export type Client<TAuth extends Auth = 'browser'> = Omit<ClientRuntime<TAuth>, LegacyClientSetter>;
-type LegacyClient<TAuth extends Auth = 'browser'> = ClientRuntime<TAuth>;
+type ClientAuthBuilder = Extract<keyof ClientRuntime<any>, `with${string}`>;
+type ClientInternalMethod = LegacyClientSetter | ClientAuthBuilder;
+export type Client<TAuth extends Auth = 'browser'> = Omit<ClientRuntime<TAuth>, ClientInternalMethod>;
+type LegacyClient<TAuth extends Auth = 'browser'> = Omit<ClientRuntime<TAuth>, ClientAuthBuilder>;
 
 type ClientConstructor = {
     new <TAuth extends Auth = 'browser'>(): LegacyClient<TAuth>;
-    readonly CHUNK_SIZE: number;
     fromBrowser(params: Prettify<BaseClientParams>): Client<'browser'>;
     fromSession(params: Prettify<SessionClientParams>): Client<'session'>;
 {%~ if sdk.platform == 'server' or sdk.platform == 'console' %}
@@ -411,7 +412,6 @@ type ClientConstructor = {
 {%~ endif %}
     fromDevKey(params: Prettify<DevKeyClientParams>): Client<'devKey'>;
     fromImpersonation(params: Prettify<ImpersonationClientParams>): Client<'impersonation'>;
-    flatten(data: Payload, prefix?: string): Payload;
 };
 
 class ClientRuntime<TAuth extends Auth = 'browser'> {
@@ -1032,7 +1032,7 @@ class ClientRuntime<TAuth extends Auth = 'browser'> {
         let response = null;
 
         while (start < file.size) {
-            let end = start + Client.CHUNK_SIZE; // Prepare end for the next chunk
+            let end = start + ClientRuntime.CHUNK_SIZE; // Prepare end for the next chunk
             if (end >= file.size) {
                 end = file.size; // Adjust for the last chunk to include the last byte
             }
