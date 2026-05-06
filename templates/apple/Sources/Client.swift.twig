@@ -128,7 +128,8 @@ open class Client: ClientAuth {
         projectId: String,
         endpointRealtime: String? = nil,
         locale: String? = nil,
-        selfSigned: Bool = false
+        selfSigned: Bool = false,
+        compression: Bool = true
     ) -> ClientAuth {
         let client = Client()
         configure(
@@ -137,7 +138,8 @@ open class Client: ClientAuth {
             endpointRealtime: endpointRealtime,
             projectId: projectId,
             locale: locale,
-            selfSigned: selfSigned
+            selfSigned: selfSigned,
+            compression: compression
         )
         return client
     }
@@ -148,7 +150,8 @@ open class Client: ClientAuth {
         session: String,
         endpointRealtime: String? = nil,
         locale: String? = nil,
-        selfSigned: Bool = false
+        selfSigned: Bool = false,
+        compression: Bool = true
     ) -> ClientAuth {
         let client = Client()
         configure(
@@ -157,7 +160,8 @@ open class Client: ClientAuth {
             endpointRealtime: endpointRealtime,
             projectId: projectId,
             locale: locale,
-            selfSigned: selfSigned
+            selfSigned: selfSigned,
+            compression: compression
         )
         setHeader(client, configKey: "session", header: "X-Appwrite-Session", value: session)
         return client
@@ -169,7 +173,8 @@ open class Client: ClientAuth {
         devKey: String,
         endpointRealtime: String? = nil,
         locale: String? = nil,
-        selfSigned: Bool = false
+        selfSigned: Bool = false,
+        compression: Bool = true
     ) -> ClientAuth {
         let client = Client()
         configure(
@@ -178,7 +183,8 @@ open class Client: ClientAuth {
             endpointRealtime: endpointRealtime,
             projectId: projectId,
             locale: locale,
-            selfSigned: selfSigned
+            selfSigned: selfSigned,
+            compression: compression
         )
         setHeader(client, configKey: "devkey", header: "X-Appwrite-Dev-Key", value: devKey)
         return client
@@ -193,10 +199,13 @@ open class Client: ClientAuth {
         userPhone: String? = nil,
         endpointRealtime: String? = nil,
         locale: String? = nil,
-        selfSigned: Bool = false
-    ) -> ClientAuth {
+        selfSigned: Bool = false,
+        compression: Bool = true
+    ) throws -> ClientAuth {
         let targetCount = [userId, userEmail, userPhone].compactMap { $0 }.count
-        precondition(targetCount == 1, "Provide exactly one impersonation target.")
+        guard targetCount == 1 else {
+            throw {{ spec.title | caseUcfirst }}Error(message: "Provide exactly one impersonation target.")
+        }
 
         let client = Client()
         configure(
@@ -205,7 +214,8 @@ open class Client: ClientAuth {
             endpointRealtime: endpointRealtime,
             projectId: projectId,
             locale: locale,
-            selfSigned: selfSigned
+            selfSigned: selfSigned,
+            compression: compression
         )
         setHeader(client, configKey: "session", header: "X-Appwrite-Session", value: session)
 
@@ -230,7 +240,8 @@ open class Client: ClientAuth {
         endpointRealtime: String?,
         projectId: String,
         locale: String?,
-        selfSigned: Bool
+        selfSigned: Bool,
+        compression: Bool
     ) {
         client.configureEndpoint(endpoint)
 
@@ -240,6 +251,10 @@ open class Client: ClientAuth {
 
         if selfSigned {
             client.configureSelfSigned(selfSigned)
+        }
+
+        if !compression {
+            client.configureCompression(compression)
         }
 
         setHeader(client, configKey: "project", header: "X-Appwrite-Project", value: projectId)
@@ -258,6 +273,23 @@ open class Client: ClientAuth {
         self.selfSigned = status
         try! http.syncShutdown()
         http = Client.createHTTP(selfSigned: status, compression: compression)
+    }
+
+    private func configureCompression(_ status: Bool) {
+        self.compression = status
+
+        if status {
+            if compressionHeaderInjected && self.headers["accept-encoding"] == "identity" {
+                self.headers.removeValue(forKey: "accept-encoding")
+            }
+            self.compressionHeaderInjected = false
+        } else {
+            self.headers["accept-encoding"] = "identity"
+            self.compressionHeaderInjected = true
+        }
+
+        try! http.syncShutdown()
+        http = Client.createHTTP(selfSigned: selfSigned, compression: status)
     }
 
     private func configureEndpoint(_ endPoint: String) {
@@ -368,20 +400,7 @@ open class Client: ClientAuth {
     /// @return Client The same client instance.
     ///
     open func setCompression(_ status: Bool = true) -> Client {
-        self.compression = status
-
-        if status {
-            if compressionHeaderInjected && self.headers["accept-encoding"] == "identity" {
-                self.headers.removeValue(forKey: "accept-encoding")
-            }
-            self.compressionHeaderInjected = false
-        } else {
-            self.headers["accept-encoding"] = "identity"
-            self.compressionHeaderInjected = true
-        }
-
-        try! http.syncShutdown()
-        http = Client.createHTTP(selfSigned: selfSigned, compression: status)
+        configureCompression(status)
         return self
     }
 
