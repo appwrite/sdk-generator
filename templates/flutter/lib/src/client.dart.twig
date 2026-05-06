@@ -79,18 +79,36 @@ abstract class Client implements ClientAuth {
   }) {
     final client = createClient(endPoint: endPoint, selfSigned: selfSigned);
 
-    // ignore: deprecated_member_use_from_same_package
-    client.setProject(projectId);
+    _setHeader(
+      client,
+      'project',
+      'X-{{ spec.title | caseUcfirst }}-Project',
+      projectId,
+    );
     if (endPointRealtime != null) {
       // ignore: deprecated_member_use_from_same_package
       client.setEndPointRealtime(endPointRealtime);
     }
     if (locale != null) {
-      // ignore: deprecated_member_use_from_same_package
-      client.setLocale(locale);
+      _setHeader(
+        client,
+        'locale',
+        'X-{{ spec.title | caseUcfirst }}-Locale',
+        locale,
+      );
     }
 
     return client;
+  }
+
+  static void _setHeader(
+    Client client,
+    String configKey,
+    String header,
+    String value,
+  ) {
+    client.config[configKey] = value;
+    client.addHeader(header, value);
   }
 
   /// Initializes a client with a user session.
@@ -110,8 +128,12 @@ abstract class Client implements ClientAuth {
       selfSigned: selfSigned,
     );
 
-    // ignore: deprecated_member_use_from_same_package
-    client.setSession(session);
+    _setHeader(
+      client,
+      'session',
+      'X-{{ spec.title | caseUcfirst }}-Session',
+      session,
+    );
     return client;
   }
 
@@ -132,8 +154,12 @@ abstract class Client implements ClientAuth {
       selfSigned: selfSigned,
     );
 
-    // ignore: deprecated_member_use_from_same_package
-    client.setDevKey(devKey);
+    _setHeader(
+      client,
+      'devKey',
+      'X-{{ spec.title | caseUcfirst }}-Dev-Key',
+      devKey,
+    );
     return client;
   }
 
@@ -164,18 +190,34 @@ abstract class Client implements ClientAuth {
       selfSigned: selfSigned,
     );
 
-    // ignore: deprecated_member_use_from_same_package
-    client.setSession(session);
+    _setHeader(
+      client,
+      'session',
+      'X-{{ spec.title | caseUcfirst }}-Session',
+      session,
+    );
 
     if (userId != null) {
-      // ignore: deprecated_member_use_from_same_package
-      client.setImpersonateUserId(userId);
+      _setHeader(
+        client,
+        'impersonateUserId',
+        'X-{{ spec.title | caseUcfirst }}-Impersonate-User-Id',
+        userId,
+      );
     } else if (userEmail != null) {
-      // ignore: deprecated_member_use_from_same_package
-      client.setImpersonateUserEmail(userEmail);
+      _setHeader(
+        client,
+        'impersonateUserEmail',
+        'X-{{ spec.title | caseUcfirst }}-Impersonate-User-Email',
+        userEmail,
+      );
     } else if (userPhone != null) {
-      // ignore: deprecated_member_use_from_same_package
-      client.setImpersonateUserPhone(userPhone);
+      _setHeader(
+        client,
+        'impersonateUserPhone',
+        'X-{{ spec.title | caseUcfirst }}-Impersonate-User-Phone',
+        userPhone,
+      );
     }
 
     return client;
