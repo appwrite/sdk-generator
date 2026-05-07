@@ -505,6 +505,7 @@ class Web extends JS
         $hasServerOnly = false;
         $hasClientOnly = false;
         $hasUpload = false;
+        $needsServiceFlatten = false;
         $serverOnlyMethods = [];
         $clientOnlyMethods = [];
 
@@ -530,6 +531,9 @@ class Web extends JS
             if (in_array('multipart/form-data', $method['consumes'] ?? [], true)) {
                 $hasUpload = true;
             }
+            if (in_array($method['type'] ?? '', ['location', 'webAuth'], true)) {
+                $needsServiceFlatten = true;
+            }
         }
 
         $hasMixedTier = $hasClientTier && $hasServerTier;
@@ -541,9 +545,25 @@ class Web extends JS
             'needsServerAuth' => $hasServerTier && (!$hasMixedTier || $hasServerOnly),
             'needsClientAuth' => $hasClientTier && (!$hasMixedTier || $hasClientOnly),
             'hasUpload'       => $hasUpload,
+            'needsServiceFlatten' => $needsServiceFlatten,
             'serverOnlyMethods' => array_values(array_unique($serverOnlyMethods)),
             'clientOnlyMethods' => array_values(array_unique($clientOnlyMethods)),
         ];
+    }
+
+    /**
+     * Build the Web client config keys required by the isomorphic auth factories.
+     *
+     * @return string[]
+     */
+    public function webClientConfigKeys(array $headers): array
+    {
+        $keys = [];
+        foreach ($headers as $header) {
+            $keys[] = strtolower((string)($header['key'] ?? ''));
+        }
+
+        return array_values(array_unique(array_filter($keys)));
     }
 
     /**
@@ -685,6 +705,9 @@ class Web extends JS
             }, ['is_safe' => ['html']]),
             new TwigFilter('webClientBaseParams', function (array $headers) {
                 return $this->webClientBaseParams($headers);
+            }),
+            new TwigFilter('webClientConfigKeys', function (array $headers) {
+                return $this->webClientConfigKeys($headers);
             }),
             new TwigFilter('webClientSetterReturnType', function (array $header) {
                 return $this->webClientSetterReturnType($header);

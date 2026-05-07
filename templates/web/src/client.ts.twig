@@ -394,15 +394,15 @@ class ClientRuntime<TAuth extends Auth = 'browser'> {
     config: {
         endpoint: string;
         endpointRealtime: string;
-{%~ for header in spec.global.headers %}
-        {{ header.key | caseLower }}: string;
+{%~ for key in spec.global.headers | webClientConfigKeys %}
+        {{ key }}: string;
 {%~ endfor %}
         selfSigned: boolean;
     } = {
         endpoint: '{{ spec.endpoint }}',
         endpointRealtime: '',
-{%~ for header in spec.global.headers %}
-        {{ header.key | caseLower }}: '',
+{%~ for key in spec.global.headers | webClientConfigKeys %}
+        {{ key }}: '',
 {%~ endfor %}
         selfSigned: false,
     };
@@ -427,38 +427,47 @@ class ClientRuntime<TAuth extends Auth = 'browser'> {
     }
 
     static fromSession(params: Prettify<BaseClientParams & { session: string }>): Client<'session'> {
-        return new ClientRuntime<'session'>()
-            .applyBase<'session'>(params, 'client')
-            .setSession(params.session);
+        const client = new ClientRuntime<'session'>()
+            .applyBase<'session'>(params, 'client');
+        client.headers['X-{{ spec.title | caseUcfirst }}-Session'] = params.session;
+        client.config.session = params.session;
+        return client;
     }
 
     static fromAPIKey(params: Prettify<BaseClientParams & { apiKey: string }>): Client<'apiKey'> {
         const client = new ClientRuntime<'apiKey'>()
             .applyBase<'apiKey'>(params, 'server');
         client.headers['X-{{ spec.title | caseUcfirst }}-Key'] = params.apiKey;
+        client.config.key = params.apiKey;
         return client;
     }
 
     static fromCookie(params: Prettify<BaseClientParams & { cookie: string }>): Client<'cookie'> {
-        return new ClientRuntime<'cookie'>()
+        const client = new ClientRuntime<'cookie'>()
 {%~ if sdk.platform == 'console' %}
-            .applyBase<'cookie'>({ ...params, mode: 'admin' }, 'server')
+            .applyBase<'cookie'>({ ...params, mode: 'admin' }, 'server');
 {%~ else %}
-            .applyBase<'cookie'>(params, 'server')
+            .applyBase<'cookie'>(params, 'server');
 {%~ endif %}
-            .setCookie(params.cookie);
+        client.headers['Cookie'] = params.cookie;
+        client.config.cookie = params.cookie;
+        return client;
     }
 
     static fromJWT(params: Prettify<BaseClientParams & { jwt: string }>): Client<'jwt'> {
-        return new ClientRuntime<'jwt'>()
-            .applyBase<'jwt'>(params, 'server')
-            .setJWT(params.jwt);
+        const client = new ClientRuntime<'jwt'>()
+            .applyBase<'jwt'>(params, 'server');
+        client.headers['X-{{ spec.title | caseUcfirst }}-JWT'] = params.jwt;
+        client.config.jwt = params.jwt;
+        return client;
     }
 
     static fromDevKey(params: Prettify<BaseClientParams & { devKey: string }>): Client<'devKey'> {
-        return new ClientRuntime<'devKey'>()
-            .applyBase<'devKey'>(params, 'client')
-            .setDevKey(params.devKey);
+        const client = new ClientRuntime<'devKey'>()
+            .applyBase<'devKey'>(params, 'client');
+        client.headers['X-{{ spec.title | caseUcfirst }}-Dev-Key'] = params.devKey;
+        client.config.devkey = params.devKey;
+        return client;
     }
 
     static fromImpersonation(params: Prettify<BaseClientParams & { session: string } & ImpersonationTarget>): Client<'impersonation'> {
@@ -473,16 +482,24 @@ class ClientRuntime<TAuth extends Auth = 'browser'> {
         }
 
         const client = new ClientRuntime<'impersonation'>()
-            .applyBase<'impersonation'>(params, 'client')
-            .setSession(params.session);
+            .applyBase<'impersonation'>(params, 'client');
+
+        client.headers['X-{{ spec.title | caseUcfirst }}-Session'] = params.session;
+        client.config.session = params.session;
 
         if (params.userId !== undefined) {
-            return client.setImpersonateUserId(params.userId);
+            client.headers['X-{{ spec.title | caseUcfirst }}-Impersonate-User-Id'] = params.userId;
+            client.config.impersonateuserid = params.userId;
+            return client;
         }
         if (params.email !== undefined) {
-            return client.setImpersonateUserEmail(params.email);
+            client.headers['X-{{ spec.title | caseUcfirst }}-Impersonate-User-Email'] = params.email;
+            client.config.impersonateuseremail = params.email;
+            return client;
         }
-        return client.setImpersonateUserPhone(params.phone);
+        client.headers['X-{{ spec.title | caseUcfirst }}-Impersonate-User-Phone'] = params.phone;
+        client.config.impersonateuserphone = params.phone;
+        return client;
     }
 
     withJWT(jwt: string): this {

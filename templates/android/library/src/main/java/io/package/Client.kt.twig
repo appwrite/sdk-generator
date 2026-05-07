@@ -161,7 +161,9 @@ class Client @JvmOverloads constructor(
             val client = Client(
                 context,
                 endpoint,
-                endpointRealtime ?: endpoint.replaceFirst("http", "ws"),
+                endpointRealtime ?: endpoint
+                    .replaceFirst("https://", "wss://")
+                    .replaceFirst("http://", "ws://"),
                 selfSigned
             )
 
@@ -190,6 +192,9 @@ class Client @JvmOverloads constructor(
             value: String
         ) {
             client.config[configKey] = value
+            if (configKey != configKey.lowercase()) {
+                client.config[configKey.lowercase()] = value
+            }
             client.addHeader(header, value)
         }
 
@@ -372,6 +377,9 @@ class Client @JvmOverloads constructor(
     @Deprecated("Use Client.fromBrowser or another factory method instead.")
     fun set{{header.key | caseUcfirst}}(value: String): Client {
         config["{{ header.key | caseCamel }}"] = value
+{%~ if (header.key | caseCamel) != (header.key | caseLower) %}
+        config["{{ header.key | caseLower }}"] = value
+{%~ endif %}
         addHeader("{{ header.name | caseLower }}", value)
         return this
     }

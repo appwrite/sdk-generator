@@ -1,6 +1,8 @@
 {# Detect service shape and imports before emitting TypeScript. #}
 {% set auth = service | webServiceAuth %}
+{%~ if auth.needsServiceFlatten %}
 import { Service } from '../service';
+{%~ endif %}
 import { {{ spec.title | caseUcfirst}}Exception, Client, {% if auth.needsClientAuth or auth.hasMixedTier %}type ClientAuth, {% endif %}{% if auth.needsServerAuth or auth.hasMixedTier %}type ServerAuth, {% endif %}type Payload{% if auth.hasUpload %}, UploadProgress{% endif %} } from '../client';
 import type { Models } from '../models';
 

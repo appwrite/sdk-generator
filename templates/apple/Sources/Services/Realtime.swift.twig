@@ -83,9 +83,17 @@ open class Realtime : Service {
             return
         }
 
-        let queryParams = "project=\(client.getConfig(key: "project")!)"
+        guard let project = client.getConfig(key: "project") else {
+            throw {{ spec.title | caseUcfirst }}Error(message: "Missing project")
+        }
 
-        let url = "\(client.endPointRealtime!)/realtime?\(queryParams)"
+        guard let endPointRealtime = client.endPointRealtime else {
+            throw {{ spec.title | caseUcfirst }}Error(message: "Missing realtime endpoint")
+        }
+
+        let queryParams = "project=\(project)"
+
+        let url = "\(endPointRealtime)/realtime?\(queryParams)"
 
         if (socketClient != nil) {
             reconnect = false
