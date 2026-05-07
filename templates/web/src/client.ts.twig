@@ -377,13 +377,9 @@ type ClientConstructor = {
     new <TAuth extends Auth = 'browser'>(): LegacyClient<TAuth>;
     fromBrowser(params: Prettify<BaseClientParams>): Client<'browser'>;
     fromSession(params: Prettify<BaseClientParams & { session: string }>): Client<'session'>;
-{%~ if sdk.platform == 'server' or sdk.platform == 'console' %}
     fromAPIKey(params: Prettify<BaseClientParams & { apiKey: string }>): Client<'apiKey'>;
-{%~ endif %}
     fromCookie(params: Prettify<BaseClientParams & { cookie: string }>): Client<'cookie'>;
-{%~ if sdk.platform == 'server' or sdk.platform == 'console' %}
     fromJWT(params: Prettify<BaseClientParams & { jwt: string }>): Client<'jwt'>;
-{%~ endif %}
     fromDevKey(params: Prettify<BaseClientParams & { devKey: string }>): Client<'devKey'>;
     fromImpersonation(params: Prettify<BaseClientParams & { session: string } & ImpersonationTarget>): Client<'impersonation'>;
 };
@@ -436,14 +432,11 @@ class ClientRuntime<TAuth extends Auth = 'browser'> {
             .setSession(params.session);
     }
 
-{%~ if sdk.platform == 'server' or sdk.platform == 'console' %}
     static fromAPIKey(params: Prettify<BaseClientParams & { apiKey: string }>): Client<'apiKey'> {
         return new ClientRuntime<'apiKey'>()
             .applyBase<'apiKey'>(params, 'server')
             .setKey(params.apiKey);
     }
-
-{%~ endif %}
 
     static fromCookie(params: Prettify<BaseClientParams & { cookie: string }>): Client<'cookie'> {
         return new ClientRuntime<'cookie'>()
@@ -455,14 +448,11 @@ class ClientRuntime<TAuth extends Auth = 'browser'> {
             .setCookie(params.cookie);
     }
 
-{%~ if sdk.platform == 'server' or sdk.platform == 'console' %}
     static fromJWT(params: Prettify<BaseClientParams & { jwt: string }>): Client<'jwt'> {
         return new ClientRuntime<'jwt'>()
             .applyBase<'jwt'>(params, 'server')
             .setJWT(params.jwt);
     }
-
-{%~ endif %}
 
     static fromDevKey(params: Prettify<BaseClientParams & { devKey: string }>): Client<'devKey'> {
         return new ClientRuntime<'devKey'>()

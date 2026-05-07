@@ -34,6 +34,27 @@ async function start() {
     });
     console.log(sessionClient.getHeaders()['X-Appwrite-Session']);
 
+    const apiKeyClient = Client.fromAPIKey({
+        endpoint: 'https://cloud.appwrite.io/v1',
+        projectId: 'auth-project',
+        apiKey: 'auth-api-key',
+    });
+    console.log(apiKeyClient.getHeaders()['X-Appwrite-Key']);
+
+    const cookieClient = Client.fromCookie({
+        endpoint: 'https://cloud.appwrite.io/v1',
+        projectId: 'auth-project',
+        cookie: 'auth-cookie',
+    });
+    console.log(cookieClient.getHeaders()['Cookie']);
+
+    const jwtClient = Client.fromJWT({
+        endpoint: 'https://cloud.appwrite.io/v1',
+        projectId: 'auth-project',
+        jwt: 'auth-jwt',
+    });
+    console.log(jwtClient.getHeaders()['X-Appwrite-JWT']);
+
     const devKeyClient = Client.fromDevKey({
         endpoint: 'https://cloud.appwrite.io/v1',
         projectId: 'auth-project',
