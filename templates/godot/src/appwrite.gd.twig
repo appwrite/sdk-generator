@@ -9,7 +9,7 @@ const _{{ service.name | caseUpper }} = preload("services/{{ service.name | case
 
 var _client := preload("client.gd").new()
 {% for service in spec.services %}
-var {{ service.name | caseUcfirst }} : _{{ service.name | caseUpper }} = _{{ service.name | caseUpper }}.new(_client) ## {{ service.description | default("No description is provided") }}
+var {{ service.name | caseCamel }} : _{{ service.name | caseUpper }} = _{{ service.name | caseUpper }}.new(_client) ## {{ service.description | default("No description is provided") }}
 {% endfor %}
 
 # Exposing the Enums

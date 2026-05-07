@@ -45,6 +45,8 @@ func _set_{{header.key | caseSnake}}(value: String) -> RefCounted:
 
 
 func _call_api(method: String, path: String = "", headers: Dictionary = {}, params: Dictionary = {}) -> Dictionary:
+    if not _ensure_configured():
+        return {"statusCode": 400, "body": "Missing/wrong configuration. Please check logs for more info"}
     var http := HTTPRequest.new()
     
     var tls_options := TLSOptions.client_unsafe() if _self_signed else TLSOptions.client()
@@ -149,3 +151,13 @@ func _build_multipart(params: Dictionary, boundary: String) -> PackedByteArray:
     
     body.append_array(("--" + boundary + "--\r\n").to_utf8_buffer())
     return body
+
+
+func _ensure_configured() -> bool:
+    if _endpoint == "":
+        push_warning("{{prefix}}: endpoint is missing. Use set_endpoint or .env.")
+        return false
+    if not _global_headers.has("x-appwrite-project"):
+        push_warning("{{prefix}}: project id is missing. Use set_project or .env.")
+        return false
+    return true
