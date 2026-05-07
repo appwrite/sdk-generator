@@ -51,26 +51,62 @@ interface ClientAuth {
 
     suspend fun ping(): String
 
-    suspend fun <T> call(
+    suspend fun <T> callInternal(
         method: String,
         path: String,
-        headers: Map<String, String> = mapOf(),
-        params: Map<String, Any?> = mapOf(),
+        headers: Map<String, String>,
+        params: Map<String, Any?>,
         responseType: Class<T>,
-        converter: ((Any) -> T)? = null
+        converter: ((Any) -> T)?
     ): T
 
-    suspend fun <T> chunkedUpload(
+    suspend fun <T> chunkedUploadInternal(
         path: String,
         headers: MutableMap<String, String>,
         params: MutableMap<String, Any?>,
         responseType: Class<T>,
         converter: ((Any) -> T),
         paramName: String,
-        idParamName: String? = null,
-        onProgress: ((UploadProgress) -> Unit)? = null,
+        idParamName: String?,
+        onProgress: ((UploadProgress) -> Unit)?,
     ): T
 }
+
+suspend fun <T> ClientAuth.call(
+    method: String,
+    path: String = "",
+    headers: Map<String, String> = mapOf(),
+    params: Map<String, Any?> = mapOf(),
+    responseType: Class<T>,
+    converter: ((Any) -> T)? = null
+): T = callInternal(
+    method = method,
+    path = path,
+    headers = headers,
+    params = params,
+    responseType = responseType,
+    converter = converter
+)
+
+suspend fun <T> ClientAuth.chunkedUpload(
+    path: String,
+    headers: MutableMap<String, String>,
+    params: MutableMap<String, Any?>,
+    responseType: Class<T>,
+    converter: ((Any) -> T),
+    paramName: String,
+    idParamName: String? = null,
+    onProgress: ((UploadProgress) -> Unit)? = null,
+): T = chunkedUploadInternal(
+    path = path,
+    headers = headers,
+    params = params,
+    responseType = responseType,
+    converter = converter,
+    paramName = paramName,
+    idParamName = idParamName,
+    onProgress = onProgress
+)
 
 class Client @JvmOverloads constructor(
     context: Context,
@@ -500,7 +536,23 @@ class Client @JvmOverloads constructor(
      * @return [T]
      */
     @Throws({{ spec.title | caseUcfirst }}Exception::class)
-    override suspend fun <T> call(
+    suspend fun <T> call(
+        method: String,
+        path: String = "",
+        headers:  Map<String, String> = mapOf(),
+        params: Map<String, Any?> = mapOf(),
+        responseType: Class<T>,
+        converter: ((Any) -> T)? = null
+    ): T = callInternal(
+        method = method,
+        path = path,
+        headers = headers,
+        params = params,
+        responseType = responseType,
+        converter = converter
+    )
+
+    override suspend fun <T> callInternal(
         method: String,
         path: String,
         headers:  Map<String, String>,
@@ -593,7 +645,27 @@ class Client @JvmOverloads constructor(
      * @return [T]
      */
     @Throws({{ spec.title | caseUcfirst }}Exception::class)
-    override suspend fun <T> chunkedUpload(
+    suspend fun <T> chunkedUpload(
+        path: String,
+        headers:  MutableMap<String, String>,
+        params: MutableMap<String, Any?>,
+        responseType: Class<T>,
+        converter: ((Any) -> T),
+        paramName: String,
+        idParamName: String? = null,
+        onProgress: ((UploadProgress) -> Unit)? = null,
+    ): T = chunkedUploadInternal(
+        path = path,
+        headers = headers,
+        params = params,
+        responseType = responseType,
+        converter = converter,
+        paramName = paramName,
+        idParamName = idParamName,
+        onProgress = onProgress
+    )
+
+    override suspend fun <T> chunkedUploadInternal(
         path: String,
         headers:  MutableMap<String, String>,
         params: MutableMap<String, Any?>,

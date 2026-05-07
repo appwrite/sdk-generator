@@ -54,7 +54,7 @@ class {{ service.name | caseUcfirst }}Runtime {
 {%~ endif %}
 
     {%~ for method in service.methods %}
-    {%~ set thisGate = '' %}
+    {%~ set thisGate = method | webMethodThisGate(service) %}
     /**
     {%~ if method.description %}
      * {{ method.description | replace({'\n': '\n     * '}) | raw }}
@@ -89,7 +89,7 @@ class {{ service.name | caseUcfirst }}Runtime {
      */
     {{ method.name | caseCamel }}{{ method.responseModel | getGenerics(spec) | raw }}({{ thisGate | raw }}{% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | getPropertyType(method) | raw }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, onProgress?: (progress: UploadProgress) => void{% endif %}): {{ method | getReturn(spec) | raw }};
     {{ method.name | caseCamel }}{{ method.responseModel | getGenerics(spec) | raw }}(
-        {{ thisGate | raw }}{% if method.parameters.all|length > 0 %}paramsOrFirst{% if not method.parameters.all[0].required or method.parameters.all[0].nullable %}?{% endif %}: { {% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | getPropertyType(method) | raw }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, onProgress?: (progress: UploadProgress) => void{% endif %} } | {{ method.parameters.all[0] | getPropertyType(method) | raw }}{% if method.parameters.all|length > 1 %},
+        {% if method.parameters.all|length > 0 %}paramsOrFirst{% if not method.parameters.all[0].required or method.parameters.all[0].nullable %}?{% endif %}: { {% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | getPropertyType(method) | raw }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, onProgress?: (progress: UploadProgress) => void{% endif %} } | {{ method.parameters.all[0] | getPropertyType(method) | raw }}{% if method.parameters.all|length > 1 %},
         ...rest: [{% for parameter in method.parameters.all[1:] %}({{ parameter | getPropertyType(method) | raw }})?{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %},((progress: UploadProgress) => void)?{% endif %}]{% endif %}{% endif %}
     
     ): {{ method | getReturn(spec) | raw }} {
@@ -129,7 +129,10 @@ class {{ service.name | caseUcfirst }}Runtime {
         {%~ endif %}
         {%~ endif %}
     {%~ else %}
-    {{ method.name | caseCamel }}{{ method.responseModel | getGenerics(spec) | raw }}({{ thisGate | raw }}{% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | getPropertyType(method) | raw }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, onProgress = (progress: UploadProgress) => void{% endif %}): {{ method | getReturn(spec) | raw }} {
+    {%~ if thisGate is not empty %}
+    {{ method.name | caseCamel }}{{ method.responseModel | getGenerics(spec) | raw }}({{ thisGate | raw }}{% if 'multipart/form-data' in method.consumes %}onProgress?: (progress: UploadProgress) => void{% endif %}): {{ method | getReturn(spec) | raw }};
+    {%~ endif %}
+    {{ method.name | caseCamel }}{{ method.responseModel | getGenerics(spec) | raw }}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | getPropertyType(method) | raw }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, onProgress = (progress: UploadProgress) => void{% endif %}): {{ method | getReturn(spec) | raw }} {
     {%~ endif %}
         {%~ for parameter in method.parameters.all %}
         {%~ if parameter.required %}

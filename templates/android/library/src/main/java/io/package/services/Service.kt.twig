@@ -3,6 +3,8 @@ package {{ sdk.namespace | caseDot }}.services
 import android.net.Uri
 import {{ sdk.namespace | caseDot }}.ClientAuth
 import {{ sdk.namespace | caseDot }}.Service
+import {{ sdk.namespace | caseDot }}.call
+import {{ sdk.namespace | caseDot }}.chunkedUpload
 {% if spec.definitions is not empty %}
 import {{ sdk.namespace | caseDot }}.models.*
 {% endif %}

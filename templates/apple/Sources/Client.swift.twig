@@ -130,9 +130,9 @@ open class Client: ClientAuth {
         locale: String? = nil,
         selfSigned: Bool = false,
         compression: Bool = true
-    ) -> ClientAuth {
+    ) throws -> ClientAuth {
         let client = Client()
-        configure(
+        try configure(
             client,
             endpoint: endpoint,
             endpointRealtime: endpointRealtime,
@@ -152,9 +152,9 @@ open class Client: ClientAuth {
         locale: String? = nil,
         selfSigned: Bool = false,
         compression: Bool = true
-    ) -> ClientAuth {
+    ) throws -> ClientAuth {
         let client = Client()
-        configure(
+        try configure(
             client,
             endpoint: endpoint,
             endpointRealtime: endpointRealtime,
@@ -175,9 +175,9 @@ open class Client: ClientAuth {
         locale: String? = nil,
         selfSigned: Bool = false,
         compression: Bool = true
-    ) -> ClientAuth {
+    ) throws -> ClientAuth {
         let client = Client()
-        configure(
+        try configure(
             client,
             endpoint: endpoint,
             endpointRealtime: endpointRealtime,
@@ -208,7 +208,7 @@ open class Client: ClientAuth {
         }
 
         let client = Client()
-        configure(
+        try configure(
             client,
             endpoint: endpoint,
             endpointRealtime: endpointRealtime,
@@ -242,20 +242,14 @@ open class Client: ClientAuth {
         locale: String?,
         selfSigned: Bool,
         compression: Bool
-    ) {
-        client.configureEndpoint(endpoint)
+    ) throws {
+        try client.configureEndpoint(endpoint)
 
         if let endpointRealtime = endpointRealtime {
-            client.configureEndpointRealtime(endpointRealtime)
+            try client.configureEndpointRealtime(endpointRealtime)
         }
 
-        if selfSigned {
-            client.configureSelfSigned(selfSigned)
-        }
-
-        if !compression {
-            client.configureCompression(compression)
-        }
+        client.configureConnection(selfSigned: selfSigned, compression: compression)
 
         setHeader(client, configKey: "project", header: "X-Appwrite-Project", value: projectId)
 
@@ -270,15 +264,19 @@ open class Client: ClientAuth {
     }
 
     private func configureSelfSigned(_ status: Bool) {
-        self.selfSigned = status
-        try! http.syncShutdown()
-        http = Client.createHTTP(selfSigned: status, compression: compression)
+        configureConnection(selfSigned: status, compression: compression)
     }
 
     private func configureCompression(_ status: Bool) {
-        self.compression = status
+        configureConnection(selfSigned: selfSigned, compression: status)
+    }
 
-        if status {
+    private func configureConnection(selfSigned: Bool, compression: Bool) {
+        let shouldRecreateHTTP = self.selfSigned != selfSigned || self.compression != compression
+        self.selfSigned = selfSigned
+        self.compression = compression
+
+        if compression {
             if compressionHeaderInjected && self.headers["accept-encoding"] == "identity" {
                 self.headers.removeValue(forKey: "accept-encoding")
             }
@@ -288,13 +286,17 @@ open class Client: ClientAuth {
             self.compressionHeaderInjected = true
         }
 
+        guard shouldRecreateHTTP else {
+            return
+        }
+
         try! http.syncShutdown()
-        http = Client.createHTTP(selfSigned: selfSigned, compression: status)
+        http = Client.createHTTP(selfSigned: selfSigned, compression: compression)
     }
 
-    private func configureEndpoint(_ endPoint: String) {
+    private func configureEndpoint(_ endPoint: String) throws {
         if !endPoint.hasPrefix("http://") && !endPoint.hasPrefix("https://") {
-            fatalError("Invalid endpoint URL: \(endPoint)")
+            throw {{ spec.title | caseUcfirst }}Error(message: "Invalid endpoint URL: \(endPoint)")
         }
 
         self.endPoint = endPoint
@@ -303,9 +305,9 @@ open class Client: ClientAuth {
             .replacingOccurrences(of: "https://", with: "wss://")
     }
 
-    private func configureEndpointRealtime(_ endPoint: String) {
+    private func configureEndpointRealtime(_ endPoint: String) throws {
         if !endPoint.hasPrefix("ws://") && !endPoint.hasPrefix("wss://") {
-            fatalError("Invalid realtime endpoint URL: \(endPoint)")
+            throw {{ spec.title | caseUcfirst }}Error(message: "Invalid realtime endpoint URL: \(endPoint)")
         }
 
         self.endPointRealtime = endPoint
@@ -413,7 +415,7 @@ open class Client: ClientAuth {
     ///
     @available(*, deprecated, message: "Use Client.fromBrowser, Client.fromSession, Client.fromDevKey, or Client.fromImpersonation instead.")
     open func setEndpoint(_ endPoint: String) -> Client {
-        configureEndpoint(endPoint)
+        try! configureEndpoint(endPoint)
         return self
     }
 
@@ -426,7 +428,7 @@ open class Client: ClientAuth {
     ///
     @available(*, deprecated, message: "Use Client.fromBrowser, Client.fromSession, Client.fromDevKey, or Client.fromImpersonation instead.")
     open func setEndpointRealtime(_ endPoint: String) -> Client {
-        configureEndpointRealtime(endPoint)
+        try! configureEndpointRealtime(endPoint)
         return self
     }
 
