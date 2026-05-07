@@ -1,0 +1,19 @@
+## Enum: {{ enum.name | caseUpper }}
+
+{% for value in enum.enum %}
+{% set key = enum.keys is empty ? value : enum.keys[loop.index0] %}
+const {{ key | caseEnumKey }} = "{{ value }}"
+{% endfor %}
+
+## Validate if value is in enum
+static func is_valid(value: String) -> bool:
+    return value in values()
+
+
+## Get all values of enum
+static func values() -> Array[String]:
+    return [
+        {% for value in enum.enum %}
+        "{{ value }}",
+        {% endfor %}
+    ]

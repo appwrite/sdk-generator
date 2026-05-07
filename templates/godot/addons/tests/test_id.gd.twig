@@ -1,0 +1,19 @@
+extends "res://addons/gut/test.gd"
+
+func test_id_unique_length():
+	var id = {{spec.title | caseUcfirst}}ID.unique()
+	assert_true(id.length() > 10)
+
+func test_id_unique_padding():
+	var id1 = {{spec.title | caseUcfirst}}ID.unique(0)
+	var id2 = {{spec.title | caseUcfirst}}ID.unique(10)
+	assert_true(id2.length() > id1.length())
+
+func test_id_unique_randomness():
+	var id1 = {{spec.title | caseUcfirst}}ID.unique()
+	var id2 = {{spec.title | caseUcfirst}}ID.unique()
+	assert_ne(id1, id2)
+
+func test_id_custom():
+	var val = "custom_id"
+	assert_eq({{spec.title | caseUcfirst}}ID.custom(val), val)

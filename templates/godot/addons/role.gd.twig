@@ -1,0 +1,40 @@
+class_name {{spec.title | caseUcfirst}}Role
+
+
+## Any role
+static func any() -> String:
+    return 'any'
+
+
+## User role
+static func user(id: String, status: String = '') -> String:
+    if status == '':
+        return 'user:%s' % id
+    return 'user:%s/%s' % [id, status]
+
+
+## Users role
+static func users(status: String = '') -> String:
+    if status == '':
+        return 'users'
+    return 'users/%s' % status
+
+
+## Guests role
+static func guests() -> String:
+    return 'guests'
+
+
+## Team role
+static func team(id: String, role: String = '') -> String:
+    if role == '':
+        return 'team:%s' % id
+    return 'team:%s/%s' % [id, role]
+
+## Team member role
+static func member(id: String) -> String:
+    return 'member:%s' % id
+
+
+static func label(name: String) -> String:
+    return 'label:%s' % name
