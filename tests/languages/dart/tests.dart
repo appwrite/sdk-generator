@@ -7,6 +7,96 @@ import '../lib/packageName.dart';
 import '../lib/src/input_file.dart';
 
 void main() async {
+  final authFactoryOutputs = <String?>[];
+  final browserClient = Client.fromBrowser(
+    endPoint: 'https://cloud.appwrite.io/v1',
+    projectId: 'auth-project',
+    locale: 'en-US',
+    selfSigned: true,
+  );
+  final browserHeaders = browserClient.getHeaders();
+  authFactoryOutputs.add(browserHeaders['X-Appwrite-Project']);
+  authFactoryOutputs.add(browserHeaders['X-Appwrite-Locale']);
+  authFactoryOutputs.add(browserHeaders['x-sdk-platform']);
+
+  final sessionClient = Client.fromSession(
+    endPoint: 'https://cloud.appwrite.io/v1',
+    projectId: 'auth-project',
+    session: 'auth-session',
+  );
+  authFactoryOutputs.add(sessionClient.getHeaders()['X-Appwrite-Session']);
+
+  final apiKeyClient = Client.fromAPIKey(
+    endPoint: 'https://cloud.appwrite.io/v1',
+    projectId: 'auth-project',
+    apiKey: 'auth-api-key',
+  );
+  authFactoryOutputs.add(apiKeyClient.getHeaders()['X-Appwrite-Key']);
+
+  final cookieClient = Client.fromCookie(
+    endPoint: 'https://cloud.appwrite.io/v1',
+    projectId: 'auth-project',
+    cookie: 'auth-cookie',
+  );
+  authFactoryOutputs.add(cookieClient.getHeaders()['Cookie']);
+
+  final jwtClient = Client.fromJWT(
+    endPoint: 'https://cloud.appwrite.io/v1',
+    projectId: 'auth-project',
+    jwt: 'auth-jwt',
+  );
+  authFactoryOutputs.add(jwtClient.getHeaders()['X-Appwrite-JWT']);
+
+  final devKeyClient = Client.fromDevKey(
+    endPoint: 'https://cloud.appwrite.io/v1',
+    projectId: 'auth-project',
+    devKey: 'auth-dev-key',
+  );
+  authFactoryOutputs.add(devKeyClient.getHeaders()['X-Appwrite-Dev-Key']);
+
+  final impersonationUserClient = Client.fromImpersonation(
+    endPoint: 'https://cloud.appwrite.io/v1',
+    projectId: 'auth-project',
+    session: 'auth-session',
+    userId: 'auth-user-id',
+  );
+  authFactoryOutputs.add(impersonationUserClient.getHeaders()['X-Appwrite-Impersonate-User-Id']);
+
+  final impersonationEmailClient = Client.fromImpersonation(
+    endPoint: 'https://cloud.appwrite.io/v1',
+    projectId: 'auth-project',
+    session: 'auth-session',
+    userEmail: 'auth@example.com',
+  );
+  authFactoryOutputs.add(impersonationEmailClient.getHeaders()['X-Appwrite-Impersonate-User-Email']);
+
+  final impersonationPhoneClient = Client.fromImpersonation(
+    endPoint: 'https://cloud.appwrite.io/v1',
+    projectId: 'auth-project',
+    session: 'auth-session',
+    userPhone: '+15555550123',
+  );
+  authFactoryOutputs.add(impersonationPhoneClient.getHeaders()['X-Appwrite-Impersonate-User-Phone']);
+
+  try {
+    Client.fromImpersonation(
+      endPoint: 'https://cloud.appwrite.io/v1',
+      projectId: 'auth-project',
+      session: 'auth-session',
+    );
+  } on AppwriteException catch (e) {
+    authFactoryOutputs.add(e.message);
+  }
+
+  try {
+    Client.fromBrowser(
+      endPoint: 'htp://cloud.appwrite.io/v1',
+      projectId: 'auth-project',
+    );
+  } on AppwriteException catch (e) {
+    authFactoryOutputs.add(e.message);
+  }
+
   Client client = Client().setSelfSigned();
   Foo foo = Foo(client);
   Bar bar = Bar(client);
@@ -18,6 +108,9 @@ void main() async {
   print('\nTest Started');
   final sdkHeaders = client.getHeaders();
   print("x-sdk-name: ${sdkHeaders['x-sdk-name']}; x-sdk-platform: ${sdkHeaders['x-sdk-platform']}; x-sdk-language: ${sdkHeaders['x-sdk-language']}; x-sdk-version: ${sdkHeaders['x-sdk-version']}");
+  for (final output in authFactoryOutputs) {
+    print(output);
+  }
 
   // Ping pong test
   client.setProject('123456');

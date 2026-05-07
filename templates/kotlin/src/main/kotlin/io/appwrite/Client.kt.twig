@@ -39,6 +39,167 @@ class Client @JvmOverloads constructor(
 
     companion object {
         const val CHUNK_SIZE = 5*1024*1024; // 5MB
+
+        @JvmStatic
+        @JvmOverloads
+        fun fromBrowser(
+            projectId: String,
+            endPoint: String = "{{spec.endpoint}}",
+            locale: String? = null,
+            selfSigned: Boolean = false
+        ): Client {
+            return fromBase(
+                endPoint = endPoint,
+                projectId = projectId,
+                locale = locale,
+                selfSigned = selfSigned,
+                sdkPlatform = "client"
+            )
+        }
+
+        @JvmStatic
+        @JvmOverloads
+        fun fromSession(
+            projectId: String,
+            session: String,
+            endPoint: String = "{{spec.endpoint}}",
+            locale: String? = null,
+            selfSigned: Boolean = false
+        ): Client {
+            return fromBrowser(
+                projectId = projectId,
+                endPoint = endPoint,
+                locale = locale,
+                selfSigned = selfSigned
+            ).setSession(session)
+        }
+
+        @JvmStatic
+        @JvmOverloads
+        fun fromAPIKey(
+            projectId: String,
+            apiKey: String,
+            endPoint: String = "{{spec.endpoint}}",
+            locale: String? = null,
+            selfSigned: Boolean = false
+        ): Client {
+            return fromBase(
+                endPoint = endPoint,
+                projectId = projectId,
+                locale = locale,
+                selfSigned = selfSigned,
+                sdkPlatform = "server"
+            ).setKey(apiKey)
+        }
+
+        @JvmStatic
+        @JvmOverloads
+        fun fromCookie(
+            projectId: String,
+            cookie: String,
+            endPoint: String = "{{spec.endpoint}}",
+            locale: String? = null,
+            selfSigned: Boolean = false
+        ): Client {
+            val client = fromBase(
+                endPoint = endPoint,
+                projectId = projectId,
+                locale = locale,
+                selfSigned = selfSigned,
+                sdkPlatform = "server"
+            )
+            client.addHeader("Cookie", cookie)
+            return client
+        }
+
+        @JvmStatic
+        @JvmOverloads
+        fun fromJWT(
+            projectId: String,
+            jwt: String,
+            endPoint: String = "{{spec.endpoint}}",
+            locale: String? = null,
+            selfSigned: Boolean = false
+        ): Client {
+            return fromBase(
+                endPoint = endPoint,
+                projectId = projectId,
+                locale = locale,
+                selfSigned = selfSigned,
+                sdkPlatform = "server"
+            ).setJWT(jwt)
+        }
+
+        @JvmStatic
+        @JvmOverloads
+        fun fromDevKey(
+            projectId: String,
+            devKey: String,
+            endPoint: String = "{{spec.endpoint}}",
+            locale: String? = null,
+            selfSigned: Boolean = false
+        ): Client {
+            val client = fromBrowser(
+                projectId = projectId,
+                endPoint = endPoint,
+                locale = locale,
+                selfSigned = selfSigned
+            )
+            client.addHeader("X-{{ spec.title | caseUcfirst }}-Dev-Key", devKey)
+            return client
+        }
+
+        @JvmStatic
+        @JvmOverloads
+        fun fromImpersonation(
+            projectId: String,
+            session: String,
+            userId: String? = null,
+            userEmail: String? = null,
+            userPhone: String? = null,
+            endPoint: String = "{{spec.endpoint}}",
+            locale: String? = null,
+            selfSigned: Boolean = false
+        ): Client {
+            val targets = listOfNotNull(userId, userEmail, userPhone).size
+            require(targets == 1) {
+                "Exactly one of userId, userEmail, or userPhone must be provided."
+            }
+
+            val client = fromBrowser(
+                projectId = projectId,
+                endPoint = endPoint,
+                locale = locale,
+                selfSigned = selfSigned
+            ).setSession(session)
+
+            when {
+                userId != null -> client.addHeader("X-{{ spec.title | caseUcfirst }}-Impersonate-User-Id", userId)
+                userEmail != null -> client.addHeader("X-{{ spec.title | caseUcfirst }}-Impersonate-User-Email", userEmail)
+                userPhone != null -> client.addHeader("X-{{ spec.title | caseUcfirst }}-Impersonate-User-Phone", userPhone)
+            }
+
+            return client
+        }
+
+        private fun fromBase(
+            endPoint: String,
+            projectId: String,
+            locale: String?,
+            selfSigned: Boolean,
+            sdkPlatform: String
+        ): Client {
+            return Client()
+                .setEndpoint(endPoint)
+                .setSelfSigned(selfSigned)
+                .setProject(projectId)
+                .addHeader("x-sdk-platform", sdkPlatform)
+                .also { client ->
+                    if (locale != null) {
+                        client.setLocale(locale)
+                    }
+                }
+        }
     }
 
     override val coroutineContext: CoroutineContext

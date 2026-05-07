@@ -17,6 +17,95 @@ const { readFile } = require('fs/promises');
 async function start() {
     let response;
 
+    const authFactoryOutputs = [];
+    const browserClient = Client.fromBrowser({
+        endpoint: 'https://cloud.appwrite.io/v1',
+        projectId: 'auth-project',
+        locale: 'en-US'
+    });
+    const browserHeaders = browserClient.getHeaders();
+    authFactoryOutputs.push(browserHeaders['X-Appwrite-Project']);
+    authFactoryOutputs.push(browserHeaders['X-Appwrite-Locale']);
+    authFactoryOutputs.push(browserHeaders['x-sdk-platform']);
+
+    const sessionClient = Client.fromSession({
+        endpoint: 'https://cloud.appwrite.io/v1',
+        projectId: 'auth-project',
+        session: 'auth-session'
+    });
+    authFactoryOutputs.push(sessionClient.getHeaders()['X-Appwrite-Session']);
+
+    const apiKeyClient = Client.fromAPIKey({
+        endpoint: 'https://cloud.appwrite.io/v1',
+        projectId: 'auth-project',
+        apiKey: 'auth-api-key'
+    });
+    authFactoryOutputs.push(apiKeyClient.getHeaders()['X-Appwrite-Key']);
+
+    const cookieClient = Client.fromCookie({
+        endpoint: 'https://cloud.appwrite.io/v1',
+        projectId: 'auth-project',
+        cookie: 'auth-cookie'
+    });
+    authFactoryOutputs.push(cookieClient.getHeaders()['Cookie']);
+
+    const jwtClient = Client.fromJWT({
+        endpoint: 'https://cloud.appwrite.io/v1',
+        projectId: 'auth-project',
+        jwt: 'auth-jwt'
+    });
+    authFactoryOutputs.push(jwtClient.getHeaders()['X-Appwrite-JWT']);
+
+    const devKeyClient = Client.fromDevKey({
+        endpoint: 'https://cloud.appwrite.io/v1',
+        projectId: 'auth-project',
+        devKey: 'auth-dev-key'
+    });
+    authFactoryOutputs.push(devKeyClient.getHeaders()['X-Appwrite-Dev-Key']);
+
+    const impersonationUserClient = Client.fromImpersonation({
+        endpoint: 'https://cloud.appwrite.io/v1',
+        projectId: 'auth-project',
+        session: 'auth-session',
+        userId: 'auth-user-id'
+    });
+    authFactoryOutputs.push(impersonationUserClient.getHeaders()['X-Appwrite-Impersonate-User-Id']);
+
+    const impersonationEmailClient = Client.fromImpersonation({
+        endpoint: 'https://cloud.appwrite.io/v1',
+        projectId: 'auth-project',
+        session: 'auth-session',
+        email: 'auth@example.com'
+    });
+    authFactoryOutputs.push(impersonationEmailClient.getHeaders()['X-Appwrite-Impersonate-User-Email']);
+
+    const impersonationPhoneClient = Client.fromImpersonation({
+        endpoint: 'https://cloud.appwrite.io/v1',
+        projectId: 'auth-project',
+        session: 'auth-session',
+        phone: '+15555550123'
+    });
+    authFactoryOutputs.push(impersonationPhoneClient.getHeaders()['X-Appwrite-Impersonate-User-Phone']);
+
+    try {
+        Client.fromImpersonation({
+            endpoint: 'https://cloud.appwrite.io/v1',
+            projectId: 'auth-project',
+            session: 'auth-session'
+        });
+    } catch (error) {
+        authFactoryOutputs.push(error.message);
+    }
+
+    try {
+        Client.fromBrowser({
+            endpoint: 'htp://cloud.appwrite.io/v1',
+            projectId: 'auth-project'
+        });
+    } catch (error) {
+        authFactoryOutputs.push(error.message);
+    }
+
     // Init SDK
     const client = new Client()
         .addHeader("Origin", "http://localhost")
@@ -32,6 +121,7 @@ async function start() {
     console.log('\nTest Started');
     const sdkHeaders = client.getHeaders();
     console.log(`x-sdk-name: ${sdkHeaders['x-sdk-name']}; x-sdk-platform: ${sdkHeaders['x-sdk-platform']}; x-sdk-language: ${sdkHeaders['x-sdk-language']}; x-sdk-version: ${sdkHeaders['x-sdk-version']}`);
+    authFactoryOutputs.forEach(output => console.log(output));
 
     // Ping
     response = await client.ping();

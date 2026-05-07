@@ -20,12 +20,103 @@ class Tests: XCTestCase {
 
     func test() async throws {
         do {
+        var authFactoryOutputs: [String] = []
+        let browserClient = try Client.fromBrowser(
+            endpoint: "https://cloud.appwrite.io/v1",
+            projectId: "auth-project",
+            locale: "en-US",
+            selfSigned: true
+        )
+        let browserHeaders = browserClient.getHeaders()
+        authFactoryOutputs.append(browserHeaders["X-Appwrite-Project"] ?? "nil")
+        authFactoryOutputs.append(browserHeaders["X-Appwrite-Locale"] ?? "nil")
+        authFactoryOutputs.append(browserHeaders["x-sdk-platform"] ?? "nil")
+
+        let sessionClient = try Client.fromSession(
+            endpoint: "https://cloud.appwrite.io/v1",
+            projectId: "auth-project",
+            session: "auth-session"
+        )
+        authFactoryOutputs.append(sessionClient.getHeaders()["X-Appwrite-Session"] ?? "nil")
+
+        let apiKeyClient = try Client.fromAPIKey(
+            endpoint: "https://cloud.appwrite.io/v1",
+            projectId: "auth-project",
+            apiKey: "auth-api-key"
+        )
+        authFactoryOutputs.append(apiKeyClient.getHeaders()["X-Appwrite-Key"] ?? "nil")
+
+        let cookieClient = try Client.fromCookie(
+            endpoint: "https://cloud.appwrite.io/v1",
+            projectId: "auth-project",
+            cookie: "auth-cookie"
+        )
+        authFactoryOutputs.append(cookieClient.getHeaders()["Cookie"] ?? "nil")
+
+        let jwtClient = try Client.fromJWT(
+            endpoint: "https://cloud.appwrite.io/v1",
+            projectId: "auth-project",
+            jwt: "auth-jwt"
+        )
+        authFactoryOutputs.append(jwtClient.getHeaders()["X-Appwrite-JWT"] ?? "nil")
+
+        let devKeyClient = try Client.fromDevKey(
+            endpoint: "https://cloud.appwrite.io/v1",
+            projectId: "auth-project",
+            devKey: "auth-dev-key"
+        )
+        authFactoryOutputs.append(devKeyClient.getHeaders()["X-Appwrite-Dev-Key"] ?? "nil")
+
+        let impersonationUserClient = try Client.fromImpersonation(
+            endpoint: "https://cloud.appwrite.io/v1",
+            projectId: "auth-project",
+            session: "auth-session",
+            userId: "auth-user-id"
+        )
+        authFactoryOutputs.append(impersonationUserClient.getHeaders()["X-Appwrite-Impersonate-User-Id"] ?? "nil")
+
+        let impersonationEmailClient = try Client.fromImpersonation(
+            endpoint: "https://cloud.appwrite.io/v1",
+            projectId: "auth-project",
+            session: "auth-session",
+            userEmail: "auth@example.com"
+        )
+        authFactoryOutputs.append(impersonationEmailClient.getHeaders()["X-Appwrite-Impersonate-User-Email"] ?? "nil")
+
+        let impersonationPhoneClient = try Client.fromImpersonation(
+            endpoint: "https://cloud.appwrite.io/v1",
+            projectId: "auth-project",
+            session: "auth-session",
+            userPhone: "+15555550123"
+        )
+        authFactoryOutputs.append(impersonationPhoneClient.getHeaders()["X-Appwrite-Impersonate-User-Phone"] ?? "nil")
+
+        do {
+            _ = try Client.fromImpersonation(
+                endpoint: "https://cloud.appwrite.io/v1",
+                projectId: "auth-project",
+                session: "auth-session"
+            )
+        } catch {
+            authFactoryOutputs.append(error.localizedDescription)
+        }
+
+        do {
+            _ = try Client.fromBrowser(
+                endpoint: "htp://cloud.appwrite.io/v1",
+                projectId: "auth-project"
+            )
+        } catch {
+            authFactoryOutputs.append(error.localizedDescription)
+        }
+
         let client = Client()
             .setProject("123456")
             .addHeader(key: "Origin", value: "http://localhost")
             .setSelfSigned()
         let sdkHeaders = client.getHeaders()
         print("x-sdk-name: \(sdkHeaders["x-sdk-name"] ?? "nil"); x-sdk-platform: \(sdkHeaders["x-sdk-platform"] ?? "nil"); x-sdk-language: \(sdkHeaders["x-sdk-language"] ?? "nil"); x-sdk-version: \(sdkHeaders["x-sdk-version"] ?? "nil")")
+        authFactoryOutputs.forEach { print($0) }
 
         // Ping pong test
         let ping = try await client.ping()

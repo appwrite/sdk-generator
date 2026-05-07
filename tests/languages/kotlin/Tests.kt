@@ -40,6 +40,97 @@ class ServiceTest {
     @Test
     @Throws(IOException::class)
     fun test() {
+        val browserClient = Client.fromBrowser(
+            projectId = "auth-project",
+            endPoint = "https://cloud.appwrite.io/v1",
+            locale = "en-US",
+            selfSigned = true
+        )
+        val browserHeaders = browserClient.getHeaders()
+        val authFactoryOutputs = mutableListOf(
+            browserHeaders["x-appwrite-project"],
+            browserHeaders["x-appwrite-locale"],
+            browserHeaders["x-sdk-platform"]
+        )
+
+        val sessionClient = Client.fromSession(
+            projectId = "auth-project",
+            session = "auth-session",
+            endPoint = "https://cloud.appwrite.io/v1"
+        )
+        authFactoryOutputs.add(sessionClient.getHeaders()["x-appwrite-session"])
+
+        val apiKeyClient = Client.fromAPIKey(
+            projectId = "auth-project",
+            apiKey = "auth-api-key",
+            endPoint = "https://cloud.appwrite.io/v1"
+        )
+        authFactoryOutputs.add(apiKeyClient.getHeaders()["x-appwrite-key"])
+
+        val cookieClient = Client.fromCookie(
+            projectId = "auth-project",
+            cookie = "auth-cookie",
+            endPoint = "https://cloud.appwrite.io/v1"
+        )
+        authFactoryOutputs.add(cookieClient.getHeaders()["Cookie"])
+
+        val jwtClient = Client.fromJWT(
+            projectId = "auth-project",
+            jwt = "auth-jwt",
+            endPoint = "https://cloud.appwrite.io/v1"
+        )
+        authFactoryOutputs.add(jwtClient.getHeaders()["x-appwrite-jwt"])
+
+        val devKeyClient = Client.fromDevKey(
+            projectId = "auth-project",
+            devKey = "auth-dev-key",
+            endPoint = "https://cloud.appwrite.io/v1"
+        )
+        authFactoryOutputs.add(devKeyClient.getHeaders()["X-Appwrite-Dev-Key"])
+
+        val impersonationUserClient = Client.fromImpersonation(
+            projectId = "auth-project",
+            session = "auth-session",
+            userId = "auth-user-id",
+            endPoint = "https://cloud.appwrite.io/v1"
+        )
+        authFactoryOutputs.add(impersonationUserClient.getHeaders()["X-Appwrite-Impersonate-User-Id"])
+
+        val impersonationEmailClient = Client.fromImpersonation(
+            projectId = "auth-project",
+            session = "auth-session",
+            userEmail = "auth@example.com",
+            endPoint = "https://cloud.appwrite.io/v1"
+        )
+        authFactoryOutputs.add(impersonationEmailClient.getHeaders()["X-Appwrite-Impersonate-User-Email"])
+
+        val impersonationPhoneClient = Client.fromImpersonation(
+            projectId = "auth-project",
+            session = "auth-session",
+            userPhone = "+15555550123",
+            endPoint = "https://cloud.appwrite.io/v1"
+        )
+        authFactoryOutputs.add(impersonationPhoneClient.getHeaders()["X-Appwrite-Impersonate-User-Phone"])
+
+        try {
+            Client.fromImpersonation(
+                projectId = "auth-project",
+                session = "auth-session",
+                endPoint = "https://cloud.appwrite.io/v1"
+            )
+        } catch (e: IllegalArgumentException) {
+            authFactoryOutputs.add(e.message)
+        }
+
+        try {
+            Client.fromBrowser(
+                projectId = "auth-project",
+                endPoint = "htp://cloud.appwrite.io/v1"
+            )
+        } catch (e: IllegalArgumentException) {
+            authFactoryOutputs.add(e.message)
+        }
+
         val client = Client()
             .setProject("123456")
             .addHeader("Origin", "http://localhost")
@@ -47,6 +138,7 @@ class ServiceTest {
         val sdkHeaders = client.getHeaders()
 
         writeToFile("x-sdk-name: ${sdkHeaders["x-sdk-name"]}; x-sdk-platform: ${sdkHeaders["x-sdk-platform"]}; x-sdk-language: ${sdkHeaders["x-sdk-language"]}; x-sdk-version: ${sdkHeaders["x-sdk-version"]}")
+        authFactoryOutputs.forEach { writeToFile(it ?: "null") }
 
         runBlocking {
             val ping = client.ping()
