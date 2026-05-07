@@ -12,11 +12,19 @@ import 'realtime_mixin.dart';
 import 'client.dart';
 import 'client_io.dart';
 
-RealtimeBase createRealtime(Client client) => RealtimeIO(client);
+RealtimeBase createRealtime(ClientAuth client) => RealtimeIO(client);
 
 class RealtimeIO extends RealtimeBase with RealtimeMixin {
 
-  RealtimeIO(Client client) {
+  RealtimeIO(ClientAuth client) {
+    if (client is! ClientIO) {
+      throw ArgumentError.value(
+        client,
+        'client',
+        'RealtimeIO requires a ClientIO instance.',
+      );
+    }
+
     this.client = client;
     getWebSocket = _getWebSocket;
   }

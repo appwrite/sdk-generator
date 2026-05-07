@@ -62,6 +62,7 @@ class ClientBrowser extends ClientBase with ClientMixin {
 {% if header.description %}
   /// {{header.description}}
 {% endif %}
+  @Deprecated('Use Client.fromBrowser or another factory constructor instead.')
   @override
   ClientBrowser set{{header.key | caseUcfirst}}(value) {
     config['{{ header.key | caseCamel }}'] = value;
@@ -70,11 +71,13 @@ class ClientBrowser extends ClientBase with ClientMixin {
   }
 {% endfor %}
 
+  @Deprecated('Use Client.fromBrowser or another factory constructor instead.')
   @override
   ClientBrowser setSelfSigned({bool status = true}) {
     return this;
   }
 
+  @Deprecated('Use Client.fromBrowser or another factory constructor instead.')
   @override
   ClientBrowser setEndpoint(String endPoint) {
     if (!endPoint.startsWith('http://') && !endPoint.startsWith('https://')) {
@@ -89,6 +92,7 @@ class ClientBrowser extends ClientBase with ClientMixin {
     return this;
   }
 
+  @Deprecated('Use Client.fromBrowser or another factory constructor instead.')
   @override
   ClientBrowser setEndPointRealtime(String endPoint) {
     if (!endPoint.startsWith('ws://') && !endPoint.startsWith('wss://')) {

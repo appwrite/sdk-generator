@@ -9,12 +9,20 @@ import 'client.dart';
 import 'client_browser.dart';
 import 'realtime_mixin.dart';
 
-RealtimeBase createRealtime(Client client) => RealtimeBrowser(client);
+RealtimeBase createRealtime(ClientAuth client) => RealtimeBrowser(client);
 
 class RealtimeBrowser extends RealtimeBase with RealtimeMixin {
   Map<String, dynamic>? lastMessage;
 
-  RealtimeBrowser(Client client) {
+  RealtimeBrowser(ClientAuth client) {
+    if (client is! ClientBrowser) {
+      throw ArgumentError.value(
+        client,
+        'client',
+        'RealtimeBrowser requires a ClientBrowser instance.',
+      );
+    }
+
     this.client = client;
     getWebSocket = _getWebSocket;
     getFallbackCookie = _getFallbackCookie;
