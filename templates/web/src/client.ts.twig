@@ -433,9 +433,10 @@ class ClientRuntime<TAuth extends Auth = 'browser'> {
     }
 
     static fromAPIKey(params: Prettify<BaseClientParams & { apiKey: string }>): Client<'apiKey'> {
-        return new ClientRuntime<'apiKey'>()
-            .applyBase<'apiKey'>(params, 'server')
-            .setKey(params.apiKey);
+        const client = new ClientRuntime<'apiKey'>()
+            .applyBase<'apiKey'>(params, 'server');
+        client.headers['X-{{ spec.title | caseUcfirst }}-Key'] = params.apiKey;
+        return client;
     }
 
     static fromCookie(params: Prettify<BaseClientParams & { cookie: string }>): Client<'cookie'> {
