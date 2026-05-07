@@ -13,6 +13,87 @@ async function start() {
     // Ping
     const sdkHeaders = client.getHeaders();
     console.log(`x-sdk-name: ${sdkHeaders['x-sdk-name']}; x-sdk-platform: ${sdkHeaders['x-sdk-platform']}; x-sdk-language: ${sdkHeaders['x-sdk-language']}; x-sdk-version: ${sdkHeaders['x-sdk-version']}`);
+
+    const browserClient = Client.fromBrowser({
+        endpoint: 'https://cloud.appwrite.io/v1',
+        projectId: 'auth-project',
+        endpointRealtime: 'wss://realtime.example.com/v1',
+        locale: 'en-US',
+        selfSigned: true,
+    });
+    const browserHeaders = browserClient.getHeaders();
+    console.log(browserHeaders['X-Appwrite-Project']);
+    console.log(browserHeaders['X-Appwrite-Locale']);
+    console.log(browserHeaders['x-sdk-platform']);
+    console.log(browserClient.config.endpointRealtime);
+
+    const sessionClient = Client.fromSession({
+        endpoint: 'https://cloud.appwrite.io/v1',
+        projectId: 'auth-project',
+        session: 'auth-session',
+    });
+    console.log(sessionClient.getHeaders()['X-Appwrite-Session']);
+
+    const devKeyClient = Client.fromDevKey({
+        endpoint: 'https://cloud.appwrite.io/v1',
+        projectId: 'auth-project',
+        devKey: 'auth-dev-key',
+    });
+    console.log(devKeyClient.getHeaders()['X-Appwrite-Dev-Key']);
+
+    const impersonationUserClient = Client.fromImpersonation({
+        endpoint: 'https://cloud.appwrite.io/v1',
+        projectId: 'auth-project',
+        session: 'auth-session',
+        userId: 'auth-user-id',
+    });
+    console.log(impersonationUserClient.getHeaders()['X-Appwrite-Impersonate-User-Id']);
+
+    const impersonationEmailClient = Client.fromImpersonation({
+        endpoint: 'https://cloud.appwrite.io/v1',
+        projectId: 'auth-project',
+        session: 'auth-session',
+        email: 'auth@example.com',
+    });
+    console.log(impersonationEmailClient.getHeaders()['X-Appwrite-Impersonate-User-Email']);
+
+    const impersonationPhoneClient = Client.fromImpersonation({
+        endpoint: 'https://cloud.appwrite.io/v1',
+        projectId: 'auth-project',
+        session: 'auth-session',
+        phone: '+15555550123',
+    });
+    console.log(impersonationPhoneClient.getHeaders()['X-Appwrite-Impersonate-User-Phone']);
+
+    try {
+        Client.fromImpersonation({
+            endpoint: 'https://cloud.appwrite.io/v1',
+            projectId: 'auth-project',
+            session: 'auth-session',
+        });
+    } catch (error) {
+        console.log(error.message);
+    }
+
+    try {
+        Client.fromBrowser({
+            endpoint: 'htp://cloud.appwrite.io/v1',
+            projectId: 'auth-project',
+        });
+    } catch (error) {
+        console.log(error.message);
+    }
+
+    try {
+        Client.fromBrowser({
+            endpoint: 'https://cloud.appwrite.io/v1',
+            projectId: 'auth-project',
+            endpointRealtime: 'ftp://cloud.appwrite.io/v1',
+        });
+    } catch (error) {
+        console.log(error.message);
+    }
+
     response = await client.ping();
     console.log(response.result);
 

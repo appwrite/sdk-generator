@@ -73,6 +73,72 @@ class ServiceTest {
 
         writeToFile("x-sdk-name: ${sdkHeaders["x-sdk-name"]}; x-sdk-platform: ${sdkHeaders["x-sdk-platform"]}; x-sdk-language: ${sdkHeaders["x-sdk-language"]}; x-sdk-version: ${sdkHeaders["x-sdk-version"]}")
 
+        val browserClient = Client.fromBrowser(
+            context = ApplicationProvider.getApplicationContext(),
+            projectId = "auth-project",
+            endpoint = "https://cloud.appwrite.io/v1",
+            endpointRealtime = "wss://realtime.example.com/v1",
+            locale = "en-US",
+            selfSigned = true
+        )
+        writeToFile(browserClient.getConfig("project"))
+        writeToFile(browserClient.getConfig("locale"))
+        writeToFile(browserClient.endpointRealtime)
+
+        val sessionClient = Client.fromSession(
+            context = ApplicationProvider.getApplicationContext(),
+            projectId = "auth-project",
+            session = "auth-session",
+            endpoint = "https://cloud.appwrite.io/v1"
+        )
+        writeToFile(sessionClient.getConfig("session"))
+
+        val devKeyClient = Client.fromDevKey(
+            context = ApplicationProvider.getApplicationContext(),
+            projectId = "auth-project",
+            devKey = "auth-dev-key",
+            endpoint = "https://cloud.appwrite.io/v1"
+        )
+        writeToFile(devKeyClient.getConfig("devKey"))
+
+        val impersonationUserClient = Client.fromImpersonation(
+            context = ApplicationProvider.getApplicationContext(),
+            projectId = "auth-project",
+            session = "auth-session",
+            userId = "auth-user-id",
+            endpoint = "https://cloud.appwrite.io/v1"
+        )
+        writeToFile(impersonationUserClient.getConfig("impersonateUserId"))
+
+        val impersonationEmailClient = Client.fromImpersonation(
+            context = ApplicationProvider.getApplicationContext(),
+            projectId = "auth-project",
+            session = "auth-session",
+            userEmail = "auth@example.com",
+            endpoint = "https://cloud.appwrite.io/v1"
+        )
+        writeToFile(impersonationEmailClient.getConfig("impersonateUserEmail"))
+
+        val impersonationPhoneClient = Client.fromImpersonation(
+            context = ApplicationProvider.getApplicationContext(),
+            projectId = "auth-project",
+            session = "auth-session",
+            userPhone = "+15555550123",
+            endpoint = "https://cloud.appwrite.io/v1"
+        )
+        writeToFile(impersonationPhoneClient.getConfig("impersonateUserPhone"))
+
+        try {
+            Client.fromImpersonation(
+                context = ApplicationProvider.getApplicationContext(),
+                projectId = "auth-project",
+                session = "auth-session",
+                endpoint = "https://cloud.appwrite.io/v1"
+            )
+        } catch (e: IllegalArgumentException) {
+            writeToFile(e.message)
+        }
+
         runBlocking {
             val ping = client.ping()
             val pingResponse = parse(ping)
