@@ -48,7 +48,6 @@ async function start() {
         cookie: 'auth-cookie'
     });
     authFactoryOutputs.push(cookieClient.getHeaders()['Cookie']);
-    authFactoryOutputs.push(cookieClient.config.cookie);
 
     const jwtClient = Client.fromJWT({
         endpoint: 'https://cloud.appwrite.io/v1',
@@ -63,7 +62,6 @@ async function start() {
         devKey: 'auth-dev-key'
     });
     authFactoryOutputs.push(devKeyClient.getHeaders()['X-Appwrite-Dev-Key']);
-    authFactoryOutputs.push(devKeyClient.config.devkey);
 
     const impersonationUserClient = Client.fromImpersonation({
         endpoint: 'https://cloud.appwrite.io/v1',
@@ -72,7 +70,6 @@ async function start() {
         userId: 'auth-user-id'
     });
     authFactoryOutputs.push(impersonationUserClient.getHeaders()['X-Appwrite-Impersonate-User-Id']);
-    authFactoryOutputs.push(impersonationUserClient.config.impersonateuserid);
 
     const impersonationEmailClient = Client.fromImpersonation({
         endpoint: 'https://cloud.appwrite.io/v1',
@@ -81,7 +78,6 @@ async function start() {
         email: 'auth@example.com'
     });
     authFactoryOutputs.push(impersonationEmailClient.getHeaders()['X-Appwrite-Impersonate-User-Email']);
-    authFactoryOutputs.push(impersonationEmailClient.config.impersonateuseremail);
 
     const impersonationPhoneClient = Client.fromImpersonation({
         endpoint: 'https://cloud.appwrite.io/v1',
@@ -90,7 +86,6 @@ async function start() {
         phone: '+15555550123'
     });
     authFactoryOutputs.push(impersonationPhoneClient.getHeaders()['X-Appwrite-Impersonate-User-Phone']);
-    authFactoryOutputs.push(impersonationPhoneClient.config.impersonateuserphone);
 
     try {
         Client.fromImpersonation({

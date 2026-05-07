@@ -20,7 +20,7 @@ class KotlinJava8Test extends Base
         'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/sdks/kotlin eclipse-temurin:8-jdk-jammy sh -c "./gradlew test -q && cat result.txt"';
 
     protected array $expectedOutput = [
-        ...Base::KOTLIN_AUTH_FACTORY_RESPONSES,
+        ...Base::SERVER_AUTH_FACTORY_RESPONSES,
         ...Base::PING_RESPONSE,
         ...Base::FOO_RESPONSES,
         ...Base::BAR_RESPONSES,

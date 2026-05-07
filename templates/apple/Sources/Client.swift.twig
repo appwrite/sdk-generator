@@ -204,7 +204,7 @@ open class Client: ClientAuth {
     ) throws -> ClientAuth {
         let targetCount = [userId, userEmail, userPhone].compactMap { $0 }.count
         guard targetCount == 1 else {
-            throw {{ spec.title | caseUcfirst }}Error(message: "Provide exactly one impersonation target.")
+            throw {{ spec.title | caseUcfirst }}Error(message: "Exactly one impersonation target must be provided")
         }
 
         let client = Client()

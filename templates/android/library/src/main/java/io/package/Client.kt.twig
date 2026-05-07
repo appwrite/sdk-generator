@@ -267,7 +267,7 @@ class Client @JvmOverloads constructor(
         ): ClientAuth {
             val targets = listOfNotNull(userId, userEmail, userPhone).size
             require(targets == 1) {
-                "Exactly one of userId, userEmail, or userPhone must be provided."
+                "Exactly one impersonation target must be provided"
             }
 
             val client = fromBrowserClient(

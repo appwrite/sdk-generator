@@ -19,7 +19,7 @@ class FlutterStableTest extends Base
         'docker run --network="mockapi" --rm -v $(pwd):/app:rw -w /app/tests/sdks/flutter ghcr.io/cirruslabs/flutter:stable sh -c "flutter pub get && flutter test test/appwrite_test.dart"';
 
     protected array $expectedOutput = [
-        ...Base::FLUTTER_AUTH_FACTORY_RESPONSES,
+        ...Base::CLIENT_AUTH_FACTORY_RESPONSES,
         ...Base::PING_RESPONSE,
         ...Base::FOO_RESPONSES,
         ...Base::BAR_RESPONSES,

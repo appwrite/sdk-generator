@@ -21,7 +21,7 @@ class WebChromiumTest extends Base
         'docker run --network="mockapi" --rm -v $(pwd):/app -e BROWSER=chromium -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.56.1-jammy node tests.js';
 
     protected array $expectedOutput = [
-        ...Base::WEB_AUTH_FACTORY_RESPONSES,
+        ...Base::ISOMORPHIC_AUTH_FACTORY_RESPONSES,
         ...Base::PING_RESPONSE,
         ...Base::FOO_RESPONSES,
         ...Base::FOO_RESPONSES, // Object params

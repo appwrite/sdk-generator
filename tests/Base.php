@@ -109,10 +109,9 @@ abstract class Base extends TestCase
         'Invalid endpoint URL: htp://cloud.appwrite.io/v1',
     ];
 
-    protected const WEB_AUTH_FACTORY_RESPONSES = [
+    protected const CLIENT_AUTH_FACTORY_RESPONSES = [
         'auth-project',
         'en-US',
-        'client',
         'wss://realtime.example.com/v1',
         'auth-session',
         'auth-dev-key',
@@ -124,113 +123,33 @@ abstract class Base extends TestCase
         'Invalid realtime endpoint URL: ftp://cloud.appwrite.io/v1',
     ];
 
-    protected const NODE_AUTH_FACTORY_RESPONSES = [
+    protected const SERVER_AUTH_FACTORY_RESPONSES = [
         'auth-project',
         'en-US',
         'client',
         'auth-session',
         'auth-api-key',
         'auth-cookie',
-        'auth-cookie',
         'auth-jwt',
         'auth-dev-key',
-        'auth-dev-key',
-        'auth-user-id',
         'auth-user-id',
         'auth@example.com',
-        'auth@example.com',
-        '+15555550123',
         '+15555550123',
         'Exactly one impersonation target must be provided',
         'Invalid endpoint URL: htp://cloud.appwrite.io/v1',
     ];
 
-    protected const DART_AUTH_FACTORY_RESPONSES = [
+    protected const ISOMORPHIC_AUTH_FACTORY_RESPONSES = [
         'auth-project',
         'en-US',
         'client',
-        'auth-session',
-        'auth-api-key',
-        'auth-cookie',
-        'auth-jwt',
-        'auth-dev-key',
-        'auth-user-id',
-        'auth@example.com',
-        '+15555550123',
-        'Exactly one of userId, userEmail, or userPhone must be provided.',
-        'Invalid endpoint URL: htp://cloud.appwrite.io/v1',
-    ];
-
-    protected const SWIFT_AUTH_FACTORY_RESPONSES = [
-        'auth-project',
-        'en-US',
-        'client',
-        'auth-session',
-        'auth-api-key',
-        'auth-cookie',
-        'auth-jwt',
-        'auth-dev-key',
-        'auth-user-id',
-        'auth@example.com',
-        '+15555550123',
-        'Provide exactly one impersonation target.',
-        'Invalid endpoint URL: htp://cloud.appwrite.io/v1',
-    ];
-
-    protected const KOTLIN_AUTH_FACTORY_RESPONSES = [
-        'auth-project',
-        'en-US',
-        'client',
-        'auth-session',
-        'auth-api-key',
-        'auth-cookie',
-        'auth-jwt',
-        'auth-dev-key',
-        'auth-user-id',
-        'auth@example.com',
-        '+15555550123',
-        'Exactly one of userId, userEmail, or userPhone must be provided.',
-        'Invalid endpoint URL: htp://cloud.appwrite.io/v1',
-    ];
-
-    protected const APPLE_AUTH_FACTORY_RESPONSES = [
-        'auth-project',
-        'en-US',
         'wss://realtime.example.com/v1',
         'auth-session',
         'auth-dev-key',
         'auth-user-id',
         'auth@example.com',
         '+15555550123',
-        'Provide exactly one impersonation target.',
-        'Invalid endpoint URL: htp://cloud.appwrite.io/v1',
-        'Invalid realtime endpoint URL: ftp://cloud.appwrite.io/v1',
-    ];
-
-    protected const ANDROID_AUTH_FACTORY_RESPONSES = [
-        'auth-project',
-        'en-US',
-        'wss://realtime.example.com/v1',
-        'auth-session',
-        'auth-dev-key',
-        'auth-user-id',
-        'auth@example.com',
-        '+15555550123',
-        'Exactly one of userId, userEmail, or userPhone must be provided.',
-        'Invalid endpoint URL: htp://cloud.appwrite.io/v1',
-        'Invalid realtime endpoint URL: ftp://cloud.appwrite.io/v1',
-    ];
-
-    protected const FLUTTER_AUTH_FACTORY_RESPONSES = [
-        'auth-project',
-        'en-US',
-        'wss://realtime.example.com/v1',
-        'auth-session',
-        'auth-dev-key',
-        'auth-user-id',
-        'auth@example.com',
-        '+15555550123',
-        'Exactly one of userId, userEmail, or userPhone must be provided.',
+        'Exactly one impersonation target must be provided',
         'Invalid endpoint URL: htp://cloud.appwrite.io/v1',
         'Invalid realtime endpoint URL: ftp://cloud.appwrite.io/v1',
     ];

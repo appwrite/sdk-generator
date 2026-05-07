@@ -203,7 +203,7 @@ abstract class Client implements ClientAuth {
     final targets = [userId, userEmail, userPhone].whereType<String>().length;
     if (targets != 1) {
       throw {{spec.title | caseUcfirst}}Exception(
-        'Exactly one of userId, userEmail, or userPhone must be provided.',
+        'Exactly one impersonation target must be provided',
       );
     }
 
