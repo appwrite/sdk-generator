@@ -5,6 +5,7 @@ import 'client_stub.dart'
 import 'exception.dart';
 import 'response.dart';
 import 'upload_progress.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
 
 /// [Client] that handles requests to {{spec.title | caseUcfirst}}.
 ///
@@ -18,6 +19,12 @@ abstract class ClientAuth {
 
   /// {{spec.title | caseUcfirst}} realtime endpoint.
   String? get endPointRealtime;
+
+  /// Open a realtime WebSocket connection.
+  Future<WebSocketChannel> realtimeWebSocket(Uri uri);
+
+  /// Session cookie fallback for browser realtime authentication.
+  String? realtimeFallbackCookie();
 
   /// Handle OAuth2 session creation.
   Future webAuth(Uri url, {String? callbackUrlScheme});

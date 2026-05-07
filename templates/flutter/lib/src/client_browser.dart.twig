@@ -1,9 +1,12 @@
+import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/browser_client.dart';
 import 'package:web/web.dart' as web;
+import 'package:web_socket_channel/html.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
 import 'client_mixin.dart';
 import 'enums.dart';
 import 'exception.dart';
@@ -120,6 +123,22 @@ class ClientBrowser extends ClientBase with ClientMixin {
     if (cookieFallback != null) {
       addHeader('x-fallback-cookies', cookieFallback);
     }
+  }
+
+  @override
+  Future<WebSocketChannel> realtimeWebSocket(Uri uri) async {
+    await init();
+    return HtmlWebSocketChannel.connect(uri);
+  }
+
+  @override
+  String? realtimeFallbackCookie() {
+    final fallbackCookie = web.window.localStorage.getItem('cookieFallback');
+    if (fallbackCookie != null) {
+      final cookie = Map<String, dynamic>.from(jsonDecode(fallbackCookie));
+      return cookie.values.first;
+    }
+    return null;
   }
 
   @override
