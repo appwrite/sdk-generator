@@ -547,9 +547,9 @@ class Web extends JS
     }
 
     /**
-     * Build the TypeScript `this:` gate string for a method in a Web service.
+     * Build the TypeScript `this:` receiver constraint for a method in a Web service.
      */
-    public function webMethodThisGate(array $method, array $service): string
+    public function webMethodAuthReceiver(array $method, array $service): string
     {
         $auth = $this->webServiceAuth($service);
         if (!$auth['hasMixedTier']) {
@@ -680,8 +680,8 @@ class Web extends JS
             new TwigFilter('webServiceAuth', function (array $service) {
                 return $this->webServiceAuth($service);
             }),
-            new TwigFilter('webMethodThisGate', function (array $method, array $service) {
-                return $this->webMethodThisGate($method, $service);
+            new TwigFilter('webMethodAuthReceiver', function (array $method, array $service) {
+                return $this->webMethodAuthReceiver($method, $service);
             }, ['is_safe' => ['html']]),
             new TwigFilter('webClientBaseParams', function (array $headers) {
                 return $this->webClientBaseParams($headers);
