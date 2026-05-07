@@ -100,6 +100,7 @@ open class Client {
     ) throws -> Client {
         let client = Client()
         try configure(client, endpoint: endpoint, projectId: projectId, locale: locale, selfSigned: selfSigned, sdkPlatform: "server")
+        client.config["cookie"] = cookie
         client.headers["Cookie"] = cookie
         return client
     }
@@ -125,6 +126,7 @@ open class Client {
         selfSigned: Bool = false
     ) throws -> Client {
         let client = try fromBrowser(endpoint: endpoint, projectId: projectId, locale: locale, selfSigned: selfSigned)
+        client.config["devkey"] = devKey
         client.headers["X-{{ spec.title | caseUcfirst }}-Dev-Key"] = devKey
         return client
     }
@@ -148,10 +150,13 @@ open class Client {
         client.setSession(session)
 
         if let userId = userId {
+            client.config["impersonateuserid"] = userId
             client.headers["X-{{ spec.title | caseUcfirst }}-Impersonate-User-Id"] = userId
         } else if let userEmail = userEmail {
+            client.config["impersonateuseremail"] = userEmail
             client.headers["X-{{ spec.title | caseUcfirst }}-Impersonate-User-Email"] = userEmail
         } else if let userPhone = userPhone {
+            client.config["impersonateuserphone"] = userPhone
             client.headers["X-{{ spec.title | caseUcfirst }}-Impersonate-User-Phone"] = userPhone
         }
 
