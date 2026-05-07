@@ -438,7 +438,7 @@ class ClientRuntime<TAuth extends Auth = 'browser'> {
         const client = new ClientRuntime<'apiKey'>()
             .applyBase<'apiKey'>(params, 'server');
         client.headers['X-{{ spec.title | caseUcfirst }}-Key'] = params.apiKey;
-        client.config.key = params.apiKey;
+        (client.config as unknown as Record<string, string>).key = params.apiKey;
         return client;
     }
 
