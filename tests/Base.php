@@ -148,6 +148,8 @@ abstract class Base extends TestCase
         'auth@example.com',
         '+15555550123',
         'Exactly one of userId, userEmail, or userPhone must be provided.',
+        'Invalid endpoint URL: htp://cloud.appwrite.io/v1',
+        'Invalid realtime endpoint URL: ftp://cloud.appwrite.io/v1',
     ];
 
     protected const FLUTTER_AUTH_FACTORY_RESPONSES = [
@@ -160,6 +162,7 @@ abstract class Base extends TestCase
         'auth@example.com',
         '+15555550123',
         'Exactly one of userId, userEmail, or userPhone must be provided.',
+        'Invalid endpoint URL: htp://cloud.appwrite.io/v1',
         'Invalid realtime endpoint URL: ftp://cloud.appwrite.io/v1',
     ];
 

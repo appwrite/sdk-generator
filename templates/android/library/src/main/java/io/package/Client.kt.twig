@@ -149,6 +149,15 @@ class Client @JvmOverloads constructor(
             locale: String?,
             selfSigned: Boolean
         ): Client {
+            require(endpoint.startsWith("http://") || endpoint.startsWith("https://")) {
+                "Invalid endpoint URL: $endpoint"
+            }
+            if (endpointRealtime != null) {
+                require(endpointRealtime.startsWith("ws://") || endpointRealtime.startsWith("wss://")) {
+                    "Invalid realtime endpoint URL: $endpointRealtime"
+                }
+            }
+
             val client = Client(
                 context,
                 endpoint,

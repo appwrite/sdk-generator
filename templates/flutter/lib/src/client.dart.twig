@@ -2,6 +2,7 @@ import 'enums.dart';
 import 'client_stub.dart'
     if (dart.library.js_interop) 'client_browser.dart'
     if (dart.library.io) 'client_io.dart';
+import 'exception.dart';
 import 'response.dart';
 import 'upload_progress.dart';
 
@@ -77,6 +78,11 @@ abstract class Client implements ClientAuth {
     String? locale,
     required bool selfSigned,
   }) {
+    _validateEndpoint(endPoint);
+    if (endPointRealtime != null) {
+      _validateRealtimeEndpoint(endPointRealtime);
+    }
+
     final client = createClient(endPoint: endPoint, selfSigned: selfSigned);
 
     _setHeader(
@@ -99,6 +105,18 @@ abstract class Client implements ClientAuth {
     }
 
     return client;
+  }
+
+  static void _validateEndpoint(String endPoint) {
+    if (!endPoint.startsWith('http://') && !endPoint.startsWith('https://')) {
+      throw {{spec.title | caseUcfirst}}Exception('Invalid endpoint URL: $endPoint');
+    }
+  }
+
+  static void _validateRealtimeEndpoint(String endPointRealtime) {
+    if (!endPointRealtime.startsWith('ws://') && !endPointRealtime.startsWith('wss://')) {
+      throw {{spec.title | caseUcfirst}}Exception('Invalid realtime endpoint URL: $endPointRealtime');
+    }
   }
 
   static void _setHeader(

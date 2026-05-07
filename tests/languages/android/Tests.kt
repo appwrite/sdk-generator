@@ -139,6 +139,27 @@ class ServiceTest {
             writeToFile(e.message)
         }
 
+        try {
+            Client.fromBrowser(
+                context = ApplicationProvider.getApplicationContext(),
+                projectId = "auth-project",
+                endpoint = "htp://cloud.appwrite.io/v1"
+            )
+        } catch (e: IllegalArgumentException) {
+            writeToFile(e.message)
+        }
+
+        try {
+            Client.fromBrowser(
+                context = ApplicationProvider.getApplicationContext(),
+                projectId = "auth-project",
+                endpoint = "https://cloud.appwrite.io/v1",
+                endpointRealtime = "ftp://cloud.appwrite.io/v1"
+            )
+        } catch (e: IllegalArgumentException) {
+            writeToFile(e.message)
+        }
+
         runBlocking {
             val ping = client.ping()
             val pingResponse = parse(ping)

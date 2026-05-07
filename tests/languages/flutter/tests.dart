@@ -116,6 +116,15 @@ void main() async {
 
   try {
     Client.fromBrowser(
+      endPoint: 'htp://cloud.appwrite.io/v1',
+      projectId: 'auth-project',
+    );
+  } on AppwriteException catch (e) {
+    authFactoryOutputs.add(e.message);
+  }
+
+  try {
+    Client.fromBrowser(
       endPoint: 'https://cloud.appwrite.io/v1',
       projectId: 'auth-project',
       endPointRealtime: 'ftp://cloud.appwrite.io/v1',
