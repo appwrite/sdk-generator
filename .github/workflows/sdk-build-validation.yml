@@ -37,6 +37,9 @@ jobs:
             platform: client
 
           # Server SDKs
+          - sdk: web
+            platform: server
+
           - sdk: node
             platform: server
 

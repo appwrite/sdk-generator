@@ -59,6 +59,12 @@
       "description": "The user session to authenticate with",
       "in": "header"
     },
+    "Cookie": {
+      "type": "apiKey",
+      "name": "Cookie",
+      "description": "Cookie header",
+      "in": "header"
+    },
     "Locale": {
       "type": "apiKey",
       "name": "X-Appwrite-Locale",
@@ -67,6 +73,30 @@
       "x-appwrite": {
         "demo": "en"
       }
+    },
+    "DevKey": {
+      "type": "apiKey",
+      "name": "X-Appwrite-Dev-Key",
+      "description": "Your development key",
+      "in": "header"
+    },
+    "ImpersonateUserId": {
+      "type": "apiKey",
+      "name": "X-Appwrite-Impersonate-User-Id",
+      "description": "User ID to impersonate",
+      "in": "header"
+    },
+    "ImpersonateUserEmail": {
+      "type": "apiKey",
+      "name": "X-Appwrite-Impersonate-User-Email",
+      "description": "User email to impersonate",
+      "in": "header"
+    },
+    "ImpersonateUserPhone": {
+      "type": "apiKey",
+      "name": "X-Appwrite-Impersonate-User-Phone",
+      "description": "User phone to impersonate",
+      "in": "header"
     },
     "Mode": {
       "type": "apiKey",
