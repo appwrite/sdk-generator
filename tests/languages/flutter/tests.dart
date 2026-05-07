@@ -220,6 +220,36 @@ void main() async {
     print("Realtime disconnect:failed");
   }
 
+  // Realtime presence (upsertPresence) test against the mock WebSocket server.
+  // Uses a fresh Client/Realtime so it doesn't inherit the cloud.appwrite.io endpoint above.
+  try {
+    final presenceClient = Client()
+        .setProject('123456')
+        .setEndPointRealtime('ws://mockapi/v1');
+    final presenceRealtime = Realtime(presenceClient);
+
+    // createPresence requires an open WebSocket; subscribing opens one.
+    presenceRealtime.subscribe(['tests']);
+
+    final presence = await presenceRealtime.createPresence(
+      status: 'online',
+      presenceId: 'p-test',
+      metadata: {'page': '/home'},
+    );
+
+    if (presence[r'$id'] == 'p-test'
+        && presence['status'] == 'online'
+        && presence['source'] == 'WS') {
+      print("Realtime presence:passed");
+    } else {
+      print("Realtime presence:failed");
+    }
+
+    await presenceRealtime.disconnect();
+  } catch (e) {
+    print("Realtime presence:failed");
+  }
+
   response = await general.setCookie();
   print(response.result);
 

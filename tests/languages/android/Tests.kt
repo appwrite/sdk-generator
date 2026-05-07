@@ -269,6 +269,39 @@ class ServiceTest {
                 writeToFile("Realtime disconnect:failed")
             }
 
+            // Realtime presence (upsertPresence) test against the mock WebSocket server.
+            // Uses a fresh Client/Realtime so it doesn't inherit the cloud.appwrite.io endpoint above.
+            try {
+                val presenceClient = Client(ApplicationProvider.getApplicationContext())
+                    .setProject("123456")
+                    .setEndpointRealtime("ws://mockapi/v1")
+                val presenceRealtime = Realtime(presenceClient)
+
+                // createPresence requires an open WebSocket; subscribing opens one.
+                presenceRealtime.subscribe(
+                    "tests",
+                    payloadType = TestPayload::class.java,
+                ) { /* no-op */ }
+
+                val presence = presenceRealtime.createPresence(
+                    status = "online",
+                    metadata = mapOf("page" to "/home"),
+                    presenceId = "p-test",
+                )
+
+                if (presence["\$id"] == "p-test"
+                    && presence["status"] == "online"
+                    && presence["source"] == "WS") {
+                    writeToFile("Realtime presence:passed")
+                } else {
+                    writeToFile("Realtime presence:failed")
+                }
+
+                presenceRealtime.disconnect()
+            } catch (e: Exception) {
+                writeToFile("Realtime presence:failed")
+            }
+
             // mock = general.setCookie()
             // writeToFile(mock.result)
 

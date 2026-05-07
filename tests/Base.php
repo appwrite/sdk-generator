@@ -116,6 +116,7 @@ abstract class Base extends TestCase
         'Realtime unsubscribe:passed',
         'Realtime update:passed',
         'Realtime disconnect:passed',
+        'Realtime presence:passed',
     ];
 
     protected const QUERY_HELPER_RESPONSES = [

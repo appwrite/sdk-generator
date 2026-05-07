@@ -25,9 +25,11 @@ use Utopia\Validator\Host;
 use Utopia\Validator\Nullable;
 use Utopia\Validator\WhiteList;
 use Swoole\Process;
-use Swoole\Http\Server;
+use Swoole\WebSocket\Server;
+use Swoole\WebSocket\Frame;
 use Utopia\MockServer\Utopia\Model\Player;
 use Utopia\MockServer\Utopia\Validator\Player as PlayerValidator;
+use Utopia\MockServer\Utopia\Realtime\Protocol as RealtimeProtocol;
 
 const APP_AUTH_TYPE_SESSION = 'Session';
 const APP_AUTH_TYPE_JWT = 'JWT';
@@ -883,6 +885,39 @@ $http->on(Constant::EVENT_REQUEST, function (SwooleRequest $swooleRequest, Swool
     $app = new App('UTC');
 
     $app->run($request, $response);
+});
+
+/**
+ * Realtime WebSocket mock at /v1/realtime?project=<id>.
+ *
+ * Single Protocol instance is shared across worker invocations within the same
+ * worker process; per-connection state lives inside it keyed by Swoole fd.
+ */
+$realtimeProtocol = new RealtimeProtocol();
+
+$http->on('open', function (Server $server, SwooleRequest $swooleRequest) use ($realtimeProtocol) {
+    $path = (string) ($swooleRequest->server['request_uri'] ?? '');
+    if ($path !== '/v1/realtime') {
+        // Reject upgrades on any other path with a policy-violation close.
+        $server->disconnect($swooleRequest->fd, 1008, 'Invalid realtime path');
+        return;
+    }
+
+    $project = (string) ($swooleRequest->get['project'] ?? '');
+    if ($project === '') {
+        $server->disconnect($swooleRequest->fd, 1008, 'Missing project');
+        return;
+    }
+
+    $realtimeProtocol->open($server, $swooleRequest->fd, $project);
+});
+
+$http->on('message', function (Server $server, Frame $frame) use ($realtimeProtocol) {
+    $realtimeProtocol->message($server, $frame->fd, (string) $frame->data);
+});
+
+$http->on('close', function (Server $server, int $fd) use ($realtimeProtocol) {
+    $realtimeProtocol->close($fd);
 });
 
 $http->start();

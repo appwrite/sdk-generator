@@ -326,6 +326,37 @@
                 console.log('Realtime disconnect:failed');
             }
 
+            // Realtime presence (upsertPresence) test against the mock WebSocket server.
+            // Uses a fresh Client/Realtime to avoid the cloud.appwrite.io endpoint set above.
+            try {
+                const presenceClient = new Client();
+                presenceClient.setProject('123456');
+                presenceClient.setEndpointRealtime('ws://mockapi/v1');
+
+                const presenceRealtime = new Realtime(presenceClient);
+
+                // createPresence requires an open WebSocket; subscribing opens one.
+                await presenceRealtime.subscribe(['tests'], () => {});
+
+                const presence = await presenceRealtime.createPresence({
+                    status: 'online',
+                    presenceId: 'p-test',
+                    metadata: { page: '/home' },
+                });
+
+                if (presence?.$id === 'p-test'
+                    && presence?.status === 'online'
+                    && presence?.source === 'WS') {
+                    console.log('Realtime presence:passed');
+                } else {
+                    console.log('Realtime presence:failed');
+                }
+
+                await presenceRealtime.disconnect();
+            } catch (e) {
+                console.log('Realtime presence:failed');
+            }
+
             // Query helper tests
             console.log(Query.equal("released", [true]));
             console.log(Query.equal("title", ["Spiderman", "Dr. Strange"]));

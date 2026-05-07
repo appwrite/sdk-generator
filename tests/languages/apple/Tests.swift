@@ -243,6 +243,37 @@ class Tests: XCTestCase {
             print("Realtime disconnect:failed")
         }
 
+        // Realtime presence (upsertPresence) test against the mock WebSocket server.
+        // Uses a fresh Client/Realtime so it doesn't inherit the cloud.appwrite.io endpoint above.
+        do {
+            let presenceClient = Client()
+                .setProject("123456")
+                .setEndpointRealtime("ws://mockapi/v1")
+            let presenceRealtime = Realtime(presenceClient)
+
+            // createPresence requires an open WebSocket; subscribing opens one.
+            _ = try await presenceRealtime.subscribe(channels: ["tests"]) { _ in }
+
+            let presence = try await presenceRealtime.createPresence(
+                status: "online",
+                metadata: ["page": "/home"],
+                presenceId: "p-test"
+            )
+
+            let id = presence["$id"] as? String
+            let status = presence["status"] as? String
+            let source = presence["source"] as? String
+            if id == "p-test" && status == "online" && source == "WS" {
+                print("Realtime presence:passed")
+            } else {
+                print("Realtime presence:failed")
+            }
+
+            try await presenceRealtime.disconnect()
+        } catch {
+            print("Realtime presence:failed")
+        }
+
         mock = try await general.setCookie()
         print(mock.result)
 
