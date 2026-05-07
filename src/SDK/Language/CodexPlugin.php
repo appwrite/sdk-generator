@@ -62,13 +62,13 @@ class CodexPlugin extends AgentSkills
         $files[] = [
             'scope'       => 'default',
             'destination' => 'plugins/{{ spec.title | caseLower }}/skills/{{ spec.title | caseLower }}-deploy-site/SKILL.md',
-            'template'    => 'codex-plugin/skills/deploy-site.md.twig',
+            'template'    => 'plugin/commands/deploy-site.md.twig',
         ];
 
         $files[] = [
             'scope'       => 'default',
             'destination' => 'plugins/{{ spec.title | caseLower }}/skills/{{ spec.title | caseLower }}-deploy-function/SKILL.md',
-            'template'    => 'codex-plugin/skills/deploy-function.md.twig',
+            'template'    => 'plugin/commands/deploy-function.md.twig',
         ];
 
         $files[] = [
@@ -92,7 +92,7 @@ class CodexPlugin extends AgentSkills
         $files[] = [
             'scope'       => 'default',
             'destination' => 'LICENSE',
-            'template'    => 'cursor-plugin/LICENSE.twig',
+            'template'    => 'plugin/LICENSE.twig',
         ];
 
         return $files;
