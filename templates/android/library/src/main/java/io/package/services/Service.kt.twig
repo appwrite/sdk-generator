@@ -1,7 +1,7 @@
 package {{ sdk.namespace | caseDot }}.services
 
 import android.net.Uri
-import {{ sdk.namespace | caseDot }}.Client
+import {{ sdk.namespace | caseDot }}.ClientAuth
 import {{ sdk.namespace | caseDot }}.Service
 {% if spec.definitions is not empty %}
 import {{ sdk.namespace | caseDot }}.models.*
@@ -25,7 +25,7 @@ import java.io.File
 /**
  * {{ service.description | replace({"\n": "\n * "}) | raw }}
  */
-class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
+class {{ service.name | caseUcfirst }}(private val client: ClientAuth) : Service(client) {
 
 {% for method in service.methods %}
     /**
@@ -80,7 +80,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
         {%~ if method.auth | length > 0 %}
         {%~ for node in method.auth %}
         {%~ for key,header in node | keys %}
-            "{{ header | caseLower }}" to client.config["{{ header | caseLower }}"],
+            "{{ header | caseLower }}" to client.getConfig("{{ header | caseLower }}"),
         {%~ endfor %}
         {%~ endfor %}
         {%~ endif %}
@@ -105,7 +105,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
         }
 
         val apiUrl = Uri.parse("${client.endpoint}${apiPath}?${apiQuery.joinToString("&")}")
-        val callbackUrlScheme = "{{ spec.title | caseLower }}-callback-${client.config["project"]}"
+        val callbackUrlScheme = "{{ spec.title | caseLower }}-callback-${client.getConfig("project")}"
 
         WebAuthComponent.authenticate(activity, apiUrl, callbackUrlScheme) {
             if (it.isFailure) {
@@ -126,7 +126,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
                 .httpOnly()
                 .build()
             
-            client.http.cookieJar.saveFromResponse(
+            client.getHttpClient().cookieJar.saveFromResponse(
                 client.endpoint.toHttpUrl(),
                 listOf(cookie)
             )

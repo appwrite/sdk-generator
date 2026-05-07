@@ -37,12 +37,47 @@ import javax.net.ssl.X509TrustManager
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.resume
 
+interface ClientAuth {
+    val endpoint: String
+    val endpointRealtime: String?
+
+    fun getConfig(key: String): String?
+
+    fun getHeaders(): Map<String, String>
+
+    fun getCookies(url: String): List<Cookie>
+
+    fun getHttpClient(): OkHttpClient
+
+    suspend fun ping(): String
+
+    suspend fun <T> call(
+        method: String,
+        path: String,
+        headers: Map<String, String> = mapOf(),
+        params: Map<String, Any?> = mapOf(),
+        responseType: Class<T>,
+        converter: ((Any) -> T)? = null
+    ): T
+
+    suspend fun <T> chunkedUpload(
+        path: String,
+        headers: MutableMap<String, String>,
+        params: MutableMap<String, Any?>,
+        responseType: Class<T>,
+        converter: ((Any) -> T),
+        paramName: String,
+        idParamName: String? = null,
+        onProgress: ((UploadProgress) -> Unit)? = null,
+    ): T
+}
+
 class Client @JvmOverloads constructor(
     context: Context,
-    var endpoint: String = "{{spec.endpoint}}",
-    var endpointRealtime: String? = null,
+    override var endpoint: String = "{{spec.endpoint}}",
+    override var endpointRealtime: String? = null,
     private var selfSigned: Boolean = false
-) : CoroutineScope {
+) : ClientAuth, CoroutineScope {
 
     companion object {
         /**
@@ -51,6 +86,184 @@ class Client @JvmOverloads constructor(
         internal const val CHUNK_SIZE = 5*1024*1024; // 5MB
         internal const val GLOBAL_PREFS = "{{ sdk.namespace | caseDot }}"
         internal const val COOKIE_PREFS = "myCookie"
+
+        @JvmStatic
+        @JvmOverloads
+        fun fromBrowser(
+            context: Context,
+            projectId: String,
+            endpoint: String = "{{spec.endpoint}}",
+            endpointRealtime: String? = null,
+            locale: String? = null,
+            selfSigned: Boolean = false
+        ): ClientAuth = fromBrowserClient(
+            context = context,
+            endpoint = endpoint,
+            projectId = projectId,
+            endpointRealtime = endpointRealtime,
+            locale = locale,
+            selfSigned = selfSigned
+        )
+
+        private fun fromBrowserClient(
+            context: Context,
+            endpoint: String,
+            projectId: String,
+            endpointRealtime: String?,
+            locale: String?,
+            selfSigned: Boolean
+        ): Client {
+            val client = Client(
+                context,
+                endpoint,
+                endpointRealtime ?: endpoint.replaceFirst("http", "ws"),
+                selfSigned
+            )
+
+            setHeader(
+                client,
+                "project",
+                "X-{{ spec.title | caseUcfirst }}-Project",
+                projectId
+            )
+            if (locale != null) {
+                setHeader(
+                    client,
+                    "locale",
+                    "X-{{ spec.title | caseUcfirst }}-Locale",
+                    locale
+                )
+            }
+
+            return client
+        }
+
+        private fun setHeader(
+            client: Client,
+            configKey: String,
+            header: String,
+            value: String
+        ) {
+            client.config[configKey] = value
+            client.addHeader(header, value)
+        }
+
+        @JvmStatic
+        @JvmOverloads
+        fun fromSession(
+            context: Context,
+            projectId: String,
+            session: String,
+            endpoint: String = "{{spec.endpoint}}",
+            endpointRealtime: String? = null,
+            locale: String? = null,
+            selfSigned: Boolean = false
+        ): ClientAuth {
+            val client = fromBrowserClient(
+                context = context,
+                endpoint = endpoint,
+                projectId = projectId,
+                endpointRealtime = endpointRealtime,
+                locale = locale,
+                selfSigned = selfSigned
+            )
+
+            setHeader(
+                client,
+                "session",
+                "X-{{ spec.title | caseUcfirst }}-Session",
+                session
+            )
+            return client
+        }
+
+        @JvmStatic
+        @JvmOverloads
+        fun fromDevKey(
+            context: Context,
+            projectId: String,
+            devKey: String,
+            endpoint: String = "{{spec.endpoint}}",
+            endpointRealtime: String? = null,
+            locale: String? = null,
+            selfSigned: Boolean = false
+        ): ClientAuth {
+            val client = fromBrowserClient(
+                context = context,
+                endpoint = endpoint,
+                projectId = projectId,
+                endpointRealtime = endpointRealtime,
+                locale = locale,
+                selfSigned = selfSigned
+            )
+
+            setHeader(
+                client,
+                "devKey",
+                "X-{{ spec.title | caseUcfirst }}-Dev-Key",
+                devKey
+            )
+            return client
+        }
+
+        @JvmStatic
+        @JvmOverloads
+        fun fromImpersonation(
+            context: Context,
+            projectId: String,
+            session: String,
+            userId: String? = null,
+            userEmail: String? = null,
+            userPhone: String? = null,
+            endpoint: String = "{{spec.endpoint}}",
+            endpointRealtime: String? = null,
+            locale: String? = null,
+            selfSigned: Boolean = false
+        ): ClientAuth {
+            val targets = listOfNotNull(userId, userEmail, userPhone).size
+            require(targets == 1) {
+                "Exactly one of userId, userEmail, or userPhone must be provided."
+            }
+
+            val client = fromBrowserClient(
+                context = context,
+                endpoint = endpoint,
+                projectId = projectId,
+                endpointRealtime = endpointRealtime,
+                locale = locale,
+                selfSigned = selfSigned
+            )
+
+            setHeader(
+                client,
+                "session",
+                "X-{{ spec.title | caseUcfirst }}-Session",
+                session
+            )
+
+            when {
+                userId != null -> setHeader(
+                    client,
+                    "impersonateUserId",
+                    "X-{{ spec.title | caseUcfirst }}-Impersonate-User-Id",
+                    userId
+                )
+                userEmail != null -> setHeader(
+                    client,
+                    "impersonateUserEmail",
+                    "X-{{ spec.title | caseUcfirst }}-Impersonate-User-Email",
+                    userEmail
+                )
+                userPhone != null -> setHeader(
+                    client,
+                    "impersonateUserPhone",
+                    "X-{{ spec.title | caseUcfirst }}-Impersonate-User-Phone",
+                    userPhone
+                )
+            }
+
+            return client
+        }
     }
 
     override val coroutineContext: CoroutineContext
@@ -96,7 +309,7 @@ class Client @JvmOverloads constructor(
         )
         config = mutableMapOf()
 
-        setSelfSigned(selfSigned)
+        applySelfSigned(selfSigned)
     }
 
 {% for header in spec.global.headers %}
@@ -111,6 +324,7 @@ class Client @JvmOverloads constructor(
      *
      * @return this
      */
+    @Deprecated("Use Client.fromBrowser or another factory method instead.")
     fun set{{header.key | caseUcfirst}}(value: String): Client {
         config["{{ header.key | caseCamel }}"] = value
         addHeader("{{ header.name | caseLower }}", value)
@@ -125,7 +339,13 @@ class Client @JvmOverloads constructor(
      *
      * @return this
      */
+    @Deprecated("Use Client.fromBrowser or another factory method instead.")
     fun setSelfSigned(status: Boolean): Client {
+        applySelfSigned(status)
+        return this
+    }
+
+    private fun applySelfSigned(status: Boolean) {
         selfSigned = status
 
         val builder = OkHttpClient()
@@ -134,7 +354,7 @@ class Client @JvmOverloads constructor(
 
         if (!selfSigned) {
             http = builder.build()
-            return this
+            return
         }
 
         try {
@@ -166,8 +386,6 @@ class Client @JvmOverloads constructor(
         } catch (e: Exception) {
             throw RuntimeException(e)
         }
-
-        return this
     }
 
     /**
@@ -178,6 +396,7 @@ class Client @JvmOverloads constructor(
      * @return this
      */
     @Throws(IllegalArgumentException::class)
+    @Deprecated("Use Client.fromBrowser or another factory method instead.")
     fun setEndpoint(endpoint: String): Client {
         require(endpoint.startsWith("http://") || endpoint.startsWith("https://")) {
             "Invalid endpoint URL: $endpoint"
@@ -197,6 +416,7 @@ class Client @JvmOverloads constructor(
      * @return this
      */
     @Throws(IllegalArgumentException::class)
+    @Deprecated("Use Client.fromBrowser or another factory method instead.")
     fun setEndpointRealtime(endpoint: String): Client {
         require(endpoint.startsWith("ws://") || endpoint.startsWith("wss://")) {
             "Invalid realtime endpoint URL: $endpoint"
@@ -224,7 +444,15 @@ class Client @JvmOverloads constructor(
      *
      * @return a copy of the current request headers
      */
-    fun getHeaders(): Map<String, String> = headers.toMap()
+    override fun getHeaders(): Map<String, String> = headers.toMap()
+
+    /**
+     * Get a configuration value by key.
+     *
+     * @param key the configuration key
+     * @return the configuration value if set
+     */
+    override fun getConfig(key: String): String? = config[key]
 
     /**
      * Get the cookies for a given URL from the SDK's cookie store.
@@ -232,21 +460,21 @@ class Client @JvmOverloads constructor(
      * @param url the URL to retrieve cookies for
      * @return a list of cookies for the given URL
      */
-    fun getCookies(url: String): List<Cookie> = cookieJar.loadForRequest(url.toHttpUrl())
+    override fun getCookies(url: String): List<Cookie> = cookieJar.loadForRequest(url.toHttpUrl())
 
     /**
      * Get the OkHttpClient instance used by this SDK.
      *
      * @return the OkHttpClient instance used by this client
      */
-    fun getHttpClient(): OkHttpClient = http
+    override fun getHttpClient(): OkHttpClient = http
 
     /**
      * Sends a "ping" request to Appwrite to verify connectivity.
      *
      * @return String
      */
-    suspend fun ping(): String {
+    override suspend fun ping(): String {
         val apiPath = "/ping"
         val apiParams = mutableMapOf<String, Any?>()
         val apiHeaders = mutableMapOf("content-type" to "application/json")
@@ -256,7 +484,8 @@ class Client @JvmOverloads constructor(
             apiPath,
             apiHeaders,
             apiParams,
-            responseType = String::class.java
+            responseType = String::class.java,
+            converter = null
         )
     }
 
@@ -271,13 +500,13 @@ class Client @JvmOverloads constructor(
      * @return [T]
      */
     @Throws({{ spec.title | caseUcfirst }}Exception::class)
-    suspend fun <T> call(
+    override suspend fun <T> call(
         method: String,
         path: String,
-        headers:  Map<String, String> = mapOf(),
-        params: Map<String, Any?> = mapOf(),
+        headers:  Map<String, String>,
+        params: Map<String, Any?>,
         responseType: Class<T>,
-        converter: ((Any) -> T)? = null
+        converter: ((Any) -> T)?
     ): T {
         val filteredParams = params.filterValues { it != null }
 
@@ -364,15 +593,15 @@ class Client @JvmOverloads constructor(
      * @return [T]
      */
     @Throws({{ spec.title | caseUcfirst }}Exception::class)
-    suspend fun <T> chunkedUpload(
+    override suspend fun <T> chunkedUpload(
         path: String,
         headers:  MutableMap<String, String>,
         params: MutableMap<String, Any?>,
         responseType: Class<T>,
         converter: ((Any) -> T),
         paramName: String,
-        idParamName: String? = null,
-        onProgress: ((UploadProgress) -> Unit)? = null,
+        idParamName: String?,
+        onProgress: ((UploadProgress) -> Unit)?,
     ): T {
         var file: RandomAccessFile? = null
         val input = params[paramName] as InputFile
@@ -420,6 +649,7 @@ class Client @JvmOverloads constructor(
                 headers = headers,
                 params = emptyMap(),
                 responseType = Map::class.java,
+                converter = null
             )
             val chunksUploaded = current["chunksUploaded"] as Long
             offset = chunksUploaded * CHUNK_SIZE
@@ -460,7 +690,8 @@ class Client @JvmOverloads constructor(
                 path,
                 headers,
                 params,
-                responseType = Map::class.java
+                responseType = Map::class.java,
+                converter = null
             )
 
             offset += CHUNK_SIZE
