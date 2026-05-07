@@ -17,7 +17,7 @@ class KotlinJava11Test extends Base
         'chmod +x tests/sdks/kotlin/gradlew',
     ];
     protected string $command =
-        'docker run --network="mockapi" -v $(pwd):/app -w /app/tests/sdks/kotlin openjdk:11-jdk-slim sh -c "./gradlew test -q && cat result.txt"';
+        'docker run --network="mockapi" -v $(pwd):/app -w /app/tests/sdks/kotlin eclipse-temurin:11-jdk-jammy sh -c "./gradlew test -q && cat result.txt"';
 
     protected array $expectedOutput = [
         ...Base::PING_RESPONSE,
