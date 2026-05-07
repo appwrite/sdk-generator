@@ -110,7 +110,7 @@ void main() async {
       projectId: 'auth-project',
       session: 'auth-session',
     );
-  } on ArgumentError catch (e) {
+  } on AppwriteException catch (e) {
     authFactoryOutputs.add(e.message);
   }
 
