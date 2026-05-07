@@ -150,6 +150,19 @@ abstract class Base extends TestCase
         'Exactly one of userId, userEmail, or userPhone must be provided.',
     ];
 
+    protected const FLUTTER_AUTH_FACTORY_RESPONSES = [
+        'auth-project',
+        'en-US',
+        'wss://realtime.example.com/v1',
+        'auth-session',
+        'auth-dev-key',
+        'auth-user-id',
+        'auth@example.com',
+        '+15555550123',
+        'Exactly one of userId, userEmail, or userPhone must be provided.',
+        'Invalid realtime endpoint URL: ftp://cloud.appwrite.io/v1',
+    ];
+
     protected const REALTIME_RESPONSES = [
         'WS:/v1/realtime:passed',
         'WS:/v1/realtime:passed',

@@ -19,6 +19,7 @@ class FlutterBetaTest extends Base
         'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/sdks/flutter ghcr.io/cirruslabs/flutter:beta sh -c "flutter pub get && flutter test test/appwrite_test.dart"';
 
     protected array $expectedOutput = [
+        ...Base::FLUTTER_AUTH_FACTORY_RESPONSES,
         ...Base::PING_RESPONSE,
         ...Base::FOO_RESPONSES,
         ...Base::BAR_RESPONSES,
