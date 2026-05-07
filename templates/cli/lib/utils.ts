@@ -55,7 +55,10 @@ export const createSettingsObject = (project: Models.Project): SettingsType => {
         passwordDictionary: project.authPasswordDictionary,
         personalDataCheck: project.authPersonalDataCheck,
         sessionAlerts: project.authSessionAlerts,
-        mockNumbers: project.authMockNumbers,
+        mockNumbers: project.authMockNumbers?.map((mockNumber) => ({
+          phone: mockNumber.number,
+          otp: mockNumber.otp,
+        })),
       },
     },
   };
@@ -94,8 +97,13 @@ export const getErrorMessage = (error: unknown): string => {
 
 export type InstallationMethod = "npm" | "homebrew" | "standalone";
 type LatestVersionSource = "npm" | "homebrew";
+type LatestVersionOptions = {
+  timeoutMs?: number;
+  homebrewFormula?: string;
+};
 type HomebrewInfoResponse = {
   formulae?: Array<{
+    full_name?: string;
     versions?: {
       stable?: string;
     };
@@ -221,17 +229,66 @@ const normalizeHomebrewVersion = (version: string): string => {
   return version.split("_")[0].trim();
 };
 
-const getHomebrewLatestVersion = async (
+const DEFAULT_HOMEBREW_COMMAND_TIMEOUT_MS = 15000;
+
+export const getInstalledHomebrewFormula = (
   options: { timeoutMs?: number } = {},
-): Promise<string> => {
+): string | null => {
   try {
     const output = childProcess.execFileSync(
       "brew",
-      ["info", "--json=v2", HOMEBREW_FORMULA],
+      ["list", "--formula", "--full-name"],
       {
         encoding: "utf8",
         stdio: ["ignore", "pipe", "pipe"],
-        timeout: options.timeoutMs,
+        timeout: options.timeoutMs ?? DEFAULT_HOMEBREW_COMMAND_TIMEOUT_MS,
+        env: {
+          ...process.env,
+          HOMEBREW_NO_AUTO_UPDATE: "1",
+        },
+      },
+    );
+    const formulaName = EXECUTABLE_NAME.toLowerCase();
+    const preferredFormulas = new Set([HOMEBREW_FORMULA, formulaName]);
+    const installedFormulas = output
+      .split(/\r?\n/)
+      .map((formula) => formula.trim())
+      .filter((formula) => formula.length > 0);
+
+    const preferred = installedFormulas.find((formula) =>
+      preferredFormulas.has(formula),
+    );
+    if (preferred) {
+      return preferred;
+    }
+
+    const tapMatch = installedFormulas.find((formula) => {
+      const segments = formula.split("/");
+      return segments[segments.length - 1] === formulaName;
+    });
+
+    return tapMatch ?? null;
+  } catch (_error) {
+    return null;
+  }
+};
+
+const getHomebrewLatestVersion = async (
+  options: LatestVersionOptions = {},
+): Promise<string> => {
+  const formulaName =
+    options.homebrewFormula ??
+    getInstalledHomebrewFormula(options) ??
+    HOMEBREW_FORMULA;
+
+  try {
+    const output = childProcess.execFileSync(
+      "brew",
+      ["info", "--json=v2", formulaName],
+      {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+        timeout: options.timeoutMs ?? DEFAULT_HOMEBREW_COMMAND_TIMEOUT_MS,
         env: {
           ...process.env,
           HOMEBREW_NO_AUTO_UPDATE: "1",
@@ -240,10 +297,16 @@ const getHomebrewLatestVersion = async (
     );
 
     const parsed = JSON.parse(output) as HomebrewInfoResponse;
-    const stableVersion = parsed.formulae?.[0]?.versions?.stable;
+    const formula =
+      parsed.formulae?.find((formula) => {
+        return formula.full_name === formulaName;
+      }) ?? parsed.formulae?.[0];
+    const stableVersion = formula?.versions?.stable;
 
     if (typeof stableVersion !== "string" || stableVersion.trim() === "") {
-      throw new Error("Homebrew did not return a stable formula version.");
+      throw new Error(
+        `Homebrew did not return a stable version for ${formulaName}.`,
+      );
     }
 
     return normalizeHomebrewVersion(stableVersion);
@@ -254,7 +317,7 @@ const getHomebrewLatestVersion = async (
   }
 };
 
-const isCloudHostname = (hostname: string): boolean =>
+export const isCloudHostname = (hostname: string): boolean =>
   hostname === "cloud.appwrite.io" || hostname.endsWith(".cloud.appwrite.io");
 
 export const getConsoleBaseUrl = (endpoint: string): string => {
@@ -492,7 +555,7 @@ export async function getLatestVersion(
 
 export async function getLatestVersionForInstallation(
   method: InstallationMethod | null,
-  options: { timeoutMs?: number } = {},
+  options: LatestVersionOptions = {},
 ): Promise<string> {
   switch (getLatestVersionSource(method)) {
     case "homebrew":
@@ -557,10 +620,17 @@ export async function getCachedUpdateNotification(
   }
 
   try {
+    const homebrewFormula =
+      installationMethod === "homebrew"
+        ? (getInstalledHomebrewFormula({
+            timeoutMs: DEFAULT_UPDATE_CHECK_TIMEOUT_MS,
+          }) ?? HOMEBREW_FORMULA)
+        : undefined;
     const latestVersion = await getLatestVersionForInstallation(
       installationMethod,
       {
         timeoutMs: DEFAULT_UPDATE_CHECK_TIMEOUT_MS,
+        homebrewFormula,
       },
     );
     const updateAvailable = compareVersions(currentVersion, latestVersion) > 0;

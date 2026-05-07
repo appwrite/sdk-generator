@@ -411,6 +411,11 @@ class CLI extends Node
                 'template'      => 'cli/lib/config.ts',
             ],
             [
+                'scope'         => 'copy',
+                'destination'   => 'lib/completions.ts',
+                'template'      => 'cli/lib/completions.ts',
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => 'lib/constants.ts',
                 'template'      => 'cli/lib/constants.ts.twig',
@@ -907,7 +912,7 @@ class CLI extends Node
                 $type = $parameter['type'] ?? 'string';
 
                 if ($type === 'object') {
-                    return "JSON.parse({$varName})";
+                    return "parseJsonObject({$varName}, \"--{$optionName}\")";
                 } elseif ($type === 'file') {
                     return "{$varName} !== undefined ? await resolveFileParam({$varName}) : undefined";
                 } else {
