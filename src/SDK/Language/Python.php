@@ -146,6 +146,11 @@ class Python extends Language
                 'template' => 'python/package/__init__.py.twig',
             ],
             [
+                'scope'         => 'default',
+                'destination'   => 'test/__init__.py',
+                'template'      => 'python/test/__init__.py.twig',
+            ],
+            [
                 'scope' => 'default',
                 'destination' => '{{ spec.title | caseSnake}}/utils/deprecated.py',
                 'template' => 'python/package/utils/deprecated.py.twig',
@@ -166,9 +171,19 @@ class Python extends Language
                 'template' => 'python/package/permission.py.twig',
             ],
             [
+                'scope'         => 'default',
+                'destination'   => 'test/test_permission.py',
+                'template'      => 'python/test/test_permission.py.twig',
+            ],
+            [
                 'scope' => 'default',
                 'destination' => '{{ spec.title | caseSnake}}/role.py',
                 'template' => 'python/package/role.py.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'test/test_role.py',
+                'template'      => 'python/test/test_role.py.twig',
             ],
             [
                 'scope' => 'default',
@@ -176,14 +191,29 @@ class Python extends Language
                 'template' => 'python/package/id.py.twig',
             ],
             [
+                'scope'         => 'default',
+                'destination'   => 'test/test_id.py',
+                'template'      => 'python/test/test_id.py.twig',
+            ],
+            [
                 'scope' => 'default',
                 'destination' => '{{ spec.title | caseSnake}}/query.py',
                 'template' => 'python/package/query.py.twig',
             ],
             [
+                'scope'         => 'default',
+                'destination'   => 'test/test_query.py',
+                'template'      => 'python/test/test_query.py.twig',
+            ],
+            [
                 'scope' => 'default',
                 'destination' => '{{ spec.title | caseSnake}}/operator.py',
                 'template' => 'python/package/operator.py.twig',
+            ],
+            [
+                'scope' => 'default',
+                'destination' => 'test/test_operator.py',
+                'template' => 'python/test/test_operator.py.twig',
             ],
             [
                 'scope' => 'default',
@@ -226,6 +256,11 @@ class Python extends Language
                 'template' => 'python/package/services/__init__.py.twig',
             ],
             [
+                'scope'         => 'default',
+                'destination'   => 'test/services/__init__.py',
+                'template'      => 'python/test/services/__init__.py.twig',
+            ],
+            [
                 'scope' => 'default',
                 'destination' => '{{ spec.title | caseSnake}}/encoders/value_class_encoder.py',
                 'template' => 'python/package/encoders/value_class_encoder.py.twig',
@@ -239,6 +274,11 @@ class Python extends Language
                 'scope' => 'service',
                 'destination' => '{{ spec.title | caseSnake}}/services/{{service.name | caseSnake}}.py',
                 'template' => 'python/package/services/service.py.twig',
+            ],
+            [
+                'scope'         => 'service',
+                'destination'   => 'test/services/test_{{service.name | caseSnake}}.py',
+                'template'      => 'python/test/services/test_service.py.twig',
             ],
             [
                 'scope' => 'method',
@@ -704,6 +744,41 @@ class Python extends Language
         return false;
     }
 
+    /**
+     * Creates an example for a response model with the given name
+     *
+     * @param string $model
+     * @param array $spec
+     * @return string
+     */
+    protected function getResponseModelExample(?string $model, array $spec): mixed
+    {
+        if (!$model) {
+            return (object) [];
+        }
+
+        $modelDef = $spec['definitions'][$model];
+
+        $result = [];
+        foreach ($modelDef['properties'] ?? [] as $property) {
+            if (!$property['required']) {
+                continue;
+            }
+
+            $result[$property['name']] = match ($property['type']) {
+                'object' => (array_key_exists('sub_schema', $property) && $property['sub_schema']) ? ((object) $this->getResponseModelExample($property['sub_schema'], $spec)) : new \stdClass(),
+                'array' => array(),
+                'string' => $property['example'] ?? '',
+                'boolean' => true,
+                'float' => (float) $property['example'],
+                'integer' => (float) $property['example'],
+                default => $property['example'] ?? null,
+            };
+        }
+
+        return (object) $result;
+    }
+
     public function getFilters(): array
     {
         return [
@@ -793,6 +868,12 @@ class Python extends Language
             new TwigFilter('requestModelExample', function (array $parameter, array $spec, string $serviceName = '') {
                 return $this->getRequestModelExample($parameter, $spec, $serviceName);
             }),
+            new TwigFilter('responseModelExample', function (string $model, array $spec) {
+                $result = $this->getResponseModelExample($model, $spec);
+                $json = json_encode($result, JSON_PRETTY_PRINT | JSON_PRESERVE_ZERO_FRACTION);
+
+                return str_replace([ 'true', 'false', 'null' ], [ "True", "False", "None" ], $json);
+            })
         ];
     }
 }

@@ -112,7 +112,10 @@ abstract class Base extends TestCase
     protected const REALTIME_RESPONSES = [
         'WS:/v1/realtime:passed',
         'WS:/v1/realtime:passed',
-        'Realtime failed!'
+        'Realtime failed!',
+        'Realtime unsubscribe:passed',
+        'Realtime update:passed',
+        'Realtime disconnect:passed',
     ];
 
     protected const QUERY_HELPER_RESPONSES = [
@@ -201,12 +204,58 @@ abstract class Base extends TestCase
     protected const ADDITIONAL_PROPERTIES_RESPONSES = [
         '{"theme":"dark","timezone":"UTC"}',
         '{"$id":"row1","custom":"value","nested":{"enabled":true}}',
+        '{"data":{"enabled":true},"status":"ok","extra":"kept"}',
     ];
 
     protected const CLI_CONSOLE_URL_RESPONSES = [
         'https://cloud.appwrite.io/console/project-sgp-chirag-project-prod/sites/site-chirag-profile-website/deployments/deployment-123',
         'https://cloud.appwrite.io/console/project-sgp-chirag-project-prod/functions/function-sample-function/deployment-123',
         'https://abc.example.com/console/project-self-hosted-project/sites/site-docs/deployments/deployment-456',
+    ];
+
+    protected const CLI_HEADERS_RESPONSES = [
+        'x-sdk-name: cli; x-sdk-platform: server; x-sdk-language: cli; x-sdk-version: 0.0.1',
+    ];
+
+    protected const CLI_FUNCTION_RESPONSES = [
+        'POST:/v1/functions/{functionId}/executions:passed',
+    ];
+
+    protected const CLI_COMPLETION_RESPONSES = [
+        'compdef _appwrite appwrite',
+        'complete -F _appwrite_completion appwrite',
+        'complete -c \'appwrite\' -f -n \'__appwrite_using_command\' -a \'bar client completion foo functions general\'',
+        '\'foo:get\') context=\'foo get\' ;;',
+    ];
+
+    protected const CLI_TYPEGEN_RESPONSES = [
+        'CLI_TYPEGEN:passed',
+    ];
+
+    protected const CLI_LOCAL_FUNCTION_EMULATION_RESPONSES = [
+        'CLI_LOCAL_FUNCTION_RUNNER_CONFIG:passed',
+        'CLI_LOCAL_SOURCE_PREFLIGHT:passed',
+    ];
+
+    protected const CLI_RUNTIME_RENDERING_RESPONSES = [
+        'CLI_RUNTIME_RENDERING:passed',
+    ];
+
+    protected const CLI_QUERY_HELPER_RESPONSES = [
+        '[' .
+        '"{\"method\":\"orderDesc\",\"attribute\":\"rawName\"}",' .
+        '"{\"method\":\"equal\",\"attribute\":\"published\",\"values\":[true]}",' .
+        '"{\"method\":\"greaterThanEqual\",\"attribute\":\"score\",\"values\":[10]}",' .
+        '"{\"method\":\"equal\",\"attribute\":\"status\",\"values\":[\"draft\",\"published\"]}",' .
+        '"{\"method\":\"orderAsc\",\"attribute\":\"title\"}",' .
+        '"{\"method\":\"orderDesc\",\"attribute\":\"$createdAt\"}",' .
+        '"{\"method\":\"limit\",\"values\":[25]}",' .
+        '"{\"method\":\"offset\",\"values\":[50]}",' .
+        '"{\"method\":\"cursorAfter\",\"values\":[\"row-before\"]}",' .
+        '"{\"method\":\"cursorBefore\",\"values\":[\"row-after\"]}",' .
+        '"{\"method\":\"select\",\"values\":[\"$id\",\"title\"]}"' .
+        ']',
+        'CLI_QUERY_HELPERS:passed',
     ];
 
     protected const CHANNEL_HELPER_RESPONSES = [

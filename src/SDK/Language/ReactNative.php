@@ -42,6 +42,11 @@ class ReactNative extends Web
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'src/services/realtime.ts',
+                'template'      => 'web/src/services/realtime.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'src/models.ts',
                 'template'      => 'react-native/src/models.ts.twig',
             ],

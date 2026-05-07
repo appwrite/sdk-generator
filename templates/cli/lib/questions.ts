@@ -1,9 +1,15 @@
+import fs from "fs";
+import path from "path";
 import chalk from "chalk";
 import { localConfig, globalConfig } from "./config.js";
 import { sdkForConsole } from "./sdks.js";
 import { validateRequired } from "./validations.js";
 import { paginate } from "./paginate.js";
-import { checkDeployConditions, isCloud } from "./utils.js";
+import {
+  checkDeployConditions,
+  getSafeDirectoryName,
+  isCloud,
+} from "./utils.js";
 import { Account, Client } from "@appwrite.io/console";
 import {
   getOrganizationsService,
@@ -55,6 +61,52 @@ const validateNonNegativeInteger = (value: string): boolean | string => {
   }
 
   return true;
+};
+
+const getDefaultSitePath = (answers: Answers): string => {
+  const siteDirectoryName = getSafeDirectoryName(
+    String(answers.name ?? ""),
+    "my-awesome-site",
+  );
+
+  return `sites/${siteDirectoryName}`;
+};
+
+const validateSitePath = (value: unknown): boolean | string => {
+  const required = validateRequired("site path", value);
+  if (required !== true) {
+    return required;
+  }
+
+  const sitePath = String(value).trim();
+  const absoluteSitePath = path.resolve(process.cwd(), sitePath);
+
+  if (
+    fs.existsSync(absoluteSitePath) &&
+    !fs.statSync(absoluteSitePath).isDirectory()
+  ) {
+    return "Site path already exists and is not a directory.";
+  }
+
+  return true;
+};
+
+const buildSelectionLabel = (name: string, id: string): string =>
+  `${name} (${id})`;
+
+const extractSelectionId = (value: string): string => {
+  const match = value.match(/\(([^()]+)\)$/);
+  return match ? match[1] : value;
+};
+
+const getInitProjectOverrideMessage = (): string => {
+  const projectName = localConfig.getProject().projectName;
+
+  if (projectName) {
+    return `A project is already linked to this directory (${projectName}). Override?`;
+  }
+
+  return "A project is already linked to this directory. Override?";
 };
 
 const getIgnores = (runtime: string): string[] => {
@@ -166,7 +218,7 @@ export const questionsInitProject: Question[] = [
   {
     type: "confirm",
     name: "override",
-    message: `An ${SDK_TITLE} project ( ${localConfig.getProject()["projectId"]} ) is already associated with the current directory. Would you like to override it?`,
+    message: getInitProjectOverrideMessage(),
     when() {
       return Object.keys(localConfig.getProject()).length !== 0;
     },
@@ -175,14 +227,14 @@ export const questionsInitProject: Question[] = [
     type: "list",
     name: "start",
     when: whenOverride,
-    message: "How would you like to start?",
+    message: "Select a setup method:",
     choices: [
       {
-        name: "Create new project",
+        name: "Create a new project",
         value: "new",
       },
       {
-        name: "Link directory to an existing project",
+        name: "Link this directory to an existing project",
         value: "existing",
       },
     ],
@@ -190,7 +242,7 @@ export const questionsInitProject: Question[] = [
   {
     type: "search-list",
     name: "organization",
-    message: "Choose your organization",
+    message: "Choose your organization:",
     choices: async () => {
       const client = await sdkForConsole(true);
       const { teams } = isCloud()
@@ -214,9 +266,10 @@ export const questionsInitProject: Question[] = [
           );
 
       const choices = teams.map((team: any, _idx: number) => {
+        const label = buildSelectionLabel(team.name, team["$id"]);
         return {
-          name: `${team.name} (${team["$id"]})`,
-          value: team["$id"],
+          name: label,
+          value: label,
         };
       });
 
@@ -249,13 +302,13 @@ export const questionsInitProject: Question[] = [
   {
     type: "search-list",
     name: "project",
-    message: `Choose your ${SDK_TITLE} project.`,
+    message: "Choose your project:",
     choices: async (answers: Answers) => {
       const queries = [
         JSON.stringify({
           method: "equal",
           attribute: "teamId",
-          values: [answers.organization],
+          values: [extractSelectionId(answers.organization)],
         }),
         JSON.stringify({ method: "orderDesc", attribute: "$id" }),
       ];
@@ -270,14 +323,10 @@ export const questionsInitProject: Question[] = [
       );
 
       const choices = projects.map((project: any) => {
-        const label = `${project.name} (${project["$id"]})`;
+        const label = buildSelectionLabel(project.name, project["$id"]);
         return {
           name: label,
-          short: label,
-          value: {
-            $id: project["$id"],
-            region: project.region || "",
-          },
+          value: label,
         };
       });
 
@@ -325,7 +374,7 @@ export const questionsInitProjectAutopull: Question[] = [
   {
     type: "confirm",
     name: "autopull",
-    message: `Would you like to pull all resources from the project you just linked?`,
+    message: "Pull all resources from this project?",
   },
 ];
 
@@ -343,6 +392,7 @@ export const questionsPullResources: Question[] = [
       { name: `Tables ${chalk.blackBright(`(TablesDB)`)}`, value: "tables" },
       { name: `Buckets ${chalk.blackBright(`(Storage)`)}`, value: "buckets" },
       { name: `Teams ${chalk.blackBright(`(Auth)`)}`, value: "teams" },
+      { name: `Webhooks ${chalk.blackBright(`(Project)`)}`, value: "webhooks" },
       { name: `Topics ${chalk.blackBright(`(Messaging)`)}`, value: "messages" },
       {
         name: `Collections ${chalk.blackBright(`(Legacy Databases)`)}`,
@@ -773,16 +823,6 @@ export const questionsPullCollection: Question[] = [
 
 export const questionsLogin: Question[] = [
   {
-    type: "list",
-    name: "method",
-    message: "What would you like to do?",
-    choices: [
-      { name: "Login to an account", value: "login" },
-      { name: "Switch to an account", value: "select" },
-    ],
-    when: () => globalConfig.getSessions().length >= 2,
-  },
-  {
     type: "input",
     name: "email",
     message: "Enter your email",
@@ -792,7 +832,6 @@ export const questionsLogin: Question[] = [
       }
       return true;
     },
-    when: (answers: Answers) => answers.method !== "select",
   },
   {
     type: "password",
@@ -805,38 +844,36 @@ export const questionsLogin: Question[] = [
       }
       return true;
     },
-    when: (answers: Answers) => answers.method !== "select",
   },
+];
+
+export const questionsSwitchAccount: Question[] = [
   {
     type: "list",
     name: "accountId",
-    message: "Select an account to use",
+    message: "Select account:",
     choices() {
       const sessions = globalConfig.getSessions();
       const current = globalConfig.getCurrentSession();
 
       const data: Choice[] = [];
 
-      const longestEmail = sessions.reduce((prev: any, current: any) =>
-        prev && (prev.email ?? "").length > (current.email ?? "").length
-          ? prev
-          : current,
-      ).email.length;
-
       sessions.forEach((session: any) => {
         if (session.email) {
           data.push({
             current: current === session.id,
             value: session.id,
-            short: `${session.email} (${session.endpoint})`,
-            name: `${session.email.padEnd(longestEmail)} ${current === session.id ? chalk.green.bold("current") : " ".repeat(6)} ${session.endpoint}`,
+            short: session.email,
+            name:
+              session.endpoint === DEFAULT_ENDPOINT
+                ? session.email
+                : `${session.email} (${session.endpoint})`,
           });
         }
       });
 
       return data.sort((a, b) => Number(b.current) - Number(a.current));
     },
-    when: (answers: Answers) => answers.method === "select",
   },
 ];
 
@@ -915,6 +952,7 @@ export const questionsPushResources: Question[] = [
       { name: `Tables ${chalk.blackBright(`(TablesDB)`)}`, value: "tables" },
       { name: `Buckets ${chalk.blackBright(`(Storage)`)}`, value: "buckets" },
       { name: `Teams ${chalk.blackBright(`(Auth)`)}`, value: "teams" },
+      { name: `Webhooks ${chalk.blackBright(`(Project)`)}`, value: "webhooks" },
       { name: `Topics ${chalk.blackBright(`(Messaging)`)}`, value: "messages" },
       {
         name: `Collections ${chalk.blackBright(`(Legacy Databases)`)}`,
@@ -1097,6 +1135,20 @@ export const questionsGetEntrypoint: Question[] = [
   },
 ];
 
+export const questionsGetBuildCommand: Question[] = [
+  {
+    type: "input",
+    name: "buildCommand",
+    message: "Enter the build command",
+    validate(value: string) {
+      if (!value) {
+        return "Please enter your build command";
+      }
+      return true;
+    },
+  },
+];
+
 export const questionsPushTeams: Question[] = [
   {
     type: "checkbox",
@@ -1112,6 +1164,27 @@ export const questionsPushTeams: Question[] = [
         return {
           name: `${team.name} (${team["$id"]})`,
           value: team.$id,
+        };
+      });
+    },
+  },
+];
+
+export const questionsPushWebhooks: Question[] = [
+  {
+    type: "checkbox",
+    name: "webhooks",
+    message: "Which webhooks would you like to push?",
+    validate: (value: any) => validateRequired("webhook", value),
+    when: () => localConfig.getWebhooks().length > 0,
+    choices: () => {
+      const webhooks = localConfig.getWebhooks();
+      checkDeployConditions(localConfig);
+
+      return webhooks.map((webhook: any) => {
+        return {
+          name: `${webhook.name} (${webhook["$id"]})`,
+          value: webhook.$id,
         };
       });
     },
@@ -1205,6 +1278,13 @@ export const questionsCreateSite: Question[] = [
     default: "unique()",
   },
   {
+    type: "input",
+    name: "path",
+    message: "What local path would you like to use for your site?",
+    default: getDefaultSitePath,
+    validate: validateSitePath,
+  },
+  {
     type: "list",
     name: "framework",
     message: "What framework would you like to use?",
@@ -1257,8 +1337,15 @@ export const questionsCreateSite: Question[] = [
   {
     type: "input",
     name: "deploymentRetention",
-    message: "How many deployments would you like to retain? (0 = unlimited)",
+    message:
+      "How many days would you like to keep non-active deployments? (0 = keep all deployments)",
     default: "0",
     validate: validateNonNegativeInteger,
+  },
+  {
+    type: "confirm",
+    name: "downloadTemplate",
+    message: "Do you want to download the starter template code?",
+    default: false,
   },
 ];

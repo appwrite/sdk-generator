@@ -10,6 +10,12 @@ jobs:
   generate-and-build:
     name: ${{ matrix.sdk }} (${{ matrix.platform }})
     runs-on: ubuntu-latest
+    env:
+      # Bun 1.3.12 has a sig_size calculation bug in macho.zig that truncates the
+      # LC_CODE_SIGNATURE blob on cross-compiled Darwin binaries (oven-sh/bun#29120).
+      # Unpin once a Bun release includes the upstream fix (oven-sh/bun#29122).
+      CLI_BUN_VERSION: '1.3.11'
+      OSV_SCANNER_VERSION: 'v2.3.1'
     strategy:
       fail-fast: false
       matrix:
@@ -70,7 +76,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           submodules: recursive
 
@@ -89,15 +95,15 @@ jobs:
       # Language-specific setup
       - name: Setup Node.js
         if: matrix.sdk == 'web' || matrix.sdk == 'node' || matrix.sdk == 'react-native' || matrix.sdk == 'cli'
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Setup Bun
         if: matrix.sdk == 'cli'
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 'latest'
+          bun-version: ${{ env.CLI_BUN_VERSION }}
 
       - name: Setup Flutter
         if: matrix.sdk == 'flutter'
@@ -117,14 +123,14 @@ jobs:
 
       - name: Setup Java
         if: matrix.sdk == 'android' || matrix.sdk == 'kotlin'
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '17'
 
       - name: Setup Python
         if: matrix.sdk == 'python'
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 
@@ -141,14 +147,18 @@ jobs:
           sdk: 'stable'
 
       - name: Setup Go
-        if: matrix.sdk == 'go'
-        uses: actions/setup-go@v5
+        if: matrix.sdk == 'go' || matrix.sdk == 'dart' || matrix.sdk == 'flutter'
+        uses: actions/setup-go@v6
         with:
-          go-version: '1.22.5'
+          go-version: '1.25.x'
+
+      - name: Install OSV Scanner
+        if: matrix.sdk == 'dart' || matrix.sdk == 'flutter'
+        run: go install github.com/google/osv-scanner/v2/cmd/osv-scanner@${{ env.OSV_SCANNER_VERSION }}
 
       - name: Setup .NET
         if: matrix.sdk == 'dotnet'
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '8.0.x'
 
@@ -156,12 +166,27 @@ jobs:
         if: matrix.sdk == 'rust'
         uses: dtolnay/rust-toolchain@1.83.0
 
+      - name: Setup Rust for cargo-audit
+        if: matrix.sdk == 'rust'
+        run: rustup toolchain install 1.85.0 --profile minimal --no-self-update
+
+      - name: Cache cargo-audit
+        if: matrix.sdk == 'rust'
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/bin/cargo-audit
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-audit-0.22.1
+
       - name: Build SDK
         working-directory: examples/${{ matrix.sdk }}
         run: |
           case "${{ matrix.sdk }}" in
             web)
               npm ci
+              npm audit
               npm run build
               ;;
             cli)
@@ -174,15 +199,18 @@ jobs:
               bun run windows-arm64
 
               npm ci
+              npm audit
               npm run build
               node dist/cli.cjs --help
               ;;
             react-native)
               npm ci
+              npm audit
               npm run build
               ;;
             flutter)
               flutter pub get
+              osv-scanner scan source --lockfile=pubspec.lock
               dart analyze --no-fatal-warnings
               ;;
             apple|swift)
@@ -198,41 +226,64 @@ jobs:
               ;;
             php)
               composer install
+              composer audit
               composer test
               ;;
             python)
-              pip install -e .
+              python -m pip install pip-audit
+              pip install -e .[test]
+              pip-audit --strict .
               python -m compileall appwrite/
+              python -m unittest
               ;;
             ruby)
               bundle install
+              gem install bundler-audit
+              bundle-audit update
+              bundle-audit check --no-update
               ;;
             node)
               npm ci
+              npm audit
               npm run build
               npm run test
               ;;
             dart)
               dart pub get
+              osv-scanner scan source --lockfile=pubspec.lock
               dart analyze --no-fatal-warnings
               ;;
             go)
               go mod tidy || true
+              go install golang.org/x/vuln/cmd/govulncheck@v1.1.4
+              govulncheck ./...
               go build ./...
               go test ./...
               ;;
             dotnet)
-              dotnet build
+              dotnet restore
+              dotnet build --no-restore
+              dotnet test --no-build
               ;;
             rust)
-              cargo build --release
-              cargo test --lib
+              cargo generate-lockfile
+              if ! command -v cargo-audit >/dev/null; then
+                cargo +1.85.0 install cargo-audit --version 0.22.1 --locked
+              fi
+              cargo audit
+              cargo +1.83.0 build --release
+              cargo +1.83.0 test --lib
               ;;
             *)
               echo "Unknown SDK: ${{ matrix.sdk }}"
               exit 1
               ;;
           esac
+
+      - name: Verify CLI Darwin binaries include valid embedded code signatures
+        if: matrix.sdk == 'cli'
+        working-directory: examples/cli
+        run: python3 ../../scripts/verify-darwin-signatures.py
 
       - name: Verify npm package entry points
         if: matrix.sdk == 'web' || matrix.sdk == 'node' || matrix.sdk == 'react-native' || matrix.sdk == 'cli'

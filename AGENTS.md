@@ -34,6 +34,17 @@ The `destination` string in each `getFiles()` entry supports Twig expressions an
 'destination' => 'src/Services/{{ service.name | caseCamel }}.php',
 ```
 
+### Rule 6: Never modify lock file templates directly
+
+Lock file templates (`package-lock.json.twig`, `bun.lock.twig`) contain Twig expressions that get corrupted if you copy a raw lock file over them. Always use the update script:
+
+```bash
+./scripts/update-lockfiles.sh cli    # update CLI lock files only
+./scripts/update-lockfiles.sh all    # update all TS-based SDK lock files
+```
+
+The script strips Twig expressions before running `npm install`/`bun install`, then restores them automatically. Never run `cp package-lock.json package-lock.json.twig` or edit these files by hand.
+
 ## Repository at a Glance
 
 - **Purpose:** Generate Appwrite SDKs for ~16 languages from Swagger/OpenAPI specs using Twig templates
@@ -48,7 +59,7 @@ examples/<lang>/              ← Generated SDK output (checked in for verificat
 example.php                   ← Entry point: regenerates all SDKs from specs
 ```
 
-**Supported SDKs:** PHP, Web, Node, CLI, Ruby, Python, Dart, Flutter, React Native, Go, Swift, Apple, DotNet, Android, Kotlin, GraphQL, Markdown, AgentSkills
+**Supported SDKs:** PHP, Web, Node, CLI, Ruby, Python, Dart, Flutter, React Native, Go, Swift, Apple, DotNet, Android, Kotlin, GraphQL, Markdown, AgentSkills, CursorPlugin, ClaudePlugin
 
 ## Primary Workflows
 
@@ -143,6 +154,9 @@ Pass as first argument to generate only that SDK:
 | `kotlin` | Kotlin | `examples/kotlin/` |
 | `graphql` | GraphQL | `examples/graphql/` |
 | `markdown` | Markdown | `examples/markdown/` |
+| `agent-skills` | AgentSkills | `examples/agent-skills/` |
+| `cursor-plugin` | CursorPlugin | `examples/cursor-plugin/` |
+| `claude-plugin` | ClaudePlugin | `examples/claude-plugin/` |
 
 ## Twig Template Variables by Scope
 

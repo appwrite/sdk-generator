@@ -1,7 +1,8 @@
 {% for parameter in method.parameters.all %}
 {% if parameter.type == 'file' %}
 {% set responseModels = method | getResponseModels(spec) %}
-{% set filteredResponseModelNames = method.responseModels | filter((modelName) => modelName is not empty and modelName != 'any') %}
+{% set hasResponseDiscriminator = method.responseDiscriminator is defined and method.responseDiscriminator is not empty %}
+{% set responseDiscriminator = method.responseDiscriminator ?? {} %}
         $size = 0;
         $mimeType = null;
         $postedName = null;
@@ -20,20 +21,23 @@
     {% endfor %}
                     ], $apiParams);
 {% if responseModels | length > 0 %}
-                return $this->parseResponse(
-                    $response,
-                    [{% for responseModel in responseModels %}{{ responseModel }}::class{{ loop.last ? '' : ', ' }}{% endfor %}]
-{% if responseModels | length > 1 %},
-                    [
-{% for modelName in filteredResponseModelNames %}
-                        {{ responseModels[loop.index0] }}::class => [
-                            'required' => [{% for propertyName, property in spec.definitions[modelName].properties %}{% if property.required %}'{{ propertyName }}'{{ loop.last ? '' : ', ' }}{% endif %}{% endfor %}],
-                            'all' => [{% for propertyName, property in spec.definitions[modelName].properties %}'{{ propertyName }}'{{ loop.last ? '' : ', ' }}{% endfor %}],
-                        ]{{ loop.last ? '' : ',' }}
+{% if responseModels | length > 1 and hasResponseDiscriminator %}
+                if (!is_array($response)) {
+                    throw new \UnexpectedValueException('Expected array response when hydrating a response model.');
+                }
+{% for modelName, conditions in responseDiscriminator %}
+                if ({% for field, expectedValue in conditions %}($response['{{ field }}'] ?? null) === '{{ expectedValue }}'{% if not loop.last %} && {% endif %}{% endfor %}) {
+                    return \Appwrite\Models\{{ modelName | caseUcfirst }}::from($response);
+                }
 {% endfor %}
-                    ]
+                throw new \UnexpectedValueException('Unable to match response to any expected response model.');
+{% else %}
+                if (!is_array($response)) {
+                    throw new \UnexpectedValueException('Expected array response when hydrating a response model.');
+                }
+
+                return {{ responseModels | first }}::from($response);
 {% endif %}
-                );
 {% else %}
                 return $response;
 {% endif %}
@@ -54,20 +58,23 @@
     {% endfor %}
                     ], $apiParams);
 {% if responseModels | length > 0 %}
-                return $this->parseResponse(
-                    $response,
-                    [{% for responseModel in responseModels %}{{ responseModel }}::class{{ loop.last ? '' : ', ' }}{% endfor %}]
-{% if responseModels | length > 1 %},
-                    [
-{% for modelName in filteredResponseModelNames %}
-                        {{ responseModels[loop.index0] }}::class => [
-                            'required' => [{% for propertyName, property in spec.definitions[modelName].properties %}{% if property.required %}'{{ propertyName }}'{{ loop.last ? '' : ', ' }}{% endif %}{% endfor %}],
-                            'all' => [{% for propertyName, property in spec.definitions[modelName].properties %}'{{ propertyName }}'{{ loop.last ? '' : ', ' }}{% endfor %}],
-                        ]{{ loop.last ? '' : ',' }}
+{% if responseModels | length > 1 and hasResponseDiscriminator %}
+                if (!is_array($response)) {
+                    throw new \UnexpectedValueException('Expected array response when hydrating a response model.');
+                }
+{% for modelName, conditions in responseDiscriminator %}
+                if ({% for field, expectedValue in conditions %}($response['{{ field }}'] ?? null) === '{{ expectedValue }}'{% if not loop.last %} && {% endif %}{% endfor %}) {
+                    return \Appwrite\Models\{{ modelName | caseUcfirst }}::from($response);
+                }
 {% endfor %}
-                    ]
+                throw new \UnexpectedValueException('Unable to match response to any expected response model.');
+{% else %}
+                if (!is_array($response)) {
+                    throw new \UnexpectedValueException('Expected array response when hydrating a response model.');
+                }
+
+                return {{ responseModels | first }}::from($response);
 {% endif %}
-                );
 {% else %}
                 return $response;
 {% endif %}
@@ -128,20 +135,23 @@
             @fclose($handle);
         }
 {% if responseModels | length > 0 %}
-        return $this->parseResponse(
-            $response,
-            [{% for responseModel in responseModels %}{{ responseModel }}::class{{ loop.last ? '' : ', ' }}{% endfor %}]
-{% if responseModels | length > 1 %},
-            [
-{% for modelName in filteredResponseModelNames %}
-                {{ responseModels[loop.index0] }}::class => [
-                    'required' => [{% for propertyName, property in spec.definitions[modelName].properties %}{% if property.required %}'{{ propertyName }}'{{ loop.last ? '' : ', ' }}{% endif %}{% endfor %}],
-                    'all' => [{% for propertyName, property in spec.definitions[modelName].properties %}'{{ propertyName }}'{{ loop.last ? '' : ', ' }}{% endfor %}],
-                ]{{ loop.last ? '' : ',' }}
+{% if responseModels | length > 1 and hasResponseDiscriminator %}
+        if (!is_array($response)) {
+            throw new \UnexpectedValueException('Expected array response when hydrating a response model.');
+        }
+{% for modelName, conditions in responseDiscriminator %}
+        if ({% for field, expectedValue in conditions %}($response['{{ field }}'] ?? null) === '{{ expectedValue }}'{% if not loop.last %} && {% endif %}{% endfor %}) {
+            return \Appwrite\Models\{{ modelName | caseUcfirst }}::from($response);
+        }
 {% endfor %}
-            ]
+        throw new \UnexpectedValueException('Unable to match response to any expected response model.');
+{% else %}
+        if (!is_array($response)) {
+            throw new \UnexpectedValueException('Expected array response when hydrating a response model.');
+        }
+
+        return {{ responseModels | first }}::from($response);
 {% endif %}
-        );
 {% else %}
         return $response;
 {% endif %}

@@ -14,6 +14,7 @@ import type {
   TableType,
   TeamType,
   TopicType,
+  WebhookType,
 } from "./commands/config.js";
 import {
   SiteSchema,
@@ -28,6 +29,7 @@ import {
   TopicSchema,
   TeamSchema,
   BucketSchema,
+  WebhookSchema,
 } from "./commands/config.js";
 import type {
   SessionData,
@@ -36,8 +38,16 @@ import type {
   GlobalConfigData,
 } from "./types.js";
 import { createSettingsObject } from "./utils.js";
-import { EXECUTABLE_NAME, TOP_LEVEL_RESOURCE_ARRAY_KEYS } from "./constants.js";
+import {
+  CONFIG_RESOURCE_KEYS,
+  EXECUTABLE_NAME,
+  TOP_LEVEL_RESOURCE_ARRAY_KEYS,
+} from "./constants.js";
 import { JSONBig } from "./json.js";
+
+type ConfigResourceKey = (typeof CONFIG_RESOURCE_KEYS)[number];
+
+type ConfigIncludePaths = Partial<Record<ConfigResourceKey, string>>;
 
 /**
  * Extract keys from a Zod object schema.
@@ -64,6 +74,7 @@ const KeysTable = getSchemaKeys(TableSchema);
 const KeysStorage = getSchemaKeys(BucketSchema);
 const KeysTopics = getSchemaKeys(TopicSchema);
 const KeysTeams = getSchemaKeys(TeamSchema);
+const KeysWebhooks = getSchemaKeys(WebhookSchema);
 const KeysAttributes = getSchemaKeys(AttributeSchema);
 const KeysColumns = getSchemaKeys(ColumnSchema);
 const KeyIndexes = getSchemaKeys(IndexSchema);
@@ -73,6 +84,7 @@ const CONFIG_KEY_ORDER = [
   "projectId",
   "projectName",
   "endpoint",
+  "includes",
   "settings",
   "functions",
   "sites",
@@ -82,9 +94,326 @@ const CONFIG_KEY_ORDER = [
   "tables",
   "buckets",
   "teams",
+  "webhooks",
   "topics",
   "messages",
 ];
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+export function normalizeCloudConsoleEndpoint(endpoint: string): string {
+  try {
+    const url = new URL(endpoint);
+    if (
+      url.hostname === "cloud.appwrite.io" ||
+      url.hostname.endsWith(".cloud.appwrite.io")
+    ) {
+      return "https://cloud.appwrite.io/v1";
+    }
+  } catch (_error) {
+    return endpoint;
+  }
+
+  return endpoint;
+}
+
+function ensureDirectoryForFile(filePath: string): void {
+  const dir = _path.dirname(filePath);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+}
+
+function assertValidIncludePath(
+  resource: string,
+  includePath: unknown,
+): string {
+  if (typeof includePath !== "string" || includePath.trim() === "") {
+    throw new Error(`Config include for '${resource}' must be a file path.`);
+  }
+
+  const normalizedPath = includePath.trim();
+  if (normalizedPath.includes("\0")) {
+    throw new Error(`Config include '${resource}' cannot contain null bytes.`);
+  }
+
+  if (normalizedPath.includes("#")) {
+    throw new Error(
+      `Config include '${resource}' must be a file path without a JSON pointer fragment.`,
+    );
+  }
+
+  if (normalizedPath.split(/[\\/]+/).includes("..")) {
+    throw new Error(
+      `Config include '${resource}' cannot contain parent directory segments.`,
+    );
+  }
+
+  if (_path.isAbsolute(normalizedPath)) {
+    throw new Error(
+      `Config include '${resource}' must be a relative file path.`,
+    );
+  }
+
+  if (/^[a-z][a-z0-9+.-]*:/i.test(normalizedPath)) {
+    throw new Error(`Config include '${resource}' must be a local file path.`);
+  }
+
+  if (!normalizedPath.toLowerCase().endsWith(".json")) {
+    throw new Error(`Config include '${resource}' must point to a JSON file.`);
+  }
+
+  return normalizedPath;
+}
+
+function getConfigIncludePaths(
+  data: Record<string, unknown>,
+): ConfigIncludePaths {
+  const includes = data.includes;
+  if (includes === undefined) {
+    return {};
+  }
+
+  if (!isRecord(includes)) {
+    throw new Error("Config 'includes' must be an object.");
+  }
+
+  const includePaths: ConfigIncludePaths = {};
+  for (const [key, value] of Object.entries(includes)) {
+    if (!TOP_LEVEL_RESOURCE_ARRAY_KEYS.has(key)) {
+      throw new Error(`Unsupported config include '${key}'.`);
+    }
+    includePaths[key as ConfigResourceKey] = assertValidIncludePath(key, value);
+  }
+
+  return includePaths;
+}
+
+function readJsonFile<T>(filePath: string): T {
+  try {
+    return JSONBig.parse<T>(fs.readFileSync(filePath, "utf8"));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    throw new Error(`Failed to read config file '${filePath}': ${message}`);
+  }
+}
+
+function writeJsonFile(filePath: string, data: unknown): void {
+  ensureDirectoryForFile(filePath);
+  fs.writeFileSync(filePath, JSONBig.stringify(data, null, 4), {
+    mode: 0o600,
+  });
+}
+
+function resolveIncludePath(
+  configFilePath: string,
+  includePath: string,
+): string {
+  return _path.resolve(_path.dirname(configFilePath), includePath);
+}
+
+function isPathInside(parentPath: string, childPath: string): boolean {
+  const relativePath = _path.relative(parentPath, childPath);
+  return (
+    relativePath === "" ||
+    (!relativePath.startsWith("..") && !_path.isAbsolute(relativePath))
+  );
+}
+
+function assertIncludePathInsideProject(
+  configFilePath: string,
+  resource: string,
+  includePath: string,
+): string {
+  const resolvedPath = resolveIncludePath(configFilePath, includePath);
+  if (!isPathInside(_path.dirname(configFilePath), resolvedPath)) {
+    throw new Error(
+      `Config include '${resource}' must resolve inside the project directory.`,
+    );
+  }
+
+  return resolvedPath;
+}
+
+function resolveConfigData(
+  configFilePath: string,
+  rootData: Record<string, unknown>,
+  includePaths: ConfigIncludePaths,
+): Record<string, unknown> {
+  const resolvedData = { ...rootData };
+
+  for (const [resource, includePath] of Object.entries(includePaths)) {
+    if (rootData[resource] !== undefined) {
+      throw new Error(
+        `Config resource '${resource}' cannot be defined both inline and in includes.`,
+      );
+    }
+
+    const resolvedPath = assertIncludePathInsideProject(
+      configFilePath,
+      resource,
+      includePath,
+    );
+    const includedData = fs.existsSync(resolvedPath)
+      ? readJsonFile<unknown>(resolvedPath)
+      : [];
+    if (!Array.isArray(includedData)) {
+      throw new Error(
+        `Config include '${resource}' must point to a JSON file containing an array.`,
+      );
+    }
+
+    resolvedData[resource] = includedData;
+  }
+
+  return resolvedData;
+}
+
+export function readLocalConfigFile(filePath: string): ConfigType {
+  const rootData = readJsonFile<Record<string, unknown>>(filePath);
+  const includePaths = getConfigIncludePaths(rootData);
+  return resolveConfigData(filePath, rootData, includePaths) as ConfigType;
+}
+
+export function getLocalConfigResourceDirname(
+  filePath: string,
+  resource: "functions" | "sites",
+): string {
+  return getLocalConfigResourceDirnames(filePath)[resource];
+}
+
+export function getLocalConfigResourceDirnames(
+  filePath: string,
+): Record<"functions" | "sites", string> {
+  const rootData = fs.existsSync(filePath)
+    ? readJsonFile<Record<string, unknown>>(filePath)
+    : {};
+  const includePaths = getConfigIncludePaths(rootData);
+
+  const getResourceDirname = (resource: "functions" | "sites"): string => {
+    const includePath = includePaths[resource];
+    if (!includePath) {
+      return _path.dirname(filePath);
+    }
+
+    return _path.dirname(
+      assertIncludePathInsideProject(filePath, resource, includePath),
+    );
+  };
+
+  return {
+    functions: getResourceDirname("functions"),
+    sites: getResourceDirname("sites"),
+  };
+}
+
+export function resolveLocalConfigResourcePaths(
+  config: ConfigType,
+  filePath: string,
+): ConfigType {
+  const rootData = fs.existsSync(filePath)
+    ? readJsonFile<Record<string, unknown>>(filePath)
+    : {};
+  const includePaths = getConfigIncludePaths(rootData);
+
+  const resolveResourcePath = (
+    resource: "functions" | "sites",
+    resourcePath?: string,
+  ): string | undefined => {
+    if (!resourcePath || _path.isAbsolute(resourcePath)) {
+      return resourcePath;
+    }
+
+    const includePath = includePaths[resource];
+    const resourceDirectory = includePath
+      ? _path.dirname(resolveIncludePath(filePath, includePath))
+      : _path.dirname(filePath);
+    return _path.resolve(resourceDirectory, resourcePath);
+  };
+
+  return {
+    ...config,
+    functions: config.functions?.map((func) => ({
+      ...func,
+      path: resolveResourcePath("functions", func.path),
+    })),
+    sites: config.sites?.map((site) => ({
+      ...site,
+      path: resolveResourcePath("sites", site.path),
+    })),
+  };
+}
+
+export function writeLocalConfigFile(
+  config: ConfigType,
+  filePath: string,
+): void {
+  const rootData = fs.existsSync(filePath)
+    ? readJsonFile<Record<string, unknown>>(filePath)
+    : {};
+  const includePaths = getConfigIncludePaths(rootData);
+  writeResolvedLocalConfig(config, filePath, rootData, includePaths);
+}
+
+function writeResolvedLocalConfig(
+  config: Record<string, unknown>,
+  filePath: string,
+  rootData: Record<string, unknown>,
+  includePaths: ConfigIncludePaths,
+): void {
+  const sanitizedData = pruneDeprecatedSiteFields(config);
+  const rootOutput: Record<string, unknown> = {
+    ...rootData,
+    ...sanitizedData,
+  };
+
+  for (const [resource, includePath] of Object.entries(includePaths)) {
+    const resourceData = sanitizedData[resource] ?? [];
+    if (!Array.isArray(resourceData)) {
+      throw new Error(`Config resource '${resource}' must be an array.`);
+    }
+
+    writeJsonFile(
+      assertIncludePathInsideProject(filePath, resource, includePath),
+      resourceData,
+    );
+    delete rootOutput[resource];
+  }
+
+  if (Object.keys(includePaths).length > 0) {
+    rootOutput.includes = includePaths;
+  } else {
+    delete rootOutput.includes;
+  }
+
+  writeJsonFile(
+    filePath,
+    orderConfigKeys(pruneEmptyTopLevelResourceArrays(rootOutput)),
+  );
+}
+
+function getWriteIncludePaths(
+  config: Record<string, unknown>,
+  includePaths: ConfigIncludePaths,
+  includePathHints: ConfigIncludePaths,
+): ConfigIncludePaths {
+  const writeIncludePaths: ConfigIncludePaths = { ...includePaths };
+
+  for (const resource of CONFIG_RESOURCE_KEYS) {
+    if (writeIncludePaths[resource] || !includePathHints[resource]) {
+      continue;
+    }
+
+    const resourceData = config[resource];
+    if (Array.isArray(resourceData) && resourceData.length > 0) {
+      writeIncludePaths[resource] = includePathHints[resource];
+    }
+  }
+
+  return writeIncludePaths;
+}
 
 function orderConfigKeys<T extends Record<string, any>>(data: T): T {
   const ordered: Record<string, any> = {};
@@ -125,6 +454,7 @@ function pruneDeprecatedSiteFields<T extends Record<string, any>>(data: T): T {
     sanitized.sites = sanitized.sites.map((site) => {
       if (site && typeof site === "object") {
         const {
+          enabled: _enabled,
           vars: _vars,
           ignore: _ignore,
           ...rest
@@ -171,10 +501,12 @@ class Config<T extends ConfigData = ConfigData> {
   readonly path: string;
   protected data: T;
 
-  constructor(path: string) {
+  constructor(path: string, autoRead = true) {
     this.path = path;
     this.data = {} as T;
-    this.read();
+    if (autoRead) {
+      this.read();
+    }
   }
 
   read(): void {
@@ -289,6 +621,9 @@ class Config<T extends ConfigData = ConfigData> {
 class Local extends Config<ConfigType> {
   static CONFIG_FILE_PATH = `${EXECUTABLE_NAME}.config.json`;
   static CONFIG_FILE_PATH_LEGACY = `${EXECUTABLE_NAME}.json`;
+  private rootData: Record<string, unknown> = {};
+  private includePaths: ConfigIncludePaths = {};
+  private includePathHints: ConfigIncludePaths = {};
   configDirectoryPath = "";
 
   constructor(
@@ -302,21 +637,65 @@ class Local extends Config<ConfigType> {
       absolutePath = `${process.cwd()}/${path}`;
     }
 
-    super(absolutePath);
+    super(absolutePath, false);
     this.configDirectoryPath = _path.dirname(absolutePath);
+    this.read();
+  }
+
+  read(): void {
+    if (!fs.existsSync(this.path)) {
+      this.rootData = {};
+      this.includePaths = {};
+      this.includePathHints = {};
+      this.data = {} as ConfigType;
+      return;
+    }
+
+    this.rootData = readJsonFile<Record<string, unknown>>(this.path);
+    this.includePaths = getConfigIncludePaths(this.rootData);
+    this.includePathHints = {
+      ...this.includePathHints,
+      ...this.includePaths,
+    };
+    this.data = resolveConfigData(
+      this.path,
+      this.rootData,
+      this.includePaths,
+    ) as ConfigType;
   }
 
   write(): void {
-    const dir = _path.dirname(this.path);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    const orderedData = orderConfigKeys(
-      pruneEmptyTopLevelResourceArrays(pruneDeprecatedSiteFields(this.data)),
+    const writeIncludePaths = getWriteIncludePaths(
+      this.data as Record<string, unknown>,
+      this.includePaths,
+      this.includePathHints,
     );
-    fs.writeFileSync(this.path, JSONBig.stringify(orderedData, null, 4), {
-      mode: 0o600,
-    });
+    writeResolvedLocalConfig(
+      this.data as Record<string, unknown>,
+      this.path,
+      this.rootData ?? {},
+      writeIncludePaths,
+    );
+    this.includePathHints = {
+      ...this.includePathHints,
+      ...writeIncludePaths,
+    };
+    this.read();
+  }
+
+  clear(): void {
+    for (const [resource, includePath] of Object.entries(this.includePaths)) {
+      writeJsonFile(
+        assertIncludePathInsideProject(this.path, resource, includePath),
+        [],
+      );
+    }
+
+    this.rootData = {};
+    this.includePaths = {};
+    this.includePathHints = {};
+    this.data = {} as ConfigType;
+    writeJsonFile(this.path, {});
   }
 
   static findConfigFile(filename: string): string | null {
@@ -343,6 +722,26 @@ class Local extends Config<ConfigType> {
     return _path.dirname(this.path);
   }
 
+  getResourceDirname(resource: ConfigResourceKey): string {
+    const includePath = this.includePaths[resource];
+    if (!includePath) {
+      return this.getDirname();
+    }
+
+    return _path.dirname(resolveIncludePath(this.path, includePath));
+  }
+
+  resolveResourcePath(
+    resource: ConfigResourceKey,
+    resourcePath: string,
+  ): string {
+    if (_path.isAbsolute(resourcePath)) {
+      return resourcePath;
+    }
+
+    return _path.resolve(this.getResourceDirname(resource), resourcePath);
+  }
+
   getEndpoint(): string {
     return this.get("endpoint") || "";
   }
@@ -355,7 +754,10 @@ class Local extends Config<ConfigType> {
     if (!this.has("sites")) {
       return [];
     }
-    return this.get("sites") ?? [];
+    return ((this.get("sites") ?? []) as Record<string, any>[]).map((site) => {
+      const { enabled: _enabled, vars: _vars, ignore: _ignore, ...rest } = site;
+      return rest;
+    }) as SiteType[];
   }
 
   getSite($id: string): SiteType | Record<string, never> {
@@ -363,7 +765,7 @@ class Local extends Config<ConfigType> {
       return {};
     }
 
-    const sites = this.get("sites") ?? [];
+    const sites = this.getSites();
     for (let i = 0; i < sites.length; i++) {
       if (sites[i]["$id"] == $id) {
         return sites[i];
@@ -685,6 +1087,46 @@ class Local extends Config<ConfigType> {
     this.set("teams", teams);
   }
 
+  getWebhooks(): WebhookType[] {
+    if (!this.has("webhooks")) {
+      return [];
+    }
+    return this.get("webhooks") ?? [];
+  }
+
+  getWebhook($id: string): WebhookType | Record<string, never> {
+    if (!this.has("webhooks")) {
+      return {};
+    }
+
+    const webhooks = this.get("webhooks") ?? [];
+    for (let i = 0; i < webhooks.length; i++) {
+      if (webhooks[i]["$id"] == $id) {
+        return webhooks[i];
+      }
+    }
+
+    return {};
+  }
+
+  addWebhook(props: WebhookType): void {
+    props = whitelistKeys(props, KeysWebhooks);
+    if (!this.has("webhooks")) {
+      this.set("webhooks", []);
+    }
+
+    const webhooks = this.get("webhooks") ?? [];
+    for (let i = 0; i < webhooks.length; i++) {
+      if (webhooks[i]["$id"] == props["$id"]) {
+        webhooks[i] = props;
+        this.set("webhooks", webhooks);
+        return;
+      }
+    }
+    webhooks.push(props);
+    this.set("webhooks", webhooks);
+  }
+
   getProject(): {
     projectId?: string;
     projectName?: string;
@@ -787,10 +1229,17 @@ class Global extends Config<GlobalConfigData> {
     sessions.forEach((sessionId) => {
       const sessionData = (this.data as any)[sessionId];
       const email = sessionData[Global.PREFERENCE_EMAIL] ?? "";
-      const endpoint = sessionData[Global.PREFERENCE_ENDPOINT] ?? "";
+      const endpoint = normalizeCloudConsoleEndpoint(
+        sessionData[Global.PREFERENCE_ENDPOINT] ?? "",
+      );
       const key = `${email}|${endpoint}`;
+      const existingSession = sessionMap.get(key);
 
-      if (sessionId === current || !sessionMap.has(key)) {
+      if (
+        !existingSession ||
+        sessionId === current ||
+        existingSession.id !== current
+      ) {
         sessionMap.set(key, {
           id: sessionId,
           endpoint,
@@ -920,6 +1369,7 @@ export {
   KeysTopics,
   KeysStorage,
   KeysTeams,
+  KeysWebhooks,
   KeysCollection,
   KeysTable,
   whitelistKeys,

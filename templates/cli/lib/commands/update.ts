@@ -1,15 +1,22 @@
+import fs from "fs";
+import os from "os";
+import path from "path";
 import { spawn } from "child_process";
 import { Command } from "commander";
 import chalk from "chalk";
 import inquirer from "inquirer";
 import { success, log, warn, error, hint, actionRunner } from "../parser.js";
 import {
-  getLatestVersion,
+  detectInstallationMethod,
+  getLatestVersionForInstallation,
   compareVersions,
   getErrorMessage,
+  getInstalledHomebrewFormula,
 } from "../utils.js";
 import {
+  EXECUTABLE_NAME,
   GITHUB_RELEASES_URL,
+  HOMEBREW_FORMULA,
   NPM_PACKAGE_NAME,
   SDK_TITLE,
 } from "../constants.js";
@@ -18,50 +25,86 @@ const { version } = packageJson;
 
 type ExecCommandOptions = Exclude<Parameters<typeof spawn>[2], undefined>;
 
-/**
- * Check if the CLI was installed via npm
- */
-const isInstalledViaNpm = (): boolean => {
+const getStandaloneBinaryArtifactName = (): string => {
+  const platform =
+    process.platform === "win32"
+      ? "win"
+      : process.platform === "darwin"
+        ? "darwin"
+        : process.platform === "linux"
+          ? "linux"
+          : null;
+
+  if (!platform) {
+    throw new Error(
+      `Standalone binary updates are not supported on ${process.platform}.`,
+    );
+  }
+
+  const arch = os.arch();
+  if (arch !== "x64" && arch !== "arm64") {
+    throw new Error(
+      `Standalone binary updates are not supported on ${arch} architecture.`,
+    );
+  }
+
+  const extension = platform === "win" ? ".exe" : "";
+  return `${NPM_PACKAGE_NAME}-${platform}-${arch}${extension}`;
+};
+
+const getStandaloneBinaryTargetPath = (): string => {
+  const execPath = process.execPath;
+
   try {
-    const scriptPath = process.argv[1];
-
-    if (
-      scriptPath.includes("node_modules") &&
-      scriptPath.includes(NPM_PACKAGE_NAME)
-    ) {
-      return true;
+    if (fs.lstatSync(execPath).isSymbolicLink()) {
+      return fs.realpathSync.native(execPath);
     }
+  } catch (_error) {
+    // Fall back to the original exec path below.
+  }
 
-    if (
-      scriptPath.includes("/usr/local/lib/node_modules/") ||
-      scriptPath.includes("/opt/homebrew/lib/node_modules/") ||
-      scriptPath.includes("/.npm-global/") ||
-      scriptPath.includes("/node_modules/.bin/") ||
-      scriptPath.includes("/.nvm/versions/node/")
-    ) {
-      return true;
-    }
+  return execPath;
+};
 
-    return false;
-  } catch (_e) {
+const isExpectedStandaloneBinaryPath = (candidatePath: string): boolean => {
+  const basename = path.basename(candidatePath).toLowerCase();
+  const expectedName = EXECUTABLE_NAME.toLowerCase();
+
+  return basename === expectedName || basename === `${expectedName}.exe`;
+};
+
+const isDirectoryWritable = (directoryPath: string): boolean => {
+  try {
+    fs.accessSync(directoryPath, fs.constants.W_OK);
+    return true;
+  } catch (_error) {
     return false;
   }
 };
 
-/**
- * Check if the CLI was installed via Homebrew
- */
-const isInstalledViaHomebrew = (): boolean => {
-  try {
-    const scriptPath = process.argv[1];
-    return (
-      scriptPath.includes("/opt/homebrew/") ||
-      scriptPath.includes("/usr/local/Cellar/") ||
-      scriptPath.includes("/home/linuxbrew/.linuxbrew/") ||
-      scriptPath.includes("/linuxbrew/.linuxbrew/")
+const quoteShellArgument = (value: string): string => {
+  return `'${value.replace(/'/g, `'\\''`)}'`;
+};
+
+const downloadStandaloneBinary = async (
+  destinationPath: string,
+): Promise<void> => {
+  const artifact = getStandaloneBinaryArtifactName();
+  const response = await fetch(
+    `${GITHUB_RELEASES_URL}/latest/download/${artifact}`,
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      `Failed to download standalone binary (HTTP ${response.status}).`,
     );
-  } catch (_e) {
-    return false;
+  }
+
+  const body = Buffer.from(await response.arrayBuffer());
+  fs.writeFileSync(destinationPath, body);
+
+  if (process.platform !== "win32") {
+    fs.chmodSync(destinationPath, 0o755);
   }
 };
 
@@ -76,7 +119,7 @@ const execCommand = (
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
       stdio: "inherit",
-      shell: true,
+      shell: process.platform === "win32",
       ...options,
     });
 
@@ -92,6 +135,31 @@ const execCommand = (
       reject(err);
     });
   });
+};
+
+const getHomebrewFormulaForUpdate = (): string => {
+  return getInstalledHomebrewFormula() ?? HOMEBREW_FORMULA;
+};
+
+const getHomebrewFormulaForManualInstructions = (): string => {
+  if (process.platform === "win32") {
+    return HOMEBREW_FORMULA;
+  }
+
+  return getHomebrewFormulaForUpdate();
+};
+
+const showHomebrewTapRecommendation = (formulaName: string): void => {
+  if (formulaName === HOMEBREW_FORMULA) {
+    return;
+  }
+
+  warn(
+    `Detected ${chalk.bold(formulaName)} from Homebrew. For faster native binaries, we recommend using the official Appwrite tap.`,
+  );
+  hint(
+    `To use the official Appwrite tap, run: brew install ${HOMEBREW_FORMULA}`,
+  );
 };
 
 /**
@@ -121,12 +189,19 @@ const updateViaNpm = async (): Promise<void> => {
 /**
  * Update via Homebrew
  */
-const updateViaHomebrew = async (): Promise<void> => {
+const updateViaHomebrew = async (
+  formulaName: string = getHomebrewFormulaForUpdate(),
+  options: { showRecommendation?: boolean } = {},
+): Promise<void> => {
   try {
-    await execCommand("brew", ["upgrade", "appwrite"]);
+    if (options.showRecommendation ?? true) {
+      showHomebrewTapRecommendation(formulaName);
+    }
+
+    await execCommand("brew", ["upgrade", formulaName]);
     console.log("");
     success("Updated to latest version via Homebrew!");
-    hint("Run 'appwrite --version' to verify the new version.");
+    hint(`Run '${EXECUTABLE_NAME} --version' to verify the new version.`);
   } catch (e: unknown) {
     const message = getErrorMessage(e);
 
@@ -136,11 +211,73 @@ const updateViaHomebrew = async (): Promise<void> => {
     ) {
       console.log("");
       success("Latest version is already installed via Homebrew!");
-      hint("The CLI is up to date. Run 'appwrite --version' to verify.");
+      hint(
+        `The CLI is up to date. Run '${EXECUTABLE_NAME} --version' to verify.`,
+      );
     } else {
       console.log("");
       error(`Failed to update via Homebrew: ${message}`);
-      hint("Try running: brew upgrade appwrite");
+      hint(`Try running: brew upgrade ${formulaName}`);
+    }
+  }
+};
+
+/**
+ * Update a standalone/native binary install
+ */
+const updateViaStandaloneBinary = async (
+  latestVersion: string,
+): Promise<void> => {
+  if (process.platform === "win32") {
+    showManualInstructions(latestVersion, HOMEBREW_FORMULA);
+    return;
+  }
+
+  const targetPath = getStandaloneBinaryTargetPath();
+  if (!isExpectedStandaloneBinaryPath(targetPath)) {
+    console.log("");
+    error("Could not determine the standalone binary path.");
+    hint(`Download the latest release manually at: ${GITHUB_RELEASES_URL}`);
+    return;
+  }
+
+  const targetDir = path.dirname(targetPath);
+  const tempName = `${path.basename(targetPath)}.tmp-${process.pid}`;
+  const writableDirectory = isDirectoryWritable(targetDir);
+  const tempPath = writableDirectory
+    ? path.join(targetDir, tempName)
+    : path.join(os.tmpdir(), tempName);
+
+  try {
+    await downloadStandaloneBinary(tempPath);
+
+    if (writableDirectory) {
+      fs.renameSync(tempPath, targetPath);
+    } else {
+      const stagedTargetPath = path.join(targetDir, tempName);
+      const command = [
+        `install -m 755 ${quoteShellArgument(tempPath)} ${quoteShellArgument(stagedTargetPath)}`,
+        `mv -f ${quoteShellArgument(stagedTargetPath)} ${quoteShellArgument(targetPath)}`,
+      ].join(" && ");
+
+      await execCommand("sudo", ["sh", "-c", command]);
+    }
+
+    console.log("");
+    success("Updated to latest version via standalone binary!");
+    hint("Run 'appwrite --version' to verify the new version.");
+  } catch (e: unknown) {
+    const message = getErrorMessage(e);
+    console.log("");
+    error(`Failed to update standalone binary: ${message}`);
+    hint(`Download the latest release manually at: ${GITHUB_RELEASES_URL}`);
+  } finally {
+    try {
+      if (fs.existsSync(tempPath)) {
+        fs.unlinkSync(tempPath);
+      }
+    } catch (_error) {
+      // Ignore cleanup failures.
     }
   }
 };
@@ -148,7 +285,10 @@ const updateViaHomebrew = async (): Promise<void> => {
 /**
  * Show manual update instructions
  */
-const showManualInstructions = (latestVersion: string): void => {
+const showManualInstructions = (
+  latestVersion: string,
+  homebrewFormula: string = getHomebrewFormulaForManualInstructions(),
+): void => {
   log("Manual update options:");
   console.log("");
 
@@ -157,20 +297,59 @@ const showManualInstructions = (latestVersion: string): void => {
   console.log("");
 
   log(`${chalk.bold("Option 2: Homebrew")}`);
-  console.log(`  brew upgrade appwrite`);
+  console.log(`  brew upgrade ${homebrewFormula}`);
+  if (homebrewFormula !== HOMEBREW_FORMULA) {
+    console.log("");
+    hint(
+      `For faster native binaries from the official Appwrite tap, run: brew install ${HOMEBREW_FORMULA}`,
+    );
+  }
   console.log("");
 
-  log(`${chalk.bold("Option 3: Download Binary")}`);
-  console.log(`  Visit: ${GITHUB_RELEASES_URL}/tag/${latestVersion}`);
+  if (process.platform !== "win32") {
+    try {
+      const artifact = getStandaloneBinaryArtifactName();
+      const targetPath = getStandaloneBinaryTargetPath();
+      if (!isExpectedStandaloneBinaryPath(targetPath)) {
+        throw new Error("Could not determine the standalone binary path.");
+      }
+      const tempPath = path.join(os.tmpdir(), path.basename(targetPath));
+
+      log(`${chalk.bold("Option 3: Install Script / Standalone Binary")}`);
+      console.log(
+        `  curl -fsSL ${GITHUB_RELEASES_URL}/latest/download/${artifact} -o ${tempPath}`,
+      );
+      console.log(`  chmod +x ${tempPath}`);
+      console.log(`  sudo mv -f ${tempPath} ${targetPath}`);
+      console.log("");
+    } catch (_error) {
+      // Fall back to the release page below when the current platform is unsupported.
+    }
+  }
+
+  log(`${chalk.bold("Option 4: Download Binary")}`);
+  console.log(`  Visit: ${GITHUB_RELEASES_URL}/latest`);
 };
 
 /**
  * Show interactive menu for choosing update method
  */
 const chooseUpdateMethod = async (latestVersion: string): Promise<void> => {
+  const canOfferStandaloneUpdate =
+    process.platform !== "win32" &&
+    isExpectedStandaloneBinaryPath(getStandaloneBinaryTargetPath());
+
   const choices = [
     { name: "NPM", value: "npm" },
     { name: "Homebrew", value: "homebrew" },
+    ...(!canOfferStandaloneUpdate
+      ? []
+      : [
+          {
+            name: "Install script / standalone binary",
+            value: "standalone",
+          },
+        ]),
     { name: "Show manual instructions", value: "manual" },
   ];
 
@@ -191,6 +370,9 @@ const chooseUpdateMethod = async (latestVersion: string): Promise<void> => {
     case "homebrew":
       await updateViaHomebrew();
       break;
+    case "standalone":
+      await updateViaStandaloneBinary(latestVersion);
+      break;
     case "manual":
       showManualInstructions(latestVersion);
       break;
@@ -206,7 +388,15 @@ interface UpdateOptions {
  */
 const updateCli = async ({ manual }: UpdateOptions = {}): Promise<void> => {
   try {
-    const latestVersion = await getLatestVersion();
+    const installationMethod = detectInstallationMethod();
+    const homebrewFormula =
+      installationMethod === "homebrew" ? getHomebrewFormulaForUpdate() : null;
+    const latestVersion = await getLatestVersionForInstallation(
+      installationMethod,
+      {
+        homebrewFormula: homebrewFormula ?? undefined,
+      },
+    );
 
     const comparison = compareVersions(version, latestVersion);
 
@@ -223,22 +413,35 @@ const updateCli = async ({ manual }: UpdateOptions = {}): Promise<void> => {
       return;
     }
 
+    if (manual) {
+      showManualInstructions(latestVersion, homebrewFormula ?? undefined);
+      return;
+    }
+
+    if (homebrewFormula) {
+      showHomebrewTapRecommendation(homebrewFormula);
+    }
+
     log(
       `Updating from ${chalk.blue(version)} to ${chalk.green(latestVersion)}...`,
     );
     console.log("");
 
-    if (manual) {
-      showManualInstructions(latestVersion);
-      return;
-    }
-
-    if (isInstalledViaNpm()) {
-      await updateViaNpm();
-    } else if (isInstalledViaHomebrew()) {
-      await updateViaHomebrew();
-    } else {
-      await chooseUpdateMethod(latestVersion);
+    switch (installationMethod) {
+      case "npm":
+        await updateViaNpm();
+        break;
+      case "homebrew":
+        await updateViaHomebrew(homebrewFormula ?? undefined, {
+          showRecommendation: false,
+        });
+        break;
+      case "standalone":
+        await updateViaStandaloneBinary(latestVersion);
+        break;
+      default:
+        await chooseUpdateMethod(latestVersion);
+        break;
     }
   } catch (e: unknown) {
     const message = getErrorMessage(e);

@@ -3,6 +3,7 @@ import path from "path";
 import childProcess from "child_process";
 import { Command } from "commander";
 import inquirer from "inquirer";
+import chalk from "chalk";
 import { getProjectsService, getSitesService } from "../services.js";
 import { pullResources } from "./pull.js";
 import ID from "../id.js";
@@ -33,6 +34,7 @@ import { sdkForConsole } from "../sdks.js";
 import {
   isCloud,
   getSafeDirectoryName,
+  siteRequiresBuildCommand,
   hasSkillsInstalled,
   fetchAvailableSkills,
   detectProjectSkills,
@@ -86,6 +88,162 @@ interface SiteTemplateDetails {
   frameworks: SiteTemplateFramework[];
   variables?: SiteTemplateVariable[];
 }
+
+interface InitProjectNextStep {
+  command: string;
+  description: string;
+}
+
+interface InitProjectStepOptions {
+  start: "new" | "existing";
+  autoPulled: boolean;
+}
+
+const extractSelectionId = (value: string): string => {
+  const match = value.match(/\(([^()]+)\)$/);
+  return match ? match[1] : value;
+};
+
+const getExistingProjectSummary = async (
+  projectId: string,
+): Promise<ExistingProjectSummary> => {
+  const projectsService = await getProjectsService();
+  const project = await projectsService.get(extractSelectionId(projectId));
+
+  return {
+    $id: project.$id,
+    name: project.name,
+    region: project.region || "",
+  };
+};
+
+const printInitProjectSuccess = (message: string): void => {
+  console.log(`${chalk.green.bold("✓")} ${chalk.green(message)}`);
+};
+
+const printInitProjectNextSteps = (steps: InitProjectNextStep[]): void => {
+  if (steps.length === 0) {
+    return;
+  }
+
+  const longestCommand = steps.reduce(
+    (longest, step) => Math.max(longest, step.command.length),
+    0,
+  );
+
+  console.log("");
+  console.log("  Next steps:");
+
+  for (const step of steps) {
+    const spacing = " ".repeat(longestCommand - step.command.length + 4);
+    console.log(`    ${chalk.cyan(step.command)}${spacing}${step.description}`);
+  }
+};
+
+const getLocalInitProjectResourceState = () => {
+  const functions = localConfig.getFunctions();
+  const sites = localConfig.getSites();
+  const collections = localConfig.getCollections();
+  const tables = localConfig.getTables();
+  const buckets = localConfig.getBuckets();
+  const teams = localConfig.getTeams();
+  const webhooks = localConfig.getWebhooks();
+  const topics = localConfig.getMessagingTopics();
+
+  return {
+    hasFunctions: functions.length > 0,
+    hasResources:
+      functions.length > 0 ||
+      sites.length > 0 ||
+      collections.length > 0 ||
+      tables.length > 0 ||
+      buckets.length > 0 ||
+      teams.length > 0 ||
+      webhooks.length > 0 ||
+      topics.length > 0,
+  };
+};
+
+const getInitProjectNextSteps = ({
+  start,
+  autoPulled,
+}: InitProjectStepOptions): InitProjectNextStep[] => {
+  const { hasFunctions, hasResources } = getLocalInitProjectResourceState();
+  const nextSteps: InitProjectNextStep[] = [];
+
+  if (start === "existing" && !autoPulled) {
+    nextSteps.push(
+      {
+        command: `${EXECUTABLE_NAME} pull`,
+        description: "Choose a resource to sync",
+      },
+      {
+        command: `${EXECUTABLE_NAME} init`,
+        description: "Create a new resource",
+      },
+    );
+
+    return nextSteps;
+  }
+
+  if (start === "new") {
+    nextSteps.push({
+      command: `${EXECUTABLE_NAME} init`,
+      description: "Create your first resource",
+    });
+
+    return nextSteps;
+  }
+
+  nextSteps.push({
+    command: `${EXECUTABLE_NAME} init`,
+    description: "Create another resource",
+  });
+
+  if (hasFunctions) {
+    nextSteps.push({
+      command: `${EXECUTABLE_NAME} run function`,
+      description: "Run a pulled function locally",
+    });
+  }
+
+  if (hasResources) {
+    nextSteps.push({
+      command: `${EXECUTABLE_NAME} push`,
+      description: "Deploy your local edits",
+    });
+  }
+
+  return nextSteps;
+};
+
+const installInitProjectSkills = async (): Promise<void> => {
+  if (hasSkillsInstalled(localConfig.configDirectoryPath)) {
+    log("Agent skills already found. Skipping installation.");
+    return;
+  }
+
+  try {
+    const skillsCwd = localConfig.configDirectoryPath;
+    const { skills, tempDir } = fetchAvailableSkills();
+    try {
+      const detected = detectProjectSkills(skillsCwd, skills);
+      if (detected.length > 0) {
+        const names = detected.map((s) => s.dirName);
+        placeSkills(skillsCwd, tempDir, names, [".agents", ".claude"], true);
+        printInitProjectSuccess(
+          `Installed ${names.length} agent skill${names.length === 1 ? "" : "s"}: ${detected.map((s) => s.name).join(", ")}`,
+        );
+      }
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    error(`Failed to install agent skills: ${msg}`);
+    hint(`You can install them later with '${EXECUTABLE_NAME} init skill'.`);
+  }
+};
 
 const initResources = async (): Promise<void> => {
   const actions: Record<string, InitResourceAction> = {
@@ -143,6 +301,9 @@ const initProject = async ({
       log("No changes made. Existing project configuration was kept.");
       return;
     }
+    if (typeof answers.organization === "string") {
+      answers.organization = extractSelectionId(answers.organization);
+    }
   } else {
     const selectedOrganization =
       organizationId ??
@@ -152,17 +313,16 @@ const initProject = async ({
     const selectedProjectId =
       projectId ?? (await inquirer.prompt([questionsInitProject[4]])).id;
 
+    const normalizedOrganization = extractSelectionId(selectedOrganization);
+
     answers = {
       start: "existing",
       project: selectedProjectId,
-      organization: selectedOrganization,
+      organization: normalizedOrganization,
     };
 
     try {
-      const projectsService = await getProjectsService();
-      const existingProject: ExistingProjectSummary =
-        await projectsService.get(selectedProjectId);
-      answers.project = existingProject;
+      answers.project = await getExistingProjectSummary(selectedProjectId);
     } catch (e) {
       if (e instanceof AppwriteException && e.code === 404) {
         answers = {
@@ -175,6 +335,10 @@ const initProject = async ({
         throw e;
       }
     }
+  }
+
+  if (answers.start === "existing" && typeof answers.project === "string") {
+    answers.project = await getExistingProjectSummary(answers.project);
   }
 
   localConfig.clear(); // Clear the config to avoid any conflicts
@@ -207,7 +371,7 @@ const initProject = async ({
       answers.region,
     );
 
-    localConfig.setProject(response["$id"]);
+    localConfig.setProject(response["$id"], response.name ?? "");
     if (answers.region) {
       localConfig.setEndpoint(
         `https://${answers.region}.${url.host}${url.pathname}`,
@@ -228,7 +392,7 @@ const initProject = async ({
         break;
     }
 
-    localConfig.setProject(selectedProject.$id);
+    localConfig.setProject(selectedProject.$id, selectedProject.name ?? "");
 
     if (isCloud() && selectedProject.region) {
       localConfig.setEndpoint(
@@ -237,54 +401,35 @@ const initProject = async ({
     }
   }
 
-  success(
-    `Project successfully ${answers.start === "existing" ? "linked" : "created"}. Details are now stored in appwrite.config.json file.`,
-  );
-
+  let autoPulled = false;
   if (answers.start === "existing") {
     const autopullAnswers: InitProjectAutopullAnswer = await inquirer.prompt(
       questionsInitProjectAutopull,
     );
+    console.log("");
+    printInitProjectSuccess("Project linked → appwrite.config.json");
+    await installInitProjectSkills();
     if (autopullAnswers.autopull) {
+      console.log("");
+      autoPulled = true;
       cliConfig.all = true;
       cliConfig.force = true;
       await pullResources({
         skipDeprecated: true,
       });
-    } else {
-      log(
-        `You can run '${EXECUTABLE_NAME} pull all' to synchronize all of your existing resources.`,
-      );
     }
+  } else {
+    console.log("");
+    printInitProjectSuccess("Project created → appwrite.config.json");
+    await installInitProjectSkills();
   }
 
-  hint(
-    `Next you can use '${EXECUTABLE_NAME} init' to create resources in your project, or use '${EXECUTABLE_NAME} pull' and '${EXECUTABLE_NAME} push' to synchronize your project.`,
-  );
+  const nextSteps = getInitProjectNextSteps({
+    start: answers.start,
+    autoPulled,
+  });
 
-  if (!hasSkillsInstalled(localConfig.configDirectoryPath)) {
-    try {
-      const skillsCwd = localConfig.configDirectoryPath;
-      log("Setting up Appwrite agent skills ...");
-      const { skills, tempDir } = fetchAvailableSkills();
-      try {
-        const detected = detectProjectSkills(skillsCwd, skills);
-        if (detected.length > 0) {
-          const names = detected.map((s) => s.dirName);
-          placeSkills(skillsCwd, tempDir, names, [".agents", ".claude"], true);
-          success(
-            `Installed ${names.length} agent skill${names.length === 1 ? "" : "s"} based on your project: ${detected.map((s) => s.name).join(", ")}`,
-          );
-        }
-      } finally {
-        fs.rmSync(tempDir, { recursive: true, force: true });
-      }
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      error(`Failed to install agent skills: ${msg}`);
-      hint(`You can install them later with '${EXECUTABLE_NAME} init skill'.`);
-    }
-  }
+  printInitProjectNextSteps(nextSteps);
 };
 
 const initBucket = async (): Promise<void> => {
@@ -471,7 +616,11 @@ const initSkill = async (): Promise<void> => {
 };
 
 const initFunction = async (): Promise<void> => {
-  process.chdir(localConfig.configDirectoryPath);
+  const configDirectory = localConfig.getResourceDirname("functions");
+  if (!fs.existsSync(configDirectory)) {
+    fs.mkdirSync(configDirectory, { recursive: true });
+  }
+  process.chdir(configDirectory);
 
   // TODO: Add CI/CD support (ID, name, runtime)
   const answers = await inquirer.prompt(questionsCreateFunction);
@@ -641,30 +790,44 @@ const initFunction = async (): Promise<void> => {
 };
 
 const initSite = async (): Promise<void> => {
-  process.chdir(localConfig.configDirectoryPath);
+  const configDirectory = localConfig.getResourceDirname("sites");
+  if (!fs.existsSync(configDirectory)) {
+    fs.mkdirSync(configDirectory, { recursive: true });
+  }
+  process.chdir(configDirectory);
 
   const answers = await inquirer.prompt(questionsCreateSite);
-  const siteFolder = path.join(process.cwd(), "sites");
-
-  if (!fs.existsSync(siteFolder)) {
-    fs.mkdirSync(siteFolder, {
-      recursive: true,
-    });
-  }
-
   const siteId = answers.id === "unique()" ? ID.unique() : answers.id;
-  const siteName = answers.name;
-  const siteDirectoryName = getSafeDirectoryName(siteName, siteId);
-  const siteDir = path.join(siteFolder, siteDirectoryName);
+  const sitePath = answers.path.trim();
+  const siteDir = path.resolve(process.cwd(), sitePath);
+  const siteFolder = path.join(process.cwd(), "sites");
   const templatesDir = path.join(siteFolder, `${siteId}-templates`);
+  const siteDirExists = fs.existsSync(siteDir);
+  const siteFolderExists = fs.existsSync(siteFolder);
 
-  if (fs.existsSync(siteDir)) {
+  if (siteDirExists && !fs.statSync(siteDir).isDirectory()) {
     throw new Error(
-      `( ${siteDirectoryName} ) already exists in the current directory. Please choose another name.`,
+      `( ${sitePath} ) already exists and is not a directory. Please choose another path.`,
     );
   }
 
-  let templateDetails: SiteTemplateDetails;
+  const siteDirIsEmpty = siteDirExists
+    ? fs.readdirSync(siteDir).length === 0
+    : true;
+
+  if (answers.downloadTemplate && siteDirExists && !siteDirIsEmpty) {
+    throw new Error(
+      `( ${sitePath} ) already exists and is not empty. Please choose another path.`,
+    );
+  }
+
+  if (!answers.downloadTemplate && siteDirExists && !siteDirIsEmpty) {
+    hint(
+      `Using existing non-empty site directory '${sitePath}'. No starter template code will be downloaded.`,
+    );
+  }
+
+  let templateDetails: SiteTemplateDetails | null = null;
   try {
     const sitesService = await getSitesService();
     const response = await sitesService.listTemplates(
@@ -680,132 +843,171 @@ const initSite = async (): Promise<void> => {
     templateDetails = response.templates[0];
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err);
-    throw new Error(
-      `Failed to fetch template for framework ${answers.framework.key}: ${errorMessage}`,
+    if (answers.downloadTemplate) {
+      throw new Error(
+        `Failed to fetch template for framework ${answers.framework.key}: ${errorMessage}`,
+      );
+    }
+    log(
+      `Failed to fetch template details for framework ${answers.framework.key}: ${errorMessage}`,
     );
   }
 
-  fs.mkdirSync(siteDir, { mode: 0o777 });
-  fs.mkdirSync(templatesDir, { mode: 0o777 });
-  const repo = `https://github.com/${templateDetails.providerOwner}/${templateDetails.providerRepositoryId}`;
-  const selected = {
-    template: templateDetails.frameworks[0].providerRootDirectory,
-  };
+  const templateFramework = templateDetails?.frameworks[0];
 
-  let dirSetupCommands = "";
-
-  const sparse = selected.template.startsWith("./")
-    ? selected.template.substring(2)
-    : selected.template;
-
-  log("Fetching site code ...");
-
-  if (selected.template === "./") {
-    dirSetupCommands = `
-            cd ${templatesDir}
-            git init
-            git remote add origin ${repo}
-            git config --global init.defaultBranch main   
-        `.trim();
-  } else {
-    dirSetupCommands = `
-            cd ${templatesDir}
-            git init
-            git remote add origin ${repo}
-            git config --global init.defaultBranch main
-            git config core.sparseCheckout true
-            echo "${sparse}" >> .git/info/sparse-checkout
-            git config --add remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'
-            git config remote.origin.tagopt --no-tags
-        `.trim();
-  }
-  const windowsGitCloneCommands = `
-            $tag = (git ls-remote --tags origin "${templateDetails.providerVersion}" | Select-Object -Last 1) -replace '.*refs/tags/', ''
-            git fetch --depth=1 origin "refs/tags/$tag"
-            git checkout FETCH_HEAD
-            `.trim();
-  const unixGitCloneCommands = `
-            git fetch --depth=1 origin refs/tags/$(git ls-remote --tags origin "${templateDetails.providerVersion}" | tail -n 1 | awk -F '/' '{print $3}')
-            git checkout FETCH_HEAD
-            `.trim();
-
-  let usedShell = null;
-  if (process.platform === "win32") {
-    dirSetupCommands = dirSetupCommands + "\n" + windowsGitCloneCommands;
-    usedShell = "powershell.exe";
-  } else {
-    dirSetupCommands = dirSetupCommands + "\n" + unixGitCloneCommands;
+  const createdSiteDir = !siteDirExists;
+  if (!siteDirExists) {
+    fs.mkdirSync(siteDir, { recursive: true, mode: 0o777 });
   }
 
-  /*  Execute the child process but do not print any std output */
-  try {
-    childProcess.execSync(dirSetupCommands, {
-      stdio: "pipe",
-      cwd: templatesDir,
-      shell: usedShell,
-    });
-  } catch (err) {
-    /* Specialised errors with recommended actions to take */
-    const errorMessage = err instanceof Error ? err.message : String(err);
-    if (errorMessage.includes("error: unknown option")) {
-      throw new Error(
-        `${errorMessage} \n\nSuggestion: Try updating your git to the latest version, then trying to run this command again.`,
+  if (answers.downloadTemplate) {
+    try {
+      if (!templateDetails || !templateFramework) {
+        throw new Error(
+          `No starter template found for framework ${answers.framework.key}`,
+        );
+      }
+
+      if (!fs.existsSync(siteFolder)) {
+        fs.mkdirSync(siteFolder, {
+          recursive: true,
+        });
+      }
+
+      fs.mkdirSync(templatesDir, { mode: 0o777 });
+      const repo = `https://github.com/${templateDetails.providerOwner}/${templateDetails.providerRepositoryId}`;
+      const selected = {
+        template: templateFramework.providerRootDirectory,
+      };
+
+      let dirSetupCommands = "";
+
+      const sparse = selected.template.startsWith("./")
+        ? selected.template.substring(2)
+        : selected.template;
+
+      log("Fetching site code ...");
+
+      if (selected.template === "./") {
+        dirSetupCommands = `
+              cd ${templatesDir}
+              git init
+              git remote add origin ${repo}
+              git config --global init.defaultBranch main
+          `.trim();
+      } else {
+        dirSetupCommands = `
+              cd ${templatesDir}
+              git init
+              git remote add origin ${repo}
+              git config --global init.defaultBranch main
+              git config core.sparseCheckout true
+              echo "${sparse}" >> .git/info/sparse-checkout
+              git config --add remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'
+              git config remote.origin.tagopt --no-tags
+          `.trim();
+      }
+      const windowsGitCloneCommands = `
+              $tag = (git ls-remote --tags origin "${templateDetails.providerVersion}" | Select-Object -Last 1) -replace '.*refs/tags/', ''
+              git fetch --depth=1 origin "refs/tags/$tag"
+              git checkout FETCH_HEAD
+              `.trim();
+      const unixGitCloneCommands = `
+              git fetch --depth=1 origin refs/tags/$(git ls-remote --tags origin "${templateDetails.providerVersion}" | tail -n 1 | awk -F '/' '{print $3}')
+              git checkout FETCH_HEAD
+              `.trim();
+
+      let usedShell = null;
+      if (process.platform === "win32") {
+        dirSetupCommands = dirSetupCommands + "\n" + windowsGitCloneCommands;
+        usedShell = "powershell.exe";
+      } else {
+        dirSetupCommands = dirSetupCommands + "\n" + unixGitCloneCommands;
+      }
+
+      /*  Execute the child process but do not print any std output */
+      try {
+        childProcess.execSync(dirSetupCommands, {
+          stdio: "pipe",
+          cwd: templatesDir,
+          shell: usedShell,
+        });
+      } catch (err) {
+        /* Specialised errors with recommended actions to take */
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        if (errorMessage.includes("error: unknown option")) {
+          throw new Error(
+            `${errorMessage} \n\nSuggestion: Try updating your git to the latest version, then trying to run this command again.`,
+          );
+        } else if (
+          errorMessage.includes(
+            "is not recognized as an internal or external command,",
+          ) ||
+          errorMessage.includes("command not found")
+        ) {
+          throw new Error(
+            `${errorMessage} \n\nSuggestion: It appears that git is not installed, try installing git then trying to run this command again.`,
+          );
+        } else {
+          throw err;
+        }
+      }
+
+      fs.rmSync(path.join(templatesDir, ".git"), {
+        recursive: true,
+        force: true,
+      });
+
+      fs.cpSync(
+        selected.template === "./"
+          ? templatesDir
+          : path.join(templatesDir, selected.template),
+        siteDir,
+        { recursive: true, force: true },
       );
-    } else if (
-      errorMessage.includes(
-        "is not recognized as an internal or external command,",
-      ) ||
-      errorMessage.includes("command not found")
-    ) {
-      throw new Error(
-        `${errorMessage} \n\nSuggestion: It appears that git is not installed, try installing git then trying to run this command again.`,
-      );
-    } else {
+
+      fs.rmSync(templatesDir, { recursive: true, force: true });
+
+      const readmePath = path.join(siteDir, "README.md");
+      if (fs.existsSync(readmePath)) {
+        const readmeFile = fs.readFileSync(readmePath).toString();
+        const newReadmeFile = readmeFile.split("\n");
+        newReadmeFile[0] = `# ${answers.name}`;
+        newReadmeFile.splice(1, 2);
+        fs.writeFileSync(readmePath, newReadmeFile.join("\n"));
+      }
+    } catch (err) {
+      fs.rmSync(templatesDir, { recursive: true, force: true });
+      if (createdSiteDir) {
+        fs.rmSync(siteDir, { recursive: true, force: true });
+      }
+      if (
+        !siteFolderExists &&
+        fs.existsSync(siteFolder) &&
+        fs.readdirSync(siteFolder).length === 0
+      ) {
+        fs.rmSync(siteFolder, { recursive: true, force: true });
+      }
       throw err;
     }
   }
-
-  fs.rmSync(path.join(templatesDir, ".git"), { recursive: true, force: true });
-
-  fs.cpSync(
-    selected.template === "./"
-      ? templatesDir
-      : path.join(templatesDir, selected.template),
-    siteDir,
-    { recursive: true, force: true },
-  );
-
-  fs.rmSync(templatesDir, { recursive: true, force: true });
-
-  const readmePath = path.join(
-    process.cwd(),
-    "sites",
-    siteDirectoryName,
-    "README.md",
-  );
-  const readmeFile = fs.readFileSync(readmePath).toString();
-  const newReadmeFile = readmeFile.split("\n");
-  newReadmeFile[0] = `# ${answers.name}`;
-  newReadmeFile.splice(1, 2);
-  fs.writeFileSync(readmePath, newReadmeFile.join("\n"));
 
   const data = {
     $id: siteId,
     name: answers.name,
     framework: answers.framework.key,
-    adapter: templateDetails.frameworks[0].adapter || "",
-    buildRuntime: templateDetails.frameworks[0].buildRuntime || "",
-    installCommand: templateDetails.frameworks[0].installCommand || "",
-    buildCommand: templateDetails.frameworks[0].buildCommand || "",
-    outputDirectory: templateDetails.frameworks[0].outputDirectory || "",
-    fallbackFile: templateDetails.frameworks[0].fallbackFile || "",
+    adapter: templateFramework?.adapter || "",
+    buildRuntime: templateFramework?.buildRuntime || "",
+    installCommand: templateFramework?.installCommand || "",
+    buildCommand: templateFramework?.buildCommand || "",
+    outputDirectory: templateFramework?.outputDirectory || "",
+    fallbackFile: templateFramework?.fallbackFile || "",
     buildSpecification: answers.buildSpecification,
     runtimeSpecification: answers.runtimeSpecification,
     deploymentRetention: Number(answers.deploymentRetention),
-    enabled: true,
     timeout: 30,
     logging: true,
-    path: `sites/${siteDirectoryName}`,
+    path: sitePath,
   };
 
   if (!data.buildRuntime) {
@@ -820,7 +1022,7 @@ const initSite = async (): Promise<void> => {
     );
   }
 
-  if (!data.buildCommand) {
+  if (!data.buildCommand && siteRequiresBuildCommand(data)) {
     log(
       `Build command for this framework not found. You will be asked to configure the build command when you first push the site.`,
     );

@@ -9,8 +9,10 @@ import { globalConfig } from "./config.js";
 import type { SettingsType } from "./commands/config.js";
 import {
   NPM_REGISTRY_URL,
+  NPM_PACKAGE_NAME,
   DEFAULT_ENDPOINT,
   EXECUTABLE_NAME,
+  HOMEBREW_FORMULA,
   UPDATE_CHECK_INTERVAL_MS,
 } from "./constants.js";
 
@@ -30,6 +32,11 @@ export const createSettingsObject = (project: Models.Project): SettingsType => {
       graphql: project.serviceStatusForGraphql,
       messaging: project.serviceStatusForMessaging,
     },
+    protocols: {
+      rest: project.protocolStatusForRest,
+      graphql: project.protocolStatusForGraphql,
+      websocket: project.protocolStatusForWebsocket,
+    },
     auth: {
       methods: {
         jwt: project.authJWT,
@@ -48,7 +55,10 @@ export const createSettingsObject = (project: Models.Project): SettingsType => {
         passwordDictionary: project.authPasswordDictionary,
         personalDataCheck: project.authPersonalDataCheck,
         sessionAlerts: project.authSessionAlerts,
-        mockNumbers: project.authMockNumbers,
+        mockNumbers: project.authMockNumbers?.map((mockNumber) => ({
+          phone: mockNumber.number,
+          otp: mockNumber.otp,
+        })),
       },
     },
   };
@@ -68,6 +78,15 @@ export const getSafeDirectoryName = (
   return normalized || fallback;
 };
 
+type SiteBuildConfig = {
+  framework?: string;
+  adapter?: string;
+};
+
+export const siteRequiresBuildCommand = (site: SiteBuildConfig): boolean => {
+  return !(site.framework === "other" && site.adapter === "static");
+};
+
 export const getErrorMessage = (error: unknown): string => {
   if (error instanceof Error) {
     return error.message;
@@ -76,7 +95,229 @@ export const getErrorMessage = (error: unknown): string => {
   return String(error);
 };
 
-const isCloudHostname = (hostname: string): boolean =>
+export type InstallationMethod = "npm" | "homebrew" | "standalone";
+type LatestVersionSource = "npm" | "homebrew";
+type LatestVersionOptions = {
+  timeoutMs?: number;
+  homebrewFormula?: string;
+};
+type HomebrewInfoResponse = {
+  formulae?: Array<{
+    full_name?: string;
+    versions?: {
+      stable?: string;
+    };
+  }>;
+};
+
+const WINDOWS_EXECUTABLE_NAME = `${EXECUTABLE_NAME.toLowerCase()}.exe`;
+
+const getExecutablePaths = (): {
+  execPath: string;
+  realExecPath: string;
+  scriptPath: string;
+} => {
+  const execPath = process.execPath;
+  const scriptPath = process.argv[1] ?? "";
+
+  try {
+    return {
+      execPath,
+      realExecPath: fs.realpathSync.native(execPath),
+      scriptPath,
+    };
+  } catch (_error) {
+    return {
+      execPath,
+      realExecPath: execPath,
+      scriptPath,
+    };
+  }
+};
+
+const isExecutableName = (candidatePath: string): boolean => {
+  const basename = path.basename(candidatePath).toLowerCase();
+  return (
+    basename === EXECUTABLE_NAME.toLowerCase() ||
+    basename === WINDOWS_EXECUTABLE_NAME
+  );
+};
+
+const isHomebrewManagedPath = (candidatePath: string): boolean => {
+  return (
+    candidatePath.includes("/opt/homebrew/") ||
+    candidatePath.includes("/usr/local/Cellar/") ||
+    candidatePath.includes("/home/linuxbrew/.linuxbrew/") ||
+    candidatePath.includes("/linuxbrew/.linuxbrew/")
+  );
+};
+
+const isInstalledViaNpm = (): boolean => {
+  try {
+    const { scriptPath } = getExecutablePaths();
+
+    if (
+      scriptPath.includes("node_modules") &&
+      scriptPath.includes(NPM_PACKAGE_NAME)
+    ) {
+      return true;
+    }
+
+    if (
+      scriptPath.includes("/usr/local/lib/node_modules/") ||
+      scriptPath.includes("/opt/homebrew/lib/node_modules/") ||
+      scriptPath.includes("/.npm-global/") ||
+      scriptPath.includes("/node_modules/.bin/") ||
+      scriptPath.includes("/.nvm/versions/node/")
+    ) {
+      return true;
+    }
+
+    return false;
+  } catch (_error) {
+    return false;
+  }
+};
+
+const isInstalledViaHomebrew = (): boolean => {
+  try {
+    const { execPath, realExecPath, scriptPath } = getExecutablePaths();
+    const runtimeCandidates = [execPath, realExecPath].filter(isExecutableName);
+
+    return [scriptPath, ...runtimeCandidates].some(isHomebrewManagedPath);
+  } catch (_error) {
+    return false;
+  }
+};
+
+const isInstalledViaStandaloneBinary = (): boolean => {
+  if (isInstalledViaNpm() || isInstalledViaHomebrew()) {
+    return false;
+  }
+
+  try {
+    const { execPath, realExecPath } = getExecutablePaths();
+    return [execPath, realExecPath].some(isExecutableName);
+  } catch (_error) {
+    return false;
+  }
+};
+
+export const detectInstallationMethod = (): InstallationMethod | null => {
+  if (isInstalledViaNpm()) {
+    return "npm";
+  }
+
+  if (isInstalledViaHomebrew()) {
+    return "homebrew";
+  }
+
+  if (isInstalledViaStandaloneBinary()) {
+    return "standalone";
+  }
+
+  return null;
+};
+
+const getLatestVersionSource = (
+  method: InstallationMethod | null = detectInstallationMethod(),
+): LatestVersionSource => {
+  return method === "homebrew" ? "homebrew" : "npm";
+};
+
+const normalizeHomebrewVersion = (version: string): string => {
+  return version.split("_")[0].trim();
+};
+
+const DEFAULT_HOMEBREW_COMMAND_TIMEOUT_MS = 15000;
+
+export const getInstalledHomebrewFormula = (
+  options: { timeoutMs?: number } = {},
+): string | null => {
+  try {
+    const output = childProcess.execFileSync(
+      "brew",
+      ["list", "--formula", "--full-name"],
+      {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+        timeout: options.timeoutMs ?? DEFAULT_HOMEBREW_COMMAND_TIMEOUT_MS,
+        env: {
+          ...process.env,
+          HOMEBREW_NO_AUTO_UPDATE: "1",
+        },
+      },
+    );
+    const formulaName = EXECUTABLE_NAME.toLowerCase();
+    const preferredFormulas = new Set([HOMEBREW_FORMULA, formulaName]);
+    const installedFormulas = output
+      .split(/\r?\n/)
+      .map((formula) => formula.trim())
+      .filter((formula) => formula.length > 0);
+
+    const preferred = installedFormulas.find((formula) =>
+      preferredFormulas.has(formula),
+    );
+    if (preferred) {
+      return preferred;
+    }
+
+    const tapMatch = installedFormulas.find((formula) => {
+      const segments = formula.split("/");
+      return segments[segments.length - 1] === formulaName;
+    });
+
+    return tapMatch ?? null;
+  } catch (_error) {
+    return null;
+  }
+};
+
+const getHomebrewLatestVersion = async (
+  options: LatestVersionOptions = {},
+): Promise<string> => {
+  const formulaName =
+    options.homebrewFormula ??
+    getInstalledHomebrewFormula(options) ??
+    HOMEBREW_FORMULA;
+
+  try {
+    const output = childProcess.execFileSync(
+      "brew",
+      ["info", "--json=v2", formulaName],
+      {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+        timeout: options.timeoutMs ?? DEFAULT_HOMEBREW_COMMAND_TIMEOUT_MS,
+        env: {
+          ...process.env,
+          HOMEBREW_NO_AUTO_UPDATE: "1",
+        },
+      },
+    );
+
+    const parsed = JSON.parse(output) as HomebrewInfoResponse;
+    const formula =
+      parsed.formulae?.find((formula) => {
+        return formula.full_name === formulaName;
+      }) ?? parsed.formulae?.[0];
+    const stableVersion = formula?.versions?.stable;
+
+    if (typeof stableVersion !== "string" || stableVersion.trim() === "") {
+      throw new Error(
+        `Homebrew did not return a stable version for ${formulaName}.`,
+      );
+    }
+
+    return normalizeHomebrewVersion(stableVersion);
+  } catch (error) {
+    throw new Error(
+      `Failed to fetch latest Homebrew version: ${getErrorMessage(error)}`,
+    );
+  }
+};
+
+export const isCloudHostname = (hostname: string): boolean =>
   hostname === "cloud.appwrite.io" || hostname.endsWith(".cloud.appwrite.io");
 
 export const getConsoleBaseUrl = (endpoint: string): string => {
@@ -143,6 +384,7 @@ type UpdateCheckCache = {
   notifiedAt?: string;
   checkedOn?: string;
   notifiedOn?: string;
+  source?: LatestVersionSource;
 };
 
 const UPDATE_CHECK_FILE_NAME = "update-check.json";
@@ -220,6 +462,10 @@ const readUpdateCheckCache = (): UpdateCheckCache | null => {
         typeof parsed.notifiedAt === "string"
           ? parsed.notifiedAt
           : normalizeLegacyDate(parsed.notifiedOn),
+      source:
+        parsed.source === "npm" || parsed.source === "homebrew"
+          ? parsed.source
+          : undefined,
     };
   } catch (_error) {
     return null;
@@ -247,18 +493,39 @@ const tryWriteUpdateCheckCache = (cache: UpdateCheckCache): void => {
   }
 };
 
+const getCacheForVersionSource = (
+  cache: UpdateCheckCache | null,
+  source: LatestVersionSource,
+): UpdateCheckCache | null => {
+  if (!cache) {
+    return null;
+  }
+
+  if (typeof cache.source === "string") {
+    return cache.source === source ? cache : null;
+  }
+
+  // Legacy caches without a source were populated from npm.
+  return source === "npm" ? cache : null;
+};
+
 export const syncVersionCheckCache = (
   currentVersion: string,
   latestVersion: string,
 ): void => {
   const now = getCurrentTimestamp();
-  const existingCache = readUpdateCheckCache();
+  const source = getLatestVersionSource();
+  const existingCache = getCacheForVersionSource(
+    readUpdateCheckCache(),
+    source,
+  );
   const updateAvailable = compareVersions(currentVersion, latestVersion) > 0;
 
   tryWriteUpdateCheckCache({
     checkedAt: now,
     latestVersion,
     notifiedAt: updateAvailable ? now : existingCache?.notifiedAt,
+    source,
   });
 };
 
@@ -286,6 +553,25 @@ export async function getLatestVersion(
   }
 }
 
+export async function getLatestVersionForInstallation(
+  method: InstallationMethod | null,
+  options: LatestVersionOptions = {},
+): Promise<string> {
+  switch (getLatestVersionSource(method)) {
+    case "homebrew":
+      return getHomebrewLatestVersion(options);
+    case "npm":
+    default:
+      return getLatestVersion(options);
+  }
+}
+
+export async function getLatestVersionForCurrentInstallation(
+  options: { timeoutMs?: number } = {},
+): Promise<string> {
+  return getLatestVersionForInstallation(detectInstallationMethod(), options);
+}
+
 /**
  * Compare versions using semantic versioning
  */
@@ -308,7 +594,9 @@ export async function getCachedUpdateNotification(
   currentVersion: string,
 ): Promise<string | null> {
   const now = getCurrentTimestamp();
-  const cache = readUpdateCheckCache();
+  const installationMethod = detectInstallationMethod();
+  const source = getLatestVersionSource(installationMethod);
+  const cache = getCacheForVersionSource(readUpdateCheckCache(), source);
 
   if (isWithinUpdateInterval(cache?.checkedAt)) {
     if (!cache) {
@@ -332,9 +620,19 @@ export async function getCachedUpdateNotification(
   }
 
   try {
-    const latestVersion = await getLatestVersion({
-      timeoutMs: DEFAULT_UPDATE_CHECK_TIMEOUT_MS,
-    });
+    const homebrewFormula =
+      installationMethod === "homebrew"
+        ? (getInstalledHomebrewFormula({
+            timeoutMs: DEFAULT_UPDATE_CHECK_TIMEOUT_MS,
+          }) ?? HOMEBREW_FORMULA)
+        : undefined;
+    const latestVersion = await getLatestVersionForInstallation(
+      installationMethod,
+      {
+        timeoutMs: DEFAULT_UPDATE_CHECK_TIMEOUT_MS,
+        homebrewFormula,
+      },
+    );
     const updateAvailable = compareVersions(currentVersion, latestVersion) > 0;
     const alreadyNotifiedRecently = isWithinUpdateInterval(cache?.notifiedAt);
 
@@ -343,6 +641,7 @@ export async function getCachedUpdateNotification(
       latestVersion,
       notifiedAt:
         updateAvailable && !alreadyNotifiedRecently ? now : cache?.notifiedAt,
+      source,
     });
 
     return updateAvailable && !alreadyNotifiedRecently ? latestVersion : null;

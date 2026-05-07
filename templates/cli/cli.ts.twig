@@ -12,12 +12,17 @@ import inquirer from 'inquirer';
 import packageJson from './package.json' with { type: 'json' };
 import { commandDescriptions, cliConfig } from './lib/parser.js';
 import {
-    getLatestVersion,
+    getLatestVersionForCurrentInstallation,
     compareVersions,
     getCachedUpdateNotification,
     syncVersionCheckCache,
 } from './lib/utils.js';
 import inquirerSearchList from 'inquirer-search-list';
+import {
+    createCompletionCommand,
+    isCompletionCommand,
+    isCompletionInvocation,
+} from './lib/completions.js';
 
 import { client } from './lib/commands/generic.js';
 {% if sdk.test != "true" %}
@@ -40,7 +45,6 @@ import { {{ service.name }} } from './lib/commands/services/{{ service.name | ca
 const { version } = packageJson;
 inquirer.registerPrompt('search-list', inquirerSearchList);
 const VERSION_CHECK_TIMEOUT_MS = 5000;
-
 function writeUpdateAvailableNotice(currentVersion: string, latestVersion: string, toStderr: boolean = false): void {
     const stream = toStderr ? process.stderr : process.stdout;
 
@@ -90,7 +94,9 @@ async function checkVersion(): Promise<void> {
     return;
 {% else %}
     try {
-        const latestVersion = await getLatestVersion({ timeoutMs: VERSION_CHECK_TIMEOUT_MS });
+        const latestVersion = await getLatestVersionForCurrentInstallation({
+            timeoutMs: VERSION_CHECK_TIMEOUT_MS,
+        });
         syncVersionCheckCache(version, latestVersion);
         const comparison = compareVersions(version, latestVersion);
 
@@ -117,9 +123,12 @@ if (process.argv.includes('-v') || process.argv.includes('--version')) {
     })();
 } else {
     void (async () => {
-        await maybeShowUpdateNotice();
+        if (!isCompletionInvocation()) {
+            await maybeShowUpdateNotice();
+        }
 
         program
+            .name('{{ language.params.executableName|caseLower }}')
             .description(commandDescriptions['main'])
             .configureHelp({
                 helpWidth: process.stdout.columns || 80,
@@ -131,7 +140,13 @@ if (process.argv.includes('-v') || process.argv.includes('--version')) {
             .option('-j, --json', 'Output filtered JSON without empty values')
             .option('-R, --raw', 'Output full JSON response (secrets still redacted unless --show-secrets is set)')
             .option('--show-secrets', 'Display sensitive values like secrets and tokens in output')
-            .hook('preAction', migrate)
+            .hook('preAction', async (_thisCommand, actionCommand) => {
+                if (isCompletionCommand(actionCommand)) {
+                    return;
+                }
+
+                await migrate();
+            })
             .option('-f,--force', 'Flag to confirm all warnings')
             .option('-a,--all', 'Flag to push all resources')
             .option('--id [id...]', 'Flag to pass a list of ids for a given action')
@@ -187,6 +202,7 @@ if (process.argv.includes('-v') || process.argv.includes('--version')) {
 {% for service in spec.services %}
             .addCommand({{ service.name }})
 {% endfor %}
+            .addCommand(createCompletionCommand(program))
             .addCommand(client)
             .parse(process.argv);
 
