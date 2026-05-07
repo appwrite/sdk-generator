@@ -1,0 +1,17 @@
+class_name {{spec.title | caseUcfirst}}Exception
+
+var message: String ## Error message
+var code: int ## Error code
+var type: String ## Error type
+var response: String ## Full error response
+
+func _init(p_message: String = "", p_code: int = 0, p_type: String = "", p_response: String = "") -> void:
+    self.message = p_message
+    self.code = p_code
+    self.type = p_type
+    self.response = p_response
+
+func _to_string() -> String:
+    if message == "":
+        return "{{ spec.title | caseUcfirst }}Exception"
+    return "{{ spec.title | caseUcfirst }}Exception: " + type + ", " + message + " (" + str(code) + ")"

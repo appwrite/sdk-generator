@@ -6,7 +6,7 @@ var _self_signed = false
 var _endpoint = '{{spec.endpoint}}'
 var _global_headers = {
     'content-type': '',
-    'user-agent': '{{prefix}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} (Godot/' + Engine.get_version_info().string + '; ' + OS.get_name() + ')',
+    'user-agent': '{{prefix}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} (Client:' + Engine.get_version_info().string + '; ' + OS.get_name() + ' ' + OS.get_model_name() + ')',
     'x-sdk-name': '{{ sdk.name }}',
     'x-sdk-platform': '{{ sdk.platform }}',
     'x-sdk-language': '{{ language.name | caseLower }}',

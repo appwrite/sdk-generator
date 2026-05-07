@@ -1,0 +1,40 @@
+{% if method.description %}{{ method.description }}{% endif %}
+
+```gdscript
+{% set prefix = spec.title | caseUcfirst %}
+extends Node
+
+{% if method.responseModel and method.responseModel != 'any' %}
+{% set return_type = prefix ~ (method.responseModel | caseUcfirst) %}
+{% else %}
+{% set return_type = 'Variant' %}
+{% endif -%}
+
+func _ready():
+    # You can skip setup if you have .env
+{% if method.auth|length > 0 %}
+    {{prefix}}.set_endpoint('{{ spec.endpointDocs | raw }}') # Your API Endpoint
+{% for node in method.auth %}
+{% for key,header in node|keys %}
+    {{prefix}}.set_{{header | caseSnake}}('{{node[header]['x-appwrite']['demo'] | raw }}') # {{node[header].description}}
+{% endfor %}
+{% endfor %}
+{% endif %}
+
+{% if method.type != 'webAuth' %}
+    var result = await {{prefix}}.{{ service.name | caseCamel }}.{{ method.name | caseSnake | escapeKeyword }}(
+{% else %}
+    var result = {{prefix}}.{{ service.name | caseCamel }}.{{ method.name | caseSnake | escapeKeyword }}(
+{% endif %}
+{% for parameter in method.parameters.all %}
+        {{ parameter | paramExample }}{% if not loop.last %},{% endif %}{% if not parameter.required %} # optional{% endif %}
+
+{% endfor %}
+    )
+
+    if result is {{prefix}}Exception:
+        push_error(result.message)
+    
+    if result is {{return_type}}:
+        print(result.to_dict())
+```

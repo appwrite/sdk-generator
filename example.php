@@ -350,6 +350,13 @@ try {
         $sdk->generate(__DIR__ . '/examples/rust');
     }
 
+    // GDScript
+    if (!$requestedSdk || $requestedSdk === 'gdscript') {
+        $sdk = new SDK(new GDScript(), new Swagger2($spec));
+        configureSDK($sdk);
+        $sdk->generate(__DIR__ . '/examples/gdscript');
+    }
+
     // Godot
     if (!$requestedSdk || $requestedSdk === 'godot') {
         $sdk = new SDK(new Godot(), new Swagger2($spec));

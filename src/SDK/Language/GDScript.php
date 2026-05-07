@@ -170,7 +170,143 @@ class GDScript extends Language
      */
     public function getFiles(): array
     {
-        return [];
+        return [
+            [
+                'scope' => 'default',
+                'destination' => 'CHANGELOG.md',
+                'template' => 'gdscript/CHANGELOG.md.twig',
+            ],
+            [
+                'scope' => 'default',
+                'destination' => 'LICENSE',
+                'template' => 'gdscript/LICENSE.twig',
+            ],
+            [
+                'scope' => 'default',
+                'destination' => 'README.md',
+                'template' => 'gdscript/README.md.twig',
+            ],
+            [
+                'scope' => 'default',
+                'destination' => 'addons/{{ spec.title | caseSnake }}/plugin.cfg',
+                'template' => 'gdscript/addons/plugin.cfg.twig',
+            ],
+            [
+                'scope' => 'default',
+                'destination' => 'addons/{{ spec.title | caseSnake }}/plugin.gd',
+                'template' => 'gdscript/addons/plugin.gd.twig',
+            ],
+            [
+                'scope' => 'default',
+                'destination' => 'addons/{{ spec.title | caseSnake }}/{{ spec.title | caseSnake }}.gd',
+                'template' => 'gdscript/addons/appwrite.gd.twig',
+            ],
+            [
+                'scope' => 'default',
+                'destination' => 'addons/{{ spec.title | caseSnake }}/icon.svg',
+                'template' => 'gdscript/addons/icon.svg',
+            ],
+            [
+                'scope' => 'default',
+                'destination' => 'addons/{{ spec.title | caseSnake }}/client.gd',
+                'template' => 'gdscript/addons/client.gd.twig',
+            ],
+            [
+                'scope' => 'default',
+                'destination' => 'addons/{{ spec.title | caseSnake }}/service.gd',
+                'template' => 'gdscript/addons/service.gd.twig',
+            ],
+            [
+                'scope' => 'default',
+                'destination' => 'addons/{{ spec.title | caseSnake }}/exception.gd',
+                'template' => 'gdscript/addons/exception.gd.twig',
+            ],
+            [
+                'scope' => 'default',
+                'destination' => 'addons/{{ spec.title | caseSnake }}/id.gd',
+                'template' => 'gdscript/addons/id.gd.twig',
+            ],
+            [
+                'scope' => 'default',
+                'destination' => 'addons/{{ spec.title | caseSnake }}/permission.gd',
+                'template' => 'gdscript/addons/permission.gd.twig',
+            ],
+            [
+                'scope' => 'default',
+                'destination' => 'addons/{{ spec.title | caseSnake }}/role.gd',
+                'template' => 'gdscript/addons/role.gd.twig',
+            ],
+            [
+                'scope' => 'default',
+                'destination' => 'addons/{{ spec.title | caseSnake }}/query.gd',
+                'template' => 'gdscript/addons/query.gd.twig',
+            ],
+            [
+                'scope' => 'default',
+                'destination' => 'addons/{{ spec.title | caseSnake }}/input_file.gd',
+                'template' => 'gdscript/addons/input_file.gd.twig',
+            ],
+            [
+                'scope' => 'default',
+                'destination' => 'addons/{{spec.title | caseSnake}}/operator.gd',
+                'template' => 'gdscript/addons/operator.gd.twig',
+            ],
+            [
+                'scope' => 'default',
+                'destination' => 'tests/test_query.gd',
+                'template' => 'gdscript/addons/tests/test_query.gd.twig',
+            ],
+            [
+                'scope' => 'default',
+                'destination' => 'tests/test_roles.gd',
+                'template' => 'gdscript/addons/tests/test_roles.gd.twig',
+            ],
+            [
+                'scope' => 'default',
+                'destination' => 'tests/test_query.gd',
+                'template' => 'gdscript/addons/tests/test_query.gd.twig',
+            ],
+            [
+                'scope' => 'default',
+                'destination' => 'tests/test_id.gd',
+                'template' => 'gdscript/addons/tests/test_id.gd.twig',
+            ],
+            [
+                'scope' => 'default',
+                'destination' => 'tests/test_permission.gd',
+                'template' => 'gdscript/addons/tests/test_permission.gd.twig',
+            ],
+            [
+                'scope' => 'default',
+                'destination' => 'tests/test_input_files.gd',
+                'template' => 'gdscript/addons/tests/test_input_files.gd.twig',
+            ],
+            [
+                'scope' => 'default',
+                'destination' => 'tests/test_operator.gd',
+                'template' => 'gdscript/addons/tests/test_operator.gd.twig',
+            ],
+            [
+                'scope' => 'enum',
+                'destination' => 'addons/{{ spec.title | caseSnake }}/enums/{{ enum.name | caseSnake }}.gd',
+                'template' => 'gdscript/addons/enums/enum.gd.twig',
+            ],
+            [
+                'scope' => 'service',
+                'destination' => 'addons/{{ spec.title | caseSnake }}/services/{{ service.name | caseSnake }}.gd',
+                'template' => 'gdscript/addons/services/service.gd.twig',
+            ],
+            [
+                'scope' => 'definition',
+                'destination' => 'addons/{{ spec.title | caseSnake }}/models/{{ definition.name | caseSnake }}.gd',
+                'template' => 'gdscript/addons/models/model.gd.twig',
+            ],
+            [
+                'scope' => 'method',
+                'destination' => 'docs/examples/{{service.name | caseSnake}}/{{method.name | caseSnake}}.md',
+                'template' => 'gdscript/docs/example.md.twig',
+            ],
+        ];
     }
 
     /**

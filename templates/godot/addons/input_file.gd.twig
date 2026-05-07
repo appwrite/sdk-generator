@@ -1,0 +1,35 @@
+## Input File class used to pass files to the SDK
+class_name {{spec.title | caseUcfirst}}InputFile
+
+var path: String ## Path to the file
+var bytes: PackedByteArray ## File bytes
+var filename: String ## File name
+var content_type: String ## File content type
+
+func _init(p_path: String = "", p_bytes: PackedByteArray = PackedByteArray(), p_filename: String = "", p_content_type: String = "") -> void:
+    self.path = p_path
+    self.bytes = p_bytes
+    self.filename = p_filename
+    self.content_type = p_content_type
+    
+    if self.filename == "" and self.path != "":
+        self.filename = self.path.get_file()
+
+
+## Creates a new InputFile from a file path
+static func from_path(p_path: String, p_filename: String = "", p_content_type: String = "") -> {{spec.title | caseUcfirst}}InputFile:
+    return {{spec.title | caseUcfirst}}InputFile.new(p_path, PackedByteArray(), p_filename, p_content_type)
+
+
+## Creates a new InputFile from bytes
+static func from_bytes(p_bytes: PackedByteArray, p_filename: String, p_content_type: String = "") -> {{spec.title | caseUcfirst}}InputFile:
+    return {{spec.title | caseUcfirst}}InputFile.new("", p_bytes, p_filename, p_content_type)
+
+
+## Return the PackedByteArray of the file
+func get_data() -> PackedByteArray:
+    if not bytes.is_empty():
+        return bytes
+    if not path.is_empty():
+        return FileAccess.get_file_as_bytes(path)
+    return PackedByteArray()
