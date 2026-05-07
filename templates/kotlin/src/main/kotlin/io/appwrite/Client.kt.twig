@@ -108,6 +108,7 @@ class Client @JvmOverloads constructor(
                 selfSigned = selfSigned,
                 sdkPlatform = "server"
             )
+            client.config["cookie"] = cookie
             client.addHeader("Cookie", cookie)
             return client
         }
@@ -145,6 +146,8 @@ class Client @JvmOverloads constructor(
                 locale = locale,
                 selfSigned = selfSigned
             )
+            client.config["devKey"] = devKey
+            client.config["devkey"] = devKey
             client.addHeader("X-{{ spec.title | caseUcfirst }}-Dev-Key", devKey)
             return client
         }
@@ -174,9 +177,21 @@ class Client @JvmOverloads constructor(
             ).setSession(session)
 
             when {
-                userId != null -> client.addHeader("X-{{ spec.title | caseUcfirst }}-Impersonate-User-Id", userId)
-                userEmail != null -> client.addHeader("X-{{ spec.title | caseUcfirst }}-Impersonate-User-Email", userEmail)
-                userPhone != null -> client.addHeader("X-{{ spec.title | caseUcfirst }}-Impersonate-User-Phone", userPhone)
+                userId != null -> {
+                    client.config["impersonateUserId"] = userId
+                    client.config["impersonateuserid"] = userId
+                    client.addHeader("X-{{ spec.title | caseUcfirst }}-Impersonate-User-Id", userId)
+                }
+                userEmail != null -> {
+                    client.config["impersonateUserEmail"] = userEmail
+                    client.config["impersonateuseremail"] = userEmail
+                    client.addHeader("X-{{ spec.title | caseUcfirst }}-Impersonate-User-Email", userEmail)
+                }
+                userPhone != null -> {
+                    client.config["impersonateUserPhone"] = userPhone
+                    client.config["impersonateuserphone"] = userPhone
+                    client.addHeader("X-{{ spec.title | caseUcfirst }}-Impersonate-User-Phone", userPhone)
+                }
             }
 
             return client

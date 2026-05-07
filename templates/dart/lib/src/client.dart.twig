@@ -92,6 +92,7 @@ abstract class Client {
       selfSigned: selfSigned,
       sdkPlatform: 'server',
     );
+    client.config['cookie'] = cookie;
     client.addHeader('Cookie', cookie);
     return client;
   }
@@ -130,6 +131,8 @@ abstract class Client {
       selfSigned: selfSigned,
       sdkPlatform: 'client',
     );
+    client.config['devKey'] = devKey;
+    client.config['devkey'] = devKey;
     client.addHeader('X-{{ spec.title | caseUcfirst }}-Dev-Key', devKey);
     return client;
   }
@@ -162,10 +165,16 @@ abstract class Client {
     client.setSession(session);
 
     if (userId != null) {
+      client.config['impersonateUserId'] = userId;
+      client.config['impersonateuserid'] = userId;
       client.addHeader('X-{{ spec.title | caseUcfirst }}-Impersonate-User-Id', userId);
     } else if (userEmail != null) {
+      client.config['impersonateUserEmail'] = userEmail;
+      client.config['impersonateuseremail'] = userEmail;
       client.addHeader('X-{{ spec.title | caseUcfirst }}-Impersonate-User-Email', userEmail);
     } else {
+      client.config['impersonateUserPhone'] = userPhone!;
+      client.config['impersonateuserphone'] = userPhone!;
       client.addHeader('X-{{ spec.title | caseUcfirst }}-Impersonate-User-Phone', userPhone!);
     }
 

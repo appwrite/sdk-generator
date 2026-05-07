@@ -38,7 +38,7 @@ void main() async {
     projectId: 'auth-project',
     cookie: 'auth-cookie',
   );
-  authFactoryOutputs.add(cookieClient.getHeaders()['Cookie']);
+  authFactoryOutputs.add(cookieClient.config['cookie']);
 
   final jwtClient = Client.fromJWT(
     endPoint: 'https://cloud.appwrite.io/v1',
@@ -52,7 +52,7 @@ void main() async {
     projectId: 'auth-project',
     devKey: 'auth-dev-key',
   );
-  authFactoryOutputs.add(devKeyClient.getHeaders()['X-Appwrite-Dev-Key']);
+  authFactoryOutputs.add(devKeyClient.config['devKey']);
 
   final impersonationUserClient = Client.fromImpersonation(
     endPoint: 'https://cloud.appwrite.io/v1',
@@ -60,7 +60,7 @@ void main() async {
     session: 'auth-session',
     userId: 'auth-user-id',
   );
-  authFactoryOutputs.add(impersonationUserClient.getHeaders()['X-Appwrite-Impersonate-User-Id']);
+  authFactoryOutputs.add(impersonationUserClient.config['impersonateUserId']);
 
   final impersonationEmailClient = Client.fromImpersonation(
     endPoint: 'https://cloud.appwrite.io/v1',
@@ -68,7 +68,7 @@ void main() async {
     session: 'auth-session',
     userEmail: 'auth@example.com',
   );
-  authFactoryOutputs.add(impersonationEmailClient.getHeaders()['X-Appwrite-Impersonate-User-Email']);
+  authFactoryOutputs.add(impersonationEmailClient.config['impersonateUserEmail']);
 
   final impersonationPhoneClient = Client.fromImpersonation(
     endPoint: 'https://cloud.appwrite.io/v1',
@@ -76,7 +76,7 @@ void main() async {
     session: 'auth-session',
     userPhone: '+15555550123',
   );
-  authFactoryOutputs.add(impersonationPhoneClient.getHeaders()['X-Appwrite-Impersonate-User-Phone']);
+  authFactoryOutputs.add(impersonationPhoneClient.config['impersonateUserPhone']);
 
   try {
     Client.fromImpersonation(

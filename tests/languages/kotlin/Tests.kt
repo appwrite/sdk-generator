@@ -72,7 +72,7 @@ class ServiceTest {
             cookie = "auth-cookie",
             endPoint = "https://cloud.appwrite.io/v1"
         )
-        authFactoryOutputs.add(cookieClient.getHeaders()["Cookie"])
+        authFactoryOutputs.add(cookieClient.config["cookie"])
 
         val jwtClient = Client.fromJWT(
             projectId = "auth-project",
@@ -86,7 +86,7 @@ class ServiceTest {
             devKey = "auth-dev-key",
             endPoint = "https://cloud.appwrite.io/v1"
         )
-        authFactoryOutputs.add(devKeyClient.getHeaders()["X-Appwrite-Dev-Key"])
+        authFactoryOutputs.add(devKeyClient.config["devKey"])
 
         val impersonationUserClient = Client.fromImpersonation(
             projectId = "auth-project",
@@ -94,7 +94,7 @@ class ServiceTest {
             userId = "auth-user-id",
             endPoint = "https://cloud.appwrite.io/v1"
         )
-        authFactoryOutputs.add(impersonationUserClient.getHeaders()["X-Appwrite-Impersonate-User-Id"])
+        authFactoryOutputs.add(impersonationUserClient.config["impersonateUserId"])
 
         val impersonationEmailClient = Client.fromImpersonation(
             projectId = "auth-project",
@@ -102,7 +102,7 @@ class ServiceTest {
             userEmail = "auth@example.com",
             endPoint = "https://cloud.appwrite.io/v1"
         )
-        authFactoryOutputs.add(impersonationEmailClient.getHeaders()["X-Appwrite-Impersonate-User-Email"])
+        authFactoryOutputs.add(impersonationEmailClient.config["impersonateUserEmail"])
 
         val impersonationPhoneClient = Client.fromImpersonation(
             projectId = "auth-project",
@@ -110,7 +110,7 @@ class ServiceTest {
             userPhone = "+15555550123",
             endPoint = "https://cloud.appwrite.io/v1"
         )
-        authFactoryOutputs.add(impersonationPhoneClient.getHeaders()["X-Appwrite-Impersonate-User-Phone"])
+        authFactoryOutputs.add(impersonationPhoneClient.config["impersonateUserPhone"])
 
         try {
             Client.fromImpersonation(

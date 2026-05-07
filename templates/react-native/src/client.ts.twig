@@ -207,12 +207,14 @@ class Client {
 
     static fromCookie(params: BaseClientParams & { cookie: string }): Client {
         const client = new Client().applyBase(params);
+        client.config.cookie = params.cookie;
         client.headers['Cookie'] = params.cookie;
         return client;
     }
 
     static fromDevKey(params: BaseClientParams & { devKey: string }): Client {
         const client = new Client().applyBase(params);
+        client.config.devkey = params.devKey;
         client.headers['X-{{ spec.title | caseUcfirst }}-Dev-Key'] = params.devKey;
         return client;
     }
@@ -233,10 +235,13 @@ class Client {
             .setSession(params.session);
 
         if (params.userId !== undefined) {
+            client.config.impersonateuserid = params.userId;
             client.headers['X-{{ spec.title | caseUcfirst }}-Impersonate-User-Id'] = params.userId;
         } else if (params.email !== undefined) {
+            client.config.impersonateuseremail = params.email;
             client.headers['X-{{ spec.title | caseUcfirst }}-Impersonate-User-Email'] = params.email;
         } else {
+            client.config.impersonateuserphone = params.phone;
             client.headers['X-{{ spec.title | caseUcfirst }}-Impersonate-User-Phone'] = params.phone;
         }
 
