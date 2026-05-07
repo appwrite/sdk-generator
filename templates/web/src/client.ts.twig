@@ -448,7 +448,7 @@ class ClientRuntime<TAuth extends Auth = 'browser'> {
     static fromCookie(params: Prettify<BaseClientParams & { cookie: string }>): Client<'cookie'> {
         return new ClientRuntime<'cookie'>()
 {%~ if sdk.platform == 'console' %}
-            .applyBase<'cookie'>({ mode: 'admin', ...params }, 'server')
+            .applyBase<'cookie'>({ ...params, mode: 'admin' }, 'server')
 {%~ else %}
             .applyBase<'cookie'>(params, 'server')
 {%~ endif %}
