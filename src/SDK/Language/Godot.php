@@ -14,11 +14,9 @@ class Godot extends GDScript
         return 'Godot';
     }
 
-    public function getVersion(): string
-    {
-        return '4.0';
-    }
-
+    /**
+     * @return array
+     */
     public function getFiles(): array
     {
         return [
@@ -99,7 +97,7 @@ class Godot extends GDScript
             ],
             [
                 'scope' => 'default',
-                'destination' => 'example.env',
+                'destination' => 'addons/{{ spec.title | caseSnake }}/.env.example',
                 'template' => 'godot/example.env.twig'
             ],
             [
@@ -109,37 +107,37 @@ class Godot extends GDScript
             ],
             [
                 'scope' => 'default',
-                'destination' => 'addons/{{ spec.title | caseSnake }}/tests/test_query.gd',
+                'destination' => 'tests/test_query.gd',
                 'template' => 'godot/src/tests/test_query.gd.twig',
             ],
             [
                 'scope' => 'default',
-                'destination' => 'addons/{{ spec.title | caseSnake }}/tests/test_roles.gd',
+                'destination' => 'tests/test_roles.gd',
                 'template' => 'godot/src/tests/test_roles.gd.twig',
             ],
             [
                 'scope' => 'default',
-                'destination' => 'addons/{{ spec.title | caseSnake }}/tests/test_query.gd',
+                'destination' => 'tests/test_query.gd',
                 'template' => 'godot/src/tests/test_query.gd.twig',
             ],
             [
                 'scope' => 'default',
-                'destination' => 'addons/{{ spec.title | caseSnake }}/tests/test_id.gd',
+                'destination' => 'tests/test_id.gd',
                 'template' => 'godot/src/tests/test_id.gd.twig',
             ],
             [
                 'scope' => 'default',
-                'destination' => 'addons/{{ spec.title | caseSnake }}/tests/test_permission.gd',
+                'destination' => 'tests/test_permission.gd',
                 'template' => 'godot/src/tests/test_permission.gd.twig',
             ],
             [
                 'scope' => 'default',
-                'destination' => 'addons/{{ spec.title | caseSnake }}/tests/test_input_files.gd',
+                'destination' => 'tests/test_input_files.gd',
                 'template' => 'godot/src/tests/test_input_files.gd.twig',
             ],
             [
                 'scope' => 'default',
-                'destination' => 'addons/{{ spec.title | caseSnake }}/tests/test_operator.gd',
+                'destination' => 'tests/test_operator.gd',
                 'template' => 'godot/src/tests/test_operator.gd.twig',
             ],
             [
@@ -163,10 +161,5 @@ class Godot extends GDScript
                 'template' => 'godot/docs/example.md.twig',
             ],
         ];
-    }
-
-    public function getDocsUrl(): string
-    {
-        return 'https://appwrite.io/docs/sdks/godot';
     }
 }
