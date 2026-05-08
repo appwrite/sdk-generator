@@ -10,7 +10,7 @@ func _init(p_client: RefCounted) -> void:
     client = p_client
 
 func _call(method: String, path: String, headers: Dictionary, params: Dictionary, model_script: Variant = null) -> Variant:
-    var result = await client._call_api(method, path, headers, params)
+    var result = await client.call_api(method, path, headers, params)
     
     if result.statusCode == 0:
         var error_msg = result.get("error", "Unknown error")
