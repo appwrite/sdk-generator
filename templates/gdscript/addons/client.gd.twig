@@ -16,27 +16,27 @@ var _global_headers = {
 {% endfor %}
 }
 
-func _set_self_signed(status: bool = true) -> RefCounted:
+func set_self_signed(status: bool = true) -> RefCounted:
     _self_signed = status
     return self
 
 
-func _set_endpoint(endpoint: String) -> RefCounted:
+func set_endpoint(endpoint: String) -> RefCounted:
     _endpoint = endpoint
     return self
 
 
-func _add_header(key: String, value: String) -> RefCounted:
+func add_header(key: String, value: String) -> RefCounted:
     _global_headers[key.to_lower()] = value
     return self
 
 
-func _get_headers() -> Dictionary:
+func get_headers() -> Dictionary:
     return _global_headers.duplicate()
 
 
 {% for header in spec.global.headers %}
-func _set_{{header.key | caseSnake}}(value: String) -> RefCounted:
+func set_{{header.key | caseSnake}}(value: String) -> RefCounted:
     _global_headers['{{header.name|lower}}'] = value
     return self
 
@@ -44,7 +44,7 @@ func _set_{{header.key | caseSnake}}(value: String) -> RefCounted:
 {% endfor %}
 
 
-func _call_api(method: String, path: String = "", headers: Dictionary = {}, params: Dictionary = {}) -> Dictionary:
+func call_api(method: String, path: String = "", headers: Dictionary = {}, params: Dictionary = {}) -> Dictionary:
     if not _ensure_configured():
         return {"statusCode": 400, "body": "Missing/wrong configuration. Please check logs for more info"}
     var http := HTTPRequest.new()

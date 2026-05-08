@@ -207,6 +207,11 @@ class GDScript extends Language
                 'template' => 'gdscript/addons/icon.svg',
             ],
             [
+                'scopoe' => 'copy',
+                'destination' => '.gitignore',
+                'template' => 'gdscript/.gitignore',
+            ],
+            [
                 'scope' => 'default',
                 'destination' => 'addons/{{ spec.title | caseSnake }}/client.gd',
                 'template' => 'gdscript/addons/client.gd.twig',

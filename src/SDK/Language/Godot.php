@@ -51,9 +51,14 @@ class Godot extends GDScript
                 'template' => 'godot/addons/appwrite.gd.twig',
             ],
             [
-                'scope' => 'copy',
+                'scope' => 'default',
                 'destination' => 'addons/{{ spec.title | caseSnake }}/icon.svg',
                 'template' => 'godot/addons/icon.svg',
+            ],
+            [
+                'scopoe' => 'copy',
+                'destination' => '.gitignore',
+                'template' => 'godot/.gitignore',
             ],
             [
                 'scope' => 'default',
