@@ -912,7 +912,7 @@ class CLI extends Node
                 $type = $parameter['type'] ?? 'string';
 
                 if ($type === 'object') {
-                    return "JSON.parse({$varName})";
+                    return "parseJsonObject({$varName}, \"--{$optionName}\")";
                 } elseif ($type === 'file') {
                     return "{$varName} !== undefined ? await resolveFileParam({$varName}) : undefined";
                 } else {

@@ -55,7 +55,10 @@ export const createSettingsObject = (project: Models.Project): SettingsType => {
         passwordDictionary: project.authPasswordDictionary,
         personalDataCheck: project.authPersonalDataCheck,
         sessionAlerts: project.authSessionAlerts,
-        mockNumbers: project.authMockNumbers,
+        mockNumbers: project.authMockNumbers?.map((mockNumber) => ({
+          phone: mockNumber.number,
+          otp: mockNumber.otp,
+        })),
       },
     },
   };
@@ -314,7 +317,7 @@ const getHomebrewLatestVersion = async (
   }
 };
 
-const isCloudHostname = (hostname: string): boolean =>
+export const isCloudHostname = (hostname: string): boolean =>
   hostname === "cloud.appwrite.io" || hostname.endsWith(".cloud.appwrite.io");
 
 export const getConsoleBaseUrl = (endpoint: string): string => {

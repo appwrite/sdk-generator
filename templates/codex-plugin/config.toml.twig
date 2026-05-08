@@ -1,0 +1,7 @@
+# {{ spec.title }} Codex CLI configuration
+#
+# Merge the contents of this file into your ~/.codex/config.toml.
+
+[mcp_servers.{{ spec.title | caseLower }}-docs]
+command = "npx"
+args = ["mcp-remote", "https://mcp-for-docs.appwrite.io"]
