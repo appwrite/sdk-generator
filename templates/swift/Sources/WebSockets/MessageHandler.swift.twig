@@ -1,5 +1,8 @@
 import Foundation
 import NIO
+#if canImport(NIOFoundationCompat)
+import NIOFoundationCompat
+#endif
 import NIOHTTP1
 import NIOWebSocket
 
@@ -18,7 +21,7 @@ class MessageHandler {
         self.client = client
         self.buffer = ByteBufferAllocator().buffer(capacity: 0)
     }
-    
+
     private func unmaskedData(frame: WebSocketFrame) -> ByteBuffer {
         var frameData = frame.data
         if let maskingKey = frame.maskKey {
@@ -31,7 +34,7 @@ class MessageHandler {
 extension MessageHandler: ChannelInboundHandler, RemovableChannelHandler {
 
     typealias InboundIn = WebSocketFrame
-    
+
     public func channelRead(context: ChannelHandlerContext, data: NIOAny) {
         let frame = self.unwrapInboundIn(data)
         switch frame.opcode {
@@ -56,18 +59,14 @@ extension MessageHandler: ChannelInboundHandler, RemovableChannelHandler {
         case .binary:
             let data = unmaskedData(frame: frame)
             if frame.fin {
-                guard let binaryData = data.getData(at: 0, length: data.readableBytes) else {
-                    return
-                }
+                let binaryData = Data(data.readableBytesView)
                 if let delegate = client.delegate {
                     try! delegate.onMessage(data: binaryData)
                 } else {
                     client.onBinaryMessage(binaryData)
                 }
             } else {
-                guard let binaryData = data.getData(at: 0, length: data.readableBytes) else {
-                    return
-                }
+                let binaryData = Data(data.readableBytesView)
                 binaryBuffer = binaryData
             }
         case .continuation:
@@ -92,9 +91,7 @@ extension MessageHandler: ChannelInboundHandler, RemovableChannelHandler {
                 }
             } else {
                 if frame.fin {
-                    guard let binaryData = data.getData(at: 0, length: data.readableBytes) else {
-                        return
-                    }
+                    let binaryData = Data(data.readableBytesView)
                     binaryBuffer.append(binaryData)
                     if let delegate = client.delegate {
                         try! delegate.onMessage(data: binaryBuffer)
@@ -102,9 +99,7 @@ extension MessageHandler: ChannelInboundHandler, RemovableChannelHandler {
                         client.onBinaryMessage(binaryBuffer)
                     }
                 } else {
-                    guard let binaryData = data.getData(at: 0, length: data.readableBytes) else {
-                        return
-                    }
+                    let binaryData = Data(data.readableBytesView)
                     binaryBuffer.append(binaryData)
                 }
             }
@@ -114,18 +109,18 @@ extension MessageHandler: ChannelInboundHandler, RemovableChannelHandler {
             }
             let data = frame.data
             if !client.closeSent {
-                client.close(data: frame.data.getData(at: 0, length: frame.data.readableBytes) ?? Data())
+                client.close(data: Data(frame.data.readableBytesView))
             }
             if let delegate = client.delegate {
-                delegate.onClose(channel: context.channel, data: data.getData(at: 0, length: data.readableBytes)!)
+                delegate.onClose(channel: context.channel, data: Data(data.readableBytesView))
             } else {
-                client.onClose(context.channel, data.getData(at: 0, length: data.readableBytes)!)
+                client.onClose(context.channel, Data(data.readableBytesView))
             }
         default:
             break
         }
     }
-    
+
     public func errorCaught(context: ChannelHandlerContext, error: Swift.Error) {
         if client.delegate != nil {
             try! client.delegate?.onError(error: error, status: nil)

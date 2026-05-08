@@ -9,6 +9,7 @@ export {
   IDatabasesGenerator,
   SupportedLanguage,
   GenerateResult,
+  GenerateOptions,
 } from "./base.js";
 export {
   LanguageDetector,

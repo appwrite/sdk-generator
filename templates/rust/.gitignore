@@ -1,0 +1,24 @@
+# Rust build artifacts
+/target
+
+# Cargo.lock is included for applications, excluded for libraries
+# Since this is a library SDK, we exclude it
+Cargo.lock
+
+# Backup files from rustfmt
+**/*.rs.bk
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test coverage
+*.profraw
+*.profdata

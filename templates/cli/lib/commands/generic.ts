@@ -2,7 +2,11 @@ import inquirer from "inquirer";
 import { Command } from "commander";
 import { Client } from "@appwrite.io/console";
 import { sdkForConsole } from "../sdks.js";
-import { globalConfig, localConfig } from "../config.js";
+import {
+  globalConfig,
+  localConfig,
+  normalizeCloudConsoleEndpoint,
+} from "../config.js";
 import { EXECUTABLE_NAME } from "../constants.js";
 import {
   actionRunner,
@@ -16,21 +20,82 @@ import {
   drawTable,
   cliConfig,
 } from "../parser.js";
+import { isCloudHostname } from "../utils.js";
 import ID from "../id.js";
 import {
   questionsLogin,
   questionsLogout,
   questionsListFactors,
   questionsMFAChallenge,
+  questionsSwitchAccount,
 } from "../questions.js";
-import { Account, Client as ConsoleClient } from "@appwrite.io/console";
+import {
+  Account,
+  Client as ConsoleClient,
+  type Models,
+} from "@appwrite.io/console";
 import ClientLegacy from "../client.js";
 
 const DEFAULT_ENDPOINT = "https://cloud.appwrite.io/v1";
 
-const isMfaRequiredError = (err: any): boolean =>
-  err?.type === "user_more_factors_required" ||
-  err?.response === "user_more_factors_required";
+interface AppwriteError {
+  type?: string;
+  response?: string;
+}
+
+const isMfaRequiredError = (err: unknown): err is AppwriteError =>
+  (err as AppwriteError)?.type === "user_more_factors_required" ||
+  (err as AppwriteError)?.response === "user_more_factors_required";
+
+const isGuestUnauthorizedError = (err: unknown): err is AppwriteError =>
+  (err as AppwriteError)?.type === "general_unauthorized_scope" ||
+  (err as AppwriteError)?.response === "general_unauthorized_scope";
+
+const isRegionalCloudEndpoint = (endpoint: string): boolean => {
+  try {
+    const hostname = new URL(endpoint).hostname;
+    return isCloudHostname(hostname) && hostname !== "cloud.appwrite.io";
+  } catch (_error) {
+    return false;
+  }
+};
+
+const restoreCurrentSession = (sessionId: string): void => {
+  globalConfig.setCurrentSession(
+    globalConfig.getSessionIds().includes(sessionId) ? sessionId : "",
+  );
+};
+
+const removeCurrentSession = (): void => {
+  const current = globalConfig.getCurrentSession();
+  globalConfig.setCurrentSession("");
+  globalConfig.removeSession(current);
+};
+
+const getCurrentAccount = async (): Promise<Models.User | null> => {
+  if (globalConfig.getEndpoint() === "" || globalConfig.getCookie() === "") {
+    return null;
+  }
+
+  const endpoint = normalizeCloudConsoleEndpoint(globalConfig.getEndpoint());
+  if (endpoint !== globalConfig.getEndpoint()) {
+    globalConfig.setEndpoint(endpoint);
+  }
+
+  const client = await sdkForConsole(false);
+  const accountClient = new Account(client);
+
+  try {
+    const account = await accountClient.get();
+    globalConfig.setEmail(account.email);
+    return account;
+  } catch (err) {
+    if (isGuestUnauthorizedError(err)) {
+      removeCurrentSession();
+    }
+    return null;
+  }
+};
 
 const createLegacyConsoleClient = (endpoint: string): ClientLegacy => {
   const legacyClient = new ClientLegacy();
@@ -52,7 +117,7 @@ const completeMfaLogin = async ({
   legacyClient: ClientLegacy;
   mfa?: string;
   code?: string;
-}): Promise<any> => {
+}): Promise<unknown> => {
   let accountClient = new Account(client);
 
   const savedCookie = globalConfig.getCookie();
@@ -92,11 +157,11 @@ const completeMfaLogin = async ({
 
 const deleteServerSession = async (sessionId: string): Promise<boolean> => {
   try {
-    let client = await sdkForConsole();
-    let accountClient = new Account(client);
+    const client = await sdkForConsole();
+    const accountClient = new Account(client);
     await accountClient.deleteSession(sessionId);
     return true;
-  } catch (e) {
+  } catch (_e) {
     return false;
   }
 };
@@ -110,7 +175,9 @@ const getSessionAccountKey = (sessionId: string): string | undefined => {
     | { email?: string; endpoint?: string }
     | undefined;
   if (!session) return undefined;
-  return `${session.email ?? ""}|${session.endpoint ?? ""}`;
+  return `${session.email ?? ""}|${normalizeCloudConsoleEndpoint(
+    session.endpoint ?? "",
+  )}`;
 };
 
 /**
@@ -160,33 +227,62 @@ export const loginCommand = async ({
   endpoint,
   mfa,
   code,
+  switch: switchAccount,
+  new: newAccount,
 }: {
   email?: string;
   password?: string;
   endpoint?: string;
   mfa?: string;
   code?: string;
+  switch?: boolean;
+  new?: boolean;
 }): Promise<void> => {
-  const oldCurrent = globalConfig.getCurrentSession();
+  let oldCurrent = globalConfig.getCurrentSession();
 
-  const configEndpoint =
-    (endpoint ?? globalConfig.getEndpoint()) || DEFAULT_ENDPOINT;
+  if (switchAccount && newAccount) {
+    throw new Error("Use either --switch or --new, not both.");
+  }
+
+  if (endpoint && isRegionalCloudEndpoint(endpoint)) {
+    throw new Error(
+      `Cloud login uses ${DEFAULT_ENDPOINT}. Regional Cloud endpoints are for project API calls, not account login.`,
+    );
+  }
+
+  const configEndpoint = normalizeCloudConsoleEndpoint(
+    (endpoint ?? globalConfig.getEndpoint()) || DEFAULT_ENDPOINT,
+  );
 
   if (globalConfig.getCurrentSession() !== "") {
-    log("You are currently signed in as " + globalConfig.getEmail());
+    const account = await getCurrentAccount();
+    oldCurrent = globalConfig.getCurrentSession();
 
-    if (globalConfig.getSessions().length === 1) {
-      hint("You can sign in and manage multiple accounts with Appwrite CLI");
+    if (account) {
+      if (!email && !password && !endpoint && !switchAccount && !newAccount) {
+        success("Already logged in as " + account.email);
+        hint(`Use '${EXECUTABLE_NAME} login --new' to add another account`);
+        return;
+      }
     }
   }
 
-  const answers =
-    email && password
-      ? { email, password }
-      : await inquirer.prompt(questionsLogin);
+  let answers;
+  if (switchAccount) {
+    if (!globalConfig.getSessions().some((session) => session.email)) {
+      throw new Error(
+        `No signed-in accounts found. Run '${EXECUTABLE_NAME} login' to sign in.`,
+      );
+    }
+    answers = await inquirer.prompt(questionsSwitchAccount);
+  } else if (email && password) {
+    answers = { email, password };
+  } else {
+    answers = await inquirer.prompt(questionsLogin);
+  }
 
   if (!answers.method) {
-    answers.method = "login";
+    answers.method = switchAccount ? "select" : "login";
   }
 
   if (answers.method === "select") {
@@ -196,7 +292,21 @@ export const loginCommand = async ({
       throw Error("Session ID not found");
     }
 
+    if (accountId === oldCurrent) {
+      const account = await getCurrentAccount();
+      if (account) {
+        success(`Already using ${account.email}`);
+        return;
+      }
+      throw new Error(
+        `Selected account session is no longer valid. Run '${EXECUTABLE_NAME} login --switch' again.`,
+      );
+    }
+
     globalConfig.setCurrentSession(accountId);
+    globalConfig.setEndpoint(
+      normalizeCloudConsoleEndpoint(globalConfig.getEndpoint()),
+    );
 
     const client = await sdkForConsole(false);
     const accountClient = new Account(client);
@@ -206,8 +316,12 @@ export const loginCommand = async ({
 
     try {
       await accountClient.get();
-    } catch (err: any) {
+    } catch (err) {
       if (!isMfaRequiredError(err)) {
+        if (isGuestUnauthorizedError(err)) {
+          globalConfig.removeSession(accountId);
+        }
+        restoreCurrentSession(oldCurrent);
         throw err;
       }
 
@@ -234,7 +348,7 @@ export const loginCommand = async ({
   // Use legacy client for login to extract cookies from response
   const legacyClient = createLegacyConsoleClient(configEndpoint);
 
-  let client = await sdkForConsole(false);
+  const client = await sdkForConsole(false);
   let accountClient = new Account(client);
 
   let account;
@@ -261,7 +375,7 @@ export const loginCommand = async ({
 
     accountClient = new Account(client);
     account = await accountClient.get();
-  } catch (err: any) {
+  } catch (err) {
     if (isMfaRequiredError(err)) {
       account = await completeMfaLogin({
         client,
@@ -301,14 +415,8 @@ export const whoami = new Command("whoami")
         return;
       }
 
-      let client = await sdkForConsole(false);
-      let accountClient = new Account(client);
-
-      let account;
-
-      try {
-        account = await accountClient.get();
-      } catch (_) {
+      const account = await getCurrentAccount();
+      if (!account) {
         error("No user is signed in. To sign in, run 'appwrite login'");
         return;
       }
@@ -353,6 +461,8 @@ export const login = new Command("login")
     `Multi-factor authentication login factor: totp, email, phone or recoveryCode`,
   )
   .option(`--code [code]`, `Multi-factor code`)
+  .option(`--switch`, `Switch to another signed-in account`)
+  .option(`--new`, `Sign in to another account`)
   .configureHelp({
     helpWidth: process.stdout.columns || 80,
   })
@@ -501,7 +611,7 @@ export const client = new Command("client")
                 : cookieValue || "********";
             maskedCookie = `${cookieName}=...${tail}`;
           }
-          let config = {
+          const config = {
             endpoint: globalConfig.getEndpoint(),
             key: maskedKey,
             cookie: maskedCookie,
@@ -515,17 +625,17 @@ export const client = new Command("client")
         if (endpoint !== undefined) {
           try {
             const id = ID.unique();
-            let url = new URL(endpoint);
+            const url = new URL(endpoint);
             if (url.protocol !== "http:" && url.protocol !== "https:") {
               throw new Error();
             }
 
-            let clientInstance = new Client().setEndpoint(endpoint);
+            const clientInstance = new Client().setEndpoint(endpoint);
             clientInstance.setProject("console");
             if (selfSigned || globalConfig.getSelfSigned()) {
               clientInstance.setSelfSigned(true);
             }
-            let response = (await clientInstance.call(
+            const response = (await clientInstance.call(
               "GET",
               new URL(endpoint + "/health/version"),
             )) as { version?: string };

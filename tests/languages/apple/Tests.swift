@@ -24,6 +24,8 @@ class Tests: XCTestCase {
             .setProject("123456")
             .addHeader(key: "Origin", value: "http://localhost")
             .setSelfSigned()
+        let sdkHeaders = client.getHeaders()
+        print("x-sdk-name: \(sdkHeaders["x-sdk-name"] ?? "nil"); x-sdk-platform: \(sdkHeaders["x-sdk-platform"] ?? "nil"); x-sdk-language: \(sdkHeaders["x-sdk-language"] ?? "nil"); x-sdk-version: \(sdkHeaders["x-sdk-version"] ?? "nil")")
 
         // Ping pong test
         let ping = try await client.ping()
@@ -48,14 +50,20 @@ class Tests: XCTestCase {
         let expectationWithQueriesFailure = XCTestExpectation(description: "realtime server (with queries failure)")
         expectationWithQueriesFailure.isInverted = true
 
+        // Watchdog: flipped to true if the callback fires after unsubscribe, so we can
+        // verify the subscription is *actually* torn down, not just that the call
+        // resolved without throwing.
+        var rtsubFailureUnsubscribed = false
+        var rtsubFailureFiredAfterUnsubscribe = false
+
         // Subscribe without queries
-        try await realtime.subscribe(channels: ["tests"]) { message in
+        let rtsub = try await realtime.subscribe(channels: ["tests"]) { message in
             realtimeResponse = message.payload!["response"] as! String
             expectation.fulfill()
         }
 
         // Subscribe with queries to ensure query array support works
-        try await realtime.subscribe(
+        let rtsubWithQueries = try await realtime.subscribe(
             channels: ["tests"],
             queries: [
                 Query.equal("response", value: ["WS:/v1/realtime:passed"])
@@ -65,12 +73,13 @@ class Tests: XCTestCase {
             expectationWithQueries.fulfill()
         }
 
-        try await realtime.subscribe(
+        let rtsubWithQueriesFailure = try await realtime.subscribe(
             channels: ["tests"],
             queries: [
                 Query.equal("response", value: ["failed"])
             ]
         ) { message in
+            if rtsubFailureUnsubscribed { rtsubFailureFiredAfterUnsubscribe = true }
             realtimeResponseWithQueriesFailure = message.payload?["response"] as! String
             expectationWithQueriesFailure.fulfill()
         }
@@ -200,6 +209,40 @@ class Tests: XCTestCase {
             print("Realtime failed")
         }
 
+        do {
+            try await rtsubWithQueriesFailure.unsubscribe()
+            rtsubFailureUnsubscribed = true
+
+            // Idempotence: a second unsubscribe on the same handle must not throw.
+            try await rtsubWithQueriesFailure.unsubscribe()
+
+            // Give any in-flight frames a chance to be dispatched to the callback.
+            // If we're truly unsubscribed, the watchdog flag stays false.
+            try await Task.sleep(nanoseconds: 500_000_000)
+
+            if rtsubFailureFiredAfterUnsubscribe {
+                throw NSError(domain: "RealtimeTest", code: 1, userInfo: [NSLocalizedDescriptionKey: "callback fired after unsubscribe"])
+            }
+
+            print("Realtime unsubscribe:passed")
+        } catch {
+            print("Realtime unsubscribe:failed")
+        }
+
+        do {
+            try await rtsubWithQueries.update(.init(channels: ["tests"], queries: []))
+            print("Realtime update:passed")
+        } catch {
+            print("Realtime update:failed")
+        }
+
+        do {
+            try await realtime.disconnect()
+            print("Realtime disconnect:passed")
+        } catch {
+            print("Realtime disconnect:failed")
+        }
+
         mock = try await general.setCookie()
         print(mock.result)
 
@@ -307,33 +350,33 @@ class Tests: XCTestCase {
         print(ID.custom("custom_id"))
 
         // Channel helper tests
-        print(Channel.database().collection().document().toString())
-        print(Channel.database("db1").collection("col1").document("doc1").toString())
-        print(Channel.database("db1").collection("col1").document("doc1").create().toString())
-        print(Channel.database("db1").collection("col1").document("doc1").upsert().toString())
-        print(Channel.tablesdb().table().row().toString())
-        print(Channel.tablesdb("db1").table("table1").row("row1").toString())
-        print(Channel.tablesdb("db1").table("table1").row("row1").update().toString())
+        print(try Channel.database("db1").collection("col1").document().toString())
+        print(try Channel.database("db1").collection("col1").document("doc1").toString())
+        print(try Channel.database("db1").collection("col1").document("doc1").create().toString())
+        print(try Channel.database("db1").collection("col1").document("doc1").upsert().toString())
+        print(try Channel.tablesdb("db1").table("table1").row().toString())
+        print(try Channel.tablesdb("db1").table("table1").row("row1").toString())
+        print(try Channel.tablesdb("db1").table("table1").row("row1").update().toString())
         print(Channel.account())
-        print(Channel.bucket().file().toString())
-        print(Channel.bucket("bucket1").file("file1").toString())
-        print(Channel.bucket("bucket1").file("file1").delete().toString())
-        print(Channel.function().toString())
-        print(Channel.function("func1").toString())
-        print(Channel.execution().toString())
-        print(Channel.execution("exec1").toString())
+        print(try Channel.bucket("bucket1").file().toString())
+        print(try Channel.bucket("bucket1").file("file1").toString())
+        print(try Channel.bucket("bucket1").file("file1").delete().toString())
+        print(try Channel.function("func2").toString())
+        print(try Channel.function("func1").toString())
+        print(try Channel.execution("exec2").toString())
+        print(try Channel.execution("exec1").toString())
         print(Channel.documents())
         print(Channel.rows())
         print(Channel.files())
         print(Channel.executions())
         print(Channel.teams())
-        print(Channel.team().toString())
-        print(Channel.team("team1").toString())
-        print(Channel.team("team1").create().toString())
+        print(try Channel.team("team2").toString())
+        print(try Channel.team("team1").toString())
+        print(try Channel.team("team1").create().toString())
         print(Channel.memberships())
-        print(Channel.membership().toString())
-        print(Channel.membership("membership1").toString())
-        print(Channel.membership("membership1").update().toString())
+        print(try Channel.membership("membership2").toString())
+        print(try Channel.membership("membership1").toString())
+        print(try Channel.membership("membership1").update().toString())
 
         // Operator helper tests
         print(Operator.increment(1))

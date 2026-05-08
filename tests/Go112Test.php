@@ -12,8 +12,8 @@ class Go112Test extends Base
     protected string $language = 'go';
     protected string $class = 'Appwrite\SDK\Language\Go';
     protected array $build = [
-        'mkdir -p tests/tmp/go/src/github.com/repoowner/sdk-for-go',
-        'cp -Rf tests/sdks/go/* tests/tmp/go/src/github.com/repoowner/sdk-for-go/'
+        'mkdir -p tests/tmp/go/src/github.com/repoowner/reponame',
+        'cp -Rf tests/sdks/go/* tests/tmp/go/src/github.com/repoowner/reponame/'
     ];
     protected string $command =
         'docker run --network="mockapi" --rm -v $(pwd):/app -w /app golang:1.12 sh -c "cd tests/languages/go/ && ./test.sh"';

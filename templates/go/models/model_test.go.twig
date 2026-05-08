@@ -1,0 +1,73 @@
+{% autoescape false %}
+{%- macro render_property_value(definitions, property, spec) -%}
+    {%- if property.sub_schema and definitions[property.sub_schema] -%}
+        {%- if property.type == 'array' -%}
+            []{{ property.sub_schema | caseUcfirst }}{
+                {{- _self.render_struct_init(definitions, definitions[property.sub_schema], spec) -}},
+            }
+        {%- else -%}
+            {{- _self.render_struct_init(definitions, definitions[property.sub_schema], spec) -}}
+        {%- endif -%}
+    {%- else -%}
+        {%- if property.type == 'object' -%}
+            map[string]interface{}{}
+        {%- elseif property.type == 'array' -%}
+            {{ (property | typeName) }}{
+                {%- if property.items.type == 'string' -%}
+                    "{{ property.items.example | default('test') | replace({'"': '\\"', '\\': '\\\\'}) }}"
+                {%- elseif property.items.type == 'integer' -%}
+                    1
+                {%- endif -%}
+            }
+        {%- elseif property.type == 'string' -%}
+            "{{ (property.example | default('string')) | replace({'"': '\\"', '\\': '\\\\'}) }}"
+        {%- elseif property.type == 'boolean' -%}
+            true
+        {%- elseif property.type == 'integer' -%}
+            {{ property.example | default(1) }}
+        {%- elseif property.type == 'number' -%}
+            {{ property.example | default(1.0) }}
+        {%- else -%}
+            nil
+        {%- endif -%}
+    {%- endif -%}
+{%- endmacro -%}
+
+{%- macro render_struct_init(definitions, definition, spec) -%}
+    {{ definition.name | caseUcfirst }}{
+        {%- for property in definition.properties | filter(p => p.required) %}
+        {{ property.name | caseUcfirst | escapeKeyword }}: {{ _self.render_property_value(definitions, property, spec) }},
+        {%- endfor %}
+    }
+{%- endmacro -%}
+package models
+
+import (
+    "encoding/json"
+    "testing"
+)
+
+func Test{{ definition.name | caseUcfirst }}Model(t *testing.T) {
+    model := {{ _self.render_struct_init(spec.definitions, definition, spec) }}
+
+    data, err := json.Marshal(model)
+    if err != nil {
+        t.Fatal(err)
+    }
+
+    var result {{ definition.name | caseUcfirst }}
+    err = json.Unmarshal(data, &result)
+    if err != nil {
+        t.Fatal(err)
+    }
+
+    {%- for property in definition.properties | filter(p => p.required) %}
+    {%- if property.type != 'object' and property.type != 'array' %}
+
+    if result.{{ property.name | caseUcfirst | escapeKeyword }} != model.{{ property.name | caseUcfirst | escapeKeyword }} {
+        t.Errorf("Expected {{ property.name | caseUcfirst | escapeKeyword }} %v, got %v", model.{{ property.name | caseUcfirst | escapeKeyword }}, result.{{ property.name | caseUcfirst | escapeKeyword }})
+    }
+    {%- endif %}
+    {%- endfor %}
+}
+{% endautoescape %}

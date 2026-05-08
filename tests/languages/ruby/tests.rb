@@ -13,6 +13,8 @@ general = General.new(client)
 
 puts ''
 puts 'Test Started'
+sdk_headers = client.get_headers
+puts "x-sdk-name: #{sdk_headers['x-sdk-name']}; x-sdk-platform: #{sdk_headers['x-sdk-platform']}; x-sdk-language: #{sdk_headers['x-sdk-language']}; x-sdk-version: #{sdk_headers['x-sdk-version']}"
 
 # Foo
 

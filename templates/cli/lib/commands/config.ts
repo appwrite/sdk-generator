@@ -5,6 +5,7 @@ import {
   validateContainerDuplicates,
   validateCrossDatabase,
 } from "./config-validations.js";
+import { CONFIG_RESOURCE_KEYS } from "../constants.js";
 
 // ============================================================================
 // Internal Helpers
@@ -25,7 +26,7 @@ const int64Schema = z.preprocess(
           const valueOfResult = val.valueOf();
           const bigIntVal = BigInt(valueOfResult as string | number | bigint);
           return bigIntVal;
-        } catch (e) {
+        } catch (_e) {
           return undefined;
         }
       }
@@ -37,7 +38,7 @@ const int64Schema = z.preprocess(
     if (typeof val === "string") {
       try {
         return BigInt(val);
-      } catch (e) {
+      } catch (_e) {
         return undefined;
       }
     }
@@ -94,6 +95,14 @@ const SettingsSchema = z
       })
       .strict()
       .optional(),
+    protocols: z
+      .object({
+        rest: z.boolean().optional(),
+        graphql: z.boolean().optional(),
+        websocket: z.boolean().optional(),
+      })
+      .strict()
+      .optional(),
     auth: z
       .object({
         methods: z
@@ -136,7 +145,6 @@ const SiteSchema = z
     path: z.string().optional(),
     $id: z.string(),
     name: z.string(),
-    enabled: z.boolean().optional(),
     logging: z.boolean().optional(),
     timeout: z.union([z.number(), z.bigint()]).optional(),
     framework: z.string().optional(),
@@ -146,9 +154,11 @@ const SiteSchema = z
     buildCommand: z.string().optional(),
     outputDirectory: z.string().optional(),
     fallbackFile: z.string().optional(),
-    specification: z.string().optional(),
+    buildSpecification: z.string().optional(),
+    runtimeSpecification: z.string().optional(),
+    deploymentRetention: z.number().optional(),
+    startCommand: z.string().optional(),
     vars: z.record(z.string(), z.string()).optional(),
-    ignore: z.string().optional(),
   })
   .strict();
 
@@ -161,7 +171,9 @@ const FunctionSchema = z
     enabled: z.boolean().optional(),
     logging: z.boolean().optional(),
     runtime: z.string(),
-    specification: z.string().optional(),
+    buildSpecification: z.string().optional(),
+    runtimeSpecification: z.string().optional(),
+    deploymentRetention: z.number().optional(),
     scopes: z.array(z.string()).optional(),
     events: z.array(z.string()).optional(),
     schedule: z.string().optional(),
@@ -370,6 +382,21 @@ const TeamSchema = z
   .strict();
 
 // ============================================================================
+// Webhooks
+// ============================================================================
+
+const WebhookSchema = z
+  .object({
+    $id: z.string(),
+    name: z.string(),
+    url: z.string(),
+    events: z.array(z.string()),
+    enabled: z.boolean().optional(),
+    tls: z.boolean().optional(),
+  })
+  .strict();
+
+// ============================================================================
 // Messages
 // ============================================================================
 
@@ -407,11 +434,58 @@ const BucketSchema = z
 // Config Schema
 // ============================================================================
 
+const ConfigIncludePathSchema = z
+  .string()
+  .trim()
+  .min(1, "Include path cannot be empty")
+  .refine((value) => !value.includes("\0"), {
+    message: "Include path cannot contain null bytes",
+  })
+  .refine((value) => !value.includes("#"), {
+    message: "Include path cannot contain JSON pointer fragments",
+  })
+  .refine((value) => !value.split(/[\\/]+/).includes(".."), {
+    message: "Include path cannot contain parent directory segments",
+  })
+  .refine(
+    (value) =>
+      !value.startsWith("/") &&
+      !value.startsWith("\\") &&
+      !/^[a-z]:[\\/]/i.test(value),
+    {
+      message: "Include path must be relative",
+    },
+  )
+  .refine((value) => !/^[a-z][a-z0-9+.-]*:/i.test(value), {
+    message: "Include path must be a local file path, not a URL",
+  })
+  .refine((value) => value.toLowerCase().endsWith(".json"), {
+    message: "Include path must point to a JSON file",
+  });
+
+type ConfigIncludePathShape = {
+  [K in (typeof CONFIG_RESOURCE_KEYS)[number]]: z.ZodOptional<
+    typeof ConfigIncludePathSchema
+  >;
+};
+
+const ConfigIncludesSchema = z
+  .object(
+    Object.fromEntries(
+      CONFIG_RESOURCE_KEYS.map((key) => [
+        key,
+        ConfigIncludePathSchema.optional(),
+      ]),
+    ) as ConfigIncludePathShape,
+  )
+  .strict();
+
 const ConfigSchema = z
   .object({
     projectId: z.string(),
     projectName: z.string().optional(),
     endpoint: z.string().optional(),
+    includes: ConfigIncludesSchema.optional(),
     settings: z.lazy(() => SettingsSchema).optional(),
     functions: z.array(z.lazy(() => FunctionSchema)).optional(),
     sites: z.array(z.lazy(() => SiteSchema)).optional(),
@@ -422,6 +496,7 @@ const ConfigSchema = z
     topics: z.array(z.lazy(() => TopicSchema)).optional(),
     teams: z.array(z.lazy(() => TeamSchema)).optional(),
     buckets: z.array(z.lazy(() => BucketSchema)).optional(),
+    webhooks: z.array(z.lazy(() => WebhookSchema)).optional(),
     messages: z.array(z.lazy(() => MessageSchema)).optional(),
   })
   .strict()
@@ -432,6 +507,7 @@ const ConfigSchema = z
 // ============================================================================
 
 export type ConfigType = z.infer<typeof ConfigSchema>;
+export type ConfigIncludesType = NonNullable<ConfigType["includes"]>;
 export type SettingsType = z.infer<typeof SettingsSchema>;
 export type SiteType = z.infer<typeof SiteSchema>;
 export type FunctionType = z.infer<typeof FunctionSchema>;
@@ -446,6 +522,7 @@ export type TopicType = z.infer<typeof TopicSchema>;
 export type TeamType = z.infer<typeof TeamSchema>;
 export type MessageType = z.infer<typeof MessageSchema>;
 export type BucketType = z.infer<typeof BucketSchema>;
+export type WebhookType = z.infer<typeof WebhookSchema>;
 
 // ============================================================================
 // Schema Exports
@@ -486,4 +563,7 @@ export {
 
   /** Buckets */
   BucketSchema,
+
+  /** Webhooks */
+  WebhookSchema,
 };

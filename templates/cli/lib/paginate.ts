@@ -1,10 +1,12 @@
-interface PaginateArgs {
-  [key: string]: any;
-}
+type PaginateArgs = Record<string, unknown>;
+
+type WrappedPaginateResponse<T, K extends string = string> = Record<K, T[]> & {
+  total: number;
+};
 
 // Overload for when wrapper is empty string - returns array
-export function paginate<T = any>(
-  action: (args: PaginateArgs) => Promise<any>,
+export function paginate<T = unknown>(
+  action: (args: PaginateArgs) => Promise<T[]>,
   args: PaginateArgs,
   limit: number,
   wrapper: "",
@@ -12,22 +14,24 @@ export function paginate<T = any>(
 ): Promise<T[]>;
 
 // Overload for when wrapper is specified - returns object with that key
-export function paginate<T = any, K extends string = string>(
-  action: (args: PaginateArgs) => Promise<any>,
+export function paginate<T = unknown, K extends string = string>(
+  action: (args: PaginateArgs) => Promise<WrappedPaginateResponse<T, K>>,
   args: PaginateArgs,
   limit: number,
   wrapper: K,
   queries?: string[],
-): Promise<Record<K, T[]> & { total: number }>;
+): Promise<WrappedPaginateResponse<T, K>>;
 
 // Implementation
-export async function paginate<T = any>(
-  action: (args: PaginateArgs) => Promise<any>,
+export async function paginate<T = unknown>(
+  action: (
+    args: PaginateArgs,
+  ) => Promise<T[] | WrappedPaginateResponse<T, string>>,
   args: PaginateArgs = {},
   limit: number = 100,
   wrapper: string = "",
   queries: string[] = [],
-): Promise<T[] | (Record<string, T[]> & { total: number })> {
+): Promise<T[] | WrappedPaginateResponse<T, string>> {
   let pageNumber = 0;
   let results: T[] = [];
   let total = 0;
@@ -46,21 +50,27 @@ export async function paginate<T = any>(
     });
 
     if (wrapper === "") {
-      if (response.length === 0) {
+      const listResponse = response as T[];
+
+      if (listResponse.length === 0) {
         break;
       }
-      results = results.concat(response);
+
+      results = results.concat(listResponse);
     } else {
-      if (response[wrapper].length === 0) {
+      const wrappedResponse = response as WrappedPaginateResponse<T, string>;
+      const wrappedResults = wrappedResponse[wrapper] ?? [];
+
+      if (wrappedResults.length === 0) {
         break;
       }
-      results = results.concat(response[wrapper]);
-    }
 
-    total = response.total;
+      results = results.concat(wrappedResults);
+      total = wrappedResponse.total;
 
-    if (results.length >= total) {
-      break;
+      if (results.length >= total) {
+        break;
+      }
     }
 
     pageNumber++;
@@ -73,5 +83,5 @@ export async function paginate<T = any>(
   return {
     [wrapper]: results,
     total,
-  } as Record<string, T[]> & { total: number };
+  } as WrappedPaginateResponse<T, string>;
 }

@@ -39,7 +39,7 @@ export class Pools {
     }
 
     if (this.pollMaxDebounces === this.POLL_DEFAULT_VALUE) {
-      let steps = Math.max(1, Math.ceil(Number(total) / this.STEP_SIZE));
+      const steps = Math.max(1, Math.ceil(Number(total) / this.STEP_SIZE));
       if (steps > 1 && iteration === 1) {
         this.pollMaxDebounces *= steps;
 
@@ -78,7 +78,7 @@ export class Pools {
     }
 
     if (this.pollMaxDebounces === this.POLL_DEFAULT_VALUE) {
-      let steps = Math.max(1, Math.ceil(Number(total) / this.STEP_SIZE));
+      const steps = Math.max(1, Math.ceil(Number(total) / this.STEP_SIZE));
       if (steps > 1 && iteration === 1) {
         this.pollMaxDebounces *= steps;
 
@@ -106,7 +106,10 @@ export class Pools {
     }
 
     if (this.pollMaxDebounces === this.POLL_DEFAULT_VALUE) {
-      let steps = Math.max(1, Math.ceil(attributeKeys.length / this.STEP_SIZE));
+      const steps = Math.max(
+        1,
+        Math.ceil(attributeKeys.length / this.STEP_SIZE),
+      );
       if (steps > 1 && iteration === 1) {
         this.pollMaxDebounces *= steps;
 
@@ -164,7 +167,10 @@ export class Pools {
     }
 
     if (this.pollMaxDebounces === this.POLL_DEFAULT_VALUE) {
-      let steps = Math.max(1, Math.ceil(attributeKeys.length / this.STEP_SIZE));
+      const steps = Math.max(
+        1,
+        Math.ceil(attributeKeys.length / this.STEP_SIZE),
+      );
       if (steps > 1 && iteration === 1) {
         this.pollMaxDebounces *= steps;
 
@@ -232,7 +238,7 @@ export class Pools {
     }
 
     if (this.pollMaxDebounces === this.POLL_DEFAULT_VALUE) {
-      let steps = Math.max(1, Math.ceil(indexKeys.length / this.STEP_SIZE));
+      const steps = Math.max(1, Math.ceil(indexKeys.length / this.STEP_SIZE));
       if (steps > 1 && iteration === 1) {
         this.pollMaxDebounces *= steps;
 

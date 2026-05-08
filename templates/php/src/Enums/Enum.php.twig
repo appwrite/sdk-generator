@@ -38,4 +38,15 @@ class {{ enum.name | caseUcfirst | overrideIdentifier }} implements JsonSerializ
         return self::${{ key | caseEnumKey }};
     }
 {% endfor %}
+
+    public static function from(string $value): self
+    {
+        return match ($value) {
+{% for value in enum.enum %}
+{% set key = enum.keys is empty ? value : enum.keys[loop.index0] %}
+            '{{ value }}' => self::{{ key | caseEnumKey }}(),
+{% endfor %}
+            default => throw new \InvalidArgumentException('Unknown {{ enum.name | caseUcfirst | overrideIdentifier }} value: ' . $value),
+        };
+    }
 }

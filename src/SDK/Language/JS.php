@@ -52,6 +52,7 @@ abstract class JS extends Language
             'catch',
             'char',
             'class', // new in ECMAScript 5 and 6.
+            'console',
             'const',
             'continue',
             'debugger',

@@ -44,7 +44,8 @@ for glob in "${glob_array[@]}"; do
         if [ $? -eq 1 ]; then
             found_lines=1
         fi
-    done < <(find "$folder_path" -type f -name "$glob" -print0)
+    done < <(find "$folder_path" -type f -name "$glob" \
+        ! -name "*.lock" ! -name "*.lock.*" ! -name "*-lock.*" -print0)
 done
 
 # Exit with appropriate code

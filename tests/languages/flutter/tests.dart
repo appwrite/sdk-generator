@@ -57,6 +57,8 @@ void main() async {
   await Future.delayed(Duration(seconds: 5));
   client.addHeader('Origin', 'http://localhost');
   print('\nTest Started');
+  final sdkHeaders = client.getHeaders();
+  print("x-sdk-name: ${sdkHeaders['x-sdk-name']}; x-sdk-platform: ${sdkHeaders['x-sdk-platform']}; x-sdk-language: ${sdkHeaders['x-sdk-language']}; x-sdk-version: ${sdkHeaders['x-sdk-version']}");
 
   // Ping pong tests
   client.setProject('123456');
@@ -174,11 +176,9 @@ void main() async {
   // Assert realtime outputs in a deterministic order (no-query then with-query)
   final message1 = await rtsub.stream.first.timeout(Duration(seconds: 10));
   print(message1.payload["response"]);
-  await rtsub.close();
 
   final message2 = await rtsubWithQueries.stream.first.timeout(Duration(seconds: 10));
   print(message2.payload["response"]);
-  await rtsubWithQueries.close();
 
   try {
     final message3 = await rtsubWithQueriesFailure.stream.first.timeout(Duration(seconds: 10));
@@ -188,7 +188,37 @@ void main() async {
     // Timeout means no matching message was received, which is expected for a failure query
     print("Realtime failed!");
   }
-  await rtsubWithQueriesFailure.close();
+
+  try {
+    await rtsubWithQueriesFailure.unsubscribe();
+
+    // Idempotence: a second unsubscribe on the same handle must not throw.
+    await rtsubWithQueriesFailure.unsubscribe();
+
+    // Truly unsubscribed: the backing stream controller should be closed so
+    // no further events can be pushed to consumers.
+    if (!rtsubWithQueriesFailure.controller.isClosed) {
+      throw Exception("controller still open after unsubscribe");
+    }
+
+    print("Realtime unsubscribe:passed");
+  } catch (e) {
+    print("Realtime unsubscribe:failed");
+  }
+
+  try {
+    await rtsubWithQueries.update(channels: ["tests"], queries: []);
+    print("Realtime update:passed");
+  } catch (e) {
+    print("Realtime update:failed");
+  }
+
+  try {
+    await realtime.disconnect();
+    print("Realtime disconnect:passed");
+  } catch (e) {
+    print("Realtime disconnect:failed");
+  }
 
   response = await general.setCookie();
   print(response.result);
@@ -297,31 +327,31 @@ void main() async {
   print(ID.custom('custom_id'));
 
   // Channel helper tests
-  print(Channel.database().collection().document().toString());
+  print(Channel.database('db1').collection('col1').document().toString());
   print(Channel.database('db1').collection('col1').document('doc1').toString());
   print(Channel.database('db1').collection('col1').document('doc1').create().toString());
   print(Channel.database('db1').collection('col1').document('doc1').upsert().toString());
-  print(Channel.tablesdb().table().row().toString());
+  print(Channel.tablesdb('db1').table('table1').row().toString());
   print(Channel.tablesdb('db1').table('table1').row('row1').toString());
   print(Channel.tablesdb('db1').table('table1').row('row1').update().toString());
   print(Channel.account());
-  print(Channel.bucket().file().toString());
+  print(Channel.bucket('bucket1').file().toString());
   print(Channel.bucket('bucket1').file('file1').toString());
   print(Channel.bucket('bucket1').file('file1').delete().toString());
-  print(Channel.function().toString());
+  print(Channel.function('func2').toString());
   print(Channel.function('func1').toString());
-  print(Channel.execution().toString());
+  print(Channel.execution('exec2').toString());
   print(Channel.execution('exec1').toString());
   print(Channel.documents());
   print(Channel.rows());
   print(Channel.files());
   print(Channel.executions());
   print(Channel.teams());
-  print(Channel.team().toString());
+  print(Channel.team('team2').toString());
   print(Channel.team('team1').toString());
   print(Channel.team('team1').create().toString());
   print(Channel.memberships());
-  print(Channel.membership().toString());
+  print(Channel.membership('membership2').toString());
   print(Channel.membership('membership1').toString());
   print(Channel.membership('membership1').update().toString());
 

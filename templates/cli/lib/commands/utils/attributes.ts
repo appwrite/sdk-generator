@@ -76,7 +76,7 @@ export class Attributes {
       return answers.changes;
     }
 
-    let answers = await inquirer.prompt(questionPushChanges);
+    const answers = await inquirer.prompt(questionPushChanges);
 
     if (answers.changes !== "YES" && answers.changes !== "NO") {
       answers.changes = await fixConfirmation();
@@ -148,9 +148,9 @@ export class Attributes {
     const keyName = `${chalk.yellow(local.key)} in ${collection.name} (${collection["$id"]})`;
     const action = chalk.cyan(recreating ? "recreating" : "changing");
     let reason = "";
-    let attribute = recreating ? remote : local;
+    const attribute = recreating ? remote : local;
 
-    for (let key of Object.keys(remote)) {
+    for (const key of Object.keys(remote)) {
       if (!KeysAttributes.has(key)) {
         continue;
       }
@@ -262,6 +262,7 @@ export class Attributes {
           required: attribute.required,
           xdefault: attribute.default,
           array: attribute.array,
+          encrypt: attribute.encrypt,
         });
       case "text":
         return databasesService.createTextAttribute({
@@ -271,6 +272,7 @@ export class Attributes {
           required: attribute.required,
           xdefault: attribute.default,
           array: attribute.array,
+          encrypt: attribute.encrypt,
         });
       case "mediumtext":
         return databasesService.createMediumtextAttribute({
@@ -280,6 +282,7 @@ export class Attributes {
           required: attribute.required,
           xdefault: attribute.default,
           array: attribute.array,
+          encrypt: attribute.encrypt,
         });
       case "longtext":
         return databasesService.createLongtextAttribute({
@@ -289,6 +292,7 @@ export class Attributes {
           required: attribute.required,
           xdefault: attribute.default,
           array: attribute.array,
+          encrypt: attribute.encrypt,
         });
       case "integer":
         return databasesService.createIntegerAttribute({
@@ -737,7 +741,7 @@ export class Attributes {
     log(`Creating indexes ...`);
 
     const databasesService = await getDatabasesService(this.client);
-    for (let index of indexes) {
+    for (const index of indexes) {
       await databasesService.createIndex({
         databaseId: collection["databaseId"],
         collectionId: collection["$id"],
@@ -769,7 +773,7 @@ export class Attributes {
   ): Promise<void> => {
     log(`Creating attributes ...`);
 
-    for (let attribute of attributes) {
+    for (const attribute of attributes) {
       if (attribute.side !== "child") {
         await this.createAttribute(
           collection["databaseId"],
@@ -803,7 +807,7 @@ export class Attributes {
   ): Promise<void> => {
     log(`Creating columns ...`);
 
-    for (let column of columns) {
+    for (const column of columns) {
       if (column.side !== "child") {
         await this.createAttribute(table["databaseId"], table["$id"], column);
       }

@@ -42,6 +42,11 @@ class ReactNative extends Web
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'src/services/realtime.ts',
+                'template'      => 'web/src/services/realtime.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'src/models.ts',
                 'template'      => 'react-native/src/models.ts.twig',
             ],
@@ -107,8 +112,8 @@ class ReactNative extends Web
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'rollup.config.js',
-                'template'      => '/react-native/rollup.config.js.twig',
+                'destination'   => 'rollup.config.mjs',
+                'template'      => '/react-native/rollup.config.mjs.twig',
             ],
             [
                 'scope'         => 'default',
@@ -129,6 +134,16 @@ class ReactNative extends Web
                 'scope'         => 'enum',
                 'destination'   => 'src/enums/{{ enum.name | caseKebab }}.ts',
                 'template'      => 'react-native/src/enums/enum.ts.twig',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => '.gitignore',
+                'template'      => 'react-native/.gitignore',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'package-lock.json',
+                'template'      => 'react-native/package-lock.json.twig',
             ],
         ];
     }

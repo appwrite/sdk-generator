@@ -39,6 +39,9 @@ class Client:
     def add_header(self, key, value):
         self._global_headers[key.lower()] = value
         return self
+
+    def get_headers(self):
+        return dict(self._global_headers)
 {% for header in spec.global.headers %}
 
     def set_{{header.key | caseSnake}}(self, value):

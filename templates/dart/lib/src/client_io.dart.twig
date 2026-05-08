@@ -94,6 +94,11 @@ class ClientIO extends ClientBase with ClientMixin {
   }
 
   @override
+  Map<String, String> getHeaders() {
+    return Map<String, String>.from(_headers!);
+  }
+
+  @override
   Future<Response> chunkedUpload({
     required String path,
     required Map<String, dynamic> params,

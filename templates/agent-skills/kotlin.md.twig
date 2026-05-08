@@ -284,17 +284,22 @@ teams.delete(teamId = "[TEAM_ID]")
 ### Real-time Subscriptions (client-side)
 
 ```kotlin
+import io.{{ spec.title | caseLower }}.Channel
+
 val realtime = Realtime(client)
 
-val subscription = realtime.subscribe("databases.[DATABASE_ID].tables.[TABLE_ID].rows") { response ->
-    println(response.events)   // e.g. ["databases.*.tables.*.rows.*.create"]
+// Subscribe to row changes
+val subscription = realtime.subscribe(
+    Channel.tablesdb("[DATABASE_ID]").table("[TABLE_ID]").row()
+) { response ->
+    println(response.events)   // e.g. ["tablesdb.*.tables.*.rows.*.create"]
     println(response.payload)  // the affected resource
 }
 
 // Subscribe to multiple channels
 val multi = realtime.subscribe(
-    "databases.[DATABASE_ID].tables.[TABLE_ID].rows",
-    "buckets.[BUCKET_ID].files"
+    Channel.tablesdb("[DATABASE_ID]").table("[TABLE_ID]").row(),
+    Channel.bucket("[BUCKET_ID]").file()
 ) { response -> /* ... */ }
 
 // Cleanup
@@ -306,8 +311,8 @@ subscription.close()
 | Channel | Description |
 |---------|-------------|
 | `account` | Changes to the authenticated user's account |
-| `databases.[DB_ID].tables.[TABLE_ID].rows` | All rows in a table |
-| `databases.[DB_ID].tables.[TABLE_ID].rows.[ROW_ID]` | A specific row |
+| `tablesdb.[DB_ID].tables.[TABLE_ID].rows` | All rows in a table |
+| `tablesdb.[DB_ID].tables.[TABLE_ID].rows.[ROW_ID]` | A specific row |
 | `buckets.[BUCKET_ID].files` | All files in a bucket |
 | `buckets.[BUCKET_ID].files.[FILE_ID]` | A specific file |
 | `teams` | Changes to teams the user belongs to |
@@ -493,7 +498,7 @@ try {
 
 ## Permissions & Roles (Critical)
 
-Appwrite uses permission strings to control access to resources. Each permission pairs an action (`read`, `update`, `delete`, `create`, or `write` which grants create + update + delete) with a role target. By default, **no user has access** unless permissions are explicitly set at the document/file level or inherited from the collection/bucket settings. Permissions are arrays of strings built with the `Permission` and `Role` helpers.
+Appwrite uses permission strings to control access to resources. Each permission pairs an action (`read`, `update`, `delete`, `create`, or `write` which grants create + update + delete) with a role target. By default, **no user has access** unless permissions are explicitly set at the row/file level or inherited from the table/bucket settings. Permissions are arrays of strings built with the `Permission` and `Role` helpers.
 
 ```kotlin
 import io.{{ spec.title | caseLower }}.Permission
@@ -532,7 +537,7 @@ val file = storage.createFile(
 )
 ```
 
-> **When to set permissions:** Set document/file-level permissions when you need per-resource access control. If all documents in a collection share the same rules, configure permissions at the collection/bucket level and leave document permissions empty.
+> **When to set permissions:** Set row/file-level permissions when you need per-resource access control. If all rows in a table share the same rules, configure permissions at the table/bucket level and leave row permissions empty.
 
 > **Common mistakes:**
 > - **Forgetting permissions** — the resource becomes inaccessible to all users (including the creator)

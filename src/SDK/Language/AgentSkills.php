@@ -3,9 +3,27 @@
 namespace Appwrite\SDK\Language;
 
 use Appwrite\SDK\Language;
+use Twig\TwigFilter;
 
 class AgentSkills extends Language
 {
+    protected array $skillLanguages = [
+        'typescript',
+        'dart',
+        'kotlin',
+        'swift',
+        'php',
+        'python',
+        'ruby',
+        'go',
+        'rust',
+        'dotnet',
+        'cli',
+    ];
+
+    protected string $skillDestination = 'skills/{{ spec.title | caseLower }}-%s/SKILL.md';
+    protected bool $prefixSkillName = true;
+
     /**
      * @return string
      */
@@ -87,29 +105,45 @@ class AgentSkills extends Language
     /**
      * @return array
      */
-    public function getFiles(): array
+    public function getFilters(): array
     {
-        $languages = [
-            'typescript',
-            'dart',
-            'kotlin',
-            'swift',
-            'php',
-            'python',
-            'ruby',
-            'go',
-            'dotnet',
+        return [
+            new TwigFilter('skillName', function (string $lang, array $spec): string {
+                return $this->getSkillName($lang, $spec['title'] ?? '');
+            }),
         ];
+    }
 
+    protected function getSkillName(string $lang, string $specTitle): string
+    {
+        if (!$this->prefixSkillName) {
+            return $lang;
+        }
+
+        return \strtolower($specTitle) . '-' . $lang;
+    }
+
+    protected function getSkillFiles(): array
+    {
         $files = [];
 
-        foreach ($languages as $lang) {
+        foreach ($this->skillLanguages as $lang) {
             $files[] = [
                 'scope'       => 'default',
-                'destination' => 'skills/{{ spec.title | caseLower }}-' . $lang . '/SKILL.md',
+                'destination' => \sprintf($this->skillDestination, $lang),
                 'template'    => 'agent-skills/' . $lang . '.md.twig',
             ];
         }
+
+        return $files;
+    }
+
+    /**
+     * @return array
+     */
+    public function getFiles(): array
+    {
+        $files = $this->getSkillFiles();
 
         $files[] = [
             'scope'       => 'default',

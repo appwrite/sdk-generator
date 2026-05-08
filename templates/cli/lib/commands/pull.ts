@@ -12,6 +12,7 @@ import {
   Storage,
   TablesDB,
   Teams,
+  Webhooks,
   Client,
   Query,
   Models,
@@ -44,8 +45,13 @@ import {
   IndexTableSchema,
   BucketSchema,
   TopicSchema,
+  WebhookSchema,
 } from "./config.js";
-import { createSettingsObject, filterBySchema } from "../utils.js";
+import {
+  createSettingsObject,
+  filterBySchema,
+  getSafeDirectoryName,
+} from "../utils.js";
 import { ProjectNotInitializedError } from "./errors.js";
 import type { SettingsType, FunctionType, SiteType } from "./config.js";
 import { downloadDeploymentCode } from "./utils/deployment.js";
@@ -60,10 +66,15 @@ export interface PullOptions {
   tables?: boolean;
   buckets?: boolean;
   teams?: boolean;
+  webhooks?: boolean;
   topics?: boolean;
   skipDeprecated?: boolean;
   withVariables?: boolean;
   noCode?: boolean;
+  resourceDirectories?: {
+    functions?: string;
+    sites?: string;
+  };
 }
 
 interface PullFunctionsOptions {
@@ -85,17 +96,22 @@ export interface PullSettingsResult {
 }
 
 async function createPullInstance(
-  options: { silent?: boolean; requiresConsoleAuth?: boolean } = {
-    silent: false,
-    requiresConsoleAuth: false,
-  },
+  options: {
+    silent?: boolean;
+    requiresConsoleAuth?: boolean;
+    resource?: "functions" | "sites";
+  } = {},
 ): Promise<Pull> {
-  const { silent, requiresConsoleAuth } = options;
+  const { silent = false, requiresConsoleAuth = false, resource } = options;
   const projectClient = await sdkForProject();
   const consoleClient = await sdkForConsole(requiresConsoleAuth);
 
   const pullInstance = new Pull(projectClient, consoleClient, silent);
-  pullInstance.setConfigDirectoryPath(localConfig.configDirectoryPath);
+  pullInstance.setConfigDirectoryPath(
+    resource
+      ? localConfig.getResourceDirname(resource)
+      : localConfig.configDirectoryPath,
+  );
   return pullInstance;
 }
 
@@ -164,54 +180,72 @@ export class Pull {
 
     const updatedConfig: ConfigType = { ...config };
     const shouldPullAll = options.all === true;
+    const originalConfigDirectoryPath = this.configDirectoryPath;
 
-    if (shouldPullAll || options.settings) {
-      const settings = await this.pullSettings(config.projectId);
-      updatedConfig.settings = settings.settings;
-      updatedConfig.projectName = settings.projectName;
-    }
+    try {
+      if (shouldPullAll || options.settings) {
+        const settings = await this.pullSettings(config.projectId);
+        updatedConfig.settings = settings.settings;
+        updatedConfig.projectName = settings.projectName;
+      }
 
-    if (shouldPullAll || options.functions) {
-      const functions = await this.pullFunctions({
-        code: options.noCode === true ? false : true,
-        withVariables: options.withVariables,
-      });
-      updatedConfig.functions = functions;
-    }
+      if (shouldPullAll || options.functions) {
+        if (options.resourceDirectories?.functions) {
+          this.setConfigDirectoryPath(options.resourceDirectories.functions);
+        }
+        const functions = await this.pullFunctions({
+          code: options.noCode === true ? false : true,
+          withVariables: options.withVariables,
+        });
+        updatedConfig.functions = functions;
+        this.setConfigDirectoryPath(originalConfigDirectoryPath);
+      }
 
-    if (shouldPullAll || options.sites) {
-      const sites = await this.pullSites({
-        code: options.noCode === true ? false : true,
-        withVariables: options.withVariables,
-      });
-      updatedConfig.sites = sites;
-    }
+      if (shouldPullAll || options.sites) {
+        if (options.resourceDirectories?.sites) {
+          this.setConfigDirectoryPath(options.resourceDirectories.sites);
+        }
+        const sites = await this.pullSites({
+          code: options.noCode === true ? false : true,
+          withVariables: options.withVariables,
+        });
+        updatedConfig.sites = sites;
+        this.setConfigDirectoryPath(originalConfigDirectoryPath);
+      }
 
-    if (shouldPullAll || options.tables) {
-      const { databases, tables } = await this.pullTables();
-      updatedConfig.databases = databases;
-      updatedConfig.tables = tables;
-    }
+      if (shouldPullAll || options.tables) {
+        const { databases, tables } = await this.pullTables();
+        updatedConfig.databases = databases;
+        updatedConfig.tables = tables;
+      }
 
-    if (options.collections || (shouldPullAll && !skipDeprecated)) {
-      const { databases, collections } = await this.pullCollections();
-      updatedConfig.databases = databases;
-      updatedConfig.collections = collections;
-    }
+      if (options.collections || (shouldPullAll && !skipDeprecated)) {
+        const { databases, collections } = await this.pullCollections();
+        updatedConfig.databases = databases;
+        updatedConfig.collections = collections;
+      }
 
-    if (shouldPullAll || options.buckets) {
-      const buckets = await this.pullBuckets();
-      updatedConfig.buckets = buckets;
-    }
+      if (shouldPullAll || options.buckets) {
+        const buckets = await this.pullBuckets();
+        updatedConfig.buckets = buckets;
+      }
 
-    if (shouldPullAll || options.teams) {
-      const teams = await this.pullTeams();
-      updatedConfig.teams = teams;
-    }
+      if (shouldPullAll || options.teams) {
+        const teams = await this.pullTeams();
+        updatedConfig.teams = teams;
+      }
 
-    if (shouldPullAll || options.topics) {
-      const topics = await this.pullMessagingTopics();
-      updatedConfig.topics = topics;
+      if (shouldPullAll || options.webhooks) {
+        const webhooks = await this.pullWebhooks();
+        updatedConfig.webhooks = webhooks;
+      }
+
+      if (shouldPullAll || options.topics) {
+        const topics = await this.pullMessagingTopics();
+        updatedConfig.topics = topics;
+      }
+    } finally {
+      this.setConfigDirectoryPath(originalConfigDirectoryPath);
     }
 
     return updatedConfig;
@@ -266,7 +300,8 @@ export class Pull {
       }
 
       const { functions: allFunctions } = await paginate(
-        async () => new Functions(this.projectClient).list(),
+        async (args) =>
+          new Functions(this.projectClient).list(args.queries as string[]),
         {},
         100,
         "functions",
@@ -279,7 +314,7 @@ export class Pull {
     for (const func of functions) {
       this.log(`Pulling function ${chalk.bold(func.name)} ...`);
 
-      const funcPath = `functions/${func.name}`;
+      const funcPath = `functions/${getSafeDirectoryName(func.name, func.$id)}`;
       const absoluteFuncPath = path.resolve(this.configDirectoryPath, funcPath);
       const holdingVars = func.vars || [];
 
@@ -297,16 +332,18 @@ export class Pull {
         timeout: func.timeout,
         commands: func.commands,
         scopes: func.scopes,
-        specification: func.specification,
+        buildSpecification: func.buildSpecification,
+        runtimeSpecification: func.runtimeSpecification,
+        deploymentRetention: func.deploymentRetention,
       };
 
       result.push(functionConfig);
 
-      if (!fs.existsSync(absoluteFuncPath)) {
-        fs.mkdirSync(absoluteFuncPath, { recursive: true });
-      }
-
       if (options.code !== false) {
+        if (!fs.existsSync(absoluteFuncPath)) {
+          fs.mkdirSync(absoluteFuncPath, { recursive: true });
+        }
+
         await downloadDeploymentCode({
           resourceId: func["$id"],
           resourcePath: absoluteFuncPath,
@@ -364,7 +401,8 @@ export class Pull {
       }
 
       const { sites: fetchedSites } = await paginate(
-        async () => new Sites(this.projectClient).list(),
+        async (args) =>
+          new Sites(this.projectClient).list(args.queries as string[]),
         {},
         100,
         "sites",
@@ -377,7 +415,7 @@ export class Pull {
     for (const site of sites) {
       this.log(`Pulling site ${chalk.bold(site.name)} ...`);
 
-      const sitePath = `sites/${site.name}`;
+      const sitePath = `sites/${getSafeDirectoryName(site.name, site.$id)}`;
       const absoluteSitePath = path.resolve(this.configDirectoryPath, sitePath);
       const holdingVars = site.vars || [];
 
@@ -386,7 +424,6 @@ export class Pull {
         name: site.name,
         path: sitePath,
         framework: site.framework,
-        enabled: site.enabled,
         logging: site.logging,
         timeout: site.timeout,
         buildRuntime: site.buildRuntime,
@@ -395,16 +432,19 @@ export class Pull {
         buildCommand: site.buildCommand,
         outputDirectory: site.outputDirectory,
         fallbackFile: site.fallbackFile,
-        specification: site.specification,
+        startCommand: site.startCommand,
+        buildSpecification: site.buildSpecification,
+        runtimeSpecification: site.runtimeSpecification,
+        deploymentRetention: site.deploymentRetention,
       };
 
       result.push(siteConfig);
 
-      if (!fs.existsSync(absoluteSitePath)) {
-        fs.mkdirSync(absoluteSitePath, { recursive: true });
-      }
-
       if (options.code !== false) {
+        if (!fs.existsSync(absoluteSitePath)) {
+          fs.mkdirSync(absoluteSitePath, { recursive: true });
+        }
+
         await downloadDeploymentCode({
           resourceId: site["$id"],
           resourcePath: absoluteSitePath,
@@ -458,7 +498,8 @@ export class Pull {
     }
 
     const { databases } = await paginate(
-      async () => new Databases(this.projectClient).list(),
+      async (args) =>
+        new Databases(this.projectClient).list(args.queries as string[]),
       {},
       100,
       "databases",
@@ -474,8 +515,11 @@ export class Pull {
       allDatabases.push(database);
 
       const { collections } = await paginate(
-        async () =>
-          new Databases(this.projectClient).listCollections(database.$id),
+        async (args) =>
+          new Databases(this.projectClient).listCollections(
+            database.$id,
+            args.queries as string[],
+          ),
         {},
         100,
         "collections",
@@ -524,7 +568,10 @@ export class Pull {
     }
 
     const { databases } = await paginate(
-      async () => new TablesDB(this.projectClient).list(),
+      async (args) =>
+        new TablesDB(this.projectClient).list({
+          queries: args.queries as string[],
+        }),
       {},
       100,
       "databases",
@@ -540,7 +587,11 @@ export class Pull {
       allDatabases.push(filterBySchema(database, DatabaseSchema));
 
       const { tables } = await paginate(
-        async () => new TablesDB(this.projectClient).listTables(database.$id),
+        async (args) =>
+          new TablesDB(this.projectClient).listTables({
+            databaseId: database.$id,
+            queries: args.queries as string[],
+          }),
         {},
         100,
         "tables",
@@ -594,7 +645,8 @@ export class Pull {
     }
 
     const { buckets } = await paginate(
-      async () => new Storage(this.projectClient).listBuckets(),
+      async (args) =>
+        new Storage(this.projectClient).listBuckets(args.queries as string[]),
       {},
       100,
       "buckets",
@@ -633,7 +685,8 @@ export class Pull {
     }
 
     const { teams } = await paginate(
-      async () => new Teams(this.projectClient).list(),
+      async (args) =>
+        new Teams(this.projectClient).list(args.queries as string[]),
       {},
       100,
       "teams",
@@ -646,6 +699,46 @@ export class Pull {
     this.success(`Successfully pulled ${chalk.bold(teams.length)} teams.`);
 
     return teams;
+  }
+
+  /**
+   * Pull webhooks from the project
+   */
+  public async pullWebhooks(): Promise<any[]> {
+    this.log("Fetching webhooks ...");
+
+    const webhooksService = new Webhooks(this.projectClient);
+
+    const fetchResponse = await webhooksService.list({
+      queries: [Query.limit(1)],
+    });
+
+    if (fetchResponse["webhooks"].length <= 0) {
+      this.log("No webhooks found.");
+      this.success(`Successfully pulled ${chalk.bold(0)} webhooks.`);
+      return [];
+    }
+
+    const { webhooks } = await paginate(
+      async (args) =>
+        new Webhooks(this.projectClient).list(args.queries as string[]),
+      {},
+      100,
+      "webhooks",
+    );
+
+    const filteredWebhooks: any[] = [];
+
+    for (const webhook of webhooks) {
+      this.log(`Pulling webhook ${chalk.bold(webhook.name)} ...`);
+      filteredWebhooks.push(filterBySchema(webhook, WebhookSchema));
+    }
+
+    this.success(
+      `Successfully pulled ${chalk.bold(filteredWebhooks.length)} webhooks.`,
+    );
+
+    return filteredWebhooks;
   }
 
   /**
@@ -667,7 +760,8 @@ export class Pull {
     }
 
     const { topics } = await paginate(
-      async () => new Messaging(this.projectClient).listTopics(),
+      async (args) =>
+        new Messaging(this.projectClient).listTopics(args.queries as string[]),
       {},
       100,
       "topics",
@@ -711,6 +805,7 @@ export const pullResources = async ({
     tables: pullTable,
     buckets: pullBucket,
     teams: pullTeam,
+    webhooks: pullWebhook,
     messages: pullMessagingTopic,
   };
 
@@ -719,7 +814,7 @@ export const pullResources = async ({
   }
 
   if (cliConfig.all) {
-    for (let action of Object.values(actions)) {
+    for (const action of Object.values(actions)) {
       cliConfig.all = true;
       await action({ returnOnZero: true });
     }
@@ -758,7 +853,8 @@ const pullFunctions = async ({
   const functionsToCheck = cliConfig.all
     ? (
         await paginate(
-          async () => (await getFunctionsService()).list(),
+          async (args) =>
+            (await getFunctionsService()).list(args.queries as string[]),
           {},
           100,
           "functions",
@@ -766,7 +862,7 @@ const pullFunctions = async ({
       ).functions
     : (await inquirer.prompt(questionsPullFunctions)).functions;
 
-  let allowCodePull: boolean | null = cliConfig.force === true ? true : null;
+  let allowCodePull: boolean | null = null;
   if (code !== false && allowCodePull === null) {
     const codeAnswer = await inquirer.prompt(questionsPullFunctionsCode);
     allowCodePull = codeAnswer.override;
@@ -775,7 +871,7 @@ const pullFunctions = async ({
   const shouldPullCode = code !== false && allowCodePull === true;
   const selectedFunctionIds = functionsToCheck.map((f: any) => f.$id);
 
-  const pullInstance = await createPullInstance();
+  const pullInstance = await createPullInstance({ resource: "functions" });
   const functions = await pullInstance.pullFunctions({
     code: shouldPullCode,
     withVariables,
@@ -806,7 +902,8 @@ const pullSites = async ({
   const sitesToCheck = cliConfig.all
     ? (
         await paginate(
-          async () => (await getSitesService()).list(),
+          async (args) =>
+            (await getSitesService()).list(args.queries as string[]),
           {},
           100,
           "sites",
@@ -814,7 +911,7 @@ const pullSites = async ({
       ).sites
     : (await inquirer.prompt(questionsPullSites)).sites;
 
-  let allowCodePull: boolean | null = cliConfig.force === true ? true : null;
+  let allowCodePull: boolean | null = null;
   if (code !== false && allowCodePull === null) {
     const codeAnswer = await inquirer.prompt(questionsPullSitesCode);
     allowCodePull = codeAnswer.override;
@@ -823,7 +920,7 @@ const pullSites = async ({
   const shouldPullCode = code !== false && allowCodePull === true;
   const selectedSiteIds = sitesToCheck.map((s: any) => s.$id);
 
-  const pullInstance = await createPullInstance();
+  const pullInstance = await createPullInstance({ resource: "sites" });
   const sites = await pullInstance.pullSites({
     code: shouldPullCode,
     withVariables,
@@ -931,6 +1028,29 @@ const pullTeam = async (): Promise<void> => {
   localConfig.set("teams", teams);
 };
 
+const pullWebhook = async (): Promise<void> => {
+  const pullInstance = await createPullInstance();
+  const webhooks = await pullInstance.pullWebhooks();
+
+  const localWebhooks = localConfig.getWebhooks();
+  const remoteWebhookIds = new Set(webhooks.map((w: any) => w.$id));
+  const webhooksToRemove = localWebhooks.filter(
+    (w: any) => !remoteWebhookIds.has(w.$id),
+  );
+
+  if (webhooksToRemove.length > 0) {
+    warn(
+      `The following webhooks exist locally but not remotely and will be removed: ${webhooksToRemove.map((w: any) => w.name || w.$id).join(", ")}`,
+    );
+    if ((await getConfirmation()) !== true) {
+      log("Pull cancelled.");
+      return;
+    }
+  }
+
+  localConfig.set("webhooks", webhooks);
+};
+
 const pullMessagingTopic = async (): Promise<void> => {
   const pullInstance = await createPullInstance();
   const topics = await pullInstance.pullMessagingTopics();
@@ -1024,6 +1144,12 @@ pull
   .alias("teams")
   .description("Pull your Appwrite teams")
   .action(actionRunner(pullTeam));
+
+pull
+  .command("webhook")
+  .alias("webhooks")
+  .description("Pull your Appwrite webhooks")
+  .action(actionRunner(pullWebhook));
 
 pull
   .command("topic")

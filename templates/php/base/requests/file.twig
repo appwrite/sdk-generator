@@ -1,5 +1,8 @@
 {% for parameter in method.parameters.all %}
 {% if parameter.type == 'file' %}
+{% set responseModels = method | getResponseModels(spec) %}
+{% set hasResponseDiscriminator = method.responseDiscriminator is defined and method.responseDiscriminator is not empty %}
+{% set responseDiscriminator = method.responseDiscriminator ?? {} %}
         $size = 0;
         $mimeType = null;
         $postedName = null;
@@ -9,7 +12,7 @@
             $postedName = ${{ parameter.name | caseCamel }}->getFilename();
             if ($size <= Client::CHUNK_SIZE) {
                 $apiParams['{{ parameter.name | caseCamel }}'] = new \CURLFile('data://' . $mimeType . ';base64,' . base64_encode(${{ parameter.name | caseCamel }}->getData()), $mimeType, $postedName);
-                return $this->client->call(Client::METHOD_POST, $apiPath, [
+                $response = $this->client->call(Client::METHOD_POST, $apiPath, [
     {% for param in method.parameters.header %}
                     '{{ param.name }}' => ${{ param.name | caseCamel }},
     {% endfor %}
@@ -17,6 +20,27 @@
                     '{{ key }}' => '{{ header }}',
     {% endfor %}
                     ], $apiParams);
+{% if responseModels | length > 0 %}
+{% if responseModels | length > 1 and hasResponseDiscriminator %}
+                if (!is_array($response)) {
+                    throw new \UnexpectedValueException('Expected array response when hydrating a response model.');
+                }
+{% for modelName, conditions in responseDiscriminator %}
+                if ({% for field, expectedValue in conditions %}($response['{{ field }}'] ?? null) === '{{ expectedValue }}'{% if not loop.last %} && {% endif %}{% endfor %}) {
+                    return \Appwrite\Models\{{ modelName | caseUcfirst }}::from($response);
+                }
+{% endfor %}
+                throw new \UnexpectedValueException('Unable to match response to any expected response model.');
+{% else %}
+                if (!is_array($response)) {
+                    throw new \UnexpectedValueException('Expected array response when hydrating a response model.');
+                }
+
+                return {{ responseModels | first }}::from($response);
+{% endif %}
+{% else %}
+                return $response;
+{% endif %}
             }
         } else {
             $size = filesize(${{ parameter.name | caseCamel }}->getPath());
@@ -25,7 +49,7 @@
             //send single file if size is less than or equal to 5MB
             if ($size <= Client::CHUNK_SIZE) {
                 $apiParams['{{ parameter.name }}'] = new \CURLFile(${{ parameter.name | caseCamel }}->getPath(), $mimeType, $postedName);
-                return $this->client->call(Client::METHOD_{{ method.method | caseUpper }}, $apiPath, [
+                $response = $this->client->call(Client::METHOD_{{ method.method | caseUpper }}, $apiPath, [
     {% for param in method.parameters.header %}
                     '{{ param.name }}' => ${{ param.name | caseCamel }},
     {% endfor %}
@@ -33,6 +57,27 @@
                     '{{ key }}' => '{{ header }}',
     {% endfor %}
                     ], $apiParams);
+{% if responseModels | length > 0 %}
+{% if responseModels | length > 1 and hasResponseDiscriminator %}
+                if (!is_array($response)) {
+                    throw new \UnexpectedValueException('Expected array response when hydrating a response model.');
+                }
+{% for modelName, conditions in responseDiscriminator %}
+                if ({% for field, expectedValue in conditions %}($response['{{ field }}'] ?? null) === '{{ expectedValue }}'{% if not loop.last %} && {% endif %}{% endfor %}) {
+                    return \Appwrite\Models\{{ modelName | caseUcfirst }}::from($response);
+                }
+{% endfor %}
+                throw new \UnexpectedValueException('Unable to match response to any expected response model.');
+{% else %}
+                if (!is_array($response)) {
+                    throw new \UnexpectedValueException('Expected array response when hydrating a response model.');
+                }
+
+                return {{ responseModels | first }}::from($response);
+{% endif %}
+{% else %}
+                return $response;
+{% endif %}
             }
         }
 
@@ -89,6 +134,26 @@
         if(!empty($handle)) {
             @fclose($handle);
         }
+{% if responseModels | length > 0 %}
+{% if responseModels | length > 1 and hasResponseDiscriminator %}
+        if (!is_array($response)) {
+            throw new \UnexpectedValueException('Expected array response when hydrating a response model.');
+        }
+{% for modelName, conditions in responseDiscriminator %}
+        if ({% for field, expectedValue in conditions %}($response['{{ field }}'] ?? null) === '{{ expectedValue }}'{% if not loop.last %} && {% endif %}{% endfor %}) {
+            return \Appwrite\Models\{{ modelName | caseUcfirst }}::from($response);
+        }
+{% endfor %}
+        throw new \UnexpectedValueException('Unable to match response to any expected response model.');
+{% else %}
+        if (!is_array($response)) {
+            throw new \UnexpectedValueException('Expected array response when hydrating a response model.');
+        }
+
+        return {{ responseModels | first }}::from($response);
+{% endif %}
+{% else %}
         return $response;
+{% endif %}
 {% endif %}
 {% endfor %}
