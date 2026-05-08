@@ -59,7 +59,7 @@ examples/<lang>/              ← Generated SDK output (checked in for verificat
 example.php                   ← Entry point: regenerates all SDKs from specs
 ```
 
-**Supported SDKs:** PHP, Web, Node, CLI, Ruby, Python, Dart, Flutter, React Native, Go, Swift, Apple, DotNet, Android, Kotlin, GraphQL, Markdown, AgentSkills, CursorPlugin, ClaudePlugin
+**Supported SDKs:** PHP, Web, Node, CLI, Ruby, Python, Dart, Flutter, React Native, Go, Swift, Apple, DotNet, Android, Kotlin, GraphQL, Markdown, AgentSkills, CursorPlugin, ClaudePlugin, CodexPlugin
 
 ## Primary Workflows
 
@@ -157,6 +157,7 @@ Pass as first argument to generate only that SDK:
 | `agent-skills` | AgentSkills | `examples/agent-skills/` |
 | `cursor-plugin` | CursorPlugin | `examples/cursor-plugin/` |
 | `claude-plugin` | ClaudePlugin | `examples/claude-plugin/` |
+| `codex-plugin` | CodexPlugin | `examples/codex-plugin/` |
 
 ## Twig Template Variables by Scope
 
