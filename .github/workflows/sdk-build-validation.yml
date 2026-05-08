@@ -170,16 +170,6 @@ jobs:
         if: matrix.sdk == 'rust'
         run: rustup toolchain install 1.85.0 --profile minimal --no-self-update
 
-      - name: Cache cargo-audit
-        if: matrix.sdk == 'rust'
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
-        with:
-          path: |
-            ~/.cargo/bin/cargo-audit
-            ~/.cargo/registry
-            ~/.cargo/git
-          key: ${{ runner.os }}-cargo-audit-0.22.1
-
       - name: Build SDK
         working-directory: examples/${{ matrix.sdk }}
         run: |
