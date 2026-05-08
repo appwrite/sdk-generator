@@ -2,8 +2,8 @@
 
 namespace Utopia\MockServer\Utopia\Realtime;
 
-use Swoole\WebSocket\Server;
 use Utopia\MockServer\Utopia\Exception;
+use Utopia\WebSocket\Server;
 
 /**
  * Realtime WebSocket protocol handler for the mock server.
@@ -161,14 +161,11 @@ class Protocol
 
     private function send(Server $server, int $fd, string $type, mixed $data = null): void
     {
-        if (!$server->isEstablished($fd)) {
-            return;
-        }
         $payload = ['type' => $type];
         if ($data !== null) {
             $payload['data'] = $data;
         }
-        $server->push($fd, json_encode($payload, JSON_UNESCAPED_SLASHES));
+        $server->send([$fd], json_encode($payload, JSON_UNESCAPED_SLASHES));
     }
 
     private function error(Server $server, int $fd, string $message, int $code = 400): void

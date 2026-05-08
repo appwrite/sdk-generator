@@ -6,7 +6,6 @@ if (\file_exists(__DIR__ . '/../vendor/autoload.php')) {
     require_once __DIR__ . '/../vendor/autoload.php';
 }
 
-use Swoole\Constant;
 use Utopia\App;
 use Utopia\Database\Document;
 use Utopia\Database\Helpers\ID;
@@ -24,12 +23,11 @@ use Utopia\Validator\ArrayList;
 use Utopia\Validator\Host;
 use Utopia\Validator\Nullable;
 use Utopia\Validator\WhiteList;
-use Swoole\Process;
-use Swoole\WebSocket\Server;
-use Swoole\WebSocket\Frame;
 use Utopia\MockServer\Utopia\Model\Player;
 use Utopia\MockServer\Utopia\Validator\Player as PlayerValidator;
 use Utopia\MockServer\Utopia\Realtime\Protocol as RealtimeProtocol;
+use Utopia\WebSocket\Adapter;
+use Utopia\WebSocket\Server as WebSocketServer;
 
 const APP_AUTH_TYPE_SESSION = 'Session';
 const APP_AUTH_TYPE_JWT = 'JWT';
@@ -41,22 +39,23 @@ const APP_PLATFORM_CLIENT = 'client';
 const APP_PLATFORM_CONSOLE = 'console';
 const APP_STORAGE_CACHE = '/storage/cache';
 
-$http = new Server(
-    host: '0.0.0.0',
-    port: App::getEnv('PORT', 80),
-    mode: SWOOLE_PROCESS
-);
 $payloadSize = 6 * (1024 * 1024); // 6MB
 $workerNumber = swoole_cpu_num() * intval(App::getEnv('_APP_WORKER_PER_CORE', 6));
 
-$http->set([
-    'worker_num' => $workerNumber,
+$adapter = new Adapter\Swoole(host: '0.0.0.0', port: (int) App::getEnv('PORT', 80));
+$adapter
+    ->setPackageMaxLength($payloadSize)
+    ->setWorkerNumber($workerNumber);
+
+// Settings the adapter doesn't expose directly.
+$adapter->getNative()->set([
     'open_http2_protocol' => true,
     'http_compression' => true,
     'http_compression_level' => 6,
-    'package_max_length' => $payloadSize,
     'buffer_output_size' => $payloadSize,
 ]);
+
+$http = new WebSocketServer($adapter);
 
 // Version Route for CLI
 App::get('/v1/health/version')
@@ -864,29 +863,6 @@ App::error()
         ['utopia', 'error', 'request', 'response']
     );
 
-$http->on(Constant::EVENT_START, function (Server $http) use ($payloadSize) {
-    Console::success('Server started successfully (max payload is ' . number_format($payloadSize) . ' bytes)');
-    Console::info("Master pid {$http->master_pid}, manager pid {$http->manager_pid}");
-
-    // Listen for ctrl + c
-    Process::signal(
-        2,
-        function () use ($http) {
-            Console::log('Stop by Ctrl+C');
-            $http->shutdown();
-        }
-    );
-});
-
-$http->on(Constant::EVENT_REQUEST, function (SwooleRequest $swooleRequest, SwooleResponse $swooleResponse) {
-    $request = new Request($swooleRequest);
-    $response = new UtopiaSwooleResponse($swooleResponse);
-
-    $app = new App('UTC');
-
-    $app->run($request, $response);
-});
-
 /**
  * Realtime WebSocket mock at /v1/realtime?project=<id>.
  *
@@ -895,28 +871,45 @@ $http->on(Constant::EVENT_REQUEST, function (SwooleRequest $swooleRequest, Swool
  */
 $realtimeProtocol = new RealtimeProtocol();
 
-$http->on('open', function (Server $server, SwooleRequest $swooleRequest) use ($realtimeProtocol) {
+$http->error(function (\Throwable $error, string $action) {
+    Console::error("[ws:{$action}] " . $error->getMessage());
+});
+
+$http->onStart(function () use ($payloadSize) {
+    Console::success('Server started successfully (max payload is ' . number_format($payloadSize) . ' bytes)');
+});
+
+$http->onRequest(function (SwooleRequest $swooleRequest, SwooleResponse $swooleResponse) {
+    $request = new Request($swooleRequest);
+    $response = new UtopiaSwooleResponse($swooleResponse);
+
+    $app = new App('UTC');
+
+    $app->run($request, $response);
+});
+
+$http->onOpen(function (int $fd, SwooleRequest $swooleRequest) use ($http, $realtimeProtocol) {
     $path = (string) ($swooleRequest->server['request_uri'] ?? '');
     if ($path !== '/v1/realtime') {
         // Reject upgrades on any other path with a policy-violation close.
-        $server->disconnect($swooleRequest->fd, 1008, 'Invalid realtime path');
+        $http->close($fd, 1008);
         return;
     }
 
     $project = (string) ($swooleRequest->get['project'] ?? '');
     if ($project === '') {
-        $server->disconnect($swooleRequest->fd, 1008, 'Missing project');
+        $http->close($fd, 1008);
         return;
     }
 
-    $realtimeProtocol->open($server, $swooleRequest->fd, $project);
+    $realtimeProtocol->open($http, $fd, $project);
 });
 
-$http->on('message', function (Server $server, Frame $frame) use ($realtimeProtocol) {
-    $realtimeProtocol->message($server, $frame->fd, (string) $frame->data);
+$http->onMessage(function (int $fd, string $data) use ($http, $realtimeProtocol) {
+    $realtimeProtocol->message($http, $fd, $data);
 });
 
-$http->on('close', function (Server $server, int $fd) use ($realtimeProtocol) {
+$http->onClose(function (int $fd) use ($realtimeProtocol) {
     $realtimeProtocol->close($fd);
 });
 

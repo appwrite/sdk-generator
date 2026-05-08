@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "e8e3df78a113bec48bb61da0227ea50f",
+    "content-hash": "b47b2f3ffdc6af9069afbd204a222a77",
     "packages": [
         {
             "name": "brick/math",
@@ -2534,6 +2534,55 @@
                 "source": "https://github.com/utopia-php/validators/tree/0.1.0"
             },
             "time": "2025-11-18T11:05:46+00:00"
+        },
+        {
+            "name": "utopia-php/websocket",
+            "version": "1.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/utopia-php/websocket.git",
+                "reference": "d230de8d4d2450184297327238ed1fbde676b8d2"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/utopia-php/websocket/zipball/d230de8d4d2450184297327238ed1fbde676b8d2",
+                "reference": "d230de8d4d2450184297327238ed1fbde676b8d2",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=8.0"
+            },
+            "require-dev": {
+                "laravel/pint": "^1.15",
+                "phpstan/phpstan": "^1.12",
+                "phpunit/phpunit": "^9.5.5",
+                "swoole/ide-helper": "5.1.2",
+                "textalk/websocket": "1.5.2",
+                "workerman/workerman": "4.1.*"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Utopia\\WebSocket\\": "src/WebSocket"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "description": "A simple abstraction for WebSocket servers.",
+            "keywords": [
+                "framework",
+                "php",
+                "upf",
+                "utopia",
+                "websocket"
+            ],
+            "support": {
+                "issues": "https://github.com/utopia-php/websocket/issues",
+                "source": "https://github.com/utopia-php/websocket/tree/1.0.0"
+            },
+            "time": "2026-02-05T13:40:16+00:00"
         }
     ],
     "packages-dev": [
@@ -2577,5 +2626,5 @@
     "prefer-lowest": false,
     "platform": {},
     "platform-dev": {},
-    "plugin-api-version": "2.6.0"
+    "plugin-api-version": "2.9.0"
 }
