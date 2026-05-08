@@ -1,8 +1,7 @@
 import { EventEmitter } from "node:events";
-import { localConfig } from "../config.js";
 import { log } from "../parser.js";
-import { sdkForConsole, sdkForProject } from "../sdks.js";
-import { Projects, Scopes, Users } from "@appwrite.io/console";
+import { sdkForProject } from "../sdks.js";
+import { Project, Scopes, Users } from "@appwrite.io/console";
 
 export const openRuntimesVersion = "v5";
 
@@ -107,8 +106,8 @@ export const JwtManager = {
     userId: string | null = null,
     projectScopes: Scopes[] = [],
   ): Promise<void> {
-    const consoleClient = await sdkForConsole();
-    const projectsClient = new Projects(consoleClient);
+    const projectClient = await sdkForProject();
+    const projectService = new Project(projectClient);
 
     if (this.timerWarn) {
       clearTimeout(this.timerWarn);
@@ -138,7 +137,6 @@ export const JwtManager = {
     ); // 60 mins
 
     if (userId) {
-      const projectClient = await sdkForProject();
       const usersClient = new Users(projectClient);
       await usersClient.get({
         userId,
@@ -150,12 +148,11 @@ export const JwtManager = {
       this.userJwt = userResponse.jwt;
     }
 
-    const functionResponse = await projectsClient.createJWT({
-      projectId: localConfig.getProject().projectId!,
+    const functionResponse = await projectService.createEphemeralKey({
       scopes: projectScopes,
       duration: 60 * 60,
     });
-    this.functionJwt = functionResponse.jwt;
+    this.functionJwt = functionResponse.secret;
   },
 };
 
