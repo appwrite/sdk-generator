@@ -84,7 +84,8 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
                 random = Random(),
                 pingIntervalMillis = client.http.pingIntervalMillis.toLong(),
                 extensions = null,
-                minimumDeflateSize = client.http.minWebSocketMessageToCompress
+                minimumDeflateSize = client.http.minWebSocketMessageToCompress,
+                webSocketCloseTimeout = client.http.webSocketCloseTimeout.toLong()
             )
             socket = newSocket
         }

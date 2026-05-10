@@ -1,0 +1,121 @@
+plugins {
+    id("com.android.library")
+    `maven-publish`
+    signing
+}
+
+val publishGroupId = "{{ sdk.namespace | caseDot }}"
+val publishArtifactId = "{{ sdk.gitRepoName | caseDash }}"
+val publishVersion: String = System.getenv("SDK_VERSION") ?: "0.0.0"
+val pomUrl = "https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName }}"
+val pomScmUrl = "https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName }}"
+val pomDescription = "{{ sdk.description }}"
+val pomLicenseUrl = "https://opensource.org/licenses/GPL-3.0"
+val pomLicenseName = "GPL-3.0"
+val pomDeveloperId = "{{ sdk.gitUserName }}"
+val pomDeveloperName = "{{ spec.contactName }}"
+val pomDeveloperEmail = "{{ spec.contactEmail }}"
+val githubScmConnection = "scm:git:git://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName }}.git"
+
+version = publishVersion
+
+android {
+    namespace = publishGroupId
+
+    compileSdk = 36
+
+    buildFeatures {
+        buildConfig = true
+    }
+
+    defaultConfig {
+        minSdk = 21
+        buildConfigField("String", "SDK_VERSION", "\"$publishVersion\"")
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = false
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+    }
+
+    publishing {
+        singleVariant("release") {
+            withSourcesJar()
+            withJavadocJar()
+        }
+    }
+}
+
+dependencies {
+    api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
+    api("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
+
+    implementation(platform("com.squareup.okhttp3:okhttp-bom:5.3.2"))
+    implementation("com.squareup.okhttp3:okhttp")
+    implementation("com.google.code.gson:gson:2.11.0")
+
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
+    implementation("androidx.lifecycle:lifecycle-common-java8:2.8.7")
+    implementation("androidx.appcompat:appcompat:1.7.0")
+    implementation("androidx.fragment:fragment-ktx:1.8.5")
+    implementation("androidx.activity:activity-ktx:1.9.3")
+    implementation("androidx.browser:browser:1.8.0")
+    implementation("androidx.core:core-ktx:1.15.0")
+
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("androidx.test.ext:junit-ktx:1.2.1")
+    testImplementation("androidx.test:core-ktx:1.6.1")
+    testImplementation("org.robolectric:robolectric:4.14.1")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
+}
+
+afterEvaluate {
+    publishing {
+        publications {
+            register<MavenPublication>("release") {
+                from(components["release"])
+
+                groupId = publishGroupId
+                artifactId = publishArtifactId
+                version = publishVersion
+
+                pom {
+                    name.set(publishArtifactId)
+                    description.set(pomDescription)
+                    url.set(pomUrl)
+
+                    licenses {
+                        license {
+                            name.set(pomLicenseName)
+                            url.set(pomLicenseUrl)
+                        }
+                    }
+
+                    developers {
+                        developer {
+                            id.set(pomDeveloperId)
+                            name.set(pomDeveloperName)
+                            email.set(pomDeveloperEmail)
+                        }
+                    }
+
+                    scm {
+                        connection.set(githubScmConnection)
+                        url.set(pomScmUrl)
+                    }
+                }
+            }
+        }
+    }
+
+    signing {
+        sign(publishing.publications)
+    }
+}
