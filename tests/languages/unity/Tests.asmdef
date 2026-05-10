@@ -17,6 +17,9 @@
         "nunit.framework.dll"
     ],
     "autoReferenced": false,
+    "optionalUnityReferences": [
+        "TestAssemblies"
+    ],
     "defineConstraints": [],
     "versionDefines": [],
     "noEngineReferences": false
