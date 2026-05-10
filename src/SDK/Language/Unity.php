@@ -44,11 +44,6 @@ class Unity extends DotNet
                 'template'      => 'unity/CHANGELOG.md.twig',
             ],
             [
-                'scope'         => 'copy',
-                'destination'   => '/icon.png',
-                'template'      => 'unity/icon.png',
-            ],
-            [
                 'scope'         => 'default',
                 'destination'   => 'LICENSE',
                 'template'      => 'unity/LICENSE.twig',
