@@ -13,10 +13,11 @@ namespace {{ spec.title | caseUcfirst }}.Extensions
             return JsonSerializer.Serialize(dict, Client.SerializerOptions);
         }
 
-        // Materialised on every path to avoid surprising lifetime issues:
-        // the JsonElement arm would otherwise hold onto a JsonDocument that
-        // can be disposed by the caller, and a generic IEnumerable<object>
-        // arm could fault on multiple enumerations of a one-shot iterator.
+        // Returns an already-materialised sequence on every path that could
+        // otherwise be lazy. Arrays are inherently eager; JsonElement arms
+        // call ToList() to detach from the originating JsonDocument lifetime;
+        // the generic IEnumerable arms call ToList() so callers may safely
+        // re-enumerate without depending on single-pass iterator semantics.
         public static IEnumerable<object> ToEnumerable(this object value)
         {
             return value switch
