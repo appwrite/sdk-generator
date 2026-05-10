@@ -474,7 +474,7 @@ class GDScript extends Language
                     $output .= '{}';
                     break;
                 case self::TYPE_FILE:
-                    $output .= 'FileAccess.open("file.png", FileAccess.READ)';
+                    $output .= 'AppwriteInputFile.from_path("file.png")';
                     break;
             }
         } else {
@@ -492,7 +492,7 @@ class GDScript extends Language
                     $output .= "'{$example}'";
                     break;
                 case self::TYPE_FILE:
-                    $output .= 'FileAccess.open("file.png", FileAccess.READ)';
+                    $output .= 'AppwriteInputFile.from_path("file.png")';
                     break;
             }
         }
