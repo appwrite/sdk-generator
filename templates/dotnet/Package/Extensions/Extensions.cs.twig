@@ -18,6 +18,10 @@ namespace {{ spec.title | caseUcfirst }}.Extensions
             return value switch
             {
                 string => throw new InvalidCastException("Cannot convert string to IEnumerable<object>"),
+                JsonElement element when element.ValueKind == JsonValueKind.Array =>
+                    element.EnumerateArray().Select(e => (object)e),
+                JsonElement element =>
+                    throw new InvalidCastException($"Cannot convert JsonElement of kind {element.ValueKind} to IEnumerable<object>"),
                 object[] array => array,
                 IEnumerable<object> enumerable => enumerable,
                 IEnumerable nonGeneric => nonGeneric.Cast<object>(),
