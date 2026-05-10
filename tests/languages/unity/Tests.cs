@@ -57,7 +57,7 @@ namespace AppwriteTests
             var general = new General(client);
 
             client.SetProject("console");
-            client.SetEndPointRealtime("ws://appwrite/v1");
+            client.SetEndPointRealtime("ws://mockapi/v1");
             
             // Create GameObject for Realtime MonoBehaviour
             var realtimeObject = new GameObject("RealtimeTest");
