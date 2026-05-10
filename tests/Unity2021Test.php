@@ -27,6 +27,12 @@ class Unity2021Test extends Base
         parent::testHTTPSuccess();
     }
 
+    public function tearDown(): void
+    {
+        unset($GLOBALS['UNITY_TEST_MODE']);
+        parent::tearDown();
+    }
+
     protected array $expectedOutput = [
         ...Base::PING_RESPONSE,
         ...Base::FOO_RESPONSES,

@@ -676,7 +676,7 @@ class DotNet extends Language
      */
     protected function getPropertyAssignment(array $property): string
     {
-        $required = $property['required'] ?? false;
+        $required = $property['required'] ?? true;
         $propertyName = $property['name'];
         $mapAccess = "map[\"{$propertyName}\"]";
 

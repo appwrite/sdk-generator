@@ -347,7 +347,6 @@ namespace {{ spec.title | caseUcfirst }}
 #if !(UNITY_WEBGL && !UNITY_EDITOR)
             if (!string.IsNullOrEmpty(cookieHeader))
             {
-                Debug.Log($"[Client] Setting cookie header: {cookieHeader}");
                 request.SetRequestHeader("Cookie", cookieHeader);
             }
 #endif
@@ -588,7 +587,13 @@ namespace {{ spec.title | caseUcfirst }}
                         var dataStream = input.Data as Stream;
                         if (dataStream == null)
                             throw new InvalidOperationException("Stream data is null");
-                        await dataStream.ReadAsync(buffer, 0, (int)size);
+                        var bytesReadSmall = await dataStream.ReadAsync(buffer, 0, (int)size);
+                        if (bytesReadSmall < buffer.Length)
+                        {
+                            var trimmed = new byte[bytesReadSmall];
+                            Array.Copy(buffer, trimmed, bytesReadSmall);
+                            buffer = trimmed;
+                        }
                         break;
                     case "bytes":
                         var dataBytes = input.Data as byte[];
@@ -653,12 +658,18 @@ namespace {{ spec.title | caseUcfirst }}
                         if (stream == null)
                             throw new InvalidOperationException("Stream data is null");
                         stream.Seek(offset, SeekOrigin.Begin);
-                        await stream.ReadAsync(buffer, 0, ChunkSize);
+                        var bytesRead = await stream.ReadAsync(buffer, 0, ChunkSize);
+                        if (bytesRead < buffer.Length)
+                        {
+                            var trimmed = new byte[bytesRead];
+                            Array.Copy(buffer, trimmed, bytesRead);
+                            buffer = trimmed;
+                        }
                         break;
                     case "bytes":
                         buffer = ((byte[])input.Data)
                             .Skip((int)offset)
-                            .Take((int)Math.Min(size - offset, ChunkSize - 1))
+                            .Take((int)Math.Min(size - offset, ChunkSize))
                             .ToArray();
                         break;
                 }
