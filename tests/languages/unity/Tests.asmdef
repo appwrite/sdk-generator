@@ -2,8 +2,6 @@
     "name": "Tests",
     "rootNamespace": "AppwriteTests",
     "references": [
-        "UnityEngine.TestRunner",
-        "UnityEditor.TestRunner",
         "Appwrite",
         "Appwrite.Core",
         "UniTask",
