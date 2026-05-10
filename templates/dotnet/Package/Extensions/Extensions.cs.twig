@@ -90,16 +90,16 @@ namespace {{ spec.title | caseUcfirst }}.Extensions
         public static Dictionary<string, string> FromQueryString(this string queryString)
         {
             var query = new Dictionary<string, string>();
-            var trimmed = queryString?.TrimStart('?');
+            var trimmed = (queryString ?? string.Empty).TrimStart('?');
 
             if (string.IsNullOrEmpty(trimmed))
             {
                 return query;
             }
 
-            foreach (var pair in trimmed.Split('&', StringSplitOptions.RemoveEmptyEntries))
+            foreach (var pair in trimmed.Split(new[] { '&' }, StringSplitOptions.RemoveEmptyEntries))
             {
-                var parts = pair.Split('=', 2);
+                var parts = pair.Split(new[] { '=' }, 2);
                 var key = Uri.UnescapeDataString(parts[0]);
 
                 if (string.IsNullOrEmpty(key))
