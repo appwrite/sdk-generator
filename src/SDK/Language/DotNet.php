@@ -529,10 +529,10 @@ class DotNet extends Language
             }),
             new TwigFilter('propertyAssignment', function (array $property) {
                 return $this->getPropertyAssignment($property);
-            }),
+            }, ['is_safe' => ['html']]),
             new TwigFilter('toMapValue', function (array $property, string $definitionName) {
                 return $this->getToMapExpression($property, $definitionName);
-            }),
+            }, ['is_safe' => ['html']]),
             new TwigFilter('enumExample', function (array $param) {
                 $enumValues = $param['enumValues'] ?? [];
                 if (empty($enumValues)) {

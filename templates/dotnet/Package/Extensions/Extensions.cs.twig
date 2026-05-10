@@ -41,6 +41,7 @@ namespace {{ spec.title | caseUcfirst }}.Extensions
             return value.ToEnumerable()
                 .Select(item => item switch
                 {
+                    null => default!,
                     T typedItem => typedItem,
                     JsonElement jsonItem => jsonItem.Deserialize<T>(Client.DeserializerOptions)!,
                     _ => (T)Convert.ChangeType(item, typeof(T))
