@@ -43,17 +43,31 @@ func {{ methodNameSnake| escapeKeyword }}({% for parameter in method.parameters.
     _path = _path.replace('{{ '{' }}{{ parameter.name }}{{ '}' }}', str({{ parameter.name | caseSnake | escapeKeyword }}))
     {%~ endfor %}
 
-    var _params := {
-        {%~ for parameter in method.parameters.query %}
-        '{{ parameter.name }}': {{ parameter.name | caseSnake | escapeKeyword }},
-        {%~ endfor %}
-        {%~ for parameter in method.parameters.body %}
-        '{{ parameter.name }}': {{ parameter.name | caseSnake | escapeKeyword }},
-        {%~ endfor %}
-        {%~ for parameter in method.parameters.formData %}
-        '{{ parameter.name }}': {{ parameter.name | caseSnake | escapeKeyword }},
-        {%~ endfor %}
-    }
+    var _params := {}
+    {%~ for parameter in method.parameters.query %}
+    {%~ if parameter.required %}
+    _params['{{ parameter.name }}'] = {{ parameter.name | caseSnake | escapeKeyword }}
+    {%~ else %}
+    if {{ parameter.name | caseSnake | escapeKeyword }} != null:
+        _params['{{ parameter.name }}'] = {{ parameter.name | caseSnake | escapeKeyword }}
+    {%~ endif %}
+    {%~ endfor %}
+    {%~ for parameter in method.parameters.body %}
+    {%~ if parameter.required %}
+    _params['{{ parameter.name }}'] = {{ parameter.name | caseSnake | escapeKeyword }}
+    {%~ else %}
+    if {{ parameter.name | caseSnake | escapeKeyword }} != null:
+        _params['{{ parameter.name }}'] = {{ parameter.name | caseSnake | escapeKeyword }}
+    {%~ endif %}
+    {%~ endfor %}
+    {%~ for parameter in method.parameters.formData %}
+    {%~ if parameter.required %}
+    _params['{{ parameter.name }}'] = {{ parameter.name | caseSnake | escapeKeyword }}
+    {%~ else %}
+    if {{ parameter.name | caseSnake | escapeKeyword }} != null:
+        _params['{{ parameter.name }}'] = {{ parameter.name | caseSnake | escapeKeyword }}
+    {%~ endif %}
+    {%~ endfor %} 
 
     var _headers := {
         {%~ for key, value in method.headers %}
