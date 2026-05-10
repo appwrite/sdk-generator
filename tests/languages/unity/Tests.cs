@@ -43,22 +43,6 @@ namespace AppwriteTests
                 throw task.Exception;
             }
         }
-        private async Task<string> WaitForRealtimeMessage(Realtime realtime, string[] channels, int timeoutMs = 5000, List<string> queries = null)
-        {
-            var tcs = new TaskCompletionSource<string>();
-            var subscription = realtime.Subscribe(channels, (eventData) =>
-            {
-                if (eventData.Payload != null && eventData.Payload.TryGetValue("response", out var value) && value != null)
-                {
-                    tcs.TrySetResult(value.ToString());
-                }
-            }, queries);
-
-            var task = await Task.WhenAny(tcs.Task, Task.Delay(timeoutMs));
-            subscription.Close();
-            return task == tcs.Task ? await tcs.Task : "No realtime message received within timeout";
-        }
-        
         private async Task RunAsyncTest()
         {
             var client = new Client()
@@ -79,6 +63,37 @@ namespace AppwriteTests
             var realtimeObject = new GameObject("RealtimeTest");
             var realtime = realtimeObject.AddComponent<Realtime>();
             realtime.Initialize(client);
+
+            var realtimeResponse = "Realtime failed!";
+            var realtimeResponseWithQueries = "Realtime failed!";
+            var realtimeResponseWithQueriesFailure = "Realtime failed!";
+            var realtimeFailureUnsubscribed = false;
+            var realtimeFailureFiredAfterUnsubscribe = false;
+
+            realtime.Subscribe(new[] { "tests" }, (eventData) =>
+            {
+                if (eventData.Payload != null && eventData.Payload.TryGetValue("response", out var value) && value != null)
+                {
+                    realtimeResponse = value.ToString();
+                }
+            });
+
+            var realtimeSubscriptionWithQueries = realtime.Subscribe(new[] { "tests" }, (eventData) =>
+            {
+                if (eventData.Payload != null && eventData.Payload.TryGetValue("response", out var value) && value != null)
+                {
+                    realtimeResponseWithQueries = value.ToString();
+                }
+            }, new List<string> { Query.Equal("response", new List<string> { "WS:/v1/realtime:passed" }) });
+
+            var realtimeSubscriptionFailure = realtime.Subscribe(new[] { "tests" }, (eventData) =>
+            {
+                if (realtimeFailureUnsubscribed)
+                {
+                    realtimeFailureFiredAfterUnsubscribe = true;
+                }
+                realtimeResponseWithQueriesFailure = "WS:/v1/realtime:passed";
+            }, new List<string> { Query.Equal("response", new List<string> { "failed" }) });
 
             await Task.Delay(5000);
 
@@ -201,21 +216,49 @@ namespace AppwriteTests
                 LogResult(e.Message);
             }
 
-            // Realtime tests
-            var realtimeNoQueryResponse = await WaitForRealtimeMessage(realtime, new[] { "tests" });
-            LogResult(realtimeNoQueryResponse);
+            await Task.Delay(30000);
 
-            var realtimeWithQueryResponse = await WaitForRealtimeMessage(realtime, new[] { "tests" }, queries: new List<string> { Query.Equal("response", new List<string> { "WS:/v1/realtime:passed" }) });
-            LogResult(realtimeWithQueryResponse);
+            LogResult(realtimeResponse);
+            LogResult(realtimeResponseWithQueries);
+            LogResult(realtimeResponseWithQueriesFailure);
 
-            var realtimeFailureResponse = await WaitForRealtimeMessage(realtime, new[] { "tests" }, queries: new List<string> { Query.Equal("response", new List<string> { "failed" }) });
-            if (realtimeFailureResponse == "No realtime message received within timeout")
+            try
             {
-                LogResult("Realtime failed!");
+                realtimeSubscriptionFailure.Close();
+                realtimeFailureUnsubscribed = true;
+                realtimeSubscriptionFailure.Close();
+
+                await Task.Delay(500);
+                if (realtimeFailureFiredAfterUnsubscribe)
+                {
+                    throw new System.Exception("callback fired after unsubscribe");
+                }
+
+                LogResult("Realtime unsubscribe:passed");
             }
-            else
+            catch
             {
-                LogResult("Realtime passed! (unexpected)");
+                LogResult("Realtime unsubscribe:failed");
+            }
+
+            try
+            {
+                realtimeSubscriptionWithQueries.Update(new[] { "tests" });
+                LogResult("Realtime update:passed");
+            }
+            catch
+            {
+                LogResult("Realtime update:failed");
+            }
+
+            try
+            {
+                await realtime.Disconnect();
+                LogResult("Realtime disconnect:passed");
+            }
+            catch
+            {
+                LogResult("Realtime disconnect:failed");
             }
 
             // Cookie tests

@@ -81,6 +81,7 @@ namespace {{ spec.title | caseUcfirst }}
         public List<string> Queries { get; internal set; }
         public Action<RealtimeResponseEvent<Dictionary<string, object>>> OnMessage { get; internal set; }
         internal Action OnClose { get; set; }
+        internal Action<string[], List<string>> OnUpdate { get; set; }
 
         /// <summary>
         /// Close this subscription
@@ -88,6 +89,11 @@ namespace {{ spec.title | caseUcfirst }}
         public void Close()
         {
             OnClose?.Invoke();
+        }
+
+        public void Update(string[] channels, List<string> queries = null)
+        {
+            OnUpdate?.Invoke(channels, queries);
         }
     }
 
@@ -179,7 +185,8 @@ namespace {{ spec.title | caseUcfirst }}
                 Channels = normalizedChannels,
                 Queries = normalizedQueries,
                 OnMessage = callback,
-                OnClose = () => CloseSubscription(slot)
+                OnClose = () => CloseSubscription(slot),
+                OnUpdate = (updatedChannels, updatedQueries) => UpdateSubscription(slot, updatedChannels, updatedQueries)
             };
 
             _subscriptions[slot] = subscription;
@@ -203,6 +210,33 @@ namespace {{ spec.title | caseUcfirst }}
         public RealtimeSubscription Subscribe(string channel, Action<RealtimeResponseEvent<Dictionary<string, object>>> callback, List<string> queries = null)
         {
             return Subscribe(new[] { channel }, callback, queries);
+        }
+
+        private void UpdateSubscription(int slot, string[] channels, List<string> queries)
+        {
+            if (!_subscriptions.TryGetValue(slot, out var subscription))
+            {
+                return;
+            }
+
+            subscription.Channels = (channels ?? Array.Empty<string>())
+                .Select(channel => channel?.Trim())
+                .Where(channel => !string.IsNullOrWhiteSpace(channel))
+                .ToArray();
+            subscription.Queries = queries == null
+                ? new List<string>()
+                : queries.Where(query => !string.IsNullOrWhiteSpace(query)).ToList();
+
+            _channels.Clear();
+            foreach (var activeSubscription in _subscriptions.Values)
+            {
+                foreach (var activeChannel in activeSubscription.Channels)
+                {
+                    _channels.Add(activeChannel);
+                }
+            }
+
+            CreateSocket().Forget();
         }
 
         /// <summary>
