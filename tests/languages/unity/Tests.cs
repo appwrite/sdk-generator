@@ -61,7 +61,7 @@ namespace AppwriteTests
             var general = new General(client);
 
             client.SetProject("console");
-            client.SetEndPointRealtime("wss://cloud.appwrite.io/v1");
+            client.SetEndPointRealtime("ws://appwrite/v1/realtime");
             
             // Create GameObject for Realtime MonoBehaviour
             var realtimeObject = new GameObject("RealtimeTest");
