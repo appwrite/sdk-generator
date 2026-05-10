@@ -728,7 +728,7 @@ class DotNet extends Language
         if (!empty($property['sub_schema'])) {
             $subSchema = $this->toPascalCase($property['sub_schema']);
             if ($property['type'] === 'array') {
-                return "{$src}.ToEnumerable().Select(it => {$subSchema}.From(map: it is JsonElement itEl ? itEl.Deserialize<Dictionary<string, object>>()! : (Dictionary<string, object>)it)).ToList()";
+                return "{$src}.ConvertToList<Dictionary<string, object>>().Select(it => {$subSchema}.From(map: it)).ToList()";
             }
             $patternVar = 'jsonObj' . $this->toPascalCase(\str_replace('$', '', $property['name']));
             return "{$subSchema}.From(map: {$src} is JsonElement {$patternVar} ? {$patternVar}.Deserialize<Dictionary<string, object>>()! : (Dictionary<string, object>){$src})";
@@ -740,17 +740,17 @@ class DotNet extends Language
             return "new {$enumClass}({$src}.ToString())";
         }
 
-        // Arrays
+        // Arrays of primitives — ConvertToList<T> handles JsonElement, IEnumerable, and primitive coercion
         if ($property['type'] === 'array') {
             $itemsType = $property['items']['type'] ?? 'object';
-            $selectExpression = match ($itemsType) {
-                'string' => 'x.ToString()',
-                'integer' => 'Convert.ToInt64(x)',
-                'number' => 'Convert.ToDouble(x)',
-                'boolean' => '(bool)x',
-                default => 'x'
+            $clrType = match ($itemsType) {
+                'string' => 'string',
+                'integer' => 'long',
+                'number' => 'double',
+                'boolean' => 'bool',
+                default => 'object'
             };
-            return "{$src}.ToEnumerable().Select(x => {$selectExpression}).ToList()";
+            return "{$src}.ConvertToList<{$clrType}>()";
         }
 
         // Integer/Number
