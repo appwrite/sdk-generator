@@ -1,29 +1,34 @@
-## Input File class used to pass files to the SDK
-class_name {{spec.title | caseUcfirst}}InputFile
+{% set prefix = spec.title | caseUcfirst %}
+class_name {{prefix}}InputFile
 
 var path: String ## Path to the file
 var bytes: PackedByteArray ## File bytes
 var filename: String ## File name
 var content_type: String ## File content type
 
-func _init(p_path: String = "", p_bytes: PackedByteArray = PackedByteArray(), p_filename: String = "", p_content_type: String = "") -> void:
-    self.path = p_path
-    self.bytes = p_bytes
-    self.filename = p_filename
-    self.content_type = p_content_type
+func _init(file_path: String = "", bytes_data: PackedByteArray = PackedByteArray(), custom_filename: String = "") -> void:
+    self.path = file_path
+    self.bytes = bytes_data
+    self.filename = custom_filename
     
     if self.filename == "" and self.path != "":
         self.filename = self.path.get_file()
+    
+    self.content_type = _guess_mime_type(self.path.get_file())
 
 
 ## Creates a new InputFile from a file path
-static func from_path(p_path: String, p_filename: String = "", p_content_type: String = "") -> {{spec.title | caseUcfirst}}InputFile:
-    return {{spec.title | caseUcfirst}}InputFile.new(p_path, PackedByteArray(), p_filename, p_content_type)
+static func from_path(file_path: String, custom_filename: String = "") -> {{spec.title | caseUcfirst}}InputFile:
+    return {{spec.title | caseUcfirst}}InputFile.new(file_path, PackedByteArray(), custom_filename)
 
 
 ## Creates a new InputFile from bytes
-static func from_bytes(p_bytes: PackedByteArray, p_filename: String, p_content_type: String = "") -> {{spec.title | caseUcfirst}}InputFile:
-    return {{spec.title | caseUcfirst}}InputFile.new("", p_bytes, p_filename, p_content_type)
+static func from_bytes(bytes_data: PackedByteArray, custom_filename: String = "") -> {{spec.title | caseUcfirst}}InputFile:
+    return {{spec.title | caseUcfirst}}InputFile.new("", bytes_data, custom_filename)
+
+
+static func from_text(text: String, custom_filename: String = "") -> {{spec.title | caseUcfirst}}InputFile:
+    return from_bytes(text.to_utf8_buffer(), custom_filename)
 
 
 ## Return the PackedByteArray of the file
@@ -33,3 +38,21 @@ func get_data() -> PackedByteArray:
     if not path.is_empty():
         return FileAccess.get_file_as_bytes(path)
     return PackedByteArray()
+
+
+static func _guess_mime_type(filename: String) -> String:
+    var ext := filename.get_extension().to_lower()
+
+    match ext:
+        "png":
+            return "image/png"
+        "jpg", "jpeg":
+            return "image/jpeg"
+        "json":
+            return "application/json"
+        "txt":
+            return "text/plain"
+        "pdf":
+            return "application/pdf"
+        _:
+            return "application/octet-stream"
