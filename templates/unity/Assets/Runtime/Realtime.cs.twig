@@ -623,7 +623,10 @@ namespace {{ spec.title | caseUcfirst }}
             
             var uri = new Uri(realtimeEndpoint); 
             
-            var realtimePath = uri.AbsolutePath.TrimEnd('/') + "/realtime";
+            var basePath = uri.AbsolutePath.TrimEnd('/');
+            var realtimePath = basePath.EndsWith("/realtime", StringComparison.OrdinalIgnoreCase)
+                ? basePath
+                : basePath + "/realtime";
                         
             var baseUrl = $"{uri.Scheme}://{uri.Host}";
             if ((uri.Scheme == "wss" && uri.Port != 443) || (uri.Scheme == "ws" && uri.Port != 80))

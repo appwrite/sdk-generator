@@ -280,10 +280,11 @@ namespace {{ spec.title | caseUcfirst }}
                         switch (inputFile.SourceType)
                         {
                             case "path":
-                                if (System.IO.File.Exists(inputFile.Path))
+                                if (string.IsNullOrEmpty(inputFile.Path) || !System.IO.File.Exists(inputFile.Path))
                                 {
-                                    fileData = System.IO.File.ReadAllBytes(inputFile.Path);
+                                    throw new FileNotFoundException("Upload file not found.", inputFile.Path);
                                 }
+                                fileData = System.IO.File.ReadAllBytes(inputFile.Path);
                                 break;
                             case "stream":
                                 if (inputFile.Data is Stream stream)
