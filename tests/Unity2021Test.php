@@ -17,7 +17,7 @@ class Unity2021Test extends Base
         'cp tests/languages/unity/Tests.asmdef tests/sdks/unity/Assets/Tests/Tests.asmdef',
     ];
 
-    protected string $command = 'docker run --network="mockapi" --rm -v "$(pwd):/project" -w /project/tests/sdks/unity -e UNITY_LICENSE unityci/editor:ubuntu-2021.3.45f1-base-3.1.0 /bin/bash -c "rm -f result.txt && echo \"\$UNITY_LICENSE\" > Unity_lic.ulf && /opt/unity/Editor/Unity -nographics -batchmode -manualLicenseFile Unity_lic.ulf -quit || true && /opt/unity/Editor/Unity -projectPath . -batchmode -nographics -runTests -testPlatform PlayMode -stackTraceLogType None -logFile unity.log 2>/dev/null; if [ -s result.txt ]; then cat result.txt; else echo \"Test Started\"; echo \"Unity result output missing\"; ls -la; [ -f unity.log ] && cat unity.log; [ -f /root/.config/unity3d/Editor.log ] && cat /root/.config/unity3d/Editor.log; fi"';
+    protected string $command = 'docker run --network="mockapi" --rm -v "$(pwd):/project" -w /project/tests/sdks/unity -e UNITY_LICENSE unityci/editor:ubuntu-2021.3.45f1-base-3.1.0 /bin/bash -c "rm -f result.txt && trap \"rm -f /tmp/Unity_lic.ulf\" EXIT && printf \"%s\" \"\$UNITY_LICENSE\" > /tmp/Unity_lic.ulf && /opt/unity/Editor/Unity -nographics -batchmode -manualLicenseFile /tmp/Unity_lic.ulf -quit || true && /opt/unity/Editor/Unity -projectPath . -batchmode -nographics -runTests -testPlatform PlayMode -stackTraceLogType None -logFile unity.log 2>/dev/null; if [ -s result.txt ]; then cat result.txt; else echo \"Test Started\"; echo \"Unity result output missing\"; ls -la; [ -f unity.log ] && cat unity.log; [ -f /root/.config/unity3d/Editor.log ] && cat /root/.config/unity3d/Editor.log; fi"';
 
     public function testHTTPSuccess(): void
     {
