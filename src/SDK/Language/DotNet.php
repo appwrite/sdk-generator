@@ -699,7 +699,13 @@ class DotNet extends Language
             return "{$tryGet} && {$v} != null ? {$expr} : null";
         }
 
-        // String, boolean, arrays — null-safe conversion
+        // Arrays — guard with null check to avoid ToEnumerable on null
+        if ($property['type'] === 'array') {
+            $expr = $this->convertValue($property, $v, false);
+            return "{$tryGet} && {$v} != null ? {$expr} : null";
+        }
+
+        // String, boolean — null-safe conversion
         $expr = $this->convertValue($property, $v, false);
         return "{$tryGet} ? {$expr} : null";
     }

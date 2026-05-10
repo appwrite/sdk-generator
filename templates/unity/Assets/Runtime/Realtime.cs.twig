@@ -136,7 +136,7 @@ namespace {{ spec.title | caseUcfirst }}
             if (_lastSession != newSession && IsConnected)
             {
                 _lastSession = newSession;
-                SendFallbackAuthentication();
+                SendFallbackAuthentication().Forget();
             }
         }
         
@@ -149,7 +149,7 @@ namespace {{ spec.title | caseUcfirst }}
             if (_lastSession != newSession && IsConnected)
             {
                 _lastSession = newSession;
-                SendFallbackAuthentication();
+                SendFallbackAuthentication().Forget();
             }
         }
 
@@ -405,11 +405,11 @@ namespace {{ spec.title | caseUcfirst }}
             if (data?.User == null || data.User.Count == 0)
             {
                 Debug.Log("[Realtime] No user found, sending fallback authentication");
-                SendFallbackAuthentication();
+                SendFallbackAuthentication().Forget();
             }
         }
 
-        private void SendFallbackAuthentication()
+        private async UniTask SendFallbackAuthentication()
         {
             var session = _client.Config.GetValueOrDefault("session");
             
@@ -422,7 +422,7 @@ namespace {{ spec.title | caseUcfirst }}
                 };
 
                 var json = JsonSerializer.Serialize(authMessage, Client.SerializerOptions);
-                _webSocket.SendText(json);
+                await _webSocket.SendText(json);
             }
         }
 
