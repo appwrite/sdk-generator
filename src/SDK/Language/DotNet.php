@@ -527,8 +527,8 @@ class DotNet extends Language
             new TwigFilter('propertyType', function (array $property, array $spec = []) {
                 return $this->getPropertyType($property, $spec);
             }),
-            new TwigFilter('toMapValue', function (array $property, string $definitionName) {
-                return $this->getToMapExpression($property, $definitionName);
+            new TwigFilter('toMapValue', function (array $property, string $resolvedName) {
+                return $this->getToMapExpression($property, $resolvedName);
             }, ['is_safe' => ['html']]),
             new TwigFilter('enumExample', function (array $param) {
                 $enumValues = $param['enumValues'] ?? [];
@@ -648,36 +648,19 @@ class DotNet extends Language
     }
 
     /**
-     * Resolved property name with overrides applied
-     *
-     * @param array $property
-     * @param string $definitionName
-     * @return string
-     */
-    protected function getResolvedPropertyName(array $property, string $definitionName): string
-    {
-        // Mirror the declaration pipeline used in RequestModel.cs.twig:
-        //   {{ property.name | caseUcfirst | overrideIdentifier }}
-        // Only getIdentifierOverrides is applied, so any consumer of toMapValue
-        // references the same identifier the declaration emits.
-        $name = $this->getPropertyName($property);
-        $identifierOverrides = $this->getIdentifierOverrides();
-        if (isset($identifierOverrides[$name])) {
-            return $identifierOverrides[$name];
-        }
-        return $name;
-    }
-
-    /**
      * Generate ToMap() value expression for a property.
      *
+     * The caller passes the already-resolved C# identifier (produced via the
+     * same template pipeline used by the declaration and constructor). This
+     * filter never derives the name itself, so there is no risk of drift
+     * between the declared property and the ToMap() reference.
+     *
      * @param array $property
-     * @param string $definitionName
+     * @param string $resolvedName  C# identifier already produced by the template
      * @return string
      */
-    protected function getToMapExpression(array $property, string $definitionName): string
+    protected function getToMapExpression(array $property, string $resolvedName): string
     {
-        $propName = $this->getResolvedPropertyName($property, $definitionName);
         $required = $property['required'] ?? true;
         $nullOp = $required ? '' : '?';
 
@@ -685,16 +668,16 @@ class DotNet extends Language
         // legacy inline template (defensive for callers that bypass the constructor).
         if (!empty($property['sub_schema'])) {
             if ($property['type'] === 'array') {
-                return "{$propName}?.Select(it => it.ToMap()).ToList()";
+                return "{$resolvedName}?.Select(it => it.ToMap()).ToList()";
             }
-            return "{$propName}?.ToMap()";
+            return "{$resolvedName}?.ToMap()";
         }
 
         if (!empty($property['enum'])) {
-            return "{$propName}{$nullOp}.Value";
+            return "{$resolvedName}{$nullOp}.Value";
         }
 
-        return $propName;
+        return $resolvedName;
     }
 
     /**
