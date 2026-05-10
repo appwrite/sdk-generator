@@ -574,26 +574,167 @@ namespace {{ spec.title | caseUcfirst }}
                     break;
             };
 
-            var offset = 0L;
-            var buffer = new byte[Math.Min(size, ChunkSize)];
-            var result = new Dictionary<string, object?>();
-
-            if (size < ChunkSize)
+            try
             {
-                switch(input.SourceType)
+                var offset = 0L;
+                var buffer = new byte[Math.Min(size, ChunkSize)];
+                var result = new Dictionary<string, object?>();
+
+                if (size < ChunkSize)
                 {
-                    case "path":
-                    case "stream":
-                        var dataStream = input.Data as Stream;
-                        if (dataStream == null)
-                            throw new InvalidOperationException("Stream data is null");
-                        var bytesReadSmall = await dataStream.ReadAsync(buffer, 0, (int)size);
-                        if (bytesReadSmall < buffer.Length)
+                    switch(input.SourceType)
+                    {
+                        case "path":
+                        case "stream":
+                            var dataStream = input.Data as Stream;
+                            if (dataStream == null)
+                                throw new InvalidOperationException("Stream data is null");
+                            var bytesReadSmall = await dataStream.ReadAsync(buffer, 0, (int)size);
+                            if (bytesReadSmall < buffer.Length)
+                            {
+                                var trimmed = new byte[bytesReadSmall];
+                                Array.Copy(buffer, trimmed, bytesReadSmall);
+                                buffer = trimmed;
+                            }
+                            break;
+                        case "bytes":
+                            var dataBytes = input.Data as byte[];
+                            if (dataBytes == null)
+                                throw new InvalidOperationException("Byte array data is null");
+                            buffer = dataBytes;
+                            break;
+                    }
+
+                    var multipartHeaders = new Dictionary<string, string>(headers)
+                    {
+                        ["Content-Type"] = "multipart/form-data"
+                    };
+
+                    var multipartParameters = new Dictionary<string, object?>(parameters);
+                    multipartParameters[paramName] = new InputFile 
+                    { 
+                        Data = buffer, 
+                        Filename = input.Filename, 
+                        MimeType = input.MimeType, 
+                        SourceType = "bytes" 
+                    };
+
+                    return await Call(
+                        method: "POST",
+                        path,
+                        multipartHeaders,
+                        multipartParameters,
+                        converter
+                    );
+                }
+
+                if (!string.IsNullOrEmpty(idParamName))
+                {
+                    try
+                    {
+                        // Make a request to check if a file already exists
+                        var current = await Call<Dictionary<string, object?>>(
+                            method: "GET",
+                            path: $"{path}/{parameters[idParamName!]}",
+                            new Dictionary<string, string> { { "Content-Type", "application/json" } },
+                            parameters: new Dictionary<string, object?>()
+                        );
+                        if (current.TryGetValue("chunksUploaded", out var chunksUploadedValue) && chunksUploadedValue != null)
                         {
-                            var trimmed = new byte[bytesReadSmall];
-                            Array.Copy(buffer, trimmed, bytesReadSmall);
-                            buffer = trimmed;
+                            offset = Convert.ToInt64(chunksUploadedValue) * ChunkSize;
                         }
+                    }
+                    catch
+                    {
+                        // ignored as it mostly means file not found
+                    }
+                }
+
+                while (offset < size)
+                {
+                    switch(input.SourceType)
+                    {
+                        case "path":
+                        case "stream":
+                            var stream = input.Data as Stream;
+                            if (stream == null)
+                                throw new InvalidOperationException("Stream data is null");
+                            stream.Seek(offset, SeekOrigin.Begin);
+                            var bytesRead = await stream.ReadAsync(buffer, 0, ChunkSize);
+                            if (bytesRead < buffer.Length)
+                            {
+                                var trimmed = new byte[bytesRead];
+                                Array.Copy(buffer, trimmed, bytesRead);
+                                buffer = trimmed;
+                            }
+                            break;
+                        case "bytes":
+                            buffer = ((byte[])input.Data)
+                                .Skip((int)offset)
+                                .Take((int)Math.Min(size - offset, ChunkSize))
+                                .ToArray();
+                            break;
+                    }
+
+                    var chunkHeaders = new Dictionary<string, string>(headers)
+                    {
+                        ["Content-Type"] = "multipart/form-data",
+                        ["Content-Range"] = $"bytes {offset}-{Math.Min(offset + ChunkSize - 1, size - 1)}/{size}"
+                    };
+
+                    var chunkParameters = new Dictionary<string, object?>(parameters);
+                    chunkParameters[paramName] = new InputFile 
+                    { 
+                        Data = buffer, 
+                        Filename = input.Filename, 
+                        MimeType = input.MimeType, 
+                        SourceType = "bytes" 
+                    };
+
+                    result = await Call<Dictionary<string, object?>>(
+                        method: "POST",
+                        path,
+                        chunkHeaders,
+                        chunkParameters
+                    );
+
+                    offset += ChunkSize;
+
+                    var id = result.ContainsKey("$id")
+                        ? result["$id"]?.ToString() ?? string.Empty
+                        : string.Empty;
+                    var chunksTotal = result.TryGetValue("chunksTotal", out var chunksTotalValue) && chunksTotalValue != null
+                        ? Convert.ToInt64(chunksTotalValue)
+                        : 0L;
+                    var chunksUploaded = result.TryGetValue("chunksUploaded", out var chunksUploadedValue) && chunksUploadedValue != null
+                        ? Convert.ToInt64(chunksUploadedValue)
+                        : 0L;
+
+                    headers["x-{{ spec.title | lower }}-id"] = id;
+
+                    onProgress?.Invoke(
+                        new UploadProgress(
+                            id: id,
+                            progress: Math.Min(offset, size) / size * 100,
+                            sizeUploaded: Math.Min(offset, size),
+                            chunksTotal: chunksTotal,
+                            chunksUploaded: chunksUploaded));
+                }
+
+                // Convert to non-nullable dictionary for converter
+                var nonNullableResult = result.Where(kvp => kvp.Value != null)
+                    .ToDictionary(kvp => kvp.Key, kvp => kvp.Value!);
+                
+                return converter(nonNullableResult);
+            }
+            finally
+            {
+                if (input.SourceType == "path" && input.Data is Stream fileStream)
+                {
+                    fileStream.Dispose();
+                }
+            }
+        }
                         break;
                     case "bytes":
                         var dataBytes = input.Data as byte[];
