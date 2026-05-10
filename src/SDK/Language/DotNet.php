@@ -781,11 +781,13 @@ class DotNet extends Language
         $required = $property['required'] ?? true;
         $nullOp = $required ? '' : '?';
 
+        // Sub-schema serialization is null-safe regardless of required, matching the
+        // legacy inline template (defensive for callers that bypass the constructor).
         if (!empty($property['sub_schema'])) {
             if ($property['type'] === 'array') {
-                return "{$propName}{$nullOp}.Select(it => it.ToMap()).ToList()";
+                return "{$propName}?.Select(it => it.ToMap()).ToList()";
             }
-            return "{$propName}{$nullOp}.ToMap()";
+            return "{$propName}?.ToMap()";
         }
 
         if (!empty($property['enum'])) {
