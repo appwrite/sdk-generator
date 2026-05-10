@@ -527,9 +527,6 @@ class DotNet extends Language
             new TwigFilter('propertyType', function (array $property, array $spec = []) {
                 return $this->getPropertyType($property, $spec);
             }),
-            new TwigFilter('propertyAssignment', function (array $property) {
-                return $this->getPropertyAssignment($property);
-            }, ['is_safe' => ['html']]),
             new TwigFilter('toMapValue', function (array $property, string $definitionName) {
                 return $this->getToMapExpression($property, $definitionName);
             }, ['is_safe' => ['html']]),
@@ -669,103 +666,6 @@ class DotNet extends Language
             return $identifierOverrides[$name];
         }
         return $name;
-    }
-
-    /**
-     * Generate full property assignment expression for model deserialization (From method).
-     * Handles TryGetValue wrapping for optional properties internally.
-     *
-     * @param array $property
-     * @return string
-     */
-    protected function getPropertyAssignment(array $property): string
-    {
-        $required = $property['required'] ?? true;
-        $propertyName = $property['name'];
-        $mapAccess = "map[\"{$propertyName}\"]";
-
-        if ($required) {
-            return $this->convertValue($property, $mapAccess);
-        }
-
-        $v = 'v' . $this->toPascalCase(\str_replace('$', '', $propertyName));
-        $tryGet = "map.TryGetValue(\"{$propertyName}\", out var {$v})";
-
-        // Sub_schema objects — handle Dictionary<string, object> and JsonElement
-        if (!empty($property['sub_schema']) && $property['type'] !== 'array') {
-            $expr = $this->convertValue($property, $v);
-            return "{$tryGet} && {$v} != null ? {$expr} : null";
-        }
-
-        // Integer, number, enum — guard with null check to avoid Convert/constructor on null
-        if (\in_array($property['type'], ['integer', 'number']) || !empty($property['enum'])) {
-            $expr = $this->convertValue($property, $v);
-            return "{$tryGet} && {$v} != null ? {$expr} : null";
-        }
-
-        // Arrays — guard with null check to avoid ToEnumerable on null
-        if ($property['type'] === 'array') {
-            $expr = $this->convertValue($property, $v, false);
-            return "{$tryGet} && {$v} != null ? {$expr} : null";
-        }
-
-        // String, boolean — null-safe conversion
-        $expr = $this->convertValue($property, $v, false);
-        return "{$tryGet} ? {$expr} : null";
-    }
-
-    /**
-     * Build type conversion expression for a single value.
-     *
-     * @param array $property Property definition
-     * @param string $src Source variable or expression
-     * @param bool $srcNonNull Whether $src is guaranteed non-null
-     * @return string
-     */
-    private function convertValue(array $property, string $src, bool $srcNonNull = true): string
-    {
-        // Sub_schema (nested objects) — runtime value can be Dictionary<string, object> or JsonElement
-        if (!empty($property['sub_schema'])) {
-            $subSchema = $this->toPascalCase($property['sub_schema']);
-            if ($property['type'] === 'array') {
-                return "{$src}.ConvertToList<Dictionary<string, object>>().Select(it => {$subSchema}.From(map: it)).ToList()";
-            }
-            $patternVar = 'jsonObj' . $this->toPascalCase(\str_replace('$', '', $property['name']));
-            return "{$subSchema}.From(map: {$src} is JsonElement {$patternVar} ? {$patternVar}.Deserialize<Dictionary<string, object>>()! : (Dictionary<string, object>){$src})";
-        }
-
-        // Enum
-        if (!empty($property['enum'])) {
-            $enumClass = $this->toPascalCase($property['enumName'] ?? $property['name']);
-            return "new {$enumClass}({$src}.ToString())";
-        }
-
-        // Arrays of primitives — ConvertToList<T> handles JsonElement, IEnumerable, and primitive coercion
-        if ($property['type'] === 'array') {
-            $itemsType = $property['items']['type'] ?? 'object';
-            $clrType = match ($itemsType) {
-                'string' => 'string',
-                'integer' => 'long',
-                'number' => 'double',
-                'boolean' => 'bool',
-                default => 'object'
-            };
-            return "{$src}.ConvertToList<{$clrType}>()";
-        }
-
-        // Integer/Number
-        if ($property['type'] === 'integer' || $property['type'] === 'number') {
-            $convertMethod = $property['type'] === 'integer' ? 'Int64' : 'Double';
-            return "Convert.To{$convertMethod}({$src})";
-        }
-
-        // Boolean
-        if ($property['type'] === 'boolean') {
-            return $srcNonNull ? "(bool){$src}" : "(bool?){$src}";
-        }
-
-        // String (default)
-        return $srcNonNull ? "{$src}.ToString()" : "{$src}?.ToString()";
     }
 
     /**
