@@ -187,6 +187,11 @@ namespace {{ spec.title | caseUcfirst }}
             return this;
         }
 
+        public Dictionary<string, string> GetHeaders()
+        {
+            return new Dictionary<string, string>(_headers);
+        }
+
         /// <summary>
         /// Load session data from persistent storage
         /// </summary>
