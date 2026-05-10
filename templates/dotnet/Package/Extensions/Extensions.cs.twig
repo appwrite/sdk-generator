@@ -13,6 +13,10 @@ namespace {{ spec.title | caseUcfirst }}.Extensions
             return JsonSerializer.Serialize(dict, Client.SerializerOptions);
         }
 
+        // Materialised on every path to avoid surprising lifetime issues:
+        // the JsonElement arm would otherwise hold onto a JsonDocument that
+        // can be disposed by the caller, and a generic IEnumerable<object>
+        // arm could fault on multiple enumerations of a one-shot iterator.
         public static IEnumerable<object> ToEnumerable(this object value)
         {
             return value switch
@@ -23,8 +27,8 @@ namespace {{ spec.title | caseUcfirst }}.Extensions
                 JsonElement element =>
                     throw new InvalidCastException($"Cannot convert JsonElement of kind {element.ValueKind} to IEnumerable<object>"),
                 object[] array => array,
-                IEnumerable<object> enumerable => enumerable,
-                IEnumerable nonGeneric => nonGeneric.Cast<object>(),
+                IEnumerable<object> enumerable => enumerable.ToList(),
+                IEnumerable nonGeneric => nonGeneric.Cast<object>().ToList(),
                 _ => throw new InvalidCastException($"Cannot convert {value?.GetType().Name ?? "null"} to IEnumerable<object>")
             };
         }
@@ -45,6 +49,10 @@ namespace {{ spec.title | caseUcfirst }}.Extensions
             return value.ToEnumerable()
                 .Select(item => item switch
                 {
+                    // Preserve null items as default(T) — for reference and nullable
+                    // value types this is null; for non-nullable value types the
+                    // caller would have failed earlier deserializing a null array
+                    // entry, so this is the least-surprising behavior.
                     null => default!,
                     T typedItem => typedItem,
                     JsonElement jsonItem => jsonItem.Deserialize<T>(Client.DeserializerOptions)!,
