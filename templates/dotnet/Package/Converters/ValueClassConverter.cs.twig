@@ -7,12 +7,12 @@ namespace {{ spec.title | caseUcfirst }}.Converters
 {
     public class ValueClassConverter : JsonConverter<object>
     {
-        public override bool CanConvert(Type objectType)
+        public override bool CanConvert(System.Type objectType)
         {
             return typeof(IEnum).IsAssignableFrom(objectType);
         }
 
-        public override object Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        public override object Read(ref Utf8JsonReader reader, System.Type typeToConvert, JsonSerializerOptions options)
         {
             var value = reader.GetString();
             var constructor = typeToConvert.GetConstructor(new[] { typeof(string) });
