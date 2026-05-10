@@ -659,11 +659,11 @@ class DotNet extends Language
      */
     protected function getResolvedPropertyName(array $property, string $definitionName): string
     {
+        // Mirror the declaration pipeline used in RequestModel.cs.twig:
+        //   {{ property.name | caseUcfirst | overrideIdentifier }}
+        // Only getIdentifierOverrides is applied, so any consumer of toMapValue
+        // references the same identifier the declaration emits.
         $name = $this->getPropertyName($property);
-        $propertyOverrides = $this->getPropertyOverrides();
-        if (isset($propertyOverrides[$definitionName][$name])) {
-            return $propertyOverrides[$definitionName][$name];
-        }
         $identifierOverrides = $this->getIdentifierOverrides();
         if (isset($identifierOverrides[$name])) {
             return $identifierOverrides[$name];
