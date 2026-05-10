@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -36,7 +37,7 @@ namespace {{ spec.title | caseUcfirst }}.Models
             return new Dictionary<string, object?>
             {
                 {%~ for property in requestModel.properties %}
-                { "{{ property.name }}", {{ property | toMapValue(requestModel.name) | raw }} }{% if not loop.last %},{% endif %}
+                { "{{ property.name }}", {{ property | toMapValue(property.name | caseUcfirst | overrideIdentifier) | raw }} }{% if not loop.last %},{% endif %}
 
                 {%~ endfor %}
             };

@@ -13,13 +13,23 @@ namespace {{ spec.title | caseUcfirst }}.Extensions
             return JsonSerializer.Serialize(dict, Client.SerializerOptions);
         }
 
+        // Returns an already-materialised sequence on every path that could
+        // otherwise be lazy. Arrays are inherently eager; JsonElement arms
+        // call ToList() to detach from the originating JsonDocument lifetime;
+        // the generic IEnumerable arms call ToList() so callers may safely
+        // re-enumerate without depending on single-pass iterator semantics.
         public static IEnumerable<object> ToEnumerable(this object value)
         {
             return value switch
             {
+                string => throw new InvalidCastException("Cannot convert string to IEnumerable<object>"),
+                JsonElement element when element.ValueKind == JsonValueKind.Array =>
+                    element.EnumerateArray().Select(e => (object)e).ToList(),
+                JsonElement element =>
+                    throw new InvalidCastException($"Cannot convert JsonElement of kind {element.ValueKind} to IEnumerable<object>"),
                 object[] array => array,
-                IEnumerable<object> enumerable => enumerable,
-                IEnumerable nonGeneric => nonGeneric.Cast<object>(),
+                IEnumerable<object> enumerable => enumerable.ToList(),
+                IEnumerable nonGeneric => nonGeneric.Cast<object>().ToList(),
                 _ => throw new InvalidCastException($"Cannot convert {value?.GetType().Name ?? "null"} to IEnumerable<object>")
             };
         }
@@ -28,7 +38,8 @@ namespace {{ spec.title | caseUcfirst }}.Extensions
         {
             if (value is JsonElement jsonElement)
             {
-                return jsonElement.Deserialize<List<T>>(Client.SerializerOptions) ?? new List<T>();
+                return jsonElement.Deserialize<List<T>>(Client.DeserializerOptions)
+                    ?? throw new InvalidCastException($"Cannot deserialize {jsonElement} to List<{typeof(T)}>.");
             }
 
             if (value is IEnumerable<T> typedEnumerable)
@@ -39,8 +50,13 @@ namespace {{ spec.title | caseUcfirst }}.Extensions
             return value.ToEnumerable()
                 .Select(item => item switch
                 {
+                    // Preserve null items as default(T) — for reference and nullable
+                    // value types this is null; for non-nullable value types the
+                    // caller would have failed earlier deserializing a null array
+                    // entry, so this is the least-surprising behavior.
+                    null => default!,
                     T typedItem => typedItem,
-                    JsonElement jsonItem => jsonItem.Deserialize<T>(Client.SerializerOptions)!,
+                    JsonElement jsonItem => jsonItem.Deserialize<T>(Client.DeserializerOptions)!,
                     _ => (T)Convert.ChangeType(item, typeof(T))
                 })
                 .ToList();
@@ -69,25 +85,6 @@ namespace {{ spec.title | caseUcfirst }}.Extensions
             }
 
             return Uri.EscapeUriString(string.Join("&", query));
-        }
-
-        public static Dictionary<string, string> FromQueryString(this string query)
-        {
-            var dict = new Dictionary<string, string>();
-            if (string.IsNullOrEmpty(query)) return dict;
-            if (query.StartsWith("?")) query = query.Substring(1);
-            var pairs = query.Split('&');
-            foreach (var pair in pairs)
-            {
-                var kv = pair.Split(new char[] { '=' }, 2);
-                if (kv.Length >= 1)
-                {
-                    var key = Uri.UnescapeDataString(kv[0]);
-                    var value = kv.Length > 1 ? Uri.UnescapeDataString(kv[1]) : "";
-                    dict[key] = value;
-                }
-            }
-            return dict;
         }
 
         private static readonly IDictionary<string, string> Mappings = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase) {

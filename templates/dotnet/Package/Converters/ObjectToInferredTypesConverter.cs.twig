@@ -60,7 +60,7 @@ namespace {{ spec.title | caseUcfirst }}.Converters
                     return null;
 
                 default:
-                    throw new JsonException($"Unsupported JsonValueKind: {element.ValueKind}");
+                    return element.Clone();
             }
         }
 

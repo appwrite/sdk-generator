@@ -527,12 +527,9 @@ class DotNet extends Language
             new TwigFilter('propertyType', function (array $property, array $spec = []) {
                 return $this->getPropertyType($property, $spec);
             }),
-            new TwigFilter('propertyAssignment', function (array $property) {
-                return $this->getPropertyAssignment($property);
-            }),
-            new TwigFilter('toMapValue', function (array $property, string $definitionName) {
-                return $this->getToMapExpression($property, $definitionName);
-            }),
+            new TwigFilter('toMapValue', function (array $property, string $resolvedName) {
+                return $this->getToMapExpression($property, $resolvedName);
+            }, ['is_safe' => ['html']]),
             new TwigFilter('enumExample', function (array $param) {
                 $enumValues = $param['enumValues'] ?? [];
                 if (empty($enumValues)) {
@@ -651,143 +648,36 @@ class DotNet extends Language
     }
 
     /**
-     * Resolved property name with overrides applied
-     *
-     * @param array $property
-     * @param string $definitionName
-     * @return string
-     */
-    protected function getResolvedPropertyName(array $property, string $definitionName): string
-    {
-        $name = $this->getPropertyName($property);
-        $overrides = $this->getPropertyOverrides();
-        if (isset($overrides[$definitionName][$name])) {
-            return $overrides[$definitionName][$name];
-        }
-        return $name;
-    }
-
-    /**
-     * Generate full property assignment expression for model deserialization (From method).
-     * Handles TryGetValue wrapping for optional properties internally.
-     *
-     * @param array $property
-     * @return string
-     */
-    protected function getPropertyAssignment(array $property): string
-    {
-        $required = $property['required'] ?? true;
-        $propertyName = $property['name'];
-        $mapAccess = "map[\"{$propertyName}\"]";
-
-        if ($required) {
-            return $this->convertValue($property, $mapAccess);
-        }
-
-        $v = 'v' . $this->toPascalCase(\str_replace('$', '', $propertyName));
-        $tryGet = "map.TryGetValue(\"{$propertyName}\", out var {$v})";
-
-        // Sub_schema objects — use pattern matching for type-safe cast
-        if (!empty($property['sub_schema']) && $property['type'] !== 'array') {
-            $subSchema = $this->toPascalCase($property['sub_schema']);
-            return "{$tryGet} && {$v} is Dictionary<string, object> {$v}Map ? {$subSchema}.From(map: {$v}Map) : null";
-        }
-
-        // Integer, number, enum — guard with null check to avoid Convert/constructor on null
-        if (\in_array($property['type'], ['integer', 'number']) || !empty($property['enum'])) {
-            $expr = $this->convertValue($property, $v);
-            return "{$tryGet} && {$v} != null ? {$expr} : null";
-        }
-
-        // Arrays — guard with null check to avoid ToEnumerable on null
-        if ($property['type'] === 'array') {
-            $expr = $this->convertValue($property, $v, false);
-            return "{$tryGet} && {$v} != null ? {$expr} : null";
-        }
-
-        // String, boolean — null-safe conversion
-        $expr = $this->convertValue($property, $v, false);
-        return "{$tryGet} ? {$expr} : null";
-    }
-
-    /**
-     * Build type conversion expression for a single value.
-     *
-     * @param array $property Property definition
-     * @param string $src Source variable or expression
-     * @param bool $srcNonNull Whether $src is guaranteed non-null
-     * @return string
-     */
-    private function convertValue(array $property, string $src, bool $srcNonNull = true): string
-    {
-        // Sub_schema (nested objects)
-        if (!empty($property['sub_schema'])) {
-            $subSchema = $this->toPascalCase($property['sub_schema']);
-            if ($property['type'] === 'array') {
-                return "{$src}.ToEnumerable().Select(it => {$subSchema}.From(map: (Dictionary<string, object>)it)).ToList()";
-            }
-            return "{$subSchema}.From(map: (Dictionary<string, object>){$src})";
-        }
-
-        // Enum
-        if (!empty($property['enum'])) {
-            $enumClass = $this->toPascalCase($property['enumName'] ?? $property['name']);
-            return "new {$enumClass}({$src}.ToString())";
-        }
-
-        // Arrays
-        if ($property['type'] === 'array') {
-            $itemsType = $property['items']['type'] ?? 'object';
-            $selectExpression = match ($itemsType) {
-                'string' => 'x.ToString()',
-                'integer' => 'Convert.ToInt64(x)',
-                'number' => 'Convert.ToDouble(x)',
-                'boolean' => '(bool)x',
-                default => 'x'
-            };
-            return "{$src}.ToEnumerable().Select(x => {$selectExpression}).ToList()";
-        }
-
-        // Integer/Number
-        if ($property['type'] === 'integer' || $property['type'] === 'number') {
-            $convertMethod = $property['type'] === 'integer' ? 'Int64' : 'Double';
-            return "Convert.To{$convertMethod}({$src})";
-        }
-
-        // Boolean
-        if ($property['type'] === 'boolean') {
-            return $srcNonNull ? "(bool){$src}" : "(bool?){$src}";
-        }
-
-        // String (default)
-        return $srcNonNull ? "{$src}.ToString()" : "{$src}?.ToString()";
-    }
-
-    /**
      * Generate ToMap() value expression for a property.
      *
+     * The caller passes the already-resolved C# identifier (produced via the
+     * same template pipeline used by the declaration and constructor). This
+     * filter never derives the name itself, so there is no risk of drift
+     * between the declared property and the ToMap() reference.
+     *
      * @param array $property
-     * @param string $definitionName
+     * @param string $resolvedName  C# identifier already produced by the template
      * @return string
      */
-    protected function getToMapExpression(array $property, string $definitionName): string
+    protected function getToMapExpression(array $property, string $resolvedName): string
     {
-        $propName = $this->getResolvedPropertyName($property, $definitionName);
         $required = $property['required'] ?? true;
         $nullOp = $required ? '' : '?';
 
+        // Sub-schema serialization is null-safe regardless of required, matching the
+        // legacy inline template (defensive for callers that bypass the constructor).
         if (!empty($property['sub_schema'])) {
             if ($property['type'] === 'array') {
-                return "{$propName}{$nullOp}.Select(it => it.ToMap()).ToList()";
+                return "{$resolvedName}?.Select(it => it.ToMap()).ToList()";
             }
-            return "{$propName}{$nullOp}.ToMap()";
+            return "{$resolvedName}?.ToMap()";
         }
 
         if (!empty($property['enum'])) {
-            return "{$propName}{$nullOp}.Value";
+            return "{$resolvedName}{$nullOp}.Value";
         }
 
-        return $propName;
+        return $resolvedName;
     }
 
     /**
