@@ -428,6 +428,12 @@ namespace {{ spec.title | caseUcfirst }}
 
         private void HandleErrorMessage(RealtimeErrorData data)
         {
+            if (data == null)
+            {
+                OnError?.Invoke(new {{ spec.title | caseUcfirst }}Exception("Realtime error message missing data.", 0));
+                return;
+            }
+
             OnError?.Invoke(new {{ spec.title | caseUcfirst }}Exception(data.Message, data.Code));
         }
 

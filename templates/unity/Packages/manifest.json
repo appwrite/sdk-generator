@@ -1,7 +1,7 @@
 {
   "dependencies": {
-    "com.cysharp.unitask": "https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask",
-    "com.endel.nativewebsocket": "https://github.com/endel/NativeWebSocket.git#upm",
+    "com.cysharp.unitask": "https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask#f213ff497e4ff462a77319cf677cf20cc0860ca9",
+    "com.endel.nativewebsocket": "https://github.com/endel/NativeWebSocket.git#1d8b49b3fee41c09a98141f1f1a5e4db47e14229",
     "com.unity.collab-proxy": "2.1.0",
     "com.unity.feature.2d": "2.0.0",
     "com.unity.ide.rider": "3.0.25",

@@ -10,9 +10,9 @@ namespace {{ spec.title | caseUcfirst }}.Editor
     [InitializeOnLoad]
     public static class {{ spec.title | caseUcfirst }}SetupAssistant
     {
-        private const string UNITASK_PACKAGE_URL = "https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask";
+        private const string UNITASK_PACKAGE_URL = "https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask#f213ff497e4ff462a77319cf677cf20cc0860ca9";
         private const string UNITASK_PACKAGE_NAME = "com.cysharp.unitask";
-        private const string WEBSOCKET_PACKAGE_URL = "https://github.com/endel/NativeWebSocket.git#upm";
+        private const string WEBSOCKET_PACKAGE_URL = "https://github.com/endel/NativeWebSocket.git#1d8b49b3fee41c09a98141f1f1a5e4db47e14229";
         private const string WEBSOCKET_PACKAGE_NAME = "com.endel.nativewebsocket";
         private const string SETUP_COMPLETED_KEY = "{{ spec.title | caseUcfirst }}_Setup_Completed";
         private const string SHOW_SETUP_DIALOG_KEY = "{{ spec.title | caseUcfirst }}_Show_Setup_Dialog";
