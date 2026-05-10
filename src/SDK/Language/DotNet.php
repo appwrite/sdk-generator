@@ -660,9 +660,13 @@ class DotNet extends Language
     protected function getResolvedPropertyName(array $property, string $definitionName): string
     {
         $name = $this->getPropertyName($property);
-        $overrides = $this->getPropertyOverrides();
-        if (isset($overrides[$definitionName][$name])) {
-            return $overrides[$definitionName][$name];
+        $propertyOverrides = $this->getPropertyOverrides();
+        if (isset($propertyOverrides[$definitionName][$name])) {
+            return $propertyOverrides[$definitionName][$name];
+        }
+        $identifierOverrides = $this->getIdentifierOverrides();
+        if (isset($identifierOverrides[$name])) {
+            return $identifierOverrides[$name];
         }
         return $name;
     }
@@ -687,10 +691,10 @@ class DotNet extends Language
         $v = 'v' . $this->toPascalCase(\str_replace('$', '', $propertyName));
         $tryGet = "map.TryGetValue(\"{$propertyName}\", out var {$v})";
 
-        // Sub_schema objects — use pattern matching for type-safe cast
+        // Sub_schema objects — handle Dictionary<string, object> and JsonElement
         if (!empty($property['sub_schema']) && $property['type'] !== 'array') {
-            $subSchema = $this->toPascalCase($property['sub_schema']);
-            return "{$tryGet} && {$v} is Dictionary<string, object> {$v}Map ? {$subSchema}.From(map: {$v}Map) : null";
+            $expr = $this->convertValue($property, $v);
+            return "{$tryGet} && {$v} != null ? {$expr} : null";
         }
 
         // Integer, number, enum — guard with null check to avoid Convert/constructor on null
@@ -720,13 +724,14 @@ class DotNet extends Language
      */
     private function convertValue(array $property, string $src, bool $srcNonNull = true): string
     {
-        // Sub_schema (nested objects)
+        // Sub_schema (nested objects) — runtime value can be Dictionary<string, object> or JsonElement
         if (!empty($property['sub_schema'])) {
             $subSchema = $this->toPascalCase($property['sub_schema']);
             if ($property['type'] === 'array') {
-                return "{$src}.ToEnumerable().Select(it => {$subSchema}.From(map: (Dictionary<string, object>)it)).ToList()";
+                return "{$src}.ToEnumerable().Select(it => {$subSchema}.From(map: it is JsonElement itEl ? itEl.Deserialize<Dictionary<string, object>>()! : (Dictionary<string, object>)it)).ToList()";
             }
-            return "{$subSchema}.From(map: (Dictionary<string, object>){$src})";
+            $patternVar = 'jsonObj' . $this->toPascalCase(\str_replace('$', '', $property['name']));
+            return "{$subSchema}.From(map: {$src} is JsonElement {$patternVar} ? {$patternVar}.Deserialize<Dictionary<string, object>>()! : (Dictionary<string, object>){$src})";
         }
 
         // Enum
