@@ -43,9 +43,9 @@ namespace {{ spec.title | caseUcfirst }}.Models
             {{ property.name | caseCamel | escapeKeyword | removeDollarSign }}:{{' '}}
                 {%- if property.sub_schema %}
                     {%- if property.type == 'array' -%}
-                        map["{{ property.name }}"].ConvertToList<Dictionary<string, object>>().Select(it => {{ property.sub_schema | caseUcfirst | overrideIdentifier }}.From(map: it)).ToList()
+                        map["{{ property.name }}"].ConvertToList<Dictionary<string, object>>().Select(it => {{ spec.title | caseUcfirst }}.Models.{{ property.sub_schema | caseUcfirst | overrideIdentifier }}.From(map: it)).ToList()
                     {%- else -%}
-                        {{ property.sub_schema | caseUcfirst | overrideIdentifier }}.From(map: map["{{ property.name }}"] is JsonElement jsonObj{{ loop.index }} ? jsonObj{{ loop.index }}.Deserialize<Dictionary<string, object>>()! : (Dictionary<string, object>)map["{{ property.name }}"])
+                        {{ spec.title | caseUcfirst }}.Models.{{ property.sub_schema | caseUcfirst | overrideIdentifier }}.From(map: map["{{ property.name }}"] is JsonElement jsonObj{{ loop.index }} ? jsonObj{{ loop.index }}.Deserialize<Dictionary<string, object>>()! : (Dictionary<string, object>)map["{{ property.name }}"])
                     {%- endif %}
                 {%- elseif property.enum %}
                     {%- set enumName = property['enumName'] ?? property.name -%}
