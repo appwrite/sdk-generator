@@ -144,8 +144,10 @@ try {
     }
 
     // Unity
-    if (!$requestedSdk || $requestedSdk === 'unity') {        
-        $sdk  = new SDK(new Unity(), new Swagger2($spec));
+    if (!$requestedSdk || $requestedSdk === 'unity') {
+        $unity = new Unity();
+        $unity->setPackageNamespace('io.appwrite');
+        $sdk  = new SDK($unity, new Swagger2($spec));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/unity');
     }

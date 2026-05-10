@@ -4,6 +4,17 @@ namespace Appwrite\SDK\Language;
 
 class Unity extends DotNet
 {
+    protected $params = [
+        'packageNamespace' => 'package-namespace',
+    ];
+
+    public function setPackageNamespace(string $namespace): self
+    {
+        $this->setParam('packageNamespace', $namespace);
+
+        return $this;
+    }
+
     /**
      * @return string
      */
