@@ -28,7 +28,7 @@ extends "../service.gd"
 {% if method.parameters.all|length > 0 %}
 ## Parameters:[br]
 {% for parameter in method.parameters.all %}
-## - [param {{ parameter.name | caseSnake | escapeKeyword }}]: {{ parameter.description | default("No description provided.") | replace({"\n": "\n##   "}) }}[br]
+## - [param {{ parameter.name | caseSnake | escapeKeyword }}] [{{ parameter | typeName(spec) }}]: {{ parameter.description | default("No description provided.") | replace({"\n": "\n##   "}) }}[br]
 {% endfor %}
 ##[br]
 {% endif %}
@@ -37,7 +37,19 @@ extends "../service.gd"
 ##[br]
 ## Errors:[br]
 ## - Returns error data as [member {{ prefix }}Exception].
-func {{ methodNameSnake| escapeKeyword }}({% for parameter in method.parameters.all %}{{ parameter.name | caseSnake | escapeKeyword }}: {{ parameter | typeName(spec) }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}) -> Variant :
+func {{ methodNameSnake| escapeKeyword }}({% for parameter in method.parameters.all %}{{ parameter.name | caseSnake | escapeKeyword }}: {% if parameter.required %}{{ parameter | typeName(spec) }}{{ parameter | paramDefault }}{% else %}Variant = null{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}) -> Variant :
+    # Runtime type checking, GDScript typed vars don't support null or optional
+    {%~ for parameter in method.parameters.all %}
+    {%~ if not parameter.required %}
+    {%~ set type = parameter | typeName(spec) %}
+    {%~ if type != 'Variant' %}
+    {%~ if type starts with 'Array' %}{% set check_type = 'Array' %}{% else %}{% set check_type = type %}{% endif %}
+    if {{ parameter.name | caseSnake | escapeKeyword }} != null and not {{ parameter.name | caseSnake | escapeKeyword }} is {{ check_type }}:
+        return {{prefix}}Exception.new("Invalid type for parameter '{{ parameter.name | caseSnake | escapeKeyword }}'. Expected {{ type }}.", 0, "argument_error", "")
+    {%~ endif %}
+    {%~ endif %}
+    {%~ endfor %}
+
     var _path := '{{ method.path }}'
     {%~ for parameter in method.parameters.path %}
     _path = _path.replace('{{ '{' }}{{ parameter.name }}{{ '}' }}', str({{ parameter.name | caseSnake | escapeKeyword }}))
