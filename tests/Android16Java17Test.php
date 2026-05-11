@@ -2,7 +2,7 @@
 
 namespace Tests;
 
-class Android36Java17Test extends Base
+class Android16Java17Test extends Base
 {
     protected string $sdkName = 'android';
     protected string $sdkPlatform = 'client';
