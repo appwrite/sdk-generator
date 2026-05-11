@@ -246,9 +246,11 @@ class Tests: XCTestCase {
         // Realtime presence (upsertPresence) test against the mock WebSocket server.
         // createPresence is fire-and-forget — call it without `try await` after
         // giving subscribe() time to open the WebSocket.
+        // setSelfSigned() is required so WebSocketClient skips TLS for the ws:// mock endpoint.
         do {
             let presenceClient = Client()
                 .setProject("123456")
+                .setSelfSigned()
                 .setEndpointRealtime("ws://mockapi/v1")
             let presenceRealtime = Realtime(presenceClient)
 
