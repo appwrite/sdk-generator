@@ -237,6 +237,9 @@ void main() async {
       metadata: {'page': '/home'},
     );
 
+    // Debug: print the incoming presence payload
+    print('Realtime presence incoming: ${jsonEncode(presence)}');
+
     if (presence[r'$id'] == 'p-test'
         && presence['status'] == 'online'
         && presence['source'] == 'WS') {
