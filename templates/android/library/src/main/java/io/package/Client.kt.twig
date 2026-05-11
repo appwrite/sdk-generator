@@ -54,14 +54,14 @@ class Client @JvmOverloads constructor(
 
         @JvmStatic
         @JvmOverloads
-        fun fromBrowser(
+        fun from(
             context: Context,
             projectId: String,
             endpoint: String = "{{spec.endpoint}}",
             endpointRealtime: String? = null,
             locale: String? = null,
             selfSigned: Boolean = false
-        ): Client = fromBrowserClient(
+        ): Client = fromClient(
             context = context,
             endpoint = endpoint,
             projectId = projectId,
@@ -70,7 +70,7 @@ class Client @JvmOverloads constructor(
             selfSigned = selfSigned
         )
 
-        private fun fromBrowserClient(
+        private fun fromClient(
             context: Context,
             endpoint: String,
             projectId: String,
@@ -138,7 +138,7 @@ class Client @JvmOverloads constructor(
             locale: String? = null,
             selfSigned: Boolean = false
         ): Client {
-            val client = fromBrowserClient(
+            val client = fromClient(
                 context = context,
                 endpoint = endpoint,
                 projectId = projectId,
@@ -167,7 +167,7 @@ class Client @JvmOverloads constructor(
             locale: String? = null,
             selfSigned: Boolean = false
         ): Client {
-            val client = fromBrowserClient(
+            val client = fromClient(
                 context = context,
                 endpoint = endpoint,
                 projectId = projectId,
@@ -204,7 +204,7 @@ class Client @JvmOverloads constructor(
                 "Exactly one impersonation target must be provided"
             }
 
-            val client = fromBrowserClient(
+            val client = fromClient(
                 context = context,
                 endpoint = endpoint,
                 projectId = projectId,
@@ -303,7 +303,7 @@ class Client @JvmOverloads constructor(
      *
      * @return this
      */
-    @Deprecated("Use Client.fromBrowser or another factory method instead.")
+    @Deprecated("Use Client.from or another factory method instead.")
     fun set{{header.key | caseUcfirst}}(value: String): Client {
         config["{{ header.key | caseCamel }}"] = value
 {%~ if (header.key | caseCamel) != (header.key | caseLower) %}
@@ -321,7 +321,7 @@ class Client @JvmOverloads constructor(
      *
      * @return this
      */
-    @Deprecated("Use Client.fromBrowser or another factory method instead.")
+    @Deprecated("Use Client.from or another factory method instead.")
     fun setSelfSigned(status: Boolean): Client {
         applySelfSigned(status)
         return this
@@ -378,7 +378,7 @@ class Client @JvmOverloads constructor(
      * @return this
      */
     @Throws(IllegalArgumentException::class)
-    @Deprecated("Use Client.fromBrowser or another factory method instead.")
+    @Deprecated("Use Client.from or another factory method instead.")
     fun setEndpoint(endpoint: String): Client {
         require(endpoint.startsWith("http://") || endpoint.startsWith("https://")) {
             "Invalid endpoint URL: $endpoint"
@@ -398,7 +398,7 @@ class Client @JvmOverloads constructor(
      * @return this
      */
     @Throws(IllegalArgumentException::class)
-    @Deprecated("Use Client.fromBrowser or another factory method instead.")
+    @Deprecated("Use Client.from or another factory method instead.")
     fun setEndpointRealtime(endpoint: String): Client {
         require(endpoint.startsWith("ws://") || endpoint.startsWith("wss://")) {
             "Invalid realtime endpoint URL: $endpoint"

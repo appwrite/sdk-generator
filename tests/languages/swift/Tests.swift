@@ -21,16 +21,16 @@ class Tests: XCTestCase {
     func test() async throws {
         do {
         var authFactoryOutputs: [String] = []
-        let browserClient = try Client.fromBrowser(
+        let baseClient = try Client.from(
             endpoint: "https://cloud.appwrite.io/v1",
             projectId: "auth-project",
             locale: "en-US",
             selfSigned: true
         )
-        let browserHeaders = browserClient.getHeaders()
-        authFactoryOutputs.append(browserHeaders["X-Appwrite-Project"] ?? "nil")
-        authFactoryOutputs.append(browserHeaders["X-Appwrite-Locale"] ?? "nil")
-        authFactoryOutputs.append(browserHeaders["x-sdk-platform"] ?? "nil")
+        let baseHeaders = baseClient.getHeaders()
+        authFactoryOutputs.append(baseHeaders["X-Appwrite-Project"] ?? "nil")
+        authFactoryOutputs.append(baseHeaders["X-Appwrite-Locale"] ?? "nil")
+        authFactoryOutputs.append(baseHeaders["x-sdk-platform"] ?? "nil")
 
         let sessionClient = try Client.fromSession(
             endpoint: "https://cloud.appwrite.io/v1",
@@ -102,7 +102,7 @@ class Tests: XCTestCase {
         }
 
         do {
-            _ = try Client.fromBrowser(
+            _ = try Client.from(
                 endpoint: "htp://cloud.appwrite.io/v1",
                 projectId: "auth-project"
             )

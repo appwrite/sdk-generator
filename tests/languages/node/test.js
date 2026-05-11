@@ -18,15 +18,15 @@ async function start() {
     let response;
 
     const authFactoryOutputs = [];
-    const browserClient = Client.fromBrowser({
+    const baseClient = Client.from({
         endpoint: 'https://cloud.appwrite.io/v1',
         projectId: 'auth-project',
         locale: 'en-US'
     });
-    const browserHeaders = browserClient.getHeaders();
-    authFactoryOutputs.push(browserHeaders['X-Appwrite-Project']);
-    authFactoryOutputs.push(browserHeaders['X-Appwrite-Locale']);
-    authFactoryOutputs.push(browserHeaders['x-sdk-platform']);
+    const baseHeaders = baseClient.getHeaders();
+    authFactoryOutputs.push(baseHeaders['X-Appwrite-Project']);
+    authFactoryOutputs.push(baseHeaders['X-Appwrite-Locale']);
+    authFactoryOutputs.push(baseHeaders['x-sdk-platform']);
 
     const sessionClient = Client.fromSession({
         endpoint: 'https://cloud.appwrite.io/v1',
@@ -98,7 +98,7 @@ async function start() {
     }
 
     try {
-        Client.fromBrowser({
+        Client.from({
             endpoint: 'htp://cloud.appwrite.io/v1',
             projectId: 'auth-project'
         });

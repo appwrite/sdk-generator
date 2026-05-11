@@ -142,7 +142,7 @@ class Client {
         {%~ endfor %}
     };
 
-    static fromBrowser(params: BaseClientParams): Client {
+    static from(params: BaseClientParams): Client {
         return new Client().applyBase(params, 'client');
     }
 

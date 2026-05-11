@@ -8,16 +8,16 @@ import '../lib/src/input_file.dart';
 
 void main() async {
   final authFactoryOutputs = <String?>[];
-  final browserClient = Client.fromBrowser(
+  final baseClient = Client.from(
     endPoint: 'https://cloud.appwrite.io/v1',
     projectId: 'auth-project',
     locale: 'en-US',
     selfSigned: true,
   );
-  final browserHeaders = browserClient.getHeaders();
-  authFactoryOutputs.add(browserHeaders['X-Appwrite-Project']);
-  authFactoryOutputs.add(browserHeaders['X-Appwrite-Locale']);
-  authFactoryOutputs.add(browserHeaders['x-sdk-platform']);
+  final baseHeaders = baseClient.getHeaders();
+  authFactoryOutputs.add(baseHeaders['X-Appwrite-Project']);
+  authFactoryOutputs.add(baseHeaders['X-Appwrite-Locale']);
+  authFactoryOutputs.add(baseHeaders['x-sdk-platform']);
 
   final sessionClient = Client.fromSession(
     endPoint: 'https://cloud.appwrite.io/v1',
@@ -89,7 +89,7 @@ void main() async {
   }
 
   try {
-    Client.fromBrowser(
+    Client.from(
       endPoint: 'htp://cloud.appwrite.io/v1',
       projectId: 'auth-project',
     );

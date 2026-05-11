@@ -40,17 +40,17 @@ class ServiceTest {
     @Test
     @Throws(IOException::class)
     fun test() {
-        val browserClient = Client.fromBrowser(
+        val baseClient = Client.from(
             projectId = "auth-project",
             endPoint = "https://cloud.appwrite.io/v1",
             locale = "en-US",
             selfSigned = true
         )
-        val browserHeaders = browserClient.getHeaders()
+        val baseHeaders = baseClient.getHeaders()
         val authFactoryOutputs = mutableListOf(
-            browserHeaders["x-appwrite-project"],
-            browserHeaders["x-appwrite-locale"],
-            browserHeaders["x-sdk-platform"]
+            baseHeaders["x-appwrite-project"],
+            baseHeaders["x-appwrite-locale"],
+            baseHeaders["x-sdk-platform"]
         )
 
         val sessionClient = Client.fromSession(
@@ -123,7 +123,7 @@ class ServiceTest {
         }
 
         try {
-            Client.fromBrowser(
+            Client.from(
                 projectId = "auth-project",
                 endPoint = "htp://cloud.appwrite.io/v1"
             )

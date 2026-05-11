@@ -73,7 +73,7 @@ class ServiceTest {
 
         writeToFile("x-sdk-name: ${sdkHeaders["x-sdk-name"]}; x-sdk-platform: ${sdkHeaders["x-sdk-platform"]}; x-sdk-language: ${sdkHeaders["x-sdk-language"]}; x-sdk-version: ${sdkHeaders["x-sdk-version"]}")
 
-        val browserClient = Client.fromBrowser(
+        val baseClient = Client.from(
             context = ApplicationProvider.getApplicationContext(),
             projectId = "auth-project",
             endpoint = "https://cloud.appwrite.io/v1",
@@ -81,9 +81,9 @@ class ServiceTest {
             locale = "en-US",
             selfSigned = true
         )
-        writeToFile(browserClient.config["project"])
-        writeToFile(browserClient.config["locale"])
-        writeToFile(browserClient.endpointRealtime)
+        writeToFile(baseClient.config["project"])
+        writeToFile(baseClient.config["locale"])
+        writeToFile(baseClient.endpointRealtime)
 
         val sessionClient = Client.fromSession(
             context = ApplicationProvider.getApplicationContext(),
@@ -140,7 +140,7 @@ class ServiceTest {
         }
 
         try {
-            Client.fromBrowser(
+            Client.from(
                 context = ApplicationProvider.getApplicationContext(),
                 projectId = "auth-project",
                 endpoint = "htp://cloud.appwrite.io/v1"
@@ -150,7 +150,7 @@ class ServiceTest {
         }
 
         try {
-            Client.fromBrowser(
+            Client.from(
                 context = ApplicationProvider.getApplicationContext(),
                 projectId = "auth-project",
                 endpoint = "https://cloud.appwrite.io/v1",

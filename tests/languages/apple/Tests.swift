@@ -27,16 +27,16 @@ class Tests: XCTestCase {
         let sdkHeaders = client.getHeaders()
         print("x-sdk-name: \(sdkHeaders["x-sdk-name"] ?? "nil"); x-sdk-platform: \(sdkHeaders["x-sdk-platform"] ?? "nil"); x-sdk-language: \(sdkHeaders["x-sdk-language"] ?? "nil"); x-sdk-version: \(sdkHeaders["x-sdk-version"] ?? "nil")")
 
-        let browserClient = try Client.fromBrowser(
+        let baseClient = try Client.from(
             endpoint: "https://cloud.appwrite.io/v1",
             projectId: "auth-project",
             endpointRealtime: "wss://realtime.example.com/v1",
             locale: "en-US",
             selfSigned: true
         )
-        print(browserClient.getConfig(key: "project") ?? "nil")
-        print(browserClient.getConfig(key: "locale") ?? "nil")
-        print(browserClient.endPointRealtime ?? "nil")
+        print(baseClient.getConfig(key: "project") ?? "nil")
+        print(baseClient.getConfig(key: "locale") ?? "nil")
+        print(baseClient.endPointRealtime ?? "nil")
 
         let sessionClient = try Client.fromSession(
             endpoint: "https://cloud.appwrite.io/v1",
@@ -87,7 +87,7 @@ class Tests: XCTestCase {
         }
 
         do {
-            _ = try Client.fromBrowser(
+            _ = try Client.from(
                 endpoint: "htp://cloud.appwrite.io/v1",
                 projectId: "auth-project"
             )
@@ -96,7 +96,7 @@ class Tests: XCTestCase {
         }
 
         do {
-            _ = try Client.fromBrowser(
+            _ = try Client.from(
                 endpoint: "https://cloud.appwrite.io/v1",
                 projectId: "auth-project",
                 endpointRealtime: "ftp://cloud.appwrite.io/v1"

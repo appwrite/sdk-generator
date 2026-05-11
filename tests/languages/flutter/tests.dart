@@ -55,16 +55,16 @@ void main() async {
   );
 
   final authFactoryOutputs = <String?>[];
-  final browserClient = Client.fromBrowser(
+  final baseClient = Client.from(
     endPoint: 'https://cloud.appwrite.io/v1',
     projectId: 'auth-project',
     endPointRealtime: 'wss://realtime.example.com/v1',
     locale: 'en-US',
     selfSigned: true,
   );
-  authFactoryOutputs.add(browserClient.config['project']);
-  authFactoryOutputs.add(browserClient.config['locale']);
-  authFactoryOutputs.add(browserClient.endPointRealtime);
+  authFactoryOutputs.add(baseClient.config['project']);
+  authFactoryOutputs.add(baseClient.config['locale']);
+  authFactoryOutputs.add(baseClient.endPointRealtime);
 
   final sessionClient = Client.fromSession(
     endPoint: 'https://cloud.appwrite.io/v1',
@@ -115,7 +115,7 @@ void main() async {
   }
 
   try {
-    Client.fromBrowser(
+    Client.from(
       endPoint: 'htp://cloud.appwrite.io/v1',
       projectId: 'auth-project',
     );
@@ -124,7 +124,7 @@ void main() async {
   }
 
   try {
-    Client.fromBrowser(
+    Client.from(
       endPoint: 'https://cloud.appwrite.io/v1',
       projectId: 'auth-project',
       endPointRealtime: 'ftp://cloud.appwrite.io/v1',

@@ -14,18 +14,18 @@ async function start() {
     const sdkHeaders = client.getHeaders();
     console.log(`x-sdk-name: ${sdkHeaders['x-sdk-name']}; x-sdk-platform: ${sdkHeaders['x-sdk-platform']}; x-sdk-language: ${sdkHeaders['x-sdk-language']}; x-sdk-version: ${sdkHeaders['x-sdk-version']}`);
 
-    const browserClient = Client.fromBrowser({
+    const baseClient = Client.from({
         endpoint: 'https://cloud.appwrite.io/v1',
         projectId: 'auth-project',
         endpointRealtime: 'wss://realtime.example.com/v1',
         locale: 'en-US',
         selfSigned: true,
     });
-    const browserHeaders = browserClient.getHeaders();
-    console.log(browserHeaders['X-Appwrite-Project']);
-    console.log(browserHeaders['X-Appwrite-Locale']);
-    console.log(browserHeaders['x-sdk-platform']);
-    console.log(browserClient.config.endpointRealtime);
+    const baseHeaders = baseClient.getHeaders();
+    console.log(baseHeaders['X-Appwrite-Project']);
+    console.log(baseHeaders['X-Appwrite-Locale']);
+    console.log(baseHeaders['x-sdk-platform']);
+    console.log(baseClient.config.endpointRealtime);
 
     const sessionClient = Client.fromSession({
         endpoint: 'https://cloud.appwrite.io/v1',
@@ -97,7 +97,7 @@ async function start() {
     }
 
     try {
-        Client.fromBrowser({
+        Client.from({
             endpoint: 'htp://cloud.appwrite.io/v1',
             projectId: 'auth-project',
         });
@@ -106,7 +106,7 @@ async function start() {
     }
 
     try {
-        Client.fromBrowser({
+        Client.from({
             endpoint: 'https://cloud.appwrite.io/v1',
             projectId: 'auth-project',
             endpointRealtime: 'ftp://cloud.appwrite.io/v1',

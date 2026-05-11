@@ -24,8 +24,8 @@ abstract class Client {
     bool selfSigned = false,
   }) => createClient(endPoint: endPoint, selfSigned: selfSigned);
 
-  /// Creates a client configured for browser-style authentication.
-  static Client fromBrowser({
+  /// Creates a client configured with project authentication.
+  static Client from({
     String endPoint = '{{ spec.endpoint }}',
     required String projectId,
     String? locale,

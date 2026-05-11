@@ -123,7 +123,7 @@ open class Client: ClientAuth {
         addOriginHeader()
     }
 
-    public static func fromBrowser(
+    public static func from(
         endpoint: String = "{{spec.endpoint}}",
         projectId: String,
         endpointRealtime: String? = nil,
@@ -367,7 +367,7 @@ open class Client: ClientAuth {
     ///
     /// @return Client
     ///
-    @available(*, deprecated, message: "Use Client.fromBrowser, Client.fromSession, Client.fromDevKey, or Client.fromImpersonation instead.")
+    @available(*, deprecated, message: "Use Client.from, Client.fromSession, Client.fromDevKey, or Client.fromImpersonation instead.")
     open func set{{ header.key | caseUcfirst }}(_ value: String) -> Client {
         config["{{ header.key | caseLower }}"] = value
         _ = addHeader(key: "{{header.name}}", value: value)
@@ -383,7 +383,7 @@ open class Client: ClientAuth {
     ///
     /// @return Client
     ///
-    @available(*, deprecated, message: "Use Client.fromBrowser, Client.fromSession, Client.fromDevKey, or Client.fromImpersonation instead.")
+    @available(*, deprecated, message: "Use Client.from, Client.fromSession, Client.fromDevKey, or Client.fromImpersonation instead.")
     open func setSelfSigned(_ status: Bool = true) -> Client {
         configureSelfSigned(status)
         return self
@@ -413,7 +413,7 @@ open class Client: ClientAuth {
     ///
     /// @return Client
     ///
-    @available(*, deprecated, message: "Use Client.fromBrowser, Client.fromSession, Client.fromDevKey, or Client.fromImpersonation instead.")
+    @available(*, deprecated, message: "Use Client.from, Client.fromSession, Client.fromDevKey, or Client.fromImpersonation instead.")
     open func setEndpoint(_ endPoint: String) -> Client {
         try! configureEndpoint(endPoint)
         return self
@@ -426,7 +426,7 @@ open class Client: ClientAuth {
     ///
     /// @return Client
     ///
-    @available(*, deprecated, message: "Use Client.fromBrowser, Client.fromSession, Client.fromDevKey, or Client.fromImpersonation instead.")
+    @available(*, deprecated, message: "Use Client.from, Client.fromSession, Client.fromDevKey, or Client.fromImpersonation instead.")
     open func setEndpointRealtime(_ endPoint: String) -> Client {
         try! configureEndpointRealtime(endPoint)
         return self

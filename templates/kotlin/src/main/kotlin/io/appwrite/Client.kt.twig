@@ -42,7 +42,7 @@ class Client @JvmOverloads constructor(
 
         @JvmStatic
         @JvmOverloads
-        fun fromBrowser(
+        fun from(
             projectId: String,
             endPoint: String = "{{spec.endpoint}}",
             locale: String? = null,
@@ -66,7 +66,7 @@ class Client @JvmOverloads constructor(
             locale: String? = null,
             selfSigned: Boolean = false
         ): Client {
-            return fromBrowser(
+            return from(
                 projectId = projectId,
                 endPoint = endPoint,
                 locale = locale,
@@ -140,7 +140,7 @@ class Client @JvmOverloads constructor(
             locale: String? = null,
             selfSigned: Boolean = false
         ): Client {
-            val client = fromBrowser(
+            val client = from(
                 projectId = projectId,
                 endPoint = endPoint,
                 locale = locale,
@@ -169,7 +169,7 @@ class Client @JvmOverloads constructor(
                 "Exactly one impersonation target must be provided"
             }
 
-            val client = fromBrowser(
+            val client = from(
                 projectId = projectId,
                 endPoint = endPoint,
                 locale = locale,

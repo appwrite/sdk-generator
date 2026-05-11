@@ -91,7 +91,7 @@ class ClientIO extends ClientBase with ClientMixin {
 {% if header.description %}
   /// {{header.description}}
 {% endif %}
-  @Deprecated('Use Client.fromBrowser or another factory constructor instead.')
+  @Deprecated('Use Client.from or another factory constructor instead.')
   @override
   ClientIO set{{header.key | caseUcfirst}}(value) {
     config['{{ header.key | caseCamel }}'] = value;
@@ -100,7 +100,7 @@ class ClientIO extends ClientBase with ClientMixin {
   }
 {% endfor %}
 
-  @Deprecated('Use Client.fromBrowser or another factory constructor instead.')
+  @Deprecated('Use Client.from or another factory constructor instead.')
   @override
   ClientIO setSelfSigned({bool status = true}) {
     selfSigned = status;
@@ -109,7 +109,7 @@ class ClientIO extends ClientBase with ClientMixin {
     return this;
   }
 
-  @Deprecated('Use Client.fromBrowser or another factory constructor instead.')
+  @Deprecated('Use Client.from or another factory constructor instead.')
   @override
   ClientIO setEndpoint(String endPoint) {
     if (!endPoint.startsWith('http://') && !endPoint.startsWith('https://')) {
@@ -124,7 +124,7 @@ class ClientIO extends ClientBase with ClientMixin {
     return this;
   }
 
-  @Deprecated('Use Client.fromBrowser or another factory constructor instead.')
+  @Deprecated('Use Client.from or another factory constructor instead.')
   @override
   ClientIO setEndPointRealtime(String endPoint) {
     if (!endPoint.startsWith('ws://') && !endPoint.startsWith('wss://')) {

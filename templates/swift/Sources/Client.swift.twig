@@ -55,7 +55,7 @@ open class Client {
         addOriginHeader()
     }
 
-    public static func fromBrowser(
+    public static func from(
         endpoint: String = "{{spec.endpoint}}",
         projectId: String,
         locale: String? = nil,
@@ -73,7 +73,7 @@ open class Client {
         locale: String? = nil,
         selfSigned: Bool = false
     ) throws -> Client {
-        let client = try fromBrowser(endpoint: endpoint, projectId: projectId, locale: locale, selfSigned: selfSigned)
+        let client = try from(endpoint: endpoint, projectId: projectId, locale: locale, selfSigned: selfSigned)
         client.setSession(session)
         return client
     }
@@ -125,7 +125,7 @@ open class Client {
         locale: String? = nil,
         selfSigned: Bool = false
     ) throws -> Client {
-        let client = try fromBrowser(endpoint: endpoint, projectId: projectId, locale: locale, selfSigned: selfSigned)
+        let client = try from(endpoint: endpoint, projectId: projectId, locale: locale, selfSigned: selfSigned)
         client.config["devkey"] = devKey
         client.headers["X-{{ spec.title | caseUcfirst }}-Dev-Key"] = devKey
         return client
@@ -146,7 +146,7 @@ open class Client {
             throw {{ spec.title | caseUcfirst }}Error(message: "Exactly one impersonation target must be provided")
         }
 
-        let client = try fromBrowser(endpoint: endpoint, projectId: projectId, locale: locale, selfSigned: selfSigned)
+        let client = try from(endpoint: endpoint, projectId: projectId, locale: locale, selfSigned: selfSigned)
         client.setSession(session)
 
         if let userId = userId {

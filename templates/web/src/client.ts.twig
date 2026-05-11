@@ -375,7 +375,7 @@ type LegacyClient<TAuth extends Auth = 'browser'> = Omit<ClientRuntime<TAuth>, C
 
 type ClientConstructor = {
     new <TAuth extends Auth = 'browser'>(): LegacyClient<TAuth>;
-    fromBrowser(params: Prettify<BaseClientParams>): Client<'browser'>;
+    from(params: Prettify<BaseClientParams>): Client<'browser'>;
     fromSession(params: Prettify<BaseClientParams & { session: string }>): Client<'session'>;
     fromAPIKey(params: Prettify<BaseClientParams & { apiKey: string }>): Client<'apiKey'>;
     fromCookie(params: Prettify<BaseClientParams & { cookie: string }>): Client<'cookie'>;
@@ -422,7 +422,7 @@ class ClientRuntime<TAuth extends Auth = 'browser'> {
         {%~ endfor %}
     };
 
-    static fromBrowser(params: Prettify<BaseClientParams>): Client<'browser'> {
+    static from(params: Prettify<BaseClientParams>): Client<'browser'> {
         return new ClientRuntime<'browser'>().applyBase<'browser'>(params, 'client');
     }
 
@@ -562,7 +562,7 @@ class ClientRuntime<TAuth extends Auth = 'browser'> {
      * @returns {this}
      */
     /**
-     * @deprecated Use `Client.fromBrowser`, `Client.fromSession`, `Client.fromAPIKey`, or another static factory instead.
+     * @deprecated Use `Client.from`, `Client.fromSession`, `Client.fromAPIKey`, or another static factory instead.
      */
     setEndpoint(endpoint: string): this {
         if (!endpoint || typeof endpoint !== 'string') {
