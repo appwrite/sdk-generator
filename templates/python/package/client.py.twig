@@ -109,8 +109,11 @@ class Client:
         if response is not None:
             content_type = response.headers.get('Content-Type', '')
             if content_type.startswith('application/json'):
-                body = response.json()
-                raise {{spec.title | caseUcfirst}}Exception(body.get('message', ''), response.status_code, body.get('type'), response.text)
+                try:
+                    body = response.json()
+                    raise {{spec.title | caseUcfirst}}Exception(body.get('message', ''), response.status_code, body.get('type'), response.text)
+                except Exception:
+                    raise {{spec.title | caseUcfirst}}Exception(response.text, response.status_code, None, response.text)
             else:
                 raise {{spec.title | caseUcfirst}}Exception(response.text, response.status_code, None, response.text)
         else:
