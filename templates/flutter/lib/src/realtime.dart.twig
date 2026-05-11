@@ -66,13 +66,19 @@ abstract class Realtime extends Service {
   /// Requires an authenticated user and an open WebSocket connection
   /// (subscribe to a channel first if you don't have one yet).
   ///
+  /// Fire-and-forget: returns void and does not await the server response.
+  /// Mirrors the `subscribe()` shape — call without `await`. Throws synchronously
+  /// if there is no open WebSocket connection.
+  ///
   /// ```dart
-  /// final presence = await realtime.createPresence(
+  /// realtime.subscribe(['account']);
+  /// await Future.delayed(Duration(seconds: 1)); // let the WS open
+  /// realtime.createPresence(
   ///   status: 'online',
   ///   metadata: {'device': 'web'},
   /// );
   /// ```
-  Future<Map<String, dynamic>> createPresence({
+  void createPresence({
     required String status,
     List<String>? permissions,
     Map<String, dynamic>? metadata,

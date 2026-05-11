@@ -43,13 +43,13 @@ class RealtimeBrowser extends RealtimeBase with RealtimeMixin {
   }
 
   @override
-  Future<Map<String, dynamic>> createPresence({
+  void createPresence({
     required String status,
     List<String>? permissions,
     Map<String, dynamic>? metadata,
     String? presenceId,
   }) {
-    return createPresenceTo(
+    createPresenceTo(
       status: status,
       permissions: permissions,
       metadata: metadata,
