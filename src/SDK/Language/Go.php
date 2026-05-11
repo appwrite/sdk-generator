@@ -168,6 +168,11 @@ class Go extends Language
                 'template'      => 'go/client_test.go.twig',
             ],
             [
+                'scope'         => 'default',
+                'destination'   => 'models/model_interface.go',
+                'template'      => 'go/models/model_interface.go.twig',
+            ],
+            [
                 'scope'         => 'service',
                 'destination'   => '{{ service.name | caseLower}}/{{service.name | caseSnake}}.go',
                 'template'      => 'go/services/service.go.twig',
@@ -184,17 +189,17 @@ class Go extends Language
             ],
             [
                 'scope'         => 'definition',
-                'destination'   => 'models/{{ definition.name | caseSnake }}.go',
+                'destination'   => 'models/{{ definition.name | caseCamel }}.go',
                 'template'      => 'go/models/model.go.twig',
             ],
             [
                 'scope'         => 'definition',
-                'destination'   => 'models/{{ definition.name | caseSnake }}_test.go',
+                'destination'   => 'models/{{ definition.name | caseCamel }}_test.go',
                 'template'      => 'go/models/model_test.go.twig',
             ],
             [
                 'scope'         => 'requestModel',
-                'destination'   => 'models/{{ requestModel.name | caseSnake }}.go',
+                'destination'   => 'models/{{ requestModel.name | caseCamel }}.go',
                 'template'      => 'go/models/request_model.go.twig',
             ],
         ];
@@ -442,7 +447,7 @@ class Go extends Language
             \array_key_exists('responseModels', $method)
             && \count($method['responseModels']) > 1
         ) {
-            return 'interface{}';
+            return 'models.Model';
         }
 
         // Check for missing or generic response model

@@ -24,3 +24,7 @@ templates/swift/example/Example.xcodeproj/xcuserdata
 **/xcuserdata
 # exclude go checksum files
 go.sum
+
+# exclude raw lock files in templates (use .twig versions instead)
+templates/cli/package-lock.json
+templates/cli/bun.lock

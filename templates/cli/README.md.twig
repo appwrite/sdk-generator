@@ -50,12 +50,33 @@ If you do not have `npm` installed, you can always install the prebuilt binaries
 $ wget -q {{ sdk.url }}/cli/install.sh  -O - | /bin/bash
 ```
 
-### MacOS via [Homebrew](https://brew.sh)
+### MacOS / Linux via [Homebrew](https://brew.sh)
 ```bash
-$ brew install {{ language.params.executableName }} 
+$ brew install {{ language.params.homebrewTapOwner }}/{{ language.params.homebrewTapName }}/{{ language.params.executableName }}
 ```
 
-Homebrew installs the native binary for your platform.
+Homebrew pulls the formula from the [`{{ language.params.homebrewTapOwner }}/homebrew-{{ language.params.homebrewTapName }}`](https://github.com/{{ language.params.homebrewTapOwner }}/homebrew-{{ language.params.homebrewTapName }}) tap and downloads the native binary for your platform.
+
+### Shell completion
+
+Install completion for your current shell:
+
+```bash
+{{ language.params.executableName|caseLower }} completion install
+```
+
+You can also generate or install completion scripts manually:
+
+```bash
+# zsh
+{{ language.params.executableName|caseLower }} completion install zsh
+# bash
+{{ language.params.executableName|caseLower }} completion install bash
+# fish
+{{ language.params.executableName|caseLower }} completion install fish
+```
+
+For zsh, ensure `~/.zfunc` is in your `fpath` and `compinit` is loaded from your shell config.
 
 ### Windows
 Via Powershell
@@ -76,6 +97,45 @@ $ {{ language.params.executableName|caseLower }} -v
 {% if sdk.gettingStarted %}
 {{ sdk.gettingStarted|raw }}
 {% endif %}
+
+## Project configuration
+
+The CLI reads project resources from `{{ language.params.executableName|caseLower }}.config.json`. Large resource arrays can be split into smaller JSON files with `includes`:
+
+```json
+{
+    "projectId": "my-project",
+    "includes": {
+        "functions": "./appwrite/functions.json",
+        "sites": "./appwrite/sites.json",
+        "databases": "./appwrite/databases.json",
+        "collections": "./appwrite/collections.json",
+        "tablesDB": "./appwrite/tables-db.json",
+        "tables": "./appwrite/tables.json",
+        "buckets": "./appwrite/buckets.json",
+        "teams": "./appwrite/teams.json",
+        "webhooks": "./appwrite/webhooks.json",
+        "topics": "./appwrite/topics.json",
+        "messages": "./appwrite/messages.json"
+    }
+}
+```
+
+Each included file contains only the array for that resource. Include paths are resolved relative to `{{ language.params.executableName|caseLower }}.config.json`, and resource-local paths inside an included file are resolved relative to that included file:
+
+```json
+[
+    {
+        "$id": "api",
+        "name": "API",
+        "runtime": "node-22",
+        "path": "functions/api",
+        "entrypoint": "src/main.ts"
+    }
+]
+```
+
+JSON pointer fragments such as `./resources.json#/functions` are not supported.
 
 ## Contribution
 

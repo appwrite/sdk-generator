@@ -214,6 +214,20 @@ const InvoiceSummarySchema = createSummarySchema(
   "Expected an invoice summary row",
 );
 
+const RuntimeSummarySchema = createSummarySchema(
+  {
+    $id: z.string().nullable().optional(),
+    key: z.string().nullable().optional(),
+    name: z.string().nullable().optional(),
+    version: z.union([z.string(), z.number()]).nullable().optional(),
+    base: z.string().nullable().optional(),
+    image: z.string().nullable().optional(),
+    logo: z.string().nullable().optional(),
+  },
+  ["$id", "name", "version", "base", "image"],
+  "Expected a runtime summary row",
+);
+
 const paymentMethodLabel = (row: JsonObject): string => {
   const brand = valueFrom<string>(row, "brand") ?? "";
   const last4 = valueFrom<string>(row, "last4") ?? "";
@@ -264,10 +278,41 @@ const paymentMethodStatus = (row: JsonObject): string => {
   return "status: pending";
 };
 
+const runtimeLabel = (row: JsonObject): string => {
+  const name = compactText(valueFrom(row, "name"), "");
+  const key = compactText(valueFrom(row, "key"), "");
+  const version = valueFrom<string | number>(row, "version");
+  const runtimeName = name || (key ? toTitleCase(key) : "Runtime");
+
+  if (version == null || String(version).trim() === "") {
+    return runtimeName;
+  }
+
+  return `${runtimeName} ${version}`;
+};
+
 const structuredCollectionRenderers: Record<
   string,
   StructuredCollectionRenderer
 > = {
+  runtimes: createColumnRenderer(RuntimeSummarySchema, [
+    {
+      header: "runtime",
+      value: (row, context) => indexedLabel(runtimeLabel(row), context),
+    },
+    {
+      header: "id",
+      value: (row) => compactText(valueFrom(row, "$id")),
+    },
+    {
+      header: "base",
+      value: (row) => compactText(valueFrom(row, "base")),
+    },
+    {
+      header: "image",
+      value: (row) => compactText(valueFrom(row, "image")),
+    },
+  ]),
   identities: createColumnRenderer(IdentitySummarySchema, [
     {
       header: "identity",

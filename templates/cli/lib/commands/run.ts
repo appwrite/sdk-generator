@@ -42,6 +42,7 @@ import {
   dockerStart,
   dockerBuild,
   dockerPull,
+  assertFunctionSourceCode,
 } from "../emulation/docker.js";
 import { Scopes } from "@appwrite.io/console";
 
@@ -132,12 +133,14 @@ const runFunction = async ({
   };
 
   drawTable([settings]);
-  log(
+  hint(
     "If you wish to change your local settings, update the appwrite.config.json file and rerun the 'appwrite run' command.",
   );
   hint(
     "Permissions, events, CRON and timeouts don't apply when running locally.",
   );
+
+  assertFunctionSourceCode(func);
 
   await dockerCleanup(func.$id);
 
@@ -148,16 +151,9 @@ const runFunction = async ({
     process.exit();
   });
 
-  const logsPath = path.join(
-    localConfig.getDirname(),
-    func.path,
-    ".appwrite/logs.txt",
-  );
-  const errorsPath = path.join(
-    localConfig.getDirname(),
-    func.path,
-    ".appwrite/errors.txt",
-  );
+  const functionPath = localConfig.resolveResourcePath("functions", func.path);
+  const logsPath = path.join(functionPath, ".appwrite/logs.txt");
+  const errorsPath = path.join(functionPath, ".appwrite/errors.txt");
 
   if (!fs.existsSync(path.dirname(logsPath))) {
     fs.mkdirSync(path.dirname(logsPath), { recursive: true });
@@ -194,7 +190,6 @@ const runFunction = async ({
     }
   }
 
-  const functionPath = path.join(localConfig.getDirname(), func.path);
   const envPath = path.join(functionPath, ".env");
   if (fs.existsSync(envPath)) {
     const env = parseDotenv(fs.readFileSync(envPath).toString() ?? "");
@@ -248,10 +243,22 @@ const runFunction = async ({
 
   await dockerPull(func);
 
+  let hasShownRuntimeLogsHeader = false;
+  const showRuntimeLogsHeader = (): void => {
+    if (hasShownRuntimeLogsHeader) {
+      return;
+    }
+
+    hasShownRuntimeLogsHeader = true;
+    log("Runtime logs:");
+  };
+
   new Tail(logsPath).on("line", function (data: string) {
+    showRuntimeLogsHeader();
     process.stdout.write(chalk.white(`${data}\n`));
   });
   new Tail(errorsPath).on("line", function (data: string) {
+    showRuntimeLogsHeader();
     process.stdout.write(chalk.white(`${data}\n`));
   });
 
@@ -270,7 +277,7 @@ const runFunction = async ({
 
     chokidar
       .watch(".", {
-        cwd: path.join(localConfig.getDirname(), func.path),
+        cwd: functionPath,
         ignoreInitial: true,
         ignored: (xpath: string) => {
           const relativePath = path.relative(functionPath, xpath);
@@ -291,6 +298,7 @@ const runFunction = async ({
 
     try {
       await dockerStop(func.$id);
+      assertFunctionSourceCode(func);
 
       const dependencyFile = files.find((filePath: string) =>
         tool.dependencyFiles.includes(filePath),
@@ -369,7 +377,7 @@ const runFunction = async ({
         await dockerStart(func, allVariables, portNum!);
       }
     } catch (err) {
-      console.error(err);
+      error(`Failed to reload function with error: ${getErrorMessage(err)}`);
     } finally {
       Queue.unlock();
     }
@@ -385,8 +393,10 @@ const runFunction = async ({
     return;
   }
 
+  process.stdout.write("\n");
   log("Starting function using Docker ...");
   hint("Function automatically restarts when you edit your code.");
+  process.stdout.write("\n");
   await dockerStart(func, allVariables, portNum!);
 
   Queue.unlock();

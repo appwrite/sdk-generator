@@ -18,9 +18,16 @@ describe('{{ service.name | caseUcfirst }}', () => {
         const data = new ArrayBuffer(0);
         mockedFetch.mockImplementation(() => new Response(data));
         {%~ else %}
-        {%- if method.responseModel and method.responseModel != 'any' %}
+        {% set responseModels = method | getValidResponseModels %}
+        {% set responseModelName = '' %}
+        {% if responseModels|length > 1 %}
+        {% set responseModelName = responseModels|last %}
+        {% elseif method.responseModel and method.responseModel != 'any' %}
+        {% set responseModelName = method.responseModel %}
+        {% endif %}
+        {%- if responseModelName %}
         const data = {
-            {%- for definition in spec.definitions ~%}{%~ if definition.name == method.responseModel -%}{%~ for property in definition.properties | filter((param) => param.required) ~%}
+            {%- for definition in spec.definitions ~%}{%~ if definition.name == responseModelName -%}{%~ for property in definition.properties | filter((param) => param.required) ~%}
             '{{ property.name | escapeDollarSign }}': {% if property.type == 'object' %}{}{% elseif property.type == 'array' %}[]{% elseif property.type == 'string' %}'{{ property.example | escapeDollarSign }}'{% elseif property.type == 'boolean' %}true{% else %}{{ property.example }}{% endif %},{%~ endfor ~%}{% set break = true %}{%- else -%}{% set continue = true %}{%- endif -%}{%~ endfor -%}
         };
         {%~ else %}

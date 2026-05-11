@@ -2,6 +2,7 @@
 
 namespace Appwrite\SDK\Language;
 
+use Twig\TwigFilter;
 use Twig\TwigFunction;
 
 class CLI extends Node
@@ -70,10 +71,8 @@ class CLI extends Node
         'executableName' => 'executable',
         'logo' => '',
         'logoUnescaped' => '',
-        'homebrewMacArm64Sha256' => '0000000000000000000000000000000000000000000000000000000000000000',
-        'homebrewMacX64Sha256' => '0000000000000000000000000000000000000000000000000000000000000000',
-        'homebrewLinuxArm64Sha256' => '0000000000000000000000000000000000000000000000000000000000000000',
-        'homebrewLinuxX64Sha256' => '0000000000000000000000000000000000000000000000000000000000000000',
+        'homebrewTapOwner' => 'appwrite',
+        'homebrewTapName' => 'appwrite',
     ];
 
     /**
@@ -155,16 +154,16 @@ class CLI extends Node
     }
 
     /**
-     * Override a generated Homebrew formula checksum placeholder when a release
-     * build already knows the target binary SHA256.
+     * Configure the Homebrew tap (`<owner>/homebrew-<name>`) hosting the CLI formula.
      *
-     * @param string $key
-     * @param string $sha256
+     * @param string $owner Tap owner (e.g. "appwrite")
+     * @param string $name  Tap short name without the `homebrew-` prefix
      * @return $this
      */
-    public function setHomebrewSha256(string $key, string $sha256): self
+    public function setHomebrewTap(string $owner, string $name): self
     {
-        $this->setParam($key, $sha256);
+        $this->setParam('homebrewTapOwner', $owner);
+        $this->setParam('homebrewTapName', $name);
 
         return $this;
     }
@@ -193,6 +192,92 @@ class CLI extends Node
             return 'x' . ucfirst($name);
         }
         return $name;
+    }
+
+    private function hasArrayQueriesParameter(array $method): bool
+    {
+        foreach ($method['parameters']['all'] ?? [] as $parameter) {
+            if (($parameter['name'] ?? '') === 'queries' && ($parameter['type'] ?? '') === self::TYPE_ARRAY) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function hasOnlyLimitOffsetQueries(array $method): bool
+    {
+        foreach ($method['parameters']['all'] ?? [] as $parameter) {
+            if (($parameter['name'] ?? '') !== 'queries' || ($parameter['type'] ?? '') !== self::TYPE_ARRAY) {
+                continue;
+            }
+
+            if (str_contains(strtolower($parameter['description'] ?? ''), 'only supported methods are limit and offset')) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function hasCliQueryParam(array $service): bool
+    {
+        foreach ($service['methods'] ?? [] as $method) {
+            if ($this->hasArrayQueriesParameter($method)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function getCliQueryConfig(array $method): array
+    {
+        $hasQueries = $this->hasArrayQueriesParameter($method);
+        $methodName = $method['name'] ?? '';
+        $hasOnlyLimitOffsetQueries = $hasQueries && $this->hasOnlyLimitOffsetQueries($method);
+        $hasSelectQueries = $hasQueries && in_array($methodName, ['listDocuments', 'getDocument', 'listRows', 'getRow'], true);
+        $hasSelectionOnlyQueries = $hasQueries && in_array($methodName, ['getDocument', 'getRow'], true);
+        $hasFilteringQueries = $hasQueries && !$hasOnlyLimitOffsetQueries && !$hasSelectionOnlyQueries;
+        $hasPaginationQueries = $hasQueries && !$hasSelectionOnlyQueries;
+
+        $builderParams = [];
+        if ($hasQueries) {
+            $builderParams[] = 'queries';
+
+            if ($hasFilteringQueries) {
+                array_push($builderParams, 'where', 'sortAsc', 'sortDesc', 'cursorAfter', 'cursorBefore');
+            }
+
+            if ($hasPaginationQueries) {
+                array_push($builderParams, 'limit', 'offset');
+            }
+
+            if ($hasSelectQueries) {
+                $builderParams[] = 'select';
+            }
+        }
+
+        if ($hasOnlyLimitOffsetQueries) {
+            $rawDescriptionPrefix = 'Raw Appwrite JSON query strings (legacy). Use this for advanced queries or automation; for common pagination prefer --limit and --offset. When mixed, raw --queries are sent before generated flag queries.';
+        } elseif ($hasSelectionOnlyQueries) {
+            $rawDescriptionPrefix = 'Raw Appwrite JSON query strings (legacy). Use this for advanced queries or automation; for selecting returned attributes prefer --select. When mixed, raw --queries are sent before generated flag queries.';
+        } elseif ($hasSelectQueries) {
+            $rawDescriptionPrefix = 'Raw Appwrite JSON query strings (legacy). Use this for advanced queries or automation; for common filtering, sorting, pagination, and selection prefer --where, --sort-asc, --sort-desc, --limit, --offset, and --select. When mixed, raw --queries are sent before generated flag queries.';
+        } else {
+            $rawDescriptionPrefix = 'Raw Appwrite JSON query strings (legacy). Use this for advanced queries or automation; for common filtering, sorting, and pagination prefer --where, --sort-asc, --sort-desc, --limit, and --offset. When mixed, raw --queries are sent before generated flag queries.';
+        }
+
+        return [
+            'hasQueries' => $hasQueries,
+            'hasFiltering' => $hasFilteringQueries,
+            'hasPagination' => $hasPaginationQueries,
+            'hasCursors' => $hasFilteringQueries,
+            'hasSelect' => $hasSelectQueries,
+            'builderParams' => $builderParams,
+            'extraParams' => array_values(array_filter($builderParams, fn (string $param): bool => $param !== 'queries')),
+            'rawDescriptionPrefix' => $rawDescriptionPrefix,
+        ];
     }
 
     /**
@@ -301,13 +386,6 @@ class CLI extends Node
                 'template'      => 'cli/docs/example.md.twig',
             ],
 
-            // Distribution - Formula (Homebrew)
-            [
-                'scope'         => 'method',
-                'destination'   => 'Formula/{{ language.params.executableName }}.rb',
-                'template'      => 'cli/Formula/formula.rb.twig',
-            ],
-
             // Distribution - Scoop (Windows)
             [
                 'scope'         => 'default',
@@ -331,6 +409,11 @@ class CLI extends Node
                 'scope'         => 'copy',
                 'destination'   => 'lib/config.ts',
                 'template'      => 'cli/lib/config.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'lib/completions.ts',
+                'template'      => 'cli/lib/completions.ts',
             ],
             [
                 'scope'         => 'default',
@@ -540,6 +623,11 @@ class CLI extends Node
                 'destination'   => 'lib/commands/utils/pools.ts',
                 'template'      => 'cli/lib/commands/utils/pools.ts',
             ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'lib/commands/utils/query.ts',
+                'template'      => 'cli/lib/commands/utils/query.ts',
+            ],
 
             // Emulation (lib/emulation/)
             [
@@ -714,6 +802,18 @@ class CLI extends Node
      * Language specific filters.
      * @return array
      */
+    public function getFilters(): array
+    {
+        return array_merge(parent::getFilters(), [
+            new TwigFilter('hasCliQueryParam', fn (array $service): bool => $this->hasCliQueryParam($service)),
+            new TwigFilter('cliQueryConfig', fn (array $method): array => $this->getCliQueryConfig($method)),
+        ]);
+    }
+
+    /**
+     * Language specific functions.
+     * @return array
+     */
     public function getFunctions(): array
     {
         return [
@@ -812,7 +912,7 @@ class CLI extends Node
                 $type = $parameter['type'] ?? 'string';
 
                 if ($type === 'object') {
-                    return "JSON.parse({$varName})";
+                    return "parseJsonObject({$varName}, \"--{$optionName}\")";
                 } elseif ($type === 'file') {
                     return "{$varName} !== undefined ? await resolveFileParam({$varName}) : undefined";
                 } else {

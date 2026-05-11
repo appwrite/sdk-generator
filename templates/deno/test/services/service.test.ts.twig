@@ -13,14 +13,21 @@ describe('{{ service.name | caseUcfirst }} service', () => {
 
     {% for method in service.methods ~%}
     test('test method {{ method.name | caseCamel }}()', async () => {
+        {% set responseModels = method | getValidResponseModels %}
+        {% set responseModelName = '' %}
+        {% if responseModels|length > 1 %}
+        {% set responseModelName = responseModels|last %}
+        {% elseif method.responseModel and method.responseModel != 'any' %}
+        {% set responseModelName = method.responseModel %}
+        {% endif %}
         {%~ if method.type == 'webAuth' %}
         const data = '';
         {%~ elseif method.type == 'location' %}
         const data = new Uint8Array(0);
         {%~ else %}
-            {%- if method.responseModel and method.responseModel != 'any' %}
+            {%- if responseModelName %}
         const data = {
-            {%- for definition in spec.definitions ~%}{%~ if definition.name == method.responseModel -%}{%~ for property in definition.properties | filter((param) => param.required) ~%}
+            {%- for definition in spec.definitions ~%}{%~ if definition.name == responseModelName -%}{%~ for property in definition.properties | filter((param) => param.required) ~%}
             '{{property.name | escapeDollarSign}}': {% if property.type == 'object' %}{}{% elseif property.type == 'array' %}[]{% elseif property.type == 'string' %}'{{property.example | escapeDollarSign}}'{% elseif property.type == 'boolean' %}true{% else %}{{property.example}}{% endif %},{%~ endfor ~%}{% set break = true %}{%- else -%}{% set continue = true %}{%- endif -%}{%~ endfor -%}
         };
             {%~ else %}
@@ -30,7 +37,7 @@ describe('{{ service.name | caseUcfirst }} service', () => {
 
         {%~ if method.type == 'location' %}
         const stubbedFetch = stub(globalThis, 'fetch', () => Promise.resolve(new Response(data.buffer)));
-        {%~ elseif method.responseModel and method.responseModel != 'any' %}
+        {%~ elseif responseModelName %}
         const stubbedFetch = stub(globalThis, 'fetch', () => Promise.resolve(Response.json(data)));
         {%~ else %}
         const stubbedFetch = stub(globalThis, 'fetch', () => Promise.resolve(new Response(data)))

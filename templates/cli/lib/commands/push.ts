@@ -1,5 +1,7 @@
 import fs from "fs";
 import path from "path";
+import readline from "node:readline";
+import { stripVTControlCharacters } from "node:util";
 import { parse as parseDotenv } from "dotenv";
 import chalk from "chalk";
 import inquirer from "inquirer";
@@ -14,6 +16,7 @@ import {
   KeysTopics,
   KeysStorage,
   KeysTeams,
+  KeysWebhooks,
   KeysCollection,
   KeysTable,
 } from "../config.js";
@@ -30,10 +33,15 @@ import {
   arrayEqualsUnordered,
   getFunctionDeploymentConsoleUrl,
   getSiteDeploymentConsoleUrl,
+  siteRequiresBuildCommand,
 } from "../utils.js";
 import { Spinner, SPINNER_DOTS } from "../spinner.js";
 import { paginate } from "../paginate.js";
-import { pushDeployment } from "./utils/deployment.js";
+import {
+  createDeploymentLogPrinter,
+  pushDeployment,
+  watchDeploymentUpdates,
+} from "./utils/deployment.js";
 import {
   questionsPushBuckets,
   questionsPushTeams,
@@ -43,10 +51,12 @@ import {
   questionsPushSites,
   questionsPushSitesActivate,
   questionsPushSitesCode,
+  questionsGetBuildCommand,
   questionsGetEntrypoint,
   questionsPushCollections,
   questionsPushTables,
   questionsPushMessagingTopics,
+  questionsPushWebhooks,
   questionsPushResources,
 } from "../questions.js";
 import {
@@ -71,14 +81,18 @@ import {
   getStorageService,
   getMessagingService,
   getTeamsService,
+  getWebhooksService,
+  getProjectService,
   getProjectsService,
 } from "../services.js";
 import { sdkForProject, sdkForConsole } from "../sdks.js";
 import {
-  ApiService,
-  AuthMethod,
+  ServiceId,
+  ProtocolId,
+  MethodId,
   AppwriteException,
   Client,
+  ImageFormat,
   Query,
 } from "@appwrite.io/console";
 import { Pools } from "./utils/pools.js";
@@ -93,6 +107,505 @@ import { checkAndApplyTablesDBChanges } from "./utils/database-sync.js";
 const POLL_DEBOUNCE = 2000; // Milliseconds
 const POLL_DEFAULT_VALUE = 30;
 const DEPLOYMENT_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
+const DEPLOYMENT_TIMEOUT_MINUTES = Math.round(
+  DEPLOYMENT_TIMEOUT_MS / (60 * 1000),
+);
+const SITE_SCREENSHOT_FINALIZATION_TIMEOUT_MS = 30 * 1000; // 30 seconds
+const SITE_SCREENSHOT_BUCKET_ID = "screenshots";
+const SITE_SCREENSHOT_PREVIEW_WIDTH = 480;
+const SITE_SCREENSHOT_PREVIEW_HEIGHT = 270;
+const SITE_TERMINAL_PREVIEW_TARGET_WIDTH = 72;
+const SITE_TERMINAL_PREVIEW_MAX_WIDTH = 80;
+const SITE_TERMINAL_PREVIEW_MAX_HEIGHT = 22;
+const SITE_TERMINAL_PREVIEW_MIN_HEIGHT = 8;
+const WAITING_JOKE_THRESHOLD_MS = 30 * 1000; // 30 seconds
+const WAITING_JOKE_URL = "https://xkcd.com/303/";
+const ANSI_RESET = "\u001B[0m";
+
+type TerminalImageModule = typeof import("terminal-image");
+
+let terminalImageModulePromise:
+  | Promise<TerminalImageModule["default"]>
+  | undefined;
+
+function getDeploymentProgressText(
+  status: string,
+  waitingSince: number | null,
+): string {
+  if (
+    status === "waiting" &&
+    waitingSince !== null &&
+    Date.now() - waitingSince >= WAITING_JOKE_THRESHOLD_MS
+  ) {
+    return `Still waiting... ${WAITING_JOKE_URL}`;
+  }
+
+  return `Status: ${status}`;
+}
+
+function getDeploymentTimeoutErrorMessage(): string {
+  return `Deployment got stuck for more than ${DEPLOYMENT_TIMEOUT_MINUTES} minutes`;
+}
+
+function getDeploymentProgressSignature(
+  deployment: Record<string, unknown>,
+): string {
+  const status =
+    typeof deployment["status"] === "string" ? deployment["status"] : "";
+  const buildLogs =
+    typeof deployment["buildLogs"] === "string" ? deployment["buildLogs"] : "";
+  const updatedAt =
+    typeof deployment["$updatedAt"] === "string"
+      ? deployment["$updatedAt"]
+      : "";
+  const { screenshotLight, screenshotDark } =
+    getSiteDeploymentScreenshots(deployment);
+
+  return JSON.stringify({
+    status,
+    updatedAt,
+    buildLogsLength: buildLogs.length,
+    buildLogsTail: buildLogs.slice(-200),
+    screenshotLight: screenshotLight ?? "",
+    screenshotDark: screenshotDark ?? "",
+  });
+}
+
+function createDeploymentTimeoutTracker(deployment: Record<string, unknown>): {
+  touch: (deployment: Record<string, unknown>) => void;
+  hasTimedOut: () => boolean;
+} {
+  let lastActivityAt = Date.now();
+  let lastSignature: string | null = null;
+
+  const touch = (nextDeployment: Record<string, unknown>): void => {
+    const nextSignature = getDeploymentProgressSignature(nextDeployment);
+    if (nextSignature === lastSignature) {
+      return;
+    }
+
+    lastSignature = nextSignature;
+    lastActivityAt = Date.now();
+  };
+
+  touch(deployment);
+
+  return {
+    touch,
+    hasTimedOut: () => Date.now() - lastActivityAt > DEPLOYMENT_TIMEOUT_MS,
+  };
+}
+
+async function getTerminalImage() {
+  terminalImageModulePromise ??= import("terminal-image").then(
+    (module) => module.default,
+  );
+
+  return terminalImageModulePromise;
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message.trim().length > 0) {
+    return error.message.trim();
+  }
+
+  if (Array.isArray(error)) {
+    const messages = error
+      .map((entry) => getErrorMessage(entry))
+      .filter((entry) => entry !== "Unknown error");
+
+    if (messages.length > 0) {
+      return messages.join("; ");
+    }
+  }
+
+  if (typeof error === "string" && error.trim().length > 0) {
+    return error.trim();
+  }
+
+  if (error && typeof error === "object") {
+    const objectMessage = Reflect.get(error, "message");
+
+    if (typeof objectMessage === "string" && objectMessage.trim().length > 0) {
+      return objectMessage.trim();
+    }
+
+    try {
+      return JSON.stringify(error);
+    } catch (_serializationError) {
+      // Ignore serialization failures and fall through to a generic message.
+    }
+  }
+
+  return "Unknown error";
+}
+
+function getSiteDeploymentScreenshots(deployment: Record<string, unknown>): {
+  screenshotLight?: string;
+  screenshotDark?: string;
+} {
+  const screenshotLight =
+    typeof deployment["screenshotLight"] === "string" &&
+    deployment["screenshotLight"].trim().length > 0
+      ? deployment["screenshotLight"]
+      : undefined;
+  const screenshotDark =
+    typeof deployment["screenshotDark"] === "string" &&
+    deployment["screenshotDark"].trim().length > 0
+      ? deployment["screenshotDark"]
+      : undefined;
+
+  return {
+    screenshotLight,
+    screenshotDark,
+  };
+}
+
+function hasSiteDeploymentScreenshots(
+  deployment: Record<string, unknown>,
+): boolean {
+  const { screenshotLight, screenshotDark } =
+    getSiteDeploymentScreenshots(deployment);
+
+  return Boolean(screenshotLight || screenshotDark);
+}
+
+function shouldRenderSiteTerminalPreview(): boolean {
+  return Boolean(process.stdout.isTTY) && !cliConfig.json && !cliConfig.raw;
+}
+
+function getSiteTerminalPreviewWidth(): number {
+  const columns = process.stdout.columns ?? 80;
+  return Math.max(
+    16,
+    Math.min(
+      columns - 4,
+      SITE_TERMINAL_PREVIEW_TARGET_WIDTH,
+      SITE_TERMINAL_PREVIEW_MAX_WIDTH,
+    ),
+  );
+}
+
+function getSiteTerminalPreviewHeight(): number {
+  const rows = process.stdout.rows ?? 24;
+  return Math.max(
+    SITE_TERMINAL_PREVIEW_MIN_HEIGHT,
+    Math.min(rows - 10, SITE_TERMINAL_PREVIEW_MAX_HEIGHT),
+  );
+}
+
+async function renderImageBufferToTerminalPreview(
+  buffer: Buffer,
+): Promise<string> {
+  const terminalImage = await getTerminalImage();
+  const originalTermProgram = process.env.TERM_PROGRAM;
+  const originalTermProgramVersion = process.env.TERM_PROGRAM_VERSION;
+  const originalKonsoleVersion = process.env.KONSOLE_VERSION;
+  const originalKittyWindowId = process.env.KITTY_WINDOW_ID;
+
+  // Force terminal-image's ANSI fallback so the preview is portable and can
+  // be framed consistently in the deploy summary.
+  delete process.env.TERM_PROGRAM;
+  delete process.env.TERM_PROGRAM_VERSION;
+  delete process.env.KONSOLE_VERSION;
+  delete process.env.KITTY_WINDOW_ID;
+
+  try {
+    return await terminalImage.buffer(buffer, {
+      width: getSiteTerminalPreviewWidth(),
+      height: getSiteTerminalPreviewHeight(),
+      preserveAspectRatio: true,
+    });
+  } finally {
+    if (originalTermProgram === undefined) {
+      delete process.env.TERM_PROGRAM;
+    } else {
+      process.env.TERM_PROGRAM = originalTermProgram;
+    }
+
+    if (originalTermProgramVersion === undefined) {
+      delete process.env.TERM_PROGRAM_VERSION;
+    } else {
+      process.env.TERM_PROGRAM_VERSION = originalTermProgramVersion;
+    }
+
+    if (originalKonsoleVersion === undefined) {
+      delete process.env.KONSOLE_VERSION;
+    } else {
+      process.env.KONSOLE_VERSION = originalKonsoleVersion;
+    }
+
+    if (originalKittyWindowId === undefined) {
+      delete process.env.KITTY_WINDOW_ID;
+    } else {
+      process.env.KITTY_WINDOW_ID = originalKittyWindowId;
+    }
+  }
+}
+
+async function fetchSiteScreenshotPreview(params: {
+  renderer: SiteTerminalPreviewRenderer;
+  fileId: string;
+}): Promise<string> {
+  const previewUrl = params.renderer.storageService.getFilePreview({
+    bucketId: SITE_SCREENSHOT_BUCKET_ID,
+    fileId: params.fileId,
+    width: SITE_SCREENSHOT_PREVIEW_WIDTH,
+    height: SITE_SCREENSHOT_PREVIEW_HEIGHT,
+    output: ImageFormat.Png,
+  });
+
+  const imageData = await params.renderer.consoleClient.call(
+    "get",
+    new URL(previewUrl),
+    {},
+    {},
+    "arrayBuffer",
+  );
+
+  if (!(imageData instanceof ArrayBuffer)) {
+    throw new Error("Failed to download the site screenshot preview.");
+  }
+
+  return renderImageBufferToTerminalPreview(Buffer.from(imageData));
+}
+
+function frameTerminalPreview(preview: string): string {
+  const lines = preview.split("\n").map((line) => line.replace(/\s+$/, ""));
+
+  while (
+    lines.length > 0 &&
+    stripVTControlCharacters(lines[0]).trim().length === 0
+  ) {
+    lines.shift();
+  }
+
+  while (
+    lines.length > 0 &&
+    stripVTControlCharacters(lines[lines.length - 1]).trim().length === 0
+  ) {
+    lines.pop();
+  }
+
+  if (lines.length === 0) {
+    return "";
+  }
+
+  const contentWidth = Math.max(
+    ...lines.map((line) => stripVTControlCharacters(line).length),
+  );
+  const border = `+-${"-".repeat(contentWidth)}-+`;
+
+  return [
+    border,
+    ...lines.map((line) => {
+      const visibleWidth = stripVTControlCharacters(line).length;
+
+      return `| ${line}${ANSI_RESET}${" ".repeat(contentWidth - visibleWidth)} |`;
+    }),
+    border,
+  ].join("\n");
+}
+
+async function renderSiteTerminalPreview(params: {
+  renderer: SiteTerminalPreviewRenderer;
+  screenshotLight?: string;
+  screenshotDark?: string;
+}): Promise<SiteTerminalPreviewResult> {
+  const warnings = new Set<string>();
+  const candidates: Array<{
+    fileId?: string;
+    label: "dark" | "light";
+  }> = [
+    { fileId: params.screenshotDark, label: "dark" },
+    { fileId: params.screenshotLight, label: "light" },
+  ];
+
+  for (const candidate of candidates) {
+    const { fileId, label } = candidate;
+
+    if (!fileId) {
+      continue;
+    }
+
+    try {
+      const preview = await fetchSiteScreenshotPreview({
+        renderer: params.renderer,
+        fileId,
+      });
+
+      return {
+        preview: frameTerminalPreview(preview),
+        warnings: [],
+      };
+    } catch (previewError) {
+      warnings.add(
+        `${label === "dark" ? "Dark mode" : "Light mode"} screenshot: ${getErrorMessage(previewError)}`,
+      );
+    }
+  }
+
+  return {
+    preview: undefined,
+    warnings: [...warnings],
+  };
+}
+
+interface FailedDeployment {
+  name: string;
+  $id: string;
+  deployment: string;
+  reason?: "failed" | "timeout";
+  consoleUrl?: string;
+}
+
+interface SiteDeploymentSummary {
+  name: string;
+  url: string;
+  consoleUrl: string;
+  screenshotLight?: string;
+  screenshotDark?: string;
+  screenshotsPending?: boolean;
+}
+
+interface SiteTerminalPreviewRenderer {
+  consoleClient: Client;
+  storageService: Awaited<ReturnType<typeof getStorageService>>;
+}
+
+interface SiteTerminalPreviewResult {
+  preview?: string;
+  warnings: string[];
+}
+
+type DeploymentLogPrinterHandle = ReturnType<typeof createDeploymentLogPrinter>;
+
+interface DeploymentLogsController {
+  isVisible: () => boolean;
+  getToggleHint: () => string;
+  onToggle: (listener: () => void) => () => void;
+  registerPrinter: (printer: DeploymentLogPrinterHandle) => void;
+  close: () => void;
+}
+
+function withDeploymentLogsHint(
+  message: string,
+  deploymentLogsController: DeploymentLogsController,
+): string {
+  const hint = deploymentLogsController.getToggleHint();
+  return hint.length > 0 ? `${message} • ${hint}` : message;
+}
+
+function createDeploymentLogsController(
+  enabled: boolean,
+): DeploymentLogsController {
+  const printers = new Set<DeploymentLogPrinterHandle>();
+  const listeners = new Set<() => void>();
+  let isVisible = enabled;
+
+  if (!enabled || !process.stdin.isTTY) {
+    return {
+      isVisible: () => isVisible,
+      getToggleHint: () => "",
+      onToggle: () => () => {},
+      registerPrinter: () => {},
+      close: () => {},
+    };
+  }
+
+  const stdin = process.stdin as NodeJS.ReadStream & {
+    isRaw?: boolean;
+    setRawMode?: (mode: boolean) => void;
+  };
+
+  if (typeof stdin.setRawMode !== "function") {
+    return {
+      isVisible: () => isVisible,
+      getToggleHint: () => "",
+      onToggle: () => () => {},
+      registerPrinter: () => {},
+      close: () => {},
+    };
+  }
+
+  let isClosed = false;
+
+  const cleanup = (): void => {
+    if (isClosed) {
+      return;
+    }
+
+    isClosed = true;
+    stdin.off("keypress", onKeypress);
+    if (shouldRestoreRawMode) {
+      stdin.setRawMode(false);
+    }
+    stdin.pause();
+  };
+
+  const onKeypress = (
+    input: string,
+    key: { ctrl?: boolean; meta?: boolean; name?: string } | undefined,
+  ): void => {
+    if (!key) {
+      return;
+    }
+
+    if (key.ctrl && key.name === "c") {
+      cleanup();
+      process.kill(process.pid, "SIGINT");
+      return;
+    }
+
+    const pressedKey = (key.name ?? input ?? "").toLowerCase();
+    if (pressedKey !== "l" || key.ctrl || key.meta) {
+      return;
+    }
+
+    isVisible = !isVisible;
+
+    for (const listener of listeners) {
+      listener();
+    }
+
+    if (isVisible) {
+      for (const printer of printers) {
+        printer.flush();
+      }
+    }
+  };
+
+  readline.emitKeypressEvents(stdin);
+  stdin.resume();
+
+  const shouldRestoreRawMode = stdin.isRaw !== true;
+  if (shouldRestoreRawMode) {
+    stdin.setRawMode(true);
+  }
+
+  stdin.on("keypress", onKeypress);
+
+  return {
+    isVisible: () => isVisible,
+    getToggleHint: (): string =>
+      isVisible
+        ? "Press l to pause log stream"
+        : "Press l to resume log stream",
+    onToggle: (listener: () => void): (() => void) => {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    },
+    registerPrinter: (printer: DeploymentLogPrinterHandle): void => {
+      printers.add(printer);
+      if (isVisible) {
+        printer.flush();
+      }
+    },
+    close: cleanup,
+  };
+}
 
 export interface PushOptions {
   all?: boolean;
@@ -103,6 +616,7 @@ export interface PushOptions {
   tables?: boolean;
   buckets?: boolean;
   teams?: boolean;
+  webhooks?: boolean;
   topics?: boolean;
   skipDeprecated?: boolean;
   skipConfirmation?: boolean;
@@ -112,12 +626,14 @@ export interface PushOptions {
     code?: boolean;
     activate?: boolean;
     withVariables?: boolean;
+    logs?: boolean;
   };
   siteOptions?: {
     async?: boolean;
     code?: boolean;
     activate?: boolean;
     withVariables?: boolean;
+    logs?: boolean;
   };
   tableOptions?: {
     attempts?: number;
@@ -130,6 +646,7 @@ interface PushSiteOptions {
   code?: boolean;
   activate?: boolean;
   withVariables?: boolean;
+  logs?: boolean;
 }
 
 interface PushFunctionOptions {
@@ -138,6 +655,7 @@ interface PushFunctionOptions {
   code?: boolean;
   activate?: boolean;
   withVariables?: boolean;
+  logs?: boolean;
 }
 
 interface PushTableOptions {
@@ -303,6 +821,26 @@ export class Push {
         }
       }
 
+      // Push webhooks
+      if (
+        (shouldPushAll || options.webhooks) &&
+        config.webhooks &&
+        config.webhooks.length > 0
+      ) {
+        try {
+          this.log("Pushing webhooks ...");
+          const result = await this.pushWebhooks(config.webhooks);
+          this.success(
+            `Successfully pushed ${chalk.bold(result.successfullyPushed)} webhooks.`,
+          );
+          results.webhooks = result;
+          allErrors.push(...result.errors);
+        } catch (e: any) {
+          allErrors.push(e);
+          results.webhooks = { successfullyPushed: 0, errors: [e] };
+        }
+      }
+
       // Push messaging topics
       if (
         (shouldPushAll || options.topics) &&
@@ -452,6 +990,7 @@ export class Push {
   }): Promise<void> {
     const projectsService = await getProjectsService(this.consoleClient);
     const projectId = config.projectId;
+    const projectService = await getProjectService();
     const projectName = config.projectName;
     const settings = config.settings ?? {};
 
@@ -466,10 +1005,19 @@ export class Push {
     if (settings.services) {
       this.log("Applying service statuses ...");
       for (const [service, status] of Object.entries(settings.services)) {
-        await projectsService.updateServiceStatus({
-          projectId: projectId,
-          service: service as ApiService,
-          status: status,
+        await projectService.updateService({
+          serviceId: service as ServiceId,
+          enabled: status,
+        });
+      }
+    }
+
+    if (settings.protocols) {
+      this.log("Applying protocol statuses ...");
+      for (const [protocol, status] of Object.entries(settings.protocols)) {
+        await projectService.updateProtocol({
+          protocolId: protocol as ProtocolId,
+          enabled: status,
         });
       }
     }
@@ -477,47 +1025,91 @@ export class Push {
     if (settings.auth) {
       if (settings.auth.security) {
         this.log("Applying auth security settings ...");
-        await projectsService.updateAuthDuration({
-          projectId,
+        await projectService.updateSessionDurationPolicy({
           duration: Number(settings.auth.security.duration),
         });
-        await projectsService.updateAuthLimit({
-          projectId,
-          limit: Number(settings.auth.security.limit),
+        await projectService.updateUserLimitPolicy({
+          total: Number(settings.auth.security.limit),
         });
-        await projectsService.updateAuthSessionsLimit({
-          projectId,
-          limit: Number(settings.auth.security.sessionsLimit),
+        await projectService.updateSessionLimitPolicy({
+          total: Number(settings.auth.security.sessionsLimit),
         });
-        await projectsService.updateAuthPasswordDictionary({
-          projectId,
+        await projectService.updatePasswordDictionaryPolicy({
           enabled: settings.auth.security.passwordDictionary,
         });
-        await projectsService.updateAuthPasswordHistory({
-          projectId,
-          limit: Number(settings.auth.security.passwordHistory),
+        await projectService.updatePasswordHistoryPolicy({
+          total: Number(settings.auth.security.passwordHistory),
         });
-        await projectsService.updatePersonalDataCheck({
-          projectId,
+        await projectService.updatePasswordPersonalDataPolicy({
           enabled: settings.auth.security.personalDataCheck,
         });
-        await projectsService.updateSessionAlerts({
-          projectId,
-          alerts: settings.auth.security.sessionAlerts,
+        await projectService.updateSessionAlertPolicy({
+          enabled: settings.auth.security.sessionAlerts,
         });
-        await projectsService.updateMockNumbers({
-          projectId,
-          numbers: settings.auth.security.mockNumbers,
-        });
+        if (settings.auth.security.mockNumbers !== undefined) {
+          const remoteMockNumbers: Array<{ number: string; otp: string }> = [];
+          const limit = 100;
+          let offset = 0;
+          let total = 0;
+
+          do {
+            const response = await projectService.listMockPhones({
+              queries: [Query.limit(limit), Query.offset(offset)],
+            });
+
+            remoteMockNumbers.push(...response.mockNumbers);
+            total = response.total;
+            offset += response.mockNumbers.length;
+
+            if (response.mockNumbers.length === 0) {
+              break;
+            }
+          } while (offset < total);
+
+          const desiredMockNumbersByPhone = new Map(
+            settings.auth.security.mockNumbers.map((mockNumber) => [
+              mockNumber.phone,
+              mockNumber.otp,
+            ]),
+          );
+
+          for (const remoteMockNumber of remoteMockNumbers) {
+            const desiredOtp = desiredMockNumbersByPhone.get(
+              remoteMockNumber.number,
+            );
+
+            if (desiredOtp === undefined) {
+              await projectService.deleteMockPhone({
+                number: remoteMockNumber.number,
+              });
+              continue;
+            }
+
+            if (remoteMockNumber.otp !== desiredOtp) {
+              await projectService.updateMockPhone({
+                number: remoteMockNumber.number,
+                otp: desiredOtp,
+              });
+            }
+
+            desiredMockNumbersByPhone.delete(remoteMockNumber.number);
+          }
+
+          for (const [phone, otp] of desiredMockNumbersByPhone) {
+            await projectService.createMockPhone({
+              number: phone,
+              otp,
+            });
+          }
+        }
       }
 
       if (settings.auth.methods) {
         this.log("Applying auth methods statuses ...");
         for (const [method, status] of Object.entries(settings.auth.methods)) {
-          await projectsService.updateAuthStatus({
-            projectId,
-            method: method as AuthMethod,
-            status: status,
+          await projectService.updateAuthMethod({
+            methodId: method as MethodId,
+            enabled: status,
           });
         }
       }
@@ -665,6 +1257,56 @@ export class Push {
     };
   }
 
+  public async pushWebhooks(webhooks: any[]): Promise<{
+    successfullyPushed: number;
+    errors: any[];
+  }> {
+    let successfullyPushed = 0;
+    const errors: any[] = [];
+
+    for (const webhook of webhooks) {
+      try {
+        this.log(`Pushing webhook ${chalk.bold(webhook["name"])} ...`);
+        const webhooksService = await getWebhooksService(this.projectClient);
+
+        try {
+          await webhooksService.get({ webhookId: webhook["$id"] });
+          await webhooksService.update({
+            webhookId: webhook["$id"],
+            name: webhook.name,
+            url: webhook.url,
+            events: webhook.events,
+            enabled: webhook.enabled,
+            tls: webhook.tls,
+          });
+        } catch (e: unknown) {
+          if (e instanceof AppwriteException && Number(e.code) === 404) {
+            await webhooksService.create({
+              webhookId: webhook["$id"],
+              url: webhook.url,
+              name: webhook.name,
+              events: webhook.events,
+              enabled: webhook.enabled,
+              tls: webhook.tls,
+            });
+          } else {
+            throw e;
+          }
+        }
+
+        successfullyPushed++;
+      } catch (e: any) {
+        errors.push(e);
+        this.error(`Failed to push webhook ${webhook["name"]}: ${e.message}`);
+      }
+    }
+
+    return {
+      successfullyPushed,
+      errors,
+    };
+  }
+
   public async pushMessagingTopics(topics: any[]): Promise<{
     successfullyPushed: number;
     errors: any[];
@@ -717,11 +1359,12 @@ export class Push {
       code?: boolean;
       activate?: boolean;
       withVariables?: boolean;
+      logs?: boolean;
     } = {},
   ): Promise<{
     successfullyPushed: number;
     successfullyDeployed: number;
-    failedDeployments: any[];
+    failedDeployments: FailedDeployment[];
     errors: any[];
   }> {
     const {
@@ -729,88 +1372,58 @@ export class Push {
       code,
       activate = true,
       withVariables,
+      logs = true,
     } = options;
 
     Spinner.start(false);
+    const deploymentLogsController = createDeploymentLogsController(
+      logs && !asyncDeploy,
+    );
     let successfullyPushed = 0;
     let successfullyDeployed = 0;
-    const failedDeployments: any[] = [];
+    const failedDeployments: FailedDeployment[] = [];
     const errors: any[] = [];
     const deploymentLogs: {
       url: string;
       consoleUrl: string;
-      elapsed: string;
     }[] = [];
 
-    await Promise.all(
-      functions.map(async (func: any) => {
-        let response: any = {};
+    try {
+      await Promise.all(
+        functions.map(async (func: any) => {
+          let response: any = {};
 
-        const ignore = func.ignore ? "appwrite.config.json" : ".gitignore";
-        let functionExists = false;
-        let deploymentCreated = false;
+          const ignore = func.ignore ? "appwrite.config.json" : ".gitignore";
+          let functionExists = false;
+          let deploymentCreated = false;
 
-        const updaterRow = new Spinner({
-          status: "",
-          resource: func.name,
-          id: func["$id"],
-          end: `Ignoring using: ${ignore}`,
-        });
-
-        updaterRow.update({ status: "Getting" }).startSpinner(SPINNER_DOTS);
-        const functionsService = await getFunctionsService(this.projectClient);
-        try {
-          response = await functionsService.get({ functionId: func["$id"] });
-          functionExists = true;
-          if (response.runtime !== func.runtime) {
-            updaterRow.fail({
-              errorMessage: `Runtime mismatch! (local=${func.runtime},remote=${response.runtime}) Please delete remote function or update your appwrite.config.json`,
-            });
-            return;
-          }
-
-          updaterRow
-            .update({ status: "Updating" })
-            .replaceSpinner(SPINNER_DOTS);
-
-          response = await functionsService.update({
-            functionId: func["$id"],
-            name: func.name,
-            runtime: func.runtime,
-            execute: func.execute,
-            events: func.events,
-            schedule: func.schedule,
-            timeout: func.timeout,
-            enabled: func.enabled,
-            logging: func.logging,
-            entrypoint: func.entrypoint,
-            commands: func.commands,
-            scopes: func.scopes,
-            buildSpecification: func.buildSpecification,
-            runtimeSpecification: func.runtimeSpecification,
-            deploymentRetention: func.deploymentRetention,
+          const updaterRow = new Spinner({
+            status: "",
+            resource: func.name,
+            id: func["$id"],
+            end: `Ignoring using: ${ignore}`,
           });
-        } catch (e: any) {
-          if (Number(e.code) === 404) {
-            functionExists = false;
-          } else {
-            errors.push(e);
-            updaterRow.fail({
-              errorMessage:
-                e.message ?? "General error occurs please try again",
-            });
-            return;
-          }
-        }
 
-        if (!functionExists) {
-          updaterRow
-            .update({ status: "Creating" })
-            .replaceSpinner(SPINNER_DOTS);
-
+          updaterRow.update({ status: "Getting" }).startSpinner(SPINNER_DOTS);
+          const functionsService = await getFunctionsService(
+            this.projectClient,
+          );
           try {
-            response = await functionsService.create({
-              functionId: func.$id,
+            response = await functionsService.get({ functionId: func["$id"] });
+            functionExists = true;
+            if (response.runtime !== func.runtime) {
+              updaterRow.fail({
+                errorMessage: `Runtime mismatch! (local=${func.runtime},remote=${response.runtime}) Please delete remote function or update your appwrite.config.json`,
+              });
+              return;
+            }
+
+            updaterRow
+              .update({ status: "Updating" })
+              .replaceSpinner(SPINNER_DOTS);
+
+            response = await functionsService.update({
+              functionId: func["$id"],
               name: func.name,
               runtime: func.runtime,
               execute: func.execute,
@@ -826,296 +1439,423 @@ export class Push {
               runtimeSpecification: func.runtimeSpecification,
               deploymentRetention: func.deploymentRetention,
             });
-
-            let domain = "";
-            try {
-              const consoleService = await getConsoleService(
-                this.consoleClient,
-              );
-              const variables = await consoleService.variables();
-              domain = ID.unique() + "." + variables["_APP_DOMAIN_FUNCTIONS"];
-            } catch (err) {
-              this.error("Error fetching console variables.");
-              throw err;
-            }
-
-            try {
-              const proxyService = await getProxyService(this.projectClient);
-              await proxyService.createFunctionRule(domain, func.$id);
-            } catch (err) {
-              this.error("Error creating function rule.");
-              throw err;
-            }
-
-            updaterRow.update({ status: "Created" });
           } catch (e: any) {
-            errors.push(e);
+            if (Number(e.code) === 404) {
+              functionExists = false;
+            } else {
+              errors.push(e);
+              updaterRow.fail({
+                errorMessage:
+                  e.message ?? "General error occurs please try again",
+              });
+              return;
+            }
+          }
+
+          if (!functionExists) {
+            updaterRow
+              .update({ status: "Creating" })
+              .replaceSpinner(SPINNER_DOTS);
+
+            try {
+              response = await functionsService.create({
+                functionId: func.$id,
+                name: func.name,
+                runtime: func.runtime,
+                execute: func.execute,
+                events: func.events,
+                schedule: func.schedule,
+                timeout: func.timeout,
+                enabled: func.enabled,
+                logging: func.logging,
+                entrypoint: func.entrypoint,
+                commands: func.commands,
+                scopes: func.scopes,
+                buildSpecification: func.buildSpecification,
+                runtimeSpecification: func.runtimeSpecification,
+                deploymentRetention: func.deploymentRetention,
+              });
+
+              let domain = "";
+              try {
+                const consoleService = await getConsoleService(
+                  this.consoleClient,
+                );
+                const variables = await consoleService.variables();
+                domain = ID.unique() + "." + variables["_APP_DOMAIN_FUNCTIONS"];
+              } catch (err) {
+                this.error("Error fetching console variables.");
+                throw err;
+              }
+
+              try {
+                const proxyService = await getProxyService(this.projectClient);
+                await proxyService.createFunctionRule(domain, func.$id);
+              } catch (err) {
+                this.error("Error creating function rule.");
+                throw err;
+              }
+
+              updaterRow.update({ status: "Created" });
+            } catch (e: any) {
+              errors.push(e);
+              updaterRow.fail({
+                errorMessage:
+                  e.message ?? "General error occurs please try again",
+              });
+              return;
+            }
+          }
+
+          if (withVariables) {
+            updaterRow
+              .update({ status: "Updating variables" })
+              .replaceSpinner(SPINNER_DOTS);
+
+            const functionsServiceForVars = await getFunctionsService(
+              this.projectClient,
+            );
+            const { variables } = await functionsServiceForVars.listVariables({
+              functionId: func["$id"],
+            });
+
+            await Promise.all(
+              variables.map(async (variable: any) => {
+                const functionsServiceDel = await getFunctionsService(
+                  this.projectClient,
+                );
+                await functionsServiceDel.deleteVariable({
+                  functionId: func["$id"],
+                  variableId: variable["$id"],
+                });
+              }),
+            );
+
+            const envFileLocation = `${func["path"]}/.env`;
+            let envVariables: Array<{ key: string; value: string }> = [];
+            try {
+              if (fs.existsSync(envFileLocation)) {
+                const envObject = parseDotenv(
+                  fs.readFileSync(envFileLocation, "utf8"),
+                );
+                envVariables = Object.entries(envObject || {}).map(
+                  ([key, value]) => ({ key, value }),
+                );
+              }
+            } catch (_error) {
+              envVariables = [];
+            }
+            await Promise.all(
+              envVariables.map(async (variable) => {
+                const functionsServiceCreate = await getFunctionsService(
+                  this.projectClient,
+                );
+                await functionsServiceCreate.createVariable({
+                  functionId: func["$id"],
+                  key: variable.key,
+                  value: variable.value,
+                  secret: false,
+                });
+              }),
+            );
+          }
+
+          if (code === false) {
+            successfullyPushed++;
+            successfullyDeployed++;
+            updaterRow.update({ status: "Pushed" });
+            updaterRow.stopSpinner();
+            return;
+          }
+
+          if (!func.path) {
+            errors.push(
+              new Error(`Function '${func.name}' has no path configured`),
+            );
             updaterRow.fail({
-              errorMessage:
-                e.message ?? "General error occurs please try again",
+              errorMessage: `No path configured for function`,
             });
             return;
           }
-        }
 
-        if (withVariables) {
-          updaterRow
-            .update({ status: "Updating variables" })
-            .replaceSpinner(SPINNER_DOTS);
-
-          const functionsServiceForVars = await getFunctionsService(
-            this.projectClient,
-          );
-          const { variables } = await functionsServiceForVars.listVariables({
-            functionId: func["$id"],
-          });
-
-          await Promise.all(
-            variables.map(async (variable: any) => {
-              const functionsServiceDel = await getFunctionsService(
-                this.projectClient,
-              );
-              await functionsServiceDel.deleteVariable({
-                functionId: func["$id"],
-                variableId: variable["$id"],
-              });
-            }),
-          );
-
-          const envFileLocation = `${func["path"]}/.env`;
-          let envVariables: Array<{ key: string; value: string }> = [];
-          try {
-            if (fs.existsSync(envFileLocation)) {
-              const envObject = parseDotenv(
-                fs.readFileSync(envFileLocation, "utf8"),
-              );
-              envVariables = Object.entries(envObject || {}).map(
-                ([key, value]) => ({ key, value }),
-              );
-            }
-          } catch (_error) {
-            envVariables = [];
+          if (
+            !fs.existsSync(func.path) ||
+            fs.readdirSync(func.path).length === 0
+          ) {
+            errors.push(
+              new Error(`Deployment not found or empty at path: ${func.path}`),
+            );
+            updaterRow.fail({
+              errorMessage: `path not found or empty: ${path.relative(process.cwd(), path.resolve(func.path))}`,
+            });
+            return;
           }
-          await Promise.all(
-            envVariables.map(async (variable) => {
-              const functionsServiceCreate = await getFunctionsService(
-                this.projectClient,
-              );
-              await functionsServiceCreate.createVariable({
-                functionId: func["$id"],
-                key: variable.key,
-                value: variable.value,
-                secret: false,
-              });
-            }),
-          );
-        }
 
-        if (code === false) {
-          successfullyPushed++;
-          successfullyDeployed++;
-          updaterRow.update({ status: "Pushed" });
-          updaterRow.stopSpinner();
-          return;
-        }
-
-        if (!func.path) {
-          errors.push(
-            new Error(`Function '${func.name}' has no path configured`),
-          );
-          updaterRow.fail({
-            errorMessage: `No path configured for function`,
-          });
-          return;
-        }
-
-        if (
-          !fs.existsSync(func.path) ||
-          fs.readdirSync(func.path).length === 0
-        ) {
-          errors.push(
-            new Error(`Deployment not found or empty at path: ${func.path}`),
-          );
-          updaterRow.fail({
-            errorMessage: `path not found or empty: ${path.relative(process.cwd(), path.resolve(func.path))}`,
-          });
-          return;
-        }
-
-        const deployStartTime = Date.now();
-        try {
-          updaterRow.update({ status: "Pushing" }).replaceSpinner(SPINNER_DOTS);
-          const functionsServiceDeploy = await getFunctionsService(
-            this.projectClient,
-          );
-
-          const result = await pushDeployment({
-            resourcePath: func.path,
-            extraIgnoreRules: normalizeIgnoreRules(func.ignore),
-            createDeployment: async (codeFile) => {
-              return await functionsServiceDeploy.createDeployment({
-                functionId: func["$id"],
-                entrypoint: func.entrypoint,
-                commands: func.commands,
-                code: codeFile,
-                activate,
-              });
-            },
-            pollForStatus: false,
-          });
-
-          response = result.deployment;
-          updaterRow.update({ status: "Pushed" });
-
-          deploymentCreated = true;
-          successfullyPushed++;
-        } catch (e: any) {
-          errors.push(e);
-
-          switch (e.code) {
-            case "ENOENT":
-              updaterRow.fail({
-                errorMessage: `Deployment not found at path: ${path.resolve(func.path)}`,
-              });
-              break;
-            default:
-              updaterRow.fail({
-                errorMessage:
-                  e.message ?? "An unknown error occurred. Please try again.",
-              });
-          }
-        }
-
-        if (deploymentCreated && !asyncDeploy) {
           try {
-            const deploymentId = response["$id"];
-            updaterRow.update({
-              status: "Deploying",
-              end: "Checking deployment status...",
+            updaterRow
+              .update({ status: "Pushing" })
+              .replaceSpinner(SPINNER_DOTS);
+            const functionsServiceDeploy = await getFunctionsService(
+              this.projectClient,
+            );
+
+            const result = await pushDeployment({
+              resourcePath: func.path,
+              extraIgnoreRules: normalizeIgnoreRules(func.ignore),
+              createDeployment: async (codeFile) => {
+                return await functionsServiceDeploy.createDeployment({
+                  functionId: func["$id"],
+                  entrypoint: func.entrypoint,
+                  commands: func.commands,
+                  code: codeFile,
+                  activate,
+                });
+              },
+              pollForStatus: false,
             });
 
-            const timeoutDeadline = Date.now() + DEPLOYMENT_TIMEOUT_MS;
+            response = result.deployment;
+            updaterRow.update({ status: "Pushed" });
 
-            while (true) {
-              if (Date.now() > timeoutDeadline) {
-                failedDeployments.push({
-                  name: func["name"],
-                  $id: func["$id"],
-                  deployment: deploymentId,
-                });
-                updaterRow.fail({
-                  errorMessage: "Deployment timed out after 10 minutes",
-                });
-                break;
-              }
-
-              const functionsServicePoll = await getFunctionsService(
-                this.projectClient,
-              );
-              response = await functionsServicePoll.getDeployment({
-                functionId: func["$id"],
-                deploymentId: deploymentId,
-              });
-
-              const status = response["status"];
-              if (status === "ready") {
-                if (activate) {
-                  updaterRow.update({
-                    status: "Activating",
-                    end: "Setting active deployment...",
-                  });
-
-                  const functionsServiceActivate = await getFunctionsService(
-                    this.projectClient,
-                  );
-                  await functionsServiceActivate.updateFunctionDeployment({
-                    functionId: func["$id"],
-                    deploymentId,
-                  });
-                }
-
-                successfullyDeployed++;
-
-                let url = "";
-                const proxyServiceUrl = await getProxyService(
-                  this.projectClient,
-                );
-                const res = await proxyServiceUrl.listRules({
-                  queries: [
-                    Query.limit(1),
-                    Query.equal("deploymentResourceType", "function"),
-                    Query.equal("deploymentResourceId", func["$id"]),
-                    Query.equal("trigger", "manual"),
-                  ],
-                });
-
-                if (Number(res.total) === 1) {
-                  url = `https://${res.rules[0].domain}`;
-                }
-
-                const elapsed = ((Date.now() - deployStartTime) / 1000).toFixed(
-                  1,
-                );
-                const endpoint =
-                  localConfig.getEndpoint() || globalConfig.getEndpoint();
-                const projectId = localConfig.getProject().projectId;
-                const consoleUrl = getFunctionDeploymentConsoleUrl(
-                  endpoint,
-                  projectId,
-                  func["$id"],
-                  deploymentId,
-                );
-
-                updaterRow.stopSpinner();
-                updaterRow.update({
-                  status: activate ? "Deployed" : "Built",
-                  end: "",
-                });
-
-                deploymentLogs.push({ url, consoleUrl, elapsed });
-
-                break;
-              } else if (status === "failed") {
-                failedDeployments.push({
-                  name: func["name"],
-                  $id: func["$id"],
-                  deployment: response["$id"],
-                });
-                updaterRow.fail({ errorMessage: `Failed to deploy` });
-
-                break;
-              } else {
-                updaterRow.update({
-                  status: "Deploying",
-                  end: `Current status: ${status}`,
-                });
-              }
-
-              await new Promise((resolve) =>
-                setTimeout(resolve, POLL_DEBOUNCE),
-              );
-            }
+            deploymentCreated = true;
+            successfullyPushed++;
           } catch (e: any) {
             errors.push(e);
-            updaterRow.fail({
-              errorMessage:
-                e.message ?? "Unknown error occurred. Please try again",
-            });
+
+            switch (e.code) {
+              case "ENOENT":
+                updaterRow.fail({
+                  errorMessage: `Deployment not found at path: ${path.resolve(func.path)}`,
+                });
+                break;
+              default:
+                updaterRow.fail({
+                  errorMessage:
+                    e.message ?? "An unknown error occurred. Please try again.",
+                });
+            }
           }
+
+          if (deploymentCreated && !asyncDeploy) {
+            const deploymentId = response["$id"];
+            const endpoint =
+              localConfig.getEndpoint() || globalConfig.getEndpoint();
+            const projectId = localConfig.getProject().projectId;
+            const consoleUrl = getFunctionDeploymentConsoleUrl(
+              endpoint,
+              projectId,
+              func["$id"],
+              deploymentId,
+            );
+            let waitingSince: number | null = null;
+            const deploymentTimeoutTracker =
+              createDeploymentTimeoutTracker(response);
+            const deploymentLogPrinter = createDeploymentLogPrinter({
+              label: `function:${func.name}`,
+              showPrefix: functions.length > 1,
+              isVisible: deploymentLogsController.isVisible,
+            });
+            deploymentLogsController.registerPrinter(deploymentLogPrinter);
+            const deploymentWatcher = logs
+              ? await watchDeploymentUpdates({
+                  endpoint:
+                    localConfig.getEndpoint() || globalConfig.getEndpoint(),
+                  event: `functions.${func["$id"]}.deployments.${deploymentId}.update`,
+                  onDeploymentUpdate: (deployment) => {
+                    deploymentTimeoutTracker.touch(deployment);
+                    deploymentLogPrinter.ingest(deployment);
+                  },
+                  onClose: () => {
+                    currentDeploymentEnd =
+                      "Log stream disconnected; polling status...";
+                    updaterRow.update({
+                      end: withDeploymentLogsHint(
+                        currentDeploymentEnd,
+                        deploymentLogsController,
+                      ),
+                    });
+                  },
+                })
+              : null;
+            let currentDeploymentEnd = deploymentWatcher
+              ? "Streaming build logs..."
+              : "Checking deployment status...";
+            const unsubscribeToggle = deploymentLogsController.onToggle(() => {
+              updaterRow.update({
+                end: withDeploymentLogsHint(
+                  currentDeploymentEnd,
+                  deploymentLogsController,
+                ),
+              });
+            });
+
+            try {
+              updaterRow.update({
+                status: "Deploying",
+                end: withDeploymentLogsHint(
+                  currentDeploymentEnd,
+                  deploymentLogsController,
+                ),
+              });
+
+              while (true) {
+                if (deploymentTimeoutTracker.hasTimedOut()) {
+                  deploymentLogPrinter.complete();
+                  failedDeployments.push({
+                    name: func["name"],
+                    $id: func["$id"],
+                    deployment: deploymentId,
+                    reason: "timeout",
+                    consoleUrl,
+                  });
+                  if (deploymentLogPrinter.hasPrintedLogs()) {
+                    Spinner.log("");
+                  }
+                  updaterRow.fail({
+                    errorMessage: getDeploymentTimeoutErrorMessage(),
+                  });
+                  break;
+                }
+
+                const functionsServicePoll = await getFunctionsService(
+                  this.projectClient,
+                );
+                response = await functionsServicePoll.getDeployment({
+                  functionId: func["$id"],
+                  deploymentId: deploymentId,
+                });
+                deploymentTimeoutTracker.touch(response);
+                deploymentLogPrinter.ingest(response);
+
+                const status = response["status"];
+                if (status === "waiting") {
+                  waitingSince ??= Date.now();
+                } else {
+                  waitingSince = null;
+                }
+
+                if (status === "ready") {
+                  if (activate) {
+                    currentDeploymentEnd = "Setting active deployment...";
+                    updaterRow.update({
+                      status: "Activating",
+                      end: withDeploymentLogsHint(
+                        currentDeploymentEnd,
+                        deploymentLogsController,
+                      ),
+                    });
+
+                    const functionsServiceActivate = await getFunctionsService(
+                      this.projectClient,
+                    );
+                    await functionsServiceActivate.updateFunctionDeployment({
+                      functionId: func["$id"],
+                      deploymentId,
+                    });
+                  }
+
+                  successfullyDeployed++;
+
+                  let url = "";
+                  const proxyServiceUrl = await getProxyService(
+                    this.projectClient,
+                  );
+                  const res = await proxyServiceUrl.listRules({
+                    queries: [
+                      Query.limit(1),
+                      Query.equal("deploymentResourceType", "function"),
+                      Query.equal("deploymentResourceId", func["$id"]),
+                      Query.equal("trigger", "manual"),
+                    ],
+                  });
+
+                  if (Number(res.total) === 1) {
+                    url = `https://${res.rules[0].domain}`;
+                  }
+
+                  deploymentLogPrinter.complete();
+                  if (deploymentLogPrinter.hasPrintedLogs()) {
+                    Spinner.log("");
+                  }
+                  updaterRow.stopSpinner();
+                  updaterRow.update({
+                    status: activate ? "Deployed" : "Built",
+                    end: "",
+                  });
+
+                  deploymentLogs.push({ url, consoleUrl });
+
+                  break;
+                } else if (status === "failed") {
+                  deploymentLogPrinter.complete();
+                  failedDeployments.push({
+                    name: func["name"],
+                    $id: func["$id"],
+                    deployment: response["$id"],
+                    reason: "failed",
+                    consoleUrl,
+                  });
+                  if (deploymentLogPrinter.hasPrintedLogs()) {
+                    Spinner.log("");
+                  }
+                  updaterRow.fail({ errorMessage: `Failed to deploy` });
+
+                  break;
+                } else {
+                  currentDeploymentEnd = getDeploymentProgressText(
+                    status,
+                    waitingSince,
+                  );
+                  updaterRow.update({
+                    status: "Deploying",
+                    end: withDeploymentLogsHint(
+                      currentDeploymentEnd,
+                      deploymentLogsController,
+                    ),
+                  });
+                }
+
+                await new Promise((resolve) =>
+                  setTimeout(resolve, POLL_DEBOUNCE),
+                );
+              }
+            } catch (e: any) {
+              errors.push(e);
+              deploymentLogPrinter.complete();
+              if (deploymentLogPrinter.hasPrintedLogs()) {
+                Spinner.log("");
+              }
+              updaterRow.fail({
+                errorMessage:
+                  e.message ?? "Unknown error occurred. Please try again",
+              });
+            } finally {
+              unsubscribeToggle();
+              await deploymentWatcher?.close();
+            }
+          }
+
+          updaterRow.stopSpinner();
+        }),
+      );
+    } finally {
+      deploymentLogsController.close();
+      Spinner.stop();
+    }
+
+    if (deploymentLogs.length > 0) {
+      process.stdout.write("\n");
+      deploymentLogs.forEach((dl, index) => {
+        if (index > 0) {
+          process.stdout.write("\n");
         }
 
-        updaterRow.stopSpinner();
-      }),
-    );
-
-    Spinner.stop();
-
-    for (const dl of deploymentLogs) {
-      if (dl.url) {
-        this.log(`  ${chalk.cyan("→")} ${dl.url}`);
-      }
-      this.log(`  ${chalk.cyan("→")} ${dl.consoleUrl}`);
-      this.success(`Successfully deployed in ${chalk.bold(dl.elapsed + "s")}`);
+        if (dl.url) {
+          this.log(`Preview link: ${chalk.cyan(dl.url)}`);
+        }
+        this.log(`Deployment page: ${chalk.cyan(dl.consoleUrl)}`);
+      });
+      process.stdout.write("\n");
     }
 
     return {
@@ -1133,11 +1873,12 @@ export class Push {
       code?: boolean;
       activate?: boolean;
       withVariables?: boolean;
+      logs?: boolean;
     } = {},
   ): Promise<{
     successfullyPushed: number;
     successfullyDeployed: number;
-    failedDeployments: any[];
+    failedDeployments: FailedDeployment[];
     errors: any[];
   }> {
     const {
@@ -1145,91 +1886,55 @@ export class Push {
       code,
       activate = true,
       withVariables,
+      logs = true,
     } = options;
 
     Spinner.start(false);
+    const deploymentLogsController = createDeploymentLogsController(
+      logs && !asyncDeploy,
+    );
     let successfullyPushed = 0;
     let successfullyDeployed = 0;
-    const failedDeployments: any[] = [];
+    const failedDeployments: FailedDeployment[] = [];
     const errors: any[] = [];
-    const deploymentLogs: {
-      url: string;
-      consoleUrl: string;
-      elapsed: string;
-    }[] = [];
+    const deploymentLogs: SiteDeploymentSummary[] = [];
 
-    await Promise.all(
-      sites.map(async (site: any) => {
-        let response: any = {};
+    try {
+      await Promise.all(
+        sites.map(async (site: any) => {
+          let response: any = {};
 
-        let siteExists = false;
-        let deploymentCreated = false;
+          let siteExists = false;
+          let deploymentCreated = false;
 
-        const updaterRow = new Spinner({
-          status: "",
-          resource: site.name,
-          id: site["$id"],
-          end: "Ignoring using: .gitignore",
-        });
-
-        updaterRow.update({ status: "Getting" }).startSpinner(SPINNER_DOTS);
-
-        const sitesService = await getSitesService(this.projectClient);
-        try {
-          response = await sitesService.get({ siteId: site["$id"] });
-          siteExists = true;
-          if (response.framework !== site.framework) {
-            updaterRow.fail({
-              errorMessage: `Framework mismatch! (local=${site.framework},remote=${response.framework}) Please delete remote site or update your appwrite.config.json`,
-            });
-            return;
-          }
-
-          updaterRow
-            .update({ status: "Updating" })
-            .replaceSpinner(SPINNER_DOTS);
-
-          response = await sitesService.update({
-            siteId: site["$id"],
-            name: site.name,
-            framework: site.framework,
-            enabled: site.enabled,
-            logging: site.logging,
-            timeout: site.timeout,
-            installCommand: site.installCommand,
-            buildCommand: site.buildCommand,
-            outputDirectory: site.outputDirectory,
-            buildRuntime: site.buildRuntime,
-            adapter: site.adapter,
-            startCommand: site.startCommand,
-            buildSpecification: site.buildSpecification,
-            runtimeSpecification: site.runtimeSpecification,
-            deploymentRetention: site.deploymentRetention,
+          const updaterRow = new Spinner({
+            status: "",
+            resource: site.name,
+            id: site["$id"],
+            end: "Ignoring using: .gitignore",
           });
-        } catch (e: any) {
-          if (Number(e.code) === 404) {
-            siteExists = false;
-          } else {
-            errors.push(e);
-            updaterRow.fail({
-              errorMessage:
-                e.message ?? "General error occurs please try again",
-            });
-            return;
-          }
-        }
 
-        if (!siteExists) {
-          updaterRow
-            .update({ status: "Creating" })
-            .replaceSpinner(SPINNER_DOTS);
+          updaterRow.update({ status: "Getting" }).startSpinner(SPINNER_DOTS);
 
+          const sitesService = await getSitesService(this.projectClient);
           try {
-            response = await sitesService.create({
-              siteId: site.$id,
+            response = await sitesService.get({ siteId: site["$id"] });
+            siteExists = true;
+            if (response.framework !== site.framework) {
+              updaterRow.fail({
+                errorMessage: `Framework mismatch! (local=${site.framework},remote=${response.framework}) Please delete remote site or update your appwrite.config.json`,
+              });
+              return;
+            }
+
+            updaterRow
+              .update({ status: "Updating" })
+              .replaceSpinner(SPINNER_DOTS);
+
+            response = await sitesService.update({
+              siteId: site["$id"],
               name: site.name,
               framework: site.framework,
-              enabled: site.enabled,
               logging: site.logging,
               timeout: site.timeout,
               installCommand: site.installCommand,
@@ -1242,288 +1947,531 @@ export class Push {
               runtimeSpecification: site.runtimeSpecification,
               deploymentRetention: site.deploymentRetention,
             });
-
-            let domain = "";
-            try {
-              const consoleService = await getConsoleService(
-                this.consoleClient,
-              );
-              const variables = await consoleService.variables();
-              const domains = variables["_APP_DOMAIN_SITES"].split(",");
-              domain = ID.unique() + "." + domains[0].trim();
-            } catch (err) {
-              this.error("Error fetching console variables.");
-              throw err;
-            }
-
-            try {
-              const proxyService = await getProxyService(this.projectClient);
-              await proxyService.createSiteRule(domain, site.$id);
-            } catch (err) {
-              this.error("Error creating site rule.");
-              throw err;
-            }
-
-            updaterRow.update({ status: "Created" });
           } catch (e: any) {
-            errors.push(e);
-            updaterRow.fail({
-              errorMessage:
-                e.message ?? "General error occurs please try again",
-            });
-            return;
-          }
-        }
-
-        if (withVariables) {
-          updaterRow
-            .update({ status: "Creating variables" })
-            .replaceSpinner(SPINNER_DOTS);
-
-          const sitesServiceForVars = await getSitesService(this.projectClient);
-          const { variables } = await sitesServiceForVars.listVariables({
-            siteId: site["$id"],
-          });
-
-          await Promise.all(
-            variables.map(async (variable: any) => {
-              const sitesServiceDel = await getSitesService(this.projectClient);
-              await sitesServiceDel.deleteVariable({
-                siteId: site["$id"],
-                variableId: variable["$id"],
+            if (Number(e.code) === 404) {
+              siteExists = false;
+            } else {
+              errors.push(e);
+              updaterRow.fail({
+                errorMessage:
+                  e.message ?? "General error occurs please try again",
               });
-            }),
-          );
-
-          const envFileLocation = `${site["path"]}/.env`;
-          let envVariables: Array<{ key: string; value: string }> = [];
-          try {
-            if (fs.existsSync(envFileLocation)) {
-              const envObject = parseDotenv(
-                fs.readFileSync(envFileLocation, "utf8"),
-              );
-              envVariables = Object.entries(envObject || {}).map(
-                ([key, value]) => ({ key, value }),
-              );
+              return;
             }
-          } catch (_error) {
-            envVariables = [];
           }
-          await Promise.all(
-            envVariables.map(async (variable) => {
-              const sitesServiceCreate = await getSitesService(
-                this.projectClient,
-              );
-              await sitesServiceCreate.createVariable({
-                siteId: site["$id"],
-                key: variable.key,
-                value: variable.value,
-                secret: false,
-              });
-            }),
-          );
-        }
 
-        if (code === false) {
-          successfullyPushed++;
-          successfullyDeployed++;
-          updaterRow.update({ status: "Pushed" });
-          updaterRow.stopSpinner();
-          return;
-        }
+          if (!siteExists) {
+            updaterRow
+              .update({ status: "Creating" })
+              .replaceSpinner(SPINNER_DOTS);
 
-        if (!site.path) {
-          errors.push(new Error(`Site '${site.name}' has no path configured`));
-          updaterRow.fail({
-            errorMessage: `No path configured for site`,
-          });
-          return;
-        }
-
-        if (
-          !fs.existsSync(site.path) ||
-          fs.readdirSync(site.path).length === 0
-        ) {
-          errors.push(
-            new Error(`Deployment not found or empty at path: ${site.path}`),
-          );
-          updaterRow.fail({
-            errorMessage: `path not found or empty: ${path.relative(process.cwd(), path.resolve(site.path))}`,
-          });
-          return;
-        }
-
-        const deployStartTime = Date.now();
-        try {
-          updaterRow.update({ status: "Pushing" }).replaceSpinner(SPINNER_DOTS);
-          const sitesServiceDeploy = await getSitesService(this.projectClient);
-
-          const result = await pushDeployment({
-            resourcePath: site.path,
-            createDeployment: async (codeFile) => {
-              return await sitesServiceDeploy.createDeployment({
-                siteId: site["$id"],
+            try {
+              response = await sitesService.create({
+                siteId: site.$id,
+                name: site.name,
+                framework: site.framework,
+                logging: site.logging,
+                timeout: site.timeout,
                 installCommand: site.installCommand,
                 buildCommand: site.buildCommand,
                 outputDirectory: site.outputDirectory,
-                code: codeFile,
-                activate,
+                buildRuntime: site.buildRuntime,
+                adapter: site.adapter,
+                startCommand: site.startCommand,
+                buildSpecification: site.buildSpecification,
+                runtimeSpecification: site.runtimeSpecification,
+                deploymentRetention: site.deploymentRetention,
               });
-            },
-            pollForStatus: false,
-          });
 
-          response = result.deployment;
-          updaterRow.update({ status: "Pushed" });
-          deploymentCreated = true;
-          successfullyPushed++;
-        } catch (e: any) {
-          errors.push(e);
+              let domain = "";
+              try {
+                const consoleService = await getConsoleService(
+                  this.consoleClient,
+                );
+                const variables = await consoleService.variables();
+                const domains = variables["_APP_DOMAIN_SITES"].split(",");
+                domain = ID.unique() + "." + domains[0].trim();
+              } catch (err) {
+                this.error("Error fetching console variables.");
+                throw err;
+              }
 
-          switch (e.code) {
-            case "ENOENT":
-              updaterRow.fail({
-                errorMessage: `Deployment not found at path: ${path.resolve(site.path)}`,
-              });
-              break;
-            default:
+              try {
+                const proxyService = await getProxyService(this.projectClient);
+                await proxyService.createSiteRule(domain, site.$id);
+              } catch (err) {
+                this.error("Error creating site rule.");
+                throw err;
+              }
+
+              updaterRow.update({ status: "Created" });
+            } catch (e: any) {
+              errors.push(e);
               updaterRow.fail({
                 errorMessage:
-                  e.message ?? "An unknown error occurred. Please try again.",
+                  e.message ?? "General error occurs please try again",
               });
+              return;
+            }
           }
-        }
 
-        if (deploymentCreated && !asyncDeploy) {
-          try {
-            const deploymentId = response["$id"];
-            updaterRow.update({
-              status: "Deploying",
-              end: "Checking deployment status...",
+          if (withVariables) {
+            updaterRow
+              .update({ status: "Creating variables" })
+              .replaceSpinner(SPINNER_DOTS);
+
+            const sitesServiceForVars = await getSitesService(
+              this.projectClient,
+            );
+            const { variables } = await sitesServiceForVars.listVariables({
+              siteId: site["$id"],
             });
 
-            const timeoutDeadline = Date.now() + DEPLOYMENT_TIMEOUT_MS;
-
-            while (true) {
-              if (Date.now() > timeoutDeadline) {
-                failedDeployments.push({
-                  name: site["name"],
-                  $id: site["$id"],
-                  deployment: deploymentId,
-                });
-                updaterRow.fail({
-                  errorMessage: "Deployment timed out after 10 minutes",
-                });
-                break;
-              }
-
-              const sitesServicePoll = await getSitesService(
-                this.projectClient,
-              );
-              response = await sitesServicePoll.getDeployment({
-                siteId: site["$id"],
-                deploymentId: deploymentId,
-              });
-
-              const status = response["status"];
-              if (status === "ready") {
-                if (activate) {
-                  updaterRow.update({
-                    status: "Activating",
-                    end: "Setting active deployment...",
-                  });
-
-                  const sitesServiceActivate = await getSitesService(
-                    this.projectClient,
-                  );
-                  await sitesServiceActivate.updateSiteDeployment({
-                    siteId: site["$id"],
-                    deploymentId,
-                  });
-                }
-
-                successfullyDeployed++;
-
-                let url = "";
-                const proxyServiceUrl = await getProxyService(
+            await Promise.all(
+              variables.map(async (variable: any) => {
+                const sitesServiceDel = await getSitesService(
                   this.projectClient,
                 );
-                const res = await proxyServiceUrl.listRules({
-                  queries: [
-                    Query.limit(1),
-                    Query.equal("deploymentResourceType", "site"),
-                    Query.equal("deploymentResourceId", site["$id"]),
-                    Query.equal("trigger", "manual"),
-                  ],
+                await sitesServiceDel.deleteVariable({
+                  siteId: site["$id"],
+                  variableId: variable["$id"],
                 });
+              }),
+            );
 
-                if (Number(res.total) === 1) {
-                  url = `https://${res.rules[0].domain}`;
-                }
-
-                const elapsed = ((Date.now() - deployStartTime) / 1000).toFixed(
-                  1,
+            const envFileLocation = `${site["path"]}/.env`;
+            let envVariables: Array<{ key: string; value: string }> = [];
+            try {
+              if (fs.existsSync(envFileLocation)) {
+                const envObject = parseDotenv(
+                  fs.readFileSync(envFileLocation, "utf8"),
                 );
-                const endpoint =
-                  localConfig.getEndpoint() || globalConfig.getEndpoint();
-                const projectId = localConfig.getProject().projectId;
-                const consoleUrl = getSiteDeploymentConsoleUrl(
-                  endpoint,
-                  projectId,
-                  site["$id"],
-                  deploymentId,
+                envVariables = Object.entries(envObject || {}).map(
+                  ([key, value]) => ({ key, value }),
                 );
-
-                updaterRow.stopSpinner();
-                updaterRow.update({
-                  status: activate ? "Deployed" : "Built",
-                  end: "",
-                });
-
-                deploymentLogs.push({ url, consoleUrl, elapsed });
-
-                break;
-              } else if (status === "failed") {
-                failedDeployments.push({
-                  name: site["name"],
-                  $id: site["$id"],
-                  deployment: response["$id"],
-                });
-                updaterRow.fail({ errorMessage: `Failed to deploy` });
-
-                break;
-              } else {
-                updaterRow.update({
-                  status: "Deploying",
-                  end: `Current status: ${status}`,
-                });
               }
-
-              await new Promise((resolve) =>
-                setTimeout(resolve, POLL_DEBOUNCE),
-              );
+            } catch (_error) {
+              envVariables = [];
             }
+            await Promise.all(
+              envVariables.map(async (variable) => {
+                const sitesServiceCreate = await getSitesService(
+                  this.projectClient,
+                );
+                await sitesServiceCreate.createVariable({
+                  siteId: site["$id"],
+                  key: variable.key,
+                  value: variable.value,
+                  secret: false,
+                });
+              }),
+            );
+          }
+
+          if (code === false) {
+            successfullyPushed++;
+            successfullyDeployed++;
+            updaterRow.update({ status: "Pushed" });
+            updaterRow.stopSpinner();
+            return;
+          }
+
+          if (!site.path) {
+            errors.push(
+              new Error(`Site '${site.name}' has no path configured`),
+            );
+            updaterRow.fail({
+              errorMessage: `No path configured for site`,
+            });
+            return;
+          }
+
+          if (
+            !fs.existsSync(site.path) ||
+            fs.readdirSync(site.path).length === 0
+          ) {
+            errors.push(
+              new Error(`Deployment not found or empty at path: ${site.path}`),
+            );
+            updaterRow.fail({
+              errorMessage: `path not found or empty: ${path.relative(process.cwd(), path.resolve(site.path))}`,
+            });
+            return;
+          }
+
+          try {
+            updaterRow
+              .update({ status: "Pushing" })
+              .replaceSpinner(SPINNER_DOTS);
+            const sitesServiceDeploy = await getSitesService(
+              this.projectClient,
+            );
+
+            const result = await pushDeployment({
+              resourcePath: site.path,
+              createDeployment: async (codeFile) => {
+                return await sitesServiceDeploy.createDeployment({
+                  siteId: site["$id"],
+                  installCommand: site.installCommand,
+                  buildCommand: site.buildCommand,
+                  outputDirectory: site.outputDirectory,
+                  code: codeFile,
+                  activate,
+                });
+              },
+              pollForStatus: false,
+            });
+
+            response = result.deployment;
+            updaterRow.update({ status: "Pushed" });
+            deploymentCreated = true;
+            successfullyPushed++;
           } catch (e: any) {
             errors.push(e);
-            updaterRow.fail({
-              errorMessage:
-                e.message ?? "Unknown error occurred. Please try again",
+
+            switch (e.code) {
+              case "ENOENT":
+                updaterRow.fail({
+                  errorMessage: `Deployment not found at path: ${path.resolve(site.path)}`,
+                });
+                break;
+              default:
+                updaterRow.fail({
+                  errorMessage:
+                    e.message ?? "An unknown error occurred. Please try again.",
+                });
+            }
+          }
+
+          if (deploymentCreated && !asyncDeploy) {
+            const deploymentId = response["$id"];
+            const endpoint =
+              localConfig.getEndpoint() || globalConfig.getEndpoint();
+            const projectId = localConfig.getProject().projectId;
+            const consoleUrl = getSiteDeploymentConsoleUrl(
+              endpoint,
+              projectId,
+              site["$id"],
+              deploymentId,
+            );
+            let waitingSince: number | null = null;
+            let readyWithoutScreenshotsSince: number | null = null;
+            let activationApplied = false;
+            const deploymentTimeoutTracker =
+              createDeploymentTimeoutTracker(response);
+            const deploymentLogPrinter = createDeploymentLogPrinter({
+              label: `site:${site.name}`,
+              showPrefix: sites.length > 1,
+              isVisible: deploymentLogsController.isVisible,
             });
+            deploymentLogsController.registerPrinter(deploymentLogPrinter);
+            const deploymentWatcher = logs
+              ? await watchDeploymentUpdates({
+                  endpoint:
+                    localConfig.getEndpoint() || globalConfig.getEndpoint(),
+                  event: `sites.${site["$id"]}.deployments.${deploymentId}.update`,
+                  onDeploymentUpdate: (deployment) => {
+                    deploymentTimeoutTracker.touch(deployment);
+                    deploymentLogPrinter.ingest(deployment);
+                  },
+                  onClose: () => {
+                    currentDeploymentEnd =
+                      "Log stream disconnected; polling status...";
+                    updaterRow.update({
+                      end: withDeploymentLogsHint(
+                        currentDeploymentEnd,
+                        deploymentLogsController,
+                      ),
+                    });
+                  },
+                })
+              : null;
+            let currentDeploymentEnd = deploymentWatcher
+              ? "Streaming build logs..."
+              : "Checking deployment status...";
+            const unsubscribeToggle = deploymentLogsController.onToggle(() => {
+              updaterRow.update({
+                end: withDeploymentLogsHint(
+                  currentDeploymentEnd,
+                  deploymentLogsController,
+                ),
+              });
+            });
+
+            try {
+              updaterRow.update({
+                status: "Deploying",
+                end: withDeploymentLogsHint(
+                  currentDeploymentEnd,
+                  deploymentLogsController,
+                ),
+              });
+
+              while (true) {
+                if (deploymentTimeoutTracker.hasTimedOut()) {
+                  deploymentLogPrinter.complete();
+                  failedDeployments.push({
+                    name: site["name"],
+                    $id: site["$id"],
+                    deployment: deploymentId,
+                    reason: "timeout",
+                    consoleUrl,
+                  });
+                  if (deploymentLogPrinter.hasPrintedLogs()) {
+                    Spinner.log("");
+                  }
+                  updaterRow.fail({
+                    errorMessage: getDeploymentTimeoutErrorMessage(),
+                  });
+                  break;
+                }
+
+                const sitesServicePoll = await getSitesService(
+                  this.projectClient,
+                );
+                response = await sitesServicePoll.getDeployment({
+                  siteId: site["$id"],
+                  deploymentId: deploymentId,
+                });
+                deploymentTimeoutTracker.touch(response);
+                deploymentLogPrinter.ingest(response);
+
+                const status = response["status"];
+                if (status === "waiting") {
+                  waitingSince ??= Date.now();
+                } else {
+                  waitingSince = null;
+                }
+
+                if (status === "ready") {
+                  const { screenshotLight, screenshotDark } =
+                    getSiteDeploymentScreenshots(response);
+                  const screenshotsReady =
+                    hasSiteDeploymentScreenshots(response);
+
+                  if (activate && !activationApplied) {
+                    currentDeploymentEnd = "Setting active deployment...";
+                    updaterRow.update({
+                      status: "Activating",
+                      end: withDeploymentLogsHint(
+                        currentDeploymentEnd,
+                        deploymentLogsController,
+                      ),
+                    });
+
+                    const sitesServiceActivate = await getSitesService(
+                      this.projectClient,
+                    );
+                    await sitesServiceActivate.updateSiteDeployment({
+                      siteId: site["$id"],
+                      deploymentId,
+                    });
+                    activationApplied = true;
+                  }
+
+                  if (!screenshotsReady) {
+                    readyWithoutScreenshotsSince ??= Date.now();
+
+                    if (
+                      Date.now() - readyWithoutScreenshotsSince <
+                      SITE_SCREENSHOT_FINALIZATION_TIMEOUT_MS
+                    ) {
+                      currentDeploymentEnd = "Finalizing deployment preview...";
+                      updaterRow.update({
+                        status: "Finalizing",
+                        end: withDeploymentLogsHint(
+                          currentDeploymentEnd,
+                          deploymentLogsController,
+                        ),
+                      });
+
+                      await new Promise((resolve) =>
+                        setTimeout(resolve, POLL_DEBOUNCE),
+                      );
+                      continue;
+                    }
+                  }
+
+                  successfullyDeployed++;
+
+                  let url = "";
+                  const proxyServiceUrl = await getProxyService(
+                    this.projectClient,
+                  );
+                  const res = await proxyServiceUrl.listRules({
+                    queries: [
+                      Query.limit(1),
+                      Query.equal("deploymentResourceType", "site"),
+                      Query.equal("deploymentResourceId", site["$id"]),
+                      Query.equal("trigger", "manual"),
+                    ],
+                  });
+
+                  if (Number(res.total) === 1) {
+                    url = `https://${res.rules[0].domain}`;
+                  }
+
+                  deploymentLogPrinter.complete();
+                  if (deploymentLogPrinter.hasPrintedLogs()) {
+                    Spinner.log("");
+                  }
+                  updaterRow.stopSpinner();
+                  updaterRow.update({
+                    status: activate ? "Deployed" : "Built",
+                    end: "",
+                  });
+
+                  deploymentLogs.push({
+                    name: site.name,
+                    url,
+                    consoleUrl,
+                    screenshotLight,
+                    screenshotDark,
+                    screenshotsPending: !screenshotsReady,
+                  });
+
+                  break;
+                } else if (status === "failed") {
+                  deploymentLogPrinter.complete();
+                  failedDeployments.push({
+                    name: site["name"],
+                    $id: site["$id"],
+                    deployment: response["$id"],
+                    reason: "failed",
+                    consoleUrl,
+                  });
+                  if (deploymentLogPrinter.hasPrintedLogs()) {
+                    Spinner.log("");
+                  }
+                  updaterRow.fail({ errorMessage: `Failed to deploy` });
+
+                  break;
+                } else {
+                  currentDeploymentEnd = getDeploymentProgressText(
+                    status,
+                    waitingSince,
+                  );
+                  updaterRow.update({
+                    status: "Deploying",
+                    end: withDeploymentLogsHint(
+                      currentDeploymentEnd,
+                      deploymentLogsController,
+                    ),
+                  });
+                }
+
+                await new Promise((resolve) =>
+                  setTimeout(resolve, POLL_DEBOUNCE),
+                );
+              }
+            } catch (e: any) {
+              errors.push(e);
+              deploymentLogPrinter.complete();
+              if (deploymentLogPrinter.hasPrintedLogs()) {
+                Spinner.log("");
+              }
+              updaterRow.fail({
+                errorMessage:
+                  e.message ?? "Unknown error occurred. Please try again",
+              });
+            } finally {
+              unsubscribeToggle();
+              await deploymentWatcher?.close();
+            }
+          }
+
+          updaterRow.stopSpinner();
+        }),
+      );
+    } finally {
+      deploymentLogsController.close();
+      Spinner.stop();
+    }
+
+    if (deploymentLogs.length > 0) {
+      let sitePreviewRenderer: SiteTerminalPreviewRenderer | null = null;
+      let sitePreviewSetupWarning: string | null = null;
+      const emittedPreviewWarnings = new Set<string>();
+
+      if (
+        shouldRenderSiteTerminalPreview() &&
+        deploymentLogs.some(
+          (deploymentLog) =>
+            deploymentLog.screenshotLight || deploymentLog.screenshotDark,
+        )
+      ) {
+        try {
+          const consoleClient = await sdkForConsole(
+            true,
+            localConfig.getEndpoint() || globalConfig.getEndpoint(),
+          );
+          sitePreviewRenderer = {
+            consoleClient,
+            storageService: await getStorageService(consoleClient),
+          };
+        } catch (previewSetupError) {
+          sitePreviewSetupWarning = getErrorMessage(previewSetupError);
+        }
+      }
+
+      process.stdout.write("\n");
+      for (const [index, dl] of deploymentLogs.entries()) {
+        if (index > 0) {
+          process.stdout.write("\n");
+        }
+
+        if (deploymentLogs.length > 1) {
+          process.stdout.write(`${chalk.cyan.bold(`Site: ${dl.name}`)}\n`);
+        }
+
+        if (dl.screenshotsPending) {
+          hint(
+            "Deployment is ready, but screenshot generation is still finalizing. Open the deployment page to view it once it is available.",
+          );
+        }
+
+        if (sitePreviewRenderer && (dl.screenshotLight || dl.screenshotDark)) {
+          const preview = await renderSiteTerminalPreview({
+            renderer: sitePreviewRenderer,
+            screenshotLight: dl.screenshotLight,
+            screenshotDark: dl.screenshotDark,
+          });
+
+          if (preview.preview) {
+            process.stdout.write(
+              `\n${chalk.cyan.bold("Screenshot preview")}\n\n`,
+            );
+            process.stdout.write(`${preview.preview}\n\n`);
+          }
+
+          for (const previewWarning of preview.warnings) {
+            const warningMessage = `Screenshot preview unavailable: ${previewWarning}`;
+
+            if (emittedPreviewWarnings.has(warningMessage)) {
+              continue;
+            }
+
+            emittedPreviewWarnings.add(warningMessage);
+            hint(warningMessage);
+          }
+        } else if (
+          sitePreviewSetupWarning &&
+          (dl.screenshotLight || dl.screenshotDark)
+        ) {
+          const warningMessage = `Screenshot preview unavailable: ${sitePreviewSetupWarning}`;
+
+          if (!emittedPreviewWarnings.has(warningMessage)) {
+            emittedPreviewWarnings.add(warningMessage);
+            hint(warningMessage);
           }
         }
 
-        updaterRow.stopSpinner();
-      }),
-    );
-
-    Spinner.stop();
-
-    for (const dl of deploymentLogs) {
-      if (dl.url) {
-        this.log(`  ${chalk.cyan("→")} ${dl.url}`);
+        if (dl.url) {
+          this.log(`Preview link: ${chalk.cyan(dl.url)}`);
+        }
+        this.log(`Deployment page: ${chalk.cyan(dl.consoleUrl)}`);
       }
-      this.log(`  ${chalk.cyan("→")} ${dl.consoleUrl}`);
-      this.success(`Successfully deployed in ${chalk.bold(dl.elapsed + "s")}`);
+      process.stdout.write("\n");
     }
 
     return {
@@ -1880,11 +2828,23 @@ async function createPushInstance(
   return new Push(projectClient, consoleClient, silent);
 }
 
+function withResolvedResourcePaths<T extends { path?: string }>(
+  resource: "functions" | "sites",
+  resources: T[],
+): T[] {
+  return resources.map((item) => ({
+    ...item,
+    path: item.path
+      ? localConfig.resolveResourcePath(resource, item.path)
+      : item.path,
+  }));
+}
+
 const pushResources = async ({
   skipDeprecated = false,
-}: {
-  skipDeprecated?: boolean;
-} = {}): Promise<void> => {
+  functionOptions,
+  siteOptions,
+}: PushOptions = {}): Promise<void> => {
   if (cliConfig.all) {
     checkDeployConditions(localConfig);
 
@@ -1934,14 +2894,15 @@ const pushResources = async ({
       projectId: project.projectId ?? "",
       projectName: project.projectName,
       settings: project.projectSettings,
-      functions,
-      sites,
+      functions: withResolvedResourcePaths("functions", functions),
+      sites: withResolvedResourcePaths("sites", sites),
       collections: localConfig.getCollections(),
       databases: localConfig.getDatabases(),
       tables: localConfig.getTables(),
       tablesDB: localConfig.getTablesDBs(),
       buckets: localConfig.getBuckets(),
       teams: localConfig.getTeams(),
+      webhooks: localConfig.getWebhooks(),
       topics: localConfig.getMessagingTopics(),
     };
 
@@ -1959,11 +2920,13 @@ const pushResources = async ({
         code: allowFunctionsCodePush === true,
         activate: activateFunctionsDeployment ?? true,
         withVariables: false,
+        logs: functionOptions?.logs,
       },
       siteOptions: {
         code: allowSitesCodePush === true,
         activate: activateSitesDeployment ?? true,
         withVariables: false,
+        logs: siteOptions?.logs,
       },
     });
   } else {
@@ -2061,6 +3024,7 @@ const pushSite = async ({
   code,
   activate,
   withVariables,
+  logs,
 }: PushSiteOptions = {}): Promise<void> => {
   process.chdir(localConfig.configDirectoryPath);
 
@@ -2107,10 +3071,10 @@ const pushSite = async ({
   log("Validating sites ...");
   // Validation is done BEFORE pushing so the deployment process can be run in async with progress update
   for (const site of sites) {
-    if (!site.buildCommand) {
+    if (!site.buildCommand && siteRequiresBuildCommand(site)) {
       log(`Site ${site.name} is missing build command.`);
-      const answers = await inquirer.prompt(questionsGetEntrypoint);
-      site.buildCommand = answers.entrypoint;
+      const answers = await inquirer.prompt(questionsGetBuildCommand);
+      site.buildCommand = answers.buildCommand;
       localConfig.addSite(site);
     }
   }
@@ -2147,13 +3111,18 @@ const pushSite = async ({
 
   log("Pushing sites ...");
 
+  const pushStartTime = Date.now();
   const pushInstance = await createPushInstance();
-  const result = await pushInstance.pushSites(sites, {
-    async: asyncDeploy,
-    code: shouldPushCode,
-    activate: shouldActivate ?? true,
-    withVariables,
-  });
+  const result = await pushInstance.pushSites(
+    withResolvedResourcePaths("sites", sites),
+    {
+      async: asyncDeploy,
+      code: shouldPushCode,
+      activate: shouldActivate ?? true,
+      withVariables,
+      logs,
+    },
+  );
 
   const {
     successfullyPushed,
@@ -2161,20 +3130,28 @@ const pushSite = async ({
     failedDeployments,
     errors,
   } = result;
+  const totalElapsed = ((Date.now() - pushStartTime) / 1000).toFixed(1);
 
   failedDeployments.forEach((failed) => {
-    const { name, deployment, $id } = failed;
-    const projectId = localConfig.getProject().projectId;
-    const endpoint = localConfig.getEndpoint() || globalConfig.getEndpoint();
-    const failUrl = getSiteDeploymentConsoleUrl(
-      endpoint,
-      projectId,
-      $id,
-      deployment,
-    );
+    const { name } = failed;
+    const failUrl =
+      failed.consoleUrl ??
+      getSiteDeploymentConsoleUrl(
+        localConfig.getEndpoint() || globalConfig.getEndpoint(),
+        localConfig.getProject().projectId,
+        failed.$id,
+        failed.deployment,
+      );
+
+    if (failed.reason === "timeout") {
+      error(
+        `Deployment of ${name} got stuck for more than ${DEPLOYMENT_TIMEOUT_MINUTES} minutes. Check deployment here: ${failUrl}\n`,
+      );
+      return;
+    }
 
     error(
-      `Deployment of ${name} has failed. Check at ${failUrl} for more details\n`,
+      `Deployment of ${name} has failed. Check deployment here: ${failUrl}\n`,
     );
   });
 
@@ -2183,10 +3160,12 @@ const pushSite = async ({
       error("No sites were pushed.");
     } else if (successfullyDeployed !== successfullyPushed) {
       warn(
-        `Successfully pushed ${successfullyDeployed} of ${successfullyPushed} sites`,
+        `Successfully deployed ${successfullyDeployed} of ${successfullyPushed} sites in ${chalk.bold(totalElapsed + "s")}.`,
       );
     } else {
-      success(`Successfully pushed ${successfullyPushed} sites.`);
+      success(
+        `Successfully deployed ${successfullyPushed} ${successfullyPushed === 1 ? "site" : "sites"} in ${chalk.bold(totalElapsed + "s")}.`,
+      );
     }
   } else {
     success(`Successfully pushed ${successfullyPushed} sites.`);
@@ -2205,6 +3184,7 @@ const pushFunction = async ({
   code,
   activate,
   withVariables,
+  logs,
 }: PushFunctionOptions = {}): Promise<void> => {
   process.chdir(localConfig.configDirectoryPath);
 
@@ -2292,13 +3272,18 @@ const pushFunction = async ({
 
   log("Pushing functions ...");
 
+  const pushStartTime = Date.now();
   const pushInstance = await createPushInstance();
-  const result = await pushInstance.pushFunctions(functions, {
-    async: asyncDeploy,
-    code: shouldPushCode,
-    activate: shouldActivate ?? true,
-    withVariables,
-  });
+  const result = await pushInstance.pushFunctions(
+    withResolvedResourcePaths("functions", functions),
+    {
+      async: asyncDeploy,
+      code: shouldPushCode,
+      activate: shouldActivate ?? true,
+      withVariables,
+      logs,
+    },
+  );
 
   const {
     successfullyPushed,
@@ -2306,20 +3291,28 @@ const pushFunction = async ({
     failedDeployments,
     errors,
   } = result;
+  const totalElapsed = ((Date.now() - pushStartTime) / 1000).toFixed(1);
 
   failedDeployments.forEach((failed) => {
-    const { name, deployment, $id } = failed;
-    const projectId = localConfig.getProject().projectId;
-    const endpoint = localConfig.getEndpoint() || globalConfig.getEndpoint();
-    const failUrl = getFunctionDeploymentConsoleUrl(
-      endpoint,
-      projectId,
-      $id,
-      deployment,
-    );
+    const { name } = failed;
+    const failUrl =
+      failed.consoleUrl ??
+      getFunctionDeploymentConsoleUrl(
+        localConfig.getEndpoint() || globalConfig.getEndpoint(),
+        localConfig.getProject().projectId,
+        failed.$id,
+        failed.deployment,
+      );
+
+    if (failed.reason === "timeout") {
+      error(
+        `Deployment of ${name} got stuck for more than ${DEPLOYMENT_TIMEOUT_MINUTES} minutes. Check deployment here: ${failUrl}\n`,
+      );
+      return;
+    }
 
     error(
-      `Deployment of ${name} has failed. Check at ${failUrl} for more details\n`,
+      `Deployment of ${name} has failed. Check deployment here: ${failUrl}\n`,
     );
   });
 
@@ -2328,10 +3321,12 @@ const pushFunction = async ({
       error("No functions were pushed.");
     } else if (successfullyDeployed !== successfullyPushed) {
       warn(
-        `Successfully pushed ${successfullyDeployed} of ${successfullyPushed} functions`,
+        `Successfully deployed ${successfullyDeployed} of ${successfullyPushed} functions in ${chalk.bold(totalElapsed + "s")}.`,
       );
     } else {
-      success(`Successfully pushed ${successfullyPushed} functions.`);
+      success(
+        `Successfully deployed ${successfullyPushed} ${successfullyPushed === 1 ? "function" : "functions"} in ${chalk.bold(totalElapsed + "s")}.`,
+      );
     }
   } else {
     success(`Successfully pushed ${successfullyPushed} functions.`);
@@ -2718,6 +3713,70 @@ const pushTeam = async (): Promise<void> => {
   }
 };
 
+const pushWebhook = async (): Promise<void> => {
+  const webhookIds: string[] = [];
+  const configWebhooks = localConfig.getWebhooks();
+
+  if (cliConfig.all) {
+    checkDeployConditions(localConfig);
+    webhookIds.push(...configWebhooks.map((w: any) => w.$id));
+  }
+
+  if (webhookIds.length === 0) {
+    const answers = await inquirer.prompt(questionsPushWebhooks);
+    if (answers.webhooks) {
+      webhookIds.push(...answers.webhooks);
+    }
+  }
+
+  if (webhookIds.length === 0) {
+    log("No webhooks found.");
+    hint(
+      `Use '${EXECUTABLE_NAME} pull webhooks' to synchronize existing ones.`,
+    );
+    return;
+  }
+
+  const webhooks: any[] = [];
+
+  for (const webhookId of webhookIds) {
+    const idWebhooks = configWebhooks.filter((w: any) => w.$id === webhookId);
+    webhooks.push(...idWebhooks);
+  }
+
+  if (
+    !(await approveChanges(
+      webhooks,
+      async (args: any) => {
+        const webhooksService = await getWebhooksService();
+        return await webhooksService.get({ webhookId: args.webhookId });
+      },
+      KeysWebhooks,
+      "webhookId",
+      "webhooks",
+    ))
+  ) {
+    return;
+  }
+
+  log("Pushing webhooks ...");
+
+  const pushInstance = await createPushInstance();
+  const result = await pushInstance.pushWebhooks(webhooks);
+
+  const { successfullyPushed, errors } = result;
+
+  if (successfullyPushed === 0) {
+    error("No webhooks were pushed.");
+  } else {
+    success(`Successfully pushed ${successfullyPushed} webhooks.`);
+  }
+
+  if (cliConfig.verbose) {
+    errors.forEach((e) => console.error(e));
+  }
+};
+
 const pushMessagingTopic = async (): Promise<void> => {
   const topicsIds: string[] = [];
   const configTopics = localConfig.getMessagingTopics();
@@ -2789,10 +3848,15 @@ export const push = new Command("push")
 push
   .command("all")
   .description("Push all resource.")
+  .option("--no-logs", "Don't stream deployment build logs")
   .action(
-    actionRunner(() => {
+    actionRunner((options: { logs?: boolean }) => {
       cliConfig.all = true;
-      return pushResources({ skipDeprecated: true });
+      return pushResources({
+        skipDeprecated: true,
+        functionOptions: { logs: options.logs },
+        siteOptions: { logs: options.logs },
+      });
     }),
   );
 
@@ -2808,6 +3872,7 @@ push
   .option(`-f, --function-id <function-id>`, `ID of function to run`)
   .option(`-A, --async`, `Don't wait for functions deployments status`)
   .option("--no-code", "Don't push the function's code")
+  .option("--no-logs", "Don't stream deployment build logs")
   .option(
     "--activate [value]",
     "Activate the function's deployment after it is ready.",
@@ -2824,6 +3889,7 @@ push
   .option(`-f, --site-id <site-id>`, `ID of site to run`)
   .option(`-A, --async`, `Don't wait for sites deployments status`)
   .option("--no-code", "Don't push the site's code")
+  .option("--no-logs", "Don't stream deployment build logs")
   .option(
     "--activate [value]",
     "Activate the site's deployment after it is ready.",
@@ -2866,6 +3932,12 @@ push
   .alias("teams")
   .description("Push teams in the current project.")
   .action(actionRunner(pushTeam));
+
+push
+  .command("webhook")
+  .alias("webhooks")
+  .description("Push webhooks in the current project.")
+  .action(actionRunner(pushWebhook));
 
 push
   .command("topic")

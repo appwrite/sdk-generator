@@ -25,11 +25,18 @@ class CLIBun10Test extends Base
         'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/sdks/cli oven/bun:1.0 bun test.js';
 
     protected array $expectedOutput = [
+        ...Base::CLI_COMPLETION_RESPONSES,
         ...Base::FOO_RESPONSES,
         ...Base::BAR_RESPONSES,
         ...Base::GENERAL_RESPONSES,
         ...Base::CLI_CONSOLE_URL_RESPONSES,
         ...Base::UPLOAD_RESPONSES,
+        ...Base::CLI_HEADERS_RESPONSES,
+        ...Base::CLI_FUNCTION_RESPONSES,
+        ...Base::CLI_LOCAL_FUNCTION_EMULATION_RESPONSES,
+        ...Base::CLI_RUNTIME_RENDERING_RESPONSES,
+        ...Base::CLI_QUERY_HELPER_RESPONSES,
+        ...Base::CLI_TYPEGEN_RESPONSES,
     ];
 
     public function getLanguage(): Language

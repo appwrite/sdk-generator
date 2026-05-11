@@ -242,6 +242,9 @@ class Web extends JS
             return 'Models.' . $this->toPascalCase($parameter['array']['model']) . '[]';
         }
         if (!empty($parameter['model'])) {
+            if ($parameter['model'] === 'any') {
+                return $parameter['type'] === self::TYPE_ARRAY ? 'Record<string, any>[]' : 'Record<string, any>';
+            }
             $modelType = 'Models.' . $this->toPascalCase($parameter['model']);
             return $parameter['type'] === self::TYPE_ARRAY ? $modelType . '[]' : $modelType;
         }
@@ -307,6 +310,10 @@ class Web extends JS
 
     protected function populateGenerics(string $model, array $spec, array &$generics, bool $skipFirst = false)
     {
+        if (!array_key_exists($model, $spec['definitions'])) {
+            return;
+        }
+
         if (!$skipFirst && $spec['definitions'][$model]['additionalProperties']) {
             $generics[] = $this->toPascalCase($model);
         }
@@ -437,6 +444,10 @@ class Web extends JS
     public function getSubSchema(array $property, array $spec, string $methodName = ''): string
     {
         if (array_key_exists('sub_schema', $property)) {
+            if ($property['sub_schema'] === 'any') {
+                return $property['type'] === 'array' ? 'Record<string, any>[]' : 'Record<string, any>';
+            }
+
             $ret = '';
             $generics = [];
             $this->populateGenerics($property['sub_schema'], $spec, $generics);

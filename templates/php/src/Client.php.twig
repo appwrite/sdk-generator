@@ -322,8 +322,6 @@ class Client
         if (curl_errno($ch)) {
             throw new {{ spec.namespace | split('\\') | last | caseUcfirst}}Exception(curl_error($ch), $responseStatus, $responseBody['type'] ?? '', $responseBody);
         }
-        
-        curl_close($ch);
 
         if($responseStatus >= 400) {
             if(is_array($responseBody)) {
@@ -354,7 +352,7 @@ class Client
             $finalKey = $prefix ? "{$prefix}[{$key}]" : $key;
 
             if (is_array($value)) {
-                $output += $this->flatten($value, $finalKey); // @todo: handle name collision here if needed
+                $output = array_merge($output, $this->flatten($value, $finalKey));
             }
             else {
                 $output[$finalKey] = $value;

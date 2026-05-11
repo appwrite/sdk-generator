@@ -1,0 +1,412 @@
+{% set lang = 'rust' %}
+{% set langName = 'Rust' %}
+{% set langDescription %}{{ spec.title }} {{ langName }} SDK skill. Use when building server-side Rust applications with {{ spec.title }}. Covers async client setup with API keys, user management, TablesDB database/table/row operations, file storage, function executions, permissions, queries, and error handling. Uses the crates.io `{{ spec.title | caseLower }}` package and Tokio.{% endset %}
+{{ include('agent-skills/base/frontmatter.md.twig') }}
+
+# {{ spec.title }} {{ langName }} SDK
+
+## Installation
+
+```bash
+cargo add {{ spec.title | caseLower }}
+cargo add tokio --features full
+cargo add serde_json
+```
+
+Or add dependencies manually:
+
+```toml
+[dependencies]
+{{ spec.title | caseLower }} = "0.3.0"
+tokio = { version = "1", features = ["full"] }
+serde_json = "1"
+```
+
+## Setting Up the Client
+
+The Rust SDK is async. Use it from a Tokio runtime and authenticate server-side with an API key.
+
+```rust
+use {{ spec.title | caseLower }}::Client;
+use std::env;
+
+let client = Client::new()
+    .set_endpoint("https://<REGION>.cloud.appwrite.io/v1")
+    .set_project(env::var("{{ spec.title | caseUpper }}_PROJECT_ID")?)
+    .set_key(env::var("{{ spec.title | caseUpper }}_API_KEY")?);
+```
+
+### Complete server skeleton
+
+```rust
+use {{ spec.title | caseLower }}::query::Query;
+use {{ spec.title | caseLower }}::services::Users;
+use {{ spec.title | caseLower }}::Client;
+use std::env;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let client = Client::new()
+        .set_endpoint("https://<REGION>.cloud.appwrite.io/v1")
+        .set_project(env::var("{{ spec.title | caseUpper }}_PROJECT_ID")?)
+        .set_key(env::var("{{ spec.title | caseUpper }}_API_KEY")?);
+
+    let users = Users::new(&client);
+    let _list = users
+        .list(Some(vec![Query::limit(25).to_string()]), None, Some(true))
+        .await?;
+
+    Ok(())
+}
+```
+
+## Code Examples
+
+### User Management
+
+```rust
+use {{ spec.title | caseLower }}::id::ID;
+use {{ spec.title | caseLower }}::query::Query;
+use {{ spec.title | caseLower }}::services::Users;
+
+let users = Users::new(&client);
+
+// Create user
+let _user = users
+    .create(
+        ID::unique(),
+        Some("user@example.com"),
+        None,
+        Some("password123"),
+        Some("User Name"),
+    )
+    .await?;
+
+// List users
+let _list = users
+    .list(Some(vec![Query::limit(25).to_string()]), None, Some(true))
+    .await?;
+
+// Get user
+let _fetched = users.get("[USER_ID]").await?;
+
+// Delete user
+users.delete("[USER_ID]").await?;
+```
+
+### Database Operations
+
+> **Note:** Use `TablesDB` for new code. Only use `Databases` if the existing project explicitly depends on the legacy Databases API.
+>
+> **Rust SDK calling convention:** Methods are async, use positional parameters, and represent optional API parameters as `Option<T>`. Pass `None` for optional values you are not setting.
+
+```rust
+use {{ spec.title | caseLower }}::id::ID;
+use {{ spec.title | caseLower }}::permission::Permission;
+use {{ spec.title | caseLower }}::query::Query;
+use {{ spec.title | caseLower }}::role::Role;
+use {{ spec.title | caseLower }}::services::TablesDB;
+use serde_json::json;
+
+let tables_db = TablesDB::new(&client);
+
+// Create database
+let _database = tables_db
+    .create(ID::unique(), "My Database", Some(true))
+    .await?;
+
+// Create table
+let _table = tables_db
+    .create_table(
+        "[DATABASE_ID]",
+        ID::unique(),
+        "articles",
+        Some(vec![
+            Permission::read(Role::any()).to_string(),
+            Permission::create(Role::users(None)).to_string(),
+        ]),
+        Some(true),
+        Some(true),
+        None,
+        None,
+    )
+    .await?;
+
+// Create row
+let _row = tables_db
+    .create_row(
+        "[DATABASE_ID]",
+        "[TABLE_ID]",
+        ID::unique(),
+        json!({
+            "title": "Hello World",
+            "done": false
+        }),
+        None,
+        None,
+    )
+    .await?;
+
+// Query rows
+let _rows = tables_db
+    .list_rows(
+        "[DATABASE_ID]",
+        "[TABLE_ID]",
+        Some(vec![
+            Query::equal("done", false).to_string(),
+            Query::limit(10).to_string(),
+        ]),
+        None,
+        Some(true),
+        None,
+    )
+    .await?;
+
+// Get row
+let _row = tables_db
+    .get_row("[DATABASE_ID]", "[TABLE_ID]", "[ROW_ID]", None, None)
+    .await?;
+
+// Update row
+let _updated = tables_db
+    .update_row(
+        "[DATABASE_ID]",
+        "[TABLE_ID]",
+        "[ROW_ID]",
+        Some(json!({ "done": true })),
+        None,
+        None,
+    )
+    .await?;
+
+// Delete row
+tables_db
+    .delete_row("[DATABASE_ID]", "[TABLE_ID]", "[ROW_ID]", None)
+    .await?;
+```
+
+#### String Column Types
+
+> **Note:** The legacy `string` column type is deprecated. Use explicit string column types for new tables.
+
+| Type | Max characters | Indexing | Storage |
+|------|---------------|----------|---------|
+| `varchar` | 16,383 | Full index (if size <= 768) | Inline in row |
+| `text` | 16,383 | Prefix only | Off-page |
+| `mediumtext` | 4,194,303 | Prefix only | Off-page |
+| `longtext` | 1,073,741,823 | Prefix only | Off-page |
+
+- `varchar` is stored inline and counts toward the 64 KB row size limit. Prefer it for short, indexed fields like names, slugs, and identifiers.
+- `text`, `mediumtext`, and `longtext` are stored off-page, so they do not consume the row size budget. `size` is not required for these types.
+
+```rust
+use {{ spec.title | caseLower }}::enums::{OrderBy, TablesDBIndexType};
+
+// Short, indexed string
+let _title = tables_db
+    .create_varchar_column(
+        "[DATABASE_ID]",
+        "[TABLE_ID]",
+        "title",
+        255,
+        true,
+        None,
+        None,
+        None,
+    )
+    .await?;
+
+// Off-page longer text
+let _summary = tables_db
+    .create_text_column("[DATABASE_ID]", "[TABLE_ID]", "summary", false, None, None, None)
+    .await?;
+
+let _body = tables_db
+    .create_mediumtext_column("[DATABASE_ID]", "[TABLE_ID]", "body", false, None, None, None)
+    .await?;
+
+let _raw_data = tables_db
+    .create_longtext_column("[DATABASE_ID]", "[TABLE_ID]", "raw_data", false, None, None, None)
+    .await?;
+
+// Index only the varchar column fully.
+let _index = tables_db
+    .create_index(
+        "[DATABASE_ID]",
+        "[TABLE_ID]",
+        "title_idx",
+        TablesDBIndexType::Key,
+        vec!["title"],
+        Some(vec![OrderBy::Asc]),
+        Some(vec![255]),
+    )
+    .await?;
+```
+
+### Query Methods
+
+`TablesDB` methods accept `Option<Vec<String>>` for queries. Convert each `Query` to a string.
+
+```rust
+use {{ spec.title | caseLower }}::query::Query;
+use serde_json::Value;
+
+let queries = vec![
+    Query::equal("status", "published").to_string(),
+    Query::not_equal("archived", true).to_string(),
+    Query::greater_than("views", 100).to_string(),
+    Query::less_than_equal("priority", 5).to_string(),
+    Query::between("score", 1, 100).to_string(),
+    Query::is_not_null("publishedAt").to_string(),
+    Query::search("title", "rust appwrite").to_string(),
+    Query::contains("tags", "rust").to_string(),
+    Query::order_desc("$createdAt").to_string(),
+    Query::limit(25).to_string(),
+    Query::offset(50).to_string(),
+];
+
+let multi_value = Query::equal(
+    "status",
+    Value::Array(vec![
+        Value::String("draft".to_string()),
+        Value::String("published".to_string()),
+    ]),
+)
+.to_string();
+```
+
+### File Storage
+
+```rust
+use {{ spec.title | caseLower }}::id::ID;
+use {{ spec.title | caseLower }}::input_file::InputFile;
+use {{ spec.title | caseLower }}::permission::Permission;
+use {{ spec.title | caseLower }}::query::Query;
+use {{ spec.title | caseLower }}::role::Role;
+use {{ spec.title | caseLower }}::services::Storage;
+
+let storage = Storage::new(&client);
+
+// Create bucket
+let _bucket = storage
+    .create_bucket(
+        ID::unique(),
+        "Uploads",
+        Some(vec![
+            Permission::read(Role::any()).to_string(),
+            Permission::create(Role::users(None)).to_string(),
+        ]),
+        Some(true),
+        Some(true),
+        Some(30_000_000),
+        Some(vec!["jpg".to_string(), "png".to_string(), "pdf".to_string()]),
+        None,
+        Some(true),
+        Some(true),
+        Some(true),
+    )
+    .await?;
+
+// Upload from disk
+let input = InputFile::from_path("avatar.png", Some("image/png")).await?;
+let _file = storage
+    .create_file(
+        "[BUCKET_ID]",
+        ID::unique(),
+        input,
+        Some(vec![Permission::read(Role::any()).to_string()]),
+    )
+    .await?;
+
+// Upload from bytes
+let input = InputFile::from_bytes(b"hello".to_vec(), "hello.txt", Some("text/plain"));
+let _file = storage.create_file("[BUCKET_ID]", ID::unique(), input, None).await?;
+
+// List files
+let _files = storage
+    .list_files("[BUCKET_ID]", Some(vec![Query::limit(10).to_string()]), None, Some(true))
+    .await?;
+
+// Download file bytes
+let _content = storage
+    .get_file_download("[BUCKET_ID]", "[FILE_ID]", None)
+    .await?;
+
+// Delete file
+storage.delete_file("[BUCKET_ID]", "[FILE_ID]").await?;
+```
+
+### Functions
+
+```rust
+use {{ spec.title | caseLower }}::enums::ExecutionMethod;
+use {{ spec.title | caseLower }}::query::Query;
+use {{ spec.title | caseLower }}::services::Functions;
+use serde_json::json;
+
+let functions = Functions::new(&client);
+
+// List functions
+let _functions = functions
+    .list(Some(vec![Query::limit(25).to_string()]), None, Some(true))
+    .await?;
+
+// Execute function
+let _execution = functions
+    .create_execution(
+        "[FUNCTION_ID]",
+        Some(r#"{"hello":"world"}"#),
+        Some(false),
+        Some("/jobs/sync"),
+        Some(ExecutionMethod::POST),
+        Some(json!({ "content-type": "application/json" })),
+        None,
+    )
+    .await?;
+
+// Get execution
+let _execution = functions
+    .get_execution("[FUNCTION_ID]", "[EXECUTION_ID]")
+    .await?;
+```
+
+### Permissions
+
+```rust
+use {{ spec.title | caseLower }}::permission::Permission;
+use {{ spec.title | caseLower }}::role::Role;
+
+let permissions = vec![
+    Permission::read(Role::any()).to_string(),
+    Permission::create(Role::users(None)).to_string(),
+    Permission::update(Role::user("[USER_ID]", None)).to_string(),
+    Permission::delete(Role::team("[TEAM_ID]", Some("owner"))).to_string(),
+];
+```
+
+### Error Handling
+
+```rust
+match users.get("[USER_ID]").await {
+    Ok(user) => {
+        let _user = user;
+    }
+    Err(error) if error.status_code() == 404 => {
+        eprintln!("User not found: {}", error.get_message());
+    }
+    Err(error) => {
+        eprintln!("Appwrite error {}: {}", error.status_code(), error.get_message());
+        return Err(Box::new(error) as Box<dyn std::error::Error>);
+    }
+}
+```
+
+## Common Pitfalls
+
+- The Rust SDK is currently a server-side SDK. Prefer TypeScript/Web, Flutter, Apple, Android, or React Native SDKs for browser/mobile client auth flows.
+- Always `await` service calls.
+- Pass `None` for optional parameters you are not using.
+- Use `TablesDB`, not legacy `Databases`, for new database code.
+- Convert queries with `.to_string()` before passing them to APIs that expect `Option<Vec<String>>`.
+- Use `serde_json::json!({...})` for row data and JSON bodies.
+- Use `InputFile::from_path(...).await?` or `InputFile::from_bytes(...)` for uploads.
