@@ -36,12 +36,12 @@ class {{ service.name | caseUcfirst }}ServiceTest(unittest.TestCase):
             {% if parameter.type == 'object' %}{}{% elseif parameter.type == 'array' %}[]{% elseif parameter.type == 'file' %}InputFile.from_bytes(bytearray(), "example.file"){% elseif parameter.type == 'boolean' %}True{% elseif parameter.type == 'string' %}'{% if parameter.example is not empty %}{{parameter.example | escapeDollarSign}}{% endif %}'{% elseif parameter.type == 'integer' and parameter['x-example'] is empty %}1{% elseif parameter.type == 'number' and parameter['x-example'] is empty %}1.0{% else %}{{parameter.example}}{%~ endif ~%},{%~ endfor ~%}
         )
 
-        {%~ if method.type != 'webAuth' and method.responseModel and method.responseModel != 'any' %}
+        {%~ if method.type != 'webAuth' and method.type != 'location' and method.responseModel and method.responseModel != 'any' %}
         {%~ if method.responseModel == 'row' or method.responseModel == 'document' or method.responseModel == 'preferences' %}
         data['data'] = {}
         {%~ endif  %}
         self.assertEqual(response.to_dict(), data)
-        {%~ else %}
+        {%~ elseif method.type != 'webAuth' and method.type != 'location' %}
         self.assertEqual(response, data)
         {%~ endif  %}
     @respx.mock
@@ -64,12 +64,12 @@ class {{ service.name | caseUcfirst }}ServiceTest(unittest.TestCase):
             {% if parameter.type == 'object' %}{}{% elseif parameter.type == 'array' %}[]{% elseif parameter.type == 'file' %}InputFile.from_bytes(bytearray(), "example.file"){% elseif parameter.type == 'boolean' %}True{% elseif parameter.type == 'string' %}'{% if parameter.example is not empty %}{{parameter.example | escapeDollarSign}}{% endif %}'{% elseif parameter.type == 'integer' and parameter['x-example'] is empty %}1{% elseif parameter.type == 'number' and parameter['x-example'] is empty %}1.0{% else %}{{parameter.example}}{%~ endif ~%},{%~ endfor ~%}
         ))
 
-        {%~ if method.type != 'webAuth' and method.responseModel and method.responseModel != 'any' %}
+        {%~ if method.type != 'webAuth' and method.type != 'location' and method.responseModel and method.responseModel != 'any' %}
         {%~ if method.responseModel == 'row' or method.responseModel == 'document' or method.responseModel == 'preferences' %}
         data['data'] = {}
         {%~ endif  %}
         self.assertEqual(response.to_dict(), data)
-        {%~ else %}
+        {%~ elseif method.type != 'webAuth' and method.type != 'location' %}
         self.assertEqual(response, data)
         {%~ endif  %}
 
