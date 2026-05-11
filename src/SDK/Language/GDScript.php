@@ -363,7 +363,7 @@ class GDScript extends Language
             self::TYPE_BOOLEAN => 'bool',
             self::TYPE_ARRAY => 'Array',
             self::TYPE_OBJECT => 'Dictionary',
-            self::TYPE_FILE => 'RefCounted',
+            self::TYPE_FILE => 'AppwriteInputFile',
             default => 'Variant',
         };
     }
@@ -387,8 +387,10 @@ class GDScript extends Language
         if (empty($default) && $default !== 0 && $default !== false) {
             switch ($type) {
                 case self::TYPE_NUMBER:
-                case self::TYPE_INTEGER:
                     $output .= '0.0';
+                    break;
+                case self::TYPE_INTEGER:
+                    $output .= '0';
                     break;
                 case self::TYPE_BOOLEAN:
                     $output .= 'false';
@@ -458,6 +460,8 @@ class GDScript extends Language
         if (empty($example) && $example !== 0 && $example !== false) {
             switch ($type) {
                 case self::TYPE_NUMBER:
+                    $output .= '0.0';
+                    break;
                 case self::TYPE_INTEGER:
                     $output .= '0';
                     break;
