@@ -238,7 +238,7 @@ void main() async {
     );
 
     // Debug: print the incoming presence payload
-    print('Realtime presence incoming: ${jsonEncode(presence)}');
+    print('[Debug] Realtime presence incoming: ${jsonEncode(presence)}');
 
     if (presence[r'$id'] == 'p-test'
         && presence['status'] == 'online'
@@ -250,6 +250,7 @@ void main() async {
 
     await presenceRealtime.disconnect();
   } catch (e) {
+    print('[Debug] Realtime presence incoming: ${jsonEncode(e)}');
     print("Realtime presence:failed");
   }
 
