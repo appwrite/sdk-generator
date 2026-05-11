@@ -1,10 +1,8 @@
 package {{ sdk.namespace | caseDot }}.services
 
 import android.net.Uri
-import {{ sdk.namespace | caseDot }}.ClientAuth
+import {{ sdk.namespace | caseDot }}.Client
 import {{ sdk.namespace | caseDot }}.Service
-import {{ sdk.namespace | caseDot }}.call
-import {{ sdk.namespace | caseDot }}.chunkedUpload
 {% if spec.definitions is not empty %}
 import {{ sdk.namespace | caseDot }}.models.*
 {% endif %}
@@ -27,7 +25,7 @@ import java.io.File
 /**
  * {{ service.description | replace({"\n": "\n * "}) | raw }}
  */
-class {{ service.name | caseUcfirst }}(private val client: ClientAuth) : Service(client) {
+class {{ service.name | caseUcfirst }}(private val client: Client) : Service(client) {
 
 {% for method in service.methods %}
     /**

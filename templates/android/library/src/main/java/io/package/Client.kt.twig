@@ -37,82 +37,12 @@ import javax.net.ssl.X509TrustManager
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.resume
 
-interface ClientAuth {
-    val endpoint: String
-    val endpointRealtime: String?
-    val config: MutableMap<String, String>
-
-    fun getHeaders(): Map<String, String>
-
-    fun getCookies(url: String): List<Cookie>
-
-    fun getHttpClient(): OkHttpClient
-
-    suspend fun ping(): String
-
-    suspend fun <T> callInternal(
-        method: String,
-        path: String,
-        headers: Map<String, String>,
-        params: Map<String, Any?>,
-        responseType: Class<T>,
-        converter: ((Any) -> T)?
-    ): T
-
-    suspend fun <T> chunkedUploadInternal(
-        path: String,
-        headers: MutableMap<String, String>,
-        params: MutableMap<String, Any?>,
-        responseType: Class<T>,
-        converter: ((Any) -> T),
-        paramName: String,
-        idParamName: String?,
-        onProgress: ((UploadProgress) -> Unit)?,
-    ): T
-}
-
-suspend fun <T> ClientAuth.call(
-    method: String,
-    path: String = "",
-    headers: Map<String, String> = mapOf(),
-    params: Map<String, Any?> = mapOf(),
-    responseType: Class<T>,
-    converter: ((Any) -> T)? = null
-): T = callInternal(
-    method = method,
-    path = path,
-    headers = headers,
-    params = params,
-    responseType = responseType,
-    converter = converter
-)
-
-suspend fun <T> ClientAuth.chunkedUpload(
-    path: String,
-    headers: MutableMap<String, String>,
-    params: MutableMap<String, Any?>,
-    responseType: Class<T>,
-    converter: ((Any) -> T),
-    paramName: String,
-    idParamName: String? = null,
-    onProgress: ((UploadProgress) -> Unit)? = null,
-): T = chunkedUploadInternal(
-    path = path,
-    headers = headers,
-    params = params,
-    responseType = responseType,
-    converter = converter,
-    paramName = paramName,
-    idParamName = idParamName,
-    onProgress = onProgress
-)
-
 class Client @JvmOverloads constructor(
     context: Context,
-    override var endpoint: String = "{{spec.endpoint}}",
-    override var endpointRealtime: String? = null,
+    var endpoint: String = "{{spec.endpoint}}",
+    var endpointRealtime: String? = null,
     private var selfSigned: Boolean = false
-) : ClientAuth, CoroutineScope {
+) : CoroutineScope {
 
     companion object {
         /**
@@ -131,7 +61,7 @@ class Client @JvmOverloads constructor(
             endpointRealtime: String? = null,
             locale: String? = null,
             selfSigned: Boolean = false
-        ): ClientAuth = fromBrowserClient(
+        ): Client = fromBrowserClient(
             context = context,
             endpoint = endpoint,
             projectId = projectId,
@@ -207,7 +137,7 @@ class Client @JvmOverloads constructor(
             endpointRealtime: String? = null,
             locale: String? = null,
             selfSigned: Boolean = false
-        ): ClientAuth {
+        ): Client {
             val client = fromBrowserClient(
                 context = context,
                 endpoint = endpoint,
@@ -236,7 +166,7 @@ class Client @JvmOverloads constructor(
             endpointRealtime: String? = null,
             locale: String? = null,
             selfSigned: Boolean = false
-        ): ClientAuth {
+        ): Client {
             val client = fromBrowserClient(
                 context = context,
                 endpoint = endpoint,
@@ -268,7 +198,7 @@ class Client @JvmOverloads constructor(
             endpointRealtime: String? = null,
             locale: String? = null,
             selfSigned: Boolean = false
-        ): ClientAuth {
+        ): Client {
             val targets = listOfNotNull(userId, userEmail, userPhone).size
             require(targets == 1) {
                 "Exactly one impersonation target must be provided"
@@ -324,7 +254,7 @@ class Client @JvmOverloads constructor(
 
     internal val headers: MutableMap<String, String>
 
-    override val config: MutableMap<String, String>
+    val config: MutableMap<String, String>
 
     internal val cookieJar = ListenableCookieJar(CookieManager(
         SharedPreferencesCookieStore(context.getSharedPreferences(COOKIE_PREFS, Context.MODE_PRIVATE)),
@@ -496,7 +426,7 @@ class Client @JvmOverloads constructor(
      *
      * @return a copy of the current request headers
      */
-    override fun getHeaders(): Map<String, String> = headers.toMap()
+    fun getHeaders(): Map<String, String> = headers.toMap()
 
     /**
      * Get the cookies for a given URL from the SDK's cookie store.
@@ -504,21 +434,21 @@ class Client @JvmOverloads constructor(
      * @param url the URL to retrieve cookies for
      * @return a list of cookies for the given URL
      */
-    override fun getCookies(url: String): List<Cookie> = cookieJar.loadForRequest(url.toHttpUrl())
+    fun getCookies(url: String): List<Cookie> = cookieJar.loadForRequest(url.toHttpUrl())
 
     /**
      * Get the OkHttpClient instance used by this SDK.
      *
      * @return the OkHttpClient instance used by this client
      */
-    override fun getHttpClient(): OkHttpClient = http
+    fun getHttpClient(): OkHttpClient = http
 
     /**
      * Sends a "ping" request to Appwrite to verify connectivity.
      *
      * @return String
      */
-    override suspend fun ping(): String {
+    suspend fun ping(): String {
         val apiPath = "/ping"
         val apiParams = mutableMapOf<String, Any?>()
         val apiHeaders = mutableMapOf("content-type" to "application/json")
@@ -560,7 +490,7 @@ class Client @JvmOverloads constructor(
         converter = converter
     )
 
-    override suspend fun <T> callInternal(
+    suspend fun <T> callInternal(
         method: String,
         path: String,
         headers:  Map<String, String>,
@@ -673,7 +603,7 @@ class Client @JvmOverloads constructor(
         onProgress = onProgress
     )
 
-    override suspend fun <T> chunkedUploadInternal(
+    suspend fun <T> chunkedUploadInternal(
         path: String,
         headers:  MutableMap<String, String>,
         params: MutableMap<String, Any?>,
