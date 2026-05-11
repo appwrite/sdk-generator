@@ -123,7 +123,8 @@ class ListenableCookieJar(private val cookieHandler: CookieHandler) : CookieJar 
         }
 
         if (!cookie.hostOnly) {
-            append("; Domain=").append(cookie.domain)
+            // Leading "." marks the cookie as subdomain-matching per RFC 2965, which java.net.CookieHandler still relies on.
+            append("; Domain=.").append(cookie.domain)
         }
 
         append("; Path=").append(cookie.path)
