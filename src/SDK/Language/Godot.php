@@ -117,11 +117,6 @@ class Godot extends GDScript
             ],
             [
                 'scope' => 'default',
-                'destination' => 'tests/test_query.gd',
-                'template' => 'godot/addons/tests/test_query.gd.twig',
-            ],
-            [
-                'scope' => 'default',
                 'destination' => 'tests/test_id.gd',
                 'template' => 'godot/addons/tests/test_id.gd.twig',
             ],

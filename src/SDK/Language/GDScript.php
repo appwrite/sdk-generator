@@ -273,11 +273,6 @@ class GDScript extends Language
             ],
             [
                 'scope' => 'default',
-                'destination' => 'tests/test_query.gd',
-                'template' => 'gdscript/addons/tests/test_query.gd.twig',
-            ],
-            [
-                'scope' => 'default',
                 'destination' => 'tests/test_id.gd',
                 'template' => 'gdscript/addons/tests/test_id.gd.twig',
             ],
