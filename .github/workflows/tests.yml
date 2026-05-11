@@ -44,7 +44,7 @@ jobs:
           Ruby31,
           Rust183,
           AppleSwift60,
-          Swift56,
+          Swift60,
           WebChromium,
           WebNode
         ]
