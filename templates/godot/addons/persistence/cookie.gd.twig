@@ -1,0 +1,61 @@
+extends RefCounted
+
+var name: String = ""
+var value: String = ""
+var expires_at: int = -1 # -1 means session cookie (no expiration), 0 means already expired
+var path: String = "/"
+var domain: String = ""
+
+func parse(header: String) -> void:
+    var parts = header.split(";")
+    if parts.size() == 0:
+        return
+    
+    var key_value = parts[0].split("=", true, 1)
+    if key_value.size() >= 2:
+        name = key_value[0].strip_edges()
+        value = key_value[1].strip_edges()
+    else:
+        name = key_value[0].strip_edges()
+        
+    for i in range(1, parts.size()):
+        var attr = parts[i].strip_edges()
+        var attr_kv = attr.split("=", true, 1)
+        var attr_name = attr_kv[0].to_lower()
+        var attr_value = attr_kv[1] if attr_kv.size() > 1 else ""
+        
+        match attr_name:
+            "max-age":
+                var max_age = attr_value.to_int()
+                if max_age <= 0:
+                    expires_at = 0
+                else:
+                    expires_at = int(Time.get_unix_time_from_system()) + max_age
+            "path":
+                path = attr_value
+            "domain":
+                domain = attr_value
+                
+    if value == "" or value.to_lower() == "deleted":
+        expires_at = 0
+
+func is_expired() -> bool:
+    if expires_at == -1:
+        return false
+    return int(Time.get_unix_time_from_system()) >= expires_at
+
+func to_dict() -> Dictionary:
+    return {
+        "name": name,
+        "value": value,
+        "expires_at": expires_at,
+        "path": path,
+        "domain": domain
+    }
+
+func from_dict(dict: Dictionary) -> void:
+    name = dict.get("name", "")
+    value = dict.get("value", "")
+    expires_at = int(dict.get("expires_at", -1))
+    path = dict.get("path", "/")
+    domain = dict.get("domain", "")

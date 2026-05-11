@@ -16,6 +16,9 @@ var _global_headers = {
 {% endfor %}
 }
 
+const _cookie_store_class = preload("persistence/cookie_store.gd")
+var _cookie_store = _cookie_store_class.new()
+
 func set_self_signed(status: bool = true) -> RefCounted:
     _self_signed = status
     return self
@@ -101,6 +104,10 @@ func call_api(method: String, path: String = "", headers: Dictionary = {}, param
         if combined_headers[key] != "":
             header_list.append(key + ": " + str(combined_headers[key]))
 
+    var cookie_header = _cookie_store.get_cookie_header()
+    if cookie_header != "":
+        header_list.append("Cookie: " + cookie_header)
+
     var err = http.request_raw(uri + request_path, header_list, http_method, body)
     if err != OK:
         http.queue_free()
@@ -115,6 +122,10 @@ func call_api(method: String, path: String = "", headers: Dictionary = {}, param
     
     if request_result != HTTPRequest.RESULT_SUCCESS:
         return {"statusCode": 0, "error": "HTTP Request Error: " + str(request_result)}
+
+    for header in response[2]:
+        if header.to_lower().begins_with("set-cookie:"):
+            _cookie_store.add_cookie(header.substr(11).strip_edges())
 
     var response_text := response_body.get_string_from_utf8()
     var json := JSON.new()

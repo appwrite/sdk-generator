@@ -1,0 +1,68 @@
+extends RefCounted
+
+const _cookie_class = preload("cookie.gd")
+
+var _cookies: Dictionary = {}
+var _cookie_path: String = "user://{{spec.title|caseLower}}_cookies.json"
+
+func _init() -> void:
+    load_cookies()
+
+func add_cookie(cookie_str: String) -> void:
+    var cookie = _cookie_class.new()
+    cookie.parse(cookie_str)
+    
+    if cookie.name == "":
+        return
+        
+    if cookie.is_expired():
+        if _cookies.has(cookie.name):
+            _cookies.erase(cookie.name)
+    else:
+        _cookies[cookie.name] = cookie
+        
+    save_cookies()
+
+func get_cookie_header() -> String:
+    var header = ""
+    var to_remove = []
+    
+    for name in _cookies:
+        var cookie = _cookies[name]
+        if cookie.is_expired():
+            to_remove.append(name)
+        else:
+            header += "%s=%s; " % [cookie.name, cookie.value]
+            
+    for name in to_remove:
+        _cookies.erase(name)
+        
+    if to_remove.size() > 0:
+        save_cookies()
+        
+    return header.trim_suffix("; ")
+
+func save_cookies() -> void:
+    var file = FileAccess.open(_cookie_path, FileAccess.WRITE)
+    if file:
+        var dict = {}
+        for name in _cookies:
+            dict[name] = _cookies[name].to_dict()
+        file.store_string(JSON.stringify(dict))
+        file.close()
+
+func load_cookies() -> void:
+    if FileAccess.file_exists(_cookie_path):
+        var file = FileAccess.open(_cookie_path, FileAccess.READ)
+        if file:
+            var text = file.get_as_text()
+            var json = JSON.new()
+            if json.parse(text) == OK and typeof(json.data) == TYPE_DICTIONARY:
+                for name in json.data:
+                    var data = json.data[name]
+                    if typeof(data) == TYPE_DICTIONARY:
+                        var cookie = _cookie_class.new()
+                        cookie.from_dict(data)
+                        if not cookie.is_expired():
+                            _cookies[name] = cookie
+            file.close()

@@ -56,7 +56,7 @@ class Godot extends GDScript
                 'template' => 'godot/addons/icon.svg',
             ],
             [
-                'scopoe' => 'copy',
+                'scope' => 'copy',
                 'destination' => '.gitignore',
                 'template' => 'godot/.gitignore',
             ],
@@ -144,6 +144,16 @@ class Godot extends GDScript
                 'scope' => 'default',
                 'destination' => '.env',
                 'template' => 'godot/.env.twig',
+            ],
+            [
+                'scope' => 'default',
+                'destination' => 'addons/{{ spec.title | caseSnake }}/persistence/cookie.gd',
+                'template' => 'godot/addons/persistence/cookie.gd.twig',
+            ],
+            [
+                'scope' => 'default',
+                'destination' => 'addons/{{ spec.title | caseSnake }}/persistence/cookie_store.gd',
+                'template' => 'godot/addons/persistence/cookie_store.gd.twig',
             ],
             [
                 'scope' => 'enum',
