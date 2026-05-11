@@ -10,12 +10,12 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <!-- Appwrite OAuth deeplink -->
+            <!-- {{ spec.title | caseUcfirst }} OAuth deeplink -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="appwrite-callback-<YOUR_PROJECT_ID>" />
+                <data android:scheme="{{ spec.title | caseLower }}-callback-<YOUR_PROJECT_ID>" />
             </intent-filter>
             <meta-data android:name="unityplayer.UnityActivity" android:value="true" />
         </activity>

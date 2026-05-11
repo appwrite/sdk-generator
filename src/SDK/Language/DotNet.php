@@ -642,6 +642,9 @@ class DotNet extends Language
         $name = \str_replace('$', '', $name);
         $name = $this->toPascalCase($name);
 
+        // Generated models expose a static From(...) factory. A property named
+        // From would collide with that member; JsonPropertyName still preserves
+        // the original JSON key.
         if ($name === $this->getTypeIdentifier($definition['name']) || $name === 'From') {
             $name = 'X' . $name;
         }

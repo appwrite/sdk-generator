@@ -57,7 +57,7 @@ namespace AppwriteTests
             var general = new General(client);
 
             client.SetProject("console");
-            client.SetEndPointRealtime("wss://cloud.appwrite.io/v1");
+            client.SetEndPointRealtime("ws://mockapi/v1");
             
             // Create GameObject for Realtime MonoBehaviour
             var realtimeObject = new GameObject("RealtimeTest");
@@ -360,31 +360,31 @@ namespace AppwriteTests
             LogResult(ID.Custom("custom_id"));
 
             // Channel helper tests
-            LogResult(Channel.Database().Collection().Document().ToString());
+            LogResult(Channel.Database("db1").Collection("col1").Document().ToString());
             LogResult(Channel.Database("db1").Collection("col1").Document("doc1").ToString());
             LogResult(Channel.Database("db1").Collection("col1").Document("doc1").Create().ToString());
             LogResult(Channel.Database("db1").Collection("col1").Document("doc1").Upsert().ToString());
-            LogResult(Channel.TablesDB().Table().Row().ToString());
+            LogResult(Channel.TablesDB("db1").Table("table1").Row().ToString());
             LogResult(Channel.TablesDB("db1").Table("table1").Row("row1").ToString());
             LogResult(Channel.TablesDB("db1").Table("table1").Row("row1").Update().ToString());
             LogResult(Channel.Account());
-            LogResult(Channel.Bucket().File().ToString());
+            LogResult(Channel.Bucket("bucket1").File().ToString());
             LogResult(Channel.Bucket("bucket1").File("file1").ToString());
             LogResult(Channel.Bucket("bucket1").File("file1").Delete().ToString());
-            LogResult(Channel.Function().ToString());
+            LogResult(Channel.Function("func2").ToString());
             LogResult(Channel.Function("func1").ToString());
-            LogResult(Channel.Execution().ToString());
+            LogResult(Channel.Execution("exec2").ToString());
             LogResult(Channel.Execution("exec1").ToString());
             LogResult(Channel.Documents());
             LogResult(Channel.Rows());
             LogResult(Channel.Files());
             LogResult(Channel.Executions());
             LogResult(Channel.Teams());
-            LogResult(Channel.Team().ToString());
+            LogResult(Channel.Team("team2").ToString());
             LogResult(Channel.Team("team1").ToString());
             LogResult(Channel.Team("team1").Create().ToString());
             LogResult(Channel.Memberships());
-            LogResult(Channel.Membership().ToString());
+            LogResult(Channel.Membership("membership2").ToString());
             LogResult(Channel.Membership("membership1").ToString());
             LogResult(Channel.Membership("membership1").Update().ToString());
 

@@ -13,7 +13,7 @@ PlayerSettings:
   useOnDemandResources: 0
   accelerometerFrequency: 60
   companyName: DefaultCompany
-  productName: AppwriteTemplateSDK
+  productName: {{ spec.title | caseUcfirst }}{{ sdk.name | caseUcfirst }}SDK
   defaultCursor: {fileID: 0}
   cursorHotspot: {x: 0, y: 0}
   m_SplashScreenBackgroundColor: {r: 0.13725491, g: 0.12156863, b: 0.1254902, a: 1}
@@ -773,7 +773,7 @@ PlayerSettings:
   cloudProjectId: a0b72f85-7dbc-4748-aad1-c91100eebf4c
   framebufferDepthMemorylessMode: 0
   qualitySettingsNames: []
-  projectName: AppwriteTemplateSDK
+  projectName: {{ spec.title | caseUcfirst }}{{ sdk.name | caseUcfirst }}SDK
   organizationId: comanda-a
   cloudEnabled: 0
   legacyClampBlendShapeWeights: 0

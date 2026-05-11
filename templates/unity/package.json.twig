@@ -4,7 +4,7 @@
   "displayName": "{{spec.title}} SDK",
   "description": "{{spec.description}}",
   "unity": "2021.3",
-  "documentationUrl": "https://appwrite.io/docs",
+  "documentationUrl": "{{ sdk.url }}",
   "keywords": [
     "{{spec.title | caseLower}}",
     "backend",
@@ -18,7 +18,7 @@
   "samples": [
   {
       "displayName": "Example",
-      "description": "Appwrite Example",
-      "path": "Samples~/AppwriteExample"
+      "description": "{{ spec.title }} Example",
+      "path": "Samples~/{{ spec.title | caseUcfirst }}Example"
   } ]
 }

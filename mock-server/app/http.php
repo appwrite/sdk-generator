@@ -25,9 +25,10 @@ use Utopia\Validator\Host;
 use Utopia\Validator\Nullable;
 use Utopia\Validator\WhiteList;
 use Swoole\Process;
-use Swoole\Http\Server;
 use Utopia\MockServer\Utopia\Model\Player;
 use Utopia\MockServer\Utopia\Validator\Player as PlayerValidator;
+use Swoole\WebSocket\Frame;
+use Swoole\WebSocket\Server as WebSocketServer;
 
 const APP_AUTH_TYPE_SESSION = 'Session';
 const APP_AUTH_TYPE_JWT = 'JWT';
@@ -39,7 +40,7 @@ const APP_PLATFORM_CLIENT = 'client';
 const APP_PLATFORM_CONSOLE = 'console';
 const APP_STORAGE_CACHE = '/storage/cache';
 
-$http = new Server(
+$http = new WebSocketServer(
     host: '0.0.0.0',
     port: App::getEnv('PORT', 80),
     mode: SWOOLE_PROCESS
@@ -862,7 +863,7 @@ App::error()
         ['utopia', 'error', 'request', 'response']
     );
 
-$http->on(Constant::EVENT_START, function (Server $http) use ($payloadSize) {
+$http->on(Constant::EVENT_START, function (WebSocketServer $http) use ($payloadSize) {
     Console::success('Server started successfully (max payload is ' . number_format($payloadSize) . ' bytes)');
     Console::info("Master pid {$http->master_pid}, manager pid {$http->manager_pid}");
 
@@ -883,6 +884,65 @@ $http->on(Constant::EVENT_REQUEST, function (SwooleRequest $swooleRequest, Swool
     $app = new App('UTC');
 
     $app->run($request, $response);
+});
+
+$http->on('open', function (WebSocketServer $http, SwooleRequest $request) {
+    $http->push($request->fd, \json_encode([
+        'type' => 'connected',
+        'data' => [
+            'user' => null,
+            'subscriptions' => (object) [],
+        ],
+    ]));
+});
+
+$http->on('message', function (WebSocketServer $http, Frame $frame) {
+    $message = \json_decode($frame->data, true);
+    if (!\is_array($message)) {
+        return;
+    }
+
+    if (($message['type'] ?? '') === 'ping') {
+        $http->push($frame->fd, \json_encode(['type' => 'pong']));
+        return;
+    }
+
+    if (($message['type'] ?? '') !== 'subscribe') {
+        return;
+    }
+
+    foreach (($message['data'] ?? []) as $subscription) {
+        $subscriptionId = $subscription['subscriptionId'] ?? '';
+        if (empty($subscriptionId)) {
+            continue;
+        }
+
+        $queries = $subscription['queries'] ?? [];
+        $shouldSendEvent = true;
+        foreach ($queries as $query) {
+            if (\is_string($query) && \str_contains($query, '"failed"')) {
+                $shouldSendEvent = false;
+                break;
+            }
+        }
+
+        if (!$shouldSendEvent) {
+            continue;
+        }
+
+        $http->push($frame->fd, \json_encode([
+            'type' => 'event',
+            'data' => [
+                'events' => ['tests.*'],
+                'channels' => ['tests'],
+                'subscriptions' => [$subscriptionId],
+                'timestamp' => \date(DATE_ATOM),
+                'payload' => [
+                    'response' => 'WS:/v1/realtime:passed',
+                ],
+            ],
+        ]));
+    }
 });
 
 $http->start();

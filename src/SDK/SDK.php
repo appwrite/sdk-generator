@@ -1029,6 +1029,10 @@ class SDK
         ];
 
         foreach ($this->language->getFiles() as $file) {
+            if (($file['test'] ?? false) && $this->getParam('test') !== 'true') {
+                continue;
+            }
+
             if ($file['scope'] != 'copy') {
                 $template = $this->twig->load($file['template']); /* @var $template TemplateWrapper */
             }

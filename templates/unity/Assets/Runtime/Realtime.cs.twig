@@ -51,6 +51,22 @@ namespace {{ spec.title | caseUcfirst }}
         [JsonPropertyName("session")]
         public string Session { get; set; }
     }
+
+    internal class RealtimeSubscriptionRequest
+    {
+        [JsonPropertyName("subscriptionId")]
+        public string SubscriptionId { get; set; }
+        [JsonPropertyName("channels")]
+        public List<string> Channels { get; set; }
+        [JsonPropertyName("queries")]
+        public List<string> Queries { get; set; }
+    }
+
+    internal class RealtimeUnsubscribeRequest
+    {
+        [JsonPropertyName("subscriptionId")]
+        public string SubscriptionId { get; set; }
+    }
     
     /// <summary>
     /// Realtime response event structure
@@ -77,6 +93,7 @@ namespace {{ spec.title | caseUcfirst }}
     /// </summary>
     public class RealtimeSubscription
     {
+        internal string SubscriptionId { get; set; }
         public string[] Channels { get; internal set; }
         public List<string> Queries { get; internal set; }
         public Action<RealtimeResponseEvent<Dictionary<string, object>>> OnMessage { get; internal set; }
@@ -105,10 +122,8 @@ namespace {{ spec.title | caseUcfirst }}
         private Client _client;
         private WebSocket _webSocket;
         private readonly HashSet<string> _channels = new();
-        private readonly Dictionary<int, RealtimeSubscription> _subscriptions = new();
-        private readonly Dictionary<int, string> _slotToSubscriptionId = new();
-        private readonly Dictionary<string, int> _subscriptionIdToSlot = new();
-        private int _subscriptionCounter;
+        private readonly Dictionary<string, RealtimeSubscription> _subscriptions = new();
+        private readonly HashSet<string> _pendingSubscribes = new();
         private bool _reconnect = true;
         private int _reconnectAttempts;
         private CancellationTokenSource _cancellationTokenSource;
@@ -176,20 +191,22 @@ namespace {{ spec.title | caseUcfirst }}
         {
             Debug.Log($"[Realtime] Subscribe called for channels: [{string.Join(", ", channels)}]");
 
-            var slot = ++_subscriptionCounter;
+            var subscriptionId = GenerateUniqueSubscriptionId();
             var normalizedChannels = channels.Select(channel => channel?.Trim()).Where(channel => !string.IsNullOrWhiteSpace(channel)).ToArray();
             var normalizedQueries = queries == null ? new List<string>() : queries.Where(query => !string.IsNullOrWhiteSpace(query)).ToList();
 
             var subscription = new RealtimeSubscription
             {
+                SubscriptionId = subscriptionId,
                 Channels = normalizedChannels,
                 Queries = normalizedQueries,
                 OnMessage = callback,
-                OnClose = () => CloseSubscription(slot),
-                OnUpdate = (updatedChannels, updatedQueries) => UpdateSubscription(slot, updatedChannels, updatedQueries)
+                OnClose = () => CloseSubscription(subscriptionId),
+                OnUpdate = (updatedChannels, updatedQueries) => UpdateSubscription(subscriptionId, updatedChannels, updatedQueries)
             };
 
-            _subscriptions[slot] = subscription;
+            _subscriptions[subscriptionId] = subscription;
+            _pendingSubscribes.Add(subscriptionId);
 
             // Add channels to the set
             foreach (var channel in normalizedChannels)
@@ -199,7 +216,14 @@ namespace {{ spec.title | caseUcfirst }}
 
             // Ensure reconnect is enabled when subscribing
             _reconnect = true;
-            CreateSocket().Forget();
+            if (_webSocket?.State == WebSocketState.Open)
+            {
+                SendPendingSubscribes().Forget();
+            }
+            else
+            {
+                CreateSocket().Forget();
+            }
 
             return subscription;
         }
@@ -212,9 +236,9 @@ namespace {{ spec.title | caseUcfirst }}
             return Subscribe(new[] { channel }, callback, queries);
         }
 
-        private void UpdateSubscription(int slot, string[] channels, List<string> queries)
+        private void UpdateSubscription(string subscriptionId, string[] channels, List<string> queries)
         {
-            if (!_subscriptions.TryGetValue(slot, out var subscription))
+            if (!_subscriptions.TryGetValue(subscriptionId, out var subscription))
             {
                 return;
             }
@@ -236,7 +260,15 @@ namespace {{ spec.title | caseUcfirst }}
                 }
             }
 
-            CreateSocket().Forget();
+            _pendingSubscribes.Add(subscriptionId);
+            if (_webSocket?.State == WebSocketState.Open)
+            {
+                SendPendingSubscribes().Forget();
+            }
+            else
+            {
+                CreateSocket().Forget();
+            }
         }
 
         /// <summary>
@@ -273,15 +305,10 @@ namespace {{ spec.title | caseUcfirst }}
             return Subscribe(channelStrings, callback, queries);
         }
 
-        private void CloseSubscription(int slot)
+        private void CloseSubscription(string subscriptionId)
         {
-            if (_slotToSubscriptionId.TryGetValue(slot, out var subscriptionId))
-            {
-                _subscriptionIdToSlot.Remove(subscriptionId);
-            }
-
-            _slotToSubscriptionId.Remove(slot);
-            _subscriptions.Remove(slot);
+            var removed = _subscriptions.Remove(subscriptionId);
+            _pendingSubscribes.Remove(subscriptionId);
 
             _channels.Clear();
             foreach (var activeSubscription in _subscriptions.Values)
@@ -292,16 +319,99 @@ namespace {{ spec.title | caseUcfirst }}
                 }
             }
 
-            // Recreate socket with new channels or close if none
-            if (_channels.Count > 0)
+            if (removed)
             {
-                CreateSocket().Forget();
+                SendUnsubscribeMessage(new[] { subscriptionId }).Forget();
             }
-            else
+
+            if (_channels.Count == 0)
             {
-                // No more subscriptions, close and disable reconnect
                 CloseConnection(allowReconnect: false).Forget();
             }
+        }
+
+        private string GenerateUniqueSubscriptionId()
+        {
+            for (var attempt = 0; attempt <= _subscriptions.Count; attempt++)
+            {
+                var subscriptionId = ID.Unique();
+                if (!_subscriptions.ContainsKey(subscriptionId))
+                {
+                    return subscriptionId;
+                }
+            }
+
+            throw new {{ spec.title | caseUcfirst }}Exception("Failed to generate unique subscription id");
+        }
+
+        private async UniTask SendUnsubscribeMessage(IEnumerable<string> subscriptionIds)
+        {
+            if (_webSocket?.State != WebSocketState.Open)
+            {
+                return;
+            }
+
+            var rows = subscriptionIds
+                .Where(subscriptionId => !string.IsNullOrWhiteSpace(subscriptionId))
+                .Select(subscriptionId => new RealtimeUnsubscribeRequest
+                {
+                    SubscriptionId = subscriptionId
+                })
+                .ToList();
+
+            if (rows.Count == 0)
+            {
+                return;
+            }
+
+            var message = new RealtimeMessage<List<RealtimeUnsubscribeRequest>>
+            {
+                Type = "unsubscribe",
+                Data = rows
+            };
+            var json = JsonSerializer.Serialize(message, Client.SerializerOptions);
+
+            await _webSocket.SendText(json);
+        }
+
+        private async UniTask SendPendingSubscribes()
+        {
+            if (_webSocket?.State != WebSocketState.Open || _pendingSubscribes.Count == 0)
+            {
+                return;
+            }
+
+            var rows = new List<RealtimeSubscriptionRequest>();
+            foreach (var subscriptionId in _pendingSubscribes.ToArray())
+            {
+                if (!_subscriptions.TryGetValue(subscriptionId, out var subscription))
+                {
+                    _pendingSubscribes.Remove(subscriptionId);
+                    continue;
+                }
+
+                rows.Add(new RealtimeSubscriptionRequest
+                {
+                    SubscriptionId = subscriptionId,
+                    Channels = subscription.Channels.ToList(),
+                    Queries = subscription.Queries ?? new List<string>()
+                });
+            }
+
+            if (rows.Count == 0)
+            {
+                return;
+            }
+
+            _pendingSubscribes.Clear();
+            var message = new RealtimeMessage<List<RealtimeSubscriptionRequest>>
+            {
+                Type = "subscribe",
+                Data = rows
+            };
+            var json = JsonSerializer.Serialize(message, Client.SerializerOptions);
+
+            await _webSocket.SendText(json);
         }
         
         private async UniTask CreateSocket()
@@ -379,6 +489,7 @@ namespace {{ spec.title | caseUcfirst }}
             _reconnectAttempts = 0;
             OnConnected?.Invoke();
             StartHeartbeat();
+            SendPendingSubscribes().Forget();
             Debug.Log("[Realtime] WebSocket opened successfully.");
         }
 
@@ -422,19 +533,11 @@ namespace {{ spec.title | caseUcfirst }}
         {
             Debug.Log("[Realtime] Received 'connected' message");
 
-            _slotToSubscriptionId.Clear();
-            _subscriptionIdToSlot.Clear();
-            if (data?.Subscriptions != null)
+            foreach (var subscriptionId in _subscriptions.Keys)
             {
-                foreach (var pair in data.Subscriptions)
-                {
-                    if (int.TryParse(pair.Key, out var slot) && !string.IsNullOrEmpty(pair.Value))
-                    {
-                        _slotToSubscriptionId[slot] = pair.Value;
-                        _subscriptionIdToSlot[pair.Value] = slot;
-                    }
-                }
+                _pendingSubscribes.Add(subscriptionId);
             }
+            SendPendingSubscribes().Forget();
             
             if (data?.User == null || data.User.Count == 0)
             {
@@ -484,8 +587,7 @@ namespace {{ spec.title | caseUcfirst }}
                             continue;
                         }
 
-                        if (_subscriptionIdToSlot.TryGetValue(subscriptionId, out var slot) &&
-                            _subscriptions.TryGetValue(slot, out var subscription))
+                        if (_subscriptions.TryGetValue(subscriptionId, out var subscription))
                         {
                             subscription.OnMessage?.Invoke(eventData);
                         }
@@ -630,36 +732,10 @@ namespace {{ spec.title | caseUcfirst }}
                 throw new {{ spec.title | caseUcfirst }}Exception("Project ID is required to connect to the realtime server.");
             }
 
-            var allChannels = new HashSet<string>(_subscriptions.Values.SelectMany(subscription => subscription.Channels));
             var queryParts = new List<string>
             {
                 $"project={Uri.EscapeDataString(project)}"
             };
-
-            foreach (var channel in allChannels)
-            {
-                queryParts.Add($"channels[]={Uri.EscapeDataString(channel)}");
-            }
-
-            const string selectAllQuery = "{\"method\":\"select\",\"values\":[\"*\"]}";
-
-            foreach (var entry in _subscriptions)
-            {
-                var slot = entry.Key;
-                var subscription = entry.Value;
-                var queries = subscription.Queries != null && subscription.Queries.Count > 0
-                    ? subscription.Queries
-                    : new List<string> { selectAllQuery };
-
-                foreach (var channel in subscription.Channels)
-                {
-                    var encodedChannel = Uri.EscapeDataString(channel);
-                    foreach (var query in queries)
-                    {
-                        queryParts.Add($"{encodedChannel}[{slot}][]={Uri.EscapeDataString(query)}");
-                    }
-                }
-            }
             
             var uri = new Uri(realtimeEndpoint); 
             
@@ -690,7 +766,19 @@ namespace {{ spec.title | caseUcfirst }}
             
             if (_webSocket != null)
             {
-                await _webSocket.Close();
+                try
+                {
+                    await _webSocket.Close();
+                }
+                catch
+                {
+                    // Treat closing an already closed or failed socket as a completed disconnect.
+                }
+                finally
+                {
+                    _webSocket = null;
+                    _lastUrl = null;
+                }
             }
             
             _reconnectAttempts = 0;

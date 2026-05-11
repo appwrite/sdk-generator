@@ -274,9 +274,9 @@ namespace {{ spec.title | caseUcfirst }}
 
                 foreach (var parameter in parameters)
                 {
-                    if (parameter.Key == "file" && parameter.Value is InputFile inputFile)
+                    if (parameter.Value is InputFile inputFile)
                     {
-                        byte[] fileData = {};
+                        byte[] fileData;
                         switch (inputFile.SourceType)
                         {
                             case "path":
@@ -287,18 +287,22 @@ namespace {{ spec.title | caseUcfirst }}
                                 fileData = System.IO.File.ReadAllBytes(inputFile.Path);
                                 break;
                             case "stream":
-                                if (inputFile.Data is Stream stream)
+                                if (!(inputFile.Data is Stream stream))
                                 {
-                                    using (var memoryStream = new MemoryStream())
-                                    {
-                                        stream.CopyTo(memoryStream);
-                                        fileData = memoryStream.ToArray();
-                                    }
+                                    throw new InvalidOperationException("Upload stream data is missing or invalid.");
+                                }
+
+                                using (var memoryStream = new MemoryStream())
+                                {
+                                    stream.CopyTo(memoryStream);
+                                    fileData = memoryStream.ToArray();
                                 }
                                 break;
                             case "bytes":
-                                fileData = inputFile.Data as byte[] ?? Array.Empty<byte>();
+                                fileData = inputFile.Data as byte[] ?? throw new InvalidOperationException("Upload byte data is missing or invalid.");
                                 break;
+                            default:
+                                throw new InvalidOperationException($"Unsupported upload source type: {inputFile.SourceType}");
                         }
 
                         form.Add(new MultipartFormFileSection(parameter.Key, fileData, inputFile.Filename, inputFile.MimeType));
@@ -570,6 +574,8 @@ namespace {{ spec.title | caseUcfirst }}
                     var stream = input.Data as Stream;
                     if (stream == null)
                         throw new InvalidOperationException("Stream data is null");
+                    if (!stream.CanSeek)
+                        throw new ArgumentException("Stream must be seekable for chunked uploads.", paramName);
                     size = stream.Length;
                     break;
                 case "bytes":

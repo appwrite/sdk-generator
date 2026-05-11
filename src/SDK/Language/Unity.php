@@ -79,7 +79,7 @@ class Unity extends DotNet
                 'destination'   => 'Assets/Runtime/{{ spec.title | caseUcfirst }}.asmdef',
                 'template'      => 'unity/Assets/Runtime/Appwrite.asmdef.twig',
             ],
-            // Appwrite
+            // Runtime
             [
                 'scope'         => 'default',
                 'destination'   => 'Assets/Runtime/{{ spec.title | caseUcfirst }}Config.cs',
@@ -105,7 +105,7 @@ class Unity extends DotNet
                 'destination'   => 'Assets/Runtime/Utilities/{{ spec.title | caseUcfirst }}Utilities.cs',
                 'template'      => 'unity/Assets/Runtime/Utilities/AppwriteUtilities.cs.twig',
             ],
-            // Appwrite.Core
+            // Runtime core
             [
                 'scope'         => 'copy',
                 'destination'   => 'Assets/Runtime/Core/csc.rsp',
@@ -243,9 +243,9 @@ class Unity extends DotNet
                 'template'      => 'unity/Assets/Runtime/Core/Plugins/System.Text.Encodings.Web.dll',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'Assets/Runtime/Core/Plugins/Android/AndroidManifest.xml',
-                'template'      => 'unity/Assets/Runtime/Core/Plugins/Android/AndroidManifest.xml',
+                'template'      => 'unity/Assets/Runtime/Core/Plugins/Android/AndroidManifest.xml.twig',
             ],
             [
                 'scope'         => 'copy',
@@ -257,7 +257,17 @@ class Unity extends DotNet
                 'destination'   => 'Assets/Runtime/Core/Plugins/System.Text.Json.dll',
                 'template'      => 'unity/Assets/Runtime/Core/Plugins/System.Text.Json.dll',
             ],
-            // Appwrite.Editor
+            [
+                'scope'         => 'copy',
+                'destination'   => 'Assets/Runtime/Core/Plugins/THIRD_PARTY_NOTICES.md',
+                'template'      => 'unity/Assets/Runtime/Core/Plugins/THIRD_PARTY_NOTICES.md',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'Assets/Runtime/Core/Plugins/dependencies.lock.json',
+                'template'      => 'unity/Assets/Runtime/Core/Plugins/dependencies.lock.json',
+            ],
+            // Editor
             [
                 'scope'         => 'default',
                 'destination'   => 'Assets/Editor/{{ spec.title | caseUcfirst }}.Editor.asmdef',
@@ -362,9 +372,9 @@ class Unity extends DotNet
                 'template'      => 'unity/ProjectSettings/PresetManager.asset',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'ProjectSettings/ProjectSettings.asset',
-                'template'      => 'unity/ProjectSettings/ProjectSettings.asset',
+                'template'      => 'unity/ProjectSettings/ProjectSettings.asset.twig',
             ],
             [
                 'scope'         => 'copy',
@@ -407,6 +417,16 @@ class Unity extends DotNet
                 'template'      => 'unity/ProjectSettings/XRSettings.asset',
             ],
         ];
+
+        foreach ($files as &$file) {
+            if (
+                str_starts_with($file['destination'], 'Packages/')
+                || str_starts_with($file['destination'], 'ProjectSettings/')
+            ) {
+                $file['test'] = true;
+            }
+        }
+        unset($file);
 
         // Filter out problematic files in test mode
         // Check if we're in test mode by looking for a global variable

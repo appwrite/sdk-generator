@@ -3,7 +3,7 @@
 ![License](https://img.shields.io/github/license/{{ sdk.gitUserName|url_encode }}/{{ sdk.gitRepoName|url_encode }}.svg?style=flat-square)
 ![Version](https://img.shields.io/badge/api%20version-{{ spec.version|url_encode }}-blue.svg?style=flat-square)
 ![Unity](https://img.shields.io/badge/Unity-2021.3%2B-blue.svg)
-[![Build Status](https://img.shields.io/travis/com/appwrite/sdk-generator?style=flat-square)](https://travis-ci.com/appwrite/sdk-generator)
+[![Build Status](https://img.shields.io/travis/com/{{ sdk.gitUserName|url_encode }}/{{ sdk.gitRepoName|url_encode }}?style=flat-square)](https://travis-ci.com/{{ sdk.gitUserName|url_encode }}/{{ sdk.gitRepoName|url_encode }})
 {% if sdk.twitterHandle %}
 [![Twitter Account](https://img.shields.io/twitter/follow/{{ sdk.twitterHandle }}?color=00acee&label=twitter&style=flat-square)](https://twitter.com/{{ sdk.twitterHandle }})
 {% endif %}
@@ -32,13 +32,13 @@
 https://github.com/{{ sdk.gitUserName|url_encode }}/{{ sdk.gitRepoName|url_encode }}.git?path=Assets
 ```
 4. Click **Add**
-5. In Unity, open the **Appwrite → Setup Assistant** menu and install the required dependencies
+5. In Unity, open the **{{ spec.title | caseUcfirst }} → Setup Assistant** menu and install the required dependencies
 ![](./.media/setup-assistant.png)
 ### Manual Installation
 
 1. Download the latest release from [GitHub](/releases) or zip
 2. Import the Unity package into your project
-3. In Unity, open the **Appwrite → Setup Assistant** menu and install the required dependencies
+3. In Unity, open the **{{ spec.title | caseUcfirst }} → Setup Assistant** menu and install the required dependencies
 
 ## Dependencies
 
@@ -48,30 +48,30 @@ This SDK requires the following Unity packages and libraries:
 - [**NativeWebSocket**](https://github.com/endel/NativeWebSocket): For WebSocket real-time subscriptions
 - **System.Text.Json**: For JSON serialization (provided as a DLL in the project)
 
-You can also install UniTask and other required dependencies automatically via **Appwrite → Setup Assistant** in Unity.
+You can also install UniTask and other required dependencies automatically via **{{ spec.title | caseUcfirst }} → Setup Assistant** in Unity.
 
 ## Quick Start
-> **Before you begin**  
-> First, create an Appwrite configuration:  
-> — via the **QuickStart** window in the **Appwrite Setup Assistant**  
-> — or through the menu **Appwrite → Create Configuration**
+> **Before you begin**
+> First, create {{ spec.title | caseUcfirst }} configuration:
+> — via the **QuickStart** window in the **{{ spec.title | caseUcfirst }} Setup Assistant**
+> — or through the menu **{{ spec.title | caseUcfirst }} → Create Configuration**
 ![](./.media/config.png)
 
-### Example: Unity Integration - Using AppwriteManager
+### Example: Unity Integration - Using {{ spec.title | caseUcfirst }}Manager
 
 ```csharp
-    [SerializeField] private AppwriteConfig config;
-    private AppwriteManager _manager;
+    [SerializeField] private {{ spec.title | caseUcfirst }}Config config;
+    private {{ spec.title | caseUcfirst }}Manager _manager;
 
     private async UniTask ExampleWithManager()
     {
         // Get or create manager
-        _manager = AppwriteManager.Instance ?? new GameObject("AppwriteManager").AddComponent<AppwriteManager>();
+        _manager = {{ spec.title | caseUcfirst }}Manager.Instance ?? new GameObject("{{ spec.title | caseUcfirst }}Manager").AddComponent<{{ spec.title | caseUcfirst }}Manager>();
         _manager.SetConfig(config);
 
         // Initialize
         var success = await _manager.Initialize();
-        if (!success) { Debug.LogError("Failed to initialize AppwriteManager"); return; }
+        if (!success) { Debug.LogError("Failed to initialize {{ spec.title | caseUcfirst }}Manager"); return; }
 
         // Direct client access
         var client = _manager.Client;
@@ -94,7 +94,7 @@ You can also install UniTask and other required dependencies automatically via *
 ### Example: Unity Integration - Using Client directly
 
 ```csharp
-    [SerializeField] private AppwriteConfig config;
+    [SerializeField] private {{ spec.title | caseUcfirst }}Config config;
 
     private async UniTask ExampleWithDirectClient()
     {
@@ -103,8 +103,8 @@ You can also install UniTask and other required dependencies automatically via *
             .SetEndpoint(config.Endpoint)
             .SetProject(config.ProjectId);
                     
-        if (!string.IsNullOrEmpty(config.ApiKey))
-            client.SetKey(config.ApiKey);
+        if (!string.IsNullOrEmpty(config.DevKey))
+            client.SetDevKey(config.DevKey);
                     
         if (!string.IsNullOrEmpty(config.RealtimeEndpoint))
             client.SetEndPointRealtime(config.RealtimeEndpoint);
@@ -132,9 +132,9 @@ try
 {
     var result = await client..Async();
 }
-catch (AppwriteException ex)
+catch ({{ spec.title | caseUcfirst }}Exception ex)
 {
-    Debug.LogError($"Appwrite Error: {ex.Message}");
+    Debug.LogError($"{{ spec.title | caseUcfirst }} Error: {ex.Message}");
     Debug.LogError($"Status Code: {ex.Code}");
     Debug.LogError($"Response: {ex.Response}");
 }
@@ -142,9 +142,9 @@ catch (AppwriteException ex)
 
 ## Preparing Models for Databases API
 
-When working with the Databases API in Unity, models should be prepared for serialization using the System.Text.Json library. By default, System.Text.Json converts property names from PascalCase to camelCase when serializing to JSON. If your Appwrite collection attributes are not in camelCase, this can cause errors due to mismatches between serialized property names and actual attribute names in your collection.
+When working with the Databases API in Unity, models should be prepared for serialization using the System.Text.Json library. By default, System.Text.Json converts property names from PascalCase to camelCase when serializing to JSON. If your {{ spec.title | caseUcfirst }} collection attributes are not in camelCase, this can cause errors due to mismatches between serialized property names and actual attribute names in your collection.
 
-To avoid this, add the `JsonPropertyName` attribute to each property in your model class to match the attribute name in Appwrite:
+To avoid this, add the `JsonPropertyName` attribute to each property in your model class to match the attribute name in {{ spec.title | caseUcfirst }}:
 
 ```csharp
 using System.Text.Json.Serialization;
@@ -159,11 +159,11 @@ public class TestModel
 }
 ```
 
-The `JsonPropertyName` attribute ensures your data object is serialized with the correct attribute names for Appwrite databases. This approach works seamlessly in Unity with the included System.Text.Json DLL.
+The `JsonPropertyName` attribute ensures your data object is serialized with the correct attribute names for {{ spec.title | caseUcfirst }} databases. This approach works seamlessly in Unity with the included System.Text.Json DLL.
 
 ## Contribution
 
-This library is auto-generated by the Appwrite [SDK Generator](https://github.com/appwrite/sdk-generator). To learn how you can help improve this SDK, please check the [contribution guide](https://github.com/appwrite/sdk-generator/blob/master/CONTRIBUTING.md) before sending a pull request.
+This library is auto-generated by the {{ spec.title }} [SDK Generator](https://github.com/{{ sdk.gitUserName|url_encode }}/{{ sdk.gitRepoName|url_encode }}). To learn how you can help improve this SDK, please check the [contribution guide](https://github.com/{{ sdk.gitUserName|url_encode }}/{{ sdk.gitRepoName|url_encode }}/blob/master/CONTRIBUTING.md) before sending a pull request.
 
 ## License
 
@@ -172,4 +172,3 @@ Please see the [{{spec.licenseName}} license]({{spec.licenseURL}}) file for more
 ## Changelog
 
 Please see [CHANGELOG](CHANGELOG.md) for more information about recent changes.
-
