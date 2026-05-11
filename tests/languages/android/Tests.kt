@@ -81,8 +81,8 @@ class ServiceTest {
             locale = "en-US",
             selfSigned = true
         )
-        writeToFile(browserClient.getConfig("project"))
-        writeToFile(browserClient.getConfig("locale"))
+        writeToFile(browserClient.config["project"])
+        writeToFile(browserClient.config["locale"])
         writeToFile(browserClient.endpointRealtime)
 
         val sessionClient = Client.fromSession(
@@ -91,7 +91,7 @@ class ServiceTest {
             session = "auth-session",
             endpoint = "https://cloud.appwrite.io/v1"
         )
-        writeToFile(sessionClient.getConfig("session"))
+        writeToFile(sessionClient.config["session"])
 
         val devKeyClient = Client.fromDevKey(
             context = ApplicationProvider.getApplicationContext(),
@@ -99,7 +99,7 @@ class ServiceTest {
             devKey = "auth-dev-key",
             endpoint = "https://cloud.appwrite.io/v1"
         )
-        writeToFile(devKeyClient.getConfig("devKey"))
+        writeToFile(devKeyClient.config["devKey"])
 
         val impersonationUserClient = Client.fromImpersonation(
             context = ApplicationProvider.getApplicationContext(),
@@ -108,7 +108,7 @@ class ServiceTest {
             userId = "auth-user-id",
             endpoint = "https://cloud.appwrite.io/v1"
         )
-        writeToFile(impersonationUserClient.getConfig("impersonateUserId"))
+        writeToFile(impersonationUserClient.config["impersonateUserId"])
 
         val impersonationEmailClient = Client.fromImpersonation(
             context = ApplicationProvider.getApplicationContext(),
@@ -117,7 +117,7 @@ class ServiceTest {
             userEmail = "auth@example.com",
             endpoint = "https://cloud.appwrite.io/v1"
         )
-        writeToFile(impersonationEmailClient.getConfig("impersonateUserEmail"))
+        writeToFile(impersonationEmailClient.config["impersonateUserEmail"])
 
         val impersonationPhoneClient = Client.fromImpersonation(
             context = ApplicationProvider.getApplicationContext(),
@@ -126,7 +126,7 @@ class ServiceTest {
             userPhone = "+15555550123",
             endpoint = "https://cloud.appwrite.io/v1"
         )
-        writeToFile(impersonationPhoneClient.getConfig("impersonateUserPhone"))
+        writeToFile(impersonationPhoneClient.config["impersonateUserPhone"])
 
         try {
             Client.fromImpersonation(
