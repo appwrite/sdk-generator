@@ -15,7 +15,7 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
         case {{ property.name | escapeSwiftKeyword | removeDollarSign }} = "{{ property.name }}"
         {%~ endfor %}
         {%~ if definition.additionalProperties %}
-        case {{ definition.additionalPropertiesKey | default('data') | escapeSwiftKeyword | removeDollarSign }}
+        case {{ definition.additionalPropertiesKey | default('data') | escapeSwiftKeyword | removeDollarSign }} = "{{ definition.additionalPropertiesKey | default('data') }}"
         {%~ endif %}
     }
 
