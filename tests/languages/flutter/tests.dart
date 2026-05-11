@@ -250,7 +250,7 @@ void main() async {
 
     await presenceRealtime.disconnect();
   } catch (e) {
-    print('[Debug] Realtime presence incoming: ${jsonEncode(e)}');
+    print('[Debug] Realtime presence incoming: ${e.toString()}');
     print("Realtime presence:failed");
   }
 
