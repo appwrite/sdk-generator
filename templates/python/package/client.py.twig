@@ -109,7 +109,8 @@ class Client:
         if response is not None:
             content_type = response.headers.get('Content-Type', '')
             if content_type.startswith('application/json'):
-                raise {{spec.title | caseUcfirst}}Exception(response.json().get('message', ''), response.status_code, response.json().get('type'), response.text)
+                body = response.json()
+                raise {{spec.title | caseUcfirst}}Exception(body.get('message', ''), response.status_code, body.get('type'), response.text)
             else:
                 raise {{spec.title | caseUcfirst}}Exception(response.text, response.status_code, None, response.text)
         else:
@@ -258,7 +259,8 @@ class Client:
         input_file = params[param_name]
 
         if input_file.source_type == 'path':
-            size = os.stat(input_file.path).st_size
+            stat_result = await asyncio.to_thread(os.stat, input_file.path)
+            size = stat_result.st_size
             input = await asyncio.to_thread(open, input_file.path, 'rb')
         elif input_file.source_type == 'bytes':
             size = len(input_file.data)
@@ -339,7 +341,7 @@ class Client:
             return result
         finally:
             if input_file.source_type == 'path':
-                input.close()
+                await asyncio.to_thread(input.close)
 
     def flatten(self, data, prefix='', stringify=False):
         output = {}
