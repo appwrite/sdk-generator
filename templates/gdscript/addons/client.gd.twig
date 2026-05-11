@@ -130,24 +130,26 @@ func _build_multipart(params: Dictionary, boundary: String) -> PackedByteArray:
         var value = params[key]
         if value == null: continue
         
-        body.append_array(("--" + boundary + "\r\n").to_utf8_buffer())
-        
         if value is {{prefix}}InputFile:
             var data = value.get_data()
             if data.is_empty():
                 push_warning("{{prefix}}InputFile contains no data")
                 continue
+            body.append_array(("--" + boundary + "\r\n").to_utf8_buffer())
             body.append_array(("Content-Disposition: form-data; name=\"%s\"; filename=\"%s\"\r\n" % [key, value.filename]).to_utf8_buffer())
             var c_type = value.content_type if value.content_type != "" else "application/octet-stream"
             body.append_array(("Content-Type: %s\r\n\r\n" % c_type).to_utf8_buffer())
-            body.append_array(value.get_data())
+            body.append_array(data)
         elif value is Array:
             for i in range(value.size()):
-                if i > 0:
+                if i == 0:
+                    body.append_array(("--" + boundary + "\r\n").to_utf8_buffer())
+                else:
                     body.append_array(("\r\n--" + boundary + "\r\n").to_utf8_buffer())
                 body.append_array(("Content-Disposition: form-data; name=\"%s[]\"\r\n\r\n" % key).to_utf8_buffer())
                 body.append_array((str(value[i])).to_utf8_buffer())
         else:
+            body.append_array(("--" + boundary + "\r\n").to_utf8_buffer())
             body.append_array(("Content-Disposition: form-data; name=\"%s\"\r\n\r\n" % key).to_utf8_buffer())
             body.append_array((str(value)).to_utf8_buffer())
             
