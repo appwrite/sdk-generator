@@ -16,7 +16,7 @@ maintainers = [
   { name = "{{ spec.contactName }}", email = "{{ spec.contactEmail }}" }
 ]
 dependencies = [
-  "requests",
+  "httpx>=0.27",
   "pydantic>=2,<3",
 ]
 classifiers = [
@@ -34,7 +34,7 @@ classifiers = [
 
 [project.optional-dependencies]
 test = [
-  "requests_mock==1.11.0",
+  "respx",
 ]
 
 [project.urls]
