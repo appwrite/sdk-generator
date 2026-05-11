@@ -1,9 +1,9 @@
 package io.appwrite.cookies
 
+import android.util.Log
 import okhttp3.Cookie
 import okhttp3.CookieJar
 import okhttp3.HttpUrl
-import okhttp3.internal.platform.Platform
 import java.io.IOException
 import java.net.CookieHandler
 import java.text.SimpleDateFormat
@@ -15,6 +15,10 @@ import java.util.TimeZone
 typealias CookieListener = (existing: List<Cookie>, new: List<Cookie>) -> Unit
 
 class ListenableCookieJar(private val cookieHandler: CookieHandler) : CookieJar {
+
+    private companion object {
+        private const val TAG = "ListenableCookieJar"
+    }
 
     private val listeners: MutableMap<Int, CookieListener> = mutableMapOf()
 
@@ -35,10 +39,7 @@ class ListenableCookieJar(private val cookieHandler: CookieHandler) : CookieJar 
         try {
             cookieHandler.put(url.toUri(), multimap)
         } catch (e: IOException) {
-            Platform.get().log(
-                "Saving cookies failed for " + url.resolve("/...")!!,
-                Platform.WARN, e
-            )
+            Log.w(TAG, "Saving cookies failed for " + url.resolve("/..."), e)
         }
     }
 
@@ -46,10 +47,7 @@ class ListenableCookieJar(private val cookieHandler: CookieHandler) : CookieJar 
         val cookieHeaders = try {
             cookieHandler.get(url.toUri(), emptyMap<String, List<String>>())
         } catch (e: IOException) {
-            Platform.get().log(
-                "Loading cookies failed for " + url.resolve("/...")!!,
-                Platform.WARN, e
-            )
+            Log.w(TAG, "Loading cookies failed for " + url.resolve("/..."), e)
             return emptyList()
         }
 
