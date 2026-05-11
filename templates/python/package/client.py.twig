@@ -111,9 +111,9 @@ class Client:
             if content_type.startswith('application/json'):
                 try:
                     body = response.json()
-                    raise {{spec.title | caseUcfirst}}Exception(body.get('message', ''), response.status_code, body.get('type'), response.text)
                 except Exception:
                     raise {{spec.title | caseUcfirst}}Exception(response.text, response.status_code, None, response.text)
+                raise {{spec.title | caseUcfirst}}Exception(body.get('message', ''), response.status_code, body.get('type'), response.text)
             else:
                 raise {{spec.title | caseUcfirst}}Exception(response.text, response.status_code, None, response.text)
         else:
