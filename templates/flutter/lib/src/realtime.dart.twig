@@ -73,12 +73,12 @@ abstract class Realtime extends Service {
   /// ```dart
   /// realtime.subscribe(['account']);
   /// await Future.delayed(Duration(seconds: 1)); // let the WS open
-  /// realtime.createPresence(
+  /// realtime.upsertPresence(
   ///   status: 'online',
   ///   metadata: {'device': 'web'},
   /// );
   /// ```
-  void createPresence({
+  void upsertPresence({
     required String status,
     List<String>? permissions,
     Map<String, dynamic>? metadata,

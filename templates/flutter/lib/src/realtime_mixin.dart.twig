@@ -128,11 +128,6 @@ mixin RealtimeMixin {
             _flushPendingPresence();
             _startHeartbeat(); // Start heartbeat after successful connection
             break;
-          case 'response':
-            // createPresence is fire-and-forget, so presence responses (and
-            // subscribe/unsubscribe acks, whose subscriptionIds the SDK generates
-            // client-side) carry no state the SDK needs to reconcile.
-            break;
           case 'pong':
             break;
           case 'event':
@@ -374,7 +369,7 @@ mixin RealtimeMixin {
   /// that — if the WebSocket isn't open yet, or later reconnects — the most
   /// recent presence is automatically (re)sent on the next `connected` event.
   /// When the socket is already open, the frame is sent immediately.
-  void createPresenceTo({
+  void upsertPresenceTo({
     required String status,
     List<String>? permissions,
     Map<String, dynamic>? metadata,

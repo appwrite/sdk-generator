@@ -244,7 +244,7 @@ class Tests: XCTestCase {
         }
 
         // Realtime presence (upsertPresence) test against the mock WebSocket server.
-        // createPresence is fire-and-forget — call it without `try await` after
+        // upsertPresence is fire-and-forget — call it without `try await` after
         // giving subscribe() time to open the WebSocket.
         // setSelfSigned() is required so WebSocketClient skips TLS for the ws:// mock endpoint.
         do {
@@ -257,7 +257,7 @@ class Tests: XCTestCase {
             _ = try await presenceRealtime.subscribe(channels: ["tests"]) { _ in }
             try await Task.sleep(nanoseconds: 3_000_000_000)
 
-            try presenceRealtime.createPresence(
+            try presenceRealtime.upsertPresence(
                 status: "online",
                 metadata: ["page": "/home"],
                 presenceId: "p-test"

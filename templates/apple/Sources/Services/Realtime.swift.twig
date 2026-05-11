@@ -14,7 +14,6 @@ open class Realtime : Service {
     private let TYPE_ERROR = "error"
     private let TYPE_EVENT = "event"
     private let TYPE_PONG = "pong"
-    private let TYPE_RESPONSE = "response"
     private let DEBOUNCE_NANOS = 1_000_000
     private let HEARTBEAT_INTERVAL: UInt64 = 20_000_000_000 // 20 seconds in nanoseconds
 
@@ -211,7 +210,7 @@ open class Realtime : Service {
     ///   - permissions: Optional permission list to attach to the presence document.
     ///   - metadata: Optional metadata payload.
     ///   - presenceId: Optional presence ID. Defaults server-side to a new unique ID.
-    public func createPresence(
+    public func upsertPresence(
         status: String,
         permissions: [String]? = nil,
         metadata: [String: Any]? = nil,
@@ -417,12 +416,6 @@ extension Realtime: WebSocketClientDelegate {
         try? flushPendingPresence()
     }
 
-    private func handleResponseAction(from json: [String: Any]) {
-        // createPresence is fire-and-forget, so presence responses (and
-        // subscribe/unsubscribe acks, whose subscriptionIds the SDK generates
-        // client-side) carry no state the SDK needs to reconcile.
-    }
-
     public func onMessage(text: String) {
         let data = Data(text.utf8)
         guard let json = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
@@ -439,8 +432,6 @@ extension Realtime: WebSocketClientDelegate {
             }
         case "connected":
             handleResponseConnected(from: json)
-        case TYPE_RESPONSE:
-            handleResponseAction(from: json)
         case TYPE_EVENT:
             handleResponseEvent(from: json)
         case TYPE_PONG:

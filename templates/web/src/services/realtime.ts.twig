@@ -97,7 +97,6 @@ export class Realtime {
     private readonly TYPE_EVENT = 'event';
     private readonly TYPE_PONG = 'pong';
     private readonly TYPE_CONNECTED = 'connected';
-    private readonly TYPE_RESPONSE = 'response';
     private readonly DEBOUNCE_MS = 1;
     private readonly HEARTBEAT_INTERVAL = 20000; // 20 seconds in milliseconds
 
@@ -579,7 +578,7 @@ export class Realtime {
      *
      * @param {RealtimePresenceCreate} params - Presence payload (status required, permissions/metadata/presenceId optional)
      */
-    public async createPresence(params: RealtimePresenceCreate): Promise<void> {
+    public async upsertPresence(params: RealtimePresenceCreate): Promise<void> {
         const data: Record<string, any> = {
             status: params.status,
         };
@@ -627,9 +626,6 @@ export class Realtime {
                 break;
             case this.TYPE_PONG:
                 // Handle pong response if needed
-                break;
-            case this.TYPE_RESPONSE:
-                this.handleResponseAction(message);
                 break;
         }
     }
@@ -704,11 +700,5 @@ export class Realtime {
                 subscriptions
             });
         }
-    }
-
-    private handleResponseAction(message: RealtimeResponse): void {
-        // createPresence is fire-and-forget, so presence responses (and
-        // subscribe/unsubscribe acks, whose subscriptionIds the SDK generates
-        // client-side) carry no state the SDK needs to reconcile.
     }
 }

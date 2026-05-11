@@ -270,7 +270,7 @@ class ServiceTest {
             }
 
             // Realtime presence (upsertPresence) test against the mock WebSocket server.
-            // createPresence is fire-and-forget — call it without awaiting after
+            // upsertPresence is fire-and-forget — call it without awaiting after
             // giving subscribe() time to open the WebSocket.
             try {
                 val presenceClient = Client(ApplicationProvider.getApplicationContext())
@@ -284,7 +284,7 @@ class ServiceTest {
                 ) { /* no-op */ }
                 delay(3000)
 
-                presenceRealtime.createPresence(
+                presenceRealtime.upsertPresence(
                     status = "online",
                     metadata = mapOf("page" to "/home"),
                     presenceId = "p-test",

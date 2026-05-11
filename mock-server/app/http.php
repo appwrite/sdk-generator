@@ -25,7 +25,7 @@ use Utopia\Validator\WhiteList;
 use Utopia\MockServer\Utopia\Model\Player;
 use Utopia\MockServer\Utopia\Validator\Player as PlayerValidator;
 use Utopia\MockServer\Utopia\Realtime\Protocol as RealtimeProtocol;
-use Utopia\WebSocket\Adapter;
+use Utopia\WebSocket\Adapter\Swoole;
 use Utopia\WebSocket\Server as WebSocketServer;
 
 const APP_AUTH_TYPE_SESSION = 'Session';
@@ -41,7 +41,7 @@ const APP_STORAGE_CACHE = '/storage/cache';
 $payloadSize = 6 * (1024 * 1024); // 6MB
 $workerNumber = swoole_cpu_num() * intval(App::getEnv('_APP_WORKER_PER_CORE', 6));
 
-$adapter = new Adapter\Swoole(host: '0.0.0.0', port: (int) App::getEnv('PORT', 80));
+$adapter = new Swoole(host: '0.0.0.0', port: (int) App::getEnv('PORT', 80));
 $adapter
     ->setPackageMaxLength($payloadSize)
     ->setWorkerNumber($workerNumber);

@@ -37,7 +37,6 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         private const val TYPE_ERROR = "error"
         private const val TYPE_EVENT = "event"
         private const val TYPE_PONG = "pong"
-        private const val TYPE_RESPONSE = "response"
         private const val HEARTBEAT_INTERVAL = 20_000L // 20 seconds
 
         private var socket: RealWebSocket? = null
@@ -207,7 +206,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
      * @param metadata Optional metadata payload.
      * @param presenceId Optional presence ID. Defaults server-side to a new unique ID.
      */
-    fun createPresence(
+    fun upsertPresence(
         status: String,
         permissions: List<String>? = null,
         metadata: Map<String, Any>? = null,
@@ -379,7 +378,6 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
                 when (message.type) {
                     TYPE_ERROR -> handleResponseError(message)
                     TYPE_CONNECTED -> handleResponseConnected(message)
-                    TYPE_RESPONSE -> handleResponseAction(message)
                     TYPE_EVENT -> handleResponseEvent(message)
                     TYPE_PONG -> {}
                 }
@@ -394,12 +392,6 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
             }
             sendPendingSubscribes()
             flushPendingPresence()
-        }
-
-        private fun handleResponseAction(message: RealtimeResponse) {
-            // createPresence is fire-and-forget, so presence responses (and
-            // subscribe/unsubscribe acks, whose subscriptionIds the SDK generates
-            // client-side) carry no state the SDK needs to reconcile.
         }
 
         private fun handleResponseError(message: RealtimeResponse) {

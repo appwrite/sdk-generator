@@ -222,7 +222,7 @@ void main() async {
 
   // Realtime presence (upsertPresence) test against the mock WebSocket server.
   // Uses a fresh Client/Realtime so it doesn't inherit the cloud.appwrite.io endpoint above.
-  // createPresence is fire-and-forget (void) — call it without await, after
+  // upsertPresence is fire-and-forget (void) — call it without await, after
   // giving subscribe() time to open the WebSocket.
   try {
     final presenceClient = Client()
@@ -233,7 +233,7 @@ void main() async {
     presenceRealtime.subscribe(['tests']);
     await Future.delayed(Duration(seconds: 3));
 
-    presenceRealtime.createPresence(
+    presenceRealtime.upsertPresence(
       status: 'online',
       presenceId: 'p-test',
       metadata: {'page': '/home'},

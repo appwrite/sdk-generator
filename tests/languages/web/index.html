@@ -326,7 +326,7 @@
                 console.log('Realtime disconnect:failed');
             }
 
-            // createPresence is fire-and-forget (async, returns Promise<void>) —
+            // upsertPresence is fire-and-forget (async, returns Promise<void>) —
             // give subscribe() a moment to open the WebSocket, then call.
             try {
                 const presenceClient = new Client();
@@ -338,7 +338,7 @@
                 await presenceRealtime.subscribe(['tests'], () => {});
                 await new Promise(resolve => setTimeout(resolve, 3000));
 
-                await presenceRealtime.createPresence({
+                await presenceRealtime.upsertPresence({
                     status: 'online',
                     presenceId: 'p-test',
                     metadata: { page: '/home' },
