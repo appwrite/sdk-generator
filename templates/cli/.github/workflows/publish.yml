@@ -74,7 +74,7 @@ jobs:
           wait-for-completion: true
           output-artifact-directory: build-signed
           parameters: |
-            version: ${{ github.event.release.tag_name }}
+            version: "${{ github.event.release.tag_name }}"
 
       - name: Replace unsigned Windows binaries
         run: |
