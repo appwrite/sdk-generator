@@ -105,10 +105,7 @@ export class Realtime {
     private socket?: WebSocket;
     private activeSubscriptions = new Map<string, RealtimeCallback<any>>();
     private pendingSubscribes = new Map<string, RealtimeRequestSubscribeRow>();
-    private pendingPresenceRequests: Array<{
-        resolve: (presence: RealtimePresence) => void;
-        reject: (error: Error) => void;
-    }> = [];
+    private lastPresenceData?: Record<string, any>;
     private heartbeatTimer?: number;
 
     private subCallDepth = 0;
@@ -363,6 +360,7 @@ export class Realtime {
     public async disconnect(): Promise<void> {
         this.activeSubscriptions.clear();
         this.pendingSubscribes.clear();
+        this.lastPresenceData = undefined;
         this.reconnect = false;
         await this.closeSocket();
     }
@@ -570,20 +568,17 @@ export class Realtime {
     }
 
     /**
-     * Create or upsert a presence entry for the current authenticated user
-     * over the existing realtime connection.
+     * Fire-and-forget presence upsert. Records the latest payload in state so
+     * that — if the WebSocket isn't open yet, or later reconnects — the most
+     * recent presence is automatically (re)sent on the next `connected` event.
+     * When the socket is already open, the frame is sent immediately.
      *
-     * Requires an authenticated user and an open WebSocket connection
-     * (subscribe to a channel first if you don't have one yet).
+     * Returns a `Promise<void>` for API consistency; the promise resolves as
+     * soon as the payload has been stored and the opportunistic send attempted.
      *
      * @param {RealtimePresenceCreate} params - Presence payload (status required, permissions/metadata/presenceId optional)
-     * @returns {Promise<RealtimePresence>} The created or updated presence document
      */
-    public async createPresence(params: RealtimePresenceCreate): Promise<RealtimePresence> {
-        if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
-            throw new {{spec.title | caseUcfirst}}Exception('Realtime connection is not open. Subscribe to a channel first.');
-        }
-
+    public async createPresence(params: RealtimePresenceCreate): Promise<void> {
         const data: Record<string, any> = {
             status: params.status,
         };
@@ -597,21 +592,21 @@ export class Realtime {
             data.presenceId = params.presenceId;
         }
 
-        return new Promise<RealtimePresence>((resolve, reject) => {
-            this.pendingPresenceRequests.push({ resolve, reject });
-            try {
-                this.socket!.send(JSONbig.stringify(<RealtimeRequest>{
-                    type: 'presence',
-                    data
-                }));
-            } catch (error) {
-                const idx = this.pendingPresenceRequests.findIndex(r => r.resolve === resolve);
-                if (idx !== -1) {
-                    this.pendingPresenceRequests.splice(idx, 1);
-                }
-                reject(error instanceof Error ? error : new Error(String(error)));
-            }
-        });
+        this.lastPresenceData = data;
+        this.sendLastPresence();
+    }
+
+    private sendLastPresence(): void {
+        if (!this.lastPresenceData) {
+            return;
+        }
+        if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
+            return;
+        }
+        this.socket.send(JSONbig.stringify(<RealtimeRequest>{
+            type: 'presence',
+            data: this.lastPresenceData
+        }));
     }
 
     private handleMessage(message: RealtimeResponse): void {
@@ -668,6 +663,7 @@ export class Realtime {
             this.enqueuePendingSubscribe(subscriptionId);
         }
         this.sendPendingSubscribes();
+        this.sendLastPresence();
     }
 
     private handleResponseError(message: RealtimeResponse): void {
@@ -675,14 +671,6 @@ export class Realtime {
             message.data?.message || 'Unknown error'
         );
         const statusCode = message.data?.code;
-
-        // Server errors are not correlated with a specific request, so reject
-        // every in-flight presence request to avoid leaving promises hanging.
-        while (this.pendingPresenceRequests.length > 0) {
-            const pending = this.pendingPresenceRequests.shift();
-            pending?.reject(error);
-        }
-
         this.onErrorCallbacks.forEach(callback => callback(error, statusCode));
     }
 
@@ -718,16 +706,8 @@ export class Realtime {
     }
 
     private handleResponseAction(message: RealtimeResponse): void {
-        const data = message.data;
-        if (data?.to === 'presence' && data.presence !== undefined) {
-            // Presence responses arrive in the same order as the requests on a
-            // single websocket, so a FIFO queue is enough to correlate them.
-            const pending = this.pendingPresenceRequests.shift();
-            pending?.resolve(data.presence as RealtimePresence);
-            return;
-        }
-        // The SDK generates subscriptionIds client-side and sends them on every
-        // subscribe/unsubscribe, so subscribe/unsubscribe acks carry no state
-        // the SDK needs to reconcile.
+        // createPresence is fire-and-forget, so presence responses (and
+        // subscribe/unsubscribe acks, whose subscriptionIds the SDK generates
+        // client-side) carry no state the SDK needs to reconcile.
     }
 }
