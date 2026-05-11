@@ -94,23 +94,26 @@ jobs:
 
       - name: Verify Windows signatures
         run: |
-          set -euo pipefail
+          set -uo pipefail
 
           verify_signature() {
             local file="$1"
-            local output
-
+            local output rc
             output="$(osslsigncode verify -in "$file" 2>&1)"
+            rc=$?
+            echo "--- $file (osslsigncode exit $rc) ---"
             echo "$output"
 
-            if ! grep -Fq "Succeeded" <<< "$output"; then
-              echo "$file signature verification failed"
-              exit 1
+            if [ "$rc" -ne 0 ] || ! grep -Fq "Succeeded" <<< "$output"; then
+              echo "::error::$file signature verification failed"
+              return 1
             fi
           }
 
-          verify_signature build/appwrite-cli-win-x64.exe
-          verify_signature build/appwrite-cli-win-arm64.exe
+          final=0
+          verify_signature build/appwrite-cli-win-x64.exe || final=1
+          verify_signature build/appwrite-cli-win-arm64.exe || final=1
+          exit "$final"
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
