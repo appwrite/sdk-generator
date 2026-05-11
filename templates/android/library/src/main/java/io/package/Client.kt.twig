@@ -324,7 +324,7 @@ class Client @JvmOverloads constructor(
 
     internal val headers: MutableMap<String, String>
 
-    val config: MutableMap<String, String>
+    override val config: MutableMap<String, String>
 
     internal val cookieJar = ListenableCookieJar(CookieManager(
         SharedPreferencesCookieStore(context.getSharedPreferences(COOKIE_PREFS, Context.MODE_PRIVATE)),
