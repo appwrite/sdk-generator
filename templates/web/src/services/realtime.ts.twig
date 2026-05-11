@@ -105,7 +105,7 @@ export class Realtime {
     private socket?: WebSocket;
     private activeSubscriptions = new Map<string, RealtimeCallback<any>>();
     private pendingSubscribes = new Map<string, RealtimeRequestSubscribeRow>();
-    private lastPresenceData?: Record<string, any>;
+    private pendingPresence?: Record<string, any>;
     private heartbeatTimer?: number;
 
     private subCallDepth = 0;
@@ -360,7 +360,7 @@ export class Realtime {
     public async disconnect(): Promise<void> {
         this.activeSubscriptions.clear();
         this.pendingSubscribes.clear();
-        this.lastPresenceData = undefined;
+        this.pendingPresence = undefined;
         this.reconnect = false;
         await this.closeSocket();
     }
@@ -569,9 +569,10 @@ export class Realtime {
 
     /**
      * Fire-and-forget presence upsert. Records the latest payload in state so
-     * that — if the WebSocket isn't open yet, or later reconnects — the most
-     * recent presence is automatically (re)sent on the next `connected` event.
-     * When the socket is already open, the frame is sent immediately.
+     * that — if the WebSocket isn't open yet, or later reconnects — only the
+     * most recent presence is automatically (re)sent on the next `connected`
+     * event. Repeated calls while the socket is closed collapse to the latest
+     * payload (older ones are discarded).
      *
      * Returns a `Promise<void>` for API consistency; the promise resolves as
      * soon as the payload has been stored and the opportunistic send attempted.
@@ -592,12 +593,12 @@ export class Realtime {
             data.presenceId = params.presenceId;
         }
 
-        this.lastPresenceData = data;
-        this.sendLastPresence();
+        this.pendingPresence = data;
+        this.flushPendingPresence();
     }
 
-    private sendLastPresence(): void {
-        if (!this.lastPresenceData) {
+    private flushPendingPresence(): void {
+        if (!this.pendingPresence) {
             return;
         }
         if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
@@ -605,7 +606,7 @@ export class Realtime {
         }
         this.socket.send(JSONbig.stringify(<RealtimeRequest>{
             type: 'presence',
-            data: this.lastPresenceData
+            data: this.pendingPresence
         }));
     }
 
@@ -663,7 +664,7 @@ export class Realtime {
             this.enqueuePendingSubscribe(subscriptionId);
         }
         this.sendPendingSubscribes();
-        this.sendLastPresence();
+        this.flushPendingPresence();
     }
 
     private handleResponseError(message: RealtimeResponse): void {

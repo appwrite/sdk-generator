@@ -30,7 +30,7 @@ mixin RealtimeMixin {
   late Client client;
   final Map<String, RealtimeSubscription> _subscriptions = {};
   final Map<String, Map<String, dynamic>> _pendingSubscribes = {};
-  Map<String, dynamic>? _lastPresenceData;
+  Map<String, dynamic>? _pendingPresence;
   WebSocketChannel? _websok;
   String? _lastUrl;
   late WebSocketFactory getWebSocket;
@@ -125,7 +125,7 @@ mixin RealtimeMixin {
               };
             }
             _sendPendingSubscribes();
-            _sendLastPresence();
+            _flushPendingPresence();
             _startHeartbeat(); // Start heartbeat after successful connection
             break;
           case 'response':
@@ -259,7 +259,7 @@ mixin RealtimeMixin {
     }
     _subscriptions.clear();
     _pendingSubscribes.clear();
-    _lastPresenceData = null;
+    _pendingPresence = null;
     await _closeConnection();
     _reconnect = true; // allow future subscribeTo() calls to reconnect
   }
@@ -282,8 +282,8 @@ mixin RealtimeMixin {
     }));
   }
 
-  void _sendLastPresence() {
-    final data = _lastPresenceData;
+  void _flushPendingPresence() {
+    final data = _pendingPresence;
     if (data == null) return;
     if (_websok == null || _websok?.closeCode != null) return;
     _websok!.sink.add(jsonEncode({'type': 'presence', 'data': data}));
@@ -385,7 +385,7 @@ mixin RealtimeMixin {
     if (metadata != null) data['metadata'] = metadata;
     if (presenceId != null) data['presenceId'] = presenceId;
 
-    _lastPresenceData = data;
-    _sendLastPresence();
+    _pendingPresence = data;
+    _flushPendingPresence();
   }
 }

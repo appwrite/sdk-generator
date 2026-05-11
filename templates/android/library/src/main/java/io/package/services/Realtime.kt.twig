@@ -43,7 +43,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         private var socket: RealWebSocket? = null
         private val activeSubscriptions = ConcurrentHashMap<String, RealtimeCallback>()
         private val pendingSubscribes = LinkedHashMap<String, Map<String, Any>>()
-        private var lastPresenceData: Map<String, Any>? = null
+        private var pendingPresence: Map<String, Any>? = null
 
         private var reconnectAttempts = 0
         private val socketGeneration = AtomicInteger(0)
@@ -145,7 +145,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
             closeSocket()
         }
         synchronized(presenceLock) {
-            lastPresenceData = null
+            pendingPresence = null
         }
     }
 
@@ -219,13 +219,13 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         presenceId?.let { data["presenceId"] = it }
 
         synchronized(presenceLock) {
-            lastPresenceData = data
+            pendingPresence = data
         }
-        sendLastPresence()
+        flushPendingPresence()
     }
 
-    private fun sendLastPresence() {
-        val data = synchronized(presenceLock) { lastPresenceData } ?: return
+    private fun flushPendingPresence() {
+        val data = synchronized(presenceLock) { pendingPresence } ?: return
         val ws = socket ?: return
         ws.send(mapOf("type" to "presence", "data" to data).toJson())
     }
@@ -393,7 +393,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
                 activeSubscriptions.keys.forEach { enqueuePendingSubscribeLocked(it) }
             }
             sendPendingSubscribes()
-            sendLastPresence()
+            flushPendingPresence()
         }
 
         private fun handleResponseAction(message: RealtimeResponse) {
