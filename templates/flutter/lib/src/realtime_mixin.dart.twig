@@ -30,6 +30,7 @@ mixin RealtimeMixin {
   late Client client;
   final Map<String, RealtimeSubscription> _subscriptions = {};
   final Map<String, Map<String, dynamic>> _pendingSubscribes = {};
+  Map<String, dynamic>? _lastPresenceData;
   WebSocketChannel? _websok;
   String? _lastUrl;
   late WebSocketFactory getWebSocket;
@@ -124,6 +125,7 @@ mixin RealtimeMixin {
               };
             }
             _sendPendingSubscribes();
+            _sendLastPresence();
             _startHeartbeat(); // Start heartbeat after successful connection
             break;
           case 'response':
@@ -257,6 +259,7 @@ mixin RealtimeMixin {
     }
     _subscriptions.clear();
     _pendingSubscribes.clear();
+    _lastPresenceData = null;
     await _closeConnection();
     _reconnect = true; // allow future subscribeTo() calls to reconnect
   }
@@ -277,6 +280,13 @@ mixin RealtimeMixin {
       'type': 'subscribe',
       'data': rows,
     }));
+  }
+
+  void _sendLastPresence() {
+    final data = _lastPresenceData;
+    if (data == null) return;
+    if (_websok == null || _websok?.closeCode != null) return;
+    _websok!.sink.add(jsonEncode({'type': 'presence', 'data': data}));
   }
 
   /// Convert channel value to string
@@ -360,28 +370,22 @@ mixin RealtimeMixin {
     }
   }
 
-  /// Fire-and-forget presence upsert. Sends the presence frame over the
-  /// existing WebSocket and returns immediately. Throws synchronously if the
-  /// connection is not open — subscribe to a channel first and give the socket
-  /// a moment to open before calling this.
+  /// Fire-and-forget presence upsert. Records the latest payload in state so
+  /// that — if the WebSocket isn't open yet, or later reconnects — the most
+  /// recent presence is automatically (re)sent on the next `connected` event.
+  /// When the socket is already open, the frame is sent immediately.
   void createPresenceTo({
     required String status,
     List<String>? permissions,
     Map<String, dynamic>? metadata,
     String? presenceId,
   }) {
-    final ws = _websok;
-    if (ws == null || ws.closeCode != null) {
-      throw {{spec.title | caseUcfirst}}Exception(
-        'Realtime connection is not open. Subscribe to a channel first.',
-      );
-    }
-
     final data = <String, dynamic>{'status': status};
     if (permissions != null) data['permissions'] = permissions;
     if (metadata != null) data['metadata'] = metadata;
     if (presenceId != null) data['presenceId'] = presenceId;
 
-    ws.sink.add(jsonEncode({'type': 'presence', 'data': data}));
+    _lastPresenceData = data;
+    _sendLastPresence();
   }
 }

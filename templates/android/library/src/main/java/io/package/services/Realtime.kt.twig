@@ -43,6 +43,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         private var socket: RealWebSocket? = null
         private val activeSubscriptions = ConcurrentHashMap<String, RealtimeCallback>()
         private val pendingSubscribes = LinkedHashMap<String, Map<String, Any>>()
+        private var lastPresenceData: Map<String, Any>? = null
 
         private var reconnectAttempts = 0
         private val socketGeneration = AtomicInteger(0)
@@ -50,6 +51,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         private var heartbeatJob: Job? = null
 
         private val subscriptionLock = Any()
+        private val presenceLock = Any()
     }
 
     private fun createSocket() {
@@ -142,6 +144,9 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
             reconnect = false
             closeSocket()
         }
+        synchronized(presenceLock) {
+            lastPresenceData = null
+        }
     }
 
     private fun sendPendingSubscribes() {
@@ -192,9 +197,10 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
     }
 
     /**
-     * Fire-and-forget presence upsert. Mirrors the `subscribe()` shape — call
-     * without coroutines/await after the WebSocket has had a moment to open.
-     * Throws synchronously if no open connection exists.
+     * Fire-and-forget presence upsert. Records the latest payload in state so
+     * that — if the WebSocket isn't open yet, or later reconnects — the most
+     * recent presence is automatically (re)sent on the next `connected` event.
+     * When the socket is already open, the frame is sent immediately.
      *
      * @param status Presence status (required).
      * @param permissions Optional permission list to attach to the presence document.
@@ -207,15 +213,20 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         metadata: Map<String, Any>? = null,
         presenceId: String? = null,
     ) {
-        val ws = socket ?: throw {{ spec.title | caseUcfirst }}Exception(
-            "Realtime connection is not open. Subscribe to a channel first."
-        )
-
         val data = mutableMapOf<String, Any>("status" to status)
         permissions?.let { data["permissions"] = it }
         metadata?.let { data["metadata"] = it }
         presenceId?.let { data["presenceId"] = it }
 
+        synchronized(presenceLock) {
+            lastPresenceData = data
+        }
+        sendLastPresence()
+    }
+
+    private fun sendLastPresence() {
+        val data = synchronized(presenceLock) { lastPresenceData } ?: return
+        val ws = socket ?: return
         ws.send(mapOf("type" to "presence", "data" to data).toJson())
     }
 
@@ -382,6 +393,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
                 activeSubscriptions.keys.forEach { enqueuePendingSubscribeLocked(it) }
             }
             sendPendingSubscribes()
+            sendLastPresence()
         }
 
         private fun handleResponseAction(message: RealtimeResponse) {

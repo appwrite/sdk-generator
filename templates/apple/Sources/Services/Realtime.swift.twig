@@ -21,9 +21,11 @@ open class Realtime : Service {
     private var socketClient: WebSocketClient? = nil
     private var activeSubscriptions = [String: RealtimeCallback]()
     private var pendingSubscribes = [String: [String: Any]]()
+    private var lastPresenceData: [String: Any]? = nil
     private var heartbeatTask: Task<Void, Swift.Error>? = nil
 
     let connectSync = DispatchQueue(label: "ConnectSync")
+    let presenceSync = DispatchQueue(label: "PresenceSync")
 
     private var subCallDepth = 0
     private var reconnectAttempts = 0
@@ -136,6 +138,9 @@ open class Realtime : Service {
     public func disconnect() async throws {
         activeSubscriptions.removeAll()
         pendingSubscribes.removeAll()
+        presenceSync.sync {
+            lastPresenceData = nil
+        }
         reconnect = false
         try await closeSocket()
     }
@@ -196,9 +201,10 @@ open class Realtime : Service {
         return channel.toString()
     }
 
-    /// Fire-and-forget presence upsert. Mirrors the `subscribe()` shape — call
-    /// without `await` after the WebSocket has had a moment to open. Throws
-    /// synchronously if no open connection exists.
+    /// Fire-and-forget presence upsert. Records the latest payload in state so
+    /// that — if the WebSocket isn't open yet, or later reconnects — the most
+    /// recent presence is automatically (re)sent on the next `connected` event.
+    /// When the socket is already open, the frame is sent immediately.
     ///
     /// - Parameters:
     ///   - status: The presence status (required).
@@ -211,10 +217,6 @@ open class Realtime : Service {
         metadata: [String: Any]? = nil,
         presenceId: String? = nil
     ) throws {
-        guard let ws = socketClient, ws.isConnected else {
-            throw {{ spec.title | caseUcfirst }}Error(message: "Realtime connection is not open. Subscribe to a channel first.")
-        }
-
         var data: [String: Any] = ["status": status]
         if let permissions = permissions {
             data["permissions"] = permissions
@@ -226,16 +228,28 @@ open class Realtime : Service {
             data["presenceId"] = presenceId
         }
 
+        presenceSync.sync {
+            lastPresenceData = data
+        }
+        try sendLastPresence()
+    }
+
+    private func sendLastPresence() throws {
+        var data: [String: Any]?
+        presenceSync.sync {
+            data = lastPresenceData
+        }
+        guard let payloadData = data, let ws = socketClient, ws.isConnected else {
+            return
+        }
         let payload: [String: Any] = [
             "type": "presence",
-            "data": data
+            "data": payloadData
         ]
-
         guard let jsonData = try? JSONSerialization.data(withJSONObject: payload),
               let text = String(data: jsonData, encoding: .utf8) else {
             throw {{ spec.title | caseUcfirst }}Error(message: "Failed to encode presence payload")
         }
-
         ws.send(text: text)
     }
 
@@ -400,6 +414,7 @@ extension Realtime: WebSocketClientDelegate {
             enqueuePendingSubscribe(subscriptionId: subscriptionId)
         }
         sendPendingSubscribes()
+        try? sendLastPresence()
     }
 
     private func handleResponseAction(from json: [String: Any]) {
