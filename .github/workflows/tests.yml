@@ -43,7 +43,7 @@ jobs:
           Ruby30,
           Ruby31,
           Rust183,
-          AppleSwift56,
+          AppleSwift60,
           Swift56,
           WebChromium,
           WebNode
