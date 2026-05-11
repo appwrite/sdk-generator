@@ -133,6 +133,9 @@ abstract class Client implements ClientAuth {
     String value,
   ) {
     client.config[configKey] = value;
+    if (configKey != configKey.toLowerCase()) {
+      client.config[configKey.toLowerCase()] = value;
+    }
     client.addHeader(header, value);
   }
 
