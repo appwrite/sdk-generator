@@ -40,8 +40,7 @@ import kotlin.coroutines.resume
 interface ClientAuth {
     val endpoint: String
     val endpointRealtime: String?
-
-    fun getConfig(key: String): String?
+    val config: MutableMap<String, String>
 
     fun getHeaders(): Map<String, String>
 
@@ -498,14 +497,6 @@ class Client @JvmOverloads constructor(
      * @return a copy of the current request headers
      */
     override fun getHeaders(): Map<String, String> = headers.toMap()
-
-    /**
-     * Get a configuration value by key.
-     *
-     * @param key the configuration key
-     * @return the configuration value if set
-     */
-    override fun getConfig(key: String): String? = config[key]
 
     /**
      * Get the cookies for a given URL from the SDK's cookie store.

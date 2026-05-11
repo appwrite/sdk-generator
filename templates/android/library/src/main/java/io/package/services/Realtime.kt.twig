@@ -64,7 +64,7 @@ class Realtime(private val client: ClientAuth) : Service(client), CoroutineScope
                 return
             }
 
-            val encodedProject = java.net.URLEncoder.encode(client.getConfig("project").toString(), "UTF-8")
+            val encodedProject = java.net.URLEncoder.encode(client.config["project"].toString(), "UTF-8")
             val queryParams = "project=$encodedProject"
             val url = "${client.endpointRealtime}/realtime?$queryParams"
             request = Request.Builder().url(url).build()

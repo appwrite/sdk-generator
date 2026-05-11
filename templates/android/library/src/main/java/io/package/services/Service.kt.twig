@@ -82,7 +82,7 @@ class {{ service.name | caseUcfirst }}(private val client: ClientAuth) : Service
         {%~ if method.auth | length > 0 %}
         {%~ for node in method.auth %}
         {%~ for key,header in node | keys %}
-            "{{ header | caseLower }}" to client.getConfig("{{ header | caseLower }}"),
+            "{{ header | caseLower }}" to client.config["{{ header | caseLower }}"],
         {%~ endfor %}
         {%~ endfor %}
         {%~ endif %}
@@ -107,7 +107,7 @@ class {{ service.name | caseUcfirst }}(private val client: ClientAuth) : Service
         }
 
         val apiUrl = Uri.parse("${client.endpoint}${apiPath}?${apiQuery.joinToString("&")}")
-        val callbackUrlScheme = "{{ spec.title | caseLower }}-callback-${client.getConfig("project")}"
+        val callbackUrlScheme = "{{ spec.title | caseLower }}-callback-${client.config["project"]}"
 
         WebAuthComponent.authenticate(activity, apiUrl, callbackUrlScheme) {
             if (it.isFailure) {
