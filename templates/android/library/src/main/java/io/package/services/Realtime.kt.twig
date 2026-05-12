@@ -25,7 +25,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import android.util.Log
 import kotlin.coroutines.CoroutineContext
 
-class Realtime(private val client: Client) : Service(client), CoroutineScope {
+class Realtime(client: Client) : Service(client), CoroutineScope {
 
     private val job = Job()
 

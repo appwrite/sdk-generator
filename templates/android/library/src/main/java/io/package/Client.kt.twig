@@ -61,22 +61,6 @@ class Client @JvmOverloads constructor(
             endpointRealtime: String? = null,
             locale: String? = null,
             selfSigned: Boolean = false
-        ): Client = fromClient(
-            context = context,
-            endpoint = endpoint,
-            projectId = projectId,
-            endpointRealtime = endpointRealtime,
-            locale = locale,
-            selfSigned = selfSigned
-        )
-
-        private fun fromClient(
-            context: Context,
-            endpoint: String,
-            projectId: String,
-            endpointRealtime: String?,
-            locale: String?,
-            selfSigned: Boolean
         ): Client {
             require(endpoint.startsWith("http://") || endpoint.startsWith("https://")) {
                 "Invalid endpoint URL: $endpoint"
@@ -138,10 +122,10 @@ class Client @JvmOverloads constructor(
             locale: String? = null,
             selfSigned: Boolean = false
         ): Client {
-            val client = fromClient(
+            val client = from(
                 context = context,
-                endpoint = endpoint,
                 projectId = projectId,
+                endpoint = endpoint,
                 endpointRealtime = endpointRealtime,
                 locale = locale,
                 selfSigned = selfSigned
@@ -167,10 +151,10 @@ class Client @JvmOverloads constructor(
             locale: String? = null,
             selfSigned: Boolean = false
         ): Client {
-            val client = fromClient(
+            val client = from(
                 context = context,
-                endpoint = endpoint,
                 projectId = projectId,
+                endpoint = endpoint,
                 endpointRealtime = endpointRealtime,
                 locale = locale,
                 selfSigned = selfSigned
@@ -204,10 +188,10 @@ class Client @JvmOverloads constructor(
                 "Exactly one impersonation target must be provided"
             }
 
-            val client = fromClient(
+            val client = from(
                 context = context,
-                endpoint = endpoint,
                 projectId = projectId,
+                endpoint = endpoint,
                 endpointRealtime = endpointRealtime,
                 locale = locale,
                 selfSigned = selfSigned
@@ -288,7 +272,7 @@ class Client @JvmOverloads constructor(
         )
         config = mutableMapOf()
 
-        applySelfSigned(selfSigned)
+        setSelfSigned(selfSigned)
     }
 
 {% for header in spec.global.headers %}
@@ -323,11 +307,6 @@ class Client @JvmOverloads constructor(
      */
     @Deprecated("Use Client.from or another factory method instead.")
     fun setSelfSigned(status: Boolean): Client {
-        applySelfSigned(status)
-        return this
-    }
-
-    private fun applySelfSigned(status: Boolean) {
         selfSigned = status
 
         val builder = OkHttpClient()
@@ -336,7 +315,7 @@ class Client @JvmOverloads constructor(
 
         if (!selfSigned) {
             http = builder.build()
-            return
+            return this
         }
 
         try {
@@ -368,6 +347,8 @@ class Client @JvmOverloads constructor(
         } catch (e: Exception) {
             throw RuntimeException(e)
         }
+
+        return this
     }
 
     /**
@@ -458,8 +439,7 @@ class Client @JvmOverloads constructor(
             apiPath,
             apiHeaders,
             apiParams,
-            responseType = String::class.java,
-            converter = null
+            responseType = String::class.java
         )
     }
 
@@ -481,22 +461,6 @@ class Client @JvmOverloads constructor(
         params: Map<String, Any?> = mapOf(),
         responseType: Class<T>,
         converter: ((Any) -> T)? = null
-    ): T = callInternal(
-        method = method,
-        path = path,
-        headers = headers,
-        params = params,
-        responseType = responseType,
-        converter = converter
-    )
-
-    suspend fun <T> callInternal(
-        method: String,
-        path: String,
-        headers:  Map<String, String>,
-        params: Map<String, Any?>,
-        responseType: Class<T>,
-        converter: ((Any) -> T)?
     ): T {
         val filteredParams = params.filterValues { it != null }
 
@@ -592,26 +556,6 @@ class Client @JvmOverloads constructor(
         paramName: String,
         idParamName: String? = null,
         onProgress: ((UploadProgress) -> Unit)? = null,
-    ): T = chunkedUploadInternal(
-        path = path,
-        headers = headers,
-        params = params,
-        responseType = responseType,
-        converter = converter,
-        paramName = paramName,
-        idParamName = idParamName,
-        onProgress = onProgress
-    )
-
-    suspend fun <T> chunkedUploadInternal(
-        path: String,
-        headers:  MutableMap<String, String>,
-        params: MutableMap<String, Any?>,
-        responseType: Class<T>,
-        converter: ((Any) -> T),
-        paramName: String,
-        idParamName: String?,
-        onProgress: ((UploadProgress) -> Unit)?,
     ): T {
         var file: RandomAccessFile? = null
         val input = params[paramName] as InputFile
@@ -658,8 +602,7 @@ class Client @JvmOverloads constructor(
                 path = "$path/${params[idParamName]}",
                 headers = headers,
                 params = emptyMap(),
-                responseType = Map::class.java,
-                converter = null
+                responseType = Map::class.java
             )
             val chunksUploaded = current["chunksUploaded"] as Long
             offset = chunksUploaded * CHUNK_SIZE
@@ -700,8 +643,7 @@ class Client @JvmOverloads constructor(
                 path,
                 headers,
                 params,
-                responseType = Map::class.java,
-                converter = null
+                responseType = Map::class.java
             )
 
             offset += CHUNK_SIZE

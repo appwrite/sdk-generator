@@ -7,4 +7,4 @@ import {{ sdk.namespace | caseDot }}.Client
  *
  * @param client The Appwrite client.
  */
-abstract class Service(@Suppress("UNUSED_PARAMETER") client: Client)
+abstract class Service(protected val client: Client)
