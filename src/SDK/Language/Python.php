@@ -329,15 +329,21 @@ class Python extends Language
             $enumType = isset($parameter['enumName'])
                 ? \ucfirst($parameter['enumName'])
                 : \ucfirst($parameter['name']);
-            if ($enumType === 'Type') { $enumType = 'TypeEnum'; }
+            if ($enumType === 'Type') {
+                $enumType = 'TypeEnum';
+            }
 
             $typeName = 'List[' . $enumType . ']';
         } elseif (isset($parameter['enumName'])) {
             $typeName = \ucfirst($parameter['enumName']);
-            if ($typeName === 'Type') { $typeName = 'TypeEnum'; }
+            if ($typeName === 'Type') {
+                $typeName = 'TypeEnum';
+            }
         } elseif (!empty($parameter['enumValues'])) {
             $typeName = \ucfirst($parameter['name']);
-            if ($typeName === 'Type') { $typeName = 'TypeEnum'; }
+            if ($typeName === 'Type') {
+                $typeName = 'TypeEnum';
+            }
         } elseif (!empty($parameter['array']['model'])) {
             $typeName = 'List[' . $this->toPascalCase($parameter['array']['model']) . ']';
         } elseif (!empty($parameter['model'])) {
