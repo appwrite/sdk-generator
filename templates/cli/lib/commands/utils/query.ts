@@ -12,6 +12,7 @@ export type CliQueryOptions = {
   sortAsc?: string[];
   sortDesc?: string[];
   select?: string[];
+  filter?: string[];
   where?: string[];
 };
 
@@ -106,7 +107,7 @@ const parseQueryValue = (value: string): QueryValues => {
   return normalized;
 };
 
-const whereOperators: Array<[RegExp, string]> = [
+const filterOperators: Array<[RegExp, string]> = [
   [/^(.+?)\s*!=\s*(.*)$/, "notEqual"],
   [/^(.+?)\s*>=\s*(.*)$/, "greaterThanEqual"],
   [/^(.+?)\s*<=\s*(.*)$/, "lessThanEqual"],
@@ -120,8 +121,10 @@ export const collectQueryValue = <T>(value: T, previous: T[] = []): T[] => [
   value,
 ];
 
-export const parseWhereQuery = (expression: string): string => {
-  for (const [pattern, method] of whereOperators) {
+let hasWarnedDeprecatedWhere = false;
+
+export const parseFilterQuery = (expression: string): string => {
+  for (const [pattern, method] of filterOperators) {
     const match = expression.match(pattern);
 
     if (!match) {
@@ -131,7 +134,7 @@ export const parseWhereQuery = (expression: string): string => {
     const attribute = match[1].trim();
     if (attribute === "") {
       throw new InvalidArgumentError(
-        "Where filters must include an attribute before the operator.",
+        "Filters must include an attribute before the operator.",
       );
     }
 
@@ -139,8 +142,19 @@ export const parseWhereQuery = (expression: string): string => {
   }
 
   throw new InvalidArgumentError(
-    "Where filters must use one of: field=value, field!=value, field>value, field>=value, field<value, field<=value.",
+    "Filters must use one of: field=value, field!=value, field>value, field>=value, field<value, field<=value.",
   );
+};
+
+export const parseWhereQuery = parseFilterQuery;
+
+export const parseDeprecatedWhereQuery = (expression: string): string => {
+  if (!hasWarnedDeprecatedWhere) {
+    console.warn("Warning: --where is deprecated. Use --filter instead.");
+    hasWarnedDeprecatedWhere = true;
+  }
+
+  return parseFilterQuery(expression);
 };
 
 export const buildQueries = ({
@@ -152,12 +166,19 @@ export const buildQueries = ({
   sortAsc,
   sortDesc,
   select,
+  filter,
   where,
 }: CliQueryOptions): string[] | undefined => {
   const builtQueries = [...(queries ?? [])];
 
+  if (filter) {
+    // parseFilterQuery returns fully serialized Appwrite query JSON strings.
+    builtQueries.push(...filter);
+  }
+
   if (where) {
-    // parseWhereQuery returns fully serialized Appwrite query JSON strings.
+    // Deprecated --where values are appended after --filter values so the
+    // preferred flag takes precedence when both aliases are mixed.
     builtQueries.push(...where);
   }
 
