@@ -81,7 +81,7 @@ class ServiceTest {
 
         // reset configs
         client.setProject("console")
-            .setEndpointRealtime("wss://cloud.appwrite.io/v1")
+            .setEndpointRealtime("ws://mockapi/v1")
 
         val foo = Foo(client)
         val bar = Bar(client)

@@ -102,17 +102,59 @@ class Protocol
             }
             $connection->subscribe($subscriptionId, $channels, $queries);
 
-            // Confirm the subscription by emitting a synthetic event on the
-            // requested channels. The payload mirrors what the existing
-            // language test fixtures look for ("WS:/v1/realtime:passed").
+            $eventPayload = ['response' => 'WS:/v1/realtime:passed'];
+            if (!$this->subscriptionMatchesPayload($queries, $eventPayload)) {
+                continue;
+            }
+
             $this->send($server, $connection->fd, 'event', [
                 'channels'      => array_values($channels),
                 'events'        => ['test.event'],
                 'timestamp'     => gmdate('Y-m-d\TH:i:s.000\+00:00'),
-                'payload'       => ['response' => 'WS:/v1/realtime:passed'],
+                'payload'       => $eventPayload,
                 'subscriptions' => [$subscriptionId],
             ]);
         }
+    }
+
+    /**
+     * @param string[] $queries
+     * @param array<string, mixed> $payload
+     */
+    private function subscriptionMatchesPayload(array $queries, array $payload): bool
+    {
+        foreach ($queries as $query) {
+            if (!$this->queryMatchesPayload((string) $query, $payload)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private function queryMatchesPayload(string $query, array $payload): bool
+    {
+        $parsed = json_decode($query, true);
+        if (!is_array($parsed)) {
+            // Unparseable queries are treated as "no filter" so the mock
+            // never rejects events for an unknown query shape.
+            return true;
+        }
+
+        $method    = (string) ($parsed['method'] ?? '');
+        $attribute = (string) ($parsed['attribute'] ?? '');
+        $values    = is_array($parsed['values'] ?? null) ? $parsed['values'] : [];
+
+        if ($attribute === '' || !array_key_exists($attribute, $payload)) {
+            return false;
+        }
+
+        $actual = $payload[$attribute];
+
+        return match ($method) {
+            'equal'    => in_array($actual, $values, true),
+            'notEqual' => !in_array($actual, $values, true),
+            default    => true, // unknown matcher: pass through (don't filter)
+        };
     }
 
     private function handleUnsubscribe(Connection $connection, mixed $data): void
