@@ -120,7 +120,7 @@ try {
     $needsSpec = !$requestedSdk || !in_array($requestedSdk, $speclessSDKs);
 
     if ($needsSpec) {
-        $spec = getSSLPage("https://raw.githubusercontent.com/appwrite/specs/main/specs/{$version}/swagger2-{$version}-{$platform}.json");
+        $spec = getSSLPage("https://raw.githubusercontent.com/appwrite/specs/feat-1.9.x-specs/specs/{$version}/swagger2-{$version}-{$platform}.json");
 
         if(empty($spec)) {
             throw new Exception('Failed to fetch spec from Appwrite server');
