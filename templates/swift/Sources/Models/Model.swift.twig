@@ -73,7 +73,7 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
         var container = encoder.container(keyedBy: CodingKeys.self)
 
         {%~ for property in definition.properties %}
-        try container.encode{% if not property.required %}IfPresent{% endif %}({{ property.name | escapeSwiftKeyword | removeDollarSign }}{% if property.enum %}{% if property.required %}.rawValue{% else %}?.rawValue{% endif %}{% endif %}, forKey: .{{ property.name | escapeSwiftKeyword | removeDollarSign }})
+        try container.encode{% if not property.required %}IfPresent{% endif %}({{ property.name | escapeSwiftKeyword | removeDollarSign }}{% if property.enum %}{% if property.required %}.rawValue{% else %}?.rawValue{% endif %}{% elseif property.enumValues %}{% if property.required %}.map { $0.rawValue }{% else %}?.map { $0.rawValue }{% endif %}{% endif %}, forKey: .{{ property.name | escapeSwiftKeyword | removeDollarSign }})
         {%~ endfor %}
         {%~ if definition.additionalProperties %}
         try container.encode(data, forKey: .data)
