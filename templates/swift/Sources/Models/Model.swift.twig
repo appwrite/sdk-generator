@@ -60,6 +60,17 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
             self.{{ property.name | escapeSwiftKeyword | removeDollarSign }} = nil
         }
         {%~ endif %}
+        {%~ elseif property.enumValues %}
+        {%~ set enumName = property['enumName'] ?? property.name %}
+        {%~ if property.required %}
+        self.{{ property.name | escapeSwiftKeyword | removeDollarSign }} = try container.decode([String].self, forKey: .{{ property.name | escapeSwiftKeyword | removeDollarSign }}).map { {{ enumName | caseUcfirst }}(rawValue: $0)! }
+        {%~ else %}
+        if let {{ property.name | escapeSwiftKeyword | removeDollarSign }}Strings = try container.decodeIfPresent([String].self, forKey: .{{ property.name | escapeSwiftKeyword | removeDollarSign }}) {
+            self.{{ property.name | escapeSwiftKeyword | removeDollarSign }} = {{ property.name | escapeSwiftKeyword | removeDollarSign }}Strings.map { {{ enumName | caseUcfirst }}(rawValue: $0)! }
+        } else {
+            self.{{ property.name | escapeSwiftKeyword | removeDollarSign }} = nil
+        }
+        {%~ endif %}
         {%~ else %}
         self.{{ property.name | escapeSwiftKeyword | removeDollarSign }} = try container.decode{% if not property.required %}IfPresent{% endif %}({{ property | propertyType(spec) | raw }}.self, forKey: .{{ property.name | escapeSwiftKeyword | removeDollarSign }})
         {%~ endif %}
