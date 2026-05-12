@@ -127,9 +127,9 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y wget
-          wget https://download.swift.org/swift-5.9.2-release/ubuntu2204/swift-5.9.2-RELEASE/swift-5.9.2-RELEASE-ubuntu22.04.tar.gz
-          tar xzf swift-5.9.2-RELEASE-ubuntu22.04.tar.gz
-          sudo mv swift-5.9.2-RELEASE-ubuntu22.04 /usr/share/swift
+          wget https://download.swift.org/swift-6.0.3-release/ubuntu2204/swift-6.0.3-RELEASE/swift-6.0.3-RELEASE-ubuntu22.04.tar.gz
+          tar xzf swift-6.0.3-RELEASE-ubuntu22.04.tar.gz
+          sudo mv swift-6.0.3-RELEASE-ubuntu22.04 /usr/share/swift
           echo "/usr/share/swift/usr/bin" >> $GITHUB_PATH
 
       - name: Setup Java

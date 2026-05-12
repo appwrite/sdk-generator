@@ -46,23 +46,13 @@ class Android extends Kotlin
             ],
             [
                 'scope'         => 'copy',
-                'destination'   => 'scripts/publish-config.gradle',
-                'template'      => '/android/scripts/publish-config.gradle',
-            ],
-            [
-                'scope'         => 'copy',
-                'destination'   => 'scripts/publish-module.gradle',
-                'template'      => '/android/scripts/publish-module.gradle',
-            ],
-            [
-                'scope'         => 'copy',
                 'destination'   => '.gitignore',
                 'template'      => '/android/.gitignore',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'build.gradle',
-                'template'      => '/android/build.gradle.twig',
+                'destination'   => 'build.gradle.kts',
+                'template'      => '/android/build.gradle.kts.twig',
             ],
             [
                 'scope'         => 'default',
@@ -96,8 +86,8 @@ class Android extends Kotlin
             ],
             [
                 'scope'         => 'copy',
-                'destination'   => 'settings.gradle',
-                'template'      => '/android/settings.gradle',
+                'destination'   => 'settings.gradle.kts',
+                'template'      => '/android/settings.gradle.kts',
             ],
             // Config for project :library
             [
@@ -237,8 +227,8 @@ class Android extends Kotlin
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/library/build.gradle',
-                'template'      => '/android/library/build.gradle.twig',
+                'destination'   => '/library/build.gradle.kts',
+                'template'      => '/android/library/build.gradle.kts.twig',
             ],
             [
                 'scope'         => 'copy',
@@ -343,8 +333,8 @@ class Android extends Kotlin
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/example/build.gradle',
-                'template'      => '/android/example/build.gradle.twig',
+                'destination'   => '/example/build.gradle.kts',
+                'template'      => '/android/example/build.gradle.kts.twig',
             ],
             [
                 'scope'         => 'copy',
