@@ -83,7 +83,7 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
     public func toMap() -> [String: Any] {
         return [
             {%~ for property in definition.properties %}
-            "{{ property.name }}": {% if property.sub_schema %}{% if property.type == 'array' %}{{property.name | escapeSwiftKeyword | removeDollarSign}}.map { $0.toMap() }{% else %}{{property.name | escapeSwiftKeyword | removeDollarSign}}.toMap(){% endif %}{% elseif property.enum %}{{property.name | escapeSwiftKeyword | removeDollarSign}}{% if not property.required %}?{% endif %}.rawValue{% else %}{{property.name | escapeSwiftKeyword | removeDollarSign}}{% endif %} as Any{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
+            "{{ property.name }}": {% if property.sub_schema %}{% if property.type == 'array' %}{{property.name | escapeSwiftKeyword | removeDollarSign}}.map { $0.toMap() }{% else %}{{property.name | escapeSwiftKeyword | removeDollarSign}}.toMap(){% endif %}{% elseif property.enum %}{{property.name | escapeSwiftKeyword | removeDollarSign}}{% if not property.required %}?{% endif %}.rawValue{% elseif property.enumValues %}{{property.name | escapeSwiftKeyword | removeDollarSign}}{% if not property.required %}?{% endif %}.map { $0.rawValue }{% else %}{{property.name | escapeSwiftKeyword | removeDollarSign}}{% endif %} as Any{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
 
             {%~ endfor %}
             {%~ if definition.additionalProperties %}
@@ -108,6 +108,9 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
                 {%- elseif property.enum -%}
                     {%- set enumName = property['enumName'] ?? property.name -%}
                     {% if property.required %}{{ enumName | caseUcfirst }}(rawValue: map["{{property.name }}"] as{% if isDocument %}?{% else %}!{% endif %} String{% if isDocument %} ?? ""{% endif %})!{% else %}map["{{property.name }}"] as? String != nil ? {{ enumName | caseUcfirst }}(rawValue: map["{{property.name }}"] as! String) : nil{% endif %}
+                {%- elseif property.enumValues -%}
+                    {%- set enumName = property['enumName'] ?? property.name -%}
+                    {% if property.required %}(map["{{property.name }}"] as{% if isDocument %}?{% else %}!{% endif %} [String]{% if isDocument %} ?? []{% endif %}).map { {{ enumName | caseUcfirst }}(rawValue: $0)! }{% else %}(map["{{property.name }}"] as? [String])?.map { {{ enumName | caseUcfirst }}(rawValue: $0)! }{% endif %}
                 {%- else -%}
                     map["{{property.name }}"] as{% if isDocument %}?{% else %}{% if property.required %}!{% else %}?{% endif %}{% endif %} {{ property | propertyType(spec) | raw }}{% if isDocument and property.required %}{% if property.type == 'string' %} ?? ""{% elseif property.type == 'integer' %} ?? 0{% elseif property.type == 'number' %} ?? 0.0{% elseif property.type == 'boolean' %} ?? false{% elseif property.type == 'array' %} ?? []{% endif %}{% endif %}
                 {%- endif -%}
