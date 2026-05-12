@@ -53,6 +53,9 @@ export function getTypeScriptType(
     case "double":
       type = "number";
       break;
+    case "bigint":
+      type = "bigint";
+      break;
     case "boolean":
       type = "boolean";
       break;

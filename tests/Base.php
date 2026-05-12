@@ -246,6 +246,7 @@ abstract class Base extends TestCase
         '"{\"method\":\"orderDesc\",\"attribute\":\"rawName\"}",' .
         '"{\"method\":\"equal\",\"attribute\":\"published\",\"values\":[true]}",' .
         '"{\"method\":\"greaterThanEqual\",\"attribute\":\"score\",\"values\":[10]}",' .
+        '"{\"method\":\"equal\",\"attribute\":\"legacy\",\"values\":[true]}",' .
         '"{\"method\":\"equal\",\"attribute\":\"status\",\"values\":[\"draft\",\"published\"]}",' .
         '"{\"method\":\"orderAsc\",\"attribute\":\"title\"}",' .
         '"{\"method\":\"orderDesc\",\"attribute\":\"$createdAt\"}",' .

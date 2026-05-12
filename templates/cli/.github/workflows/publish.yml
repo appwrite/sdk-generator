@@ -5,6 +5,7 @@ on:
     types: [published]
 
 permissions:
+  actions: read
   id-token: write
   contents: write
 
@@ -18,6 +19,9 @@ jobs:
       # upstream fix (oven-sh/bun#29122).
       CLI_BUN_VERSION: '1.3.11'
       HOMEBREW_TAP_REPO: appwrite/homebrew-appwrite
+      WINDOWS_SIGNING_PROJECT_SLUG: ${{ vars.WINDOWS_SIGNING_PROJECT_SLUG || 'sdk-for-cli' }}
+      WINDOWS_SIGNING_POLICY_SLUG: ${{ vars.WINDOWS_SIGNING_POLICY_SLUG || 'release-signing' }}
+      WINDOWS_SIGNING_ARTIFACT_CONFIGURATION_SLUG: ${{ vars.WINDOWS_SIGNING_ARTIFACT_CONFIGURATION_SLUG || 'initial' }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -29,7 +33,7 @@ jobs:
       - name: Setup binfmt with QEMU
         run: | 
           sudo apt update
-          sudo apt install qemu-system binfmt-support qemu-user-static
+          sudo apt install qemu-system binfmt-support qemu-user-static osslsigncode
           update-binfmts --display
 
       - name: Setup ldid
@@ -48,6 +52,68 @@ jobs:
           bun run mac-arm64
           bun run windows-x64
           bun run windows-arm64
+
+      - name: Upload unsigned Windows binaries
+        id: upload-windows-unsigned
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-unsigned
+          path: |
+            build/appwrite-cli-win-x64.exe
+            build/appwrite-cli-win-arm64.exe
+
+      - name: Submit Windows binaries for signing
+        uses: signpath/github-action-submit-signing-request@b9d91eadd323de506c0c81cf0c7fe7438f3360fd # v2
+        with:
+          api-token: ${{ secrets.WINDOWS_SIGNING_API_TOKEN }}
+          organization-id: ${{ vars.WINDOWS_SIGNING_ORGANIZATION_ID }}
+          project-slug: ${{ env.WINDOWS_SIGNING_PROJECT_SLUG }}
+          signing-policy-slug: ${{ env.WINDOWS_SIGNING_POLICY_SLUG }}
+          artifact-configuration-slug: ${{ env.WINDOWS_SIGNING_ARTIFACT_CONFIGURATION_SLUG }}
+          github-artifact-id: ${{ steps.upload-windows-unsigned.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: build-signed
+          parameters: |
+            version: "${{ github.event.release.tag_name }}"
+
+      - name: Replace unsigned Windows binaries
+        run: |
+          set -euo pipefail
+
+          signed_x64="$(find build-signed -type f -name 'appwrite-cli-win-x64.exe' -print -quit)"
+          signed_arm64="$(find build-signed -type f -name 'appwrite-cli-win-arm64.exe' -print -quit)"
+
+          if [ -z "$signed_x64" ] || [ -z "$signed_arm64" ]; then
+            echo "Signed Windows binaries were not found in build-signed"
+            find build-signed -type f -print
+            exit 1
+          fi
+
+          cp "$signed_x64" build/appwrite-cli-win-x64.exe
+          cp "$signed_arm64" build/appwrite-cli-win-arm64.exe
+
+      - name: Verify Windows signatures
+        run: |
+          set -uo pipefail
+
+          verify_signature() {
+            local file="$1"
+            local output rc
+            output="$(osslsigncode verify -in "$file" 2>&1)"
+            rc=$?
+            echo "--- $file (osslsigncode exit $rc) ---"
+            echo "$output"
+
+            if [ "$rc" -ne 0 ] || ! grep -Fq "Succeeded" <<< "$output"; then
+              echo "::error::$file signature verification failed"
+              return 1
+            fi
+          }
+
+          final=0
+          verify_signature build/appwrite-cli-win-x64.exe || final=1
+          verify_signature build/appwrite-cli-win-arm64.exe || final=1
+          exit "$final"
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
