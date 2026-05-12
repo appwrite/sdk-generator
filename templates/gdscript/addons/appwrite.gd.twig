@@ -2,6 +2,8 @@
 extends Node
 ## [img width=32]res://addons/{{spec.title | caseSnake}}/icon.svg[/img] {{ spec.description | default("Appwrite _client.") | replace({"\n": "[br]\n## "}) }}
 
+signal on_progress(progress: float, total_size: int, uploaded_size: int)
+
 # Internal classes for type hinting
 {% for service in spec.services %}
 const _{{ service.name | caseUpper }} = preload("services/{{ service.name | caseSnake }}.gd")
@@ -19,6 +21,7 @@ const {{ enumName | caseUpper }} = preload("enums/{{ enumName | caseSnake }}.gd"
 {% endfor %}
 
 func _ready() -> void:
+    _client.on_progress.connect(func(p, t, c): on_progress.emit(p, t, c))
     var path = "res://.env"
     if not FileAccess.file_exists(path):
         return

@@ -38,7 +38,7 @@ static func from_dict(dict: Dictionary):
 {% set enumName = property.enumName ?? attribute(property, 'x-enum-name') ?? (definition.name ~ (property.name | caseUcfirst)) %}
 {% if property.model %}
         if key == "{{ field }}" and value is Dictionary:
-            m.set(key, {{ property.model | caseUcfirst }}.from_dict(value))
+            m.set(key, {{ prefix }}{{ property.model | caseUcfirst }}.from_dict(value))
             continue
 {% endif %}
 {% if property.array.model %}
@@ -46,7 +46,7 @@ static func from_dict(dict: Dictionary):
             var list := []
             for item in value:
                 if item is Dictionary:
-                    list.append({{ property.array.model | caseUcfirst }}.from_dict(item))
+                    list.append({{ prefix }}{{ property.array.model | caseUcfirst }}.from_dict(item))
                 else:
                     list.append(item)
             m.set(key, list)

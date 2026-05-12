@@ -2,15 +2,15 @@ extends "res://addons/gut/test.gd"
 
 func test_input_file_from_bytes():
 	var bytes = PackedByteArray([1,2,3])
-	var file = {{spec.title | caseUcfirst}}InputFile.from_bytes(bytes, "test.txt")
+	var file = InputFile.from_bytes(bytes, "test.txt")
 
 	assert_eq(file.filename, "test.txt")
 	assert_eq(file.get_data(), bytes)
 
 func test_input_file_from_path_sets_filename():
-	var file = {{spec.title | caseUcfirst}}InputFile.from_path("res://test.txt")
+	var file = InputFile.from_path("res://test.txt")
 	assert_eq(file.filename, "test.txt")
 
 func test_input_file_empty():
-	var file = {{spec.title | caseUcfirst}}InputFile.new()
+	var file = InputFile.new()
 	assert_eq(file.get_data(), PackedByteArray())

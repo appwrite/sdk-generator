@@ -1,6 +1,8 @@
 # {% set prefix = spec.title | caseUcfirst %}Client
 extends RefCounted
 
+signal on_progress(progress: float, total_size: int, uploaded_size: int)
+
 var _chunk_size = 5 * 1024 * 1024
 var _self_signed = false
 var _endpoint = '{{spec.endpoint}}'
@@ -79,11 +81,17 @@ func call_api(method: String, path: String = "", headers: Dictionary = {}, param
             request_path += "?" + query_http.query_string_from_dict(params)
     else:
         var has_files := false
+        var large_file_key := ""
         for key in params:
-            if params[key] is {{prefix}}InputFile:
+            if params[key] is InputFile:
                 has_files = true
+                if params[key].get_size() > _chunk_size:
+                    large_file_key = key
                 break
         
+        if large_file_key != "" and not headers.has("content-range"):
+            return await _call_chunked(method, path, headers, params, large_file_key)
+
         if has_files:
             var boundary := "Boundary-%x" % Time.get_ticks_msec()
             combined_headers["content-type"] = "multipart/form-data; boundary=" + boundary
@@ -130,10 +138,10 @@ func _build_multipart(params: Dictionary, boundary: String) -> PackedByteArray:
         var value = params[key]
         if value == null: continue
         
-        if value is {{prefix}}InputFile:
+        if value is InputFile:
             var data = value.get_data()
             if data.is_empty():
-                push_warning("{{prefix}}InputFile contains no data")
+                push_warning("InputFile contains no data")
                 continue
             body.append_array(("--" + boundary + "\r\n").to_utf8_buffer())
             body.append_array(("Content-Disposition: form-data; name=\"%s\"; filename=\"%s\"\r\n" % [key, value.filename]).to_utf8_buffer())
@@ -167,3 +175,35 @@ func _ensure_configured() -> bool:
         push_warning("{{prefix}}: project id is missing. Use set_project or .env.")
         return false
     return true
+
+
+func _call_chunked(method: String, path: String, headers: Dictionary, params: Dictionary, file_key: String) -> Dictionary:
+    var file: InputFile = params[file_key]
+    var size = file.get_size()
+    var start = 0
+    var response := {}
+    
+    var headers_copy = headers.duplicate()
+    var params_copy = params.duplicate()
+
+    while start < size:
+        var end = min(start + _chunk_size, size)
+        headers_copy["content-range"] = "bytes %d-%d/%d" % [start, end - 1, size]
+        
+        var chunk_data = file.get_chunk(start, end - start)
+        var chunk_file = InputFile.from_bytes(chunk_data, file.filename)
+        chunk_file.content_type = file.content_type
+        
+        params_copy[file_key] = chunk_file
+        
+        response = await call_api(method, path, headers_copy, params_copy)
+        
+        if response.has("body") and response["body"] is Dictionary and response["body"].has("$id"):
+            headers_copy["x-{{spec.title | caseLower }}-id"] = response["body"]["$id"]
+            
+        if response.get("statusCode", 0) >= 400:
+            return response
+        
+        start = end
+        on_progress.emit((float(start) / size) * 100.0, size, start)
+    return response
