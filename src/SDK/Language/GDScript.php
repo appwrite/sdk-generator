@@ -321,12 +321,14 @@ class GDScript extends Language
      */
     public function getTypeName(array $parameter, array $spec = []): string
     {
+        $prefix = $this->toPascalCase($spec['title'] ?? '');
+
         // ARRAY TYPES
         if (($parameter['type'] ?? null) === self::TYPE_ARRAY) {
 
             // Array of models
             if (!empty($parameter['array']['model'])) {
-                return 'Array[' . $this->toPascalCase($parameter['array']['model']) . ']';
+                return 'Array[' . $prefix . $this->toPascalCase($parameter['array']['model']) . ']';
             }
 
             // Array of enums
@@ -343,7 +345,7 @@ class GDScript extends Language
 
         // MODEL TYPE
         if (!empty($parameter['model'])) {
-            return $this->toPascalCase($parameter['model']);
+            return $prefix . $this->toPascalCase($parameter['model']);
         }
 
         // ENUM TYPE
@@ -363,7 +365,7 @@ class GDScript extends Language
             self::TYPE_BOOLEAN => 'bool',
             self::TYPE_ARRAY => 'Array',
             self::TYPE_OBJECT => 'Dictionary',
-            self::TYPE_FILE => 'AppwriteInputFile',
+            self::TYPE_FILE => 'InputFile',
             default => 'Variant',
         };
     }
@@ -478,7 +480,7 @@ class GDScript extends Language
                     $output .= '{}';
                     break;
                 case self::TYPE_FILE:
-                    $output .= 'AppwriteInputFile.from_path("file.png")';
+                    $output .= 'InputFile.from_path("file.png")';
                     break;
             }
         } else {
@@ -496,7 +498,7 @@ class GDScript extends Language
                     $output .= "'{$example}'";
                     break;
                 case self::TYPE_FILE:
-                    $output .= 'AppwriteInputFile.from_path("file.png")';
+                    $output .= 'InputFile.from_path("file.png")';
                     break;
             }
         }
