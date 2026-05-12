@@ -134,7 +134,8 @@ class Client:
                     headers=headers,
                 )
 
-            response.raise_for_status()
+            if response_type != 'location':
+                response.raise_for_status()
 
             return self._handle_response(response, response_type)
         except Exception as e:
@@ -155,7 +156,8 @@ class Client:
                     headers=headers,
                 )
 
-            response.raise_for_status()
+            if response_type != 'location':
+                response.raise_for_status()
 
             return self._handle_response(response, response_type)
         except Exception as e:
