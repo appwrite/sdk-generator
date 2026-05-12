@@ -1,6 +1,6 @@
 import Foundation
 import JSONCodable
-{% if definition.properties | filter(p => p.enum) | length > 0 %}
+{% if definition.properties | filter(p => p.enum or p.enumValues) | length > 0 %}
 import {{spec.title | caseUcfirst}}Enums
 {% endif %}
 
