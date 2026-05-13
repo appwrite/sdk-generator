@@ -87,6 +87,12 @@ jobs:
           php-version: '8.3'
           extensions: curl
 
+      - name: Clear Composer GitHub auth
+        run: |
+          rm -f "$HOME/.composer/auth.json"
+          rm -f "$HOME/.config/composer/auth.json"
+          composer config --global --unset github-oauth.github.com || true
+
       - name: Install Composer Dependencies
         run: composer install
 
