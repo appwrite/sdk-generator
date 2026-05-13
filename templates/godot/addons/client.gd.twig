@@ -86,7 +86,7 @@ func call_api(method: String, path: String = "", headers: Dictionary = {}, param
         var has_files := false
         var large_file_key := ""
         for key in params:
-            if params[key] is InputFile:
+            if params[key] is {{prefix}}InputFile:
                 has_files = true
                 if params[key].get_size() > _chunk_size:
                     large_file_key = key
@@ -149,10 +149,10 @@ func _build_multipart(params: Dictionary, boundary: String) -> PackedByteArray:
         var value = params[key]
         if value == null: continue
         
-        if value is InputFile:
+        if value is {{prefix}}InputFile:
             var data = value.get_data()
             if data.is_empty():
-                push_warning("InputFile contains no data")
+                push_warning("{{prefix}}InputFile contains no data")
                 continue
             body.append_array(("--" + boundary + "\r\n").to_utf8_buffer())
             body.append_array(("Content-Disposition: form-data; name=\"%s\"; filename=\"%s\"\r\n" % [key, value.filename]).to_utf8_buffer())
@@ -189,7 +189,7 @@ func _ensure_configured() -> bool:
 
 
 func _call_chunked(method: String, path: String, headers: Dictionary, params: Dictionary, file_key: String) -> Dictionary:
-    var file: InputFile = params[file_key]
+    var file: {{prefix}}InputFile = params[file_key]
     var size = file.get_size()
     var start = 0
     var response := {}
@@ -202,7 +202,7 @@ func _call_chunked(method: String, path: String, headers: Dictionary, params: Di
         headers_copy["content-range"] = "bytes %d-%d/%d" % [start, end - 1, size]
         
         var chunk_data = file.get_chunk(start, end - start)
-        var chunk_file = InputFile.from_bytes(chunk_data, file.filename)
+        var chunk_file = {{prefix}}InputFile.from_bytes(chunk_data, file.filename)
         chunk_file.content_type = file.content_type
         
         params_copy[file_key] = chunk_file

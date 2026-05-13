@@ -184,7 +184,7 @@ class SDK
             return $this->language->getParamDefault($value);
         }, ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('paramExample', function ($value) {
-            return $this->language->getParamExample($value);
+            return $this->language->getParamExample($value, '', $this->spec->getArrayCopy());
         }, ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('comment1', function ($value) {
             $value = explode("\n", $value);

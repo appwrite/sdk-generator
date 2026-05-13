@@ -71,9 +71,10 @@ abstract class Language
     /**
      * @param array $param
      * @param string $lang Optional language variant (for multi-language SDKs)
+     * @param array $spec
      * @return string
      */
-    abstract public function getParamExample(array $param, string $lang = ''): string;
+    abstract public function getParamExample(array $param, string $lang = '', array $spec = []): string;
 
     /**
      * @param string $key

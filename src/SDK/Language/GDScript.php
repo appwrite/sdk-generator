@@ -365,7 +365,7 @@ class GDScript extends Language
             self::TYPE_BOOLEAN => 'bool',
             self::TYPE_ARRAY => 'Array',
             self::TYPE_OBJECT => 'Dictionary',
-            self::TYPE_FILE => 'InputFile',
+            self::TYPE_FILE => $prefix . 'InputFile',
             default => 'Variant',
         };
     }
@@ -450,12 +450,14 @@ class GDScript extends Language
     /**
      * @param array $param
      * @param string $lang
+     * @param array $spec
      * @return string
      */
-    public function getParamExample(array $param, string $lang = ''): string
+    public function getParamExample(array $param, string $lang = '', array $spec = []): string 
     {
         $type = $param['type'] ?? '';
         $example = $param['example'] ?? '';
+        $prefix = $this->toPascalCase($spec['title'] ?? '');
 
         $output = '';
 
@@ -480,7 +482,7 @@ class GDScript extends Language
                     $output .= '{}';
                     break;
                 case self::TYPE_FILE:
-                    $output .= 'InputFile.from_path("file.png")';
+                    $output .= $prefix . 'InputFile.from_path("file.png")';
                     break;
             }
         } else {
@@ -498,7 +500,7 @@ class GDScript extends Language
                     $output .= "'{$example}'";
                     break;
                 case self::TYPE_FILE:
-                    $output .= 'InputFile.from_path("file.png")';
+                    $output .= $prefix . 'InputFile.from_path("file.png")';
                     break;
             }
         }

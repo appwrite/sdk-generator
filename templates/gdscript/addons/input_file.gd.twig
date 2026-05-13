@@ -1,4 +1,5 @@
-class_name InputFile
+{% set prefix = spec.title | caseUcfirst %}
+class_name {{prefix}}InputFile
 
 var path: String ## Path to the file
 var bytes: PackedByteArray ## File bytes
@@ -16,17 +17,17 @@ func _init(file_path: String = "", bytes_data: PackedByteArray = PackedByteArray
     self.content_type = _guess_mime_type(self.path.get_file())
 
 
-## Creates a new InputFile from a file path
-static func from_path(file_path: String, custom_filename: String = "") -> InputFile:
-    return InputFile.new(file_path, PackedByteArray(), custom_filename)
+## Creates a new {{prefix}}InputFile from a file path
+static func from_path(file_path: String, custom_filename: String = "") -> {{prefix}}InputFile:
+    return {{prefix}}InputFile.new(file_path, PackedByteArray(), custom_filename)
 
 
-## Creates a new InputFile from bytes
-static func from_bytes(bytes_data: PackedByteArray, custom_filename: String = "") -> InputFile:
-    return InputFile.new("", bytes_data, custom_filename)
+## Creates a new {{prefix}}InputFile from bytes
+static func from_bytes(bytes_data: PackedByteArray, custom_filename: String = "") -> {{prefix}}InputFile:
+    return {{prefix}}InputFile.new("", bytes_data, custom_filename)
 
 
-static func from_text(text: String, custom_filename: String = "") -> InputFile:
+static func from_text(text: String, custom_filename: String = "") -> {{prefix}}InputFile:
     return from_bytes(text.to_utf8_buffer(), custom_filename)
 
 
