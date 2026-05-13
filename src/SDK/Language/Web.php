@@ -156,6 +156,11 @@ class Web extends JS
                 'template'      => 'web/.gitignore',
             ],
             [
+                'scope'         => 'copy',
+                'destination'   => '.npmrc',
+                'template'      => 'web/.npmrc',
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => 'package-lock.json',
                 'template'      => 'web/package-lock.json.twig',
