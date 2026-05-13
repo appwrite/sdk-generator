@@ -299,6 +299,11 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => '.npmrc',
+                'template'      => 'cli/.npmrc',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'bun-types.d.ts',
                 'template'      => 'cli/bun-types.d.ts',
             ],
