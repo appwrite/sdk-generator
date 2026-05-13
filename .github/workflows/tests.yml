@@ -73,6 +73,7 @@ jobs:
       - name: Install
         run: |
           docker --version
+          rm -f ~/.composer/auth.json ~/.config/composer/auth.json
           composer install
 
       - name: Lint
@@ -98,7 +99,9 @@ jobs:
           extensions: curl
 
       - name: Install
-        run: composer install
+        run: |
+          rm -f ~/.composer/auth.json ~/.config/composer/auth.json
+          composer install
 
       - name: Lint
         run: composer lint
