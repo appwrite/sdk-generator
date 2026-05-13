@@ -1,20 +1,24 @@
 package io.appwrite.cookies
 
+import android.util.Log
 import okhttp3.Cookie
 import okhttp3.CookieJar
 import okhttp3.HttpUrl
-import okhttp3.internal.cookieToString
-import okhttp3.internal.delimiterOffset
-import okhttp3.internal.platform.Platform
-import okhttp3.internal.trimSubstring
 import java.io.IOException
 import java.net.CookieHandler
-import java.net.HttpCookie
+import java.text.SimpleDateFormat
 import java.util.Collections
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 
 typealias CookieListener = (existing: List<Cookie>, new: List<Cookie>) -> Unit
 
 class ListenableCookieJar(private val cookieHandler: CookieHandler) : CookieJar {
+
+    private companion object {
+        private const val TAG = "ListenableCookieJar"
+    }
 
     private val listeners: MutableMap<Int, CookieListener> = mutableMapOf()
 
@@ -29,16 +33,13 @@ class ListenableCookieJar(private val cookieHandler: CookieHandler) : CookieJar 
 
         val cookieStrings = mutableListOf<String>()
         for (cookie in cookies) {
-            cookieStrings.add(cookieToString(cookie, true))
+            cookieStrings.add(cookieToString(cookie))
         }
         val multimap = mapOf("Set-Cookie" to cookieStrings)
         try {
             cookieHandler.put(url.toUri(), multimap)
         } catch (e: IOException) {
-            Platform.get().log(
-                "Saving cookies failed for " + url.resolve("/...")!!,
-                Platform.WARN, e
-            )
+            Log.w(TAG, "Saving cookies failed for " + url.resolve("/..."), e)
         }
     }
 
@@ -46,10 +47,7 @@ class ListenableCookieJar(private val cookieHandler: CookieHandler) : CookieJar 
         val cookieHeaders = try {
             cookieHandler.get(url.toUri(), emptyMap<String, List<String>>())
         } catch (e: IOException) {
-            Platform.get().log(
-                "Loading cookies failed for " + url.resolve("/...")!!,
-                Platform.WARN, e
-            )
+            Log.w(TAG, "Loading cookies failed for " + url.resolve("/..."), e)
             return emptyList()
         }
 
@@ -75,10 +73,6 @@ class ListenableCookieJar(private val cookieHandler: CookieHandler) : CookieJar 
         }
     }
 
-    /**
-     * Convert a request header to OkHttp's cookies via [HttpCookie]. That extra step handles
-     * multiple cookies in a single request header, which [Cookie.parse] doesn't support.
-     */
     private fun decodeHeaderAsJavaNetCookies(url: HttpUrl, header: String): List<Cookie> {
         val result = mutableListOf<Cookie>()
         var pos = 0
@@ -93,14 +87,12 @@ class ListenableCookieJar(private val cookieHandler: CookieHandler) : CookieJar 
                 continue
             }
 
-            // We have either name=value or just a name.
             var value = if (equalsSign < pairEnd) {
                 header.trimSubstring(equalsSign + 1, pairEnd)
             } else {
                 ""
             }
 
-            // If the value is "quoted", drop the quotes.
             if (value.startsWith("\"") && value.endsWith("\"")) {
                 value = value.substring(1, value.length - 1)
             }
@@ -115,5 +107,56 @@ class ListenableCookieJar(private val cookieHandler: CookieHandler) : CookieJar 
             pos = pairEnd + 1
         }
         return result
+    }
+
+    private fun cookieToString(cookie: Cookie): String = buildString {
+        append(cookie.name)
+        append('=')
+        append(cookie.value)
+
+        if (cookie.persistent) {
+            if (cookie.expiresAt == Long.MIN_VALUE) {
+                append("; Max-Age=0")
+            } else {
+                append("; Expires=").append(formatHttpDate(cookie.expiresAt))
+            }
+        }
+
+        if (!cookie.hostOnly) {
+            // Leading "." marks the cookie as subdomain-matching per RFC 2965, which java.net.CookieHandler still relies on.
+            append("; Domain=.").append(cookie.domain)
+        }
+
+        append("; Path=").append(cookie.path)
+
+        if (cookie.secure) append("; Secure")
+        if (cookie.httpOnly) append("; HttpOnly")
+    }
+
+    private fun formatHttpDate(epochMillis: Long): String =
+        SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss 'GMT'", Locale.US).apply {
+            timeZone = TimeZone.getTimeZone("GMT")
+        }.format(Date(epochMillis))
+
+    private fun String.delimiterOffset(delimiters: String, startIndex: Int, endIndex: Int): Int {
+        for (i in startIndex until endIndex) {
+            if (this[i] in delimiters) return i
+        }
+        return endIndex
+    }
+
+    private fun String.delimiterOffset(delimiter: Char, startIndex: Int, endIndex: Int): Int {
+        for (i in startIndex until endIndex) {
+            if (this[i] == delimiter) return i
+        }
+        return endIndex
+    }
+
+    private fun String.trimSubstring(startIndex: Int, endIndex: Int): String {
+        var start = startIndex
+        var end = endIndex
+        while (start < end && this[start].isWhitespace()) start++
+        while (end > start && this[end - 1].isWhitespace()) end--
+        return substring(start, end)
     }
 }

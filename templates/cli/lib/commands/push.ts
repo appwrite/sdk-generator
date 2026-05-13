@@ -89,7 +89,7 @@ import { sdkForProject, sdkForConsole } from "../sdks.js";
 import {
   ServiceId,
   ProtocolId,
-  MethodId,
+  AuthMethod,
   AppwriteException,
   Client,
   ImageFormat,
@@ -1108,7 +1108,7 @@ export class Push {
         this.log("Applying auth methods statuses ...");
         for (const [method, status] of Object.entries(settings.auth.methods)) {
           await projectService.updateAuthMethod({
-            methodId: method as MethodId,
+            methodId: method as AuthMethod,
             enabled: status,
           });
         }
@@ -1552,6 +1552,7 @@ export class Push {
                 );
                 await functionsServiceCreate.createVariable({
                   functionId: func["$id"],
+                  variableId: ID.unique(),
                   key: variable.key,
                   value: variable.value,
                   secret: false,
@@ -2060,6 +2061,7 @@ export class Push {
                 );
                 await sitesServiceCreate.createVariable({
                   siteId: site["$id"],
+                  variableId: ID.unique(),
                   key: variable.key,
                   value: variable.value,
                   secret: false,
