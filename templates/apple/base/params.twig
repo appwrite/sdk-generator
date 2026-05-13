@@ -10,7 +10,7 @@
         {%- else -%} let
         {%- endif %} apiParams: [String: Any?] = [
         {%~ for parameter in method.parameters.query | merge(method.parameters.body) %}
-            "{{ parameter.name }}": {{ parameter.name | caseCamel | escapeSwiftKeyword }}{% if not loop.last or (method.type == 'location' or method.type == 'webAuth' and method.auth | length > 0) %},{% endif %}
+            "{{ parameter.name }}": {{ parameter.name | caseCamel | escapeSwiftKeyword }}{% if parameter.enumValues is not empty %}{% if parameter.type == 'array' %}{% if not parameter.required %}?{% endif %}.map { $0.rawValue }{% else %}{% if not parameter.required %}?{% endif %}.rawValue{% endif %}{% endif %}{% if not loop.last or (method.type == 'location' or method.type == 'webAuth' and method.auth | length > 0) %},{% endif %}
 
         {%~ endfor %}
         {%~ if method.type == 'location' or method.type == 'webAuth' %}

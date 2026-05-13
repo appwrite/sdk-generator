@@ -97,8 +97,8 @@ class Tests: XCTestCase {
                 projectId: "auth-project",
                 session: "auth-session"
             )
-        } catch {
-            authFactoryOutputs.append(error.localizedDescription)
+        } catch let error as AppwriteError {
+            authFactoryOutputs.append(error.message)
         }
 
         do {
@@ -106,8 +106,8 @@ class Tests: XCTestCase {
                 endpoint: "htp://cloud.appwrite.io/v1",
                 projectId: "auth-project"
             )
-        } catch {
-            authFactoryOutputs.append(error.localizedDescription)
+        } catch let error as AppwriteError {
+            authFactoryOutputs.append(error.message)
         }
 
         let client = Client()

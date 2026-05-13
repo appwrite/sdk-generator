@@ -82,8 +82,8 @@ class Tests: XCTestCase {
                 projectId: "auth-project",
                 session: "auth-session"
             )
-        } catch {
-            print(error.localizedDescription)
+        } catch let error as AppwriteError {
+            print(error.message)
         }
 
         do {
@@ -91,8 +91,8 @@ class Tests: XCTestCase {
                 endpoint: "htp://cloud.appwrite.io/v1",
                 projectId: "auth-project"
             )
-        } catch {
-            print(error.localizedDescription)
+        } catch let error as AppwriteError {
+            print(error.message)
         }
 
         do {
@@ -101,8 +101,8 @@ class Tests: XCTestCase {
                 projectId: "auth-project",
                 endpointRealtime: "ftp://cloud.appwrite.io/v1"
             )
-        } catch {
-            print(error.localizedDescription)
+        } catch let error as AppwriteError {
+            print(error.message)
         }
 
         // Ping pong test
