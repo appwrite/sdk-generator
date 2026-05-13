@@ -1,6 +1,6 @@
 import Foundation
 import JSONCodable
-{% if requestModel.properties | filter(p => p.enum) | length > 0 %}
+{% if requestModel.properties | filter(p => p.enum or p.enumValues) | length > 0 %}
 import {{spec.title | caseUcfirst}}Enums
 {% endif %}
 
@@ -36,7 +36,7 @@ open class {{ requestModel.name | caseUcfirst }}: Codable {
     public func toMap() -> [String: Any?] {
         return [
             {%~ for property in requestModel.properties %}
-            "{{ property.name }}": {% if property.sub_schema %}{% if property.type == 'array' %}{{property.name | escapeSwiftKeyword | removeDollarSign}}{% if not property.required %}?{% endif %}.map { $0.toMap() }{% else %}{{property.name | escapeSwiftKeyword | removeDollarSign}}{% if not property.required %}?{% endif %}.toMap(){% endif %}{% elseif property.enum %}{{property.name | escapeSwiftKeyword | removeDollarSign}}{% if not property.required %}?{% endif %}.rawValue{% else %}{{property.name | escapeSwiftKeyword | removeDollarSign}}{% endif %}{% if not loop.last %},{% endif %}
+            "{{ property.name }}": {% if property.sub_schema %}{% if property.type == 'array' %}{{property.name | escapeSwiftKeyword | removeDollarSign}}{% if not property.required %}?{% endif %}.map { $0.toMap() }{% else %}{{property.name | escapeSwiftKeyword | removeDollarSign}}{% if not property.required %}?{% endif %}.toMap(){% endif %}{% elseif property.enum %}{{property.name | escapeSwiftKeyword | removeDollarSign}}{% if not property.required %}?{% endif %}.rawValue{% elseif property.enumValues %}{{property.name | escapeSwiftKeyword | removeDollarSign}}{% if not property.required %}?{% endif %}.map { $0.rawValue }{% else %}{{property.name | escapeSwiftKeyword | removeDollarSign}}{% endif %}{% if not loop.last %},{% endif %}
 
             {%~ endfor %}
         ]

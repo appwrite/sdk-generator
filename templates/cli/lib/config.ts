@@ -509,6 +509,10 @@ class Config<T extends ConfigData = ConfigData> {
     }
   }
 
+  protected usePath(path: string): void {
+    (this as { path: string }).path = path;
+  }
+
   read(): void {
     try {
       const file = fs.readFileSync(this.path).toString();
@@ -642,6 +646,23 @@ class Local extends Config<ConfigType> {
     this.read();
   }
 
+  useCwdConfig(
+    path: string = Local.CONFIG_FILE_PATH,
+    legacyPath: string = Local.CONFIG_FILE_PATH_LEGACY,
+  ): void {
+    const absolutePath =
+      Local.findConfigFileInCwd(path) ||
+      Local.findConfigFileInCwd(legacyPath) ||
+      _path.join(process.cwd(), path);
+
+    this.usePath(absolutePath);
+    this.configDirectoryPath = _path.dirname(absolutePath);
+    this.rootData = {};
+    this.includePaths = {};
+    this.includePathHints = {};
+    this.read();
+  }
+
   read(): void {
     if (!fs.existsSync(this.path)) {
       this.rootData = {};
@@ -700,9 +721,14 @@ class Local extends Config<ConfigType> {
 
   static findConfigFile(filename: string): string | null {
     let currentPath = process.cwd();
+    const homeDir = os.homedir();
 
     while (true) {
-      const filePath = `${currentPath}/${filename}`;
+      if (currentPath === homeDir && process.cwd() !== homeDir) {
+        break;
+      }
+
+      const filePath = _path.join(currentPath, filename);
 
       if (fs.existsSync(filePath)) {
         return filePath;
@@ -716,6 +742,12 @@ class Local extends Config<ConfigType> {
     }
 
     return null;
+  }
+
+  static findConfigFileInCwd(filename: string): string | null {
+    const filePath = _path.join(process.cwd(), filename);
+
+    return fs.existsSync(filePath) ? filePath : null;
   }
 
   getDirname(): string {

@@ -494,10 +494,12 @@ output = execFileSync(
     "list-rows",
     "--queries",
     '{"method":"orderDesc","attribute":"rawName"}',
-    "--where",
+    "--filter",
     "published=true",
-    "--where",
+    "--filter",
     "score>=10",
+    "--where",
+    "legacy=true",
     "--where",
     'status=["draft","published"]',
     "--sort-asc",
@@ -524,10 +526,10 @@ console.log(extractFirstValue(output));
 try {
   execFileSync(
     "bun",
-    ["./dist/cli.cjs", "general", "list-rows", "--where", "count>1e999"],
+    ["./dist/cli.cjs", "general", "list-rows", "--filter", "count>1e999"],
     { stdio: "pipe" },
   );
-  throw new Error("Expected non-finite numeric where values to be rejected.");
+  throw new Error("Expected non-finite numeric filter values to be rejected.");
 } catch (error) {
   if (!String(error.stderr ?? error.message).includes("finite numbers")) {
     throw error;
@@ -537,12 +539,29 @@ try {
 try {
   execFileSync(
     "bun",
-    ["./dist/cli.cjs", "general", "list-rows", "--where", "count=[1e999]"],
+    ["./dist/cli.cjs", "general", "list-rows", "--filter", "count=[1e999]"],
     { stdio: "pipe" },
   );
-  throw new Error("Expected non-finite array where values to be rejected.");
+  throw new Error("Expected non-finite array filter values to be rejected.");
 } catch (error) {
   if (!String(error.stderr ?? error.message).includes("finite numbers")) {
+    throw error;
+  }
+}
+
+try {
+  execFileSync(
+    "bun",
+    ["./dist/cli.cjs", "general", "list-rows", "--where", "count>1e999"],
+    { stdio: "pipe" },
+  );
+  throw new Error("Expected deprecated where values to be rejected.");
+} catch (error) {
+  const stderr = String(error.stderr ?? error.message);
+  if (
+    !stderr.includes("--where is deprecated") ||
+    !stderr.includes("finite numbers")
+  ) {
     throw error;
   }
 }

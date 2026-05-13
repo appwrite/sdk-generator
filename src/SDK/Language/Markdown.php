@@ -66,6 +66,11 @@ class Markdown extends JS
                 'template'    => 'markdown/package.json.twig',
             ],
             [
+                'scope'       => 'copy',
+                'destination' => '.npmrc',
+                'template'    => 'markdown/.npmrc',
+            ],
+            [
                 'scope'       => 'default',
                 'destination' => 'README.md',
                 'template'    => 'markdown/README.md.twig',

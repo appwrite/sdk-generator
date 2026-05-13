@@ -2,22 +2,21 @@
 
 namespace Tests;
 
-class KotlinJava11Test extends Base
+class Swift60Test extends Base
 {
-    protected string $sdkName = 'kotlin';
+    protected string $sdkName = 'swift';
     protected string $sdkPlatform = 'server';
-    protected string $sdkLanguage = 'kotlin';
+    protected string $sdkLanguage = 'swift';
     protected string $version = '0.0.1';
 
-    protected string $language = 'kotlin';
-    protected string $class = 'Appwrite\SDK\Language\Kotlin';
+    protected string $language = 'swift';
+    protected string $class = 'Appwrite\SDK\Language\Swift';
     protected array $build = [
-        'mkdir -p tests/sdks/kotlin/src/test/kotlin',
-        'cp tests/languages/kotlin/Tests.kt tests/sdks/kotlin/src/test/kotlin/Tests.kt',
-        'chmod +x tests/sdks/kotlin/gradlew',
+        'mkdir -p tests/sdks/swift/Tests/AppwriteTests',
+        'cp tests/languages/swift/Tests.swift tests/sdks/swift/Tests/AppwriteTests/Tests.swift',
     ];
     protected string $command =
-        'docker run --network="mockapi" -v $(pwd):/app -w /app/tests/sdks/kotlin eclipse-temurin:11-jdk-jammy sh -c "./gradlew test -q && cat result.txt"';
+        'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/sdks/swift swift:6.0-jammy swift test';
 
     protected array $expectedOutput = [
         ...Base::PING_RESPONSE,

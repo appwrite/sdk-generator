@@ -30,7 +30,8 @@ import { resolveFileParam } from "../utils/deployment.js";
 import {
   buildQueries,
   collectQueryValue,
-  parseWhereQuery,
+  parseDeprecatedWhereQuery,
+  parseFilterQuery,
 } from "../utils/query.js";
 {% endif %}
 {% if service.isConsoleOnly %}
@@ -116,7 +117,8 @@ const {{ commandVar }} = {{ service.name | caseCamel }}
 {% endfor %}
 {% if query.hasQueries %}
 {% if query.hasFiltering %}
-  .option(`--where <expression>`, `Filter using a simple comparison expression. Repeat for multiple filters. Supports field=value, field!=value, field>value, field>=value, field<value, and field<=value.`, (value: string, previous: string[] | undefined) => collectQueryValue(parseWhereQuery(value), previous))
+  .option(`--filter <expression>`, `Filter using a simple comparison expression. Repeat for multiple filters. Supports field=value, field!=value, field>value, field>=value, field<value, and field<=value.`, (value: string, previous: string[] | undefined) => collectQueryValue(parseFilterQuery(value), previous))
+  .option(`--where <expression>`, `Deprecated. Use --filter instead. Filter using a simple comparison expression. Repeat for multiple filters.`, (value: string, previous: string[] | undefined) => collectQueryValue(parseDeprecatedWhereQuery(value), previous))
   .option(`--sort-asc <attribute>`, `Sort results by an attribute in ascending order. Repeat for multiple sort fields.`, (value: string, previous: string[] | undefined) => collectQueryValue(value, previous))
   .option(`--sort-desc <attribute>`, `Sort results by an attribute in descending order. Repeat for multiple sort fields.`, (value: string, previous: string[] | undefined) => collectQueryValue(value, previous))
 {% endif %}

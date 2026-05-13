@@ -89,7 +89,7 @@ public function getFiles(): array
     return [
         // ...existing entries...
         [
-            'scope'       => 'default',   // default|service|method|definition|requestModel|enum|copy
+            'scope'       => 'default',   // default|service|method|definition|requestModel|enum|copy|download
             'destination' => 'path/to/output.ext',
             'template'    => 'lang/path/to/template.twig',
         ],
@@ -105,6 +105,7 @@ public function getFiles(): array
 - `requestModel` — generated once per request model
 - `enum` — generated once per enum
 - `copy` — static files copied as-is, no Twig processing
+- `download` — generated once per SDK by downloading the URL in `template` to `destination`
 
 3. Regenerate and verify
 
