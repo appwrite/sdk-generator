@@ -25,30 +25,23 @@ func set_self_signed(status: bool = true) -> RefCounted:
     _self_signed = status
     return self
 
-
 func set_endpoint(endpoint: String) -> RefCounted:
     _endpoint = endpoint
     return self
-
 
 func add_header(key: String, value: String) -> RefCounted:
     _global_headers[key.to_lower()] = value
     return self
 
-
 func get_headers() -> Dictionary:
     return _global_headers.duplicate()
-
 
 {% for header in spec.global.headers %}
 func set_{{header.key | caseSnake}}(value: String) -> RefCounted:
     _global_headers['{{header.name|lower}}'] = value
     return self
 
-
 {% endfor %}
-
-
 func call_api(method: String, path: String = "", headers: Dictionary = {}, params: Dictionary = {}) -> Dictionary:
     if not _ensure_configured():
         return {"statusCode": 400, "body": "Missing/wrong configuration. Please check logs for more info"}
@@ -142,7 +135,6 @@ func call_api(method: String, path: String = "", headers: Dictionary = {}, param
     else:
         return {"statusCode": response_code, "body": response_text}
 
-
 func _build_multipart(params: Dictionary, boundary: String) -> PackedByteArray:
     var body := PackedByteArray()
     for key in params:
@@ -177,7 +169,6 @@ func _build_multipart(params: Dictionary, boundary: String) -> PackedByteArray:
     body.append_array(("--" + boundary + "--\r\n").to_utf8_buffer())
     return body
 
-
 func _ensure_configured() -> bool:
     if _endpoint == "":
         push_warning("{{prefix}}: endpoint is missing. Use set_endpoint or .env.")
@@ -186,7 +177,6 @@ func _ensure_configured() -> bool:
         push_warning("{{prefix}}: project id is missing. Use set_project or .env.")
         return false
     return true
-
 
 func _call_chunked(method: String, path: String, headers: Dictionary, params: Dictionary, file_key: String) -> Dictionary:
     var file: {{prefix}}InputFile = params[file_key]

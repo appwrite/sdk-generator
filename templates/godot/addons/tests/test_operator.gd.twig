@@ -8,7 +8,6 @@ func test_operator_to_string():
     assert_eq(parsed["method"], "test")
     assert_eq(parsed["values"].size(), 2)
 
-
 func test_operator_value_wrapping():
     var op = {{prefix}}Operator.new("test", 5)
     var parsed = JSON.parse_string(op.to_string())
@@ -16,19 +15,16 @@ func test_operator_value_wrapping():
     assert_true(parsed["values"] is Array)
     assert_eq(parsed["values"][0], 5)
 
-
 func test_operator_null_values():
     var op = {{prefix}}Operator.new("test", null)
     var parsed = JSON.parse_string(op.to_string())
 
     assert_eq(parsed["values"].size(), 0)
 
-
 func test_is_valid_condition():
     assert_true({{prefix}}Operator.is_valid({{prefix}}Operator.EQUAL))
     assert_true({{prefix}}Operator.is_valid({{prefix}}Operator.NOT_EQUAL))
     assert_false({{prefix}}Operator.is_valid("invalid"))
-
 
 func test_increment_basic():
     var q = {{prefix}}Operator.increment(5)
@@ -37,7 +33,6 @@ func test_increment_basic():
     assert_eq(parsed["method"], "increment")
     assert_eq(parsed["values"][0], 5)
 
-
 func test_increment_with_max():
     var q = {{prefix}}Operator.increment(5, 10)
     var parsed = JSON.parse_string(q)
@@ -45,19 +40,15 @@ func test_increment_with_max():
     assert_eq(parsed["values"].size(), 2)
     assert_eq(parsed["values"][1], 10)
 
-
 func test_increment_invalid_number():
     var q = {{prefix}}Operator.increment(INF)
     assert_eq(q, "") # should fail gracefully
     assert_push_error("Value cannot be NaN or Infinity")
 
-
-
 func test_divide_by_zero():
     var q = {{prefix}}Operator.divide(0)
     assert_eq(q, "")
     assert_push_error("Divisor cannot be zero")
-
 
 func test_divide_valid():
     var q = {{prefix}}Operator.divide(10)
@@ -66,14 +57,12 @@ func test_divide_valid():
     assert_eq(parsed["method"], "divide")
     assert_eq(parsed["values"][0], 10)
 
-
 func test_array_append():
     var q = {{prefix}}Operator.array_append([1, 2])
     var parsed = JSON.parse_string(q)
 
     assert_eq(parsed["method"], "arrayAppend")
     assert_eq(parsed["values"].size(), 2)
-
 
 func test_array_insert():
     var q = {{prefix}}Operator.array_insert(1, "x")
@@ -82,14 +71,12 @@ func test_array_insert():
     assert_eq(parsed["values"][0], 1)
     assert_eq(parsed["values"][1], "x")
 
-
 func test_array_unique():
     var q = {{prefix}}Operator.array_unique()
     var parsed = JSON.parse_string(q)
 
     assert_eq(parsed["method"], "arrayUnique")
     assert_eq(parsed["values"].size(), 0)
-
 
 func test_array_filter_valid():
     var q = {{prefix}}Operator.array_filter({{prefix}}Operator.EQUAL, 10)
@@ -98,12 +85,10 @@ func test_array_filter_valid():
     assert_eq(parsed["method"], "arrayFilter")
     assert_eq(parsed["values"][0], "equal")
 
-
 func test_array_filter_invalid_condition():
     var q = {{prefix}}Operator.array_filter("INVALID", 10)
     assert_eq(q, "")
     assert_push_error("Invalid condition: INVALID")
-
 
 func test_string_concat():
     var q = {{prefix}}Operator.string_concat("abc")
@@ -112,14 +97,12 @@ func test_string_concat():
     assert_eq(parsed["method"], "stringConcat")
     assert_eq(parsed["values"][0], "abc")
 
-
 func test_string_replace():
     var q = {{prefix}}Operator.string_replace("a", "b")
     var parsed = JSON.parse_string(q)
 
     assert_eq(parsed["values"][0], "a")
     assert_eq(parsed["values"][1], "b")
-
 
 func test_toggle():
     var q = {{prefix}}Operator.toggle()
@@ -128,14 +111,12 @@ func test_toggle():
     assert_eq(parsed["method"], "toggle")
     assert_eq(parsed["values"].size(), 0)
 
-
 func test_date_add_days():
     var q = {{prefix}}Operator.date_add_days(5)
     var parsed = JSON.parse_string(q)
 
     assert_eq(parsed["method"], "dateAddDays")
     assert_eq(parsed["values"][0], 5)
-
 
 func test_date_set_now():
     var q = {{prefix}}Operator.date_set_now()

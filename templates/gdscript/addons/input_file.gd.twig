@@ -16,20 +16,16 @@ func _init(file_path: String = "", bytes_data: PackedByteArray = PackedByteArray
     
     self.content_type = _guess_mime_type(self.path.get_file())
 
-
 ## Creates a new {{prefix}}InputFile from a file path
 static func from_path(file_path: String, custom_filename: String = "") -> {{prefix}}InputFile:
     return {{prefix}}InputFile.new(file_path, PackedByteArray(), custom_filename)
-
 
 ## Creates a new {{prefix}}InputFile from bytes
 static func from_bytes(bytes_data: PackedByteArray, custom_filename: String = "") -> {{prefix}}InputFile:
     return {{prefix}}InputFile.new("", bytes_data, custom_filename)
 
-
 static func from_text(text: String, custom_filename: String = "") -> {{prefix}}InputFile:
     return from_bytes(text.to_utf8_buffer(), custom_filename)
-
 
 ## Return the PackedByteArray of the file
 func get_data() -> PackedByteArray:
@@ -38,7 +34,6 @@ func get_data() -> PackedByteArray:
     if not path.is_empty():
         return FileAccess.get_file_as_bytes(path)
     return PackedByteArray()
-
 
 ## Return the size of the file
 func get_size() -> int:
@@ -50,7 +45,6 @@ func get_size() -> int:
             return file.get_length()
     return 0
 
-
 ## Return a chunk of the file
 func get_chunk(offset: int, length: int) -> PackedByteArray:
     if not bytes.is_empty():
@@ -61,7 +55,6 @@ func get_chunk(offset: int, length: int) -> PackedByteArray:
             file.seek(offset)
             return file.get_buffer(length)
     return PackedByteArray()
-
 
 static func _guess_mime_type(filename: String) -> String:
     var ext := filename.get_extension().to_lower()

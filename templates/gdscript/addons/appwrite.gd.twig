@@ -45,7 +45,6 @@ func _ready() -> void:
             
         _apply_env(key, value)
 
-
 {% for header in spec.global.headers %}
 {% if header.description %}
 ## {{header.description}}
@@ -53,27 +52,22 @@ func _ready() -> void:
 func set_{{header.key | caseSnake}}(value: String) -> void:
     _client.set_{{header.key | caseSnake}}(value)
 
-
 {% endfor %}
 ## Set self signed status
 func set_self_signed(status: bool = true) -> void:
     _client.set_self_signed(status)
 
-
 ## Set the endpoint
 func set_endpoint(endpoint: String) -> void:
     _client.set_endpoint(endpoint)
-
 
 ## Add a header
 func add_header(key: String, value: String) -> void:
     _client.add_header(key, value)    
 
-
 ## Get all headers
 func get_headers() -> Dictionary:
     return _client.get_headers()
-
 
 func _apply_env(key: String, value: String) -> void:
     match key:
@@ -85,7 +79,6 @@ func _apply_env(key: String, value: String) -> void:
         "{{ prefix | caseUpper }}_{{ header.key | caseUpper }}":
             _client.set_{{ header.key | caseSnake }}(value)
 {% endfor %}
-        
 
 ## Ping {{prefix}} Server for testing connection
 func ping() -> String:

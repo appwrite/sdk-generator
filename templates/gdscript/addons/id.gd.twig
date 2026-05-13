@@ -8,7 +8,6 @@ static func _hex_timestamp() -> String:
     var usec_hex := "%05x" % usec
     return sec_hex + usec_hex
 
-
 ## Generate a unique ID with padding to have a longer ID
 static func unique(padding: int = 7) -> String:
     var id := _hex_timestamp()
@@ -18,7 +17,6 @@ static func unique(padding: int = 7) -> String:
             sb += "%x" % (randi() % 16)
         id += sb
     return id
-
 
 static func custom(id: String) -> String:
     return id
