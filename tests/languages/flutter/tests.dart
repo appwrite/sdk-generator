@@ -232,27 +232,11 @@ void main() async {
     print("Realtime update:failed");
   }
 
+  // Realtime presence (upsertPresence) test. Rides the existing WebSocket
+  // opened by the main realtime tests above — upsertPresence is
+  // fire-and-forget (void), no await needed.
   try {
-    await realtime.disconnect();
-    print("Realtime disconnect:passed");
-  } catch (e) {
-    print("Realtime disconnect:failed");
-  }
-
-  // Realtime presence (upsertPresence) test against the mock WebSocket server.
-  // Uses a fresh Client/Realtime so it doesn't inherit the cloud.appwrite.io endpoint above.
-  // upsertPresence is fire-and-forget (void) — call it without await, after
-  // giving subscribe() time to open the WebSocket.
-  try {
-    final presenceClient = Client()
-        .setProject('123456')
-        .setEndPointRealtime('ws://mockapi/v1');
-    final presenceRealtime = Realtime(presenceClient);
-
-    presenceRealtime.subscribe(['tests']);
-    await Future.delayed(Duration(seconds: 3));
-
-    presenceRealtime.upsertPresence(
+    realtime.upsertPresence(
       status: 'online',
       presenceId: 'p-test',
       metadata: {'page': '/home'},
@@ -260,10 +244,15 @@ void main() async {
     await Future.delayed(Duration(seconds: 1));
 
     print("Realtime presence:passed");
-
-    await presenceRealtime.disconnect();
   } catch (e) {
     print("Realtime presence:failed");
+  }
+
+  try {
+    await realtime.disconnect();
+    print("Realtime disconnect:passed");
+  } catch (e) {
+    print("Realtime disconnect:failed");
   }
 
   response = await general.setCookie();

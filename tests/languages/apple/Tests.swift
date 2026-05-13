@@ -236,28 +236,11 @@ class Tests: XCTestCase {
             print("Realtime update:failed")
         }
 
+        // Realtime presence (upsertPresence) test. Rides the existing WebSocket
+        // opened by the main realtime tests above — upsertPresence is
+        // fire-and-forget (no `try await`).
         do {
-            try await realtime.disconnect()
-            print("Realtime disconnect:passed")
-        } catch {
-            print("Realtime disconnect:failed")
-        }
-
-        // Realtime presence (upsertPresence) test against the mock WebSocket server.
-        // upsertPresence is fire-and-forget — call it without `try await` after
-        // giving subscribe() time to open the WebSocket.
-        // setSelfSigned() is required so WebSocketClient skips TLS for the ws:// mock endpoint.
-        do {
-            let presenceClient = Client()
-                .setProject("123456")
-                .setSelfSigned()
-                .setEndpointRealtime("ws://mockapi/v1")
-            let presenceRealtime = Realtime(presenceClient)
-
-            _ = try await presenceRealtime.subscribe(channels: ["tests"]) { _ in }
-            try await Task.sleep(nanoseconds: 3_000_000_000)
-
-            try presenceRealtime.upsertPresence(
+            try realtime.upsertPresence(
                 status: "online",
                 metadata: ["page": "/home"],
                 presenceId: "p-test"
@@ -265,10 +248,15 @@ class Tests: XCTestCase {
             try await Task.sleep(nanoseconds: 1_000_000_000)
 
             print("Realtime presence:passed")
-
-            try await presenceRealtime.disconnect()
         } catch {
             print("Realtime presence:failed")
+        }
+
+        do {
+            try await realtime.disconnect()
+            print("Realtime disconnect:passed")
+        } catch {
+            print("Realtime disconnect:failed")
         }
 
         mock = try await general.setCookie()

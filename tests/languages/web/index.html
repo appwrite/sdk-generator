@@ -319,26 +319,11 @@
                 console.log('Realtime update:failed');
             }
 
+            // Realtime presence (upsertPresence) test. Rides the existing
+            // WebSocket opened by the main realtime tests above — upsertPresence
+            // is fire-and-forget (Promise<void> resolves immediately).
             try {
-                await realtime.disconnect();
-                console.log('Realtime disconnect:passed');
-            } catch (e) {
-                console.log('Realtime disconnect:failed');
-            }
-
-            // upsertPresence is fire-and-forget (async, returns Promise<void>) —
-            // give subscribe() a moment to open the WebSocket, then call.
-            try {
-                const presenceClient = new Client();
-                presenceClient.setProject('123456');
-                presenceClient.setEndpointRealtime('ws://mockapi/v1');
-
-                const presenceRealtime = new Realtime(presenceClient);
-
-                await presenceRealtime.subscribe(['tests'], () => {});
-                await new Promise(resolve => setTimeout(resolve, 3000));
-
-                await presenceRealtime.upsertPresence({
+                await realtime.upsertPresence({
                     status: 'online',
                     presenceId: 'p-test',
                     metadata: { page: '/home' },
@@ -346,10 +331,15 @@
                 await new Promise(resolve => setTimeout(resolve, 1000));
 
                 console.log('Realtime presence:passed');
-
-                await presenceRealtime.disconnect();
             } catch (e) {
                 console.log('Realtime presence:failed');
+            }
+
+            try {
+                await realtime.disconnect();
+                console.log('Realtime disconnect:passed');
+            } catch (e) {
+                console.log('Realtime disconnect:failed');
             }
 
             // Query helper tests

@@ -262,29 +262,11 @@ class ServiceTest {
                 writeToFile("Realtime update:failed")
             }
 
+            // Realtime presence (upsertPresence) test. Rides the existing WebSocket
+            // opened by the main realtime tests above — upsertPresence is
+            // fire-and-forget (no suspend, no await).
             try {
-                realtime.disconnect()
-                writeToFile("Realtime disconnect:passed")
-            } catch (e: Exception) {
-                writeToFile("Realtime disconnect:failed")
-            }
-
-            // Realtime presence (upsertPresence) test against the mock WebSocket server.
-            // upsertPresence is fire-and-forget — call it without awaiting after
-            // giving subscribe() time to open the WebSocket.
-            try {
-                val presenceClient = Client(ApplicationProvider.getApplicationContext())
-                    .setProject("123456")
-                    .setEndpointRealtime("ws://mockapi/v1")
-                val presenceRealtime = Realtime(presenceClient)
-
-                presenceRealtime.subscribe(
-                    "tests",
-                    payloadType = TestPayload::class.java,
-                ) { /* no-op */ }
-                delay(3000)
-
-                presenceRealtime.upsertPresence(
+                realtime.upsertPresence(
                     status = "online",
                     metadata = mapOf("page" to "/home"),
                     presenceId = "p-test",
@@ -292,10 +274,15 @@ class ServiceTest {
                 delay(1000)
 
                 writeToFile("Realtime presence:passed")
-
-                presenceRealtime.disconnect()
             } catch (e: Exception) {
                 writeToFile("Realtime presence:failed")
+            }
+
+            try {
+                realtime.disconnect()
+                writeToFile("Realtime disconnect:passed")
+            } catch (e: Exception) {
+                writeToFile("Realtime disconnect:failed")
             }
 
             // mock = general.setCookie()

@@ -192,8 +192,8 @@ async function start() {
     console.log('Realtime failed!'); // Skip realtime query failure test on Node.js
     console.log('Realtime unsubscribe:passed'); // Skip new realtime API tests on Node.js
     console.log('Realtime update:passed');
-    console.log('Realtime disconnect:passed');
     console.log('Realtime presence:passed'); // Skip realtime presence test on Node.js
+    console.log('Realtime disconnect:passed');
 
     // Query helper tests
     console.log(Query.equal("released", [true]));
