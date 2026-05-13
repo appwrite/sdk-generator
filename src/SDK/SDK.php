@@ -433,7 +433,6 @@ class SDK
     public function setLogo(string $url): SDK
     {
         $this->setParam('logo', $url);
-        $this->setParam('coverImage', $url);
 
         return $this;
     }
