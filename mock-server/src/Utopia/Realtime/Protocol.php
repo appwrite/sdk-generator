@@ -3,6 +3,9 @@
 namespace Utopia\MockServer\Utopia\Realtime;
 
 use Utopia\MockServer\Utopia\Exception;
+use Utopia\Query\Exception as QueryException;
+use Utopia\Query\Method;
+use Utopia\Query\Query;
 use Utopia\WebSocket\Server;
 
 /**
@@ -123,27 +126,58 @@ class Protocol
      */
     private function subscriptionMatchesPayload(array $queries, array $payload): bool
     {
-        foreach ($queries as $query) {
-            if (!$this->queryMatchesPayload((string) $query, $payload)) {
+        if (empty($queries)) {
+            return true;
+        }
+
+        try {
+            $parsed = Query::parseQueries(array_values(array_map('strval', $queries)));
+        } catch (QueryException) {
+            return false;
+        }
+
+        foreach ($parsed as $query) {
+            if (!$this->evaluateQuery($query, $payload)) {
                 return false;
             }
         }
         return true;
     }
 
-    private function queryMatchesPayload(string $query, array $payload): bool
+    /**
+     * Evaluate a parsed Query against the event payload
+     *
+     * @param array<string, mixed> $payload
+     */
+    private function evaluateQuery(Query $query, array $payload): bool
     {
-        $parsed = json_decode($query, true);
-        if (!is_array($parsed)) {
-            // Unparseable queries are treated as "no filter" so the mock
-            // never rejects events for an unknown query shape.
+        $method = $query->getMethod();
+        $values = $query->getValues();
+
+        if ($method === Method::Select) {
+            // select('*') is the realtime convention for "listen to all".
+            return count($values) === 1 && $values[0] === '*';
+        }
+
+        if ($method === Method::And) {
+            foreach ($values as $sub) {
+                if (!$sub instanceof Query || !$this->evaluateQuery($sub, $payload)) {
+                    return false;
+                }
+            }
             return true;
         }
 
-        $method    = (string) ($parsed['method'] ?? '');
-        $attribute = (string) ($parsed['attribute'] ?? '');
-        $values    = is_array($parsed['values'] ?? null) ? $parsed['values'] : [];
+        if ($method === Method::Or) {
+            foreach ($values as $sub) {
+                if ($sub instanceof Query && $this->evaluateQuery($sub, $payload)) {
+                    return true;
+                }
+            }
+            return false;
+        }
 
+        $attribute = $query->getAttribute();
         if ($attribute === '' || !array_key_exists($attribute, $payload)) {
             return false;
         }
@@ -151,9 +185,15 @@ class Protocol
         $actual = $payload[$attribute];
 
         return match ($method) {
-            'equal'    => in_array($actual, $values, true),
-            'notEqual' => !in_array($actual, $values, true),
-            default    => true, // unknown matcher: pass through (don't filter)
+            Method::Equal            => in_array($actual, $values, true),
+            Method::NotEqual         => !in_array($actual, $values, true),
+            Method::LessThan         => isset($values[0]) && $actual < $values[0],
+            Method::LessThanEqual    => isset($values[0]) && $actual <= $values[0],
+            Method::GreaterThan      => isset($values[0]) && $actual > $values[0],
+            Method::GreaterThanEqual => isset($values[0]) && $actual >= $values[0],
+            Method::IsNull           => $actual === null,
+            Method::IsNotNull        => $actual !== null,
+            default                  => false, // unimplemented matcher → fail closed
         };
     }
 
