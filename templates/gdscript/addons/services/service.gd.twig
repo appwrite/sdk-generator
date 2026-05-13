@@ -1,0 +1,99 @@
+{% set prefix = spec.title | caseUcfirst %}
+extends "../service.gd"
+## {{ service.description | default("Service class.") | replace({"\n": "\n## "}) }}
+
+{% for method in service.methods %}
+{%~ set methodNameSnake = method.name | caseSnake %}
+{%~ set shouldSkip = false %}
+{%~ if method.deprecated %}
+{%~ for otherMethod in service.methods %}
+{%~ if not otherMethod.deprecated and (otherMethod.name | caseSnake) == methodNameSnake %}
+{%~ set shouldSkip = true %}
+{%~ endif %}
+{%~ endfor %}
+{%~ endif %}
+{%~ if not shouldSkip %}
+{%~ if method.responseModel and method.responseModel != 'any' %}
+{%~ set return_type = (spec.title | caseUcfirst) ~ (method.responseModel | caseUcfirst) %}
+{%~ else %}
+{%~ set return_type = 'Variant' %}
+{%~ endif %}
+
+## {{ method.summary ?? method.description | replace({"\n": "[br]\n##"}) }}[br]
+##[br]
+{% if method.deprecated %}
+## @deprecated{% if method.since %}: Since {{ method.since }}{% endif %}{% if method.replaceWith %} Use [method {{ method.replaceWith | caseSnake | escapeKeyword }}] instead.{% endif %}[br]
+##[br]
+{% endif %}
+{% if method.parameters.all|length > 0 %}
+## Parameters:[br]
+{% for parameter in method.parameters.all %}
+## - [param {{ parameter.name | caseSnake | escapeKeyword }}] [{{ parameter | typeName(spec) }}]: {{ parameter.description | default("No description provided.") | replace({"\n": "\n##   "}) }}[br]
+{% endfor %}
+##[br]
+{% endif %}
+## Returns:[br]
+## - [{{return_type}}] on success.[br]
+##[br]
+## Errors:[br]
+## - Returns error data as [member {{ prefix }}Exception].
+func {{ methodNameSnake| escapeKeyword }}({% for parameter in method.parameters.all %}{{ parameter.name | caseSnake | escapeKeyword }}: {% if parameter.required %}{{ parameter | typeName(spec) }}{{ parameter | paramDefault }}{% else %}Variant = null{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}) -> Variant :
+    # Runtime type checking, GDScript typed vars don't support null or optional
+    {%~ for parameter in method.parameters.all %}
+    {%~ if not parameter.required %}
+    {%~ set type = parameter | typeName(spec) %}
+    {%~ if type != 'Variant' %}
+    {%~ if type starts with 'Array' %}{% set check_type = 'Array' %}{% else %}{% set check_type = type %}{% endif %}
+    if {{ parameter.name | caseSnake | escapeKeyword }} != null and not {{ parameter.name | caseSnake | escapeKeyword }} is {{ check_type }}:
+        return {{prefix}}Exception.new("Invalid type for parameter '{{ parameter.name | caseSnake | escapeKeyword }}'. Expected {{ type }}.", 0, "argument_error", "")
+    {%~ endif %}
+    {%~ endif %}
+    {%~ endfor %}
+
+    var _path := '{{ method.path }}'
+    {%~ for parameter in method.parameters.path %}
+    _path = _path.replace('{{ '{' }}{{ parameter.name }}{{ '}' }}', str({{ parameter.name | caseSnake | escapeKeyword }}))
+    {%~ endfor %}
+
+    var _params := {}
+    {%~ for parameter in method.parameters.query %}
+    {%~ if parameter.required %}
+    _params['{{ parameter.name }}'] = {{ parameter.name | caseSnake | escapeKeyword }}
+    {%~ else %}
+    if {{ parameter.name | caseSnake | escapeKeyword }} != null:
+        _params['{{ parameter.name }}'] = {{ parameter.name | caseSnake | escapeKeyword }}
+    {%~ endif %}
+    {%~ endfor %}
+    {%~ for parameter in method.parameters.body %}
+    {%~ if parameter.required %}
+    _params['{{ parameter.name }}'] = {{ parameter.name | caseSnake | escapeKeyword }}
+    {%~ else %}
+    if {{ parameter.name | caseSnake | escapeKeyword }} != null:
+        _params['{{ parameter.name }}'] = {{ parameter.name | caseSnake | escapeKeyword }}
+    {%~ endif %}
+    {%~ endfor %}
+    {%~ for parameter in method.parameters.formData %}
+    {%~ if parameter.required %}
+    _params['{{ parameter.name }}'] = {{ parameter.name | caseSnake | escapeKeyword }}
+    {%~ else %}
+    if {{ parameter.name | caseSnake | escapeKeyword }} != null:
+        _params['{{ parameter.name }}'] = {{ parameter.name | caseSnake | escapeKeyword }}
+    {%~ endif %}
+    {%~ endfor %} 
+
+    var _headers := {
+        {%~ for key, value in method.headers %}
+        '{{ key }}': '{{ value }}',
+        {%~ endfor %}
+    }
+
+    {%~ if return_type != 'Variant' %}
+    var model_script = {{ return_type }}
+    {%~ else %}
+    var model_script = null
+    {%~ endif %}
+
+    return await _call('{{ method.method }}', _path, _headers, _params, model_script)
+
+{%~ endif %}
+{%~ endfor %}

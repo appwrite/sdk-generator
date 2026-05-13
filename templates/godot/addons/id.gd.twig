@@ -1,0 +1,24 @@
+class_name {{spec.title | caseUcfirst}}ID
+
+static func _hex_timestamp() -> String:
+    var now := Time.get_unix_time_from_system()
+    var sec := int(floor(now))
+    var usec := int((now - sec) * 1000000)
+    var sec_hex := "%x" % sec
+    var usec_hex := "%05x" % usec
+    return sec_hex + usec_hex
+
+
+## Generate a unique ID with padding to have a longer ID
+static func unique(padding: int = 7) -> String:
+    var id := _hex_timestamp()
+    if padding > 0:
+        var sb := ""
+        for i in range(padding):
+            sb += "%x" % (randi() % 16)
+        id += sb
+    return id
+
+
+static func custom(id: String) -> String:
+    return id

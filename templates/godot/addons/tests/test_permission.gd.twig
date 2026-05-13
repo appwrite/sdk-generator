@@ -1,0 +1,12 @@
+extends "res://addons/gut/test.gd"
+
+func test_permission_read():
+	assert_eq({{spec.title | caseUcfirst}}Permission.read("user:1"), 'read("user:1")')
+
+func test_permission_write():
+	assert_eq({{spec.title | caseUcfirst}}Permission.write("role"), 'write("role")')
+
+func test_permission_all():
+	assert_eq({{spec.title | caseUcfirst}}Permission.create("x"), 'create("x")')
+	assert_eq({{spec.title | caseUcfirst}}Permission.update("x"), 'update("x")')
+	assert_eq({{spec.title | caseUcfirst}}Permission.delete("x"), 'delete("x")')

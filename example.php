@@ -28,10 +28,13 @@ use Appwrite\SDK\Language\ClaudePlugin;
 use Appwrite\SDK\Language\CodexPlugin;
 use Appwrite\SDK\Language\CursorPlugin;
 use Appwrite\SDK\Language\Rust;
+use Appwrite\SDK\Language\GDScript;
+use Appwrite\SDK\Language\Godot;
 
 try {
 
-    function getSSLPage($url) {
+    function getSSLPage($url)
+    {
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_HEADER, false);
         curl_setopt($ch, CURLOPT_URL, $url);
@@ -42,7 +45,8 @@ try {
         return $result;
     }
 
-    function configureSDK($sdk, $overrides = []) {
+    function configureSDK($sdk, $overrides = [])
+    {
         $defaults = [
             'name' => 'NAME',
             'version' => '0.0.0',
@@ -122,7 +126,7 @@ try {
     if ($needsSpec) {
         $spec = getSSLPage("https://raw.githubusercontent.com/appwrite/specs/main/specs/{$version}/swagger2-{$version}-{$platform}.json");
 
-        if(empty($spec)) {
+        if (empty($spec)) {
             throw new Exception('Failed to fetch spec from Appwrite server');
         }
     }
@@ -137,28 +141,28 @@ try {
         $php
             ->setComposerVendor('appwrite')
             ->setComposerPackage('appwrite');
-        $sdk  = new SDK($php, new Swagger2($spec));
+        $sdk = new SDK($php, new Swagger2($spec));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/php');
     }
 
     // Web
     if (!$requestedSdk || $requestedSdk === 'web') {
-        $sdk  = new SDK(new Web(), new Swagger2($spec));
+        $sdk = new SDK(new Web(), new Swagger2($spec));
         configureSDK($sdk, ['platform' => $platform]);
         $sdk->generate(__DIR__ . '/examples/web');
     }
 
     // Node
     if (!$requestedSdk || $requestedSdk === 'node') {
-        $sdk  = new SDK(new Node(), new Swagger2($spec));
+        $sdk = new SDK(new Node(), new Swagger2($spec));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/node');
     }
 
     // CLI
     if (!$requestedSdk || $requestedSdk === 'cli') {
-        $language  = new CLI();
+        $language = new CLI();
         $language->setNPMPackage('appwrite-cli');
         $language->setExecutableName('appwrite');
         $language->setLogo(json_encode("
@@ -178,7 +182,7 @@ try {
   \_/ \_/ .__/| .__/ \_/\_/ |_|  |_|\__\___| \____/\____/\____/
         |_|   |_|                                                ");
 
-        $sdk  = new SDK($language, new Swagger2($spec));
+        $sdk = new SDK($language, new Swagger2($spec));
         $sdk->setTest(false);
         configureSDK($sdk, [
             'exclude' => [
@@ -194,14 +198,14 @@ try {
 
     // Ruby
     if (!$requestedSdk || $requestedSdk === 'ruby') {
-        $sdk  = new SDK(new Ruby(), new Swagger2($spec));
+        $sdk = new SDK(new Ruby(), new Swagger2($spec));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/ruby');
     }
 
     // Python
     if (!$requestedSdk || $requestedSdk === 'python') {
-        $sdk  = new SDK(new Python(), new Swagger2($spec));
+        $sdk = new SDK(new Python(), new Swagger2($spec));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/python');
     }
@@ -210,7 +214,7 @@ try {
     if (!$requestedSdk || $requestedSdk === 'dart') {
         $dart = new Dart();
         $dart->setPackageName('dart_appwrite');
-        $sdk  = new SDK($dart, new Swagger2($spec));
+        $sdk = new SDK($dart, new Swagger2($spec));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/dart');
     }
@@ -219,7 +223,7 @@ try {
     if (!$requestedSdk || $requestedSdk === 'flutter') {
         $flutter = new Flutter();
         $flutter->setPackageName('appwrite');
-        $sdk  = new SDK($flutter, new Swagger2($spec));
+        $sdk = new SDK($flutter, new Swagger2($spec));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/flutter');
     }
@@ -228,42 +232,42 @@ try {
     if (!$requestedSdk || $requestedSdk === 'react-native') {
         $reactNative = new ReactNative();
         $reactNative->setNPMPackage('react-native-appwrite');
-        $sdk  = new SDK($reactNative, new Swagger2($spec));
+        $sdk = new SDK($reactNative, new Swagger2($spec));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/react-native');
     }
 
     // GO
     if (!$requestedSdk || $requestedSdk === 'go') {
-        $sdk  = new SDK(new Go(), new Swagger2($spec));
+        $sdk = new SDK(new Go(), new Swagger2($spec));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/go');
     }
 
     // Swift
     if (!$requestedSdk || $requestedSdk === 'swift') {
-        $sdk  = new SDK(new Swift(), new Swagger2($spec));
+        $sdk = new SDK(new Swift(), new Swagger2($spec));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/swift');
     }
 
     // Apple
     if (!$requestedSdk || $requestedSdk === 'apple') {
-        $sdk  = new SDK(new Apple(), new Swagger2($spec));
+        $sdk = new SDK(new Apple(), new Swagger2($spec));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/apple');
     }
 
     // DotNet
     if (!$requestedSdk || $requestedSdk === 'dotnet') {
-        $sdk  = new SDK(new DotNet(), new Swagger2($spec));
+        $sdk = new SDK(new DotNet(), new Swagger2($spec));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/dotnet');
     }
 
     // REST
     if (!$requestedSdk || $requestedSdk === 'rest') {
-        $sdk  = new SDK(new REST(), new Swagger2($spec));
+        $sdk = new SDK(new REST(), new Swagger2($spec));
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/REST');
     }
@@ -359,11 +363,23 @@ try {
         configureSDK($sdk);
         $sdk->generate(__DIR__ . '/examples/rust');
     }
-}
-catch (Exception $exception) {
+
+    // GDScript
+    if (!$requestedSdk || $requestedSdk === 'gdscript') {
+        $sdk = new SDK(new GDScript(), new Swagger2($spec));
+        configureSDK($sdk);
+        $sdk->generate(__DIR__ . '/examples/gdscript');
+    }
+
+    // Godot
+    if (!$requestedSdk || $requestedSdk === 'godot') {
+        $sdk = new SDK(new Godot(), new Swagger2($spec));
+        configureSDK($sdk);
+        $sdk->generate(__DIR__ . '/examples/godot');
+    }
+} catch (Exception $exception) {
     echo 'Error: ' . $exception->getMessage() . ' on ' . $exception->getFile() . ':' . $exception->getLine() . "\n";
-}
-catch (Throwable $exception) {
+} catch (Throwable $exception) {
     echo 'Error: ' . $exception->getMessage() . ' on ' . $exception->getFile() . ':' . $exception->getLine() . "\n";
 }
 

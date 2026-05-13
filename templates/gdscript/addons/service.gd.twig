@@ -1,0 +1,46 @@
+{% set prefix = spec.title | caseUcfirst %}
+# {{prefix}}Service
+
+extends RefCounted
+
+
+var client: RefCounted
+
+func _init(p_client: RefCounted) -> void:
+    client = p_client
+
+func _call(method: String, path: String, headers: Dictionary, params: Dictionary, model_script: Variant = null) -> Variant:
+    var result = await client.call_api(method, path, headers, params)
+    
+    if result.statusCode == 0:
+        var error_msg = result.get("error", "Unknown error")
+        push_error("{{prefix}} Network Error: %s" % error_msg)
+        return {{prefix}}Exception.new(error_msg, 0, "network_error", "")
+
+    if result.statusCode >= 400:
+        var message = ""
+        var code = result.statusCode
+        var type = ""
+        var response = ""
+        if result.get("body") is Dictionary:
+            message = result.body.get("message", "")
+            code = result.body.get("code", result.statusCode)
+            type = result.body.get("type", "")
+            response = str(result.body)
+        else:
+            message = str(result.get("body", ""))
+            response = str(result.get("body", ""))
+        
+        push_error("{{prefix}} Error (%s): %s" % [type, message])
+        return {{prefix}}Exception.new(message, code, type, response)
+
+    if model_script == null:
+        return result.get("body")
+        
+    if result.get("body") is Array:
+        var list: Array[RefCounted] = []
+        for item in result.body:
+            list.append(model_script.from_dict(item))
+        return list
+        
+    return model_script.from_dict(result.get("body", {}))

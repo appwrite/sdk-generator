@@ -1,0 +1,93 @@
+{% set prefix = spec.title | caseUcfirst %}
+extends Node
+## [img width=32]res://addons/{{spec.title | caseSnake}}/icon.svg[/img] {{ spec.description | default("Appwrite _client.") | replace({"\n": "[br]\n## "}) }}
+
+signal on_progress(progress: float, total_size: int, uploaded_size: int)
+
+# Internal classes for type hinting
+{% for service in spec.services %}
+const _{{ service.name | caseUpper }} = preload("services/{{ service.name | caseSnake }}.gd")
+{% endfor %}
+
+var _client := preload("client.gd").new()
+{% for service in spec.services %}
+var {{ service.name | caseCamel }} : _{{ service.name | caseUpper }} = _{{ service.name | caseUpper }}.new(_client) ## {{ service.description | default("No description is provided") }}
+{% endfor %}
+
+# Exposing the Enums
+{% for enum in spec.allEnums %}
+{%~ set enumName = enum.name %}
+const {{ enumName | caseUpper }} = preload("enums/{{ enumName | caseSnake }}.gd")
+{% endfor %}
+
+func _ready() -> void:
+    _client.on_progress.connect(func(p, t, c): on_progress.emit(p, t, c))
+    var path = "res://.env"
+    if not FileAccess.file_exists(path):
+        return
+
+    var file = FileAccess.open(path, FileAccess.READ)
+    while not file.eof_reached():
+        var line = file.get_line().strip_edges()
+        if line.is_empty() or line.begins_with("#"):
+            continue
+            
+        var parts = line.split("=", true, 1)
+        if parts.size() != 2:
+            continue
+            
+        var key = parts[0].strip_edges()
+        var value = parts[1].strip_edges()
+        
+        # Remove quotes if present
+        if (value.begins_with("\"") and value.ends_with("\"")) or (value.begins_with("'") and value.ends_with("'")):
+            value = value.substr(1, value.length() - 2)
+            
+        _apply_env(key, value)
+
+
+{% for header in spec.global.headers %}
+{% if header.description %}
+## {{header.description}}
+{% endif %}
+func set_{{header.key | caseSnake}}(value: String) -> void:
+    _client.set_{{header.key | caseSnake}}(value)
+
+
+{% endfor %}
+## Set self signed status
+func set_self_signed(status: bool = true) -> void:
+    _client.set_self_signed(status)
+
+
+## Set the endpoint
+func set_endpoint(endpoint: String) -> void:
+    _client.set_endpoint(endpoint)
+
+
+## Add a header
+func add_header(key: String, value: String) -> void:
+    _client.add_header(key, value)    
+
+
+## Get all headers
+func get_headers() -> Dictionary:
+    return _client.get_headers()
+
+
+func _apply_env(key: String, value: String) -> void:
+    match key:
+        "{{ prefix | caseUpper }}_ENDPOINT":
+            _client.set_endpoint(value)
+        "{{ prefix | caseUpper }}_SELF_SIGNED":
+            _client.set_self_signed(value.to_lower() == "true")
+{% for header in spec.global.headers %}
+        "{{ prefix | caseUpper }}_{{ header.key | caseUpper }}":
+            _client.set_{{ header.key | caseSnake }}(value)
+{% endfor %}
+        
+
+## Ping {{prefix}} Server for testing connection
+func ping() -> String:
+    var response = await _client.call_api('GET', '/ping')
+    return str(response.get('body'))
