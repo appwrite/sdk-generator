@@ -24,8 +24,7 @@ void main() async {
   PathProviderPlatform.instance = FakePathProvider();
   Client client = Client()
       .setProject('123456')
-      .addHeader("Origin", "http://localhost")
-      .setSelfSigned();
+      .addHeader("Origin", "http://localhost");
 
   Foo foo = Foo(client);
   Bar bar = Bar(client);
@@ -53,6 +52,24 @@ void main() async {
       Query.equal('response',["failed"])
     ],
   );
+
+  // Attach listeners immediately so the broadcast streams don't drop the
+  // synthetic event the mock emits right after subscribe() (broadcast
+  // streams don't buffer events while there's no listener attached).
+  final rtsubFirst = Completer<RealtimeMessage>();
+  rtsub.stream.listen((m) {
+    if (!rtsubFirst.isCompleted) rtsubFirst.complete(m);
+  });
+
+  final rtsubWithQueriesFirst = Completer<RealtimeMessage>();
+  rtsubWithQueries.stream.listen((m) {
+    if (!rtsubWithQueriesFirst.isCompleted) rtsubWithQueriesFirst.complete(m);
+  });
+
+  final rtsubWithQueriesFailureFirst = Completer<RealtimeMessage>();
+  rtsubWithQueriesFailure.stream.listen((m) {
+    if (!rtsubWithQueriesFailureFirst.isCompleted) rtsubWithQueriesFailureFirst.complete(m);
+  });
 
   await Future.delayed(Duration(seconds: 5));
   client.addHeader('Origin', 'http://localhost');
@@ -173,15 +190,17 @@ void main() async {
     print(e.message);
   }
 
-  // Assert realtime outputs in a deterministic order (no-query then with-query)
-  final message1 = await rtsub.stream.first.timeout(Duration(seconds: 10));
+  // Assert realtime outputs in a deterministic order (no-query then with-query).
+  // Listeners were attached right after subscribe() above, so messages that
+  // arrived during the HTTP-test block have already been captured.
+  final message1 = await rtsubFirst.future.timeout(Duration(seconds: 10));
   print(message1.payload["response"]);
 
-  final message2 = await rtsubWithQueries.stream.first.timeout(Duration(seconds: 10));
+  final message2 = await rtsubWithQueriesFirst.future.timeout(Duration(seconds: 10));
   print(message2.payload["response"]);
 
   try {
-    final message3 = await rtsubWithQueriesFailure.stream.first.timeout(Duration(seconds: 10));
+    final message3 = await rtsubWithQueriesFailureFirst.future.timeout(Duration(seconds: 10));
     // If we receive a message, it means the query filtering failed, so realtime failed
     print("Realtime failed!");
   } on TimeoutException {
