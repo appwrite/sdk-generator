@@ -9,6 +9,8 @@
 .envrc
 .hatch
 
+tmp-upload-tests/
+
 # exclude everything
 examples/*
 tests/tmp

@@ -521,6 +521,19 @@ class Client @JvmOverloads constructor(
             }
         }
 
+        if (uploadId != null) {
+            val finalHeaders = headers.toMutableMap()
+            finalHeaders.remove("content-type")
+
+            result = call(
+                method = "GET",
+                path = "$path/$uploadId",
+                headers = finalHeaders,
+                params = emptyMap(),
+                responseType = Map::class.java,
+            )
+        }
+
         return converter(result as Map<String, Any>)
     }
 
