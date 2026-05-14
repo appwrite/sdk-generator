@@ -46,7 +46,8 @@ jobs:
           AppleSwift60,
           Swift60,
           WebChromium,
-          WebNode
+          WebNode,
+          ReactNative
         ]
 
     steps:

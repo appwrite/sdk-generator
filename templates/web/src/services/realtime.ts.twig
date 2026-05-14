@@ -183,11 +183,13 @@ export class Realtime {
                 const connectionId = ++this.connectionId;
 {% if language.name == 'ReactNative' %}
                 const WebSocketCtor: any = WebSocket;
-                const socket = (this.socket = new WebSocketCtor(url, undefined, {
-                    headers: {
-                        Origin: `{{ spec.title | caseLower }}-${Platform.OS}://${this.client.config.platform}`
-                    }
-                }));
+                const socket = (this.socket = Platform.OS === 'web'
+                    ? new WebSocketCtor(url)
+                    : new WebSocketCtor(url, undefined, {
+                        headers: {
+                            Origin: `{{ spec.title | caseLower }}-${Platform.OS}://${this.client.config.platform}`
+                        }
+                    }));
 {% else %}
                 const socket = (this.socket = new WebSocket(url));
 {% endif %}
