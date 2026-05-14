@@ -205,13 +205,6 @@ class Client {
             .setSession(params.session);
     }
 
-    static fromCookie(params: BaseClientParams & { cookie: string }): Client {
-        const client = new Client().applyBase(params);
-        client.config.cookie = params.cookie;
-        client.headers['Cookie'] = params.cookie;
-        return client;
-    }
-
     static fromDevKey(params: BaseClientParams & { devKey: string }): Client {
         const client = new Client().applyBase(params);
         client.config.devkey = params.devKey;
