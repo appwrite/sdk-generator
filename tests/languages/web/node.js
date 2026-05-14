@@ -322,6 +322,12 @@ async function start() {
     console.log(Channel.membership('membership2').toString());
     console.log(Channel.membership('membership1').toString());
     console.log(Channel.membership('membership1').update().toString());
+    console.log(Channel.presences());
+    console.log(Channel.presence('presence2').toString());
+    console.log(Channel.presence('presence1').toString());
+    console.log(Channel.presence('presence1').upsert().toString());
+    console.log(Channel.presence('presence1').update().toString());
+    console.log(Channel.presence('presence1').delete().toString());
 
     // Operator helper tests
     console.log(Operator.increment(1));

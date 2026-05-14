@@ -389,6 +389,12 @@ void main() async {
   print(Channel.membership('membership2').toString());
   print(Channel.membership('membership1').toString());
   print(Channel.membership('membership1').update().toString());
+  print(Channel.presences());
+  print(Channel.presence('presence2').toString());
+  print(Channel.presence('presence1').toString());
+  print(Channel.presence('presence1').upsert().toString());
+  print(Channel.presence('presence1').update().toString());
+  print(Channel.presence('presence1').delete().toString());
 
   // Operator helper tests
   print(Operator.increment(1));

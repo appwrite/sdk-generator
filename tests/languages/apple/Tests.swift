@@ -393,6 +393,12 @@ class Tests: XCTestCase {
         print(try Channel.membership("membership2").toString())
         print(try Channel.membership("membership1").toString())
         print(try Channel.membership("membership1").update().toString())
+        print(Channel.presences())
+        print(try Channel.presence("presence2").toString())
+        print(try Channel.presence("presence1").toString())
+        print(try Channel.presence("presence1").upsert().toString())
+        print(try Channel.presence("presence1").update().toString())
+        print(try Channel.presence("presence1").delete().toString())
 
         // Operator helper tests
         print(Operator.increment(1))

@@ -413,6 +413,12 @@ class ServiceTest {
             writeToFile(Channel.membership("membership2").toString())
             writeToFile(Channel.membership("membership1").toString())
             writeToFile(Channel.membership("membership1").update().toString())
+            writeToFile(Channel.presences())
+            writeToFile(Channel.presence("presence2").toString())
+            writeToFile(Channel.presence("presence1").toString())
+            writeToFile(Channel.presence("presence1").upsert().toString())
+            writeToFile(Channel.presence("presence1").update().toString())
+            writeToFile(Channel.presence("presence1").delete().toString())
 
             // Operator helper tests
             writeToFile(Operator.increment(1))
