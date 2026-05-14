@@ -456,6 +456,7 @@ namespace {{ spec.title | caseUcfirst }}
                     {
                         offset = Convert.ToInt64(chunksUploadedValue) * ChunkSize;
                     }
+                    result = current;
                     uploadId = parameters[idParamName!]?.ToString() ?? string.Empty;
                 }
                 catch
@@ -574,6 +575,7 @@ namespace {{ spec.title | caseUcfirst }}
 
             var chunks = new List<(int Index, long Start, long End)>();
             var chunkOffset = offset;
+            var totalChunks = (long)Math.Ceiling(size / (double)ChunkSize);
             while (chunkOffset < size)
             {
                 var end = Math.Min(chunkOffset + ChunkSize, size);
@@ -586,7 +588,22 @@ namespace {{ spec.title | caseUcfirst }}
                 var nextChunk = -1;
                 var completedChunks = (long)(offset / ChunkSize);
                 var uploadedBytes = offset;
-                var lastChunkIndex = (int)((size - 1) / ChunkSize);
+                var resultLock = new object();
+
+                bool IsUploadComplete(Dictionary<string, object?> chunkResult)
+                {
+                    if (!chunkResult.TryGetValue("chunksUploaded", out var chunksUploadedValue) || chunksUploadedValue == null)
+                    {
+                        return false;
+                    }
+
+                    var chunksUploaded = Convert.ToInt64(chunksUploadedValue);
+                    var chunksTotal = chunkResult.TryGetValue("chunksTotal", out var chunksTotalValue) && chunksTotalValue != null
+                        ? Convert.ToInt64(chunksTotalValue)
+                        : totalChunks;
+
+                    return chunksUploaded >= chunksTotal;
+                }
 
                 var workers = Enumerable.Range(0, Math.Min(MaxConcurrentUploads, chunks.Count))
                     .Select(async _ =>
@@ -600,9 +617,12 @@ namespace {{ spec.title | caseUcfirst }}
                             var chunk = chunks[chunkIndex];
                             var chunkResult = await UploadChunkAsync(chunk.Index, chunk.Start, chunk.End, true);
 
-                            if (chunk.Index == lastChunkIndex)
+                            if (IsUploadComplete(chunkResult))
                             {
-                                result = chunkResult;
+                                lock (resultLock)
+                                {
+                                    result = chunkResult;
+                                }
                             }
 
                             var chunksUploaded = Interlocked.Increment(ref completedChunks);

@@ -140,6 +140,14 @@
             return $this->client->call(Client::METHOD_POST, $apiPath, $chunkHeaders, $chunkParams);
         };
 
+        $isUploadComplete = function($chunkResponse) use ($totalChunks): bool {
+            if(!is_array($chunkResponse) || !isset($chunkResponse['chunksUploaded'])) {
+                return false;
+            }
+
+            return (int) $chunkResponse['chunksUploaded'] >= (int) ($chunkResponse['chunksTotal'] ?? $totalChunks);
+        };
+
         if (!empty($chunks)) {
             $response = $uploadChunk($chunks[0], $uploadId);
             if(empty($uploadId)) {
@@ -257,7 +265,7 @@
 
                     $completedCount++;
                     $uploadedSize += $handleInfo['chunk']['end'] - $handleInfo['chunk']['start'];
-                    if($handleInfo['chunk']['index'] === $totalChunks - 1) {
+                    if($isUploadComplete($chunkResponse)) {
                         $response = $chunkResponse;
                     }
                     if($onProgress !== null) {
@@ -276,9 +284,6 @@
                 curl_multi_close($multiHandle);
             }
 
-            if(!empty($uploadId)) {
-                $response = $this->client->call(Client::METHOD_GET, $apiPath . '/' . $uploadId);
-            }
         }
         if(!empty($handle)) {
             @fclose($handle);

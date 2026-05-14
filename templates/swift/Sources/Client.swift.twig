@@ -457,6 +457,7 @@ open class Client {
                 )
                 let chunksUploaded = map["chunksUploaded"] as! Int
                 offset = chunksUploaded * Client.chunkSize
+                result = map
             } catch {
                 // File does not exist yet, swallow exception
             }
@@ -468,6 +469,15 @@ open class Client {
         var uploadedBytes = min(offset, size)
         let baseParams = params
         let baseHeaders = headers
+
+        func isUploadComplete(_ response: [String: Any]) -> Bool {
+            guard let chunksUploaded = response["chunksUploaded"] as? Int else {
+                return false
+            }
+
+            let chunksTotal = response["chunksTotal"] as? Int ?? totalChunks
+            return chunksUploaded >= chunksTotal
+        }
 
         func uploadChunk(index: Int, uploadId: String?) async throws -> (Int, Int, [String: Any]) {
             let chunkOffset = index * Client.chunkSize
@@ -525,7 +535,7 @@ open class Client {
                 inFlight -= 1
                 completedChunks += 1
                 uploadedBytes += chunk.1
-                if chunk.0 == totalChunks - 1 {
+                if isUploadComplete(chunk.2) {
                     result = chunk.2
                 }
 
@@ -545,21 +555,6 @@ open class Client {
                     inFlight += 1
                 }
             }
-        }
-
-        if let uploadId = uploadId {
-            var finalHeaders = headers
-            finalHeaders.removeValue(forKey: "content-type")
-
-            let finalResult = try await call(
-                method: "GET",
-                path: path + "/" + uploadId,
-                headers: finalHeaders,
-                params: [:],
-                converter: { return $0 as! [String: Any] }
-            )
-
-            return try converter!(finalResult)
         }
 
         return try converter!(result)

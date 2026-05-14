@@ -428,6 +428,7 @@ class Client @JvmOverloads constructor(
             val chunksUploaded = current["chunksUploaded"] as Long
             offset = chunksUploaded * CHUNK_SIZE
             uploadId = params[idParamName]?.toString()
+            result = current
         }
 
         fun readChunk(start: Long, end: Long): ByteArray {
@@ -446,6 +447,14 @@ class Client @JvmOverloads constructor(
                 }
                 else -> throw UnsupportedOperationException()
             }
+        }
+
+        val totalChunks = (size + CHUNK_SIZE - 1) / CHUNK_SIZE
+
+        fun isUploadComplete(chunkResult: Map<*, *>): Boolean {
+            val chunksUploaded = chunkResult["chunksUploaded"]?.toString()?.toLongOrNull() ?: return false
+            val chunksTotal = chunkResult["chunksTotal"]?.toString()?.toLongOrNull() ?: totalChunks
+            return chunksUploaded >= chunksTotal
         }
 
         suspend fun uploadChunk(index: Int, start: Long, end: Long, includeUploadId: Boolean): Map<*, *> {
@@ -521,7 +530,7 @@ class Client @JvmOverloads constructor(
                             val chunksUploaded = completedChunks.incrementAndGet()
                             val sizeUploaded = uploadedBytes.addAndGet(end - start)
 
-                            if (index == ((size - 1) / CHUNK_SIZE).toInt()) {
+                            if (isUploadComplete(chunkResult)) {
                                 result = chunkResult
                             }
 
@@ -538,19 +547,6 @@ class Client @JvmOverloads constructor(
                     }
                 }.awaitAll()
             }
-        }
-
-        if (uploadId != null) {
-            val finalHeaders = headers.toMutableMap()
-            finalHeaders.remove("content-type")
-
-            result = call(
-                method = "GET",
-                path = "$path/$uploadId",
-                headers = finalHeaders,
-                params = emptyMap(),
-                responseType = Map::class.java,
-            )
         }
 
         return converter(result as Map<String, Any>)

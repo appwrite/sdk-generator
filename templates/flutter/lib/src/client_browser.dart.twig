@@ -205,6 +205,12 @@ class ClientBrowser extends ClientBase with ClientMixin {
     var uploadedBytes = firstEnd;
     var lastResponse = res;
 
+    bool isUploadComplete(Response response) {
+      final chunksUploaded = response.data['chunksUploaded'];
+      final chunksTotal = response.data['chunksTotal'] ?? totalChunks;
+      return chunksUploaded is num && chunksTotal is num && chunksUploaded >= chunksTotal;
+    }
+
     final progress = UploadProgress(
       $id: uploadId ?? '',
       progress: min(uploadedBytes, size) / size * 100,
@@ -236,7 +242,7 @@ class ClientBrowser extends ClientBase with ClientMixin {
         );
         completedChunks++;
         uploadedBytes += chunk['end']! - chunk['start']!;
-        if (chunk['index'] == totalChunks - 1) {
+        if (isUploadComplete(chunkResponse)) {
           lastResponse = chunkResponse;
         }
 
@@ -253,16 +259,6 @@ class ClientBrowser extends ClientBase with ClientMixin {
 
     final concurrency = min(8, chunks.length);
     await Future.wait(List.generate(concurrency, (_) => uploadNext()));
-
-    if (uploadId != null && uploadId.isNotEmpty) {
-      final finalHeaders = Map<String, String>.from(headers);
-      finalHeaders.remove('content-type');
-      return call(
-        HttpMethod.get,
-        path: '$path/$uploadId',
-        headers: finalHeaders,
-      );
-    }
 
     return lastResponse;
   }

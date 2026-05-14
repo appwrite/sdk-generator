@@ -206,6 +206,14 @@ module {{ spec.title | caseUcfirst }}
             completed_count = chunks.first[:index] + 1
             uploaded_size = chunks.first[:ending]
 
+            upload_complete = lambda do |chunk_result|
+                chunks_uploaded = chunk_result['chunksUploaded']
+                return false if chunks_uploaded.nil?
+
+                chunks_total = chunk_result['chunksTotal'] || total_chunks
+                chunks_uploaded.to_i >= chunks_total.to_i
+            end
+
             on_progress.call({
                 id: result['$id'],
                 progress: uploaded_size.to_f/size.to_f * 100.0,
@@ -228,7 +236,7 @@ module {{ spec.title | caseUcfirst }}
                         mutex.synchronize do
                             completed_count += 1
                             uploaded_size += chunk[:ending] - chunk[:start]
-                            result = chunk_result if chunk[:index] == total_chunks - 1
+                            result = chunk_result if upload_complete.call(chunk_result)
                             on_progress.call({
                                 id: upload_id,
                                 progress: uploaded_size.to_f/size.to_f * 100.0,
@@ -242,15 +250,6 @@ module {{ spec.title | caseUcfirst }}
             end
 
             workers.each(&:value)
-
-            if upload_id
-                result = call(
-                    method: "GET",
-                    path: "#{path}/#{upload_id}",
-                    headers: headers,
-                    params: {}
-                )
-            end
 
             return result unless response_type.respond_to?("from")
 
