@@ -40,6 +40,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         private val activeSubscriptions = ConcurrentHashMap<String, RealtimeCallback>()
         private val pendingSubscribes = LinkedHashMap<String, Map<String, Any>>()
         private var pendingPresence: Map<String, Any>? = null
+        @Volatile private var appConnected = false
 
         private var reconnectAttempts = 0
         private val socketGeneration = AtomicInteger(0)
@@ -130,6 +131,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         synchronized(presenceLock) {
             pendingPresence = null
         }
+        appConnected = false
     }
 
     private fun sendPendingSubscribes() {
@@ -210,6 +212,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
     }
 
     private fun flushPendingPresence() {
+        if (!appConnected) return
         val data = synchronized(presenceLock) { pendingPresence } ?: return
         val ws = socket ?: return
         ws.send(mapOf("type" to "presence", "data" to data).toJson())
@@ -376,6 +379,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
             synchronized(subscriptionLock) {
                 activeSubscriptions.keys.forEach { enqueuePendingSubscribeLocked(it) }
             }
+            appConnected = true
             sendPendingSubscribes()
             flushPendingPresence()
         }
@@ -413,6 +417,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
             super.onClosing(webSocket, code, reason)
             if (isStale(webSocket)) return
+            appConnected = false
             stopHeartbeat()
             if (!reconnect || code == RealtimeCode.POLICY_VIOLATION.value) {
                 reconnect = true
@@ -437,6 +442,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
             super.onFailure(webSocket, t, response)
             if (isStale(webSocket)) return
+            appConnected = false
             stopHeartbeat()
             t.printStackTrace()
         }

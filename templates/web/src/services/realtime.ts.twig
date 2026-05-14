@@ -105,6 +105,7 @@ export class Realtime {
     private activeSubscriptions = new Map<string, RealtimeCallback<any>>();
     private pendingSubscribes = new Map<string, RealtimeRequestSubscribeRow>();
     private pendingPresence?: Record<string, any>;
+    private appConnected = false;
     private heartbeatTimer?: number;
 
     private subCallDepth = 0;
@@ -239,6 +240,7 @@ export class Realtime {
                     if (connectionId !== this.connectionId || socket !== this.socket) {
                         return;
                     }
+                    this.appConnected = false;
                     this.stopHeartbeat();
                     this.onCloseCallbacks.forEach(callback => callback());
 
@@ -360,6 +362,7 @@ export class Realtime {
         this.activeSubscriptions.clear();
         this.pendingSubscribes.clear();
         this.pendingPresence = undefined;
+        this.appConnected = false;
         this.reconnect = false;
         await this.closeSocket();
     }
@@ -601,6 +604,9 @@ export class Realtime {
         if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
             return;
         }
+        if (!this.appConnected) {
+            return;
+        }
         this.socket.send(JSONbig.stringify(<RealtimeRequest>{
             type: 'presence',
             data: this.pendingPresence
@@ -657,6 +663,7 @@ export class Realtime {
         for (const subscriptionId of this.activeSubscriptions.keys()) {
             this.enqueuePendingSubscribe(subscriptionId);
         }
+        this.appConnected = true;
         this.sendPendingSubscribes();
         this.flushPendingPresence();
     }

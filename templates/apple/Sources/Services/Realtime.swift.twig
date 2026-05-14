@@ -21,6 +21,7 @@ open class Realtime : Service {
     private var activeSubscriptions = [String: RealtimeCallback]()
     private var pendingSubscribes = [String: [String: Any]]()
     private var pendingPresence: [String: Any]? = nil
+    private var appConnected = false
     private var heartbeatTask: Task<Void, Swift.Error>? = nil
 
     let connectSync = DispatchQueue(label: "ConnectSync")
@@ -140,6 +141,7 @@ open class Realtime : Service {
         presenceSync.sync {
             pendingPresence = nil
         }
+        appConnected = false
         reconnect = false
         try await closeSocket()
     }
@@ -238,7 +240,7 @@ open class Realtime : Service {
         presenceSync.sync {
             data = pendingPresence
         }
-        guard let payloadData = data, let ws = socketClient, ws.isConnected else {
+        guard let payloadData = data, let ws = socketClient, ws.isConnected, appConnected else {
             return
         }
         let payload: [String: Any] = [
@@ -412,6 +414,7 @@ extension Realtime: WebSocketClientDelegate {
         for subscriptionId in activeSubscriptions.keys {
             enqueuePendingSubscribe(subscriptionId: subscriptionId)
         }
+        appConnected = true
         sendPendingSubscribes()
         try? flushPendingPresence()
     }
@@ -442,10 +445,11 @@ extension Realtime: WebSocketClientDelegate {
     }
 
     public func onClose(channel: NIO.Channel, data: Data) async throws {
+        appConnected = false
         stopHeartbeat()
 
         onCloseCallbacks.forEach { $0() }
-        
+
         if (!reconnect) {
             reconnect = true
             return

@@ -31,6 +31,7 @@ mixin RealtimeMixin {
   final Map<String, RealtimeSubscription> _subscriptions = {};
   final Map<String, Map<String, dynamic>> _pendingSubscribes = {};
   Map<String, dynamic>? _pendingPresence;
+  bool _appConnected = false;
   WebSocketChannel? _websok;
   String? _lastUrl;
   late WebSocketFactory getWebSocket;
@@ -45,6 +46,7 @@ mixin RealtimeMixin {
 
   Future<dynamic> _closeConnection() async {
     _stopHeartbeat();
+    _appConnected = false;
     await _websocketSubscription?.cancel();
     await _websok?.sink.close(status.normalClosure, 'Ending session');
     _lastUrl = null;
@@ -124,6 +126,7 @@ mixin RealtimeMixin {
                 'queries': entry.value.queries,
               };
             }
+            _appConnected = true;
             _sendPendingSubscribes();
             _flushPendingPresence();
             _startHeartbeat(); // Start heartbeat after successful connection
@@ -150,9 +153,11 @@ mixin RealtimeMixin {
             break;
         }
       }, onDone: () {
+        _appConnected = false;
         _stopHeartbeat();
         _retry();
       }, onError: (err, stack) {
+        _appConnected = false;
         _stopHeartbeat();
         for (var subscription in _subscriptions.values) {
           subscription.controller.addError(err, stack);
@@ -281,6 +286,7 @@ mixin RealtimeMixin {
     final data = _pendingPresence;
     if (data == null) return;
     if (_websok == null || _websok?.closeCode != null) return;
+    if (!_appConnected) return;
     _websok!.sink.add(jsonEncode({'type': 'presence', 'data': data}));
   }
 
