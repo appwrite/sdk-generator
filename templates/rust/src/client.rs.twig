@@ -736,6 +736,7 @@ impl Client {
         let total_chunks = file_size.div_ceil(chunk_size as u64);
         let mut current_upload_id = options.upload_id;
         let mut start_chunk = 0u64;
+        let mut last_response = None;
         if let Some(ref id) = current_upload_id {
             if let Ok(response) = self.call::<Value>(
                 Method::GET,
@@ -746,13 +747,25 @@ impl Client {
                 if let Some(chunks_uploaded) = response.get("chunksUploaded").and_then(|v| v.as_u64()) {
                     start_chunk = chunks_uploaded;
                 }
+                last_response = Some(response.clone());
             }
         }
 
-        let mut last_response = None;
         let mut next_chunk = start_chunk;
         let mut uploaded_chunks = start_chunk;
         let mut uploaded_bytes = (start_chunk * chunk_size as u64).min(file_size);
+
+        let is_upload_complete = |response: &Value| -> bool {
+            let Some(chunks_uploaded) = response.get("chunksUploaded").and_then(|v| v.as_u64()) else {
+                return false;
+            };
+            let chunks_total = response
+                .get("chunksTotal")
+                .and_then(|v| v.as_u64())
+                .unwrap_or(total_chunks);
+
+            chunks_uploaded >= chunks_total
+        };
 
         if next_chunk == 0 {
             let result = self.upload_file_chunk(
@@ -822,7 +835,7 @@ impl Client {
             let (chunk_index, result) = joined
                 .map_err(|e| {{ spec.title | caseUcfirst }}Error::new(0, format!("Chunk upload task failed: {}", e), None, String::new()))??;
 
-            if chunk_index == total_chunks - 1 {
+            if is_upload_complete(&result) {
                 last_response = Some(result.clone());
             }
 
@@ -867,20 +880,6 @@ impl Client {
                 });
                 next_chunk += 1;
             }
-        }
-
-        if let Some(ref upload_id) = current_upload_id {
-            let mut final_headers = headers.clone();
-            if let Some(headers) = final_headers.as_mut() {
-                headers.remove("content-type");
-            }
-
-            return self.call::<T>(
-                Method::GET,
-                &format!("{}/{}", path, upload_id),
-                final_headers,
-                None,
-            ).await;
         }
 
         last_response

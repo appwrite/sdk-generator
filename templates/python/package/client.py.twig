@@ -195,6 +195,13 @@ class Client:
         progress_lock = Lock()
         last_result = None
 
+        def is_upload_complete(chunk_result):
+            chunks_uploaded = chunk_result.get('chunksUploaded')
+            if chunks_uploaded is None:
+                return False
+            chunks_total = chunk_result.get('chunksTotal', total_chunks)
+            return int(chunks_uploaded) >= int(chunks_total)
+
         def upload_chunk(chunk, current_upload_id):
             chunk_input = InputFile.from_bytes(
                 read_chunk(chunk['start'], chunk['end']),
@@ -237,7 +244,7 @@ class Client:
             with progress_lock:
                 completed_count = completed_count + 1
                 uploaded_size = uploaded_size + (chunk['end'] - chunk['start'])
-                if chunk['index'] == total_chunks - 1:
+                if is_upload_complete(chunk_result):
                     last_result = chunk_result
                 if on_progress is not None:
                     on_progress({
@@ -252,11 +259,6 @@ class Client:
             futures = [executor.submit(upload_remaining_chunk, chunk) for chunk in chunks[1:]]
             for future in as_completed(futures):
                 future.result()
-
-        if upload_id_header:
-            final_headers = {**headers}
-            final_headers.pop("content-type", None)
-            return self.call('get', path + '/' + upload_id_header, final_headers)
 
         return last_result
 

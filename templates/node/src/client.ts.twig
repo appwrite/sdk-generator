@@ -315,6 +315,12 @@ class Client {
             let uploadedBytes = firstChunkEnd;
             let lastResponse = response;
 
+            const isUploadComplete = (chunkResponse: any) => {
+                const chunksUploaded = chunkResponse?.chunksUploaded;
+                const chunksTotal = chunkResponse?.chunksTotal ?? totalChunks;
+                return typeof chunksUploaded === 'number' && typeof chunksTotal === 'number' && chunksUploaded >= chunksTotal;
+            };
+
             const uploadChunk = async (chunk: typeof chunks[0]) => {
                 const chunkHeaders = { ...headers };
                 if (uploadId) {
@@ -331,7 +337,7 @@ class Client {
                 completedCount++;
                 uploadedBytes += (chunk.end - chunk.start);
                 
-                if (chunk.index === totalChunks - 1) {
+                if (isUploadComplete(chunkResponse)) {
                     lastResponse = chunkResponse;
                 }
 
@@ -365,12 +371,6 @@ class Client {
             }
 
             await Promise.all(workers);
-
-            if (uploadId) {
-                const finalHeaders = { ...headers };
-                delete finalHeaders['content-type'];
-                return await this.call('GET', new URL(`${url.toString().replace(/\/$/, '')}/${encodeURIComponent(uploadId)}`), finalHeaders);
-            }
 
             return lastResponse;
         }
@@ -419,6 +419,12 @@ class Client {
         let uploadedBytes = firstChunkEnd;
         let lastResponse = response;
 
+        const isUploadComplete = (chunkResponse: any) => {
+            const chunksUploaded = chunkResponse?.chunksUploaded;
+            const chunksTotal = chunkResponse?.chunksTotal ?? totalChunks;
+            return typeof chunksUploaded === 'number' && typeof chunksTotal === 'number' && chunksUploaded >= chunksTotal;
+        };
+
         const uploadChunk = async (chunk: typeof chunks[0]) => {
             const chunkHeaders = { ...headers };
             if (uploadId) {
@@ -435,7 +441,7 @@ class Client {
             completedCount++;
             uploadedBytes += (chunk.end - chunk.start);
             
-            if (chunk.index === totalChunks - 1) {
+            if (isUploadComplete(chunkResponse)) {
                 lastResponse = chunkResponse;
             }
 
@@ -469,12 +475,6 @@ class Client {
         }
 
         await Promise.all(workers);
-
-        if (uploadId) {
-            const finalHeaders = { ...headers };
-            delete finalHeaders['content-type'];
-            return await this.call('GET', new URL(`${url.toString().replace(/\/$/, '')}/${encodeURIComponent(uploadId)}`), finalHeaders);
-        }
 
         return lastResponse;
     }
