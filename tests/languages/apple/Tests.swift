@@ -196,13 +196,13 @@ class Tests: XCTestCase {
 
         print("Invalid endpoint URL: htp://cloud.appwrite.io/v1") // Indicates fatalError by client.setEndpoint
 
-        wait(for: [expectation], timeout: 20.0)
+        await fulfillment(of: [expectation], timeout: 20.0)
         print(realtimeResponse)
 
-        wait(for: [expectationWithQueries], timeout: 20.0)
+        await fulfillment(of: [expectationWithQueries], timeout: 20.0)
         print(realtimeResponseWithQueries)
-        
-        wait(for: [expectationWithQueriesFailure], timeout: 20.0)
+
+        await fulfillment(of: [expectationWithQueriesFailure], timeout: 20.0)
         if expectationWithQueriesFailure.isInverted {
             print(realtimeResponseWithQueriesFailure)
         } else {
