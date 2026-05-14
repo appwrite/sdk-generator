@@ -246,6 +246,7 @@ abstract class Base extends TestCase
         '"{\"method\":\"orderDesc\",\"attribute\":\"rawName\"}",' .
         '"{\"method\":\"equal\",\"attribute\":\"published\",\"values\":[true]}",' .
         '"{\"method\":\"greaterThanEqual\",\"attribute\":\"score\",\"values\":[10]}",' .
+        '"{\"method\":\"equal\",\"attribute\":\"legacy\",\"values\":[true]}",' .
         '"{\"method\":\"equal\",\"attribute\":\"status\",\"values\":[\"draft\",\"published\"]}",' .
         '"{\"method\":\"orderAsc\",\"attribute\":\"title\"}",' .
         '"{\"method\":\"orderDesc\",\"attribute\":\"$createdAt\"}",' .
@@ -368,7 +369,7 @@ abstract class Base extends TestCase
             ->setPlatform($this->sdkPlatform)
             ->setDescription('Repo description goes here')
             ->setShortDescription('Repo short description goes here')
-            ->setLogo('https://appwrite.io/v1/images/console.png')
+            ->setCoverImage('https://github.com/appwrite/appwrite/raw/main/public/images/github.png')
             ->setWarning('**WORK IN PROGRESS - THIS IS JUST A TEST SDK**')
             ->setExamples('**EXAMPLES** <HTML>')
             ->setGitUserName('repoowner')

@@ -527,6 +527,9 @@ class DotNet extends Language
             new TwigFilter('propertyType', function (array $property, array $spec = []) {
                 return $this->getPropertyType($property, $spec);
             }),
+            new TwigFilter('toMapValue', function (array $property, string $resolvedName) {
+                return $this->getToMapExpression($property, $resolvedName);
+            }, ['is_safe' => ['html']]),
             new TwigFilter('enumExample', function (array $param) {
                 $enumValues = $param['enumValues'] ?? [];
                 if (empty($enumValues)) {
@@ -585,7 +588,7 @@ class DotNet extends Language
      * @param array $spec
      * @return string
      */
-    protected function getPropertyType(array $property, array $spec = []): string
+    protected function getPropertyType(array $property, array $spec = [], bool $fullyQualified = true): string
     {
         if (isset($property['sub_schema']) && !empty($property['sub_schema'])) {
             $type = $this->toPascalCase($property['sub_schema']);
@@ -598,7 +601,8 @@ class DotNet extends Language
 
         if (isset($property['enum']) && !empty($property['enum'])) {
             $enumName = $property['enumName'] ?? $property['name'];
-            return 'Appwrite.Enums.' . $this->toPascalCase($enumName);
+            $prefix = $fullyQualified ? 'Appwrite.Enums.' : '';
+            return $prefix . $this->toPascalCase($enumName);
         }
 
         return $this->getTypeName($property, $spec);
@@ -612,37 +616,68 @@ class DotNet extends Language
     {
         return [
             new TwigFunction('sub_schema', function (array $property) {
-                $result = '';
-
-                if (isset($property['sub_schema']) && !empty($property['sub_schema'])) {
-                    if ($property['type'] === 'array') {
-                        $result = 'List<' . $this->toPascalCase($property['sub_schema']) . '>';
-                    } else {
-                        $result = $this->toPascalCase($property['sub_schema']);
-                    }
-                } elseif (isset($property['enum']) && !empty($property['enum'])) {
-                    $enumName = $property['enumName'] ?? $property['name'];
-                    $result = $this->toPascalCase($enumName);
-                } else {
-                    $result = $this->getTypeName($property);
-                }
+                $result = $this->getPropertyType($property, [], false);
 
                 if (!($property['required'] ?? true)) {
                     $result .= '?';
                 }
 
                 return $result;
-            }),
+            }, ['is_safe' => ['html']]),
             new TwigFunction('property_name', function (array $definition, array $property) {
-                $name = $property['name'];
-                $name = \str_replace('$', '', $name);
-                $name = $this->toPascalCase($name);
-                if (\in_array($name, $this->getKeywords())) {
-                    $name = '@' . $name;
-                }
-                return $name;
+                return $this->getPropertyName($property);
             }),
         ];
+    }
+
+    /**
+     * Generate property name for C# model
+     *
+     * @param array $property
+     * @return string
+     */
+    protected function getPropertyName(array $property): string
+    {
+        $name = $property['name'];
+        $name = \str_replace('$', '', $name);
+        $name = $this->toPascalCase($name);
+        if (\in_array($name, $this->getKeywords())) {
+            $name = '@' . $name;
+        }
+        return $name;
+    }
+
+    /**
+     * Generate ToMap() value expression for a property.
+     *
+     * The caller passes the already-resolved C# identifier (produced via the
+     * same template pipeline used by the declaration and constructor). This
+     * filter never derives the name itself, so there is no risk of drift
+     * between the declared property and the ToMap() reference.
+     *
+     * @param array $property
+     * @param string $resolvedName  C# identifier already produced by the template
+     * @return string
+     */
+    protected function getToMapExpression(array $property, string $resolvedName): string
+    {
+        $required = $property['required'] ?? true;
+        $nullOp = $required ? '' : '?';
+
+        // Sub-schema serialization is null-safe regardless of required, matching the
+        // legacy inline template (defensive for callers that bypass the constructor).
+        if (!empty($property['sub_schema'])) {
+            if ($property['type'] === 'array') {
+                return "{$resolvedName}?.Select(it => it.ToMap()).ToList()";
+            }
+            return "{$resolvedName}?.ToMap()";
+        }
+
+        if (!empty($property['enum'])) {
+            return "{$resolvedName}{$nullOp}.Value";
+        }
+
+        return $resolvedName;
     }
 
     /**

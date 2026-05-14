@@ -659,7 +659,7 @@ const printQueryErrorHint = (err: Error): void => {
   }
 
   hint(
-    `For common list filters, use flags like --limit 25, --sort-desc '$createdAt', or --where 'status=active'. Raw --queries values must be Appwrite JSON query strings, for example: ${EXECUTABLE_NAME} tables-db list-rows --queries '{"method":"limit","values":[25]}'`,
+    `For common list filters, use flags like --limit 25, --sort-desc '$createdAt', or --filter 'status=active'. Raw --queries values must be Appwrite JSON query strings, for example: ${EXECUTABLE_NAME} tables-db list-rows --queries '{"method":"limit","values":[25]}'`,
   );
 };
 

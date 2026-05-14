@@ -2,22 +2,21 @@
 
 namespace Tests;
 
-class Android14Java17Test extends Base
+class AppleSwift60Test extends Base
 {
-    protected string $sdkName = 'android';
+    protected string $sdkName = 'swift';
     protected string $sdkPlatform = 'client';
-    protected string $sdkLanguage = 'android';
+    protected string $sdkLanguage = 'apple';
     protected string $version = '0.0.1';
 
-    protected string $language = 'android';
-    protected string $class = 'Appwrite\SDK\Language\Android';
+    protected string $language = 'apple';
+    protected string $class = 'Appwrite\SDK\Language\Apple';
     protected array $build = [
-        'mkdir -p tests/sdks/android/library/src/test/java',
-        'cp tests/languages/android/Tests.kt tests/sdks/android/library/src/test/java/Tests.kt',
-        'chmod +x tests/sdks/android/gradlew',
+        'mkdir -p tests/sdks/apple/Tests/AppwriteTests',
+        'cp tests/languages/apple/Tests.swift tests/sdks/apple/Tests/AppwriteTests/Tests.swift',
     ];
     protected string $command =
-        'docker run --rm --network="mockapi" -v $(pwd):/app -w /app/tests/sdks/android alvrme/alpine-android:android-34-jdk17 sh -c "./gradlew :library:testReleaseUnitTest --stacktrace -q && cat library/result.txt"';
+        'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/sdks/apple swift:6.0-jammy swift test';
 
     protected array $expectedOutput = [
         ...Base::PING_RESPONSE,
@@ -29,7 +28,7 @@ class Android14Java17Test extends Base
         ...Base::MODEL_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
         ...Base::REALTIME_RESPONSES,
-        // ...Base::COOKIE_RESPONSES,
+        ...Base::COOKIE_RESPONSES,
         ...Base::QUERY_HELPER_RESPONSES,
         ...Base::PERMISSION_HELPER_RESPONSES,
         ...Base::ID_HELPER_RESPONSES,
