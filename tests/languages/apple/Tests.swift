@@ -242,8 +242,8 @@ class Tests: XCTestCase {
         do {
             try realtime.upsertPresence(
                 status: "online",
-                metadata: ["page": "/home"],
-                presenceId: "p-test"
+                presenceId: "p-test",
+                metadata: ["page": "/home"]
             )
             try await Task.sleep(nanoseconds: 1_000_000_000)
 

@@ -268,8 +268,8 @@ class ServiceTest {
             try {
                 realtime.upsertPresence(
                     status = "online",
-                    metadata = mapOf("page" to "/home"),
                     presenceId = "p-test",
+                    metadata = mapOf("page" to "/home"),
                 )
                 delay(1000)
 
