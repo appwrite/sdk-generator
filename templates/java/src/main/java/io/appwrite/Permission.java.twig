@@ -1,0 +1,24 @@
+package {{ sdk.namespace | caseDot }};
+
+public class Permission {
+
+    public static String read(String role) {
+        return "read(\"" + role + "\")";
+    }
+
+    public static String write(String role) {
+        return "write(\"" + role + "\")";
+    }
+
+    public static String create(String role) {
+        return "create(\"" + role + "\")";
+    }
+
+    public static String update(String role) {
+        return "update(\"" + role + "\")";
+    }
+
+    public static String delete(String role) {
+        return "delete(\"" + role + "\")";
+    }
+}

@@ -1,0 +1,23 @@
+package {{ sdk.namespace | caseDot }}.exceptions;
+
+public class {{ spec.title | caseUcfirst }}Exception extends Exception {
+
+    private final Integer code;
+    private final String type;
+    private final String response;
+
+    public {{ spec.title | caseUcfirst }}Exception(String message, Integer code, String type, String response) {
+        super(message);
+        this.code = code;
+        this.type = type;
+        this.response = response;
+    }
+
+    public {{ spec.title | caseUcfirst }}Exception(String message) {
+        this(message, null, null, null);
+    }
+
+    public Integer getCode() { return code; }
+    public String getType() { return type; }
+    public String getResponse() { return response; }
+}

@@ -1,0 +1,129 @@
+package {{ sdk.namespace | caseDot }};
+
+import com.google.gson.Gson;
+import com.google.gson.annotations.SerializedName;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+public class Query {
+
+    private static final Gson gson = new Gson();
+
+    @SerializedName("method")
+    private final String method;
+
+    @SerializedName("attribute")
+    private final String attribute;
+
+    @SerializedName("values")
+    private final List<Object> values;
+
+    public Query(String method, String attribute, List<Object> values) {
+        this.method = method;
+        this.attribute = attribute;
+        this.values = values;
+    }
+
+    public Query(String method, String attribute) { this(method, attribute, null); }
+    public Query(String method) { this(method, null, null); }
+
+    private static List<Object> wrapCoords(List<?> values) {
+        List<Object> l = new ArrayList<>();
+        l.add(new ArrayList<Object>(values));
+        return l;
+    }
+
+    private static List<Object> withDistance(List<?> values, Number distance) {
+        List<Object> inner = new ArrayList<>();
+        inner.add(new ArrayList<Object>(values));
+        inner.add(distance);
+        List<Object> outer = new ArrayList<>();
+        outer.add(inner);
+        return outer;
+    }
+
+    private static List<Object> withDistance(List<?> values, Number distance, boolean meters) {
+        List<Object> inner = new ArrayList<>();
+        inner.add(new ArrayList<Object>(values));
+        inner.add(distance);
+        inner.add(meters);
+        List<Object> outer = new ArrayList<>();
+        outer.add(inner);
+        return outer;
+    }
+
+    @Override
+    public String toString() { return gson.toJson(this); }
+
+    public static String equal(String attribute, Object value) { return new Query("equal", attribute, parseValue(value)).toString(); }
+    public static String notEqual(String attribute, Object value) { return new Query("notEqual", attribute, parseValue(value)).toString(); }
+    public static String regex(String attribute, String pattern) { return new Query("regex", attribute, parseValue(pattern)).toString(); }
+    public static String lessThan(String attribute, Object value) { return new Query("lessThan", attribute, parseValue(value)).toString(); }
+    public static String lessThanEqual(String attribute, Object value) { return new Query("lessThanEqual", attribute, parseValue(value)).toString(); }
+    public static String greaterThan(String attribute, Object value) { return new Query("greaterThan", attribute, parseValue(value)).toString(); }
+    public static String greaterThanEqual(String attribute, Object value) { return new Query("greaterThanEqual", attribute, parseValue(value)).toString(); }
+    public static String search(String attribute, String value) { return new Query("search", attribute, List.of(value)).toString(); }
+    public static String isNull(String attribute) { return new Query("isNull", attribute).toString(); }
+    public static String isNotNull(String attribute) { return new Query("isNotNull", attribute).toString(); }
+    public static String exists(List<String> attributes) { return new Query("exists", null, new ArrayList<Object>(attributes)).toString(); }
+    public static String notExists(List<String> attributes) { return new Query("notExists", null, new ArrayList<Object>(attributes)).toString(); }
+    public static String between(String attribute, Object start, Object end) { return new Query("between", attribute, List.of(start, end)).toString(); }
+    public static String startsWith(String attribute, String value) { return new Query("startsWith", attribute, List.of(value)).toString(); }
+    public static String endsWith(String attribute, String value) { return new Query("endsWith", attribute, List.of(value)).toString(); }
+    public static String select(List<String> attributes) { return new Query("select", null, new ArrayList<Object>(attributes)).toString(); }
+    public static String orderAsc(String attribute) { return new Query("orderAsc", attribute).toString(); }
+    public static String orderDesc(String attribute) { return new Query("orderDesc", attribute).toString(); }
+    public static String orderRandom() { return new Query("orderRandom").toString(); }
+    public static String cursorBefore(String documentId) { return new Query("cursorBefore", null, List.of(documentId)).toString(); }
+    public static String cursorAfter(String documentId) { return new Query("cursorAfter", null, List.of(documentId)).toString(); }
+    public static String limit(int limit) { return new Query("limit", null, List.of(limit)).toString(); }
+    public static String offset(int offset) { return new Query("offset", null, List.of(offset)).toString(); }
+    public static String contains(String attribute, Object value) { return new Query("contains", attribute, parseValue(value)).toString(); }
+    public static String containsAny(String attribute, List<?> value) { return new Query("containsAny", attribute, new ArrayList<Object>(value)).toString(); }
+    public static String containsAll(String attribute, List<?> value) { return new Query("containsAll", attribute, new ArrayList<Object>(value)).toString(); }
+    public static String notContains(String attribute, Object value) { return new Query("notContains", attribute, parseValue(value)).toString(); }
+    public static String notSearch(String attribute, String value) { return new Query("notSearch", attribute, List.of(value)).toString(); }
+    public static String notBetween(String attribute, Object start, Object end) { return new Query("notBetween", attribute, List.of(start, end)).toString(); }
+    public static String notStartsWith(String attribute, String value) { return new Query("notStartsWith", attribute, List.of(value)).toString(); }
+    public static String notEndsWith(String attribute, String value) { return new Query("notEndsWith", attribute, List.of(value)).toString(); }
+    public static String createdBefore(String value) { return lessThan("$createdAt", value); }
+    public static String createdAfter(String value) { return greaterThan("$createdAt", value); }
+    public static String createdBetween(String start, String end) { return between("$createdAt", start, end); }
+    public static String updatedBefore(String value) { return lessThan("$updatedAt", value); }
+    public static String updatedAfter(String value) { return greaterThan("$updatedAt", value); }
+    public static String updatedBetween(String start, String end) { return between("$updatedAt", start, end); }
+    public static String or(List<String> queries) { return new Query("or", null, parseQueries(queries)).toString(); }
+    public static String and(List<String> queries) { return new Query("and", null, parseQueries(queries)).toString(); }
+    public static String elemMatch(String attribute, List<String> queries) { return new Query("elemMatch", attribute, parseQueries(queries)).toString(); }
+
+    public static String distanceEqual(String attribute, List<?> values, Number distance) { return new Query("distanceEqual", attribute, withDistance(values, distance)).toString(); }
+    public static String distanceEqual(String attribute, List<?> values, Number distance, boolean meters) { return new Query("distanceEqual", attribute, withDistance(values, distance, meters)).toString(); }
+    public static String distanceNotEqual(String attribute, List<?> values, Number distance) { return new Query("distanceNotEqual", attribute, withDistance(values, distance)).toString(); }
+    public static String distanceNotEqual(String attribute, List<?> values, Number distance, boolean meters) { return new Query("distanceNotEqual", attribute, withDistance(values, distance, meters)).toString(); }
+    public static String distanceGreaterThan(String attribute, List<?> values, Number distance) { return new Query("distanceGreaterThan", attribute, withDistance(values, distance)).toString(); }
+    public static String distanceGreaterThan(String attribute, List<?> values, Number distance, boolean meters) { return new Query("distanceGreaterThan", attribute, withDistance(values, distance, meters)).toString(); }
+    public static String distanceLessThan(String attribute, List<?> values, Number distance) { return new Query("distanceLessThan", attribute, withDistance(values, distance)).toString(); }
+    public static String distanceLessThan(String attribute, List<?> values, Number distance, boolean meters) { return new Query("distanceLessThan", attribute, withDistance(values, distance, meters)).toString(); }
+
+    public static String intersects(String attribute, List<?> values) { return new Query("intersects", attribute, wrapCoords(values)).toString(); }
+    public static String notIntersects(String attribute, List<?> values) { return new Query("notIntersects", attribute, wrapCoords(values)).toString(); }
+    public static String crosses(String attribute, List<?> values) { return new Query("crosses", attribute, wrapCoords(values)).toString(); }
+    public static String notCrosses(String attribute, List<?> values) { return new Query("notCrosses", attribute, wrapCoords(values)).toString(); }
+    public static String overlaps(String attribute, List<?> values) { return new Query("overlaps", attribute, wrapCoords(values)).toString(); }
+    public static String notOverlaps(String attribute, List<?> values) { return new Query("notOverlaps", attribute, wrapCoords(values)).toString(); }
+    public static String touches(String attribute, List<?> values) { return new Query("touches", attribute, wrapCoords(values)).toString(); }
+    public static String notTouches(String attribute, List<?> values) { return new Query("notTouches", attribute, wrapCoords(values)).toString(); }
+
+    private static List<Object> parseQueries(List<String> queries) {
+        List<Object> l = new ArrayList<>();
+        for (String q : queries) l.add(com.google.gson.JsonParser.parseString(q));
+        return l;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<Object> parseValue(Object value) {
+        if (value instanceof List) return (List<Object>) value;
+        return List.of(value);
+    }
+}

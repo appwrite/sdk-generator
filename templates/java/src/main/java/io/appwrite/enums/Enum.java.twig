@@ -1,0 +1,31 @@
+package {{ sdk.namespace | caseDot }}.enums;
+
+public enum {{ enum.name | caseUcfirst | overrideIdentifier }} {
+{% for value in enum.enum %}
+{% set key = enum.keys is empty ? value : enum.keys[loop.index0] %}
+    {{ key | caseEnumKey }}("{{ value }}"){% if not loop.last %},{% else %};{% endif %}
+
+{% endfor %}
+
+    private final String value;
+
+    {{ enum.name | caseUcfirst | overrideIdentifier }}(String value) {
+        this.value = value;
+    }
+
+    public String getValue() {
+        return value;
+    }
+
+    @Override
+    public String toString() {
+        return value;
+    }
+
+    public static {{ enum.name | caseUcfirst | overrideIdentifier }} fromValue(String value) {
+        for ({{ enum.name | caseUcfirst | overrideIdentifier }} e : values()) {
+            if (e.value.equals(value)) return e;
+        }
+        throw new IllegalArgumentException("Unknown value: " + value);
+    }
+}

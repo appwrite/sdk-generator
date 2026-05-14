@@ -1,0 +1,53 @@
+package {{ sdk.namespace | caseDot }}.models;
+
+import java.io.File;
+import java.net.URLConnection;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+
+public class InputFile {
+
+    public String path;
+    public String filename;
+    public String mimeType;
+    public String sourceType;
+    public Object data;
+
+    private InputFile() {}
+
+    public static InputFile fromFile(File file) {
+        InputFile input = new InputFile();
+        try {
+            input.path = file.getCanonicalPath();
+            input.filename = file.getName();
+            String probed = Files.probeContentType(Paths.get(input.path));
+            input.mimeType = probed != null ? probed
+                : URLConnection.guessContentTypeFromName(input.filename) != null
+                    ? URLConnection.guessContentTypeFromName(input.filename)
+                    : "";
+            input.sourceType = "file";
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        return input;
+    }
+
+    public static InputFile fromPath(String path) {
+        InputFile input = fromFile(new File(path));
+        input.sourceType = "path";
+        return input;
+    }
+
+    public static InputFile fromBytes(byte[] bytes, String filename, String mimeType) {
+        InputFile input = new InputFile();
+        input.data = bytes;
+        input.filename = filename;
+        input.mimeType = mimeType;
+        input.sourceType = "bytes";
+        return input;
+    }
+
+    public static InputFile fromBytes(byte[] bytes) {
+        return fromBytes(bytes, "", "");
+    }
+}

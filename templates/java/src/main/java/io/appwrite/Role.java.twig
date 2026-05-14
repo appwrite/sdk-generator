@@ -1,0 +1,43 @@
+package {{ sdk.namespace | caseDot }};
+
+/**
+ * Helper class to generate role strings for {@link Permission}.
+ */
+public class Role {
+
+    /** Grants access to anyone (authenticated and unauthenticated users). */
+    public static String any() { return "any"; }
+
+    /** Grants access to a specific user by user ID. */
+    public static String user(String id) { return "user:" + id; }
+
+    /** Grants access to a specific user with a status filter. */
+    public static String user(String id, String status) {
+        return status.isEmpty() ? "user:" + id : "user:" + id + "/" + status;
+    }
+
+    /** Grants access to any authenticated or anonymous user. */
+    public static String users() { return "users"; }
+
+    /** Grants access to any authenticated or anonymous user with a status filter. */
+    public static String users(String status) {
+        return status.isEmpty() ? "users" : "users/" + status;
+    }
+
+    /** Grants access to any guest user without a session. */
+    public static String guests() { return "guests"; }
+
+    /** Grants access to a team by team ID. */
+    public static String team(String id) { return "team:" + id; }
+
+    /** Grants access to a team member with the specified role. */
+    public static String team(String id, String role) {
+        return role.isEmpty() ? "team:" + id : "team:" + id + "/" + role;
+    }
+
+    /** Grants access to a specific member of a team. */
+    public static String member(String id) { return "member:" + id; }
+
+    /** Grants access to a user with the specified label. */
+    public static String label(String name) { return "label:" + name; }
+}

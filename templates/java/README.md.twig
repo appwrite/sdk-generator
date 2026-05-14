@@ -1,0 +1,38 @@
+# {{ spec.title | caseUcfirst }} Java SDK
+
+{{ sdk.warning | raw }}
+
+{{ sdk.readme | raw }}
+
+## Installation
+
+Add the following dependency to your `pom.xml`:
+
+```xml
+<dependency>
+    <groupId>{{ sdk.gitUserName }}</groupId>
+    <artifactId>{{ sdk.gitRepoName }}</artifactId>
+    <version>{{ sdk.version }}</version>
+</dependency>
+```
+
+## Getting Started
+
+```java
+import {{ sdk.namespace | caseDot }}.Client;
+import {{ sdk.namespace | caseDot }}.services.*;
+
+Client client = new Client()
+    .setEndpoint("{{ spec.endpointDocs | raw }}")
+{% for header in spec.global.headers %}
+    .set{{ header.key | caseUcfirst }}("<YOUR_{{ header.key | caseUpper }}_HERE>");
+{% endfor %}
+```
+
+## Changelog
+
+{{ sdk.changelog | raw }}
+
+## Contributing
+
+All code changes happen through pull requests to the [GitHub repository](https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName }}).

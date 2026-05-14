@@ -1,0 +1,12 @@
+package {{ sdk.namespace | caseDot }}.services;
+
+import {{ sdk.namespace | caseDot }}.Client;
+
+public abstract class Service {
+
+    protected final Client client;
+
+    public Service(Client client) {
+        this.client = client;
+    }
+}

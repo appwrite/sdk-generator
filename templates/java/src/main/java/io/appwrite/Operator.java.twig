@@ -1,0 +1,143 @@
+package {{ sdk.namespace | caseDot }};
+
+import com.google.gson.Gson;
+import com.google.gson.annotations.SerializedName;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+public class Operator {
+
+    private static final Gson gson = new Gson();
+
+    @SerializedName("method")
+    private final String method;
+
+    @SerializedName("values")
+    private final List<Object> values;
+
+    public Operator(String method, List<Object> values) {
+        this.method = method;
+        this.values = values;
+    }
+
+    @Override
+    public String toString() { return gson.toJson(this); }
+
+    public enum Condition {
+        EQUAL("equal"),
+        NOT_EQUAL("notEqual"),
+        GREATER_THAN("greaterThan"),
+        GREATER_THAN_EQUAL("greaterThanEqual"),
+        LESS_THAN("lessThan"),
+        LESS_THAN_EQUAL("lessThanEqual"),
+        CONTAINS("contains"),
+        IS_NULL("isNull"),
+        IS_NOT_NULL("isNotNull");
+
+        private final String value;
+        Condition(String value) { this.value = value; }
+        public String getValue() { return value; }
+        @Override public String toString() { return value; }
+    }
+
+    public static String increment(Number value) {
+        return new Operator("increment", List.of(value)).toString();
+    }
+
+    public static String increment(Number value, Number max) {
+        return new Operator("increment", List.of(value, max)).toString();
+    }
+
+    public static String decrement(Number value) {
+        return new Operator("decrement", List.of(value)).toString();
+    }
+
+    public static String decrement(Number value, Number min) {
+        return new Operator("decrement", List.of(value, min)).toString();
+    }
+
+    public static String multiply(Number factor) {
+        return new Operator("multiply", List.of(factor)).toString();
+    }
+
+    public static String multiply(Number factor, Number max) {
+        return new Operator("multiply", List.of(factor, max)).toString();
+    }
+
+    public static String divide(Number divisor) {
+        return new Operator("divide", List.of(divisor)).toString();
+    }
+
+    public static String divide(Number divisor, Number min) {
+        return new Operator("divide", List.of(divisor, min)).toString();
+    }
+
+    public static String modulo(Number divisor) {
+        return new Operator("modulo", List.of(divisor)).toString();
+    }
+
+    public static String power(Number exponent) {
+        return new Operator("power", List.of(exponent)).toString();
+    }
+
+    public static String power(Number exponent, Number max) {
+        return new Operator("power", List.of(exponent, max)).toString();
+    }
+
+    public static String arrayAppend(List<?> values) {
+        return new Operator("arrayAppend", new ArrayList<Object>(values)).toString();
+    }
+
+    public static String arrayPrepend(List<?> values) {
+        return new Operator("arrayPrepend", new ArrayList<Object>(values)).toString();
+    }
+
+    public static String arrayInsert(int index, Object value) {
+        return new Operator("arrayInsert", List.of(index, value)).toString();
+    }
+
+    public static String arrayRemove(Object value) {
+        return new Operator("arrayRemove", List.of(value)).toString();
+    }
+
+    public static String arrayUnique() {
+        return new Operator("arrayUnique", List.of()).toString();
+    }
+
+    public static String arrayIntersect(List<?> values) {
+        return new Operator("arrayIntersect", new ArrayList<Object>(values)).toString();
+    }
+
+    public static String arrayDiff(List<?> values) {
+        return new Operator("arrayDiff", new ArrayList<Object>(values)).toString();
+    }
+
+    public static String arrayFilter(Condition condition, Object value) {
+        return new Operator("arrayFilter", List.of(condition.getValue(), value)).toString();
+    }
+
+    public static String stringConcat(Object value) {
+        return new Operator("stringConcat", List.of(value)).toString();
+    }
+
+    public static String stringReplace(String search, String replace) {
+        return new Operator("stringReplace", List.of(search, replace)).toString();
+    }
+
+    public static String toggle() {
+        return new Operator("toggle", List.of()).toString();
+    }
+
+    public static String dateAddDays(int days) {
+        return new Operator("dateAddDays", List.of(days)).toString();
+    }
+
+    public static String dateSubDays(int days) {
+        return new Operator("dateSubDays", List.of(days)).toString();
+    }
+
+    public static String dateSetNow() {
+        return new Operator("dateSetNow", List.of()).toString();
+    }
+}
