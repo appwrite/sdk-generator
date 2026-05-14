@@ -307,6 +307,11 @@ class GDScript extends Language
                 'template' => 'gdscript/addons/models/model.gd.twig',
             ],
             [
+                'scope' => 'requestModel',
+                'destination' => 'addons/{{ spec.title | caseSnake }}/models/{{ requestModel.name | caseSnake }}.gd',
+                'template' => 'gdscript/addons/models/request_model.gd.twig',
+            ],
+            [
                 'scope' => 'method',
                 'destination' => 'docs/examples/{{service.name | caseSnake}}/{{method.name | caseSnake}}.md',
                 'template' => 'gdscript/docs/example.md.twig',
@@ -453,7 +458,7 @@ class GDScript extends Language
      * @param array $spec
      * @return string
      */
-    public function getParamExample(array $param, string $lang = '', array $spec = []): string 
+    public function getParamExample(array $param, string $lang = '', array $spec = []): string
     {
         $type = $param['type'] ?? '';
         $example = $param['example'] ?? '';

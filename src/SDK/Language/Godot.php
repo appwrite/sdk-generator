@@ -166,6 +166,11 @@ class Godot extends GDScript
                 'template' => 'godot/addons/models/model.gd.twig',
             ],
             [
+                'scope' => 'requestModel',
+                'destination' => 'addons/{{ spec.title | caseSnake }}/models/{{ requestModel.name | caseSnake }}.gd',
+                'template' => 'gdscript/addons/models/request_model.gd.twig',
+            ],
+            [
                 'scope' => 'method',
                 'destination' => 'docs/examples/{{service.name | caseSnake}}/{{method.name | caseSnake}}.md',
                 'template' => 'godot/docs/example.md.twig',
