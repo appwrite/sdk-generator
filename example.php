@@ -49,7 +49,7 @@ try {
             'description' => 'Repo description goes here',
             'shortDescription' => 'Repo short description goes here',
             'url' => 'https://example.com',
-            'logo' => 'https://appwrite.io/images/logos/logo.svg',
+            'coverImage' => 'https://github.com/appwrite/appwrite/raw/main/public/images/github.png',
             'licenseContent' => 'test test test',
             'warning' => '**WORK IN PROGRESS - NOT READY FOR USAGE**',
             'changelog' => '**CHANGELOG**',
@@ -81,7 +81,7 @@ try {
             ->setDescription($config['description'])
             ->setShortDescription($config['shortDescription'])
             ->setURL($config['url'])
-            ->setLogo($config['logo'])
+            ->setCoverImage($config['coverImage'])
             ->setLicenseContent($config['licenseContent'])
             ->setWarning($config['warning'])
             ->setChangelog($config['changelog'])
