@@ -371,14 +371,16 @@ mixin RealtimeMixin {
   /// When the socket is already open, the frame is sent immediately.
   void upsertPresenceTo({
     required String status,
+    required String presenceId,
     List<String>? permissions,
     Map<String, dynamic>? metadata,
-    String? presenceId,
   }) {
-    final data = <String, dynamic>{'status': status};
+    final data = <String, dynamic>{
+      'status': status,
+      'presenceId': presenceId,
+    };
     if (permissions != null) data['permissions'] = permissions;
     if (metadata != null) data['metadata'] = metadata;
-    if (presenceId != null) data['presenceId'] = presenceId;
 
     _pendingPresence = data;
     _flushPendingPresence();

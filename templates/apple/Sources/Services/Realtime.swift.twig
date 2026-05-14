@@ -207,24 +207,24 @@ open class Realtime : Service {
     ///
     /// - Parameters:
     ///   - status: The presence status (required).
+    ///   - presenceId: The presence ID (required).
     ///   - permissions: Optional permission list to attach to the presence document.
     ///   - metadata: Optional metadata payload.
-    ///   - presenceId: Optional presence ID. Defaults server-side to a new unique ID.
     public func upsertPresence(
         status: String,
+        presenceId: String,
         permissions: [String]? = nil,
-        metadata: [String: Any]? = nil,
-        presenceId: String? = nil
+        metadata: [String: Any]? = nil
     ) throws {
-        var data: [String: Any] = ["status": status]
+        var data: [String: Any] = [
+            "status": status,
+            "presenceId": presenceId,
+        ]
         if let permissions = permissions {
             data["permissions"] = permissions
         }
         if let metadata = metadata {
             data["metadata"] = metadata
-        }
-        if let presenceId = presenceId {
-            data["presenceId"] = presenceId
         }
 
         presenceSync.sync {

@@ -75,9 +75,9 @@ export type RealtimePresence = {
 
 export type RealtimePresenceCreate = {
     status: string;
+    presenceId: string;
     permissions?: string[];
     metadata?: Record<string, any>;
-    presenceId?: string;
 }
 
 type RealtimeRequestSubscribeRow = {
@@ -576,20 +576,18 @@ export class Realtime {
      * Returns a `Promise<void>` for API consistency; the promise resolves as
      * soon as the payload has been stored and the opportunistic send attempted.
      *
-     * @param {RealtimePresenceCreate} params - Presence payload (status required, permissions/metadata/presenceId optional)
+     * @param {RealtimePresenceCreate} params - Presence payload (status and presenceId required, permissions/metadata optional)
      */
     public async upsertPresence(params: RealtimePresenceCreate): Promise<void> {
         const data: Record<string, any> = {
             status: params.status,
+            presenceId: params.presenceId,
         };
         if (params.permissions !== undefined) {
             data.permissions = params.permissions;
         }
         if (params.metadata !== undefined) {
             data.metadata = params.metadata;
-        }
-        if (params.presenceId !== undefined) {
-            data.presenceId = params.presenceId;
         }
 
         this.pendingPresence = data;

@@ -45,15 +45,15 @@ class RealtimeBrowser extends RealtimeBase with RealtimeMixin {
   @override
   void upsertPresence({
     required String status,
+    required String presenceId,
     List<String>? permissions,
     Map<String, dynamic>? metadata,
-    String? presenceId,
   }) {
     upsertPresenceTo(
       status: status,
+      presenceId: presenceId,
       permissions: permissions,
       metadata: metadata,
-      presenceId: presenceId,
     );
   }
 }

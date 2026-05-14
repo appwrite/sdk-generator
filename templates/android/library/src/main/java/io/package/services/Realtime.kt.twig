@@ -186,20 +186,22 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
      * When the socket is already open, the frame is sent immediately.
      *
      * @param status Presence status (required).
+     * @param presenceId Presence ID (required).
      * @param permissions Optional permission list to attach to the presence document.
      * @param metadata Optional metadata payload.
-     * @param presenceId Optional presence ID. Defaults server-side to a new unique ID.
      */
     fun upsertPresence(
         status: String,
+        presenceId: String,
         permissions: List<String>? = null,
         metadata: Map<String, Any>? = null,
-        presenceId: String? = null,
     ) {
-        val data = mutableMapOf<String, Any>("status" to status)
+        val data = mutableMapOf<String, Any>(
+            "status" to status,
+            "presenceId" to presenceId,
+        )
         permissions?.let { data["permissions"] = it }
         metadata?.let { data["metadata"] = it }
-        presenceId?.let { data["presenceId"] = it }
 
         synchronized(presenceLock) {
             pendingPresence = data

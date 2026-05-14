@@ -75,14 +75,15 @@ abstract class Realtime extends Service {
   /// await Future.delayed(Duration(seconds: 1)); // let the WS open
   /// realtime.upsertPresence(
   ///   status: 'online',
+  ///   presenceId: 'p-1',
   ///   metadata: {'device': 'web'},
   /// );
   /// ```
   void upsertPresence({
     required String status,
+    required String presenceId,
     List<String>? permissions,
     Map<String, dynamic>? metadata,
-    String? presenceId,
   });
 
   /// The [close code](https://datatracker.ietf.org/doc/html/rfc6455#section-7.1.5) set when the WebSocket connection is closed.
