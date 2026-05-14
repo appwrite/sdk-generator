@@ -152,8 +152,8 @@
                     '$id' => $response['$id'],
                     'progress' => $uploadedSize / $size * 100,
                     'sizeUploaded' => $uploadedSize,
-                    'chunksTotal' => $response['chunksTotal'] ?? $totalChunks,
-                    'chunksUploaded' => $response['chunksUploaded'] ?? $completedCount,
+                    'chunksTotal' => $totalChunks,
+                    'chunksUploaded' => $completedCount,
                 ]);
             }
 
@@ -187,7 +187,7 @@
                 }
 
                 $ch = curl_init($endpoint . $apiPath);
-                $responseHeaders[(int) $ch] = [];
+                $responseHeaders[spl_object_id($ch)] = [];
                 curl_setopt($ch, CURLOPT_CUSTOMREQUEST, Client::METHOD_POST);
                 curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
                 curl_setopt($ch, CURLOPT_USERAGENT, php_uname('s') . '-' . php_uname('r') . ':{{ language.name | caseLower }}-' . phpversion());
@@ -198,7 +198,7 @@
                     $length = strlen($header);
                     $header = explode(':', strtolower($header), 2);
                     if (count($header) >= 2) {
-                        $responseHeaders[(int) $curl][strtolower(trim($header[0]))] = trim($header[1]);
+                        $responseHeaders[spl_object_id($curl)][strtolower(trim($header[0]))] = trim($header[1]);
                     }
 
                     return $length;
@@ -224,7 +224,7 @@
                 for ($i = 0; $i < 8 && $nextChunk < count($remainingChunks); $i++, $nextChunk++) {
                     $chunk = $remainingChunks[$nextChunk];
                     $ch = $makeHandle($chunk);
-                    $handles[(int) $ch] = ['handle' => $ch, 'chunk' => $chunk];
+                    $handles[spl_object_id($ch)] = ['handle' => $ch, 'chunk' => $chunk];
                     curl_multi_add_handle($multiHandle, $ch);
                 }
 
@@ -239,7 +239,7 @@
                     $ch = $handleInfo['handle'];
                     $body = curl_multi_getcontent($ch);
                     $statusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-                    $contentType = $responseHeaders[(int) $ch]['content-type'] ?? '';
+                    $contentType = $responseHeaders[spl_object_id($ch)]['content-type'] ?? '';
 
                     if (curl_errno($ch)) {
                         throw new {{ spec.namespace | split('\\') | last | caseUcfirst}}Exception(curl_error($ch), $statusCode, '', $body);
@@ -265,8 +265,8 @@
                             '$id' => $uploadId,
                             'progress' => $uploadedSize / $size * 100,
                             'sizeUploaded' => $uploadedSize,
-                            'chunksTotal' => $chunkResponse['chunksTotal'] ?? $totalChunks,
-                            'chunksUploaded' => $chunkResponse['chunksUploaded'] ?? $completedCount,
+                            'chunksTotal' => $totalChunks,
+                            'chunksUploaded' => $completedCount,
                         ]);
                     }
 
@@ -274,6 +274,10 @@
                 }
 
                 curl_multi_close($multiHandle);
+            }
+
+            if(!empty($uploadId)) {
+                $response = $this->client->call(Client::METHOD_GET, $apiPath . '/' . $uploadId);
             }
         }
         if(!empty($handle)) {

@@ -143,17 +143,22 @@ module {{ spec.title | caseUcfirst }}
             offset = 0
             id_param_name = id_param_name.to_sym if id_param_name
             upload_id = nil
+            chunks_uploaded = 0
             if id_param_name&.empty? == false
                 upload_id = params[id_param_name]
                 # Make a request to check if a file already exists
-                current = call(
-                    method: "GET",
-                    path: "#{path}/#{params[id_param_name]}",
-                    headers: headers,
-                    params: {}
-                )
-                chunks_uploaded = current['chunksUploaded'].to_i
-                offset = chunks_uploaded * @chunk_size
+                begin
+                    current = call(
+                        method: "GET",
+                        path: "#{path}/#{params[id_param_name]}",
+                        headers: headers,
+                        params: {}
+                    )
+                    chunks_uploaded = current['chunksUploaded'].to_i
+                    offset = chunks_uploaded * @chunk_size
+                rescue {{spec.title | caseUcfirst}}::Exception => error
+                    raise error unless error.code.to_i == 404
+                end
             end
 
             total_chunks = (size.to_f / @chunk_size).ceil
@@ -238,6 +243,15 @@ module {{ spec.title | caseUcfirst }}
 
             workers.each(&:value)
 
+            if upload_id
+                result = call(
+                    method: "GET",
+                    path: "#{path}/#{upload_id}",
+                    headers: headers,
+                    params: {}
+                )
+            end
+
             return result unless response_type.respond_to?("from")
 
             response_type.from(map: result)
@@ -308,7 +322,7 @@ module {{ spec.title | caseUcfirst }}
                 end
 
                 if response.code.to_i >= 400
-                    raise {{spec.title | caseUcfirst}}::Exception.new(result['message'], result['status'], result['type'], response.body)
+                    raise {{spec.title | caseUcfirst}}::Exception.new(result['message'], response.code, result['type'], response.body)
                 end
 
                 unless response_type.respond_to?("from")
