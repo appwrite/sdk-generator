@@ -923,6 +923,12 @@ class Client {
             uploadNext();
         });
 
+        if (uploadId) {
+            const finalHeaders = { ...headers };
+            delete finalHeaders['content-type'];
+            return await this.call('GET', new URL(`${url.toString().replace(/\/$/, '')}/${encodeURIComponent(uploadId)}`), finalHeaders);
+        }
+
         return lastResponse;
     }
 

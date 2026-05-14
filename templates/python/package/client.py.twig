@@ -227,8 +227,8 @@ class Client:
                 "$id": result["$id"],
                 "progress": uploaded_size / size * 100,
                 "sizeUploaded": uploaded_size,
-                "chunksTotal": result.get("chunksTotal", total_chunks),
-                "chunksUploaded": result.get("chunksUploaded", completed_count),
+                "chunksTotal": total_chunks,
+                "chunksUploaded": completed_count,
             })
 
         def upload_remaining_chunk(chunk):
@@ -244,14 +244,19 @@ class Client:
                         "$id": upload_id_header,
                         "progress": uploaded_size / size * 100,
                         "sizeUploaded": uploaded_size,
-                        "chunksTotal": chunk_result.get("chunksTotal", total_chunks),
-                        "chunksUploaded": chunk_result.get("chunksUploaded", completed_count),
+                        "chunksTotal": total_chunks,
+                        "chunksUploaded": completed_count,
                     })
 
         with ThreadPoolExecutor(max_workers=8) as executor:
             futures = [executor.submit(upload_remaining_chunk, chunk) for chunk in chunks[1:]]
             for future in as_completed(futures):
                 future.result()
+
+        if upload_id_header:
+            final_headers = {**headers}
+            final_headers.pop("content-type", None)
+            return self.call('get', path + '/' + upload_id_header, final_headers)
 
         return last_result
 

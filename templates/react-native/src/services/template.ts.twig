@@ -280,8 +280,9 @@ export class {{ service.name | caseUcfirst }} extends Service {
         // Process with limited concurrency using a worker pool
         const queue = [...chunks];
         const workers: Promise<void>[] = [];
+        const workerCount = Math.min(CONCURRENCY, queue.length);
 
-        for (let i = 0; i < Math.min(CONCURRENCY, queue.length); i++) {
+        for (let i = 0; i < workerCount; i++) {
             workers.push(
                 (async () => {
                     while (queue.length > 0) {
@@ -293,6 +294,10 @@ export class {{ service.name | caseUcfirst }} extends Service {
         }
 
         await Promise.all(workers);
+
+        if (uploadId) {
+            response = await this.client.call('GET', new URL(this.client.config.endpoint + apiPath + '/' + encodeURIComponent(uploadId)), apiHeaders);
+        }
 
         return response;
 {% endif %}
