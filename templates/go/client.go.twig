@@ -295,6 +295,9 @@ func (client *Client) FileUpload(url string, headers map[string]interface{}, par
 
 	remainingChunks := numChunks - currentChunk
 	if remainingChunks <= 0 {
+		if uploadId != "" {
+			return client.Call("GET", url+"/"+uploadId, nil, nil)
+		}
 		return result, nil
 	}
 
@@ -337,6 +340,9 @@ func (client *Client) FileUpload(url string, headers map[string]interface{}, par
 	}
 	if firstErr != nil {
 		return nil, firstErr
+	}
+	if uploadId != "" {
+		return client.Call("GET", url+"/"+uploadId, nil, nil)
 	}
 	return result, nil
 }

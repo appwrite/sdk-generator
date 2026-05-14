@@ -545,6 +545,21 @@ open class Client {
             }
         }
 
+        if let uploadId = uploadId {
+            var finalHeaders = headers
+            finalHeaders.removeValue(forKey: "content-type")
+
+            let finalResult = try await call(
+                method: "GET",
+                path: path + "/" + uploadId,
+                headers: finalHeaders,
+                params: [:],
+                converter: { return $0 as! [String: Any] }
+            )
+
+            return try converter!(finalResult)
+        }
+
         return try converter!(result)
     }
 

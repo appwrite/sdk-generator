@@ -254,6 +254,16 @@ class ClientBrowser extends ClientBase with ClientMixin {
     final concurrency = min(8, chunks.length);
     await Future.wait(List.generate(concurrency, (_) => uploadNext()));
 
+    if (uploadId != null && uploadId.isNotEmpty) {
+      final finalHeaders = Map<String, String>.from(headers);
+      finalHeaders.remove('content-type');
+      return call(
+        HttpMethod.get,
+        path: '$path/$uploadId',
+        headers: finalHeaders,
+      );
+    }
+
     return lastResponse;
   }
 

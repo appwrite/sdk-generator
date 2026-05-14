@@ -869,6 +869,20 @@ impl Client {
             }
         }
 
+        if let Some(ref upload_id) = current_upload_id {
+            let mut final_headers = headers.clone();
+            if let Some(headers) = final_headers.as_mut() {
+                headers.remove("content-type");
+            }
+
+            return self.call::<T>(
+                Method::GET,
+                &format!("{}/{}", path, upload_id),
+                final_headers,
+                None,
+            ).await;
+        }
+
         last_response
             .ok_or_else(|| {{ spec.title | caseUcfirst }}Error::new(0, "No chunks uploaded", None, String::new()))
             .and_then(|v| serde_json::from_value(v).map_err(Into::into))
