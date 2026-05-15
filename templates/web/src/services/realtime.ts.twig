@@ -107,6 +107,10 @@ export class Realtime {
     private pendingPresence?: Record<string, any>;
     private appConnected = false;
     private heartbeatTimer?: number;
+    // Single-flight lock for createSocket(). When set, concurrent callers join
+    // this promise instead of issuing a second `new WebSocket(...)`. Cleared
+    // after the underlying connect resolves or rejects.
+    private socketCreationPromise?: Promise<void>;
 
     private subCallDepth = 0;
     private reconnectAttempts = 0;
@@ -167,8 +171,33 @@ export class Realtime {
         }
     }
 
+    /**
+     * Idempotent socket opener. Both `subscribe()` and `upsertPresence()` can
+     * call this; the single-flight lock (`socketCreationPromise`) guarantees
+     * only one `new WebSocket(...)` is ever in flight, so concurrent callers
+     * join the same connection attempt instead of opening duplicates.
+     *
+     * Returns early when a healthy socket is already present.
+     */
     private async createSocket(): Promise<void> {
-        if (this.activeSubscriptions.size === 0) {
+        // Fast path: a usable socket is already there. No need to open another.
+        if (this.socket && this.socket.readyState < WebSocket.CLOSING) {
+            return;
+        }
+        // Another caller is already opening one — join it.
+        if (this.socketCreationPromise) {
+            return this.socketCreationPromise;
+        }
+        this.socketCreationPromise = this.createSocketImpl().finally(() => {
+            this.socketCreationPromise = undefined;
+        });
+        return this.socketCreationPromise;
+    }
+
+    private async createSocketImpl(): Promise<void> {
+        // Nothing to do if there's neither a subscription nor a queued presence
+        // that needs the wire. (Reconnect cleanup path also flows through here.)
+        if (this.activeSubscriptions.size === 0 && !this.pendingPresence) {
             this.reconnect = false;
             await this.closeSocket();
             return;
@@ -201,6 +230,15 @@ export class Realtime {
         }
 
         return new Promise((resolve, reject) => {
+            // Re-check the entry guard synchronously. `disconnect()` may have
+            // run during the `await this.closeSocket()` above (or any other
+            // await between the original guard and here), clearing every
+            // subscription and the pending presence. In that case opening a
+            // fresh socket would leak a connection with nothing attached.
+            if (this.activeSubscriptions.size === 0 && !this.pendingPresence) {
+                resolve();
+                return;
+            }
             try {
                 const connectionId = ++this.connectionId;
 {% if language.name == 'ReactNative' %}
@@ -594,6 +632,22 @@ export class Realtime {
         }
 
         this.pendingPresence = data;
+
+        // Both subscribe() and upsertPresence() may need to open the socket.
+        // createSocket() is single-flight (see `socketCreationPromise`), so
+        // calling it here is a no-op when a connection is already in flight or
+        // healthy. Fire-and-forget keeps the documented fire-and-forget shape
+        // of upsertPresence: the returned Promise resolves as soon as the
+        // payload is stored.
+        if (!this.socket || this.socket.readyState >= WebSocket.CLOSING) {
+            this.createSocket().catch((error) => {
+                console.error('Failed to open realtime socket for presence:', error);
+            });
+        }
+
+        // Opportunistic send for the case where the socket is already past the
+        // `connected` handshake. The gate inside flushPendingPresence keeps
+        // this a no-op until appConnected flips to true.
         this.flushPendingPresence();
     }
 

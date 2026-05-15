@@ -52,12 +52,21 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
     }
 
     private fun createSocket() {
-        // Serialize socket recreation so subscribe(A), subscribe(B), subscribe(C)
-        // deterministically results in A -> A+B -> A+B+C (sequential updates).
+        // Serialize socket recreation. With the subscriptionLock held, both
+        // subscribe() and upsertPresence() can call into createSocket()
+        // without producing duplicate sockets — the first call wins, the
+        // second sees `socket != null` and bails.
         synchronized(subscriptionLock) {
-            if (activeSubscriptions.isEmpty()) {
+            val hasPendingPresence = synchronized(presenceLock) { pendingPresence != null }
+            if (activeSubscriptions.isEmpty() && !hasPendingPresence) {
                 reconnect = false
                 closeSocket()
+                return
+            }
+
+            // Single-flight guard: a socket is already open (or in flight via
+            // OkHttp's newWebSocket). Don't tear it down and rebuild.
+            if (socket != null) {
                 return
             }
 
@@ -65,13 +74,6 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
             val queryParams = "project=$encodedProject"
             val url = "${client.endpointRealtime}/realtime?$queryParams"
             val request = Request.Builder().url(url).build()
-
-            if (socket != null) {
-                reconnect = false
-                closeSocket()
-                // Don't rely on old socket callbacks to flip reconnect back.
-                reconnect = true
-            }
 
             val generation = socketGeneration.incrementAndGet()
             socket = client.http.newWebSocket(request, {{ spec.title | caseUcfirst }}WebSocketListener(generation))
@@ -81,6 +83,11 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
     private fun closeSocket() {
         stopHeartbeat()
         socket?.close(RealtimeCode.POLICY_VIOLATION.value, null)
+        // Drop the reference so the single-flight guard in createSocket()
+        // doesn't keep bailing out on a dead socket — a subsequent subscribe()
+        // or scheduled reconnect needs to be able to open a fresh one. Callers
+        // hold `subscriptionLock` whenever closeSocket() runs.
+        socket = null
     }
 
     private fun sendUnsubscribeMessage(subscriptionIds: List<String>) {
@@ -208,6 +215,17 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         synchronized(presenceLock) {
             pendingPresence = data
         }
+
+        // Both subscribe() and upsertPresence() may need to open the socket.
+        // createSocket() is single-flight (guarded by subscriptionLock + the
+        // `socket != null` check), so calling it from presence is safe.
+        if (socket == null) {
+            createSocket()
+        }
+
+        // Opportunistic send for when the socket is already past `connected`.
+        // The appConnected gate inside flushPendingPresence keeps this a no-op
+        // until the application-level handshake completes.
         flushPendingPresence()
     }
 
@@ -419,6 +437,11 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
             if (isStale(webSocket)) return
             appConnected = false
             stopHeartbeat()
+            // Release the companion ref so createSocket() (called below or by
+            // a concurrent subscribe()/upsertPresence()) can open a new one.
+            synchronized(subscriptionLock) {
+                if (socket === webSocket) socket = null
+            }
             if (!reconnect || code == RealtimeCode.POLICY_VIOLATION.value) {
                 reconnect = true
                 return
@@ -444,6 +467,12 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
             if (isStale(webSocket)) return
             appConnected = false
             stopHeartbeat()
+            // Same cleanup as onClosing — without this, the next subscribe()
+            // or upsertPresence() would hit the `socket != null` guard in
+            // createSocket() and silently refuse to reconnect.
+            synchronized(subscriptionLock) {
+                if (socket === webSocket) socket = null
+            }
             t.printStackTrace()
         }
     }

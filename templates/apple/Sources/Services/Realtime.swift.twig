@@ -23,6 +23,10 @@ open class Realtime : Service {
     private var pendingPresence: [String: Any]? = nil
     private var appConnected = false
     private var heartbeatTask: Task<Void, Swift.Error>? = nil
+    /// Single-flight lock for `createSocket()`. While set, concurrent callers
+    /// join this task instead of issuing a second `WebSocketClient.connect()`.
+    /// Cleared once the underlying connect resolves or throws.
+    private var socketCreationTask: Task<Void, Swift.Error>? = nil
 
     let connectSync = DispatchQueue(label: "ConnectSync")
     let presenceSync = DispatchQueue(label: "PresenceSync")
@@ -70,8 +74,39 @@ open class Realtime : Service {
         heartbeatTask = nil
     }
 
+    /// Idempotent socket opener. Both `subscribe()` and `upsertPresence()` can
+    /// call this; the single-flight lock (`socketCreationTask`) guarantees
+    /// only one `WebSocketClient.connect()` is ever in flight, so concurrent
+    /// callers join the same connection attempt instead of opening duplicates.
     private func createSocket() async throws {
-        guard activeSubscriptions.count > 0 else {
+        // Fast path: a usable socket is already there.
+        if let ws = socketClient, ws.isConnected {
+            return
+        }
+
+        // Atomically check / claim the in-flight slot via the existing serial
+        // queue. The actual connect work runs outside the queue's critical
+        // section.
+        let task: Task<Void, Swift.Error> = connectSync.sync {
+            if let existing = socketCreationTask {
+                return existing
+            }
+            let newTask = Task<Void, Swift.Error> { [weak self] in
+                guard let self = self else { return }
+                defer {
+                    self.connectSync.sync { self.socketCreationTask = nil }
+                }
+                try await self.createSocketImpl()
+            }
+            socketCreationTask = newTask
+            return newTask
+        }
+        try await task.value
+    }
+
+    private func createSocketImpl() async throws {
+        let hasPendingPresence: Bool = presenceSync.sync { pendingPresence != nil }
+        guard activeSubscriptions.count > 0 || hasPendingPresence else {
             reconnect = false
             try await closeSocket()
             return
@@ -86,6 +121,12 @@ open class Realtime : Service {
             try await closeSocket()
         }
 
+        // Cooperative cancellation point: disconnect() may have cancelled us
+        // while we awaited closeSocket(). Bail before allocating a new client.
+        if Task.isCancelled || isTornDown() {
+            return
+        }
+
         socketClient = WebSocketClient(
             url,
             tlsEnabled: !client.selfSigned,
@@ -93,6 +134,18 @@ open class Realtime : Service {
         )
 
         try await socketClient?.connect()
+
+        // disconnect() may also have run between WebSocketClient init and the
+        // moment connect() resolved. The handshake succeeded, but state has
+        // been torn down — close the freshly opened socket so it doesn't leak.
+        if Task.isCancelled || isTornDown() {
+            try? await closeSocket()
+        }
+    }
+
+    private func isTornDown() -> Bool {
+        let hasPendingPresence: Bool = presenceSync.sync { pendingPresence != nil }
+        return activeSubscriptions.isEmpty && !hasPendingPresence
     }
 
     private func sendUnsubscribeMessage(_ subscriptionIds: [String]) {
@@ -143,6 +196,17 @@ open class Realtime : Service {
         }
         appConnected = false
         reconnect = false
+        // Capture and cancel any in-flight socket-creation task. Just nulling
+        // the reference is not enough — Swift tasks are cooperative, so the
+        // already-running body would otherwise proceed past its guard checks
+        // and assign `socketClient` after teardown, leaving a stray realtime
+        // connection alive with no subscriptions or presence.
+        let pendingTask: Task<Void, Swift.Error>? = connectSync.sync {
+            let t = socketCreationTask
+            socketCreationTask = nil
+            return t
+        }
+        pendingTask?.cancel()
         try await closeSocket()
     }
 
@@ -232,6 +296,24 @@ open class Realtime : Service {
         presenceSync.sync {
             pendingPresence = data
         }
+
+        // Both subscribe() and upsertPresence() may need to open the socket.
+        // createSocket() is single-flight, so this is a no-op when one is
+        // already in flight or healthy. Fire-and-forget keeps upsertPresence's
+        // documented behavior of resolving once the payload is stored.
+        if socketClient == nil || !(socketClient?.isConnected ?? false) {
+            Task { [weak self] in
+                do {
+                    try await self?.createSocket()
+                } catch {
+                    Realtime.logDiagnostic("Failed to open realtime socket for presence: \(error)")
+                }
+            }
+        }
+
+        // Opportunistic send for when the socket is already past `connected`.
+        // The appConnected gate inside flushPendingPresence keeps this a no-op
+        // until the application-level handshake completes.
         try flushPendingPresence()
     }
 
