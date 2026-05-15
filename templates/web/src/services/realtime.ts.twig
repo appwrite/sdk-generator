@@ -402,6 +402,16 @@ export class Realtime {
         this.pendingPresence = undefined;
         this.appConnected = false;
         this.reconnect = false;
+        // Drop the in-flight single-flight slot. Promises can't be cancelled,
+        // so the underlying createSocketLocked() promise may stay pending
+        // forever — e.g. when closeSocket() below tears down a CONNECTING
+        // socket, the `close` event fires but `open`/`error` never do, and
+        // the inner `new Promise(...)` only resolves on those. Without this
+        // line, the next subscribe()/upsertPresence() would join the orphan
+        // promise via the single-flight gate and hang, leaving its pending
+        // subscription queued with no socket ever opened. Mirrors the Swift
+        // template's socketCreationTask cancel in disconnect().
+        this.socketCreationPromise = undefined;
         await this.closeSocket();
     }
 
