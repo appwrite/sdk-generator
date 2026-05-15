@@ -5,7 +5,13 @@ const client = new Client()
     {%~ if method.auth|length > 0 %}
     .setEndpoint('{{ spec.endpointDocs | raw }}') // Your API Endpoint
     {%~ for node in method.auth %}
-    {%~ for key,header in node|keys %}
+    {%~ set authHeaders = [] %}
+    {%~ for header in node|keys %}
+    {%~ if not (header == 'Session' and 'client' in method.platforms) %}
+    {%~ set authHeaders = authHeaders|merge([header]) %}
+    {%~ endif %}
+    {%~ endfor %}
+    {%~ for header in authHeaders %}
     .set{{header}}('{{node[header]['x-appwrite']['demo'] | raw }}'){% if loop.last %};{% endif%} // {{node[header].description}}
     {%~ endfor %}
     {%~ endfor %}
