@@ -84,6 +84,12 @@ class Tests: XCTestCase {
             expectationWithQueriesFailure.fulfill()
         }
 
+        let rtPresenceSub = try await realtime.subscribe(channels: ["presences"]) { message in
+            guard let payload = message.payload,
+                  payload["$id"] as? String == "p-test" else { return }
+            print("Realtime presence:passed")
+        }
+
         var mock: Mock
 
         // Foo Tests
@@ -236,21 +242,18 @@ class Tests: XCTestCase {
             print("Realtime update:failed")
         }
 
-        // Realtime presence (upsertPresence) test. Rides the existing WebSocket
-        // opened by the main realtime tests above — upsertPresence is
-        // fire-and-forget (no `try await`).
-        do {
-            try realtime.upsertPresence(
-                status: "online",
-                presenceId: "p-test",
-                metadata: ["page": "/home"]
-            )
-            try await Task.sleep(nanoseconds: 1_000_000_000)
-
-            print("Realtime presence:passed")
-        } catch {
-            print("Realtime presence:failed")
-        }
+        // Fires the upsert. The "Realtime presence:passed" line is
+        // printed by rtPresenceSub's callback when the fan-out event for
+        // this presence document arrives — verifying the full round-trip
+        // rather than just "no exception thrown".
+        try realtime.upsertPresence(
+            status: "online",
+            presenceId: "p-test",
+            metadata: ["page": "/home"]
+        )
+        // Give the server time to fan out and the cb to fire before we
+        // tear the socket down with disconnect() below.
+        try await Task.sleep(nanoseconds: 1_000_000_000)
 
         do {
             try await realtime.disconnect()

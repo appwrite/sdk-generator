@@ -77,6 +77,12 @@
                 ],
             );
 
+            const rtPresenceSub = await realtime.subscribe(['presences'], message => {
+                if (message.payload?.$id === 'p-test') {
+                    console.log('Realtime presence:passed');
+                }
+            });
+
             // Foo
             response = await foo.get('string', 123, ["string in array"]);
             console.log(response.result);
@@ -319,21 +325,18 @@
                 console.log('Realtime update:failed');
             }
 
-            // Realtime presence (upsertPresence) test. Rides the existing
-            // WebSocket opened by the main realtime tests above — upsertPresence
-            // is fire-and-forget (Promise<void> resolves immediately).
-            try {
-                await realtime.upsertPresence({
-                    status: 'online',
-                    presenceId: 'p-test',
-                    metadata: { page: '/home' },
-                });
-                await new Promise(resolve => setTimeout(resolve, 1000));
-
-                console.log('Realtime presence:passed');
-            } catch (e) {
-                console.log('Realtime presence:failed');
-            }
+            // Fires the upsert. The "Realtime presence:passed" line is
+            // printed by rtPresenceSub's callback when the fan-out event
+            // for this presence document arrives — verifying the full
+            // round-trip rather than just "no exception thrown".
+            await realtime.upsertPresence({
+                status: 'online',
+                presenceId: 'p-test',
+                metadata: { page: '/home' },
+            });
+            // Give the server time to fan out and the cb to fire before
+            // we tear the socket down with disconnect() below.
+            await new Promise(resolve => setTimeout(resolve, 1000));
 
             try {
                 await realtime.disconnect();

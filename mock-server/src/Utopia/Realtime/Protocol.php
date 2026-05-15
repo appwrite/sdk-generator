@@ -217,8 +217,9 @@ class Protocol
         }
 
         $now = gmdate('Y-m-d\TH:i:s.000\+00:00');
+        $presenceId = $data['presenceId'] ?? ('presence_' . bin2hex(random_bytes(6)));
         $presence = [
-            '$id'           => $data['presenceId'] ?? ('presence_' . bin2hex(random_bytes(6))),
+            '$id'           => $presenceId,
             '$sequence'     => '1',
             '$createdAt'    => $now,
             '$updatedAt'    => $now,
@@ -235,10 +236,36 @@ class Protocol
             $presence['expiry'] = (string) $data['expiresAt'];
         }
 
+        // ACK the sender so a single-client "fire and verify" smoke test
+        // still works (clients ignore the 'response' type).
         $this->send($server, $connection->fd, 'response', [
             'to'       => 'presence',
             'presence' => $presence,
         ]);
+
+        // Fan out an 'event' frame to every connection (including the sender,
+        // if it has its own subscription) that subscribes to a channel
+        // overlapping with this presence document. This is what lets a
+        // subscribe(...) listener observe an upsertPresence(...) end-to-end.
+        $channels = [
+            'presences',
+            "presences.{$presenceId}",
+            "presences.{$presenceId}.upsert",
+        ];
+        $eventName = "presences.{$presenceId}.upsert";
+        foreach ($this->connections as $fd => $conn) {
+            $matches = $conn->matchingSubscriptions($channels);
+            if (empty($matches)) {
+                continue;
+            }
+            $this->send($server, $fd, 'event', [
+                'channels'      => $channels,
+                'events'        => [$eventName],
+                'timestamp'     => $now,
+                'payload'       => $presence,
+                'subscriptions' => $matches,
+            ]);
+        }
     }
 
     private function send(Server $server, int $fd, string $type, mixed $data = null): void

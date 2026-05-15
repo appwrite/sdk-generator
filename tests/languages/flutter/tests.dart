@@ -71,6 +71,13 @@ void main() async {
     if (!rtsubWithQueriesFailureFirst.isCompleted) rtsubWithQueriesFailureFirst.complete(m);
   });
 
+  final rtPresenceSub = realtime.subscribe(["presences"]);
+  rtPresenceSub.stream.listen((m) {
+    if (m.payload[r"$id"] == "p-test") {
+      print("Realtime presence:passed");
+    }
+  });
+
   await Future.delayed(Duration(seconds: 5));
   client.addHeader('Origin', 'http://localhost');
   print('\nTest Started');
@@ -232,21 +239,18 @@ void main() async {
     print("Realtime update:failed");
   }
 
-  // Realtime presence (upsertPresence) test. Rides the existing WebSocket
-  // opened by the main realtime tests above — upsertPresence is
-  // fire-and-forget (void), no await needed.
-  try {
-    realtime.upsertPresence(
-      status: 'online',
-      presenceId: 'p-test',
-      metadata: {'page': '/home'},
-    );
-    await Future.delayed(Duration(seconds: 1));
-
-    print("Realtime presence:passed");
-  } catch (e) {
-    print("Realtime presence:failed");
-  }
+  // Fires the upsert. The "Realtime presence:passed" line is printed
+  // by rtPresenceSub's listener when the fan-out event for this presence
+  // document arrives — verifying the full round-trip rather than just
+  // "no exception thrown".
+  realtime.upsertPresence(
+    status: 'online',
+    presenceId: 'p-test',
+    metadata: {'page': '/home'},
+  );
+  // Give the server time to fan out and the listener to fire before
+  // we tear the socket down with disconnect() below.
+  await Future.delayed(Duration(seconds: 1));
 
   try {
     await realtime.disconnect();

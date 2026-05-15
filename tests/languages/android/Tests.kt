@@ -124,6 +124,17 @@ class ServiceTest {
             realtimeResponseWithQueriesFailure = "WS:/v1/realtime:passed"
         }
 
+        val rtPresenceSub = realtime.subscribe(
+            "presences",
+            payloadType = Any::class.java
+        ) { event ->
+            @Suppress("UNCHECKED_CAST")
+            val payload = event.payload as? Map<String, Any> ?: return@subscribe
+            if (payload["\$id"] == "p-test") {
+                writeToFile("Realtime presence:passed")
+            }
+        }
+
         runBlocking {
             var mock: Mock
             // Foo Tests
@@ -262,21 +273,18 @@ class ServiceTest {
                 writeToFile("Realtime update:failed")
             }
 
-            // Realtime presence (upsertPresence) test. Rides the existing WebSocket
-            // opened by the main realtime tests above — upsertPresence is
-            // fire-and-forget (no suspend, no await).
-            try {
-                realtime.upsertPresence(
-                    status = "online",
-                    presenceId = "p-test",
-                    metadata = mapOf("page" to "/home"),
-                )
-                delay(1000)
-
-                writeToFile("Realtime presence:passed")
-            } catch (e: Exception) {
-                writeToFile("Realtime presence:failed")
-            }
+            // Fires the upsert. The "Realtime presence:passed" line is
+            // printed by rtPresenceSub's callback when the fan-out event
+            // for this presence document arrives — verifying the full
+            // round-trip rather than just "no exception thrown".
+            realtime.upsertPresence(
+                status = "online",
+                presenceId = "p-test",
+                metadata = mapOf("page" to "/home"),
+            )
+            // Give the server time to fan out and the cb to fire before
+            // we tear the socket down with disconnect() below.
+            delay(1000)
 
             try {
                 realtime.disconnect()
