@@ -227,7 +227,11 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         // Both subscribe() and upsertPresence() may need to open the socket.
         // createSocket() is single-flight (guarded by subscriptionLock + the
         // `socket != null` check), so calling it from presence is safe.
-        if (socket == null) {
+        val shouldCreateSocket: Boolean
+        synchronized(subscriptionLock) {
+            shouldCreateSocket = (socket == null)
+        }
+        if (shouldCreateSocket) {
             createSocket()
         }
 
