@@ -99,8 +99,8 @@ jobs:
           verify_signature() {
             local file="$1"
             local output rc
-            output="$(osslsigncode verify -in "$file" 2>&1)"
-            rc=$?
+            rc=0
+            output="$(osslsigncode verify -in "$file" 2>&1)" || rc=$?
             echo "--- $file (osslsigncode exit $rc) ---"
             echo "$output"
 
