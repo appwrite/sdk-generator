@@ -409,6 +409,18 @@ export class Realtime {
         if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
             return;
         }
+        // The WebSocket 'open' event fires when the TCP/upgrade handshake
+        // completes — but the server only accepts `subscribe` frames after
+        // it has emitted its own application-level `connected` event (which
+        // flips `appConnected` to true in handleResponseConnected). Sending
+        // before then triggers a policy-violation close on real Appwrite,
+        // which reconnects, which sends early again — i.e. a duplicate-
+        // socket loop. handleResponseConnected re-enqueues every active
+        // subscription and calls this method again once it's safe, so the
+        // queued rows are guaranteed to be sent.
+        if (!this.appConnected) {
+            return;
+        }
 
         if (this.pendingSubscribes.size < 1) {
             return;

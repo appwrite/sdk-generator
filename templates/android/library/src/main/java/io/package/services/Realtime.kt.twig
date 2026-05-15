@@ -143,6 +143,14 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
 
     private fun sendPendingSubscribes() {
         val ws = socket ?: return
+        // The OkHttp socket transitions to "open" before the server has
+        // emitted its application-level `connected` event. Sending a
+        // subscribe frame in that window triggers a policy-violation close
+        // on real Appwrite, which reconnects and re-sends, looping forever.
+        // handleResponseConnected re-enqueues every active subscription and
+        // calls this method again once it's safe, so queued rows are never
+        // lost — just deferred.
+        if (!appConnected) return
         val rows: List<Map<String, Any>>
         synchronized(subscriptionLock) {
             if (pendingSubscribes.isEmpty()) {

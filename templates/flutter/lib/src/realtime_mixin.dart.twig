@@ -272,6 +272,16 @@ mixin RealtimeMixin {
     if (_websok == null || _websok?.closeCode != null) {
       return;
     }
+    // The WebSocket transitions to "open" before the server has emitted
+    // its application-level `connected` event. Sending a subscribe frame
+    // in that window triggers a policy-violation close on real Appwrite,
+    // which reconnects and re-sends, looping forever. The `connected`
+    // branch in _createSocket re-enqueues every active subscription and
+    // re-calls this method once `_appConnected` flips true, so the queued
+    // rows are guaranteed to go out — just deferred.
+    if (!_appConnected) {
+      return;
+    }
 
     if (_pendingSubscribes.isEmpty) {
       return;

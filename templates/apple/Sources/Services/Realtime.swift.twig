@@ -214,6 +214,17 @@ open class Realtime : Service {
         guard let ws = socketClient, ws.isConnected else {
             return
         }
+        // The WebSocketClient becomes "connected" as soon as the WS upgrade
+        // succeeds — but the server only accepts `subscribe` frames after
+        // emitting its application-level `connected` event (which flips
+        // `appConnected` in handleResponseConnected). Sending early triggers
+        // a policy-violation close on real Appwrite, which reconnects and
+        // re-sends, looping forever. handleResponseConnected re-enqueues
+        // every active subscription and re-calls this method, so the queued
+        // rows are guaranteed to be sent once it's safe.
+        guard appConnected else {
+            return
+        }
 
         if pendingSubscribes.isEmpty {
             return
