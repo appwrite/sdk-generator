@@ -96,7 +96,7 @@ open class Realtime : Service {
                 defer {
                     self.connectSync.sync { self.socketCreationTask = nil }
                 }
-                try await self.createSocketImpl()
+                try await self.createSocketLocked()
             }
             socketCreationTask = newTask
             return newTask
@@ -104,7 +104,7 @@ open class Realtime : Service {
         try await task.value
     }
 
-    private func createSocketImpl() async throws {
+    private func createSocketLocked() async throws {
         let hasPendingPresence: Bool = presenceSync.sync { pendingPresence != nil }
         guard activeSubscriptions.count > 0 || hasPendingPresence else {
             reconnect = false

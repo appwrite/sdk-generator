@@ -188,13 +188,13 @@ export class Realtime {
         if (this.socketCreationPromise) {
             return this.socketCreationPromise;
         }
-        this.socketCreationPromise = this.createSocketImpl().finally(() => {
+        this.socketCreationPromise = this.createSocketLocked().finally(() => {
             this.socketCreationPromise = undefined;
         });
         return this.socketCreationPromise;
     }
 
-    private async createSocketImpl(): Promise<void> {
+    private async createSocketLocked(): Promise<void> {
         // Nothing to do if there's neither a subscription nor a queued presence
         // that needs the wire. (Reconnect cleanup path also flows through here.)
         if (this.activeSubscriptions.size === 0 && !this.pendingPresence) {
