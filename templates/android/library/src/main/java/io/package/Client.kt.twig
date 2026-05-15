@@ -51,6 +51,182 @@ class Client @JvmOverloads constructor(
         internal const val CHUNK_SIZE = 5*1024*1024; // 5MB
         internal const val GLOBAL_PREFS = "{{ sdk.namespace | caseDot }}"
         internal const val COOKIE_PREFS = "myCookie"
+
+        @JvmStatic
+        @JvmOverloads
+        fun from(
+            context: Context,
+            projectId: String,
+            endpoint: String = "{{spec.endpoint}}",
+            endpointRealtime: String? = null,
+            locale: String? = null,
+            selfSigned: Boolean = false
+        ): Client {
+            require(endpoint.startsWith("http://") || endpoint.startsWith("https://")) {
+                "Invalid endpoint URL: $endpoint"
+            }
+            if (endpointRealtime != null) {
+                require(endpointRealtime.startsWith("ws://") || endpointRealtime.startsWith("wss://")) {
+                    "Invalid realtime endpoint URL: $endpointRealtime"
+                }
+            }
+
+            val client = Client(
+                context,
+                endpoint,
+                endpointRealtime ?: endpoint
+                    .replaceFirst("https://", "wss://")
+                    .replaceFirst("http://", "ws://"),
+                selfSigned
+            )
+
+            setHeader(
+                client,
+                "project",
+                "X-{{ spec.title | caseUcfirst }}-Project",
+                projectId
+            )
+            if (locale != null) {
+                setHeader(
+                    client,
+                    "locale",
+                    "X-{{ spec.title | caseUcfirst }}-Locale",
+                    locale
+                )
+            }
+
+            return client
+        }
+
+        private fun setHeader(
+            client: Client,
+            configKey: String,
+            header: String,
+            value: String
+        ) {
+            client.config[configKey] = value
+            if (configKey != configKey.lowercase()) {
+                client.config[configKey.lowercase()] = value
+            }
+            client.addHeader(header, value)
+        }
+
+        @JvmStatic
+        @JvmOverloads
+        fun fromSession(
+            context: Context,
+            projectId: String,
+            session: String,
+            endpoint: String = "{{spec.endpoint}}",
+            endpointRealtime: String? = null,
+            locale: String? = null,
+            selfSigned: Boolean = false
+        ): Client {
+            val client = from(
+                context = context,
+                projectId = projectId,
+                endpoint = endpoint,
+                endpointRealtime = endpointRealtime,
+                locale = locale,
+                selfSigned = selfSigned
+            )
+
+            setHeader(
+                client,
+                "session",
+                "X-{{ spec.title | caseUcfirst }}-Session",
+                session
+            )
+            return client
+        }
+
+        @JvmStatic
+        @JvmOverloads
+        fun fromDevKey(
+            context: Context,
+            projectId: String,
+            devKey: String,
+            endpoint: String = "{{spec.endpoint}}",
+            endpointRealtime: String? = null,
+            locale: String? = null,
+            selfSigned: Boolean = false
+        ): Client {
+            val client = from(
+                context = context,
+                projectId = projectId,
+                endpoint = endpoint,
+                endpointRealtime = endpointRealtime,
+                locale = locale,
+                selfSigned = selfSigned
+            )
+
+            setHeader(
+                client,
+                "devKey",
+                "X-{{ spec.title | caseUcfirst }}-Dev-Key",
+                devKey
+            )
+            return client
+        }
+
+        @JvmStatic
+        @JvmOverloads
+        fun fromImpersonation(
+            context: Context,
+            projectId: String,
+            session: String,
+            userId: String? = null,
+            userEmail: String? = null,
+            userPhone: String? = null,
+            endpoint: String = "{{spec.endpoint}}",
+            endpointRealtime: String? = null,
+            locale: String? = null,
+            selfSigned: Boolean = false
+        ): Client {
+            val targets = listOfNotNull(userId, userEmail, userPhone).size
+            require(targets == 1) {
+                "Exactly one impersonation target must be provided"
+            }
+
+            val client = from(
+                context = context,
+                projectId = projectId,
+                endpoint = endpoint,
+                endpointRealtime = endpointRealtime,
+                locale = locale,
+                selfSigned = selfSigned
+            )
+
+            setHeader(
+                client,
+                "session",
+                "X-{{ spec.title | caseUcfirst }}-Session",
+                session
+            )
+
+            when {
+                userId != null -> setHeader(
+                    client,
+                    "impersonateUserId",
+                    "X-{{ spec.title | caseUcfirst }}-Impersonate-User-Id",
+                    userId
+                )
+                userEmail != null -> setHeader(
+                    client,
+                    "impersonateUserEmail",
+                    "X-{{ spec.title | caseUcfirst }}-Impersonate-User-Email",
+                    userEmail
+                )
+                userPhone != null -> setHeader(
+                    client,
+                    "impersonateUserPhone",
+                    "X-{{ spec.title | caseUcfirst }}-Impersonate-User-Phone",
+                    userPhone
+                )
+            }
+
+            return client
+        }
     }
 
     override val coroutineContext: CoroutineContext
@@ -111,8 +287,12 @@ class Client @JvmOverloads constructor(
      *
      * @return this
      */
+    @Deprecated("Use Client.from or another factory method instead.")
     fun set{{header.key | caseUcfirst}}(value: String): Client {
         config["{{ header.key | caseCamel }}"] = value
+{%~ if (header.key | caseCamel) != (header.key | caseLower) %}
+        config["{{ header.key | caseLower }}"] = value
+{%~ endif %}
         addHeader("{{ header.name | caseLower }}", value)
         return this
     }
@@ -125,6 +305,7 @@ class Client @JvmOverloads constructor(
      *
      * @return this
      */
+    @Deprecated("Use Client.from or another factory method instead.")
     fun setSelfSigned(status: Boolean): Client {
         selfSigned = status
 
@@ -178,6 +359,7 @@ class Client @JvmOverloads constructor(
      * @return this
      */
     @Throws(IllegalArgumentException::class)
+    @Deprecated("Use Client.from or another factory method instead.")
     fun setEndpoint(endpoint: String): Client {
         require(endpoint.startsWith("http://") || endpoint.startsWith("https://")) {
             "Invalid endpoint URL: $endpoint"
@@ -197,6 +379,7 @@ class Client @JvmOverloads constructor(
      * @return this
      */
     @Throws(IllegalArgumentException::class)
+    @Deprecated("Use Client.from or another factory method instead.")
     fun setEndpointRealtime(endpoint: String): Client {
         require(endpoint.startsWith("ws://") || endpoint.startsWith("wss://")) {
             "Invalid realtime endpoint URL: $endpoint"
@@ -273,7 +456,7 @@ class Client @JvmOverloads constructor(
     @Throws({{ spec.title | caseUcfirst }}Exception::class)
     suspend fun <T> call(
         method: String,
-        path: String,
+        path: String = "",
         headers:  Map<String, String> = mapOf(),
         params: Map<String, Any?> = mapOf(),
         responseType: Class<T>,
@@ -419,7 +602,7 @@ class Client @JvmOverloads constructor(
                 path = "$path/${params[idParamName]}",
                 headers = headers,
                 params = emptyMap(),
-                responseType = Map::class.java,
+                responseType = Map::class.java
             )
             val chunksUploaded = current["chunksUploaded"] as Long
             offset = chunksUploaded * CHUNK_SIZE

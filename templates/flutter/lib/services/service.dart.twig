@@ -11,8 +11,13 @@ part of '../{{ language.params.packageName }}.dart';
 {{- service.description|dartComment | split('    ///') | join('///')}}
 {% endif %}
 class {{ service.name | caseUcfirst }} extends Service {
+  final ClientAuth _client;
+
   /// Initializes a [{{ service.name | caseUcfirst }}] service
-  {{ service.name | caseUcfirst }}(super.client);
+  // ignore: use_super_parameters
+  {{ service.name | caseUcfirst }}(ClientAuth client)
+      : _client = client,
+        super(client);
 {% for method in service.methods %}
 
 {%~ if method.description %}

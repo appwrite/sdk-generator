@@ -5,6 +5,8 @@ import NIOHTTP1
 
 open class Realtime : Service {
 
+    private let client: ClientAuth
+
     // Diagnostic messages go to stderr so they don't interleave with any stdout
     // the host process may be asserting on (e.g. SDK integration tests).
     private static func logDiagnostic(_ message: String) {
@@ -32,6 +34,12 @@ open class Realtime : Service {
     private var onErrorCallbacks: [((Swift.Error?, HTTPResponseStatus?) -> Void)] = []
     private var onCloseCallbacks: [(() -> Void)] = []
     private var onOpenCallbacks: [(() -> Void)] = []
+
+    public override init(_ client: ClientAuth)
+    {
+        self.client = client
+        super.init(client)
+    }
 
     public func onError(_ callback: @escaping (Swift.Error?, HTTPResponseStatus?) -> Void) {
         self.onErrorCallbacks.append(callback)
@@ -75,9 +83,17 @@ open class Realtime : Service {
             return
         }
 
-        let queryParams = "project=\(client.config["project"]!)"
+        guard let project = client.getConfig(key: "project") else {
+            throw {{ spec.title | caseUcfirst }}Error(message: "Missing project")
+        }
 
-        let url = "\(client.endPointRealtime!)/realtime?\(queryParams)"
+        guard let endPointRealtime = client.endPointRealtime else {
+            throw {{ spec.title | caseUcfirst }}Error(message: "Missing realtime endpoint")
+        }
+
+        let queryParams = "project=\(project)"
+
+        let url = "\(endPointRealtime)/realtime?\(queryParams)"
 
         if (socketClient != nil) {
             reconnect = false

@@ -20,6 +20,7 @@ class Node18Test extends Base
         'docker run --network="mockapi" --rm -v $(pwd):/app -w /app node:18-alpine node tests/sdks/node/test.js';
 
     protected array $expectedOutput = [
+        ...Base::SERVER_AUTH_FACTORY_RESPONSES,
         ...Base::PING_RESPONSE,
         ...Base::FOO_RESPONSES,
         ...Base::FOO_RESPONSES, // Object params

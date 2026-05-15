@@ -2,6 +2,7 @@ import 'enums.dart';
 import 'client_stub.dart'
     if (dart.library.html) 'client_browser.dart'
     if (dart.library.io) 'client_io.dart';
+import 'exception.dart';
 import 'response.dart';
 import 'upload_progress.dart';
 
@@ -22,6 +23,182 @@ abstract class Client {
     String endPoint = '{{ spec.endpoint }}',
     bool selfSigned = false,
   }) => createClient(endPoint: endPoint, selfSigned: selfSigned);
+
+  /// Creates a client configured with project authentication.
+  static Client from({
+    String endPoint = '{{ spec.endpoint }}',
+    required String projectId,
+    String? locale,
+    bool selfSigned = false,
+  }) =>
+      _fromBase(
+        endPoint: endPoint,
+        projectId: projectId,
+        locale: locale,
+        selfSigned: selfSigned,
+        sdkPlatform: 'client',
+      );
+
+  /// Creates a client configured with a user session.
+  static Client fromSession({
+    String endPoint = '{{ spec.endpoint }}',
+    required String projectId,
+    required String session,
+    String? locale,
+    bool selfSigned = false,
+  }) {
+    final client = _fromBase(
+      endPoint: endPoint,
+      projectId: projectId,
+      locale: locale,
+      selfSigned: selfSigned,
+      sdkPlatform: 'client',
+    );
+    client.setSession(session);
+    return client;
+  }
+
+  /// Creates a client configured with an API key.
+  static Client fromAPIKey({
+    String endPoint = '{{ spec.endpoint }}',
+    required String projectId,
+    required String apiKey,
+    String? locale,
+    bool selfSigned = false,
+  }) {
+    final client = _fromBase(
+      endPoint: endPoint,
+      projectId: projectId,
+      locale: locale,
+      selfSigned: selfSigned,
+      sdkPlatform: 'server',
+    );
+    client.setKey(apiKey);
+    return client;
+  }
+
+  /// Creates a client configured with a cookie header.
+  static Client fromCookie({
+    String endPoint = '{{ spec.endpoint }}',
+    required String projectId,
+    required String cookie,
+    String? locale,
+    bool selfSigned = false,
+  }) {
+    final client = _fromBase(
+      endPoint: endPoint,
+      projectId: projectId,
+      locale: locale,
+      selfSigned: selfSigned,
+      sdkPlatform: 'server',
+    );
+    client.config['cookie'] = cookie;
+    client.addHeader('Cookie', cookie);
+    return client;
+  }
+
+  /// Creates a client configured with a JWT.
+  static Client fromJWT({
+    String endPoint = '{{ spec.endpoint }}',
+    required String projectId,
+    required String jwt,
+    String? locale,
+    bool selfSigned = false,
+  }) {
+    final client = _fromBase(
+      endPoint: endPoint,
+      projectId: projectId,
+      locale: locale,
+      selfSigned: selfSigned,
+      sdkPlatform: 'server',
+    );
+    client.setJWT(jwt);
+    return client;
+  }
+
+  /// Creates a client configured with a development key.
+  static Client fromDevKey({
+    String endPoint = '{{ spec.endpoint }}',
+    required String projectId,
+    required String devKey,
+    String? locale,
+    bool selfSigned = false,
+  }) {
+    final client = _fromBase(
+      endPoint: endPoint,
+      projectId: projectId,
+      locale: locale,
+      selfSigned: selfSigned,
+      sdkPlatform: 'client',
+    );
+    client.config['devKey'] = devKey;
+    client.config['devkey'] = devKey;
+    client.addHeader('X-{{ spec.title | caseUcfirst }}-Dev-Key', devKey);
+    return client;
+  }
+
+  /// Creates a client configured for impersonation.
+  static Client fromImpersonation({
+    String endPoint = '{{ spec.endpoint }}',
+    required String projectId,
+    required String session,
+    String? userId,
+    String? userEmail,
+    String? userPhone,
+    String? locale,
+    bool selfSigned = false,
+  }) {
+    final targets = [userId, userEmail, userPhone].whereType<String>().length;
+    if (targets != 1) {
+      throw {{spec.title | caseUcfirst}}Exception(
+        'Exactly one impersonation target must be provided',
+      );
+    }
+
+    final client = _fromBase(
+      endPoint: endPoint,
+      projectId: projectId,
+      locale: locale,
+      selfSigned: selfSigned,
+      sdkPlatform: 'client',
+    );
+    client.setSession(session);
+
+    if (userId != null) {
+      client.config['impersonateUserId'] = userId;
+      client.config['impersonateuserid'] = userId;
+      client.addHeader('X-{{ spec.title | caseUcfirst }}-Impersonate-User-Id', userId);
+    } else if (userEmail != null) {
+      client.config['impersonateUserEmail'] = userEmail;
+      client.config['impersonateuseremail'] = userEmail;
+      client.addHeader('X-{{ spec.title | caseUcfirst }}-Impersonate-User-Email', userEmail);
+    } else {
+      client.config['impersonateUserPhone'] = userPhone!;
+      client.config['impersonateuserphone'] = userPhone!;
+      client.addHeader('X-{{ spec.title | caseUcfirst }}-Impersonate-User-Phone', userPhone!);
+    }
+
+    return client;
+  }
+
+  static Client _fromBase({
+    required String endPoint,
+    required String projectId,
+    String? locale,
+    required bool selfSigned,
+    required String sdkPlatform,
+  }) {
+    final client = Client(selfSigned: selfSigned)
+      ..setEndpoint(endPoint)
+      ..setProject(projectId)
+      ..addHeader('x-sdk-platform', sdkPlatform);
+
+    if (locale != null) {
+      client.setLocale(locale);
+    }
+
+    return client;
+  }
 
   /// Handle OAuth2 session creation.
   Future<String?> webAuth(Uri url);

@@ -109,6 +109,54 @@ abstract class Base extends TestCase
         'Invalid endpoint URL: htp://cloud.appwrite.io/v1',
     ];
 
+    protected const CLIENT_AUTH_FACTORY_RESPONSES = [
+        'auth-project',
+        'en-US',
+        'wss://realtime.example.com/v1',
+        'auth-session',
+        'auth-dev-key',
+        'auth-user-id',
+        'auth@example.com',
+        '+15555550123',
+        'Exactly one impersonation target must be provided',
+        'Invalid endpoint URL: htp://cloud.appwrite.io/v1',
+        'Invalid realtime endpoint URL: ftp://cloud.appwrite.io/v1',
+    ];
+
+    protected const SERVER_AUTH_FACTORY_RESPONSES = [
+        'auth-project',
+        'en-US',
+        'client',
+        'auth-session',
+        'auth-api-key',
+        'auth-cookie',
+        'auth-jwt',
+        'auth-dev-key',
+        'auth-user-id',
+        'auth@example.com',
+        '+15555550123',
+        'Exactly one impersonation target must be provided',
+        'Invalid endpoint URL: htp://cloud.appwrite.io/v1',
+    ];
+
+    protected const ISOMORPHIC_AUTH_FACTORY_RESPONSES = [
+        'auth-project',
+        'en-US',
+        'client',
+        'wss://realtime.example.com/v1',
+        'auth-session',
+        'auth-api-key',
+        'auth-cookie',
+        'auth-jwt',
+        'auth-dev-key',
+        'auth-user-id',
+        'auth@example.com',
+        '+15555550123',
+        'Exactly one impersonation target must be provided',
+        'Invalid endpoint URL: htp://cloud.appwrite.io/v1',
+        'Invalid realtime endpoint URL: ftp://cloud.appwrite.io/v1',
+    ];
+
     protected const REALTIME_RESPONSES = [
         'WS:/v1/realtime:passed',
         'WS:/v1/realtime:passed',

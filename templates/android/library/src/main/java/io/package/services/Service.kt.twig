@@ -126,7 +126,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
                 .httpOnly()
                 .build()
             
-            client.http.cookieJar.saveFromResponse(
+            client.getHttpClient().cookieJar.saveFromResponse(
                 client.endpoint.toHttpUrl(),
                 listOf(cookie)
             )

@@ -55,6 +55,135 @@ open class Client {
         addOriginHeader()
     }
 
+    public static func from(
+        endpoint: String = "{{spec.endpoint}}",
+        projectId: String,
+        locale: String? = nil,
+        selfSigned: Bool = false
+    ) throws -> Client {
+        let client = Client()
+        try configure(client, endpoint: endpoint, projectId: projectId, locale: locale, selfSigned: selfSigned, sdkPlatform: "client")
+        return client
+    }
+
+    public static func fromSession(
+        endpoint: String = "{{spec.endpoint}}",
+        projectId: String,
+        session: String,
+        locale: String? = nil,
+        selfSigned: Bool = false
+    ) throws -> Client {
+        let client = try from(endpoint: endpoint, projectId: projectId, locale: locale, selfSigned: selfSigned)
+        client.setSession(session)
+        return client
+    }
+
+    public static func fromAPIKey(
+        endpoint: String = "{{spec.endpoint}}",
+        projectId: String,
+        apiKey: String,
+        locale: String? = nil,
+        selfSigned: Bool = false
+    ) throws -> Client {
+        let client = Client()
+        try configure(client, endpoint: endpoint, projectId: projectId, locale: locale, selfSigned: selfSigned, sdkPlatform: "server")
+        client.setKey(apiKey)
+        return client
+    }
+
+    public static func fromCookie(
+        endpoint: String = "{{spec.endpoint}}",
+        projectId: String,
+        cookie: String,
+        locale: String? = nil,
+        selfSigned: Bool = false
+    ) throws -> Client {
+        let client = Client()
+        try configure(client, endpoint: endpoint, projectId: projectId, locale: locale, selfSigned: selfSigned, sdkPlatform: "server")
+        client.config["cookie"] = cookie
+        client.headers["Cookie"] = cookie
+        return client
+    }
+
+    public static func fromJWT(
+        endpoint: String = "{{spec.endpoint}}",
+        projectId: String,
+        jwt: String,
+        locale: String? = nil,
+        selfSigned: Bool = false
+    ) throws -> Client {
+        let client = Client()
+        try configure(client, endpoint: endpoint, projectId: projectId, locale: locale, selfSigned: selfSigned, sdkPlatform: "server")
+        client.setJWT(jwt)
+        return client
+    }
+
+    public static func fromDevKey(
+        endpoint: String = "{{spec.endpoint}}",
+        projectId: String,
+        devKey: String,
+        locale: String? = nil,
+        selfSigned: Bool = false
+    ) throws -> Client {
+        let client = try from(endpoint: endpoint, projectId: projectId, locale: locale, selfSigned: selfSigned)
+        client.config["devkey"] = devKey
+        client.headers["X-{{ spec.title | caseUcfirst }}-Dev-Key"] = devKey
+        return client
+    }
+
+    public static func fromImpersonation(
+        endpoint: String = "{{spec.endpoint}}",
+        projectId: String,
+        session: String,
+        userId: String? = nil,
+        userEmail: String? = nil,
+        userPhone: String? = nil,
+        locale: String? = nil,
+        selfSigned: Bool = false
+    ) throws -> Client {
+        let targetCount = [userId, userEmail, userPhone].compactMap { $0 }.count
+        guard targetCount == 1 else {
+            throw {{ spec.title | caseUcfirst }}Error(message: "Exactly one impersonation target must be provided")
+        }
+
+        let client = try from(endpoint: endpoint, projectId: projectId, locale: locale, selfSigned: selfSigned)
+        client.setSession(session)
+
+        if let userId = userId {
+            client.config["impersonateuserid"] = userId
+            client.headers["X-{{ spec.title | caseUcfirst }}-Impersonate-User-Id"] = userId
+        } else if let userEmail = userEmail {
+            client.config["impersonateuseremail"] = userEmail
+            client.headers["X-{{ spec.title | caseUcfirst }}-Impersonate-User-Email"] = userEmail
+        } else if let userPhone = userPhone {
+            client.config["impersonateuserphone"] = userPhone
+            client.headers["X-{{ spec.title | caseUcfirst }}-Impersonate-User-Phone"] = userPhone
+        }
+
+        return client
+    }
+
+    private static func configure(
+        _ client: Client,
+        endpoint: String,
+        projectId: String,
+        locale: String?,
+        selfSigned: Bool,
+        sdkPlatform: String
+    ) throws {
+        guard endpoint.hasPrefix("http://") || endpoint.hasPrefix("https://") else {
+            throw {{ spec.title | caseUcfirst }}Error(message: "Invalid endpoint URL: \(endpoint)")
+        }
+
+        client.endPoint = endpoint
+        client.headers["x-sdk-platform"] = sdkPlatform
+        client.setProject(projectId)
+        if let locale = locale {
+            client.setLocale(locale)
+        }
+        client.setSelfSigned(selfSigned)
+    }
+
     private static func createHTTP(
         selfSigned: Bool = false,
         redirectConfiguration: HTTPClient.Configuration.RedirectConfiguration = .follow(max: 5, allowCycles: false),

@@ -8,7 +8,7 @@
             {{~ utils.map_headers(method.headers) }}
         };
 
-        final res = await client.call(HttpMethod.{{ method.method | caseLower }}, path: apiPath, params: apiParams, headers: apiHeaders);
+        final res = await _client.call(HttpMethod.{{ method.method | caseLower }}, path: apiPath, params: apiParams, headers: apiHeaders);
 
 {% set responseModels = method | getValidResponseModels %}
 {% set hasResponseDiscriminator = method.responseDiscriminator is defined and method.responseDiscriminator is not empty %}

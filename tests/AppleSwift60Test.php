@@ -19,6 +19,7 @@ class AppleSwift60Test extends Base
         'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/sdks/apple swift:6.0-jammy swift test';
 
     protected array $expectedOutput = [
+        ...Base::CLIENT_AUTH_FACTORY_RESPONSES,
         ...Base::PING_RESPONSE,
         ...Base::FOO_RESPONSES,
         ...Base::BAR_RESPONSES,

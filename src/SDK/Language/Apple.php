@@ -118,7 +118,7 @@ class Apple extends Swift
             [
                 'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Services/Service.swift',
-                'template'      => 'swift/Sources/Service.swift.twig',
+                'template'      => 'apple/Sources/Service.swift.twig',
             ],
             [
                 'scope'         => 'default',

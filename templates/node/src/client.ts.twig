@@ -59,6 +59,21 @@ type Headers = {
     [key: string]: string;
 }
 
+type SDKPlatform = 'client' | 'server';
+
+type BaseClientParams = {
+    endpoint: string;
+    selfSigned?: boolean;
+{%~ for param in spec.global.headers | webClientBaseParams %}
+    {{ param.name }}{% if not param.required %}?{% endif %}: string;
+{%~ endfor %}
+};
+
+type ImpersonationTarget =
+    | { userId: string; email?: never; phone?: never }
+    | { email: string; userId?: never; phone?: never }
+    | { phone: string; userId?: never; email?: never };
+
 class {{spec.title | caseUcfirst}}Exception extends Error {
     code: number;
     response: string;
@@ -126,6 +141,93 @@ class Client {
         '{{key}}': '{{header}}',
         {%~ endfor %}
     };
+
+    static from(params: BaseClientParams): Client {
+        return new Client().applyBase(params, 'client');
+    }
+
+    static fromSession(params: BaseClientParams & { session: string }): Client {
+        return new Client()
+            .applyBase(params, 'client')
+            .setSession(params.session);
+    }
+
+    static fromAPIKey(params: BaseClientParams & { apiKey: string }): Client {
+        return new Client()
+            .applyBase(params, 'server')
+            .setKey(params.apiKey);
+    }
+
+    static fromCookie(params: BaseClientParams & { cookie: string }): Client {
+        const client = new Client().applyBase(params, 'server');
+        client.config.cookie = params.cookie;
+        client.headers['Cookie'] = params.cookie;
+        return client;
+    }
+
+    static fromJWT(params: BaseClientParams & { jwt: string }): Client {
+        return new Client()
+            .applyBase(params, 'server')
+            .setJWT(params.jwt);
+    }
+
+    static fromDevKey(params: BaseClientParams & { devKey: string }): Client {
+        const client = new Client().applyBase(params, 'client');
+        client.config.devkey = params.devKey;
+        client.headers['X-{{ spec.title | caseUcfirst }}-Dev-Key'] = params.devKey;
+        return client;
+    }
+
+    static fromImpersonation(params: BaseClientParams & { session: string } & ImpersonationTarget): Client {
+        const targets = [
+            params.userId !== undefined,
+            params.email !== undefined,
+            params.phone !== undefined
+        ].filter(Boolean).length;
+
+        if (targets !== 1) {
+            throw new {{spec.title | caseUcfirst}}Exception('Exactly one impersonation target must be provided');
+        }
+
+        const client = new Client()
+            .applyBase(params, 'client')
+            .setSession(params.session);
+
+        if (params.userId !== undefined) {
+            client.config.impersonateuserid = params.userId;
+            client.headers['X-{{ spec.title | caseUcfirst }}-Impersonate-User-Id'] = params.userId;
+            return client;
+        }
+        if (params.email !== undefined) {
+            client.config.impersonateuseremail = params.email;
+            client.headers['X-{{ spec.title | caseUcfirst }}-Impersonate-User-Email'] = params.email;
+            return client;
+        }
+        client.config.impersonateuserphone = params.phone;
+        client.headers['X-{{ spec.title | caseUcfirst }}-Impersonate-User-Phone'] = params.phone;
+        return client;
+    }
+
+    private applyBase(params: BaseClientParams, sdkPlatform: SDKPlatform): Client {
+        this.headers['x-sdk-platform'] = sdkPlatform;
+        this.setEndpoint(params.endpoint);
+{%~ for param in spec.global.headers | webClientBaseParams %}
+{%~ if param.required %}
+        this.{{ param.setter }}(params.{{ param.name }});
+
+{%~ else %}
+        if (params.{{ param.name }} !== undefined) {
+            this.{{ param.setter }}(params.{{ param.name }});
+        }
+
+{%~ endif %}
+{%~ endfor %}
+        if (params.selfSigned !== undefined) {
+            this.setSelfSigned(params.selfSigned);
+        }
+
+        return this;
+    }
 
     /**
      * Set Endpoint

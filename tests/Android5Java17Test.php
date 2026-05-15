@@ -20,6 +20,7 @@ class Android5Java17Test extends Base
         'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/sdks/android alvrme/alpine-android:android-21-jdk17 sh -c "./gradlew :library:testDebugUnitTest --stacktrace 1>&2 && cat library/result.txt"';
 
     protected array $expectedOutput = [
+        ...Base::CLIENT_AUTH_FACTORY_RESPONSES,
         ...Base::PING_RESPONSE,
         ...Base::FOO_RESPONSES,
         ...Base::BAR_RESPONSES,

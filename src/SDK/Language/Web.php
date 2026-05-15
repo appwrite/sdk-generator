@@ -481,6 +481,167 @@ class Web extends JS
         return $this->getTypeName($property);
     }
 
+    /**
+     * Determine whether a method supports client-side platforms.
+     */
+    protected function methodSupportsClient(array $method): bool
+    {
+        return in_array('client', $method['platforms'] ?? [], true);
+    }
+
+    /**
+     * Determine whether a method supports server/console platforms.
+     */
+    protected function methodSupportsServer(array $method): bool
+    {
+        $platforms = $method['platforms'] ?? [];
+        return in_array('server', $platforms, true) || in_array('console', $platforms, true);
+    }
+
+    /**
+     * Compute auth-related flags for a Web service.
+     *
+     * @return array<string, mixed>
+     */
+    public function webServiceAuth(array $service): array
+    {
+        $hasClientTier = false;
+        $hasServerTier = false;
+        $hasServerOnly = false;
+        $hasClientOnly = false;
+        $hasUpload = false;
+        $needsServiceFlatten = false;
+        $serverOnlyMethods = [];
+        $clientOnlyMethods = [];
+
+        foreach ($service['methods'] ?? [] as $method) {
+            $hasClient = $this->methodSupportsClient($method);
+            $hasServer = $this->methodSupportsServer($method);
+            $methodName = $this->toCamelCase($method['name'] ?? '');
+
+            if ($hasClient) {
+                $hasClientTier = true;
+            }
+            if ($hasServer) {
+                $hasServerTier = true;
+            }
+            if ($hasServer && !$hasClient) {
+                $hasServerOnly = true;
+                $serverOnlyMethods[] = $methodName;
+            }
+            if ($hasClient && !$hasServer) {
+                $hasClientOnly = true;
+                $clientOnlyMethods[] = $methodName;
+            }
+            if (in_array('multipart/form-data', $method['consumes'] ?? [], true)) {
+                $hasUpload = true;
+            }
+            if (in_array($method['type'] ?? '', ['location', 'webAuth'], true)) {
+                $needsServiceFlatten = true;
+            }
+        }
+
+        $hasMixedTier = $hasClientTier && $hasServerTier;
+
+        return [
+            'hasClientTier'   => $hasClientTier,
+            'hasServerTier'   => $hasServerTier,
+            'hasMixedTier'    => $hasMixedTier,
+            'needsServerAuth' => $hasServerTier && (!$hasMixedTier || $hasServerOnly),
+            'needsClientAuth' => $hasClientTier && (!$hasMixedTier || $hasClientOnly),
+            'hasUpload'       => $hasUpload,
+            'needsServiceFlatten' => $needsServiceFlatten,
+            'serverOnlyMethods' => array_values(array_unique($serverOnlyMethods)),
+            'clientOnlyMethods' => array_values(array_unique($clientOnlyMethods)),
+        ];
+    }
+
+    /**
+     * Build the Web client config keys required by the isomorphic auth factories.
+     *
+     * @return string[]
+     */
+    public function webClientConfigKeys(array $headers): array
+    {
+        $keys = [];
+        foreach ($headers as $header) {
+            $keys[] = strtolower((string)($header['key'] ?? ''));
+        }
+
+        return array_values(array_unique(array_filter($keys)));
+    }
+
+    /**
+     * Build the TypeScript `this:` receiver constraint for a method in a Web service.
+     */
+    public function webMethodAuthReceiver(array $method, array $service): string
+    {
+        $auth = $this->webServiceAuth($service);
+        if (!$auth['hasMixedTier']) {
+            return '';
+        }
+
+        $serviceName = $this->toPascalCase($service['name'] ?? '');
+
+        if (!$this->methodSupportsClient($method)) {
+            return 'this: ' . $serviceName . '<ServerAuth>, ';
+        }
+        if (!$this->methodSupportsServer($method)) {
+            return 'this: ' . $serviceName . '<ClientAuth>, ';
+        }
+
+        return '';
+    }
+
+    public function webClientBaseParams(array $headers): array
+    {
+        $params = [
+            'Project' => [
+                'name' => 'projectId',
+                'required' => true,
+                'setter' => 'setProject',
+            ],
+            'Locale' => [
+                'name' => 'locale',
+                'required' => false,
+                'setter' => 'setLocale',
+            ],
+            'Mode' => [
+                'name' => 'mode',
+                'required' => false,
+                'setter' => 'setMode',
+            ],
+            'Platform' => [
+                'name' => 'platform',
+                'required' => false,
+                'setter' => 'setPlatform',
+            ],
+        ];
+
+        $baseParams = [];
+        foreach ($headers as $header) {
+            $key = $header['key'] ?? '';
+            if (isset($params[$key])) {
+                $baseParams[] = $params[$key];
+            }
+        }
+
+        return $baseParams;
+    }
+
+    public function webClientSetterReturnType(array $header): string
+    {
+        return match ($header['key'] ?? '') {
+            'Key' => "ClientRuntime<'apiKey'>",
+            'Cookie' => "ClientRuntime<'cookie'>",
+            'JWT' => "ClientRuntime<'jwt'>",
+            'Session' => "ClientRuntime<'session'>",
+            'DevKey' => "ClientRuntime<'devKey'>",
+            'ImpersonateUserId', 'ImpersonateUserEmail', 'ImpersonateUserPhone' => "ClientRuntime<'impersonation'>",
+            default => 'this',
+        };
+    }
+
     public function getFilters(): array
     {
         return \array_merge(parent::getFilters(), [
@@ -540,6 +701,21 @@ class Web extends JS
                 $condition .= ')';
 
                 return $condition;
+            }, ['is_safe' => ['html']]),
+            new TwigFilter('webServiceAuth', function (array $service) {
+                return $this->webServiceAuth($service);
+            }),
+            new TwigFilter('webMethodAuthReceiver', function (array $method, array $service) {
+                return $this->webMethodAuthReceiver($method, $service);
+            }, ['is_safe' => ['html']]),
+            new TwigFilter('webClientBaseParams', function (array $headers) {
+                return $this->webClientBaseParams($headers);
+            }),
+            new TwigFilter('webClientConfigKeys', function (array $headers) {
+                return $this->webClientConfigKeys($headers);
+            }),
+            new TwigFilter('webClientSetterReturnType', function (array $header) {
+                return $this->webClientSetterReturnType($header);
             }, ['is_safe' => ['html']]),
             new TwigFilter('comment2', function ($value) {
                 $value = explode("\n", $value);

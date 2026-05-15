@@ -27,6 +27,84 @@ class Tests: XCTestCase {
         let sdkHeaders = client.getHeaders()
         print("x-sdk-name: \(sdkHeaders["x-sdk-name"] ?? "nil"); x-sdk-platform: \(sdkHeaders["x-sdk-platform"] ?? "nil"); x-sdk-language: \(sdkHeaders["x-sdk-language"] ?? "nil"); x-sdk-version: \(sdkHeaders["x-sdk-version"] ?? "nil")")
 
+        let baseClient = try Client.from(
+            endpoint: "https://cloud.appwrite.io/v1",
+            projectId: "auth-project",
+            endpointRealtime: "wss://realtime.example.com/v1",
+            locale: "en-US",
+            selfSigned: true
+        )
+        print(baseClient.getConfig(key: "project") ?? "nil")
+        print(baseClient.getConfig(key: "locale") ?? "nil")
+        print(baseClient.endPointRealtime ?? "nil")
+
+        let sessionClient = try Client.fromSession(
+            endpoint: "https://cloud.appwrite.io/v1",
+            projectId: "auth-project",
+            session: "auth-session"
+        )
+        print(sessionClient.getConfig(key: "session") ?? "nil")
+
+        let devKeyClient = try Client.fromDevKey(
+            endpoint: "https://cloud.appwrite.io/v1",
+            projectId: "auth-project",
+            devKey: "auth-dev-key"
+        )
+        print(devKeyClient.getConfig(key: "devkey") ?? "nil")
+
+        let impersonationUserClient = try Client.fromImpersonation(
+            endpoint: "https://cloud.appwrite.io/v1",
+            projectId: "auth-project",
+            session: "auth-session",
+            userId: "auth-user-id"
+        )
+        print(impersonationUserClient.getConfig(key: "impersonateuserid") ?? "nil")
+
+        let impersonationEmailClient = try Client.fromImpersonation(
+            endpoint: "https://cloud.appwrite.io/v1",
+            projectId: "auth-project",
+            session: "auth-session",
+            userEmail: "auth@example.com"
+        )
+        print(impersonationEmailClient.getConfig(key: "impersonateuseremail") ?? "nil")
+
+        let impersonationPhoneClient = try Client.fromImpersonation(
+            endpoint: "https://cloud.appwrite.io/v1",
+            projectId: "auth-project",
+            session: "auth-session",
+            userPhone: "+15555550123"
+        )
+        print(impersonationPhoneClient.getConfig(key: "impersonateuserphone") ?? "nil")
+
+        do {
+            _ = try Client.fromImpersonation(
+                endpoint: "https://cloud.appwrite.io/v1",
+                projectId: "auth-project",
+                session: "auth-session"
+            )
+        } catch let error as AppwriteError {
+            print(error.message)
+        }
+
+        do {
+            _ = try Client.from(
+                endpoint: "htp://cloud.appwrite.io/v1",
+                projectId: "auth-project"
+            )
+        } catch let error as AppwriteError {
+            print(error.message)
+        }
+
+        do {
+            _ = try Client.from(
+                endpoint: "https://cloud.appwrite.io/v1",
+                projectId: "auth-project",
+                endpointRealtime: "ftp://cloud.appwrite.io/v1"
+            )
+        } catch let error as AppwriteError {
+            print(error.message)
+        }
+
         // Ping pong test
         let ping = try await client.ping()
         let pingResult = parse(from: ping)!

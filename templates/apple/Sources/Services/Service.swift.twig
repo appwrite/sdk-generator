@@ -8,6 +8,14 @@ import {{spec.title | caseUcfirst}}Models
 /// {{ service.description }}
 open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
 
+    private let _client: ClientAuth
+
+    public override init(_ client: ClientAuth)
+    {
+        self._client = client
+        super.init(client)
+    }
+
     {%~ for method in service.methods %}
     ///
     {%~ if method.description %}
@@ -46,7 +54,8 @@ open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
         onProgress: ((UploadProgress) -> Void)? = nil
         {%~ endif %}
     ) async throws -> {{ method | returnType(spec) | raw }} {
-        {{~ include('swift/base/params.twig') }}
+        let client = _client
+        {{~ include('apple/base/params.twig') }}
         {%~ if method.type == 'webAuth' %}
         {{~ include('apple/base/requests/oauth.twig') }}
         {%~ elseif method.type == 'location' %}

@@ -54,11 +54,94 @@ void main() async {
     ],
   );
 
+  final authFactoryOutputs = <String?>[];
+  final baseClient = Client.from(
+    endPoint: 'https://cloud.appwrite.io/v1',
+    projectId: 'auth-project',
+    endPointRealtime: 'wss://realtime.example.com/v1',
+    locale: 'en-US',
+    selfSigned: true,
+  );
+  authFactoryOutputs.add(baseClient.config['project']);
+  authFactoryOutputs.add(baseClient.config['locale']);
+  authFactoryOutputs.add(baseClient.endPointRealtime);
+
+  final sessionClient = Client.fromSession(
+    endPoint: 'https://cloud.appwrite.io/v1',
+    projectId: 'auth-project',
+    session: 'auth-session',
+  );
+  authFactoryOutputs.add(sessionClient.config['session']);
+
+  final devKeyClient = Client.fromDevKey(
+    endPoint: 'https://cloud.appwrite.io/v1',
+    projectId: 'auth-project',
+    devKey: 'auth-dev-key',
+  );
+  authFactoryOutputs.add(devKeyClient.config['devKey']);
+
+  final impersonationUserClient = Client.fromImpersonation(
+    endPoint: 'https://cloud.appwrite.io/v1',
+    projectId: 'auth-project',
+    session: 'auth-session',
+    userId: 'auth-user-id',
+  );
+  authFactoryOutputs.add(impersonationUserClient.config['impersonateUserId']);
+
+  final impersonationEmailClient = Client.fromImpersonation(
+    endPoint: 'https://cloud.appwrite.io/v1',
+    projectId: 'auth-project',
+    session: 'auth-session',
+    userEmail: 'auth@example.com',
+  );
+  authFactoryOutputs.add(impersonationEmailClient.config['impersonateUserEmail']);
+
+  final impersonationPhoneClient = Client.fromImpersonation(
+    endPoint: 'https://cloud.appwrite.io/v1',
+    projectId: 'auth-project',
+    session: 'auth-session',
+    userPhone: '+15555550123',
+  );
+  authFactoryOutputs.add(impersonationPhoneClient.config['impersonateUserPhone']);
+
+  try {
+    Client.fromImpersonation(
+      endPoint: 'https://cloud.appwrite.io/v1',
+      projectId: 'auth-project',
+      session: 'auth-session',
+    );
+  } on AppwriteException catch (e) {
+    authFactoryOutputs.add(e.message);
+  }
+
+  try {
+    Client.from(
+      endPoint: 'htp://cloud.appwrite.io/v1',
+      projectId: 'auth-project',
+    );
+  } on AppwriteException catch (e) {
+    authFactoryOutputs.add(e.message);
+  }
+
+  try {
+    Client.from(
+      endPoint: 'https://cloud.appwrite.io/v1',
+      projectId: 'auth-project',
+      endPointRealtime: 'ftp://cloud.appwrite.io/v1',
+    );
+  } on AppwriteException catch (e) {
+    authFactoryOutputs.add(e.message);
+  }
+
   await Future.delayed(Duration(seconds: 5));
   client.addHeader('Origin', 'http://localhost');
   print('\nTest Started');
   final sdkHeaders = client.getHeaders();
   print("x-sdk-name: ${sdkHeaders['x-sdk-name']}; x-sdk-platform: ${sdkHeaders['x-sdk-platform']}; x-sdk-language: ${sdkHeaders['x-sdk-language']}; x-sdk-version: ${sdkHeaders['x-sdk-version']}");
+
+  for (final output in authFactoryOutputs) {
+    print(output);
+  }
 
   // Ping pong tests
   client.setProject('123456');

@@ -1,5 +1,9 @@
+{# Detect service shape and imports before emitting TypeScript. #}
+{% set auth = service | webServiceAuth %}
+{%~ if auth.needsServiceFlatten %}
 import { Service } from '../service';
-import { {{ spec.title | caseUcfirst}}Exception, Client, type Payload, UploadProgress } from '../client';
+{%~ endif %}
+import { {{ spec.title | caseUcfirst}}Exception, Client, {% if auth.needsClientAuth or auth.hasMixedTier %}type ClientAuth, {% endif %}{% if auth.needsServerAuth or auth.hasMixedTier %}type ServerAuth, {% endif %}type Payload{% if auth.hasUpload %}, UploadProgress{% endif %} } from '../client';
 import type { Models } from '../models';
 
 {% set added = [] %}
@@ -14,14 +18,45 @@ import { {{ parameter.enumName | caseUcfirst }} } from '../enums/{{ parameter.en
 {% endfor %}
 {% endfor %}
 
-export class {{ service.name | caseUcfirst }} {
-    client: Client;
+{%~ if auth.hasMixedTier %}
+type {{ service.name | caseUcfirst }}ServerOnlyMethod = {% if auth.serverOnlyMethods is empty %}never{% else %}{% for methodName in auth.serverOnlyMethods %}'{{ methodName }}'{% if not loop.last %} | {% endif %}{% endfor %}{% endif %};
+type {{ service.name | caseUcfirst }}ClientOnlyMethod = {% if auth.clientOnlyMethods is empty %}never{% else %}{% for methodName in auth.clientOnlyMethods %}'{{ methodName }}'{% if not loop.last %} | {% endif %}{% endfor %}{% endif %};
 
-    constructor(client: Client) {
+export type {{ service.name | caseUcfirst }}<TAuth extends ClientAuth | ServerAuth = ClientAuth | ServerAuth> =
+    TAuth extends ClientAuth
+        ? Omit<{{ service.name | caseUcfirst }}Runtime<TAuth>, 'client' | {{ service.name | caseUcfirst }}ServerOnlyMethod>
+        : TAuth extends ServerAuth
+            ? Omit<{{ service.name | caseUcfirst }}Runtime<TAuth>, 'client' | {{ service.name | caseUcfirst }}ClientOnlyMethod>
+            : Omit<{{ service.name | caseUcfirst }}Runtime<TAuth>, 'client'>;
+
+class {{ service.name | caseUcfirst }}Runtime<TAuth extends ClientAuth | ServerAuth = ClientAuth | ServerAuth> {
+    client: Client<TAuth>;
+
+    constructor(client: Client<TAuth>) {
         this.client = client;
     }
+{%~ elseif auth.hasServerTier %}
+export type {{ service.name | caseUcfirst }} = Omit<{{ service.name | caseUcfirst }}Runtime, 'client'>;
+
+class {{ service.name | caseUcfirst }}Runtime {
+    client: Client<ServerAuth>;
+
+    constructor(client: Client<ServerAuth>) {
+        this.client = client;
+    }
+{%~ else %}
+export type {{ service.name | caseUcfirst }} = Omit<{{ service.name | caseUcfirst }}Runtime, 'client'>;
+
+class {{ service.name | caseUcfirst }}Runtime {
+    client: Client<ClientAuth>;
+
+    constructor(client: Client<ClientAuth>) {
+        this.client = client;
+    }
+{%~ endif %}
 
     {%~ for method in service.methods %}
+    {%~ set authReceiver = method | webMethodAuthReceiver(service) %}
     /**
     {%~ if method.description %}
      * {{ method.description | replace({'\n': '\n     * '}) | raw }}
@@ -41,7 +76,7 @@ export class {{ service.name | caseUcfirst }} {
     {%~ endif %}
      */
     {%~ if method.parameters.all|length > 0 %}
-    {{ method.name | caseCamel }}{{ method.responseModel | getGenerics(spec) | raw }}(params{% set hasRequiredParams = false %}{% for parameter in method.parameters.all %}{% if parameter.required %}{% set hasRequiredParams = true %}{% endif %}{% endfor %}{% if not hasRequiredParams %}?{% endif %}: { {% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | getPropertyType(method) | raw }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, onProgress?: (progress: UploadProgress) => void{% endif %} }): {{ method | getReturn(spec) | raw }};
+    {{ method.name | caseCamel }}{{ method.responseModel | getGenerics(spec) | raw }}({{ authReceiver | raw }}params{% set hasRequiredParams = false %}{% for parameter in method.parameters.all %}{% if parameter.required %}{% set hasRequiredParams = true %}{% endif %}{% endfor %}{% if not hasRequiredParams %}?{% endif %}: { {% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | getPropertyType(method) | raw }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, onProgress?: (progress: UploadProgress) => void{% endif %} }): {{ method | getReturn(spec) | raw }};
     /**
      {%~ if method.description %}
      * {{ method.description | replace({'\n': '\n     * '}) | raw }}
@@ -54,7 +89,7 @@ export class {{ service.name | caseUcfirst }} {
      * @returns {{ '{' }}{{ method | getReturn(spec) | raw }}{{ '}' }}
      * @deprecated Use the object parameter style method for a better developer experience.
      */
-    {{ method.name | caseCamel }}{{ method.responseModel | getGenerics(spec) | raw }}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | getPropertyType(method) | raw }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, onProgress?: (progress: UploadProgress) => void{% endif %}): {{ method | getReturn(spec) | raw }};
+    {{ method.name | caseCamel }}{{ method.responseModel | getGenerics(spec) | raw }}({{ authReceiver | raw }}{% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | getPropertyType(method) | raw }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, onProgress?: (progress: UploadProgress) => void{% endif %}): {{ method | getReturn(spec) | raw }};
     {{ method.name | caseCamel }}{{ method.responseModel | getGenerics(spec) | raw }}(
         {% if method.parameters.all|length > 0 %}paramsOrFirst{% if not method.parameters.all[0].required or method.parameters.all[0].nullable %}?{% endif %}: { {% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | getPropertyType(method) | raw }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, onProgress?: (progress: UploadProgress) => void{% endif %} } | {{ method.parameters.all[0] | getPropertyType(method) | raw }}{% if method.parameters.all|length > 1 %},
         ...rest: [{% for parameter in method.parameters.all[1:] %}({{ parameter | getPropertyType(method) | raw }})?{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %},((progress: UploadProgress) => void)?{% endif %}]{% endif %}{% endif %}
@@ -96,6 +131,9 @@ export class {{ service.name | caseUcfirst }} {
         {%~ endif %}
         {%~ endif %}
     {%~ else %}
+    {%~ if authReceiver is not empty %}
+    {{ method.name | caseCamel }}{{ method.responseModel | getGenerics(spec) | raw }}({{ authReceiver | raw }}{% if 'multipart/form-data' in method.consumes %}onProgress?: (progress: UploadProgress) => void{% endif %}): {{ method | getReturn(spec) | raw }};
+    {%~ endif %}
     {{ method.name | caseCamel }}{{ method.responseModel | getGenerics(spec) | raw }}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | getPropertyType(method) | raw }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, onProgress = (progress: UploadProgress) => void{% endif %}): {{ method | getReturn(spec) | raw }} {
     {%~ endif %}
         {%~ for parameter in method.parameters.all %}
@@ -133,7 +171,7 @@ export class {{ service.name | caseUcfirst }} {
         {%~ if method.auth|length > 0 %}
         {%~ for node in method.auth %}
         {%~ for key,header in node|keys %}
-        payload['{{header|caseLower}}'] = this.client.config.{{header|caseLower}};
+        payload['{{header|caseLower}}'] = (this.client.config as unknown as Record<string, string>)['{{header|caseLower}}'];
         {%~ endfor %}
         {%~ endfor %}
         {%~ endif %}
@@ -174,3 +212,15 @@ export class {{ service.name | caseUcfirst }} {
 {%~ endif %}
     {%~ endfor %}
 }
+
+const {{ service.name | caseUcfirst }} = {{ service.name | caseUcfirst }}Runtime as unknown as {
+{%~ if auth.hasMixedTier %}
+    new <TAuth extends ClientAuth | ServerAuth = ClientAuth | ServerAuth>(client: Client<TAuth>): {{ service.name | caseUcfirst }}<TAuth>;
+{%~ elseif auth.hasServerTier %}
+    new (client: Client<ServerAuth>): {{ service.name | caseUcfirst }};
+{%~ else %}
+    new (client: Client<ClientAuth>): {{ service.name | caseUcfirst }};
+{%~ endif %}
+};
+
+export { {{ service.name | caseUcfirst }} };

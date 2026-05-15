@@ -27,7 +27,7 @@ String _uniqueSubscriptionId() {
 }
 
 mixin RealtimeMixin {
-  late Client client;
+  late ClientAuth client;
   final Map<String, RealtimeSubscription> _subscriptions = {};
   final Map<String, Map<String, dynamic>> _pendingSubscribes = {};
   WebSocketChannel? _websok;

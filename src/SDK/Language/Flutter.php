@@ -33,7 +33,7 @@ class Flutter extends Dart
             [
                 'scope'         => 'default',
                 'destination'   => '/lib/src/service.dart',
-                'template'      => 'dart/lib/src/service.dart.twig',
+                'template'      => 'flutter/lib/src/service.dart.twig',
             ],
             [
                 'scope'         => 'default',
