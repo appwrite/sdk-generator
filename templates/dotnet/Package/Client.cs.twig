@@ -522,7 +522,7 @@ namespace {{ spec.title | caseUcfirst }}
 
                 if (includeUploadId && !string.IsNullOrEmpty(uploadId))
                 {
-                    chunkHeaders["x-appwrite-id"] = uploadId;
+                    chunkHeaders["x-{{ spec.title | caseLower }}-id"] = uploadId;
                 }
 
                 var content = new MultipartFormDataContent {
