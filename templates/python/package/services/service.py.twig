@@ -12,8 +12,13 @@ from ..input_file import InputFile
 {% endif %}
 {% if parameter.enumValues is not empty%}
 {% if parameter.enumName not in added %}
+{% if parameter.enumName | caseUcfirst == 'Type' %}
+from ..enums.{{ parameter.enumName | caseSnake }} import {{ parameter.enumName | caseUcfirst }} as {{ parameter.enumName | caseUcfirst }}Enum;
+{% set added = added|merge([parameter.enumName]) %}
+{% else %}
 from ..enums.{{ parameter.enumName | caseSnake }} import {{ parameter.enumName | caseUcfirst }};
 {% set added = added|merge([parameter.enumName]) %}
+{% endif %}
 {% endif %}
 {% endif %}
 {% set modelName = parameter.model ?? parameter.array.model ?? null %}
@@ -52,7 +57,6 @@ from ..models.{{ responseModel | caseSnake }} import {{ responseModel | caseUcfi
 {% endif %}
 {% endfor %}
 {% if hasGenericModel %}
-
 T = TypeVar('T')
 {% endif %}
 
@@ -167,6 +171,32 @@ Dict[str, Any]
 {{ include('python/base/requests/file.twig') }}
 {% else %}
 {{ include('python/base/requests/api.twig') }}
+{% endif %}
+
+{% if method.deprecated %}
+{% if method.since and method.replaceWith %}
+    @deprecated("This API has been deprecated since {{ method.since }}. Please use `{{ method.replaceWith | caseSnakeExceptFirstDot }}` instead.")
+{% else %}
+    @deprecated("This API has been deprecated.")
+{% endif %}
+{% endif %}
+    async def {{ method.name | caseSnake }}_async(
+        self{% for parameter in method.parameters.all %},
+        {{ parameter.name | escapeKeyword | caseSnake }}: {{ parameter | getServicePropertyType(service.name) | raw }}{% if not parameter.required %} = None{% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %},
+        on_progress = None{% endif %}{% if isGenericResponse %},
+        model_type: Type[T] = dict{% endif %}
+
+    ) -> {{ returnType | trim }}:
+        """
+        Async version of :meth:`{{ method.name | caseSnake }}`.
+        """
+
+        api_path = '{{ method.path }}'
+{{ include('python/base/params.twig') }}
+{% if 'multipart/form-data' in method.consumes %}
+{{ include('python/base/requests/file_async.twig') }}
+{% else %}
+{{ include('python/base/requests/api_async.twig') }}
 {% endif %}
 {% endif %}
 {% endfor %}

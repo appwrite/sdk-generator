@@ -1,9 +1,11 @@
+import asyncio
+import inspect
 import io
 import json
 import os
 import platform
 import sys
-import requests
+import httpx
 from .input_file import InputFile
 from .exception import {{spec.title | caseUcfirst}}Exception
 from .encoders.value_class_encoder import ValueClassEncoder
@@ -53,7 +55,7 @@ class Client:
         return self
 {% endfor %}
 
-    def call(self, method, path='', headers=None, params=None, response_type='json'):
+    def _prepare_request(self, method, path='', headers=None, params=None):
         if headers is None:
             headers = {}
 
@@ -73,53 +75,91 @@ class Client:
         if headers['content-type'].startswith('application/json'):
             data = json.dumps(data, cls=ValueClassEncoder)
 
-        if headers['content-type'].startswith('multipart/form-data'):
+        if headers.get('content-type', '').startswith('multipart/form-data'):
             del headers['content-type']
             stringify = True
-            for key in data.copy():
+            for key in list(data.keys()):
                 if isinstance(data[key], InputFile):
-                    files[key] = (data[key].filename, data[key].data)
+                    file_content = data[key].data
+                    if isinstance(file_content, bytearray):
+                        file_content = bytes(file_content)
+                    files[key] = (data[key].filename, file_content)
                     del data[key]
             data = self.flatten(data, stringify=stringify)
 
+        return self._endpoint + path, headers, self.flatten(params, stringify=stringify), data, files
+
+    def _handle_response(self, response, response_type):
+        warnings = response.headers.get('x-{{ spec.title | lower }}-warning')
+        if warnings:
+            for warning in warnings.split(';'):
+                print(f'Warning: {warning}', file=sys.stderr)
+
+        content_type = response.headers.get('Content-Type', '')
+
+        if response_type == 'location':
+            return response.headers.get('Location')
+
+        if content_type.startswith('application/json'):
+            return response.json()
+
+        return response.content
+
+    def _handle_exception(self, e, response=None):
+        if response is not None:
+            content_type = response.headers.get('Content-Type', '')
+            if content_type.startswith('application/json'):
+                try:
+                    body = response.json()
+                except Exception:
+                    raise {{spec.title | caseUcfirst}}Exception(response.text, response.status_code, None, response.text)
+                raise {{spec.title | caseUcfirst}}Exception(body.get('message', ''), response.status_code, body.get('type'), response.text)
+            else:
+                raise {{spec.title | caseUcfirst}}Exception(response.text, response.status_code, None, response.text)
+        else:
+            raise {{spec.title | caseUcfirst}}Exception(str(e))
+
+    def call(self, method, path='', headers=None, params=None, response_type='json'):
+        url, headers, params, data, files = self._prepare_request(method, path, headers, params)
+
         response = None
         try:
-            response = requests.request(  # call method dynamically https://stackoverflow.com/a/4246075/2299554
-                method=method,
-                url=self._endpoint + path,
-                params=self.flatten(params, stringify=stringify),
-                data=data,
-                files=files,
-                headers=headers,
-                verify=(not self._self_signed),
-                allow_redirects=False if response_type == 'location' else True
-            )
+            with httpx.Client(verify=(not self._self_signed), follow_redirects=False if response_type == 'location' else True) as http_client:
+                response = http_client.request(
+                    method=method,
+                    url=url,
+                    params=params,
+                    data=data,
+                    files=files,
+                    headers=headers,
+                )
 
             response.raise_for_status()
 
-            warnings = response.headers.get('x-{{ spec.title | lower }}-warning')
-            if warnings:
-                for warning in warnings.split(';'):
-                    print(f'Warning: {warning}', file=sys.stderr)
-
-            content_type = response.headers['Content-Type']
-
-            if response_type == 'location':
-                return response.headers.get('Location')
-
-            if content_type.startswith('application/json'):
-                return response.json()
-
-            return response._content
+            return self._handle_response(response, response_type)
         except Exception as e:
-            if response != None:
-                content_type = response.headers['Content-Type']
-                if content_type.startswith('application/json'):
-                    raise {{spec.title | caseUcfirst}}Exception(response.json()['message'], response.status_code, response.json().get('type'), response.text)
-                else:
-                    raise {{spec.title | caseUcfirst}}Exception(response.text, response.status_code, None, response.text)
-            else:
-                raise {{spec.title | caseUcfirst}}Exception(e)
+            self._handle_exception(e, response)
+
+    async def call_async(self, method, path='', headers=None, params=None, response_type='json'):
+        url, headers, params, data, files = self._prepare_request(method, path, headers, params)
+
+        response = None
+        try:
+            async with httpx.AsyncClient(verify=(not self._self_signed), follow_redirects=False if response_type == 'location' else True) as http_client:
+                response = await http_client.request(
+                    method=method,
+                    url=url,
+                    params=params,
+                    data=data,
+                    files=files,
+                    headers=headers,
+                )
+
+            response.raise_for_status()
+
+            return self._handle_response(response, response_type)
+        except Exception as e:
+            self._handle_exception(e, response)
 
     def chunked_upload(
         self,
@@ -130,6 +170,7 @@ class Client:
         on_progress = None,
         upload_id = ''
     ):
+        headers = headers.copy() if headers else {}
         input_file = params[param_name]
 
         if input_file.source_type == 'path':
@@ -139,69 +180,171 @@ class Client:
             size = len(input_file.data)
             input = input_file.data
 
-        if size < self._chunk_size:
+        try:
+            if size < self._chunk_size:
+                if input_file.source_type == 'path':
+                    input_file.data = input.read()
+
+                params[param_name] = input_file
+                return self.call(
+                    'post',
+                    path,
+                    headers,
+                    params
+                )
+
+            offset = 0
+            counter = 0
+
+            try:
+                result = self.call('get', path + '/' + upload_id, headers)
+                counter = result['chunksUploaded']
+            except Exception:
+                pass
+
+            if counter > 0:
+                offset = counter * self._chunk_size
+                if hasattr(input, 'seek'):
+                    input.seek(offset)
+
+            while offset < size:
+                if input_file.source_type == 'path':
+                    input_file.data = input.read(self._chunk_size) or input.read(size - offset)
+                elif input_file.source_type == 'bytes':
+                    if offset + self._chunk_size < size:
+                        end = offset + self._chunk_size
+                    else:
+                        end = size
+                    input_file.data = input[offset:end]
+
+                params[param_name] = input_file
+                headers["content-range"] = f'bytes {offset}-{min((offset + self._chunk_size) - 1, size - 1)}/{size}'
+
+                result = self.call(
+                    'post',
+                    path,
+                    headers,
+                    params,
+                )
+
+                offset = offset + self._chunk_size
+
+                if "$id" in result:
+                    headers["x-{{ spec.title | caseLower }}-id"] = result["$id"]
+
+                if on_progress is not None:
+                    end = min((((counter * self._chunk_size) + self._chunk_size) - 1), size - 1)
+                    on_progress({
+                        "$id": result.get("$id"),
+                        "progress": min(offset, size)/size * 100,
+                        "sizeUploaded": end+1,
+                        "chunksTotal": result.get("chunksTotal", 0),
+                        "chunksUploaded": result.get("chunksUploaded", 0),
+                    })
+
+                counter = counter + 1
+
+            return result
+        finally:
             if input_file.source_type == 'path':
-                input_file.data = input.read()
+                input.close()
 
-            params[param_name] = input_file
-            return self.call(
-                'post',
-                path,
-                headers,
-                params
-            )
+    async def chunked_upload_async(
+        self,
+        path,
+        headers = None,
+        params = None,
+        param_name = '',
+        on_progress = None,
+        upload_id = ''
+    ):
+        headers = headers.copy() if headers else {}
+        input_file = params[param_name]
 
-        offset = 0
-        counter = 0
+        if input_file.source_type == 'path':
+            stat_result = await asyncio.to_thread(os.stat, input_file.path)
+            size = stat_result.st_size
+            input = await asyncio.to_thread(open, input_file.path, 'rb')
+        elif input_file.source_type == 'bytes':
+            size = len(input_file.data)
+            input = input_file.data
 
         try:
-            result = self.call('get', path + '/' + upload_id, headers)
-            counter = result['chunksUploaded']
-        except:
-            pass
+            if size < self._chunk_size:
+                if input_file.source_type == 'path':
+                    input_file.data = await asyncio.to_thread(input.read)
 
-        if counter > 0:
-            offset = counter * self._chunk_size
-            input.seek(offset)
+                params[param_name] = input_file
+                return await self.call_async(
+                    'post',
+                    path,
+                    headers,
+                    params
+                )
 
-        while offset < size:
+            offset = 0
+            counter = 0
+
+            try:
+                result = await self.call_async('get', path + '/' + upload_id, headers)
+                counter = result['chunksUploaded']
+            except Exception:
+                pass
+
+            if counter > 0:
+                offset = counter * self._chunk_size
+                if hasattr(input, 'seek'):
+                    if input_file.source_type == 'path':
+                        await asyncio.to_thread(input.seek, offset)
+                    else:
+                        input.seek(offset)
+
+            while offset < size:
+                if input_file.source_type == 'path':
+                    current_offset = offset
+                    input_file.data = await asyncio.to_thread(
+                        lambda cs=self._chunk_size, co=current_offset: input.read(cs) or input.read(size - co)
+                    )
+                elif input_file.source_type == 'bytes':
+                    if offset + self._chunk_size < size:
+                        end = offset + self._chunk_size
+                    else:
+                        end = size
+                    input_file.data = input[offset:end]
+
+                params[param_name] = input_file
+                headers["content-range"] = f'bytes {offset}-{min((offset + self._chunk_size) - 1, size - 1)}/{size}'
+
+                result = await self.call_async(
+                    'post',
+                    path,
+                    headers,
+                    params,
+                )
+
+                offset = offset + self._chunk_size
+
+                if "$id" in result:
+                    headers["x-{{ spec.title | caseLower }}-id"] = result["$id"]
+
+                if on_progress is not None:
+                    end = min((((counter * self._chunk_size) + self._chunk_size) - 1), size - 1)
+                    result_cb = on_progress({
+                        "$id": result.get("$id"),
+                        "progress": min(offset, size)/size * 100,
+                        "sizeUploaded": end+1,
+                        "chunksTotal": result.get("chunksTotal", 0),
+                        "chunksUploaded": result.get("chunksUploaded", 0),
+                    })
+                    if inspect.isawaitable(result_cb):
+                        await result_cb
+
+                counter = counter + 1
+
+            return result
+        finally:
             if input_file.source_type == 'path':
-                input_file.data = input.read(self._chunk_size) or input.read(size - offset)
-            elif input_file.source_type == 'bytes':
-                if offset + self._chunk_size < size:
-                    end = offset + self._chunk_size
-                else:
-                    end = size
-                input_file.data = input[offset:end]
-
-            params[param_name] = input_file
-            headers["content-range"] = f'bytes {offset}-{min((offset + self._chunk_size) - 1, size - 1)}/{size}'
-
-            result = self.call(
-                'post',
-                path,
-                headers,
-                params,
-            )
-
-            offset = offset + self._chunk_size
-
-            if "$id" in result:
-                headers["x-{{ spec.title | caseLower }}-id"] = result["$id"]
-
-            if on_progress is not None:
-                end = min((((counter * self._chunk_size) + self._chunk_size) - 1), size - 1)
-                on_progress({
-                    "$id": result["$id"],
-                    "progress": min(offset, size)/size * 100,
-                    "sizeUploaded": end+1,
-                    "chunksTotal": result["chunksTotal"],
-                    "chunksUploaded": result["chunksUploaded"],
-                })
-
-            counter = counter + 1
-
-        return result
+                await asyncio.to_thread(input.close)
 
     def flatten(self, data, prefix='', stringify=False):
         output = {}

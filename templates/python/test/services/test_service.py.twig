@@ -1,5 +1,7 @@
+import asyncio
 import json
-import requests_mock
+import respx
+import httpx
 import unittest
 
 from appwrite.client import Client
@@ -14,8 +16,8 @@ class {{ service.name | caseUcfirst }}ServiceTest(unittest.TestCase):
         self.{{ service.name | caseSnake }} = {{ service.name | caseUcfirst }}(self.client)
 
 {% for method in service.methods %}
-    @requests_mock.Mocker()
-    def test_{{ method.name | caseSnake }}(self, m):
+    @respx.mock
+    def test_{{ method.name | caseSnake }}(self):
     {%~ if method.type == 'webAuth' %}
         data = None
     {%~ elseif method.type == 'location' %}
@@ -28,18 +30,46 @@ class {{ service.name | caseUcfirst }}ServiceTest(unittest.TestCase):
         {%~ endif %}
     {%~ endif %}
         headers = {'Content-Type': {% if method.type == 'location' %}'application/octet-stream'{% else %}'application/json'{% endif %}}
-        m.request(requests_mock.ANY, requests_mock.ANY, {% if method.type == 'location' %}body=data{% else %}text=json.dumps(data){% endif %}, headers=headers)
+        respx.route().mock(return_value=httpx.Response(200, {% if method.type == 'location' %}content=bytes(data){% else %}text=json.dumps(data){% endif %}, headers=headers))
 
         response = self.{{ service.name | caseSnake }}.{{ method.name | caseSnake }}({%~ for parameter in method.parameters.all | filter((param) => param.required) ~%}
             {% if parameter.type == 'object' %}{}{% elseif parameter.type == 'array' %}[]{% elseif parameter.type == 'file' %}InputFile.from_bytes(bytearray(), "example.file"){% elseif parameter.type == 'boolean' %}True{% elseif parameter.type == 'string' %}'{% if parameter.example is not empty %}{{parameter.example | escapeDollarSign}}{% endif %}'{% elseif parameter.type == 'integer' and parameter['x-example'] is empty %}1{% elseif parameter.type == 'number' and parameter['x-example'] is empty %}1.0{% else %}{{parameter.example}}{%~ endif ~%},{%~ endfor ~%}
         )
 
-        {%~ if method.type != 'webAuth' and method.responseModel and method.responseModel != 'any' %}
+        {%~ if method.type != 'webAuth' and method.type != 'location' and method.responseModel and method.responseModel != 'any' %}
         {%~ if method.responseModel == 'row' or method.responseModel == 'document' or method.responseModel == 'preferences' %}
         data['data'] = {}
         {%~ endif  %}
         self.assertEqual(response.to_dict(), data)
+        {%~ elseif method.type != 'webAuth' and method.type != 'location' %}
+        self.assertEqual(response, data)
+        {%~ endif  %}
+    @respx.mock
+    def test_{{ method.name | caseSnake }}_async(self):
+    {%~ if method.type == 'webAuth' %}
+        data = None
+    {%~ elseif method.type == 'location' %}
+        data = bytearray()
+    {%~ else %}
+        {%~ if method.responseModel and method.responseModel != 'any' %}
+        data = {{ method.responseModel | responseModelExample(spec) | raw }}
         {%~ else %}
+        data = ''
+        {%~ endif %}
+    {%~ endif %}
+        headers = {'Content-Type': {% if method.type == 'location' %}'application/octet-stream'{% else %}'application/json'{% endif %}}
+        respx.route().mock(return_value=httpx.Response(200, {% if method.type == 'location' %}content=bytes(data){% else %}text=json.dumps(data){% endif %}, headers=headers))
+
+        response = asyncio.run(self.{{ service.name | caseSnake }}.{{ method.name | caseSnake }}_async({%~ for parameter in method.parameters.all | filter((param) => param.required) ~%}
+            {% if parameter.type == 'object' %}{}{% elseif parameter.type == 'array' %}[]{% elseif parameter.type == 'file' %}InputFile.from_bytes(bytearray(), "example.file"){% elseif parameter.type == 'boolean' %}True{% elseif parameter.type == 'string' %}'{% if parameter.example is not empty %}{{parameter.example | escapeDollarSign}}{% endif %}'{% elseif parameter.type == 'integer' and parameter['x-example'] is empty %}1{% elseif parameter.type == 'number' and parameter['x-example'] is empty %}1.0{% else %}{{parameter.example}}{%~ endif ~%},{%~ endfor ~%}
+        ))
+
+        {%~ if method.type != 'webAuth' and method.type != 'location' and method.responseModel and method.responseModel != 'any' %}
+        {%~ if method.responseModel == 'row' or method.responseModel == 'document' or method.responseModel == 'preferences' %}
+        data['data'] = {}
+        {%~ endif  %}
+        self.assertEqual(response.to_dict(), data)
+        {%~ elseif method.type != 'webAuth' and method.type != 'location' %}
         self.assertEqual(response, data)
         {%~ endif  %}
 

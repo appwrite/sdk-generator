@@ -20,7 +20,7 @@ setuptools.setup(
   url = '{{spec.contactURL}}',
   download_url='https://github.com/{{sdk.gitUserName}}/{{sdk.gitRepoName}}/archive/{{sdk.version}}.tar.gz',
   install_requires=[
-    'requests',
+    'httpx>=0.27',
     'pydantic>=2,<3',
   ],
   python_requires='>=3.9',
