@@ -22,11 +22,23 @@ func (model {{ definition.name | caseUcfirst }}) New(data []byte) *{{ definition
 }
 
 {%~ if definition.additionalProperties %}
+func (p *{{ definition.name | caseUcfirst }}) UnmarshalJSON(b []byte) error {
+    p.data = make([]byte, len(b))
+    copy(p.data, b)
+
+    // Alias avoids infinite recursion (the alias has no methods).
+    type Alias {{ definition.name | caseUcfirst }}
+    aux := (*Alias)(p)
+    return json.Unmarshal(b, aux)
+}
+{%~ endif %}
+
+{%~ if definition.additionalProperties %}
 // Use this method to get response in desired type
 {%~ endif %}
 func (model *{{ definition.name | caseUcfirst }}) Decode(value interface{}) error {
     if len(model.data) <= 0 {
-        return errors.New("method Decode() cannot be used on nested struct")
+        return errors.New("model must be initialized from raw JSON via New() or JSON unmarshalling")
     }
 
     err := json.Unmarshal(model.data, value)
