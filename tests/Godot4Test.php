@@ -14,6 +14,8 @@ class Godot4Test extends Base
     protected array $build = [
         'mkdir -p tests/sdks/godot/tests',
         'cp tests/languages/godot/test.gd tests/sdks/godot/tests/test.gd',
+        'mkdir tests/sdks/godot/tests/resources/',
+        'cp -r tests/resources/ tests/sdks/godot/tests/',
         'cd tests/sdks/godot && godot --headless --import --quit',
     ];
     protected string $command = 'cd tests/sdks/godot && godot --headless --script tests/test.gd';

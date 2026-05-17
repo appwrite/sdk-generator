@@ -6,25 +6,20 @@ var Appwrite = _Appwrite.new()
 func _init() -> void:
     call_deferred("start")
 
-
 func start() -> void:
     await run_tests()
-
     print("\nAll tests completed")
-
     quit()
 
-
 func run_tests() -> void:
-    Appwrite.add_header("Origin", "http://localhost:8080")
-    Appwrite.set_self_signed(true)
-    Appwrite.set_project("123456789")
-    Appwrite.set_endpoint("http://localhost:8080/v1")
+    Appwrite.add_header("Origin", "http://localhost:8080") \
+        .set_project("123456") \
+        .set_self_signed(true) \
+        .set_endpoint("http://localhost:8080/v1")
 
     print("\nTest Started")
 
     var sdk_headers = Appwrite.get_headers()
-
     print(
         "x-sdk-name: %s; x-sdk-platform: %s; x-sdk-language: %s; x-sdk-version: %s"
         % [
@@ -35,6 +30,7 @@ func run_tests() -> void:
         ]
     )
 
+    print_response(await Appwrite.ping())
     await run_foo_tests()
     await run_bar_tests()
     await run_general_tests()
@@ -43,7 +39,6 @@ func run_tests() -> void:
     run_permission_tests()
     run_id_tests()
     run_operator_tests()
-
 
 func print_response(response) -> void:
     if response == null:
@@ -69,7 +64,6 @@ func print_response(response) -> void:
 
     print(response)
 
-
 func run_foo_tests() -> void:
     print_response(await Appwrite.foo.xget("string", 123, ["string in array"]))
     print_response(await Appwrite.foo.post("string", 123, ["string in array"]))
@@ -77,14 +71,12 @@ func run_foo_tests() -> void:
     print_response(await Appwrite.foo.patch("string", 123, ["string in array"]))
     print_response(await Appwrite.foo.delete("string", 123, ["string in array"]))
 
-
 func run_bar_tests() -> void:
     print_response(await Appwrite.bar.xget("string", 123, ["string in array"]))
     print_response(await Appwrite.bar.post("string", 123, ["string in array"]))
     print_response(await Appwrite.bar.put("string", 123, ["string in array"]))
     print_response(await Appwrite.bar.patch("string", 123, ["string in array"]))
     print_response(await Appwrite.bar.delete("string", 123, ["string in array"]))
-
 
 func run_general_tests() -> void:
     var response
@@ -166,7 +158,7 @@ func run_general_tests() -> void:
             "name": "Jane Doe",
             "score": 200
         })
-    ])
+    ] as Array[AppwritePlayer])
 
     print_response(response)
 
@@ -187,7 +179,6 @@ func run_general_tests() -> void:
     response = await Appwrite.general.headers()
     print_response(response)
 
-
 func test_errors() -> void:
     var response
 
@@ -200,14 +191,8 @@ func test_errors() -> void:
     response = await Appwrite.general.error502()
     print_response(response)
 
-    Appwrite.set_endpoint("htp://cloud.appwrite.io/v1")
-    var invalid_result = await Appwrite.ping()
-
-    if invalid_result is AppwriteException:
-        print(invalid_result.message)
-    else:
-        print(invalid_result)
-
+    response = Appwrite.set_endpoint("htp://cloud.appwrite.io/v1")
+    print_response(response)
 
 func run_query_tests() -> void:
     print(AppwriteQuery.equal("released", [true]))
@@ -230,7 +215,6 @@ func run_query_tests() -> void:
 
     print(AppwriteQuery.contains("title", "Spider"))
 
-
 func run_permission_tests() -> void:
     print(AppwritePermission.read(AppwriteRole.any()))
 
@@ -248,11 +232,9 @@ func run_permission_tests() -> void:
         )
     )
 
-
 func run_id_tests() -> void:
     print(AppwriteID.unique())
     print(AppwriteID.custom("custom_id"))
-
 
 func run_operator_tests() -> void:
     print(AppwriteOperator.increment())

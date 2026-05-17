@@ -25,9 +25,18 @@ func set_self_signed(status: bool = true) -> RefCounted:
     _self_signed = status
     return self
 
-func set_endpoint(endpoint: String) -> RefCounted:
-    _endpoint = endpoint
+func set_endpoint(endpoint: String) -> Variant:
+    if not _is_valid_endpoint(endpoint):
+        push_error("Invalid endpoint URL: " + endpoint)
+        return {{prefix}}Exception.new("Invalid endpoint URL: " + endpoint) 
+
+    _endpoint = endpoint.trim_suffix("/")
     return self
+
+func _is_valid_endpoint(url: String) -> bool:
+    var regex := RegEx.new()
+    regex.compile("^https?://.+")
+    return regex.search(url) != null
 
 func add_header(key: String, value: String) -> RefCounted:
     _global_headers[key.to_lower()] = value
@@ -71,10 +80,9 @@ func call_api(method: String, path: String = "", headers: Dictionary = {}, param
     var request_path := path
     var body := PackedByteArray()
     
-    if http_method in [HTTPClient.METHOD_GET, HTTPClient.METHOD_DELETE]:
+    if http_method == HTTPClient.METHOD_GET:
         if not params.is_empty():
-            var query_http := HTTPClient.new()
-            request_path += "?" + query_http.query_string_from_dict(params)
+            request_path += "?" + _query_string_from_dict(params)
     else:
         var has_files := false
         var large_file_key := ""
@@ -93,7 +101,7 @@ func call_api(method: String, path: String = "", headers: Dictionary = {}, param
             combined_headers["content-type"] = "multipart/form-data; boundary=" + boundary
             body = _build_multipart(params, boundary)
         else:
-            var body_str := JSON.stringify(params)
+            var body_str := JSON.stringify(_serialize(params))
             body = body_str.to_utf8_buffer()
             combined_headers["content-type"] = "application/json"
         
@@ -209,3 +217,45 @@ func _call_chunked(method: String, path: String, headers: Dictionary, params: Di
         on_progress.emit((float(start) / size) * 100.0, size, start)
         
     return response
+
+func _query_string_from_dict(p_dict: Dictionary) -> String:
+    var query := ""
+    for key in p_dict.keys():
+        var value = p_dict[key]
+        var base_key := str(key)
+        match typeof(value):
+            TYPE_ARRAY:
+                # Always use 'key[]' syntax for arrays, even with a single element
+                var encoded_key := (base_key + "[]").uri_encode()
+                for element in value:
+                    query += "&" + encoded_key + "=" + str(element).uri_encode()
+            TYPE_NIL:
+                query += "&" + base_key.uri_encode()
+            _:
+                query += "&" + base_key.uri_encode() + "=" + str(value).uri_encode()
+    if query.length() > 0:
+        query = query.substr(1)
+    return query
+
+func _serialize(value):
+    match typeof(value):
+        TYPE_ARRAY:
+            var arr := []
+            for item in value:
+                arr.append(_serialize(item))
+            return arr
+
+        TYPE_DICTIONARY:
+            var dict := {}
+            for key in value:
+                dict[key] = _serialize(value[key])
+            return dict
+
+        TYPE_OBJECT:
+            if value != null and value.has_method("to_dict"):
+                return _serialize(value.to_dict())
+
+            return value
+
+        _:
+            return value
