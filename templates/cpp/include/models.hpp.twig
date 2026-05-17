@@ -1,0 +1,125 @@
+{% autoescape false %}
+#pragma once
+
+#include <string>
+#include <vector>
+#include <optional>
+#include <nlohmann/json.hpp>
+#include "base.hpp"
+#include "enums/enums.hpp"
+
+namespace appwrite {
+namespace models {
+
+{% set allModels = spec.definitions | merge(spec.requestModels) %}
+// Forward declarations — required because some structs reference types defined later
+{% for definition in allModels | topoSort %}
+struct {{ definition.name | casePascal }};
+{% endfor %}
+
+{% for definition in allModels | topoSort %}
+/**
+ * @brief {{ definition.description }}
+ */
+{% if definition.properties is empty %}
+struct {{ definition.name | casePascal }} {
+    nlohmann::json data = nlohmann::json::object();
+
+    /** @brief Deserialize from JSON */
+    static {{ definition.name | casePascal }} fromJson(const nlohmann::json& j) {
+        {{ definition.name | casePascal }} obj;
+        obj.data = j;
+        return obj;
+    }
+
+    /** @brief Serialize to JSON */
+    [[nodiscard]] nlohmann::json toJson() const {
+        return data;
+    }
+};
+{% else %}
+struct {{ definition.name | casePascal }} {
+{% for property in definition.properties %}
+    /** @brief {{ property.description }} */
+    {{ property | propertyType(spec) }} {{ property.name | caseCamel | escapeKeyword }}{% if not property.required %} = std::nullopt{% endif %};
+{% endfor %}
+
+    /** @brief Deserialize from JSON */
+    static {{ definition.name | casePascal }} fromJson(const nlohmann::json& j) {
+        {{ definition.name | casePascal }} obj{}; // value-init: zeroes bools, ints, enums
+{% for property in definition.properties %}
+        if (j.contains("{{ property.name }}")) {
+            if (j["{{ property.name }}"].is_null()) {
+{% if property.required %}
+                throw appwrite::DeserializationException("Required field '{{ property.name }}' is null");
+{% else %}
+                obj.{{ property.name | caseCamel | escapeKeyword }} = std::nullopt;
+{% endif %}
+            } else {
+{% if property.sub_schema %}
+            {% if property.type == 'array' %}
+                {% if not property.required %}
+                obj.{{ property.name | caseCamel | escapeKeyword }} = std::vector<{{ property.sub_schema | casePascal }}>{};
+                {% endif %}
+                for (auto& item : j["{{ property.name }}"]) {
+                {% if not property.required %}
+                    obj.{{ property.name | caseCamel | escapeKeyword }}->push_back({{ property.sub_schema | casePascal }}::fromJson(item));
+                {% else %}
+                    obj.{{ property.name | caseCamel | escapeKeyword }}.push_back({{ property.sub_schema | casePascal }}::fromJson(item));
+                {% endif %}
+                }
+            {% else %}
+                obj.{{ property.name | caseCamel | escapeKeyword }} = {{ property.sub_schema | casePascal }}::fromJson(j["{{ property.name }}"]);
+            {% endif %}
+{% else %}
+                obj.{{ property.name | caseCamel | escapeKeyword }} = j["{{ property.name }}"].get<{{ property | propertyType(spec) }}>();
+{% endif %}
+            }
+        }
+{% endfor %}
+        return obj;
+    }
+
+    /** @brief Serialize to JSON */
+    [[nodiscard]] nlohmann::json toJson() const {
+        nlohmann::json j = nlohmann::json::object();
+{% for property in definition.properties %}
+{% if not property.required %}
+        if (this->{{ property.name | caseCamel | escapeKeyword }}.has_value()) {
+{% else %}
+        {
+{% endif %}
+{% set val = property.required ? "this->" ~ property.name | caseCamel | escapeKeyword : "this->" ~ property.name | caseCamel | escapeKeyword ~ ".value()" %}
+{% if property.sub_schema %}
+    {% if property.type == 'array' %}
+            nlohmann::json arr = nlohmann::json::array();
+            for (auto& item : this->{{ property.name | caseCamel | escapeKeyword }}{% if not property.required %}.value(){% endif %}) arr.push_back(item.toJson());
+            j["{{ property.name }}"] = arr;
+    {% else %}
+            j["{{ property.name }}"] = {{ val }}.toJson();
+    {% endif %}
+{% elseif property | enumName %}
+            j["{{ property.name }}"] = appwrite::enums::toString({{ val }});
+{% else %}
+            j["{{ property.name }}"] = {{ val }};
+{% endif %}
+        }
+{% endfor %}
+        return j;
+    }
+};
+{% endif %}
+
+/** @brief ADL hook for nlohmann::json */
+inline void from_json(const nlohmann::json& j, {{ definition.name | casePascal }}& x) {
+    x = {{ definition.name | casePascal }}::fromJson(j);
+}
+
+inline void to_json(nlohmann::json& j, const {{ definition.name | casePascal }}& x) {
+    j = x.toJson();
+}
+
+{% endfor %}
+} // namespace models
+} // namespace appwrite
+{% endautoescape %}

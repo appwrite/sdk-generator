@@ -16,6 +16,7 @@ tests/tmp
 
 # exception to the rule
 !examples/.gitkeep 
+!examples/cpp/
 
 **/.DS_Store
 templates/swift/example/.build
@@ -28,3 +29,10 @@ go.sum
 # exclude raw lock files in templates (use .twig versions instead)
 templates/cli/package-lock.json
 templates/cli/bun.lock
+# exclude demo folder
+demo/
+integration_output.log
+temp_master_workflow.yml
+examples/*/build/
+scratch/
+rebase_todo.txt

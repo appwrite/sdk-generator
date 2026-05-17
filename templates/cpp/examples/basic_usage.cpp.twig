@@ -1,0 +1,104 @@
+/**
+ * Basic usage example for {{ spec.title }} C++ SDK
+ *
+ * Build with:
+ *   cmake -S . -B build && cmake --build build
+ *   ./build/basic_usage
+ */
+#include <iostream>
+#include <appwrite/appwrite.hpp>
+
+int main() {
+    // Initialize the client
+    appwrite::Client client;
+    client
+        .setEndpoint("{{ spec.endpoint }}")         // Your API Endpoint
+        .setProject("5df5acd0d48c2")               // Your project ID
+        .setKey("919c2d18fb5d4...a2ae413da83346ad2"); // Your secret API key
+
+    std::cout << "🚀 {{ spec.title }} C++ SDK Example\n";
+    std::cout << "Connected to: " << client.getEndpoint() << "\n";
+
+    // Initialize services
+    appwrite::services::Users users(client);
+
+    // Create a new user
+    std::cout << "\n📝 Creating a new user...\n";
+    auto result = users.create(
+        appwrite::Id::unique(),
+        "walter.obrien@example.com",
+        "+1234567890",
+        "password123",
+        "Walter O'Brien"
+    );
+
+    if (result) {
+        std::cout << "✅ User created successfully!\n";
+        std::cout << "User: " << result->toJson().dump(2) << "\n";
+    } else {
+        std::cout << "❌ Error " << result.error().code()
+                  << ": " << result.error().message() << "\n";
+    }
+
+    // List users with queries
+    std::cout << "\n📋 Listing users...\n";
+    auto listResult = users.list(
+        { appwrite::Query::limit(10) }
+    );
+
+    if (listResult) {
+        std::cout << "✅ Found " << listResult->toJson()["total"] << " users\n";
+    } else {
+        std::cout << "❌ Error " << listResult.error().code()
+                  << ": " << listResult.error().message() << "\n";
+    }
+
+{% for service in spec.services %}
+{% if service.name == 'databases' %}
+    // Databases
+    std::cout << "\n🗄️ Working with databases...\n";
+    appwrite::services::Databases databases(client);
+    auto docsResult = databases.listDocuments(
+        "your-database-id",
+        "your-collection-id",
+        {
+            appwrite::Query::limit(10),
+            appwrite::Query::orderDesc("$createdAt")
+        }
+    );
+    if (docsResult) {
+        std::cout << "✅ Found " << docsResult->toJson()["total"] << " documents\n";
+    } else {
+        std::cout << "❌ " << docsResult.error().message() << "\n";
+    }
+{% endif %}
+{% endfor %}
+
+{% for service in spec.services %}
+{% if service.name == 'storage' %}
+    // Storage — upload a file
+    std::cout << "\n📁 Uploading a file...\n";
+    appwrite::services::Storage storage(client);
+    auto fileResult = storage.createFile(
+        "your-bucket-id",
+        appwrite::Id::unique(),
+        appwrite::InputFile::fromPath("path/to/your/file.png")
+    );
+    if (fileResult) {
+        std::cout << "✅ File uploaded: " << fileResult->toJson()["name"] << "\n";
+    } else {
+        std::cout << "❌ " << fileResult.error().message() << "\n";
+    }
+{% endif %}
+{% endfor %}
+
+    // Query builder examples
+    std::cout << "\n🔍 Query builder examples:\n";
+    std::cout << "  equal:   " << appwrite::Query::equal("status", "active") << "\n";
+    std::cout << "  between: " << appwrite::Query::between("age", 18, 65) << "\n";
+    std::cout << "  select:  " << appwrite::Query::select({"name", "email"}) << "\n";
+    std::cout << "  limit:   " << appwrite::Query::limit(25) << "\n";
+
+    std::cout << "\n🎉 Example complete!\n";
+    return 0;
+}
