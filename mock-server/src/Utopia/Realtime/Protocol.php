@@ -232,9 +232,6 @@ class Protocol
         if (isset($data['metadata']) && is_array($data['metadata'])) {
             $presence['metadata'] = $data['metadata'];
         }
-        if (isset($data['expiresAt'])) {
-            $presence['expiry'] = (string) $data['expiresAt'];
-        }
 
         // ACK the sender so a single-client "fire and verify" smoke test
         // still works (clients ignore the 'response' type).
